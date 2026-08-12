@@ -12,6 +12,9 @@
   let stream = null;
   let sourceNode = null;
   let active = false;
+  // Snapshot of the file-source audio before mic takes over. Used to
+  // restore the user's song when the mic is stopped.
+  let savedFileSnapshot = null;   // { file, wasPlaying, currentTime }
 
   async function start() {
     const SWR = window.SWR;
@@ -41,8 +44,25 @@
         video: false,
       });
 
-      // Tear down file source if present
-      if (Audio.audioEl) {
+      // Tear down file source if present — but snapshot first so we can
+      // restore it when the mic stops.
+      if (Audio.audioEl && Audio.audioEl.src && Audio.audioEl.src.startsWith('blob:')) {
+        try {
+          const resp = await fetch(Audio.audioEl.src);
+          const blob = await resp.blob();
+          // Re-create as a File so loadFile() works without modification.
+          const name = Audio.audioEl.src.split('/').pop().split('?')[0] || 'song';
+          const file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+          savedFileSnapshot = {
+            file,
+            wasPlaying: !!Audio.playing,
+            currentTime: Audio.audioEl.currentTime || 0,
+          };
+        } catch (err) {
+          // Snapshot failed — mic will still work, but stop() can't restore.
+          console.warn('[mic] failed to snapshot file source:', err);
+          savedFileSnapshot = null;
+        }
         try { Audio.audioEl.pause(); } catch {}
         try { Audio.audioEl.src = ''; } catch {}
       }
@@ -108,6 +128,35 @@
       Audio.playing = false;
       // Don't disconnect Audio.analyser — file source may reconnect later
     }
+    // Restore the file source if we snapshotted one when mic started.
+    const snap = savedFileSnapshot;
+    savedFileSnapshot = null;
+    if (snap && Audio && typeof Audio.loadFile === 'function') {
+      try {
+        Audio.loadFile(snap.file);
+        if (Audio.audioEl) {
+          const restore = () => {
+            try {
+              if (snap.currentTime && Audio.audioEl.duration && snap.currentTime < Audio.audioEl.duration) {
+                Audio.audioEl.currentTime = snap.currentTime;
+              }
+              if (snap.wasPlaying && Audio.play) Audio.play();
+            } catch {}
+          };
+          if (Audio.audioEl.readyState >= 1) restore();
+          else Audio.audioEl.addEventListener('loadedmetadata', restore, { once: true });
+        }
+        if (typeof setStatus === 'function') {
+          setStatus('mic off · song restored', 'ok');
+        }
+      } catch (err) {
+        if (typeof setStatus === 'function') {
+          setStatus('mic off · song restore failed: ' + err.message, 'warn');
+        }
+      }
+    } else {
+      setStatus('mic off', 'ok');
+    }
     const playBtn = document.getElementById('play');
     if (playBtn) {
       playBtn.textContent = '▶ Play';
@@ -122,7 +171,6 @@
       btn.classList.remove('active');
     }
     active = false;
-    setStatus('mic off', 'ok');
   }
 
   // Build the toggle button — inject next to the song file input
