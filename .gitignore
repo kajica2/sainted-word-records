@@ -8,3 +8,4 @@ dist
 verify-screenshots/
 verify-*.mjs
 _vinyl-sample/
+.vercel
