@@ -381,6 +381,26 @@
       line-height: 1;
     }
     .layer-head .x:hover { color: var(--accent); }
+    .layer-head .x-rot,
+    .layer-head .x-rand {
+      width: 18px; height: 18px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--ink-2);
+      font-size: 11px; line-height: 1;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: 0.15s;
+      margin-left: 4px;
+    }
+    .layer-head .x-rot:hover,
+    .layer-head .x-rand:hover {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+    .layer-head .x-rand:hover { background: var(--accent-2); border-color: var(--accent-2); }
 
     .layer-row {
       display: grid;
@@ -1234,6 +1254,8 @@
               <span class="num">${i + 1}</span>
               <span class="thumb">${l.asset ? '' : '∅'}</span>
               <span class="name">${l.asset ? escapeHtml(trunc(l.asset.name, 18)) : '(empty)'}</span>
+              <button class="x-rot" title="Rotate this clip +90° (or press R)">↻</button>
+              <button class="x-rand" title="Randomise pos / rot / scale / blend">🎲</button>
               <button class="x" title="remove">×</button>
             </div>
             <div class="layer-row">
@@ -1277,6 +1299,21 @@
           }
           el.addEventListener('click', (e) => {
             if (e.target.classList.contains('x')) { this.remove(l.id); return; }
+            if (e.target.classList.contains('x-rot')) {
+              l.pos.rot = (l.pos.rot + 90) % 360;
+              e.stopPropagation();
+              return;
+            }
+            if (e.target.classList.contains('x-rand')) {
+              l.pos.x = (Math.random() - 0.5) * 200;
+              l.pos.y = (Math.random() - 0.5) * 200;
+              l.pos.rot = Math.random() * 360;
+              l.baseScale = 0.4 + Math.random() * 1.4;
+              const blends = ['source-over','screen','multiply','lighter','difference','overlay','soft-light'];
+              l.blend = blends[Math.floor(Math.random() * blends.length)];
+              e.stopPropagation();
+              return;
+            }
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
             this.select(l);
           });
@@ -2219,7 +2256,17 @@
         window.addEventListener('keydown', (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
           if (e.code === 'Space') { e.preventDefault(); $('play').click(); }
-          if (e.key === 'r' || e.key === 'R') { $('re-map').click(); }
+          if (e.key === 'r' || e.key === 'R') {
+            // Context-sensitive: rotate the selected clip by 90° if one is selected;
+            // otherwise trigger RE-MAP.
+            const sel = (window.Layers && window.Layers.selected) || null;
+            if (sel) {
+              sel.pos.rot = (sel.pos.rot + 90) % 360;
+              if (window.Layers && typeof window.Layers.render === 'function') window.Layers.render();
+            } else {
+              $('re-map').click();
+            }
+          }
           if (e.key === 'l' || e.key === 'L') { $('add-layer').click(); }
           if (e.key === 'd' || e.key === 'D') { $('drag-mode').click(); }
         });
@@ -2308,6 +2355,9 @@
       // Wire preset dropdown
       const presetSel = document.getElementById('preset');
       if (presetSel) presetSel.addEventListener('change', (e) => applyPreset(e.target.value));
+      // Expose core state for debugging / programmatic use (Puppeteer tests, dev console, power users)
+      window.Layers = Layers;
+      window.Library = Library;
       // Set up canvas sample song for instant demo if no song loaded
       setStatus('ready', 'ok');
     })();
@@ -2323,5 +2373,6 @@
   <script type="module" src="trim.client.js"></script>
   <script type="module" src="persona-preview.client.js"></script>
   <script type="module" src="media-sets.client.js"></script>
+  <script type="module" src="share.client.js"></script>
 </body>
 </html>
