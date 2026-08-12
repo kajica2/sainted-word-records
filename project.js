@@ -2,27 +2,60 @@
 //
 // Project shape:
 //   {
-//     version: 1,
+//     version: 2,
 //     savedAt: <iso>,
 //     library: [ { id, name, type, motion, luma, hue, w, h, duration } ],   // metadata only
 //     layers:  [ { id, assetId, blend, opacity, baseScale, hue, brightness, contrast, reactors, pos, z } ],
-//     fx:      { temperature, mutations, mutAlgo, posterize, vignette, chroma, grain, sepia, glow },
+//     fx:      { temperature, mutations, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur },
 //     preset:  'pulse' | 'drift' | ... | null,
 //     persona: 'raw' | 'poster' | ... | 'off',
 //     scheduler: { enabled, minSeconds, maxSeconds, beatSync },
 //     panels:  { library: { rotated }, layers: { rotated } },
 //     palette: 'neon' | 'solar' | ...,
+//     audio:   { name, type, dataUrl, seekPosition } | null,
 //   }
 //
-// Library assets (videos/images) are NOT included in the project — they have
-// to be present on disk at load time, referenced by name. (Bigger blobs would
-// be base64-encoded and bloat the file 50-100x; out of scope for this item.)
-// The save dialog warns the user about this on download.
+// Audio source IS included — embedded as a base64 data URL so the project
+// is fully self-contained. A 4-minute MP3 ~ 4 MB becomes ~ 5.4 MB base64.
+// Library assets (videos/images) are still NOT bundled — they'd bloat the
+// file 50-100x. Users re-import clips after loading.
 
 (function () {
   if (window.Project) return;  // idempotent
 
-  const VERSION = 1;
+  const VERSION = 2;
+
+  // ---- Audio: serialize the current audioEl's source as base64 ----
+  async function captureAudio() {
+    const SWR = window.SWR || {};
+    const Audio = SWR.Audio || {};
+    const audioEl = Audio.audioEl;
+    if (!audioEl || !audioEl.src) return null;
+    // Skip mic/camera streams (they're not blob: URLs)
+    if (!audioEl.src.startsWith('blob:')) return null;
+
+    try {
+      // Fetch the blob URL and re-encode
+      const resp = await fetch(audioEl.src);
+      const blob = await resp.blob();
+      const dataUrl = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = () => reject(new Error('FileReader failed'));
+        fr.readAsDataURL(blob);
+      });
+      return {
+        name: Audio.feat && audioEl.src.split('/').pop().split('?')[0] || 'song',
+        type: blob.type || 'audio/mpeg',
+        dataUrl,
+        seekPosition: audioEl.currentTime || 0,
+        wasPlaying: !!Audio.playing,
+      };
+    } catch (err) {
+      console.warn('[project] audio capture failed:', err);
+      return null;
+    }
+  }
 
   function get() {
     const SWR = window.SWR || {};
@@ -128,11 +161,16 @@
       },
       panels,
       songName: (Audio.audioEl && Audio.audioEl.src) ? Audio.audioEl.src.split('/').pop().split('?')[0] : null,
+      // audio is filled in async by download() — leave null in get()'s sync return
+      audio: null,
     };
   }
 
-  function download() {
+  async function download() {
     const project = get();
+    // Capture audio (async — base64 encode the current audio file)
+    const audio = await captureAudio();
+    project.audio = audio;
     const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -144,20 +182,26 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     if (typeof setStatus === 'function') {
-      setStatus(`saved project (${project.layers.length} layers, ${project.library.length} assets)`, 'ok');
+      const audioNote = audio ? ` + audio (${Math.round(audio.dataUrl.length / 1024)} KB)` : ' (no audio)';
+      setStatus(`saved project (${project.layers.length} layers, ${project.library.length} assets${audioNote})`, 'ok');
     }
     return project;
   }
 
   // Apply a project snapshot to the running app.
-  // Restores: FX uniforms, sliders, persona, preset, palette, scheduler config, panel rotation.
-  // Library: names of missing assets are reported via setStatus; layers that reference them
-  //   keep their .asset reference but the asset may not resolve at draw time (UI will show empty).
-  // Audio: songName is informational; actual song playback is not auto-restored.
-  function apply(project) {
-    if (!project || project.version !== VERSION) {
+  // Restores: FX uniforms, sliders, persona, preset, palette, scheduler config,
+  // panel rotation, AND the audio source (if embedded as base64 data URL).
+  // Library: names of missing assets are reported via setStatus; layers that
+  //   reference them keep their .asset reference but the asset may not resolve
+  //   at draw time (UI will show empty).
+  // Audio: if project.audio.dataUrl is present, decoded back to a File and
+  //   fed through Audio.loadFile(). Seek position + play state restored.
+  async function apply(project) {
+    if (!project) return false;
+    // Allow version 1 (no audio) and version 2 (with audio).
+    if (project.version !== 1 && project.version !== VERSION) {
       if (typeof setStatus === 'function') {
-        setStatus(`project version mismatch (got ${project && project.version}, want ${VERSION})`, 'err');
+        setStatus(`project version mismatch (got ${project.version}, want 1 or ${VERSION})`, 'err');
       }
       return false;
     }
@@ -288,6 +332,38 @@
         ? `project restored (${missing} layer(s) skipped — assets missing)`
         : `project restored (${project.layers.length} layers)`;
       setStatus(msg, missing > 0 ? 'warn' : 'ok');
+    }
+
+    // 7. Restore audio source (if embedded as base64 in v2+)
+    if (project.audio && project.audio.dataUrl) {
+      try {
+        const a = project.audio;
+        const resp = await fetch(a.dataUrl);
+        const blob = await resp.blob();
+        const file = new File([blob], a.name || 'song', { type: a.type || 'audio/mpeg' });
+        // Feed through the normal load path so the engine wires up everything
+        if (Audio && typeof Audio.loadFile === 'function') {
+          Audio.loadFile(file);
+          // Restore seek position once metadata is loaded
+          if (a.seekPosition && Audio.audioEl) {
+            const restoreSeek = () => {
+              if (Audio.audioEl && Audio.audioEl.duration && a.seekPosition < Audio.audioEl.duration) {
+                Audio.audioEl.currentTime = a.seekPosition;
+              }
+              if (a.wasPlaying && Audio.play) Audio.play();
+            };
+            if (Audio.audioEl.readyState >= 1) restoreSeek();
+            else Audio.audioEl.addEventListener('loadedmetadata', restoreSeek, { once: true });
+          }
+          if (typeof setStatus === 'function') {
+            setStatus('restored audio: ' + (a.name || 'song'), 'ok');
+          }
+        }
+      } catch (err) {
+        if (typeof setStatus === 'function') {
+          setStatus('audio restore failed: ' + err.message, 'warn');
+        }
+      }
     }
 
     return true;

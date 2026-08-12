@@ -66,13 +66,14 @@
       --cool: #00e5ff;
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
     html, body { margin: 0; padding: 0; }
     body {
       font-family: var(--font-body);
       background: var(--bg); color: var(--ink);
       line-height: 1.6; -webkit-font-smoothing: antialiased;
       transition: background 0.3s, color 0.3s;
+      overflow-x: hidden;
     }
     a { color: var(--accent); text-decoration: none; transition: color 0.18s; }
     a:hover { color: var(--ink); }
@@ -157,6 +158,21 @@
     .price-tag .from { opacity: 0.7; font-size: 11px; text-transform: uppercase; }
     .price-tag .amount { font-family: var(--font-display); font-weight: 500; font-size: 22px; color: var(--accent-2); }
     .hero__cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .balkan-callout {
+      max-width: 640px; margin: 0 auto 28px;
+      padding: 16px 20px; background: var(--bg-3);
+      border: 1px solid var(--line); border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      text-align: left;
+    }
+    .balkan-callout__label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 6px; font-weight: 600;
+    }
+    .balkan-callout p {
+      font-size: 14px; color: var(--ink-2); line-height: 1.55; margin: 0;
+    }
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 14px 26px; border-radius: 999px;
@@ -297,6 +313,38 @@
     .price__cta:hover { background: var(--ink); color: var(--bg); }
     .price--featured .price__cta { background: var(--accent); color: white; border-color: var(--accent); }
     .price--featured .price__cta:hover { background: var(--ink); border-color: var(--ink); }
+
+    /* Regional split (Balkan / EU) */
+    .price__regional {
+      display: flex; align-items: baseline; gap: 6px;
+      font-family: var(--font-display); font-weight: 300;
+      font-size: 36px; line-height: 1; margin: 4px 0 4px;
+      color: var(--ink);
+    }
+    .price__regional .currency { font-size: 16px; vertical-align: top; opacity: 0.7; }
+    .price__regional-balk { color: var(--accent); font-weight: 400; }
+    .price__regional-sep { opacity: 0.35; font-weight: 300; }
+    .price__regional-eu { color: var(--ink); }
+    .price__regional-label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px;
+    }
+    .price__cta-secondary {
+      display: block; width: 100%; padding: 9px 14px;
+      border-radius: 999px; text-align: center;
+      font-size: 12px; font-weight: 600;
+      background: transparent; color: var(--accent);
+      border: 1px solid var(--accent);
+      margin-bottom: 8px; transition: 0.15s;
+    }
+    .price__cta-secondary:hover { background: var(--accent); color: white; }
+    .pricing__foot {
+      max-width: 720px; margin: 28px auto 0;
+      font-size: 13px; color: var(--ink-2);
+      text-align: center; line-height: 1.55;
+    }
+    .pricing__foot strong { color: var(--ink); font-weight: 600; }
 
     .founding-note {
       max-width: 720px; margin: 32px auto 0;
@@ -458,6 +506,87 @@
     .license__title { font-family: var(--font-display); font-weight: 500; font-size: 19px; margin: 0 0 10px; }
     .license__body { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.6; }
 
+    /* Yugo-nostalgia preset */
+    .yugo-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 28px;
+    }
+    @media (max-width: 820px) { .yugo-grid { grid-template-columns: 1fr; } }
+    .yugo-tile {
+      position: relative; aspect-ratio: 4/3;
+      border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--line);
+    }
+    .yugo-tile svg { width: 100%; height: 100%; display: block; }
+    .yugo-tile__label {
+      position: absolute; bottom: 10px; left: 10px;
+      padding: 4px 9px; border-radius: 4px;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      color: white; font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .yugo-pack {
+      max-width: 640px; margin: 24px auto 0;
+      padding: 24px 28px; background: var(--bg-3);
+      border: 1px solid var(--accent-2);
+      border-radius: var(--radius);
+      display: flex; gap: 20px; align-items: center;
+      flex-wrap: wrap; justify-content: space-between;
+    }
+    .yugo-pack__copy { flex: 1 1 240px; }
+    .yugo-pack__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 0 0 4px; color: var(--ink);
+    }
+    .yugo-pack__body { font-size: 14px; color: var(--ink-2); line-height: 1.5; margin: 0; }
+    .yugo-pack__price {
+      display: inline-flex; align-items: baseline; gap: 6px;
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 28px; color: var(--ink); margin-top: 8px;
+    }
+    .yugo-pack__price .from {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .yugo-pack__price .strike {
+      font-size: 18px; color: var(--muted); text-decoration: line-through;
+      font-weight: 300; margin-right: 4px;
+    }
+    .yugo-pack__price .now { color: var(--accent); font-weight: 500; }
+    .yugo-pack__form {
+      display: flex; gap: 8px; flex: 1 1 280px; min-width: 240px;
+    }
+    .yugo-pack__form input {
+      flex: 1; padding: 10px 12px; border-radius: 999px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      color: var(--ink); font-family: inherit; font-size: 13px;
+    }
+    .yugo-pack__form input:focus { outline: none; border-color: var(--accent); }
+    .yugo-pack__form button {
+      padding: 10px 18px; border-radius: 999px;
+      background: var(--accent-2); color: white; font-weight: 600;
+      font-size: 12px; border: none; white-space: nowrap;
+    }
+    .yugo-pack__form button:hover { background: var(--ink); }
+
+    /* Belgrade advantage (dark) */
+    .advantage {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 24px; max-width: 980px; margin: 0 auto;
+    }
+    @media (max-width: 820px) { .advantage { grid-template-columns: 1fr; } }
+    .advantage__col { padding: 0 4px; }
+    .advantage__num {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: 56px; line-height: 1; color: var(--accent-2);
+      margin-bottom: 12px;
+    }
+    .advantage__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 0 0 10px; color: var(--bg);
+    }
+    .advantage__body { font-size: 14px; line-height: 1.6; color: var(--bg-2); opacity: 0.85; margin: 0; }
+
     /* Form */
     .form {
       max-width: 560px; margin: 0 auto;
@@ -489,6 +618,20 @@
     }
     .form__submit:hover { background: var(--ink); }
     .form__note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+    .form__pay-row { margin-top: 8px; }
+    .form__pay-preview {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--ink-2); margin: 10px 0 0; text-align: center;
+      letter-spacing: 0.04em;
+    }
+    .form__pay-preview strong { color: var(--ink); font-weight: 600; }
+    .form__fallback {
+      display: block; width: 100%; padding: 10px 16px;
+      border-radius: 999px; background: transparent;
+      color: var(--ink-2); font-size: 12px; font-weight: 500;
+      border: 1px solid var(--line-2); margin-top: 8px;
+    }
+    .form__fallback:hover { border-color: var(--ink); color: var(--ink); }
 
     /* FAQ */
     .faq { max-width: 720px; margin: 0 auto; }
@@ -583,9 +726,9 @@
 <header class="hero">
   <div class="wrap">
     <div class="hero__eyebrow">
-      <span class="pulse"></span> Service-first · Browser-based · No software to learn
+      <span class="pulse"></span> Belgrade-based · €25 starting · 48-hour turnaround · in-person demos at KC Grad / Drugstore / Dot
     </div>
-    <h1>Send me your song.<br />Get a <em>music video</em> in 48 hours.</h1>
+    <h1>From <em>Belgrade</em> to the world.<br />Your song, audio-reactive, in 48 hours.</h1>
     <p class="lede">
       SWR turns any audio into a polished, audio-reactive MP4 visualizer —
       neon, film, grid, smoke, or hallucination. Built for Instagram, TikTok,
@@ -595,6 +738,14 @@
       <span class="from">Starting at</span>
       <span class="amount">€25</span>
       <span>· 48-hour turnaround · manual delivery</span>
+    </div>
+    <div class="balkan-callout">
+      <div class="balkan-callout__label">Balkan advantage</div>
+      <p>
+        €25 is nothing to a Berlin musician and real money to a Serbian artist —
+        I price for both. In-person demo at KC Grad, Drugstore, or Dot: 15 minutes,
+        you bring a song, I'll have your video on the laptop before the coffee gets cold.
+      </p>
     </div>
     <div class="hero__cta">
       <a class="btn btn--primary" href="#order">Send a song →</a>
@@ -645,54 +796,59 @@
   </div>
 </section>
 
-<!-- ============================ SAMPLES ============================ -->
-<section class="section section--alt" id="samples">
+<!-- ============================ SETS ============================ -->
+<section class="section section--alt" id="sets">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">02 · Portfolio</div>
-      <h2 class="section__title">Five styles. <em>One song</em> never sounds the same twice.</h2>
+      <div class="section__kicker">02 · Curated Sets</div>
+      <h2 class="section__title">Five <em>pre-built</em> media sets. Pick a vibe.</h2>
       <p class="section__lede">
-        The same track rendered in five distinct visual languages. These are the demos
-        you send to anyone who asks "what does this actually look like?"
+        Each set is a hand-picked bundle of clips and stills from the SWR library,
+        tuned to a specific aesthetic. You don't upload assets — you pick a mood,
+        send your song, and get a finished MP4.
       </p>
     </div>
     <div class="samples">
       <div class="sample">
-        <img src="library/p_01.jpg" alt="Neon style" loading="lazy" />
+        <img src="library/p_05.jpg" alt="Neon Church set" loading="lazy" />
         <div class="sample__label">
-          <div class="name">Neon</div>
-          <div class="genre">jazz · lo-fi · synthwave</div>
+          <div class="name">Neon Church</div>
+          <div class="genre">electric · club · urban · 8 assets</div>
         </div>
       </div>
       <div class="sample">
-        <img src="library/p_02.jpg" alt="Film style" loading="lazy" />
+        <img src="library/p_01.jpg" alt="Morning Haunt set" loading="lazy" />
         <div class="sample__label">
-          <div class="name">Film</div>
-          <div class="genre">electronic · ambient</div>
+          <div class="name">Morning Haunt</div>
+          <div class="genre">nostalgic · indie · lo-fi · 8 assets</div>
         </div>
       </div>
       <div class="sample">
-        <img src="library/p_03.jpg" alt="Grid style" loading="lazy" />
+        <img src="library/p_03.jpg" alt="Brutalist Grid set" loading="lazy" />
         <div class="sample__label">
-          <div class="name">Grid</div>
-          <div class="genre">techno · idm</div>
+          <div class="name">Brutalist Grid</div>
+          <div class="genre">hard geometry · monochrome · 8 assets</div>
         </div>
       </div>
       <div class="sample">
-        <img src="library/p_04.jpg" alt="Smoke style" loading="lazy" />
+        <img src="library/p_04.jpg" alt="Dream Sequence set" loading="lazy" />
         <div class="sample__label">
-          <div class="name">Smoke</div>
-          <div class="genre">hip-hop · r&b</div>
+          <div class="name">Dream Sequence</div>
+          <div class="genre">blur · haze · slow · 7 assets</div>
         </div>
       </div>
       <div class="sample">
-        <img src="library/p_05.jpg" alt="Hallucination style" loading="lazy" />
+        <img src="library/p_02.jpg" alt="System Error set" loading="lazy" />
         <div class="sample__label">
-          <div class="name">Hallucination</div>
-          <div class="genre">experimental · dream pop</div>
+          <div class="name">System Error</div>
+          <div class="genre">glitch · chaos · RGB · 10 assets</div>
         </div>
       </div>
     </div>
+    <p class="pricing__foot" style="margin-top:28px;">
+      <strong>Custom Source</strong> = you provide your own footage + photos,
+      I blend them with one SWR set. Same 48h turnaround, €55.
+    </p>
   </div>
 </section>
 
@@ -752,6 +908,19 @@
         <strong>Sound designers</strong>
         Showcasing sample packs and presets.
       </div>
+      <div class="target">
+        <strong>Belgrade / Serbian indie artists</strong>
+        Local releases, no video budget, fast turnaround.
+        <span class="target__best">Best fit</span>
+      </div>
+      <div class="target">
+        <strong>Regional labels (Ex-Yu)</strong>
+        Zagreb, Ljubljana, Sarajevo, Skopje imprints with 3–10 artists / year.
+      </div>
+      <div class="target">
+        <strong>Yugo-revival producers</strong>
+        Late-Yugoslav sound beat tapes, lo-fi sample packs, nostalgia-driven releases.
+      </div>
     </div>
   </div>
 </section>
@@ -761,75 +930,223 @@
   <div class="wrap">
     <div class="section__head">
       <div class="section__kicker">04 · Pricing</div>
-      <h2 class="section__title">Four tiers. <em>No subscription</em> required.</h2>
+      <h2 class="section__title">One song. <em>How many sets?</em></h2>
       <p class="section__lede">
-        Start simple. You can add complexity once you see what people actually order.
-        The first 3–5 customers get a founding rate in exchange for public-use permission.
+        Pricing depends on how many curated sets you want access to for your render.
+        Start with one. Upgrade to two for an A/B test. Go full rotation and get
+        all five looks to pick from. No subscription, no platform lock-in.
       </p>
     </div>
     <div class="pricing">
       <div class="price">
-        <div class="price__name">Basic</div>
-        <div class="price__amount"><span class="currency">€</span>15–25</div>
-        <div class="price__from">One 15-second clip · one style</div>
+        <div class="price__name">Single</div>
+        <div class="price__amount"><span class="currency">€</span>25</div>
+        <div class="price__from">1 set · 1 song · 30-second render</div>
         <ul class="price__list">
-          <li>15-second visualizer</li>
-          <li>1 visual style</li>
-          <li>Vertical or square MP4</li>
+          <li>1 curated set of your choice</li>
+          <li>30-second visualizer</li>
+          <li>1 format (9:16, 1:1, or 16:9)</li>
           <li>2 revision rounds</li>
           <li>48-hour delivery</li>
+          <li>Commercial-use rights</li>
         </ul>
-        <a class="price__cta" href="#order">Order Basic</a>
+        <!-- Replace with your real Stripe Payment Link for the €25 Single tier -->
+        <a class="price__cta" href="https://buy.stripe.com/SWR_SINGLE_25">Order Single €25 →</a>
       </div>
       <div class="price price--featured">
         <div class="price__badge">Most popular</div>
-        <div class="price__name">Standard</div>
-        <div class="price__amount"><span class="currency">€</span>35–60</div>
-        <div class="price__from">30-second · 2 styles · 2 formats</div>
+        <div class="price__name">Double</div>
+        <div class="price__amount"><span class="currency">€</span>45</div>
+        <div class="price__from">2 sets · 1 song · both rendered</div>
         <ul class="price__list">
+          <li>2 curated sets to choose from</li>
+          <li>30-second visualizer per set</li>
+          <li>2 formats (9:16 + 1:1 or 16:9)</li>
+          <li>3 revision rounds</li>
+          <li>48-hour delivery</li>
+          <li>Commercial-use rights</li>
+          <li>A/B test which vibe fits</li>
+        </ul>
+        <!-- Replace with your real Stripe Payment Link for the €45 Double tier -->
+        <a class="price__cta" href="https://buy.stripe.com/SWR_DOUBLE_45">Order Double €45 →</a>
+      </div>
+      <div class="price">
+        <div class="price__name">Full Rotation</div>
+        <div class="price__amount"><span class="currency">€</span>75</div>
+        <div class="price__from">All 5 sets · 1 song · 5 renders</div>
+        <ul class="price__list">
+          <li>All 5 curated sets</li>
+          <li>30-second visualizer per set</li>
+          <li>All formats (9:16 + 1:1 + 16:9)</li>
+          <li>Unlimited revisions within scope</li>
+          <li>48-hour delivery</li>
+          <li>Commercial-use rights</li>
+          <li>Perfect for label pitching</li>
+        </ul>
+        <!-- Replace with your real Stripe Payment Link for the €75 Full Rotation tier -->
+        <a class="price__cta" href="https://buy.stripe.com/SWR_FULL_75">Order Full €75 →</a>
+      </div>
+      <div class="price">
+        <div class="price__name">Custom Source</div>
+        <div class="price__amount"><span class="currency">€</span>55</div>
+        <div class="price__from">Your assets + 1 SWR set</div>
+        <ul class="price__list">
+          <li>Send your own footage + photos</li>
+          <li>1 SWR set blended with your assets</li>
           <li>30-second visualizer</li>
-          <li>2 visual styles to choose from</li>
-          <li>Vertical + square exports</li>
+          <li>All formats</li>
           <li>3 revision rounds</li>
           <li>48-hour delivery</li>
           <li>Commercial-use rights</li>
         </ul>
-        <a class="price__cta" href="#order">Order Standard</a>
-      </div>
-      <div class="price">
-        <div class="price__name">Pro</div>
-        <div class="price__amount"><span class="currency">€</span>100–200</div>
-        <div class="price__from">Full song or release campaign</div>
-        <ul class="price__list">
-          <li>Full-song or multi-clip bundle</li>
-          <li>All 5 visual styles</li>
-          <li>Vertical + square + landscape</li>
-          <li>Custom artwork / logo integration</li>
-          <li>Unlimited revisions within scope</li>
-        </ul>
-        <a class="price__cta" href="#order">Order Pro</a>
-      </div>
-      <div class="price">
-        <div class="price__name">Monthly</div>
-        <div class="price__amount"><span class="currency">€</span>100–250</div>
-        <div class="price__from">4 short visualizers / month</div>
-        <ul class="price__list">
-          <li>4 short visualizers per month</li>
-          <li>Rotating style catalogue</li>
-          <li>All aspect ratios</li>
-          <li>Priority queue</li>
-          <li>Cancelled anytime</li>
-        </ul>
-        <a class="price__cta" href="#order">Start subscription</a>
+        <!-- Replace with your real Stripe Payment Link for the €55 Custom tier -->
+        <a class="price__cta" href="https://buy.stripe.com/SWR_CUSTOM_55">Order Custom €55 →</a>
       </div>
     </div>
+    <p class="pricing__foot">
+      <strong>Add-ons:</strong> +€10 for 60-second length · +€25 for full-song render
+      · +€5 for Spotify Canvas crop · +€15 for 24-hour rush delivery.
+      <strong>Bundle:</strong> 3+ songs = 15% off any tier. Founding customers
+      (first 5 orders) get 30% off in exchange for portfolio display rights.
+    </p>
     <div class="founding-note">
       <div class="founding-note__icon">★</div>
       <div>
-        <strong>Founding customer rate:</strong> the first 3–5 buyers get
+        <strong>Founding customer rate:</strong> the first 5 buyers get
         a 30% discount in exchange for permission to display the finished
-        video publicly in your portfolio. After that, the listed prices apply.
+        video publicly in the portfolio. After that, listed prices apply.
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ YUGO-NOSTALGIA ============================ -->
+<section class="section section--alt" id="yugo-preset">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">05 · Coming next month</div>
+      <h2 class="section__title">A preset pack <em>no one else can make</em>.</h2>
+      <p class="section__lede">
+        Yugo-nostalgia. Brutalist architecture, CRT textures, the warm/cool
+        color palette of late-Yugoslav design. Coming as a paid preset pack in
+        Month 2 — the first 50 buyers get the launch price.
+      </p>
+    </div>
+    <div class="yugo-grid">
+      <div class="yugo-tile" aria-label="Brutalist blocks preview">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="brutal-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#d4a574"/>
+              <stop offset="1" stop-color="#8a4a2a"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="300" fill="url(#brutal-sky)"/>
+          <!-- Brutalist concrete blocks -->
+          <rect x="0" y="180" width="120" height="120" fill="#3a3530"/>
+          <rect x="120" y="140" width="80" height="160" fill="#4a4035"/>
+          <rect x="200" y="200" width="60" height="100" fill="#2c2419"/>
+          <rect x="260" y="120" width="140" height="180" fill="#5a4d40"/>
+          <!-- Window slits (Yugoslav modernist) -->
+          <rect x="20" y="210" width="6" height="14" fill="#1a1612"/>
+          <rect x="40" y="210" width="6" height="14" fill="#1a1612"/>
+          <rect x="60" y="210" width="6" height="14" fill="#1a1612"/>
+          <rect x="80" y="210" width="6" height="14" fill="#1a1612"/>
+          <rect x="20" y="240" width="6" height="14" fill="#1a1612"/>
+          <rect x="40" y="240" width="6" height="14" fill="#1a1612"/>
+          <rect x="60" y="240" width="6" height="14" fill="#1a1612"/>
+          <rect x="80" y="240" width="6" height="14" fill="#1a1612"/>
+          <rect x="140" y="170" width="4" height="20" fill="#1a1612"/>
+          <rect x="160" y="170" width="4" height="20" fill="#1a1612"/>
+          <rect x="180" y="170" width="4" height="20" fill="#1a1612"/>
+          <rect x="280" y="150" width="4" height="20" fill="#1a1612"/>
+          <rect x="300" y="150" width="4" height="20" fill="#1a1612"/>
+          <rect x="320" y="150" width="4" height="20" fill="#1a1612"/>
+          <rect x="340" y="150" width="4" height="20" fill="#1a1612"/>
+          <rect x="360" y="150" width="4" height="20" fill="#1a1612"/>
+          <!-- Antenna / satellite -->
+          <line x1="80" y1="180" x2="80" y2="100" stroke="#1a1612" stroke-width="2"/>
+          <line x1="60" y1="120" x2="100" y2="120" stroke="#1a1612" stroke-width="2"/>
+          <!-- Sun -->
+          <circle cx="320" cy="60" r="24" fill="#e6306b" opacity="0.85"/>
+        </svg>
+        <div class="yugo-tile__label">Brutalist blocks · Belgrade modernist</div>
+      </div>
+      <div class="yugo-tile" aria-label="CRT scan lines preview">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="crt-lines" x="0" y="0" width="2" height="3" patternUnits="userSpaceOnUse">
+              <rect width="2" height="1" fill="#f5ead8" opacity="0.08"/>
+              <rect y="1" width="2" height="2" fill="#0e0c0a"/>
+            </pattern>
+            <linearGradient id="crt-glow" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1c8c64" stop-opacity="0.4"/>
+              <stop offset="1" stop-color="#0085b3" stop-opacity="0.2"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="300" fill="#0e0c0a"/>
+          <!-- Faux CRT frame -->
+          <rect x="20" y="20" width="360" height="260" rx="20" fill="#1a1612"/>
+          <rect x="32" y="32" width="336" height="236" rx="12" fill="url(#crt-glow)"/>
+          <rect x="32" y="32" width="336" height="236" rx="12" fill="url(#crt-lines)"/>
+          <!-- Center waveform / text "BK" -->
+          <text x="200" y="160" text-anchor="middle" font-family="monospace" font-size="64" font-weight="700" fill="#00ffa3" opacity="0.9">BK</text>
+          <text x="200" y="200" text-anchor="middle" font-family="monospace" font-size="11" fill="#00ffa3" opacity="0.6" letter-spacing="3">PRISLUSKIVANJE</text>
+          <!-- Glitch bars -->
+          <rect x="32" y="100" width="336" height="2" fill="#ff2d8a" opacity="0.5"/>
+          <rect x="32" y="180" width="80" height="1" fill="#00e5ff" opacity="0.7"/>
+          <rect x="240" y="220" width="128" height="1" fill="#00e5ff" opacity="0.5"/>
+        </svg>
+        <div class="yugo-tile__label">CRT scan lines · 80s TV static</div>
+      </div>
+      <div class="yugo-tile" aria-label="Balkan palette preview">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="balkan-warm" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#d4a574"/>
+              <stop offset="0.5" stop-color="#e6306b"/>
+              <stop offset="1" stop-color="#1c8c64"/>
+            </linearGradient>
+            <linearGradient id="balkan-cool" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#0085b3"/>
+              <stop offset="0.5" stop-color="#4a4035"/>
+              <stop offset="1" stop-color="#ff8a3a"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="300" fill="#f1ebe1"/>
+          <!-- Color field: warm half -->
+          <rect x="0" y="0" width="200" height="300" fill="url(#balkan-warm)"/>
+          <!-- Color field: cool half -->
+          <rect x="200" y="0" width="200" height="300" fill="url(#balkan-cool)"/>
+          <!-- Faux torn paper / poster edges -->
+          <path d="M 200 0 L 210 20 L 198 40 L 212 70 L 195 95 L 215 130 L 200 160 L 218 190 L 200 220 L 210 250 L 198 280 L 200 300" stroke="#1a1612" stroke-width="2" fill="none" opacity="0.4"/>
+          <!-- Stamp / star (Yugoslav motif) -->
+          <polygon points="80,150 88,170 110,170 92,182 100,202 80,190 60,202 68,182 50,170 72,170" fill="#1a1612" opacity="0.75"/>
+          <circle cx="320" cy="150" r="30" fill="none" stroke="#1a1612" stroke-width="2" opacity="0.6"/>
+          <circle cx="320" cy="150" r="18" fill="none" stroke="#1a1612" stroke-width="1" opacity="0.5"/>
+          <text x="320" y="156" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#1a1612" opacity="0.7">BGD</text>
+        </svg>
+        <div class="yugo-tile__label">Balkan palette · warm + cool, no neutrals</div>
+      </div>
+    </div>
+    <div class="yugo-pack">
+      <div class="yugo-pack__copy">
+        <h3 class="yugo-pack__title">Yugo-nostalgia preset pack</h3>
+        <p class="yugo-pack__body">
+          6 visual styles · WAV/MP3 reactive · 9:16 + 1:1 exports · MIT-style
+          personal license. Use them on unlimited songs.
+        </p>
+        <div class="yugo-pack__price">
+          <span class="from">Launch</span>
+          <span class="strike">€19</span>
+          <span class="now">€12</span>
+          <span class="from">· first 50 buyers</span>
+        </div>
+      </div>
+      <form class="yugo-pack__form" onsubmit="return yugoWaitlistSubmit(event)">
+        <input type="email" id="yugo-email" required placeholder="you@band.fm" aria-label="Email for Yugo-nostalgia waitlist" />
+        <button type="submit">Notify me at launch →</button>
+      </form>
     </div>
   </div>
 </section>
@@ -838,7 +1155,7 @@
 <section class="section" id="funnel">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">05 · Free-to-paid funnel</div>
+      <div class="section__kicker">06 · Free-to-paid funnel</div>
       <h2 class="section__title">Free <em>demo</em>. Paid <em>delivery</em>.</h2>
       <p class="section__lede">
         The free version exists to prove the engine works. The paid version is
@@ -882,7 +1199,7 @@
 <section class="section section--alt" id="launch">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">06 · The €0 launch</div>
+      <div class="section__kicker">07 · The €0 launch</div>
       <h2 class="section__title">You can launch this <em>this week</em>.</h2>
       <p class="section__lede">
         Five things, all free, no accounts, no databases, no subscription
@@ -963,7 +1280,7 @@
 <section class="section" id="how">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">07 · The order flow</div>
+      <div class="section__kicker">08 · The order flow</div>
       <h2 class="section__title">Three steps. <em>48 hours.</em></h2>
       <p class="section__lede">
         Manual fulfillment, not platform complexity. The system is: send song,
@@ -1004,7 +1321,7 @@
 <section class="section section--alt" id="outreach">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">08 · The pitch that gets replies</div>
+      <div class="section__kicker">09 · The pitch that gets replies</div>
       <h2 class="section__title">Send 20 of these a day. <em>Watch what sticks.</em></h2>
       <p class="section__lede">
         Personal outreach beats every ad campaign for a service this small.
@@ -1013,11 +1330,11 @@
     </div>
     <div class="script" id="pitch-script">
       <div class="script__label">Copy-paste DM or email</div>
-      <p>Hey [name], I built a browser tool that turns a song into an audio-reactive MP4 visualizer. I made a sample in several styles and can create a 30-second version of one of your tracks for €25. You'll receive a vertical video ready for Instagram, TikTok, or YouTube Shorts. Interested?</p>
+      <p>Hey [name], I built a video engine that turns a song into an audio-reactive MP4 using curated visual sets — think of them as presets, but each one is a hand-picked bundle of clips and stills tuned to a specific mood. I have five: Neon Church (electric/club), Morning Haunt (nostalgic/indie), Brutalist Grid (hard techno), Dream Sequence (ambient/haze), and System Error (glitch/chaos). €25 gets you one 30-second render in any set. €45 gets you two sets rendered so you can A/B test the vibe. Want a free 10-second preview with your track?</p>
       <button class="script__copy-btn" type="button" onclick="copyPitch(this)">Copy pitch</button>
       <p class="script__note">
-        Look for musicians who have recently released a song but are posting only static artwork.
-        They have the audio, the launch date, and no video budget. Send the demo, not a doc.
+        Lead with the set names — they’re concrete and memorable. Artists book when they can
+        picture the result, not when they understand the technology.
       </p>
     </div>
   </div>
@@ -1027,7 +1344,7 @@
 <section class="section" id="publish">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">09 · Publishing playbook</div>
+      <div class="section__kicker">10 · Publishing playbook</div>
       <h2 class="section__title">Five things to post <em>before</em> you run an ad.</h2>
       <p class="section__lede">
         Don't spend money on ads yet. First prove that strangers will pay for the result.
@@ -1085,7 +1402,7 @@
 <section class="section section--alt" id="license">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">10 · Read this before you sell</div>
+      <div class="section__kicker">11 · Read this before you sell</div>
     </div>
     <div class="license">
       <div class="license__label">⚠ License clarity</div>
@@ -1108,7 +1425,7 @@
 <section class="section section--ink" id="recommendation">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">11 · The one-page launch</div>
+      <div class="section__kicker">12 · The one-page launch</div>
       <h2 class="section__title">Here's what to do, in order.</h2>
       <p class="section__lede">
         The cheapest, most realistic path. Service first, software second.
@@ -1136,11 +1453,58 @@
   </div>
 </section>
 
+<!-- ============================ BELGRADE ADVANTAGE ============================ -->
+<section class="section section--ink" id="belgrade-advantage">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">13 · The Belgrade advantage</div>
+      <h2 class="section__title">Three things <em>no US or EU competitor</em> can claim.</h2>
+      <p class="section__lede">
+        Being based in Belgrade isn't a constraint — it's a wedge. Here's why.
+      </p>
+    </div>
+    <div class="advantage">
+      <div class="advantage__col">
+        <div class="advantage__num">01</div>
+        <h3 class="advantage__title">Local pricing power</h3>
+        <p class="advantage__body">
+          €25 is the cost of a single ride-share to the airport, not a marketing
+          expense. A Berlin musician shrugs; a Serbian artist buys. Both close.
+          The EU rate and the Balkan rate let me win the same job at twice the
+          margin I'd get in London — and still come out cheaper than anything
+          they'd find on Fiverr.
+        </p>
+      </div>
+      <div class="advantage__col">
+        <div class="advantage__num">02</div>
+        <h3 class="advantage__title">Cultural angle</h3>
+        <p class="advantage__body">
+          The Yugo-nostalgia preset pack is unique because it's <em>authentic</em>,
+          not because it's marketed. Brutalist architecture, CRT scan lines, the
+          warm/cool color palette of late-Yugoslav design — I grew up on this.
+          A San Francisco competitor can copy the SVG, they can't copy the
+          intuition.
+        </p>
+      </div>
+      <div class="advantage__col">
+        <div class="advantage__num">03</div>
+        <h3 class="advantage__title">In-person closes</h3>
+        <p class="advantage__body">
+          Email me and I'll bring my laptop to KC Grad, Drugstore, or Dot.
+          15 minutes. You bring a song off your phone, I'll have it visualized
+          on the screen before the coffee gets cold. The free demo closes more
+          orders than any landing page I could write.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============================ FAQ ============================ -->
 <section class="section" id="faq">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">12 · The questions you'll be asked</div>
+      <div class="section__kicker">14 · The questions you'll be asked</div>
       <h2 class="section__title">Frequently <em>asked</em>.</h2>
     </div>
     <div class="faq">
@@ -1205,7 +1569,7 @@
 <section class="section section--alt" id="order">
   <div class="wrap">
     <div class="section__head">
-      <div class="section__kicker">13 · Send the song</div>
+      <div class="section__kicker">15 · Send the song</div>
       <h2 class="section__title">Tell me what you need. <em>I'll reply within 24 hours.</em></h2>
       <p class="section__lede">
         No account, no signup, no checkout. Email me directly with the form
@@ -1224,14 +1588,25 @@
       <div class="form__row">
         <label for="f-tier">Tier</label>
         <select id="f-tier">
-          <option value="basic">Basic · €15–25 · 15s · 1 style</option>
-          <option value="standard" selected>Standard · €35–60 · 30s · 2 styles</option>
-          <option value="pro">Pro · €100–200 · full song or release bundle</option>
-          <option value="monthly">Monthly · €100–250 · 4 shorts / month</option>
+          <option value="single">Single · €25 · 1 set · 30s</option>
+          <option value="double" selected>Double · €45 · 2 sets · 30s</option>
+          <option value="full">Full Rotation · €75 · all 5 sets · 30s</option>
+          <option value="custom">Custom Source · €55 · your assets + 1 set</option>
         </select>
       </div>
       <div class="form__row">
-        <label for="f-style">Preferred style</label>
+        <label for="f-sets">Curated sets</label>
+        <select id="f-sets" multiple size="5" style="height:auto; padding:8px;">
+          <option value="neon-church">Neon Church · electric / club / urban</option>
+          <option value="morning-haunt">Morning Haunt · nostalgic / indie / lo-fi</option>
+          <option value="brutalist-grid">Brutalist Grid · hard geometry / monochrome</option>
+          <option value="dream-sequence">Dream Sequence · blur / haze / slow</option>
+          <option value="system-error">System Error · glitch / chaos / RGB</option>
+        </select>
+        <p style="font-size:12px; color:var(--muted); margin:4px 0 0;">Hold Ctrl/Cmd to select multiple. Pick 1 for Single, 2 for Double, or all 5 for Full Rotation.</p>
+      </div>
+      <div class="form__row">
+        <label for="f-style">Preferred style (if unsure which set)</label>
         <select id="f-style">
           <option>Neon — jazz / lo-fi / synthwave</option>
           <option>Film — electronic / ambient</option>
@@ -1262,13 +1637,112 @@
         <label for="f-notes">Anything else?</label>
         <textarea id="f-notes" placeholder="Reference videos, mood, BPM, do/don'ts, custom artwork..."></textarea>
       </div>
-      <button class="form__submit" type="submit">Open email with all the details →</button>
+      <div class="form__pay-row">
+        <button class="form__submit" type="submit" id="form-pay-btn">Pay with Stripe →</button>
+        <p class="form__pay-preview" id="form-pay-preview">
+          Selected: <strong>Standard</strong> · <strong>Balkan</strong> · <strong>€35</strong>
+        </p>
+      </div>
       <p class="form__note">
-        This opens your mail client pre-filled with everything above. Reply with
-        the audio attached or linked. No newsletter, no tracking, no follow-ups
+        <strong>Pay with Stripe</strong> sends you to a secure checkout and your
+        form details (song link, style, format) are forwarded automatically.
+        <strong>If Stripe doesn't work in your country</strong>, or you'd rather
+        pay by invoice, click below to open an email pre-filled with everything above.
+        I'll reply within 24 hours. No newsletter, no tracking, no follow-ups
         you didn't ask for.
       </p>
+      <button class="form__fallback" type="button" id="form-fallback-btn">Or — email me the order instead →</button>
     </form>
+  </div>
+</section>
+
+<!-- ============================ THIS WEEK'S CHECKLIST ============================ -->
+<section class="section section--alt" id="weekly-checklist">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">16 · The next 7 days</div>
+      <h2 class="section__title">This week's <em>checklist</em>.</h2>
+      <p class="section__lede">
+        Six concrete tasks. Total time investment: one afternoon, plus the
+        in-person demo. Don't ship the page before this list is done.
+      </p>
+    </div>
+    <div class="checklist">
+      <div class="check">
+        <div class="check__num">1</div>
+        <div>
+          <h3 class="check__title">Replace Stripe placeholder URLs with real ones</h3>
+          <p class="check__body">
+            Open this file, search for <code>https://buy.stripe.com/</code>, swap each of
+            the 4 Payment Link placeholders (Single €25, Double €45, Full Rotation €75,
+            Custom Source €55) for the real links from your Stripe dashboard. Each
+            placeholder is marked with an HTML comment naming the tier and price.
+          </p>
+          <span class="check__price">10 min</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">2</div>
+        <div>
+          <h3 class="check__title">Render 3 portfolio samples in 3 genres</h3>
+          <p class="check__body">
+            One hip-hop track, one ambient piece, one punk song. Use 3 different
+            visual styles. These go in <code>library/p_01.jpg</code> through <code>p_05.jpg</code>
+            so the <code>#samples</code> grid is real, not placeholders.
+          </p>
+          <span class="check__price">3 hours</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">3</div>
+        <div>
+          <h3 class="check__title">Post a before/after TikTok / Reel</h3>
+          <p class="check__body">
+            Same song, first frame = album art + audio only, second frame = the
+            SWR visualizer. 8 seconds. Caption: "made this in Belgrade, €25, DM me."
+            One post is worth more than a month of outreach DMs.
+          </p>
+          <span class="check__price">1 hour</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">4</div>
+        <div>
+          <h3 class="check__title">DM 10 musicians with the pitch from this page</h3>
+          <p class="check__body">
+            Copy the <code>#outreach</code> script above, personalize each one with the
+            artist's most recent track, and send 10 a day. Look for people who
+            posted audio but no video in the last two weeks.
+          </p>
+          <span class="check__price">2 hours</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">5</div>
+        <div>
+          <h3 class="check__title">Set up Notion or Airtable for order tracking</h3>
+          <p class="check__body">
+            Five columns: artist name, tier paid, Stripe link, song link, delivery
+            date. Add a row every time a Payment Link converts. Don't build a
+            backend — this is a spreadsheet that survives until you hit 50 orders.
+          </p>
+          <span class="check__price">30 min</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">6</div>
+        <div>
+          <h3 class="check__title">Reach out to 1 Belgrade-based artist for an in-person demo</h3>
+          <p class="check__body">
+            DM or email one local artist. Offer to meet at KC Grad, Drugstore, or
+            Dot with a laptop. 15 minutes, you render their song live. The first
+            Belgrade-based paying customer will come from this conversation, not
+            from the page.
+          </p>
+          <span class="check__price">1 hour</span>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1277,10 +1751,11 @@
   <div class="wrap">
     <div class="footer__grid">
       <div>
-        <div class="footer__brand"><span class="dot"></span> SWR Visualizers</div>
+        <div class="footer__brand"><span class="dot"></span> SWR Visualizers · Belgrade</div>
         <p class="footer__tag">
           Audio-reactive music videos for independent artists. Built in a browser,
-          delivered in 48 hours, priced for solo releases.
+          delivered in 48 hours, priced for solo releases. Belgrade-based —
+          in-person demos at KC Grad, Drugstore, or Dot.
         </p>
       </div>
       <div class="footer__col">
@@ -1322,6 +1797,76 @@
   (function() {
     var CONTACT_EMAIL = 'orders@swr.example';
 
+    // Stripe Payment Link map. Replace each placeholder URL with the real
+    // Stripe Payment Link for the matching tier + region. The form will
+    // append ?prefilled_email=, ?client_reference_id=, and a comment
+    // field with the song link / style / format.
+    var STRIPE_LINKS = {
+      'single':  'https://buy.stripe.com/SWR_SINGLE_25',
+      'double':  'https://buy.stripe.com/SWR_DOUBLE_45',
+      'full':    'https://buy.stripe.com/SWR_FULL_75',
+      'custom':  'https://buy.stripe.com/SWR_CUSTOM_55'
+    };
+    var TIER_LABEL = {
+      single: 'Single', double: 'Double', full: 'Full Rotation', custom: 'Custom Source'
+    };
+    var TIER_PRICE = {
+      single: '€25', double: '€45', full: '€75', custom: '€55'
+    };
+    var TIER_SETS = {
+      single: '1 set', double: '2 sets', full: 'all 5 sets', custom: 'your assets + 1 set'
+    };
+
+    function buildOrderComment() {
+      var style = document.getElementById('f-style').value;
+      var format = document.getElementById('f-format').value;
+      var deadline = document.getElementById('f-deadline').value.trim();
+      var link = document.getElementById('f-link').value.trim();
+      var notes = document.getElementById('f-notes').value.trim();
+      return [
+        'Song link: ' + (link || '(see email)'),
+        'Style: ' + style,
+        'Format: ' + format,
+        'Deadline: ' + (deadline || 'flexible'),
+        notes ? 'Notes: ' + notes : ''
+      ].filter(Boolean).join(' | ');
+    }
+
+    function buildMailto() {
+      var tier = document.getElementById('f-tier').value;
+      var name = document.getElementById('f-name').value.trim();
+      var email = document.getElementById('f-email').value.trim();
+      var style = document.getElementById('f-style').value;
+      var format = document.getElementById('f-format').value;
+      var deadline = document.getElementById('f-deadline').value.trim();
+      var link = document.getElementById('f-link').value.trim();
+      var notes = document.getElementById('f-notes').value.trim();
+      var setsEl = document.getElementById('f-sets');
+      var sets = setsEl ? Array.from(setsEl.selectedOptions).map((o) => o.textContent.trim().split(' · ')[0]).join(', ') : '';
+      var price = TIER_PRICE[tier] || '';
+      var label = TIER_LABEL[tier] || tier;
+      var body = 'Hi SWR,\n\n' +
+                 'Tier: ' + label + ' (' + price + ')\n' +
+                 (sets ? 'Curated sets: ' + sets + '\n' : '') +
+                 'Style: ' + style + '\n' +
+                 'Format: ' + format + '\n' +
+                 'Deadline: ' + (deadline || 'flexible') + '\n' +
+                 'Song link: ' + link + '\n\n' +
+                 (notes ? 'Notes:\n' + notes + '\n\n' : '') +
+                 '--\n' + name + '\n' + email;
+      var subject = 'SWR order · ' + label + ' · ' + name;
+      return 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    }
+
+    function updatePayPreview() {
+      var tier = document.getElementById('f-tier');
+      var preview = document.getElementById('form-pay-preview');
+      if (!tier || !preview) return;
+      var label = TIER_LABEL[tier.value] || tier.value;
+      var price = TIER_PRICE[tier.value] || '';
+      preview.innerHTML = 'Selected: <strong>' + label + '</strong> · <strong>' + price + '</strong>';
+    }
+
     // Theme toggle
     var themePref = document.documentElement.getAttribute('data-theme-pref') || 'system';
     function cycleTheme() {
@@ -1361,32 +1906,52 @@
       setTimeout(function() { btn.innerText = old; btn.classList.remove('is-copied'); }, 1800);
     };
 
-    // Order form → mailto
+    // Yugo-nostalgia waitlist → mailto
+    window.yugoWaitlistSubmit = function(e) {
+      e.preventDefault();
+      var email = document.getElementById('yugo-email').value.trim();
+      var subject = 'Yugo-nostalgia waitlist';
+      var body = 'Notify me when the Yugo-nostalgia preset pack launches.\n\n--\n' + email;
+      var href = 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      window.location.href = href;
+      return false;
+    };
+
+    // Order form → Stripe Payment Link (primary) with email fallback
     var form = document.getElementById('order-form');
     var fallback = document.getElementById('fallback-email');
+    var fallbackBtn = document.getElementById('form-fallback-btn');
     if (fallback) fallback.textContent = CONTACT_EMAIL;
+    updatePayPreview();
+    var tierEl = document.getElementById('f-tier');
+    if (tierEl) tierEl.addEventListener('change', updatePayPreview);
     if (form) {
       form.addEventListener('submit', function(e) {
         e.preventDefault();
         var tier = document.getElementById('f-tier').value;
-        var name = document.getElementById('f-name').value.trim();
         var email = document.getElementById('f-email').value.trim();
-        var style = document.getElementById('f-style').value;
-        var format = document.getElementById('f-format').value;
-        var deadline = document.getElementById('f-deadline').value.trim();
-        var link = document.getElementById('f-link').value.trim();
-        var notes = document.getElementById('f-notes').value.trim();
-        var body = 'Hi SWR,\n\n' +
-                   'Tier: ' + tier + '\n' +
-                   'Style: ' + style + '\n' +
-                   'Format: ' + format + '\n' +
-                   'Deadline: ' + (deadline || 'flexible') + '\n' +
-                   'Song link: ' + link + '\n\n' +
-                   (notes ? 'Notes:\n' + notes + '\n\n' : '') +
-                   '--\n' + name + '\n' + email;
-        var subject = 'SWR order · ' + tier + ' · ' + name;
-        var href = 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-        window.location.href = href;
+        var name = document.getElementById('f-name').value.trim();
+        var stripeUrl = STRIPE_LINKS[tier];
+        if (!stripeUrl) {
+          // No Stripe link for this tier — fall back to mailto
+          window.location.href = buildMailto();
+          return;
+        }
+        // Append Stripe-supported prefills. Stripe Payment Links accept
+        // ?prefilled_email= and custom field params (?client_reference_id=).
+        var params = [];
+        if (email) params.push('prefilled_email=' + encodeURIComponent(email));
+        params.push('client_reference_id=' + encodeURIComponent(name + '|' + tier));
+        // We also stash the order comment in the hash so it survives the redirect
+        // and the user can paste it in the "note" field on the Stripe checkout.
+        var comment = buildOrderComment();
+        var finalUrl = stripeUrl + (stripeUrl.indexOf('?') === -1 ? '?' : '&') + params.join('&') + '#order=' + encodeURIComponent(comment);
+        window.location.href = finalUrl;
+      });
+    }
+    if (fallbackBtn) {
+      fallbackBtn.addEventListener('click', function() {
+        window.location.href = buildMailto();
         setTimeout(function() {
           document.getElementById('modal-backdrop').classList.add('is-open');
         }, 300);

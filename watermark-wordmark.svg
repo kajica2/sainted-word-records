@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 50" width="240" height="50">
+  <!-- SAINTED WORD wordmark -->
+  <text x="0" y="28" fill="white" font-family="Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="6">SAINTED WORD</text>
+  <!-- RECORDS subline -->
+  <text x="2" y="44" fill="white" font-family="Helvetica Neue, Arial, sans-serif" font-size="7" font-weight="400" letter-spacing="8" opacity="0.5">R E C O R D S</text>
+  <!-- Thin underline accent -->
+  <line x1="0" y1="32" x2="220" y2="32" stroke="white" stroke-width="0.3" opacity="0.3" />
+</svg>

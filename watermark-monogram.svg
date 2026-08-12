@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <!-- SWR Monogram -->
+  <g fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- S -->
+    <path d="M8,15 Q2,15 2,22 Q2,30 12,30 Q22,30 22,38 Q22,45 16,45" />
+    <!-- W -->
+    <path d="M35,15 L42,45 L50,25 L58,45 L65,15" />
+    <!-- R -->
+    <path d="M78,15 L78,45 M78,15 Q95,15 95,25 Q95,35 78,35 M85,35 L95,45" />
+  </g>
+  <!-- Subtle divider -->
+  <line x1="105" y1="18" x2="105" y2="42" stroke="white" stroke-width="0.5" opacity="0.4" />
+  <!-- SAINTED WORD -->
+  <text x="115" y="30" fill="white" font-family="Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="300" letter-spacing="3">SAINTED WORD</text>
+  <!-- RECORDS -->
+  <text x="115" y="44" fill="white" font-family="Helvetica Neue, Arial, sans-serif" font-size="6" font-weight="400" letter-spacing="5" opacity="0.6">RECORDS</text>
+</svg>

@@ -73,6 +73,24 @@
       font: 9px/1 ui-monospace; letter-spacing: 0.12em; text-transform: uppercase; }
     a.nav:hover { background: var(--g); color: #000; }
     input[type=file] { display: none; }
+
+    /* SWR watermark overlay */
+    .swr-watermark {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 100px;
+      opacity: 0.45;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: screen;
+    }
+    .swr-watermark img {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+    }
   </style>
 </head>
 <body>
@@ -114,6 +132,9 @@
     <section class="stage">
       <canvas id="render"></canvas>
       <canvas id="noise"></canvas>
+      <div class="swr-watermark">
+        <img src="../watermark-monogram.svg" alt="SWR" />
+      </div>
     </section>
     <aside class="layers">
       <div class="head"><h2>Layers</h2><button class="tbtn" id="remap" style="padding:3px 8px;">RE-MAP</button></div>

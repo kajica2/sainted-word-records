@@ -19,6 +19,34 @@ treatments.
 **[Open the landing →](./landing.html)**
 **[Open the engine →](./index.html)**
 **[See the 5 versions →](./versions/)**
+**[Get a visualizer →](./campaign.html)** — €25 rendered MP4s for musicians
+
+---
+
+## Visualizer Service
+
+Don't want to run the engine yourself? I render audio-reactive videos as a service.
+
+Five curated visual sets, tuned to specific moods:
+
+- **Neon Church** — electric, club, urban energy
+- **Morning Haunt** — nostalgic, film grain, indie warmth
+- **Brutalist Grid** — hard geometry, monochrome, precision
+- **Dream Sequence** — motion blur, haze, ambient drift
+- **System Error** — glitch artifacts, RGB split, controlled chaos
+
+| Tier | Sets | Price |
+|------|------|-------|
+| Single | 1 set, 1 song, 30s | €25 |
+| Double | 2 sets, both rendered | €45 |
+| Full Rotation | all 5 sets, 5 renders | €75 |
+| Custom Source | your assets + 1 SWR set | €55 |
+
+Free 10-second preview with your track. 48-hour delivery. Commercial rights included.
+
+→ **[Order at campaign.html](./campaign.html)**
+
+The engine itself stays open-source (MIT). The service is the rendered output.
 
 ## Features
 

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thanks · SWR Visualizers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a;
+      --ink: #f5ead8;
+      --muted: #8a7a66;
+      --accent: #ff2d8a;
+      --line: #2c2419;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 40px 24px;
+    }
+    .card {
+      max-width: 520px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 48px 40px;
+      background: rgba(28, 24, 18, 0.4);
+    }
+    .logo {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 24px;
+      background: var(--accent);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--bg);
+      letter-spacing: -0.02em;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 500;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    p {
+      font-size: 16px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin: 0 0 32px;
+    }
+    .steps {
+      text-align: left;
+      margin: 0 0 32px;
+      padding: 0;
+      list-style: none;
+    }
+    .steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .steps li:last-child { border-bottom: none; }
+    .steps .num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--line);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.15s ease;
+    }
+    .cta:hover { transform: translateY(-2px); }
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 20px;
+    }
+    .small a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .small a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">SWR</div>
+    <h1>Order confirmed</h1>
+    <p>You'll receive an email within 2 hours with instructions. Here's what happens next:</p>
+    <ol class="steps">
+      <li>
+        <span class="num">1</span>
+        <div><strong>Send your song</strong> — Reply to the confirmation email with a WeTransfer, Drive, or Dropbox link to your track (WAV or MP3, anything works).</div>
+      </li>
+      <li>
+        <span class="num">2</span>
+        <div><strong>Pick your set(s)</strong> — Tell us which curated set(s) you want: Neon Church, Morning Haunt, Brutalist Grid, Dream Sequence, or System Error.</div>
+      </li>
+      <li>
+        <span class="num">3</span>
+        <div><strong>Get your render</strong> — 48-hour delivery for the first revision. Unlimited revisions within scope.</div>
+      </li>
+    </ol>
+    <a class="cta" href="mailto:hello@saintedwordrecords.com?subject=SWR%20Order%20—%20Track%20Delivery">
+      Send your track now
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+    <p class="small">
+      Questions? <a href="mailto:hello@saintedwordrecords.com">hello@saintedwordrecords.com</a><br>
+      <a href="./campaign.html">← Back to SWR Visualizers</a>
+    </p>
+  </div>
+</body>
+</html>

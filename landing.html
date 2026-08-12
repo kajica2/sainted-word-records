@@ -383,6 +383,88 @@
       border-radius: 999px;
     }
 
+    /* ===== PERSONAS (inside #versions) ===== */
+    .personas-divider {
+      margin: 64px 0 32px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .personas-divider::before,
+    .personas-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--line);
+    }
+    .personas-divider__label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); font-weight: 600;
+    }
+    .personas-intro {
+      max-width: 680px; margin: 0 auto 32px;
+      text-align: center;
+    }
+    .personas-intro h3 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(26px, 3.4vw, 38px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 12px; color: var(--ink);
+    }
+    .personas-intro h3 em { font-style: italic; color: var(--accent); }
+    .personas-intro p {
+      font-size: 15px; color: var(--ink-2);
+      line-height: 1.55; margin: 0;
+    }
+    .personas {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    }
+    @media (max-width: 980px) { .personas { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .personas { grid-template-columns: 1fr; } }
+    .persona {
+      position: relative;
+      padding: 18px 18px 16px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .persona:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .persona__icon {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; line-height: 1;
+      background: var(--bg-2); border-radius: 6px;
+      margin-bottom: 12px;
+    }
+    .persona__name {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 16px; line-height: 1.2;
+      margin: 0 0 6px; color: var(--ink);
+    }
+    .persona__body {
+      font-size: 13px; color: var(--ink-2);
+      line-height: 1.5; margin: 0;
+    }
+    .persona__best {
+      position: absolute; top: 10px; right: 10px;
+      display: inline-block;
+      padding: 2px 8px; border-radius: 999px;
+      background: var(--accent); color: white;
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      font-weight: 600;
+    }
+    .persona__tool {
+      display: inline-block; margin-top: 8px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.06em; color: var(--muted);
+    }
+    .persona__tool code {
+      background: var(--bg-2); color: var(--ink-2);
+      padding: 1px 5px; border-radius: 3px;
+      font-family: var(--font-mono); font-size: 10px;
+    }
+
     /* ===== QUICK START (TERMINAL) ===== */
     .quick {
       display: grid; grid-template-columns: 1fr 1.4fr; gap: 48px; align-items: center;
@@ -521,9 +603,9 @@
         <a href="#stack">Stack</a>
       </div>
       <theme-toggle></theme-toggle>
-      <a class="nav__cta" href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">
-        <svg class="icon-gh" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        Star on GitHub
+      <a class="nav__cta" href="./campaign.html">
+        Get a visualizer
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
       </a>
     </div>
   </nav>
@@ -546,13 +628,12 @@
           keys, no install.
         </p>
         <div class="hero__cta">
-          <a class="btn btn--primary" href="./index.html">
-            Open the engine
+          <a class="btn btn--primary" href="./campaign.html">
+            Get a visualizer — €25
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
           </a>
-          <a class="btn btn--ghost" href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">
-            <svg class="icon-gh" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-            Source on GitHub
+          <a class="btn btn--ghost" href="./index.html">
+            Open the engine
           </a>
         </div>
       </div>
@@ -770,6 +851,71 @@
             </div>
           </div>
         </a>
+      </div>
+
+      <!-- ============ PERSONAS ============ -->
+      <div class="personas-divider">
+        <span class="personas-divider__label">Made for these people</span>
+      </div>
+      <div class="personas-intro">
+        <h3>Who actually <em>uses</em> this.</h3>
+        <p>
+          The engine and its 5 versions were built for people who have audio and
+          a release date, and zero budget for a video editor. The profiles below
+          are the ones who reach for it first.
+        </p>
+      </div>
+      <div class="personas">
+        <div class="persona">
+          <span class="persona__best">Best fit</span>
+          <div class="persona__icon">♪</div>
+          <h4 class="persona__name">Indie musician</h4>
+          <p class="persona__body">Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.</p>
+          <span class="persona__tool">→ <code>versions/neon.html</code></span>
+        </div>
+        <div class="persona">
+          <div class="persona__icon">▰</div>
+          <h4 class="persona__name">Beatmaker</h4>
+          <p class="persona__body">Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.</p>
+          <span class="persona__tool">→ <code>versions/grid.html</code></span>
+        </div>
+        <div class="persona">
+          <div class="persona__icon">◐</div>
+          <h4 class="persona__name">DJ</h4>
+          <p class="persona__body">Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.</p>
+          <span class="persona__tool">→ <code>versions/smoke.html</code></span>
+        </div>
+        <div class="persona">
+          <div class="persona__icon">✦</div>
+          <h4 class="persona__name">Small label</h4>
+          <p class="persona__body">3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.</p>
+          <span class="persona__tool">→ <code>versions/film.html</code></span>
+        </div>
+        <div class="persona">
+          <span class="persona__best">Best fit</span>
+          <div class="persona__icon">◎</div>
+          <h4 class="persona__name">Belgrade / Serbian artist</h4>
+          <p class="persona__body">Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.</p>
+          <span class="persona__tool">→ <code>campaign.html</code></span>
+        </div>
+        <div class="persona">
+          <div class="persona__icon">≋</div>
+          <h4 class="persona__name">Podcaster</h4>
+          <p class="persona__body">One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.</p>
+          <span class="persona__tool">→ <code>versions/film.html</code></span>
+        </div>
+        <div class="persona">
+          <div class="persona__icon">⌗</div>
+          <h4 class="persona__name">Sound designer</h4>
+          <p class="persona__body">Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.</p>
+          <span class="persona__tool">→ <code>versions/hallucination.html</code></span>
+        </div>
+        <div class="persona">
+          <div class="persona__icon">◇</div>
+          <h4 class="persona__name">Music manager / agency</h4>
+          <p class="persona__body">Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.</p>
+          <span class="persona__tool">→ <code>profit-plan.html</code></span>
+        </div>
       </div>
     </div>
   </section>
