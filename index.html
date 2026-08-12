@@ -1656,6 +1656,25 @@
           }
           // Camera: ensure playing
           if (a.type === 'camera' && src.paused) src.play().catch(()=>{});
+          // Apply trim (in/out points + playback rate) for file videos only.
+          // Cameras don't have a meaningful duration to trim against.
+          if (a.type === 'video' && a.trim && src.duration) {
+            const t = a.trim;
+            // Set playbackRate (cheap, idempotent)
+            const rate = (t.rate || 1.0);
+            if (Math.abs(src.playbackRate - rate) > 0.001) src.playbackRate = rate;
+            // Loop inside [in, out] when audio is playing
+            if (Audio.playing) {
+              const inT  = Math.max(0, t.in  || 0);
+              const outT = Math.min(src.duration, t.out || src.duration);
+              if (outT > inT + 0.05) {
+                if (src.currentTime < inT || src.currentTime >= outT) {
+                  // Wrap or jump
+                  src.currentTime = inT;
+                }
+              }
+            }
+          }
         } else {
           if (!a._el) {
             a._el = new Image();
