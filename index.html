@@ -540,6 +540,18 @@
       </span>
       <span class="separator"></span>
       <span class="gctrl">
+        preset
+        <select id="preset" title="Curated visual presets">
+          <option value="off">— none —</option>
+          <option value="pulse">Pulse</option>
+          <option value="drift">Drift</option>
+          <option value="strobe">Strobe</option>
+          <option value="warp">Warp</option>
+          <option value="mosh">Mosh</option>
+        </select>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
         mode
         <select id="mode">
           <option value="auto">Auto</option>
@@ -1250,6 +1262,10 @@
 
     function pickBlend(i, mode='auto') {
       const opts = ['source-over', 'screen', 'lighter', 'overlay', 'soft-light', 'difference'];
+      // If a preset is active, use its blend sequence
+      if (window._activePreset && window._activePreset.blends) {
+        return window._activePreset.blends[i % window._activePreset.blends.length];
+      }
       if (mode === 'chaos') return opts[Math.floor(Math.random() * opts.length)];
       if (mode === 'pulse') return i % 2 === 0 ? 'screen' : 'lighter';
       if (mode === 'ambient') return ['source-over', 'soft-light', 'overlay'][i % 3];
@@ -1262,11 +1278,15 @@
       if (!asset) return 1;
       const ar = (asset.w || 1) / (asset.h || 1);
       // base around filling the canvas; tweak per role
-      const fills = [1.0, 0.8, 1.2, 0.5, 1.5, 0.7];
+      const fills = (window._activePreset && window._activePreset.fills) || [1.0, 0.8, 1.2, 0.5, 1.5, 0.7];
       return fills[i % fills.length] * (ar > 1 ? 0.7 : 1.0);
     }
     function pickReactors(i, asset, feat, mode='auto') {
       if (!asset) return [];
+      // Preset mode: use the curated reactor sequence
+      if (window._activePreset && window._activePreset.reactors) {
+        return window._activePreset.reactors[i % window._activePreset.reactors.length] || [];
+      }
       // Each layer gets 1-3 reactors based on its role index
       const presets = [
         // Layer 0: bass-pumping scale + opacity on beat
@@ -1312,6 +1332,112 @@
       ];
       return presets[i % presets.length] || [];
     }
+
+    // ======================================================================
+    // VISUAL PRESETS — 5 curated looks. Each preset overrides reactors/blends/
+    // scale-fills for ALL layers so the look is consistent. Reactor values are
+    // tuned with `soft` / `release` eases for visual smoothness.
+    // ======================================================================
+    const VISUAL_PRESETS = {
+      pulse: {
+        name: 'Pulse',
+        desc: 'Bass-thumping, beat-pulsing. Dark, heavy, club-energy.',
+        reactors: [
+          [{ feature: 'bass', target: 'scale',   scale: 0.55, ease: 'soft' },
+           { feature: 'beat', target: 'opacity', scale: 0.35, ease: 'soft' },
+           { feature: 'rms',  target: 'scale',   scale: 0.15, ease: 'release' }],
+          [{ feature: 'bass', target: 'scale',   scale: 0.35, ease: 'soft' },
+           { feature: 'beat', target: 'brightness', scale: 0.4, ease: 'release' }],
+          [{ feature: 'beat', target: 'rot',     scale: 6,   ease: 'release' },
+           { feature: 'rms',  target: 'y',       scale: 24,  ease: 'soft' }],
+        ],
+        blends: ['screen', 'screen', 'lighter', 'screen'],
+        fills:  [1.0, 0.9, 1.1, 0.7, 1.3, 0.8],
+      },
+      drift: {
+        name: 'Drift',
+        desc: 'Slow continuous motion. Mid + air, soft-light, ambient.',
+        reactors: [
+          [{ feature: 'mid',  target: 'x',     scale: 28,  ease: 'smooth' },
+           { feature: 'air',  target: 'y',     scale: 22,  ease: 'smooth' }],
+          [{ feature: 'mid',  target: 'hue',   scale: 90,  ease: 'smooth' },
+           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
+          [{ feature: 'air',  target: 'rot',   scale: 18,  ease: 'smooth' },
+           { feature: 'treble', target: 'scale', scale: 0.2, ease: 'soft' }],
+        ],
+        blends: ['source-over', 'soft-light', 'overlay', 'soft-light'],
+        fills:  [0.9, 1.1, 0.7, 1.0, 0.8, 1.2],
+      },
+      strobe: {
+        name: 'Strobe',
+        desc: 'Sharp onset flicker, x/y jitter, lighter blend. Chaotic.',
+        reactors: [
+          [{ feature: 'onset', target: 'opacity', scale: 0.7, ease: 'sharp' },
+           { feature: 'rms',   target: 'x',       scale: 60,  ease: 'release' }],
+          [{ feature: 'onset', target: 'brightness', scale: 0.8, ease: 'sharp' },
+           { feature: 'rms',   target: 'y',       scale: 45,  ease: 'release' }],
+          [{ feature: 'onset', target: 'scale',  scale: 0.4, ease: 'sharp' },
+           { feature: 'beat',  target: 'rot',    scale: 14,  ease: 'sharp' }],
+        ],
+        blends: ['lighter', 'difference', 'lighter', 'screen'],
+        fills:  [0.7, 1.2, 0.9, 1.4, 0.6, 1.1],
+      },
+      warp: {
+        name: 'Warp',
+        desc: 'Hue rotation, smoothstep, overlay. Psychedelic, slow.',
+        reactors: [
+          [{ feature: 'centroid', target: 'hue', scale: 220, ease: 'smooth' },
+           { feature: 'mid',      target: 'scale', scale: 0.2, ease: 'soft' }],
+          [{ feature: 'mid',  target: 'hue',   scale: 160, ease: 'smooth' },
+           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
+          [{ feature: 'centroid', target: 'hue', scale: 200, ease: 'smooth' },
+           { feature: 'treble',   target: 'scale', scale: 0.25, ease: 'soft' }],
+        ],
+        blends: ['overlay', 'overlay', 'soft-light', 'overlay'],
+        fills:  [1.0, 0.85, 1.15, 0.95, 1.05, 0.9],
+      },
+      mosh: {
+        name: 'Mosh',
+        desc: 'Bass + rms thump, rotation, sharp attack. Live-show energy.',
+        reactors: [
+          [{ feature: 'bass', target: 'scale', scale: 0.7, ease: 'release' },
+           { feature: 'rms',  target: 'rot',   scale: 22,  ease: 'release' }],
+          [{ feature: 'bass', target: 'rot',   scale: 18,  ease: 'release' },
+           { feature: 'rms',  target: 'x',     scale: 40,  ease: 'release' }],
+          [{ feature: 'bass', target: 'scale', scale: 0.5, ease: 'release' },
+           { feature: 'rms',  target: 'y',     scale: 30,  ease: 'release' }],
+        ],
+        blends: ['source-over', 'source-over', 'overlay', 'multiply'],
+        fills:  [1.1, 0.95, 1.2, 0.85, 1.05, 1.0],
+      },
+    };
+
+    function applyPreset(key) {
+      if (!key || key === 'off') {
+        window._activePreset = null;
+        const sel = document.getElementById('preset');
+        if (sel) sel.value = 'off';
+        if (Layers && Layers.list && Layers.list.length && Layers.render) Layers.render();
+        if (typeof setStatus === 'function') setStatus('preset: off (default mode)', 'ok');
+        return;
+      }
+      const preset = VISUAL_PRESETS[key];
+      if (!preset) return;
+      window._activePreset = preset;
+      // Re-render layer panel so the new blends/scales show
+      if (Layers && Layers.list && Layers.list.length) {
+        for (let i = 0; i < Layers.list.length; i++) {
+          const l = Layers.list[i];
+          l.blend = pickBlend(i, 'auto');
+          l.baseScale = pickScale(i, l.asset);
+          l.reactors = pickReactors(i, l.asset, Audio.feat, 'auto');
+        }
+        if (Layers.render) Layers.render();
+      }
+      if (typeof setStatus === 'function') setStatus('preset: ' + preset.name, 'ok');
+    }
+    // Expose for debugging from devtools / puppeteer
+    window.VISUAL_PRESETS = VISUAL_PRESETS;
 
     // ======================================================================
     // RENDERER
@@ -1368,6 +1494,7 @@
       ease(name, t) {
         if (name === 'sharp') return Math.pow(t, 0.4);
         if (name === 'soft') return smoothstep(0, 1, t);
+        if (name === 'release') return 1 - Math.pow(1 - t, 2);  // ease-out (fast attack, soft release)
         return t;
       },
       applyReactors(layer) {
@@ -1657,8 +1784,8 @@
         s.treble = lerp(s.treble, a.treble, k);
         s.air = lerp(s.air, a.air, k);
         s.rms = lerp(s.rms, a.rms, k);
-        s.beat = a.beat;
-        s.onset = a.onset;
+        s.beat = lerp(s.beat, a.beat, 0.22);          // decay so opacity doesn't latch on
+        s.onset = lerp(s.onset, a.onset, 0.30);        // snappier decay for strobey hits
         s.centroid = lerp(s.centroid, a.centroid, k);
         // Auto-drift: gentle continuous motion when in auto mode.
         // Each layer gets a phase offset so they don't all move in sync.
@@ -1936,7 +2063,10 @@
         }
       }
       // Expose for debugging from devtools / puppeteer
-      window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI };
+      window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI, VISUAL_PRESETS, applyPreset };
+      // Wire preset dropdown
+      const presetSel = document.getElementById('preset');
+      if (presetSel) presetSel.addEventListener('change', (e) => applyPreset(e.target.value));
       // Set up canvas sample song for instant demo if no song loaded
       setStatus('ready', 'ok');
     })();
