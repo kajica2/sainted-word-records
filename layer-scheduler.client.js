@@ -10,7 +10,10 @@
   if (window.LayerScheduler) return;  // idempotent
 
   // ---- Worker ----
-  const worker = new Worker('layer-scheduler.worker.js');
+  // Resolve the worker URL relative to this module so Vite can bundle it.
+  // `new URL(name, import.meta.url)` is the Vite-recommended pattern for worker
+  // loading from a module — it survives both `vite dev` and `vite build`.
+  const worker = new Worker(new URL('./layer-scheduler.worker.js', import.meta.url));
 
   // ---- State ----
   const state = {
