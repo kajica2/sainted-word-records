@@ -201,6 +201,8 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: center center;
     }
     .panel-head {
       padding: 12px 14px 8px;
@@ -225,6 +227,21 @@
     }
     .panel-body::-webkit-scrollbar { width: 6px; }
     .panel-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+
+    aside.rotated { transform: rotate(90deg); }
+    .panel-rotate {
+      padding: 3px 7px;
+      font-size: 9px;
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: auto;
+      letter-spacing: 0.04em;
+    }
+    .panel-rotate:hover { background: var(--accent); color: #000; }
+    .panel-rotate.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
     #library-grid {
       display: grid;
@@ -294,6 +311,8 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: center center;
     }
     #layer-list {
       flex: 1;
@@ -476,6 +495,7 @@
         <h2>Library</h2>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
+        <button class="panel-rotate" id="lib-rotate" title="Rotate panel +90°" data-target="library">↻ +90</button>
       </div>
       <div class="panel-body">
         <div id="library-grid">
@@ -506,6 +526,7 @@
         <h2>Layers</h2>
         <button class="tbtn ghost" id="add-layer" style="padding:4px 8px; font-size:9px;">+ Layer</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
+        <button class="panel-rotate" id="layers-rotate" title="Rotate panel +90°" data-target="layers">↻ +90</button>
       </div>
       <div id="layer-list"></div>
     </aside>
@@ -1978,6 +1999,35 @@
           if (Library.items.length) Layers.add(Library.items[0]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
+        // Panel rotate (+90° toggle, persists in localStorage)
+        const panelRotKey = 'swr_panel_rot';
+        function applyPanelRotation(panelId, rotated) {
+          const panel = $(panelId);
+          const btn = document.querySelector(`.panel-rotate[data-target="${panelId}"]`);
+          if (!panel) return;
+          panel.classList.toggle('rotated', !!rotated);
+          if (btn) btn.classList.toggle('active', !!rotated);
+        }
+        try {
+          const saved = JSON.parse(localStorage.getItem(panelRotKey) || '{}');
+          applyPanelRotation('library', saved.library);
+          applyPanelRotation('layers',  saved.layers);
+        } catch {}
+        for (const panelId of ['library', 'layers']) {
+          const btn = document.querySelector(`.panel-rotate[data-target="${panelId}"]`);
+          if (!btn) continue;
+          btn.addEventListener('click', () => {
+            const panel = $(panelId);
+            if (!panel) return;
+            const now = !panel.classList.contains('rotated');
+            applyPanelRotation(panelId, now);
+            try {
+              const cur = JSON.parse(localStorage.getItem(panelRotKey) || '{}');
+              cur[panelId] = now;
+              localStorage.setItem(panelRotKey, JSON.stringify(cur));
+            } catch {}
+          });
+        }
         // Global sliders
         for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations']) {
           const inp = $(id);
