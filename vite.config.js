@@ -27,7 +27,7 @@ function copyStatic(options = {}) {
         }
       }
       // Copy root-level project files
-      const rootFiles = ['landing.html', 'interactive-howto.html', 'market-study.html', 'profit-plan.html', 'campaign.html', 'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md'];
+      const rootFiles = ['landing.html', 'interactive-howto.html', 'market-study.html', 'profit-plan.html', 'campaign.html', 'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png'];
       for (const f of rootFiles) {
         const sp = resolve(f);
         if (!existsSync(sp)) continue;
