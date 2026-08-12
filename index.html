@@ -1937,6 +1937,9 @@
       mediaDest: null,
       autoStopAt: 0,    // ms timestamp at which to auto-stop
       autoStopTimer: null,
+      progressTimer: null,
+      progressEl: null,
+      startedAt: 0,
       start() {
         if (!Audio.audioEl) return;
         // Compute auto-stop deadline from #rec-dur selector
@@ -1962,44 +1965,82 @@
         const astream = dest.stream;
         const tracks = [...vstream.getVideoTracks(), ...astream.getAudioTracks()];
         const stream = new MediaStream(tracks);
-        // Prefer MP4 (H.264 + AAC); fall back to WebM. Modern Chrome 126+ and Safari
-        // 14.5+ both support MediaRecorder with video/mp4 directly.
+        // Pick the best supported codec. Note: 'video/mp4' is rarely supported
+        // in MediaRecorder across browsers (Chrome only added partial support
+        // recently and Safari is patchy). WebM/VP9 + Opus is the reliable default.
         const mime = [
-          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-          'video/mp4;codecs=avc1,mp4a.40.2',
-          'video/mp4;codecs=avc1',
-          'video/mp4',
           'video/webm;codecs=vp9,opus',
           'video/webm;codecs=vp8,opus',
           'video/webm',
         ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
         this.mime = mime;
-        this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+        try {
+          this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+        } catch (err) {
+          setStatus(`recorder error: ${err.message || err}`, 'err');
+          return;
+        }
         this.chunks = [];
         this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
         this.rec.onstop = () => this._save();
-        this.rec.start(500);
+        this.rec.onerror = (e) => {
+          setStatus(`recorder error: ${e.error && e.error.message || 'unknown'}`, 'err');
+          this.stop();
+        };
+        try {
+          this.rec.start(500);
+        } catch (err) {
+          setStatus(`recorder start failed: ${err.message || err}`, 'err');
+          return;
+        }
         this.recording = true;
+        this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
         const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        const totalSec = durMs > 0 ? Math.round(durMs / 1000) : 0;
+        // Initial status
+        setStatus(totalSec > 0
+          ? `recording · ${ext.toUpperCase()} · 0 / ${totalSec}s · 0.0 MB`
+          : `recording · ${ext.toUpperCase()}`,
+          'live');
+        // Live progress ticker
+        if (this.progressTimer) clearInterval(this.progressTimer);
+        this.progressTimer = setInterval(() => {
+          if (!this.recording) return;
+          const elapsedSec = Math.floor((Date.now() - this.startedAt) / 1000);
+          const totalBytes = this.chunks.reduce((s, c) => s + c.size, 0);
+          const mb = (totalBytes / (1024 * 1024)).toFixed(1);
+          if (totalSec > 0) {
+            setStatus(`recording · ${ext.toUpperCase()} · ${elapsedSec} / ${totalSec}s · ${mb} MB`, 'live');
+          } else {
+            setStatus(`recording · ${ext.toUpperCase()} · ${elapsedSec}s · ${mb} MB`, 'live');
+          }
+        }, 1000);
         if (this.autoStopAt > 0) {
-          const sec = Math.round((this.autoStopAt - Date.now()) / 1000);
-          setStatus(`recording · ${ext.toUpperCase()} · ${sec}s`, 'live');
-          this.autoStopTimer = setTimeout(() => { if (this.recording) this.stop(); }, this.autoStopAt - Date.now());
-        } else {
-          setStatus(`recording · ${ext.toUpperCase()}`, 'live');
+          this.autoStopTimer = setTimeout(() => {
+            if (this.recording) this.stop();
+          }, Math.max(50, this.autoStopAt - Date.now()));
         }
       },
       stop() {
         if (!this.rec) return;
         if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
-        this.rec.stop();
+        if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
+        try {
+          this.rec.stop();
+        } catch (err) {
+          setStatus(`recorder stop failed: ${err.message || err}`, 'err');
+        }
         this.recording = false;
         $('rec').classList.remove('live');
         $('rec').textContent = '● REC';
-        setStatus('rendering…', '');
-        // Disconnect the temporary audio route
+        // Show honest "rendering" status; the blob is finalized in onstop,
+        // which fires asynchronously after this method returns.
+        const totalBytes = this.chunks.reduce((s, c) => s + c.size, 0);
+        setStatus(`finalizing · ${(totalBytes / (1024 * 1024)).toFixed(1)} MB captured…`, 'live');
+        // Disconnect the temporary audio route — done after stop() to avoid
+        // any race with the recorder's onstop handler.
         if (this.mediaDest) {
           try { Audio.analyser.disconnect(this.mediaDest); } catch {}
           this.mediaDest = null;
@@ -2007,6 +2048,10 @@
       },
       _save() {
         const blob = new Blob(this.chunks, { type: this.mime });
+        if (blob.size === 0) {
+          setStatus('export failed: 0 bytes captured', 'err');
+          return;
+        }
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -2015,7 +2060,9 @@
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setStatus('exported', 'ok');
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        const mb = (blob.size / (1024 * 1024)).toFixed(1);
+        setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB`, 'ok');
       },
     };
 
