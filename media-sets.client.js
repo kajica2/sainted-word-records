@@ -52,6 +52,33 @@
       desc:  'Warms + grain + sepia. Nostalgic footage — anything that already has a vintage cast.',
       patterns: ['c07-sunrise', 'c08-sunrise', 'c12-abstract', 'p02', 'p12', 'p13'],
     },
+
+    // ---- 5 new personas ----
+    neon_set: {
+      label: 'Neon',
+      desc:  'Synthesized magenta/cyan shapes. Built for the NEON persona — high chroma, glitch algo, glow halation.',
+      patterns: ['p26-neon', 'p27-neon', 'c01-rooftop', 'c03-taxi'],
+    },
+    film_set: {
+      label: 'Film',
+      desc:  'Sepia-warm clips + synthesized 16mm-style grain plates. Slow drift, soft vignette.',
+      patterns: ['p28-film', 'p29-film', 'c07-sunrise', 'c08-sunrise', 'p12'],
+    },
+    grid_set: {
+      label: 'Grid',
+      desc:  'Hard-cell monochrome plates + high-contrast footage. Posterize-friendly.',
+      patterns: ['p30-grid', 'p31-grid', 'p03', 'p05', 'p11', 'c12-abstract'],
+    },
+    smoke_set: {
+      label: 'Smoke',
+      desc:  'Atmospheric footage + synthesized cream-warm blur plates. Heavy-blur friendly.',
+      patterns: ['p32-smoke', 'p33-smoke', 'c06-smoke', 'c10-tunnel', 'c11-tunnel', 'p01'],
+    },
+    hallucination_set: {
+      label: 'Hallucination',
+      desc:  'High-energy clips + scanline-heavy plates. Maxed RGB shift and grain.',
+      patterns: ['p34-hallucination', 'p35-hallucination', 'c03-taxi', 'c04-taxi', 'c05-taxi', 'c01-rooftop'],
+    },
   };
 
   // ---- Pattern matching ----
