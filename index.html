@@ -530,6 +530,30 @@
       </span>
       <span class="separator"></span>
       <span class="gctrl">
+        temp
+        <input type="range" id="temperature" min="-1" max="1" step="0.02" value="0" />
+        <b id="temperature-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        mutations
+        <input type="range" id="mutations" min="0" max="1" step="0.01" value="0.3" />
+        <b id="mutations-v">0.30</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        algo
+        <select id="mut-algo" title="Mutation algorithm">
+          <option value="0">vortex</option>
+          <option value="1">glitch</option>
+          <option value="2">liquid</option>
+          <option value="3">kaleido</option>
+          <option value="4">ripple</option>
+          <option value="5">noise</option>
+        </select>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
         palette
         <select id="palette">
           <option value="neon">Neon</option>
@@ -1857,7 +1881,10 @@
         }
         this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
         const fps = 30;
-        const vstream = stageCanvas.captureStream(fps);
+        // Capture from FX canvas if present (it includes temperature/mutations/GLSL),
+        // otherwise fall back to the raw 2D stage.
+        const captureCanvas = (window.FX && window.FX.outputCanvas) || stageCanvas;
+        const vstream = captureCanvas.captureStream(fps);
         // Pull audio from Web Audio destination
         const dest = Audio.ctx.createMediaStreamDestination();
         this.mediaDest = dest;
@@ -1952,11 +1979,18 @@
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
         // Global sliders
-        for (const id of ['sensitivity', 'beat-gate', 'decay']) {
+        for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations']) {
           const inp = $(id);
           const out = $(id + '-v');
           inp.addEventListener('input', () => { out.textContent = parseFloat(inp.value).toFixed(2); });
         }
+        // FX slider → WebGL uniform bindings (defensive: FX may not be loaded yet)
+        const tempInp = $('temperature');
+        const mutInp = $('mutations');
+        const algoSel = $('mut-algo');
+        if (tempInp) tempInp.addEventListener('input', () => window.FX && window.FX.setTemp(parseFloat(tempInp.value)));
+        if (mutInp)  mutInp.addEventListener('input',  () => window.FX && window.FX.setMut(parseFloat(mutInp.value)));
+        if (algoSel) algoSel.addEventListener('change', () => window.FX && window.FX.setAlgo(parseInt(algoSel.value, 10)));
         // Drop targets
         window.addEventListener('dragover', (e) => {
           if (e.dataTransfer.types.includes('Files')) {
@@ -2072,5 +2106,7 @@
     })();
   </script>
   <script type="module" src="layer-scheduler.client.js"></script>
+  <script type="module" src="fx-postprocess.js"></script>
+  <script type="module" src="wizard.js"></script>
 </body>
 </html>
