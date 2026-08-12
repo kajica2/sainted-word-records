@@ -5,23 +5,16 @@
 //
 // Usage: include this script after the main IIFE. It auto-initializes on load.
 // Exposes window.FX with uniforms state and setTemp/setMut/setAlgo API.
+// Also exposes window.FX_FRAG_SOURCE for persona-preview.client.js so the
+// preview shader stays in sync with the live shader (no duplication).
 
 (function () {
   if (window.FX) return;  // idempotent
 
-  const VERT = `
-    attribute vec2 a_pos;
-    varying vec2 v_uv;
-    void main() {
-      v_uv = a_pos * 0.5 + 0.5;       // 0..1
-      gl_Position = vec4(a_pos, 0.0, 1.0);
-    }
-  `;
-
-  // Fragment shader: temperature (warm/cool hue shift), mutations (algorithmic
-  // displacement of UV before sampling), beat-driven brightness pulse.
-  // All driven by uniforms the main app writes each frame.
-  const FRAG = `
+  // ---- Shader source ----
+  // Used by both this module (live rendering) and persona-preview.client.js
+  // (preview thumbnails). Exposed on window.FX_FRAG_SOURCE.
+  const FRAG_SOURCE = `
     precision highp float;
     varying vec2 v_uv;
     uniform sampler2D u_tex;
@@ -412,6 +405,7 @@
     // Expose for the wizard
     window.FX = {
       state,
+      FRAG_SOURCE,
       setTemp(v) { state.temp = Math.max(-1, Math.min(1, v)); },
       setMut(v)  { state.mut  = Math.max(0, Math.min(1, v)); },
       setAlgo(a) { state.mutAlgo = Math.max(0, Math.min(5, Math.floor(a))); },
@@ -451,4 +445,9 @@
   } else {
     setTimeout(init, 100);  // small delay so SWR has been exposed
   }
+
+  // Expose the shader source globally so persona-preview.client.js can
+  // render previews with the same shader. Falls back to a no-op
+  // string if no shader was registered (shouldn't happen).
+  if (FRAG_SOURCE) window.FX_FRAG_SOURCE = FRAG_SOURCE;
 })();

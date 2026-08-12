@@ -168,59 +168,18 @@
     // Strip uniforms we don't need for the preview (keep what the shader
     // references). Mirrors fx-postprocess.js uniforms exactly so the preview
     // matches the live output as closely as possible.
-    const FRAG = `
+    // Use the exact shader source from fx-postprocess.js so the preview
+    // can never drift from the live output. Falls back to a minimal stub
+    // if fx-postprocess isn't loaded yet (shouldn't happen in production).
+    const FRAG = window.FX_FRAG_SOURCE || `
       precision highp float;
       varying vec2 v_uv;
       uniform sampler2D u_tex;
       uniform float u_temp, u_mut, u_posterize, u_vignette, u_chroma, u_grain, u_sepia, u_glow;
       uniform float u_bass, u_mid, u_treble, u_beat;
-      float hash(vec2 p) {
-        p = fract(p * vec2(123.34, 456.21));
-        p += dot(p, p + 45.32);
-        return fract(p.x * p.y);
-      }
-      vec3 temperature(vec3 c, float t) {
-        if (abs(t) < 0.01) return c;
-        vec3 warm = vec3(1.0, 0.85, 0.65);
-        vec3 cool = vec3(0.78, 0.92, 1.1);
-        vec3 tint = (t > 0.0) ? warm : cool;
-        float amt = abs(t) * 0.35;
-        return mix(c, c * tint, amt);
-      }
       void main() {
-        vec2 uv = v_uv;
-        float split = 0.018 * u_chroma;
-        vec3 col;
-        col.r = texture2D(u_tex, uv + vec2( split, 0.0)).r;
-        col.g = texture2D(u_tex, uv).g;
-        col.b = texture2D(u_tex, uv + vec2(-split, 0.0)).b;
-        col = temperature(col, u_temp);
-        if (u_sepia > 0.001) {
-          float l = dot(col, vec3(0.299, 0.587, 0.114));
-          vec3 sep = vec3(l * 1.07, l * 0.94, l * 0.74);
-          col = mix(col, sep, u_sepia);
-        }
-        if (u_posterize > 0.001) {
-          float levels = mix(256.0, 3.0, u_posterize);
-          col = floor(col * levels) / levels;
-        }
-        col *= 1.0 + u_beat * 0.12;
-        if (u_glow > 0.001) {
-          vec2 px = vec2(1.0/160.0, 1.0/90.0);
-          vec3 bloom = vec3(0.0);
-          bloom += texture2D(u_tex, uv + vec2( px.x*3.0, 0.0)).rgb;
-          bloom += texture2D(u_tex, uv + vec2(-px.x*3.0, 0.0)).rgb;
-          bloom += texture2D(u_tex, uv + vec2(0.0,  px.y*3.0)).rgb;
-          bloom += texture2D(u_tex, uv + vec2(0.0, -px.y*3.0)).rgb;
-          bloom *= 0.25;
-          col += bloom * u_glow * 0.35;
-        }
-        vec2 v = v_uv - 0.5;
-        float vig = 1.0 - dot(v, v) * (0.4 + u_vignette * 1.6);
-        col *= max(vig, 0.0);
-        float g = (hash(v_uv * 1024.0) - 0.5) * (u_treble * 0.06 + u_grain * 0.18);
-        col += g;
-        gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+        vec3 col = texture2D(u_tex, v_uv).rgb;
+        gl_FragColor = vec4(col, 1.0);
       }
     `;
 
