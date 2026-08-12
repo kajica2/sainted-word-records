@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sainted Word Records — Audio-reactive label · est. somewhere</title>
+  <meta name="description" content="A record label and an audio-reactive video engine. Drop a song, drop a library, get a layered composition that breathes with the music." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
+
+  <!-- No-flash theme bootstrap -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('swr-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Fonts: Fraunces (display, variable), Geist + Geist Mono (body/technical) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS — light + dark shipped together
+       ============================================================ */
+    :root {
+      /* Light */
+      --bg:        #F4EFE6;
+      --bg-2:      #EAE2D3;
+      --surface:   #FBF7F0;
+      --surface-2: #FFFFFF;
+      --ink:       #1A1612;
+      --ink-2:     #3A322B;
+      --muted:     #75685B;
+      --line:      #D9CFBF;
+      --line-2:    #C7BCA9;
+      --accent:    #E6306B;   /* electric magenta */
+      --accent-2:  #00BFD4;   /* cyan */
+      --accent-3:  #F2B441;   /* warm gold */
+
+      /* Type */
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body:    'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-mono:    'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+
+      /* Spacing — 8px scale */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --space-7: 48px;
+      --space-8: 64px;
+      --space-9: 96px;
+      --space-10: 128px;
+
+      /* Radii */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-pill: 999px;
+
+      /* Shadows — layered, never harsh */
+      --shadow-sm: 0 1px 2px rgba(26, 22, 18, .06), 0 2px 8px rgba(26, 22, 18, .04);
+      --shadow-md: 0 1px 2px rgba(26, 22, 18, .08), 0 8px 24px rgba(26, 22, 18, .08);
+      --shadow-lg: 0 1px 2px rgba(26, 22, 18, .10), 0 24px 48px rgba(26, 22, 18, .12);
+      --shadow-accent: 0 1px 2px rgba(230, 48, 107, .10), 0 16px 40px rgba(230, 48, 107, .18);
+
+      /* Motion */
+      --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-fast:   150ms;
+      --dur-base:   280ms;
+      --dur-slow:   480ms;
+
+      /* Layout */
+      --max: 1280px;
+      --gutter: 24px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:        #0C0B14;
+        --bg-2:      #14121C;
+        --surface:   #181524;
+        --surface-2: #221E2E;
+        --ink:       #F4EFE6;
+        --ink-2:     #D9D2C4;
+        --muted:     #948A7C;
+        --line:      #2B2738;
+        --line-2:    #3A3548;
+        --accent:    #FF4D8C;
+        --accent-2:  #4DE0F0;
+        --accent-3:  #FFC95C;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, .30), 0 2px 8px rgba(0, 0, 0, .20);
+        --shadow-md: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .30);
+        --shadow-lg: 0 1px 2px rgba(0, 0, 0, .40), 0 24px 48px rgba(0, 0, 0, .35);
+        --shadow-accent: 0 1px 2px rgba(255, 77, 140, .20), 0 16px 40px rgba(255, 77, 140, .25);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:        #0C0B14;
+      --bg-2:      #14121C;
+      --surface:   #181524;
+      --surface-2: #221E2E;
+      --ink:       #F4EFE6;
+      --ink-2:     #D9D2C4;
+      --muted:     #948A7C;
+      --line:      #2B2738;
+      --line-2:    #3A3548;
+      --accent:    #FF4D8C;
+      --accent-2:  #4DE0F0;
+      --accent-3:  #FFC95C;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .30), 0 2px 8px rgba(0, 0, 0, .20);
+      --shadow-md: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .30);
+      --shadow-lg: 0 1px 2px rgba(0, 0, 0, .40), 0 24px 48px rgba(0, 0, 0, .35);
+      --shadow-accent: 0 1px 2px rgba(255, 77, 140, .20), 0 16px 40px rgba(255, 77, 140, .25);
+    }
+
+    /* ============================================================
+       BASE LAYER
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.55;
+      color: var(--ink);
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 12% -10%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+        radial-gradient(ellipse at 100% 20%, color-mix(in srgb, var(--accent-2) 6%, transparent), transparent 55%);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      transition: background-color var(--dur-base) var(--ease-out);
+    }
+
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      margin: 0;
+      color: var(--ink);
+      font-variation-settings: "opsz" 100, "SOFT" 30;
+    }
+    p { margin: 0; }
+    a {
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+      transition: border-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+    }
+    a:hover { border-color: var(--accent); color: var(--accent); }
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    /* Scroll reveal — base state */
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+    }
+    [data-reveal].in {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ============================================================
+       LAYOUT
+       ============================================================ */
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+
+    /* === NAV === */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
+      background: color-mix(in srgb, var(--bg) 78%, transparent);
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: var(--space-5);
+      height: 64px;
+    }
+    .wordmark {
+      display: flex; align-items: center; gap: var(--space-2);
+      font-family: var(--font-display);
+      font-weight: 600; font-size: 18px; letter-spacing: -0.01em;
+      border: none; color: var(--ink);
+    }
+    .wordmark .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent);
+      animation: breathe 3.6s var(--ease-in-out) infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+    .nav__links { display: flex; gap: var(--space-5); flex: 1; }
+    .nav__links a {
+      font-family: var(--font-mono);
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+      border: none; color: var(--ink-2);
+    }
+    .nav__links a:hover { color: var(--accent); }
+
+    /* === THEME TOGGLE === */
+    theme-toggle { display: inline-block; }
+    .theme-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent; border: 1px solid var(--line);
+      color: var(--ink-2);
+      font-family: var(--font-mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 6px 10px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: border-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+    }
+    .theme-btn:hover { color: var(--ink); border-color: var(--ink); }
+    .theme-btn svg { width: 12px; height: 12px; }
+
+    /* === HERO === */
+    .hero {
+      padding: clamp(64px, 12vw, 160px) 0 clamp(48px, 8vw, 96px);
+      position: relative;
+    }
+    .hero__grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: clamp(40px, 6vw, 80px);
+      align-items: center;
+    }
+    @media (max-width: 880px) {
+      .hero__grid { grid-template-columns: 1fr; }
+    }
+    .hero__eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--accent);
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      margin-bottom: var(--space-5);
+    }
+    .hero__eyebrow::before {
+      content: ""; width: 24px; height: 1px; background: var(--accent);
+    }
+    .hero__title {
+      font-size: clamp(48px, 8vw, 96px);
+      font-variation-settings: "opsz" 144, "SOFT" 100;
+      font-weight: 400;
+    }
+    .hero__title em {
+      font-style: italic;
+      color: var(--accent);
+      font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 500;
+    }
+    .hero__lede {
+      font-size: clamp(16px, 1.4vw, 19px);
+      color: var(--ink-2);
+      max-width: 52ch;
+      margin-top: var(--space-5);
+    }
+    .hero__cta {
+      display: flex; gap: var(--space-3);
+      margin-top: var(--space-7);
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      font-family: var(--font-mono);
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em;
+      padding: 14px 22px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--ink);
+      background: var(--ink); color: var(--bg);
+      cursor: pointer;
+      transition: transform var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out);
+    }
+    .btn:hover { transform: translateY(-1px); background: var(--accent); border-color: var(--accent); }
+    .btn--ghost { background: transparent; color: var(--ink); }
+    .btn--ghost:hover { background: var(--ink); color: var(--bg); }
+
+    /* Engine mini — live audio-reactive canvas */
+    .engine-mini {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--surface-2);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--line);
+    }
+    .engine-mini canvas {
+      display: block; width: 100%; height: 100%;
+    }
+    .engine-mini__overlay {
+      position: absolute; left: var(--space-4); right: var(--space-4);
+      bottom: var(--space-4);
+      display: flex; align-items: end; justify-content: space-between;
+      gap: var(--space-3);
+      pointer-events: none;
+    }
+    .engine-mini__label {
+      font-family: var(--font-mono); font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      color: var(--ink);
+      background: color-mix(in srgb, var(--bg) 70%, transparent);
+      backdrop-filter: blur(8px);
+      padding: 6px 10px; border-radius: var(--radius-pill);
+    }
+    .engine-mini__meters {
+      display: flex; gap: 3px;
+      background: color-mix(in srgb, var(--bg) 70%, transparent);
+      backdrop-filter: blur(8px);
+      padding: 6px 8px; border-radius: var(--radius-pill);
+    }
+    .engine-mini__meters span {
+      width: 4px; height: 14px; background: var(--line-2);
+      border-radius: 2px;
+      transform-origin: bottom;
+      transition: transform 60ms var(--ease-out), background 60ms;
+    }
+    .engine-mini__play {
+      position: absolute; top: var(--space-4); right: var(--space-4);
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--ink); color: var(--bg);
+      border: none; cursor: pointer;
+      display: grid; place-items: center;
+      box-shadow: var(--shadow-md);
+      transition: transform var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out);
+    }
+    .engine-mini__play:hover { transform: scale(1.06); background: var(--accent); }
+    .engine-mini__play svg { width: 14px; height: 14px; }
+
+    /* === STAT STRIP === */
+    .strip {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-2);
+      padding: var(--space-5) 0;
+    }
+    .strip__row {
+      display: flex; gap: var(--space-7);
+      align-items: center; justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .strip__item {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .strip__num {
+      font-family: var(--font-display);
+      font-size: 32px; font-weight: 400;
+      font-variation-settings: "opsz" 100;
+    }
+    .strip__label {
+      font-family: var(--font-mono);
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+
+    /* === SECTION: THE ENGINE === */
+    .section { padding: clamp(64px, 10vw, 128px) 0; }
+    .section__head {
+      max-width: 720px;
+      margin-bottom: var(--space-8);
+    }
+    .section__kicker {
+      font-family: var(--font-mono);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--accent-2);
+      margin-bottom: var(--space-4);
+      display: inline-block;
+    }
+    .section__title {
+      font-size: clamp(36px, 5vw, 56px);
+      font-variation-settings: "opsz" 144, "SOFT" 50;
+    }
+    .section__lede {
+      font-size: 17px; color: var(--ink-2);
+      margin-top: var(--space-4);
+      max-width: 56ch;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-5);
+    }
+    @media (max-width: 880px) { .features { grid-template-columns: 1fr; } }
+    .feature {
+      padding: var(--space-6);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+    }
+    .feature:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--accent);
+    }
+    .feature__icon {
+      width: 36px; height: 36px;
+      display: grid; place-items: center;
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      color: var(--accent);
+      margin-bottom: var(--space-4);
+    }
+    .feature__title {
+      font-family: var(--font-display);
+      font-size: 22px; font-weight: 500;
+      margin-bottom: var(--space-2);
+    }
+    .feature__body {
+      font-size: 14px; color: var(--ink-2); line-height: 1.6;
+    }
+
+    /* === CATALOG GRID === */
+    .catalog {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-5);
+    }
+    @media (max-width: 880px) { .catalog { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px) { .catalog { grid-template-columns: 1fr; } }
+
+    .release {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+      position: relative;
+    }
+    .release:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .release__art {
+      aspect-ratio: 1;
+      overflow: hidden;
+      background: var(--bg-2);
+      position: relative;
+    }
+    .release__art img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform var(--dur-slow) var(--ease-out);
+    }
+    .release:hover .release__art img { transform: scale(1.05); }
+    .release__tag {
+      position: absolute; top: var(--space-3); left: var(--space-3);
+      font-family: var(--font-mono); font-size: 9px;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      padding: 4px 8px; border-radius: var(--radius-pill);
+      background: var(--ink); color: var(--bg);
+    }
+    .release__body { padding: var(--space-4) var(--space-5) var(--space-5); }
+    .release__title {
+      font-family: var(--font-display);
+      font-size: 20px; font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .release__meta {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--muted);
+      display: flex; gap: var(--space-3);
+    }
+
+    /* === HOW STEPS === */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-5);
+      counter-reset: step;
+    }
+    @media (max-width: 880px) { .steps { grid-template-columns: 1fr; } }
+    .step {
+      counter-increment: step;
+      padding: var(--space-6);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      position: relative;
+    }
+    .step::before {
+      content: counter(step, decimal-leading-zero);
+      font-family: var(--font-display);
+      font-size: 80px;
+      font-variation-settings: "opsz" 144;
+      color: color-mix(in srgb, var(--accent) 18%, transparent);
+      position: absolute;
+      top: var(--space-4); right: var(--space-5);
+      line-height: 1;
+      font-weight: 400;
+    }
+    .step__icon {
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      color: var(--accent-2);
+      margin-bottom: var(--space-4);
+    }
+    .step__title {
+      font-family: var(--font-display);
+      font-size: 24px; font-weight: 500;
+      margin-bottom: var(--space-2);
+      position: relative; z-index: 1;
+    }
+    .step__body {
+      font-size: 14px; color: var(--ink-2);
+      position: relative; z-index: 1;
+    }
+
+    /* === FOOTER === */
+    footer.foot {
+      border-top: 1px solid var(--line);
+      padding: var(--space-7) 0 var(--space-6);
+      background: var(--bg-2);
+    }
+    .foot__row {
+      display: flex; justify-content: space-between; align-items: end;
+      gap: var(--space-5); flex-wrap: wrap;
+    }
+    .foot__brand {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 400;
+      line-height: 0.9;
+      font-variation-settings: "opsz" 144, "SOFT" 100;
+    }
+    .foot__brand em { color: var(--accent); font-style: italic; }
+    .foot__meta {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--muted);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap nav__inner">
+      <a class="wordmark" href="#">
+        <span class="dot"></span>
+        Sainted Word
+      </a>
+      <div class="nav__links">
+        <a href="#engine">The Engine</a>
+        <a href="#catalog">Catalog</a>
+        <a href="#how">How</a>
+        <a href="#listen">Listen</a>
+      </div>
+      <theme-toggle></theme-toggle>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap hero__grid">
+      <div data-reveal>
+        <span class="hero__eyebrow">A label and an engine</span>
+        <h1 class="hero__title">
+          Records that <em>breathe</em> with the music.
+        </h1>
+        <p class="hero__lede">
+          Sainted Word is a record label and a browser-based engine that turns your
+          library of vinyl, cassettes, tees, and posters into audio-reactive video.
+          Drop a song, drop a library, hit <em style="font-style:normal;font-family:var(--font-mono);">RE-MAP</em>.
+        </p>
+        <div class="hero__cta">
+          <a class="btn" href="#catalog">Hear the catalog</a>
+          <a class="btn btn--ghost" href="#how">See the engine</a>
+        </div>
+      </div>
+      <div data-reveal style="transition-delay: 120ms;">
+        <engine-mini></engine-mini>
+      </div>
+    </div>
+  </header>
+
+  <section class="strip">
+    <div class="wrap strip__row">
+      <div class="strip__item"><span class="strip__num">15</span><span class="strip__label">Asset library</span></div>
+      <div class="strip__item"><span class="strip__num">6</span><span class="strip__label">Reactive layers</span></div>
+      <div class="strip__item"><span class="strip__num">5</span><span class="strip__label">FFT bands</span></div>
+      <div class="strip__item"><span class="strip__num">1024</span><span class="strip__label">Sample bins</span></div>
+      <div class="strip__item"><span class="strip__num">~13kB</span><span class="strip__label">Gzipped</span></div>
+    </div>
+  </section>
+
+  <section class="section" id="engine">
+    <div class="wrap">
+      <div class="section__head" data-reveal>
+        <span class="section__kicker">The Engine</span>
+        <h2 class="section__title">
+          A music visualizer with a <em style="font-style:italic;color:var(--accent-2);">composer</em>'s
+          taste.
+        </h2>
+        <p class="section__lede">
+          Most visualizers react to the spectrum. Sainted Word's engine classifies every
+          asset you give it — motion, brightness, hue — and routes each one to a
+          band of the song that fits. The composition is algorithmic. The score is
+          the audio.
+        </p>
+      </div>
+
+      <div class="features" data-reveal style="transition-delay: 80ms;">
+        <article class="feature">
+          <div class="feature__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h2l2-7 4 14 4-11 2 8h4"/></svg>
+          </div>
+          <h3 class="feature__title">Adaptive beat detection</h3>
+          <p class="feature__body">
+            Bass-energy tracker with an adaptive threshold. Locks the BPM,
+            fires an envelope on every kick, decays gracefully. Works on
+            techno, jazz, and an ill-advised spoken-word record.
+          </p>
+        </article>
+        <article class="feature">
+          <div class="feature__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          </div>
+          <h3 class="feature__title">Layered composition</h3>
+          <p class="feature__body">
+            Six layers, each with its own blend mode and a stack of
+            reactors. Scale to bass. Hue to mids. Position to the
+            spectrum's edge. Every parameter is a feature binding,
+            not a keyframe.
+          </p>
+        </article>
+        <article class="feature">
+          <div class="feature__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          </div>
+          <h3 class="feature__title">Library as palette</h3>
+          <p class="feature__body">
+            Drop a folder. Each asset is auto-classified by motion,
+            luma, and mean hue, then algorithmically routed to the
+            role that suits it. Different song, different look —
+            same library.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="catalog" style="background: var(--bg-2);">
+    <div class="wrap">
+      <div class="section__head" data-reveal>
+        <span class="section__kicker">The Catalog</span>
+        <h2 class="section__title">Sleeves, slabs, and merch.</h2>
+        <p class="section__lede">
+          Every release ships as a physical object and a digital asset.
+          The library folder on the engine is the same one you see here —
+          and yes, you can drop your own.
+        </p>
+      </div>
+
+      <div class="catalog" data-reveal>
+        <article class="release">
+          <div class="release__art">
+            <span class="release__tag">12" LP</span>
+            <img src="library/p01.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="release__body">
+            <h3 class="release__title">Sainted Word Vol. 1</h3>
+            <div class="release__meta"><span>SW-001</span><span>2026</span></div>
+          </div>
+        </article>
+        <article class="release">
+          <div class="release__art">
+            <span class="release__tag">Cassette</span>
+            <img src="library/p03.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="release__body">
+            <h3 class="release__title">Side B / Clear</h3>
+            <div class="release__meta"><span>SW-002</span><span>2026</span></div>
+          </div>
+        </article>
+        <article class="release">
+          <div class="release__art">
+            <span class="release__tag">7"</span>
+            <img src="library/p06.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="release__body">
+            <h3 class="release__title">A Hard Day's Pressing</h3>
+            <div class="release__meta"><span>SW-003</span><span>2025</span></div>
+          </div>
+        </article>
+        <article class="release">
+          <div class="release__art">
+            <span class="release__tag">CD</span>
+            <img src="library/p07.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="release__body">
+            <h3 class="release__title">Digipak Sessions</h3>
+            <div class="release__meta"><span>SW-004</span><span>2025</span></div>
+          </div>
+        </article>
+        <article class="release">
+          <div class="release__art">
+            <span class="release__tag">Box Set</span>
+            <img src="library/p08.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="release__body">
+            <h3 class="release__title">The First Five</h3>
+            <div class="release__meta"><span>SW-BOX-01</span><span>2024</span></div>
+          </div>
+        </article>
+        <article class="release">
+          <div class="release__art">
+            <span class="release__tag">Tee</span>
+            <img src="library/p11.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="release__body">
+            <h3 class="release__title">Crewneck</h3>
+            <div class="release__meta"><span>SW-MERCH-01</span><span>2026</span></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="section__head" data-reveal>
+        <span class="section__kicker">How</span>
+        <h2 class="section__title">Three keystrokes from song to video.</h2>
+      </div>
+
+      <div class="steps" data-reveal>
+        <article class="step">
+          <div class="step__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <h3 class="step__title">Load a song</h3>
+          <p class="step__body">
+            Drag any audio file — mp3, wav, flac — onto the transport bar.
+            The engine unlocks the Web Audio context and starts reading
+            FFT bins.
+          </p>
+        </article>
+        <article class="step">
+          <div class="step__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+          </div>
+          <h3 class="step__title">Drop your library</h3>
+          <p class="step__body">
+            Drop a folder of videos, GIFs, or images. Each one is
+            classified in the background — motion, luma, hue — and
+            added to the persistent IndexedDB store.
+          </p>
+        </article>
+        <article class="step">
+          <div class="step__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          </div>
+          <h3 class="step__title">RE-MAP</h3>
+          <p class="step__body">
+            Hit RE-MAP. The engine scores every asset for every role,
+            picks the best fit, and re-binds the layers to the audio.
+            Hit it again — the song has changed, the look has changed.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="listen" style="background: var(--bg-2);">
+    <div class="wrap" style="text-align: center;" data-reveal>
+      <span class="section__kicker">Listen</span>
+      <h2 class="section__title" style="margin-top: var(--space-4);">
+        Try the engine.
+      </h2>
+      <p class="section__lede" style="margin: var(--space-4) auto 0;">
+        The hero canvas is the engine running on a procedurally generated loop.
+        Hit play to hear the source, then watch the layers respond.
+      </p>
+      <div class="hero__cta" style="justify-content: center;">
+        <a class="btn" href="./">Open the engine</a>
+        <a class="btn btn--ghost" href="#catalog">Browse the catalog</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot" id="foot">
+    <div class="wrap foot__row">
+      <div>
+        <div class="foot__brand">Sainted <em>Word</em></div>
+      </div>
+      <div class="foot__meta">
+        Records &amp; Engines · est. 2026 · Brooklyn / wherever
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       WEB COMPONENTS
+       ============================================================ -->
+
+  <!-- theme-toggle: System / Light / Dark, persisted to localStorage -->
+  <script>
+    class ThemeToggle extends HTMLElement {
+      connectedCallback() {
+        const pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+        this.innerHTML = `
+          <button class="theme-btn" type="button" aria-label="Toggle theme">
+            <span class="icon"></span>
+            <span class="label">${pref}</span>
+          </button>`;
+        this.btn = this.querySelector('button');
+        this.label = this.querySelector('.label');
+        this.icon = this.querySelector('.icon');
+        this._render();
+        this.btn.addEventListener('click', () => this._cycle());
+      }
+      _cycle() {
+        const order = ['system', 'light', 'dark'];
+        const cur = document.documentElement.getAttribute('data-theme-pref') || 'system';
+        const next = order[(order.indexOf(cur) + 1) % order.length];
+        localStorage.setItem('swr-theme', next);
+        const resolved = next === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : next;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', next);
+        this.label.textContent = next;
+        this._render();
+      }
+      _render() {
+        const pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+        const icon = pref === 'dark'
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
+          : pref === 'light'
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>';
+        this.icon.innerHTML = icon;
+      }
+    }
+    customElements.define('theme-toggle', ThemeToggle);
+  </script>
+
+  <!-- engine-mini: a small, self-contained audio-reactive canvas -->
+  <script>
+    class EngineMini extends HTMLElement {
+      connectedCallback() {
+        this.innerHTML = `
+          <div class="engine-mini">
+            <canvas width="640" height="800"></canvas>
+            <button class="engine-mini__play" type="button" aria-label="Play">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="engine-mini__overlay">
+              <div class="engine-mini__label">Live · SWR engine</div>
+              <div class="engine-mini__meters">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        `;
+        this.canvas = this.querySelector('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.playBtn = this.querySelector('.engine-mini__play');
+        this.meters = this.querySelectorAll('.engine-mini__meters span');
+        this._init();
+      }
+      async _init() {
+        // Build a small audio context + a procedural sample
+        this.ctxA = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyser = this.ctxA.createAnalyser();
+        this.analyser.fftSize = 1024;
+        this.fft = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.connect(this.ctxA.destination);
+        // Build a slow ambient loop: bass thump + airy pad
+        this._buildLoop();
+        // Pre-load 6 library images for the layers
+        this.layers = [];
+        const imgs = ['library/p01.jpg', 'library/p03.jpg', 'library/p06.jpg',
+                      'library/p07.jpg', 'library/p08.jpg', 'library/p11.jpg'];
+        for (const src of imgs) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = src;
+          await new Promise(r => { img.onload = r; img.onerror = r; });
+          if (img.naturalWidth) {
+            this.layers.push({ img, scale: 0.6 + Math.random() * 0.6, x: 0, y: 0, rot: 0, opacity: 0.92, blend: ['source-over', 'screen', 'overlay', 'multiply'][this.layers.length % 4] });
+          }
+        }
+        this.playing = false;
+        this.playBtn.addEventListener('click', () => this._toggle());
+        this._loop();
+      }
+      _buildLoop() {
+        // 8-bar loop, 80 BPM = 6 sec. Kick + hat + soft pad.
+        const sr = this.ctxA.sampleRate;
+        const bufLen = sr * 6;
+        const buf = this.ctxA.createBuffer(1, bufLen, sr);
+        const d = buf.getChannelData(0);
+        // Generate kick + hat per beat (80 bpm)
+        const bpm = 80;
+        const beatSec = 60 / bpm;
+        for (let bar = 0; bar < 8; bar++) {
+          for (let beat = 0; beat < 4; beat++) {
+            const t = (bar * 4 + beat) * beatSec;
+            // Kick: low sine burst
+            const start = Math.floor(t * sr);
+            const dur = Math.floor(0.18 * sr);
+            for (let i = 0; i < dur && start + i < bufLen; i++) {
+              const ph = i / sr;
+              const env = Math.exp(-ph * 18);
+              d[start + i] += Math.sin(2 * Math.PI * (60 * Math.exp(-ph * 12)) * ph) * env * 0.7;
+            }
+            // Hat on 2, 4
+            if (beat % 2 === 1) {
+              const s2 = Math.floor((t + 0.25) * sr);
+              const dur2 = Math.floor(0.04 * sr);
+              for (let i = 0; i < dur2 && s2 + i < bufLen; i++) {
+                d[s2 + i] += (Math.random() * 2 - 1) * 0.18 * Math.exp(-i / sr * 60);
+              }
+            }
+          }
+        }
+        // Add a soft pad: low-passed noise
+        let prev = 0;
+        for (let i = 0; i < bufLen; i++) {
+          const n = (Math.random() * 2 - 1) * 0.05;
+          prev = prev * 0.96 + n * 0.04;
+          d[i] += prev;
+        }
+        this.loopBuf = buf;
+        this.source = this.ctxA.createBufferSource();
+        this.source.buffer = buf;
+        this.source.loop = true;
+        this.gain = this.ctxA.createGain();
+        this.gain.gain.value = 0.0;
+        this.source.connect(this.gain);
+        this.gain.connect(this.analyser);
+        this.source.start(0);
+      }
+      _toggle() {
+        if (this.ctxA.state === 'suspended') this.ctxA.resume();
+        this.playing = !this.playing;
+        this.gain.gain.linearRampToValueAtTime(this.playing ? 0.7 : 0.0, this.ctxA.currentTime + 0.4);
+        this.playBtn.innerHTML = this.playing
+          ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+      }
+      _sample() {
+        this.analyser.getByteFrequencyData(this.fft);
+        const N = this.fft.length;
+        const hz = this.ctxA.sampleRate / 1024;
+        const mean = (lo, hi) => {
+          let s = 0, c = 0;
+          for (let i = lo; i <= hi && i < N; i++) { s += this.fft[i]; c++; }
+          return (s / c) / 255;
+        };
+        return {
+          bass:   mean(2, 12),
+          mid:    mean(12, 60),
+          treble: mean(60, 180),
+          air:    mean(180, N - 1),
+          rms:    (() => {
+            // Use 60-180Hz band as a proxy for energy
+            return mean(2, 60);
+          })(),
+        };
+      }
+      _smooth(a, b, k) { return a + (b - a) * k; }
+      _draw(t) {
+        const w = this.canvas.width, h = this.canvas.height;
+        const cx = this.ctx;
+        // Background gradient
+        const bg = cx.createLinearGradient(0, 0, 0, h);
+        bg.addColorStop(0, '#1a1024');
+        bg.addColorStop(1, '#08060c');
+        cx.fillStyle = bg;
+        cx.fillRect(0, 0, w, h);
+        if (!this.layers.length) {
+          this._raf = requestAnimationFrame((tt) => this._draw(tt));
+          return;
+        }
+        const f = this._sample();
+        // Smooth
+        this.s = this.s || { bass: 0, mid: 0, treble: 0, air: 0, beat: 0, onset: 0 };
+        this.s.bass = this._smooth(this.s.bass, f.bass, 0.18);
+        this.s.mid = this._smooth(this.s.mid, f.mid, 0.15);
+        this.s.treble = this._smooth(this.s.treble, f.treble, 0.20);
+        this.s.air = this._smooth(this.s.air, f.air, 0.18);
+        // Beat envelope
+        const beatHit = f.bass > 0.5 && f.bass > (this.lastBass || 0) * 1.25;
+        this.lastBass = f.bass;
+        this.s.beat = beatHit ? 1 : this.s.beat * 0.86;
+        // Update meters
+        const vals = [f.bass, f.mid, f.treble, f.air, 0.5];
+        for (let i = 0; i < this.meters.length; i++) {
+          const v = Math.min(1, vals[i] * 1.6);
+          this.meters[i].style.transform = `scaleY(${0.2 + v})`;
+          this.meters[i].style.background = i < 2
+            ? `color-mix(in srgb, var(--accent) ${60 + v * 40}%, var(--accent-2))`
+            : `color-mix(in srgb, var(--accent-2) ${60 + v * 40}%, var(--accent-3))`;
+        }
+        // Draw layers
+        for (let i = 0; i < this.layers.length; i++) {
+          const l = this.layers[i];
+          const role = ['bass', 'mid', 'treble', 'air', 'rms', 'onset'][i % 6];
+          const feat = f[role] || f.bass;
+          const r = l.scale + feat * 0.4;
+          const hue = i * 50 + (f.mid * 60);
+          cx.save();
+          cx.globalCompositeOperation = l.blend;
+          cx.globalAlpha = l.opacity;
+          const ar = l.img.naturalWidth / l.img.naturalHeight;
+          let dw, dh;
+          if (ar > w / h) { dh = h * r; dw = dh * ar; } else { dw = w * r; dh = dw / ar; }
+          const dx = (w - dw) / 2 + (f.mid - 0.5) * 40;
+          const dy = (h - dh) / 2 + (f.treble - 0.5) * 30;
+          cx.filter = `hue-rotate(${hue}deg) saturate(${1 + f.treble * 0.4}) brightness(${1 + f.bass * 0.2})`;
+          cx.drawImage(l.img, dx, dy, dw, dh);
+          cx.restore();
+        }
+        // Beat flash
+        if (this.s.beat > 0.05) {
+          cx.save();
+          cx.globalCompositeOperation = 'screen';
+          cx.fillStyle = `rgba(255, 255, 255, ${this.s.beat * 0.18})`;
+          cx.fillRect(0, 0, w, h);
+          cx.restore();
+        }
+        cx.filter = 'none';
+        this._raf = requestAnimationFrame((tt) => this._draw(tt));
+      }
+      _loop() {
+        this._draw(performance.now());
+      }
+      disconnectedCallback() {
+        if (this._raf) cancelAnimationFrame(this._raf);
+      }
+    }
+    customElements.define('engine-mini', EngineMini);
+  </script>
+
+  <!-- Scroll reveal via IntersectionObserver, with a hard fallback -->
+  <script>
+    (function() {
+      const els = document.querySelectorAll('[data-reveal]');
+      const reveal = (e) => e.classList.add('in');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(reveal);
+        return;
+      }
+      const io = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            reveal(entry.target);
+            io.unobserve(entry.target);
+          }
+        }
+      }, { threshold: 0.05, rootMargin: '0px 0px -5% 0px' });
+      els.forEach(e => io.observe(e));
+      // Hard fallback: anything still hidden after 3s gets shown.
+      // Covers headless fullPage screenshots that never trigger IO.
+      setTimeout(() => els.forEach(e => e.classList.add('in')), 3000);
+    })();
+  </script>
+
+  <!-- Listen for system theme change when pref=system -->
+  <script>
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      const pref = document.documentElement.getAttribute('data-theme-pref');
+      if (pref === 'system' || !pref) {
+        const resolved = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', resolved);
+      }
+    });
+  </script>
+
+</body>
+</html>

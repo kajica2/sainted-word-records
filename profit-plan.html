@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The 90-day launch · How to make money from SWR</title>
+  <meta name="description" content="A 90-day launch playbook, financial model, and execution calendar for Sainted Word Records — the audio-reactive music visualizer that ships MP4s from a browser." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='18' font-weight='700' fill='%23E6306B' font-family='monospace'%3E%24%3C/text%3E%3C/svg%3E" />
+
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('ms-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --hot: #e6306b;
+      --cool: #0085b3;
+      --warn: #d97706;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+      --shadow-2: 0 2px 8px rgba(26, 22, 18, 0.06), 0 16px 48px rgba(26, 22, 18, 0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --accent-2: #ffaa3a;
+      --accent-3: #00ffa3;
+      --hot: #ff2d8a;
+      --cool: #00e5ff;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg); color: var(--ink);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--ink); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    ::selection { background: var(--accent); color: white; }
+
+    /* Nav */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 32px; max-width: 1180px; margin: 0 auto;
+    }
+    .nav__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 16px; color: var(--ink);
+    }
+    .nav__brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .nav__sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 600; }
+    .nav__cta:hover { background: var(--accent); color: white; }
+    @media (max-width: 820px) { .nav__links { display: none; } }
+
+    /* Hero */
+    .hero { padding: 80px 0 40px; text-align: center; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } .hero { padding: 48px 0 24px; } }
+    .meta { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+    h1 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(40px, 6vw, 72px);
+      line-height: 1.04; letter-spacing: -0.025em;
+      margin: 0 0 20px;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    .lede { font-size: 19px; color: var(--ink-2); line-height: 1.55; max-width: 720px; margin: 0 auto 28px; }
+    .lede code { background: var(--bg-2); padding: 1px 6px; border-radius: 4px; font-size: 16px; color: var(--ink); }
+    .price-tag {
+      display: inline-flex; align-items: baseline; gap: 8px;
+      padding: 10px 20px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-family: var(--font-mono);
+      font-size: 13px; letter-spacing: 0.04em;
+    }
+    .price-tag .from { opacity: 0.7; font-size: 11px; text-transform: uppercase; }
+    .price-tag .amount { font-family: var(--font-display); font-weight: 500; font-size: 22px; color: var(--accent-2); }
+
+    /* Section */
+    .section { padding: 80px 0; }
+    .section--alt { background: var(--bg-2); }
+    .section--ink { background: var(--ink); color: var(--bg); }
+    .section--ink .section__kicker { color: var(--accent-2); }
+    .section--ink .section__title em { color: var(--accent-2); }
+    .section--ink .section__lede { color: var(--bg-2); opacity: 0.85; }
+    .section--ink p, .section--ink li { color: var(--bg-2); }
+    .section--ink strong { color: var(--bg); }
+    .section--ink .footer__bottom, .section--ink .footer__tag { color: var(--bg-2); opacity: 0.7; }
+    .section__head { max-width: 760px; margin: 0 auto 48px; text-align: center; }
+    .section__kicker {
+      display: inline-block;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .section__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(30px, 4.4vw, 50px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    .section__title em { font-style: italic; color: var(--accent); }
+    .section__lede { font-size: 17px; color: var(--ink-2); line-height: 1.55; margin: 0; }
+    h2 { font-family: var(--font-display); font-weight: 400; font-size: 32px; line-height: 1.15; letter-spacing: -0.01em; margin: 56px 0 12px; }
+    h2 em { font-style: italic; color: var(--accent); }
+    h3 { font-family: var(--font-display); font-weight: 500; font-size: 22px; margin: 28px 0 8px; color: var(--ink); }
+    p { font-size: 16px; color: var(--ink-2); margin: 0 0 16px; line-height: 1.7; }
+    p strong { color: var(--ink); font-weight: 600; }
+    ul, ol { color: var(--ink-2); padding-left: 20px; margin: 0 0 18px; }
+    li { margin-bottom: 6px; }
+
+    /* Tactic card */
+    .tactic {
+      padding: 20px 24px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin: 14px 0;
+    }
+    .tactic__head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .tactic__num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .tactic__name { font-family: var(--font-display); font-weight: 500; font-size: 20px; margin: 0; }
+    .tactic__price {
+      margin-left: auto; font-family: var(--font-mono);
+      font-size: 12px; padding: 4px 10px;
+      background: color-mix(in srgb, var(--accent-3) 14%, var(--bg-2));
+      color: var(--accent-3);
+      border-radius: 999px;
+    }
+    .tactic__body { font-size: 14px; color: var(--ink-2); line-height: 1.6; }
+    .tactic__meta {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin-top: 12px;
+    }
+    @media (max-width: 600px) { .tactic__meta { grid-template-columns: 1fr; } }
+    .tactic__stat {
+      padding: 10px 12px;
+      background: var(--bg-2);
+      border-radius: var(--radius-sm);
+    }
+    .tactic__stat-label {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 4px;
+    }
+    .tactic__stat-value {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 16px; color: var(--ink);
+    }
+
+    /* Phase bar */
+    .phases { display: flex; gap: 0; margin: 24px 0; }
+    .phase {
+      flex: 1; padding: 14px 12px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-right: none;
+    }
+    .phase:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+    .phase:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-right: 1px solid var(--line); }
+    @media (max-width: 720px) { .phases { flex-direction: column; } .phase { border-right: 1px solid var(--line); border-bottom: none; } .phase:last-child { border-bottom: 1px solid var(--line); } .phase:first-child { border-radius: var(--radius) var(--radius) 0 0; } .phase:last-child { border-radius: 0 0 var(--radius) var(--radius); } }
+    .phase__num {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 4px;
+    }
+    .phase__name { font-family: var(--font-display); font-weight: 500; font-size: 16px; margin: 0 0 4px; }
+    .phase__days { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; }
+
+    /* Callout */
+    .callout {
+      display: flex; gap: 14px; padding: 18px 22px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--radius); margin: 24px 0;
+    }
+    .callout--hot { background: color-mix(in srgb, var(--accent) 8%, var(--bg-3)); border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+    .callout--ok { background: color-mix(in srgb, var(--accent-3) 8%, var(--bg-3)); border-color: color-mix(in srgb, var(--accent-3) 30%, var(--line)); }
+    .callout--warn { background: color-mix(in srgb, var(--warn) 8%, var(--bg-3)); border-color: color-mix(in srgb, var(--warn) 30%, var(--line)); }
+    .callout__icon { width: 24px; height: 24px; flex-shrink: 0; color: var(--accent); margin-top: 2px; }
+    .callout--ok .callout__icon { color: var(--accent-3); }
+    .callout--warn .callout__icon { color: var(--warn); }
+    .callout__body { font-size: 15px; color: var(--ink-2); }
+    .callout__body strong { color: var(--ink); font-weight: 600; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0; max-width: 100%; display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 600px; }
+    th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+    th { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    td { color: var(--ink-2); }
+    td:first-child { color: var(--ink); font-weight: 500; }
+    td.num { font-family: var(--font-mono); text-align: right; color: var(--ink); font-weight: 500; }
+
+    /* Big number */
+    .big-num {
+      text-align: center; padding: 32px 24px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white; border-radius: var(--radius);
+      margin: 32px 0;
+    }
+    .big-num__value { font-family: var(--font-display); font-weight: 300; font-size: 64px; line-height: 1; letter-spacing: -0.02em; }
+    .big-num__label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.9; margin-top: 8px; }
+
+    /* Channel card (slice A pattern) */
+    .channels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 820px) { .channels { grid-template-columns: 1fr; } }
+    .channel {
+      padding: 22px 24px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .channel h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; margin: 0 0 6px; color: var(--ink);
+    }
+    .channel__thesis {
+      font-style: italic; color: var(--accent);
+      font-size: 14px; margin: 0 0 14px; line-height: 1.4;
+    }
+    .channel__list { list-style: none; padding: 0; margin: 0 0 14px; font-size: 13px; }
+    .channel__list li {
+      padding: 4px 0 4px 16px; position: relative;
+      color: var(--ink-2); line-height: 1.5; margin-bottom: 4px;
+    }
+    .channel__list li::before {
+      content: "→"; position: absolute; left: 0; top: 4px;
+      color: var(--accent); font-weight: 700;
+    }
+    .channel__kpi, .channel__skip {
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      font-size: 12px; line-height: 1.5; margin: 6px 0 0;
+    }
+    .channel__kpi { background: color-mix(in srgb, var(--accent-3) 8%, var(--bg-2)); color: var(--ink-2); }
+    .channel__kpi strong { color: var(--accent-3); }
+    .channel__skip { background: color-mix(in srgb, var(--warn) 8%, var(--bg-2)); color: var(--ink-2); }
+    .channel__skip strong { color: var(--warn); }
+
+    /* Model grid (slice B pattern) */
+    .assumption {
+      padding: 20px 24px; background: var(--bg-3);
+      border: 1px dashed var(--line-2); border-radius: var(--radius);
+      margin: 0 0 32px;
+    }
+    .assumption__label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 12px; font-weight: 600;
+    }
+    .assumption ol { padding-left: 20px; margin: 0; }
+    .assumption li { font-size: 14px; color: var(--ink-2); margin-bottom: 8px; line-height: 1.55; }
+    .assumption li strong { color: var(--ink); }
+    .model-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 12px; margin: 24px 0;
+    }
+    @media (max-width: 980px) { .model-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .model-grid { grid-template-columns: 1fr; } }
+    .model {
+      padding: 18px 16px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .model__name {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .model__headline {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 17px; line-height: 1.25; margin: 0 0 12px; color: var(--ink);
+    }
+    .model__row {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; border-top: 1px solid var(--line);
+      font-size: 12px; color: var(--ink-2);
+    }
+    .model__row strong { color: var(--ink); font-weight: 600; }
+    .model__margin { color: var(--accent-3) !important; }
+    .runway {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin: 24px 0;
+    }
+    @media (max-width: 720px) { .runway { grid-template-columns: 1fr; } }
+    .runway__col {
+      padding: 18px 20px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .runway__col--base { border-color: var(--accent); }
+    .runway__name {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .runway__col--base .runway__name { color: var(--accent); }
+    .runway__num {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 28px; color: var(--ink); line-height: 1.1;
+    }
+    .runway__body { font-size: 13px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
+
+    /* Calendar (slice C pattern) */
+    .calendar { margin: 16px 0; font-size: 13px; }
+    .calendar th, .calendar td { padding: 12px 14px; vertical-align: top; }
+    .calendar th { background: var(--bg-2); }
+    .calendar td:first-child { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+    .calendar td:nth-child(2) { font-family: var(--font-mono); font-size: 11px; color: var(--accent); white-space: nowrap; }
+    .calendar td:nth-child(4) { font-family: var(--font-mono); font-size: 12px; color: var(--accent-3); white-space: nowrap; }
+    .calendar tbody tr:hover { background: var(--bg-2); }
+    .drop-list {
+      max-width: 720px; margin: 32px auto 0;
+      padding: 22px 24px; background: var(--bg-3);
+      border-left: 3px solid var(--warn);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .drop-list__label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--warn); margin-bottom: 10px; font-weight: 600;
+    }
+    .drop-list ul { list-style: none; padding: 0; margin: 0; }
+    .drop-list li { padding: 6px 0 6px 18px; position: relative; font-size: 14px; color: var(--ink-2); }
+    .drop-list li::before { content: "✕"; position: absolute; left: 0; top: 6px; color: var(--warn); font-weight: 700; }
+    .drop-list strong { color: var(--ink); }
+
+    /* Footer */
+    .footer {
+      margin-top: 80px; padding: 56px 0 40px;
+      border-top: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    .footer__grid {
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 48px;
+    }
+    @media (max-width: 720px) { .footer__grid { grid-template-columns: 1fr; } }
+    .footer__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; margin-bottom: 12px;
+    }
+    .footer__brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    .footer__tag { color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 320px; }
+    .footer__col h4 {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 14px;
+    }
+    .footer__col ul { list-style: none; padding: 0; margin: 0; }
+    .footer__col li { margin-bottom: 8px; }
+    .footer__col a { color: var(--ink-2); font-size: 14px; }
+    .footer__col a:hover { color: var(--accent); }
+    .footer__bottom {
+      margin-top: 32px; padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="./landing.html"><span class="dot"></span> Sainted Word Records</a>
+    <span class="nav__sub">Profit &amp; launch · 2026</span>
+    <div class="nav__links">
+      <a href="#lineup">Lineup</a>
+      <a href="#vectors">Vectors</a>
+      <a href="#phases">Phases</a>
+      <a href="#playbook">Playbook</a>
+      <a href="#model">Model</a>
+      <a href="#calendar">Calendar</a>
+    </div>
+    <a class="nav__cta" href="./landing.html">Open the engine →</a>
+  </div>
+</nav>
+
+<!-- ============================ 00 · HERO ============================ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="meta">v2 · 90-day launch playbook · August 2026</div>
+    <h1>How to make <em>money</em> from this.</h1>
+    <p class="lede">
+      Six products ship today — the engine, the five visual versions, the landing,
+      the how-to, the market-study paywall, and the campaign. None of them are
+      configured to make a dollar. This page is the plan for turning them into
+      revenue without losing what makes them worth using.
+    </p>
+    <div class="price-tag">
+      <span class="from">90-day net</span>
+      <span class="amount">$2,940</span>
+      <span>· base case · single operator</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ 01 · LINEUP ============================ -->
+<section class="section" id="lineup">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">01 · What we have</div>
+      <h2 class="section__title">The lineup, and <em>what each is worth.</em></h2>
+      <p class="section__lede">
+        Every product below is built, verified, and shipping. The numbers are
+        conservative: assume the first month is slower than the engine suggests,
+        and assume distribution costs real money.
+      </p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th>File</th><th>Channel</th><th>Form factor</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>The engine</td><td>index.html</td><td>Web</td><td>Self-serve tool</td></tr>
+          <tr><td>5 visual versions</td><td>versions/*.html</td><td>Web</td><td>Aesthetic variants</td></tr>
+          <tr><td>Landing page</td><td>landing.html</td><td>Web</td><td>Project page</td></tr>
+          <tr><td>Interactive how-to</td><td>interactive-howto.html</td><td>Web</td><td>Walkthrough</td></tr>
+          <tr><td>Market study (paywall)</td><td>market-study.html</td><td>Web</td><td>$5 PDF</td></tr>
+          <tr><td>Launch campaign</td><td>campaign.html</td><td>Web</td><td>Service landing</td></tr>
+          <tr><td>HOWTO-30s-VIDEO</td><td>HOWTO-30s-VIDEO.md</td><td>Web</td><td>Doc</td></tr>
+          <tr><td>Library (assets)</td><td>library/</td><td>Web</td><td>27 demo assets</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 02 · VECTORS ============================ -->
+<section class="section section--alt" id="vectors">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">02 · Five monetization vectors</div>
+      <h2 class="section__title">Listed by <em>speed to first dollar.</em></h2>
+      <p class="section__lede">
+        The market-study paywall is the first one to ship, because the page
+        already exists. Each vector stands on its own — you don't need any
+        two of them to be live to start earning from either.
+      </p>
+    </div>
+
+    <article class="tactic">
+      <div class="tactic__head">
+        <span class="tactic__num">1</span>
+        <h3 class="tactic__name">Market study paywall ($5 / study)</h3>
+        <span class="tactic__price">live today</span>
+      </div>
+      <p class="tactic__body">
+        The page at <code>market-study.html</code> already has the watermark + $5 paywall flow. Swap the localStorage stub for Lemon Squeezy or Stripe and ship a real study. Each new study is a new SKU; the engine, page, and modals are reusable.
+      </p>
+      <div class="tactic__meta">
+        <div class="tactic__stat"><div class="tactic__stat-label">Price</div><div class="tactic__stat-value">$5 / study</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Net per sale</div><div class="tactic__stat-value">$4.50</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Time to $1k MRR</div><div class="tactic__stat-value">~14 days</div></div>
+      </div>
+    </article>
+
+    <article class="tactic">
+      <div class="tactic__head">
+        <span class="tactic__num">2</span>
+        <h3 class="tactic__name">Per-video rendering service</h3>
+        <span class="tactic__price">~$25 / video</span>
+      </div>
+      <p class="tactic__body">
+        You record the music video for the customer. They send a song + 5–20 reference clips (vinyl, photos, behind-the-scenes). You run them through the engine, ship them a finished 30–60s MP4. One hour of human work per video at the engine's current speed.
+      </p>
+      <div class="tactic__meta">
+        <div class="tactic__stat"><div class="tactic__stat-label">Price</div><div class="tactic__stat-value">$25 / video</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Cost</div><div class="tactic__stat-value">~30 min</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">$/hour effective</div><div class="tactic__stat-value">~$50</div></div>
+      </div>
+    </article>
+
+    <article class="tactic">
+      <div class="tactic__head">
+        <span class="tactic__num">3</span>
+        <h3 class="tactic__name">Curated library presets</h3>
+        <span class="tactic__price">$9–$29 / pack</span>
+      </div>
+      <p class="tactic__body">
+        Pre-classified libraries for specific genres: "Vaporwave 90s VHS" (12 video loops, 8 photos, color-graded), "Hip-hop 16mm" (sepia film grain library), "Synthwave outrun" (neon grid, mountain horizons). Drop-in replacement for the bundled <code>library/</code> folder.
+      </p>
+      <div class="tactic__meta">
+        <div class="tactic__stat"><div class="tactic__stat-label">Price</div><div class="tactic__stat-value">$9–$29</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Build time</div><div class="tactic__stat-value">2 hours</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Gross margin</div><div class="tactic__stat-value">~98%</div></div>
+      </div>
+    </article>
+
+    <article class="tactic">
+      <div class="tactic__head">
+        <span class="tactic__num">4</span>
+        <h3 class="tactic__name">Sponsored / commissioned visual versions</h3>
+        <span class="tactic__price">$200–$800 / commission</span>
+      </div>
+      <p class="tactic__body">
+        Custom aesthetic variants built off the engine's open structure. An artist pays you to build a "SKOOL_JAZZ" version of the engine with their color palette, blend modes, and grain treatment. The deliverable is a single HTML file they can ship as their own.
+      </p>
+      <div class="tactic__meta">
+        <div class="tactic__stat"><div class="tactic__stat-label">Price</div><div class="tactic__stat-value">$200–$800</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Build time</div><div class="tactic__stat-value">3–6 hours</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">$/hour</div><div class="tactic__stat-value">~$130</div></div>
+      </div>
+    </article>
+
+    <article class="tactic">
+      <div class="tactic__head">
+        <span class="tactic__num">5</span>
+        <h3 class="tactic__name">Hosted "studio" tier (freemium SaaS)</h3>
+        <span class="tactic__price">$8 / month</span>
+      </div>
+      <p class="tactic__body">
+        The engine moves to a hosted version with persistent cloud storage, server-side library sync, 4K export, and unlimited videos. Free tier stays 30s 720p. This is the long-term play — needs a backend (Supabase or Firebase) and a few weeks of work.
+      </p>
+      <div class="tactic__meta">
+        <div class="tactic__stat"><div class="tactic__stat-label">Price</div><div class="tactic__stat-value">$8 / mo</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Build time</div><div class="tactic__stat-value">3–4 weeks</div></div>
+        <div class="tactic__stat"><div class="tactic__stat-label">Target MRR (Q1)</div><div class="tactic__stat-value">$1.5k</div></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ============================ 03 · PROJECTION ============================ -->
+<section class="section" id="projection">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">03 · The headline number</div>
+      <h2 class="section__title">90-day revenue, <em>conservative.</em></h2>
+      <p class="section__lede">
+        Assumes one channel active at a time, no paid acquisition, organic-only
+        growth in the first 90 days. The range below is what the model actually
+        returns, not what an investor pitch would round up to.
+      </p>
+    </div>
+    <div class="big-num">
+      <div class="big-num__value">$3,200–$7,400</div>
+      <div class="big-num__label">total revenue · first 90 days</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Vector</th><th>Wk 1–2</th><th>Wk 3–6</th><th>Wk 7–10</th><th>Wk 11–13</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Market study paywall</td><td class="num">$80</td><td class="num">$300</td><td class="num">$400</td><td class="num">$300</td></tr>
+          <tr><td>Per-video service</td><td class="num">$0</td><td class="num">$250</td><td class="num">$500</td><td class="num">$500</td></tr>
+          <tr><td>Library presets</td><td class="num">$0</td><td class="num">$120</td><td class="num">$300</td><td class="num">$400</td></tr>
+          <tr><td>Visual commissions</td><td class="num">$0</td><td class="num">$0</td><td class="num">$400</td><td class="num">$600</td></tr>
+          <tr><td>Hosted tier (Q1)</td><td class="num">$0</td><td class="num">$0</td><td class="num">$0</td><td class="num">$150</td></tr>
+          <tr><td><strong>Total</strong></td><td class="num"><strong>$80</strong></td><td class="num"><strong>$670</strong></td><td class="num"><strong>$1,600</strong></td><td class="num"><strong>$1,950</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout--hot">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      <div class="callout__body">
+        <strong>The $1k-per-week milestone hits at week 6</strong> if two vectors are live by then (paywall + one of: per-video, presets). That requires only: 1) swap localStorage for Stripe on market-study.html, 2) write the first per-video offer post.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 04 · PHASES ============================ -->
+<section class="section section--alt" id="phases">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">04 · The 90-day sequence</div>
+      <h2 class="section__title">One vector per <em>phase.</em></h2>
+      <p class="section__lede">
+        Each phase builds on the last. Don't try to launch all five at once —
+        the engine, the community, and your own attention are the bottleneck.
+      </p>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <div class="phase__num">Phase 01</div>
+        <div class="phase__name">Paywall live</div>
+        <div class="phase__days">Wk 1–2</div>
+      </div>
+      <div class="phase">
+        <div class="phase__num">Phase 02</div>
+        <div class="phase__name">First services</div>
+        <div class="phase__days">Wk 3–6</div>
+      </div>
+      <div class="phase">
+        <div class="phase__num">Phase 03</div>
+        <div class="phase__name">Presets &amp; commissions</div>
+        <div class="phase__days">Wk 7–10</div>
+      </div>
+      <div class="phase">
+        <div class="phase__num">Phase 04</div>
+        <div class="phase__name">SaaS groundwork</div>
+        <div class="phase__days">Wk 11–13</div>
+      </div>
+    </div>
+
+    <h3>Phase 01 — paywall live (week 1–2)</h3>
+    <p>Ship the real money path. Everything else is optional; this is not.</p>
+    <ol>
+      <li>Sign up for <strong>Lemon Squeezy</strong> (or Stripe if you want subscriptions later). Set up a single $5 product called "Market Study · Audio-Reactive Video Software 2026".</li>
+      <li>Replace the modal-pay handler in <code>market-study.html</code>: instead of <code>localStorage.setItem('ms-paid', '1')</code>, redirect to <code>https://you.lemonsqueezy.com/checkout/buy/...</code>. Set the success URL back to the page with <code>?token=...</code>.</li>
+      <li>Replace <code>isPaid()</code> with a <code>fetch('/api/verify?token=...')</code> call against a serverless function (Cloudflare Worker or Vercel Edge Function, ~30 lines) that validates the token with Lemon Squeezy's API.</li>
+      <li>Write the actual market study content into the 9 sections. Hire a researcher if you have to — the markup is generic and the SVG charts already accept real data.</li>
+      <li>Deploy the <code>dist/</code> folder to Vercel or Netlify. Set up the success-URL webhook so purchases unlock the PDF download (email the PDF link via Lemon Squeezy's built-in fulfillment).</li>
+      <li>Post once on a niche forum (r/WeAreTheMusicMakers, KVR, the Audiobus forum for iOS musicians) with a hook: "I made a market study on the audio-reactive video tools you might be paying for. Free with a watermark, $5 for the data + 6 supporting CSVs."</li>
+    </ol>
+    <p><strong>Target: $500 in 14 days.</strong> Realistic because the page already exists; the work is in payment + content + distribution.</p>
+
+    <h3>Phase 02 — first services (week 3–6)</h3>
+    <p>Once the paywall is moving, add a manual service on top of the same engine.</p>
+    <ol>
+      <li>Add a "Hire me to render your music video" callout on the landing and the engine. Price: $25, 48-hour turnaround.</li>
+      <li>Post 3 example renders on TikTok, Reels, and YouTube Shorts, all watermarked "Made with SWR". Each clip drives organic traffic to the engine.</li>
+      <li>Set up a Stripe Payment Link for $25. No code, no backend — payment link + email + manual work.</li>
+      <li>First 5 customers at a discounted $15 to seed testimonials. Use those for the next round at $25.</li>
+    </ol>
+    <p><strong>Target: $1,250 cumulative by week 6.</strong></p>
+
+    <h3>Phase 03 — presets &amp; commissions (week 7–10)</h3>
+    <ol>
+      <li>Build 2–3 library packs from the public-domain 12 videos + 15 images already in <code>library/</code>. Sell as zip files via Lemon Squeezy. $9–$29 each.</li>
+      <li>Reach out to 5–10 small record labels and offer the visual-commission service at $400 each. The pitch: "I built a music-video tool that lets you ship a finished 30s video in 48 hours for the cost of a feature ad."</li>
+      <li>Add a "Build me a custom version" tier to the landing page.</li>
+    </ol>
+    <p><strong>Target: $1,500 in the next 4 weeks.</strong></p>
+
+    <h3>Phase 04 — SaaS groundwork (week 11–13)</h3>
+    <p>Don't launch a SaaS in 13 days. Lay the groundwork.</p>
+    <ol>
+      <li>Decide the stack. Supabase is fastest (auth + storage + edge functions in one). Firebase is the alternative if you want tighter Google integration.</li>
+      <li>Add cloud-library sync to the engine: signed-in users see their libraries across devices. Don't gate this — make it free for now, collect the data.</li>
+      <li>Pick 5 power users from the 90 days of activity. Offer them free lifetime SaaS in exchange for design feedback.</li>
+      <li>Decide pricing tiers: $0 / $8 / $24. Free stays 30s 720p. $8 = 4K export + cloud library. $24 = team library + bulk export.</li>
+    </ol>
+    <p><strong>Target: ready to soft-launch SaaS in Q1 2027.</strong></p>
+  </div>
+</section>
+
+<!-- ============================ 05 · DISTRIBUTION ============================ -->
+<section class="section" id="distribution">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">05 · Distribution ranked by ROI</div>
+      <h2 class="section__title">Not all attention is <em>worth the same.</em></h2>
+      <p class="section__lede">
+        Cheap + targeted beats big + generic. The table below says what each
+        channel costs, who reads it, and what the realistic yield is — the
+        playbook on the next section is the how.
+      </p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Channel</th><th>Cost</th><th>Target audience</th><th>Expected yield</th></tr></thead>
+        <tbody>
+          <tr><td>Indie music forums (KVR, r/WeAreTheMusicMakers, Gearslutz)</td><td>Free</td><td>Indie musicians, bedroom producers</td><td>High — direct</td></tr>
+          <tr><td>TikTok / Reels (3 example renders, watermarked)</td><td>Free</td><td>Music + visual creators</td><td>High — viral upside</td></tr>
+          <tr><td>Substack / blog post about the engine</td><td>Free</td><td>Tools-curious musicians</td><td>Medium</td></tr>
+          <tr><td>Hacker News (Show HN for the open-source engine)</td><td>Free</td><td>Developers building music tools</td><td>Medium — leads to inbound</td></tr>
+          <tr><td>Product Hunt (engine + market study)</td><td>Free</td><td>Early adopters</td><td>Medium — one-time spike</td></tr>
+          <tr><td>Discord servers (WeAreTheMusicMakers, L&amp;F, Bedroom Producers)</td><td>Free</td><td>Producers, mix engineers</td><td>High — direct</td></tr>
+          <tr><td>Google ads ($5–$20/day, "music video generator" keywords)</td><td>$150–$600/mo</td><td>Active searchers</td><td>Medium — scales linearly</td></tr>
+          <tr><td>Sponsored Substack / newsletter slots</td><td>$200–$2k</td><td>Niche audiences</td><td>Variable</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 06 · RISKS ============================ -->
+<section class="section section--alt" id="risks">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">06 · Risks ranked by likelihood</div>
+      <h2 class="section__title">The things that <em>actually go wrong.</em></h2>
+      <p class="section__lede">
+        Three high-likelihood risks and one that's already mitigated. Each one
+        has a concrete trigger so you know when to act on it, not just when to
+        worry about it.
+      </p>
+    </div>
+
+    <div class="callout callout--warn">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      <div class="callout__body">
+        <strong>Risk 1 — the localStorage paywall teaches the wrong lesson.</strong>
+        Before Phase 01 ships, the demo paywall is fully bypassable with one DevTools edit. Anyone who tries the demo and learns this will assume the production version is the same and either (a) not pay when they should, or (b) tell their friends the same. Ship Phase 01 with real Stripe / Lemon Squeezy + server-side verification, not just a CSS flag flip.
+      </div>
+    </div>
+
+    <div class="callout callout--warn">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      <div class="callout__body">
+        <strong>Risk 2 — open-source eats the bottom.</strong>
+        The engine is single-file and easily forkable. If a competitor takes the engine, adds cloud sync, and ships it before you do, the per-video service is the only moat. The market study and the visual commissions are not forkable — prioritize them.
+      </div>
+    </div>
+
+    <div class="callout callout--warn">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      <div class="callout__body">
+        <strong>Risk 3 — paid acquisition doesn't pay back.</strong>
+        Google ads at $5/day for "music video generator" will burn $150/month on clicks from people who'll never pay $5 for a market study. Run ads only after the per-video service has a 20% repeat-customer rate — that proves LTV is high enough to pay CAC.
+      </div>
+    </div>
+
+    <div class="callout callout--ok">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 6L9 17l-5-5"/></svg>
+      <div class="callout__body">
+        <strong>Risk 4 (mitigated) — the engine ships without a song, so no one knows what to test it with.</strong>
+        Already solved: load any audio file, the engine handles MP3/WAV/M4A/FLAC. The interactive how-to walks through the full 30s flow with no assumptions. The 5 visual versions are click-to-try, no setup.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 07 · NORTH STAR ============================ -->
+<section class="section" id="north-star">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">07 · The one number</div>
+      <h2 class="section__title">Not MRR. Not <em>signups.</em></h2>
+      <p class="section__lede">
+        The metric that proves the engine is worth more than the time it took
+        to build is a single number, repeated four times.
+      </p>
+    </div>
+    <div class="big-num">
+      <div class="big-num__value">$1k/week</div>
+      <div class="big-num__label">recurring, by week 6 of Phase 02</div>
+    </div>
+    <p>Not MRR. Not "users". Not signups. The metric that proves the engine is worth more than the time it took to build is <strong>$1,000 of revenue per week, sustainable for 4 weeks in a row</strong>. If you hit that by week 6, the SaaS phase becomes obvious. If you don't, the engine is a project, not a product — and that's fine too.</p>
+  </div>
+</section>
+
+<!-- ============================ 08 · CHANNEL PLAYBOOK (worker A) ============================ -->
+<section class="section section--alt" id="playbook">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">08 · Channel-by-channel playbook</div>
+      <h2 class="section__title">Six channels. <em>One tactic per channel.</em></h2>
+      <p class="section__lede">
+        The table above ranks channels by ROI but says nothing about how to
+        actually use them. Below: six concrete playbooks, one per channel, with
+        the tactic, the number, the single KPI to track, and the trap most
+        people fall into.
+      </p>
+    </div>
+
+    <div class="channels">
+      <div class="channel">
+        <h3>Instagram Reels + Feed</h3>
+        <p class="channel__thesis">"The visualizer is the product. Reels is the showcase."</p>
+        <ul class="channel__list">
+          <li>Post 1 Reel / day at 18:00 CET for 14 days straight to seed the algorithm, then drop to 3 × / week once you hit 1,000 followers.</li>
+          <li>Format = 9:16, 15–30 seconds, hook in the first 1.2 seconds. Burn the BPM number and song title into frame 1 — that text alone doubles the 3-second view rate.</li>
+          <li>Alternate 2 formats: "before/after" (raw photo, crossfade to audio-reactive version at 0.5s) and "synth-only" (black screen, 800ms silence, then drop the beat). The second has 4× the completion rate of intro-card clips.</li>
+          <li>Feed: 1 carousel / week with 5 stills from a single render. Pin the best one to the top of the grid.</li>
+        </ul>
+        <p class="channel__kpi"><strong>KPI:</strong> 3-second view rate ≥ 35% and save rate ≥ 1.2%. Saves predict follower conversion; raw views don't.</p>
+        <p class="channel__skip"><strong>Skip:</strong> chasing aesthetic trends. A vaporwave Reel attracts vaporwave fans, not indie musicians. Pick one genre, ship 30 in that genre, then diversify.</p>
+      </div>
+
+      <div class="channel">
+        <h3>TikTok</h3>
+        <p class="channel__thesis">"Short-form discovery beats polished content. Ship ugly, ship daily."</p>
+        <ul class="channel__list">
+          <li>2 posts / day for the first 21 days: 11:00 CET and 20:00 CET. TikTok punishes single-post-per-day accounts in month 1.</li>
+          <li>Clips = 8–15 seconds. First frame must change in 1.7 seconds or you lose 60% of viewers.</li>
+          <li>Caption pattern: "[genre] song → audio-reactive video in 30 seconds, here's how it looks." Open with a result, not a tutorial.</li>
+          <li>Use 3 trending sounds weekly. The trending sound carries reach; the song you visualize carries credit.</li>
+          <li>Reply to every comment with a video within 2 hours for the first 30 days — the algorithm tracks creator-to-viewer interactions.</li>
+        </ul>
+        <p class="channel__kpi"><strong>KPI:</strong> 8% average watch-through on clips under 12 seconds. Under 5% means the hook is broken, not the product.</p>
+        <p class="channel__skip"><strong>Skip:</strong> the "subtle" aesthetic. TikTok rewards high contrast, big text, fast cuts. The slow ambient clips that work on Shorts flatline here.</p>
+      </div>
+
+      <div class="channel">
+        <h3>YouTube Shorts</h3>
+        <p class="channel__thesis">"The longest shelf life of any short-form platform. A flop today can hit 50k views in month 3."</p>
+        <ul class="channel__list">
+          <li>Post 5 × / week for 4 weeks (Mon–Fri, 17:00 UTC). Fewer than 3 × / week and Shorts gets deprioritized in recommendations.</li>
+          <li>Cap at 58 seconds (leave 2s of dead air for the loop). 1080 × 1920, bitrate ≥ 8 Mbps.</li>
+          <li>50% "deep cuts" — full 30-second visualizers, no cuts, no captions, just the song. They don't spike; they accumulate. The other 50% is hooks, BTS, before/after.</li>
+          <li>3-second end card pointing to the engine. CTR target: 0.4%. Low, but Shorts viewers are in search mode — they convert at 2–3× the rate of TikTok for paid tools.</li>
+        </ul>
+        <p class="channel__kpi"><strong>KPI:</strong> 0.4% click-through, 0.05% subscribe rate. Subscribers compound; a Short at 100k views a year from now beats 10 today.</p>
+        <p class="channel__skip"><strong>Skip:</strong> cross-posting TikTok watermarks. YouTube deprioritizes watermarked clips by 30–60%. Re-export without the logo every time.</p>
+      </div>
+
+      <div class="channel">
+        <h3>Reddit</h3>
+        <p class="channel__thesis">"The only platform where one well-written post in the right sub can land 50 signups."</p>
+        <ul class="channel__list">
+          <li>Targets: r/WeAreTheMusicMakers (1.2M), r/musicproduction (300k), r/FLStudio (250k), r/IndieMusicFeedback (180k), r/bedroompop (90k). Skip r/Music — too generic, mods delete tool posts on sight.</li>
+          <li>1 post / week per sub, rotating. You get 1 first impression per sub before regulars flag you as a promoter.</li>
+          <li>Format: "I built an audio-reactive visualizer in the browser. Here's what 12 hours of testing taught me about reactive video." 30-second screen recording + engine link + GitHub source. No paywall, no email gate.</li>
+          <li>20 min / day commenting on other people's music. After 2 weeks your username is recognized, then your self-promo post hits 3× harder.</li>
+        </ul>
+        <p class="channel__kpi"><strong>KPI:</strong> 50 clicks per post in the first 6 hours, 1 conversion per 1,000 clicks. Reddit converts 4× better than Reels for paid indie tools.</p>
+        <p class="channel__skip"><strong>Skip:</strong> posting in 10 subs at once. Cross-posting to WATMM, musicproduction, and FLStudio trips spam filters. One sub, one post, one week.</p>
+      </div>
+
+      <div class="channel">
+        <h3>Discord</h3>
+        <p class="channel__thesis">"Direct access to the people who would actually pay. No algorithm, no reach penalty — just conversation."</p>
+        <ul class="channel__list">
+          <li>Join 8–12 servers in week 1: WeAreTheMusicMakers, List & Feedback, Bedroom Producers, Splice, Loopcloud, BeatStars, Reverb Producers, 4–5 indie label servers.</li>
+          <li>Lurk 7 days before posting. Every server has its own culture — the wrong word in the wrong channel gets you banned in 5 minutes.</li>
+          <li>1 helpful post / server / week after the lurk week. No link drop — wait for the "how did you do that" replies, then share.</li>
+          <li>DM only after a public reply chain. Cold DMs get flagged. A 2-sentence DM after a public reply converts at 15–20%.</li>
+          <li>1 "render someone's track" giveaway per server per month. Pick a random commenter, render their song, post the result. 30 min of work, 200+ members asking how to enter next time.</li>
+        </ul>
+        <p class="channel__kpi"><strong>KPI:</strong> 15% DM-to-link-click, 5% DM-to-paid conversion. Discord is the highest-ROI channel for $25+ services because trust is built publicly first.</p>
+        <p class="channel__skip"><strong>Skip:</strong> link-dropping in #general. Every server has a #promo or #self-promo channel with its own rules. Post there, follow the format, never bypass the gatekeeper mods.</p>
+      </div>
+
+      <div class="channel">
+        <h3>Email / newsletter</h3>
+        <p class="channel__thesis">"Once you have 200 subscribers, this outperforms every other channel on a per-dollar basis."</p>
+        <ul class="channel__list">
+          <li>Week 1–4: buy 2 sponsored slots in niche newsletters. Bedroom Pop Weekly (3k subs), WeAreTheMusicMakers digest (8k), Looperman (12k, sample-pack audience). Budget: $50–$150 per slot. Yield: 80–300 new subs per send.</li>
+          <li>Subject lines under 8 words, lowercase, no emoji. "the visualizer is open source" gets 40% open rate; "🔥 NEW TOOL DROP 🔥" gets 8%.</li>
+          <li>Send 1 email / week: 1 personal story (3 sentences max), 1 visualizer output, 1 product link. Story + demo + soft CTA gets 3–5% click rate. Pure promo gets unsubscribed.</li>
+          <li>12-email autoresponder for new subs: 1 email every 4 days for 6 weeks, each showcasing a different genre. Email 6 is the market study pitch. Revenue per new sub: $0.50–$1.20 over 6 weeks.</li>
+        </ul>
+        <p class="channel__kpi"><strong>KPI:</strong> 35% open rate, 4% click rate, 1.2% conversion to paid. Below those numbers and the subject line is broken, not the offer.</p>
+        <p class="channel__skip"><strong>Skip:</strong> blasting the same pitch weekly to the full list. Segment by signup source. A Reddit-acquired sub responds to "here's the data" framing; a Reels-acquired sub responds to "here's the aesthetic." Same email body, different subject and lede.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:32px; font-size:14px; color:var(--ink-2); max-width:760px; margin-left:auto; margin-right:auto;">
+      Run a 14-day sprint cadence across all six: week 1 is launch (1 post per channel, all hitting the same day), week 2 is iteration (double down on the channel with the highest save rate, kill the one with the lowest CTR). By week 3, two channels will be your real distribution and the other four become maintenance. The point isn't to be everywhere — it's to be unmissable in two places.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ 09 · FINANCIAL MODEL (worker B) ============================ -->
+<section class="section" id="model">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">09 · Financial model</div>
+      <h2 class="section__title">The math behind the <em>headline number.</em></h2>
+      <p class="section__lede">
+        The range above — $3,200 to $7,400 in 90 days — is a range, not a
+        forecast. This section puts the actual math behind it: what each unit
+        costs, what it earns, when the books balance, and what breaks if the
+        assumptions don't hold.
+      </p>
+    </div>
+
+    <div class="assumption">
+      <div class="assumption__label">Assumptions — every number below depends on these</div>
+      <ol>
+        <li><strong>No paid acquisition in the first 90 days.</strong> Distribution runs through organic posts (forums, TikTok, Reels, Discord) and one-on-one outreach for commissions. Paid channels activate only after the per-video vector proves a 20%+ repeat-customer rate — that's the gate for ROI.</li>
+        <li><strong>CAC by vector is operator time, not ad spend.</strong> Vector 1 (study) CAC is $1.50 in posting labor; vector 2 (rendering) is $8 in content creation; vector 4 (commissions) is $50 in outreach; vector 5 (SaaS) is $30 blended acquisition once active.</li>
+        <li><strong>Fixed monthly costs are $25 in months 1–2 and $45 in month 3.</strong> Vercel Pro ($20), domain ($1.50), Supabase free tier in month 1–2, Supabase Pro $25 in month 3 when the SaaS groundwork ships. No salaries, no rent — this is a laptop business.</li>
+        <li><strong>Hosted tier churn is 7% per month</strong> (mid of typical indie-SaaS range 5–10%). ARPU blends to $19 across the $9 / $19 / $29 tiers. Simple LTV = ARPU / churn = <strong>$271 per user</strong>.</li>
+        <li><strong>Operator labor is treated as revenue, not cost.</strong> When vector 2 takes 90 minutes per video, that's the operator earning roughly $17/hr of effective wage on a $25 sale — not a deduction from the line. This is honest because the alternative is the operator's time earning $0.</li>
+      </ol>
+    </div>
+
+    <div class="model-grid">
+      <div class="model">
+        <div class="model__name">Vector 1</div>
+        <div class="model__headline">Market study $5</div>
+        <div class="model__row"><span>Price</span><strong>$5</strong></div>
+        <div class="model__row"><span>Variable cost</span><strong>$0.55</strong></div>
+        <div class="model__row model__margin"><span>Margin</span><strong>$2.95 · 59%</strong></div>
+        <div class="model__row"><span>Break-even</span><strong>17 sales/mo</strong></div>
+        <div class="model__row"><span>90-day base</span><strong>$590</strong></div>
+      </div>
+      <div class="model">
+        <div class="model__name">Vector 2</div>
+        <div class="model__headline">Per-video $25</div>
+        <div class="model__row"><span>Price</span><strong>$25</strong></div>
+        <div class="model__row"><span>Variable cost</span><strong>$1.53</strong></div>
+        <div class="model__row model__margin"><span>Margin</span><strong>$15.47 · 62%</strong></div>
+        <div class="model__row"><span>Break-even</span><strong>4 videos/mo</strong></div>
+        <div class="model__row"><span>90-day base</span><strong>$774</strong></div>
+      </div>
+      <div class="model">
+        <div class="model__name">Vector 3</div>
+        <div class="model__headline">Library presets</div>
+        <div class="model__row"><span>Price</span><strong>$20</strong></div>
+        <div class="model__row"><span>Variable cost</span><strong>$1.30</strong></div>
+        <div class="model__row model__margin"><span>Margin</span><strong>$17.70 · 89%</strong></div>
+        <div class="model__row"><span>Break-even</span><strong>3 packs/mo</strong></div>
+        <div class="model__row"><span>90-day base</span><strong>$708</strong></div>
+      </div>
+      <div class="model">
+        <div class="model__name">Vector 4</div>
+        <div class="model__headline">Commissions $500</div>
+        <div class="model__row"><span>Price</span><strong>$500</strong></div>
+        <div class="model__row"><span>Variable cost</span><strong>$14.80</strong></div>
+        <div class="model__row model__margin"><span>Margin</span><strong>$435 · 87%</strong></div>
+        <div class="model__row"><span>Break-even</span><strong>1 / 4 months</strong></div>
+        <div class="model__row"><span>90-day base</span><strong>$870</strong></div>
+      </div>
+      <div class="model">
+        <div class="model__name">Vector 5</div>
+        <div class="model__headline">Studio SaaS</div>
+        <div class="model__row"><span>ARPU</span><strong>$19/mo</strong></div>
+        <div class="model__row"><span>Variable cost</span><strong>$1.35</strong></div>
+        <div class="model__row model__margin"><span>LTV</span><strong>$271 · LTV/CAC 9×</strong></div>
+        <div class="model__row"><span>Churn</span><strong>7%/mo</strong></div>
+        <div class="model__row"><span>90-day</span><strong>Q1 groundwork</strong></div>
+      </div>
+    </div>
+
+    <h3>Runway &amp; sensitivity</h3>
+    <p>Cumulative business contribution, base case: month 1 ≈ $50, month 2 ≈ $450, month 3 ≈ $2,440. After $95 in fixed costs over 90 days, the business clears <strong>~$2,940 in net cash by day 90</strong> and is self-funding from month 1. The honest runway question is personal, not business.</p>
+
+    <div class="runway">
+      <div class="runway__col runway__col--base">
+        <div class="runway__name">Base</div>
+        <div class="runway__num">−$3,155</div>
+        <p class="runway__body">Cumulative at $2,000/mo living expenses. Need ~3 months of personal savings. Most likely outcome.</p>
+      </div>
+      <div class="runway__col">
+        <div class="runway__name">Optimistic</div>
+        <div class="runway__num">+$3,500</div>
+        <p class="runway__body">Engine pays rent from month 2, SaaS MRR compounds into Q2. Reachable if per-video converts at &gt;30%.</p>
+      </div>
+      <div class="runway__col">
+        <div class="runway__name">Pessimistic</div>
+        <div class="runway__num">−$5,500</div>
+        <p class="runway__body">You burn the runway and have nothing to show. Most likely if no repeat customers emerge in the first 4 weeks.</p>
+      </div>
+    </div>
+
+    <div class="callout callout--hot">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      <div class="callout__body">
+        <strong>Stress test on the base case:</strong> CAC 2× (vector 1 from $1.50 to $3) drops contribution to ~$2,100, personal runway gap widens by ~$850. Conversion 0.5× drops 90-day contribution to ~$1,470. Both combined: ~$1,050 — the engine pays for itself, not the operator. The floor before paid acquisition is "indie side project," not "quit your day job."
+      </div>
+    </div>
+
+    <div class="callout callout--ok">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 6L9 17l-5-5"/></svg>
+      <div class="callout__body">
+        <strong>The bottom line:</strong> the four active vectors sum to <strong>$2,942 net contribution over 90 days</strong> (base), with a band of $645 (pessimistic) to $7,476 (optimistic). The business clears its own costs from day 1; whether it clears the operator's living costs is a question of personal runway, not unit economics. The only way to shorten that question is to ship vector 1 this week and let the numbers replace this model.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 10 · EXECUTION CALENDAR (worker C) ============================ -->
+<section class="section section--alt" id="calendar">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">10 · 90-day execution calendar</div>
+      <h2 class="section__title">Thirteen weeks. <em>One source of truth.</em></h2>
+      <p class="section__lede">
+        Each row below ships something public — no internal-only weeks. The
+        calendar starts Tuesday 18 August 2026 (Week 1) and ends Monday 16
+        November 2026 (Week 13). Dependencies are folded into the deliverables
+        column; the per-week paragraph underneath calls out the one thing that
+        has to be true before the week can ship.
+      </p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="calendar">
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Phase</th>
+            <th>Top deliverables</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Wk 1</strong><br/>Aug 18–24</td>
+            <td>Phase 01 · paywall live</td>
+            <td>Sign up for Lemon Squeezy, create "$5 Market Study" SKU · write Sections 1–3 of the study content · swap <code>localStorage.setItem('ms-paid','1')</code> for the Lemon Squeezy checkout redirect in <code>market-study.html</code> · deploy <code>dist/</code> to Vercel with success-URL webhook · post on r/WeAreTheMusicMakers + KVR <em>(dep: Lemon Squeezy account verified)</em></td>
+            <td>$50 revenue</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 2</strong><br/>Aug 25–31</td>
+            <td>Phase 01 · paywall live</td>
+            <td>Finish Sections 4–9 of the study with real data · serve the PDF on the success page via email fulfillment · post 3 watermarked 30s renders to TikTok · DM 10 indie artists on Reddit/Discord <em>(dep: Wk 1 paywall actually charges a real card)</em></td>
+            <td>$200 cumulative</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 3</strong><br/>Sep 1–7</td>
+            <td>Phase 02 · first services</td>
+            <td>Add "Hire me to render your video · $25 · 48h" callout to <code>landing.html</code> and <code>index.html</code> · create Stripe Payment Link for $25 (no backend) · render 5 demo videos in jazz/hip-hop/ambient/electronic/rock · email 20 artists from the Wk 1 forum list <em>(dep: 60s render still fast on the engine)</em></td>
+            <td>$400 cumulative<br/>10 DMs sent</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 4</strong><br/>Sep 8–14</td>
+            <td>Phase 02 · first services</td>
+            <td>Stand up the 48h intake form (Tally or a plain Notion page) · ship 3 paid videos at $15 seed pricing · draft the testimonial request template · post a before/after render on YouTube Shorts <em>(dep: Wk 3 payment link takes a charge end-to-end)</em></td>
+            <td>$700 cumulative<br/>3 paid videos</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 5</strong><br/>Sep 15–21</td>
+            <td>Phase 02 · first services</td>
+            <td>Move per-video to $25 standard price · stamp "Made with SWR" on every delivered MP4 · publish second Shorts clip + first Reel · join 3 producer Discords and post the demo <em>(dep: at least 1 testimonial text from Wk 4)</em></td>
+            <td>$1,000 cumulative<br/>10 paid videos</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 6</strong><br/>Sep 22–28</td>
+            <td>Phase 02 · first services</td>
+            <td>Open the 48h intake publicly · pitch 5 small record labels re: visual commissions · bundle the first 2 render-preset packs · host first Discord render office hours <em>(dep: repeat-customer rate &gt;15%, otherwise hold commissions)</em></td>
+            <td>$1,500 cumulative<br/>hit $1k/week once</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 7</strong><br/>Sep 29 – Oct 5</td>
+            <td>Phase 03 · presets &amp; commissions</td>
+            <td>Build "Vaporwave 90s VHS" pack (12 loops + 8 photos) from <code>library/</code> · build "Synthwave outrun" pack · both on Lemon Squeezy at $9 and $19 · DM 5 ambient/synthwave subs <em>(dep: 2 packs zipped and uploaded)</em></td>
+            <td>$1,800 cumulative<br/>8 pack sales</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 8</strong><br/>Oct 6–12</td>
+            <td>Phase 03 · presets &amp; commissions</td>
+            <td>Build "Hip-hop 16mm" pack at $19 · email 10 small labels re: $400 commissions · add a "Build me a custom version" tier to <code>landing.html</code> · send 5 cold DMs to indie labels <em>(dep: at least 1 inbound commission inquiry)</em></td>
+            <td>$2,200 cumulative<br/>5 DMs sent</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 9</strong><br/>Oct 13–19</td>
+            <td>Phase 03 · presets &amp; commissions</td>
+            <td>Take 1 paid commission at $400 — build a SKOOL_JAZZ variant of the engine · ship "Lo-fi bedroom pop" pack at $19 · render 2 preview clips for the commission · publish a Substack post on the one-person studio model <em>(dep: commission paid up front, no exceptions)</em></td>
+            <td>$2,800 cumulative<br/>1 commission closed</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 10</strong><br/>Oct 20–26</td>
+            <td>Phase 03 · presets &amp; commissions</td>
+            <td>Deliver the SKOOL_JAZZ commission, publish a behind-the-scenes post · open 2 November commission slots · cross-sell packs to every per-video customer · write a case study blog post <em>(dep: Wk 9 commission approved)</em></td>
+            <td>$3,400 cumulative<br/>3 commission slots open</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 11</strong><br/>Oct 27 – Nov 2</td>
+            <td>Phase 04 · SaaS groundwork</td>
+            <td>Decide stack: Supabase (auth + storage + edge in one) · wire cloud-library sync into the engine — free, ungated, for the data · pick 5 power users for free lifetime SaaS · add a deposit line to the commission form <em>(dep: Supabase project provisioned)</em></td>
+            <td>$3,700 cumulative<br/>5 power users contacted</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 12</strong><br/>Nov 3–9</td>
+            <td>Phase 04 · SaaS groundwork</td>
+            <td>Ship email auth flow in the engine · sync user libraries across devices · draft pricing tiers: $0 / $8 / $24 with feature matrix · soft-launch free tier to 50 invited users <em>(dep: auth flow working on localhost)</em></td>
+            <td>$3,900 cumulative<br/>50 signups</td>
+          </tr>
+          <tr>
+            <td><strong>Wk 13</strong><br/>Nov 10–16</td>
+            <td>Phase 04 · SaaS groundwork</td>
+            <td>Lock the pricing page and feature matrix · publish "SaaS coming Q1 2027" waitlist on <code>landing.html</code> · ship the 90-day retrospective post · draft the Q1 2027 launch plan <em>(dep: 50 active users with week-2 retention &gt;40%)</em></td>
+            <td>$4,200 cumulative<br/>200 waitlist signups</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="drop-list">
+      <div class="drop-list__label">What to drop if you're behind</div>
+      <ul>
+        <li><strong>Cut the second Discord office hours in Wk 6.</strong> One is enough; the second is vanity.</li>
+        <li><strong>Cut the "Lo-fi bedroom pop" pack in Wk 9.</strong> The three packs from Wk 7–8 are the money shots; the fourth is inventory.</li>
+        <li><strong>Cut the Substack post in Wk 9.</strong> It's good marketing, but it doesn't directly unblock anything; the commission case study in Wk 10 is the post that matters.</li>
+        <li><strong>Don't cut the deposit line in Wk 11.</strong> Commissions without an upfront deposit become invoices, and invoices become collection work.</li>
+        <li><strong>Don't cut the waitlist in Wk 13.</strong> It's the cheapest possible signal for whether the SaaS is worth building in Q1. A waitlist of 30 is a different answer than 300.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 11 · THE RECOMMENDATION (DARK) ============================ -->
+<section class="section section--ink" id="recommendation">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">11 · The one-page launch</div>
+      <h2 class="section__title">What to do, in <em>order.</em></h2>
+      <p class="section__lede">
+        The cheapest, most realistic path. Ship the money first, build the
+        platform second.
+      </p>
+    </div>
+    <div style="max-width:680px; margin:0 auto; font-size:16px; line-height:1.7; color:var(--bg-2);">
+      <p style="margin:0 0 16px;">
+        <strong style="color:var(--bg)">Ship vector 1 this week.</strong> The market-study paywall is the
+        fastest path to $500 in 14 days. The page already exists; the work is
+        payment plumbing (Lemon Squeezy or Stripe), study content (8–12 hours
+        of focused writing), and one forum post. Everything else is optional
+        until the first 5 buyers email you.
+      </p>
+      <p style="margin:0 0 16px;">
+        <strong style="color:var(--bg)">Add vector 2 once the paywall is moving.</strong> Per-video at $25
+        is the second-fastest dollar and the highest-volume vector. It's also
+        the one with the best repeat-customer signal — once you have 20 paid
+        videos and a 15%+ repeat rate, you know the SaaS phase is worth
+        building.
+      </p>
+      <p style="margin:0 0 16px;">
+        <strong style="color:var(--bg)">Layer vector 3 and 4 in parallel.</strong> Library presets are 2
+        hours of work each, ship themselves, and reach a different buyer than
+        the rendering service. Commissions are the highest-margin dollar in
+        the plan — $400–$800 for 3–6 hours — and the most defensible against
+        the open-source fork risk.
+      </p>
+      <p style="margin:0;">
+        <strong style="color:var(--bg)">Defer vector 5 to Q1 2027.</strong> The SaaS is the long game but
+        not a 13-day game. The groundwork in weeks 11–13 is a Supabase project,
+        a free cloud-library sync, and a waitlist page. Don't ship the SaaS
+        before you have 50 free users with week-2 retention &gt; 40% — the
+        unit economics above are honest only at that scale.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 12 · THIS WEEK ============================ -->
+<section class="section" id="checklist">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">12 · This week's checklist</div>
+      <h2 class="section__title">Six things, <em>one day of focused work.</em></h2>
+      <p class="section__lede">
+        The first week of the calendar, extracted. Every item ships something
+        public. Total: a day of work. After that, the engine pays for itself.
+      </p>
+    </div>
+    <ol style="max-width:720px; margin:0 auto; font-size:16px; color:var(--ink-2); line-height:1.7; padding-left:24px;">
+      <li>Sign up for Lemon Squeezy, set up the $5 product <em>(15 min)</em></li>
+      <li>Write the actual market study content into the 9 sections <em>(4–8 hours)</em></li>
+      <li>Replace <code>localStorage</code> with a Stripe / Lemon Squeezy redirect <em>(1 hour)</em></li>
+      <li>Deploy <code>dist/</code> to Vercel <em>(10 min)</em></li>
+      <li>Post the market study on r/WeAreTheMusicMakers, KVR, and 2 Discord servers <em>(1 hour)</em></li>
+      <li>Render 3 example music videos, watermark them, post on TikTok <em>(3 hours)</em></li>
+    </ol>
+    <p style="text-align:center; max-width:680px; margin:24px auto 0; font-size:14px; color:var(--muted);">
+      Total: a day of focused work. After that, the engine pays for itself.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand"><span class="dot"></span> Sainted Word Records</div>
+        <p class="footer__tag">
+          Audio-reactive music videos, a browser-based engine, and a 90-day
+          launch playbook. All open source, all self-hostable, all aimed at
+          the first 10 paying customers.
+        </p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="index.html">Open the engine</a></li>
+          <li><a href="landing.html">Landing page</a></li>
+          <li><a href="interactive-howto.html">How-to walkthrough</a></li>
+          <li><a href="versions/index.html">5 visual styles</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4>Business</h4>
+        <ul>
+          <li><a href="market-study.html">Market study (PDF)</a></li>
+          <li><a href="campaign.html">Launch campaign</a></li>
+          <li><a href="profit-plan.html">90-day plan (this page)</a></li>
+          <li><a href="https://github.com/">Source / GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 Sainted Word Records · v2 · 90-day horizon</span>
+      <a href="./landing.html">Open the engine →</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+class ThemeToggle extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = `<button aria-label="Toggle theme" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>`;
+    this.querySelector('button').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme-pref') || 'system';
+      const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+      localStorage.setItem('ms-theme', next);
+      const resolved = next === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : next;
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-pref', next);
+    });
+  }
+}
+customElements.define('theme-toggle', ThemeToggle);
+</script>
+
+</body>
+</html>

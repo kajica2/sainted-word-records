@@ -1,0 +1,1399 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR Visualizers · The launch plan that turns songs into video revenue</title>
+  <meta name="description" content="SWR Visualizers — audio-reactive music videos for independent artists. From €25, 48-hour turnaround. Service-first, browser-based, no software to learn." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
+
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('ms-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --hot: #e6306b;
+      --cool: #0085b3;
+      --warn: #d97706;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+      --shadow-2: 0 2px 8px rgba(26, 22, 18, 0.06), 0 16px 48px rgba(26, 22, 18, 0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --accent-2: #ffaa3a;
+      --accent-3: #00ffa3;
+      --hot: #ff2d8a;
+      --cool: #00e5ff;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg); color: var(--ink);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+    a { color: var(--accent); text-decoration: none; transition: color 0.18s; }
+    a:hover { color: var(--ink); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    ::selection { background: var(--accent); color: white; }
+    button { font-family: inherit; cursor: pointer; }
+
+    /* Nav */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 32px; max-width: 1180px; margin: 0 auto;
+    }
+    .nav__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 16px; color: var(--ink);
+    }
+    .nav__brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--accent); color: white; }
+    @media (max-width: 720px) { .nav__links { display: none; } }
+
+    /* Hero */
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } .hero { padding: 48px 0 32px; } }
+    .hero__eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--line-2);
+      background: var(--bg-3);
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-2);
+      margin-bottom: 20px;
+    }
+    .hero__eyebrow .pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent-3);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 300; font-size: clamp(40px, 6.2vw, 76px);
+      line-height: 1.04; letter-spacing: -0.025em;
+      margin: 0 0 24px;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    .lede {
+      font-size: 19px; color: var(--ink-2);
+      max-width: 720px; margin: 0 auto 32px; line-height: 1.55;
+    }
+    .lede code {
+      background: var(--bg-2); padding: 1px 6px; border-radius: 4px;
+      font-size: 16px; color: var(--ink);
+    }
+    .price-tag {
+      display: inline-flex; align-items: baseline; gap: 8px;
+      padding: 10px 20px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-family: var(--font-mono);
+      font-size: 13px; letter-spacing: 0.04em;
+      margin-bottom: 32px;
+    }
+    .price-tag .from { opacity: 0.7; font-size: 11px; text-transform: uppercase; }
+    .price-tag .amount { font-family: var(--font-display); font-weight: 500; font-size: 22px; color: var(--accent-2); }
+    .hero__cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 26px; border-radius: 999px;
+      font-size: 14px; font-weight: 600; letter-spacing: 0.01em;
+      transition: 0.15s; border: 1px solid transparent;
+    }
+    .btn--primary { background: var(--accent); color: white; }
+    .btn--primary:hover { background: var(--ink); color: var(--bg); transform: translateY(-1px); }
+    .btn--ghost { background: transparent; color: var(--ink); border-color: var(--line-2); }
+    .btn--ghost:hover { border-color: var(--ink); }
+    .btn svg { width: 14px; height: 14px; }
+
+    /* Section */
+    .section { padding: 80px 0; }
+    .section--alt { background: var(--bg-2); }
+    .section--ink { background: var(--ink); color: var(--bg); }
+    .section--ink .section__kicker { color: var(--accent-2); }
+    .section--ink .section__title em { color: var(--accent-2); }
+    .section--ink .section__lede { color: var(--bg-2); opacity: 0.85; }
+    .section__head { max-width: 760px; margin: 0 auto 48px; text-align: center; }
+    .section__kicker {
+      display: inline-block;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .section__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(30px, 4.2vw, 50px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    .section__title em { font-style: italic; color: var(--accent); }
+    .section__lede { font-size: 17px; color: var(--ink-2); line-height: 1.55; margin: 0; }
+
+    /* Thesis: 5 selling points */
+    .thesis {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
+    }
+    @media (max-width: 980px) { .thesis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .thesis { grid-template-columns: 1fr; } }
+    .thesis__card {
+      padding: 22px 20px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .thesis__icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--bg-2); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px; font-family: var(--font-mono);
+      font-weight: 600; font-size: 14px;
+    }
+    .thesis__name { font-family: var(--font-display); font-weight: 500; font-size: 17px; margin: 0 0 6px; }
+    .thesis__body { font-size: 13px; color: var(--ink-2); margin: 0; line-height: 1.5; }
+
+    /* Sample video grid */
+    .samples {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .sample {
+      position: relative; aspect-ratio: 9/16;
+      border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--line);
+      background: var(--bg-3);
+    }
+    .sample img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sample__label {
+      position: absolute; bottom: 10px; left: 10px; right: 10px;
+      padding: 8px 10px; border-radius: var(--radius-sm);
+      background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
+      color: white; font-size: 11px;
+    }
+    .sample__label .name { font-family: var(--font-display); font-weight: 500; font-size: 14px; }
+    .sample__label .genre { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; margin-top: 1px; }
+
+    /* How it works */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 720px) { .steps { grid-template-columns: 1fr; } }
+    .step {
+      padding: 24px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .step__num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--accent); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 16px; margin-bottom: 14px;
+    }
+    .step__title { font-family: var(--font-display); font-weight: 500; font-size: 20px; margin: 0 0 8px; }
+    .step__body { font-size: 14px; color: var(--ink-2); line-height: 1.6; margin: 0; }
+
+    /* Pricing */
+    .pricing {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 980px) { .pricing { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px) { .pricing { grid-template-columns: 1fr; } }
+    .price {
+      padding: 28px 24px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+      position: relative;
+    }
+    .price--featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .price__badge {
+      position: absolute; top: -10px; right: 20px;
+      padding: 3px 10px; border-radius: 999px;
+      background: var(--accent); color: white;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .price__name {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
+    }
+    .price__amount {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: 44px; line-height: 1; margin-bottom: 4px;
+      color: var(--ink);
+    }
+    .price__amount .currency { font-size: 18px; vertical-align: top; opacity: 0.7; }
+    .price__from { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+    .price__list { list-style: none; padding: 0; margin: 0 0 24px; font-size: 13px; }
+    .price__list li { padding: 6px 0; border-bottom: 1px solid var(--line); color: var(--ink-2); display: flex; align-items: flex-start; gap: 8px; }
+    .price__list li:last-child { border-bottom: none; }
+    .price__list li::before { content: "✓"; color: var(--accent-3); font-weight: 700; flex-shrink: 0; }
+    .price__cta {
+      display: block; width: 100%; padding: 10px 16px;
+      border-radius: 999px; text-align: center;
+      font-size: 13px; font-weight: 600;
+      background: var(--bg-2); color: var(--ink);
+      border: 1px solid var(--line-2);
+      transition: 0.15s;
+    }
+    .price__cta:hover { background: var(--ink); color: var(--bg); }
+    .price--featured .price__cta { background: var(--accent); color: white; border-color: var(--accent); }
+    .price--featured .price__cta:hover { background: var(--ink); border-color: var(--ink); }
+
+    .founding-note {
+      max-width: 720px; margin: 32px auto 0;
+      padding: 20px 24px; background: var(--bg-3);
+      border: 1px dashed var(--accent-2);
+      border-radius: var(--radius);
+      font-size: 14px; color: var(--ink-2);
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .founding-note__icon {
+      flex-shrink: 0; width: 28px; height: 28px;
+      border-radius: 50%; background: var(--accent-2); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+    }
+    .founding-note strong { color: var(--ink); }
+
+    /* Targets */
+    .targets {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+    }
+    @media (max-width: 980px) { .targets { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 540px) { .targets { grid-template-columns: repeat(2, 1fr); } }
+    .target {
+      padding: 16px 16px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius-sm);
+      font-size: 13px; color: var(--ink-2);
+    }
+    .target strong { color: var(--ink); font-weight: 600; display: block; font-size: 14px; margin-bottom: 4px; }
+    .target__best {
+      margin-top: 8px; display: inline-block;
+      padding: 2px 8px; border-radius: 999px;
+      background: var(--accent); color: white;
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    /* Funnel: free vs paid */
+    .funnel {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+      border: 1px solid var(--line); border-radius: var(--radius);
+      overflow: hidden;
+    }
+    @media (max-width: 720px) { .funnel { grid-template-columns: 1fr; } }
+    .funnel__col {
+      padding: 32px 28px;
+      background: var(--bg-3);
+    }
+    .funnel__col--paid { background: var(--ink); color: var(--bg); }
+    .funnel__col--paid .funnel__lede { color: var(--bg-2); opacity: 0.85; }
+    .funnel__col--paid .funnel__list li { color: var(--bg-2); border-color: rgba(255,255,255,0.12); }
+    .funnel__col--paid .funnel__list li::before { color: var(--accent-2); }
+    .funnel__col + .funnel__col { border-left: 1px solid var(--line); }
+    @media (max-width: 720px) {
+      .funnel__col + .funnel__col { border-left: none; border-top: 1px solid var(--line); }
+    }
+    .funnel__name {
+      display: inline-block;
+      padding: 3px 10px; border-radius: 999px;
+      background: var(--bg-2); color: var(--ink);
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .funnel__col--paid .funnel__name { background: var(--accent); color: white; }
+    .funnel__title { font-family: var(--font-display); font-weight: 500; font-size: 24px; margin: 0 0 8px; }
+    .funnel__lede { font-size: 13px; color: var(--ink-2); margin: 0 0 18px; line-height: 1.5; }
+    .funnel__list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
+    .funnel__list li { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+    .funnel__list li:last-child { border-bottom: none; }
+    .funnel__list li::before { content: "•"; color: var(--accent-3); font-weight: 700; flex-shrink: 0; }
+
+    /* Launch checklist (5 cheap items) */
+    .checklist { max-width: 760px; margin: 0 auto; }
+    .check {
+      display: grid; grid-template-columns: 48px 1fr; gap: 16px;
+      padding: 18px 0; border-bottom: 1px solid var(--line);
+      align-items: flex-start;
+    }
+    .check:last-child { border-bottom: none; }
+    .check__num {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--bg-2); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .check__title { font-family: var(--font-display); font-weight: 500; font-size: 19px; margin: 0 0 4px; }
+    .check__body { font-size: 14px; color: var(--ink-2); line-height: 1.55; margin: 0; }
+    .check__body code {
+      background: var(--bg-2); padding: 1px 5px; border-radius: 3px;
+      font-size: 12px; color: var(--ink);
+    }
+    .check__price {
+      display: inline-block; margin-top: 8px;
+      padding: 2px 8px; border-radius: 999px;
+      background: var(--accent-3); color: white;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* Outreach script */
+    .script {
+      max-width: 760px; margin: 0 auto;
+      padding: 28px 32px; background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--radius);
+      font-size: 15px; line-height: 1.7; color: var(--ink-2);
+      position: relative;
+    }
+    .script__label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px;
+    }
+    .script__copy-btn {
+      margin-top: 18px;
+      padding: 8px 16px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+      border: none;
+    }
+    .script__copy-btn:hover { background: var(--accent); }
+    .script__copy-btn.is-copied { background: var(--accent-3); }
+    .script__note { font-size: 12px; color: var(--muted); margin-top: 14px; font-style: italic; }
+
+    /* Publishing playbook */
+    .playbook { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    @media (max-width: 720px) { .playbook { grid-template-columns: 1fr; } }
+    .play {
+      padding: 22px 24px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .play__num {
+      flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+      background: var(--accent); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 14px;
+    }
+    .play__title { font-family: var(--font-display); font-weight: 500; font-size: 16px; margin: 0 0 4px; }
+    .play__body { font-size: 13px; color: var(--ink-2); margin: 0; line-height: 1.5; }
+
+    /* License callout */
+    .license {
+      max-width: 720px; margin: 0 auto;
+      padding: 24px 28px; background: var(--bg-3);
+      border-left: 3px solid var(--warn);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .license__label {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--warn); margin-bottom: 10px; font-weight: 600;
+    }
+    .license__title { font-family: var(--font-display); font-weight: 500; font-size: 19px; margin: 0 0 10px; }
+    .license__body { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.6; }
+
+    /* Form */
+    .form {
+      max-width: 560px; margin: 0 auto;
+      padding: 32px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .form__row { margin-bottom: 16px; }
+    .form__row label {
+      display: block; font-size: 12px; color: var(--ink-2);
+      font-weight: 500; margin-bottom: 6px;
+    }
+    .form__row label .req { color: var(--accent); }
+    .form__row input, .form__row select, .form__row textarea {
+      width: 100%; padding: 10px 12px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--radius-sm);
+      color: var(--ink); font-family: inherit; font-size: 14px;
+    }
+    .form__row input:focus, .form__row select:focus, .form__row textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .form__row textarea { min-height: 90px; resize: vertical; }
+    .form__submit {
+      display: block; width: 100%; padding: 13px 20px;
+      border-radius: 999px; background: var(--accent);
+      color: white; font-size: 14px; font-weight: 600;
+      border: none; margin-top: 8px;
+    }
+    .form__submit:hover { background: var(--ink); }
+    .form__note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+
+    /* FAQ */
+    .faq { max-width: 720px; margin: 0 auto; }
+    .faq__item {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .faq__q {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 18px; color: var(--ink); margin: 0 0 8px;
+    }
+    .faq__a { font-size: 14px; color: var(--ink-2); line-height: 1.65; margin: 0; }
+
+    /* Footer */
+    .footer { padding: 56px 0 40px; border-top: 1px solid var(--line); background: var(--bg-2); }
+    .footer__grid {
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 48px;
+    }
+    @media (max-width: 720px) { .footer__grid { grid-template-columns: 1fr; } }
+    .footer__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; margin-bottom: 12px;
+    }
+    .footer__brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    .footer__tag { color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 320px; }
+    .footer__col h4 {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 14px;
+    }
+    .footer__col ul { list-style: none; padding: 0; margin: 0; }
+    .footer__col li { margin-bottom: 8px; }
+    .footer__col a { color: var(--ink-2); font-size: 14px; }
+    .footer__col a:hover { color: var(--accent); }
+    .footer__bottom {
+      margin-top: 32px; padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.05em;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.is-open { display: flex; }
+    .modal {
+      max-width: 420px; width: 100%;
+      background: var(--bg-3);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-2);
+      text-align: center;
+    }
+    .modal h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 24px; margin: 0 0 8px;
+    }
+    .modal p { font-size: 14px; color: var(--ink-2); margin: 0 0 20px; }
+    .modal__btn {
+      display: inline-block; padding: 11px 24px;
+      border-radius: 999px; background: var(--accent); color: white;
+      font-size: 13px; font-weight: 600; border: none;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav__inner">
+    <div class="nav__brand"><span class="dot"></span> SWR Visualizers</div>
+    <div class="nav__links">
+      <a href="#thesis">What you get</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#funnel">Free vs paid</a>
+      <a href="#launch">Launch plan</a>
+      <a href="#outreach">Outreach</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="nav__cta" href="#order">Send the song →</a>
+  </div>
+</nav>
+
+<!-- ============================ HERO ============================ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero__eyebrow">
+      <span class="pulse"></span> Service-first · Browser-based · No software to learn
+    </div>
+    <h1>Send me your song.<br />Get a <em>music video</em> in 48 hours.</h1>
+    <p class="lede">
+      SWR turns any audio into a polished, audio-reactive MP4 visualizer —
+      neon, film, grid, smoke, or hallucination. Built for Instagram, TikTok,
+      YouTube Shorts, and Spotify Canvas. From <code>€25</code>, delivered in 48 hours.
+    </p>
+    <div class="price-tag">
+      <span class="from">Starting at</span>
+      <span class="amount">€25</span>
+      <span>· 48-hour turnaround · manual delivery</span>
+    </div>
+    <div class="hero__cta">
+      <a class="btn btn--primary" href="#order">Send a song →</a>
+      <a class="btn btn--ghost" href="#samples">See 5 sample videos</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ THESIS ============================ -->
+<section class="section" id="thesis">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">01 · Why this works</div>
+      <h2 class="section__title">Five things you can <em>already</em> sell.</h2>
+      <p class="section__lede">
+        You're not pitching an unfinished creative tool — you're selling a finished
+        MP4 an artist can post today. SWR already does the work that takes After
+        Effects artists hours and stock-footage subscriptions real money.
+      </p>
+    </div>
+    <div class="thesis">
+      <div class="thesis__card">
+        <div class="thesis__icon">∿</div>
+        <h3 class="thesis__name">Audio-reactive</h3>
+        <p class="thesis__body">Visuals driven by five frequency bands, adaptive beat detection, and onset events.</p>
+      </div>
+      <div class="thesis__card">
+        <div class="thesis__icon">▶</div>
+        <h3 class="thesis__name">Auto MP4 export</h3>
+        <p class="thesis__body">Native H.264 + AAC encoding in Chrome and Safari. No ffmpeg, no server.</p>
+      </div>
+      <div class="thesis__card">
+        <div class="thesis__icon">⟳</div>
+        <h3 class="thesis__name">10s to full song</h3>
+        <p class="thesis__body">10-, 15-, 30-, 60-second, or full-song recordings with one click.</p>
+      </div>
+      <div class="thesis__card">
+        <div class="thesis__icon">✦</div>
+        <h3 class="thesis__name">Five visual styles</h3>
+        <p class="thesis__body">Neon, Film, Grid, Smoke, Hallucination — each with its own mood.</p>
+      </div>
+      <div class="thesis__card">
+        <div class="thesis__icon">⌬</div>
+        <h3 class="thesis__name">Browser-only</h3>
+        <p class="thesis__body">No install. No plugins. No learning curve. The artist just sends the audio.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ SAMPLES ============================ -->
+<section class="section section--alt" id="samples">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">02 · Portfolio</div>
+      <h2 class="section__title">Five styles. <em>One song</em> never sounds the same twice.</h2>
+      <p class="section__lede">
+        The same track rendered in five distinct visual languages. These are the demos
+        you send to anyone who asks "what does this actually look like?"
+      </p>
+    </div>
+    <div class="samples">
+      <div class="sample">
+        <img src="library/p_01.jpg" alt="Neon style" loading="lazy" />
+        <div class="sample__label">
+          <div class="name">Neon</div>
+          <div class="genre">jazz · lo-fi · synthwave</div>
+        </div>
+      </div>
+      <div class="sample">
+        <img src="library/p_02.jpg" alt="Film style" loading="lazy" />
+        <div class="sample__label">
+          <div class="name">Film</div>
+          <div class="genre">electronic · ambient</div>
+        </div>
+      </div>
+      <div class="sample">
+        <img src="library/p_03.jpg" alt="Grid style" loading="lazy" />
+        <div class="sample__label">
+          <div class="name">Grid</div>
+          <div class="genre">techno · idm</div>
+        </div>
+      </div>
+      <div class="sample">
+        <img src="library/p_04.jpg" alt="Smoke style" loading="lazy" />
+        <div class="sample__label">
+          <div class="name">Smoke</div>
+          <div class="genre">hip-hop · r&b</div>
+        </div>
+      </div>
+      <div class="sample">
+        <img src="library/p_05.jpg" alt="Hallucination style" loading="lazy" />
+        <div class="sample__label">
+          <div class="name">Hallucination</div>
+          <div class="genre">experimental · dream pop</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ TARGETS ============================ -->
+<section class="section" id="targets">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">03 · Your customers</div>
+      <h2 class="section__title">People who <em>need</em> a video and have <em>no budget</em> for one.</h2>
+      <p class="section__lede">
+        Your strongest initial niche is independent musicians and producers —
+        SWR directly converts their existing audio into promotional content
+        they would otherwise skip. But the customer list is wider than that.
+      </p>
+    </div>
+    <div class="targets">
+      <div class="target">
+        <strong>Indie musicians</strong>
+        Releasing a single this quarter.
+        <span class="target__best">Best fit</span>
+      </div>
+      <div class="target">
+        <strong>Beatmakers</strong>
+        Selling beats on BeatStars / Airbit.
+      </div>
+      <div class="target">
+        <strong>DJs</strong>
+        Promoting mixes and upcoming events.
+      </div>
+      <div class="target">
+        <strong>Small labels</strong>
+        Local imprints releasing 3-10 artists / year.
+      </div>
+      <div class="target">
+        <strong>Mgmt agencies</strong>
+        Visual content for their roster.
+      </div>
+      <div class="target">
+        <strong>Podcast creators</strong>
+        Audio → short video clips for socials.
+      </div>
+      <div class="target">
+        <strong>YouTube music</strong>
+        Channels publishing track breakdowns.
+      </div>
+      <div class="target">
+        <strong>Local artists</strong>
+        Belgrade / regional scene — no video budget.
+        <span class="target__best">Best fit</span>
+      </div>
+      <div class="target">
+        <strong>Audio-only</strong>
+        Anyone with a finished track and a release date.
+        <span class="target__best">Best fit</span>
+      </div>
+      <div class="target">
+        <strong>Sound designers</strong>
+        Showcasing sample packs and presets.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PRICING ============================ -->
+<section class="section section--alt" id="pricing">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">04 · Pricing</div>
+      <h2 class="section__title">Four tiers. <em>No subscription</em> required.</h2>
+      <p class="section__lede">
+        Start simple. You can add complexity once you see what people actually order.
+        The first 3–5 customers get a founding rate in exchange for public-use permission.
+      </p>
+    </div>
+    <div class="pricing">
+      <div class="price">
+        <div class="price__name">Basic</div>
+        <div class="price__amount"><span class="currency">€</span>15–25</div>
+        <div class="price__from">One 15-second clip · one style</div>
+        <ul class="price__list">
+          <li>15-second visualizer</li>
+          <li>1 visual style</li>
+          <li>Vertical or square MP4</li>
+          <li>2 revision rounds</li>
+          <li>48-hour delivery</li>
+        </ul>
+        <a class="price__cta" href="#order">Order Basic</a>
+      </div>
+      <div class="price price--featured">
+        <div class="price__badge">Most popular</div>
+        <div class="price__name">Standard</div>
+        <div class="price__amount"><span class="currency">€</span>35–60</div>
+        <div class="price__from">30-second · 2 styles · 2 formats</div>
+        <ul class="price__list">
+          <li>30-second visualizer</li>
+          <li>2 visual styles to choose from</li>
+          <li>Vertical + square exports</li>
+          <li>3 revision rounds</li>
+          <li>48-hour delivery</li>
+          <li>Commercial-use rights</li>
+        </ul>
+        <a class="price__cta" href="#order">Order Standard</a>
+      </div>
+      <div class="price">
+        <div class="price__name">Pro</div>
+        <div class="price__amount"><span class="currency">€</span>100–200</div>
+        <div class="price__from">Full song or release campaign</div>
+        <ul class="price__list">
+          <li>Full-song or multi-clip bundle</li>
+          <li>All 5 visual styles</li>
+          <li>Vertical + square + landscape</li>
+          <li>Custom artwork / logo integration</li>
+          <li>Unlimited revisions within scope</li>
+        </ul>
+        <a class="price__cta" href="#order">Order Pro</a>
+      </div>
+      <div class="price">
+        <div class="price__name">Monthly</div>
+        <div class="price__amount"><span class="currency">€</span>100–250</div>
+        <div class="price__from">4 short visualizers / month</div>
+        <ul class="price__list">
+          <li>4 short visualizers per month</li>
+          <li>Rotating style catalogue</li>
+          <li>All aspect ratios</li>
+          <li>Priority queue</li>
+          <li>Cancelled anytime</li>
+        </ul>
+        <a class="price__cta" href="#order">Start subscription</a>
+      </div>
+    </div>
+    <div class="founding-note">
+      <div class="founding-note__icon">★</div>
+      <div>
+        <strong>Founding customer rate:</strong> the first 3–5 buyers get
+        a 30% discount in exchange for permission to display the finished
+        video publicly in your portfolio. After that, the listed prices apply.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ FUNNEL ============================ -->
+<section class="section" id="funnel">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">05 · Free-to-paid funnel</div>
+      <h2 class="section__title">Free <em>demo</em>. Paid <em>delivery</em>.</h2>
+      <p class="section__lede">
+        The free version exists to prove the engine works. The paid version is
+        what the artist actually posts. Don't try to ship both at the same level
+        of polish on day one.
+      </p>
+    </div>
+    <div class="funnel">
+      <div class="funnel__col">
+        <div class="funnel__name">Free · Browser</div>
+        <h3 class="funnel__title">The demo</h3>
+        <p class="funnel__lede">What anyone can do without paying you anything.</p>
+        <ul class="funnel__list">
+          <li>Test the visualizer in the browser</li>
+          <li>Use a limited demo library</li>
+          <li>Export a 10-second watermarked clip</li>
+          <li>Choose from 1–2 styles</li>
+          <li>Self-serve, no support</li>
+        </ul>
+      </div>
+      <div class="funnel__col funnel__col--paid">
+        <div class="funnel__name">Paid · Service</div>
+        <h3 class="funnel__title">The deliverable</h3>
+        <p class="funnel__lede">What the artist actually posts on social media.</p>
+        <ul class="funnel__list">
+          <li>No watermark</li>
+          <li>10s, 15s, 30s, 60s, or full song</li>
+          <li>Full-song rendering</li>
+          <li>All 5 visual styles</li>
+          <li>Custom artwork / logo</li>
+          <li>Higher-quality exports</li>
+          <li>Commercial-use rights</li>
+          <li>Multiple aspect ratios (9:16, 1:1, 16:9)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ LAUNCH PLAN ============================ -->
+<section class="section section--alt" id="launch">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">06 · The €0 launch</div>
+      <h2 class="section__title">You can launch this <em>this week</em>.</h2>
+      <p class="section__lede">
+        Five things, all free, no accounts, no databases, no subscription
+        backend. Process the first orders manually and watch what people
+        keep asking for — that tells you what to build next.
+      </p>
+    </div>
+    <div class="checklist">
+      <div class="check">
+        <div class="check__num">1</div>
+        <div>
+          <h3 class="check__title">Hosting</h3>
+          <p class="check__body">
+            Deploy the static build on GitHub Pages, Cloudflare Pages, or Netlify's
+            free tier. The whole <code>dist/</code> folder is 82 MB and serves from a CDN.
+          </p>
+          <span class="check__price">€0</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">2</div>
+        <div>
+          <h3 class="check__title">Landing page</h3>
+          <p class="check__body">
+            Your existing <code>landing.html</code> is already the public homepage.
+            This <code>campaign.html</code> is the long-form sales doc. <code>market-study.html</code>
+            is the gated PDF teaser.
+          </p>
+          <span class="check__price">€0</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">3</div>
+        <div>
+          <h3 class="check__title">Payments</h3>
+          <p class="check__body">
+            Start with Stripe Payment Links, Gumroad, Lemon Squeezy, or a plain invoice.
+            No need to wire a checkout into the site yet. You can swap to a real processor
+            once the order volume justifies it.
+          </p>
+          <span class="check__price">€0</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">4</div>
+        <div>
+          <h3 class="check__title">Delivery</h3>
+          <p class="check__body">
+            Accept audio through Google Drive, Dropbox, WeTransfer, or a basic upload form.
+            Deliver the finished MP4 the same way. You're the file pipeline for the first
+            50 customers. That's fine.
+          </p>
+          <span class="check__price">€0</span>
+        </div>
+      </div>
+      <div class="check">
+        <div class="check__num">5</div>
+        <div>
+          <h3 class="check__title">Portfolio</h3>
+          <p class="check__body">
+            Create five sample videos using different genres: jazz, hip-hop, ambient,
+            electronic, and rock. These are the demos you send before anyone pays you
+            anything. Without them, nothing else moves.
+          </p>
+          <span class="check__price">€0</span>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center; max-width:680px; margin:32px auto 0; font-size:14px; color:var(--ink-2);">
+      You don't need accounts, databases, subscriptions, user dashboards, cloud
+      rendering, or an upload backend at the beginning. <strong style="color:var(--ink)">The first ten
+      orders should be you, manually, on email.</strong>
+    </p>
+  </div>
+</section>
+
+<!-- ============================ HOW IT WORKS ============================ -->
+<section class="section" id="how">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">07 · The order flow</div>
+      <h2 class="section__title">Three steps. <em>48 hours.</em></h2>
+      <p class="section__lede">
+        Manual fulfillment, not platform complexity. The system is: send song,
+        pick style, receive MP4. Everything else is overhead.
+      </p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step__num">1</div>
+        <h3 class="step__title">Send the song</h3>
+        <p class="step__body">
+          Drop a WeTransfer, Drive, or Dropbox link. WAV or MP3. Tell me
+          which style fits the mood and the format you need (9:16, 1:1, 16:9).
+        </p>
+      </div>
+      <div class="step">
+        <div class="step__num">2</div>
+        <h3 class="step__title">I render two options</h3>
+        <p class="step__body">
+          I tune the engine to the song, render the visualizer in 10s, 15s, 30s, 60s,
+          or full-song length, and send you two takes so you can pick a direction.
+        </p>
+      </div>
+      <div class="step">
+        <div class="step__num">3</div>
+        <h3 class="step__title">Delivery</h3>
+        <p class="step__body">
+          You get the final MP4 in all requested aspect ratios, plus the source
+          styles if you want a future re-render. Use it anywhere: Instagram, TikTok,
+          YouTube Shorts, Spotify Canvas, paid ads.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ OUTREACH ============================ -->
+<section class="section section--alt" id="outreach">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">08 · The pitch that gets replies</div>
+      <h2 class="section__title">Send 20 of these a day. <em>Watch what sticks.</em></h2>
+      <p class="section__lede">
+        Personal outreach beats every ad campaign for a service this small.
+        10–20 artists a day, a demo instead of a long explanation.
+      </p>
+    </div>
+    <div class="script" id="pitch-script">
+      <div class="script__label">Copy-paste DM or email</div>
+      <p>Hey [name], I built a browser tool that turns a song into an audio-reactive MP4 visualizer. I made a sample in several styles and can create a 30-second version of one of your tracks for €25. You'll receive a vertical video ready for Instagram, TikTok, or YouTube Shorts. Interested?</p>
+      <button class="script__copy-btn" type="button" onclick="copyPitch(this)">Copy pitch</button>
+      <p class="script__note">
+        Look for musicians who have recently released a song but are posting only static artwork.
+        They have the audio, the launch date, and no video budget. Send the demo, not a doc.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PUBLISHING PLAYBOOK ============================ -->
+<section class="section" id="publish">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">09 · Publishing playbook</div>
+      <h2 class="section__title">Five things to post <em>before</em> you run an ad.</h2>
+      <p class="section__lede">
+        Don't spend money on ads yet. First prove that strangers will pay for the result.
+        Content is the cheapest validation there is.
+      </p>
+    </div>
+    <div class="playbook">
+      <div class="play">
+        <div class="play__num">A</div>
+        <div>
+          <h3 class="play__title">Before & after clips</h3>
+          <p class="play__body">Show the song alone, then the song with the visualizer. The contrast is the whole pitch in 8 seconds.</p>
+        </div>
+      </div>
+      <div class="play">
+        <div class="play__num">B</div>
+        <div>
+          <h3 class="play__title">Screen recordings of SWR</h3>
+          <p class="play__body">The engine reacting live to audio. The audience should see it's real-time, not a render farm.</p>
+        </div>
+      </div>
+      <div class="play">
+        <div class="play__num">C</div>
+        <div>
+          <h3 class="play__title">Style comparisons</h3>
+          <p class="play__body">Same song, all 5 styles, side by side. Demonstrates the range without needing a new audio source.</p>
+        </div>
+      </div>
+      <div class="play">
+        <div class="play__num">D</div>
+        <div>
+          <h3 class="play__title">Free sample visualizers</h3>
+          <p class="play__body">For a few recognizable local artists, in exchange for a credit. Beats any paid ad for cold-start reach.</p>
+        </div>
+      </div>
+      <div class="play">
+        <div class="play__num">E</div>
+        <div>
+          <h3 class="play__title">2-minute tutorials</h3>
+          <p class="play__body">Show an artist making their own visualizer in two minutes. Sells the tool, not just the service.</p>
+        </div>
+      </div>
+      <div class="play">
+        <div class="play__num">F</div>
+        <div>
+          <h3 class="play__title">Reddit + Discord drops</h3>
+          <p class="play__body">r/IndieMusicFeedback, r/WeAreTheMusicMakers, music production Discords. Niche-dense, low-spam.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ LICENSE ============================ -->
+<section class="section section--alt" id="license">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">10 · Read this before you sell</div>
+    </div>
+    <div class="license">
+      <div class="license__label">⚠ License clarity</div>
+      <h3 class="license__title">Your MIT license doesn't cover the bundled media.</h3>
+      <p class="license__body">
+        The SWR source is MIT-licensed, but the bundled visual library (stock
+        footage, images, video clips) is not. Before you sell a finished video
+        to a customer, verify every asset in the rendered output allows commercial
+        use and redistribution in the final MP4. Also make clear that customers
+        must own or have permission to use the audio they submit — the engine
+        encodes whatever you feed it, and that's their responsibility, not yours.
+        Finally, your own docs say modern Chrome or Safari with a wide window —
+        don't promise identical output on every browser and device.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ RECOMMENDATION ============================ -->
+<section class="section section--ink" id="recommendation">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">11 · The one-page launch</div>
+      <h2 class="section__title">Here's what to do, in order.</h2>
+      <p class="section__lede">
+        The cheapest, most realistic path. Service first, software second.
+      </p>
+    </div>
+    <div style="max-width:680px; margin:0 auto; font-size:16px; line-height:1.7; color:var(--bg-2);">
+      <p style="margin:0 0 16px;">
+        <strong style="color:var(--bg)">Launch it as</strong> SWR Visualizers — affordable audio-reactive
+        music videos for independent artists. €25–€40 for a 30-second custom
+        visualizer service. Use <code style="background:rgba(255,255,255,0.08); color:var(--accent-2); padding:1px 5px; border-radius:3px;">campaign.html</code>
+        as the public demo, fulfill orders by hand, track what people actually ask for.
+      </p>
+      <p style="margin:0 0 16px;">
+        <strong style="color:var(--bg)">Once you have ~10 paying customers</strong>, convert the most
+        common workflow into a self-service paid web app. Don't pre-build the
+        platform before you have the demand — the platform is the easy part.
+      </p>
+      <p style="margin:0;">
+        <strong style="color:var(--bg)">Sell promotion-ready videos</strong>, not "an audio-reactive
+        visual engine." Customers care about the finished MP4, their release
+        deadline, and whether it looks good on social media. The engine is your
+        competitive advantage — it is not the thing they buy.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ FAQ ============================ -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">12 · The questions you'll be asked</div>
+      <h2 class="section__title">Frequently <em>asked</em>.</h2>
+    </div>
+    <div class="faq">
+      <div class="faq__item">
+        <h3 class="faq__q">Do I need to own the audio?</h3>
+        <p class="faq__a">
+          Yes. You must own or have permission to use whatever you submit. SWR
+          encodes whatever audio you feed it — that's your responsibility, not
+          mine. If you used uncleared samples in your track, that's between you
+          and the original rightsholder.
+        </p>
+      </div>
+      <div class="faq__item">
+        <h3 class="faq__q">What about the visual library inside the tool?</h3>
+        <p class="faq__a">
+          The SWR source is MIT-licensed, but the bundled visual library is not.
+          I verify every asset in the rendered output before delivery. If you
+          need a fully cleared library for a high-stakes release, ask up front
+          and I'll either swap to cleared assets or source new ones.
+        </p>
+      </div>
+      <div class="faq__item">
+        <h3 class="faq__q">Can I post the visualizer on Spotify Canvas?</h3>
+        <p class="faq__a">
+          Yes — the MP4 is H.264 + AAC, 48kHz stereo, 30fps. Standard Spotify
+          Canvas specs are 9:16 vertical between 3–30s. The 30s Standard tier
+          is exactly that.
+        </p>
+      </div>
+      <div class="faq__item">
+        <h3 class="faq__q">What browsers and devices does the output play on?</h3>
+        <p class="faq__a">
+          Anywhere H.264 MP4 plays — which is everywhere. Instagram, TikTok,
+          YouTube, Twitter, Facebook, LinkedIn, Spotify Canvas, native iOS and
+          Android. Rendering is done in modern Chrome or Safari with a wide
+          browser window; the output file is platform-agnostic.
+        </p>
+      </div>
+      <div class="faq__item">
+        <h3 class="faq__q">Do you offer refunds?</h3>
+        <p class="faq__a">
+          Two free revision rounds are included in every tier. If you're not
+          happy with the result after the second revision, full refund — no
+          questions, no friction. Better to lose €25 than to lose a customer
+          and a portfolio piece.
+        </p>
+      </div>
+      <div class="faq__item">
+        <h3 class="faq__q">Will you sign an NDA?</h3>
+        <p class="faq__a">
+          Yes, for Pro and Monthly tiers. Standard and Basic tiers are public
+          promotional content; that's part of the price difference. For label
+          work or unreleased music, expect NDA + custom scope + a slightly
+          higher rate.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ ORDER FORM ============================ -->
+<section class="section section--alt" id="order">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">13 · Send the song</div>
+      <h2 class="section__title">Tell me what you need. <em>I'll reply within 24 hours.</em></h2>
+      <p class="section__lede">
+        No account, no signup, no checkout. Email me directly with the form
+        below and I'll come back with availability, a price, and a delivery date.
+      </p>
+    </div>
+    <form class="form" id="order-form">
+      <div class="form__row">
+        <label for="f-name">Your name <span class="req">*</span></label>
+        <input id="f-name" type="text" required placeholder="Kai D." />
+      </div>
+      <div class="form__row">
+        <label for="f-email">Email <span class="req">*</span></label>
+        <input id="f-email" type="email" required placeholder="you@band.fm" />
+      </div>
+      <div class="form__row">
+        <label for="f-tier">Tier</label>
+        <select id="f-tier">
+          <option value="basic">Basic · €15–25 · 15s · 1 style</option>
+          <option value="standard" selected>Standard · €35–60 · 30s · 2 styles</option>
+          <option value="pro">Pro · €100–200 · full song or release bundle</option>
+          <option value="monthly">Monthly · €100–250 · 4 shorts / month</option>
+        </select>
+      </div>
+      <div class="form__row">
+        <label for="f-style">Preferred style</label>
+        <select id="f-style">
+          <option>Neon — jazz / lo-fi / synthwave</option>
+          <option>Film — electronic / ambient</option>
+          <option>Grid — techno / idm</option>
+          <option>Smoke — hip-hop / r&b</option>
+          <option>Hallucination — experimental / dream pop</option>
+          <option>Not sure — pick for me</option>
+        </select>
+      </div>
+      <div class="form__row">
+        <label for="f-format">Format</label>
+        <select id="f-format">
+          <option>9:16 vertical (Instagram, TikTok, Shorts)</option>
+          <option>1:1 square (Instagram feed, Facebook)</option>
+          <option>16:9 landscape (YouTube, ads)</option>
+          <option>Multiple formats</option>
+        </select>
+      </div>
+      <div class="form__row">
+        <label for="f-deadline">Deadline / release date</label>
+        <input id="f-deadline" type="text" placeholder="e.g. Aug 30 2026 — single drops Friday" />
+      </div>
+      <div class="form__row">
+        <label for="f-link">Link to your song <span class="req">*</span></label>
+        <input id="f-link" type="url" required placeholder="https://drive.google.com/... or wetransfer.com/..." />
+      </div>
+      <div class="form__row">
+        <label for="f-notes">Anything else?</label>
+        <textarea id="f-notes" placeholder="Reference videos, mood, BPM, do/don'ts, custom artwork..."></textarea>
+      </div>
+      <button class="form__submit" type="submit">Open email with all the details →</button>
+      <p class="form__note">
+        This opens your mail client pre-filled with everything above. Reply with
+        the audio attached or linked. No newsletter, no tracking, no follow-ups
+        you didn't ask for.
+      </p>
+    </form>
+  </div>
+</section>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand"><span class="dot"></span> SWR Visualizers</div>
+        <p class="footer__tag">
+          Audio-reactive music videos for independent artists. Built in a browser,
+          delivered in 48 hours, priced for solo releases.
+        </p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="index.html">Try the engine</a></li>
+          <li><a href="landing.html">Landing page</a></li>
+          <li><a href="interactive-howto.html">How-to walkthrough</a></li>
+          <li><a href="versions/index.html">5 visual styles</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4>Business</h4>
+        <ul>
+          <li><a href="market-study.html">Market study (PDF)</a></li>
+          <li><a href="profit-plan.html">90-day profit plan</a></li>
+          <li><a href="campaign.html">Launch campaign</a></li>
+          <li><a href="https://github.com/">Source / GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© SWR · MIT-licensed source</span>
+      <span id="last-updated">Updated this week</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================ MODAL ============================ -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h3>Email opened.</h3>
+    <p>Your mail client should be ready with all the order details. If nothing happened, copy this address: <strong id="fallback-email"></strong></p>
+    <button class="modal__btn" type="button" onclick="document.getElementById('modal-backdrop').classList.remove('is-open')">Got it</button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var CONTACT_EMAIL = 'orders@swr.example';
+
+    // Theme toggle
+    var themePref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+    function cycleTheme() {
+      var order = ['light', 'system', 'dark'];
+      var next = order[(order.indexOf(themePref) + 1) % order.length];
+      themePref = next;
+      try { localStorage.setItem('ms-theme', next); } catch (e) {}
+      var resolved = next === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : next;
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-pref', next);
+    }
+    // Attach to brand if user shift-clicks
+    var brand = document.querySelector('.nav__brand');
+    if (brand) {
+      brand.addEventListener('click', function(e) {
+        if (e.shiftKey) { e.preventDefault(); cycleTheme(); }
+      });
+      brand.title = 'Shift-click to cycle theme';
+    }
+
+    // Copy pitch
+    window.copyPitch = function(btn) {
+      var text = document.querySelector('#pitch-script p').innerText.trim();
+      try {
+        navigator.clipboard.writeText(text);
+      } catch (e) {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e2) {}
+        document.body.removeChild(ta);
+      }
+      var old = btn.innerText;
+      btn.innerText = '✓ Copied';
+      btn.classList.add('is-copied');
+      setTimeout(function() { btn.innerText = old; btn.classList.remove('is-copied'); }, 1800);
+    };
+
+    // Order form → mailto
+    var form = document.getElementById('order-form');
+    var fallback = document.getElementById('fallback-email');
+    if (fallback) fallback.textContent = CONTACT_EMAIL;
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var tier = document.getElementById('f-tier').value;
+        var name = document.getElementById('f-name').value.trim();
+        var email = document.getElementById('f-email').value.trim();
+        var style = document.getElementById('f-style').value;
+        var format = document.getElementById('f-format').value;
+        var deadline = document.getElementById('f-deadline').value.trim();
+        var link = document.getElementById('f-link').value.trim();
+        var notes = document.getElementById('f-notes').value.trim();
+        var body = 'Hi SWR,\n\n' +
+                   'Tier: ' + tier + '\n' +
+                   'Style: ' + style + '\n' +
+                   'Format: ' + format + '\n' +
+                   'Deadline: ' + (deadline || 'flexible') + '\n' +
+                   'Song link: ' + link + '\n\n' +
+                   (notes ? 'Notes:\n' + notes + '\n\n' : '') +
+                   '--\n' + name + '\n' + email;
+        var subject = 'SWR order · ' + tier + ' · ' + name;
+        var href = 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+        window.location.href = href;
+        setTimeout(function() {
+          document.getElementById('modal-backdrop').classList.add('is-open');
+        }, 300);
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>

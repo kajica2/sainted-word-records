@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sainted Word Records — Audio-reactive video engine</title>
+  <meta name="description" content="A browser-based audio-reactive video engine. Drop a song, drop a library of clips, get a layered composition that breathes with the music. Export as MP4." />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="author" content="Kai Djuric" />
+  <meta property="og:title" content="Sainted Word Records — Audio-reactive video engine" />
+  <meta property="og:description" content="Drop a song, drop a library, get a music video. Browser-based, single-file, MP4 export." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
+
+  <!-- No-flash theme bootstrap -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('swr-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --hot: #e6306b;
+      --cool: #0085b3;
+      --code-bg: #1a1612;
+      --code-ink: #f5ead8;
+      --code-line: #2c2419;
+      --code-comment: #6a5d4a;
+      --code-key: #ff8a3a;
+      --code-str: #1c8c64;
+      --code-fn: #e6306b;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+      --shadow-2: 0 2px 8px rgba(26, 22, 18, 0.06), 0 16px 48px rgba(26, 22, 18, 0.08);
+      --transition: 0.18s ease;
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --accent-2: #ffaa3a;
+      --accent-3: #00ffa3;
+      --hot: #ff2d8a;
+      --cool: #00e5ff;
+      --code-bg: #0a0805;
+      --code-ink: #f5ead8;
+      --code-line: #1d1815;
+      --code-comment: #6a5d4a;
+      --code-key: #ffaa3a;
+      --code-str: #00ffa3;
+      --code-fn: #ff2d8a;
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+    a { color: var(--accent); text-decoration: none; transition: color var(--transition); }
+    a:hover { color: var(--ink); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    img { max-width: 100%; display: block; }
+    button { font-family: inherit; cursor: pointer; }
+    ::selection { background: var(--accent); color: white; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    /* ===== NAV ===== */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1180px; margin: 0 auto;
+    }
+    .nav__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 500; font-size: 18px; letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .nav__brand .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); }
+      70%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent); }
+      100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a {
+      font-size: 13px; color: var(--ink-2); font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+      transition: transform var(--transition), background var(--transition);
+    }
+    .nav__cta:hover { background: var(--accent); color: white; transform: translateY(-1px); }
+    @media (max-width: 720px) { .nav__links { display: none; } }
+
+    /* ===== HERO ===== */
+    .hero { padding: 80px 0 60px; }
+    .hero__grid {
+      display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center;
+    }
+    @media (max-width: 920px) {
+      .hero { padding: 50px 0 30px; }
+      .hero__grid { grid-template-columns: 1fr; gap: 40px; }
+    }
+    .hero__eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--line-2);
+      background: var(--bg-3);
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-2);
+      margin-bottom: 20px;
+    }
+    .hero__title {
+      font-family: var(--font-display);
+      font-weight: 300; font-size: clamp(44px, 6.4vw, 76px);
+      line-height: 1.02; letter-spacing: -0.025em;
+      margin: 0 0 24px;
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-size: 18px; color: var(--ink-2);
+      max-width: 520px; margin: 0 0 32px; line-height: 1.55;
+    }
+    .hero__lede code {
+      background: var(--bg-2); padding: 1px 6px; border-radius: 4px;
+      font-size: 14px; color: var(--ink);
+    }
+    .hero__cta { display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 20px; border-radius: 999px;
+      font-size: 14px; font-weight: 600; letter-spacing: 0.01em;
+      transition: transform var(--transition), background var(--transition);
+    }
+    .btn--primary { background: var(--ink); color: var(--bg); }
+    .btn--primary:hover { background: var(--accent); color: white; transform: translateY(-1px); }
+    .btn--ghost {
+      background: transparent; color: var(--ink);
+      border: 1px solid var(--line-2);
+    }
+    .btn--ghost:hover { border-color: var(--ink); }
+    .btn svg { width: 14px; height: 14px; }
+
+    .engine-mini, engine-mini {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16/10;
+      border: 1px solid var(--line-2);
+      border-radius: var(--radius);
+      overflow: hidden; position: relative;
+      background: var(--bg-3);
+      box-shadow: var(--shadow-2);
+    }
+    .engine-mini canvas, engine-mini canvas {
+      width: 100%; height: 100%; display: block;
+    }
+    .engine-mini__overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.2) 100%);
+    }
+    .engine-mini__label {
+      position: absolute; top: 12px; left: 12px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--bg);
+      background: rgba(26, 22, 18, 0.75);
+      padding: 4px 9px; border-radius: 4px;
+      backdrop-filter: blur(4px);
+    }
+    .engine-mini__meters {
+      position: absolute; bottom: 12px; right: 12px;
+      display: flex; gap: 3px; align-items: flex-end;
+      height: 28px;
+    }
+    .engine-mini__meters span {
+      width: 4px; background: var(--accent);
+      border-radius: 1px; transition: height 0.08s;
+    }
+
+    /* ===== STATS STRIP ===== */
+    .strip {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-2);
+      padding: 28px 0;
+    }
+    .strip__row {
+      display: flex; justify-content: space-around; gap: 24px; flex-wrap: wrap;
+    }
+    .strip__item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      text-align: center;
+    }
+    .strip__num {
+      font-family: var(--font-display);
+      font-size: 32px; font-weight: 400; color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .strip__label {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ===== SECTIONS ===== */
+    .section { padding: 88px 0; }
+    .section--alt { background: var(--bg-2); }
+    .section--dark {
+      background: var(--code-bg);
+      color: var(--code-ink);
+    }
+    .section--dark .section__kicker { color: var(--accent); }
+    .section--dark .section__title { color: var(--code-ink); }
+    .section--dark .section__lede { color: #c0b29c; }
+    .section--dark .feature__title { color: var(--code-ink); }
+    .section--dark .feature__body { color: #c0b29c; }
+    .section__head { max-width: 680px; margin: 0 auto 56px; text-align: center; }
+    .section__kicker {
+      display: inline-block;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .section__title {
+      font-family: var(--font-display);
+      font-weight: 300; font-size: clamp(32px, 4.2vw, 48px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    .section__title em { font-style: italic; color: var(--accent); }
+    .section__lede {
+      font-size: 17px; color: var(--ink-2);
+      line-height: 1.55; margin: 0;
+    }
+
+    /* ===== FEATURES ===== */
+    .features {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    }
+    @media (max-width: 820px) { .features { grid-template-columns: 1fr; } }
+    .feature {
+      padding: 28px; border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg-3);
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .feature:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .section--dark .feature { background: var(--code-line); border-color: var(--code-line); }
+    .section--dark .feature:hover { border-color: var(--accent); }
+    .feature__icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+    }
+    .feature__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; letter-spacing: -0.01em;
+      margin: 0 0 10px;
+    }
+    .feature__body {
+      font-size: 15px; color: var(--ink-2); line-height: 1.6; margin: 0;
+    }
+    .section--dark .feature__body { color: #c0b29c; }
+
+    /* ===== VERSIONS GRID ===== */
+    .versions {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    }
+    @media (max-width: 980px) { .versions { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .versions { grid-template-columns: 1fr; } }
+    .ver {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden; background: var(--bg-3);
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .ver:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .ver__thumb {
+      aspect-ratio: 16/10; overflow: hidden;
+      background: var(--bg-2); position: relative;
+    }
+    .ver__thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .ver__tag {
+      position: absolute; top: 10px; left: 10px;
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--bg); background: rgba(26, 22, 18, 0.78);
+      padding: 4px 8px; border-radius: 3px;
+      backdrop-filter: blur(4px);
+    }
+    .ver__body { padding: 20px 22px 22px; }
+    .ver__name {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; letter-spacing: -0.01em;
+      margin: 0 0 4px;
+    }
+    .ver__sub {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
+    }
+    .ver__desc {
+      font-size: 14px; color: var(--ink-2);
+      line-height: 1.55; margin: 0 0 14px;
+    }
+    .ver__tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ver__tag-pill {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.06em; color: var(--muted);
+      padding: 2px 8px; border: 1px solid var(--line);
+      border-radius: 999px;
+    }
+
+    /* ===== QUICK START (TERMINAL) ===== */
+    .quick {
+      display: grid; grid-template-columns: 1fr 1.4fr; gap: 48px; align-items: center;
+    }
+    @media (max-width: 820px) { .quick { grid-template-columns: 1fr; } }
+    .quick__copy h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 28px; margin: 0 0 12px; color: var(--code-ink);
+    }
+    .quick__copy p {
+      color: #c0b29c; font-size: 15px; line-height: 1.6; margin: 0 0 16px;
+    }
+    .quick__copy ul { padding-left: 18px; color: #c0b29c; font-size: 14px; }
+    .quick__copy li { margin-bottom: 6px; }
+    .quick__copy li code {
+      background: var(--code-line); color: var(--code-ink);
+      padding: 1px 6px; border-radius: 3px; font-size: 13px;
+    }
+    .terminal {
+      background: #0a0805;
+      border: 1px solid var(--code-line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.7;
+      box-shadow: var(--shadow-2);
+    }
+    .terminal__bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px;
+      background: var(--code-line);
+      border-bottom: 1px solid #2a2218;
+    }
+    .terminal__bar .dot {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .terminal__bar .dot.r { background: #ff5f57; }
+    .terminal__bar .dot.y { background: #ffbd2e; }
+    .terminal__bar .dot.g { background: #28c840; }
+    .terminal__title {
+      margin-left: auto; color: #6a5d4a; font-size: 12px;
+    }
+    .terminal__body {
+      padding: 18px 20px 20px;
+      color: var(--code-ink);
+      white-space: pre-wrap;
+    }
+    .terminal__body .prompt { color: var(--code-key); user-select: none; }
+    .terminal__body .comment { color: var(--code-comment); }
+    .terminal__body .str { color: var(--code-str); }
+    .terminal__body .fn { color: var(--code-fn); }
+    .terminal__body .key { color: var(--code-key); }
+    .terminal__body .cursor {
+      display: inline-block; width: 7px; height: 14px;
+      background: var(--accent); vertical-align: middle;
+      animation: blink 1s steps(2) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ===== TECH BADGES ===== */
+    .tech {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      font-size: 13px; font-weight: 500;
+      color: var(--ink);
+      transition: border-color var(--transition);
+    }
+    .badge:hover { border-color: var(--accent); }
+    .badge .dot-c {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      padding: 64px 0 48px;
+      border-top: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    .footer__grid {
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 48px;
+    }
+    @media (max-width: 720px) { .footer__grid { grid-template-columns: 1fr; gap: 32px; } }
+    .footer__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; margin-bottom: 12px;
+    }
+    .footer__brand .dot {
+      width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+    }
+    .footer__tag { color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 320px; }
+    .footer__col h4 {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 14px;
+    }
+    .footer__col ul { list-style: none; padding: 0; margin: 0; }
+    .footer__col li { margin-bottom: 8px; }
+    .footer__col a { color: var(--ink-2); font-size: 14px; }
+    .footer__col a:hover { color: var(--accent); }
+    .footer__bottom {
+      margin-top: 48px; padding-top: 24px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.05em;
+    }
+
+    /* ===== UTILITIES ===== */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s, transform 0.6s; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* GitHub icon */
+    .icon-gh { width: 16px; height: 16px; fill: currentColor; }
+  </style>
+</head>
+<body>
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="#">
+        <span class="dot"></span>
+        Sainted Word Records
+      </a>
+      <div class="nav__links">
+        <a href="#features">Engine</a>
+        <a href="#versions">Versions</a>
+        <a href="#quickstart">Quick start</a>
+        <a href="#stack">Stack</a>
+      </div>
+      <theme-toggle></theme-toggle>
+      <a class="nav__cta" href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">
+        <svg class="icon-gh" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <div class="wrap hero__grid">
+      <div class="reveal">
+        <span class="hero__eyebrow">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>
+          Audio-reactive · MP4 export · v1
+        </span>
+        <h1 class="hero__title">
+          Music videos that<br /><em>breathe</em> with the song.
+        </h1>
+        <p class="hero__lede">
+          A browser-based engine. Drop in any song, drop in a library of clips
+          and images, hit <code>RE-MAP</code> until you like the composition,
+          then <code>● REC</code>. A real MP4 comes out — no backend, no API
+          keys, no install.
+        </p>
+        <div class="hero__cta">
+          <a class="btn btn--primary" href="./index.html">
+            Open the engine
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+          <a class="btn btn--ghost" href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">
+            <svg class="icon-gh" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            Source on GitHub
+          </a>
+        </div>
+      </div>
+      <div class="reveal" style="transition-delay: 120ms;">
+        <engine-mini></engine-mini>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ STATS STRIP ============ -->
+  <section class="strip">
+    <div class="wrap strip__row">
+      <div class="strip__item"><span class="strip__num">15.6k</span><span class="strip__label">Engine HTML (gz)</span></div>
+      <div class="strip__item"><span class="strip__num">5</span><span class="strip__label">FFT bands</span></div>
+      <div class="strip__item"><span class="strip__num">6</span><span class="strip__label">Layers</span></div>
+      <div class="strip__item"><span class="strip__num">27</span><span class="strip__label">Library items</span></div>
+      <div class="strip__item"><span class="strip__num">0</span><span class="strip__label">Backend</span></div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="section" id="features">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">The engine</span>
+        <h2 class="section__title">
+          A music visualizer with a <em>composer's</em> taste.
+        </h2>
+        <p class="section__lede">
+          Most visualizers just react to the spectrum. The Sainted Word engine
+          classifies every asset you give it — motion, brightness, hue — and
+          routes each one to the band of the song that suits it. The composition
+          is algorithmic. The score is the audio.
+        </p>
+      </div>
+
+      <div class="features">
+        <article class="feature reveal">
+          <div class="feature__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h2l2-7 4 14 4-11 2 8h4"/></svg>
+          </div>
+          <h3 class="feature__title">Adaptive beat detection</h3>
+          <p class="feature__body">
+            Bass-energy tracker with an adaptive threshold. Locks the BPM, fires
+            an envelope on every kick, decays gracefully. Works on techno, jazz,
+            and an ill-advised spoken-word record.
+          </p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" height="14" width="7" height="7" rx="1.5"/></svg>
+          </div>
+          <h3 class="feature__title">Layered composition</h3>
+          <p class="feature__body">
+            Six layers, each with its own blend mode and a stack of reactors.
+            Scale to bass. Hue to mids. Position to the spectrum's edge. Every
+            parameter is a feature binding, not a keyframe.
+          </p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          </div>
+          <h3 class="feature__title">Library as palette</h3>
+          <p class="feature__body">
+            Drop a folder of videos, GIFs, or images. Each one is auto-classified
+            by motion, luma, and mean hue, then routed to the role that suits it.
+            Different song, different look — same library.
+          </p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <h3 class="feature__title">MP4 export, native</h3>
+          <p class="feature__body">
+            The canvas is captured via <code>MediaRecorder</code> at 30 fps with
+            H.264 + AAC, 8 Mbps. No ffmpeg.wasm, no server, no transcode. The
+            file you download plays in any editor.
+          </p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>
+          </div>
+          <h3 class="feature__title">Fresh look every remap</h3>
+          <p class="feature__body">
+            The auto-mapper picks from the top candidates weighted by score, and
+            shuffles the blend order. Each <code>RE-MAP</code> click yields a new
+            composition. Hit it until something sticks, then record.
+          </p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3 class="feature__title">Single-file, zero install</h3>
+          <p class="feature__body">
+            The whole engine is one HTML file. Drop it in a folder, open it in
+            Chrome or Safari, it runs. No node_modules needed for the user. The
+            Vite project is just for development.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VERSIONS ============ -->
+  <section class="section section--alt" id="versions">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">5 visual languages</span>
+        <h2 class="section__title">
+          Same engine. Five completely <em>different</em> looks.
+        </h2>
+        <p class="section__lede">
+          Five single-file variants of the same engine, each with a distinct
+          aesthetic. Click one to open it in a new tab. Same controls, same
+          library, same MP4 export.
+        </p>
+      </div>
+
+      <div class="versions">
+        <a class="ver reveal" href="./versions/neon.html">
+          <div class="ver__thumb">
+            <span class="ver__tag">01 · NEON</span>
+            <img src="./verify-screenshots/neon.png" alt="NEON" />
+          </div>
+          <div class="ver__body">
+            <h3 class="ver__name">Neon</h3>
+            <div class="ver__sub">Electric magenta / cyan</div>
+            <p class="ver__desc">Hot club, screen-blend stacks, sharpened easings, scanlines. Cuts on the beat, not after it.</p>
+            <div class="ver__tags">
+              <span class="ver__tag-pill">screen blend</span>
+              <span class="ver__tag-pill">3 reactors</span>
+              <span class="ver__tag-pill">sharp</span>
+            </div>
+          </div>
+        </a>
+        <a class="ver reveal" href="./versions/film.html">
+          <div class="ver__thumb">
+            <span class="ver__tag">02 · FILM</span>
+            <img src="./verify-screenshots/film.png" alt="FILM" />
+          </div>
+          <div class="ver__body">
+            <h3 class="ver__name">Film</h3>
+            <div class="ver__sub">Sepia / 16mm grain</div>
+            <p class="ver__desc">Handheld warm tone, per-pixel grain, soft vignette, slow drift. Smooth easings throughout.</p>
+            <div class="ver__tags">
+              <span class="ver__tag-pill">sepia</span>
+              <span class="ver__tag-pill">grain</span>
+              <span class="ver__tag-pill">smooth</span>
+            </div>
+          </div>
+        </a>
+        <a class="ver reveal" href="./versions/grid.html">
+          <div class="ver__thumb">
+            <span class="ver__tag">03 · GRID</span>
+            <img src="./verify-screenshots/grid.png" alt="GRID" />
+          </div>
+          <div class="ver__body">
+            <h3 class="ver__name">Grid</h3>
+            <div class="ver__sub">Monochrome / hard cells</div>
+            <p class="ver__desc">2×2 + half-cell composition, snap to the beat. Binary easings — no in-between, only on or off.</p>
+            <div class="ver__tags">
+              <span class="ver__tag-pill">grayscale</span>
+              <span class="ver__tag-pill">hard cells</span>
+              <span class="ver__tag-pill">snap-beat</span>
+            </div>
+          </div>
+        </a>
+        <a class="ver reveal" href="./versions/smoke.html">
+          <div class="ver__thumb">
+            <span class="ver__tag">04 · SMOKE</span>
+            <img src="./verify-screenshots/smoke.png" alt="SMOKE" />
+          </div>
+          <div class="ver__body">
+            <h3 class="ver__name">Smoke</h3>
+            <div class="ver__sub">Cream warm / heavy blur</div>
+            <p class="ver__desc">Everything at 0.5 opacity, slow drift, blurry and slow. The song moves through fog.</p>
+            <div class="ver__tags">
+              <span class="ver__tag-pill">cream</span>
+              <span class="ver__tag-pill">heavy blur</span>
+              <span class="ver__tag-pill">0.5 opacity</span>
+            </div>
+          </div>
+        </a>
+        <a class="ver reveal" href="./versions/hallucination.html">
+          <div class="ver__thumb">
+            <span class="ver__tag">05 · HALLUCINATION</span>
+            <img src="./verify-screenshots/hallucination.png" alt="HALLUCINATION" />
+          </div>
+          <div class="ver__body">
+            <h3 class="ver__name">Hallucination</h3>
+            <div class="ver__sub">RGB shift / scanline body</div>
+            <p class="ver__desc">Every reactor maxed. RGB channel shift, lighter and difference blends, noise canvas overlay.</p>
+            <div class="ver__tags">
+              <span class="ver__tag-pill">rgb shift</span>
+              <span class="ver__tag-pill">difference</span>
+              <span class="ver__tag-pill">noise</span>
+            </div>
+          </div>
+        </a>
+        <a class="ver reveal" href="./versions/">
+          <div class="ver__thumb" style="background: linear-gradient(135deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center;">
+            <span class="ver__tag" style="background:rgba(0,0,0,0.5);">ALL FIVE →</span>
+          </div>
+          <div class="ver__body">
+            <h3 class="ver__name">See them all</h3>
+            <div class="ver__sub">Directory · side by side</div>
+            <p class="ver__desc">All five versions on a single page with thumbnails, descriptions, and direct links.</p>
+            <div class="ver__tags">
+              <span class="ver__tag-pill">5 versions</span>
+              <span class="ver__tag-pill">side by side</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUICK START ============ -->
+  <section class="section section--dark" id="quickstart">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">Quick start</span>
+        <h2 class="section__title">Three commands, then <em>open the URL</em>.</h2>
+        <p class="section__lede">Or skip the install entirely — the engine is a single HTML file and runs from a static server.</p>
+      </div>
+
+      <div class="quick reveal">
+        <div class="quick__copy">
+          <h3>Run it locally</h3>
+          <p>The dev server uses Vite for hot reload during development. The production build outputs to <code>dist/</code> with the engine, the 5 versions, and the library.</p>
+          <ul>
+            <li>Requires Node 18+</li>
+            <li>No API keys, no external services</li>
+            <li>The 12 videos in <code>library/</code> are 75 MB total</li>
+          </ul>
+        </div>
+        <div class="terminal">
+          <div class="terminal__bar">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="terminal__title">~/sainted-word-records — zsh</span>
+          </div>
+          <div class="terminal__body"><span class="comment"># clone and install</span>
+<span class="prompt">$ </span>git clone git@github.com:kai-djuric/sainted-word-records.git
+<span class="prompt">$ </span>cd sainted-word-records
+<span class="prompt">$ </span>npm install
+
+<span class="comment"># dev server (port 5174)</span>
+<span class="prompt">$ </span>npm run dev
+
+<span class="comment"># production build → dist/</span>
+<span class="prompt">$ </span>npm run build<span class="cursor"></span>
+</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STACK ============ -->
+  <section class="section" id="stack">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">Stack</span>
+        <h2 class="section__title">Built on the <em>web platform</em>.</h2>
+        <p class="section__lede">No native dependencies, no build step required to use the engine. Just a browser and your library.</p>
+      </div>
+
+      <div class="tech reveal">
+        <span class="badge"><span class="dot-c" style="background:#ff5722;"></span> Web Audio API · FFT</span>
+        <span class="badge"><span class="dot-c" style="background:#4285f4;"></span> Canvas 2D</span>
+        <span class="badge"><span class="dot-c" style="background:#34a853;"></span> MediaRecorder · H.264 + AAC</span>
+        <span class="badge"><span class="dot-c" style="background:#fbbc05;"></span> Web Components</span>
+        <span class="badge"><span class="dot-c" style="background:#7c4dff;"></span> Vite</span>
+        <span class="badge"><span class="dot-c" style="background:#e91e63;"></span> Fraunces + Geist + Geist Mono</span>
+        <span class="badge"><span class="dot-c" style="background:#0d9488;"></span> ES2022 modules</span>
+        <span class="badge"><span class="dot-c" style="background:#000;"></span> Zero backend</span>
+        <span class="badge"><span class="dot-c" style="background:#f59e0b;"></span> MIT license</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer__grid">
+        <div>
+          <div class="footer__brand">
+            <span class="dot"></span>
+            Sainted Word Records
+          </div>
+          <p class="footer__tag">
+            An audio-reactive video engine that ships as a single HTML file. Drop a song, drop a library, get a music video.
+          </p>
+        </div>
+        <div class="footer__col">
+          <h4>Engine</h4>
+          <ul>
+            <li><a href="./index.html">Main engine</a></li>
+            <li><a href="./versions/">5 visual versions</a></li>
+            <li><a href="./HOWTO-30s-VIDEO.md">How to · 30s</a></li>
+            <li><a href="./library/manifest.json">Library manifest</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Source</h4>
+          <ul>
+            <li><a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">GitHub repo</a></li>
+            <li><a href="https://github.com/kai-djuric/sainted-word-records/issues" target="_blank" rel="noopener">Report an issue</a></li>
+            <li><a href="https://github.com/kai-djuric/sainted-word-records/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a></li>
+            <li><a href="https://github.com/kai-djuric" target="_blank" rel="noopener">@kai-djuric</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© 2026 Kai Djuric · MIT licensed</span>
+        <span>v1 · Web Audio + MediaRecorder · Chrome 126+ / Safari 14.5+</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ ENGINE-MINI WEB COMPONENT ============ -->
+  <script>
+    class EngineMini extends HTMLElement {
+      connectedCallback() {
+        if (this._init) return; this._init = true;
+        this.innerHTML = `
+          <div class="engine-mini__label">live · 80 bpm</div>
+          <canvas></canvas>
+          <div class="engine-mini__overlay"></div>
+          <div class="engine-mini__meters">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        `;
+        const c = this.querySelector('canvas');
+        const cx = c.getContext('2d');
+        const meters = this.querySelectorAll('.engine-mini__meters span');
+        const W = c.width, H = c.height;
+        const fit = () => {
+          const dpr = Math.min(devicePixelRatio || 1, 2);
+          const rect = this.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            c.width = Math.floor(rect.width * dpr);
+            c.height = Math.floor(rect.height * dpr);
+            W_ = c.width; H_ = c.height;
+          }
+        };
+        let W_ = 0, H_ = 0;
+        fit();
+        // Defer one rAF in case layout hasn't happened yet
+        requestAnimationFrame(fit);
+        // ResizeObserver for responsive sizing
+        if (window.ResizeObserver) new ResizeObserver(fit).observe(this);
+        // Seeded "library" — abstract colored shapes
+        const palette = ['#e6306b', '#ff8a3a', '#1c8c64', '#0085b3', '#7c4dff', '#fbbc05', '#1a1612', '#f5ead8'];
+        const items = Array.from({ length: 12 }, (_, i) => ({
+          x: Math.random() * W_, y: Math.random() * H_,
+          r: 60 + Math.random() * 90,
+          color: palette[i % palette.length],
+          alpha: 0.4 + Math.random() * 0.5,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.5 + Math.random() * 1.2,
+        }));
+        const features = { bass: 0, mid: 0, treble: 0, beat: 0, onset: 0 };
+        let t = 0, lastBeat = 0;
+        // Procedural "song" — kick at 80 BPM, slow pad
+        const bpm = 80, beat = 60 / bpm;
+        const draw = (now) => {
+          t = now / 1000;
+          // Synthetic features — kick every beat, pad swells
+          const phase = (t % beat) / beat;
+          const kick = Math.exp(-phase * 6) * (phase < 0.05 ? 1 : 0.4);
+          const pad = 0.4 + 0.3 * Math.sin(t * 0.4) + 0.2 * Math.sin(t * 0.7);
+          features.bass = kick;
+          features.mid = pad;
+          features.treble = 0.3 + 0.2 * Math.sin(t * 2.3);
+          features.beat = Math.max(0, kick);
+          features.onset = Math.max(0, kick - 0.5);
+          // Clear
+          cx.fillStyle = '#0e0c0a';
+          cx.fillRect(0, 0, W_, H_);
+          // 6 layers in different blend modes
+          const layers = [
+            { blend: 'screen', weight: 0.8 + features.bass },
+            { blend: 'lighter', weight: 0.5 + features.mid },
+            { blend: 'multiply', weight: 0.7 + features.treble },
+            { blend: 'overlay', weight: 0.6 + features.bass * 0.5 },
+            { blend: 'soft-light', weight: 0.4 + features.mid * 0.7 },
+            { blend: 'screen', weight: 0.9 + features.onset * 2 },
+          ];
+          cx.save();
+          layers.forEach((l, li) => {
+            cx.globalCompositeOperation = l.blend;
+            cx.globalAlpha = Math.min(1, 0.3 + l.weight * 0.4);
+            items.forEach((it, ii) => {
+              if (ii % layers.length !== li) return;
+              const x = it.x + Math.sin(t * it.speed + it.phase) * 60 * (1 + features.mid);
+              const y = it.y + Math.cos(t * it.speed * 0.7 + it.phase) * 40;
+              const r = it.r * (1 + features.bass * 0.4 + (li === 0 ? features.beat * 0.6 : 0));
+              const grad = cx.createRadialGradient(x, y, 0, x, y, r);
+              grad.addColorStop(0, it.color);
+              grad.addColorStop(1, 'transparent');
+              cx.fillStyle = grad;
+              cx.beginPath();
+              cx.arc(x, y, r, 0, Math.PI * 2);
+              cx.fill();
+            });
+          });
+          cx.restore();
+          // Beat flash
+          if (features.beat > 0.1) {
+            cx.save();
+            cx.globalCompositeOperation = 'screen';
+            cx.fillStyle = `rgba(255, 255, 255, ${features.beat * 0.18})`;
+            cx.fillRect(0, 0, W_, H_);
+            cx.restore();
+          }
+          // Meters
+          meters.forEach((m, i) => {
+            const v = [features.bass, features.mid, features.treble, features.onset, features.bass + features.mid][i] || 0;
+            m.style.height = `${Math.max(3, v * 26)}px`;
+          });
+          requestAnimationFrame(draw);
+        };
+        requestAnimationFrame(draw);
+      }
+    }
+    customElements.define('engine-mini', EngineMini);
+  </script>
+
+  <!-- ============ THEME TOGGLE ============ -->
+  <script>
+    class ThemeToggle extends HTMLElement {
+      connectedCallback() {
+        this.innerHTML = `<button aria-label="Toggle theme" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>`;
+        this.querySelector('button').addEventListener('click', () => {
+          const cur = document.documentElement.getAttribute('data-theme-pref') || 'system';
+          const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+          localStorage.setItem('swr-theme', next);
+          const resolved = next === 'system'
+            ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : next;
+          document.documentElement.setAttribute('data-theme', resolved);
+          document.documentElement.setAttribute('data-theme-pref', next);
+        });
+      }
+    }
+    customElements.define('theme-toggle', ThemeToggle);
+  </script>
+
+  <!-- ============ SCROLL REVEAL ============ -->
+  <script>
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    // Fallback: after 2.5s, force all reveals visible (in case intersection
+    // never fires, e.g. headless screenshots, prefers-reduced-motion, or JS
+    // scroll containers that don't report intersection).
+    setTimeout(() => {
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+    }, 2500);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to record a 30-second video · SWR</title>
+  <meta name="description" content="Interactive walkthrough for the Sainted Word Records audio-reactive video engine. Drop a song, drop a library, get an MP4." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
+
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('swr-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --ok: #1c8c64;
+      --warn: #d97706;
+      --hot: #e6306b;
+      --cool: #0085b3;
+      --code-bg: #1a1612;
+      --code-ink: #f5ead8;
+      --code-line: #2c2419;
+      --code-comment: #6a5d4a;
+      --code-key: #ff8a3a;
+      --code-str: #1c8c64;
+      --code-fn: #e6306b;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+      --shadow-2: 0 2px 8px rgba(26, 22, 18, 0.06), 0 16px 48px rgba(26, 22, 18, 0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --accent-2: #ffaa3a;
+      --accent-3: #00ffa3;
+      --ok: #00ffa3;
+      --warn: #ffaa3a;
+      --hot: #ff2d8a;
+      --cool: #00e5ff;
+      --code-bg: #0a0805;
+      --code-ink: #f5ead8;
+      --code-line: #1d1815;
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg); color: var(--ink);
+      line-height: 1.55; -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+    a { color: var(--accent); text-decoration: none; transition: color 0.18s; }
+    a:hover { color: var(--ink); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    ::selection { background: var(--accent); color: white; }
+    button { font-family: inherit; cursor: pointer; }
+    kbd {
+      display: inline-block; padding: 1px 6px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 4px; font-size: 12px; color: var(--ink);
+    }
+
+    /* ===== NAV ===== */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 32px; max-width: 1280px; margin: 0 auto;
+    }
+    .nav__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 16px; color: var(--ink);
+    }
+    .nav__brand .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+    }
+    .nav__links { display: flex; gap: 18px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--accent); color: white; }
+    @media (max-width: 720px) { .nav__links { display: none; } }
+
+    /* ===== LAYOUT ===== */
+    .wrap {
+      max-width: 1280px; margin: 0 auto;
+      padding: 48px 32px 80px;
+      display: grid; grid-template-columns: 220px 1fr; gap: 56px;
+    }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; padding: 32px 20px 60px; }
+    }
+
+    /* ===== TOC (left sidebar) ===== */
+    .toc { position: sticky; top: 80px; align-self: start; }
+    @media (max-width: 900px) { .toc { display: none; } }
+    .toc h4 {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 16px;
+    }
+    .toc ol { list-style: none; padding: 0; margin: 0 0 24px;
+      counter-reset: tocstep; }
+    .toc li {
+      counter-increment: tocstep;
+      margin-bottom: 4px;
+    }
+    .toc a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 10px; border-radius: 4px;
+      font-size: 13px; color: var(--ink-2);
+      transition: background 0.15s, color 0.15s;
+    }
+    .toc a::before {
+      content: counter(tocstep);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--bg-2); color: var(--muted);
+      font-family: var(--font-mono); font-size: 10px;
+      font-weight: 600; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .toc a:hover { background: var(--bg-2); color: var(--ink); }
+    .toc a.is-active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+    .toc a.is-done { color: var(--ink); }
+    .toc a.is-done::before {
+      background: var(--ok); color: var(--bg);
+      content: "✓";
+    }
+    .toc__progress {
+      margin-top: 16px; padding: 14px;
+      background: var(--bg-2); border-radius: var(--radius-sm);
+    }
+    .toc__progress-label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .toc__progress-bar {
+      height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden;
+    }
+    .toc__progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.3s ease;
+    }
+    .toc__progress-text {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--ink-2); margin-top: 6px;
+    }
+    .toc__reset {
+      margin-top: 12px; width: 100%;
+      background: transparent; border: 1px solid var(--line-2);
+      color: var(--muted); padding: 5px 10px;
+      border-radius: 4px; font-size: 11px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .toc__reset:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ===== MAIN ===== */
+    .main { min-width: 0; }
+
+    .lede {
+      font-size: 18px; color: var(--ink-2);
+      max-width: 640px; line-height: 1.55; margin: 0 0 12px;
+    }
+    h1 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(40px, 5.4vw, 60px);
+      line-height: 1.05; letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    h2 {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 32px; letter-spacing: -0.01em;
+      margin: 64px 0 8px; line-height: 1.15;
+    }
+    h2 em { font-style: italic; color: var(--accent); }
+    h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 24px 0 8px;
+    }
+    p { font-size: 15px; color: var(--ink-2); line-height: 1.65; }
+    .meta { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+    /* ===== STEP CARDS ===== */
+    .step {
+      display: grid; grid-template-columns: 44px 1fr; gap: 20px;
+      padding: 22px 24px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin: 14px 0;
+      transition: border-color 0.18s, box-shadow 0.18s;
+      scroll-margin-top: 80px;
+    }
+    .step:hover { border-color: var(--line-2); }
+    .step.is-current { border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 6px 24px color-mix(in srgb, var(--accent) 20%, transparent); }
+    .step.is-done { border-color: color-mix(in srgb, var(--ok) 40%, var(--line));
+      background: color-mix(in srgb, var(--ok) 4%, var(--bg-3)); }
+    .step__num {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--bg-2); color: var(--ink-2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px;
+      transition: background 0.18s, color 0.18s;
+      cursor: pointer; user-select: none;
+    }
+    .step__num:hover { background: var(--accent); color: white; }
+    .step.is-current .step__num { background: var(--accent); color: white; }
+    .step.is-done .step__num { background: var(--ok); color: var(--bg); }
+    .step__body { min-width: 0; }
+    .step__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; margin: 4px 0 6px; letter-spacing: -0.005em;
+    }
+    .step__desc { color: var(--ink-2); font-size: 14px; margin: 0 0 12px; }
+    .step__check {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); padding: 4px 10px;
+      border: 1px solid var(--line-2); border-radius: 999px;
+      background: transparent; transition: 0.15s;
+    }
+    .step__check:hover { color: var(--ink); border-color: var(--ink); }
+    .step__check.is-checked { background: var(--ok); color: var(--bg); border-color: var(--ok); }
+
+    /* ===== CODE BLOCKS ===== */
+    .code-wrap {
+      position: relative; margin: 12px 0;
+    }
+    pre {
+      background: var(--code-bg); color: var(--code-ink);
+      border: 1px solid var(--code-line);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px; margin: 0;
+      font-size: 12.5px; line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    pre .c { color: var(--code-comment); font-style: italic; }
+    pre .k { color: var(--code-key); }
+    pre .s { color: var(--code-str); }
+    pre .f { color: var(--code-fn); }
+    pre .p { color: var(--code-key); user-select: none; }
+    pre .ok { color: var(--ok); }
+    pre .err { color: var(--accent); }
+    .copy-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: var(--code-line); color: var(--ink);
+      border: 1px solid #2a2218; border-radius: 4px;
+      padding: 4px 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      transition: 0.15s;
+    }
+    .copy-btn:hover { background: var(--accent); border-color: var(--accent); }
+    .copy-btn.is-copied { background: var(--ok); border-color: var(--ok); color: var(--bg); }
+
+    /* ===== CALLOUT ===== */
+    .callout {
+      display: flex; gap: 14px; padding: 16px 20px;
+      background: color-mix(in srgb, var(--cool) 8%, var(--bg-3));
+      border: 1px solid color-mix(in srgb, var(--cool) 25%, var(--line));
+      border-radius: var(--radius);
+      margin: 16px 0;
+    }
+    .callout--warn { background: color-mix(in srgb, var(--warn) 8%, var(--bg-3));
+      border-color: color-mix(in srgb, var(--warn) 30%, var(--line)); }
+    .callout--hot { background: color-mix(in srgb, var(--accent) 8%, var(--bg-3));
+      border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+    .callout__icon {
+      width: 24px; height: 24px; flex-shrink: 0;
+      color: var(--cool);
+    }
+    .callout--warn .callout__icon { color: var(--warn); }
+    .callout--hot .callout__icon { color: var(--accent); }
+    .callout__body { font-size: 14px; color: var(--ink-2); }
+    .callout__body strong { color: var(--ink); font-weight: 600; }
+
+    /* ===== STATUS PANEL (LIVE) ===== */
+    .live-panel {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin: 16px 0;
+    }
+    @media (max-width: 720px) { .live-panel { grid-template-columns: repeat(2, 1fr); } }
+    .stat {
+      padding: 14px 16px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius-sm);
+    }
+    .stat__label {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .stat__value {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 20px; color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat__value.is-na { color: var(--muted); font-size: 13px; font-family: var(--font-mono); }
+    .stat__value.is-ok { color: var(--ok); }
+    .stat__value.is-hot { color: var(--accent); }
+
+    .live-button {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 16px; border-radius: 999px;
+      background: var(--accent); color: white;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: 0.15s; border: none;
+    }
+    .live-button:hover { background: var(--ink); color: var(--bg); }
+    .live-button:disabled { background: var(--bg-2); color: var(--muted); cursor: not-allowed; }
+
+    /* ===== TABLE ===== */
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 14px; min-width: 600px;
+    }
+    th, td {
+      text-align: left; padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); font-weight: 600;
+    }
+    td { color: var(--ink-2); }
+    td:first-child { color: var(--ink); font-weight: 500; font-family: var(--font-mono); font-size: 12px; }
+
+    /* ===== BUTTONS ===== */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+      border: 1px solid var(--line-2);
+      background: var(--bg-3); color: var(--ink);
+      transition: 0.15s;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn--primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .btn--primary:hover { background: var(--accent); border-color: var(--accent); color: white; }
+
+    /* ===== FLOW DIAGRAM ===== */
+    .flow {
+      display: grid; grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr;
+      gap: 0; align-items: center;
+      margin: 24px 0; padding: 20px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    @media (max-width: 720px) {
+      .flow { grid-template-columns: 1fr; gap: 0; }
+      .flow .arrow { transform: rotate(90deg); }
+    }
+    .flow__node {
+      text-align: center; padding: 14px 10px;
+    }
+    .flow__icon { font-size: 24px; margin-bottom: 6px; }
+    .flow__name {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink); margin-bottom: 2px;
+    }
+    .flow__sub { font-size: 11px; color: var(--muted); }
+    .arrow { color: var(--accent); text-align: center; font-size: 18px; }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      margin-top: 80px; padding-top: 24px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="./landing.html">
+      <span class="dot"></span>
+      Sainted Word · How-to
+    </a>
+    <div class="nav__links">
+      <a href="./index.html">Open engine</a>
+      <a href="./landing.html">Landing</a>
+      <a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <theme-toggle></theme-toggle>
+    <a class="nav__cta" href="./index.html">Open engine →</a>
+  </div>
+</nav>
+
+<!-- ============ MAIN ============ -->
+<div class="wrap">
+
+  <!-- TOC sidebar -->
+  <aside class="toc">
+    <h4>10 steps</h4>
+    <ol id="toc-list">
+      <li><a href="#step-1" data-step="1">Start dev server</a></li>
+      <li><a href="#step-2" data-step="2">Open the page</a></li>
+      <li><a href="#step-3" data-step="3">Load a song</a></li>
+      <li><a href="#step-4" data-step="4">Wait for READY</a></li>
+      <li><a href="#step-5" data-step="5">Hit play</a></li>
+      <li><a href="#step-6" data-step="6">Pick a duration</a></li>
+      <li><a href="#step-7" data-step="7">Hit REC</a></li>
+      <li><a href="#step-8" data-step="8">Wait for auto-stop</a></li>
+      <li><a href="#step-9" data-step="9">Grab the MP4</a></li>
+      <li><a href="#step-10" data-step="10">Done</a></li>
+    </ol>
+
+    <div class="toc__progress">
+      <div class="toc__progress-label">Progress</div>
+      <div class="toc__progress-bar"><div class="toc__progress-fill" id="progress-fill"></div></div>
+      <div class="toc__progress-text" id="progress-text">0 of 10 done</div>
+    </div>
+    <button class="toc__reset" id="reset-progress">Reset progress</button>
+
+    <h4 style="margin-top: 32px;">Live engine</h4>
+    <p style="font-size:12px; color:var(--muted); margin: 0 0 12px;">
+      Open the engine in another tab, this panel will read its state.
+    </p>
+    <a class="live-button" href="./index.html" target="_blank" rel="noopener">
+      Open engine ↗
+    </a>
+  </aside>
+
+  <main class="main">
+
+    <div class="meta">Interactive walkthrough · ~2 minutes</div>
+    <h1>How to record a <em>30-second</em> video with SWR.</h1>
+    <p class="lede">
+      Ten steps, one engine, one MP4. Click "Mark done" on each step as you
+      go. The left rail tracks your progress. The "Live engine" panel below
+      reads state from the engine if you have it open in another tab.
+    </p>
+
+    <!-- LIVE PANEL -->
+    <h2>Live engine <em>state</em></h2>
+    <p>Open the engine in a new tab. This panel polls <code>window.SWR</code> every second. Useful for verifying that the engine actually loaded your song, the library, and the layers.</p>
+    <div class="live-panel">
+      <div class="stat">
+        <div class="stat__label">Engine</div>
+        <div class="stat__value is-na" id="live-swr">not loaded</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Library</div>
+        <div class="stat__value is-na" id="live-library">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Audio</div>
+        <div class="stat__value is-na" id="live-audio">no song</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Layers</div>
+        <div class="stat__value is-na" id="live-layers">0</div>
+      </div>
+    </div>
+    <div class="callout">
+      <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      <div class="callout__body">
+        The poll checks <code>window.opener.SWR</code> first (in case you opened
+        the engine from this page). If that's empty, it tries
+        <code>localStorage['swr-debug']</code> — write a snapshot from the engine
+        console with <code>localStorage.setItem('swr-debug', JSON.stringify({lib: Lib.items.length, audio: !!Audio.audioEl, layers: Layers.list.length}))</code>.
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <article class="step" id="step-1" data-step="1">
+      <button class="step__num" data-step="1" aria-label="Mark step 1 done">1</button>
+      <div class="step__body">
+        <h3 class="step__title">Start the dev server</h3>
+        <p class="step__desc">Open a terminal and start the Vite dev server on port 5174. It serves the engine, the 5 versions, and the library.</p>
+        <div class="code-wrap">
+          <pre><span class="c"># from the project root</span>
+<span class="p">$ </span>cd /Users/kajicadjuric/Documents/autodashboard/products/sainted-word-records
+<span class="p">$ </span>nohup ./node_modules/.bin/vite <span class="k">--port</span> 5174 <span class="k">--host</span> 0.0.0.0 <span class="k">&gt;</span> /tmp/swr.log 2&gt;&amp;1 <span class="k">&amp;</span>
+<span class="ok">✓ Vite ready · http://localhost:5174/</span></pre>
+          <button class="copy-btn" data-copy="cd /Users/kajicadjuric/Documents/autodashboard/products/sainted-word-records && nohup ./node_modules/.bin/vite --port 5174 --host 0.0.0.0 > /tmp/swr.log 2>&1 &">Copy</button>
+        </div>
+        <button class="step__check" data-step="1">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 2 -->
+    <article class="step" id="step-2" data-step="2">
+      <button class="step__num" data-step="2" aria-label="Mark step 2 done">2</button>
+      <div class="step__body">
+        <h3 class="step__title">Open the page in a browser</h3>
+        <p class="step__desc">Chrome 126+ or Safari 14.5+ for native MP4 export. Width ≥ 1080px so the 3-column layout doesn't squeeze.</p>
+        <div class="code-wrap">
+          <pre><span class="c"># URL</span>
+<span class="p">→ </span>http://localhost:5174/</pre>
+          <button class="copy-btn" data-copy="http://localhost:5174/">Copy</button>
+        </div>
+        <div class="callout callout--hot">
+          <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01M12 2L2 22h20L12 2z"/></svg>
+          <div class="callout__body"><strong>Other tabs? Close them.</strong> The engine captures audio from this tab only. If you have YouTube open in another tab, that's fine, but make sure the engine's tab is the focused one when you hit PLAY.</div>
+        </div>
+        <button class="step__check" data-step="2">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 3 -->
+    <article class="step" id="step-3" data-step="3">
+      <button class="step__num" data-step="3" aria-label="Mark step 3 done">3</button>
+      <div class="step__body">
+        <h3 class="step__title">Load a song</h3>
+        <p class="step__desc">Click <kbd>LOAD SONG</kbd> in the top bar. Pick any audio file — <code>.mp3</code>, <code>.wav</code>, <code>.m4a</code>, <code>.flac</code>. The engine unlocks the Web Audio context the moment you pick a file (browsers require a user gesture).</p>
+        <div class="btn-row">
+          <a class="btn btn--primary" href="./index.html" target="_blank" rel="noopener">Open engine →</a>
+        </div>
+        <p>The 27-item library (12 videos + 15 images) auto-loads from the <code>library/</code> folder in the background. You don't need to do anything for it.</p>
+        <button class="step__check" data-step="3">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 4 -->
+    <article class="step" id="step-4" data-step="4">
+      <button class="step__num" data-step="4" aria-label="Mark step 4 done">4</button>
+      <div class="step__body">
+        <h3 class="step__title">Wait for the status pill to say <em>READY</em></h3>
+        <p class="step__desc">The pill in the top bar goes from <code>IDLE</code> (gray) to <code>READY</code> (green) once the engine has analyzed your library. Each video gets a motion score by sampling frames over a few seconds. If you've never used the engine before, this takes 5–10 seconds.</p>
+        <div class="live-panel" style="grid-template-columns: 1fr 1fr;">
+          <div class="stat">
+            <div class="stat__label">Status pill</div>
+            <div class="stat__value is-na" id="live-status">awaiting engine</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Library</div>
+            <div class="stat__value is-na" id="live-lib2">—</div>
+          </div>
+        </div>
+        <button class="step__check" data-step="4">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 5 -->
+    <article class="step" id="step-5" data-step="5">
+      <button class="step__num" data-step="5" aria-label="Mark step 5 done">5</button>
+      <div class="step__body">
+        <h3 class="step__title">Hit <kbd>▶ PLAY</kbd></h3>
+        <p class="step__desc">Audio starts, the meter in the top bar jumps, the canvas begins rendering. The engine reads the FFT 60 times per second, extracts 5 bands (sub / bass / mid / treble / air), and pushes them to the layer reactors. Each clip in the canvas scales, shifts hue, slides position — all driven by the spectrum.</p>
+        <div class="callout">
+          <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h2l2-7 4 14 4-11 2 8h4"/></svg>
+          <div class="callout__body">If the canvas looks static, click <kbd>RE-MAP</kbd> in the top-right. The auto-mapper picks the best clips for each role and shuffles them — different mapping = different visual story, all driven by the same audio.</div>
+        </div>
+        <button class="step__check" data-step="5">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 6 -->
+    <article class="step" id="step-6" data-step="6">
+      <button class="step__num" data-step="6" aria-label="Mark step 6 done">6</button>
+      <div class="step__body">
+        <h3 class="step__title">Pick a duration from the dropdown</h3>
+        <p class="step__desc">Next to the REC button. Default is <code>30s</code> — what this how-to is for. Other options:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Option</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td>manual</td><td>Old behavior — REC keeps going until you click again</td></tr>
+              <tr><td>10s</td><td>Short reel / TikTok intro</td></tr>
+              <tr><td>15s</td><td>Instagram Reel</td></tr>
+              <tr><td>30s</td><td>Default. Instagram Reel, YouTube Short, 30s ad</td></tr>
+              <tr><td>60s</td><td>One-minute loop</td></tr>
+              <tr><td>song</td><td>Records the remaining length of the loaded track</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="step__check" data-step="6">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 7 -->
+    <article class="step" id="step-7" data-step="7">
+      <button class="step__num" data-step="7" aria-label="Mark step 7 done">7</button>
+      <div class="step__body">
+        <h3 class="step__title">Hit <kbd>● REC</kbd></h3>
+        <p class="step__desc">The button turns red and reads <kbd>■ STOP</kbd>. The status pill in the top bar shows <code>recording · MP4 · 30s</code> and counts down. The engine captures the canvas at 30 fps and the audio at 48 kHz, muxes them into one MP4 stream, and streams it to a Blob.</p>
+        <div class="callout callout--warn">
+          <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          <div class="callout__body"><strong>Don't close the tab while recording.</strong> The recorder is streaming to a Blob in memory. Closing the tab aborts the recording and you get no file.</div>
+        </div>
+        <button class="step__check" data-step="7">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 8 -->
+    <article class="step" id="step-8" data-step="8">
+      <button class="step__num" data-step="8" aria-label="Mark step 8 done">8</button>
+      <div class="step__body">
+        <h3 class="step__title">Wait for auto-stop</h3>
+        <p class="step__desc">At <code>30s</code>, the engine fires its <code>setTimeout</code>, calls <code>recorder.stop()</code>, and the status flips to <code>exported</code>. The countdown in the status pill is your clock — when it hits <code>0s</code> you're done.</p>
+        <div class="code-wrap">
+          <pre><span class="c">// the auto-stop, line by line</span>
+this.autoStopAt = <span class="k">durMs &gt;</span> 0 ? Date.now() + durMs : 0;
+<span class="c">// ... MediaRecorder.start(500) ...</span>
+this.autoStopTimer = setTimeout(() =&gt; {
+  <span class="k">if</span> (this.recording) this.stop();
+}, this.autoStopAt - Date.now());</pre>
+          <button class="copy-btn" data-copy="// 30s auto-stop is in Recorder.start() of the engine source">Copy</button>
+        </div>
+        <p>You can also click <kbd>■ STOP</kbd> early to record less than 30s.</p>
+        <button class="step__check" data-step="8">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 9 -->
+    <article class="step" id="step-9" data-step="9">
+      <button class="step__num" data-step="9" aria-label="Mark step 9 done">9</button>
+      <div class="step__body">
+        <h3 class="step__title">Grab the MP4 from your downloads</h3>
+        <p class="step__desc">The browser auto-clicks an invisible <code>&lt;a download&gt;</code> element with a Blob URL. The file lands in your default downloads folder as <code>sainted-word-{timestamp}.mp4</code>. ~4 MB for a 30s recording at 8 Mbps.</p>
+        <div class="code-wrap">
+          <pre><span class="c">// the save, line by line</span>
+_save() {
+  <span class="k">const</span> blob = <span class="k">new</span> Blob(this.chunks, { type: this.mime });
+  <span class="k">const</span> a = document.createElement(<span class="s">'a'</span>);
+  a.href = URL.createObjectURL(blob);
+  a.download = <span class="s">`sainted-word-${ts}.${ext}`</span>; <span class="c">// .mp4 or .webm</span>
+  a.click();
+}</pre>
+          <button class="copy-btn" data-copy="// _save() in Recorder object">Copy</button>
+        </div>
+        <button class="step__check" data-step="9">Mark done</button>
+      </div>
+    </article>
+
+    <!-- STEP 10 -->
+    <article class="step" id="step-10" data-step="10">
+      <button class="step__num" data-step="10" aria-label="Mark step 10 done">10</button>
+      <div class="step__body">
+        <h3 class="step__title">Done. Open the MP4 in any editor.</h3>
+        <p class="step__desc">Real H.264 + AAC, 48 kHz stereo, 30 fps. Plays in QuickTime, Premiere, DaVinci, Final Cut, VLC. Uploads to YouTube, TikTok, X, Instagram. The codec string is <code>avc1.42E01E + mp4a.40.2</code> — universal compatibility.</p>
+        <div class="callout callout--hot">
+          <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 6L9 17l-5-5"/></svg>
+          <div class="callout__body"><strong>You just made a music video.</strong> 10 steps, 0 API keys, 0 servers, 0 installs for the user. Drag the MP4 into Premiere and you've got an editable timeline.</div>
+        </div>
+        <button class="step__check" data-step="10">Mark done</button>
+      </div>
+    </article>
+
+    <!-- ============ HOW THE RECORDING WORKS ============ -->
+    <h2>How the recording actually <em>works</em></h2>
+    <p>The pipeline is short and all in the browser. Four boxes, three arrows, one MP4.</p>
+    <div class="flow">
+      <div class="flow__node">
+        <div class="flow__icon">🎨</div>
+        <div class="flow__name">Canvas</div>
+        <div class="flow__sub">6 layers, 30 fps</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow__node">
+        <div class="flow__icon">🎵</div>
+        <div class="flow__name">Audio</div>
+        <div class="flow__sub">48 kHz from analyser</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow__node">
+        <div class="flow__icon">📼</div>
+        <div class="flow__name">MediaRecorder</div>
+        <div class="flow__sub">H.264 + AAC, 8 Mbps</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow__node">
+        <div class="flow__icon">💾</div>
+        <div class="flow__name">.mp4 file</div>
+        <div class="flow__sub">auto-downloads</div>
+      </div>
+    </div>
+    <h3>The mime preference, in order</h3>
+    <p>The recorder asks for the best MP4 first, then falls back to WebM if the browser can't do MP4. Chrome 126+ and Safari 14.5+ all give you MP4 natively.</p>
+    <div class="code-wrap">
+      <pre><span class="k">const</span> mime = [
+  <span class="s">'video/mp4;codecs=avc1.42E01E,mp4a.40.2'</span>,   <span class="c">// H.264 baseline + AAC LC, what YouTube wants</span>
+  <span class="s">'video/mp4;codecs=avc1,mp4a.40.2'</span>,
+  <span class="s">'video/mp4;codecs=avc1'</span>,
+  <span class="s">'video/mp4'</span>,
+  <span class="s">'video/webm;codecs=vp9,opus'</span>,
+  <span class="s">'video/webm;codecs=vp8,opus'</span>,
+  <span class="s">'video/webm'</span>,
+].find(m =&gt; MediaRecorder.isTypeSupported(m)) || <span class="s">'video/webm'</span>;</pre>
+      <button class="copy-btn" data-copy="// mime preference list, from Recorder.start()">Copy</button>
+    </div>
+
+    <!-- ============ 5 VERSIONS ============ -->
+    <h2>Want a different <em>aesthetic</em>?</h2>
+    <p>Top-left badge on the engine: <kbd>5 visual versions →</kbd> opens the directory. Each version is the same engine with a different blend / blur / grain treatment.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Version</th><th>Aesthetic</th><th>Best for</th></tr></thead>
+        <tbody>
+          <tr><td>NEON</td><td>Electric magenta / cyan, screen-blend stacks</td><td>Synthwave, club, anything neon</td></tr>
+          <tr><td>FILM</td><td>Sepia / 16mm grain / soft vignette</td><td>Folk, soul, lo-fi</td></tr>
+          <tr><td>GRID</td><td>Monochrome / hard 2×2 cells / snap-to-beat</td><td>Techno, industrial, strobe</td></tr>
+          <tr><td>SMOKE</td><td>Cream warm / heavy blur / 0.5 opacity</td><td>Ambient, drone, slowcore</td></tr>
+          <tr><td>HALLUCINATION</td><td>RGB channel shift / scanlines / noise</td><td>Psych, noise, anything unsafe</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <a class="btn btn--primary" href="./versions/" target="_blank">Open versions directory →</a>
+    </div>
+
+    <!-- ============ PRODUCTION BUILD ============ -->
+    <h2>Production <em>build</em></h2>
+    <p>For deploying to a server (Vercel, Netlify, Cloudflare Pages, GitHub Pages), build the static bundle:</p>
+    <div class="code-wrap">
+      <pre><span class="c"># from the project root</span>
+<span class="p">$ </span>./node_modules/.bin/vite build
+
+<span class="c"># → dist/</span>
+<span class="c">#   - index.html (engine, 17 KB)</span>
+<span class="c">#   - landing.html (polished GitHub project page)</span>
+<span class="c">#   - assets/index-*.js (engine bundle, 26 KB)</span>
+<span class="c">#   - library/ (27 demo assets, 75 MB)</span>
+<span class="c">#   - versions/ (5 visual versions + directory)</span>
+<span class="c">#   - README.md, LICENSE, HOWTO-30s-VIDEO.md</span></pre>
+      <button class="copy-btn" data-copy="./node_modules/.bin/vite build">Copy</button>
+    </div>
+
+    <!-- ============ HYPERFRAMES ============ -->
+    <h2>Different paradigm? Use <em>hyperframes</em>.</h2>
+    <p>If you want a scene-based, hand-keyframed video (full creative control, no audio reactivity), the <code>hyperframes</code> skill is the right tool. SWR drives the visuals from the audio; hyperframes lets you plan every second with multi-phase scene blueprints, GSAP / CSS / Anime.js keyframes, and offline rendering via Remotion.</p>
+    <div class="btn-row">
+      <button class="btn" onclick="alert('hyperframes is a separate skill — load it from your agent: skill({ name: &quot;hyperframes&quot; })')">Load hyperframes skill →</button>
+    </div>
+
+    <!-- ============ STATUS TABLE ============ -->
+    <h2>What ships in the engine <em>right now</em></h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>main /</th><th>NEON</th><th>FILM</th><th>GRID</th><th>SMOKE</th><th>HALLUC.</th></tr></thead>
+        <tbody>
+          <tr><td>30s auto-stop</td><td>✓ default</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>MP4 export</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Fresh remap each click</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>27-item library</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>window.SWR exposed</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <span>© 2026 Kai Djuric · MIT licensed</span>
+      <a href="./index.html">Open the engine →</a>
+    </div>
+  </main>
+</div>
+
+<!-- ============ THEME TOGGLE ============ -->
+<script>
+class ThemeToggle extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = `<button aria-label="Toggle theme" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>`;
+    this.querySelector('button').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme-pref') || 'system';
+      const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+      localStorage.setItem('swr-theme', next);
+      const resolved = next === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : next;
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-pref', next);
+    });
+  }
+}
+customElements.define('theme-toggle', ThemeToggle);
+</script>
+
+<!-- ============ INTERACTIVITY ============ -->
+<script>
+(function() {
+  // ---- State persistence ----
+  const STORAGE_KEY = 'swr-howto-done';
+  const loadDone = () => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch { return {}; }
+  };
+  const saveDone = (state) => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+  };
+  let done = loadDone();
+  const total = 10;
+
+  // ---- Mark-done handlers ----
+  const refresh = () => {
+    let n = 0;
+    for (let i = 1; i <= total; i++) {
+      const step = document.querySelector(`.step[data-step="${i}"]`);
+      const num = step.querySelector('.step__num');
+      const check = step.querySelector('.step__check');
+      if (done[i]) {
+        step.classList.add('is-done');
+        num.textContent = '✓';
+        check.textContent = '✓ Done';
+        check.classList.add('is-checked');
+        n++;
+      } else {
+        step.classList.remove('is-done');
+        num.textContent = String(i);
+        check.textContent = 'Mark done';
+        check.classList.remove('is-checked');
+      }
+    }
+    // TOC
+    document.querySelectorAll('.toc a').forEach(a => {
+      const stepNum = parseInt(a.dataset.step, 10);
+      a.classList.toggle('is-done', !!done[stepNum]);
+    });
+    // Progress
+    const pct = (n / total) * 100;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = `${n} of ${total} done`;
+  };
+
+  document.querySelectorAll('.step__check, .step__num').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const step = parseInt(el.dataset.step, 10);
+      done[step] = !done[step];
+      if (!done[step]) delete done[step];
+      saveDone(done);
+      refresh();
+    });
+  });
+
+  document.getElementById('reset-progress').addEventListener('click', () => {
+    if (!confirm('Reset all step progress?')) return;
+    done = {};
+    saveDone(done);
+    refresh();
+  });
+
+  // ---- Copy buttons ----
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.copy;
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = 'Copied';
+        btn.classList.add('is-copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('is-copied');
+        }, 1400);
+      } catch {
+        // Fallback for file:// or non-secure contexts
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); btn.textContent = 'Copied'; } catch {}
+        document.body.removeChild(ta);
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
+      }
+    });
+  });
+
+  // ---- Live engine panel: try to read window.SWR via postMessage or opener ----
+  const $swr = document.getElementById('live-swr');
+  const $lib = document.getElementById('live-library');
+  const $audio = document.getElementById('live-audio');
+  const $layers = document.getElementById('live-layers');
+  const $status = document.getElementById('live-status');
+  const $lib2 = document.getElementById('live-lib2');
+
+  const fetchSWR = () => {
+    // Try opener first (if user clicked Open engine from here)
+    let swr = null;
+    try { swr = window.opener && window.opener.SWR; } catch {}
+    if (!swr) {
+      // Try localStorage snapshot written by engine console
+      try {
+        const snap = localStorage.getItem('swr-debug');
+        if (snap) swr = JSON.parse(snap);
+      } catch {}
+    }
+    return swr;
+  };
+
+  const updateLive = () => {
+    const s = fetchSWR();
+    if (!s) {
+      $swr.textContent = 'not loaded';
+      $swr.className = 'stat__value is-na';
+      $lib.textContent = '—';
+      $lib.className = 'stat__value is-na';
+      $audio.textContent = 'no song';
+      $audio.className = 'stat__value is-na';
+      $layers.textContent = '0';
+      $layers.className = 'stat__value is-na';
+      $status.textContent = 'awaiting engine';
+      $status.className = 'stat__value is-na';
+      $lib2.textContent = '—';
+      $lib2.className = 'stat__value is-na';
+      return;
+    }
+    $swr.textContent = 'connected';
+    $swr.className = 'stat__value is-ok';
+    if (s.Library) {
+      const n = s.Library.items ? s.Library.items.length : 0;
+      $lib.textContent = n === 0 ? '0' : `${n} items`;
+      $lib.className = 'stat__value ' + (n > 0 ? 'is-ok' : 'is-na');
+      $lib2.textContent = n === 0 ? '0' : `${n} items`;
+      $lib2.className = 'stat__value ' + (n > 0 ? 'is-ok' : 'is-na');
+    } else {
+      $lib.textContent = '—';
+      $lib.className = 'stat__value is-na';
+    }
+    if (s.Audio) {
+      const has = !!(s.Audio.audioEl || s.Audio.el);
+      const playing = s.Audio.playing;
+      $audio.textContent = !has ? 'no song' : (playing ? 'playing' : 'loaded');
+      $audio.className = 'stat__value ' + (playing ? 'is-hot' : has ? 'is-ok' : 'is-na');
+      $status.textContent = playing ? 'PLAYING' : (has ? 'ready' : 'awaiting engine');
+      $status.className = 'stat__value ' + (playing ? 'is-hot' : has ? 'is-ok' : 'is-na');
+    } else {
+      $audio.textContent = 'no song';
+      $audio.className = 'stat__value is-na';
+    }
+    if (s.Layers) {
+      const n = s.Layers.list ? s.Layers.list.length : 0;
+      $layers.textContent = String(n);
+      $layers.className = 'stat__value ' + (n > 0 ? 'is-ok' : 'is-na');
+    } else {
+      $layers.textContent = '0';
+      $layers.className = 'stat__value is-na';
+    }
+  };
+
+  updateLive();
+  setInterval(updateLive, 1000);
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'swr-snapshot') {
+      try { localStorage.setItem('swr-debug', JSON.stringify(e.data.payload)); } catch {}
+      updateLive();
+    }
+  });
+
+  // ---- Scroll spy: highlight current step in TOC ----
+  const tocLinks = document.querySelectorAll('.toc a[data-step]');
+  const stepEls = Array.from(document.querySelectorAll('.step'));
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      const num = e.target.dataset.step;
+      const link = document.querySelector(`.toc a[data-step="${num}"]`);
+      if (e.isIntersecting && e.intersectionRatio > 0.3) {
+        stepEls.forEach(s => s.classList.remove('is-current'));
+        e.target.classList.add('is-current');
+        tocLinks.forEach(l => l.classList.remove('is-active'));
+        if (link) link.classList.add('is-active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -50% 0px' });
+  stepEls.forEach(s => observer.observe(s));
+
+  // Initial paint
+  refresh();
+})();
+</script>
+</body>
+</html>

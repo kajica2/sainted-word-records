@@ -1,0 +1,15 @@
+{
+  "name": "sainted-word-records",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Algorithmic audio-reactive video engine. Drop in a song, drop in a library of videos / GIFs / images, get a reactive layered composition.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}

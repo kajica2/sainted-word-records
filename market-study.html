@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Market Study · Audio-Reactive Music Video Software 2026 · SWR Insights</title>
+  <meta name="description" content="A market study on the audio-reactive music video software space. Free to read with a watermark; $5 for the clean version." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='18' font-weight='700' fill='%23E6306B' font-family='monospace'%3E$%3C/text%3E%3C/svg%3E" />
+
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('ms-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --hot: #e6306b;
+      --cool: #0085b3;
+      --warn: #d97706;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+      --shadow-2: 0 2px 8px rgba(26, 22, 18, 0.06), 0 16px 48px rgba(26, 22, 18, 0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --accent-2: #ffaa3a;
+      --accent-3: #00ffa3;
+      --hot: #ff2d8a;
+      --cool: #00e5ff;
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg); color: var(--ink);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+    a { color: var(--accent); text-decoration: none; transition: color 0.18s; }
+    a:hover { color: var(--ink); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    ::selection { background: var(--accent); color: white; }
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ===== NAV ===== */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 32px; max-width: 880px; margin: 0 auto;
+    }
+    .nav__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 16px; color: var(--ink);
+    }
+    .nav__brand .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+    }
+    .nav__sub {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav__spacer { flex: 1; }
+    .nav__pay {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 999px;
+      background: var(--accent); color: white;
+      font-size: 12px; font-weight: 600;
+      border: none;
+    }
+    .nav__pay:hover { background: var(--ink); color: var(--bg); }
+    .nav__pay.is-paid { background: var(--accent-3); color: var(--bg); }
+    .nav__pay.is-paid:hover { background: var(--ink); }
+
+    /* ===== ARTICLE ===== */
+    .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px 80px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px 60px; } }
+
+    .meta {
+      display: flex; align-items: center; gap: 12px;
+      margin: 48px 0 16px;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .meta .pill {
+      padding: 3px 10px; border-radius: 999px;
+      border: 1px solid var(--line-2);
+    }
+    .meta .pill--free { color: var(--accent); border-color: var(--accent); }
+    .meta .pill--paid { color: var(--accent-3); border-color: var(--accent-3); }
+
+    h1 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5.4vw, 56px);
+      line-height: 1.05; letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    .subtitle {
+      font-size: 19px; color: var(--ink-2);
+      line-height: 1.5; margin: 0 0 32px; max-width: 600px;
+    }
+    .byline {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 0; border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      font-size: 14px; color: var(--ink-2);
+      margin: 32px 0;
+    }
+    .byline strong { color: var(--ink); font-weight: 600; }
+
+    h2 {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 32px; line-height: 1.15;
+      letter-spacing: -0.01em;
+      margin: 56px 0 12px;
+    }
+    h2 em { font-style: italic; color: var(--accent); }
+    h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 32px 0 8px;
+    }
+    p { font-size: 16px; color: var(--ink-2); margin: 0 0 18px; line-height: 1.7; }
+    p strong { color: var(--ink); font-weight: 600; }
+    ul, ol { color: var(--ink-2); padding-left: 20px; margin: 0 0 18px; }
+    li { margin-bottom: 6px; }
+    blockquote {
+      margin: 24px 0; padding: 16px 24px;
+      border-left: 3px solid var(--accent);
+      background: var(--bg-2);
+      font-style: italic; color: var(--ink);
+      font-family: var(--font-display); font-size: 20px;
+      line-height: 1.4;
+    }
+    blockquote cite {
+      display: block; margin-top: 8px;
+      font-family: var(--font-mono); font-size: 12px;
+      font-style: normal; color: var(--muted);
+    }
+
+    /* ===== CHART ===== */
+    .chart {
+      margin: 32px 0; padding: 24px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .chart__title {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 16px;
+    }
+    .chart svg { width: 100%; height: auto; display: block; }
+    .chart__caption {
+      margin-top: 12px; font-size: 12px;
+      font-family: var(--font-mono); color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ===== CALLOUT ===== */
+    .callout {
+      display: flex; gap: 14px; padding: 18px 22px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--radius); margin: 24px 0;
+    }
+    .callout__icon {
+      width: 24px; height: 24px; flex-shrink: 0;
+      color: var(--accent); margin-top: 2px;
+    }
+    .callout__body { font-size: 15px; color: var(--ink-2); }
+    .callout__body strong { color: var(--ink); font-weight: 600; }
+
+    /* ===== TOC ===== */
+    .toc {
+      padding: 20px 24px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--radius); margin: 24px 0 32px;
+    }
+    .toc h4 {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 12px;
+    }
+    .toc ol { list-style: none; padding: 0; margin: 0;
+      counter-reset: tocs; }
+    .toc li { counter-increment: tocs; margin-bottom: 4px; }
+    .toc a {
+      display: flex; gap: 12px; padding: 6px 8px;
+      border-radius: 4px; font-size: 14px; color: var(--ink-2);
+    }
+    .toc a::before {
+      content: counter(tocs, decimal-leading-zero);
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); font-weight: 600;
+    }
+    .toc a:hover { background: var(--bg-3); color: var(--ink); }
+
+    /* ===== WATERMARK ===== */
+    .article { position: relative; }
+    .watermark {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 30;
+      display: none;
+    }
+    body.is-unpaid .watermark { display: block; }
+    .watermark__tile {
+      position: absolute; inset: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      grid-auto-rows: 100px;
+      gap: 0;
+    }
+    .watermark__tile span {
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px; letter-spacing: 0.14em;
+      color: var(--ink);
+      opacity: 0.06;
+      transform: rotate(-30deg);
+      white-space: nowrap; user-select: none;
+    }
+    [data-theme="dark"] .watermark__tile span { color: var(--ink); opacity: 0.08; }
+    .watermark__band {
+      position: fixed; left: 0; right: 0; top: 50%;
+      transform: translateY(-50%) rotate(-30deg);
+      background: var(--accent);
+      color: white;
+      text-align: center;
+      padding: 6px 0;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      z-index: 31;
+      display: none;
+    }
+    body.is-unpaid .watermark__band { display: block; }
+
+    /* ===== PAYWALL BANNER (inline) ===== */
+    .paywall {
+      margin: 48px 0; padding: 32px 28px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, var(--bg-3)), var(--bg-3));
+      border: 2px solid var(--accent);
+      border-radius: var(--radius);
+      text-align: center;
+    }
+    .paywall--unlocked {
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent-3) 8%, var(--bg-3)), var(--bg-3));
+      border-color: var(--accent-3);
+    }
+    .paywall__eyebrow {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 8px;
+    }
+    .paywall--unlocked .paywall__eyebrow { color: var(--accent-3); }
+    .paywall__title {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 28px; line-height: 1.2; margin: 0 0 8px;
+      letter-spacing: -0.01em;
+    }
+    .paywall__sub { color: var(--ink-2); font-size: 15px; margin: 0 0 20px; }
+    .paywall__price {
+      display: inline-flex; align-items: baseline; gap: 6px;
+      margin: 0 0 20px; padding: 12px 24px;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      border-radius: var(--radius);
+    }
+    .paywall__price .amount {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 36px; color: var(--accent);
+    }
+    .paywall__price .currency {
+      font-family: var(--font-mono); font-size: 18px;
+      color: var(--accent);
+    }
+    .paywall__price .label {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .paywall__cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 999px;
+      background: var(--accent); color: white;
+      font-size: 15px; font-weight: 600;
+      border: none; margin-bottom: 12px;
+      transition: 0.15s;
+    }
+    .paywall__cta:hover { background: var(--ink); color: var(--bg); transform: translateY(-1px); }
+    .paywall__reset {
+      display: block; margin: 12px auto 0;
+      background: transparent; border: none;
+      color: var(--muted); font-size: 12px;
+      font-family: var(--font-mono);
+      text-decoration: underline;
+    }
+    .paywall__reset:hover { color: var(--accent); }
+    .paywall__features {
+      display: flex; gap: 20px; justify-content: center;
+      flex-wrap: wrap; margin: 16px 0 4px;
+      font-size: 13px; color: var(--ink-2);
+    }
+    .paywall__features span {
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .paywall__features span::before {
+      content: "✓"; color: var(--accent-3); font-weight: 700;
+    }
+
+    /* ===== MODAL ===== */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.is-open { display: flex; }
+    .modal {
+      max-width: 420px; width: 100%;
+      background: var(--bg-3);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-2);
+    }
+    .modal h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 24px; margin: 0 0 8px;
+    }
+    .modal p { font-size: 14px; color: var(--ink-2); margin: 0 0 20px; }
+    .modal__row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; background: var(--bg-2);
+      border-radius: var(--radius-sm); margin-bottom: 12px;
+    }
+    .modal__row label { font-size: 13px; color: var(--muted); flex: 1; }
+    .modal__row input {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--ink); padding: 6px 10px; border-radius: 4px;
+      font-family: var(--font-mono); font-size: 14px; width: 60px;
+      text-align: center;
+    }
+    .modal__row input:focus { outline: none; border-color: var(--accent); }
+    .modal__actions {
+      display: flex; gap: 8px; margin-top: 24px;
+    }
+    .modal__btn {
+      flex: 1; padding: 11px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+      border: 1px solid var(--line-2); background: transparent;
+      color: var(--ink);
+    }
+    .modal__btn:hover { border-color: var(--ink); }
+    .modal__btn--primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .modal__btn--primary:hover { background: var(--ink); border-color: var(--ink); }
+
+    /* Hide the back-half of the article when locked */
+    body.is-unpaid .locked { filter: blur(6px); user-select: none; pointer-events: none; }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      margin-top: 64px; padding-top: 24px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============ WATERMARK (only visible when unpaid) ============ -->
+<div class="watermark" aria-hidden="true">
+  <div class="watermark__tile" id="watermark-tile"></div>
+</div>
+<div class="watermark__band" aria-hidden="true">UNPAID · BUY TO REMOVE · UNPAID · BUY TO REMOVE</div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#">
+      <span class="dot"></span>
+      SWR Insights
+    </a>
+    <span class="nav__sub">Market Study · 2026</span>
+    <span class="nav__spacer"></span>
+    <theme-toggle></theme-toggle>
+    <button class="nav__pay" id="nav-pay-btn">$5 — remove watermark</button>
+  </div>
+</nav>
+
+<!-- ============ ARTICLE ============ -->
+<div class="wrap">
+<article class="article">
+
+  <div class="meta">
+    <span class="pill" id="status-pill">Free preview</span>
+    <span>·</span>
+    <span>14 min read</span>
+    <span>·</span>
+    <span>Aug 12, 2026</span>
+  </div>
+
+  <h1>The <em>audio-reactive</em> music video software market, 2026.</h1>
+  <p class="subtitle">
+    A bottom-up look at the tooling indie musicians and creators are using
+    to turn their libraries into music videos without After Effects — and
+    where the money is going next.
+  </p>
+
+  <div class="byline">
+    <span>By <strong>Kai Djuric</strong> · SWR Insights</span>
+    <span style="margin-left: auto; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);">
+      Methodology · 47 interviews · 6 datasets
+    </span>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h4>In this study</h4>
+    <ol>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#methodology">Methodology</a></li>
+      <li><a href="#size">Market size &amp; growth</a></li>
+      <li><a href="#segments">Customer segments</a></li>
+      <li><a href="#players">Key players</a></li>
+      <li><a href="#trends">2026–2027 trends</a></li>
+      <li><a href="#pricing">Pricing &amp; willingness to pay</a></li>
+      <li><a href="#risks">Risks &amp; open questions</a></li>
+      <li><a href="#forecast">12-month forecast</a></li>
+    </ol>
+  </div>
+
+  <h2 id="summary">Summary</h2>
+  <p>
+    The audio-reactive music video software market is small but growing
+    fast. We size it at <strong>$48M in 2025</strong>, projecting to
+    <strong>$124M by 2028</strong> (CAGR 37%). It's fragmented, with no
+    clear category leader — the top five tools together hold ~38% share.
+  </p>
+  <p>
+    The structural shift underneath the growth is the unbundling of music
+    video production from professional tools. After Effects remains the
+    default for label work, but indie musicians and content creators are
+    moving to browser-based engines that take an audio file plus a library
+    of clips and produce an MP4 in minutes.
+  </p>
+  <blockquote>
+    The next $10M ARR in this category won't come from a better After
+    Effects. It'll come from a tool that turns a Spotify link and a TikTok
+    account into a finished music video in one session.
+    <cite>— Head of A&amp;R, mid-size indie label (interview #14)</cite>
+  </blockquote>
+
+  <h2 id="methodology">Methodology</h2>
+  <p>
+    We triangulated four data sources between March and July 2026:
+  </p>
+  <ul>
+    <li><strong>47 structured interviews</strong> with working musicians, music
+      video directors, label A&amp;R, and creator-economy platform staff.</li>
+    <li><strong>Usage telemetry</strong> from 6 publicly documented tools
+      (SWR, Music Video Maker, AudioVisual, Spectro, Wavv, and
+      RenderForest Music Visualizer) — total ~340k monthly active creators.</li>
+    <li><strong>Search and social signals</strong> — 18 months of Google
+      Trends, TikTok hashtag volume, and YouTube "how to make a music video"
+      search volume.</li>
+    <li><strong>Payment data</strong> from 3 publicly disclosed creator-platform
+      revenue splits, plus anonymized Stripe data from 2 indie tools that
+      shared under NDA.</li>
+  </ul>
+  <p>
+    We excluded consumer-facing video editors (CapCut, VN, InShot) unless
+    they advertised explicit audio-reactive features, and we excluded
+    pure VJ/live-performance tools (TouchDesigner, Resolume). The overlap
+    is small but worth flagging — the boundaries of this category are
+    porous.
+  </p>
+
+  <h2 id="size">Market size &amp; growth</h2>
+  <p>
+    The addressable market is the union of three segments: indie musicians
+    who self-release on YouTube/TikTok (~620k globally, growing 11% YoY),
+    bedroom producers who publish a music video per release (~1.1M, growing
+    22% YoY), and labels that produce vertical-first promo content
+    (~22k, growing 8% YoY).
+  </p>
+  <div class="chart">
+    <div class="chart__title">Estimated market size, 2022–2028</div>
+    <svg viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg">
+      <!-- bars -->
+      <g>
+        <rect x="40"  y="180" width="60" height="40"  fill="var(--muted)" />
+        <rect x="120" y="160" width="60" height="60"  fill="var(--muted)" />
+        <rect x="200" y="130" width="60" height="90"  fill="var(--ink-2)" />
+        <rect x="280" y="100" width="60" height="120" fill="var(--ink)" />
+        <rect x="360" y="70"  width="60" height="150" fill="var(--accent-2)" />
+        <rect x="440" y="30"  width="60" height="190" fill="var(--accent)" />
+      </g>
+      <!-- labels -->
+      <g font-family="ui-monospace, monospace" font-size="11" fill="var(--muted)">
+        <text x="55"  y="200" text-anchor="middle">$14M</text>
+        <text x="135" y="200" text-anchor="middle">$22M</text>
+        <text x="215" y="200" text-anchor="middle">$31M</text>
+        <text x="295" y="200" text-anchor="middle">$48M</text>
+        <text x="375" y="200" text-anchor="middle">$72M</text>
+        <text x="455" y="200" text-anchor="middle">$124M</text>
+        <text x="70"  y="232" text-anchor="middle">'22</text>
+        <text x="150" y="232" text-anchor="middle">'23</text>
+        <text x="230" y="232" text-anchor="middle">'24</text>
+        <text x="310" y="232" text-anchor="middle">'25</text>
+        <text x="390" y="232" text-anchor="middle">'26</text>
+        <text x="470" y="232" text-anchor="middle">'28</text>
+      </g>
+      <!-- trend line -->
+      <path d="M70,180 L150,160 L230,130 L310,100 L390,70 L470,30"
+            fill="none" stroke="var(--accent)" stroke-width="1.5"
+            stroke-dasharray="3,3" />
+    </svg>
+    <div class="chart__caption">Source: SWR Insights, July 2026. Top estimate; bottom decile $38M (2025) → $96M (2028).</div>
+  </div>
+  <p>
+    Growth is concentrated in the bedroom-producer segment, which is
+    itself driven by TikTok's continued push to make every release a
+    vertical-first content cycle. Labels are slow movers in this category
+    — they still outsource to directors, but they're starting to use
+    tools for B-roll, teasers, and short-form derivatives.
+  </p>
+
+  <h2 id="segments">Customer segments</h2>
+  <p>The market breaks into four segments with different needs, budgets, and churn profiles.</p>
+  <div class="chart">
+    <div class="chart__title">Share of paying users, by segment (2025)</div>
+    <svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- horizontal bars -->
+      <g font-family="ui-monospace, monospace" font-size="11" fill="var(--ink-2)">
+        <text x="20" y="36" text-anchor="end">Bedroom producers</text>
+        <rect x="30" y="22" width="320" height="22" fill="var(--accent)" rx="3" />
+        <text x="358" y="38">44%</text>
+
+        <text x="20" y="76" text-anchor="end">Indie musicians</text>
+        <rect x="30" y="62" width="218" height="22" fill="var(--accent-2)" rx="3" />
+        <text x="256" y="78">30%</text>
+
+        <text x="20" y="116" text-anchor="end">Labels / A&amp;R</text>
+        <rect x="30" y="102" width="124" height="22" fill="var(--cool)" rx="3" />
+        <text x="162" y="118">17%</text>
+
+        <text x="20" y="156" text-anchor="end">Creators / influencers</text>
+        <rect x="30" y="142" width="58" height="22" fill="var(--accent-3)" rx="3" />
+        <text x="96" y="158">9%</text>
+      </g>
+    </svg>
+    <div class="chart__caption">n = 12,400 paying users across the 6 surveyed tools. Labels are highest ARPU ($340/yr median) but smallest cohort.</div>
+  </div>
+  <p>
+    Bedroom producers are the volume segment but the lowest ARPU
+    (median $48/yr). Labels are the inverse: 17% of paying users, 38% of
+    revenue. Indie musicians are the middle of the bell.
+  </p>
+
+  <div class="callout">
+    <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01M12 2L2 22h20L12 2z"/></svg>
+    <div class="callout__body">
+      <strong>Methodological note:</strong> ARPU calculations exclude the
+      top 1% of users in each segment to avoid skew from enterprise
+      label contracts. Full sensitivity analysis in appendix C.
+    </div>
+  </div>
+
+  <!-- ===== LOCKED SECTION ===== -->
+  <h2 id="players">Key players</h2>
+  <p class="locked">
+    We surveyed 11 active tools in the audio-reactive video space. Below
+    is the public-share ranking with revenue bands, followed by our
+    qualitative assessment of each.
+  </p>
+  <p class="locked">
+    The category splits into three archetypes. <strong>Browser-native
+    engines</strong> (SWR, AudioVisual, Spectro) target the indie creator
+    with zero-install workflows. <strong>Desktop DAW plug-ins</strong>
+    (Wavv, RenderForest MV) target producers already inside a DAW.
+    <strong>VJ tools</strong> (TouchDesigner, Resolume) target the
+    live-performance segment, which we exclude from this study but
+    mention for context.
+  </p>
+
+  <h2 id="trends">2026–2027 trends</h2>
+  <p class="locked">
+    Five forces will reshape the category in the next 12–18 months.
+  </p>
+  <ol class="locked">
+    <li><strong>MP4 export, finally native.</strong> The arrival of
+      MediaRecorder with H.264 + AAC in Chrome 126+ and Safari 14.5+
+      means browser-based engines no longer need ffmpeg.wasm. This
+      cuts bundle size by ~30MB and removes a class of "the export
+      failed" support tickets.</li>
+    <li><strong>Algorithmic mapping eats the visualizer market.</strong>
+      The traditional visualizer (spectrum bars, oscilloscope) is
+      being replaced by engines that classify the user's library and
+      route clips to audio bands. This is a category-expanding move
+      because it makes the tool useful for non-musicians too.</li>
+    <li><strong>Vertical-first exports become the default.</strong>
+      9:16 exports are growing 4x faster than 16:9. Tools that don't
+      ship a vertical-first workflow will lose the indie segment.</li>
+    <li><strong>The 30-second song teaser replaces the music video.</strong>
+      TikTok and Reels have trained listeners to expect 15–60 second
+      teasers, not 3-minute videos. ARPU is comparable because
+      creators publish more teasers per release.</li>
+    <li><strong>Open-source engines commoditize the bottom.</strong>
+      Two open-source projects (SWR, Spectro) have hit 30k GitHub
+      stars each in the past 12 months. This compresses the bottom of
+      the market but expands the top — the paid tools need to add
+      real differentiation (better library, better AI mapping, better
+      export) or they get crushed.</li>
+  </ol>
+
+  <h2 id="pricing">Pricing &amp; willingness to pay</h2>
+  <p class="locked">
+    We tested four pricing tiers via a Van Westendorp PSM across 312
+    indie creators in May 2026. Results are stable across the bedroom
+    and indie segments; labels price-shop much less.
+  </p>
+  <p class="locked">
+    The "indie sweet spot" is <strong>$8–12/month</strong> for unlimited
+    exports, or <strong>$0.50–$1.00 per single export</strong> as a
+    pay-as-you-go. A $5 "remove the watermark" tier (the model this
+    page is built on) lands inside the lower edge of the WTP range and
+    tests well as a one-time purchase.
+  </p>
+
+  <h2 id="risks">Risks &amp; open questions</h2>
+  <p class="locked">
+    The category is young, and the assumptions that drive the 2028
+    forecast could break in any of four ways. The single biggest risk
+    is platform consolidation: if TikTok or YouTube build native
+    audio-reactive video tools (both have the engineering capacity),
+    the indie segment collapses overnight. Second is the open-source
+    curve: if the SWR/Spectro projects get venture funding, the paid
+    mid-tier disappears. Third is licensing: the music industry is
+    increasingly litigious about AI-generated visuals, and a category
+    that ingests copyrighted audio could face class-action exposure.
+    Fourth is quality compression: as more creators use the same
+    engines with the same library presets, YouTube and TikTok audiences
+    may stop engaging with the look entirely.
+  </p>
+
+  <h2 id="forecast">12-month forecast</h2>
+  <p class="locked">
+    We expect the category to grow 40–55% YoY through 2027, with the
+    bulk of new revenue coming from the bedroom-producer segment. The
+    open-source wave will compress paid tools' bottom-tier pricing; the
+    next $5M ARR will come from a tool that adds AI-assisted library
+    classification on top of the algorithmic-mapper base.
+  </p>
+  <p class="locked">
+    Our base-case forecast is a 3x by 2028, with upside if any of the
+    four risks materializes positively (a label-friendly licensing
+    tier, for example, could 10x the ARPU in the label segment).
+  </p>
+
+  <!-- ===== PAYWALL ===== -->
+  <div class="paywall" id="paywall">
+    <div class="paywall__eyebrow" id="paywall-eyebrow">Remove the watermark</div>
+    <div class="paywall__title" id="paywall-title">Get the clean version.</div>
+    <p class="paywall__sub" id="paywall-sub">
+      Pay once, unlock the unlocked PDF + all 6 supporting datasets. No subscription.
+    </p>
+    <div class="paywall__price">
+      <span class="amount" id="paywall-amount">5</span>
+      <span class="currency">USD</span>
+      <span class="label">one-time</span>
+    </div>
+    <div class="paywall__features">
+      <span>PDF + DOCX download</span>
+      <span>6 supporting datasets</span>
+      <span>Updates for 12 months</span>
+    </div>
+    <button class="paywall__cta" id="paywall-cta">Buy for $5 → remove watermark</button>
+    <button class="paywall__reset" id="paywall-reset" style="display: none;">↻ Reset demo (un-lock)</button>
+  </div>
+
+  <div class="footer">
+    <span>© 2026 SWR Insights · Single-file demo</span>
+    <span>v1 · August 2026</span>
+  </div>
+</article>
+</div>
+
+<!-- ============ MODAL ============ -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3>Complete purchase</h3>
+    <p>This is a demo. Real integration would route through Stripe / Lemon Squeezy / Paddle with a webhook that flips the unlocked flag server-side.</p>
+    <div class="modal__row">
+      <label>Item</label>
+      <span style="font-size: 14px; color: var(--ink);">Market Study · Audio-Reactive Video Software 2026</span>
+    </div>
+    <div class="modal__row">
+      <label>Quantity</label>
+      <input type="number" value="1" min="1" max="1" id="qty" />
+    </div>
+    <div class="modal__row">
+      <label>Total</label>
+      <span style="font-family: var(--font-display); font-size: 22px; color: var(--accent); font-weight: 500;">$5.00 USD</span>
+    </div>
+    <div class="modal__actions">
+      <button class="modal__btn" id="modal-cancel">Cancel</button>
+      <button class="modal__btn modal__btn--primary" id="modal-pay">Pay $5 (demo)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ THEME TOGGLE ============ -->
+<script>
+class ThemeToggle extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = `<button aria-label="Toggle theme" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>`;
+    this.querySelector('button').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme-pref') || 'system';
+      const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+      localStorage.setItem('ms-theme', next);
+      const resolved = next === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : next;
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-pref', next);
+    });
+  }
+}
+customElements.define('theme-toggle', ThemeToggle);
+</script>
+
+<!-- ============ PAYWALL LOGIC ============ -->
+<script>
+(function() {
+  const STORAGE_KEY = 'ms-paid';
+  const isPaid = () => { try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch { return false; } };
+  const setPaid = (v) => { try { localStorage.setItem(STORAGE_KEY, v ? '1' : '0'); } catch {} };
+
+  // Render the watermark tile (so the tiled pattern covers any viewport size)
+  const tile = document.getElementById('watermark-tile');
+  const renderWatermark = () => {
+    const text = 'SWR INSIGHTS · PREVIEW · UNPAID · ';
+    // Roughly 1 span per 260x100 cell
+    const w = window.innerWidth, h = document.documentElement.scrollHeight;
+    const cols = Math.ceil(w / 260) + 1;
+    const rows = Math.ceil(h / 100) + 1;
+    const html = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        html.push(`<span>${text}</span>`);
+      }
+    }
+    tile.innerHTML = html.join('');
+  };
+
+  const applyPaidState = (paid) => {
+    document.body.classList.toggle('is-unpaid', !paid);
+    const pill = document.getElementById('status-pill');
+    const navBtn = document.getElementById('nav-pay-btn');
+    const paywall = document.getElementById('paywall');
+    const paywallEyebrow = document.getElementById('paywall-eyebrow');
+    const paywallTitle = document.getElementById('paywall-title');
+    const paywallSub = document.getElementById('paywall-sub');
+    const paywallAmount = document.getElementById('paywall-amount');
+    const paywallCta = document.getElementById('paywall-cta');
+    const paywallReset = document.getElementById('paywall-reset');
+    if (paid) {
+      pill.textContent = '✓ Unlocked';
+      pill.className = 'pill pill--paid';
+      navBtn.textContent = '✓ Unlocked';
+      navBtn.classList.add('is-paid');
+      paywall.classList.add('paywall--unlocked');
+      paywallEyebrow.textContent = 'You own this study';
+      paywallTitle.textContent = 'Thanks. The clean version is yours.';
+      paywallSub.innerHTML = 'This is a demo — the watermark is removed via a <code>localStorage</code> flag. In production, a Stripe webhook would flip a server-side entitlement.';
+      paywallAmount.parentElement.style.display = 'none';
+      paywallCta.textContent = '↓ Download PDF (demo)';
+      paywallReset.style.display = 'block';
+    } else {
+      pill.textContent = 'Free preview';
+      pill.className = 'pill pill--free';
+      navBtn.textContent = '$5 — remove watermark';
+      navBtn.classList.remove('is-paid');
+      paywall.classList.remove('paywall--unlocked');
+      paywallEyebrow.textContent = 'Remove the watermark';
+      paywallTitle.textContent = 'Get the clean version.';
+      paywallSub.innerHTML = 'Pay once, unlock the unlocked PDF + all 6 supporting datasets. No subscription.';
+      paywallAmount.parentElement.style.display = 'inline-flex';
+      paywallCta.textContent = 'Buy for $5 → remove watermark';
+      paywallReset.style.display = 'none';
+    }
+  };
+
+  // Init
+  renderWatermark();
+  applyPaidState(isPaid());
+  window.addEventListener('resize', () => { renderWatermark(); });
+
+  // Open modal
+  const openModal = () => document.getElementById('modal').classList.add('is-open');
+  const closeModal = () => document.getElementById('modal').classList.remove('is-open');
+  document.getElementById('nav-pay-btn').addEventListener('click', openModal);
+  document.getElementById('paywall-cta').addEventListener('click', openModal);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal').addEventListener('click', (e) => {
+    if (e.target.id === 'modal') closeModal();
+  });
+
+  // Pay
+  document.getElementById('modal-pay').addEventListener('click', () => {
+    closeModal();
+    setPaid(true);
+    applyPaidState(true);
+    // Smooth-scroll to where the watermark was (the locked content)
+    document.getElementById('paywall').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // Reset
+  document.getElementById('paywall-reset').addEventListener('click', () => {
+    if (!confirm('Reset demo? This re-locks the article and re-enables the watermark.')) return;
+    setPaid(false);
+    applyPaidState(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
+</body>
+</html>

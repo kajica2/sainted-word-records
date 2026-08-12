@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Visual Versions · Sainted Word Records</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='%230a0610' stroke='%23ff2d8a' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='6' fill='%2300f0ff'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0610;
+      --bg-2: #100819;
+      --panel: #15091e;
+      --panel-2: #1c0e2a;
+      --ink: #f5e9ff;
+      --muted: #8a7aa0;
+      --line: #2a1d3e;
+      --hot: #ff2d8a;
+      --cool: #00f0ff;
+      --warm: #fff04a;
+      --green: #00ffa3;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+      font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    body {
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(255,45,138,0.08), transparent 60%),
+        radial-gradient(1000px 500px at 110% 10%, rgba(0,240,255,0.06), transparent 60%),
+        var(--bg);
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 64px 32px 80px; }
+
+    .top { display: flex; align-items: center; gap: 16px; margin-bottom: 56px; }
+    .top .badge { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px; }
+    .top .badge.hot { color: var(--hot); border-color: var(--hot); }
+    .top .spacer { flex: 1; }
+    .top .back { font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); border: 1px solid var(--line); padding: 8px 14px; border-radius: 4px; transition: 0.15s; }
+    .top .back:hover { color: var(--cool); border-color: var(--cool); }
+
+    h1 { font-family: 'Fraunces', serif; font-weight: 300; font-size: clamp(48px, 7vw, 88px); line-height: 0.95;
+      letter-spacing: -0.02em; margin: 0 0 24px; font-style: italic; }
+    h1 em { font-style: normal; color: var(--hot); }
+    .lede { font-size: 18px; line-height: 1.5; color: var(--muted); max-width: 720px; margin: 0 0 64px; }
+    .lede strong { color: var(--ink); font-weight: 500; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 28px; }
+
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease; display: flex; flex-direction: column; }
+    .card:hover { transform: translateY(-4px); border-color: var(--cool); }
+    .card .thumb { aspect-ratio: 16/10; background: #000; overflow: hidden; position: relative; }
+    .card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
+    .card:hover .thumb img { transform: scale(1.04); }
+    .card .thumb .vlabel { position: absolute; top: 12px; left: 12px; font-family: 'Geist Mono', monospace;
+      font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 8px; border-radius: 3px;
+      backdrop-filter: blur(4px); background: rgba(0,0,0,0.55); }
+    .card .body { padding: 22px 24px 24px; flex: 1; display: flex; flex-direction: column; }
+    .card h2 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 32px; margin: 0 0 4px;
+      letter-spacing: -0.01em; line-height: 1; }
+    .card .sub { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+    .card p { font-size: 14px; line-height: 1.55; color: var(--muted); margin: 0 0 18px; flex: 1; }
+    .card p strong { color: var(--ink); font-weight: 500; }
+    .card .meta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .card .meta span { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); padding: 3px 8px; border-radius: 3px; }
+    .card .open { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      padding: 12px 16px; border: 1px solid var(--line); border-radius: 4px; transition: 0.15s; }
+    .card .open:hover { background: var(--cool); color: #000; border-color: var(--cool); }
+    .card .open .arr { transition: transform 0.2s; }
+    .card .open:hover .arr { transform: translateX(4px); }
+
+    .card[data-v="neon"] .vlabel { color: var(--hot); }
+    .card[data-v="neon"]:hover { border-color: var(--hot); }
+    .card[data-v="neon"] .open:hover { background: var(--hot); border-color: var(--hot); }
+    .card[data-v="film"] .vlabel { color: #d4b896; }
+    .card[data-v="film"]:hover { border-color: #d4b896; }
+    .card[data-v="film"] .open:hover { background: #d4b896; color: #000; border-color: #d4b896; }
+    .card[data-v="grid"] .vlabel { color: var(--ink); }
+    .card[data-v="grid"] .open:hover { background: var(--ink); color: #000; border-color: var(--ink); }
+    .card[data-v="smoke"] .vlabel { color: #f3e9d5; }
+    .card[data-v="smoke"]:hover { border-color: #f3e9d5; }
+    .card[data-v="smoke"] .open:hover { background: #f3e9d5; color: #000; border-color: #f3e9d5; }
+    .card[data-v="hallucination"] .vlabel { color: var(--green); }
+    .card[data-v="hallucination"]:hover { border-color: var(--green); }
+    .card[data-v="hallucination"] .open:hover { background: var(--green); color: #000; border-color: var(--green); }
+
+    .footer { margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .footer a { color: var(--cool); }
+    .footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .wrap { padding: 40px 20px 60px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <span class="badge hot">SWR · v1</span>
+      <span class="badge">5 visual versions</span>
+      <span class="badge">algorithmic · reactive</span>
+      <div class="spacer"></div>
+      <a class="back" href="../index.html">← back to main</a>
+    </div>
+
+    <h1>Five ways<br />to <em>see</em> the song.</h1>
+    <p class="lede">
+      Same engine, same audio analysis, same auto-mapped layers.
+      <strong>Five completely different visual languages</strong> — one drop in
+      your track, one click REC, five distinct music videos. Pick the one that
+      fits the song's mood, or render all five and let the audience choose.
+    </p>
+
+    <div class="grid">
+      <a class="card" data-v="neon" href="./neon.html">
+        <div class="thumb">
+          <span class="vlabel">01 · NEON</span>
+          <img src="../verify-screenshots/neon.png" alt="NEON version" />
+        </div>
+        <div class="body">
+          <h2>Neon</h2>
+          <div class="sub">Electric magenta / cyan</div>
+          <p>Hot-club cut, sharpened easings, scanlines. <strong>Screen-blend</strong>
+            stacks, <strong>lighter</strong> blends. Cuts on the beat, not after it.
+            For: synthwave, club, anything that needs to look like a sign at 2am.</p>
+          <div class="meta">
+            <span>screen blend</span><span>sharper</span><span>3 reactors</span><span>low opacity</span>
+          </div>
+          <div class="open">open neon <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="film" href="./film.html">
+        <div class="thumb">
+          <span class="vlabel">02 · FILM</span>
+          <img src="../verify-screenshots/film.png" alt="FILM version" />
+        </div>
+        <div class="body">
+          <h2>Film</h2>
+          <div class="sub">Sepia / 16mm grain</div>
+          <p>Handheld warm tone, per-pixel grain, soft vignette, slow drift.
+            <strong>Smooth easings</strong> on every transition. For: folk, soul,
+            anything that needs to look like a memory of a memory.</p>
+          <div class="meta">
+            <span>sepia</span><span>per-pixel grain</span><span>vignette</span><span>smooth</span>
+          </div>
+          <div class="open">open film <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="grid" href="./grid.html">
+        <div class="thumb">
+          <span class="vlabel">03 · GRID</span>
+          <img src="../verify-screenshots/grid.png" alt="GRID version" />
+        </div>
+        <div class="body">
+          <h2>Grid</h2>
+          <div class="sub">Monochrome / hard cells</div>
+          <p>Six layers split into 2×2 + half-cells, snap to the beat.
+            <strong>Binary easings</strong> — no in-between, only on or off. For: techno,
+            industrial, anything that needs to look like a strobe hitting a wall.</p>
+          <div class="meta">
+            <span>grayscale</span><span>hard cells</span><span>snap-beat</span><span>1–2 reactors</span>
+          </div>
+          <div class="open">open grid <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="smoke" href="./smoke.html">
+        <div class="thumb">
+          <span class="vlabel">04 · SMOKE</span>
+          <img src="../verify-screenshots/smoke.png" alt="SMOKE version" />
+        </div>
+        <div class="body">
+          <h2>Smoke</h2>
+          <div class="sub">Cream warm / heavy blur</div>
+          <p>Everything at <strong>0.5 opacity</strong>, slow drift, blurry and slow.
+            The song moves through fog. For: ambient, drone, slowcore, anything that
+            should feel like a held breath.</p>
+          <div class="meta">
+            <span>cream</span><span>heavy blur</span><span>0.5 opacity</span><span>slow</span>
+          </div>
+          <div class="open">open smoke <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="hallucination" href="./hallucination.html">
+        <div class="thumb">
+          <span class="vlabel">05 · HALLUCINATION</span>
+          <img src="../verify-screenshots/hallucination.png" alt="HALLUCINATION version" />
+        </div>
+        <div class="body">
+          <h2>Hallucination</h2>
+          <div class="sub">RGB shift / scanline body</div>
+          <p>Every reactor maxed. <strong>RGB channel shift</strong>, <strong>lighter</strong>
+            and <strong>difference</strong> blends, noise canvas overlay. The video looks
+            like it remembers a bad trip. For: psych, noise, anything that should feel unsafe.</p>
+          <div class="meta">
+            <span>rgb shift</span><span>difference</span><span>noise</span><span>3 reactors</span>
+          </div>
+          <div class="open">open hallucination <span class="arr">→</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="footer">
+      <span>drop in any song · any video/gif/image library · single-file html</span>
+      <a href="../index.html">sainted word records ↗</a>
+    </div>
+  </div>
+</body>
+</html>

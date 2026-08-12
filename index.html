@@ -1,0 +1,1945 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Sainted Word Records — Audio-Reactive Engine</title>
+  <meta name="description" content="Algorithmic audio-reactive video engine. Drop in a song, drop in a library of clips, get a reactive layered composition." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%231a1028' stroke='%23ff3d92' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff3d92'/%3E%3Ccircle cx='16' cy='16' r='0.8' fill='%23fff'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg-0: #050308;
+      --bg-1: #0d0918;
+      --bg-2: #1a1226;
+      --panel: #11091a;
+      --panel-2: #1a1028;
+      --line: #2a1d3a;
+      --line-2: #3a2a4a;
+      --fg: #f5e9ff;
+      --muted: #9a8aaa;
+      --dim: #5a4a6a;
+      --accent: #ff3d92;
+      --accent-2: #00e5ff;
+      --accent-3: #ffd24a;
+      --warn: #ff7a3d;
+      --ok: #00ffa3;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg-0);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(255, 61, 146, 0.12), transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(0, 229, 255, 0.10), transparent 50%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    }
+
+    /* === LAYOUT === */
+    #app {
+      display: grid;
+      grid-template-rows: 56px 1fr 48px;
+      grid-template-columns: 240px 1fr 280px;
+      grid-template-areas:
+        "transport transport transport"
+        "library stage layers"
+        "global global global";
+      height: 100vh;
+      width: 100vw;
+      gap: 1px;
+      background: var(--line);
+    }
+    header#transport { grid-area: transport; }
+    aside#library { grid-area: library; }
+    section#stage { grid-area: stage; }
+    aside#layers { grid-area: layers; }
+    footer#global { grid-area: global; }
+
+    /* === TRANSPORT === */
+    header#transport {
+      background: linear-gradient(180deg, var(--bg-2), var(--panel));
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .brand {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      font-size: 14px;
+      color: var(--accent);
+      text-shadow: 0 0 12px rgba(255, 61, 146, 0.5);
+      white-space: nowrap;
+    }
+    .brand small { color: var(--muted); font-weight: 400; letter-spacing: 0.04em; margin-left: 6px; }
+    .pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-1);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pill.ok { color: var(--ok); border-color: rgba(0, 255, 163, 0.3); }
+    .pill.live { color: var(--accent); border-color: rgba(255, 61, 146, 0.4); animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+    .tbtn {
+      background: var(--panel-2);
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 7px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .tbtn:hover { background: var(--bg-2); border-color: var(--accent); }
+    .tbtn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+    .tbtn.primary:hover { background: #ff5fa3; }
+    .tbtn.danger { background: transparent; border-color: var(--warn); color: var(--warn); }
+    .tbtn.danger.live { background: var(--warn); color: #000; animation: pulse 0.6s ease-in-out infinite; }
+    .tbtn.ghost { background: transparent; border-color: var(--line); }
+    .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .spacer { flex: 1; }
+
+    .song-name {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .song-name b { color: var(--fg); font-weight: 500; }
+
+    .time {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      min-width: 96px;
+      text-align: center;
+    }
+    .time b { color: var(--accent-2); }
+
+    canvas#meter {
+      width: 180px;
+      height: 24px;
+      background: var(--bg-1);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      display: block;
+    }
+
+    /* === STAGE === */
+    section#stage {
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas#render {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #000;
+    }
+    #stage-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--muted);
+      pointer-events: none;
+      font-family: var(--font-mono);
+      text-align: center;
+    }
+    #stage-empty h3 {
+      font-size: 18px;
+      color: var(--fg);
+      margin: 0;
+      letter-spacing: 0.04em;
+    }
+    #stage-empty p { max-width: 380px; font-size: 12px; line-height: 1.6; margin: 0; }
+    #stage-empty .hint { color: var(--dim); font-size: 11px; margin-top: 12px; }
+    #stage-empty.hidden { display: none; }
+    #stage-flash {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.4), transparent 60%);
+      opacity: 0;
+      mix-blend-mode: screen;
+    }
+
+    /* === LIBRARY === */
+    aside#library {
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 12px 14px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-head h2 {
+      margin: 0;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex: 1;
+    }
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+
+    #library-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .lib-item {
+      position: relative;
+      aspect-ratio: 1;
+      background: var(--bg-1);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: grab;
+      transition: border-color 0.12s, transform 0.12s;
+    }
+    .lib-item:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+    .lib-item:active { cursor: grabbing; }
+    .lib-item img, .lib-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .lib-item .tag {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      padding: 1px 4px;
+      background: rgba(0,0,0,0.7);
+      color: var(--accent-2);
+      border-radius: 2px;
+      letter-spacing: 0.06em;
+    }
+    .lib-item .name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 2px 4px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: #fff;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lib-empty {
+      grid-column: 1 / -1;
+      padding: 32px 12px;
+      text-align: center;
+      color: var(--dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.7;
+      border: 1px dashed var(--line-2);
+      border-radius: 4px;
+    }
+    .drop-target.over { background: rgba(0, 229, 255, 0.08); border-color: var(--accent-2); }
+
+    /* === LAYERS === */
+    aside#layers {
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #layer-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #layer-list::-webkit-scrollbar { width: 6px; }
+    #layer-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+    .layer {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: border-color 0.12s;
+    }
+    .layer.selected { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(255, 61, 146, 0.3); }
+    .layer-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .layer-head .num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--dim);
+      width: 16px;
+    }
+    .layer-head .thumb {
+      width: 28px;
+      height: 28px;
+      background: var(--bg-1);
+      border: 1px solid var(--line-2);
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--dim);
+      font-size: 9px;
+      flex-shrink: 0;
+    }
+    .layer-head .thumb img, .layer-head .thumb video {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .layer-head .name {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--fg);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .layer-head .x {
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .layer-head .x:hover { color: var(--accent); }
+
+    .layer-row {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 4px;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .layer-row label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .layer-row select, .layer-row input[type="text"] {
+      background: var(--bg-1);
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 3px 4px;
+      border-radius: 3px;
+      width: 100%;
+    }
+    .layer-row input[type="range"] {
+      width: 100%;
+      height: 14px;
+    }
+
+    /* === GLOBAL === */
+    footer#global {
+      background: linear-gradient(180deg, var(--panel), var(--bg-2));
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 18px;
+      font-family: var(--font-mono);
+    }
+    .gctrl {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .gctrl input[type="range"] { width: 100px; }
+    .gctrl b { color: var(--accent-2); font-weight: 500; min-width: 30px; text-align: right; }
+    .gctrl select {
+      background: var(--bg-1);
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 3px;
+    }
+    .separator { width: 1px; height: 24px; background: var(--line); }
+    .beat-led {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--bg-1);
+      border: 1px solid var(--line-2);
+      transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
+    }
+    .beat-led.on {
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent), 0 0 24px rgba(255, 61, 146, 0.4);
+      transform: scale(1.3);
+    }
+    .onset-led {
+      background: var(--accent-2);
+      box-shadow: 0 0 12px var(--accent-2), 0 0 24px rgba(0, 229, 255, 0.4);
+    }
+    .onset-led.on { background: var(--accent-2); }
+
+    /* === HIDDEN INPUTS === */
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header id="transport">
+      <div class="brand">SAINTED-WORD <small>records</small></div>
+      <a class="tbtn ghost" href="./versions/" style="padding:4px 10px; font-size:9px; text-decoration:none;">5 visual versions →</a>
+      <span class="pill" id="status-pill">idle</span>
+      <button class="tbtn ghost" id="load-song">Load song</button>
+      <input type="file" id="song-input" accept="audio/*" />
+      <span class="song-name" id="song-name">No song loaded</span>
+      <button class="tbtn primary" id="play" disabled>▶ Play</button>
+      <span class="time" id="time">0:00 <b>/ 0:00</b></span>
+      <canvas id="meter" width="360" height="48"></canvas>
+      <span class="spacer"></span>
+      <span class="pill" id="bpm-pill">— bpm</span>
+      <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
+      <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
+      <select id="rec-dur" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Auto-stop recording after N seconds">
+        <option value="0">manual</option>
+        <option value="10">10s</option>
+        <option value="15">15s</option>
+        <option value="30" selected>30s</option>
+        <option value="60">60s</option>
+        <option value="song">song</option>
+      </select>
+      <button class="tbtn danger" id="rec" disabled>● REC</button>
+    </header>
+
+    <aside id="library">
+      <div class="panel-head">
+        <h2>Library</h2>
+        <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
+      </div>
+      <div class="panel-body">
+        <div id="library-grid">
+          <div class="lib-empty">
+            Drop videos, GIFs, or images<br/>anywhere on the page
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <section id="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div id="stage-flash"></div>
+      <div id="stage-empty">
+        <h3>Algorithmic Audio-Reactive Engine</h3>
+        <p>
+          Load a song, drop a library of clips, hit play. The audio signal becomes the score —
+          bass, mids, treble, beats, and onsets drive a layered composition of your assets.
+        </p>
+        <div class="hint">
+          ⌘+Drop folder for bulk import · click any layer to edit · RE-MAP re-derives the assignment
+        </div>
+      </div>
+    </section>
+
+    <aside id="layers">
+      <div class="panel-head">
+        <h2>Layers</h2>
+        <button class="tbtn ghost" id="add-layer" style="padding:4px 8px; font-size:9px;">+ Layer</button>
+        <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
+      </div>
+      <div id="layer-list"></div>
+    </aside>
+
+    <footer id="global">
+      <span class="gctrl">
+        sensitivity
+        <input type="range" id="sensitivity" min="0.2" max="3" step="0.05" value="1" />
+        <b id="sensitivity-v">1.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        beat gate
+        <input type="range" id="beat-gate" min="1.05" max="2.5" step="0.05" value="1.4" />
+        <b id="beat-gate-v">1.40</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        decay
+        <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.88" />
+        <b id="decay-v">0.88</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        palette
+        <select id="palette">
+          <option value="neon">Neon</option>
+          <option value="solar">Solar</option>
+          <option value="ocean">Ocean</option>
+          <option value="mono">Mono</option>
+        </select>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        mode
+        <select id="mode">
+          <option value="auto">Auto</option>
+          <option value="chaos">Chaos</option>
+          <option value="pulse">Pulse</option>
+          <option value="ambient">Ambient</option>
+        </select>
+      </span>
+      <span class="separator"></span>
+      <button class="tbtn" id="drag-mode" style="padding:4px 10px; font-size:9px;" title="Toggle auto-drift / manual drag">AUTO DRIFT</button>
+      <span class="spacer" style="flex:1"></span>
+      <span class="gctrl" id="fps-v">— fps</span>
+    </footer>
+  </div>
+
+  <script type="module">
+    // ======================================================================
+    // SAINTED-WORD RECORDS — Algorithmic audio-reactive video engine
+    // ======================================================================
+    // Architecture
+    //   AudioEngine   : Web Audio graph + per-frame feature extraction
+    //   BeatTracker   : adaptive-threshold bass-energy beat detection
+    //   OnsetTracker  : spectral-flux onset detection
+    //   Library       : persistent asset store (IndexedDB) + classification
+    //   AutoMapper    : assigns library assets to layers based on
+    //                   motion / brightness / hue + current audio features
+    //   Layer         : one slot in the composition stack
+    //   Renderer      : requestAnimationFrame loop, draws layers to canvas
+    //   Recorder      : canvas + audio MediaRecorder export
+    // ======================================================================
+
+    // ---------- util ----------
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const smoothstep = (a, b, x) => {
+      const t = clamp((x - a) / (b - a), 0, 1);
+      return t * t * (3 - 2 * t);
+    };
+
+    // ---------- DOM refs ----------
+    const $ = (id) => document.getElementById(id);
+    const stageCanvas = $('render');
+    const stageCtx = stageCanvas.getContext('2d', { alpha: false });
+    const meterCanvas = $('meter');
+    const meterCtx = meterCanvas.getContext('2d');
+    const stageEmpty = $('stage-empty');
+    const stageFlash = $('stage-flash');
+    const libGrid = $('library-grid');
+    const layerList = $('layer-list');
+
+    // ======================================================================
+    // AUDIO ENGINE
+    // ======================================================================
+    const Audio = {
+      ctx: null,
+      analyser: null,
+      source: null,
+      gain: null,
+      audioEl: null,
+      fft: null,
+      time: null,
+      // Per-frame features
+      feat: {
+        bass: 0, mid: 0, treble: 0, air: 0, sub: 0,
+        rms: 0, centroid: 0,
+        beat: 0,         // 0..1 envelope (decays)
+        onset: 0,        // 0..1 envelope (decays)
+        beatPulse: false, // fires on each beat
+        onsetPulse: false,
+        bpm: 0,
+      },
+      history: { prev: null, bassAvg: 0, fluxAvg: 0 },
+      beatTimes: [],
+      playing: false,
+      unlock() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyser = this.ctx.createAnalyser();
+        this.analyser.fftSize = 2048;
+        this.analyser.smoothingTimeConstant = 0.65;
+        this.fft = new Uint8Array(this.analyser.frequencyBinCount);
+        this.time = new Uint8Array(this.analyser.fftSize);
+        this.gain = this.ctx.createGain();
+        this.gain.gain.value = 1.0;
+        this.analyser.connect(this.gain);
+        this.gain.connect(this.ctx.destination);
+        setStatus('audio live', 'ok');
+      },
+      loadFile(file) {
+        this.unlock();
+        if (this.source) try { this.source.disconnect(); } catch {}
+        if (this.audioEl) {
+          this.audioEl.pause();
+          this.audioEl.src = '';
+        }
+        this.audioEl = document.createElement('audio');
+        this.audioEl.crossOrigin = 'anonymous';
+        this.audioEl.src = URL.createObjectURL(file);
+        this.audioEl.preload = 'auto';
+        this.audioEl.addEventListener('ended', () => UI.onSongEnd());
+        this.audioEl.addEventListener('timeupdate', () => UI.updateTime());
+        this.source = this.ctx.createMediaElementSource(this.audioEl);
+        this.source.connect(this.analyser);
+        $('song-name').innerHTML = '<b>' + escapeHtml(file.name) + '</b>';
+        $('play').disabled = false;
+        $('rec').disabled = false;
+        this.history = { prev: null, bassAvg: 0, fluxAvg: 0 };
+        this.beatTimes = [];
+        this.feat.bpm = 0;
+        $('bpm-pill').textContent = '— bpm';
+      },
+      play() {
+        this.unlock();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.audioEl.play();
+        this.playing = true;
+        $('play').textContent = '❚❚ Pause';
+        $('play').classList.remove('primary');
+        $('play').classList.add('danger');
+        stageEmpty.classList.add('hidden');
+      },
+      pause() {
+        if (this.audioEl) this.audioEl.pause();
+        this.playing = false;
+        $('play').textContent = '▶ Play';
+        $('play').classList.add('primary');
+        $('play').classList.remove('danger');
+      },
+      seek(frac) {
+        if (!this.audioEl) return;
+        this.audioEl.currentTime = this.audioEl.duration * clamp(frac, 0, 1);
+      },
+      // returns true if a beat was detected this frame
+      sample() {
+        if (!this.analyser) return;
+        this.analyser.getByteFrequencyData(this.fft);
+        this.analyser.getByteTimeDomainData(this.time);
+        const N = this.fft.length;            // 1024
+        const sr = this.ctx.sampleRate;
+        const hzPerBin = sr / (this.analyser.fftSize); // ~21.5 Hz per bin
+        // sub 20-60 Hz
+        // bass 60-250 Hz
+        // mid 250-2000 Hz
+        // treble 2000-6000 Hz
+        // air 6000+ Hz
+        const ranges = {
+          sub:   [Math.floor(20/hzPerBin),    Math.floor(60/hzPerBin)],
+          bass:  [Math.floor(60/hzPerBin),    Math.floor(250/hzPerBin)],
+          mid:   [Math.floor(250/hzPerBin),   Math.floor(2000/hzPerBin)],
+          treble:[Math.floor(2000/hzPerBin),  Math.floor(6000/hzPerBin)],
+          air:   [Math.floor(6000/hzPerBin),  N - 1],
+        };
+        const mean = (lo, hi) => {
+          if (hi <= lo) return 0;
+          let s = 0, c = 0;
+          for (let i = lo; i <= hi; i++) { s += this.fft[i]; c++; }
+          return s / c / 255; // 0..1
+        };
+        this.feat.sub   = mean(ranges.sub[0],   ranges.sub[1]);
+        this.feat.bass  = mean(ranges.bass[0],  ranges.bass[1]);
+        this.feat.mid   = mean(ranges.mid[0],   ranges.mid[1]);
+        this.feat.treble= mean(ranges.treble[0],ranges.treble[1]);
+        this.feat.air   = mean(ranges.air[0],   ranges.air[1]);
+        // RMS
+        let rms = 0;
+        for (let i = 0; i < this.time.length; i++) {
+          const v = (this.time[i] - 128) / 128;
+          rms += v * v;
+        }
+        this.feat.rms = Math.sqrt(rms / this.time.length);
+        // Spectral centroid
+        let num = 0, den = 0;
+        for (let i = 1; i < N; i++) {
+          num += i * this.fft[i];
+          den += this.fft[i];
+        }
+        this.feat.centroid = den > 0 ? (num / den) / N : 0;
+        // ----- Onset (spectral flux) -----
+        let flux = 0;
+        if (this.history.prev) {
+          for (let i = 1; i < N; i++) {
+            const d = this.fft[i] - this.history.prev[i];
+            if (d > 0) flux += d;
+          }
+        }
+        flux /= (255 * N);
+        this.history.fluxAvg = lerp(this.history.fluxAvg, flux, 0.08);
+        const onsetGate = parseFloat($('beat-gate').value);
+        const onsetHit = flux > this.history.fluxAvg * onsetGate && flux > 0.02;
+        // ----- Beat (bass energy) -----
+        this.history.bassAvg = lerp(this.history.bassAvg, this.feat.bass, 0.06);
+        const beatGate = parseFloat($('beat-gate').value);
+        const beatHit = this.feat.bass > this.history.bassAvg * beatGate && this.feat.bass > 0.18;
+        // BPM estimate (lock to a stable tempo)
+        const now = this.ctx.currentTime;
+        if (beatHit) {
+          this.beatTimes.push(now);
+          while (this.beatTimes.length > 0 && this.beatTimes[0] < now - 8) this.beatTimes.shift();
+          if (this.beatTimes.length >= 4) {
+            let total = 0;
+            for (let i = 1; i < this.beatTimes.length; i++) total += this.beatTimes[i] - this.beatTimes[i-1];
+            const avg = total / (this.beatTimes.length - 1);
+            if (avg > 0) this.feat.bpm = Math.round(60 / avg);
+          }
+        }
+        // Decay envelopes
+        const decay = parseFloat($('decay').value);
+        this.feat.beat  = beatHit ? 1 : this.feat.beat * decay;
+        this.feat.onset = onsetHit ? 1 : this.feat.onset * decay;
+        this.feat.beatPulse  = beatHit;
+        this.feat.onsetPulse = onsetHit;
+        this.history.prev = Uint8Array.from(this.fft);
+        $('beat-led').classList.toggle('on', beatHit);
+        $('onset-led').classList.toggle('on', onsetHit);
+        if (this.feat.bpm) $('bpm-pill').textContent = this.feat.bpm + ' bpm';
+      },
+    };
+
+    // ======================================================================
+    // LIBRARY (asset store + classification)
+    // ======================================================================
+    // Asset shape:
+    //   { id, name, type, blob, url, w, h, duration?, motion, luma, hue, added }
+    // type: 'video' | 'image'
+    // motion: 0..1 (variance of pixel diffs over a short probe; videos only)
+    // luma:   0..1 (mean luminance of first frame)
+    // hue:    0..1 (mean hue of first frame, 0=red, 0.33=green, 0.66=blue)
+    const Library = {
+      items: [],          // {id, name, type, blob, url, w, h, duration, motion, luma, hue, added, thumb}
+      nextId: 1,
+      db: null,
+      async init() {
+        this.db = await openDb('sainted-word-records', 1, (db) => {
+          if (!db.objectStoreNames.contains('assets')) {
+            const s = db.createObjectStore('assets', { keyPath: 'id' });
+            s.createIndex('added', 'added');
+          }
+        });
+        // Load existing assets
+        const all = await this.db.getAll('assets');
+        for (const rec of all) {
+          const item = await this._fromRecord(rec);
+          if (item) this.items.push(item);
+        }
+        this.render();
+        setStatus(this.items.length ? 'lib ' + this.items.length : 'idle', this.items.length ? 'ok' : '');
+      },
+      async addFiles(files) {
+        setStatus('importing…', '');
+        const arr = Array.from(files);
+        const knownKeys = new Set(this.items.map(i => i.name + ':' + (i.blob ? i.blob.size : 0)));
+        for (const f of arr) {
+          if (!f.type) continue;
+          const isVid = f.type.startsWith('video/');
+          const isImg = f.type.startsWith('image/');
+          if (!isVid && !isImg) continue;
+          // Dedupe by name+size
+          const key = f.name + ':' + f.size;
+          if (knownKeys.has(key)) continue;
+          knownKeys.add(key);
+          const id = this.nextId++;
+          const item = {
+            id,
+            name: f.name,
+            type: isVid ? 'video' : 'image',
+            blob: f,
+            url: URL.createObjectURL(f),
+            added: Date.now(),
+            thumb: null,
+            motion: 0, luma: 0.5, hue: 0, w: 0, h: 0, duration: 0,
+          };
+          this.items.push(item);
+          this.render();
+          // Build thumb + classify in background
+          this._buildThumb(item);
+          this._classify(item).then(() => {
+            this._save(item);
+            this.render();
+          }).catch(err => console.warn('classify', item.name, err));
+        }
+        setStatus('lib ' + this.items.length, 'ok');
+      },
+      async _save(item) {
+        if (!this.db) return;
+        const rec = {
+          id: item.id, name: item.name, type: item.type,
+          blob: item.blob, added: item.added,
+          motion: item.motion, luma: item.luma, hue: item.hue,
+          w: item.w, h: item.h, duration: item.duration || 0,
+        };
+        await this.db.put('assets', rec);
+      },
+      async _fromRecord(rec) {
+        try {
+          const item = {
+            id: rec.id, name: rec.name, type: rec.type,
+            blob: rec.blob, added: rec.added,
+            url: URL.createObjectURL(rec.blob),
+            thumb: null,
+            motion: rec.motion, luma: rec.luma, hue: rec.hue,
+            w: rec.w, h: rec.h, duration: rec.duration || 0,
+          };
+          // Build thumb
+          this._buildThumb(item);
+          return item;
+        } catch (e) { console.warn(e); return null; }
+      },
+      _buildThumb(item) {
+        const w = 120, h = 120;
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const cx = c.getContext('2d');
+        const onThumb = () => {
+          if (typeof Layers !== 'undefined') Layers.render();
+        };
+        if (item.type === 'video') {
+          const v = document.createElement('video');
+          v.muted = true; v.playsInline = true; v.preload = 'metadata';
+          v.src = item.url;
+          v.addEventListener('loadeddata', () => {
+            try { v.currentTime = Math.min(0.5, (v.duration || 1) * 0.1); } catch {}
+          });
+          v.addEventListener('seeked', () => {
+            try {
+              item.w = v.videoWidth; item.h = v.videoHeight;
+              item.duration = v.duration;
+              cx.drawImage(v, 0, 0, w, h);
+              item.thumb = c.toDataURL('image/jpeg', 0.7);
+              this.render();
+              onThumb();
+            } catch {}
+          });
+        } else {
+          const img = new Image();
+          img.onload = () => {
+            item.w = img.naturalWidth; item.h = img.naturalHeight;
+            cx.drawImage(img, 0, 0, w, h);
+            item.thumb = c.toDataURL('image/jpeg', 0.7);
+            this.render();
+            onThumb();
+          };
+          img.src = item.url;
+        }
+      },
+      async _classify(item) {
+        // Probe 4 frames (video) or 1 frame (image), sample to 32x32 grayscale
+        const w = 32, h = 32;
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const cx = c.getContext('2d', { willReadFrequently: true });
+        const samples = [];
+        let lumaSum = 0, hueSum = 0;
+        const tryGet = (source, t) => new Promise(res => {
+          if (item.type === 'video') {
+            source.currentTime = t;
+            source.addEventListener('seeked', () => {
+              cx.drawImage(source, 0, 0, w, h);
+              const d = cx.getImageData(0, 0, w, h).data;
+              const luma = sampleLuma(d);
+              const hue = sampleHue(d);
+              samples.push(luma);
+              lumaSum += luma; hueSum += hue;
+              res();
+            }, { once: true });
+          } else {
+            cx.drawImage(source, 0, 0, w, h);
+            const d = cx.getImageData(0, 0, w, h).data;
+            lumaSum += sampleLuma(d);
+            hueSum += sampleHue(d);
+            res();
+          }
+        });
+        const source = item.type === 'video'
+          ? Object.assign(document.createElement('video'), { src: item.url, muted: true, playsInline: true, crossOrigin: 'anonymous', preload: 'metadata' })
+          : Object.assign(new Image(), { src: item.url });
+        await new Promise(res => {
+          if (source.readyState >= 2) res();
+          else source.addEventListener(source.tagName === 'VIDEO' ? 'loadeddata' : 'load', res, { once: true });
+        });
+        if (item.type === 'video') {
+          const dur = source.duration || 0;
+          item.duration = dur;
+          for (const t of [0.05, 0.3, 0.55, 0.8].map(f => f * dur)) {
+            try { await tryGet(source, Math.min(t, Math.max(0, dur - 0.05))); } catch {}
+          }
+          if (samples.length >= 2) {
+            let v = 0;
+            for (let i = 1; i < samples.length; i++) v += Math.abs(samples[i] - samples[i-1]);
+            item.motion = clamp(v / (samples.length - 1) * 4, 0, 1);
+          }
+        } else {
+          await tryGet(source, 0);
+        }
+        item.luma = clamp(lumaSum, 0, 1);
+        item.hue = ((hueSum % 1) + 1) % 1;
+      },
+      render() {
+        if (!this.items.length) {
+          libGrid.innerHTML = '<div class="lib-empty">Drop videos, GIFs, or images<br/>anywhere on the page</div>';
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        for (const it of this.items) {
+          const d = document.createElement('div');
+          d.className = 'lib-item';
+          d.draggable = true;
+          d.dataset.id = it.id;
+          const tag = it.type === 'video' ? 'VID' : (it.name.toLowerCase().endsWith('.gif') ? 'GIF' : 'IMG');
+          d.innerHTML = `
+            <span class="tag">${tag}</span>
+            <span class="name">${escapeHtml(it.name)}</span>
+          `;
+          if (it.thumb) {
+            const img = new Image();
+            img.src = it.thumb;
+            d.appendChild(img);
+          } else if (it.type === 'video') {
+            const v = document.createElement('video');
+            v.src = it.url; v.muted = true; v.playsInline = true;
+            d.appendChild(v);
+          } else {
+            const img = new Image();
+            img.src = it.url;
+            d.appendChild(img);
+          }
+          d.addEventListener('click', () => {
+            // Add a new layer using this asset
+            Layers.add(it);
+          });
+          d.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/sainted-id', String(it.id));
+            e.dataTransfer.effectAllowed = 'copy';
+          });
+          frag.appendChild(d);
+        }
+        libGrid.innerHTML = '';
+        libGrid.appendChild(frag);
+      },
+      byId(id) { return this.items.find(i => i.id === id); },
+      // List every already-known asset name (used to detect new ones in folder)
+      knownNames() { return new Set(this.items.map(i => i.name)); },
+    };
+
+    function sampleLuma(data) {
+      let s = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        s += 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      }
+      return (s / (data.length / 4)) / 255;
+    }
+    function sampleHue(data) {
+      // simple average hue using atan2
+      let sx = 0, sy = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        if (mx === mn) continue;
+        const d = mx - mn;
+        let h = 0;
+        if (mx === r) h = ((g - b) / d) % 6;
+        else if (mx === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h /= 6;
+        const a = Math.cos(h * Math.PI * 2);
+        const b2 = Math.sin(h * Math.PI * 2);
+        sx += a; sy += b2;
+      }
+      const n = data.length / 4;
+      return (Math.atan2(sy / n, sx / n) / (Math.PI * 2) + 1) % 1;
+    }
+
+    // Tiny IndexedDB wrapper
+    function openDb(name, ver, upgrade) {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name, ver);
+        req.onupgradeneeded = (e) => upgrade(e.target.result);
+        req.onsuccess = (e) => {
+          const db = e.target.result;
+          const api = {
+            getAll: (store) => new Promise((r, rj) => {
+              const t = db.transaction(store, 'readonly').objectStore(store).getAll();
+              t.onsuccess = () => r(t.result);
+              t.onerror = () => rj(t.error);
+            }),
+            put: (store, val) => new Promise((r, rj) => {
+              const t = db.transaction(store, 'readwrite').objectStore(store).put(val);
+              t.onsuccess = () => r();
+              t.onerror = () => rj(t.error);
+            }),
+            delete: (store, key) => new Promise((r, rj) => {
+              const t = db.transaction(store, 'readwrite').objectStore(store).delete(key);
+              t.onsuccess = () => r();
+              t.onerror = () => rj(t.error);
+            }),
+          };
+          resolve(api);
+        };
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // ======================================================================
+    // LAYERS
+    // ======================================================================
+    // Layer shape:
+    //   {
+    //     id, asset, blend, opacity, baseScale, hue, brightness,
+    //     reactors: [{feature, target, scale, easing}],  // e.g. bass->scale
+    //     pos: {x, y, rot},  // base position
+    //     z: int
+    //   }
+    const Layers = {
+      list: [],
+      selected: null,
+      elCache: new Map(),
+      add(asset) {
+        const z = this.list.length;
+        const layer = {
+          id: 'L' + (this.list.length + 1),
+          asset,
+          blend: pickBlend(this.list.length),
+          opacity: 1,
+          baseScale: pickScale(this.list.length, asset),
+          hue: 0,
+          brightness: 1,
+          contrast: 1,
+          pos: { x: 0, y: 0, rot: 0 },
+          z,
+          reactors: pickReactors(this.list.length, asset, Audio.feat),
+        };
+        this.list.push(layer);
+        this.render();
+        this.select(layer);
+        if (this.list.length === 1) stageEmpty.classList.add('hidden');
+      },
+      remove(id) {
+        const i = this.list.findIndex(l => l.id === id);
+        if (i < 0) return;
+        this.list.splice(i, 1);
+        if (this.selected && this.selected.id === id) this.selected = this.list[0] || null;
+        this.render();
+        if (this.list.length === 0) stageEmpty.classList.remove('hidden');
+      },
+      select(layer) {
+        this.selected = layer;
+        for (const el of this.elCache.values()) el.classList.remove('selected');
+        const e = this.elCache.get(layer.id);
+        if (e) e.classList.add('selected');
+      },
+      updateSelected(patch) {
+        if (!this.selected) return;
+        Object.assign(this.selected, patch);
+        this.render();
+      },
+      render() {
+        const frag = document.createDocumentFragment();
+        this.elCache.clear();
+        for (let i = 0; i < this.list.length; i++) {
+          const l = this.list[i];
+          const el = document.createElement('div');
+          el.className = 'layer' + (this.selected === l ? ' selected' : '');
+          el.dataset.id = l.id;
+          const reactors = l.reactors.map(r =>
+            `${r.feature}→${r.target}×${r.scale.toFixed(2)}`
+          ).join(' · ') || '—';
+          el.innerHTML = `
+            <div class="layer-head">
+              <span class="num">${i + 1}</span>
+              <span class="thumb">${l.asset ? '' : '∅'}</span>
+              <span class="name">${l.asset ? escapeHtml(trunc(l.asset.name, 18)) : '(empty)'}</span>
+              <button class="x" title="remove">×</button>
+            </div>
+            <div class="layer-row">
+              <label>react</label>
+              <span style="font-family:var(--font-mono);font-size:9px;color:var(--accent-2);">${reactors}</span>
+            </div>
+            <div class="layer-row">
+              <label>blend</label>
+              <select data-prop="blend">
+                <option value="source-over">over</option>
+                <option value="screen">screen</option>
+                <option value="multiply">multiply</option>
+                <option value="lighter">add</option>
+                <option value="difference">diff</option>
+                <option value="overlay">overlay</option>
+                <option value="soft-light">soft</option>
+              </select>
+            </div>
+            <div class="layer-row">
+              <label>opacity</label>
+              <input type="range" data-prop="opacity" min="0" max="1" step="0.01" />
+            </div>
+            <div class="layer-row">
+              <label>base scale</label>
+              <input type="range" data-prop="baseScale" min="0.1" max="3" step="0.01" />
+            </div>
+            <div class="layer-row">
+              <label>hue</label>
+              <input type="range" data-prop="hue" min="-180" max="180" step="1" />
+            </div>
+          `;
+          const sel = el.querySelector('select[data-prop="blend"]');
+          sel.value = l.blend;
+          for (const r of el.querySelectorAll('input[type=range]')) {
+            r.value = l[r.dataset.prop];
+          }
+          if (l.asset && l.asset.thumb) {
+            const img = new Image();
+            img.src = l.asset.thumb;
+            el.querySelector('.thumb').appendChild(img);
+          }
+          el.addEventListener('click', (e) => {
+            if (e.target.classList.contains('x')) { this.remove(l.id); return; }
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            this.select(l);
+          });
+          sel.addEventListener('change', () => { l.blend = sel.value; });
+          for (const r of el.querySelectorAll('input[type=range]')) {
+            r.addEventListener('input', () => { l[r.dataset.prop] = parseFloat(r.value); });
+          }
+          this.elCache.set(l.id, el);
+          frag.appendChild(el);
+        }
+        layerList.innerHTML = '';
+        layerList.appendChild(frag);
+      },
+      // Auto-remap: algorithmically assign assets to layers by classification
+      // relative to current audio features.
+      autoMap() {
+        if (!Library.items.length) {
+          setStatus('lib empty', 'warn');
+          return;
+        }
+        const mode = $('mode').value;
+        const sens = parseFloat($('sensitivity').value);
+        const f = Audio.feat;
+        // Compute a "score" for each asset for each layer role
+        const roles = [
+          { name: 'bass',  want: 'motion', weight: 0.6 + f.bass * sens },
+          { name: 'mid',   want: 'mid',    weight: 0.4 + f.mid * sens },
+          { name: 'treb',  want: 'luma',   weight: 0.3 + f.treble * sens },
+          { name: 'air',   want: 'hue',    weight: 0.2 + f.air * sens },
+          { name: 'rms',   want: 'motion', weight: 0.5 + f.rms * sens * 2 },
+          { name: 'onset', want: 'motion', weight: 0.7 + f.onset * sens * 3 },
+        ];
+        // Score every asset for every role
+        const scored = Library.items.map(it => {
+          const sc = {};
+          // Want keys match roles[i].want exactly
+          sc.motion = (it.motion) * 0.7 + (1 - Math.abs(it.luma - 0.5) * 2) * 0.3;   // bass, rms, onset lean on motion
+          sc.mid    = (it.luma) * 0.5 + (1 - it.motion) * 0.5;
+          sc.luma   = (1 - it.motion) * 0.4 + (it.luma) * 0.6;                       // treble prefers bright & static
+          sc.hue    = (it.hue) * 0.5 + (1 - it.motion) * 0.5;                       // air prefers colorful
+          return { it, sc };
+        });
+        // Pick from top-N candidates randomly so each RE-MAP click produces a
+        // new visual look. N=1 in 'auto' (still score-driven, but jittered),
+        // N=3 in 'chaos' (more variety), N=1 in 'pulse'/'ambient'.
+        const topN = { auto: 2, chaos: 4, pulse: 1, ambient: 1 }[mode] || 2;
+        const used = new Set();
+        const assignments = roles.map(r => {
+          // Score unused candidates
+          const cands = [];
+          for (const s of scored) {
+            if (used.has(s.it.id)) continue;
+            cands.push({ it: s.it, v: s.sc[r.want] * r.weight });
+          }
+          if (!cands.length) return { role: r, asset: null };
+          // Sort by score, take top N
+          cands.sort((a, b) => b.v - a.v);
+          const pool = cands.slice(0, Math.min(topN, cands.length));
+          // Weight the random pick by score so the best is still most likely
+          const total = pool.reduce((s, c) => s + Math.max(c.v, 0.01), 0);
+          let r2 = Math.random() * total;
+          let pick = pool[0];
+          for (const c of pool) {
+            r2 -= Math.max(c.v, 0.01);
+            if (r2 <= 0) { pick = c; break; }
+          }
+          used.add(pick.it.id);
+          return { role: r, asset: pick.it };
+        });
+        // Reset and rebuild layers
+        this.list = [];
+        for (let i = 0; i < assignments.length; i++) {
+          const a = assignments[i];
+          if (!a.asset) continue;
+          const l = {
+            id: 'L' + (i + 1),
+            asset: a.asset,
+            blend: pickBlend(i, mode),
+            opacity: 1,
+            baseScale: pickScale(i, a.asset),
+            hue: (mode === 'chaos') ? (Math.random() * 360 - 180) : 0,
+            brightness: 1,
+            contrast: 1,
+            pos: { x: 0, y: 0, rot: 0 },
+            z: i,
+            reactors: pickReactors(i, a.asset, Audio.feat, mode),
+          };
+          this.list.push(l);
+        }
+        this.render();
+        if (this.list.length) { stageEmpty.classList.add('hidden'); this.select(this.list[0]); }
+        setStatus('mapped ' + this.list.length, 'ok');
+      },
+    };
+
+    function pickBlend(i, mode='auto') {
+      const opts = ['source-over', 'screen', 'lighter', 'overlay', 'soft-light', 'difference'];
+      if (mode === 'chaos') return opts[Math.floor(Math.random() * opts.length)];
+      if (mode === 'pulse') return i % 2 === 0 ? 'screen' : 'lighter';
+      if (mode === 'ambient') return ['source-over', 'soft-light', 'overlay'][i % 3];
+      // Auto: shuffle 3 random blends and assign cyclically so each remap = new blend set
+      if (!pickBlend._pool) pickBlend._pool = ['source-over', 'screen', 'overlay', 'lighter'];
+      pickBlend._pool.push(pickBlend._pool.shift());
+      return pickBlend._pool[i % pickBlend._pool.length];
+    }
+    function pickScale(i, asset) {
+      if (!asset) return 1;
+      const ar = (asset.w || 1) / (asset.h || 1);
+      // base around filling the canvas; tweak per role
+      const fills = [1.0, 0.8, 1.2, 0.5, 1.5, 0.7];
+      return fills[i % fills.length] * (ar > 1 ? 0.7 : 1.0);
+    }
+    function pickReactors(i, asset, feat, mode='auto') {
+      if (!asset) return [];
+      // Each layer gets 1-3 reactors based on its role index
+      const presets = [
+        // Layer 0: bass-pumping scale + opacity on beat
+        [
+          { feature: 'bass', target: 'scale',  scale: 0.6, ease: 'soft' },
+          { feature: 'beat', target: 'opacity', scale: 0.4, ease: 'soft' },
+        ],
+        // Layer 1: mid-driven hue rotation
+        [
+          { feature: 'mid',  target: 'hue',   scale: 120, ease: 'smooth' },
+          { feature: 'rms',  target: 'scale', scale: 0.2, ease: 'soft' },
+        ],
+        // Layer 2: treble shimmer — position + rotation
+        [
+          { feature: 'treble', target: 'rot',     scale: 30,  ease: 'smooth' },
+          { feature: 'air',    target: 'y',       scale: 60,  ease: 'smooth' },
+        ],
+        // Layer 3: bass + rms scale
+        [
+          { feature: 'rms',  target: 'scale',  scale: 0.5, ease: 'soft' },
+          { feature: 'onset', target: 'brightness', scale: 0.5, ease: 'sharp' },
+        ],
+        // Layer 4: centroid hue + treble scale
+        [
+          { feature: 'centroid', target: 'hue', scale: 180, ease: 'smooth' },
+          { feature: 'treble',   target: 'scale', scale: 0.3, ease: 'soft' },
+        ],
+        // Layer 5: bass thump + beat pulse
+        [
+          { feature: 'bass',  target: 'scale',  scale: 0.8, ease: 'sharp' },
+          { feature: 'beat',  target: 'opacity', scale: 0.7, ease: 'sharp' },
+        ],
+        // Layer 6: rms + onset flicker
+        [
+          { feature: 'onset', target: 'opacity', scale: 0.9, ease: 'sharp' },
+          { feature: 'rms',   target: 'x',       scale: 30,  ease: 'soft' },
+        ],
+        // Layer 7: mid + air drift
+        [
+          { feature: 'mid',  target: 'x', scale: 40, ease: 'smooth' },
+          { feature: 'air',  target: 'y', scale: 30, ease: 'smooth' },
+        ],
+      ];
+      return presets[i % presets.length] || [];
+    }
+
+    // ======================================================================
+    // RENDERER
+    // ======================================================================
+    const Renderer = {
+      // offscreen canvas for hue/brightness/contrast pre-pass
+      proc: document.createElement('canvas'),
+      procCtx: null,
+      running: false,
+      fps: 0,
+      lastFrame: 0,
+      // Smoothed features
+      smooth: { bass: 0, mid: 0, treble: 0, air: 0, rms: 0, beat: 0, onset: 0, centroid: 0 },
+      // Drag / drift system
+      dragMode: 'auto',     // 'auto' = continuous drift, 'manual' = user-controlled
+      dragging: false,
+      selectedLayer: null,
+      dragStart: null,      // mouse pos at mousedown
+      layerStart: null,     // layer.pos at mousedown
+      _t: 0,                // seconds since start, for drift math
+      init() {
+        this.proc.width = stageCanvas.width;
+        this.proc.height = stageCanvas.height;
+        this.procCtx = this.proc.getContext('2d', { willReadFrequently: false });
+      },
+      fit() {
+        // Fit stage to viewport while preserving 16:9
+        const vw = stageCanvas.clientWidth, vh = stageCanvas.clientHeight;
+        const targetAR = stageCanvas.width / stageCanvas.height;
+        const viewAR = vw / vh;
+        if (Math.abs(viewAR - targetAR) < 0.02) {
+          // already there
+        }
+        // Resample internal resolution to a sensible size
+        const maxW = 1920;
+        if (vw > maxW) {
+          const scale = maxW / vw;
+          stageCanvas.width = Math.round(vw * scale);
+          stageCanvas.height = Math.round(vh * scale);
+        } else {
+          stageCanvas.width = Math.round(vw);
+          stageCanvas.height = Math.round(vh);
+        }
+        this.proc.width = stageCanvas.width;
+        this.proc.height = stageCanvas.height;
+      },
+      getFeature(react) {
+        const s = this.smooth;
+        const raw = Audio.feat[react.feature] ?? 0;
+        if (react.feature === 'beat' || react.feature === 'onset') return raw; // already 0..1 envelope
+        if (react.feature === 'centroid') return raw;
+        return raw;
+      },
+      ease(name, t) {
+        if (name === 'sharp') return Math.pow(t, 0.4);
+        if (name === 'soft') return smoothstep(0, 1, t);
+        return t;
+      },
+      applyReactors(layer) {
+        // returns {scale, x, y, rot, opacity, hue, brightness, contrast}
+        const out = {
+          scale: layer.baseScale,
+          x: layer.pos.x, y: layer.pos.y,
+          rot: layer.pos.rot,
+          opacity: layer.opacity,
+          hue: layer.hue,
+          brightness: layer.brightness,
+          contrast: layer.contrast,
+        };
+        for (const r of (layer.reactors || [])) {
+          let v = this.getFeature(r);
+          v = this.ease(r.ease, clamp(v, 0, 1)) * r.scale;
+          if (r.target === 'scale') out.scale += v;
+          else if (r.target === 'x') out.x += v;
+          else if (r.target === 'y') out.y += v;
+          else if (r.target === 'rot') out.rot += v;
+          else if (r.target === 'opacity') out.opacity = clamp(out.opacity + v, 0, 1.5);
+          else if (r.target === 'hue') out.hue += v;
+          else if (r.target === 'brightness') out.brightness = clamp(out.brightness + v, 0.1, 2.5);
+          else if (r.target === 'contrast') out.contrast = clamp(out.contrast + v, 0.1, 2.5);
+        }
+        return out;
+      },
+      drawLayer(layer, cx, w, h) {
+        const a = layer.asset;
+        if (!a) return;
+        let src;
+        if (a.type === 'video') {
+          // For video we need an HTMLVideoElement cached on the asset
+          if (!a._el) {
+            a._el = document.createElement('video');
+            a._el.src = a.url;
+            a._el.muted = true; a._el.loop = true; a._el.playsInline = true;
+            a._el.preload = 'auto';
+          }
+          src = a._el;
+          if (Audio.playing && src.paused) src.play().catch(()=>{});
+          if (!Audio.playing && !src.paused) src.pause();
+        } else {
+          if (!a._el) {
+            a._el = new Image();
+            a._el.src = a.url;
+          }
+          src = a._el;
+        }
+        if (a.type === 'video' && src.readyState < 2) return;
+        const r = this.applyReactors(layer);
+        cx.save();
+        cx.globalCompositeOperation = layer.blend || 'source-over';
+        cx.globalAlpha = clamp(r.opacity, 0, 1);
+        const cw = cx.canvas.width, chh = cx.canvas.height;
+        // Hue/brightness/contrast pre-pass: draw asset into proc, then composite with filter
+        if (Math.abs(r.hue) > 0.5 || Math.abs(r.brightness - 1) > 0.01 || Math.abs(r.contrast - 1) > 0.01) {
+          const p = this.proc;
+          const pc = this.procCtx;
+          pc.clearRect(0, 0, p.width, p.height);
+          pc.filter = `hue-rotate(${r.hue}deg) brightness(${r.brightness}) contrast(${r.contrast})`;
+          // cover-fit
+          const ar = (a.w || src.naturalWidth || src.videoWidth || 1) / (a.h || src.naturalHeight || src.videoHeight || 1);
+          const canvasAR = cw / chh;
+          let dw, dh, dx, dy;
+          if (ar > canvasAR) {
+            dh = chh; dw = dh * ar; dx = (cw - dw) / 2; dy = 0;
+          } else {
+            dw = cw; dh = dw / ar; dx = 0; dy = (chh - dh) / 2;
+          }
+          const scale = r.scale;
+          dw *= scale; dh *= scale;
+          dx = (cw - dw) / 2 + r.x; dy = (chh - dh) / 2 + r.y;
+          if (r.rot) {
+            pc.translate(cw / 2 + r.x, chh / 2 + r.y);
+            pc.rotate(r.rot * Math.PI / 180);
+            pc.drawImage(src, -dw / 2, -dh / 2, dw, dh);
+          } else {
+            pc.drawImage(src, dx, dy, dw, dh);
+          }
+          pc.filter = 'none';
+          cx.drawImage(p, 0, 0);
+        } else {
+          // Fast path: draw directly
+          cx.save();
+          if (r.rot) {
+            cx.translate(cw / 2 + r.x, chh / 2 + r.y);
+            cx.rotate(r.rot * Math.PI / 180);
+            const ar = (a.w || src.naturalWidth || src.videoWidth || 1) / (a.h || src.naturalHeight || src.videoHeight || 1);
+            const canvasAR = cw / chh;
+            let dw, dh;
+            if (ar > canvasAR) { dh = chh * r.scale; dw = dh * ar; }
+            else { dw = cw * r.scale; dh = dw / ar; }
+            cx.drawImage(src, -dw / 2, -dh / 2, dw, dh);
+          } else {
+            const ar = (a.w || src.naturalWidth || src.videoWidth || 1) / (a.h || src.naturalHeight || src.videoHeight || 1);
+            const canvasAR = cw / chh;
+            let dw, dh, dx, dy;
+            if (ar > canvasAR) { dh = chh * r.scale; dw = dh * ar; dx = (cw - dw) / 2 + r.x; dy = 0 + r.y; }
+            else { dw = cw * r.scale; dh = dw / ar; dx = 0 + r.x; dy = (chh - dh) / 2 + r.y; }
+            cx.drawImage(src, dx, dy, dw, dh);
+          }
+          cx.restore();
+        }
+        cx.restore();
+      },
+      drawPaletteOverlay(cx) {
+        // Soft vignette + palette tint based on centroid
+        const c = Audio.feat.centroid;
+        const w = cx.canvas.width, h = cx.canvas.height;
+        const grad = cx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h) * 0.7);
+        const palette = $('palette').value;
+        const colors = {
+          neon:  ['rgba(255, 61, 146, 0.18)', 'rgba(0, 229, 255, 0.10)'],
+          solar: ['rgba(255, 210, 74, 0.18)', 'rgba(255, 122, 61, 0.10)'],
+          ocean: ['rgba(0, 229, 255, 0.16)', 'rgba(80, 0, 255, 0.10)'],
+          mono:  ['rgba(255, 255, 255, 0.10)', 'rgba(0, 0, 0, 0.20)'],
+        }[palette];
+        grad.addColorStop(0, colors[0]);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        cx.save();
+        cx.globalCompositeOperation = 'screen';
+        cx.fillStyle = grad;
+        cx.fillRect(0, 0, w, h);
+        // subtle vignette
+        const vg = cx.createRadialGradient(w/2, h/2, Math.max(w, h) * 0.3, w/2, h/2, Math.max(w, h) * 0.75);
+        vg.addColorStop(0, 'rgba(0,0,0,0)');
+        vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+        cx.globalCompositeOperation = 'multiply';
+        cx.fillStyle = vg;
+        cx.fillRect(0, 0, w, h);
+        cx.restore();
+      },
+      drawFlash(cx) {
+        const beat = Audio.feat.beat;
+        if (beat < 0.05) return;
+        cx.save();
+        cx.globalCompositeOperation = 'screen';
+        cx.fillStyle = `rgba(255, 255, 255, ${beat * 0.3})`;
+        cx.fillRect(0, 0, cx.canvas.width, cx.canvas.height);
+        cx.restore();
+      },
+      drawMeter() {
+        const w = meterCanvas.width, h = meterCanvas.height;
+        const cx = meterCtx;
+        cx.fillStyle = '#0d0918';
+        cx.fillRect(0, 0, w, h);
+        // Draw 5 vertical bars
+        const sens = parseFloat($('sensitivity').value);
+        const vals = [
+          Audio.feat.sub * sens, Audio.feat.bass * sens, Audio.feat.mid * sens,
+          Audio.feat.treble * sens, Audio.feat.air * sens,
+        ];
+        const barW = w / vals.length;
+        for (let i = 0; i < vals.length; i++) {
+          const v = clamp(vals[i], 0, 1);
+          const bh = v * h;
+          const x = i * barW + 2;
+          const y = h - bh;
+          const g = cx.createLinearGradient(0, y, 0, h);
+          if (i < 2) { g.addColorStop(0, '#ff3d92'); g.addColorStop(1, '#ffd24a'); }
+          else if (i < 3) { g.addColorStop(0, '#ffd24a'); g.addColorStop(1, '#00e5ff'); }
+          else { g.addColorStop(0, '#00e5ff'); g.addColorStop(1, '#00ffa3'); }
+          cx.fillStyle = g;
+          cx.fillRect(x, y, barW - 4, bh);
+        }
+        // BPM line
+        if (Audio.feat.bpm) {
+          cx.fillStyle = '#00ffa3';
+          cx.font = '10px ui-monospace';
+          cx.fillText(Audio.feat.bpm + 'bpm', 4, 10);
+        }
+      },
+      // ============================================================
+      // DRAG / DRIFT INTERACTION
+      // ============================================================
+      // Convert a mouse/pointer event to canvas coordinates
+      eventToCanvas(e) {
+        const rect = stageCanvas.getBoundingClientRect();
+        const sx = stageCanvas.width / rect.width;
+        const sy = stageCanvas.height / rect.height;
+        return {
+          x: (e.clientX - rect.left) * sx,
+          y: (e.clientY - rect.top) * sy,
+        };
+      },
+      // Find the topmost layer under a canvas-space point.
+      // Hit test uses a centered circle of radius R, ignoring rotation.
+      pickLayer(cx, cy) {
+        const sorted = Layers.list.slice().sort((a, b) => b.z - a.z);
+        for (const l of sorted) {
+          if (!l.asset) continue;
+          const r = this.applyReactors(l);
+          const cxw = stageCanvas.width, chh = stageCanvas.height;
+          const lx = cxw / 2 + r.x;
+          const ly = chh / 2 + r.y;
+          // Estimate visible radius from baseScale
+          const w = (l.asset.w || 1) * r.scale;
+          const h = (l.asset.h || 1) * r.scale;
+          const rad = Math.max(w, h) * 0.4;
+          const dx = cx - lx, dy = cy - ly;
+          if (dx * dx + dy * dy < rad * rad) return l;
+        }
+        return null;
+      },
+      // Draw a draggable selection box around a layer
+      drawSelection(cx, layer) {
+        const r = this.applyReactors(layer);
+        const cw = stageCanvas.width, chh = stageCanvas.height;
+        const lx = cw / 2 + r.x;
+        const ly = chh / 2 + r.y;
+        const w = (layer.asset?.w || 100) * r.scale * 0.55;
+        const h = (layer.asset?.h || 100) * r.scale * 0.55;
+        cx.save();
+        cx.strokeStyle = '#ff2d8a';
+        cx.lineWidth = 2;
+        cx.setLineDash([8, 6]);
+        cx.strokeRect(lx - w, ly - h, w * 2, h * 2);
+        cx.fillStyle = '#ff2d8a';
+        cx.setLineDash([]);
+        cx.beginPath();
+        cx.arc(lx, ly, 4, 0, Math.PI * 2);
+        cx.fill();
+        // "DRAG" label
+        cx.font = '11px ui-monospace';
+        cx.fillStyle = '#ff2d8a';
+        cx.textBaseline = 'top';
+        cx.fillText('● DRAG', lx + w + 6, ly - 6);
+        cx.restore();
+      },
+      onPointerDown(e) {
+        if (this.dragMode !== 'manual') return;
+        if (e.button !== 0) return;
+        const { x, y } = this.eventToCanvas(e);
+        const hit = this.pickLayer(x, y);
+        if (hit) {
+          this.selectedLayer = hit;
+          this.dragging = true;
+          this.dragStart = { x, y };
+          this.layerStart = { x: hit.pos.x, y: hit.pos.y };
+          stageCanvas.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        }
+      },
+      onPointerMove(e) {
+        if (!this.dragging || !this.selectedLayer) return;
+        const { x, y } = this.eventToCanvas(e);
+        this.selectedLayer.pos.x = this.layerStart.x + (x - this.dragStart.x);
+        this.selectedLayer.pos.y = this.layerStart.y + (y - this.dragStart.y);
+        e.preventDefault();
+      },
+      onPointerUp(e) {
+        if (!this.dragging) return;
+        this.dragging = false;
+        this.selectedLayer = null;
+        this.dragStart = null;
+        this.layerStart = null;
+        try { stageCanvas.releasePointerCapture(e.pointerId); } catch {}
+      },
+      // Set dragMode and update UI button label
+      setDragMode(mode) {
+        this.dragMode = mode;
+        const btn = $('drag-mode');
+        if (btn) {
+          btn.textContent = mode === 'auto' ? 'AUTO DRIFT' : 'MANUAL DRAG';
+          btn.classList.toggle('primary', mode === 'manual');
+        }
+        // Reset selection when switching back to auto
+        if (mode === 'auto') {
+          this.dragging = false;
+          this.selectedLayer = null;
+        }
+      },
+      loop(t) {
+        if (!this.running) return;
+        const dt = (t - this.lastFrame) / 1000;
+        this.lastFrame = t;
+        this.fps = lerp(this.fps, 1 / Math.max(dt, 0.0001), 0.05);
+        $('fps-v').textContent = Math.round(this.fps) + ' fps';
+        // Sample audio features
+        if (Audio.playing) Audio.sample();
+        // Smooth features
+        const a = Audio.feat, s = this.smooth;
+        const k = 0.18;
+        s.bass = lerp(s.bass, a.bass, k);
+        s.mid = lerp(s.mid, a.mid, k);
+        s.treble = lerp(s.treble, a.treble, k);
+        s.air = lerp(s.air, a.air, k);
+        s.rms = lerp(s.rms, a.rms, k);
+        s.beat = a.beat;
+        s.onset = a.onset;
+        s.centroid = lerp(s.centroid, a.centroid, k);
+        // Auto-drift: gentle continuous motion when in auto mode.
+        // Each layer gets a phase offset so they don't all move in sync.
+        this._t += Math.max(dt, 0.0001);
+        if (this.dragMode === 'auto') {
+          for (let i = 0; i < Layers.list.length; i++) {
+            const l = Layers.list[i];
+            const ph = i * 1.37;  // per-layer phase
+            const t = this._t;
+            // Smooth slow drift, scaled by audio energy (mid → x, treble → y, beat → rot kick)
+            const eMid = s.mid, eTre = s.treble, eBeat = s.beat;
+            l.pos.x = Math.sin(t * 0.35 + ph) * 22 + eMid * 18;
+            l.pos.y = Math.cos(t * 0.28 + ph * 0.7) * 18 + eTre * 14;
+            l.pos.rot = Math.sin(t * 0.22 + ph * 0.5) * 3.2 + eBeat * 6;
+          }
+        }
+        // Clear
+        const cx = stageCtx;
+        cx.fillStyle = '#000';
+        cx.fillRect(0, 0, cx.canvas.width, cx.canvas.height);
+        // Draw layers in z order
+        const sorted = Layers.list.slice().sort((a, b) => a.z - b.z);
+        for (const l of sorted) this.drawLayer(l, cx, cx.canvas.width, cx.canvas.height);
+        // Selection outline (in manual mode, when a layer is being dragged)
+        if (this.dragMode === 'manual' && this.selectedLayer) {
+          this.drawSelection(cx, this.selectedLayer);
+        }
+        // Palette + flash
+        this.drawPaletteOverlay(cx);
+        this.drawFlash(cx);
+        this.drawMeter();
+        // DOM flash
+        if (Audio.feat.beat > 0.3) {
+          stageFlash.style.opacity = String(Audio.feat.beat * 0.4);
+        } else {
+          stageFlash.style.opacity = '0';
+        }
+        requestAnimationFrame((tt) => this.loop(tt));
+      },
+      start() {
+        if (this.running) return;
+        this.running = true;
+        this.lastFrame = performance.now();
+        requestAnimationFrame((t) => this.loop(t));
+      },
+    };
+
+    // ======================================================================
+    // RECORDER
+    // ======================================================================
+    const Recorder = {
+      rec: null,
+      chunks: [],
+      recording: false,
+      mime: 'video/webm',
+      mediaDest: null,
+      autoStopAt: 0,    // ms timestamp at which to auto-stop
+      autoStopTimer: null,
+      start() {
+        if (!Audio.audioEl) return;
+        // Compute auto-stop deadline from #rec-dur selector
+        const durSel = $('rec-dur') ? $('rec-dur').value : '0';
+        let durMs = 0;
+        if (durSel === 'song' && Audio.audioEl && Audio.audioEl.duration) {
+          const remaining = (Audio.audioEl.duration - Audio.audioEl.currentTime) * 1000;
+          durMs = Math.max(0, remaining);
+        } else if (durSel !== '0' && durSel !== 'manual') {
+          durMs = parseInt(durSel) * 1000;
+        }
+        this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
+        const fps = 30;
+        const vstream = stageCanvas.captureStream(fps);
+        // Pull audio from Web Audio destination
+        const dest = Audio.ctx.createMediaStreamDestination();
+        this.mediaDest = dest;
+        // route analyser -> dest (and keep existing gain->destination)
+        Audio.analyser.connect(dest);
+        const astream = dest.stream;
+        const tracks = [...vstream.getVideoTracks(), ...astream.getAudioTracks()];
+        const stream = new MediaStream(tracks);
+        // Prefer MP4 (H.264 + AAC); fall back to WebM. Modern Chrome 126+ and Safari
+        // 14.5+ both support MediaRecorder with video/mp4 directly.
+        const mime = [
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4;codecs=avc1,mp4a.40.2',
+          'video/mp4;codecs=avc1',
+          'video/mp4',
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm',
+        ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+        this.mime = mime;
+        this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+        this.chunks = [];
+        this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
+        this.rec.onstop = () => this._save();
+        this.rec.start(500);
+        this.recording = true;
+        $('rec').classList.add('live');
+        $('rec').textContent = '■ STOP';
+        const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        if (this.autoStopAt > 0) {
+          const sec = Math.round((this.autoStopAt - Date.now()) / 1000);
+          setStatus(`recording · ${ext.toUpperCase()} · ${sec}s`, 'live');
+          this.autoStopTimer = setTimeout(() => { if (this.recording) this.stop(); }, this.autoStopAt - Date.now());
+        } else {
+          setStatus(`recording · ${ext.toUpperCase()}`, 'live');
+        }
+      },
+      stop() {
+        if (!this.rec) return;
+        if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+        this.rec.stop();
+        this.recording = false;
+        $('rec').classList.remove('live');
+        $('rec').textContent = '● REC';
+        setStatus('rendering…', '');
+        // Disconnect the temporary audio route
+        if (this.mediaDest) {
+          try { Audio.analyser.disconnect(this.mediaDest); } catch {}
+          this.mediaDest = null;
+        }
+      },
+      _save() {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        a.download = `sainted-word-${ts}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setStatus('exported', 'ok');
+      },
+    };
+
+    // ======================================================================
+    // UI WIRING
+    // ======================================================================
+    const UI = {
+      init() {
+        // Transport
+        $('load-song').addEventListener('click', () => $('song-input').click());
+        $('song-input').addEventListener('change', (e) => {
+          if (e.target.files[0]) Audio.loadFile(e.target.files[0]);
+        });
+        $('play').addEventListener('click', () => {
+          if (!Audio.audioEl) return;
+          if (Audio.playing) Audio.pause(); else Audio.play();
+        });
+        $('rec').addEventListener('click', () => {
+          if (Recorder.recording) Recorder.stop(); else Recorder.start();
+        });
+        // Library
+        $('add-assets').addEventListener('click', () => $('asset-input').click());
+        $('asset-input').addEventListener('change', (e) => {
+          Library.addFiles(e.target.files);
+          e.target.value = '';
+        });
+        // Layers
+        $('add-layer').addEventListener('click', () => {
+          if (Library.items.length) Layers.add(Library.items[0]);
+        });
+        $('re-map').addEventListener('click', () => Layers.autoMap());
+        // Global sliders
+        for (const id of ['sensitivity', 'beat-gate', 'decay']) {
+          const inp = $(id);
+          const out = $(id + '-v');
+          inp.addEventListener('input', () => { out.textContent = parseFloat(inp.value).toFixed(2); });
+        }
+        // Drop targets
+        window.addEventListener('dragover', (e) => {
+          if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            document.body.classList.add('drag-files');
+          }
+        });
+        window.addEventListener('dragleave', (e) => {
+          if (e.target === document.documentElement) document.body.classList.remove('drag-files');
+        });
+        window.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          document.body.classList.remove('drag-files');
+          if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            await Library.addFiles(e.dataTransfer.files);
+          }
+        });
+        // Keyboard
+        window.addEventListener('keydown', (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+          if (e.code === 'Space') { e.preventDefault(); $('play').click(); }
+          if (e.key === 'r' || e.key === 'R') { $('re-map').click(); }
+          if (e.key === 'l' || e.key === 'L') { $('add-layer').click(); }
+          if (e.key === 'd' || e.key === 'D') { $('drag-mode').click(); }
+        });
+        // Resize
+        window.addEventListener('resize', () => Renderer.fit());
+        // Drag mode toggle
+        $('drag-mode').addEventListener('click', () => {
+          Renderer.setDragMode(Renderer.dragMode === 'auto' ? 'manual' : 'auto');
+        });
+        Renderer.setDragMode('auto');
+        // Canvas pointer events for manual drag
+        stageCanvas.addEventListener('pointerdown', (e) => Renderer.onPointerDown(e));
+        stageCanvas.addEventListener('pointermove', (e) => Renderer.onPointerMove(e));
+        stageCanvas.addEventListener('pointerup',   (e) => Renderer.onPointerUp(e));
+        stageCanvas.addEventListener('pointercancel', (e) => Renderer.onPointerUp(e));
+        // Cursor hint
+        const updateCursor = () => {
+          stageCanvas.style.cursor = Renderer.dragMode === 'manual' ? 'grab' : 'default';
+        };
+        $('drag-mode').addEventListener('click', updateCursor);
+        updateCursor();
+        stageCanvas.addEventListener('pointerdown', () => {
+          if (Renderer.dragging) stageCanvas.style.cursor = 'grabbing';
+        });
+        stageCanvas.addEventListener('pointerup', updateCursor);
+      },
+      onSongEnd() {
+        Audio.pause();
+      },
+      updateTime() {
+        if (!Audio.audioEl) return;
+        const t = Audio.audioEl.currentTime || 0;
+        const d = Audio.audioEl.duration || 0;
+        $('time').innerHTML = `${fmt(t)} <b>/ ${fmt(d)}</b>`;
+      },
+    };
+
+    function fmt(s) {
+      if (!isFinite(s) || s < 0) s = 0;
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return `${m}:${sec.toString().padStart(2, '0')}`;
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+    function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+    function setStatus(t, cls) {
+      const p = $('status-pill');
+      p.textContent = t;
+      p.classList.remove('ok', 'live');
+      if (cls) p.classList.add(cls);
+    }
+
+    // ======================================================================
+    // BOOT
+    // ======================================================================
+    (async function boot() {
+      UI.init();
+      Renderer.init();
+      Renderer.fit();
+      Renderer.start();
+      await Library.init();
+      // Auto-load any pre-seeded assets from ./library/ on first run
+      // (skips if the user already has assets in IndexedDB)
+      if (Library.items.length === 0) {
+        try {
+          const r = await fetch('./library/manifest.json', { cache: 'no-cache' });
+          if (r.ok) {
+            const m = await r.json();
+            const files = m.files || [];
+            const blobs = await Promise.all(files.map(async f => {
+              const fr = await fetch('./library/' + f);
+              return await fr.blob();
+            }));
+            await Library.addFiles(blobs.map((b, i) => new File([b], files[i], { type: b.type })));
+          }
+        } catch (e) {
+          // No library folder, that's fine
+        }
+      }
+      // Expose for debugging from devtools / puppeteer
+      window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI };
+      // Set up canvas sample song for instant demo if no song loaded
+      setStatus('ready', 'ok');
+    })();
+  </script>
+</body>
+</html>
