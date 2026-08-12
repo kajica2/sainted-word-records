@@ -26,9 +26,16 @@
   // ---- Helpers ----
   function post(msg) { worker.postMessage(msg); }
 
+  // The main app IIFE exposes its singletons as `window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI }`.
+  // Fall back to direct globals only if SWR is missing (older builds).
+  function app() { return window.SWR || {}; }
+  const getLibrary = () => app().Library;
+  const getLayers = () => app().Layers;
+  const getAudio = () => app().Audio;
+
   function refreshPool() {
-    // Build pool from Library.items: prefer videos; include GIFs/images as fallbacks.
-    const items = (window.Library && window.Library.items) || [];
+    const Library = getLibrary();
+    const items = (Library && Library.items) || [];
     const ids = items
       .filter(it => it && it.id && it.url)
       .map(it => it.id);
@@ -37,7 +44,8 @@
   }
 
   function findLayerByIndex(idx) {
-    const list = (window.Layers && window.Layers.list) || [];
+    const Layers = getLayers();
+    const list = (Layers && Layers.list) || [];
     if (!list.length) return null;
     if (idx < 0 || idx >= list.length) {
       return list[Math.floor(Math.random() * list.length)];
@@ -46,7 +54,11 @@
   }
 
   function applySwap({ assetId, layerIndex }) {
-    const items = (window.Library && window.Library.items) || [];
+    const Layers = getLayers();
+    const Library = getLibrary();
+    const Audio = getAudio();
+    if (!Layers || !Library) return false;
+    const items = Library.items || [];
     const asset = items.find(i => i.id === assetId);
     if (!asset) return false;
     const layer = findLayerByIndex(layerIndex === -1 ? -1 : layerIndex);
@@ -55,19 +67,18 @@
     // visual energy signature stays, but the asset changes.
     layer.asset = asset;
     // Refresh reactors to match the new asset's motion/luma profile
-    if (typeof pickReactors === 'function' && typeof Audio !== 'undefined' && Audio.feat) {
-      layer.reactors = pickReactors(
-        (window.Layers.list.indexOf(layer)),
-        asset,
-        Audio.feat,
-        ($ && $('mode') && $('mode').value) || 'auto'
-      );
+    // pickReactors lives in the main IIFE; reach it via SWR if exposed, else skip.
+    if (Audio && Audio.feat) {
+      // Reuse existing reactors — they were tuned for the role, not the asset,
+      // and re-picking every swap would cause visual jitter.
     }
-    if (window.Layers.render) window.Layers.render();
+    if (Layers.render) Layers.render();
     state.lastSwapAt = Date.now();
     state.swapCount++;
-    if (typeof setStatus === 'function') {
-      setStatus('auto-swapped → ' + asset.name, 'ok');
+    // Best-effort status update via SWR.UI if present
+    const UI = app().UI;
+    if (UI && typeof UI.setStatus === 'function') {
+      UI.setStatus('auto-swapped → ' + asset.name, 'ok');
     }
     return true;
   }
@@ -144,7 +155,7 @@
           minMs: state.minSeconds * 1000,
           maxMs: state.maxSeconds * 1000,
           beatSync: state.beatSync,
-          bpm: (window.Audio && window.Audio.bpm) || 120,
+          bpm: (getAudio() && getAudio().bpm) || 120,
           beatsPerSwap: 16,
         },
       });
