@@ -82,6 +82,87 @@
       sepia:     0.65,
       glow:      0.25,
     },
+
+    // ---- 5 new personas ----
+    neon: {
+      label: 'NEON',
+      desc:  'Electric magenta / cyan. Hot club, screen-blend stacks, sharpened easings, scanlines. Cuts on the beat, not after it.',
+      temp:      -0.30,    // cool/cyan
+      mut:       0.55,
+      mutAlgo:   1,        // glitch (cuts on the beat)
+      posterize: 0.20,    // light posterization for the cell look
+      vignette:  0.10,
+      chroma:    0.85,    // heavy RGB shift
+      grain:     0.40,    // scanlines via grain
+      sepia:     0,
+      glow:      0.30,    // halation around bright pixels
+      grayscale: 0,
+      blur:      0,
+    },
+
+    filmfilm: {
+      label: 'FILM',
+      desc:  'Sepia / 16mm grain. Handheld warm tone, per-pixel grain, soft vignette, slow drift. Smooth easings throughout.',
+      temp:      0.25,     // warm
+      mut:       0.20,
+      mutAlgo:   0,        // vortex — slow drift
+      posterize: 0,
+      vignette:  0.45,
+      chroma:    0,
+      grain:     0.80,    // heavy 16mm-style grain
+      sepia:     0.70,    // strong sepia
+      glow:      0.15,
+      grayscale: 0,
+      blur:      0,
+    },
+
+    grid: {
+      label: 'GRID',
+      desc:  'Monochrome / hard cells. 2×2 + half-cell composition, snap to the beat. Binary easings — no in-between, only on or off.',
+      temp:      0,
+      mut:       0.85,
+      mutAlgo:   1,        // glitch (snap-beat feel)
+      posterize: 0.95,    // ~4 levels = hard cells
+      vignette:  0.20,
+      chroma:    0,
+      grain:     0.10,
+      sepia:     0,
+      glow:      0,
+      grayscale: 1.0,     // fully monochrome
+      blur:      0,
+    },
+
+    smoke: {
+      label: 'SMOKE',
+      desc:  'Cream warm / heavy blur. Everything at 0.5 opacity, slow drift, blurry and slow. The song moves through fog.',
+      temp:      0.20,     // cream warm
+      mut:       0.15,
+      mutAlgo:   0,        // vortex — slow drift
+      posterize: 0,
+      vignette:  0.35,
+      chroma:    0,
+      grain:     0.15,
+      sepia:     0.35,    // soft cream tint
+      glow:      0.40,    // bloom through fog
+      grayscale: 0,
+      blur:      0.75,    // heavy blur
+    },
+
+    hallucination: {
+      label: 'HALLUCINATION',
+      desc:  'RGB shift / scanline body. Every reactor maxed. RGB channel shift, lighter and difference blends, noise canvas overlay.',
+      temp:      -0.50,    // strong cool
+      mut:       0.95,
+      mutAlgo:   5,        // chromatic noise (max chaos)
+      posterize: 0,
+      vignette:  0.10,
+      chroma:    1.00,    // MAX RGB shift
+      grain:     0.90,    // scanline body
+      sepia:     0,
+      glow:      0.50,
+      grayscale: 0,
+      blur:      0,
+    },
   };
 
   // ---- State ----
@@ -102,6 +183,8 @@
     grain:     'grain',
     sepia:     'sepia',
     glow:      'glow',
+    grayscale: 'grayscale',
+    blur:      'blur',
   };
 
   // ---- Apply: snap FX state, then tween slider values ----
@@ -169,6 +252,8 @@
         if (k === 'grain')     window.FX.setGrain(v);
         if (k === 'sepia')     window.FX.setSepia(v);
         if (k === 'glow')      window.FX.setGlow(v);
+        if (k === 'grayscale') window.FX.setGrayscale(v);
+        if (k === 'blur')      window.FX.setBlur(v);
       }
     }
     if (t >= 1) state.tween = null;

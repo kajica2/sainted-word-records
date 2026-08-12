@@ -70,6 +70,8 @@
       grain:        fxState.grain,
       sepia:        fxState.sepia,
       glow:         fxState.glow,
+      grayscale:    fxState.grayscale,
+      blur:         fxState.blur,
     };
 
     // Sliders win over FX state when both exist (sliders are the user-facing truth)
@@ -87,6 +89,8 @@
       grain:        slider('grain'),
       sepia:        slider('sepia'),
       glow:         slider('glow'),
+      grayscale:    slider('grayscale'),
+      blur:         slider('blur'),
     };
     for (const k of Object.keys(fx)) {
       if (s[k] !== null && s[k] !== undefined) fx[k] = s[k];
@@ -174,6 +178,8 @@
         grain: project.fx.grain,
         sepia: project.fx.sepia,
         glow: project.fx.glow,
+        grayscale: project.fx.grayscale || 0,
+        blur: project.fx.blur || 0,
       });
     }
 
@@ -194,6 +200,8 @@
       setSlider('grain',        project.fx.grain);
       setSlider('sepia',        project.fx.sepia);
       setSlider('glow',         project.fx.glow);
+      setSlider('grayscale',    project.fx.grayscale || 0);
+      setSlider('blur',         project.fx.blur || 0);
     }
 
     // 3. Set persona / preset / palette dropdowns

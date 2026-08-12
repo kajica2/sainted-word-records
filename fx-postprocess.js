@@ -41,6 +41,8 @@
     uniform float u_grain;       // 0=off, 1=heavy film grain
     uniform float u_sepia;       // 0=off, 1=full sepia (overrides other tints)
     uniform float u_glow;        // 0=off, 1=heavy bloom/glow halo
+    uniform float u_grayscale;   // 0=full color, 1=fully desaturated
+    uniform float u_blur;        // 0=sharp, 1=heavy gaussian blur (3x3 box)
 
     // 2D hash for procedural noise
     float hash(vec2 p) {
@@ -129,13 +131,44 @@
 
       // Chromatic aberration — combines mutation split with persona u_chroma
       float split = 0.003 * u_mut + 0.018 * u_chroma;
+
+      // Blur: 3x3 box sample (cheap gaussian-ish). Applied at the source so
+      // chromatic aberration + sepia + everything downstream see the blurred
+      // image, not the sharp one.
       vec3 col;
-      col.r = texture2D(u_tex, uv + vec2( split, 0.0)).r;
-      col.g = texture2D(u_tex, uv).g;
-      col.b = texture2D(u_tex, uv + vec2(-split, 0.0)).b;
+      if (u_blur > 0.001) {
+        vec2 px = vec2(1.0 / 1280.0, 1.0 / 720.0);
+        float b = u_blur;
+        // 3x3 weighted: corners half, edges full, center full
+        vec3 acc = vec3(0.0);
+        acc += texture2D(u_tex, uv + vec2(-px.x, -px.y)).rgb * (0.5 * b);
+        acc += texture2D(u_tex, uv + vec2( 0.0, -px.y)).rgb * (1.0 * b);
+        acc += texture2D(u_tex, uv + vec2( px.x, -px.y)).rgb * (0.5 * b);
+        acc += texture2D(u_tex, uv + vec2(-px.x,  0.0)).rgb * (1.0 * b);
+        acc += texture2D(u_tex, uv).rgb * (1.0);
+        acc += texture2D(u_tex, uv + vec2( px.x,  0.0)).rgb * (1.0 * b);
+        acc += texture2D(u_tex, uv + vec2(-px.x,  px.y)).rgb * (0.5 * b);
+        acc += texture2D(u_tex, uv + vec2( 0.0,  px.y)).rgb * (1.0 * b);
+        acc += texture2D(u_tex, uv + vec2( px.x,  px.y)).rgb * (0.5 * b);
+        float totalW = 1.0 + b * 6.0;     // center weight + 6 edges
+        col = acc / totalW;
+        // Add per-channel split on top of blur, sampling the (now-blurred) neighbors
+        col.r = mix(col.r, texture2D(u_tex, uv + vec2( split * 0.5, 0.0)).r, u_chroma);
+        col.b = mix(col.b, texture2D(u_tex, uv + vec2(-split * 0.5, 0.0)).b, u_chroma);
+      } else {
+        col.r = texture2D(u_tex, uv + vec2( split, 0.0)).r;
+        col.g = texture2D(u_tex, uv).g;
+        col.b = texture2D(u_tex, uv + vec2(-split, 0.0)).b;
+      }
 
       // Temperature tint
       col = temperature(col, u_temp);
+
+      // Grayscale — applied before sepia so sepia tints luminance not hue
+      if (u_grayscale > 0.001) {
+        float l = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(col, vec3(l), u_grayscale);
+      }
 
       // Sepia (warm brown monochrome tint) — applied before posterize so
       // posterization steps the sepia rather than the original color
@@ -197,6 +230,8 @@
     grain: 0,
     sepia: 0,
     glow: 0,
+    grayscale: 0,
+    blur: 0,
   };
 
   // ---- Init ----
@@ -295,6 +330,8 @@
       grain:    gl.getUniformLocation(prog, 'u_grain'),
       sepia:    gl.getUniformLocation(prog, 'u_sepia'),
       glow:     gl.getUniformLocation(prog, 'u_glow'),
+      grayscale:gl.getUniformLocation(prog, 'u_grayscale'),
+      blur:     gl.getUniformLocation(prog, 'u_blur'),
     };
 
     // Texture from #render
@@ -359,6 +396,8 @@
       gl.uniform1f(u.grain,     state.grain);
       gl.uniform1f(u.sepia,     state.sepia);
       gl.uniform1f(u.glow,      state.glow);
+      gl.uniform1f(u.grayscale, state.grayscale);
+      gl.uniform1f(u.blur,      state.blur);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
@@ -382,8 +421,10 @@
       setGrain(v)     { state.grain     = Math.max(0, Math.min(1, v)); },
       setSepia(v)     { state.sepia     = Math.max(0, Math.min(1, v)); },
       setGlow(v)      { state.glow      = Math.max(0, Math.min(1, v)); },
+      setGrayscale(v) { state.grayscale = Math.max(0, Math.min(1, v)); },
+      setBlur(v)      { state.blur      = Math.max(0, Math.min(1, v)); },
       setPersona(profile) {
-        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow}
+        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur}
         if (!profile) return;
         if (profile.temp      !== undefined) state.temp      = profile.temp;
         if (profile.mut       !== undefined) state.mut       = profile.mut;
@@ -394,6 +435,8 @@
         if (profile.grain     !== undefined) state.grain     = profile.grain;
         if (profile.sepia     !== undefined) state.sepia     = profile.sepia;
         if (profile.glow      !== undefined) state.glow      = profile.glow;
+        if (profile.grayscale !== undefined) state.grayscale = profile.grayscale;
+        if (profile.blur      !== undefined) state.blur      = profile.blur;
       },
       setEnabled(on) { state.enabled = !!on; },
       outputCanvas: out,    // for recorder to captureStream()

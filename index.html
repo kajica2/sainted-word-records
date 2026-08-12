@@ -611,6 +611,18 @@
       </span>
       <span class="separator"></span>
       <span class="gctrl">
+        gray
+        <input type="range" id="grayscale" min="0" max="1" step="0.01" value="0" />
+        <b id="grayscale-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        blur
+        <input type="range" id="blur" min="0" max="1" step="0.01" value="0" />
+        <b id="blur-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
         persona
         <select id="persona" title="Editor persona — applies a curated look across all FX">
           <option value="off">— none —</option>
@@ -619,6 +631,11 @@
           <option value="mask">MASK</option>
           <option value="fx">FX</option>
           <option value="filter">FILTER</option>
+          <option value="neon">NEON</option>
+          <option value="filmfilm">FILM</option>
+          <option value="grid">GRID</option>
+          <option value="smoke">SMOKE</option>
+          <option value="hallucination">HALLUCINATION</option>
         </select>
       </span>
       <span class="separator"></span>
@@ -2124,7 +2141,7 @@
           });
         }
         // Global sliders
-        for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow']) {
+        for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur']) {
           const inp = $(id);
           const out = $(id + '-v');
           inp.addEventListener('input', () => { out.textContent = parseFloat(inp.value).toFixed(2); });
@@ -2149,6 +2166,10 @@
         if (grainInp)     grainInp.addEventListener('input',     () => window.FX && window.FX.setGrain(parseFloat(grainInp.value)));
         if (sepiaInp)     sepiaInp.addEventListener('input',     () => window.FX && window.FX.setSepia(parseFloat(sepiaInp.value)));
         if (glowInp)      glowInp.addEventListener('input',      () => window.FX && window.FX.setGlow(parseFloat(glowInp.value)));
+        const grayInp = $('grayscale');
+        const blurInp = $('blur');
+        if (grayInp) grayInp.addEventListener('input', () => window.FX && window.FX.setGrayscale(parseFloat(grayInp.value)));
+        if (blurInp) blurInp.addEventListener('input',  () => window.FX && window.FX.setBlur(parseFloat(blurInp.value)));
         // Drop targets
         window.addEventListener('dragover', (e) => {
           if (e.dataTransfer.types.includes('Files')) {
