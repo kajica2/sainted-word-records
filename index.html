@@ -575,6 +575,54 @@
       </span>
       <span class="separator"></span>
       <span class="gctrl">
+        posterize
+        <input type="range" id="posterize" min="0" max="1" step="0.01" value="0" />
+        <b id="posterize-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        vignette
+        <input type="range" id="vignette" min="0" max="1" step="0.01" value="0" />
+        <b id="vignette-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        chroma
+        <input type="range" id="chroma" min="0" max="1" step="0.01" value="0" />
+        <b id="chroma-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        grain
+        <input type="range" id="grain" min="0" max="1" step="0.01" value="0" />
+        <b id="grain-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        sepia
+        <input type="range" id="sepia" min="0" max="1" step="0.01" value="0" />
+        <b id="sepia-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        glow
+        <input type="range" id="glow" min="0" max="1" step="0.01" value="0" />
+        <b id="glow-v">0.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
+        persona
+        <select id="persona" title="Editor persona — applies a curated look across all FX">
+          <option value="off">— none —</option>
+          <option value="raw">RAW</option>
+          <option value="poster">POSTER</option>
+          <option value="mask">MASK</option>
+          <option value="fx">FX</option>
+          <option value="filter">FILTER</option>
+        </select>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
         palette
         <select id="palette">
           <option value="neon">Neon</option>
@@ -2029,7 +2077,7 @@
           });
         }
         // Global sliders
-        for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations']) {
+        for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow']) {
           const inp = $(id);
           const out = $(id + '-v');
           inp.addEventListener('input', () => { out.textContent = parseFloat(inp.value).toFixed(2); });
@@ -2041,6 +2089,19 @@
         if (tempInp) tempInp.addEventListener('input', () => window.FX && window.FX.setTemp(parseFloat(tempInp.value)));
         if (mutInp)  mutInp.addEventListener('input',  () => window.FX && window.FX.setMut(parseFloat(mutInp.value)));
         if (algoSel) algoSel.addEventListener('change', () => window.FX && window.FX.setAlgo(parseInt(algoSel.value, 10)));
+        // Persona uniform bindings
+        const posterizeInp = $('posterize');
+        const vignetteInp  = $('vignette');
+        const chromaInp    = $('chroma');
+        const grainInp     = $('grain');
+        const sepiaInp     = $('sepia');
+        const glowInp      = $('glow');
+        if (posterizeInp) posterizeInp.addEventListener('input', () => window.FX && window.FX.setPosterize(parseFloat(posterizeInp.value)));
+        if (vignetteInp)  vignetteInp.addEventListener('input',  () => window.FX && window.FX.setVignette(parseFloat(vignetteInp.value)));
+        if (chromaInp)    chromaInp.addEventListener('input',    () => window.FX && window.FX.setChroma(parseFloat(chromaInp.value)));
+        if (grainInp)     grainInp.addEventListener('input',     () => window.FX && window.FX.setGrain(parseFloat(grainInp.value)));
+        if (sepiaInp)     sepiaInp.addEventListener('input',     () => window.FX && window.FX.setSepia(parseFloat(sepiaInp.value)));
+        if (glowInp)      glowInp.addEventListener('input',      () => window.FX && window.FX.setGlow(parseFloat(glowInp.value)));
         // Drop targets
         window.addEventListener('dragover', (e) => {
           if (e.dataTransfer.types.includes('Files')) {
@@ -2158,5 +2219,6 @@
   <script type="module" src="layer-scheduler.client.js"></script>
   <script type="module" src="fx-postprocess.js"></script>
   <script type="module" src="wizard.js"></script>
+  <script type="module" src="personas.js"></script>
 </body>
 </html>

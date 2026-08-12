@@ -34,6 +34,14 @@
     uniform float u_mut;      // 0..1 mutation amount
     uniform float u_mutAlgo;  // 0..5 (selects mutation algorithm)
 
+    // Persona uniforms (0..1 unless noted)
+    uniform float u_posterize;   // 0=off, 1=full posterization (color step count)
+    uniform float u_vignette;    // 0=off, 1=heavy radial dark mask
+    uniform float u_chroma;      // 0=off, 1=heavy chromatic aberration
+    uniform float u_grain;       // 0=off, 1=heavy film grain
+    uniform float u_sepia;       // 0=off, 1=full sepia (overrides other tints)
+    uniform float u_glow;        // 0=off, 1=heavy bloom/glow halo
+
     // 2D hash for procedural noise
     float hash(vec2 p) {
       p = fract(p * vec2(123.34, 456.21));
@@ -119,8 +127,8 @@
     void main() {
       vec2 uv = mutate(v_uv, u_time, u_mut, u_mutAlgo);
 
-      // Subtle chromatic split that grows with mutations amount
-      float split = 0.003 * u_mut;
+      // Chromatic aberration — combines mutation split with persona u_chroma
+      float split = 0.003 * u_mut + 0.018 * u_chroma;
       vec3 col;
       col.r = texture2D(u_tex, uv + vec2( split, 0.0)).r;
       col.g = texture2D(u_tex, uv).g;
@@ -129,16 +137,45 @@
       // Temperature tint
       col = temperature(col, u_temp);
 
+      // Sepia (warm brown monochrome tint) — applied before posterize so
+      // posterization steps the sepia rather than the original color
+      if (u_sepia > 0.001) {
+        float l = dot(col, vec3(0.299, 0.587, 0.114));
+        vec3 sep = vec3(l * 1.07, l * 0.94, l * 0.74);
+        col = mix(col, sep, u_sepia);
+      }
+
+      // Posterize — quantize each channel to N levels, where N depends on
+      // u_posterize. At u_posterize=0 → 256 levels (off). At 1 → 3 levels.
+      if (u_posterize > 0.001) {
+        float levels = mix(256.0, 3.0, u_posterize);
+        col = floor(col * levels) / levels;
+      }
+
       // Beat-driven brightness pulse (multiplicative, soft)
       col *= 1.0 + u_beat * 0.12;
 
-      // Soft vignette tied to mid energy
-      vec2 v = v_uv - 0.5;
-      float vig = 1.0 - dot(v, v) * (0.4 + u_mid * 0.4);
-      col *= vig;
+      // Glow / bloom — sample 4 neighbors and add to center
+      if (u_glow > 0.001) {
+        vec2 px = vec2(1.0 / 1280.0, 1.0 / 720.0);  // approx, scales ok
+        vec3 bloom = vec3(0.0);
+        bloom += texture2D(u_tex, uv + vec2( px.x * 6.0, 0.0)).rgb;
+        bloom += texture2D(u_tex, uv + vec2(-px.x * 6.0, 0.0)).rgb;
+        bloom += texture2D(u_tex, uv + vec2(0.0,  px.y * 6.0)).rgb;
+        bloom += texture2D(u_tex, uv + vec2(0.0, -px.y * 6.0)).rgb;
+        bloom *= 0.25;
+        col += bloom * u_glow * 0.35;
+      }
 
-      // Film grain tied to treble (very subtle)
-      float g = (hash(v_uv * 1024.0 + u_time) - 0.5) * u_treble * 0.06;
+      // Vignette — radial dark mask, intensity from u_vignette
+      vec2 v = v_uv - 0.5;
+      float vig = 1.0 - dot(v, v) * (0.4 + u_vignette * 1.6);
+      // Also keep a soft audio-tied component on top of persona setting
+      vig *= 1.0 - dot(v, v) * u_mid * 0.4;
+      col *= max(vig, 0.0);
+
+      // Film grain — u_treble baseline + u_grain persona boost
+      float g = (hash(v_uv * 1024.0 + u_time) - 0.5) * (u_treble * 0.06 + u_grain * 0.18);
       col += g;
 
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
@@ -153,6 +190,13 @@
     enabled: true,
     bass: 0, mid: 0, treble: 0, beat: 0,
     time: 0,
+    // Persona uniforms
+    posterize: 0,
+    vignette: 0,
+    chroma: 0,
+    grain: 0,
+    sepia: 0,
+    glow: 0,
   };
 
   // ---- Init ----
@@ -236,15 +280,21 @@
 
     // Uniform locations
     const u = {
-      tex:     gl.getUniformLocation(prog, 'u_tex'),
-      time:    gl.getUniformLocation(prog, 'u_time'),
-      bass:    gl.getUniformLocation(prog, 'u_bass'),
-      mid:     gl.getUniformLocation(prog, 'u_mid'),
-      treble:  gl.getUniformLocation(prog, 'u_treble'),
-      beat:    gl.getUniformLocation(prog, 'u_beat'),
-      temp:    gl.getUniformLocation(prog, 'u_temp'),
-      mut:     gl.getUniformLocation(prog, 'u_mut'),
-      mutAlgo: gl.getUniformLocation(prog, 'u_mutAlgo'),
+      tex:      gl.getUniformLocation(prog, 'u_tex'),
+      time:     gl.getUniformLocation(prog, 'u_time'),
+      bass:     gl.getUniformLocation(prog, 'u_bass'),
+      mid:      gl.getUniformLocation(prog, 'u_mid'),
+      treble:   gl.getUniformLocation(prog, 'u_treble'),
+      beat:     gl.getUniformLocation(prog, 'u_beat'),
+      temp:     gl.getUniformLocation(prog, 'u_temp'),
+      mut:      gl.getUniformLocation(prog, 'u_mut'),
+      mutAlgo:  gl.getUniformLocation(prog, 'u_mutAlgo'),
+      posterize:gl.getUniformLocation(prog, 'u_posterize'),
+      vignette: gl.getUniformLocation(prog, 'u_vignette'),
+      chroma:   gl.getUniformLocation(prog, 'u_chroma'),
+      grain:    gl.getUniformLocation(prog, 'u_grain'),
+      sepia:    gl.getUniformLocation(prog, 'u_sepia'),
+      glow:     gl.getUniformLocation(prog, 'u_glow'),
     };
 
     // Texture from #render
@@ -295,14 +345,20 @@
       }
 
       // Update uniforms
-      gl.uniform1f(u.time,   state.time);
-      gl.uniform1f(u.bass,   state.bass);
-      gl.uniform1f(u.mid,    state.mid);
-      gl.uniform1f(u.treble, state.treble);
-      gl.uniform1f(u.beat,   state.beat);
-      gl.uniform1f(u.temp,   state.temp);
-      gl.uniform1f(u.mut,    state.mut);
-      gl.uniform1f(u.mutAlgo, state.mutAlgo);
+      gl.uniform1f(u.time,      state.time);
+      gl.uniform1f(u.bass,      state.bass);
+      gl.uniform1f(u.mid,       state.mid);
+      gl.uniform1f(u.treble,    state.treble);
+      gl.uniform1f(u.beat,      state.beat);
+      gl.uniform1f(u.temp,      state.temp);
+      gl.uniform1f(u.mut,       state.mut);
+      gl.uniform1f(u.mutAlgo,   state.mutAlgo);
+      gl.uniform1f(u.posterize, state.posterize);
+      gl.uniform1f(u.vignette,  state.vignette);
+      gl.uniform1f(u.chroma,    state.chroma);
+      gl.uniform1f(u.grain,     state.grain);
+      gl.uniform1f(u.sepia,     state.sepia);
+      gl.uniform1f(u.glow,      state.glow);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
@@ -320,6 +376,25 @@
       setTemp(v) { state.temp = Math.max(-1, Math.min(1, v)); },
       setMut(v)  { state.mut  = Math.max(0, Math.min(1, v)); },
       setAlgo(a) { state.mutAlgo = Math.max(0, Math.min(5, Math.floor(a))); },
+      setPosterize(v) { state.posterize = Math.max(0, Math.min(1, v)); },
+      setVignette(v)  { state.vignette  = Math.max(0, Math.min(1, v)); },
+      setChroma(v)    { state.chroma    = Math.max(0, Math.min(1, v)); },
+      setGrain(v)     { state.grain     = Math.max(0, Math.min(1, v)); },
+      setSepia(v)     { state.sepia     = Math.max(0, Math.min(1, v)); },
+      setGlow(v)      { state.glow      = Math.max(0, Math.min(1, v)); },
+      setPersona(profile) {
+        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow}
+        if (!profile) return;
+        if (profile.temp      !== undefined) state.temp      = profile.temp;
+        if (profile.mut       !== undefined) state.mut       = profile.mut;
+        if (profile.mutAlgo   !== undefined) state.mutAlgo   = profile.mutAlgo;
+        if (profile.posterize !== undefined) state.posterize = profile.posterize;
+        if (profile.vignette  !== undefined) state.vignette  = profile.vignette;
+        if (profile.chroma    !== undefined) state.chroma    = profile.chroma;
+        if (profile.grain     !== undefined) state.grain     = profile.grain;
+        if (profile.sepia     !== undefined) state.sepia     = profile.sepia;
+        if (profile.glow      !== undefined) state.glow      = profile.glow;
+      },
       setEnabled(on) { state.enabled = !!on; },
       outputCanvas: out,    // for recorder to captureStream()
     };
