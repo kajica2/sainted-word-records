@@ -1069,7 +1069,9 @@
           d.className = 'lib-item';
           d.draggable = true;
           d.dataset.id = it.id;
-          const tag = it.type === 'video' ? 'VID' : (it.name.toLowerCase().endsWith('.gif') ? 'GIF' : 'IMG');
+          const tag = it.type === 'video' ? 'VID' :
+                   it.type === 'camera' ? 'CAM' :
+                   (it.name.toLowerCase().endsWith('.gif') ? 'GIF' : 'IMG');
           d.innerHTML = `
             <span class="tag">${tag}</span>
             <span class="name">${escapeHtml(it.name)}</span>
@@ -1636,17 +1638,24 @@
         const a = layer.asset;
         if (!a) return;
         let src;
-        if (a.type === 'video') {
-          // For video we need an HTMLVideoElement cached on the asset
+        if (a.type === 'video' || a.type === 'camera') {
+          // For video we need an HTMLVideoElement cached on the asset.
+          // 'camera' type uses _el.srcObject (a MediaStream) instead of _el.src.
           if (!a._el) {
             a._el = document.createElement('video');
-            a._el.src = a.url;
             a._el.muted = true; a._el.loop = true; a._el.playsInline = true;
             a._el.preload = 'auto';
+            if (a.type === 'video') a._el.src = a.url;
           }
           src = a._el;
-          if (Audio.playing && src.paused) src.play().catch(()=>{});
-          if (!Audio.playing && !src.paused) src.pause();
+          // Video with a blob URL: drive playback from main audio play state.
+          // Camera: srcObject drives its own playback (autoplay); don't pause it.
+          if (a.type === 'video') {
+            if (Audio.playing && src.paused) src.play().catch(()=>{});
+            if (!Audio.playing && !src.paused) src.pause();
+          }
+          // Camera: ensure playing
+          if (a.type === 'camera' && src.paused) src.play().catch(()=>{});
         } else {
           if (!a._el) {
             a._el = new Image();
@@ -1654,7 +1663,7 @@
           }
           src = a._el;
         }
-        if (a.type === 'video' && src.readyState < 2) return;
+        if ((a.type === 'video' || a.type === 'camera') && src.readyState < 2) return;
         const r = this.applyReactors(layer);
         cx.save();
         cx.globalCompositeOperation = layer.blend || 'source-over';
@@ -2290,6 +2299,7 @@
   <script type="module" src="personas.js"></script>
   <script type="module" src="project.js"></script>
   <script type="module" src="mic-input.client.js"></script>
+  <script type="module" src="camera.client.js"></script>
   <script type="module" src="timeline.client.js"></script>
   <script type="module" src="trim.client.js"></script>
   <script type="module" src="persona-preview.client.js"></script>
