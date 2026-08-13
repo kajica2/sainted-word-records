@@ -31,15 +31,48 @@ function copyDirRecursive(src, dst) {
             { src: resolve('library'), dst: resolve(outDir, 'library') },
             { src: resolve('versions'), dst: resolve(outDir, 'versions') },
           ];
-          for (const { src, dst } of dirs) {
-            copyDirRecursive(src, dst);
+          // Style preview thumbnails referenced from landing.html (5 small PNGs)
+          const styleThumbs = ['neon','film','grid','smoke','hallucination'].map((n) => ({
+            src: resolve('verify-screenshots', n + '.png'),
+            dst: resolve(outDir, 'verify-screenshots', n + '.png'),
+          }));
+          for (const { src, dst } of [...dirs, ...styleThumbs]) {
+            if (existsSync(src)) {
+              if (statSync(src).isDirectory()) {
+                copyDirRecursive(src, dst);
+              } else {
+                mkdirSync(dirname(dst), { recursive: true });
+                copyFileSync(src, dst);
+              }
+            }
           }
       // Copy root-level project files
-      const rootFiles = ['landing.html', 'interactive-howto.html', 'market-study.html', 'profit-plan.html', 'campaign.html', 'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png'];
+      const rootFiles = [
+        'landing.html', 'interactive-howto.html', 'market-study.html',
+        'profit-plan.html', 'campaign.html', 'personas.html',
+        'landing-personas-v1-editorial.html',
+        'landing-personas-v2-dark.html',
+        'landing-personas-v3-friendly.html',
+        'landing-personas-v4-dashboard.html',
+        'landing-personas-v5-brutalist.html',
+        'personas.json',
+        'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png',
+        'tutorial-30s.html',
+        'swr-tutorial-30s.mp4',
+      ];
       for (const f of rootFiles) {
         const sp = resolve(f);
         if (!existsSync(sp)) continue;
         copyFileSync(sp, resolve(outDir, f));
+      }
+
+      // The engine lives at dist/index_app.html (Vite uses the input
+      // filename). Copy it to dist/index.html so the engine is at the
+      // canonical URL path.
+      const engineSrc = resolve(outDir, 'index_app.html');
+      const engineDst = resolve(outDir, 'index.html');
+      if (existsSync(engineSrc)) {
+        copyFileSync(engineSrc, engineDst);
       }
     },
   };
@@ -54,10 +87,16 @@ export default defineConfig(({ command, mode }) => {
       host: '0.0.0.0',
       strictPort: false,
     },
+    // Vite defaults to index.html, but the actual engine lives in
+    // index_app.html (index.html became the landing/marketing page in
+    // the SWR Visualizers service launch). Point Vite at the engine.
     build: {
       target: 'es2022',
       outDir,
       assetsInlineLimit: 0,
+      rollupOptions: {
+        input: 'index_app.html',
+      },
     },
   };
 });
