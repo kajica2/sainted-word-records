@@ -87,6 +87,16 @@ function copyStatic() {
       // its own output (and before Vercel snapshots the directory).
       doCopy();
     },
+    closeBundle() {
+      // After Vite has emitted dist/index_app.html, copy it to
+      // dist/index.html so the engine is at the canonical URL.
+      const engineSrc = resolve(outDir, 'index_app.html');
+      const engineDst = resolve(outDir, 'index.html');
+      if (existsSync(engineSrc)) {
+        copyFileSync(engineSrc, engineDst);
+        process.stdout.write('[copy-static] copied engine -> index.html (post-build)\n');
+      }
+    },
   };
 }
 
