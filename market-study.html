@@ -24,7 +24,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
 
   <style>
     :root {
@@ -68,13 +68,14 @@
       --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
     html, body { margin: 0; padding: 0; }
     body {
       font-family: var(--font-body);
       background: var(--bg); color: var(--ink);
       line-height: 1.6; -webkit-font-smoothing: antialiased;
       transition: background 0.3s, color 0.3s;
+      overflow-x: hidden;
     }
     a { color: var(--accent); text-decoration: none; transition: color 0.18s; }
     a:hover { color: var(--ink); }
@@ -402,6 +403,146 @@
 
     /* Hide the back-half of the article when locked */
     body.is-unpaid .locked { filter: blur(6px); user-select: none; pointer-events: none; }
+
+    /* ===== PAYMENT MODE BADGE ===== */
+    .mode-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 999px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .mode-badge__dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .mode-badge--mock {
+      background: color-mix(in srgb, var(--warn) 12%, var(--bg-2));
+      color: var(--warn);
+      border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+    }
+    .mode-badge--mock .mode-badge__dot { background: var(--warn); }
+    .mode-badge--lemon-squeezy,
+    .mode-badge--stripe {
+      background: color-mix(in srgb, var(--accent-3) 12%, var(--bg-2));
+      color: var(--accent-3);
+      border: 1px solid color-mix(in srgb, var(--accent-3) 40%, var(--line));
+    }
+    .mode-badge--lemon-squeezy .mode-badge__dot,
+    .mode-badge--stripe .mode-badge__dot { background: var(--accent-3); }
+
+    /* ===== SETUP INSTRUCTIONS ===== */
+    .setup {
+      margin: 40px 0 0; padding: 20px 24px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--radius);
+      max-width: 100%; overflow: hidden;
+    }
+    .setup > summary {
+      cursor: pointer;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink); font-weight: 600;
+      list-style: none; padding: 0; margin: 0;
+      user-select: none;
+    }
+    .setup > summary::-webkit-details-marker { display: none; }
+    .setup > summary::after {
+      content: ' +'; color: var(--muted); font-weight: 400; margin-left: 6px;
+    }
+    .setup[open] > summary::after { content: ' –'; }
+    .setup > summary:hover { color: var(--accent); }
+    .setup__body { padding-top: 18px; }
+    .setup__step {
+      display: flex; gap: 14px; margin-bottom: 20px;
+    }
+    .setup__num {
+      flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--ink); color: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    }
+    .setup__step p { margin: 4px 0 0; font-size: 14px; color: var(--ink-2); }
+    .setup__step strong { color: var(--ink); }
+    .setup__step p code,
+    .setup__step li code {
+      background: var(--bg-3); padding: 1px 5px; border-radius: 3px;
+      font-size: 12px; color: var(--ink);
+    }
+    .setup__code {
+      display: block; margin: 10px 0;
+      padding: 14px 16px;
+      background: var(--ink); color: color-mix(in srgb, var(--bg) 88%, transparent);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 11.5px;
+      line-height: 1.65; overflow-x: auto;
+      white-space: pre;
+      max-width: 100%;
+    }
+    .setup__code .c-comment { color: color-mix(in srgb, var(--accent-2) 70%, transparent); font-style: italic; }
+    .setup__code .c-keyword { color: var(--accent); }
+    .setup__code .c-string  { color: var(--accent-3); }
+    .setup__code .c-fn      { color: var(--cool); }
+    @media (max-width: 480px) {
+      .setup { padding: 16px 18px; }
+      .setup__code { font-size: 10.5px; padding: 12px; }
+    }
+
+    /* ===== VERIFY OVERLAY ===== */
+    .verify-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .verify-overlay.is-open { display: flex; }
+    .verify-card {
+      max-width: 380px; width: 100%;
+      background: var(--bg-3); border-radius: var(--radius);
+      padding: 32px 28px; text-align: center;
+      box-shadow: var(--shadow-2);
+    }
+    .verify-card__icon {
+      width: 56px; height: 56px; margin: 0 auto 18px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .verify-card__icon--loading {
+      background: color-mix(in srgb, var(--cool) 12%, var(--bg-2));
+      border: 2px solid var(--cool);
+    }
+    .verify-card__icon--error {
+      background: color-mix(in srgb, var(--warn) 12%, var(--bg-2));
+      border: 2px solid var(--warn);
+      color: var(--warn);
+      font-family: var(--font-mono);
+      font-size: 28px; font-weight: 700;
+    }
+    .verify-card__icon--success {
+      background: color-mix(in srgb, var(--accent-3) 12%, var(--bg-2));
+      border: 2px solid var(--accent-3);
+      color: var(--accent-3);
+      font-family: var(--font-mono);
+      font-size: 28px; font-weight: 700;
+    }
+    .verify-card__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 0 0 8px;
+    }
+    .verify-card__sub {
+      font-size: 14px; color: var(--ink-2); margin: 0 0 20px; line-height: 1.5;
+    }
+    .verify-card__sub a { color: var(--accent); }
+    .spinner {
+      width: 26px; height: 26px;
+      border: 3px solid var(--cool);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: ms-spin 0.85s linear infinite;
+    }
+    @keyframes ms-spin { to { transform: rotate(360deg); } }
 
     /* ===== FOOTER ===== */
     .footer {
@@ -731,17 +872,79 @@
     <span>© 2026 SWR Insights · Single-file demo</span>
     <span>v1 · August 2026</span>
   </div>
+
+  <!-- ===== SETUP INSTRUCTIONS (owner / developer) ===== -->
+  <details class="setup" id="setup-instructions">
+    <summary>How to wire up real payments</summary>
+    <div class="setup__body">
+      <div class="setup__step">
+        <div class="setup__num">1</div>
+        <div>
+          <strong>Sign up for Lemon Squeezy or Stripe.</strong>
+          <p>Both work. Lemon Squeezy is friendlier for digital downloads (handles VAT, tax, fulfillment). Stripe is the right call if you plan to add subscriptions later. Set up a single <code>$5</code> product called "Market Study · Audio-Reactive Video Software 2026".</p>
+        </div>
+      </div>
+      <div class="setup__step">
+        <div class="setup__num">2</div>
+        <div>
+          <strong>Replace the checkout URL in the inline script.</strong>
+          <p>Open this file, find the <code>PAYMENT_CONFIG</code> object near the bottom, set <code>mode</code> to <code>'lemon-squeezy'</code> or <code>'stripe'</code>, then drop in your real checkout URL:</p>
+<pre class="setup__code"><span class="c-keyword">const</span> PAYMENT_CONFIG = {
+  <span class="c-keyword">mode</span>: <span class="c-string">'lemon-squeezy'</span>,  <span class="c-comment">// or 'stripe'</span>
+  lemonSqueezy: {
+    checkoutUrl: <span class="c-string">'https://YOUR_STORE.lemonsqueezy.com/checkout/buy/xxx'</span>,
+    verifyUrl:   <span class="c-string">'/api/verify-ls'</span>,
+  },
+  stripe: {
+    paymentLinkUrl: <span class="c-string">'https://buy.stripe.com/xxx'</span>,
+    <span class="c-comment">// success URL is set in the Stripe dashboard when you create the link</span>
+    verifyUrl:      <span class="c-string">'/api/verify-stripe'</span>,
+  },
+};</pre>
+          <p>For Lemon Squeezy, the success URL is appended automatically. For Stripe, set the success URL in the dashboard to <code style="font-size:12px;">?session_id={CHECKOUT_SESSION_ID}</code> on this same page.</p>
+        </div>
+      </div>
+      <div class="setup__step">
+        <div class="setup__num">3</div>
+        <div>
+          <strong>Deploy the serverless verify endpoint.</strong>
+          <p>This is the function the page calls on the success URL to confirm the purchase server-side. Without it, anyone can fake a token. ~30 lines. Below is a Cloudflare Worker / Vercel Edge template — adjust for your platform.</p>
+<pre class="setup__code"><span class="c-comment">// /api/verify-ls  (Cloudflare Worker or Vercel Edge Function)</span>
+<span class="c-keyword">export async function</span> <span class="c-fn">verify</span>(token) {
+  <span class="c-keyword">const</span> res = <span class="c-keyword">await</span> fetch(
+    <span class="c-string">`https://api.lemonsqueezy.com/v1/orders?filter[store]=YOUR_STORE_ID`</span>,
+    { headers: { Authorization: <span class="c-string">`Bearer YOUR_API_KEY`</span> } }
+  );
+  <span class="c-keyword">const</span> data = <span class="c-keyword">await</span> res.json();
+  <span class="c-keyword">return</span> data.data.some(o =&gt;
+    o.attributes.status === <span class="c-string">'paid'</span> &amp;&amp;
+    o.attributes.checkout_token === token
+  );
+}
+
+<span class="c-comment">// /api/verify-stripe  (same shape, different API)</span>
+<span class="c-comment">// GET https://api.stripe.com/v1/checkout/sessions/{session_id}</span>
+<span class="c-comment">// → return { paid: session.payment_status === 'paid' }</span></pre>
+          <p>Once deployed to Vercel / Netlify, the success URL takes the buyer back to this page with the token, the page calls <code>/api/verify-ls?token=...</code>, and the watermark is removed only on a server-confirmed <code>paid</code> status. The mock-mode localStorage flag is bypassable; this isn't.</p>
+        </div>
+      </div>
+    </div>
+  </details>
 </article>
 </div>
 
 <!-- ============ MODAL ============ -->
 <div class="modal-backdrop" id="modal">
   <div class="modal">
+    <div class="mode-badge mode-badge--mock" id="mode-badge">
+      <span class="mode-badge__dot"></span>
+      <span id="mode-badge-label">MOCK MODE</span>
+    </div>
     <h3>Complete purchase</h3>
-    <p>This is a demo. Real integration would route through Stripe / Lemon Squeezy / Paddle with a webhook that flips the unlocked flag server-side.</p>
+    <p id="modal-body">This is a demo. Real integration would route through Lemon Squeezy or Stripe with a webhook that flips the unlocked flag server-side.</p>
     <div class="modal__row">
       <label>Item</label>
-      <span style="font-size: 14px; color: var(--ink);">Market Study · Audio-Reactive Video Software 2026</span>
+      <span style="font-size: 14px; color: var(--ink);" id="modal-product-name">Market Study · Audio-Reactive Video Software 2026</span>
     </div>
     <div class="modal__row">
       <label>Quantity</label>
@@ -749,12 +952,23 @@
     </div>
     <div class="modal__row">
       <label>Total</label>
-      <span style="font-family: var(--font-display); font-size: 22px; color: var(--accent); font-weight: 500;">$5.00 USD</span>
+      <span style="font-family: var(--font-display); font-size: 22px; color: var(--accent); font-weight: 500;" id="modal-total">$5.00 USD</span>
     </div>
     <div class="modal__actions">
       <button class="modal__btn" id="modal-cancel">Cancel</button>
       <button class="modal__btn modal__btn--primary" id="modal-pay">Pay $5 (demo)</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ VERIFY OVERLAY ============ -->
+<div class="verify-overlay" id="verify-overlay">
+  <div class="verify-card" id="verify-card">
+    <div class="verify-card__icon verify-card__icon--loading" id="verify-icon">
+      <div class="spinner"></div>
+    </div>
+    <h3 class="verify-card__title" id="verify-title">Verifying your purchase…</h3>
+    <p class="verify-card__sub" id="verify-sub">One moment while we confirm your payment with the server.</p>
   </div>
 </div>
 
@@ -780,18 +994,55 @@ class ThemeToggle extends HTMLElement {
 customElements.define('theme-toggle', ThemeToggle);
 </script>
 
-<!-- ============ PAYWALL LOGIC ============ -->
+<!-- ============ PAYMENT CONFIG + PAYWALL LOGIC ============ -->
 <script>
 (function() {
+  // ============================================================
+  // PAYMENT_CONFIG — the 2 things the owner must replace
+  // ============================================================
+  //   mode:        'mock' | 'lemon-squeezy' | 'stripe'
+  //   checkoutUrl: your real Lemon Squeezy / Stripe payment link
+  // Everything else is auto-derived and works offline in mock mode.
+  // ============================================================
+  const PAYMENT_CONFIG = {
+    mode: 'mock', // 'mock' | 'lemon-squeezy' | 'stripe'
+    lemonSqueezy: {
+      checkoutUrl: 'https://you.lemonsqueezy.com/checkout/buy/YOUR_VARIANT_ID', // REPLACE
+      verifyUrl:   '/api/verify-ls', // REPLACE with your serverless function
+    },
+    stripe: {
+      paymentLinkUrl: 'https://buy.stripe.com/YOUR_PAYMENT_LINK', // REPLACE
+      // success URL is set in the Stripe dashboard when you create the link;
+      // it should be this page with ?session_id={CHECKOUT_SESSION_ID} appended.
+      verifyUrl:      '/api/verify-stripe', // REPLACE with your serverless function
+    },
+    product: {
+      name: 'Market Study · Audio-Reactive Video Software 2026',
+      price: '$5',
+    },
+  };
+
+  // ============================================================
+  // STATE
+  // ============================================================
   const STORAGE_KEY = 'ms-paid';
   const isPaid = () => { try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch { return false; } };
   const setPaid = (v) => { try { localStorage.setItem(STORAGE_KEY, v ? '1' : '0'); } catch {} };
 
-  // Render the watermark tile (so the tiled pattern covers any viewport size)
+  const url = new URL(window.location.href);
+  const lsToken      = url.searchParams.get('token');        // Lemon Squeezy
+  const stripeSess   = url.searchParams.get('session_id');  // Stripe
+  const hasReturnToken = !!(lsToken || stripeSess);
+
+  const mode       = PAYMENT_CONFIG.mode;
+  const isMockMode = mode === 'mock';
+
+  // ============================================================
+  // WATERMARK (unchanged)
+  // ============================================================
   const tile = document.getElementById('watermark-tile');
   const renderWatermark = () => {
     const text = 'SWR INSIGHTS · PREVIEW · UNPAID · ';
-    // Roughly 1 span per 260x100 cell
     const w = window.innerWidth, h = document.documentElement.scrollHeight;
     const cols = Math.ceil(w / 260) + 1;
     const rows = Math.ceil(h / 100) + 1;
@@ -804,6 +1055,35 @@ customElements.define('theme-toggle', ThemeToggle);
     tile.innerHTML = html.join('');
   };
 
+  // ============================================================
+  // MODE BADGE (in modal)
+  // ============================================================
+  const updateModeBadge = () => {
+    const badge = document.getElementById('mode-badge');
+    const label = document.getElementById('mode-badge-label');
+    const body  = document.getElementById('modal-body');
+    const pay   = document.getElementById('modal-pay');
+    if (mode === 'lemon-squeezy') {
+      badge.className = 'mode-badge mode-badge--lemon-squeezy';
+      label.textContent = 'LEMON SQUEEZY';
+      body.innerHTML = 'You\'ll be redirected to a secure Lemon Squeezy checkout. After payment, you\'ll return to this page and the watermark is removed automatically — verified server-side via the <code>/api/verify-ls</code> endpoint.';
+      pay.textContent = 'Continue to Lemon Squeezy →';
+    } else if (mode === 'stripe') {
+      badge.className = 'mode-badge mode-badge--stripe';
+      label.textContent = 'STRIPE PAYMENT LINK';
+      body.innerHTML = 'You\'ll be redirected to a secure Stripe checkout. After payment, you\'ll return to this page and the watermark is removed automatically — verified server-side via the <code>/api/verify-stripe</code> endpoint.';
+      pay.textContent = 'Continue to Stripe →';
+    } else {
+      badge.className = 'mode-badge mode-badge--mock';
+      label.textContent = 'MOCK MODE';
+      body.innerHTML = 'This is a demo. The paywall flips a <code>localStorage</code> flag — works offline, but is trivially bypassable in DevTools. Open the <em>How to wire up real payments</em> section below to switch to Lemon Squeezy or Stripe with server-side verification.';
+      pay.textContent = 'Pay $5 (demo)';
+    }
+  };
+
+  // ============================================================
+  // APPLY PAID STATE TO UI
+  // ============================================================
   const applyPaidState = (paid) => {
     document.body.classList.toggle('is-unpaid', !paid);
     const pill = document.getElementById('status-pill');
@@ -823,9 +1103,14 @@ customElements.define('theme-toggle', ThemeToggle);
       paywall.classList.add('paywall--unlocked');
       paywallEyebrow.textContent = 'You own this study';
       paywallTitle.textContent = 'Thanks. The clean version is yours.';
-      paywallSub.innerHTML = 'This is a demo — the watermark is removed via a <code>localStorage</code> flag. In production, a Stripe webhook would flip a server-side entitlement.';
+      if (isMockMode) {
+        paywallSub.innerHTML = 'Watermark removed via <code>localStorage</code> flag. In production, a Lemon Squeezy / Stripe webhook flips a server-side entitlement.';
+        paywallCta.textContent = '↓ Download PDF (demo)';
+      } else {
+        paywallSub.innerHTML = 'Unlocked via server-side verification of your ' + (mode === 'lemon-squeezy' ? 'Lemon Squeezy' : 'Stripe') + ' token. The watermark is removed for this device.';
+        paywallCta.textContent = '↓ Download PDF';
+      }
       paywallAmount.parentElement.style.display = 'none';
-      paywallCta.textContent = '↓ Download PDF (demo)';
       paywallReset.style.display = 'block';
     } else {
       pill.textContent = 'Free preview';
@@ -837,36 +1122,145 @@ customElements.define('theme-toggle', ThemeToggle);
       paywallTitle.textContent = 'Get the clean version.';
       paywallSub.innerHTML = 'Pay once, unlock the unlocked PDF + all 6 supporting datasets. No subscription.';
       paywallAmount.parentElement.style.display = 'inline-flex';
-      paywallCta.textContent = 'Buy for $5 → remove watermark';
+      if (isMockMode) {
+        paywallCta.textContent = 'Buy for $5 → remove watermark';
+      } else {
+        paywallCta.textContent = `Buy for $5 via ${mode === 'lemon-squeezy' ? 'Lemon Squeezy' : 'Stripe'} →`;
+      }
       paywallReset.style.display = 'none';
     }
   };
 
-  // Init
-  renderWatermark();
-  applyPaidState(isPaid());
-  window.addEventListener('resize', () => { renderWatermark(); });
+  // ============================================================
+  // VERIFY OVERLAY (success-URL return handler)
+  // ============================================================
+  const showVerifying = () => {
+    document.getElementById('verify-overlay').classList.add('is-open');
+  };
+  const hideVerifying = () => {
+    document.getElementById('verify-overlay').classList.remove('is-open');
+  };
+  const setVerifyIcon = (state, text) => {
+    const icon = document.getElementById('verify-icon');
+    icon.className = 'verify-card__icon verify-card__icon--' + state;
+    icon.innerHTML = text;
+  };
+  const showVerifyError = () => {
+    setVerifyIcon('error', '✕');
+    document.getElementById('verify-title').textContent = 'Verification failed';
+    document.getElementById('verify-sub').innerHTML =
+      'We couldn\'t confirm your purchase. <br><a href="mailto:support@example.com">Contact support</a> if you believe this is an error.';
+  };
+  const showVerifySuccess = () => {
+    setVerifyIcon('success', '✓');
+    document.getElementById('verify-title').textContent = 'Unlocked!';
+    document.getElementById('verify-sub').textContent = 'Redirecting to your clean study…';
+  };
 
-  // Open modal
-  const openModal = () => document.getElementById('modal').classList.add('is-open');
+  // ============================================================
+  // VERIFY (calls serverless endpoint; mock-mode short-circuits to true)
+  // ============================================================
+  async function verifyToken(token) {
+    if (isMockMode) return true; // mock never makes a network call
+    const verifyUrl = mode === 'lemon-squeezy'
+      ? PAYMENT_CONFIG.lemonSqueezy.verifyUrl
+      : PAYMENT_CONFIG.stripe.verifyUrl;
+    const paramName = mode === 'lemon-squeezy' ? 'token' : 'session_id';
+    try {
+      const res = await fetch(`${verifyUrl}?${paramName}=${encodeURIComponent(token)}`, {
+        method: 'GET',
+        credentials: 'same-origin',
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      return data && data.paid === true;
+    } catch (e) {
+      console.error('[payment] verify fetch failed:', e);
+      return false;
+    }
+  }
+
+  // ============================================================
+  // SUCCESS-URL RETURN HANDLER (page-load)
+  // ============================================================
+  async function handleReturnToken() {
+    // Mock mode: skip the network round-trip, just read localStorage.
+    if (isMockMode) {
+      applyPaidState(isPaid());
+      return;
+    }
+    // No return token: just apply whatever localStorage already says.
+    if (!hasReturnToken) {
+      applyPaidState(isPaid());
+      return;
+    }
+    // Real mode + return token: verify with server, then unlock.
+    showVerifying();
+    const token = lsToken || stripeSess;
+    const ok = await verifyToken(token);
+    if (ok) {
+      setPaid(true);
+      applyPaidState(true);
+      showVerifySuccess();
+      setTimeout(() => {
+        hideVerifying();
+        // Clean up the URL so reload doesn't re-verify.
+        try { window.history.replaceState({}, '', window.location.pathname); } catch {}
+        document.getElementById('paywall').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 1200);
+    } else {
+      showVerifyError();
+      setTimeout(() => { hideVerifying(); }, 4500);
+    }
+  }
+
+  // ============================================================
+  // CTA HANDLERS (3 modes)
+  // ============================================================
+  const handlePay = () => {
+    if (isMockMode) {
+      closeModal();
+      setPaid(true);
+      applyPaidState(true);
+      document.getElementById('paywall').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (mode === 'lemon-squeezy') {
+      const base = PAYMENT_CONFIG.lemonSqueezy.checkoutUrl;
+      // Lemon Squeezy supports ?checkout[success_url]=... to redirect back here.
+      const successUrl = window.location.origin + window.location.pathname;
+      const sep = base.includes('?') ? '&' : '?';
+      window.location.href = base + sep + 'checkout[success_url]=' + encodeURIComponent(successUrl);
+      return;
+    }
+    if (mode === 'stripe') {
+      // Stripe Payment Links have the success URL configured in the dashboard.
+      window.location.href = PAYMENT_CONFIG.stripe.paymentLinkUrl;
+      return;
+    }
+  };
+
+  // ============================================================
+  // MODAL OPEN / CLOSE
+  // ============================================================
+  const openModal  = () => document.getElementById('modal').classList.add('is-open');
   const closeModal = () => document.getElementById('modal').classList.remove('is-open');
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  renderWatermark();
+  updateModeBadge();
+  handleReturnToken();
+  window.addEventListener('resize', renderWatermark);
+
   document.getElementById('nav-pay-btn').addEventListener('click', openModal);
   document.getElementById('paywall-cta').addEventListener('click', openModal);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   document.getElementById('modal').addEventListener('click', (e) => {
     if (e.target.id === 'modal') closeModal();
   });
-
-  // Pay
-  document.getElementById('modal-pay').addEventListener('click', () => {
-    closeModal();
-    setPaid(true);
-    applyPaidState(true);
-    // Smooth-scroll to where the watermark was (the locked content)
-    document.getElementById('paywall').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-
-  // Reset
+  document.getElementById('modal-pay').addEventListener('click', handlePay);
   document.getElementById('paywall-reset').addEventListener('click', () => {
     if (!confirm('Reset demo? This re-locks the article and re-enables the watermark.')) return;
     setPaid(false);
@@ -875,5 +1269,87 @@ customElements.define('theme-toggle', ThemeToggle);
   });
 })();
 </script>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand"><span class="dot"></span> SWR Insights</div>
+        <p class="footer__tag">
+          Market research for the audio-reactive video market. One study at a time. $5 buys the full PDF, 6 supporting datasets, and the source data.
+        </p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/engine">Open the engine</a></li>
+          <li><a href="./landing.html">Landing page</a></li>
+          <li><a href="./interactive-howto.html">How-to walkthrough</a></li>
+          <li><a href="./versions/index.html">5 visual styles</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4>Business</h4>
+        <ul>
+          <li><a href="./campaign.html">Launch campaign</a></li>
+          <li><a href="./profit-plan.html">90-day plan</a></li>
+          <li><a href="./market-study.html">Market study (this page)</a></li>
+          <li><a href="https://github.com/">Source / GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 SWR Insights · v2 · 3 payment modes · Lemon Squeezy + Stripe ready</span>
+      <a href="./landing.html">Open the engine →</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+/* Footer styles (matches campaign.html / profit-plan.html design language) */
+.footer {
+  margin-top: 80px;
+  padding: 56px 0 40px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.footer__grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 48px;
+}
+@media (max-width: 720px) { .footer__grid { grid-template-columns: 1fr; } }
+.footer__brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display); font-weight: 500;
+  font-size: 20px; margin-bottom: 12px;
+}
+.footer__brand .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent);
+}
+.footer__tag {
+  color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 320px;
+}
+.footer__col h4 {
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 14px;
+}
+.footer__col ul { list-style: none; padding: 0; margin: 0; }
+.footer__col li { margin-bottom: 8px; }
+.footer__col a { color: var(--ink-2); font-size: 14px; }
+.footer__col a:hover { color: var(--accent); }
+.footer__bottom {
+  margin-top: 32px; padding-top: 20px;
+  border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 12px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--muted); letter-spacing: 0.05em;
+}
+</style>
+
 </body>
 </html>

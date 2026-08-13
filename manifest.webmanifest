@@ -1,0 +1,38 @@
+{
+  "name": "Sainted Word Records",
+  "short_name": "SWR",
+  "description": "Audio-reactive video engine. Drop in a song, drop in a library of clips, get a reactive layered composition.",
+  "start_url": "/engine",
+  "scope": "/engine/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#f5a524",
+  "background_color": "#0a0d12",
+  "categories": ["music", "photo", "video", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

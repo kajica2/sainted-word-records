@@ -1,0 +1,261 @@
+/* ============================================
+   VIDEO-FILTERS.CSS
+   A collection of CSS filters & animations
+   for looping video/image effects.
+   ============================================ */
+
+/* ---------- Base ---------- */
+.video-filter {
+  transition: filter 0.3s ease, transform 0.3s ease;
+  will-change: filter, transform;
+}
+
+/* ---------- 1. Slow Zoom / Ken Burns ---------- */
+.kenburns {
+  animation: kenburns 20s ease-in-out infinite alternate;
+}
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.15); }
+}
+
+/* ---------- 2. Pan & Scan ---------- */
+.pan-scan {
+  animation: panScan 15s ease-in-out infinite alternate;
+}
+@keyframes panScan {
+  from { transform: translateX(-5%); }
+  to   { transform: translateX(5%); }
+}
+
+/* ---------- 3. Parallax 2.5D (requires layered elements) ---------- */
+.parallax-layer-back    { transform: translateZ(-2px) scale(1.5); }
+.parallax-layer-mid     { transform: translateZ(0); }
+.parallax-layer-front   { transform: translateZ(1px) scale(0.8); }
+
+/* ---------- 4. 3D Camera Projection (requires parent perspective) ---------- */
+.camera-3d {
+  transform-style: preserve-3d;
+  animation: cameraRotate 30s linear infinite;
+}
+@keyframes cameraRotate {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
+}
+
+/* ---------- 5. Puppet / Mesh Warp (approximated with skew) ---------- */
+.mesh-warp {
+  animation: meshWarp 10s ease-in-out infinite alternate;
+}
+@keyframes meshWarp {
+  0%   { transform: skewX(0deg) skewY(0deg); }
+  50%  { transform: skewX(2deg) skewY(1deg); }
+  100% { transform: skewX(-1deg) skewY(-2deg); }
+}
+
+/* ---------- 6. Displacement Mapping (approximated with blur & contrast) ---------- */
+.displacement {
+  animation: displace 5s ease-in-out infinite alternate;
+}
+@keyframes displace {
+  from { filter: blur(0px) contrast(100%); }
+  to   { filter: blur(2px) contrast(120%); }
+}
+
+/* ---------- 7. Liquify / Twirl (approximated with rotate & blur) ---------- */
+.liquify {
+  animation: liquify 8s ease-in-out infinite alternate;
+}
+@keyframes liquify {
+  from { filter: blur(0px) hue-rotate(0deg); transform: rotate(0deg); }
+  to   { filter: blur(3px) hue-rotate(15deg); transform: rotate(1deg); }
+}
+
+/* ---------- 8. Particle Overlays (requires separate overlay element) ---------- */
+.particles {
+  /* Use a separate absolutely positioned div with animated background */
+}
+
+/* ---------- 9. Light Leaks ---------- */
+.light-leak {
+  background: linear-gradient(120deg,
+    rgba(255,180,100,0.3),
+    rgba(255,255,255,0) 40%);
+  mix-blend-mode: screen;
+  animation: lightLeak 7s ease-in-out infinite alternate;
+}
+@keyframes lightLeak {
+  from { opacity: 0.1; transform: translateX(-10%); }
+  to   { opacity: 0.6; transform: translateX(10%); }
+}
+
+/* ---------- 10. Film Grain / Dust & Scratches ---------- */
+.film-grain {
+  position: relative;
+  overflow: hidden;
+}
+.film-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.15;
+  mix-blend-mode: overlay;
+  animation: grain 0.5s steps(5) infinite;
+  pointer-events: none;
+}
+@keyframes grain {
+  0%   { transform: translate(0,0); }
+  25%  { transform: translate(-5%,2%); }
+  50%  { transform: translate(3%,-3%); }
+  75%  { transform: translate(-2%,-5%); }
+  100%  { transform: translate(5%,3%); }
+}
+
+/* ---------- 11. VHS / Analog Glitch ---------- */
+.vhs {
+  filter: contrast(1.1) saturate(1.2) brightness(0.9);
+  animation: vhsFlicker 0.2s infinite;
+}
+@keyframes vhsFlicker {
+  0%   { filter: contrast(1.1) saturate(1.2) brightness(0.9); }
+  50%  { filter: contrast(1.3) saturate(1.0) brightness(0.8); }
+  100%  { filter: contrast(1.0) saturate(1.4) brightness(1.0); }
+}
+
+/* ---------- 12. RGB Split / Chromatic Aberration ---------- */
+.rgb-split {
+  text-shadow: -2px 0 red, 2px 0 cyan; /* for text */
+}
+.rgb-split-img {
+  filter: url("#rgb-split"); /* requires SVG filter */
+  animation: rgbShift 3s steps(2) infinite;
+}
+@keyframes rgbShift {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(-2px); }
+  50%  { transform: translateX(2px); }
+  75%  { transform: translateX(-1px); }
+  100%  { transform: translateX(0); }
+}
+
+/* ---------- 13. Pixel Sorting / Datamosh (approximated) ---------- */
+.pixel-sort {
+  filter: contrast(1.5) saturate(0.8);
+  animation: pixelSort 1s steps(10) infinite;
+}
+@keyframes pixelSort {
+  0%   { clip-path: inset(0 0 0 0); }
+  100%  { clip-path: inset(0 0 0 0); }
+}
+
+/* ---------- 14. Scanlines / CRT Effect ---------- */
+.crt {
+  position: relative;
+}
+.crt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.2) 0px,
+    rgba(0,0,0,0.2) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+}
+.crt-flicker {
+  animation: crtFlicker 0.15s infinite;
+}
+@keyframes crtFlicker {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* ---------- 15. Audio Reactive Elements (requires JS) ---------- */
+.audio-reactive {
+  animation: audioPulse 1s ease-in-out infinite;
+}
+@keyframes audioPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- 16. Color Pulse / Hue Shift ---------- */
+.hue-shift {
+  animation: hueShift 8s linear infinite;
+}
+@keyframes hueShift {
+  from { filter: hue-rotate(0deg); }
+  to   { filter: hue-rotate(360deg); }
+}
+
+/* ---------- 17. Kaleidoscope / Mirror (requires CSS transform) ---------- */
+.kaleidoscope {
+  animation: kaleido 10s linear infinite;
+}
+@keyframes kaleido {
+  from { transform: rotate(0deg) scale(1); }
+  to   { transform: rotate(360deg) scale(1); }
+}
+
+/* ---------- 18. Zoom / Radial Blur Pulses ---------- */
+.zoom-pulse {
+  animation: zoomPulse 2s ease-in-out infinite;
+}
+@keyframes zoomPulse {
+  0%   { transform: scale(1); filter: blur(0px); }
+  50%  { transform: scale(1.03); filter: blur(1px); }
+  100%  { transform: scale(1); filter: blur(0px); }
+}
+
+/* ---------- 19. Camera Shake ---------- */
+.camera-shake {
+  animation: shake 0.5s infinite;
+}
+@keyframes shake {
+  0%   { transform: translate(0,0); }
+  25%  { transform: translate(1px,-1px); }
+  50%  { transform: translate(-1px,1px); }
+  75%  { transform: translate(1px,1px); }
+  100%  { transform: translate(-1px,-1px); }
+}
+
+/* ---------- 20. Seamless Loop Tricks (ping-pong animations) ---------- */
+.loop-pingpong {
+  animation-direction: alternate;
+  animation-iteration-count: infinite;
+}
+
+/* ---------- Utility Combinations ---------- */
+.vhs-crt {
+  filter: contrast(1.2) saturate(1.1);
+  animation: vhsFlicker 0.3s infinite, crtFlicker 0.2s infinite;
+}
+.dreamy {
+  filter: blur(1px) brightness(1.1) saturate(1.2);
+  animation: kenburns 15s ease-in-out infinite alternate;
+}
+.retro {
+  filter: sepia(0.4) contrast(1.1) brightness(0.9) saturate(1.3);
+  animation: hueShift 20s linear infinite;
+}
+
+/* ---------- SVG Filter for RGB Split (include in HTML) ---------- */
+/*
+<svg style="display:none;">
+  <filter id="rgb-split">
+    <feOffset in="SourceGraphic" dx="-2" dy="0" result="red"/>
+    <feOffset in="SourceGraphic" dx="2" dy="0" result="cyan"/>
+    <feMerge>
+      <feMergeNode in="red"/>
+      <feMergeNode in="cyan"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+</svg>
+*/

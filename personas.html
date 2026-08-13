@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR Personas · 6 character presets</title>
+  <meta name="description" content="The same 8 personas rendered in 6 different visual registers: Editorial, Dark, Friendly, Dashboard, Brutalist, Wireframe 3D. Pick the one that fits the room." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
+
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('ms-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Space+Grotesk:wght@400..700&family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400..700&family=Inter:wght@400..700&family=JetBrains+Mono:wght@400..700&family=Archivo+Black&display=swap" />
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --accent-2: #ffaa3a;
+      --accent-3: #00ffa3;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg); color: var(--ink);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent); text-decoration: none; transition: color 0.18s; }
+    a:hover { color: var(--ink); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    ::selection { background: var(--accent); color: white; }
+
+    /* Nav */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 32px; max-width: 1180px; margin: 0 auto;
+    }
+    .nav__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 16px; color: var(--ink);
+    }
+    .nav__brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .nav__sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--accent); color: white; }
+    @media (max-width: 720px) { .nav__links { display: none; } }
+
+    /* Hero */
+    .hero { padding: 80px 0 40px; text-align: center; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } .hero { padding: 48px 0 24px; } }
+    .meta { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+    h1 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5.4vw, 64px);
+      line-height: 1.05; letter-spacing: -0.025em;
+      margin: 0 0 20px;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    .lede {
+      font-size: 18px; color: var(--ink-2);
+      max-width: 680px; margin: 0 auto 32px; line-height: 1.55;
+    }
+    .lede code { background: var(--bg-2); padding: 1px 6px; border-radius: 4px; font-size: 16px; color: var(--ink); }
+
+    /* Section */
+    .section { padding: 80px 0; }
+    .section--alt { background: var(--bg-2); }
+    .section--ink { background: var(--ink); color: var(--bg); }
+    .section--ink .section__kicker { color: var(--accent-2); }
+    .section--ink .section__title em { color: var(--accent-2); }
+    .section__head { max-width: 720px; margin: 0 auto 56px; text-align: center; }
+    .section__kicker {
+      display: inline-block;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .section__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    .section__title em { font-style: italic; color: var(--accent); }
+    .section__lede { font-size: 17px; color: var(--ink-2); line-height: 1.55; margin: 0; }
+
+    /* Register grid */
+    .registers {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    @media (max-width: 720px) {
+      .registers { grid-template-columns: 1fr; }
+    }
+
+    .reg {
+      position: relative;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .reg:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .reg__header {
+      position: relative;
+      aspect-ratio: 16/10;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .reg__num {
+      position: absolute; top: 14px; left: 14px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      background: rgba(0,0,0,0.3);
+      padding: 4px 10px; border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+    .reg__preview {
+      width: 100%; max-width: 280px;
+      text-align: center;
+    }
+    .reg__preview-title {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-size: 28px; line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    .reg__preview-title em { font-style: italic; }
+    .reg__preview-sub {
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    /* V1 · Editorial */
+    .reg--editorial .reg__header {
+      background: #f5efe4;
+    }
+    .reg--editorial .reg__preview-title { color: #1a1612; }
+    .reg--editorial .reg__preview-title em { color: #c4543a; }
+    .reg--editorial .reg__preview-sub { color: #8a7a66; }
+    .reg--editorial .reg__body { border-top: 1px solid #d9cdb8; }
+
+    /* V2 · Dark */
+    .reg--dark .reg__header {
+      background: #0a0a0a;
+    }
+    .reg--dark .reg__preview-title { color: #f5ead8; font-family: 'Space Grotesk', sans-serif; }
+    .reg--dark .reg__preview-title em { color: #7af0c4; font-style: normal; }
+    .reg--dark .reg__preview-sub { color: #7af0c4; font-family: 'JetBrains Mono', monospace; }
+
+    /* V3 · Friendly */
+    .reg--friendly .reg__header {
+      background: linear-gradient(180deg, #fdf6e8 0%, #fef9e8 100%);
+    }
+    .reg--friendly .reg__preview-title { color: #2a1810; font-family: 'DM Serif Display', serif; }
+    .reg--friendly .reg__preview-title em { color: #ff6b6b; }
+    .reg--friendly .reg__preview-sub { color: #c4543a; font-family: 'DM Sans', sans-serif; }
+
+    /* V4 · Dashboard */
+    .reg--dashboard .reg__header {
+      background: #ffffff;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .reg--dashboard .reg__preview-title { color: #111827; font-family: 'Space Grotesk', sans-serif; }
+    .reg--dashboard .reg__preview-title em { color: #2563eb; }
+    .reg--dashboard .reg__preview-sub { color: #6b7280; font-family: 'Inter', sans-serif; }
+    .reg--dashboard .reg__body { border-top: 1px solid #e5e7eb; }
+
+    /* V5 · Brutalist */
+    .reg--brutalist {
+      border: 2px solid #1a1612;
+      border-radius: 0;
+    }
+    .reg--brutalist .reg__header {
+      background: #f4f4f0;
+      border-bottom: 2px solid #1a1612;
+    }
+    .reg--brutalist .reg__preview-title { color: #1a1612; font-family: 'Archivo Black', sans-serif; font-size: 22px; letter-spacing: 0.02em; }
+    .reg--brutalist .reg__preview-title em { color: #dc2626; font-style: normal; }
+    .reg--brutalist .reg__preview-sub { color: #1a1612; font-family: 'JetBrains Mono', monospace; }
+    .reg--brutalist .reg__num { background: #1a1612; color: #facc15; }
+    .reg--brutalist .reg__body { border-top: 2px solid #1a1612; }
+
+    .reg__body { padding: 22px 24px 24px; }
+    .reg__name {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; letter-spacing: -0.01em;
+      margin: 0 0 6px;
+    }
+    .reg--brutalist .reg__name { font-family: 'Archivo Black', sans-serif; letter-spacing: 0.04em; }
+    .reg__voice {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 10px;
+    }
+    .reg__desc {
+      font-size: 14px; color: var(--ink-2);
+      line-height: 1.55; margin: 0 0 16px;
+    }
+    .reg__stack {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px;
+    }
+    .reg__stack span {
+      font-family: var(--font-mono); font-size: 10px;
+      padding: 2px 8px; border: 1px solid var(--line);
+      border-radius: 999px; color: var(--muted);
+    }
+    .reg__cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .reg__cta:hover { background: var(--accent); color: white; }
+    .reg--brutalist .reg__cta {
+      background: #1a1612; color: #f4f4f0;
+      border-radius: 0; border: 2px solid #1a1612;
+    }
+    .reg--brutalist .reg__cta:hover { background: #dc2626; color: #facc15; }
+
+    /* V6 · Wireframe */
+    .reg--wireframe {
+      border: 1px solid #1a2a3f;
+      border-radius: 0;
+      background: #050810;
+    }
+    .reg--wireframe .reg__header {
+      background: #050810;
+      border-bottom: 1px solid #1a2a3f;
+    }
+    .reg--wireframe .reg__preview-title {
+      color: #00d4ff; font-family: 'JetBrains Mono', monospace;
+      font-size: 18px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .reg--wireframe .reg__preview-title em { color: #00ff88; font-style: normal; }
+    .reg--wireframe .reg__preview-sub {
+      color: #6a7a8a; font-family: 'JetBrains Mono', monospace;
+    }
+    .reg--wireframe .reg__num {
+      background: #00d4ff; color: #050810;
+    }
+    .reg--wireframe .reg__body { border-top: 1px solid #1a2a3f; background: #0a1020; color: #e0e6ed; }
+    .reg--wireframe .reg__name {
+      color: #00d4ff; font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .reg--wireframe .reg__voice { color: #6a7a8a; }
+    .reg--wireframe .reg__desc { color: #c0cad6; }
+    .reg--wireframe .reg__stack span { background: #050810; color: #00d4ff; border: 1px solid #1a2a3f; }
+    .reg--wireframe .reg__cta {
+      background: #050810; color: #00d4ff; border: 1px solid #00d4ff;
+      border-radius: 0; font-family: 'JetBrains Mono', monospace;
+    }
+    .reg--wireframe .reg__cta:hover { background: #00d4ff; color: #050810; }
+
+    /* Footer */
+    .footer {
+      padding: 56px 0 40px;
+      border-top: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    .footer__grid {
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 48px;
+    }
+    @media (max-width: 720px) { .footer__grid { grid-template-columns: 1fr; } }
+    .footer__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; margin-bottom: 12px;
+    }
+    .footer__brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    .footer__tag { color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 320px; }
+    .footer__col h4 {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 14px;
+    }
+    .footer__col ul { list-style: none; padding: 0; margin: 0; }
+    .footer__col li { margin-bottom: 8px; }
+    .footer__col a { color: var(--ink-2); font-size: 14px; }
+    .footer__col a:hover { color: var(--accent); }
+    .footer__bottom {
+      margin-top: 32px; padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.05em;
+    }
+
+    /* Why this exists */
+    .why {
+      max-width: 720px; margin: 0 auto;
+      padding: 24px 28px;
+      background: var(--bg-3);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .why__label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 10px; font-weight: 600;
+    }
+    .why p { font-size: 15px; color: var(--ink-2); line-height: 1.65; margin: 0 0 12px; }
+    .why p:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="./landing.html"><span class="dot"></span> Sainted Word Records</a>
+    <span class="nav__sub">Personas · 5 registers</span>
+    <div class="nav__links">
+      <a href="./landing.html#versions">Landing</a>
+      <a href="/engine">Engine</a>
+      <a href="./campaign.html">Campaign</a>
+      <a href="./profit-plan.html">Plan</a>
+    </div>
+    <a class="nav__cta" href="/engine">Try the engine →</a>
+  </div>
+</nav>
+
+<!-- ============================ HERO ============================ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="meta">8 personas · 5 visual registers · 1 source of truth</div>
+    <h1>Same data. <em>Five voices.</em></h1>
+    <p class="lede">
+      Every SWR persona is rendered here in five different visual registers —
+      from a print magazine spread to a terminal log feed to a brutalist file
+      viewer. Pick the one that fits the room. The underlying JSON is identical.
+    </p>
+  </div>
+</header>
+
+<!-- ============================ REGISTERS ============================ -->
+<section class="section">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">6 character presets</div>
+      <h2 class="section__title">Pick a <em>voice</em>, not a layout.</h2>
+      <p class="section__lede">
+        Each register renders the same 8 personas (Indie musician, Beatmaker,
+        DJ, Small label, Belgrade / Serbian artist, Podcaster, Sound designer,
+        Music manager) in its own visual language. Different typography, palette,
+        layout — same content.
+      </p>
+    </div>
+
+    <div class="registers">
+
+      <a class="reg reg--editorial" href="./landing-personas-v1-editorial.html">
+        <div class="reg__header">
+          <span class="reg__num">V1 · EDITORIAL</span>
+          <div class="reg__preview">
+            <div class="reg__preview-title"><em>SWR</em> Quarterly</div>
+            <div class="reg__preview-sub">Issue 01 · 2026</div>
+          </div>
+        </div>
+        <div class="reg__body">
+          <h3 class="reg__name">Editorial</h3>
+          <div class="reg__voice">Magazine spread · Fraunces · terracotta</div>
+          <p class="reg__desc">Print-quarterly aesthetic. Paper-feel background, terracotta rules, byline intros. Use for blog posts, press kits, or when the audience expects reading.</p>
+          <div class="reg__stack">
+            <span>Fraunces</span><span>terracotta #c4543a</span><span>forest green badge</span>
+          </div>
+          <span class="reg__cta">Open V1 →</span>
+        </div>
+      </a>
+
+      <a class="reg reg--dark" href="./landing-personas-v2-dark.html">
+        <div class="reg__header">
+          <span class="reg__num">V2 · DARK</span>
+          <div class="reg__preview">
+            <div class="reg__preview-title">$ swr <em>personas</em></div>
+            <div class="reg__preview-sub">live · 8 online</div>
+          </div>
+        </div>
+        <div class="reg__body">
+          <h3 class="reg__name">Dark Mode</h3>
+          <div class="reg__voice">CLI / log feed · Space Grotesk · mint-cyan</div>
+          <p class="reg__desc">Live status board. Each persona is a log entry with timestamp, pid, INFO/STARRED level. Use for dev-tool audiences, on socials where the terminal aesthetic fits.</p>
+          <div class="reg__stack">
+            <span>Space Grotesk</span><span>mint-cyan #7af0c4</span><span>JetBrains Mono</span>
+          </div>
+          <span class="reg__cta">Open V2 →</span>
+        </div>
+      </a>
+
+      <a class="reg reg--friendly" href="./landing-personas-v3-friendly.html">
+        <div class="reg__header">
+          <span class="reg__num">V3 · FRIENDLY</span>
+          <div class="reg__preview">
+            <div class="reg__preview-title">Hey, who are <em>you</em> here for?</div>
+            <div class="reg__preview-sub">Member directory</div>
+          </div>
+        </div>
+        <div class="reg__body">
+          <h3 class="reg__name">Friendly</h3>
+          <div class="reg__voice">Community board · DM Serif · coral</div>
+          <p class="reg__desc">Profile cards with round avatars, "Say hi →" CTAs, greetings in 5 languages. Use for the warmest possible landing, creator-friendly audiences, indie scenes.</p>
+          <div class="reg__stack">
+            <span>DM Serif Display</span><span>coral #ff6b6b</span><span>mustard #e6b34a</span>
+          </div>
+          <span class="reg__cta">Open V3 →</span>
+        </div>
+      </a>
+
+      <a class="reg reg--dashboard" href="./landing-personas-v4-dashboard.html">
+        <div class="reg__header">
+          <span class="reg__num">V4 · DASHBOARD</span>
+          <div class="reg__preview">
+            <div class="reg__preview-title"><em>8</em> personas · 2 best fit</div>
+            <div class="reg__preview-sub">Last updated · 2 min ago</div>
+          </div>
+        </div>
+        <div class="reg__body">
+          <h3 class="reg__name">Dashboard</h3>
+          <div class="reg__voice">Admin panel · Space Grotesk · electric blue</div>
+          <p class="reg__desc">KPI tiles, 7-column data table, zebra striping, sparkline. Use when you want the audience to feel they're looking at a real product, not a marketing page.</p>
+          <div class="reg__stack">
+            <span>Space Grotesk</span><span>blue #2563eb</span><span>Inter</span><span>JetBrains Mono</span>
+          </div>
+          <span class="reg__cta">Open V4 →</span>
+        </div>
+      </a>
+
+      <a class="reg reg--brutalist" href="./landing-personas-v5-brutalist.html">
+        <div class="reg__header">
+          <span class="reg__num">V5 · BRUTALIST</span>
+          <div class="reg__preview">
+            <div class="reg__preview-title"><em>[PERSONAS.TXT]</em></div>
+            <div class="reg__preview-sub">8 entries · 4.2 KB</div>
+          </div>
+        </div>
+        <div class="reg__body">
+          <h3 class="reg__name">Brutalist</h3>
+          <div class="reg__voice">File viewer · Archivo Black · hot red</div>
+          <p class="reg__desc">Raw file cards, ASCII art, hard black borders, no radius. Use when you want the audience to see source data, not a curated product. For the design-curious.</p>
+          <div class="reg__stack">
+            <span>Archivo Black</span><span>red #dc2626</span><span>yellow #facc15</span>
+          </div>
+          <span class="reg__cta">Open V5 →</span>
+        </div>
+      </a>
+
+      <a class="reg reg--wireframe" href="./landing-personas-v6-wireframe.html">
+        <div class="reg__header">
+          <span class="reg__num">V6 · WIREFRAME</span>
+          <div class="reg__preview">
+            <div class="reg__preview-title"><em>WIREFRAME / v6.</em></div>
+            <div class="reg__preview-sub">3D · 8 primitives · 12 canvases</div>
+          </div>
+        </div>
+        <div class="reg__body">
+          <h3 class="reg__name">Wireframe 3D</h3>
+          <div class="reg__voice">Three.js · JetBrains Mono · cyan / green / amber</div>
+          <p class="reg__desc">CDN-loaded Three.js renders a rotating icosahedron hero, 8 distinct wireframe primitives per persona, animated mesh dividers. Use for the technical-curious or to show that the engine itself is algorithmic.</p>
+          <div class="reg__stack">
+            <span>JetBrains Mono</span><span>cyan #00d4ff</span><span>green #00ff88</span><span>Three.js 0.160</span>
+          </div>
+          <span class="reg__cta">Open V6 →</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================ WHY ============================ -->
+<section class="section section--alt">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">Why 6 versions of the same data</div>
+      <h2 class="section__title">One JSON, <em>many rooms.</em></h2>
+    </div>
+    <div class="why">
+      <div class="why__label">The FunnelLens model</div>
+      <p>
+        The same 8 personas will be read by indie musicians, beatmakers, label
+        managers, and sound designers — and they'll each show up in a different
+        mood. The Editorial register reads like a magazine feature. The Dark
+        register reads like a terminal. The Friendly register reads like a
+        community board. The Dashboard reads like a SaaS admin. The Brutalist
+        reads like a file dump.
+      </p>
+      <p>
+        Same content, different rooms. Pick the room that fits the audience
+        you're talking to this week.
+      </p>
+      <p>
+        <strong>Source of truth:</strong> <code>personas.json</code> in the project root.
+        Tweak the 8 personas there and all 5 registers pick up the change on next
+        regen.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand"><span class="dot"></span> Sainted Word Records</div>
+        <p class="footer__tag">
+          Audio-reactive music videos, a browser-based engine, and a 90-day
+          launch playbook. All open source, all self-hostable, all aimed at
+          the first 10 paying customers.
+        </p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/engine">Open the engine</a></li>
+          <li><a href="./landing.html">Landing page</a></li>
+          <li><a href="./interactive-howto.html">How-to walkthrough</a></li>
+          <li><a href="./versions/index.html">5 visual styles</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4>Business</h4>
+        <ul>
+          <li><a href="./campaign.html">Launch campaign</a></li>
+          <li><a href="./profit-plan.html">90-day plan</a></li>
+          <li><a href="./market-study.html">Market study</a></li>
+          <li><a href="https://github.com/">Source / GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 Sainted Word Records · MIT licensed</span>
+      <span>v1 · 5 personas registers · personas.json</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+class ThemeToggle extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = `<button aria-label="Toggle theme" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>`;
+    this.querySelector('button').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme-pref') || 'system';
+      const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+      localStorage.setItem('ms-theme', next);
+      const resolved = next === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : next;
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-pref', next);
+    });
+  }
+}
+customElements.define('theme-toggle', ThemeToggle);
+</script>
+
+</body>
+</html>

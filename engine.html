@@ -7,6 +7,11 @@
   <title>Sainted Word Records — Audio-Reactive Engine</title>
   <meta name="description" content="Algorithmic audio-reactive video engine. Drop in a song, drop in a library of clips, get a reactive layered composition." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%231a1028' stroke='%23ff3d92' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff3d92'/%3E%3Ccircle cx='16' cy='16' r='0.8' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
+  <meta name="theme-color" content="#f5a524" />
+  <link rel="stylesheet" href="/video-fx.css" />
+  <link rel="stylesheet" href="/brandkit.css" />
   <style>
     :root {
       --bg-0: #050308;
@@ -95,6 +100,9 @@
     .pill.ok { color: var(--ok); border-color: rgba(0, 255, 163, 0.3); }
     .pill.live { color: var(--accent); border-color: rgba(255, 61, 146, 0.4); animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+    /* Key pill: warm for major, cool for minor (palette-locked) */
+    #key-pill.major { color: var(--accent-3); border-color: rgba(255, 210, 74, 0.4); }
+    #key-pill.minor { color: var(--accent-2); border-color: rgba(0, 229, 255, 0.4); }
 
     .tbtn {
       background: var(--panel-2);
@@ -228,21 +236,6 @@
     .panel-body::-webkit-scrollbar { width: 6px; }
     .panel-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
 
-    aside.rotated { transform: rotate(90deg); }
-    .panel-rotate {
-      padding: 3px 7px;
-      font-size: 9px;
-      background: var(--panel-2);
-      color: var(--text);
-      border: 1px solid var(--line-2);
-      border-radius: 4px;
-      cursor: pointer;
-      margin-left: auto;
-      letter-spacing: 0.04em;
-    }
-    .panel-rotate:hover { background: var(--accent); color: #000; }
-    .panel-rotate.active { background: var(--accent); color: #000; border-color: var(--accent); }
-
     #library-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -304,6 +297,91 @@
       border-radius: 4px;
     }
     .drop-target.over { background: rgba(0, 229, 255, 0.08); border-color: var(--accent-2); }
+
+    /* MP4 drop chooser banner */
+    .mp4-chooser {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translate(-50%, 16px);
+      background: var(--panel-1);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.6), 0 0 24px rgba(255, 61, 146, 0.18);
+      z-index: 9999;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      max-width: calc(100vw - 32px);
+    }
+    .mp4-chooser.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+    .mp4-chooser__title { font-family: var(--font-mono); font-size: 13px; color: var(--fg); }
+    .mp4-chooser__title b { color: var(--accent); font-weight: 500; }
+    .mp4-chooser__sub   { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+    .mp4-chooser__actions { display: flex; gap: 8px; align-items: center; }
+    .mp4-chooser__btn {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 8px 12px;
+      background: var(--panel-2); color: var(--fg);
+      border: 1px solid var(--line-2); border-radius: 4px;
+      cursor: pointer; transition: all 0.15s ease;
+    }
+    .mp4-chooser__btn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+    .mp4-chooser__btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .mp4-chooser__btn.primary:hover { background: #ff5fa0; border-color: #ff5fa0; color: #fff; }
+    .mp4-chooser__btn.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 8px 10px; }
+    .mp4-chooser__btn.ghost:hover { color: var(--fg); border-color: var(--line-2); }
+    @media (max-width: 720px) {
+      .mp4-chooser { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .mp4-chooser__actions { flex-wrap: wrap; }
+    }
+
+    /* Song-name badge for video-derived audio */
+    .song-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(255, 61, 146, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(255, 61, 146, 0.4);
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* Layer-scheduler (AUTO-SWAP) panel — drag styling. The panel itself
+       is created by layer-scheduler.client.js; we only style + drag-enable
+       it from here so the existing functionality stays untouched. */
+    #layer-scheduler-panel {
+      transition: box-shadow 0.18s ease;
+    }
+    #layer-scheduler-panel .ls-drag-handle {
+      cursor: grab;
+      padding: 2px 4px;
+      margin: -2px -4px 4px;
+      border-radius: 6px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #layer-scheduler-panel .ls-drag-handle:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    #layer-scheduler-panel.ls-dragging .ls-drag-handle {
+      cursor: grabbing !important;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    #layer-scheduler-panel.ls-dragging {
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(127, 255, 127, 0.3) !important;
+    }
+    /* Visible "::" grip hint on the right of the title so users know it's draggable */
+    #layer-scheduler-panel .ls-drag-handle::after {
+      content: '⋮⋮';
+      margin-left: auto;
+      color: #666;
+      font-size: 14px;
+      letter-spacing: -2px;
+    }
 
     /* === LAYERS === */
     aside#layers {
@@ -382,7 +460,8 @@
     }
     .layer-head .x:hover { color: var(--accent); }
     .layer-head .x-rot,
-    .layer-head .x-rand {
+    .layer-head .x-rand,
+    .layer-head .x-beat {
       width: 18px; height: 18px;
       display: inline-flex; align-items: center; justify-content: center;
       background: transparent;
@@ -401,6 +480,8 @@
       border-color: var(--accent);
     }
     .layer-head .x-rand:hover { background: var(--accent-2); border-color: var(--accent-2); }
+    .layer-head .x-beat:hover { background: var(--accent-3); color: #000; border-color: var(--accent-3); }
+    .layer-head .x-beat.active { background: var(--accent-3); color: #000; border-color: var(--accent-3); }
 
     .layer-row {
       display: grid;
@@ -481,22 +562,179 @@
 
     /* === HIDDEN INPUTS === */
     input[type="file"] { display: none; }
+
+    /* === CSS FX PANEL (popup) === */
+    #css-fx-toggle[data-count]:not([data-count="0"])::after { content: ' ●'; color: var(--accent); }
+    .css-fx-panel {
+      position: fixed;
+      left: 50%;
+      bottom: 64px;
+      transform: translateX(-50%) translateY(8px);
+      width: min(880px, calc(100vw - 32px));
+      max-height: min(70vh, 600px);
+      background: linear-gradient(180deg, rgba(17,9,26,0.97), rgba(13,9,24,0.97));
+      border: 1px solid rgba(255, 61, 146, 0.35);
+      border-radius: 10px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .css-fx-panel[hidden] { display: none !important; }
+    .css-fx-panel.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+    .css-fx-panel__head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .css-fx-panel__head h3 {
+      margin: 0;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .css-fx-panel__sub {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+      flex: 1;
+    }
+    .css-fx-panel__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+      padding: 12px 14px;
+      overflow-y: auto;
+    }
+    .css-fx-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      color: rgba(255,255,255,0.85);
+      font-size: 10px;
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      cursor: pointer;
+      transition: background 120ms, border-color 120ms, color 120ms;
+      user-select: none;
+    }
+    .css-fx-chip:hover { background: rgba(255,61,146,0.10); border-color: rgba(255,61,146,0.4); }
+    .css-fx-chip.on {
+      background: rgba(255,61,146,0.18);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .css-fx-chip__dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+    .css-fx-chip.on .css-fx-chip__dot {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+    .css-fx-chip__name { flex: 1; }
+
+    /* === PERSONAL TIER (PT) CHIP + PANEL === */
+    .pt-chip {
+      background: rgba(245, 165, 36, 0.10);
+      border: 1px solid rgba(245, 165, 36, 0.30);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 6px;
+      transition: background 120ms, border-color 120ms;
+    }
+    .pt-chip:hover { background: rgba(245, 165, 36, 0.20); border-color: var(--accent); }
+    .pt-chip.active {
+      background: rgba(245, 165, 36, 0.20);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 8px rgba(245, 165, 36, 0.3);
+    }
+    .pt-panel { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; }
+    .pt-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .pt-dialog {
+      position: relative; width: min(440px, 92vw);
+      background: linear-gradient(180deg, rgba(17,9,26,0.98), rgba(13,9,24,0.98));
+      border: 1px solid var(--accent); border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      overflow: hidden;
+    }
+    .pt-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .pt-title { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+    .pt-sub { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .pt-card { padding: 18px; }
+    .pt-card-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 10px; }
+    .pt-key-input-row { display: flex; gap: 8px; }
+    .pt-key-input-row input {
+      flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12);
+      color: #fff; font-family: var(--font-mono); font-size: 12px;
+      padding: 8px 10px; border-radius: 4px; outline: none;
+    }
+    .pt-key-input-row input:focus { border-color: var(--accent); }
+    .pt-key-display {
+      font-family: var(--font-mono); font-size: 13px;
+      background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 4px;
+      border: 1px solid rgba(245,165,36,0.3); color: var(--accent);
+    }
+    .pt-error { color: #ff5d5d; font-size: 11px; margin-top: 6px; min-height: 14px; }
+    .pt-meta { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 12px; line-height: 1.6; }
+    .pt-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .pt-tiers { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: rgba(255,255,255,0.6); }
+    .pt-tier b { color: var(--accent); }
+    .pt-hint { margin-top: 12px; font-size: 11px; color: rgba(255,255,255,0.5); }
+    .pt-hint a { color: var(--accent); }
+    .pt-btn {
+      background: transparent; border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 4px;
+      font-family: inherit; font-size: 11px; cursor: pointer; text-decoration: none;
+      transition: background 120ms, border-color 120ms;
+    }
+    .pt-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .pt-btn.primary { background: var(--accent); border-color: var(--accent); color: #1a1028; font-weight: 600; }
+    .pt-btn.primary:hover { background: #ffb740; }
+    .pt-foot { padding: 10px 18px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .pt-foot-note { font-size: 10px; color: rgba(255,255,255,0.4); }
   </style>
 </head>
 <body>
   <div id="app">
     <header id="transport">
       <div class="brand">SAINTED-WORD <small>records</small></div>
-      <a class="tbtn ghost" href="./versions/" style="padding:4px 10px; font-size:9px; text-decoration:none;">5 visual versions →</a>
+      <a class="tbtn ghost" href="/versions/" style="padding:4px 10px; font-size:9px; text-decoration:none;">5 visual versions →</a>
       <span class="pill" id="status-pill">idle</span>
       <button class="tbtn ghost" id="load-song">Load song</button>
-      <input type="file" id="song-input" accept="audio/*" />
+      <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" />
       <span class="song-name" id="song-name">No song loaded</span>
       <button class="tbtn primary" id="play" disabled>▶ Play</button>
       <span class="time" id="time">0:00 <b>/ 0:00</b></span>
       <canvas id="meter" width="360" height="48"></canvas>
       <span class="spacer"></span>
       <span class="pill" id="bpm-pill">— bpm</span>
+      <span class="pill" id="key-pill">— key</span>
       <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
       <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
       <select id="rec-dur" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Auto-stop recording after N seconds">
@@ -507,15 +745,21 @@
         <option value="60">60s</option>
         <option value="song">song</option>
       </select>
+      <select id="rec-wm" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Watermark for the exported MP4/WebM">
+        <option value="none">no watermark</option>
+        <option value="a" selected>SWR monogram</option>
+        <option value="b">Sainted Word wordmark</option>
+        <option value="c">icon + SWR</option>
+      </select>
       <button class="tbtn danger" id="rec" disabled>● REC</button>
     </header>
 
     <aside id="library">
       <div class="panel-head">
         <h2>Library</h2>
+        <button class="tbtn ghost" id="clear-all" title="Erase all uploaded assets + the saved song" style="padding:4px 8px; font-size:9px; color:#f55;">Clear</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
-        <button class="panel-rotate" id="lib-rotate" title="Rotate panel +90°" data-target="library">↻ +90</button>
       </div>
       <div class="panel-body">
         <div id="library-grid">
@@ -546,7 +790,6 @@
         <h2>Layers</h2>
         <button class="tbtn ghost" id="add-layer" style="padding:4px 8px; font-size:9px;">+ Layer</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
-        <button class="panel-rotate" id="layers-rotate" title="Rotate panel +90°" data-target="layers">↻ +90</button>
       </div>
       <div id="layer-list"></div>
     </aside>
@@ -642,6 +885,22 @@
         <b id="blur-v">0.00</b>
       </span>
       <span class="separator"></span>
+      <span class="gctrl" title="Liquid glass: 2-scale fbm domain warp with chromatic offset">
+        liquid
+        <input type="range" id="liquid" min="0" max="1" step="0.01" value="0" />
+        <b id="liquid-v">0.00</b>
+      </span>
+      <span class="gctrl" title="Pearl haze: Voronoi cells produce round pearls that bend the frame">
+        pearl
+        <input type="range" id="pearl" min="0" max="1" step="0.01" value="0" />
+        <b id="pearl-v">0.00</b>
+      </span>
+      <span class="gctrl" title="Glitch: hash-driven horizontal slice displacement at ~12 Hz">
+        glitch
+        <input type="range" id="glitch" min="0" max="1" step="0.01" value="0" />
+        <b id="glitch-v">0.00</b>
+      </span>
+      <span class="separator"></span>
       <span class="gctrl">
         persona
         <select id="persona" title="Editor persona — applies a curated look across all FX">
@@ -656,6 +915,19 @@
           <option value="grid">GRID</option>
           <option value="smoke">SMOKE</option>
           <option value="hallucination">HALLUCINATION</option>
+          <option value="liquidglass">LIQUID GLASS</option>
+          <option value="pearlhaze">PEARL HAZE</option>
+          <option value="clubstrobe">CLUB STROBE</option>
+          <option value="vhsvibe">VHS VIBE</option>
+          <option value="neonwash">NEON WASH</option>
+          <option value="morphaanchor">MORPHA · ANCHOR</option>
+          <option value="morphaflow">MORPHA · FLOW</option>
+          <option value="morphafracture">MORPHA · FRACTURE</option>
+          <option value="morphavoid">MORPHA · VOID</option>
+          <option value="morphaecho">MORPHA · ECHO</option>
+          <option value="trainstage1">TRAIN · STAGE 1</option>
+          <option value="trainstage2">TRAIN · STAGE 2</option>
+          <option value="trainstage3">TRAIN · STAGE 3</option>
         </select>
       </span>
       <span class="separator"></span>
@@ -692,11 +964,26 @@
       </span>
       <span class="separator"></span>
       <button class="tbtn" id="drag-mode" style="padding:4px 10px; font-size:9px;" title="Toggle auto-drift / manual drag">AUTO DRIFT</button>
+      <span class="separator"></span>
+      <button class="tbtn" id="css-fx-toggle" data-count="0" style="padding:4px 10px; font-size:9px;" title="Stackable CSS video filters (kenburns, vhs, crt, film-grain, …)">CSS FX <b id="css-fx-count">0</b>/20</button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
   </div>
 
+  <!-- CSS FX popup panel: 20 stackable CSS video filters applied to #stage -->
+  <div id="css-fx-panel" class="css-fx-panel" hidden>
+    <div class="css-fx-panel__head">
+      <h3>CSS Video FX</h3>
+      <span class="css-fx-panel__sub">Stackable. Composites over the WebGL stage. Each toggle adds a class to <code>#stage</code>.</span>
+      <button class="tbtn ghost" id="css-fx-clear" style="padding:3px 8px; font-size:9px;">Clear all</button>
+    </div>
+    <div class="css-fx-panel__grid" id="css-fx-grid">
+      <!-- chips injected by CSSFX.init() -->
+    </div>
+  </div>
+
+  <script src="/audio-analysis-v2.js" defer></script>
   <script type="module">
     // ======================================================================
     // SAINTED-WORD RECORDS — Algorithmic audio-reactive video engine
@@ -735,6 +1022,42 @@
     // ======================================================================
     // AUDIO ENGINE
     // ======================================================================
+
+    // Module-scope helpers — moved out of the boot IIFE so any function in
+    // this module (including Audio.loadFile, Library.addFiles, etc.) can
+    // call them. Previously these were defined inside the IIFE body, which
+    // made them invisible to module-level code and caused
+    // "setStatus is not defined" errors.
+    function fmt(s) {
+      if (!isFinite(s) || s < 0) s = 0;
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return `${m}:${sec.toString().padStart(2, '0')}`;
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+    function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+    function setStatus(t, cls) {
+      const p = $('status-pill');
+      p.textContent = t;
+      p.classList.remove('ok', 'live');
+      if (cls) p.classList.add(cls);
+    }
+    // Expose setStatus + small helpers on window so the other <script type="module">
+    // files (project.js, camera.client.js, mic-input.client.js, etc.) can call
+    // them. They live in separate module scopes and can't see module-level
+    // declarations via the scope chain. Some of them already use the guarded
+    // form `typeof setStatus === 'function' && setStatus(...)` — those still
+    // work. This is a no-op for module-internal callers (which Vite renames
+    // the function to `k` in the minified bundle anyway).
+    window.setStatus = setStatus;
+    window.fmt = fmt;
+    window.escapeHtml = escapeHtml;
+    window.trunc = trunc;
+
     const Audio = {
       ctx: null,
       analyser: null,
@@ -770,28 +1093,64 @@
         this.gain.connect(this.ctx.destination);
         setStatus('audio live', 'ok');
       },
+      // True for any file we should decode through a <video> element.
+      // Both <audio> and <video> support createMediaElementSource identically,
+      // so the rest of the engine doesn't care which element backs the source.
+      _isVideoFile(file) {
+        if (!file) return false;
+        if (file.type && file.type.startsWith('video/')) return true;
+        return /\.(mp4|m4v|webm|mov|mkv|m3u8|ogv)$/i.test(file.name || '');
+      },
       loadFile(file) {
         this.unlock();
         if (this.source) try { this.source.disconnect(); } catch {}
         if (this.audioEl) {
           this.audioEl.pause();
-          this.audioEl.src = '';
+          // For <video>, removeAttribute is needed (no `src = ''` resets state the same way)
+          this.audioEl.removeAttribute('src');
+          try { this.audioEl.load(); } catch {}
         }
-        this.audioEl = document.createElement('audio');
-        this.audioEl.crossOrigin = 'anonymous';
-        this.audioEl.src = URL.createObjectURL(file);
-        this.audioEl.preload = 'auto';
+        // Persist the song blob so it survives reloads. Fire-and-forget — a
+        // failed save should not block the user from playing music.
+        this._saveCurrentSong(file);
+        const isVideo = this._isVideoFile(file);
+        // Use a <video> element for video files so the browser decodes the
+        // MP4/MOV/etc container (and its audio track). The element is kept
+        // off-screen but rendered (display:none would pause audio in some
+        // browsers — use opacity:0 + 1×1px positioning instead).
+        const el = isVideo ? document.createElement('video') : document.createElement('audio');
+        el.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+        el.crossOrigin = 'anonymous';
+        el.preload = 'auto';
+        if (isVideo) {
+          // Plays inline on iOS Safari, allow autoplay once user interacts
+          el.setAttribute('playsinline', '');
+          el.setAttribute('webkit-playsinline', '');
+        }
+        el.src = URL.createObjectURL(file);
+        this.audioEl = el;
         this.audioEl.addEventListener('ended', () => UI.onSongEnd());
         this.audioEl.addEventListener('timeupdate', () => UI.updateTime());
+        // Mark element type so the recorder knows what to display
+        this.audioEl.dataset.kind = isVideo ? 'video' : 'audio';
         this.source = this.ctx.createMediaElementSource(this.audioEl);
         this.source.connect(this.analyser);
-        $('song-name').innerHTML = '<b>' + escapeHtml(file.name) + '</b>';
+        // Render the song name with a small badge for video source
+        const badge = isVideo
+          ? '<span class="song-badge" title="Loaded from a video file — audio extracted in-browser">VIDEO</span> '
+          : '';
+        const saved = '<span class="song-badge" title="Saved to this browser — will auto-restore on next visit" style="background:#1f3;color:#0f0;">SAVED</span> ';
+        $('song-name').innerHTML = saved + badge + '<b>' + escapeHtml(file.name) + '</b>';
         $('play').disabled = false;
         $('rec').disabled = false;
         this.history = { prev: null, bassAvg: 0, fluxAvg: 0 };
         this.beatTimes = [];
         this.feat.bpm = 0;
         $('bpm-pill').textContent = '— bpm';
+        if (isVideo) {
+          // Helpful status so the user knows what's happening (no video frame will appear)
+          setStatus('loaded MP4 audio · click play', 'ok');
+        }
       },
       play() {
         this.unlock();
@@ -802,6 +1161,55 @@
         $('play').classList.remove('primary');
         $('play').classList.add('danger');
         stageEmpty.classList.add('hidden');
+      },
+      // === Persistent song storage (IndexedDB 'songs' store, key 'current') ===
+      // The latest loaded song survives reloads so the user doesn't have to
+      // re-pick a file every time they open the engine. Saving is fire-and-
+      // forget; loading is async and used at boot.
+      async _saveCurrentSong(file) {
+        if (!file) return;
+        try {
+          // Library.db may not be open yet (loadFile can fire before Library.init
+          // completes during boot). Wait briefly for it.
+          let tries = 0;
+          while ((!window.Library || !window.Library.db) && tries < 50) {
+            await new Promise(r => setTimeout(r, 20));
+            tries++;
+          }
+          if (!window.Library || !window.Library.db) return;
+          await window.Library.db.put('songs', {
+            id: 'current',
+            blob: file,
+            name: file.name,
+            type: file.type,
+            savedAt: Date.now(),
+          });
+          if (typeof setStatus === 'function') setStatus('song saved', 'ok');
+        } catch (e) {
+          console.warn('saveCurrentSong', e);
+        }
+      },
+      async _loadCurrentSong() {
+        try {
+          if (!window.Library || !window.Library.db) return false;
+          const all = await window.Library.db.getAll('songs');
+          const rec = (all || []).find(r => r && r.id === 'current');
+          if (!rec || !rec.blob) return false;
+          // Rebuild a File so the existing loadFile path handles it (and we
+          // get the same VIDEO badge, MP4 chooser, etc.).
+          const file = new File([rec.blob], rec.name, { type: rec.type || rec.blob.type || 'audio/mpeg' });
+          this.loadFile(file);
+          return true;
+        } catch (e) {
+          console.warn('loadCurrentSong', e);
+          return false;
+        }
+      },
+      async _clearCurrentSong() {
+        try {
+          if (!window.Library || !window.Library.db) return;
+          await window.Library.db.delete('songs', 'current');
+        } catch (e) { console.warn('clearCurrentSong', e); }
       },
       pause() {
         if (this.audioEl) this.audioEl.pause();
@@ -897,6 +1305,75 @@
         $('beat-led').classList.toggle('on', beatHit);
         $('onset-led').classList.toggle('on', onsetHit);
         if (this.feat.bpm) $('bpm-pill').textContent = this.feat.bpm + ' bpm';
+        // v2: enhanced analysis
+        if (window.AudioAnalysisV2 && this.audioEl) {
+          // Track recent onsets for BPM autocorrelation
+          if (beatHit) this._onsetHistory = this._onsetHistory || [];
+          if (beatHit) {
+            this._onsetHistory.push(now);
+            while (this._onsetHistory.length > 0 && this._onsetHistory[0] < now - 8) {
+              this._onsetHistory.shift();
+            }
+            if (this._onsetHistory.length >= 6) {
+              const v2bpm = window.AudioAnalysisV2.estimateBPM(this._onsetHistory);
+              if (v2bpm > 0) this.feat.bpm = v2bpm;
+            }
+          }
+          // Beat phase (assumes 4/4)
+          if (this.feat.bpm > 0 && this._downbeatTime !== undefined) {
+            const beatDur = 60 / this.feat.bpm;
+            const barDur = beatDur * 4;
+            this.feat.beatPhase = ((now - this._downbeatTime) % barDur) / barDur;
+            this.feat.beatInBar = Math.floor(((now - this._downbeatTime) % barDur) / beatDur) + 1; // 1-4
+          }
+        }
+      },
+      // One-shot full analysis using audio-analysis-v2 (decode whole buffer offline)
+      async analyzeFull() {
+        if (!this.audioEl) return null;
+        if (!this.ctx) this.unlock();
+        // Need decoded buffer; decode from the audioEl's src
+        const resp = await fetch(this.audioEl.src);
+        const arr = await resp.arrayBuffer();
+        const buf = await this.ctx.decodeAudioData(arr);
+        if (!window.AudioAnalysisV2) return null;
+        const result = window.AudioAnalysisV2.analyzeBuffer(buf);
+        // Apply: update bpm (if better than current), set key/scale/confidence
+        if (result.bpm > 0 && (this.feat.bpm === 0 || Math.abs(result.bpm - this.feat.bpm) < 3)) {
+          this.feat.bpm = result.bpm;
+        }
+        this.feat.key = result.key;
+        this.feat.scale = result.scale;
+        this.feat.confidence = result.confidence;
+        // Derive downbeat + beatGrid from onsets array (v2 returns onsets not beatGrid)
+        const onsets = result.onsets || [];
+        const downbeat = onsets.length ? onsets[0] : 0;
+        const beatGrid = [];
+        if (result.bpm > 0 && result.duration > 0) {
+          const beatSec = 60 / result.bpm;
+          let t = downbeat;
+          while (t < result.duration && beatGrid.length < 1024) {
+            beatGrid.push(t);
+            t += beatSec;
+          }
+        }
+        this.feat.downbeat = downbeat;
+        this._downbeatTime = downbeat;
+        this._beatGrid = beatGrid;
+        // Update UI
+        this._updateKeyPill();
+        return result;
+      },
+      _updateKeyPill() {
+        if (!this.feat.key) return;
+        const k = this.feat.key;
+        const s = this.feat.scale || 'major';
+        const el = $('key-pill');
+        if (el) {
+          el.textContent = k + ' ' + s;
+          el.classList.remove('major', 'minor');
+          el.classList.add(s);
+        }
       },
     };
 
@@ -914,10 +1391,17 @@
       nextId: 1,
       db: null,
       async init() {
-        this.db = await openDb('sainted-word-records', 1, (db) => {
+        this.db = await openDb('sainted-word-records', 2, (db) => {
           if (!db.objectStoreNames.contains('assets')) {
             const s = db.createObjectStore('assets', { keyPath: 'id' });
             s.createIndex('added', 'added');
+          }
+          if (!db.objectStoreNames.contains('songs')) {
+            // Single-record store for the currently-loaded song. Key is always 'current'.
+            // When the user loads a new song, we overwrite 'current' so only the latest
+            // survives. The blob itself is large (could be 100MB+ for an MP4 song) so we
+            // keep it in IDB and not in localStorage.
+            db.createObjectStore('songs', { keyPath: 'id' });
           }
         });
         // Load existing assets
@@ -928,6 +1412,37 @@
         }
         this.render();
         setStatus(this.items.length ? 'lib ' + this.items.length : 'idle', this.items.length ? 'ok' : '');
+      },
+      // Wipe everything: library assets + saved song. Used by the Clear button.
+      // After this, both the on-screen library and the IndexedDB 'songs'/'assets'
+      // stores are empty, and the song-name pill goes back to "no song".
+      async clearAll() {
+        // 1. In-memory items + their blob URLs
+        for (const it of this.items) {
+          try { URL.revokeObjectURL(it.url); } catch {}
+        }
+        this.items = [];
+        // NOTE: we intentionally do NOT reset the swr-manifest-loaded flag here.
+        // Once the demo library has been seeded, the user has seen it — Clear
+        // means "wipe everything I uploaded and remember nothing", not "reset
+        // the engine to factory state". To re-seed the demo library the user
+        // would have to clear localStorage manually.
+        // 2. IndexedDB 'assets' store (the wrapper exposes clear())
+        if (this.db) {
+          try { await this.db.clear('assets'); } catch (e) { console.warn('clear assets', e); }
+        }
+        // 3. Saved song
+        if (window.Audio) await window.Audio._clearCurrentSong();
+        // 4. UI
+        this.render();
+        const sn = document.getElementById('song-name');
+        if (sn) sn.innerHTML = '<i style="opacity:.5">no song</i>';
+        const play = document.getElementById('play');
+        if (play) { play.disabled = true; play.textContent = '▶ Play'; play.classList.add('primary'); play.classList.remove('danger'); }
+        const rec = document.getElementById('rec');
+        if (rec) rec.disabled = true;
+        if (window.Audio) { window.Audio.pause(); window.Audio.audioEl = null; window.Audio.source = null; }
+        if (typeof setStatus === 'function') setStatus('cleared', 'ok');
       },
       async addFiles(files) {
         setStatus('importing…', '');
@@ -1092,9 +1607,15 @@
           const tag = it.type === 'video' ? 'VID' :
                    it.type === 'camera' ? 'CAM' :
                    (it.name.toLowerCase().endsWith('.gif') ? 'GIF' : 'IMG');
+          // Video items get a "use as song" button so users can promote a
+          // library clip to the audio source. Other types just get the tag + name.
+          const songBtn = (it.type === 'video')
+            ? '<button class="lib-use-as-song" title="Use this clip as the song (audio only)">♪</button>'
+            : '';
           d.innerHTML = `
             <span class="tag">${tag}</span>
             <span class="name">${escapeHtml(it.name)}</span>
+            ${songBtn}
           `;
           if (it.thumb) {
             const img = new Image();
@@ -1109,7 +1630,14 @@
             img.src = it.url;
             d.appendChild(img);
           }
-          d.addEventListener('click', () => {
+          d.addEventListener('click', (e) => {
+            // If the user clicked the "use as song" button, route there instead
+            // of adding a layer. (Stop event from bubbling to the layer handler.)
+            if (e.target && e.target.classList && e.target.classList.contains('lib-use-as-song')) {
+              e.stopPropagation();
+              Library.promoteToSong(it);
+              return;
+            }
             // Add a new layer using this asset
             Layers.add(it);
           });
@@ -1125,6 +1653,22 @@
       byId(id) { return this.items.find(i => i.id === id); },
       // List every already-known asset name (used to detect new ones in folder)
       knownNames() { return new Set(this.items.map(i => i.name)); },
+      // Promote a library video item to the song slot. Re-fetches the blob from
+      // the (object URL) source so the Audio module can decode it the same way
+      // it would any user-picked file.
+      async promoteToSong(item) {
+        if (!item) return;
+        try {
+          const resp = await fetch(item.url);
+          if (!resp.ok) throw new Error('fetch failed: ' + resp.status);
+          const blob = await resp.blob();
+          const file = new File([blob], item.name, { type: blob.type || 'video/mp4' });
+          Audio.loadFile(file);
+          setStatus(`♪ ${item.name} loaded as song`, 'ok');
+        } catch (e) {
+          setStatus('could not load as song: ' + (e.message || e), 'err');
+        }
+      },
     };
 
     function sampleLuma(data) {
@@ -1178,6 +1722,11 @@
               t.onsuccess = () => r();
               t.onerror = () => rj(t.error);
             }),
+            clear: (store) => new Promise((r, rj) => {
+              const t = db.transaction(store, 'readwrite').objectStore(store).clear();
+              t.onsuccess = () => r();
+              t.onerror = () => rj(t.error);
+            }),
           };
           resolve(api);
         };
@@ -1213,6 +1762,7 @@
           pos: { x: 0, y: 0, rot: 0 },
           z,
           reactors: pickReactors(this.list.length, asset, Audio.feat),
+          snapBeat: false,
         };
         this.list.push(layer);
         this.render();
@@ -1256,6 +1806,7 @@
               <span class="name">${l.asset ? escapeHtml(trunc(l.asset.name, 18)) : '(empty)'}</span>
               <button class="x-rot" title="Rotate this clip +90° (or press R)">↻</button>
               <button class="x-rand" title="Randomise pos / rot / scale / blend">🎲</button>
+              <button class="x-beat" title="Snap to beat (BPM-locked)">⌐</button>
               <button class="x" title="remove">×</button>
             </div>
             <div class="layer-row">
@@ -1311,6 +1862,12 @@
               l.baseScale = 0.4 + Math.random() * 1.4;
               const blends = ['source-over','screen','multiply','lighter','difference','overlay','soft-light'];
               l.blend = blends[Math.floor(Math.random() * blends.length)];
+              e.stopPropagation();
+              return;
+            }
+            if (e.target.classList.contains('x-beat')) {
+              l.snapBeat = !l.snapBeat;
+              e.target.classList.toggle('active', l.snapBeat);
               e.stopPropagation();
               return;
             }
@@ -1588,6 +2145,7 @@
     // Expose for debugging from devtools / puppeteer
     window.VISUAL_PRESETS = VISUAL_PRESETS;
 
+
     // ======================================================================
     // RENDERER
     // ======================================================================
@@ -1843,6 +2401,39 @@
           cx.fillText(Audio.feat.bpm + 'bpm', 4, 10);
         }
       },
+      // v2: draw BPM + key in the bottom-right corner when recording,
+      // so the exported video carries the analysis metadata.
+      drawRecordingOverlay(cx) {
+        const w = cx.canvas.width, h = cx.canvas.height;
+        const f = Audio.feat;
+        const parts = [];
+        if (f.bpm) parts.push('BPM ' + f.bpm);
+        if (f.key) parts.push(f.key + ' ' + (f.scale || 'major'));
+        if (!parts.length) return;
+        const text = parts.join(' · ');
+        cx.save();
+        cx.font = '600 18px ui-monospace, Menlo, monospace';
+        const metrics = cx.measureText(text);
+        const padX = 14, padY = 8;
+        const boxW = metrics.width + padX * 2;
+        const boxH = 30;
+        const x = w - boxW - 16;
+        const y = h - boxH - 16;
+        cx.fillStyle = 'rgba(5, 3, 8, 0.72)';
+        cx.fillRect(x, y, boxW, boxH);
+        cx.strokeStyle = 'rgba(255, 61, 146, 0.55)';
+        cx.lineWidth = 1;
+        cx.strokeRect(x + 0.5, y + 0.5, boxW - 1, boxH - 1);
+        cx.fillStyle = '#f5e9ff';
+        cx.textBaseline = 'middle';
+        cx.fillText(text, x + padX, y + boxH / 2);
+        // Tiny red dot to mark recording
+        cx.fillStyle = '#ff7a3d';
+        cx.beginPath();
+        cx.arc(x + boxW - 12, y + boxH / 2, 4, 0, Math.PI * 2);
+        cx.fill();
+        cx.restore();
+      },
       // ============================================================
       // DRAG / DRIFT INTERACTION
       // ============================================================
@@ -1975,6 +2566,18 @@
             l.pos.x = Math.sin(t * 0.35 + ph) * 22 + eMid * 18;
             l.pos.y = Math.cos(t * 0.28 + ph * 0.7) * 18 + eTre * 14;
             l.pos.rot = Math.sin(t * 0.22 + ph * 0.5) * 3.2 + eBeat * 6;
+            // v2: snap-to-beat (compute nearest beat for layers that opted in)
+            if (l.snapBeat && Audio._beatGrid && Audio._beatGrid.length) {
+              const now = Audio.ctx ? Audio.ctx.currentTime : 0;
+              const grid = Audio._beatGrid;
+              let nearest = grid[0];
+              let bestDist = Math.abs(grid[0] - now);
+              for (let g = 1; g < grid.length; g++) {
+                const d = Math.abs(grid[g] - now);
+                if (d < bestDist) { bestDist = d; nearest = grid[g]; }
+              }
+              l._beatOffset = nearest;
+            }
           }
         }
         // Clear
@@ -1992,6 +2595,10 @@
         this.drawPaletteOverlay(cx);
         this.drawFlash(cx);
         this.drawMeter();
+        // v2: recording overlay — burn BPM + key into the captured video
+        if (Recorder.recording) {
+          this.drawRecordingOverlay(cx);
+        }
         // DOM flash
         if (Audio.feat.beat > 0.3) {
           stageFlash.style.opacity = String(Audio.feat.beat * 0.4);
@@ -2022,6 +2629,59 @@
       progressTimer: null,
       progressEl: null,
       startedAt: 0,
+      watermarkImg: null,  // preloaded HTMLImageElement (or null)
+      watermarkKey: 'none',// 'a' | 'b' | 'c' | 'none'
+      _watermarkFrame: 0,  // throttle to ~30fps inside rAF
+
+      // Preload watermark image based on the current #rec-wm selector value.
+      _loadWatermark(key) {
+        if (key === 'none' || !key) {
+          this.watermarkImg = null;
+          this.watermarkKey = 'none';
+          return;
+        }
+        const img = new Image();
+        // Use the PNG render (engine bundles same path as the SVG fallback).
+        // CrossOrigin anonymous to avoid tainting the canvas during captureStream.
+        img.crossOrigin = 'anonymous';
+        img.src = `./swr-watermark-${key}.png`;
+        img.onload = () => {
+          this.watermarkImg = img;
+          this.watermarkKey = key;
+        };
+        img.onerror = () => {
+          // Fallback: try SVG
+          const svg = new Image();
+          svg.crossOrigin = 'anonymous';
+          svg.src = `./swr-watermark-${key}.svg`;
+          svg.onload = () => { this.watermarkImg = svg; this.watermarkKey = key; };
+        };
+      },
+
+      // Draw watermark on the capture canvas (called every frame during recording).
+      // Placed bottom-right with safe-area margins; opacity 0.6 to read on any background.
+      // PT-licensed users: watermark is suppressed (consumes 1 credit/min).
+      _drawWatermark(ctx, w, h) {
+        // PT license suppresses the watermark — the user paid for the watermark removal
+        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
+          return;
+        }
+        if (!this.watermarkImg || !this.watermarkImg.complete || this.watermarkImg.naturalWidth === 0) return;
+        const img = this.watermarkImg;
+        // Scale: 18% of frame width (per swr-watermark-plan.md), preserving aspect ratio.
+        // Watermarks: A=720x240 (3:1), B=1440x400 (3.6:1), C=720x960 (3:4)
+        const targetW = Math.round(w * 0.18);
+        const aspect = img.naturalHeight / img.naturalWidth;
+        const targetH = Math.round(targetW * aspect);
+        // Position: bottom-right with 24px margin (out of 720p frame), scaled proportionally
+        const margin = Math.round(Math.min(w, h) * 0.033);  // ~24px @ 720p
+        const x = w - targetW - margin;
+        const y = h - targetH - margin;
+        ctx.save();
+        ctx.globalAlpha = 0.6;
+        ctx.drawImage(img, x, y, targetW, targetH);
+        ctx.restore();
+      },
       start() {
         if (!Audio.audioEl) return;
         // Compute auto-stop deadline from #rec-dur selector
@@ -2079,6 +2739,34 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
+        // Preload the watermark image based on the user's selector choice
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
+        this._loadWatermark(wmSel);
+        // PT watermark-free status indicator (no credit consumed at start —
+        // the engine charges the renderer on stop, with a final cost based
+        // on actual duration; for 'song' mode we know it up front).
+        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
+          const lic = window.SWR_PT.load();
+          setStatus(`recording · watermark removed · ${lic.credits} credits left`, 'live');
+          if (window.SWR_PT_Panel && window.SWR_PT_Panel.renderChip) window.SWR_PT_Panel.renderChip();
+        }
+        // Start a dedicated rAF that draws the watermark on the capture canvas every frame.
+        // This is decoupled from the engine's main render loop so watermark style can be
+        // changed per-render without touching the FX/Stage code.
+        if (this._wmRaf) cancelAnimationFrame(this._wmRaf);
+        const drawOne = () => {
+          if (!this.recording) return;
+          if (this.watermarkImg && this.watermarkImg.complete) {
+            try {
+              const ctx = captureCanvas.getContext('2d');
+              if (ctx) this._drawWatermark(ctx, captureCanvas.width, captureCanvas.height);
+            } catch (e) {
+              // captureStream may have failed; silently skip
+            }
+          }
+          this._wmRaf = requestAnimationFrame(drawOne);
+        };
+        this._wmRaf = requestAnimationFrame(drawOne);
         const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
         const totalSec = durMs > 0 ? Math.round(durMs / 1000) : 0;
         // Initial status
@@ -2109,6 +2797,7 @@
         if (!this.rec) return;
         if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
         if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
+        if (this._wmRaf) { cancelAnimationFrame(this._wmRaf); this._wmRaf = null; }
         try {
           this.rec.stop();
         } catch (err) {
@@ -2144,7 +2833,20 @@
         a.remove();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
         const mb = (blob.size / (1024 * 1024)).toFixed(1);
-        setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB`, 'ok');
+        // Charge PT credits for the export (1 credit / minute at 1080p).
+        // Free users pay nothing — they just get the watermark.
+        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
+          const durationSec = Math.max(1, Math.round((Date.now() - this.startedAt) / 1000));
+          const res = window.SWR_PT.consumeForRender(durationSec, '1080p');
+          if (res.ok) {
+            setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB · ${res.creditsAfter} credits left`, 'ok');
+          } else {
+            setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB · ${res.error || 'credit error'}`, 'warn');
+          }
+          if (window.SWR_PT_Panel && window.SWR_PT_Panel.renderChip) window.SWR_PT_Panel.renderChip();
+        } else {
+          setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB`, 'ok');
+        }
       },
     };
 
@@ -2167,6 +2869,10 @@
         });
         // Library
         $('add-assets').addEventListener('click', () => $('asset-input').click());
+        $('clear-all').addEventListener('click', async () => {
+          if (!confirm('Erase all uploaded assets and the saved song from this browser?')) return;
+          await Library.clearAll();
+        });
         $('asset-input').addEventListener('change', (e) => {
           Library.addFiles(e.target.files);
           e.target.value = '';
@@ -2176,35 +2882,6 @@
           if (Library.items.length) Layers.add(Library.items[0]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
-        // Panel rotate (+90° toggle, persists in localStorage)
-        const panelRotKey = 'swr_panel_rot';
-        function applyPanelRotation(panelId, rotated) {
-          const panel = $(panelId);
-          const btn = document.querySelector(`.panel-rotate[data-target="${panelId}"]`);
-          if (!panel) return;
-          panel.classList.toggle('rotated', !!rotated);
-          if (btn) btn.classList.toggle('active', !!rotated);
-        }
-        try {
-          const saved = JSON.parse(localStorage.getItem(panelRotKey) || '{}');
-          applyPanelRotation('library', saved.library);
-          applyPanelRotation('layers',  saved.layers);
-        } catch {}
-        for (const panelId of ['library', 'layers']) {
-          const btn = document.querySelector(`.panel-rotate[data-target="${panelId}"]`);
-          if (!btn) continue;
-          btn.addEventListener('click', () => {
-            const panel = $(panelId);
-            if (!panel) return;
-            const now = !panel.classList.contains('rotated');
-            applyPanelRotation(panelId, now);
-            try {
-              const cur = JSON.parse(localStorage.getItem(panelRotKey) || '{}');
-              cur[panelId] = now;
-              localStorage.setItem(panelRotKey, JSON.stringify(cur));
-            } catch {}
-          });
-        }
         // Global sliders
         for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur']) {
           const inp = $(id);
@@ -2235,6 +2912,13 @@
         const blurInp = $('blur');
         if (grayInp) grayInp.addEventListener('input', () => window.FX && window.FX.setGrayscale(parseFloat(grayInp.value)));
         if (blurInp) blurInp.addEventListener('input',  () => window.FX && window.FX.setBlur(parseFloat(blurInp.value)));
+        // Distortion sliders (from flexible-smart-videomaker preset system)
+        const liquidInp = $('liquid');
+        const pearlInp  = $('pearl');
+        const glitchInp = $('glitch');
+        if (liquidInp) liquidInp.addEventListener('input', () => window.FX && window.FX.setLiquid(parseFloat(liquidInp.value)));
+        if (pearlInp)  pearlInp.addEventListener('input',  () => window.FX && window.FX.setPearl(parseFloat(pearlInp.value)));
+        if (glitchInp) glitchInp.addEventListener('input', () => window.FX && window.FX.setGlitch(parseFloat(glitchInp.value)));
         // Drop targets
         window.addEventListener('dragover', (e) => {
           if (e.dataTransfer.types.includes('Files')) {
@@ -2248,9 +2932,16 @@
         window.addEventListener('drop', async (e) => {
           e.preventDefault();
           document.body.classList.remove('drag-files');
-          if (e.dataTransfer.files && e.dataTransfer.files.length) {
-            await Library.addFiles(e.dataTransfer.files);
+          if (!e.dataTransfer.files || !e.dataTransfer.files.length) return;
+          const files = Array.from(e.dataTransfer.files);
+          // Smart routing: if exactly one video file is dropped and there's no
+          // song loaded yet, show a chooser banner. Otherwise route to library.
+          const isVideo = (f) => (f.type || '').startsWith('video/') || /\.(mp4|m4v|webm|mov|mkv|ogv)$/i.test(f.name || '');
+          if (files.length === 1 && isVideo(files[0]) && !Audio.audioEl) {
+            UI.showMp4Chooser(files[0]);
+            return;
           }
+          await Library.addFiles(files);
         });
         // Keyboard
         window.addEventListener('keydown', (e) => {
@@ -2302,26 +2993,205 @@
         const d = Audio.audioEl.duration || 0;
         $('time').innerHTML = `${fmt(t)} <b>/ ${fmt(d)}</b>`;
       },
+      // MP4 drop chooser: a small banner with 2 buttons (use as song / use as
+      // library) shown when a single video file is dropped and no song is loaded.
+      showMp4Chooser(file) {
+        // If a chooser is already up, just update its text + handlers
+        let banner = document.getElementById('mp4-chooser');
+        if (banner) banner.remove();
+        banner = document.createElement('div');
+        banner.id = 'mp4-chooser';
+        banner.className = 'mp4-chooser';
+        const fname = escapeHtml(file.name);
+        banner.innerHTML = `
+          <div class="mp4-chooser__text">
+            <div class="mp4-chooser__title">Use <b>${fname}</b> as…</div>
+            <div class="mp4-chooser__sub">It's a video file. Pick how you want to load it.</div>
+          </div>
+          <div class="mp4-chooser__actions">
+            <button class="mp4-chooser__btn primary" data-act="song">♪ Song (audio only)</button>
+            <button class="mp4-chooser__btn" data-act="library">▤ Library (visual)</button>
+            <button class="mp4-chooser__btn" data-act="both">Both (audio + visual)</button>
+            <button class="mp4-chooser__btn ghost" data-act="cancel" title="Dismiss">×</button>
+          </div>
+        `;
+        document.body.appendChild(banner);
+        // Animate in
+        requestAnimationFrame(() => banner.classList.add('show'));
+        const close = () => {
+          banner.classList.remove('show');
+          setTimeout(() => banner.remove(), 180);
+        };
+        banner.addEventListener('click', async (e) => {
+          const act = e.target?.dataset?.act;
+          if (!act) return;
+          if (act === 'cancel') { close(); return; }
+          if (act === 'song' || act === 'both') {
+            Audio.loadFile(file);
+          }
+          if (act === 'library' || act === 'both') {
+            await Library.addFiles([file]);
+          }
+          close();
+        });
+      },
     };
 
-    function fmt(s) {
-      if (!isFinite(s) || s < 0) s = 0;
-      const m = Math.floor(s / 60);
-      const sec = Math.floor(s % 60);
-      return `${m}:${sec.toString().padStart(2, '0')}`;
-    }
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
-    }
-    function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
-    function setStatus(t, cls) {
-      const p = $('status-pill');
-      p.textContent = t;
-      p.classList.remove('ok', 'live');
-      if (cls) p.classList.add(cls);
-    }
+    // ======================================================================
+    // CSSFX — 20 stackable CSS video filters applied to #stage
+    // ======================================================================
+    // Each filter is a class on the stage element. They composite with the
+    // WebGL post-process: WebGL draws to the canvas, CSS transforms/filter
+    // properties apply to the whole stage subtree at the DOM layer.
+    // Persisted in localStorage under 'swr-cssfx-active' so the user
+    // doesn't lose their stack on reload.
+    const CSSFX = {
+      // 20 curated CSS classes from video-fx.css that work standalone on
+      // a single element. Skipped: parallax-layer-* (needs layered DOM),
+      // rgb-split-img (needs SVG filter injection), loop-pingpong (no
+      // animation of its own), particles (just a comment).
+      catalog: [
+        { name: 'kenburns',     label: 'Ken Burns' },
+        { name: 'pan-scan',     label: 'Pan & Scan' },
+        { name: 'mesh-warp',    label: 'Mesh Warp' },
+        { name: 'displacement', label: 'Displace' },
+        { name: 'liquify',      label: 'Liquify' },
+        { name: 'light-leak',   label: 'Light Leak' },
+        { name: 'film-grain',   label: 'Film Grain' },
+        { name: 'vhs',          label: 'VHS' },
+        { name: 'rgb-split',    label: 'RGB Split' },
+        { name: 'pixel-sort',   label: 'Pixel Sort' },
+        { name: 'crt',          label: 'CRT' },
+        { name: 'crt-flicker',  label: 'CRT Flicker' },
+        { name: 'audio-reactive', label: 'Audio React' },
+        { name: 'hue-shift',    label: 'Hue Shift' },
+        { name: 'kaleidoscope', label: 'Kaleido' },
+        { name: 'zoom-pulse',   label: 'Zoom Pulse' },
+        { name: 'camera-shake', label: 'Cam Shake' },
+        { name: 'vhs-crt',      label: 'VHS·CRT' },
+        { name: 'dreamy',       label: 'Dreamy' },
+        { name: 'retro',        label: 'Retro' },
+      ],
+      active: new Set(),
+      stageEl: null,
+      panelEl: null,
+      gridEl: null,
+      countEl: null,
+      toggleEl: null,
+
+      init() {
+        this.stageEl = $('stage');
+        this.panelEl = $('css-fx-panel');
+        this.gridEl  = $('css-fx-grid');
+        this.countEl = $('css-fx-count');
+        this.toggleEl = $('css-fx-toggle');
+        if (!this.stageEl || !this.gridEl) return;
+
+        // Render chips
+        const frag = document.createDocumentFragment();
+        for (const fx of this.catalog) {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'css-fx-chip';
+          chip.dataset.fx = fx.name;
+          chip.setAttribute('aria-pressed', 'false');
+          chip.innerHTML = `<span class="css-fx-chip__dot"></span><span class="css-fx-chip__name">${fx.label}</span>`;
+          chip.addEventListener('click', () => this.toggle(fx.name));
+          frag.appendChild(chip);
+        }
+        this.gridEl.appendChild(frag);
+
+        // Toggle popup
+        if (this.toggleEl) {
+          this.toggleEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.setOpen(this.panelEl.hasAttribute('hidden'));
+          });
+        }
+        // Click outside closes
+        document.addEventListener('click', (e) => {
+          if (!this.panelEl || this.panelEl.hasAttribute('hidden')) return;
+          if (this.panelEl.contains(e.target)) return;
+          if (this.toggleEl && this.toggleEl.contains(e.target)) return;
+          this.setOpen(false);
+        });
+        // Escape closes
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.panelEl && !this.panelEl.hasAttribute('hidden')) {
+            this.setOpen(false);
+          }
+        });
+        // Clear-all
+        const clearBtn = $('css-fx-clear');
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
+
+        // Restore persisted state
+        try {
+          const saved = JSON.parse(localStorage.getItem('swr-cssfx-active') || '[]');
+          if (Array.isArray(saved)) {
+            for (const name of saved) {
+              if (this.catalog.find((f) => f.name === name)) this._apply(name, true);
+            }
+          }
+        } catch (_) { /* noop */ }
+        this._syncUI();
+      },
+
+      setOpen(open) {
+        if (!this.panelEl) return;
+        if (open) {
+          this.panelEl.removeAttribute('hidden');
+          requestAnimationFrame(() => this.panelEl.classList.add('show'));
+        } else {
+          this.panelEl.classList.remove('show');
+          setTimeout(() => this.panelEl.setAttribute('hidden', ''), 180);
+        }
+      },
+
+      toggle(name) {
+        if (this.active.has(name)) this._apply(name, false);
+        else this._apply(name, true);
+        this._syncUI();
+        this._persist();
+      },
+
+      _apply(name, on) {
+        if (on) {
+          this.active.add(name);
+          this.stageEl.classList.add(name);
+        } else {
+          this.active.delete(name);
+          this.stageEl.classList.remove(name);
+        }
+      },
+
+      clear() {
+        for (const name of [...this.active]) this._apply(name, false);
+        this._syncUI();
+        this._persist();
+      },
+
+      _syncUI() {
+        // Update chips
+        if (this.gridEl) {
+          for (const chip of this.gridEl.querySelectorAll('.css-fx-chip')) {
+            const on = this.active.has(chip.dataset.fx);
+            chip.classList.toggle('on', on);
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+          }
+        }
+        // Update count badge
+        const n = this.active.size;
+        if (this.countEl) this.countEl.textContent = String(n);
+        if (this.toggleEl) this.toggleEl.dataset.count = String(n);
+      },
+
+      _persist() {
+        try {
+          localStorage.setItem('swr-cssfx-active', JSON.stringify([...this.active]));
+        } catch (_) { /* noop */ }
+      },
+    };
 
     // ======================================================================
     // BOOT
@@ -2331,10 +3201,29 @@
       Renderer.init();
       Renderer.fit();
       Renderer.start();
+      CSSFX.init();
       await Library.init();
-      // Auto-load any pre-seeded assets from ./library/ on first run
-      // (skips if the user already has assets in IndexedDB)
-      if (Library.items.length === 0) {
+      // Expose on window EARLY so _loadCurrentSong (called below) can see
+      // window.Library.db. The previous order had window.Library = Library
+      // set AFTER _loadCurrentSong, so the song-restore path saw undefined
+      // and silently bailed. Now exposed before any deferred work.
+      window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI, VISUAL_PRESETS, applyPreset };
+      window.Audio = Audio;
+      window.Layers = Layers;
+      window.Library = Library;
+      window.CSSFX = CSSFX;
+      // Restore the last-loaded song from IndexedDB (silent restore, no user
+      // gesture needed — the user has to click play anyway since browsers gate
+      // audio playback on a real gesture).
+      try {
+        const restored = await Audio._loadCurrentSong();
+        if (restored) setStatus('song restored', 'ok');
+      } catch (e) { console.warn('song restore', e); }
+      // Auto-load any pre-seeded assets from ./library/ on the first run per
+      // browser. We use a localStorage flag so the manifest only seeds once:
+      // if the user has uploaded their own assets, the manifest skips; if
+      // they later Clear, the next visit stays empty (no manifest surprise).
+      if (Library.items.length === 0 && !localStorage.getItem('swr-manifest-loaded')) {
         try {
           const r = await fetch('./library/manifest.json', { cache: 'no-cache' });
           if (r.ok) {
@@ -2345,34 +3234,63 @@
               return await fr.blob();
             }));
             await Library.addFiles(blobs.map((b, i) => new File([b], files[i], { type: b.type })));
+            localStorage.setItem('swr-manifest-loaded', '1');
           }
         } catch (e) {
           // No library folder, that's fine
         }
       }
-      // Expose for debugging from devtools / puppeteer
-      window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI, VISUAL_PRESETS, applyPreset };
       // Wire preset dropdown
       const presetSel = document.getElementById('preset');
       if (presetSel) presetSel.addEventListener('change', (e) => applyPreset(e.target.value));
-      // Expose core state for debugging / programmatic use (Puppeteer tests, dev console, power users)
-      window.Layers = Layers;
-      window.Library = Library;
       // Set up canvas sample song for instant demo if no song loaded
       setStatus('ready', 'ok');
     })();
   </script>
-  <script type="module" src="layer-scheduler.client.js"></script>
-  <script type="module" src="fx-postprocess.js"></script>
-  <script type="module" src="wizard.js"></script>
-  <script type="module" src="personas.js"></script>
-  <script type="module" src="project.js"></script>
-  <script type="module" src="mic-input.client.js"></script>
-  <script type="module" src="camera.client.js"></script>
-  <script type="module" src="timeline.client.js"></script>
-  <script type="module" src="trim.client.js"></script>
-  <script type="module" src="persona-preview.client.js"></script>
-  <script type="module" src="media-sets.client.js"></script>
-  <script type="module" src="share.client.js"></script>
+  <script type="module" src="/brandkit.client.js"></script>
+  <script type="module">
+    // Apply brandkit on studio boot — public launch: no auth wall.
+    // Engine is fully accessible without a profile. Brandkit is opt-in:
+    // if a profile exists, apply it; otherwise render with default theme.
+    (function () {
+      function go() {
+        if (!window.SWR_Brandkit) { setTimeout(go, 30); return; }
+        const profile = window.SWR_Brandkit.readProfile();
+        if (profile.name) {
+          window.SWR_Brandkit.applyBrandkit(profile.brandkit);
+          if (typeof window.setStatus === 'function') {
+            window.setStatus('brandkit: ' + (profile.brandkit.brandName || profile.name), 'ok');
+          }
+        } else {
+          // Anonymous visitor — show a "Set up brand kit" hint in the status bar
+          if (typeof window.setStatus === 'function') {
+            window.setStatus('engine ready — no profile (set one via the ⚙ brand chip)', 'ok');
+          }
+        }
+        // Mount the chip regardless — it offers both "set up profile" and PT/license actions
+        window.SWR_Brandkit.mountChip();
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', go);
+      } else {
+        go();
+      }
+    })();
+  </script>
+  <script type="module" src="/layer-scheduler.client.js"></script>
+  <script type="module" src="/fx-postprocess.js"></script>
+  <script type="module" src="/wizard.js"></script>
+  <script type="module" src="/personas.js"></script>
+  <script type="module" src="/project.js"></script>
+  <script type="module" src="/mic-input.client.js"></script>
+  <script type="module" src="/camera.client.js"></script>
+  <script type="module" src="/timeline.client.js"></script>
+  <script type="module" src="/trim.client.js"></script>
+  <script type="module" src="/persona-preview.client.js"></script>
+  <script type="module" src="/media-sets.client.js"></script>
+  <script type="module" src="/share.client.js"></script>
+  <script type="module" src="/pwa-bootstrap.js"></script>
+  <script type="module" src="/pt.client.js"></script>
+  <script type="module" src="/pt-panel.client.js"></script>
 </body>
 </html>

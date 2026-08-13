@@ -24,7 +24,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
 
   <style>
     :root {
@@ -218,6 +218,28 @@
       padding: 22px 20px; background: var(--bg-3);
       border: 1px solid var(--line); border-radius: var(--radius);
     }
+
+    /* Ad cards: 3 performance-style creatives (Instagram 3:4) */
+    .ad-cards {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+      margin-top: 40px;
+    }
+    @media (max-width: 1180px) { .ad-cards { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 720px) { .ad-cards { grid-template-columns: 1fr; max-width: 480px; margin: 40px auto 0; } }
+    .ad-card {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--radius); overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .ad-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+    .ad-card svg { display: block; width: 100%; height: auto; }
+    .ad-card__cap {
+      padding: 14px 18px; font-size: 12px; color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-family: var(--font-mono); letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .ad-card__cap strong { color: var(--ink); font-weight: 600; }
     .thesis__icon {
       width: 32px; height: 32px; border-radius: 8px;
       background: var(--bg-2); color: var(--accent);
@@ -1020,6 +1042,90 @@
   </div>
 </section>
 
+<!-- ============================ PERSONAL TIER (PT) ============================ -->
+<section class="section" id="pt">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">04b · Personal Tier</div>
+      <h2 class="section__title">Or use the engine yourself. <em>Pay once, no subscription.</em></h2>
+      <p class="section__lede">
+        Skip the render queue. Get a license, drop your song + your library,
+        and ship the visualizer yourself. The engine is yours — 23 personas,
+        20 CSS filters, watermark removed, 1080p WebM export (MP4 in v1.1).
+        Credits never expire.
+      </p>
+    </div>
+    <div class="pricing">
+      <div class="price">
+        <div class="price__name">PT Solo</div>
+        <div class="price__amount"><span class="currency">€</span>120</div>
+        <div class="price__from">one-time · 50 render credits</div>
+        <ul class="price__list">
+          <li>Full engine access (sainted-word-records.vercel.app)</li>
+          <li>50 render credits (1 credit / minute at 1080p)</li>
+          <li>All 23 personas · all 20 CSS filters</li>
+          <li>Watermark removed on export</li>
+          <li>WebM export (1080p / 30fps)</li>
+          <li>1 year of updates</li>
+          <li>Persistent library (IndexedDB)</li>
+        </ul>
+        <!-- Replace with your real Stripe Payment Link for PT Solo -->
+        <a class="price__cta" href="https://buy.stripe.com/SWR_PT_SOLO_120">Get PT Solo →</a>
+        <a class="price__cta-link" href="./thanks.html?type=pt&tier=solo" style="font-size:11px; margin-top:8px; display:block; text-align:center; color:var(--muted);">Already paid? Activate your key →</a>
+      </div>
+      <div class="price price--featured">
+        <div class="price__badge">Most popular</div>
+        <div class="price__name">PT Band</div>
+        <div class="price__amount"><span class="currency">€</span>280</div>
+        <div class="price__from">one-time · 150 render credits</div>
+        <ul class="price__list">
+          <li>Everything in PT Solo</li>
+          <li>150 render credits</li>
+          <li>MP4 export (when v1.1 ships, included)</li>
+          <li>Per-clip rotate / randomise tools</li>
+          <li>2 years of updates</li>
+          <li>Priority email support</li>
+        </ul>
+        <!-- Replace with your real Stripe Payment Link for PT Band -->
+        <a class="price__cta" href="https://buy.stripe.com/SWR_PT_BAND_280">Get PT Band →</a>
+        <a class="price__cta-link" href="./thanks.html?type=pt&tier=band" style="font-size:11px; margin-top:8px; display:block; text-align:center; color:var(--muted);">Already paid? Activate your key →</a>
+      </div>
+      <div class="price">
+        <div class="price__name">PT Label</div>
+        <div class="price__amount"><span class="currency">€</span>600</div>
+        <div class="price__from">one-time · 500 render credits</div>
+        <ul class="price__list">
+          <li>Everything in PT Band</li>
+          <li>500 render credits</li>
+          <li>5 seats (shared library)</li>
+          <li>4K vertical export (when v1.3 ships)</li>
+          <li>Yugo pack (Belgrade-scene presets)</li>
+          <li>Lifetime updates</li>
+          <li>Dedicated support</li>
+        </ul>
+        <!-- Replace with your real Stripe Payment Link for PT Label -->
+        <a class="price__cta" href="https://buy.stripe.com/SWR_PT_LABEL_600">Get PT Label →</a>
+        <a class="price__cta-link" href="./thanks.html?type=pt&tier=label" style="font-size:11px; margin-top:8px; display:block; text-align:center; color:var(--muted);">Already paid? Activate your key →</a>
+      </div>
+    </div>
+    <p class="pricing__foot">
+      <strong>How it works:</strong> 1. Click a tier above (or set up a Stripe Payment Link in your dashboard).
+      2. After payment, we email you a license key in the form <code>swr-{tier}-{code}</code>.
+      3. Open the engine, click the <strong>PT</strong> chip in the header, paste the key, hit Activate.
+      4. Your watermark disappears. Credits decrement per render. Top up with another key anytime — credits stack.
+    </p>
+    <div class="founding-note">
+      <div class="founding-note__icon">◆</div>
+      <div>
+        <strong>Why credit-bank, not subscription:</strong> indie musicians ship
+        irregularly — 4 singles a year, then 6 months of nothing. A subscription
+        punishes them for not shipping. Credits match the rhythm of independent release:
+        buy when you need, use when you ship, top up when you run out. No expiration.
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============================ YUGO-NOSTALGIA ============================ -->
 <section class="section section--alt" id="yugo-preset">
   <div class="wrap">
@@ -1745,6 +1851,503 @@
   </div>
 </section>
 
+<!-- ============================ AD CARDS ============================ -->
+<section class="section section--alt" id="ads">
+  <div class="wrap">
+    <div class="section__head">
+      <div class="section__kicker">17 · Performance ad cards</div>
+      <h2 class="section__title">Six creatives, <em>six angles</em>. Post as-is.</h2>
+      <p class="section__lede">
+        Each card hits a different psychological angle (save money, faster results, avoid the wrong choice)
+        and follows the proven 3-section ad structure: bold hook, visual friction, quantified offer. Built at
+        Instagram's 3:4 ratio so you can post directly or use them as section headers in your outreach DMs.
+      </p>
+    </div>
+
+    <div class="ad-cards">
+
+      <!-- AD 1 · Save money · comparison -->
+      <figure class="ad-card">
+        <svg viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stop wasting €200+ on editors. Your song, audio-reactive, in 48 hours. From €25.">
+          <defs>
+            <style>
+              .h1 { font: 700 38px/1.05 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; }
+              .h2 { font: 400 16px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .lbl { font: 600 12px/1 'SF Mono', Menlo, monospace; letter-spacing: 0.18em; }
+              .price { font: 700 32px/1 'Helvetica Neue', Arial, sans-serif; }
+              .strike { font: 600 20px/1 'Helvetica Neue', Arial, sans-serif; text-decoration: line-through; opacity: 0.6; }
+              .body { font: 400 14px/1.4 'Helvetica Neue', Arial, sans-serif; }
+            </style>
+            <linearGradient id="cream" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#faf7f2"/>
+              <stop offset="1" stop-color="#f1ebe1"/>
+            </linearGradient>
+          </defs>
+          <!-- BG -->
+          <rect width="600" height="800" fill="url(#cream)"/>
+          <!-- TOP: hook + sub -->
+          <g transform="translate(40, 50)">
+            <text class="lbl" fill="#e6306b" y="0">SAVE €175 · 04× CHEAPER</text>
+            <text class="h1" fill="#1a1612" y="50">STOP WASTING</text>
+            <text class="h1" fill="#1a1612" y="92">€200+ ON</text>
+            <text class="h1" fill="#1a1612" y="134">EDITORS</text>
+            <text class="h2" fill="#8a7a66" y="180">Your song, audio-reactive,</text>
+            <text class="h2" fill="#8a7a66" y="200">in 48 hours.</text>
+          </g>
+          <!-- MIDDLE: visual friction (BEFORE / AFTER) -->
+          <g transform="translate(40, 290)">
+            <!-- BEFORE column -->
+            <g>
+              <rect x="0" y="0" width="240" height="280" rx="8" fill="#ffffff" stroke="#ddd3c2"/>
+              <text class="lbl" fill="#8a7a66" x="16" y="28">BEFORE</text>
+              <text class="lbl" fill="#1a1612" x="16" y="60">EDITOR</text>
+              <!-- Big red X -->
+              <circle cx="120" cy="135" r="44" fill="#fee2e8" stroke="#e6306b" stroke-width="3"/>
+              <line x1="92" y1="107" x2="148" y2="163" stroke="#e6306b" stroke-width="5" stroke-linecap="round"/>
+              <line x1="148" y1="107" x2="92" y2="163" stroke="#e6306b" stroke-width="5" stroke-linecap="round"/>
+              <text class="strike" fill="#1a1612" x="16" y="220">€200</text>
+              <text class="strike" fill="#1a1612" x="120" y="220">4 WEEKS</text>
+              <text class="body" fill="#8a7a66" x="16" y="252">After Effects, plugins,</text>
+              <text class="body" fill="#8a7a66" x="16" y="270">learning curve, plugins.</text>
+            </g>
+            <!-- AFTER column -->
+            <g transform="translate(280, 0)">
+              <rect x="0" y="0" width="240" height="280" rx="8" fill="#ffffff" stroke="#1c8c64" stroke-width="2"/>
+              <text class="lbl" fill="#1c8c64" x="16" y="28">AFTER</text>
+              <text class="lbl" fill="#1a1612" x="16" y="60">SWR BROWSER</text>
+              <!-- Green check -->
+              <circle cx="120" cy="135" r="44" fill="#d1f0e0" stroke="#1c8c64" stroke-width="3"/>
+              <path d="M 96 138 L 113 155 L 148 116" fill="none" stroke="#1c8c64" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+              <text fill="#1c8c64" font-weight="700" font-size="22" font-family="Helvetica" x="50" y="220">€25</text>
+              <text fill="#1c8c64" font-weight="700" font-size="22" font-family="Helvetica" x="120" y="220">48 HRS</text>
+              <text class="body" fill="#1a1612" x="16" y="252">Browser, drag, drop, MP4.</text>
+              <text class="body" fill="#1a1612" x="16" y="270">No plugins, no install.</text>
+            </g>
+          </g>
+          <!-- BOTTOM: price + CTA -->
+          <g transform="translate(40, 620)">
+            <line x1="0" y1="0" x2="520" y2="0" stroke="#ddd3c2" stroke-width="1"/>
+            <text class="lbl" fill="#8a7a66" y="30">FROM</text>
+            <text class="price" fill="#1a1612" x="50" y="40">€25</text>
+            <text class="body" fill="#8a7a66" x="120" y="38">Single visualizer</text>
+            <text class="body" fill="#8a7a66" x="120" y="58">48-hour delivery</text>
+            <!-- CTA button -->
+            <rect x="0" y="80" width="520" height="56" rx="6" fill="#e6306b"/>
+            <text fill="#faf7f2" font="700 20px Helvetica" x="40" y="116">Get a visualizer →</text>
+            <text fill="#faf7f2" font="400 13px Helvetica" x="420" y="116" text-anchor="end" opacity="0.85">swr.belgrade</text>
+          </g>
+        </svg>
+        <figcaption class="ad-card__cap">Angle 1 · <strong>Save money</strong> · 600×800 · Instagram 3:4</figcaption>
+      </figure>
+
+      <!-- AD 2 · Faster results · 48h clock -->
+      <figure class="ad-card">
+        <svg viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Your song. A music video. In 48 hours. From €25.">
+          <defs>
+            <style>
+              .h1 { font: 700 42px/1.05 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; }
+              .h2 { font: 400 16px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .lbl { font: 600 12px/1 'SF Mono', Menlo, monospace; letter-spacing: 0.18em; }
+              .price { font: 700 26px/1 'Helvetica Neue', Arial, sans-serif; }
+              .body { font: 400 14px/1.4 'Helvetica Neue', Arial, sans-serif; }
+            </style>
+            <linearGradient id="dark" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0e0c0a"/>
+              <stop offset="1" stop-color="#1a1612"/>
+            </linearGradient>
+          </defs>
+          <rect width="600" height="800" fill="url(#dark)"/>
+          <!-- TOP: hook -->
+          <g transform="translate(40, 50)">
+            <!-- Red circle badge -->
+            <circle cx="36" cy="22" r="28" fill="#e6306b"/>
+            <text fill="#faf7f2" font="700 14px SF Mono, monospace" x="36" y="27" text-anchor="middle">48h</text>
+            <text class="lbl" fill="#e6306b" x="80" y="20">TURNAROUND · 04× FASTER</text>
+            <text class="lbl" fill="#e6306b" x="80" y="36">NO EDITOR · NO AE</text>
+            <text class="h1" fill="#f5ead8" y="100">YOUR SONG.</text>
+            <text class="h1" fill="#f5ead8" y="146">A MUSIC VIDEO.</text>
+            <text class="h1" fill="#e6306b" y="192">IN 48 HOURS.</text>
+            <text class="h2" fill="#8a7a66" y="234">No After Effects. No €200 bill.</text>
+            <text class="h2" fill="#8a7a66" y="254">Just drag, drop, and ship.</text>
+          </g>
+          <!-- MIDDLE: giant 48 + icons -->
+          <g transform="translate(300, 510)">
+            <!-- Big 48 -->
+            <text fill="#e6306b" font="900 200px Helvetica" x="0" y="0" text-anchor="middle" opacity="0.95">48</text>
+            <text fill="#f5ead8" font="700 18px SF Mono" x="0" y="32" text-anchor="middle" letter-spacing="6">HOURS</text>
+            <!-- motion lines -->
+            <line x1="-220" y1="-40" x2="-160" y2="-40" stroke="#e6306b" stroke-width="2" opacity="0.5"/>
+            <line x1="-240" y1="-15" x2="-170" y2="-15" stroke="#e6306b" stroke-width="2" opacity="0.4"/>
+            <line x1="-200" y1="10" x2="-150" y2="10" stroke="#e6306b" stroke-width="2" opacity="0.3"/>
+            <line x1="160" y1="-40" x2="220" y2="-40" stroke="#e6306b" stroke-width="2" opacity="0.5"/>
+            <line x1="170" y1="-15" x2="240" y2="-15" stroke="#e6306b" stroke-width="2" opacity="0.4"/>
+            <line x1="150" y1="10" x2="200" y2="10" stroke="#e6306b" stroke-width="2" opacity="0.3"/>
+            <!-- Tiny icons in corners -->
+            <g fill="#f5ead8" opacity="0.7">
+              <text font-size="22" x="-240" y="-100">♪</text>
+              <text font-size="22" x="220" y="-100" text-anchor="end">▶</text>
+              <text font-size="22" x="-240" y="80">✓</text>
+              <text font-size="22" x="220" y="80" text-anchor="end">▣</text>
+            </g>
+          </g>
+          <!-- BOTTOM: price hierarchy + CTA -->
+          <g transform="translate(40, 660)">
+            <line x1="0" y1="0" x2="520" y2="0" stroke="#3a2a1a" stroke-width="1"/>
+            <text class="lbl" fill="#8a7a66" y="28">PRICING</text>
+            <text class="price" fill="#f5ead8" y="58">Single €25</text>
+            <text class="price" fill="#f5ead8" x="200" y="58">Double €45</text>
+            <text class="price" fill="#e6306b" x="400" y="58">Full €75</text>
+            <text class="body" fill="#8a7a66" y="80">10s · 15s · 30s · 60s · full song</text>
+            <!-- CTA -->
+            <rect x="0" y="100" width="520" height="48" rx="6" fill="none" stroke="#e6306b" stroke-width="2"/>
+            <text fill="#e6306b" font="700 18px Helvetica" x="40" y="132">Tell me what you need →</text>
+          </g>
+        </svg>
+        <figcaption class="ad-card__cap">Angle 2 · <strong>Faster results</strong> · 600×800 · dark mode</figcaption>
+      </figure>
+
+      <!-- AD 3 · Avoid wrong choice · Yugo-nostalgia tease -->
+      <figure class="ad-card">
+        <svg viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A preset pack no one else can make. Yugo-nostalgia. Coming next month. Launch price €12.">
+          <defs>
+            <style>
+              .h1 { font: 700 32px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.4px; }
+              .h2 { font: 400 14px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .lbl { font: 600 11px/1 'SF Mono', Menlo, monospace; letter-spacing: 0.18em; }
+              .price { font: 700 30px/1 'Helvetica Neue', Arial, sans-serif; }
+              .strike { font: 600 18px/1 'Helvetica Neue', Arial, sans-serif; text-decoration: line-through; opacity: 0.6; }
+              .body { font: 400 12px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .tile-lbl { font: 600 9px/1 'SF Mono', Menlo, monospace; letter-spacing: 0.1em; }
+            </style>
+            <linearGradient id="warm" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#d4a574"/>
+              <stop offset="1" stop-color="#e6306b"/>
+            </linearGradient>
+            <linearGradient id="tile1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#3a3530"/>
+              <stop offset="1" stop-color="#1a1612"/>
+            </linearGradient>
+          </defs>
+          <rect width="600" height="800" fill="url(#warm)"/>
+          <!-- TOP: hook -->
+          <g transform="translate(40, 50)">
+            <text class="lbl" fill="#f5ead8" y="0">05 · COMING NEXT MONTH</text>
+            <text class="h1" fill="#1a1612" y="40">A PRESET PACK</text>
+            <text class="h1" fill="#1a1612" y="74">NO ONE ELSE</text>
+            <text class="h1" fill="#1a1612" y="108">CAN MAKE</text>
+            <text class="h2" fill="#1a1612" opacity="0.85" y="148">Yugo-nostalgia. Brutalist blocks.</text>
+            <text class="h2" fill="#1a1612" opacity="0.85" y="166">CRT scan lines. Late-Yugoslav palette.</text>
+          </g>
+          <!-- MIDDLE: 2x2 preview tiles -->
+          <g transform="translate(40, 240)">
+            <!-- Tile 1: Brutalist blocks -->
+            <g>
+              <rect x="0" y="0" width="245" height="180" rx="6" fill="url(#tile1)"/>
+              <rect x="0" y="120" width="80" height="60" fill="#4a4035"/>
+              <rect x="80" y="100" width="60" height="80" fill="#2c2419"/>
+              <rect x="140" y="130" width="105" height="50" fill="#5a4d40"/>
+              <rect x="14" y="140" width="3" height="10" fill="#f5ead8"/>
+              <rect x="22" y="140" width="3" height="10" fill="#f5ead8"/>
+              <rect x="30" y="140" width="3" height="10" fill="#f5ead8"/>
+              <rect x="14" y="160" width="3" height="10" fill="#f5ead8"/>
+              <rect x="22" y="160" width="3" height="10" fill="#f5ead8"/>
+              <rect x="30" y="160" width="3" height="10" fill="#f5ead8"/>
+              <text class="tile-lbl" fill="#f5ead8" x="10" y="170" opacity="0.7">BRUTALIST</text>
+            </g>
+            <!-- Tile 2: CRT scan lines -->
+            <g transform="translate(275, 0)">
+              <rect x="0" y="0" width="245" height="180" rx="6" fill="#0e0c0a"/>
+              <rect x="14" y="14" width="217" height="152" rx="10" fill="#1a1612"/>
+              <rect x="22" y="22" width="201" height="136" rx="6" fill="#0a4d40" opacity="0.5"/>
+              <text fill="#00ffa3" font="700 36px monospace" x="122" y="100" text-anchor="middle" opacity="0.95">BK</text>
+              <text fill="#00ffa3" font="500 8px monospace" x="122" y="120" text-anchor="middle" letter-spacing="2" opacity="0.7">PRISLUSKIVANJE</text>
+              <rect x="22" y="60" width="201" height="2" fill="#e6306b" opacity="0.5"/>
+              <text class="tile-lbl" fill="#f5ead8" x="10" y="170" opacity="0.7">CRT 80S</text>
+            </g>
+            <!-- Tile 3: Balkan poster -->
+            <g transform="translate(0, 200)">
+              <rect x="0" y="0" width="245" height="180" rx="6" fill="#f1ebe1"/>
+              <polygon points="60,70 66,86 84,86 70,96 76,114 60,104 44,114 50,96 36,86 54,86" fill="#1a1612" opacity="0.75"/>
+              <circle cx="180" cy="90" r="36" fill="none" stroke="#1a1612" stroke-width="2" opacity="0.6"/>
+              <circle cx="180" cy="90" r="22" fill="none" stroke="#1a1612" stroke-width="1" opacity="0.5"/>
+              <text fill="#1a1612" font="700 13px monospace" x="180" y="95" text-anchor="middle" opacity="0.8">BGD</text>
+              <text class="tile-lbl" fill="#1a1612" x="10" y="170" opacity="0.6">POSTER</text>
+            </g>
+            <!-- Tile 4: Palette swatch -->
+            <g transform="translate(275, 200)">
+              <rect x="0" y="0" width="245" height="180" rx="6" fill="#f1ebe1"/>
+              <rect x="14" y="20" width="50" height="140" fill="#d4a574"/>
+              <rect x="68" y="20" width="50" height="140" fill="#e6306b"/>
+              <rect x="122" y="20" width="50" height="140" fill="#1c8c64"/>
+              <rect x="176" y="20" width="50" height="140" fill="#0085b3"/>
+              <text class="tile-lbl" fill="#1a1612" x="10" y="170" opacity="0.6">PALETTE</text>
+            </g>
+          </g>
+          <!-- BOTTOM: launch price + CTA -->
+          <g transform="translate(40, 660)">
+            <line x1="0" y1="0" x2="520" y2="0" stroke="#1a1612" stroke-width="1" opacity="0.3"/>
+            <text class="lbl" fill="#1a1612" opacity="0.85" y="28">LAUNCH PRICE · FIRST 50 BUYERS</text>
+            <text class="strike" fill="#1a1612" x="0" y="60">€19</text>
+            <text class="price" fill="#1a1612" x="50" y="62">€12</text>
+            <text class="body" fill="#1a1612" opacity="0.8" x="120" y="58">6 styles · WAV/MP3 reactive</text>
+            <text class="body" fill="#1a1612" opacity="0.8" x="120" y="74">9:16 + 1:1 exports</text>
+            <!-- CTA -->
+            <rect x="0" y="92" width="520" height="50" rx="6" fill="#1a1612"/>
+            <text fill="#f5ead8" font="700 18px Helvetica" x="40" y="124">Notify me at launch →</text>
+          </g>
+        </svg>
+        <figcaption class="ad-card__cap">Angle 3 · <strong>Avoid the wrong choice</strong> · 600×800 · warm + tiles</figcaption>
+      </figure>
+
+      <!-- AD 4 · Social proof · big stat callouts + quote -->
+      <figure class="ad-card">
+        <svg viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="10 videos delivered. 5-star rated. Trusted by indie artists across Europe.">
+          <defs>
+            <style>
+              .h1 { font: 700 36px/1.05 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; }
+              .h2 { font: 400 15px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .lbl { font: 600 11px/1 'SF Mono', Menlo, monospace; letter-spacing: 0.18em; }
+              .stat { font: 900 64px/1 'Helvetica Neue', Arial, sans-serif; }
+              .body { font: 400 13px/1.5 'Helvetica Neue', Arial, sans-serif; }
+              .quote { font: italic 300 16px/1.4 'Helvetica Neue', Arial, sans-serif; }
+            </style>
+            <linearGradient id="sp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#faf7f2"/>
+              <stop offset="1" stop-color="#f1ebe1"/>
+            </linearGradient>
+          </defs>
+          <rect width="600" height="800" fill="url(#sp)"/>
+          <!-- TOP: hook -->
+          <g transform="translate(40, 50)">
+            <text class="lbl" fill="#1c8c64" y="0">06 · REAL ARTISTS · REAL VIDEOS</text>
+            <text class="h1" fill="#1a1612" y="42">10 VIDEOS</text>
+            <text class="h1" fill="#1a1612" y="80">DELIVERED.</text>
+            <text class="h1" fill="#1a1612" y="118">5-STAR RATED.</text>
+            <text class="h2" fill="#8a7a66" y="160">Trusted by indie artists</text>
+            <text class="h2" fill="#8a7a66" y="180">across Europe.</text>
+          </g>
+          <!-- MIDDLE: stat callouts -->
+          <g transform="translate(40, 270)">
+            <!-- Stat 1: 10 videos -->
+            <g>
+              <rect x="0" y="0" width="160" height="160" rx="8" fill="#ffffff" stroke="#1c8c64" stroke-width="2"/>
+              <text class="lbl" fill="#1c8c64" x="80" y="32" text-anchor="middle">VIDEOS</text>
+              <text class="stat" fill="#1a1612" x="80" y="100" text-anchor="middle">10</text>
+              <text class="body" fill="#8a7a66" x="80" y="130" text-anchor="middle">shipped in 2026</text>
+            </g>
+            <!-- Stat 2: 48h -->
+            <g transform="translate(180, 0)">
+              <rect x="0" y="0" width="160" height="160" rx="8" fill="#ffffff" stroke="#ddd3c2"/>
+              <text class="lbl" fill="#8a7a66" x="80" y="32" text-anchor="middle">AVG TURNAROUND</text>
+              <text class="stat" fill="#1a1612" x="80" y="100" text-anchor="middle">48<tspan font-size="32" font-weight="700">h</tspan></text>
+              <text class="body" fill="#8a7a66" x="80" y="130" text-anchor="middle">drop to MP4</text>
+            </g>
+            <!-- Stat 3: 100% on-time -->
+            <g transform="translate(360, 0)">
+              <rect x="0" y="0" width="160" height="160" rx="8" fill="#ffffff" stroke="#ddd3c2"/>
+              <text class="lbl" fill="#8a7a66" x="80" y="32" text-anchor="middle">ON-TIME</text>
+              <text class="stat" fill="#1a1612" x="80" y="100" text-anchor="middle">100<tspan font-size="32" font-weight="700">%</tspan></text>
+              <text class="body" fill="#8a7a66" x="80" y="130" text-anchor="middle">no late drops</text>
+            </g>
+            <!-- Testimonial quote -->
+            <g transform="translate(0, 200)">
+              <line x1="0" y1="0" x2="520" y2="0" stroke="#ddd3c2"/>
+              <text class="quote" fill="#1a1612" y="40">"Dropped the WAV Monday, had the</text>
+              <text class="quote" fill="#1a1612" y="64">Reels-ready MP4 by Wednesday.</text>
+              <text class="quote" fill="#1a1612" y="88">My first post with a real video."</text>
+              <text class="lbl" fill="#8a7a66" y="124">— N. RISTIĆ, INDIE / BELGRADE</text>
+            </g>
+          </g>
+          <!-- BOTTOM: CTA -->
+          <g transform="translate(40, 660)">
+            <line x1="0" y1="0" x2="520" y2="0" stroke="#ddd3c2" stroke-width="1"/>
+            <text class="lbl" fill="#8a7a66" y="28">JOIN 10+ ARTISTS WHO SHIPPED</text>
+            <text class="h1" fill="#1a1612" y="68" font-size="24">See sample videos →</text>
+            <rect x="0" y="92" width="520" height="48" rx="6" fill="#1c8c64"/>
+            <text fill="#faf7f2" font="700 18px Helvetica" x="40" y="124">Get a quote in 24h →</text>
+          </g>
+        </svg>
+        <figcaption class="ad-card__cap">Angle 4 · <strong>Social proof</strong> · 600×800 · stats + quote</figcaption>
+      </figure>
+
+      <!-- AD 5 · Location / Belgrade angle -->
+      <figure class="ad-card">
+        <svg viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Built in Belgrade, Serbia. Where Eastern Europe meets Western pricing.">
+          <defs>
+            <style>
+              .h1 { font: 700 34px/1.05 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.4px; }
+              .h2 { font: 400 15px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .lbl { font: 600 11px/1 'SF Mono', Menlo, monospace; letter-spacing: 0.18em; }
+              .price { font: 700 28px/1 'Helvetica Neue', Arial, sans-serif; }
+              .body { font: 400 13px/1.4 'Helvetica Neue', Arial, sans-serif; }
+            </style>
+            <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1a2440"/>
+              <stop offset="1" stop-color="#0d1426"/>
+            </linearGradient>
+          </defs>
+          <rect width="600" height="800" fill="url(#night)"/>
+          <!-- TOP: hook -->
+          <g transform="translate(40, 50)">
+            <text class="lbl" fill="#0085b3" y="0">07 · BUILT IN BELGRADE</text>
+            <text class="h1" fill="#f5ead8" y="42">EASTERN EUROPE</text>
+            <text class="h1" fill="#f5ead8" y="78">PRICING.</text>
+            <text class="h1" fill="#0085b3" y="114">WESTERN QUALITY.</text>
+            <text class="h2" fill="#b8c5d4" y="156">From Belgrade, Serbia.</text>
+            <text class="h2" fill="#b8c5d4" y="176">Shipping worldwide.</text>
+          </g>
+          <!-- MIDDLE: stylized map silhouette + city markers -->
+          <g transform="translate(0, 270)">
+            <!-- Stylized river curve (Danube) -->
+            <path d="M 0 80 Q 150 60, 300 90 T 600 100" fill="none" stroke="#0085b3" stroke-width="2" opacity="0.6"/>
+            <path d="M 0 100 Q 200 90, 350 130 T 600 140" fill="none" stroke="#0085b3" stroke-width="1" opacity="0.3"/>
+            <!-- Belgrade star marker (center) -->
+            <g transform="translate(300, 100)">
+              <!-- pulse rings -->
+              <circle cx="0" cy="0" r="40" fill="none" stroke="#e6306b" stroke-width="1" opacity="0.3"/>
+              <circle cx="0" cy="0" r="28" fill="none" stroke="#e6306b" stroke-width="1" opacity="0.5"/>
+              <circle cx="0" cy="0" r="16" fill="none" stroke="#e6306b" stroke-width="1" opacity="0.7"/>
+              <!-- Center star -->
+              <polygon points="0,-12 3.5,-3.5 12,-3.5 5,2 7.5,12 0,6 -7.5,12 -5,2 -12,-3.5 -3.5,-3.5" fill="#e6306b"/>
+              <!-- label -->
+              <text fill="#f5ead8" font="700 13px SF Mono" x="0" y="34" text-anchor="middle">BELGRADE</text>
+              <text fill="#0085b3" font="500 10px SF Mono" x="0" y="48" text-anchor="middle">44.79°N · 20.45°E</text>
+            </g>
+            <!-- Other city dots -->
+            <g fill="#b8c5d4" opacity="0.5">
+              <circle cx="80" cy="60" r="3"/>
+              <circle cx="180" cy="130" r="3"/>
+              <circle cx="440" cy="70" r="3"/>
+              <circle cx="520" cy="160" r="3"/>
+              <text font="500 9px SF Mono" x="80" y="74" text-anchor="middle">ZAGREB</text>
+              <text font="500 9px SF Mono" x="180" y="144" text-anchor="middle">SARAJEVO</text>
+              <text font="500 9px SF Mono" x="440" y="84" text-anchor="middle">BUCHAREST</text>
+              <text font="500 9px SF Mono" x="520" y="174" text-anchor="middle">SOFIA</text>
+            </g>
+            <!-- Belgrade advantage callouts -->
+            <g transform="translate(40, 230)">
+              <line x1="0" y1="0" x2="520" y2="0" stroke="#1a2a3f" stroke-width="1"/>
+              <text class="lbl" fill="#0085b3" y="28">3 THINGS NO US/EU COMPETITOR CAN CLAIM</text>
+              <g transform="translate(0, 50)">
+                <circle cx="6" cy="6" r="4" fill="#e6306b"/>
+                <text class="body" fill="#f5ead8" x="22" y="10">In-person demos at KC Grad, Drugstore, Dot</text>
+              </g>
+              <g transform="translate(0, 78)">
+                <circle cx="6" cy="6" r="4" fill="#e6306b"/>
+                <text class="body" fill="#f5ead8" x="22" y="10">€25 single video = 1/8 of an EU editor's day rate</text>
+              </g>
+              <g transform="translate(0, 106)">
+                <circle cx="6" cy="6" r="4" fill="#e6306b"/>
+                <text class="body" fill="#f5ead8" x="22" y="10">CET timezone = same-day replies across EU</text>
+              </g>
+            </g>
+          </g>
+          <!-- BOTTOM: price + CTA -->
+          <g transform="translate(40, 720)">
+            <text class="lbl" fill="#0085b3" y="0">SAME VIDEOS · 1/8 THE PRICE</text>
+            <text class="price" fill="#f5ead8" y="32">From €25</text>
+            <text class="body" fill="#b8c5d4" x="100" y="32">vs €200+ Western studios</text>
+          </g>
+        </svg>
+        <figcaption class="ad-card__cap">Angle 5 · <strong>Location / Belgrade</strong> · 600×800 · dark night + map</figcaption>
+      </figure>
+
+      <!-- AD 6 · Specific persona · 48h timeline -->
+      <figure class="ad-card">
+        <svg viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="For the indie musician about to drop a single. 48 hours. From €25.">
+          <defs>
+            <style>
+              .h1 { font: 700 30px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.4px; }
+              .h2 { font: 400 14px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .lbl { font: 600 11px/1 'SF Mono', Menlo, monospace; letter-spacing: 0.18em; }
+              .step { font: 700 14px/1 'SF Mono', monospace; }
+              .body { font: 400 13px/1.4 'Helvetica Neue', Arial, sans-serif; }
+              .price { font: 700 28px/1 'Helvetica Neue', Arial, sans-serif; }
+            </style>
+          </defs>
+          <rect width="600" height="800" fill="#faf7f2"/>
+          <!-- Subtle grid background -->
+          <g stroke="#ddd3c2" stroke-width="0.5" opacity="0.4">
+            <line x1="0" y1="200" x2="600" y2="200"/>
+            <line x1="0" y1="400" x2="600" y2="400"/>
+            <line x1="0" y1="600" x2="600" y2="600"/>
+          </g>
+          <!-- TOP: hook -->
+          <g transform="translate(40, 50)">
+            <text class="lbl" fill="#e6306b" y="0">08 · FOR THE INDIE MUSICIAN</text>
+            <text class="h1" fill="#1a1612" y="44">DROPPING A SINGLE</text>
+            <text class="h1" fill="#1a1612" y="78">ON FRIDAY?</text>
+            <text class="h1" fill="#e6306b" y="118">WE SHIP BY THURSDAY.</text>
+            <text class="h2" fill="#8a7a66" y="156">Audio-reactive video, in 48 hours,</text>
+            <text class="h2" fill="#8a7a66" y="176">for the price of two coffees.</text>
+          </g>
+          <!-- MIDDLE: 48h timeline -->
+          <g transform="translate(40, 270)">
+            <text class="lbl" fill="#1a1612" y="0">THE 48-HOUR PATH</text>
+            <!-- Timeline rail -->
+            <line x1="40" y1="40" x2="480" y2="40" stroke="#ddd3c2" stroke-width="2"/>
+            <line x1="40" y1="40" x2="40" y2="40" stroke="#e6306b" stroke-width="2"/>
+            <!-- Step markers -->
+            <g>
+              <!-- T+0: Drop the WAV -->
+              <circle cx="40" cy="40" r="10" fill="#e6306b"/>
+              <text fill="#faf7f2" font="700 11px SF Mono" x="40" y="44" text-anchor="middle">0</text>
+              <text class="step" fill="#1a1612" x="40" y="76" text-anchor="middle">T+0h</text>
+              <text class="body" fill="#1a1612" x="40" y="96" text-anchor="middle">Drop the WAV</text>
+              <text class="body" fill="#8a7a66" x="40" y="112" text-anchor="middle">Send via DM</text>
+              <!-- T+24: First cut -->
+              <circle cx="200" cy="40" r="10" fill="#ffaa3a"/>
+              <text fill="#faf7f2" font="700 11px SF Mono" x="200" y="44" text-anchor="middle">1</text>
+              <text class="step" fill="#1a1612" x="200" y="76" text-anchor="middle">T+24h</text>
+              <text class="body" fill="#1a1612" x="200" y="96" text-anchor="middle">First cut</text>
+              <text class="body" fill="#8a7a66" x="200" y="112" text-anchor="middle">Visualizer v1</text>
+              <!-- T+44: Re-maps -->
+              <circle cx="360" cy="40" r="10" fill="#1c8c64"/>
+              <text fill="#faf7f2" font="700 11px SF Mono" x="360" y="44" text-anchor="middle">2</text>
+              <text class="step" fill="#1a1612" x="360" y="76" text-anchor="middle">T+44h</text>
+              <text class="body" fill="#1a1612" x="360" y="96" text-anchor="middle">Re-maps</text>
+              <text class="body" fill="#8a7a66" x="360" y="112" text-anchor="middle">2 free revisions</text>
+              <!-- T+48: MP4 in DM -->
+              <circle cx="480" cy="40" r="12" fill="#1a1612"/>
+              <text fill="#faf7f2" font="700 11px SF Mono" x="480" y="44" text-anchor="middle">3</text>
+              <text class="step" fill="#1a1612" x="480" y="76" text-anchor="middle">T+48h</text>
+              <text class="body" fill="#e6306b" x="480" y="96" text-anchor="middle" font-weight="700">MP4 in DM</text>
+              <text class="body" fill="#8a7a66" x="480" y="112" text-anchor="middle">ready to post</text>
+            </g>
+            <!-- Bottom row: what you send / what you get -->
+            <g transform="translate(0, 180)">
+              <line x1="0" y1="0" x2="520" y2="0" stroke="#ddd3c2"/>
+              <text class="lbl" fill="#8a7a66" y="28">YOU SEND</text>
+              <text class="body" fill="#1a1612" y="52">1 audio file (WAV or MP3)</text>
+              <text class="body" fill="#1a1612" y="70">A style preference (Neon, Film, Grid...)</text>
+              <text class="lbl" fill="#e6306b" y="110">YOU GET</text>
+              <text class="body" fill="#1a1612" y="134">9:16 + 1:1 + 16:9 MP4, all BPM-burned-in</text>
+              <text class="body" fill="#1a1612" y="152">Commercial license · 2 free revisions</text>
+            </g>
+          </g>
+          <!-- BOTTOM: price + CTA -->
+          <g transform="translate(40, 700)">
+            <line x1="0" y1="0" x2="520" y2="0" stroke="#ddd3c2" stroke-width="1"/>
+            <text class="lbl" fill="#8a7a66" y="28">SINGLE VIDEO</text>
+            <text class="price" fill="#1a1612" y="58">€25</text>
+            <text class="body" fill="#8a7a66" x="100" y="58">No subscription. No catch.</text>
+            <rect x="0" y="76" width="520" height="48" rx="6" fill="#e6306b"/>
+            <text fill="#faf7f2" font="700 18px Helvetica" x="40" y="108">DM me your single →</text>
+          </g>
+        </svg>
+        <figcaption class="ad-card__cap">Angle 6 · <strong>Specific persona</strong> · 600×800 · 48h timeline</figcaption>
+      </figure>
+
+    </div>
+
+    <p style="text-align:center; max-width:680px; margin:32px auto 0; font-size:13px; color:var(--muted); font-family:var(--font-mono); letter-spacing:0.04em;">
+      Six cards, six angles. Pick the one that matches your audience, post as-is, or remix the copy.<br>
+      Each card is self-contained inline SVG · no external image dependencies · scales to any size · renders crisp at any DPI.<br>
+      Copy the SVG markup from <code>View Source</code>, paste into a Figma frame, export as PNG at 1080×1440, post to Instagram.
+    </p>
+  </div>
+</section>
+
 <!-- ============================ FOOTER ============================ -->
 <footer class="footer">
   <div class="wrap">
@@ -1760,7 +2363,7 @@
       <div class="footer__col">
         <h4>Product</h4>
         <ul>
-          <li><a href="index.html">Try the engine</a></li>
+          <li><a href="/engine">Try the engine</a></li>
           <li><a href="landing.html">Landing page</a></li>
           <li><a href="interactive-howto.html">How-to walkthrough</a></li>
           <li><a href="versions/index.html">5 visual styles</a></li>

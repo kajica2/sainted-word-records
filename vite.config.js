@@ -34,9 +34,11 @@ function copyStatic() {
     const dirs = [
       { src: resolve('library'), dst: resolve(outDir, 'library') },
       { src: resolve('versions'), dst: resolve(outDir, 'versions') },
+      { src: resolve('icons'), dst: resolve(outDir, 'icons') },
     ];
-    // Style preview thumbnails referenced from landing.html (5 small PNGs)
-    const styleThumbs = ['neon','film','grid','smoke','hallucination'].map((n) => ({
+    // Style preview thumbnails referenced from versions/index.html (12 small PNGs)
+    const styleThumbs = ['neon','film','grid','smoke','hallucination',
+                         'glitch','aurora','pulse','void','chrome','watercolor','fractal'].map((n) => ({
       src: resolve('verify-screenshots', n + '.png'),
       dst: resolve(outDir, 'verify-screenshots', n + '.png'),
     }));
@@ -63,6 +65,24 @@ function copyStatic() {
       'tutorial-30s.html',
       'swr-tutorial-30s.mp4',
       'versions-presets.js',
+      'audio-analysis-v2.js',
+      'swr-intro-10s.html',
+      'swr-intro-10s-script.txt',
+      'swr-intro-10s.mp4',
+      'swr-intro-10s-voice.mp4',
+      'thanks.html',
+      'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
+      'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
+      'video-fx.css',
+      'login.html',
+      'brandkit.css',
+      'brandkit.client.js',
+      'manifest.webmanifest',
+      'sw.js',
+      'pwa-bootstrap.js',
+      'offline.html',
+      'pt.client.js',
+      'pt-panel.client.js',
       ];
     for (const f of rootFiles) {
       const sp = resolve(f);
@@ -88,14 +108,10 @@ function copyStatic() {
       doCopy();
     },
     closeBundle() {
-      // After Vite has emitted dist/index_app.html, copy it to
-      // dist/index.html so the engine is at the canonical URL.
-      const engineSrc = resolve(outDir, 'index_app.html');
-      const engineDst = resolve(outDir, 'index.html');
-      if (existsSync(engineSrc)) {
-        copyFileSync(engineSrc, engineDst);
-        process.stdout.write('[copy-static] copied engine -> index.html (post-build)\n');
-      }
+      // No-op: the engine now lives at /engine/ (vercel.json rewrite) and
+      // its source file is engine.html. We do NOT create an index.html.
+      // (Previously this hook copied index_app.html → index.html, but that
+      // made / serve the engine instead of the splash landing page.)
     },
   };
 }
@@ -117,7 +133,7 @@ export default defineConfig(({ command, mode }) => {
       // it; the plugin wipes dist/ itself before its buildStart run.
       emptyOutDir: false,
       rollupOptions: {
-        input: 'index_app.html',
+        input: 'engine.html',
       },
     },
   };
