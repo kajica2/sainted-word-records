@@ -91,6 +91,9 @@
     .card[data-v="hallucination"] .vlabel { color: var(--green); }
     .card[data-v="hallucination"]:hover { border-color: var(--green); }
     .card[data-v="hallucination"] .open:hover { background: var(--green); color: #000; border-color: var(--green); }
+    .card[data-v="eclipse"] .vlabel { color: #ffb347; }
+    .card[data-v="eclipse"]:hover { border-color: #ffb347; }
+    .card[data-v="eclipse"] .open:hover { background: #ffb347; color: #000; border-color: #ffb347; }
 
     .footer { margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--line);
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
@@ -108,18 +111,18 @@
   <div class="wrap">
     <div class="top">
       <span class="badge hot">SWR · v1</span>
-      <span class="badge">5 visual versions</span>
+      <span class="badge">6 visual versions</span>
       <span class="badge">algorithmic · reactive</span>
       <div class="spacer"></div>
       <a class="back" href="../index.html">← back to main</a>
     </div>
 
-    <h1>Five ways<br />to <em>see</em> the song.</h1>
+    <h1>Six ways<br />to <em>see</em> the song.</h1>
     <p class="lede">
       Same engine, same audio analysis, same auto-mapped layers.
-      <strong>Five completely different visual languages</strong> — one drop in
-      your track, one click REC, five distinct music videos. Pick the one that
-      fits the song's mood, or render all five and let the audience choose.
+      <strong>Six completely different visual languages</strong> — one drop in
+      your track, one click REC, six distinct music videos. Pick the one that
+      fits the song's mood, or render them all and let the audience choose.
     </p>
 
     <div class="grid">
@@ -210,6 +213,26 @@
             <span>rgb shift</span><span>difference</span><span>noise</span><span>3 reactors</span>
           </div>
           <div class="open">open hallucination <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="eclipse" href="./eclipse.html">
+        <div class="thumb">
+          <span class="vlabel">06 · ECLIPSE</span>
+          <img src="../verify-screenshots/eclipse.png" alt="ECLIPSE version" />
+        </div>
+        <div class="body">
+          <h2>Eclipse</h2>
+          <div class="sub">Corona / totality black</div>
+          <p>A true silhouette pass. The stage is pure black; a <strong>radial corona</strong>
+            overlay breathes with the bass and blooms amber on every onset. Assets stay
+            <strong>muted</strong> — <strong>multiply</strong> + <strong>lighten</strong> —
+            because totality hides everything beneath the shadow. For: ambient, drone,
+            sacred-geometry, anything that should feel like a held breath in the dark.</p>
+          <div class="meta">
+            <span>corona</span><span>totality black</span><span>muted assets</span><span>onset bloom</span>
+          </div>
+          <div class="open">open eclipse <span class="arr">→</span></div>
         </div>
       </a>
     </div>

@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>NEON · SWR engine v1</title>
+  <title>ECLIPSE · SWR engine v1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
-      --bg: #05030a; --bg-2: #0a0612; --panel: #0e0818; --panel-2: #150b22;
+      --bg: #000000; --bg-2: #060308; --panel: #0a0410; --panel-2: #120820;
       --ink: #f5e9ff; --muted: #8a7aa0; --line: #2a1d3e;
-      --m: #ff2d8a; --c: #00f0ff; --y: #fff04a; --g: #00ffa3;
+      --rim: #ffb347; --corona: #fff3c2; --shadow: #1a0033; --void: #000000;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
@@ -16,19 +16,19 @@
     #app { display: grid; grid-template-columns: 220px 1fr 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
     header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 14px;
       background: var(--bg-2); border-bottom: 1px solid var(--line); }
-    .v { font-weight: 700; letter-spacing: 0.16em; color: var(--m); text-shadow: 0 0 8px var(--m); }
-    .v small { color: var(--c); margin-left: 6px; text-shadow: 0 0 6px var(--c); font-weight: 400; }
+    .v { font-weight: 700; letter-spacing: 0.16em; color: var(--rim); text-shadow: 0 0 8px var(--rim); }
+    .v small { color: var(--corona); margin-left: 6px; text-shadow: 0 0 6px var(--corona); font-weight: 400; }
     .pill { font-size: 9px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
-    .pill.ok { color: var(--g); border-color: var(--g); }
-    .pill.live { color: var(--y); border-color: var(--y); animation: blink 0.4s infinite alternate; }
+    .pill.ok { color: var(--corona); border-color: var(--corona); }
+    .pill.live { color: var(--rim); border-color: var(--rim); animation: blink 0.4s infinite alternate; }
     @keyframes blink { from { opacity: 0.4; } to { opacity: 1; } }
     .tbtn { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); font: 10px/1 ui-monospace;
       letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 12px; border-radius: 4px; cursor: pointer; }
-    .tbtn:hover { border-color: var(--m); color: var(--m); }
-    .tbtn.primary { background: var(--m); color: #000; border-color: var(--m); font-weight: 700; }
-    .tbtn.primary:hover { background: var(--c); border-color: var(--c); }
+    .tbtn:hover { border-color: var(--rim); color: var(--rim); }
+    .tbtn.primary { background: var(--rim); color: #000; border-color: var(--rim); font-weight: 700; }
+    .tbtn.primary:hover { background: var(--corona); border-color: var(--corona); }
     .spacer { flex: 1; }
-    .meter { width: 160px; height: 16px; background: #0a0612; border: 1px solid var(--line); border-radius: 3px; display: block; }
+    .meter { width: 160px; height: 16px; background: #000; border: 1px solid var(--line); border-radius: 3px; display: block; }
     aside.lib, aside.layers { background: var(--panel); overflow-y: auto; }
     aside.lib { border-right: 1px solid var(--line); }
     aside.layers { border-left: 1px solid var(--line); }
@@ -38,64 +38,78 @@
     #lib { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .li { aspect-ratio: 1; background: var(--bg-2); border: 1px solid var(--line); border-radius: 3px;
       overflow: hidden; position: relative; cursor: pointer; transition: border-color 0.1s; }
-    .li:hover { border-color: var(--c); }
+    .li:hover { border-color: var(--rim); }
     .li img, .li video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--m);
+    .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--rim);
       color: #000; border-radius: 1px; letter-spacing: 0.08em; }
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
       background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #layers { display: flex; flex-direction: column; gap: 4px; }
     .l { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
-    .l.sel { border-color: var(--m); box-shadow: 0 0 0 1px var(--m); }
+    .l.sel { border-color: var(--rim); box-shadow: 0 0 0 1px var(--rim); }
     .l .lh { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
     .l .lh .n { font-size: 9px; color: var(--muted); width: 14px; }
     .l .lh .nm { flex: 1; font-size: 10px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .l .lh .x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 2px; }
-    .l .lh .x:hover { color: var(--m); }
+    .l .lh .x:hover { color: var(--rim); }
     .l .r { display: grid; grid-template-columns: 36px 1fr; gap: 4px; align-items: center; margin-top: 2px; }
     .l .r label { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
     .l .r select, .l .r input { background: var(--bg); border: 1px solid var(--line); color: var(--ink);
       font: 9px ui-monospace; padding: 2px 3px; border-radius: 2px; width: 100%; }
-    .l .react { font-size: 8px; color: var(--c); letter-spacing: 0.04em; margin-top: 3px; }
+    .l .react { font-size: 8px; color: var(--corona); letter-spacing: 0.04em; margin-top: 3px; }
     section.stage { position: relative; background: #000; }
     canvas { display: block; width: 100%; height: 100%; }
-    #flash { position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(circle at center, rgba(255,45,138,0.5), transparent 60%);
-      opacity: 0; mix-blend-mode: screen; }
+    /* ECLIPSE corona overlay — radial darkening with a glowing rim, breathes w/ bass */
+    #corona {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(circle at center,
+          rgba(0,0,0,0.92) 0%,
+          rgba(0,0,0,0.88) 28%,
+          rgba(0,0,0,0.72) 36%,
+          rgba(255,179,71,0.35) 44%,
+          rgba(255,243,194,0.18) 50%,
+          rgba(0,0,0,0) 58%,
+          rgba(0,0,0,0) 100%);
+      mix-blend-mode: normal;
+      opacity: 0.85;
+    }
+    /* Faint ring shimmer that blooms on each beat */
+    #ring {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(circle at center,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,0) 38%,
+        rgba(255,243,194,0.0) 44%,
+        rgba(255,179,71,0.0) 48%,
+        rgba(0,0,0,0) 52%,
+        rgba(0,0,0,0) 100%);
+      mix-blend-mode: screen;
+      opacity: 0;
+      transition: opacity 0.15s linear;
+    }
     footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 14px;
       background: var(--bg-2); border-top: 1px solid var(--line); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
     .gc { display: flex; align-items: center; gap: 6px; }
     .gc input { width: 80px; }
-    .gc b { color: var(--c); min-width: 26px; text-align: right; }
+    .gc b { color: var(--rim); min-width: 26px; text-align: right; }
     .led { width: 8px; height: 8px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
-    .led.on { background: var(--m); box-shadow: 0 0 8px var(--m); }
-    a.nav { color: var(--c); text-decoration: none; border: none; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
-    a.nav:hover { color: var(--m); }
+    .led.on { background: var(--rim); box-shadow: 0 0 8px var(--rim); }
+    a.nav { color: var(--corona); text-decoration: none; border: none; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+    a.nav:hover { color: var(--rim); }
     input[type=file] { display: none; }
 
-    /* SWR watermark overlay */
     .swr-watermark {
-      position: absolute;
-      bottom: 16px;
-      right: 16px;
-      width: 100px;
-      opacity: 0.45;
-      pointer-events: none;
-      z-index: 9999;
-      mix-blend-mode: screen;
+      position: absolute; bottom: 16px; right: 16px; width: 100px; opacity: 0.45;
+      pointer-events: none; z-index: 9999; mix-blend-mode: screen;
     }
-    .swr-watermark img {
-      width: 100%;
-      height: auto;
-      display: block;
-      filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
-    }
+    .swr-watermark img { width: 100%; height: auto; display: block; filter: drop-shadow(0 0 2px rgba(0,0,0,0.6)); }
   </style>
 </head>
-<body data-page="neon">
+<body data-page="eclipse">
   <div id="app">
     <header>
-      <div class="v">NEON <small>v1</small></div>
+      <div class="v">ECLIPSE <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song">Load song</button>
       <input type="file" id="song-input" accept="audio/*" />
@@ -113,16 +127,9 @@
         <option value="60">60s</option>
         <option value="song">song</option>
       </select>
-      <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
-        <option value="0">manual</option>
-        <option value="10">10s</option>
-        <option value="15">15s</option>
-        <option value="30" selected>30s</option>
-        <option value="60">60s</option>
-        <option value="song">song</option>
-      </select>
-      <button class="tbtn danger" id="rec" disabled>● REC</button>
-      <a class="nav" href="film.html">→ film</a>
+      <button class="tbtn" id="rec" disabled>● REC</button>
+      <a class="nav" href="hallucination.html">← hallucination</a>
+      <a class="nav" href="../versions/">versions</a>
     </header>
     <aside class="lib">
       <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button>
@@ -131,7 +138,8 @@
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
-      <div id="flash"></div>
+      <div id="corona"></div>
+      <div id="ring"></div>
       <div class="swr-watermark">
         <img src="../watermark-monogram.svg" alt="SWR" />
       </div>
@@ -145,32 +153,20 @@
       <span class="gc">gate <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.4" /> <b id="gate-v">1.40</b></span>
       <span class="gc">decay <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.85" /> <b id="decay-v">0.85</b></span>
       <span class="spacer" style="flex:1"></span>
-      <span id="fps" style="color:var(--m);">— fps</span>
+      <span id="fps" style="color:var(--rim);">— fps</span>
     </footer>
   </div>
   <script>
-    function __shuffle_once(key, arr) {
-      if (!__shuffle_once._cache || __shuffle_once._key !== key) {
-        const a = arr.slice();
-        for (let i = a.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [a[i], a[j]] = [a[j], a[i]];
-        }
-        __shuffle_once._cache = a;
-        __shuffle_once._key = key;
-      }
-      __shuffle_once._cache.push(__shuffle_once._cache.shift());
-      return __shuffle_once._cache;
-    }
-
   (() => {
     const $ = (id) => document.getElementById(id);
     const stage = $('render');
     const ctx = stage.getContext('2d', { alpha: false });
     const meter = $('meter').getContext('2d');
+    const coronaEl = $('corona');
+    const ringEl = $('ring');
     let W, H;
 
-    // === AUDIO ===
+    // === AUDIO === (same engine as the other versions)
     const A = { ctx: null, an: null, src: null, el: null, gain: null,
       fft: null, time: null,
       feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
@@ -263,7 +259,6 @@
           }
           it.hue = (Math.atan2(sy/(d.length/4), sx/(d.length/4))/(Math.PI*2)+1)%1;
           it.w = src.videoWidth||src.naturalWidth; it.h = src.videoHeight||src.naturalHeight;
-          // thumb
           const tw=120,th=120; const tcv=document.createElement('canvas'); tcv.width=tw;tcv.height=th;
           const tcx=tcv.getContext('2d'); tcx.drawImage(src,0,0,tw,th);
           it.thumb = tcv.toDataURL('image/jpeg',0.7);
@@ -286,18 +281,40 @@
     };
 
     // === LAYERS ===
+    // ECLIPSE preset key: 'eclipse' — distinct blend order, motion-style reactions
+    const ECLIPSE_PRESETS = [
+      // L0 — corona anchor: slow scale on bass, opacity dips on beat (the "shadow approaching")
+      [ { feature:'bass', target:'scale', scale: 0.5, ease:'smooth' }, { feature:'beat', target:'opacity', scale: 0.7, ease:'sharp' }, { feature:'rms', target:'x', scale: 60, ease:'smooth' } ],
+      // L1 — chromatic ring: hue ride on mids, scale on treble
+      [ { feature:'mid',   target:'hue', scale: 240, ease:'smooth' }, { feature:'treble', target:'scale', scale: 0.4, ease:'smooth' }, { feature:'air', target:'y', scale: 50, ease:'smooth' } ],
+      // L2 — silhouette: bass-driven scale, beat snap opacity
+      [ { feature:'bass',  target:'scale', scale: 0.6, ease:'sharp' }, { feature:'beat', target:'opacity', scale: 0.9, ease:'sharp' }, { feature:'onset', target:'rot', scale: 30, ease:'sharp' } ],
+      // L3 — deep field: slow drift, low-amplitude RMS reaction
+      [ { feature:'rms',   target:'scale', scale: 0.25, ease:'smooth' }, { feature:'mid', target:'hue', scale: 120, ease:'smooth' }, { feature:'onset', target:'y', scale: 40, ease:'smooth' } ],
+      // L4 — bright halo: treble-reactive, brightness on beat
+      [ { feature:'treble',target:'scale', scale: 0.5, ease:'sharp' }, { feature:'beat', target:'brightness', scale: 0.6, ease:'sharp' }, { feature:'air', target:'hue', scale: 180, ease:'sharp' } ],
+      // L6 — full darkening: opacity on beat, big scale on bass (the totality of the shadow)
+      [ { feature:'bass',  target:'scale', scale: 0.8, ease:'smooth' }, { feature:'beat', target:'opacity', scale: 1.0, ease:'sharp' }, { feature:'centroid', target:'hue', scale: 60, ease:'smooth' } ],
+    ];
+    const ECLIPSE_BLENDS = ['multiply','screen','lighten','multiply','screen','lighten'];
+    const ECLIPSE_BASESCALE = [1.4, 0.9, 1.6, 0.7, 2.2, 0.5];
+    const __shuffle_eclipse = (() => {
+      let cache = null, key = null;
+      return (k, arr) => {
+        if (!cache || key !== k) {
+          const a = arr.slice();
+          for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+          cache = a; key = k;
+        }
+        cache.push(cache.shift()); return cache;
+      };
+    })();
+
     const Layers = { list: [], sel: null,
       add(it) { const i=this.list.length;
-        const presets = [
-          [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
-          [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
-          [ { feature:'treble',target:'rot',scale:60,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
-          [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
-          [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
-          [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
-        ];
-        const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
-          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
+        const l = { id:'L'+(i+1), asset: it, blend: (__shuffle_eclipse('eclipse', ECLIPSE_BLENDS))[i%ECLIPSE_BLENDS.length],
+          opacity: 1, baseScale: ECLIPSE_BASESCALE[i%ECLIPSE_BASESCALE.length], hue: 0, brightness: 1, contrast: 1,
+          reactors: ECLIPSE_PRESETS[i%ECLIPSE_PRESETS.length] };
         this.list.push(l); this.render(); this.sel = l; },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
       render() {
@@ -305,12 +322,8 @@
         for (let i=0;i<this.list.length;i++) {
           const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
-          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div>`;
+          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>lighten</option><option>darken</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div>`;
           d.querySelector('select').value = l.blend;
-          for (const inp of d.querySelectorAll('input[type=range]')) {
-            const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
-            // simpler: by order
-          }
           const ins = d.querySelectorAll('input[type=range]');
           ins[0].value = l.opacity; ins[1].value = l.baseScale; ins[2].value = l.hue;
           d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
@@ -324,63 +337,54 @@
       remap() {
         if (!Lib.items.length) return;
         const f = A.feat; const sens = parseFloat($('sens').value);
+        // Eclipse scoring: prefer darker assets (low luma), low motion (the stillness of a totality)
         const roles = [
-          { want:'motion', weight: 0.6 + f.bass * sens },
-          { want:'mid',    weight: 0.4 + f.mid * sens },
-          { want:'luma',   weight: 0.3 + f.treble * sens },
-          { want:'hue',    weight: 0.2 + f.air * sens },
-          { want:'motion', weight: 0.5 + f.rms * sens * 2 },
-          { want:'motion', weight: 0.7 + f.onset * sens * 3 },
+          { want:'shadow', weight: 0.7 + f.bass * sens },
+          { want:'ring',   weight: 0.4 + f.mid * sens },
+          { want:'silhouette', weight: 0.6 + f.bass * sens * 1.5 },
+          { want:'depth',  weight: 0.3 + f.rms * sens },
+          { want:'halo',   weight: 0.5 + f.treble * sens * 1.5 },
+          { want:'shadow', weight: 0.7 + f.onset * sens * 2 },
         ];
         const scored = Lib.items.map(it => {
           const sc = {};
-          sc.motion = (it.motion)*0.7 + (1 - Math.abs(it.luma-0.5)*2)*0.3;
-          sc.mid = (it.luma)*0.5 + (1-it.motion)*0.5;
-          sc.luma = (1-it.motion)*0.4 + (it.luma)*0.6;
-          sc.hue = (it.hue)*0.5 + (1-it.motion)*0.5;
+          sc.shadow = (1 - it.luma) * 0.7 + it.motion * 0.3;
+          sc.ring = it.luma * 0.5 + (1 - it.motion) * 0.5;
+          sc.silhouette = (1 - it.luma) * 0.6 + it.motion * 0.4;
+          sc.depth = (1 - it.motion) * 0.5 + (1 - it.luma) * 0.5;
+          sc.halo = it.luma * 0.6 + (1 - it.motion) * 0.4;
           return { it, sc };
         });
-        // Pick from top-N candidates randomly so each remap = fresh look
-        const topN = 2 + (Math.floor(Math.random()*2)); // 2 or 3
+        const topN = 2 + Math.floor(Math.random()*2);
         const used = new Set();
         const assignments = roles.map(r => {
           const cands = [];
-          for (const s of scored) { if (used.has(s.it.id)) continue;
-            cands.push({ it: s.it, v: s.sc[r.want] * r.weight }); }
+          for (const s of scored) { if (used.has(s.it.id)) continue; cands.push({ it: s.it, v: s.sc[r.want] * r.weight }); }
           if (!cands.length) return null;
           cands.sort((a,b) => b.v - a.v);
           const pool = cands.slice(0, Math.min(topN, cands.length));
           const total = pool.reduce((s,c) => s + Math.max(c.v, 0.01), 0);
-          let r2 = Math.random() * total;
-          let pick = pool[0];
+          let r2 = Math.random() * total; let pick = pool[0];
           for (const c of pool) { r2 -= Math.max(c.v, 0.01); if (r2 <= 0) { pick = c; break; } }
-          used.add(pick.it.id);
-          return pick.it;
+          used.add(pick.it.id); return pick.it;
         });
         this.list = [];
         for (let i=0;i<assignments.length;i++) {
           if (!assignments[i]) continue;
-          const it = assignments[i];
-          const presets = [
-            [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
-            [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
-            [ { feature:'treble',target:'rot',scale:60,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
-            [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
-            [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
-            [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
-          ];
           this.list.push({
-            id:'L'+(i+1), asset: it, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
-            opacity:1, baseScale:[1.2,0.8,1.5,0.6,2.0,0.5][i%6], hue:0, brightness:1, contrast:1,
-            reactors: presets[i%presets.length]
+            id:'L'+(i+1), asset: assignments[i],
+            blend: (__shuffle_eclipse('eclipse', ECLIPSE_BLENDS))[i%ECLIPSE_BLENDS.length],
+            opacity: 1, baseScale: ECLIPSE_BASESCALE[i%ECLIPSE_BASESCALE.length],
+            hue: 0, brightness: 1, contrast: 1,
+            reactors: ECLIPSE_PRESETS[i%ECLIPSE_PRESETS.length]
           });
         }
         this.render();
       }
     };
 
-    // === RENDERER (NEON style) ===
-    let fps=0, lastT=performance.now();
+    // === RENDERER (ECLIPSE style) ===
+    let fps=0, lastT=performance.now(), frames=0;
     function fit() {
       const vw = stage.clientWidth, vh = stage.clientHeight;
       const target = 16/9; const ar = vw/vh;
@@ -392,231 +396,190 @@
       stage.height = Math.max(360, Math.round(h));
       W = stage.width; H = stage.height;
     }
-    fit();
-    const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
-    const pcx = proc.getContext('2d');
+    fit(); addEventListener('resize', fit);
     function ease(name, t) {
       if (name === 'sharp') return Math.pow(t, 0.4);
-      if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
-      return t;
+      if (name === 'soft') return t*t*(3-2*t);
+      return t; // smooth
     }
     function applyR(l) {
-      const a = l.asset, sens = parseFloat($('sens').value);
-      const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
+      const sens = parseFloat($('sens').value);
+      const out = { scale: l.baseScale, x:0, y:0, rot:0, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
-        if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (r.target==='scale') out.scale += v;
-        else if (r.target==='x') out.x += v * 200;
-        else if (r.target==='y') out.y += v * 200;
-        else if (r.target==='rot') out.rot += v * 30;
-        else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.5, 0, 1);
+        else if (r.target==='x') out.x += v * 180;
+        else if (r.target==='y') out.y += v * 180;
+        else if (r.target==='rot') out.rot += v * 25;
+        else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.6, 0, 1);
         else if (r.target==='hue') out.hue += v * 60;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.5, 0.1, 2.5);
         else if (r.target==='contrast') out.contrast = clamp(out.contrast + v*0.5, 0.1, 2.5);
       }
       return out;
     }
-    function drawLayer(l) {
+    function drawLayer(l, idx) {
       const a = l.asset; if (!a) return;
       let src;
-      if (a.type === 'video') {
-        if (!a._el) { a._el = document.createElement('video'); a._el.src=a.url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
+      if (a.type==='video') {
+        if (!a._el) { a._el = document.createElement('video'); a._el.src = a.url; a._el.muted = true; a._el.loop = true; a._el.playsInline = true; a._el.preload = 'auto'; }
         src = a._el;
         if (A.playing && src.paused) src.play().catch(()=>{});
         if (!A.playing && !src.paused) src.pause();
       } else {
-        if (!a._el) { a._el = new Image(); a._el.src=a.url; }
+        if (!a._el) { a._el = new Image(); a._el.src = a.url; }
         src = a._el;
       }
-      if (a.type === 'video' && src.readyState < 2) return;
+      if (a.type==='video' && src.readyState < 2) return;
       const r = applyR(l);
-      ctx.save();
-      ctx.globalCompositeOperation = l.blend || 'screen';
-      ctx.globalAlpha = clamp(r.opacity, 0, 1);
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;
       let dw, dh;
-      if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
-      const dx = (W - dw)/2 + r.x;
-      const dy = (H - dh)/2 + r.y;
-      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;
-      if (Math.abs(r.rot) > 0.5) {
-        ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
-      } else {
-        ctx.drawImage(src, dx, dy, dw, dh);
-      }
-      ctx.filter = 'none';
-      ctx.restore();
-    }
-    function drawFx() {
-      // scanline
+      if (ar > car) { dh = H*r.scale; dw = dh*ar; } else { dw = W*r.scale; dh = dw/ar; }
+      const dx = (W-dw)/2 + r.x; const dy = (H-dh)/2 + r.y;
+      // Eclipse filter: muted hue, low contrast (everything beneath the shadow)
       ctx.save();
-      ctx.globalCompositeOperation = 'overlay';
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = '#ff2d8a';
-      for (let y=0; y<H; y+=3) ctx.fillRect(0, y, W, 1);
+      ctx.globalCompositeOperation = l.blend || 'source-over';
+      ctx.globalAlpha = clamp(r.opacity, 0, 1);
+      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${0.55 + r.contrast*0.2}) brightness(${r.brightness}) contrast(${r.contrast})`;
+      ctx.translate(W/2, H/2);
+      ctx.rotate(r.rot * Math.PI / 180);
+      ctx.drawImage(src, -dw/2 + r.x, -dh/2 + r.y, dw, dh);
       ctx.restore();
-      // beat flash
-      if (A.feat.beat > 0.05) {
-        ctx.save(); ctx.globalCompositeOperation = 'screen';
-        ctx.fillStyle = `rgba(255,45,138,${A.feat.beat*0.25})`;
-        ctx.fillRect(0,0,W,H); ctx.restore();
-      }
     }
-    function drawMeter() {
-      const m = meter; const w = m.canvas.width, h = m.canvas.height;
-      m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
-      const sens = parseFloat($('sens').value);
-      const vals = [A.feat.bass*sens, A.feat.mid*sens, A.feat.treble*sens, A.feat.air*sens, A.feat.rms*sens];
-      const bw = w / vals.length;
-      for (let i=0;i<vals.length;i++) {
-        const v = clamp(vals[i], 0, 1);
-        const bh = v * h;
-        const x = i*bw + 2;
-        const y = h - bh;
-        const g = m.createLinearGradient(0, y, 0, h);
-        if (i<2) { g.addColorStop(0,'#ff2d8a'); g.addColorStop(1,'#fff04a'); }
-        else { g.addColorStop(0,'#00f0ff'); g.addColorStop(1,'#00ffa3'); }
-        m.fillStyle = g;
-        m.fillRect(x, y, bw-4, bh);
-      }
-    }
-    function loop(t) {
-      const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
-      $('fps').textContent = Math.round(fps)+' fps';
-      if (A.playing) A.sample();
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
-      for (const l of sorted) drawLayer(l);
-      drawFx();
-      drawMeter();
-      $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
 
-    // === UI WIRING ===
-    $('load-song').addEventListener('click', () => $('song-input').click());
-    $('song-input').addEventListener('change', e => { if (e.target.files[0]) A.load(e.target.files[0]); });
-    $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
-    $('add').addEventListener('click', () => $('asset-input').click());
-    $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
-    $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
-    for (const id of ['sens','gate','decay']) {
-      const inp = $(id); const out = $(id+'-v');
-      inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2));
+    // === DRAW LOOP ===
+    function draw() {
+      A.sample();
+      // pure-black base — anything beneath the shadow is invisible
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      for (let i=0;i<Layers.list.length;i++) drawLayer(Layers.list[i], i);
+
+      // === ECLIPSE corona overlay (driven by audio, replaces NEON's flash) ===
+      // corona radius breathes with bass; corona hue rotates with mids
+      const bass = A.feat.bass, mid = A.feat.mid, beat = A.feat.beat, onset = A.feat.onset;
+      const baseR = 30 + bass * 18;          // % of min(W,H)
+      const ringR = baseR + beat * 6;        // ring grows on beat
+      const coronaOpacity = 0.78 + bass * 0.15;
+      const midHue = Math.round(mid * 60);   // 0–60° shift toward red/orange
+      coronaEl.style.opacity = clamp(coronaOpacity, 0.6, 0.98).toFixed(3);
+      coronaEl.style.background = `radial-gradient(circle at center,
+        rgba(0,0,0,0.94) 0%,
+        rgba(0,0,0,0.90) ${baseR}%,
+        rgba(0,0,0,0.74) ${baseR+6}%,
+        rgba(255,179,71,${0.30 + bass*0.4}) ${baseR+12}%,
+        hsla(${32 + midHue},90%,${70 + onset*15}%,${0.18 + onset*0.3}) ${baseR+16}%,
+        rgba(0,0,0,0) ${baseR+22}%,
+        rgba(0,0,0,0) 100%)`;
+      // Ring flash — bright halo bloom on each onset
+      const ringIntensity = clamp(onset * 1.4, 0, 1);
+      ringEl.style.opacity = ringIntensity.toFixed(3);
+      ringEl.style.background = `radial-gradient(circle at center,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,0) ${baseR-2}%,
+        rgba(255,243,194,${0.4 * ringIntensity}) ${baseR+10}%,
+        rgba(255,179,71,${0.6 * ringIntensity}) ${baseR+14}%,
+        rgba(255,80,40,${0.3 * ringIntensity}) ${baseR+18}%,
+        rgba(0,0,0,0) ${baseR+22}%,
+        rgba(0,0,0,0) 100%)`;
+
+      // === METER ===
+      meter.fillStyle = '#000'; meter.fillRect(0,0,320,32);
+      const bassW = A.feat.bass * 200;
+      const midW = A.feat.mid * 200;
+      const trebleW = A.feat.treble * 200;
+      meter.fillStyle = '#ffb347'; meter.fillRect(0, 4, bassW, 8);
+      meter.fillStyle = '#ff7a3a'; meter.fillRect(0, 14, midW, 8);
+      meter.fillStyle = '#fff3c2'; meter.fillRect(0, 24, trebleW, 8);
+
+      // FPS
+      frames++;
+      const now = performance.now();
+      if (now - lastT > 500) { fps = Math.round(frames * 1000 / (now - lastT)); frames = 0; lastT = now; $('fps').textContent = fps + ' fps'; }
+      requestAnimationFrame(draw);
     }
-    window.addEventListener('dragover', e => { e.preventDefault(); });
-    window.addEventListener('drop', async e => {
+    requestAnimationFrame(draw);
+
+    // === UI wiring (same as other versions) ===
+    $('load-song').onclick = () => $('song-input').click();
+    $('song-input').onchange = e => { const f = e.target.files[0]; if (f) A.load(f); };
+    $('play').onclick = () => A.playing ? A.pause() : A.play();
+    $('add').onclick = () => $('asset-input').click();
+    $('asset-input').onchange = e => Lib.addFiles([...e.target.files]);
+    $('remap').onclick = () => Layers.remap();
+    $('sens').oninput = e => { $('sens-v').textContent = (+e.target.value).toFixed(2); };
+    $('gate').oninput = e => { $('gate-v').textContent = (+e.target.value).toFixed(2); };
+    $('decay').oninput = e => { $('decay-v').textContent = (+e.target.value).toFixed(2); };
+    setStatus('idle');
+
+    // === Drag & drop ===
+    addEventListener('dragover', e => { e.preventDefault(); });
+    addEventListener('drop', e => {
       e.preventDefault();
-      if (e.dataTransfer.files && e.dataTransfer.files.length) await Lib.addFiles(e.dataTransfer.files);
-    });
-    window.addEventListener('resize', fit);
-    $('rec').addEventListener('click', () => {
-      if (Recorder.recording) Recorder.stop();
-      else Recorder.start();
+      const files = [...e.dataTransfer.files];
+      const audio = files.find(f => f.type.startsWith('audio/'));
+      const assets = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+      if (audio) A.load(audio);
+      if (assets.length) Lib.addFiles(assets);
     });
 
-    // === Auto-load library ===
+    // === RECORDER (same pipeline, native recorder) ===
+    let recorder = null, recChunks = [], recMixDest = null, recAutoStopAt = 0;
+    function startRec() {
+      try {
+        const vStream = stage.captureStream(30);
+        recMixDest = A.ctx.createMediaStreamDestination();
+        A.gain.connect(recMixDest);
+        const aTrack = recMixDest.stream.getAudioTracks()[0];
+        const stream = new MediaStream([vStream.getVideoTracks()[0], aTrack]);
+        const mime = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/webm;codecs=vp9,opus','video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+        recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+        recChunks = [];
+        recorder.ondataavailable = e => { if (e.data && e.data.size) recChunks.push(e.data); };
+        recorder.onstop = () => {
+          const blob = new Blob(recChunks, { type: recorder.mimeType });
+          const ext = recorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = `eclipse-${Date.now()}.${ext}`;
+          document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 4000);
+          setStatus('exported', 'ok');
+          if (recMixDest) { try{A.gain.disconnect(recMixDest);}catch{} recMixDest=null; }
+        };
+        recorder.start();
+        const dur = $('rec-dur').value;
+        if (dur !== '0' && dur !== 'manual') {
+          if (dur === 'song' && A.el && A.el.duration) recAutoStopAt = Date.now() + (A.el.duration - A.el.currentTime) * 1000;
+          else recAutoStopAt = Date.now() + parseFloat(dur) * 1000;
+          setInterval(() => { if (Date.now() >= recAutoStopAt && recorder && recorder.state==='recording') recorder.stop(); }, 100);
+        }
+        setStatus('recording · ' + (mime.includes('mp4')?'MP4':'WebM'), 'live');
+        $('rec').textContent = '■ STOP'; $('rec').style.color = '#ff7a3a';
+      } catch (err) { console.error('recorder start failed', err); setStatus('rec error'); }
+    }
+    function stopRec() {
+      if (recorder && recorder.state==='recording') recorder.stop();
+      $('rec').textContent = '● REC'; $('rec').style.color = '';
+    }
+    $('rec').onclick = () => recorder && recorder.state==='recording' ? stopRec() : startRec();
+
+    // === Auto-load 27-item library from /library/manifest.json (matches sibling versions) ===
     (async () => {
       try {
         const r = await fetch('../library/manifest.json', { cache: 'no-cache' });
-        if (r.ok) {
-          const m = await r.json();
-          const blobs = await Promise.all((m.files||[]).map(async f => {
-            const fr = await fetch('../library/' + f);
-            return await fr.blob();
-          }));
+        if (r.ok) { const m = await r.json();
+          const blobs = await Promise.all((m.files||[]).map(async f => { const fr=await fetch('../library/'+f); return await fr.blob(); }));
           await Lib.addFiles(blobs.map((b,i) => new File([b], m.files[i], { type: b.type })));
-          setTimeout(() => Layers.remap(), 500);
+          setTimeout(() => Layers.remap(), 600);
         }
-      } catch (e) { console.warn('no library', e); }
-      setStatus('ready', 'ok');
+      } catch (e) {}
+      setStatus('READY', 'ok');
     })();
-    // === RECORDER (MP4 export) ===
-    const Recorder = {
-      rec: null,
-      chunks: [],
-      recording: false,
-      mime: 'video/webm',
-      mediaDest: null,
-      autoStopAt: 0,
-      autoStopTimer: null,
-      autoStopAt: 0,
-      autoStopTimer: null,
-      start() {
-        if (!A.el) { setStatus('load a song first', ''); return; }
-        const fps = 30;
-        const vstream = stage.captureStream(fps);
-        const dest = A.ctx.createMediaStreamDestination();
-        this.mediaDest = dest;
-        A.an.connect(dest);
-        const tracks = [...vstream.getVideoTracks(), ...dest.stream.getAudioTracks()];
-        const stream = new MediaStream(tracks);
-        const mime = [
-          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-          'video/mp4;codecs=avc1,mp4a.40.2',
-          'video/mp4;codecs=avc1',
-          'video/mp4',
-          'video/webm;codecs=vp9,opus',
-          'video/webm;codecs=vp8,opus',
-          'video/webm',
-        ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
-        this.mime = mime;
-        this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
-        this.chunks = [];
-        this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
-        this.rec.onstop = () => this._save();
-        this.rec.start(500);
-        this.recording = true;
-        const durSel = $('rec-dur') ? $('rec-dur').value : '0';
-        let durMs = 0;
-        if (durSel === 'song' && A.el && A.el.duration) {
-          durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
-        } else if (durSel !== '0' && durSel !== 'manual') {
-          durMs = parseInt(durSel) * 1000;
-        }
-        this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
-        $('rec').classList.add('live');
-        $('rec').textContent = '■ STOP';
-        const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-        if (this.autoStopAt > 0) {
-          const sec = Math.round((this.autoStopAt - Date.now()) / 1000);
-          setStatus('recording · ' + ext.toUpperCase() + ' · ' + sec + 's', 'live');
-          this.autoStopTimer = setTimeout(() => { if (this.recording) Recorder.stop(); }, this.autoStopAt - Date.now());
-        } else {
-          setStatus('recording · ' + ext.toUpperCase(), 'live');
-        }
-      },
-      stop() {
-        if (!this.rec) return;
-        if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
-        this.rec.stop();
-        this.recording = false;
-        $('rec').classList.remove('live');
-        $('rec').textContent = '● REC';
-        setStatus('rendering…', '');
-        if (this.mediaDest) {
-          try { A.an.disconnect(this.mediaDest); } catch {}
-          this.mediaDest = null;
-        }
-      },
-      _save() {
-        const blob = new Blob(this.chunks, { type: this.mime });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-        a.download = 'sainted-word-' + ts + '.' + ext;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setStatus('exported · ' + ext.toUpperCase(), 'ok');
-      },
-    };
-    window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
+
+    // === Expose SWR for sibling scripts (match shape used by neon/film/grid/smoke/hallucination) ===
+    window.SWR = { Audio: A, Library: Lib, Layers, Recorder: { start: startRec, stop: stopRec }, get stage() { return stage; }, get ctx() { return ctx; } };
+    console.log('[ECLIPSE] SWR engine ready · version=ECLIPSE · library=' + Lib.items.length);
   })();
   </script>
 <script src="../versions-presets.js"></script></body>
