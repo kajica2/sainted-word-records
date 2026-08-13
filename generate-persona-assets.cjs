@@ -154,11 +154,13 @@ function newCanvas() {
         }
       }
     },
-    // Diagonal slash (for stripe elements)
-    slash(thickness, r, g, b, alpha = 1) {
+    // Diagonal slash (for stripe elements). Optional 4th arg = offset,
+    // shifts the slash perpendicular to its line so multiple parallel
+    // slashes can be drawn from the same function.
+    slash(thickness, r, g, b, alpha = 1, offset = 0) {
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
-          const d = (W - x) - y;  // diagonal: x + y = const
+          const d = (W - x) - y - offset;  // diagonal: x + y = const
           if (Math.abs(d) < thickness) {
             const i = (y * W + x) * 4;
             this.px[i] = Math.round(r * alpha + this.px[i] * (1 - alpha));
@@ -312,92 +314,251 @@ function genFilterSet() {
 }
 
 function genNeonSet() {
-  // NEON: electric magenta/cyan, dark base, glowing shapes
+  // NEON: electric magenta/cyan, dark base, glowing shapes.
+  // v2 — denser composition: 10+ elements per image, more layers, more glow.
+  // Magenta + cyan on near-black. Hot club, screen-blend stacks,
+  // sharpened easings, scanlines. Cuts on the beat, not after it.
+
+  // Helper: bloom halo around a filled circle (semi-transparent ring)
+  function bloom(c, cx, cy, r, rgb) {
+    c.circle(cx, cy, r * 1.8, rgb[0], rgb[1], rgb[2], 0.12);
+    c.circle(cx, cy, r * 1.4, rgb[0], rgb[1], rgb[2], 0.18);
+    c.circle(cx, cy, r * 1.15, rgb[0], rgb[1], rgb[2], 0.30);
+  }
+
+  // --- p26: vertical bars + dots grid (club-poster feel) ---
   let c = newCanvas();
-  c.fill(8, 5, 25);
-  // Magenta horizontal bar
-  c.rect(W * 0.1, H * 0.3, W * 0.8, H * 0.04, [255, 20, 147], 1.0);
-  // Cyan vertical bar
-  c.rect(W * 0.45, H * 0.1, W * 0.04, H * 0.8, [0, 255, 255], 1.0);
-  // Magenta circle
-  c.circle(W * 0.25, H * 0.65, H * 0.12, [255, 20, 147], 1.0);
-  // Cyan circle
-  c.circle(W * 0.75, H * 0.7, H * 0.10, [0, 255, 255], 0.9);
-  // White core in magenta
-  c.circle(W * 0.25, H * 0.65, H * 0.05, [255, 255, 255], 0.9);
+  c.fill(6, 4, 18);
+  // Background dotted grid (sparse)
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 24; col++) {
+      const x = col * 60 + 20;
+      const y = row * 60 + 20;
+      c.set(x, y, 60, 30, 80, 255);
+    }
+  }
+  // 4 thick vertical bars in alternating colors
+  const barWidth = W * 0.06;
+  const colors = [
+    [255, 20, 147],   // magenta
+    [0, 255, 255],    // cyan
+    [255, 240, 0],    // yellow accent
+    [180, 0, 255],    // purple
+  ];
+  for (let i = 0; i < 4; i++) {
+    const x = W * 0.15 + i * (W * 0.18);
+    const color = colors[i];
+    bloom(c, x + barWidth / 2, H * 0.5, H * 0.4, color);
+    c.rect(x, H * 0.1, barWidth, H * 0.8, color[0], color[1], color[2], 1.0);
+    // Dark gap in the middle of each bar (sharp ease beat-cut)
+    c.rect(x, H * 0.45, barWidth, H * 0.04, [6, 4, 18], 1.0);
+  }
+  // Big horizontal accent at top
+  c.rect(0, H * 0.06, W, 4, [255, 20, 147], 1.0);
+  c.rect(0, H * 0.92, W, 4, [0, 255, 255], 1.0);
+  // Two glowing dots
+  bloom(c, W * 0.92, H * 0.2, H * 0.04, [255, 20, 147]);
+  c.circle(W * 0.92, H * 0.2, H * 0.04, [255, 255, 255], 1.0);
+  bloom(c, W * 0.08, H * 0.85, H * 0.03, [0, 255, 255]);
+  c.circle(W * 0.08, H * 0.85, H * 0.03, [255, 255, 255], 1.0);
   c.save('p26-neon-1.png');
 
+  // --- p27: cross-hatch diagonals + central sun ---
   c = newCanvas();
-  c.fill(5, 0, 20);
-  // Diagonal magenta slash
-  c.slash(12, [255, 20, 147], 0.8);
-  // Diagonal cyan slash
+  c.fill(4, 0, 14);
+  // Central glowing sun
+  bloom(c, W * 0.5, H * 0.5, H * 0.18, [255, 240, 0]);
+  c.circle(W * 0.5, H * 0.5, H * 0.18, [255, 240, 0], 1.0);
+  c.circle(W * 0.5, H * 0.5, H * 0.10, [255, 255, 255], 0.95);
+  // Magenta diagonal slashes
+  for (let i = -3; i < 8; i++) {
+    c.slash(6, [255, 20, 147], 0.55, i * 100);
+  }
+  // Cyan diagonal slashes (perpendicular-ish: top-left to bottom-right)
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const d = (W - x) - y;
-      if (Math.abs(d - 8) < 4) {
-        c.set(x, y, 0, 255, 255, 230);
+      // Draw periodic cyan lines
+      if (Math.abs((d % 90) - 45) < 3) {
+        c.set(x, y, 0, 255, 255, 200);
       }
     }
   }
-  // Magenta dot
-  c.circle(W * 0.7, H * 0.3, H * 0.08, [255, 20, 147], 1.0);
+  // Magenta frame
+  c.rect(0, 0, W, 6, [255, 20, 147], 1.0);
+  c.rect(0, H - 6, W, 6, [0, 255, 255], 1.0);
+  // Small accent dots in corners
+  c.circle(60, 60, 8, [255, 20, 147], 1.0);
+  c.circle(W - 60, 60, 8, [0, 255, 255], 1.0);
+  c.circle(60, H - 60, 8, [0, 255, 255], 1.0);
+  c.circle(W - 60, H - 60, 8, [255, 20, 147], 1.0);
   c.save('p27-neon-2.png');
 }
 
 function genFilmSet() {
-  // FILM: sepia + 16mm grain, warm handheld
-  let c = newCanvas();
-  c.vgradient([120, 90, 60], [60, 40, 25]);
-  // Grain-like noise (sparse dots)
-  for (let i = 0; i < 8000; i++) {
-    const x = Math.floor(Math.random() * W);
-    const y = Math.floor(Math.random() * H);
-    const a = 0.3 + Math.random() * 0.5;
-    const v = 180 + Math.floor(Math.random() * 60);
-    c.set(x, y, v, v - 20, v - 50, Math.floor(a * 255));
+  // FILM: sepia / 16mm grain, warm handheld, slow drift.
+  // v2 — denser: layered warm tones, vignette, visible grain particles,
+  // multiple film "frames" suggesting projector stills.
+
+  function grain(c, density, variance) {
+    for (let i = 0; i < density; i++) {
+      const x = Math.floor(Math.random() * W);
+      const y = Math.floor(Math.random() * H);
+      const a = 0.3 + Math.random() * 0.5;
+      const v = (variance || 50) + Math.floor(Math.random() * 80);
+      c.set(x, y, v, v - 25, v - 55, Math.floor(a * 255));
+    }
   }
-  c.circle(W * 0.4, H * 0.55, H * 0.2, [200, 160, 100]);
+
+  // --- p28: film strip (perforations on top + bottom) ---
+  let c = newCanvas();
+  c.vgradient([150, 110, 70], [70, 45, 25]);
+  grain(c, 6000, 60);
+  // Dark vignette overlay
+  const vcx = W / 2, vcy = H / 2;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = x - vcx, dy = y - vcy;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      const maxD = Math.sqrt(vcx*vcx + vcy*vcy);
+      const v = Math.max(0, 1 - (d / maxD) * 0.6);
+      const i = (y * W + x) * 4;
+      c.px[i]     = Math.round(c.px[i]     * v);
+      c.px[i + 1] = Math.round(c.px[i + 1] * v);
+      c.px[i + 2] = Math.round(c.px[i + 2] * v);
+    }
+  }
+  // Film-strip perforations (top + bottom rows of small dark squares)
+  for (let i = 0; i < 16; i++) {
+    const px = i * (W / 16) + 10;
+    c.rect(px, 8,            W / 16 - 20, 18, [30, 20, 10], 1.0);
+    c.rect(px, H - 8 - 18,   W / 16 - 20, 18, [30, 20, 10], 1.0);
+  }
+  // Central warm sun
+  c.circle(W * 0.62, H * 0.45, H * 0.22, [230, 180, 110], 0.85);
+  c.circle(W * 0.62, H * 0.45, H * 0.14, [240, 200, 140], 0.75);
+  // Foreground silhouette (a figure or structure)
+  c.rect(0, H * 0.7, W * 0.4, H * 0.3, [40, 25, 12], 0.85);
+  c.rect(W * 0.05, H * 0.6, W * 0.12, H * 0.15, [50, 30, 15], 0.7);
+  // Sepia vertical scratches (film damage)
+  for (let s = 0; s < 5; s++) {
+    const sx = Math.floor(Math.random() * W);
+    c.rect(sx, 0, 1, H, 200 - Math.floor(Math.random() * 60), 200, 0.18);
+  }
   c.save('p28-film-1.png');
 
+  // --- p29: window/frame composition with rain streaks ---
   c = newCanvas();
-  c.vgradient([140, 100, 65], [70, 50, 30]);
-  for (let i = 0; i < 6000; i++) {
-    const x = Math.floor(Math.random() * W);
-    const y = Math.floor(Math.random() * H);
-    const v = 160 + Math.floor(Math.random() * 70);
-    c.set(x, y, v, v - 30, v - 70, 180);
+  c.vgradient([170, 130, 80], [80, 55, 30]);
+  grain(c, 5000, 50);
+  // Window frame: 4 panes (2x2 grid)
+  c.rect(W * 0.2, H * 0.1, W * 0.6, H * 0.8, [40, 25, 12], 0.95);
+  c.rect(W * 0.2, H * 0.5, W * 0.6, 6, [40, 25, 12], 0.95);
+  c.rect(W * 0.5, H * 0.1, 6, H * 0.8, [40, 25, 12], 0.95);
+  // Bright outside (visible through the panes)
+  c.rect(W * 0.22, H * 0.12, W * 0.27, H * 0.36, [220, 170, 110], 0.9);
+  c.rect(W * 0.52, H * 0.12, W * 0.27, H * 0.36, [230, 180, 120], 0.9);
+  c.rect(W * 0.22, H * 0.52, W * 0.27, H * 0.36, [200, 150, 95], 0.9);
+  c.rect(W * 0.52, H * 0.52, W * 0.27, H * 0.36, [210, 160, 100], 0.9);
+  // Rain streaks (vertical blur lines through panes)
+  for (let i = 0; i < 60; i++) {
+    const rx = W * 0.22 + Math.random() * W * 0.55;
+    const ry = H * 0.12 + Math.random() * H * 0.75;
+    const len = 30 + Math.floor(Math.random() * 60);
+    for (let dy = 0; dy < len; dy++) {
+      if (ry + dy >= H) break;
+      c.set(rx, ry + dy, 230, 200, 160, 200);
+    }
   }
-  c.rect(0, H * 0.4, W * 0.5, H * 0.25, [100, 70, 40], 0.7);
-  c.circle(W * 0.7, H * 0.35, H * 0.12, [220, 180, 120]);
+  // Vignette around the edges
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = x - vcx, dy = y - vcy;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      const maxD = Math.sqrt(vcx*vcx + vcy*vcy);
+      const v = Math.max(0, 1 - (d / maxD) * 0.7);
+      const i = (y * W + x) * 4;
+      c.px[i]     = Math.round(c.px[i]     * v);
+      c.px[i + 1] = Math.round(c.px[i + 1] * v);
+      c.px[i + 2] = Math.round(c.px[i + 2] * v);
+    }
+  }
   c.save('p29-film-2.png');
 }
 
 function genGridSet() {
-  // GRID: monochrome, hard cells
+  // GRID: monochrome / hard cells.
+  // v2 — denser: bauhaus-style composition with multiple cell sizes,
+  // thicker borders, hard contrast. Snap to the beat, binary easings.
+
+  // --- p30: 4×4 cell grid with diagonal accent ---
   let c = newCanvas();
-  c.fill(15, 15, 20);
-  c.grid(80, 60, 60, 70);
-  // Big monochrome shapes
-  c.rect(0, 0, W * 0.5, H * 0.5, [220, 220, 220]);
-  c.rect(W * 0.5, H * 0.5, W * 0.5, H * 0.5, [180, 180, 180]);
-  c.rect(W * 0.5, 0, W * 0.25, H * 0.5, [100, 100, 100]);
-  c.rect(W * 0.75, 0, W * 0.25, H * 0.5, [40, 40, 40]);
-  c.rect(0, H * 0.5, W * 0.5, H * 0.25, [60, 60, 60]);
-  c.rect(0, H * 0.75, W * 0.5, H * 0.25, [220, 220, 220]);
-  // Re-draw grid on top
-  c.grid(80, 0, 0, 0, 0.9);
+  c.fill(8, 8, 12);
+  // 4x4 grid of cells, each filled with a different gray
+  const grays = [25, 50, 90, 140, 180, 210, 240, 255];
+  const cellW = W / 4;
+  const cellH = H / 4;
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const idx = (row * 4 + col) % grays.length;
+      const g = grays[idx];
+      c.rect(col * cellW, row * cellH, cellW, cellH, g, g, g, 1.0);
+    }
+  }
+  // Hard black grid lines (binary on/off — no anti-aliasing)
+  for (let i = 0; i <= 4; i++) {
+    c.rect(i * cellW, 0, 4, H, [0, 0, 0], 1.0);
+    c.rect(0, i * cellH, W, 4, [0, 0, 0], 1.0);
+  }
+  // Diagonal black bar (cut through 2 cells)
+  c.rect(W * 0.25, H * 0.4, W * 0.6, H * 0.05, [0, 0, 0], 1.0);
+  // Pure white circle in one cell (binary "on" pop)
+  c.circle(W * 0.25, H * 0.25, H * 0.10, [255, 255, 255], 1.0);
+  // Pure black square in another
+  c.rect(W * 0.65, H * 0.7, W * 0.15, H * 0.15, [0, 0, 0], 1.0);
   c.save('p30-grid-1.png');
 
+  // --- p31: mosaic with asymmetric cell sizes ---
   c = newCanvas();
-  c.fill(20, 20, 25);
-  c.grid(160, 80, 80, 90);
-  c.rect(W * 0.25, H * 0.25, W * 0.5, H * 0.5, [200, 200, 200]);
-  c.circle(W * 0.15, H * 0.85, H * 0.1, [50, 50, 50]);
-  c.circle(W * 0.85, H * 0.15, H * 0.08, [150, 150, 150]);
-  c.rect(0, H * 0.78, W * 0.25, H * 0.22, [120, 120, 120]);
-  c.rect(W * 0.75, 0, W * 0.25, H * 0.22, [80, 80, 80]);
-  c.grid(160, 0, 0, 0, 0.9);
+  c.fill(15, 15, 20);
+  // Background: large light-gray rectangle
+  c.rect(0, 0, W, H, [220, 220, 220], 1.0);
+  // Tile layout (random-asymmetric but balanced)
+  const tiles = [
+    { x: 0,           y: 0,           w: W * 0.30, h: H * 0.45, g: 30  },
+    { x: W * 0.30,    y: 0,           w: W * 0.25, h: H * 0.20, g: 90  },
+    { x: W * 0.55,    y: 0,           w: W * 0.20, h: H * 0.45, g: 200 },
+    { x: W * 0.75,    y: 0,           w: W * 0.25, h: H * 0.25, g: 50  },
+    { x: 0,           y: H * 0.45,    w: W * 0.20, h: H * 0.30, g: 150 },
+    { x: W * 0.20,    y: H * 0.45,    w: W * 0.35, h: H * 0.30, g: 100 },
+    { x: W * 0.55,    y: H * 0.45,    w: W * 0.45, h: H * 0.30, g: 240 },
+    { x: 0,           y: H * 0.75,    w: W * 0.40, h: H * 0.25, g: 60  },
+    { x: W * 0.40,    y: H * 0.75,    w: W * 0.30, h: H * 0.25, g: 180 },
+    { x: W * 0.70,    y: H * 0.75,    w: W * 0.30, h: H * 0.25, g: 110 },
+  ];
+  for (const t of tiles) {
+    c.rect(t.x, t.y, t.w, t.h, t.g, t.g, t.g, 1.0);
+  }
+  // Hard black borders around all tiles
+  for (let i = 0; i <= 10; i++) {
+    // Vertical lines at every tile x boundary
+    const tx = [0, W * 0.20, W * 0.30, W * 0.40, W * 0.55, W * 0.70, W * 0.75];
+    // (simplified: just full vertical lines at major x positions)
+  }
+  // Simpler: draw thick borders on the full grid using the function
+  c.rect(0, 0, W, 6, [0, 0, 0], 1.0);
+  c.rect(0, H - 6, W, 6, [0, 0, 0], 1.0);
+  c.rect(0, 0, 6, H, [0, 0, 0], 1.0);
+  c.rect(W - 6, 0, 6, H, [0, 0, 0], 1.0);
+  // Internal horizontal divider at H * 0.45
+  c.rect(0, H * 0.45 - 3, W, 6, [0, 0, 0], 1.0);
+  c.rect(0, H * 0.75 - 3, W, 6, [0, 0, 0], 1.0);
+  // Vertical dividers at the 5 major x positions
+  for (const xv of [W * 0.20, W * 0.30, W * 0.40, W * 0.55, W * 0.70, W * 0.75]) {
+    c.rect(xv - 3, 0, 6, H, [0, 0, 0], 1.0);
+  }
+  // One bright accent (a small accent shape in pure black or white)
+  c.circle(W * 0.475, H * 0.225, H * 0.04, [255, 255, 255], 1.0);
   c.save('p31-grid-2.png');
 }
 
