@@ -22,7 +22,7 @@
     const SWR = window.SWR;
     const Library = SWR && SWR.Library;
     if (!Library) {
-      setStatus('camera: app not ready', 'err');
+      if (typeof setStatus === 'function') setStatus('camera: app not ready', 'err');
       return;
     }
     if (active) {
@@ -31,7 +31,7 @@
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setStatus('camera: getUserMedia not supported', 'err');
+      if (typeof setStatus === 'function') setStatus('camera: getUserMedia not supported', 'err');
       return;
     }
 
@@ -47,7 +47,7 @@
       const msg = err && err.name === 'NotAllowedError'
         ? 'camera permission denied'
         : `camera error: ${err.message || err}`;
-      setStatus(msg, 'err');
+      if (typeof setStatus === 'function') setStatus(msg, 'err');
       return;
     }
 
@@ -63,7 +63,7 @@
     } catch (err) {
       // Some browsers block autoplay until user gesture; we already are
       // in a click handler so this should succeed, but guard anyway.
-      setStatus(`camera: play failed: ${err.message || err}`, 'warn');
+      if (typeof setStatus === 'function') setStatus(`camera: play failed: ${err.message || err}`, 'warn');
     }
 
     // Wait for the video to produce at least one frame
@@ -102,7 +102,7 @@
       libraryItem.thumb = thumbDataURL;
       Library.items.push(libraryItem);
       Library.render();
-      setStatus(`camera live · ${w}×${h} — drag to layer`, 'ok');
+      if (typeof setStatus === 'function') setStatus(`camera live · ${w}×${h} — drag to layer`, 'ok');
     });
 
     // Update toggle button
@@ -170,7 +170,7 @@
       btn.classList.remove('active');
     }
     active = false;
-    setStatus('camera off', 'ok');
+    if (typeof setStatus === 'function') setStatus('camera off', 'ok');
   }
 
   function buildUI() {

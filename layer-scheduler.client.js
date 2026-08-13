@@ -107,7 +107,7 @@
     ].join(';');
 
     panel.innerHTML = `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+      <div class="ls-drag-handle" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
         <strong style="font-size:12px;letter-spacing:0.04em;">⏱ AUTO-SWAP</strong>
         <span id="ls-status" style="margin-left:auto;font-size:10px;color:#888;">off</span>
       </div>
@@ -135,6 +135,72 @@
     `;
 
     document.body.appendChild(panel);
+
+    // ---- Drag support (title bar → grab to reposition) ----
+    // Position is persisted in localStorage so the user's chosen spot survives
+    // page reloads. Listens to BOTH pointer + mouse events for cross-device
+    // robustness (Puppeteer's mouse simulation only fires mouse* events).
+    const POS_KEY = 'swr-layer-scheduler-pos';
+    // Restore saved position (if any)
+    try {
+      const saved = localStorage.getItem(POS_KEY);
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+          panel.style.left = p.x + 'px';
+          panel.style.top = p.y + 'px';
+          panel.style.right = 'auto';
+          panel.style.bottom = 'auto';
+        }
+      }
+    } catch (e) { /* ignore corrupt localStorage */ }
+    const dragHandle = panel.querySelector('.ls-drag-handle');
+    if (dragHandle) {
+      let moveHandler = null, upHandler = null;
+      const beginDrag = (clientX, clientY, e) => {
+        e.preventDefault();
+        panel.classList.add('ls-dragging');
+        const rect = panel.getBoundingClientRect();
+        const offsetX = clientX - rect.left;
+        const offsetY = clientY - rect.top;
+        moveHandler = (ev) => {
+          const cx = ev.clientX !== undefined ? ev.clientX : (ev.touches && ev.touches[0] ? ev.touches[0].clientX : 0);
+          const cy = ev.clientY !== undefined ? ev.clientY : (ev.touches && ev.touches[0] ? ev.touches[0].clientY : 0);
+          const x = Math.max(0, Math.min(window.innerWidth - 40, cx - offsetX));
+          const y = Math.max(0, Math.min(window.innerHeight - 40, cy - offsetY));
+          panel.style.left = x + 'px';
+          panel.style.top = y + 'px';
+          panel.style.right = 'auto';
+          panel.style.bottom = 'auto';
+        };
+        upHandler = () => {
+          panel.classList.remove('ls-dragging');
+          window.removeEventListener('pointermove', moveHandler);
+          window.removeEventListener('pointerup', upHandler);
+          window.removeEventListener('mousemove', moveHandler);
+          window.removeEventListener('mouseup', upHandler);
+          try {
+            const x = parseInt(panel.style.left, 10) || 0;
+            const y = parseInt(panel.style.top, 10) || 0;
+            localStorage.setItem(POS_KEY, JSON.stringify({ x, y }));
+          } catch (err) { /* ignore */ }
+        };
+        window.addEventListener('pointermove', moveHandler);
+        window.addEventListener('pointerup', upHandler);
+        window.addEventListener('mousemove', moveHandler);
+        window.addEventListener('mouseup', upHandler);
+      };
+      dragHandle.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        beginDrag(e.clientX, e.clientY, e);
+      });
+      dragHandle.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        // Guard against double-firing if pointer events also fire
+        if (panel.classList.contains('ls-dragging')) return;
+        beginDrag(e.clientX, e.clientY, e);
+      });
+    }
 
     const $ = (id) => document.getElementById(id);
     const enable = $('ls-enable');

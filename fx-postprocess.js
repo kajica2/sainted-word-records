@@ -14,6 +14,17 @@
   // ---- Shader source ----
   // Used by both this module (live rendering) and persona-preview.client.js
   // (preview thumbnails). Exposed on window.FX_FRAG_SOURCE.
+  // Vertex shader: pass a_pos (clip-space fullscreen quad) through, derive v_uv
+  // for the fragment stage. The 2D canvas covers (-1,-1)..(1,1), so v_uv runs
+  // 0..1 across the screen — exactly what the fragment shader expects.
+  const VERT = `
+    attribute vec2 a_pos;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = a_pos * 0.5 + 0.5;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `;
   const FRAG_SOURCE = `
     precision highp float;
     varying vec2 v_uv;
@@ -36,6 +47,11 @@
     uniform float u_glow;        // 0=off, 1=heavy bloom/glow halo
     uniform float u_grayscale;   // 0=full color, 1=fully desaturated
     uniform float u_blur;        // 0=sharp, 1=heavy gaussian blur (3x3 box)
+
+    // Distortion uniforms (from flexible-smart-videomaker preset system)
+    uniform float u_liquid;      // 0=off, 1=heavy fbm domain warp
+    uniform float u_pearl;       // 0=off, 1=heavy Voronoi pearl cells
+    uniform float u_glitch;      // 0=off, 1=heavy horizontal slice displacement
 
     // 2D hash for procedural noise
     float hash(vec2 p) {
@@ -60,6 +76,28 @@
         a *= 0.5;
       }
       return v;
+    }
+    // Voronoi cell distance — the "pearl" pattern. Returns distance to the
+    // nearest cell point in a 1.0-spaced lattice, animated by t.
+    float voronoi(vec2 p, float t) {
+      vec2 ip = floor(p);
+      vec2 fp = fract(p);
+      float md = 8.0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          vec2 g = vec2(float(i), float(j));
+          vec2 o = vec2(
+            hash(ip + g + 17.0),
+            hash(ip + g + 91.0)
+          );
+          // Drift the cell points with time for a subtle breathing motion
+          o = 0.5 + 0.5 * sin(t * 0.6 + 6.2831 * o);
+          vec2 r = g + o - fp;
+          float d = dot(r, r);
+          md = min(md, d);
+        }
+      }
+      return sqrt(md);
     }
 
     // Mutation algorithms — each returns a UV offset
@@ -121,6 +159,49 @@
 
     void main() {
       vec2 uv = mutate(v_uv, u_time, u_mut, u_mutAlgo);
+
+      // === Liquid glass domain warp ===
+      // 2-scale fbm offset, scaled by u_liquid. The warp also drives a small
+      // per-channel chromatic offset proportional to the displacement (so the
+      // edges of liquid-distorted regions get a glassy prism look).
+      if (u_liquid > 0.001) {
+        vec2 p = v_uv * 4.0;
+        vec2 warp = vec2(
+          fbm(p + u_time * 0.35),
+          fbm(p + vec2(5.2, 1.3) + u_time * 0.31)
+        ) - 0.5;
+        uv += warp * 0.18 * u_liquid;
+      }
+
+      // === Pearl / bubble displacement ===
+      // Voronoi cells produce round "pearls" that bend the frame inward and
+      // add bright edge highlights. The brightness is added near the end.
+      float pearlEdge = 0.0;
+      if (u_pearl > 0.001) {
+        float d = voronoi(v_uv * 7.0, u_time);
+        // 0 at cell center, ~0.5 at edge. Push uv toward cell center
+        // proportional to how far we are, scaled by u_pearl.
+        float push = (d - 0.25) * u_pearl * 0.6;
+        vec2 dir = normalize(v_uv - 0.5 + 1e-5);
+        uv -= dir * push;
+        // Edge highlight (bright ring around each pearl)
+        pearlEdge = smoothstep(0.18, 0.30, d) * (1.0 - smoothstep(0.30, 0.45, d));
+      }
+
+      // === Glitch / slice offset ===
+      // Hash-driven horizontal slice displacement at ~12 Hz. Slices are
+      // quantised to a 60-row grid; only some slices shift (gated by hash).
+      if (u_glitch > 0.001) {
+        float slice = floor(v_uv.y * 60.0);
+        float slot = floor(u_time * 12.0);
+        float n = hash(vec2(slice, slot));
+        if (n > 0.55) {
+          // The slice shifts; strength is gated by the hash value so only
+          // ~45% of slices move, and the movement is jittery.
+          float shift = (n - 0.55) * 0.45 * u_glitch;
+          uv.x += shift * (hash(vec2(slice + 1.0, slot)) > 0.5 ? 1.0 : -1.0);
+        }
+      }
 
       // Chromatic aberration — combines mutation split with persona u_chroma
       float split = 0.003 * u_mut + 0.018 * u_chroma;
@@ -204,6 +285,11 @@
       float g = (hash(v_uv * 1024.0 + u_time) - 0.5) * (u_treble * 0.06 + u_grain * 0.18);
       col += g;
 
+      // Pearl edge highlight (added after grain so the highlights stay sharp)
+      if (u_pearl > 0.001) {
+        col += vec3(pearlEdge) * u_pearl * 0.6;
+      }
+
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `;
@@ -225,6 +311,10 @@
     glow: 0,
     grayscale: 0,
     blur: 0,
+    // Distortion uniforms (from flexible-smart-videomaker preset system)
+    liquid: 0,
+    pearl: 0,
+    glitch: 0,
   };
 
   // ---- Init ----
@@ -283,7 +373,7 @@
     }
 
     const vs = compile(gl.VERTEX_SHADER, VERT);
-    const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+    const fs = compile(gl.FRAGMENT_SHADER, FRAG_SOURCE);
     if (!vs || !fs) return;
     const prog = gl.createProgram();
     gl.attachShader(prog, vs);
@@ -325,6 +415,9 @@
       glow:     gl.getUniformLocation(prog, 'u_glow'),
       grayscale:gl.getUniformLocation(prog, 'u_grayscale'),
       blur:     gl.getUniformLocation(prog, 'u_blur'),
+      liquid:   gl.getUniformLocation(prog, 'u_liquid'),
+      pearl:    gl.getUniformLocation(prog, 'u_pearl'),
+      glitch:   gl.getUniformLocation(prog, 'u_glitch'),
     };
 
     // Texture from #render
@@ -391,6 +484,9 @@
       gl.uniform1f(u.glow,      state.glow);
       gl.uniform1f(u.grayscale, state.grayscale);
       gl.uniform1f(u.blur,      state.blur);
+      gl.uniform1f(u.liquid,    state.liquid);
+      gl.uniform1f(u.pearl,     state.pearl);
+      gl.uniform1f(u.glitch,    state.glitch);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
@@ -417,8 +513,11 @@
       setGlow(v)      { state.glow      = Math.max(0, Math.min(1, v)); },
       setGrayscale(v) { state.grayscale = Math.max(0, Math.min(1, v)); },
       setBlur(v)      { state.blur      = Math.max(0, Math.min(1, v)); },
+      setLiquid(v)    { state.liquid    = Math.max(0, Math.min(1, v)); },
+      setPearl(v)     { state.pearl     = Math.max(0, Math.min(1, v)); },
+      setGlitch(v)    { state.glitch    = Math.max(0, Math.min(1, v)); },
       setPersona(profile) {
-        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur}
+        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch}
         if (!profile) return;
         if (profile.temp      !== undefined) state.temp      = profile.temp;
         if (profile.mut       !== undefined) state.mut       = profile.mut;
@@ -431,6 +530,9 @@
         if (profile.glow      !== undefined) state.glow      = profile.glow;
         if (profile.grayscale !== undefined) state.grayscale = profile.grayscale;
         if (profile.blur      !== undefined) state.blur      = profile.blur;
+        if (profile.liquid    !== undefined) state.liquid    = profile.liquid;
+        if (profile.pearl     !== undefined) state.pearl     = profile.pearl;
+        if (profile.glitch    !== undefined) state.glitch    = profile.glitch;
       },
       setEnabled(on) { state.enabled = !!on; },
       outputCanvas: out,    // for recorder to captureStream()

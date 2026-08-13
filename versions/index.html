@@ -94,6 +94,30 @@
     .card[data-v="eclipse"] .vlabel { color: #ffb347; }
     .card[data-v="eclipse"]:hover { border-color: #ffb347; }
     .card[data-v="eclipse"] .open:hover { background: #ffb347; color: #000; border-color: #ffb347; }
+    .card[data-v="glitch"] .vlabel { color: #00ff66; }
+    .card[data-v="glitch"]:hover { border-color: #00ff66; }
+    .card[data-v="glitch"] .open:hover { background: #00ff66; color: #000; border-color: #00ff66; }
+    .card[data-v="aurora"] .vlabel { color: #FFB3BA; }
+    .card[data-v="aurora"]:hover { border-color: #FFB3BA; }
+    .card[data-v="aurora"] .open:hover { background: #FFB3BA; color: #000; border-color: #FFB3BA; }
+    .card[data-v="pulse"] .vlabel { color: var(--hot); }
+    .card[data-v="pulse"]:hover { border-color: var(--hot); }
+    .card[data-v="pulse"] .open:hover { background: var(--hot); color: #000; border-color: var(--hot); }
+    .card[data-v="void"] .vlabel { color: #00ffff; }
+    .card[data-v="void"]:hover { border-color: #00ffff; }
+    .card[data-v="void"] .open:hover { background: #00ffff; color: #000; border-color: #00ffff; }
+    .card[data-v="chrome"] .vlabel { color: #d4af37; }
+    .card[data-v="chrome"]:hover { border-color: #d4af37; }
+    .card[data-v="chrome"] .open:hover { background: #d4af37; color: #000; border-color: #d4af37; }
+    .card[data-v="watercolor"] .vlabel { color: #f4c2c2; }
+    .card[data-v="watercolor"]:hover { border-color: #f4c2c2; }
+    .card[data-v="watercolor"] .open:hover { background: #f4c2c2; color: #000; border-color: #f4c2c2; }
+    .card[data-v="fractal"] .vlabel { color: var(--warm); }
+    .card[data-v="fractal"]:hover { border-color: var(--warm); }
+    .card[data-v="fractal"] .open:hover { background: var(--warm); color: #000; border-color: var(--warm); }
+    .card[data-v="eclipse-legacy"] .vlabel { color: #ffb347; opacity: 0.6; }
+    .card[data-v="eclipse-legacy"]:hover { border-color: #ffb347; }
+    .card[data-v="eclipse-legacy"] .open:hover { background: #ffb347; color: #000; border-color: #ffb347; }
 
     .footer { margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--line);
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
@@ -111,17 +135,17 @@
   <div class="wrap">
     <div class="top">
       <span class="badge hot">SWR · v1</span>
-      <span class="badge">6 visual versions</span>
+      <span class="badge">12 visual versions</span>
       <span class="badge">algorithmic · reactive</span>
       <div class="spacer"></div>
       <a class="back" href="../index.html">← back to main</a>
     </div>
 
-    <h1>Six ways<br />to <em>see</em> the song.</h1>
+    <h1>Twelve ways<br />to <em>see</em> the song.</h1>
     <p class="lede">
       Same engine, same audio analysis, same auto-mapped layers.
-      <strong>Six completely different visual languages</strong> — one drop in
-      your track, one click REC, six distinct music videos. Pick the one that
+      <strong>Twelve completely different visual languages</strong> — one drop in
+      your track, one click REC, twelve distinct music videos. Pick the one that
       fits the song's mood, or render them all and let the audience choose.
     </p>
 
@@ -216,21 +240,146 @@
         </div>
       </a>
 
-      <a class="card" data-v="eclipse" href="./eclipse.html">
+      <a class="card" data-v="glitch" href="./glitch.html">
         <div class="thumb">
-          <span class="vlabel">06 · ECLIPSE</span>
-          <img src="../verify-screenshots/eclipse.png" alt="ECLIPSE version" />
+          <span class="vlabel">06 · GLITCH</span>
+          <img src="../verify-screenshots/glitch.png" alt="GLITCH version" />
         </div>
         <div class="body">
-          <h2>Eclipse</h2>
-          <div class="sub">Corona / totality black</div>
-          <p>A true silhouette pass. The stage is pure black; a <strong>radial corona</strong>
-            overlay breathes with the bass and blooms amber on every onset. Assets stay
-            <strong>muted</strong> — <strong>multiply</strong> + <strong>lighten</strong> —
-            because totality hides everything beneath the shadow. For: ambient, drone,
-            sacred-geometry, anything that should feel like a held breath in the dark.</p>
+          <h2>Glitch</h2>
+          <div class="sub">Digital decay / VHS tracking errors</div>
+          <p>Data moshing, scanline tear, posterize, pixel sort. <strong>Sharp attacks</strong>,
+            <strong>slight hang</strong>. Phosphor green on hot red. For: industrial, IDM,
+            anything that feels like a corrupted video file.</p>
           <div class="meta">
-            <span>corona</span><span>totality black</span><span>muted assets</span><span>onset bloom</span>
+            <span>data moshing</span><span>sharp attacks</span><span>phosphor</span><span>3 reactors</span>
+          </div>
+          <div class="open">open glitch <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="aurora" href="./aurora.html">
+        <div class="thumb">
+          <span class="vlabel">07 · AURORA</span>
+          <img src="../verify-screenshots/aurora.png" alt="AURORA version" />
+        </div>
+        <div class="body">
+          <h2>Aurora</h2>
+          <div class="sub">Pastel gradients / ethereal glow</div>
+          <p>Flowing curtains, mirror symmetry, slow drift, soft radial blur. Pastel pink +
+            mint + lavender. <strong>Smooth easings</strong> on every transition. For:
+            ambient, downtempo, anything that should feel like a held breath in a quiet sky.</p>
+          <div class="meta">
+            <span>pastel</span><span>mirror symmetry</span><span>slow drift</span><span>smooth</span>
+          </div>
+          <div class="open">open aurora <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="pulse" href="./pulse.html">
+        <div class="thumb">
+          <span class="vlabel">08 · PULSE</span>
+          <img src="../verify-screenshots/pulse.png" alt="PULSE version" />
+        </div>
+        <div class="body">
+          <h2>Pulse</h2>
+          <div class="sub">Bass reactive / concentric rings</div>
+          <p>Kick-driven expansion. <strong>Bass pumps the scale</strong>, beat hits the
+            tunnel zoom. Concentric rings expand from screen centre on every kick. For:
+            EDM, house, anything 4-on-the-floor.</p>
+          <div class="meta">
+            <span>kick-driven</span><span>concentric rings</span><span>tunnel zoom</span><span>snappy</span>
+          </div>
+          <div class="open">open pulse <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="void" href="./void.html">
+        <div class="thumb">
+          <span class="vlabel">09 · VOID</span>
+          <img src="../verify-screenshots/void.png" alt="VOID version" />
+        </div>
+        <div class="body">
+          <h2>Void</h2>
+          <div class="sub">Deep black / particle trails</div>
+          <p>Minimal. <strong>0.3 opacity</strong>. White/cyan particles fade to black.
+            Slow fades into the dark. For: drone, doom, anything that should feel like
+            a held breath into a void.</p>
+          <div class="meta">
+            <span>0.3 opacity</span><span>particles</span><span>deep black</span><span>slow</span>
+          </div>
+          <div class="open">open void <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="chrome" href="./chrome.html">
+        <div class="thumb">
+          <span class="vlabel">10 · CHROME</span>
+          <img src="../verify-screenshots/chrome.png" alt="CHROME version" />
+        </div>
+        <div class="body">
+          <h2>Chrome</h2>
+          <div class="sub">Metallic reflections / high contrast</div>
+          <p>Specular highlights, gold/silver/copper hue shift, micro-shimmer,
+            <strong>snap easings</strong>. Contrast boosted to 1.8×. For: trap, jersey club,
+            anything that should look like a chrome car commercial at 2am.</p>
+          <div class="meta">
+            <span>metallic</span><span>specular</span><span>snap easing</span><span>1.8× contrast</span>
+          </div>
+          <div class="open">open chrome <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="watercolor" href="./watercolor.html">
+        <div class="thumb">
+          <span class="vlabel">11 · WATERCOLOR</span>
+          <img src="../verify-screenshots/watercolor.png" alt="WATERCOLOR version" />
+        </div>
+        <div class="body">
+          <h2>Watercolor</h2>
+          <div class="sub">Soft bleed / pastel diffusion</div>
+          <p>Organic, slow, paint-spreads feel. Rose, sage, powder blue pastels.
+            <strong>0.6 opacity</strong>. For: singer-songwriter, chamber pop, anything
+            that should feel like a hand-painted storybook.</p>
+          <div class="meta">
+            <span>pastel</span><span>soft bleed</span><span>0.6 opacity</span><span>organic</span>
+          </div>
+          <div class="open">open watercolor <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="fractal" href="./fractal.html">
+        <div class="thumb">
+          <span class="vlabel">12 · FRACTAL</span>
+          <img src="../verify-screenshots/fractal.png" alt="FRACTAL version" />
+        </div>
+        <div class="body">
+          <h2>Fractal</h2>
+          <div class="sub">Recursive patterns / infinite zoom</div>
+          <p>Psychedelic, trippy, jewel tones on deep black. Fractal zoom, tunnel twist,
+            ring spectrum, rainbow chromatic shift. <strong>Fast, trippy response</strong>.
+            For: psytrance, progressive, anything that should feel like a Mandelbrot on a CRT.</p>
+          <div class="meta">
+            <span>fractal zoom</span><span>tunnel</span><span>rainbow</span><span>psychedelic</span>
+          </div>
+          <div class="open">open fractal <span class="arr">→</span></div>
+        </div>
+      </a>
+
+      <a class="card" data-v="eclipse-legacy" href="./eclipse.html">
+        <div class="thumb">
+          <span class="vlabel">13 · ECLIPSE <small style="opacity:0.6">(legacy)</small></span>
+          <img src="../verify-screenshots/eclipse.png" alt="ECLIPSE version (legacy, kept)" />
+        </div>
+        <div class="body">
+          <h2>Eclipse <small style="opacity:0.6;font-size:14px;font-family:'Geist Mono',monospace;letter-spacing:0.16em;text-transform:uppercase;">legacy</small></h2>
+          <div class="sub">Corona / totality black (pre-spec)</div>
+          <p>A pre-12-preset variant kept for continuity. The stage is pure black; a
+            <strong>radial corona</strong> overlay breathes with the bass and blooms amber
+            on every onset. <strong>Not part of the 12-preset spec</strong> — kept because
+            people still use it. For: ambient, drone, sacred-geometry.</p>
+          <div class="meta">
+            <span>corona</span><span>totality</span><span>muted assets</span><span>onset bloom</span>
           </div>
           <div class="open">open eclipse <span class="arr">→</span></div>
         </div>

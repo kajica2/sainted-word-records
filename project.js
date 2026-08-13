@@ -183,7 +183,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     if (typeof setStatus === 'function') {
       const audioNote = audio ? ` + audio (${Math.round(audio.dataUrl.length / 1024)} KB)` : ' (no audio)';
-      setStatus(`saved project (${project.layers.length} layers, ${project.library.length} assets${audioNote})`, 'ok');
+      if (typeof setStatus === 'function') setStatus(`saved project (${project.layers.length} layers, ${project.library.length} assets${audioNote})`, 'ok');
     }
     return project;
   }
@@ -201,7 +201,7 @@
     // Allow version 1 (no audio) and version 2 (with audio).
     if (project.version !== 1 && project.version !== VERSION) {
       if (typeof setStatus === 'function') {
-        setStatus(`project version mismatch (got ${project.version}, want 1 or ${VERSION})`, 'err');
+        if (typeof setStatus === 'function') setStatus(`project version mismatch (got ${project.version}, want 1 or ${VERSION})`, 'err');
       }
       return false;
     }
@@ -331,7 +331,7 @@
       const msg = missing > 0
         ? `project restored (${missing} layer(s) skipped — assets missing)`
         : `project restored (${project.layers.length} layers)`;
-      setStatus(msg, missing > 0 ? 'warn' : 'ok');
+      if (typeof setStatus === 'function') setStatus(msg, missing > 0 ? 'warn' : 'ok');
     }
 
     // 7. Restore audio source (if embedded as base64 in v2+)
@@ -356,12 +356,12 @@
             else Audio.audioEl.addEventListener('loadedmetadata', restoreSeek, { once: true });
           }
           if (typeof setStatus === 'function') {
-            setStatus('restored audio: ' + (a.name || 'song'), 'ok');
+            if (typeof setStatus === 'function') setStatus('restored audio: ' + (a.name || 'song'), 'ok');
           }
         }
       } catch (err) {
         if (typeof setStatus === 'function') {
-          setStatus('audio restore failed: ' + err.message, 'warn');
+          if (typeof setStatus === 'function') setStatus('audio restore failed: ' + err.message, 'warn');
         }
       }
     }

@@ -76,6 +76,8 @@
       temp:      s.temp,      mut:       s.mut,       mutAlgo:   s.mutAlgo,
       posterize: s.posterize, vignette:  s.vignette,  chroma:    s.chroma,
       grain:     s.grain,     sepia:     s.sepia,     glow:      s.glow,
+      grayscale: s.grayscale || 0, blur:   s.blur      || 0,
+      liquid:    s.liquid    || 0, pearl:   s.pearl     || 0, glitch: s.glitch || 0,
     };
   }
   function restoreFX(snap) {

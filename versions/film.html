@@ -97,6 +97,10 @@
       <canvas class="meter" id="meter" width="360" height="36"></canvas>
       <span class="spacer"></span>
       <span class="gc" style="font-size:10px;">beat <span class="led" id="beat-led"></span></span>
+      <span class="gc" style="font-size:10px;">onset <span class="led" id="onset-led"></span></span>
+      <label style="display:flex;align-items:center;gap:6px;font:italic 10px ui-serif;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;color:var(--muted);" title="When on, layers rotate through new clips every 4 beats">
+        <input type="checkbox" id="auto-cycle" checked />auto-cycle
+      </label>
       <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
         <option value="10">10s</option>
@@ -345,6 +349,15 @@
       }
     };
     let fps=0, lastT=performance.now();
+    // === Audio-reactivity state (film-paced — slower than the grid) ===
+    // Beat counter + last-rotation timestamp drive the auto asset rotation.
+    // Film aesthetic is slow + cinematic, so we rotate every 4 beats (≈1 bar)
+    // rather than every 2. The shake amount decays exponentially so onsets
+    // feel like a film "jolt" rather than a continuous wobble.
+    let _beatCount = 0;
+    let _shakeAmount = 0;
+    let _lastRotateAt = 0;
+    let _autoCycle = true;     // toggled by the UI checkbox; on by default
     function fit() { const vw=stage.clientWidth,vh=stage.clientHeight;
       const ar=vw/vh; let w,h;
       if (Math.abs(ar-16/9)<0.02) {w=vw;h=vh;}
@@ -396,9 +409,24 @@
       const car = W/H;
       let dw,dh;
       if (ar>car) { dh=H*r.scale; dw=dh*ar; } else { dw=W*r.scale; dh=dw/ar; }
-      const dx=(W-dw)/2 + r.x; const dy=(H-dh)/2 + r.y;
+      // === Audio-reactive onset micro-shake ===
+      // On every strong onset, each layer jolts by up to ±2px. Decays fast.
+      let dx = (W-dw)/2 + r.x;
+      let dy = (H-dh)/2 + r.y;
+      if (_shakeAmount > 0.01) {
+        dx += (Math.random() - 0.5) * _shakeAmount * 4;
+        dy += (Math.random() - 0.5) * _shakeAmount * 4;
+      }
+      // === Audio-reactive sepia + brightness flash on beat ===
+      // Each beat punch brightens + deepens the sepia briefly, like a film
+      // frame flash. This is the cinematic equivalent of the grid's beat pulse.
+      const beat = A.feat.beat || 0;
+      const bass = A.feat.bass || 0;
+      const mid  = A.feat.mid  || 0;
+      const sepia = 0.5 + bass * 0.3 + beat * 0.25;
+      const brightness = clamp(r.brightness + beat * 0.35, 0.1, 2.5);
       // Sepia + slight desat
-      ctx.filter = `sepia(${0.5 + A.feat.bass*0.3}) hue-rotate(${r.hue - 15}deg) brightness(${r.brightness}) contrast(${r.contrast}) saturate(${0.6 + A.feat.mid*0.2})`;
+      ctx.filter = `sepia(${sepia}) hue-rotate(${r.hue - 15}deg) brightness(${brightness}) contrast(${r.contrast}) saturate(${0.6 + mid*0.2})`;
       if (Math.abs(r.rot) > 0.3) {
         ctx.translate(W/2, H/2); ctx.rotate(r.rot*Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
@@ -408,8 +436,14 @@
       ctx.restore();
     }
     function drawFx() {
-      // film grain — pseudo-random noise
-      const grainAmt = 0.04;
+      // === Audio-reactive film grain ===
+      // Base grain 0.04, but bass kicks push it up to ~0.10 so the texture
+      // visibly coarsens on every hit (like a film projector shuddering).
+      const bass = A.feat.bass || 0;
+      const beat = A.feat.beat || 0;
+      const rms  = A.feat.rms  || 0;
+      const onset = A.feat.onset || 0;
+      const grainAmt = 0.04 + bass * 0.06 + beat * 0.04;
       if (grainAmt > 0) {
         const id = ctx.getImageData(0,0,W,H);
         const d = id.data;
@@ -419,12 +453,24 @@
         }
         ctx.putImageData(id,0,0);
       }
-      // soft warm overlay
+      // === Audio-reactive warm overlay ===
+      // Adds a beat-driven amber wash on top of the rms-driven base.
+      // Caps at 0.55 to avoid washing out the composition completely.
       ctx.save();
       ctx.globalCompositeOperation = 'soft-light';
-      ctx.fillStyle = `rgba(200,168,120,${0.15 + A.feat.rms*0.1})`;
+      const warmAlpha = Math.min(0.55, 0.15 + rms * 0.1 + beat * 0.3);
+      ctx.fillStyle = `rgba(200,168,120,${warmAlpha})`;
       ctx.fillRect(0,0,W,H);
       ctx.restore();
+      // === Audio-reactive vignette ===
+      // Heavy bass + beat darken the edges like a film aperture closing.
+      // We toggle a CSS variable on the vignette element — opacity only.
+      const vig = document.getElementById('vignette');
+      if (vig) {
+        // Base 0.7 (matches the static gradient), beat adds up to 0.25 more
+        const targetOpacity = 0.7 + beat * 0.2 + onset * 0.15;
+        vig.style.setProperty('background', `radial-gradient(ellipse at center, transparent ${Math.max(30, 40 - beat * 12)}%, rgba(0,0,0,${Math.min(0.95, targetOpacity)}) 100%)`);
+      }
     }
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;
@@ -445,6 +491,33 @@
       const dt=(t-lastT)/1000; lastT=t; fps=lerp(fps,1/Math.max(dt,0.0001),0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
+      // === Audio-reactive asset rotation (cinematic pacing: every 4 beats) ===
+      // On every 4th beat, each layer is re-assigned a random library asset.
+      // Debounced to 500ms minimum so a noisy onset detector can't double-fire
+      // and we never re-cycle during a single quarter note.
+      if (A.playing && _autoCycle && A.feat.beatPulse) {
+        _beatCount++;
+        if (_beatCount % 4 === 0 && (t - _lastRotateAt) > 500) {
+          _lastRotateAt = t;
+          const pool = Lib.items || [];
+          if (pool.length > 1) {
+            for (let i = 0; i < Layers.list.length; i++) {
+              const l = Layers.list[i];
+              // Pick a new asset that's different from the current one
+              let pick = l.asset;
+              let tries = 0;
+              do {
+                pick = pool[Math.floor(Math.random() * pool.length)];
+                tries++;
+              } while (pick === l.asset && tries < 4);
+              l.asset = pick;
+            }
+          }
+        }
+      }
+      // === Onset micro-shake decay ===
+      if (A.feat.onsetPulse) _shakeAmount = 1.0;
+      else _shakeAmount = Math.max(0, _shakeAmount * 0.82);
       ctx.fillStyle = '#0a0805'; ctx.fillRect(0,0,W,H);
       const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
       for (const l of sorted) drawLayer(l);
@@ -467,6 +540,9 @@
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('re-mapped ' + Layers.list.length, 'ok'); });
     for (const id of ['sens','gate','decay']) { const inp=$(id); const out=$(id+'-v');
       inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2)); }
+    // Wire the auto-cycle toggle
+    const ac = $('auto-cycle');
+    if (ac) ac.addEventListener('change', () => { _autoCycle = ac.checked; });
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', async e => { e.preventDefault(); if (e.dataTransfer.files?.length) await Lib.addFiles(e.dataTransfer.files); });
     window.addEventListener('resize', fit);

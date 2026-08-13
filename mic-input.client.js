@@ -20,7 +20,7 @@
     const SWR = window.SWR;
     const Audio = SWR && SWR.Audio;
     if (!Audio) {
-      setStatus('mic: app not ready', 'err');
+      if (typeof setStatus === 'function') setStatus('mic: app not ready', 'err');
       return;
     }
     if (active) {
@@ -29,7 +29,7 @@
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setStatus('mic: getUserMedia not supported', 'err');
+      if (typeof setStatus === 'function') setStatus('mic: getUserMedia not supported', 'err');
       return;
     }
 
@@ -103,12 +103,12 @@
       }
 
       active = true;
-      setStatus('mic live — speak / play to drive visuals', 'ok');
+      if (typeof setStatus === 'function') setStatus('mic live — speak / play to drive visuals', 'ok');
     } catch (err) {
       const msg = err && err.name === 'NotAllowedError'
         ? 'mic permission denied'
         : `mic error: ${err.message || err}`;
-      setStatus(msg, 'err');
+      if (typeof setStatus === 'function') setStatus(msg, 'err');
       active = false;
     }
   }
@@ -147,15 +147,15 @@
           else Audio.audioEl.addEventListener('loadedmetadata', restore, { once: true });
         }
         if (typeof setStatus === 'function') {
-          setStatus('mic off · song restored', 'ok');
+          if (typeof setStatus === 'function') setStatus('mic off · song restored', 'ok');
         }
       } catch (err) {
         if (typeof setStatus === 'function') {
-          setStatus('mic off · song restore failed: ' + err.message, 'warn');
+          if (typeof setStatus === 'function') setStatus('mic off · song restore failed: ' + err.message, 'warn');
         }
       }
     } else {
-      setStatus('mic off', 'ok');
+      if (typeof setStatus === 'function') setStatus('mic off', 'ok');
     }
     const playBtn = document.getElementById('play');
     if (playBtn) {

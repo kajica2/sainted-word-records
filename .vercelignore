@@ -4,7 +4,6 @@ node_modules
 *.log
 .env
 .env.local
-verify-screenshots/
 verify-*.mjs
 _vinyl-sample/
 versions/*.bak

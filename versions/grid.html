@@ -103,6 +103,7 @@
       <canvas class="meter" id="meter" width="320" height="40"></canvas>
       <span class="spacer"></span>
       <span style="font:9px ui-monospace;display:flex;align-items:center;gap:4px;">BEAT <span class="led" id="beat-led"></span></span>
+      <span style="font:9px ui-monospace;display:flex;align-items:center;gap:4px;">ONSET <span class="led" id="onset-led"></span></span>
       <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
         <option value="10">10s</option>
@@ -111,6 +112,9 @@
         <option value="60">60s</option>
         <option value="song">song</option>
       </select>
+      <label style="display:flex;align-items:center;gap:4px;font:9px ui-monospace;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;" title="When on, the grid re-arranges every 2 beats">
+        <input type="checkbox" id="auto-cycle" checked />AUTO-CYCLE
+      </label>
       <button class="tbtn danger" id="rec" disabled>● REC</button>
       <a class="nav" href="smoke.html">→ smoke</a>
     </header>
@@ -250,13 +254,11 @@
         }
       }
     };
-    const Layers = { list: [], sel: null,
-      add(it) { const i=this.list.length;
-        // GRID: snap to grid cells
-        let _cells_cache = null;
-        function _shuffledCells() {
-          if (!_cells_cache) {
-            _cells_cache = [
+    // GRID: shuffled grid cells, module-scoped so both add() and remap() can use it.
+    let _cells_cache = null;
+    function _shuffledCells() {
+      if (!_cells_cache) {
+        _cells_cache = [
           { x:0,    y:0,    w:0.5,  h:0.5 },
           { x:0.5,  y:0,    w:0.5,  h:0.5 },
           { x:0,    y:0.5,  w:0.5,  h:0.5 },
@@ -264,14 +266,16 @@
           { x:0,    y:0,    w:1,    h:0.5 },
           { x:0,    y:0.5,  w:1,    h:0.5 },
         ];
-            for (let i = _cells_cache.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [_cells_cache[i], _cells_cache[j]] = [_cells_cache[j], _cells_cache[i]];
-            }
-          }
-          _cells_cache.push(_cells_cache.shift());
-          return _cells_cache;
+        for (let i = _cells_cache.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [_cells_cache[i], _cells_cache[j]] = [_cells_cache[j], _cells_cache[i]];
         }
+      }
+      _cells_cache.push(_cells_cache.shift());
+      return _cells_cache;
+    }
+    const Layers = { list: [], sel: null,
+      add(it) { const i=this.list.length;
         const cells = [
           { x:0,    y:0,    w:0.5,  h:0.5 },
           { x:0.5,  y:0,    w:0.5,  h:0.5 },
@@ -375,6 +379,14 @@
       }
     };
     let fps=0, lastT=performance.now();
+    // === Audio-reactivity state ===
+    // Beat counter + last-rotation timestamp drive the auto cell rotation.
+    // The shake amount decays exponentially so onsets feel like a "thump"
+    // rather than a continuous wobble.
+    let _beatCount = 0;
+    let _shakeAmount = 0;
+    let _lastRotateAt = 0;
+    let _autoCycle = true;     // toggled by the UI checkbox; on by default
     function fit() { const vw=stage.clientWidth,vh=stage.clientHeight;
       stage.width=Math.max(640,Math.round(vw)); stage.height=Math.max(360,Math.round(vh));
       W=stage.width; H=stage.height; }
@@ -412,17 +424,35 @@
       const r=applyR(l);
       const cell = l.cell || { x:0, y:0, w:1, h:1 };
       // Snap to grid
-      const cellW = W * cell.w;
-      const cellH = H * cell.h;
-      const cellX = W * cell.x;
-      const cellY = H * cell.y;
+      let cellW = W * cell.w;
+      let cellH = H * cell.h;
+      let cellX = W * cell.x;
+      let cellY = H * cell.y;
+      // === Audio-reactive cell pulse ===
+      // The cell "breathes" with the beat: ~+3% size on a hit, decaying back.
+      // Multiplied by the reactor's scale contribution so cells tied to bass
+      // pulses harder than cells tied to onsets.
+      const beat = A.feat.beat || 0;
+      const cellPulse = 1 + beat * 0.045;
+      cellW *= cellPulse;
+      cellH *= cellPulse;
+      cellX -= (cellW - W * cell.w) / 2;
+      cellY -= (cellH - H * cell.h) / 2;
+      // === Onset micro-shake ===
+      // Per-frame, slightly offset each cell. The shake amount decays
+      // exponentially so the effect feels like a tap, not a constant jitter.
+      let dx = 0, dy = 0;
+      if (_shakeAmount > 0.01) {
+        dx = (Math.random() - 0.5) * _shakeAmount * 8;
+        dy = (Math.random() - 0.5) * _shakeAmount * 8;
+      }
       // Cover the cell
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const cellAR = cellW / cellH;
       let dw, dh;
       if (ar > cellAR) { dh = cellH * r.scale; dw = dh * ar; } else { dw = cellW * r.scale; dh = dw / ar; }
-      const dx = cellX + (cellW - dw)/2;
-      const dy = cellY + (cellH - dh)/2;
+      dx += cellX + (cellW - dw)/2;
+      dy += cellY + (cellH - dh)/2;
       ctx.save();
       ctx.globalCompositeOperation = l.blend || 'multiply';
       ctx.globalAlpha = clamp(r.opacity, 0, 1);
@@ -433,13 +463,20 @@
       // Optional: hard edge frame
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 1;
-      ctx.strokeRect(cellX+0.5, cellY+0.5, cellW-1, cellH-1);
+      ctx.strokeRect(cellX+0.5+ (Math.random()-0.5)*_shakeAmount*4, cellY+0.5+(Math.random()-0.5)*_shakeAmount*4, cellW-1, cellH-1);
       ctx.restore();
     }
     function drawFx() {
-      if (A.feat.beat > 0.3) {
-        $('flash').style.opacity = String(A.feat.beat * 0.5);
-      } else { $('flash').style.opacity = '0'; }
+      // Beat + onset both drive the flash; onset gets a stronger multiplier
+      // so heavy transients punch through. Capped at 0.85 to avoid a fully
+      // white frame that would hide the composition for a frame.
+      const beat = A.feat.beat || 0;
+      const onset = A.feat.onset || 0;
+      const flash = Math.min(0.85, beat * 0.6 + onset * 0.7);
+      $('flash').style.opacity = String(flash);
+      // Grid line pulse — the overlay becomes more visible on heavy hits
+      const gridOpacity = 0.35 + beat * 0.4;
+      $('grid').style.opacity = String(Math.min(1, gridOpacity));
     }
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;
@@ -459,6 +496,25 @@
       const dt=(t-lastT)/1000; lastT=t; fps=lerp(fps,1/Math.max(dt,0.0001),0.05);
       $('fps').textContent = Math.round(fps)+' FPS';
       if (A.playing) A.sample();
+      // === Audio-reactive grid rotation ===
+      // When a beat fires, count it. On every 2nd beat (≈ half-bar at common
+      // tempos), rotate the cell assignments so the grid layout physically
+      // re-arranges. Debounced to 180ms minimum so we never double-fire on
+      // a noisy onset detection.
+      if (A.playing && _autoCycle && A.feat.beatPulse) {
+        _beatCount++;
+        if (_beatCount % 2 === 0 && (t - _lastRotateAt) > 180) {
+          _lastRotateAt = t;
+          for (let i = 0; i < Layers.list.length; i++) {
+            Layers.list[i].cell = _shuffledCells()[i % 6];
+          }
+        }
+      }
+      // === Onset micro-shake decay ===
+      // A new onset tops up the shake amount. Between onsets, it decays so
+      // the cell positions return to their assigned cells.
+      if (A.feat.onsetPulse) _shakeAmount = 1.0;
+      else _shakeAmount = Math.max(0, _shakeAmount * 0.86);
       ctx.fillStyle = '#f4f4f4'; ctx.fillRect(0,0,W,H);
       const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
       for (const l of sorted) drawLayer(l);
@@ -481,6 +537,9 @@
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
     for (const id of ['sens','gate','decay']) { const inp=$(id); const out=$(id+'-v');
       inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2)); }
+    // Wire the auto-cycle toggle
+    const ac = $('auto-cycle');
+    if (ac) ac.addEventListener('change', () => { _autoCycle = ac.checked; });
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', async e => { e.preventDefault(); if (e.dataTransfer.files?.length) await Lib.addFiles(e.dataTransfer.files); });
     window.addEventListener('resize', fit);
