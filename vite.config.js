@@ -85,6 +85,7 @@ function copyStatic() {
       'pt.client.js',
       'pt-panel.client.js',
       'presets.client.js',
+      'presets-evolve.client.js',
       'presets-panel.client.js',
       'presets-panel.css',
       ];

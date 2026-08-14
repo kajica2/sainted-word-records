@@ -1,18 +1,18 @@
 // presets.client.js — engine-side manifest fetch + diff + apply.
-// Phase 2 of the self-evolving engine roadmap.
+// Phase 2 (daily pipeline ingest) + Phase 3 (on-device evolved variants).
 //
 // Public API on window.SWR_PRESETS:
-//   .load()                  — fetch + parse manifest, return {known, new, all}
-//   .getAll()                — return the cached manifest (or [] if not loaded)
-//   .getNew()                — return only the presets the user hasn't seen yet
+//   .load()                  — fetch manifest + read local variants, return {all, fresh, known}
+//   .getAll()                — return all loaded presets (manifest + local variants)
+//   .getNew()                — return only the ones the user hasn't seen yet
 //   .markSeen(id)            — add to localStorage['swr.presets.known']
 //   .markAllSeen()           — mark every loaded preset as seen
 //   .apply(id)               — apply preset to the engine (fx_state + palette)
 //   .isAvailable()           — true if the engine state is ready for apply
 //
 // Events:
-//   swr-presets-loaded   — { manifest, new: [...], known: [...] }
-//   swr-preset-applied   — { id, preset }
+//   swr-presets-loaded   — { manifest, localVariants, all, fresh, known }
+//   swr-preset-applied   — { id, preset, fxResult }
 //   swr-presets-error    — { error, stage }
 
 (function () {
@@ -94,8 +94,9 @@
   }
 
   function apply(id) {
-    if (!state.manifest) return { ok: false, error: 'manifest not loaded' };
-    const preset = state.manifest.presets.find(p => p.id === id);
+    const all = getAll();
+    if (all.length === 0) return { ok: false, error: 'no presets loaded' };
+    const preset = all.find(p => p.id === id);
     if (!preset) return { ok: false, error: 'preset not found: ' + id };
     const fxResult = applyPresetFx(preset.fx_state || {});
     applyPresetPalette(preset.palette);
@@ -107,18 +108,24 @@
     return { ok: true, preset, fxResult };
   }
 
+  let loadInFlight = null;
   async function load() {
+    // Dedupe concurrent loads — if a load is already running, return its
+    // result. Prevents the panel from being torn down + rebuilt when both
+    // the explicit verifier load and the auto-load fire in quick succession.
+    if (loadInFlight) return loadInFlight;
     state.known = readKnown();
-    let manifest;
-    try {
-      const r = await fetch(MANIFEST_URL, { cache: 'no-store' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      manifest = await r.json();
-    } catch (e) {
-      const err = { error: String(e), stage: 'fetch' };
-      window.dispatchEvent(new CustomEvent('swr-presets-error', { detail: err }));
-      return { ok: false, error: e };
-    }
+    loadInFlight = (async () => {
+      let manifest;
+      try {
+        const r = await fetch(MANIFEST_URL, { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        manifest = await r.json();
+      } catch (e) {
+        const err = { error: String(e), stage: 'fetch' };
+        window.dispatchEvent(new CustomEvent('swr-presets-error', { detail: err }));
+        return { ok: false, error: e };
+      }
     if (!manifest || !Array.isArray(manifest.presets)) {
       const err = { error: 'manifest missing presets array', stage: 'parse' };
       window.dispatchEvent(new CustomEvent('swr-presets-error', { detail: err }));
@@ -126,17 +133,47 @@
     }
     state.manifest = manifest;
     state.lastFetchedAt = new Date().toISOString();
-    const all = manifest.presets;
+
+    // Phase 3: also read on-device evolved variants from localStorage
+    const localVariants = (window.SWR_PRESETS_EVOLVE && window.SWR_PRESETS_EVOLVE.getVariants)
+      ? window.SWR_PRESETS_EVOLVE.getVariants()
+      : [];
+
+    // Manifest + local variants, with de-dupe (local variants win on conflict)
+    const seen = new Set();
+    const all = [];
+    for (const v of localVariants) {
+      if (v && v.id && !seen.has(v.id)) { all.push(v); seen.add(v.id); }
+    }
+    for (const p of manifest.presets) {
+      if (p && p.id && !seen.has(p.id)) { all.push(p); seen.add(p.id); }
+    }
+
     const known = all.filter(p => state.known.has(p.id));
     const fresh = all.filter(p => !state.known.has(p.id));
-    window.dispatchEvent(new CustomEvent('swr-presets-loaded', { detail: { manifest, all, known, fresh } }));
-    return { ok: true, all, known, fresh };
+    window.dispatchEvent(new CustomEvent('swr-presets-loaded', { detail: { manifest, localVariants, all, known, fresh } }));
+    return { ok: true, all, known, fresh, localVariants };
+    })();
+    try { return await loadInFlight; } finally { loadInFlight = null; }
   }
 
-  function getAll() { return state.manifest ? state.manifest.presets : []; }
+  function getAll() {
+    // Re-merge local variants on each call so a freshly generated variant
+    // is visible without needing to re-run load().
+    const local = (window.SWR_PRESETS_EVOLVE && window.SWR_PRESETS_EVOLVE.getVariants)
+      ? window.SWR_PRESETS_EVOLVE.getVariants() : [];
+    const seen = new Set();
+    const out = [];
+    for (const v of local)        { if (v && v.id && !seen.has(v.id)) { out.push(v); seen.add(v.id); } }
+    if (state.manifest) {
+      for (const p of state.manifest.presets) {
+        if (p && p.id && !seen.has(p.id)) { out.push(p); seen.add(p.id); }
+      }
+    }
+    return out;
+  }
   function getNew() {
-    if (!state.manifest) return [];
-    return state.manifest.presets.filter(p => !state.known.has(p.id));
+    return getAll().filter(p => !state.known.has(p.id));
   }
   function markSeen(id) { state.known.add(id); writeKnown(state.known); }
   function markAllSeen() {
@@ -149,4 +186,17 @@
   }
 
   window.SWR_PRESETS = { load, getAll, getNew, markSeen, markAllSeen, apply, isAvailable, _state: state };
+
+  // Self-load on DOMContentLoaded. The engine.html also has a backup load
+  // listener with a 800ms delay, but the module scripts (which define
+  // window.SWR_PRESETS) are async — that listener can fire before we're
+  // defined. This self-load is the primary path.
+  function selfLoad() {
+    setTimeout(() => { load().catch(() => {}); }, 400);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', selfLoad, { once: true });
+  } else {
+    selfLoad();
+  }
 })();

@@ -97,6 +97,7 @@
         <div class="presets-card-name">${escapeHtml(p.name || p.id)}</div>
         <div class="presets-card-meta">
           <span class="presets-card-family">${escapeHtml(p.family || 'GENERATIVE')}</span>
+          ${p._meta && p._meta.basePersona ? `<span class="presets-card-personalized" title="Personalized variant · generated from your usage of ${escapeAttr(p._meta.basePersona)}">★ personal</span>` : ''}
           ${tags.slice(0, 3).map(t => `<span class="presets-card-tag">${escapeHtml(t)}</span>`).join('')}
         </div>
         <div class="presets-card-desc">${escapeHtml(p.description || '')}</div>
