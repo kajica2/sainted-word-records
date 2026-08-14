@@ -36,7 +36,12 @@ const fail = (m) => { checks.push({ ok: false, m }); console.log('✗', m); };
   // 2. Engine loads
   const browser = await puppeteer.launch({
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+      '--no-sandbox', '--disable-setuid-sandbox',
+      // Disable service workers so the PWA's controllerchange handler
+      // (which calls location.reload() on first install) doesn't break the test.
+      '--disable-features=ServiceWorker,ServiceWorkerOnUI',
+    ],
     defaultViewport: { width: 1280, height: 800 },
   });
   const page = await browser.newPage();
