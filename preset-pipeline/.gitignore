@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log
+
+# Local artifacts
+out/
+*.log
+.DS_Store

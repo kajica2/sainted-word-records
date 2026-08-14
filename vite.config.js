@@ -35,6 +35,7 @@ function copyStatic() {
       { src: resolve('library'), dst: resolve(outDir, 'library') },
       { src: resolve('versions'), dst: resolve(outDir, 'versions') },
       { src: resolve('icons'), dst: resolve(outDir, 'icons') },
+      { src: resolve('presets'), dst: resolve(outDir, 'presets') },
     ];
     // Style preview thumbnails referenced from versions/index.html (12 small PNGs)
     const styleThumbs = ['neon','film','grid','smoke','hallucination',
@@ -83,6 +84,9 @@ function copyStatic() {
       'offline.html',
       'pt.client.js',
       'pt-panel.client.js',
+      'presets.client.js',
+      'presets-panel.client.js',
+      'presets-panel.css',
       ];
     for (const f of rootFiles) {
       const sp = resolve(f);

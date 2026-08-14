@@ -1,0 +1,79 @@
+{
+  "id": "swr-preset-2026-08-14-matrix-curl-snap",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-08-14T12:47:01.252106+00:00",
+  "name": "Matrix Curl Snap",
+  "family": "GENERATIVE",
+  "description": "Matrix Curl Snap: Soft divergent flow with bass-pumped bloom. Paired with Green-on-black terminal.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "curl-noise",
+      "weight": 0.54
+    },
+    {
+      "kind": "palette_ref",
+      "name": "matrix-mono",
+      "weight": 0.2
+    },
+    {
+      "kind": "motion_ref",
+      "name": "snap-pan-x",
+      "weight": 0.26
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.4,
+    "pearl": 0.2,
+    "glitch": 0.08,
+    "grain": 0.3,
+    "chroma": 0.5,
+    "bloom": 0.6,
+    "vignette": 0.3,
+    "sepia": 0.0,
+    "glow": 0.2,
+    "grayscale": 0.0,
+    "blur": 0.1,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.0,
+    "posterize": 4
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.3,
+    "pan_y": 0.0
+  },
+  "palette": {
+    "primary": "#5ec27a",
+    "secondary": "#0a0a0c",
+    "accent": "#8be8a0",
+    "bg": "#000000"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "chroma",
+      "bloom",
+      "pan_x"
+    ],
+    "mid": [
+      "rotation_speed"
+    ],
+    "treble": [
+      "grain"
+    ],
+    "onset": [
+      "scale_pulse",
+      "pan_x"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><circle cx=\"40\" cy=\"40\" r=\"21\" fill=\"#5ec27a\" opacity=\"0.8\"/><circle cx=\"37\" cy=\"44\" r=\"12\" fill=\"#0a0a0c\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"6\" fill=\"#8be8a0\"/></svg>",
+    "tags": [
+      "curl",
+      "matrix",
+      "snap"
+    ]
+  }
+}

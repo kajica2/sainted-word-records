@@ -11,6 +11,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
   <meta name="theme-color" content="#f5a524" />
   <link rel="stylesheet" href="/video-fx.css" />
+  <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/brandkit.css" />
   <style>
     :root {
@@ -3292,5 +3293,20 @@
   <script type="module" src="/pwa-bootstrap.js"></script>
   <script type="module" src="/pt.client.js"></script>
   <script type="module" src="/pt-panel.client.js"></script>
+  <script type="module" src="/presets.client.js"></script>
+  <script type="module" src="/presets-panel.client.js"></script>
+  <script>
+    // Self-evolving engine: fetch the daily preset manifest a moment after
+    // boot so the rest of the engine's init isn't blocked. The panel mounts
+    // automatically and shows a "N new personalities" pill if any of the
+    // fetched presets aren't in the user's known set (localStorage).
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        if (window.SWR_PRESETS && window.SWR_PRESETS.load) {
+          window.SWR_PRESETS.load().catch(() => {});
+        }
+      }, 800);
+    });
+  </script>
 </body>
 </html>

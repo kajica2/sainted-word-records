@@ -1,0 +1,79 @@
+{
+  "id": "swr-preset-2026-08-14-annihilation-fractal-lateral",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-08-14T12:47:01.251823+00:00",
+  "name": "Annihilation Fractal Lateral",
+  "family": "GENERATIVE",
+  "description": "Annihilation Fractal Lateral: Recursive zoom with bass-driven depth. Paired with Annihilation (2018) \u2014 pink + cyan aurora.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "fractal-mandel",
+      "weight": 0.52
+    },
+    {
+      "kind": "palette_ref",
+      "name": "annihilation-aurora",
+      "weight": 0.34
+    },
+    {
+      "kind": "motion_ref",
+      "name": "lateral-drift",
+      "weight": 0.14
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.0,
+    "pearl": 0.3,
+    "glitch": 0.0,
+    "grain": 0.0,
+    "chroma": 0.6,
+    "bloom": 0.5,
+    "vignette": 0.4,
+    "sepia": 0.0,
+    "glow": 0.3,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.0,
+    "posterize": 5
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.1,
+    "pan_y": 0.05
+  },
+  "palette": {
+    "primary": "#d462a4",
+    "secondary": "#4cd4d4",
+    "accent": "#d4a24c",
+    "bg": "#0a0a0c"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "scale_pulse",
+      "bloom",
+      "pan_x"
+    ],
+    "mid": [
+      "chroma"
+    ],
+    "treble": [
+      "glow"
+    ],
+    "onset": [
+      "pearl",
+      "pan_y"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"18\" fill=\"#d462a4\" opacity=\"0.8\"/><circle cx=\"54\" cy=\"33\" r=\"7\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#d4a24c\"/></svg>",
+    "tags": [
+      "fractal",
+      "annihilation",
+      "lateral"
+    ]
+  }
+}

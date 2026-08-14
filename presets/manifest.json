@@ -1,0 +1,555 @@
+{
+  "version": 1,
+  "updated_at": "2026-08-14T12:47:01.252654+00:00",
+  "presets": [
+    {
+      "id": "swr-preset-2026-08-14-midsommar-voronoi-lateral",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-14T12:32:21.026115+00:00",
+      "name": "Midsommar Voronoi Lateral",
+      "family": "MORPHA",
+      "description": "Midsommar Voronoi Lateral: Sharp cell boundaries with bass-pumped scale. Paired with Midsommar pale + flower pink.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "voronoi-cells",
+          "weight": 0.52
+        },
+        {
+          "kind": "palette_ref",
+          "name": "midsommar-bloom",
+          "weight": 0.35
+        },
+        {
+          "kind": "motion_ref",
+          "name": "lateral-drift",
+          "weight": 0.13
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.1,
+        "grain": 0.0,
+        "chroma": 0.4,
+        "bloom": 0.4,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.3,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 6
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.1,
+        "pan_y": 0.05
+      },
+      "palette": {
+        "primary": "#f5d0c0",
+        "secondary": "#d462a4",
+        "accent": "#f5e6c0",
+        "bg": "#faf0e0"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "scale_pulse",
+          "pan_x"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "chroma",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#faf0e0\"/><circle cx=\"40\" cy=\"40\" r=\"16\" fill=\"#f5d0c0\" opacity=\"0.8\"/><circle cx=\"47\" cy=\"41\" r=\"11\" fill=\"#d462a4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"5\" fill=\"#f5e6c0\"/></svg>",
+        "tags": [
+          "voronoi",
+          "midsommar",
+          "lateral"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-14-barry-curl-snap",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-14T12:32:21.026399+00:00",
+      "name": "Barry Curl Snap",
+      "family": "GENERATIVE",
+      "description": "Barry Curl Snap: Soft divergent flow with bass-pumped bloom. Paired with High-key gold/black minimalism.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "curl-noise",
+          "weight": 0.54
+        },
+        {
+          "kind": "palette_ref",
+          "name": "barry-lyon-gold",
+          "weight": 0.37
+        },
+        {
+          "kind": "motion_ref",
+          "name": "snap-pan-x",
+          "weight": 0.09
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.2,
+        "glitch": 0.08,
+        "grain": 0.3,
+        "chroma": 0.5,
+        "bloom": 0.6,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.2,
+        "grayscale": 0.0,
+        "blur": 0.1,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.3,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#d4a24c",
+        "secondary": "#1a1a1a",
+        "accent": "#f5e6c0",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "chroma",
+          "bloom",
+          "pan_x"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "scale_pulse",
+          "pan_x"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"19\" fill=\"#d4a24c\" opacity=\"0.8\"/><circle cx=\"32\" cy=\"30\" r=\"5\" fill=\"#1a1a1a\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"2\" fill=\"#f5e6c0\"/></svg>",
+        "tags": [
+          "curl",
+          "barry",
+          "snap"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-14-matrix-voronoi-breath",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-14T12:32:21.026457+00:00",
+      "name": "Matrix Voronoi Breath",
+      "family": "GENERATIVE",
+      "description": "Matrix Voronoi Breath: Sharp cell boundaries with bass-pumped scale. Paired with Green-on-black terminal.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "voronoi-cells",
+          "weight": 0.59
+        },
+        {
+          "kind": "palette_ref",
+          "name": "matrix-mono",
+          "weight": 0.31
+        },
+        {
+          "kind": "motion_ref",
+          "name": "breath-scale",
+          "weight": 0.1
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.1,
+        "grain": 0.0,
+        "chroma": 0.4,
+        "bloom": 0.4,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.3,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 6
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.25,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#5ec27a",
+        "secondary": "#0a0a0c",
+        "accent": "#8be8a0",
+        "bg": "#000000"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "scale_pulse"
+        ],
+        "mid": [
+          "rotation_speed",
+          "scale_pulse"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "chroma"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><circle cx=\"40\" cy=\"40\" r=\"26\" fill=\"#5ec27a\" opacity=\"0.8\"/><circle cx=\"43\" cy=\"29\" r=\"9\" fill=\"#0a0a0c\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"4\" fill=\"#8be8a0\"/></svg>",
+        "tags": [
+          "voronoi",
+          "matrix",
+          "breath"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-14-annihilation-ascii-snap",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-14T12:32:21.086622+00:00",
+      "name": "Annihilation Ascii Snap",
+      "family": "GENERATIVE",
+      "description": "Annihilation Ascii Snap: Monospace character cells with low framerate feel. Paired with Annihilation (2018) \u2014 pink + cyan aurora.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "ascii-rain",
+          "weight": 0.55
+        },
+        {
+          "kind": "palette_ref",
+          "name": "annihilation-aurora",
+          "weight": 0.35
+        },
+        {
+          "kind": "motion_ref",
+          "name": "snap-pan-y",
+          "weight": 0.1
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.2,
+        "grain": 0.5,
+        "chroma": 0.0,
+        "bloom": 0.0,
+        "vignette": 0.4,
+        "sepia": 0.3,
+        "glow": 0.0,
+        "grayscale": 0.9,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 8
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.3
+      },
+      "palette": {
+        "primary": "#d462a4",
+        "secondary": "#4cd4d4",
+        "accent": "#d4a24c",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "posterize"
+        ],
+        "mid": [
+          "grain"
+        ],
+        "treble": [
+          "glitch"
+        ],
+        "onset": [
+          "scale_pulse",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"28\" fill=\"#d462a4\" opacity=\"0.8\"/><circle cx=\"28\" cy=\"29\" r=\"6\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#d4a24c\"/></svg>",
+        "tags": [
+          "ascii",
+          "annihilation",
+          "snap"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-14-annihilation-reaction-snap",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-14T12:32:21.086932+00:00",
+      "name": "Annihilation Reaction Snap",
+      "family": "GENERATIVE",
+      "description": "Annihilation Reaction Snap: Organic Turing patterns with mid-band glissando. Paired with Annihilation (2018) \u2014 pink + cyan aurora.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "reaction-diffusion",
+          "weight": 0.43
+        },
+        {
+          "kind": "palette_ref",
+          "name": "annihilation-aurora",
+          "weight": 0.38
+        },
+        {
+          "kind": "motion_ref",
+          "name": "snap-pan-x",
+          "weight": 0.19
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.6,
+        "pearl": 0.4,
+        "glitch": 0.0,
+        "grain": 0.2,
+        "chroma": 0.3,
+        "bloom": 0.3,
+        "vignette": 0.2,
+        "sepia": 0.0,
+        "glow": 0.3,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 6
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.3,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#d462a4",
+        "secondary": "#4cd4d4",
+        "accent": "#d4a24c",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "bloom",
+          "glow",
+          "pan_x"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "pearl",
+          "pan_x"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"20\" fill=\"#d462a4\" opacity=\"0.8\"/><circle cx=\"39\" cy=\"37\" r=\"8\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"4\" fill=\"#d4a24c\"/></svg>",
+        "tags": [
+          "reaction",
+          "annihilation",
+          "snap"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-14-annihilation-fractal-lateral",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-14T12:47:01.251823+00:00",
+      "name": "Annihilation Fractal Lateral",
+      "family": "GENERATIVE",
+      "description": "Annihilation Fractal Lateral: Recursive zoom with bass-driven depth. Paired with Annihilation (2018) \u2014 pink + cyan aurora.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "fractal-mandel",
+          "weight": 0.52
+        },
+        {
+          "kind": "palette_ref",
+          "name": "annihilation-aurora",
+          "weight": 0.34
+        },
+        {
+          "kind": "motion_ref",
+          "name": "lateral-drift",
+          "weight": 0.14
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.3,
+        "glitch": 0.0,
+        "grain": 0.0,
+        "chroma": 0.6,
+        "bloom": 0.5,
+        "vignette": 0.4,
+        "sepia": 0.0,
+        "glow": 0.3,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 5
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.1,
+        "pan_y": 0.05
+      },
+      "palette": {
+        "primary": "#d462a4",
+        "secondary": "#4cd4d4",
+        "accent": "#d4a24c",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "scale_pulse",
+          "bloom",
+          "pan_x"
+        ],
+        "mid": [
+          "chroma"
+        ],
+        "treble": [
+          "glow"
+        ],
+        "onset": [
+          "pearl",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"18\" fill=\"#d462a4\" opacity=\"0.8\"/><circle cx=\"54\" cy=\"33\" r=\"7\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#d4a24c\"/></svg>",
+        "tags": [
+          "fractal",
+          "annihilation",
+          "lateral"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-14-matrix-curl-snap",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-14T12:47:01.252106+00:00",
+      "name": "Matrix Curl Snap",
+      "family": "GENERATIVE",
+      "description": "Matrix Curl Snap: Soft divergent flow with bass-pumped bloom. Paired with Green-on-black terminal.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "curl-noise",
+          "weight": 0.54
+        },
+        {
+          "kind": "palette_ref",
+          "name": "matrix-mono",
+          "weight": 0.2
+        },
+        {
+          "kind": "motion_ref",
+          "name": "snap-pan-x",
+          "weight": 0.26
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.2,
+        "glitch": 0.08,
+        "grain": 0.3,
+        "chroma": 0.5,
+        "bloom": 0.6,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.2,
+        "grayscale": 0.0,
+        "blur": 0.1,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.3,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#5ec27a",
+        "secondary": "#0a0a0c",
+        "accent": "#8be8a0",
+        "bg": "#000000"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "chroma",
+          "bloom",
+          "pan_x"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "scale_pulse",
+          "pan_x"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><circle cx=\"40\" cy=\"40\" r=\"21\" fill=\"#5ec27a\" opacity=\"0.8\"/><circle cx=\"37\" cy=\"44\" r=\"12\" fill=\"#0a0a0c\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"6\" fill=\"#8be8a0\"/></svg>",
+        "tags": [
+          "curl",
+          "matrix",
+          "snap"
+        ]
+      }
+    }
+  ],
+  "count": 7
+}

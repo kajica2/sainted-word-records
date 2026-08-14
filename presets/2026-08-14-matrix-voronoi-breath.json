@@ -1,0 +1,77 @@
+{
+  "id": "swr-preset-2026-08-14-matrix-voronoi-breath",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-08-14T12:32:21.026457+00:00",
+  "name": "Matrix Voronoi Breath",
+  "family": "GENERATIVE",
+  "description": "Matrix Voronoi Breath: Sharp cell boundaries with bass-pumped scale. Paired with Green-on-black terminal.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "voronoi-cells",
+      "weight": 0.59
+    },
+    {
+      "kind": "palette_ref",
+      "name": "matrix-mono",
+      "weight": 0.31
+    },
+    {
+      "kind": "motion_ref",
+      "name": "breath-scale",
+      "weight": 0.1
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.1,
+    "grain": 0.0,
+    "chroma": 0.4,
+    "bloom": 0.4,
+    "vignette": 0.3,
+    "sepia": 0.0,
+    "glow": 0.3,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.0,
+    "posterize": 6
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.25,
+    "pan_x": 0.0,
+    "pan_y": 0.0
+  },
+  "palette": {
+    "primary": "#5ec27a",
+    "secondary": "#0a0a0c",
+    "accent": "#8be8a0",
+    "bg": "#000000"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "scale_pulse"
+    ],
+    "mid": [
+      "rotation_speed",
+      "scale_pulse"
+    ],
+    "treble": [
+      "grain"
+    ],
+    "onset": [
+      "chroma"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><circle cx=\"40\" cy=\"40\" r=\"26\" fill=\"#5ec27a\" opacity=\"0.8\"/><circle cx=\"43\" cy=\"29\" r=\"9\" fill=\"#0a0a0c\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"4\" fill=\"#8be8a0\"/></svg>",
+    "tags": [
+      "voronoi",
+      "matrix",
+      "breath"
+    ]
+  }
+}

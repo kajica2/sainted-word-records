@@ -1,0 +1,79 @@
+{
+  "id": "swr-preset-2026-08-14-barry-curl-snap",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-08-14T12:32:21.026399+00:00",
+  "name": "Barry Curl Snap",
+  "family": "GENERATIVE",
+  "description": "Barry Curl Snap: Soft divergent flow with bass-pumped bloom. Paired with High-key gold/black minimalism.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "curl-noise",
+      "weight": 0.54
+    },
+    {
+      "kind": "palette_ref",
+      "name": "barry-lyon-gold",
+      "weight": 0.37
+    },
+    {
+      "kind": "motion_ref",
+      "name": "snap-pan-x",
+      "weight": 0.09
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.4,
+    "pearl": 0.2,
+    "glitch": 0.08,
+    "grain": 0.3,
+    "chroma": 0.5,
+    "bloom": 0.6,
+    "vignette": 0.3,
+    "sepia": 0.0,
+    "glow": 0.2,
+    "grayscale": 0.0,
+    "blur": 0.1,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.0,
+    "posterize": 4
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.3,
+    "pan_y": 0.0
+  },
+  "palette": {
+    "primary": "#d4a24c",
+    "secondary": "#1a1a1a",
+    "accent": "#f5e6c0",
+    "bg": "#0a0a0c"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "chroma",
+      "bloom",
+      "pan_x"
+    ],
+    "mid": [
+      "rotation_speed"
+    ],
+    "treble": [
+      "grain"
+    ],
+    "onset": [
+      "scale_pulse",
+      "pan_x"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"19\" fill=\"#d4a24c\" opacity=\"0.8\"/><circle cx=\"32\" cy=\"30\" r=\"5\" fill=\"#1a1a1a\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"2\" fill=\"#f5e6c0\"/></svg>",
+    "tags": [
+      "curl",
+      "barry",
+      "snap"
+    ]
+  }
+}
