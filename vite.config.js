@@ -39,9 +39,10 @@ function copyStatic() {
       { src: resolve('press'), dst: resolve(outDir, 'press') },
       { src: resolve('legal'), dst: resolve(outDir, 'legal') },
     ];
-    // Style preview thumbnails referenced from versions/index.html (12 small PNGs)
+    // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
     const styleThumbs = ['neon','film','grid','smoke','hallucination',
-                         'glitch','aurora','pulse','void','chrome','watercolor','fractal'].map((n) => ({
+                         'glitch','aurora','pulse','void','chrome','watercolor','fractal',
+                         'eclipse'].map((n) => ({
       src: resolve('verify-screenshots', n + '.png'),
       dst: resolve(outDir, 'verify-screenshots', n + '.png'),
     }));
@@ -76,6 +77,7 @@ function copyStatic() {
       'thanks.html',
       'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
       'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
+      'watermark-monogram.svg',
       'video-fx.css',
       'login.html',
       'brandkit.css',
@@ -91,6 +93,7 @@ function copyStatic() {
       'presets-panel.client.js',
       'presets-panel.css',
       'favicon.ico',
+      'apple-touch-icon.png',
       '404.html',
       'changelog.html',
       'press.html',

@@ -1,17 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
-  <!-- SWR Monogram -->
-  <g fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <!-- S -->
-    <path d="M8,15 Q2,15 2,22 Q2,30 12,30 Q22,30 22,38 Q22,45 16,45" />
-    <!-- W -->
-    <path d="M35,15 L42,45 L50,25 L58,45 L65,15" />
-    <!-- R -->
-    <path d="M78,15 L78,45 M78,15 Q95,15 95,25 Q95,35 78,35 M85,35 L95,45" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff2d8a"/>
+      <stop offset="0.5" stop-color="#00f0ff"/>
+      <stop offset="1" stop-color="#fff04a"/>
+    </linearGradient>
+  </defs>
+  <!-- Waveform -->
+  <g stroke="url(#g)" stroke-width="1.6" stroke-linecap="round" opacity="0.85">
+    <line x1="6" y1="30" x2="6" y2="30"/>
+    <line x1="10" y1="22" x2="10" y2="38"/>
+    <line x1="14" y1="14" x2="14" y2="46"/>
+    <line x1="18" y1="20" x2="18" y2="40"/>
+    <line x1="22" y1="8"  x2="22" y2="52"/>
+    <line x1="26" y1="18" x2="26" y2="42"/>
+    <line x1="30" y1="12" x2="30" y2="48"/>
+    <line x1="34" y1="22" x2="34" y2="38"/>
+    <line x1="38" y1="6"  x2="38" y2="54"/>
+    <line x1="42" y1="16" x2="42" y2="44"/>
+    <line x1="46" y1="20" x2="46" y2="40"/>
   </g>
-  <!-- Subtle divider -->
-  <line x1="105" y1="18" x2="105" y2="42" stroke="white" stroke-width="0.5" opacity="0.4" />
-  <!-- SAINTED WORD -->
-  <text x="115" y="30" fill="white" font-family="Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="300" letter-spacing="3">SAINTED WORD</text>
-  <!-- RECORDS -->
-  <text x="115" y="44" fill="white" font-family="Helvetica Neue, Arial, sans-serif" font-size="6" font-weight="400" letter-spacing="5" opacity="0.6">RECORDS</text>
+  <!-- Playhead -->
+  <circle cx="46" cy="30" r="3.5" fill="#ff2d8a" stroke="#fff" stroke-width="0.8"/>
+  <!-- Wordmark -->
+  <g fill="#f5e9ff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" font-size="14" letter-spacing="1.2">
+    <text x="60" y="34">SAINTED·WORD</text>
+  </g>
+  <g fill="#8a7aa0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" font-size="9" letter-spacing="1.6">
+    <text x="60" y="46">RECORDS</text>
+  </g>
 </svg>
