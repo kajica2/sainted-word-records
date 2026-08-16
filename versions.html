@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Versions · Sainted Word Records</title>
+  <meta name="description" content="Every engine release, every preset schema version, every daily-shipped personality. The full version history of Sainted Word Records." />
+  <meta name="generator" content="swr-versions/v1 · 2026-08-17" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0610;
+      --bg-2: #100819;
+      --panel: #15091e;
+      --panel-2: #1c0e2a;
+      --ink: #f5e9ff;
+      --ink-2: #d4c5e8;
+      --muted: #8a7aa0;
+      --line: #2a1d3e;
+      --line-2: #3a2854;
+      --accent: #ff2d8a;
+      --accent-2: #00f0ff;
+      --gold: #fff04a;
+      --green: #00ffa3;
+      --red: #ff5577;
+      --font-display: 'Fraunces', serif;
+      --font-body: 'Geist', system-ui, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #faf7f5;
+        --bg-2: #f0e9f5;
+        --panel: #ffffff;
+        --panel-2: #f5eef9;
+        --ink: #1a0e2a;
+        --ink-2: #2d1a3e;
+        --muted: #6a5a80;
+        --line: #e0d4ee;
+        --line-2: #c8b8de;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+      font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+    body {
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(255,45,138,0.10), transparent 60%),
+        radial-gradient(1000px 500px at 110% 10%, rgba(0,240,255,0.06), transparent 60%),
+        var(--bg);
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, kbd, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+
+    /* ===== NAV ===== */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(10,6,16,0.85);
+      backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+    @media (prefers-color-scheme: light) { .nav { background: rgba(250,247,245,0.85); } }
+    .nav__inner { max-width: 1280px; margin: 0 auto; padding: 14px 32px;
+      display: flex; align-items: center; gap: 24px; }
+    .nav__brand { display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 500; font-size: 18px; color: var(--ink); }
+    .nav__brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 8px var(--accent); }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { color: var(--ink-2); font-size: 14px; font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); text-decoration: none; }
+    .nav__cta { padding: 8px 16px; border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 4px; font-size: 13px; font-weight: 600; font-family: var(--font-mono);
+      letter-spacing: 0.06em; text-transform: uppercase; }
+    .nav__cta:hover { background: var(--accent); color: #fff; text-decoration: none; }
+    @media (max-width: 720px) { .nav__links { display: none; } }
+
+    /* ===== LAYOUT ===== */
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 64px 32px 80px; }
+
+    /* ===== HERO ===== */
+    .hero { margin-bottom: 80px; }
+    .hero__eyebrow { display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    .hero__eyebrow .live { width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    h1 { font-family: var(--font-display); font-weight: 300; font-size: clamp(48px, 7vw, 88px);
+      line-height: 0.95; letter-spacing: -0.02em; margin: 0 0 24px; font-style: italic; }
+    h1 em { font-style: normal; color: var(--accent); }
+    .lede { font-size: 18px; line-height: 1.5; color: var(--muted); max-width: 720px; margin: 0; }
+    .lede strong { color: var(--ink); font-weight: 500; }
+
+    /* ===== SECTION ===== */
+    section { margin-bottom: 96px; }
+    .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px; }
+    .sec-num { font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+      letter-spacing: 0.18em; text-transform: uppercase; }
+    .sec-title { font-family: var(--font-display); font-weight: 400; font-size: 36px;
+      margin: 0; letter-spacing: -0.01em; }
+    .sec-sub { font-size: 14px; color: var(--muted); margin-left: auto; }
+
+    /* ===== LIVE STATE PANEL ===== */
+    .live-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px;
+      overflow: hidden; }
+    .live-cell { background: var(--panel); padding: 22px 24px; }
+    .live-cell .l { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .live-cell .v { font-family: var(--font-mono); font-size: 20px; font-weight: 500;
+      color: var(--ink); word-break: break-all; }
+    .live-cell .v.green { color: var(--green); }
+    .live-cell .v.cyan { color: var(--accent-2); }
+    .live-cell .v.gold { color: var(--gold); }
+    .live-cell .sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    /* ===== TIMELINE (engine releases) ===== */
+    .timeline { position: relative; padding-left: 32px; }
+    .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+      width: 2px; background: linear-gradient(180deg, var(--accent), var(--accent-2), var(--gold)); }
+    .release { position: relative; padding-bottom: 48px; }
+    .release::before { content: ''; position: absolute; left: -28px; top: 6px;
+      width: 14px; height: 14px; border-radius: 50%; background: var(--panel);
+      border: 2px solid var(--accent); }
+    .release.current::before { background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+    .release h3 { font-family: var(--font-display); font-weight: 500; font-size: 26px;
+      margin: 0 0 4px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .release h3 .ver { font-family: var(--font-mono); font-size: 13px; color: var(--accent-2);
+      background: rgba(0,240,255,0.08); padding: 3px 10px; border-radius: 3px;
+      letter-spacing: 0.08em; font-weight: 500; }
+    .release h3 .ver.live { color: var(--green); background: rgba(0,255,163,0.08); }
+    .release h3 .date { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      font-weight: 400; letter-spacing: 0.06em; }
+    .release .sha { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      margin-bottom: 12px; }
+    .release .sha code { color: var(--ink-2); }
+    .release .blurb { color: var(--ink-2); line-height: 1.55; max-width: 760px; margin: 0 0 16px; }
+    .release .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px 24px; }
+    .release .features li { color: var(--ink-2); font-size: 14px; line-height: 1.5;
+      list-style: none; padding-left: 18px; position: relative; }
+    .release .features li::before { content: '→'; position: absolute; left: 0;
+      color: var(--accent); font-family: var(--font-mono); }
+
+    /* ===== VISUAL STYLES ===== */
+    .styles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px; }
+    .style-card { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; overflow: hidden; transition: 0.2s;
+      display: flex; flex-direction: column; }
+    .style-card:hover { border-color: var(--accent); transform: translateY(-3px);
+      text-decoration: none; }
+    .style-card .thumb { aspect-ratio: 16/10; background: #000; position: relative;
+      overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .style-card .thumb svg { width: 80%; height: 80%; }
+    .style-card .body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; }
+    .style-card h3 { margin: 0 0 4px; font-family: var(--font-display); font-size: 22px;
+      font-weight: 500; letter-spacing: -0.01em; }
+    .style-card .label { font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .style-card .desc { color: var(--muted); font-size: 13px; line-height: 1.45;
+      flex: 1; margin: 0; }
+
+    /* ===== SCHEMA ===== */
+    .schema-card { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; padding: 28px 32px; margin-bottom: 20px; }
+    .schema-card .head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px; }
+    .schema-card h3 { font-family: var(--font-mono); font-size: 16px; color: var(--accent-2);
+      margin: 0; font-weight: 500; }
+    .schema-card .status { font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase; padding: 3px 8px;
+      border-radius: 3px; }
+    .schema-card .status.current { color: var(--green); background: rgba(0,255,163,0.1); }
+    .schema-card .status.deprecated { color: var(--red); background: rgba(255,85,119,0.1); }
+    .schema-card .status.draft { color: var(--gold); background: rgba(255,240,74,0.1); }
+    .schema-card .blurb { color: var(--ink-2); line-height: 1.55; margin: 0 0 16px; }
+    .schema-card .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
+    .schema-card .fields li { font-family: var(--font-mono); font-size: 12px;
+      color: var(--ink-2); padding-left: 14px; position: relative; }
+    .schema-card .fields li::before { content: '·'; position: absolute; left: 0;
+      color: var(--accent); font-weight: 700; }
+    .schema-card .fields li .req { color: var(--red); font-size: 10px; margin-left: 4px; }
+    .schema-card .fields li .opt { color: var(--muted); font-size: 10px; margin-left: 4px; }
+    .schema-card .sample { background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 16px 20px; margin-top: 18px; font-family: var(--font-mono);
+      font-size: 12px; line-height: 1.55; color: var(--ink-2); overflow-x: auto; }
+
+    /* ===== PRESET TIMELINE ===== */
+    .preset-list { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; overflow: hidden; }
+    .preset-day { padding: 20px 24px; border-bottom: 1px solid var(--line); }
+    .preset-day:last-child { border-bottom: none; }
+    .preset-day .day-head { display: flex; align-items: baseline; gap: 16px;
+      margin-bottom: 12px; }
+    .preset-day h4 { font-family: var(--font-mono); font-size: 13px; color: var(--accent-2);
+      margin: 0; font-weight: 500; }
+    .preset-day .count { font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.12em; text-transform: uppercase; }
+    .preset-day .items { display: flex; flex-wrap: wrap; gap: 8px; }
+    .preset-chip { display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg-2); border: 1px solid var(--line); padding: 5px 10px;
+      border-radius: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-2);
+      text-decoration: none; }
+    .preset-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .preset-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    /* ===== FOOTER ===== */
+    footer { margin-top: 80px; padding: 48px 0 32px; border-top: 1px solid var(--line);
+      background: var(--bg-2); }
+    .ft { max-width: 1280px; margin: 0 auto; padding: 0 32px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+      gap: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+    .ft a { color: var(--ink-2); }
+    .ft a:hover { color: var(--accent); text-decoration: none; }
+    .ft .links { display: flex; gap: 18px; }
+  </style>
+</head>
+<body>
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="/">
+        <span class="dot"></span>
+        Sainted Word Records
+      </a>
+      <div class="nav__links">
+        <a href="/">Home</a>
+        <a href="/engine">Engine</a>
+        <a href="/versions" style="color: var(--accent);">Versions</a>
+        <a href="/changelog">Changelog</a>
+        <a href="/press">Press</a>
+        <a href="/status">Status</a>
+      </div>
+      <a class="nav__cta" href="/engine">Open engine →</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <!-- ============ HERO ============ -->
+    <header class="hero">
+      <div class="hero__eyebrow">
+        <span class="live"></span>
+        <span>Live · <span id="h-deploy">2026-08-17</span> · build <span id="h-build">a3f2</span></span>
+      </div>
+      <h1>Every version<br />we've <em>shipped</em>.</h1>
+      <p class="lede">
+        Engine releases, visual styles, preset schemas, and the daily personalities the cloud pipeline
+        generates. This is the source of truth for what's live, what's deprecated, and what's next.
+      </p>
+    </header>
+
+    <!-- ============ LIVE STATE ============ -->
+    <section>
+      <div class="sec-head">
+        <span class="sec-num">00</span>
+        <h2 class="sec-title">Live state</h2>
+        <span class="sec-sub" id="l-refresh">Probing…</span>
+      </div>
+      <div class="live-grid" id="live-grid">
+        <div class="live-cell"><div class="l">Engine</div><div class="v green" id="l-engine">v1.0</div><div class="sub">self-evolving</div></div>
+        <div class="live-cell"><div class="l">Preset schema</div><div class="v cyan" id="l-schema">swr-preset/v1</div><div class="sub">stable</div></div>
+        <div class="live-cell"><div class="l">Daily pipeline</div><div class="v gold" id="l-pipe">2 / day</div><div class="sub" id="l-pipe-sub">cron 0 9 * * *</div></div>
+        <div class="live-cell"><div class="l">Manifest</div><div class="v" id="l-count">—</div><div class="sub" id="l-count-sub">presets</div></div>
+        <div class="live-cell"><div class="l">Latest preset</div><div class="v" id="l-latest">—</div><div class="sub" id="l-latest-sub">—</div></div>
+        <div class="live-cell"><div class="l">Production</div><div class="v" style="font-size:14px;">sainted-word-records.vercel.app</div><div class="sub"><span id="l-http">200</span> · <span id="l-region">iad1</span></div></div>
+        <div class="live-cell"><div class="l">Visual styles</div><div class="v" id="l-styles">12</div><div class="sub">per-page GLSL</div></div>
+        <div class="live-cell"><div class="l">On-device variants</div><div class="v" id="l-variants">∞</div><div class="sub">per user · 3-use threshold</div></div>
+      </div>
+    </section>
+
+    <!-- ============ ENGINE RELEASES ============ -->
+    <section>
+      <div class="sec-head">
+        <span class="sec-num">01</span>
+        <h2 class="sec-title">Engine releases</h2>
+        <span class="sec-sub">Newest first · git history</span>
+      </div>
+      <div class="timeline">
+
+        <article class="release current">
+          <h3>
+            <span class="ver live">v1.0 · self-evolving</span>
+            <span class="date">2026-08-17</span>
+          </h3>
+          <div class="sha">build <code id="r1-sha">a3f2</code> · <a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">kai-djuric/sainted-word-records</a></div>
+          <p class="blurb">
+            The engine creates new audio-reactive personalities on its own. A daily cloud pipeline ships 2 fresh
+            presets every morning, the engine ingests them on load, and after 3 uses of a single persona, the engine
+            mutates a personalized variant tuned to your song's BPM and key.
+          </p>
+          <ul class="features">
+            <li>Daily cloud pipeline (cron 0 9 * * *) — 2 presets/day from 7 shaders × 8 palettes × 7 motions</li>
+            <li>Engine fetches /presets/manifest.json on load and surfaces new ones in a gold pill</li>
+            <li>On-device variant generation after 3 uses (BPM/key/palette mutation)</li>
+            <li>★ personal badge for self-evolved variants</li>
+            <li>Manifest auto-committed + pushed + redeployed to Vercel by cron</li>
+            <li>Daily press kit + 7 marketing pages + status probe</li>
+          </ul>
+        </article>
+
+        <article class="release">
+          <h3>
+            <span class="ver">v0.9 · engine upgrade option</span>
+            <span class="date">2026-08-14</span>
+          </h3>
+          <div class="sha">build <code>fec5c2</code></div>
+          <p class="blurb">
+            Engine stops being a static visualizer. Adds the manifest endpoint, a presets.client.js ingest layer,
+            and the daily cron that auto-redeploys. Engine upgrade option = user can swap personalities without
+            reloading the app.
+          </p>
+          <ul class="features">
+            <li>Preset manifest served at /presets/manifest.json</li>
+            <li>presets.client.js — load / diff / markSeen / apply</li>
+            <li>presets-panel.client.js — "N new personalit*" pill in footer</li>
+            <li>macOS crontab: 0 9 * * * preset-pipeline/cron.sh</li>
+            <li>Vite dist/ auto-deploy via npx vercel build + deploy --prebuilt</li>
+          </ul>
+        </article>
+
+        <article class="release">
+          <h3>
+            <span class="ver">v0.7 · URL restructure</span>
+            <span class="date">2026-08-14</span>
+          </h3>
+          <div class="sha">build <code>e71200</code></div>
+          <p class="blurb">
+            Splash at <code>/</code>, app at <code>/engine/</code>, no <code>index.html</code> at root.
+            PWA launches straight into the app. Service worker bumped to swr-v2 to invalidate the old cache.
+          </p>
+          <ul class="features">
+            <li>/ → landing.html, /engine → engine.html, /index.html → 404</li>
+            <li>vercel.json rewrites for /, /engine, /engine/</li>
+            <li>manifest.webmanifest start_url = /engine, scope = /engine/</li>
+            <li>sw.js APP_SHELL includes /landing.html, /engine, /engine.html, /pt.client.js</li>
+          </ul>
+        </article>
+
+        <article class="release">
+          <h3>
+            <span class="ver">v0.6 · 12 visual styles</span>
+            <span class="date">2026-08-12</span>
+          </h3>
+          <div class="sha">build <code>7617b1c</code></div>
+          <p class="blurb">
+            Each style is a self-contained engine variant at <code>/versions/&lt;style&gt;.html</code> with its
+            own GLSL post-process pass. Same WebGL pipeline, different uniforms + page-specific effect function.
+          </p>
+          <ul class="features">
+            <li>12 styles: neon, film, grid, smoke, hallucination, glitch, aurora, pulse, void, chrome, watercolor, fractal (+ eclipse legacy)</li>
+            <li>versions-presets.js — shared WebGL post-process, per-page uniform dictionary</li>
+            <li>Single GLSL with switch on u_page (0..5)</li>
+            <li>Media sets per style (library/&lt;style&gt;/)</li>
+          </ul>
+        </article>
+
+        <article class="release">
+          <h3>
+            <span class="ver">v0.5 · first play</span>
+            <span class="date">2026-08-07</span>
+          </h3>
+          <div class="sha">build <code>8592b42</code></div>
+          <p class="blurb">
+            The engine works. Drop a song, drop a library, get a music video. Audio-reactive WebGL post-process
+            with persona-style FX uniforms, MediaRecorder for MP4 export, project save/load with audio source.
+          </p>
+          <ul class="features">
+            <li>WebGL post-process: 14 FX uniforms (temp, mut, chroma, vignette, grain, sepia, glow, blur, grayscale, posterize, etc.)</li>
+            <li>Audio features: bass / mid / treble / air / sub / rms / centroid / beat / onset / bpm</li>
+            <li>MediaRecorder MP4 export (30s default, configurable)</li>
+            <li>Project save/load (JSON + audio source)</li>
+            <li>20 generated persona assets (20-box-set, etc.)</li>
+          </ul>
+        </article>
+
+        <article class="release">
+          <h3>
+            <span class="ver">v0.1 · initial commit</span>
+            <span class="date">2026-07-31</span>
+          </h3>
+          <div class="sha">build <code>init</code></div>
+          <p class="blurb">
+            First commit. Single HTML file, two layers, one shader pass. The idea is simple: a music video
+            shouldn't require an editor, a renderer, or a render farm.
+          </p>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ============ VISUAL STYLES ============ -->
+    <section>
+      <div class="sec-head">
+        <span class="sec-num">02</span>
+        <h2 class="sec-title">Visual styles</h2>
+        <span class="sec-sub">12 self-contained engine variants</span>
+      </div>
+      <div class="styles-grid">
+        <a class="style-card" href="/versions/neon.html">
+          <div class="thumb" style="background: radial-gradient(circle at 30% 50%, #ff2d8a44, transparent 60%), #0a0610;">
+            <svg viewBox="0 0 100 60"><circle cx="30" cy="30" r="14" fill="none" stroke="#ff2d8a" stroke-width="1.5"/><circle cx="70" cy="30" r="10" fill="none" stroke="#00f0ff" stroke-width="1.5"/><line x1="30" y1="30" x2="70" y2="30" stroke="#fff04a" stroke-width="0.8"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Saturated · halo</div>
+            <h3 style="color: #ff2d8a;">Neon</h3>
+            <p class="desc">Bright halos around saturated pixels. Pure nightclub energy.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/film.html">
+          <div class="thumb" style="background: linear-gradient(180deg, #2a1810, #0a0610);">
+            <svg viewBox="0 0 100 60"><rect x="0" y="0" width="100" height="60" fill="none"/><g stroke="#d4b896" stroke-width="0.3" opacity="0.4"><line x1="0" y1="3" x2="100" y2="3"/><line x1="0" y1="6" x2="100" y2="6"/><line x1="0" y1="9" x2="100" y2="9"/><line x1="0" y1="12" x2="100" y2="12"/></g><circle cx="50" cy="30" r="8" fill="#d4b896" opacity="0.3"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">16mm · sepia · scanlines</div>
+            <h3 style="color: #d4b896;">Film</h3>
+            <p class="desc">16mm grain, sepia, warm temperature. For songs that want a music video.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/grid.html">
+          <div class="thumb" style="background: #000;">
+            <svg viewBox="0 0 100 60" fill="#fff"><rect x="10" y="10" width="20" height="20" fill="#fff"/><rect x="40" y="10" width="20" height="20" fill="#888"/><rect x="70" y="10" width="20" height="20" fill="#fff"/><rect x="10" y="40" width="20" height="20" fill="#fff"/><rect x="40" y="40" width="20" height="20" fill="#fff"/><rect x="70" y="40" width="20" height="20" fill="#888"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Monochrome · posterized</div>
+            <h3>Grid</h3>
+            <p class="desc">Hard cells, heavy posterize, snap-to-the-beat. Pure geometry.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/smoke.html">
+          <div class="thumb" style="background: linear-gradient(180deg, #3a2810 0%, #1a0e08 100%);">
+            <svg viewBox="0 0 100 60"><path d="M0,30 Q20,10 40,30 T80,30 T120,30" fill="none" stroke="#f3e9d5" stroke-width="2" opacity="0.6"/><path d="M0,40 Q25,25 50,40 T100,40" fill="none" stroke="#f3e9d5" stroke-width="1.5" opacity="0.4"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Wisps · slow drift</div>
+            <h3 style="color: #f3e9d5;">Smoke</h3>
+            <p class="desc">Gentle horizontal wisps. The visualizer for slow songs.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/hallucination.html">
+          <div class="thumb" style="background: #0a0610;">
+            <svg viewBox="0 0 100 60"><g stroke="#00ffa3" stroke-width="0.5" opacity="0.7"><line x1="10" y1="0" x2="10" y2="60"/><line x1="30" y1="0" x2="30" y2="60"/><line x1="50" y1="0" x2="50" y2="60"/><line x1="70" y1="0" x2="70" y2="60"/><line x1="90" y1="0" x2="90" y2="60"/></g><circle cx="50" cy="30" r="12" fill="none" stroke="#ff2d8a" stroke-width="1.5"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Scanlines · RGB drift</div>
+            <h3 style="color: #00ffa3;">Hallucination</h3>
+            <p class="desc">Scanlines plus RGB-drift stripes. Visceral, cinematic, wrong.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/glitch.html">
+          <div class="thumb" style="background: #000;">
+            <svg viewBox="0 0 100 60"><rect x="0" y="20" width="100" height="3" fill="#00ff66"/><rect x="0" y="40" width="100" height="2" fill="#ff2d8a"/><rect x="20" y="0" width="40" height="60" fill="none" stroke="#00f0ff" stroke-width="0.5"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Snap-beat · corrupt</div>
+            <h3 style="color: #00ff66;">Glitch</h3>
+            <p class="desc">Snap-pan on every beat. The video breaks with the song.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/aurora.html">
+          <div class="thumb" style="background: linear-gradient(180deg, #1a2a4a 0%, #4a2a6a 50%, #ffb3ba 100%);">
+            <svg viewBox="0 0 100 60"><path d="M0,20 Q30,5 60,20 T100,20" fill="none" stroke="#FFB3BA" stroke-width="2" opacity="0.8"/><path d="M0,40 Q30,25 60,40 T100,40" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Soft · pastel</div>
+            <h3 style="color: #FFB3BA;">Aurora</h3>
+            <p class="desc">Soft pastel light bands. For songs that breathe.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/pulse.html">
+          <div class="thumb" style="background: #0a0610;">
+            <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="20" fill="none" stroke="#00f0ff" stroke-width="1.5" opacity="0.5"/><circle cx="50" cy="30" r="12" fill="none" stroke="#00f0ff" stroke-width="2"/><circle cx="50" cy="30" r="4" fill="#00f0ff"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Beat · ring</div>
+            <h3 style="color: #00f0ff;">Pulse</h3>
+            <p class="desc">A ring that pulses on every beat. Minimalist club aesthetic.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/void.html">
+          <div class="thumb" style="background: #000;">
+            <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="22" fill="#000" stroke="#fff" stroke-width="0.5" opacity="0.3"/><circle cx="50" cy="30" r="2" fill="#fff"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Black · isolation</div>
+            <h3>Void</h3>
+            <p class="desc">Pure black canvas, single point of light. Negative space.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/chrome.html">
+          <div class="thumb" style="background: linear-gradient(135deg, #e0e0e8 0%, #888 50%, #fafafa 100%);">
+            <svg viewBox="0 0 100 60"><rect x="10" y="15" width="80" height="30" rx="3" fill="url(#cg)"/><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fafafa"/><stop offset="0.5" stop-color="#888"/><stop offset="1" stop-color="#fafafa"/></linearGradient></defs></svg>
+          </div>
+          <div class="body">
+            <div class="label">Reflective · metallic</div>
+            <h3>Chrome</h3>
+            <p class="desc">Reflective metallic surfaces. Late 90s / Vaporwave.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/watercolor.html">
+          <div class="thumb" style="background: linear-gradient(135deg, #faf7f0 0%, #c8b8de 100%);">
+            <svg viewBox="0 0 100 60"><ellipse cx="30" cy="30" rx="20" ry="15" fill="#ff2d8a" opacity="0.4"/><ellipse cx="60" cy="30" rx="25" ry="12" fill="#00f0ff" opacity="0.3"/></svg>
+          </div>
+          <div class="body">
+            <div class="label">Soft · bleed</div>
+            <h3>Watercolor</h3>
+            <p class="desc">Soft, bleeding edges. For songs that feel like memory.</p>
+          </div>
+        </a>
+        <a class="style-card" href="/versions/fractal.html">
+          <div class="thumb" style="background: #0a0610;">
+            <svg viewBox="0 0 100 60"><g stroke="#00ffa3" stroke-width="0.4" fill="none"><circle cx="50" cy="30" r="25"/><circle cx="50" cy="30" r="18"/><circle cx="50" cy="30" r="12"/><circle cx="50" cy="30" r="6"/></g></svg>
+          </div>
+          <div class="body">
+            <div class="label">Recursive · organic</div>
+            <h3 style="color: #00ffa3;">Fractal</h3>
+            <p class="desc">Recursive organic shapes. Math as music video.</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ PRESET SCHEMA ============ -->
+    <section>
+      <div class="sec-head">
+        <span class="sec-num">03</span>
+        <h2 class="sec-title">Preset schema</h2>
+        <span class="sec-sub">swr-preset spec · JSON</span>
+      </div>
+
+      <div class="schema-card">
+        <div class="head">
+          <h3>swr-preset/v1</h3>
+          <span class="status current">current</span>
+        </div>
+        <p class="blurb">
+          The single source of truth for a personality. A preset is a complete FX state + a palette +
+          audio-reactive mapping. 12 required fields, 3 optional. Validated by <code>preset-pipeline/verify.mjs</code>
+          (20/20 checks).
+        </p>
+        <ul class="fields">
+          <li>id <span class="req">req</span></li>
+          <li>schema <span class="req">req</span></li>
+          <li>name <span class="req">req</span></li>
+          <li>family <span class="req">req</span></li>
+          <li>shader <span class="req">req</span></li>
+          <li>palette <span class="req">req</span></li>
+          <li>motion <span class="req">req</span></li>
+          <li>fx <span class="req">req</span></li>
+          <li>reactivity <span class="req">req</span></li>
+          <li>tags <span class="req">req</span></li>
+          <li>created <span class="req">req</span></li>
+          <li>seed <span class="req">req</span></li>
+          <li>_meta <span class="opt">opt · basePersona / usageCount / bpmAvg / key</span></li>
+          <li>color <span class="opt">opt</span></li>
+          <li>parent <span class="opt">opt · for on-device variants</span></li>
+        </ul>
+        <pre class="sample"><code>{
+  "id": "swr-preset-2026-08-17-annihilation-curl-static",
+  "schema": "swr-preset/v1",
+  "name": "Annihilation Curl Static",
+  "family": "annihilation",
+  "shader": "curl-noise",
+  "palette": "annihilation-aurora",
+  "motion": "static-grid",
+  "fx": { "temp": 0.12, "mut": 0.78, "chroma": 0.34, "grain": 0.22, "vignette": 0.55, "posterize": 0.18 },
+  "reactivity": { "bass": 0.85, "mid": 0.6, "treble": 0.4, "beat": 0.95 },
+  "tags": ["psychedelic", "slow", "iridescent"],
+  "created": "2026-08-17T00:00:00Z",
+  "seed": "swr-preset/2026-08-17/annihilation-curl-static"
+}</code></pre>
+      </div>
+
+      <div class="schema-card">
+        <div class="head">
+          <h3>swr-preset/v1.5</h3>
+          <span class="status draft">draft · Q3 2026</span>
+        </div>
+        <p class="blurb">
+          Adds LLM-curated novelty pass. Pipeline takes the top 5 user-favorite presets and asks a model to
+          mutate one into a fresh variant. Adds <code>novelty: { source, method, rationale }</code> and a
+          <code>compatibility: { engines: ["≥v1.0"] }</code> field for cross-engine reuse.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ DAILY PRESET TIMELINE ============ -->
+    <section>
+      <div class="sec-head">
+        <span class="sec-num">04</span>
+        <h2 class="sec-title">Daily preset timeline</h2>
+        <span class="sec-sub" id="t-count">— presets</span>
+      </div>
+      <div class="preset-list" id="preset-list">
+        <div class="preset-day">
+          <div class="day-head">
+            <h4>Loading…</h4>
+          </div>
+          <div class="items"><span class="preset-chip"><span class="dot"></span>fetching manifest</span></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="ft">
+      <div>© 2026 Kai Djuric · MIT licensed · <a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">github</a></div>
+      <div class="links">
+        <a href="/">Home</a>
+        <a href="/engine">Engine</a>
+        <a href="/changelog">Changelog</a>
+        <a href="/press">Press</a>
+        <a href="/status">Status</a>
+        <a href="/about">About</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/versions.client.js"></script>
+</body>
+</html>

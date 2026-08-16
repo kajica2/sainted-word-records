@@ -96,6 +96,8 @@ function copyStatic() {
       'press.html',
       'about.html',
       'status.html',
+      'versions.html',
+      'versions.client.js',
       ];
     for (const f of rootFiles) {
       const sp = resolve(f);
