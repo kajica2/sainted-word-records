@@ -206,6 +206,67 @@
     .preset-chip:hover { border-color: var(--accent); color: var(--accent); }
     .preset-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
+    /* ===== HERO ACTIONS + RANDOMIZE ===== */
+    .hero__actions { display: flex; align-items: center; gap: 16px; margin-top: 32px;
+      flex-wrap: wrap; }
+    .rbtn { display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 22px; border: 1px solid var(--line-2); border-radius: 6px;
+      background: var(--panel); color: var(--ink); font-family: var(--font-mono);
+      font-size: 12px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase;
+      cursor: pointer; transition: 0.15s; }
+    .rbtn:hover { border-color: var(--accent); color: var(--accent);
+      transform: translateY(-1px); }
+    .rbtn:active { transform: translateY(0); }
+    .rbtn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .rbtn--primary:hover { background: var(--accent-2); border-color: var(--accent-2);
+      color: #000; }
+    .rbtn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .hero__hint { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.06em; }
+
+    .rand-card { display: none; margin-top: 28px; padding: 28px 32px;
+      background: linear-gradient(135deg, rgba(255,45,138,0.10), rgba(0,240,255,0.06));
+      border: 1px solid var(--accent); border-radius: 14px;
+      position: relative; overflow: hidden; animation: randIn 0.4s ease-out; }
+    .rand-card.show { display: block; }
+    @keyframes randIn { from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); } }
+    .rand-card .rand-head { display: flex; align-items: baseline; gap: 16px;
+      margin-bottom: 16px; flex-wrap: wrap; }
+    .rand-card .rand-picknum { font-family: var(--font-mono); font-size: 11px;
+      color: var(--accent); letter-spacing: 0.14em; text-transform: uppercase; }
+    .rand-card h3 { font-family: var(--font-display); font-weight: 500; font-size: 32px;
+      margin: 0; letter-spacing: -0.01em; color: var(--ink); }
+    .rand-card .rand-id { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      margin-bottom: 12px; }
+    .rand-card .rand-id code { color: var(--accent-2); }
+    .rand-card .rand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px 24px; margin: 16px 0 20px; }
+    .rand-card .rand-grid .lbl { font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+      margin-bottom: 3px; }
+    .rand-card .rand-grid .val { font-family: var(--font-mono); font-size: 13px;
+      color: var(--ink-2); }
+    .rand-card .rand-grid .val.fam { color: var(--accent-2); }
+    .rand-card .rand-grid .val.sh { color: var(--gold); }
+    .rand-card .rand-palette { display: flex; gap: 6px; align-items: center;
+      font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .rand-card .rand-palette .sw { width: 22px; height: 22px; border-radius: 3px;
+      border: 1px solid var(--line); }
+    .rand-card .rand-actions { display: flex; gap: 10px; flex-wrap: wrap;
+      padding-top: 16px; border-top: 1px solid var(--line); }
+    .rand-card .rand-desc { color: var(--muted); font-size: 13px; line-height: 1.5;
+      margin: 12px 0 4px; max-width: 720px; }
+    .rand-card .rand-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .rand-card .rand-tags .tag { font-family: var(--font-mono); font-size: 10px;
+      color: var(--ink-2); background: var(--bg-2); border: 1px solid var(--line);
+      padding: 3px 8px; border-radius: 3px; letter-spacing: 0.06em;
+      text-transform: lowercase; }
+    .rand-card.is-rolling h3 { animation: roll 0.5s ease-out; }
+    @keyframes roll { 0% { transform: translateX(-4px); opacity: 0.4; }
+      50% { transform: translateX(4px); opacity: 0.6; }
+      100% { transform: translateX(0); opacity: 1; } }
+
     /* ===== FOOTER ===== */
     footer { margin-top: 80px; padding: 48px 0 32px; border-top: 1px solid var(--line);
       background: var(--bg-2); }
@@ -249,7 +310,46 @@
         Engine releases, visual styles, preset schemas, and the daily personalities the cloud pipeline
         generates. This is the source of truth for what's live, what's deprecated, and what's next.
       </p>
+      <div class="hero__actions">
+        <button type="button" class="rbtn rbtn--primary" id="rbtn-randomize">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;">
+            <rect x="2" y="2" width="12" height="12" rx="2"/>
+            <circle cx="5" cy="5" r="0.8" fill="currentColor"/>
+            <circle cx="11" cy="5" r="0.8" fill="currentColor"/>
+            <circle cx="8" cy="8" r="0.8" fill="currentColor"/>
+            <circle cx="5" cy="11" r="0.8" fill="currentColor"/>
+            <circle cx="11" cy="11" r="0.8" fill="currentColor"/>
+          </svg>
+          Randomize
+        </button>
+        <span class="hero__hint" id="rbtn-hint">Pick a random preset from the live manifest</span>
+      </div>
     </header>
+
+    <!-- ============ RANDOMIZE CARD (hidden until clicked) ============ -->
+    <div class="rand-card" id="rand-card" aria-live="polite">
+      <div class="rand-head">
+        <span class="rand-picknum" id="r-picknum">pick #—</span>
+        <h3 id="r-name">—</h3>
+      </div>
+      <div class="rand-id">id <code id="r-id">—</code> · created <span id="r-created">—</span></div>
+      <p class="rand-desc" id="r-desc">—</p>
+      <div class="rand-grid">
+        <div><div class="lbl">Family</div><div class="val fam" id="r-fam">—</div></div>
+        <div><div class="lbl">Shader</div><div class="val sh" id="r-shader">—</div></div>
+        <div><div class="lbl">Palette</div><div class="val" id="r-palette-name">—</div></div>
+        <div><div class="lbl">Motion</div><div class="val" id="r-motion">—</div></div>
+        <div><div class="lbl">FX keys</div><div class="val" id="r-fxkeys">—</div></div>
+        <div><div class="lbl">Audio bias</div><div class="val" id="r-audio">—</div></div>
+      </div>
+      <div class="rand-palette" id="r-swatches"></div>
+      <div class="rand-tags" id="r-tags"></div>
+      <div class="rand-actions">
+        <button type="button" class="rbtn" id="r-again">↻ Pick another</button>
+        <a class="rbtn rbtn--primary" id="r-open" href="/engine">Open in engine →</a>
+        <button type="button" class="rbtn" id="r-copy" data-copy-target="r-id">Copy id</button>
+      </div>
+    </div>
 
     <!-- ============ LIVE STATE ============ -->
     <section>
