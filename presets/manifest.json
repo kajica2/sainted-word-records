@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-16T22:35:39.242707+00:00",
+  "updated_at": "2026-08-16T22:36:07.463127+00:00",
   "presets": [
     {
       "id": "swr-preset-2026-08-14-midsommar-voronoi-lateral",
@@ -860,7 +860,164 @@
           "breath"
         ]
       }
+    },
+    {
+      "id": "swr-preset-2026-08-17-matrix-halftone-counter",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-16T22:36:07.462361+00:00",
+      "name": "Matrix Halftone Counter",
+      "family": "GENERATIVE",
+      "description": "Matrix Halftone Counter: Hard monochrome cells with high posterize. Paired with Green-on-black terminal.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "halftone-grid",
+          "weight": 0.43
+        },
+        {
+          "kind": "palette_ref",
+          "name": "matrix-mono",
+          "weight": 0.33
+        },
+        {
+          "kind": "motion_ref",
+          "name": "counter-spin",
+          "weight": 0.24
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.4,
+        "chroma": 0.0,
+        "bloom": 0.0,
+        "vignette": 0.5,
+        "sepia": 0.0,
+        "glow": 0.0,
+        "grayscale": 0.7,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 12
+      },
+      "motion": {
+        "rotation_speed": -0.03,
+        "scale_pulse": 0.15,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#5ec27a",
+        "secondary": "#0a0a0c",
+        "accent": "#8be8a0",
+        "bg": "#000000"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "posterize",
+          "scale_pulse"
+        ],
+        "mid": [
+          "vignette"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "scale_pulse",
+          "rotation_speed"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><circle cx=\"40\" cy=\"40\" r=\"20\" fill=\"#5ec27a\" opacity=\"0.8\"/><circle cx=\"41\" cy=\"53\" r=\"7\" fill=\"#0a0a0c\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#8be8a0\"/></svg>",
+        "tags": [
+          "halftone",
+          "matrix",
+          "counter"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-17-akira-curl-lateral",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-16T22:36:07.462697+00:00",
+      "name": "Akira Curl Lateral",
+      "family": "GENERATIVE",
+      "description": "Akira Curl Lateral: Soft divergent flow with bass-pumped bloom. Paired with Akira red + steel.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "curl-noise",
+          "weight": 0.59
+        },
+        {
+          "kind": "palette_ref",
+          "name": "akira-red",
+          "weight": 0.3
+        },
+        {
+          "kind": "motion_ref",
+          "name": "lateral-drift",
+          "weight": 0.11
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.2,
+        "glitch": 0.08,
+        "grain": 0.3,
+        "chroma": 0.5,
+        "bloom": 0.6,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.2,
+        "grayscale": 0.0,
+        "blur": 0.1,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.1,
+        "pan_y": 0.05
+      },
+      "palette": {
+        "primary": "#e85a4f",
+        "secondary": "#3a4a5a",
+        "accent": "#f5a0a0",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "chroma",
+          "bloom",
+          "pan_x"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "scale_pulse",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"18\" fill=\"#e85a4f\" opacity=\"0.8\"/><circle cx=\"27\" cy=\"25\" r=\"9\" fill=\"#3a4a5a\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"4\" fill=\"#f5a0a0\"/></svg>",
+        "tags": [
+          "curl",
+          "akira",
+          "lateral"
+        ]
+      }
     }
   ],
-  "count": 11
+  "count": 13
 }
