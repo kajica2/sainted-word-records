@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-16T22:36:07.463127+00:00",
+  "updated_at": "2026-08-16T23:29:03.048985+00:00",
   "presets": [
     {
       "id": "swr-preset-2026-08-14-midsommar-voronoi-lateral",
@@ -1017,7 +1017,245 @@
           "lateral"
         ]
       }
+    },
+    {
+      "id": "swr-preset-2026-08-17-blade-plasma-slow",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-16T23:29:03.047931+00:00",
+      "name": "Blade Plasma Slow",
+      "family": "MORPHA",
+      "description": "Blade Plasma Slow: Flowing color gradients, classic synthwave palette. Paired with Blade Runner neon pink + teal.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "plasma",
+          "weight": 0.58
+        },
+        {
+          "kind": "palette_ref",
+          "name": "blade-rainbow",
+          "weight": 0.32
+        },
+        {
+          "kind": "motion_ref",
+          "name": "slow-drift-orbit",
+          "weight": 0.1
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.2,
+        "glitch": 0.0,
+        "grain": 0.1,
+        "chroma": 0.7,
+        "bloom": 0.6,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.5,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.05,
+        "posterize": 8
+      },
+      "motion": {
+        "rotation_speed": 0.05,
+        "scale_pulse": 0.1,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#ff3d92",
+        "secondary": "#00e5ff",
+        "accent": "#f5a524",
+        "bg": "#0a0d12"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "bloom",
+          "scale_pulse",
+          "rotation_speed"
+        ],
+        "mid": [
+          "rotation_speed",
+          "chroma"
+        ],
+        "treble": [
+          "glow"
+        ],
+        "onset": [
+          "pearl",
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0d12\"/><circle cx=\"40\" cy=\"40\" r=\"16\" fill=\"#ff3d92\" opacity=\"0.8\"/><circle cx=\"41\" cy=\"29\" r=\"5\" fill=\"#00e5ff\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"2\" fill=\"#f5a524\"/></svg>",
+        "tags": [
+          "plasma",
+          "blade",
+          "slow"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-17-matrix-tunnel-snap",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-16T23:29:03.048324+00:00",
+      "name": "Matrix Tunnel Snap",
+      "family": "GENERATIVE",
+      "description": "Matrix Tunnel Snap: Flying through a depth tunnel, bass-pumped perspective. Paired with Green-on-black terminal.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "tunnel",
+          "weight": 0.51
+        },
+        {
+          "kind": "palette_ref",
+          "name": "matrix-mono",
+          "weight": 0.34
+        },
+        {
+          "kind": "motion_ref",
+          "name": "snap-pan-y",
+          "weight": 0.15
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.2,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.2,
+        "chroma": 0.5,
+        "bloom": 0.3,
+        "vignette": 0.7,
+        "sepia": 0.0,
+        "glow": 0.4,
+        "grayscale": 0.0,
+        "blur": 0.1,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.3
+      },
+      "palette": {
+        "primary": "#5ec27a",
+        "secondary": "#0a0a0c",
+        "accent": "#8be8a0",
+        "bg": "#000000"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "scale_pulse",
+          "bloom"
+        ],
+        "mid": [
+          "chroma"
+        ],
+        "treble": [
+          "glow"
+        ],
+        "onset": [
+          "vignette",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><circle cx=\"40\" cy=\"40\" r=\"20\" fill=\"#5ec27a\" opacity=\"0.8\"/><circle cx=\"41\" cy=\"53\" r=\"7\" fill=\"#0a0a0c\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#8be8a0\"/></svg>",
+        "tags": [
+          "tunnel",
+          "matrix",
+          "snap"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-17-barry-particle-counter",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-16T23:29:03.048352+00:00",
+      "name": "Barry Particle Counter",
+      "family": "MORPHA",
+      "description": "Barry Particle Counter: Particles reacting to beats and onsets, dispersed swarm. Paired with High-key gold/black minimalism.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "particle-swarm",
+          "weight": 0.51
+        },
+        {
+          "kind": "palette_ref",
+          "name": "barry-lyon-gold",
+          "weight": 0.29
+        },
+        {
+          "kind": "motion_ref",
+          "name": "counter-spin",
+          "weight": 0.2
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.3,
+        "pearl": 0.0,
+        "glitch": 0.1,
+        "grain": 0.3,
+        "chroma": 0.4,
+        "bloom": 0.5,
+        "vignette": 0.4,
+        "sepia": 0.0,
+        "glow": 0.6,
+        "grayscale": 0.0,
+        "blur": 0.1,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 3
+      },
+      "motion": {
+        "rotation_speed": -0.03,
+        "scale_pulse": 0.15,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#d4a24c",
+        "secondary": "#1a1a1a",
+        "accent": "#f5e6c0",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "scale_pulse",
+          "bloom"
+        ],
+        "mid": [
+          "pan_x",
+          "pan_y"
+        ],
+        "treble": [
+          "glow"
+        ],
+        "onset": [
+          "scale_pulse",
+          "pan_x",
+          "rotation_speed"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"30\" fill=\"#d4a24c\" opacity=\"0.8\"/><circle cx=\"28\" cy=\"28\" r=\"12\" fill=\"#1a1a1a\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"6\" fill=\"#f5e6c0\"/></svg>",
+        "tags": [
+          "particle",
+          "barry",
+          "counter"
+        ]
+      }
     }
   ],
-  "count": 13
+  "count": 16
 }

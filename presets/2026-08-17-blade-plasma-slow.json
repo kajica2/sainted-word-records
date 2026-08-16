@@ -1,0 +1,80 @@
+{
+  "id": "swr-preset-2026-08-17-blade-plasma-slow",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-08-16T23:29:03.047931+00:00",
+  "name": "Blade Plasma Slow",
+  "family": "MORPHA",
+  "description": "Blade Plasma Slow: Flowing color gradients, classic synthwave palette. Paired with Blade Runner neon pink + teal.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "plasma",
+      "weight": 0.58
+    },
+    {
+      "kind": "palette_ref",
+      "name": "blade-rainbow",
+      "weight": 0.32
+    },
+    {
+      "kind": "motion_ref",
+      "name": "slow-drift-orbit",
+      "weight": 0.1
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.4,
+    "pearl": 0.2,
+    "glitch": 0.0,
+    "grain": 0.1,
+    "chroma": 0.7,
+    "bloom": 0.6,
+    "vignette": 0.3,
+    "sepia": 0.0,
+    "glow": 0.5,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.05,
+    "posterize": 8
+  },
+  "motion": {
+    "rotation_speed": 0.05,
+    "scale_pulse": 0.1,
+    "pan_x": 0.0,
+    "pan_y": 0.0
+  },
+  "palette": {
+    "primary": "#ff3d92",
+    "secondary": "#00e5ff",
+    "accent": "#f5a524",
+    "bg": "#0a0d12"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "bloom",
+      "scale_pulse",
+      "rotation_speed"
+    ],
+    "mid": [
+      "rotation_speed",
+      "chroma"
+    ],
+    "treble": [
+      "glow"
+    ],
+    "onset": [
+      "pearl",
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0d12\"/><circle cx=\"40\" cy=\"40\" r=\"16\" fill=\"#ff3d92\" opacity=\"0.8\"/><circle cx=\"41\" cy=\"29\" r=\"5\" fill=\"#00e5ff\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"2\" fill=\"#f5a524\"/></svg>",
+    "tags": [
+      "plasma",
+      "blade",
+      "slow"
+    ]
+  }
+}
