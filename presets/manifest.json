@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-16T22:34:36.092804+00:00",
+  "updated_at": "2026-08-16T22:35:39.242707+00:00",
   "presets": [
     {
       "id": "swr-preset-2026-08-14-midsommar-voronoi-lateral",
@@ -705,7 +705,162 @@
           "lateral"
         ]
       }
+    },
+    {
+      "id": "swr-preset-2026-08-17-annihilation-curl-static",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-16T22:35:39.242055+00:00",
+      "name": "Annihilation Curl Static",
+      "family": "GENERATIVE",
+      "description": "Annihilation Curl Static: Soft divergent flow with bass-pumped bloom. Paired with Annihilation (2018) \u2014 pink + cyan aurora.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "curl-noise",
+          "weight": 0.43
+        },
+        {
+          "kind": "palette_ref",
+          "name": "annihilation-aurora",
+          "weight": 0.24
+        },
+        {
+          "kind": "motion_ref",
+          "name": "static-grid",
+          "weight": 0.33
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.2,
+        "glitch": 0.08,
+        "grain": 0.3,
+        "chroma": 0.5,
+        "bloom": 0.6,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.2,
+        "grayscale": 0.0,
+        "blur": 0.1,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#d462a4",
+        "secondary": "#4cd4d4",
+        "accent": "#d4a24c",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "chroma",
+          "bloom"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"19\" fill=\"#d462a4\" opacity=\"0.8\"/><circle cx=\"29\" cy=\"41\" r=\"7\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#d4a24c\"/></svg>",
+        "tags": [
+          "curl",
+          "annihilation",
+          "static"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-17-vapor-ascii-breath",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-16T22:35:39.242296+00:00",
+      "name": "Vapor Ascii Breath",
+      "family": "MORPHA",
+      "description": "Vapor Ascii Breath: Monospace character cells with low framerate feel. Paired with Vaporwave pastel + cyan.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "ascii-rain",
+          "weight": 0.42
+        },
+        {
+          "kind": "palette_ref",
+          "name": "vapor-mono",
+          "weight": 0.33
+        },
+        {
+          "kind": "motion_ref",
+          "name": "breath-scale",
+          "weight": 0.25
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.2,
+        "grain": 0.5,
+        "chroma": 0.0,
+        "bloom": 0.0,
+        "vignette": 0.4,
+        "sepia": 0.3,
+        "glow": 0.0,
+        "grayscale": 0.9,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 8
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.25,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#f5a0d4",
+        "secondary": "#4cd4d4",
+        "accent": "#a0d4f5",
+        "bg": "#1a0a25"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "posterize",
+          "scale_pulse"
+        ],
+        "mid": [
+          "grain",
+          "scale_pulse"
+        ],
+        "treble": [
+          "glitch"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a0a25\"/><circle cx=\"40\" cy=\"40\" r=\"30\" fill=\"#f5a0d4\" opacity=\"0.8\"/><circle cx=\"28\" cy=\"44\" r=\"6\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#a0d4f5\"/></svg>",
+        "tags": [
+          "ascii",
+          "vapor",
+          "breath"
+        ]
+      }
     }
   ],
-  "count": 9
+  "count": 11
 }

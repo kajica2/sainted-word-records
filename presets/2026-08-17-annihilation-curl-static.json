@@ -1,0 +1,77 @@
+{
+  "id": "swr-preset-2026-08-17-annihilation-curl-static",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-08-16T22:35:39.242055+00:00",
+  "name": "Annihilation Curl Static",
+  "family": "GENERATIVE",
+  "description": "Annihilation Curl Static: Soft divergent flow with bass-pumped bloom. Paired with Annihilation (2018) \u2014 pink + cyan aurora.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "curl-noise",
+      "weight": 0.43
+    },
+    {
+      "kind": "palette_ref",
+      "name": "annihilation-aurora",
+      "weight": 0.24
+    },
+    {
+      "kind": "motion_ref",
+      "name": "static-grid",
+      "weight": 0.33
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.4,
+    "pearl": 0.2,
+    "glitch": 0.08,
+    "grain": 0.3,
+    "chroma": 0.5,
+    "bloom": 0.6,
+    "vignette": 0.3,
+    "sepia": 0.0,
+    "glow": 0.2,
+    "grayscale": 0.0,
+    "blur": 0.1,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.0,
+    "posterize": 4
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.0,
+    "pan_y": 0.0
+  },
+  "palette": {
+    "primary": "#d462a4",
+    "secondary": "#4cd4d4",
+    "accent": "#d4a24c",
+    "bg": "#0a0a0c"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "chroma",
+      "bloom"
+    ],
+    "mid": [
+      "rotation_speed"
+    ],
+    "treble": [
+      "grain"
+    ],
+    "onset": [
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"19\" fill=\"#d462a4\" opacity=\"0.8\"/><circle cx=\"29\" cy=\"41\" r=\"7\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#d4a24c\"/></svg>",
+    "tags": [
+      "curl",
+      "annihilation",
+      "static"
+    ]
+  }
+}
