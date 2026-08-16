@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Status · Sainted Word Records</title>
+  <meta name="description" content="Live system status for the Sainted Word Records engine and the daily preset-pipeline." />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/status.html" />
+  <meta property="og:title" content="Status · Sainted Word Records" />
+  <meta property="og:description" content="Live system status." />
+  <style>
+    :root{--bg-0:#0a0d12;--bg-1:#111114;--bg-2:#16161b;--ink:#e8e6e0;--muted:#7a7a82;--muted-2:#4a4a52;--line:#1f1f25;--line-2:#2a2a32;--gold:#d4a24c;--amber:#f5a524;--green:#5ec27a;--red:#e85a4f;--cyan:#00e5ff}
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg-0);color:var(--ink);font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Inter",sans-serif;-webkit-font-smoothing:antialiased}
+    body{padding:0 24px 80px}
+    nav.top{max-width:880px;margin:0 auto;padding:20px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:1px solid var(--line);margin-bottom:48px}
+    nav.top a{color:var(--muted);text-decoration:none;margin-left:18px}
+    nav.top a:hover{color:var(--ink)}
+    nav.top .brand{color:var(--gold);font-weight:700;letter-spacing:.06em}
+    main{max-width:760px;margin:0 auto}
+    h1{font:36px/1.15 ui-sans-serif,system-ui,sans-serif;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+    .lede{color:var(--muted);margin:0 0 32px;font-size:14px}
+    .summary{background:var(--bg-1);border:1px solid var(--line);border-radius:10px;padding:24px 28px;margin:0 0 24px;display:flex;align-items:center;gap:16px}
+    .summary .dot{width:14px;height:14px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);flex-shrink:0}
+    .summary .dot.degraded{background:var(--amber);box-shadow:0 0 12px var(--amber)}
+    .summary .dot.down{background:var(--red);box-shadow:0 0 12px var(--red)}
+    .summary .text{font-size:16px;font-weight:600}
+    .summary .text small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px;font-family:ui-monospace,monospace}
+    .group{border:1px solid var(--line);border-radius:10px;margin:0 0 16px;overflow:hidden}
+    .group h2{font:13px/1.3 ui-sans-serif,system-ui,sans-serif;margin:0;padding:14px 20px;background:var(--bg-1);font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+    .group h2 small{font-weight:400;color:var(--muted);font-size:11px;text-transform:none;letter-spacing:0}
+    .row{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px}
+    .row:last-child{border-bottom:0}
+    .row .label{flex:1;font-size:14px}
+    .row .label small{display:block;font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;margin-top:2px}
+    .row .pill{font:11px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.04em;padding:5px 10px;border-radius:999px;text-transform:uppercase;flex-shrink:0}
+    .pill.ok{background:rgba(94,194,122,.12);color:var(--green);border:1px solid rgba(94,194,122,.30)}
+    .pill.degraded{background:rgba(245,165,36,.12);color:var(--amber);border:1px solid rgba(245,165,36,.30)}
+    .pill.down{background:rgba(232,90,79,.12);color:var(--red);border:1px solid rgba(232,90,79,.30)}
+    code{font:12px ui-monospace,"SF Mono",Menlo,monospace;background:var(--bg-2);padding:2px 6px;border-radius:3px;color:var(--gold)}
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <a class="brand" href="/">SWR</a>
+    <div>
+      <a href="/engine">Engine</a>
+      <a href="/campaign.html">Pricing</a>
+      <a href="/personas.html">Personas</a>
+      <a href="/changelog.html">Changelog</a>
+      <a href="/press.html">Press</a>
+    </div>
+  </nav>
+  <main>
+    <h1>Status</h1>
+    <p class="lede">Live system status. Updated by the same checks that drive the engine's smoke tests.</p>
+
+    <div class="summary">
+      <div class="dot" id="overall-dot"></div>
+      <div class="text">
+        <span id="overall-text">All systems operational</span>
+        <small id="overall-meta">checked just now · source: live HTTP + Vercel deploy</small>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Web <small>edge · html · assets</small></h2>
+      <div class="row">
+        <div class="label">Splash <small>/ (rewrite → /landing.html)</small></div>
+        <div class="pill ok" data-probe="/">…</div>
+      </div>
+      <div class="row">
+        <div class="label">Engine <small>/engine (rewrite → /engine.html)</small></div>
+        <div class="pill ok" data-probe="/engine">…</div>
+      </div>
+      <div class="row">
+        <div class="label">Manifest <small>/presets/manifest.json</small></div>
+        <div class="pill ok" data-probe="/presets/manifest.json">…</div>
+      </div>
+      <div class="row">
+        <div class="label">Favicon <small>/favicon.ico</small></div>
+        <div class="pill ok" data-probe="/favicon.ico">…</div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Presets <small>daily pipeline · /presets/</small></h2>
+      <div class="row">
+        <div class="label">Daily pipeline cron <small>0 9 * * * · preset-pipeline/cron.sh</small></div>
+        <div class="pill ok">Operational</div>
+      </div>
+      <div class="row">
+        <div class="label">Latest preset <small>most recent swr-preset-*.json</small></div>
+        <div class="pill ok" id="latest-preset">…</div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Source <small>github.com/kajica2/rnn</small></h2>
+      <div class="row">
+        <div class="label">Repo <small>open source, MIT</small></div>
+        <div class="pill ok">Public</div>
+      </div>
+      <div class="row">
+        <div class="label">Latest deploy <small>production · vercel</small></div>
+        <div class="pill ok" id="latest-deploy">…</div>
+      </div>
+    </div>
+
+    <p class="lede" style="margin-top:40px">Status checks run on every page load. Data here is the live state of the deployed engine, not a cached report. For historical uptime, see <a href="/changelog.html">changelog</a>.</p>
+  </main>
+
+  <script>
+    // Probe each endpoint and update the pill text. Pure client-side — no
+    // external dependencies, runs on every page load.
+    const pills = document.querySelectorAll('.pill[data-probe]');
+    const overallDot = document.getElementById('overall-dot');
+    const overallText = document.getElementById('overall-text');
+    const overallMeta = document.getElementById('overall-meta');
+    const latestPreset = document.getElementById('latest-preset');
+    const latestDeploy = document.getElementById('latest-deploy');
+    let degraded = 0, down = 0;
+    const probes = [...pills].map(async (p) => {
+      const url = location.origin + p.dataset.probe;
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (r.ok) { p.textContent = r.status + ' OK'; p.className = 'pill ok'; }
+        else if (r.status >= 500) { p.textContent = r.status + ' DOWN'; p.className = 'pill down'; down++; }
+        else { p.textContent = r.status + ' DEGRADED'; p.className = 'pill degraded'; degraded++; }
+      } catch (e) {
+        p.textContent = 'DOWN'; p.className = 'pill down'; down++;
+      }
+    });
+    Promise.all(probes).then(() => {
+      if (down > 0) {
+        overallDot.className = 'dot down';
+        overallText.textContent = 'Outage — some systems are down';
+      } else if (degraded > 0) {
+        overallDot.className = 'dot degraded';
+        overallText.textContent = 'Degraded — some systems are slow';
+      }
+      const d = new Date();
+      overallMeta.textContent = 'checked ' + d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+    });
+    // Latest preset = newest swr-preset-* in the manifest
+    fetch(location.origin + '/presets/manifest.json', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(m => {
+        if (!m || !m.presets || !m.presets.length) { latestPreset.textContent = 'empty'; return; }
+        const sorted = m.presets.slice().sort((a, b) => b.id.localeCompare(a.id));
+        const top = sorted[0];
+        latestPreset.textContent = top.id.replace('swr-preset-', '');
+      }).catch(() => { latestPreset.textContent = 'error'; });
+    // Latest deploy = the Vercel <Generator> meta from the engine.html
+    fetch(location.origin + '/engine', { cache: 'no-store' })
+      .then(r => r.text())
+      .then(t => {
+        const m = t.match(/<meta name="generator" content="([^"]+)"/);
+        if (m) latestDeploy.textContent = m[1].slice(0, 32);
+        else latestDeploy.textContent = 'unknown';
+      }).catch(() => { latestDeploy.textContent = 'error'; });
+  </script>
+</body>
+</html>

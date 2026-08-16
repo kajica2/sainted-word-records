@@ -36,6 +36,8 @@ function copyStatic() {
       { src: resolve('versions'), dst: resolve(outDir, 'versions') },
       { src: resolve('icons'), dst: resolve(outDir, 'icons') },
       { src: resolve('presets'), dst: resolve(outDir, 'presets') },
+      { src: resolve('press'), dst: resolve(outDir, 'press') },
+      { src: resolve('legal'), dst: resolve(outDir, 'legal') },
     ];
     // Style preview thumbnails referenced from versions/index.html (12 small PNGs)
     const styleThumbs = ['neon','film','grid','smoke','hallucination',
@@ -88,6 +90,12 @@ function copyStatic() {
       'presets-evolve.client.js',
       'presets-panel.client.js',
       'presets-panel.css',
+      'favicon.ico',
+      '404.html',
+      'changelog.html',
+      'press.html',
+      'about.html',
+      'status.html',
       ];
     for (const f of rootFiles) {
       const sp = resolve(f);

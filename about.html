@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>About · Sainted Word Records</title>
+  <meta name="description" content="Sainted Word Records is a one-person audio-reactive video studio. Built by Kai Djuric in Belgrade. MIT-licensed. Local-first." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/about.html" />
+  <meta property="og:title" content="About · Sainted Word Records" />
+  <meta property="og:description" content="A one-person audio-reactive video studio. MIT-licensed. Local-first." />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <style>
+    :root {
+      --bg-0:#0a0d12; --bg-1:#111114; --bg-2:#16161b;
+      --ink:#e8e6e0; --muted:#7a7a82; --muted-2:#4a4a52;
+      --line:#1f1f25; --line-2:#2a2a32;
+      --gold:#d4a24c; --amber:#f5a524; --cyan:#00e5ff;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg-0);color:var(--ink);font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Inter",sans-serif;-webkit-font-smoothing:antialiased}
+    body{padding:0 24px 80px}
+    nav.top{max-width:880px;margin:0 auto;padding:20px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:1px solid var(--line);margin-bottom:48px}
+    nav.top a{color:var(--muted);text-decoration:none;margin-left:18px}
+    nav.top a:hover{color:var(--ink)}
+    nav.top .brand{color:var(--gold);font-weight:700;letter-spacing:.06em}
+    main{max-width:680px;margin:0 auto}
+    h1{font:36px/1.15 ui-sans-serif,system-ui,sans-serif;margin:0 0 16px;font-weight:700;letter-spacing:-.01em}
+    h2{font:18px/1.3 ui-sans-serif,system-ui,sans-serif;margin:48px 0 12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em}
+    p{color:#c5c3bd;margin:0 0 16px}
+    p.lede{font-size:18px;color:var(--ink);line-height:1.55}
+    a{color:var(--amber);text-decoration:none;border-bottom:1px solid transparent}
+    a:hover{border-bottom-color:var(--amber)}
+    ul{padding-left:20px;color:#c5c3bd}
+    li{margin:6px 0}
+    blockquote{margin:24px 0;padding:20px 24px;border-left:3px solid var(--gold);background:var(--bg-1);color:var(--ink);font-style:italic;border-radius:0 6px 6px 0}
+    .meta{margin-top:40px;padding:20px;background:var(--bg-1);border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--muted)}
+    .meta b{color:var(--ink)}
+    hr{border:0;border-top:1px solid var(--line);margin:48px 0}
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <a class="brand" href="/">SWR</a>
+    <div>
+      <a href="/engine">Engine</a>
+      <a href="/campaign.html">Pricing</a>
+      <a href="/personas.html">Personas</a>
+      <a href="/press.html">Press</a>
+      <a href="/changelog.html">Changelog</a>
+    </div>
+  </nav>
+  <main>
+    <h1>One person, one engine, one laptop.</h1>
+    <p class="lede">Sainted Word Records is a single-person audio-reactive video studio.
+       I built the engine because the existing tools split into three bad buckets:
+       template mush, AI mush, and pro VJ rigs that cost more than my first car.</p>
+
+    <h2>Why a fourth category</h2>
+    <p>The honest answer: I wanted to make music videos for my own songs without
+       paying €600/year for Resolume or learning TouchDesigner for three months.
+       And I wanted the engine to learn from what I actually use — not the other way
+       around.</p>
+    <p>SWR is a browser-native, library-driven, audio-reactive video engine.
+       Drop a song, drop a library of clips, get a layered composition that
+       breathes with the music. The engine analyses the audio (BPM, key, beats, chromagram)
+       and renders a real-time reactive composition. Output as WebM at 1080p.</p>
+
+    <h2>What "self-evolving" means here</h2>
+    <p>The engine ships with 23 personas (10 original + 5 generative + 5 MORPHA + 3 train-stages),
+       14 WebGL FX, and 20 stackable CSS filters. That's the seed corpus. On top of that,
+       a daily pipeline generates 2 new preset specs — one per day, committed to the repo
+       and shipped to the live engine. After 3 uses of a single persona, the engine itself
+       generates a personalized variant tuned to your song's actual BPM and key.</p>
+    <p>The idea isn't novelty for its own sake — it's that the engine should converge toward
+       what each user actually wants from it, without uploading usage data to anyone.</p>
+
+    <h2>Principles</h2>
+    <ul>
+      <li><b>Local-first.</b> Your song, your library, your IndexedDB. No upload, no SaaS, no telemetry.</li>
+      <li><b>MIT-licensed.</b> Fork it, ship it, brand it. The engine is yours to take.</li>
+      <li><b>One-file, browser-native.</b> Single HTML, no install. Open it in a tab.</li>
+      <li><b>Self-evolving.</b> The engine generates new personalities from your usage, on your machine.</li>
+      <li><b>Service-tier exists, but the engine stays open.</b> Pay for renders, not for the tool.</li>
+    </ul>
+
+    <h2>How to support</h2>
+    <p>Three ways, none required:</p>
+    <ol>
+      <li>Use it. <a href="/engine">Open the engine</a>, make something, post it.</li>
+      <li>Tell someone. One sentence is fine.</li>
+      <li>Order a <a href="/campaign.html">render</a> or buy a <a href="/campaign.html#pt">Personal Tier license</a> if you want to support the project financially.</li>
+    </ol>
+
+    <hr>
+
+    <div class="meta">
+      <b>Kai Djuric</b> · Belgrade, Serbia · <a href="mailto:kai@saintedwordrecords.com">kai [at] saintedwordrecords [dot] com</a><br>
+      <a href="https://github.com/kai-djuric">GitHub</a> ·
+      <a href="https://github.com/kajica2/rnn">Source</a> ·
+      <a href="/changelog.html">Changelog</a> ·
+      <a href="/press.html">Press kit</a>
+    </div>
+  </main>
+</body>
+</html>

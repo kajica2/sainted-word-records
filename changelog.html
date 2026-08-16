@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Changelog · Sainted Word Records</title>
+  <meta name="description" content="Public release history for the Sainted Word Records audio-reactive video engine." />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/changelog.html" />
+  <meta property="og:title" content="Changelog · Sainted Word Records" />
+  <meta property="og:description" content="Public release history for the engine." />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <style>
+    :root{--bg-0:#0a0d12;--bg-1:#111114;--bg-2:#16161b;--ink:#e8e6e0;--muted:#7a7a82;--muted-2:#4a4a52;--line:#1f1f25;--line-2:#2a2a32;--gold:#d4a24c;--amber:#f5a524;--cyan:#00e5ff;--green:#5ec27a}
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg-0);color:var(--ink);font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Inter",sans-serif;-webkit-font-smoothing:antialiased}
+    body{padding:0 24px 80px}
+    nav.top{max-width:880px;margin:0 auto;padding:20px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:1px solid var(--line);margin-bottom:48px}
+    nav.top a{color:var(--muted);text-decoration:none;margin-left:18px}
+    nav.top a:hover{color:var(--ink)}
+    nav.top .brand{color:var(--gold);font-weight:700;letter-spacing:.06em}
+    main{max-width:760px;margin:0 auto}
+    h1{font:36px/1.15 ui-sans-serif,system-ui,sans-serif;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+    .sub{color:var(--muted);margin:0 0 40px;font-size:14px}
+    .entry{padding:24px 28px;background:var(--bg-1);border:1px solid var(--line);border-radius:10px;margin:0 0 16px;position:relative}
+    .entry .ver{position:absolute;top:18px;right:20px;font:11px/1 ui-monospace,"SF Mono",Menlo,monospace;color:var(--gold);background:rgba(212,162,76,.10);padding:4px 8px;border-radius:3px;letter-spacing:.04em}
+    .entry h2{font:18px/1.3 ui-sans-serif,system-ui,sans-serif;margin:0 0 4px;font-weight:600}
+    .entry .date{font-size:12px;color:var(--muted);margin:0 0 16px;font-family:ui-monospace,"SF Mono",Menlo,monospace}
+    .entry ul{padding-left:20px;margin:0;color:#c5c3bd}
+    .entry li{margin:5px 0}
+    .entry li b{color:var(--ink)}
+    .tag{display:inline-block;font:10px/1 ui-monospace,monospace;letter-spacing:.04em;padding:3px 6px;border-radius:3px;background:var(--bg-2);color:var(--muted);margin-right:6px;text-transform:uppercase}
+    .tag.added{background:rgba(94,194,122,.12);color:var(--green)}
+    .tag.fixed{background:rgba(0,229,255,.12);color:var(--cyan)}
+    .tag.changed{background:rgba(245,165,36,.12);color:var(--amber)}
+    h1+.group-label{font:11px/1 ui-sans-serif;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:32px 0 12px}
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <a class="brand" href="/">SWR</a>
+    <div>
+      <a href="/engine">Engine</a>
+      <a href="/campaign.html">Pricing</a>
+      <a href="/personas.html">Personas</a>
+      <a href="/press.html">Press</a>
+      <a href="/about.html">About</a>
+    </div>
+  </nav>
+  <main>
+    <h1>Changelog</h1>
+    <p class="sub">Public release history. Daily preset-pipeline runs aren't listed here — see <a href="/presets/manifest.json">/presets/manifest.json</a> for the live list.</p>
+
+    <h2 class="group-label">2026</h2>
+
+    <article class="entry">
+      <span class="ver">v1.0</span>
+      <h2>Public launch + self-evolving engine</h2>
+      <p class="date">2026-08-17</p>
+      <ul>
+        <li><span class="tag added">added</span><b>Self-evolving engine.</b> Daily pipeline generates 2 new preset specs/day (committed to the repo, shipped to the live engine). After 3 uses of a single persona, the engine generates a personalized variant tuned to the song's BPM and key.</li>
+        <li><span class="tag added">added</span><b>Personal Tier (PT).</b> License-keyed engine unlock — watermark removal, 50/150/500 credits. Three tiers (Solo €120, Band €280, Label €600). Stripe payment link placeholders ready.</li>
+        <li><span class="tag added">added</span><b>Service tier.</b> Three pre-curated visual sets (Single €25, Double €45, Full Rotation €75) + custom-source (€55). 48-hour delivery.</li>
+        <li><span class="tag added">added</span><b>20 stackable CSS filters</b> (kenburns, pan-scan, mesh-warp, liquify, light-leak, film-grain, VHS, RGB-split, pixel-sort, CRT, hue-shift, kaleidoscope, zoom-pulse, camera-shake + 3 combos).</li>
+        <li><span class="tag added">added</span><b>PWA</b> — installable, offline, iOS splash screens, 4 PNG icons (192/512/maskable-512/apple-touch-180).</li>
+        <li><span class="tag added">added</span><b>URL restructure.</b> Splash at <code>/</code>, app at <code>/engine/</code>, no <code>index.html</code> anywhere.</li>
+        <li><span class="tag fixed">fixed</span>Engine no longer silently redirects to <code>/login.html</code> on load (the pre-launch brandkit auth wall is removed).</li>
+        <li><span class="tag changed">changed</span>23 personas now ship in the engine (10 original + 5 generative + 5 MORPHA + 3 train-stages).</li>
+      </ul>
+    </article>
+
+    <article class="entry">
+      <span class="ver">v0.9</span>
+      <h2>Public read-only preview</h2>
+      <p class="date">2026-08-12</p>
+      <ul>
+        <li><span class="tag added">added</span>Landing page, campaign page (17 sections), personas gallery, interactive how-to, market study, profit plan.</li>
+        <li><span class="tag added">added</span>23 personas, 14 WebGL FX, 5 curated visual presets.</li>
+        <li><span class="tag added">added</span>MP4 audio-source support (drop a video, the engine extracts audio).</li>
+        <li><span class="tag added">added</span>Brandkit: per-user visual identity overlay.</li>
+      </ul>
+    </article>
+
+    <article class="entry">
+      <span class="ver">v0.5</span>
+      <h2>Internal alpha · the "3 personas" engine</h2>
+      <p class="date">2026-07-22</p>
+      <ul>
+        <li><span class="tag added">added</span>Three personas (RAW, POSTER, MASK), one visual preset, one library preset.</li>
+        <li><span class="tag added">added</span>Beat detection, BPM/key analysis, auto-drift.</li>
+      </ul>
+    </article>
+
+    <p style="margin-top:48px;color:var(--muted-2);font-size:12px">
+      Source on <a href="https://github.com/kajica2/rnn">GitHub</a>. Engine is MIT-licensed.
+    </p>
+  </main>
+</body>
+</html>
