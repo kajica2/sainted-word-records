@@ -154,96 +154,96 @@
   } else {
     init();
   }
+
+  // ---- Randomize (inside IIFE so init() can call it) ----------------------
+
+  let _picks = [];
+  let _presets = [];
+
+  function wireRandomize(presets) {
+    _presets = presets;
+    const btn = $('rbtn-randomize');
+    const again = $('r-again');
+    const copyBtn = $('r-copy');
+    if (!btn) return;
+    if (!presets || !presets.length) {
+      btn.disabled = true;
+      btn.title = 'No presets in manifest yet';
+      return;
+    }
+    btn.addEventListener('click', () => pickRandom());
+    if (again) again.addEventListener('click', () => pickRandom());
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const id = $('r-id')?.textContent?.trim() || '';
+        try {
+          await navigator.clipboard.writeText(id);
+          copyBtn.textContent = 'Copied ✓';
+          setTimeout(() => { copyBtn.textContent = 'Copy id'; }, 1200);
+        } catch (_) {
+          copyBtn.textContent = 'Copy failed';
+          setTimeout(() => { copyBtn.textContent = 'Copy id'; }, 1200);
+        }
+      });
+    }
+    // Pick one on initial load so the card is visible
+    setTimeout(pickRandom, 600);
+  }
+
+  function pickRandom() {
+    if (!_presets.length) return;
+    let p;
+    let attempts = 0;
+    do {
+      p = _presets[Math.floor(Math.random() * _presets.length)];
+      attempts++;
+    } while (_picks[_picks.length - 1] && _picks[_picks.length - 1] === p.id && _presets.length > 1 && attempts < 8);
+    _picks.push(p.id);
+    if (_picks.length > 50) _picks = _picks.slice(-50);
+    renderPick(p, _picks.length);
+  }
+
+  function renderPick(p, pickNum) {
+    const card = $('rand-card');
+    if (!card) return;
+    card.classList.add('is-rolling');
+    setTimeout(() => card.classList.remove('is-rolling'), 500);
+
+    const ins = (p.inspiration || []);
+    const shader = (ins.find(i => i.kind === 'shader_ref') || {}).name || '—';
+    const palette = (ins.find(i => i.kind === 'palette_ref') || {}).name || '—';
+    const motion = (ins.find(i => i.kind === 'motion_ref') || {}).name || '—';
+    const audio = p.audio_reactivity || {};
+    const audioSummary = Object.entries(audio).filter(([_, v]) => v && v.length).map(([k, v]) => `${k}→${v.join('+')}`).join(' · ') || '—';
+    const fx = p.fx_state || {};
+    const fxKeys = Object.keys(fx).length;
+    const tags = (p.preview && p.preview.tags) || [];
+
+    if ($('r-picknum')) $('r-picknum').textContent = `pick #${pickNum}`;
+    if ($('r-name')) $('r-name').textContent = p.name || p.id || '—';
+    if ($('r-id')) $('r-id').textContent = p.id || '—';
+    if ($('r-created')) $('r-created').textContent = (p.created_at || '').slice(0, 10) || '—';
+    if ($('r-desc')) $('r-desc').textContent = p.description || '—';
+    if ($('r-fam')) $('r-fam').textContent = p.family || '—';
+    if ($('r-shader')) $('r-shader').textContent = shader;
+    if ($('r-palette-name')) $('r-palette-name').textContent = palette;
+    if ($('r-motion')) $('r-motion').textContent = motion;
+    if ($('r-fxkeys')) $('r-fxkeys').textContent = `${fxKeys} of 15`;
+    if ($('r-audio')) $('r-audio').textContent = audioSummary;
+
+    const swRoot = $('r-swatches');
+    if (swRoot && p.palette) {
+      swRoot.innerHTML = ['primary', 'secondary', 'accent', 'bg']
+        .filter(k => p.palette[k])
+        .map(k => `<span class="sw" style="background:${p.palette[k]}" title="${k}: ${p.palette[k]}"></span>`)
+        .join('') + ` <span style="margin-left:8px;">${p.palette.primary || ''} · ${p.palette.secondary || ''}</span>`;
+    }
+    const tagsRoot = $('r-tags');
+    if (tagsRoot) {
+      tagsRoot.innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join('');
+    }
+
+    card.classList.add('show');
+    setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+  }
 })();
-
-// ---- Randomize --------------------------------------------------------------
-
-let _picks = [];
-let _presets = [];
-
-function wireRandomize(presets) {
-  _presets = presets;
-  const btn = $('rbtn-randomize');
-  const again = $('r-again');
-  const copyBtn = $('r-copy');
-  if (!btn) return;
-  if (!presets || !presets.length) {
-    btn.disabled = true;
-    btn.title = 'No presets in manifest yet';
-    return;
-  }
-  btn.addEventListener('click', () => pickRandom());
-  if (again) again.addEventListener('click', () => pickRandom());
-  if (copyBtn) {
-    copyBtn.addEventListener('click', async () => {
-      const id = $('r-id')?.textContent?.trim() || '';
-      try {
-        await navigator.clipboard.writeText(id);
-        copyBtn.textContent = 'Copied ✓';
-        setTimeout(() => { copyBtn.textContent = 'Copy id'; }, 1200);
-      } catch (_) {
-        copyBtn.textContent = 'Copy failed';
-        setTimeout(() => { copyBtn.textContent = 'Copy id'; }, 1200);
-      }
-    });
-  }
-  // Pick one on initial load so the card is visible
-  setTimeout(pickRandom, 600);
-}
-
-function pickRandom() {
-  if (!_presets.length) return;
-  let p;
-  let attempts = 0;
-  do {
-    p = _presets[Math.floor(Math.random() * _presets.length)];
-    attempts++;
-  } while (_picks[_picks.length - 1] && _picks[_picks.length - 1] === p.id && _presets.length > 1 && attempts < 8);
-  _picks.push(p.id);
-  if (_picks.length > 50) _picks = _picks.slice(-50);
-  renderPick(p, _picks.length);
-}
-
-function renderPick(p, pickNum) {
-  const card = $('rand-card');
-  if (!card) return;
-  card.classList.add('is-rolling');
-  setTimeout(() => card.classList.remove('is-rolling'), 500);
-
-  const ins = (p.inspiration || []);
-  const shader = (ins.find(i => i.kind === 'shader_ref') || {}).name || '—';
-  const palette = (ins.find(i => i.kind === 'palette_ref') || {}).name || '—';
-  const motion = (ins.find(i => i.kind === 'motion_ref') || {}).name || '—';
-  const audio = p.audio_reactivity || {};
-  const audioSummary = Object.entries(audio).filter(([_, v]) => v && v.length).map(([k, v]) => `${k}→${v.join('+')}`).join(' · ') || '—';
-  const fx = p.fx_state || {};
-  const fxKeys = Object.keys(fx).length;
-  const tags = (p.preview && p.preview.tags) || [];
-
-  if ($('r-picknum')) $('r-picknum').textContent = `pick #${pickNum}`;
-  if ($('r-name')) $('r-name').textContent = p.name || p.id || '—';
-  if ($('r-id')) $('r-id').textContent = p.id || '—';
-  if ($('r-created')) $('r-created').textContent = (p.created_at || '').slice(0, 10) || '—';
-  if ($('r-desc')) $('r-desc').textContent = p.description || '—';
-  if ($('r-fam')) $('r-fam').textContent = p.family || '—';
-  if ($('r-shader')) $('r-shader').textContent = shader;
-  if ($('r-palette-name')) $('r-palette-name').textContent = palette;
-  if ($('r-motion')) $('r-motion').textContent = motion;
-  if ($('r-fxkeys')) $('r-fxkeys').textContent = `${fxKeys} of 15`;
-  if ($('r-audio')) $('r-audio').textContent = audioSummary;
-
-  const swRoot = $('r-swatches');
-  if (swRoot && p.palette) {
-    swRoot.innerHTML = ['primary', 'secondary', 'accent', 'bg']
-      .filter(k => p.palette[k])
-      .map(k => `<span class="sw" style="background:${p.palette[k]}" title="${k}: ${p.palette[k]}"></span>`)
-      .join('') + ` <span style="margin-left:8px;">${p.palette.primary || ''} · ${p.palette.secondary || ''}</span>`;
-  }
-  const tagsRoot = $('r-tags');
-  if (tagsRoot) {
-    tagsRoot.innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join('');
-  }
-
-  card.classList.add('show');
-  setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
-}
