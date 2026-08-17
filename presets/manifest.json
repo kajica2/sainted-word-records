@@ -80,7 +80,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-pulse.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "grid.html",
         "style_name": "Grid"
       }
@@ -164,7 +164,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-drone.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "film.html",
         "style_name": "Film"
       }
@@ -246,7 +246,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-pulse.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "grid.html",
         "style_name": "Grid"
       }
@@ -328,7 +328,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-shimmer.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "glitch.html",
         "style_name": "Glitch"
       }
@@ -412,7 +412,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-grain.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "fractal.html",
         "style_name": "Fractal"
       }
@@ -496,7 +496,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-drone.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "fractal.html",
         "style_name": "Fractal"
       }
@@ -580,7 +580,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-drone.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "film.html",
         "style_name": "Film"
       }
@@ -663,7 +663,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-drone.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "fractal.html",
         "style_name": "Fractal"
       }
@@ -746,7 +746,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-pulse.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "grid.html",
         "style_name": "Grid"
       }
@@ -828,7 +828,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-drone.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "film.html",
         "style_name": "Film"
       }
@@ -911,7 +911,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-shimmer.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "glitch.html",
         "style_name": "Glitch"
       }
@@ -994,7 +994,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-pulse.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "grid.html",
         "style_name": "Grid"
       }
@@ -1078,7 +1078,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-drone.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "film.html",
         "style_name": "Film"
       }
@@ -1163,7 +1163,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-shimmer.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "neon.html",
         "style_name": "Neon"
       }
@@ -1246,7 +1246,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-bass.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "pulse.html",
         "style_name": "Pulse"
       }
@@ -1331,7 +1331,7 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-bass.wav",
+        "audio": "library/audio/loop-demo.wav",
         "style": "aurora.html",
         "style_name": "Aurora"
       }
