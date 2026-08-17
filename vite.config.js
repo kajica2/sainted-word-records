@@ -92,6 +92,7 @@ function copyStatic() {
       'presets-evolve.client.js',
       'presets-panel.client.js',
       'presets-panel.css',
+      'persona-preview.client.js',
       'favicon.ico',
       'apple-touch-icon.png',
       '404.html',
