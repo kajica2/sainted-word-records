@@ -1044,6 +1044,18 @@
       }[c]));
     }
     function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+    // Layer property helpers — handle nested props like 'pos.rot' so the
+    // rot slider in the per-layer panel writes to l.pos.rot (the actual
+    // rotation field) instead of a top-level l.rot.
+    function readLayerProp(l, prop) {
+      if (prop === 'rot') return l.pos ? l.pos.rot || 0 : 0;
+      return l[prop];
+    }
+    function writeLayerProp(l, prop, value) {
+      if (prop === 'rot') { if (!l.pos) l.pos = { x: 0, y: 0, rot: 0 }; l.pos.rot = value; return; }
+      l[prop] = value;
+    }
     function setStatus(t, cls) {
       const p = $('status-pill');
       p.textContent = t;
@@ -1848,12 +1860,19 @@
               <label>hue</label>
               <input type="range" data-prop="hue" min="-180" max="180" step="1" />
             </div>
+            <div class="layer-row">
+              <label>rot</label>
+              <input type="range" data-prop="rot" min="-180" max="180" step="1" />
+              <b class="rot-v" style="font-family:var(--font-mono);font-size:9px;color:var(--accent);min-width:30px;text-align:right;margin-left:4px;">0°</b>
+            </div>
           `;
           const sel = el.querySelector('select[data-prop="blend"]');
           sel.value = l.blend;
           for (const r of el.querySelectorAll('input[type=range]')) {
-            r.value = l[r.dataset.prop];
+            r.value = readLayerProp(l, r.dataset.prop);
           }
+          const rotV = el.querySelector('.rot-v');
+          if (rotV) rotV.textContent = `${Math.round(l.pos.rot)}°`;
           if (l.asset && l.asset.thumb) {
             const img = new Image();
             img.src = l.asset.thumb;
@@ -1862,7 +1881,13 @@
           el.addEventListener('click', (e) => {
             if (e.target.classList.contains('x')) { this.remove(l.id); return; }
             if (e.target.classList.contains('x-rot')) {
-              l.pos.rot = (l.pos.rot + 90) % 360;
+              // Shift+click = -90° (counter-clockwise), plain click = +90°
+              l.pos.rot = (l.pos.rot + (e.shiftKey ? -90 : 90) + 360) % 360;
+              // Update the slider + readout in the same layer card
+              const rotSlider = el.querySelector('input[data-prop="rot"]');
+              const rotV = el.querySelector('.rot-v');
+              if (rotSlider) rotSlider.value = l.pos.rot;
+              if (rotV) rotV.textContent = `${Math.round(l.pos.rot)}°`;
               e.stopPropagation();
               return;
             }
@@ -1887,7 +1912,10 @@
           });
           sel.addEventListener('change', () => { l.blend = sel.value; });
           for (const r of el.querySelectorAll('input[type=range]')) {
-            r.addEventListener('input', () => { l[r.dataset.prop] = parseFloat(r.value); });
+            r.addEventListener('input', () => {
+              writeLayerProp(l, r.dataset.prop, parseFloat(r.value));
+              if (r.dataset.prop === 'rot' && rotV) rotV.textContent = `${Math.round(r.value)}°`;
+            });
           }
           this.elCache.set(l.id, el);
           frag.appendChild(el);
