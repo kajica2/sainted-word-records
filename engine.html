@@ -463,7 +463,7 @@
     .layer-head .x-rot,
     .layer-head .x-rand,
     .layer-head .x-beat {
-      width: 18px; height: 18px;
+      width: 22px; height: 22px;
       display: inline-flex; align-items: center; justify-content: center;
       background: transparent;
       border: 1px solid var(--line-2);
@@ -473,7 +473,10 @@
       cursor: pointer;
       transition: 0.15s;
       margin-left: 4px;
+      padding: 0;
     }
+    .layer-head .x-rot svg { transition: transform 0.25s ease; }
+    .layer-head .x-rot:hover svg { transform: rotate(-90deg); }
     .layer-head .x-rot:hover,
     .layer-head .x-rand:hover {
       background: var(--accent);
@@ -1805,7 +1808,14 @@
               <span class="num">${i + 1}</span>
               <span class="thumb">${l.asset ? '' : '∅'}</span>
               <span class="name">${l.asset ? escapeHtml(trunc(l.asset.name, 18)) : '(empty)'}</span>
-              <button class="x-rot" title="Rotate this clip +90° (or press R)">↻</button>
+              <button class="x-rot" title="Rotate this clip +90° (or press R)" aria-label="Rotate clip 90°">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                  <path d="M2.5 8a5.5 5.5 0 0 1 9.39-3.89L13.5 5.5"/>
+                  <path d="M13.5 2.5v3h-3"/>
+                  <path d="M13.5 8a5.5 5.5 0 0 1-9.39 3.89L2.5 10.5"/>
+                  <path d="M2.5 13.5v-3h3"/>
+                </svg>
+              </button>
               <button class="x-rand" title="Randomise pos / rot / scale / blend">🎲</button>
               <button class="x-beat" title="Snap to beat (BPM-locked)">⌐</button>
               <button class="x" title="remove">×</button>
