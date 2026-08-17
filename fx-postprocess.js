@@ -539,6 +539,14 @@
     };
 
     sizeFx();  // initial sizing
+
+    // Free the WebGL context on unload so it doesn't pile up across
+    // navigations or if init() is called more than once. Chrome warns
+    // at 16+ active contexts, so explicit release is worth the few lines.
+    window.addEventListener('beforeunload', () => {
+      const ext = gl.getExtension && gl.getExtension('WEBGL_lose_context');
+      if (ext) ext.loseContext();
+    });
   }
 
   // Wait for DOM ready + main IIFE to have populated SWR

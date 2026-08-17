@@ -499,6 +499,13 @@
     }
 
     console.log(`[versions-presets] initialized: ${pageKey} (${preset.label})`);
+
+    // Free the WebGL context on unload so it doesn't pile up across
+    // navigations between /versions/<name>.html pages (Chrome warns at 16+).
+    window.addEventListener('beforeunload', () => {
+      const ext = gl.getExtension && gl.getExtension('WEBGL_lose_context');
+      if (ext) ext.loseContext();
+    });
   }
 
   // Try to detect page key from document.title if [data-page] is missing
