@@ -267,6 +267,17 @@
       50% { transform: translateX(4px); opacity: 0.6; }
       100% { transform: translateX(0); opacity: 1; } }
 
+    .rand-demo { display: flex; align-items: center; gap: 14px;
+      font-family: var(--font-mono); font-size: 12px; flex-wrap: wrap;
+      padding: 12px 0; border-top: 1px dashed var(--line); margin-top: 14px; }
+    .rand-demo-link { display: inline-flex; align-items: center; gap: 6px;
+      color: var(--ink-2); text-decoration: none; padding: 5px 10px;
+      border: 1px solid var(--line); border-radius: 4px; transition: 0.15s; }
+    .rand-demo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .rand-demo-lbl { color: var(--accent-2); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+    .rand-demo-val { color: var(--ink); }
+    .rand-demo-sep { color: var(--muted); }
+
     /* ===== FOOTER ===== */
     footer { margin-top: 80px; padding: 48px 0 32px; border-top: 1px solid var(--line);
       background: var(--bg-2); }
@@ -343,6 +354,7 @@
         <div><div class="lbl">Audio bias</div><div class="val" id="r-audio">—</div></div>
       </div>
       <div class="rand-palette" id="r-swatches"></div>
+      <div class="rand-demo" id="r-demo"></div>
       <div class="rand-tags" id="r-tags"></div>
       <div class="rand-actions">
         <button type="button" class="rbtn" id="r-again">↻ Pick another</button>

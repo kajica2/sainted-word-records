@@ -215,6 +215,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.presets-card-demo {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9.5px; color: #8a7aa0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  margin-top: 2px; white-space: nowrap; overflow: hidden;
+}
+.presets-demo-song { color: #00f0ff; }
+.presets-demo-sep { opacity: 0.4; }
+.presets-demo-style { color: #fff04a; }
 .presets-card-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -242,3 +251,9 @@
   border: 1px solid #2a2a32;
 }
 .presets-dismiss:hover { color: #e8e6e0; border-color: #4a4a52; }
+.presets-demo {
+  appearance: none; flex: 1; padding: 6px 10px; border-radius: 4px;
+  font: 11px/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; font-weight: 500;
+  background: transparent; color: #00f0ff; border: 1px solid rgba(0,240,255,0.4);
+}
+.presets-demo:hover { color: #000; background: #00f0ff; border-color: #00f0ff; }

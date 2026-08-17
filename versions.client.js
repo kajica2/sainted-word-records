@@ -245,5 +245,30 @@
 
     card.classList.add('show');
     setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+    renderDemo(p);
+  }
+
+  function renderDemo(p) {
+    const demoRoot = $('r-demo');
+    if (!demoRoot) return;
+    if (!p.demo) {
+      demoRoot.innerHTML = '';
+      demoRoot.style.display = 'none';
+      return;
+    }
+    demoRoot.style.display = '';
+    const audio = (p.demo.audio || '').split('/').pop().replace(/\.[^.]+$/, '');
+    const style = p.demo.style_name || (p.demo.style || '').replace('.html', '');
+    demoRoot.innerHTML = `
+      <a class="rand-demo-link" href="${p.demo.audio || '#'}" download title="Download demo song">
+        <span class="rand-demo-lbl">♪ song</span>
+        <span class="rand-demo-val">${audio}</span>
+      </a>
+      <span class="rand-demo-sep">·</span>
+      <a class="rand-demo-link" href="/versions/${p.demo.style || ''}" target="_blank" rel="noopener" title="Open in ${style} style">
+        <span class="rand-demo-lbl">◐ style</span>
+        <span class="rand-demo-val">${style}</span>
+      </a>
+    `;
   }
 })();

@@ -78,6 +78,11 @@
           "midsommar",
           "lateral"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-pulse.wav",
+        "style": "grid.html",
+        "style_name": "Grid"
       }
     },
     {
@@ -157,6 +162,11 @@
           "barry",
           "snap"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-drone.wav",
+        "style": "film.html",
+        "style_name": "Film"
       }
     },
     {
@@ -234,6 +244,11 @@
           "matrix",
           "breath"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-pulse.wav",
+        "style": "grid.html",
+        "style_name": "Grid"
       }
     },
     {
@@ -311,6 +326,11 @@
           "annihilation",
           "snap"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-shimmer.wav",
+        "style": "glitch.html",
+        "style_name": "Glitch"
       }
     },
     {
@@ -390,6 +410,11 @@
           "annihilation",
           "snap"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-grain.wav",
+        "style": "fractal.html",
+        "style_name": "Fractal"
       }
     },
     {
@@ -469,6 +494,11 @@
           "annihilation",
           "lateral"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-drone.wav",
+        "style": "fractal.html",
+        "style_name": "Fractal"
       }
     },
     {
@@ -548,6 +578,11 @@
           "matrix",
           "snap"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-drone.wav",
+        "style": "film.html",
+        "style_name": "Film"
       }
     },
     {
@@ -626,6 +661,11 @@
           "annihilation",
           "snap"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-drone.wav",
+        "style": "fractal.html",
+        "style_name": "Fractal"
       }
     },
     {
@@ -704,6 +744,11 @@
           "dune",
           "lateral"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-pulse.wav",
+        "style": "grid.html",
+        "style_name": "Grid"
       }
     },
     {
@@ -781,6 +826,11 @@
           "annihilation",
           "static"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-drone.wav",
+        "style": "film.html",
+        "style_name": "Film"
       }
     },
     {
@@ -859,6 +909,11 @@
           "vapor",
           "breath"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-shimmer.wav",
+        "style": "glitch.html",
+        "style_name": "Glitch"
       }
     },
     {
@@ -937,6 +992,11 @@
           "matrix",
           "counter"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-pulse.wav",
+        "style": "grid.html",
+        "style_name": "Grid"
       }
     },
     {
@@ -1016,6 +1076,11 @@
           "akira",
           "lateral"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-drone.wav",
+        "style": "film.html",
+        "style_name": "Film"
       }
     },
     {
@@ -1096,6 +1161,11 @@
           "blade",
           "slow"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-shimmer.wav",
+        "style": "neon.html",
+        "style_name": "Neon"
       }
     },
     {
@@ -1174,6 +1244,11 @@
           "matrix",
           "snap"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-bass.wav",
+        "style": "pulse.html",
+        "style_name": "Pulse"
       }
     },
     {
@@ -1254,6 +1329,11 @@
           "barry",
           "counter"
         ]
+      },
+      "demo": {
+        "audio": "library/audio/loop-bass.wav",
+        "style": "aurora.html",
+        "style_name": "Aurora"
       }
     }
   ],

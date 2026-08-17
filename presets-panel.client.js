@@ -108,9 +108,15 @@
           <span class="presets-color" style="background:${palette.accent || '#888'}"></span>
         </div>
         <div class="presets-card-audio">${escapeHtml(audioSummary)}</div>
+        ${p.demo ? `<div class="presets-card-demo">
+          <span class="presets-demo-song" title="${escapeAttr(p.demo.audio || '')}">♪ ${escapeHtml((p.demo.audio || '').split('/').pop().replace(/\.[^.]+$/, ''))}</span>
+          <span class="presets-demo-sep">·</span>
+          <span class="presets-demo-style" title="${escapeAttr(p.demo.style || '')}">◐ ${escapeHtml(p.demo.style_name || (p.demo.style || '').replace('.html',''))}</span>
+        </div>` : ''}
       </div>
       <div class="presets-card-actions">
         <button class="presets-apply" type="button" data-id="${escapeAttr(p.id)}">Apply</button>
+        ${p.demo && p.demo.style ? `<button class="presets-demo" type="button" data-id="${escapeAttr(p.id)}" title="Open in ${escapeAttr(p.demo.style_name || p.demo.style)}">Demo ↗</button>` : ''}
         <button class="presets-dismiss" type="button" data-id="${escapeAttr(p.id)}">Dismiss</button>
       </div>
     `;
@@ -129,6 +135,18 @@
       card.remove();
       refreshPill();
     });
+    const demoBtn = card.querySelector('.presets-demo');
+    if (demoBtn) {
+      demoBtn.addEventListener('click', () => {
+        // Open the style page in a new tab + send the audio URL via location.hash
+        // so the style page can play it. Falls back to just opening the style.
+        const styleUrl = p.demo && p.demo.style ? '/versions/' + p.demo.style : '';
+        const audioUrl = p.demo && p.demo.audio ? '/' + p.demo.audio : '';
+        if (!styleUrl) return;
+        const url = styleUrl + (audioUrl ? '#demo=' + encodeURIComponent(audioUrl) : '');
+        window.open(url, '_blank', 'noopener');
+      });
+    }
     return card;
   }
 
