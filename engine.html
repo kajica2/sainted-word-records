@@ -450,6 +450,15 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .layer-audio-pill {
+      display: inline-flex; align-items: center;
+      font-family: var(--font-mono); font-size: 8px;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--accent-2); border: 1px solid rgba(0,240,255,0.3);
+      padding: 2px 6px; border-radius: 3px; margin-left: 4px;
+      background: rgba(0,240,255,0.06);
+      cursor: help;
+    }
     .layer-head .x {
       background: transparent;
       border: none;
@@ -1820,6 +1829,7 @@
               <span class="num">${i + 1}</span>
               <span class="thumb">${l.asset ? '' : '∅'}</span>
               <span class="name">${l.asset ? escapeHtml(trunc(l.asset.name, 18)) : '(empty)'}</span>
+              <span class="layer-audio-pill" title="All layers share the loaded song (one audio source drives every reactor)">♪ shared</span>
               <button class="x-rot clip" title="Rotate this clip +90° (or press R)" aria-label="Rotate clip 90°">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
                   <path d="M2.5 8a5.5 5.5 0 0 1 9.39-3.89L13.5 5.5"/>
