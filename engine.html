@@ -801,6 +801,8 @@
       <a class="tbtn ghost nav-arrow" id="nav-home" href="/" title="Back to home" aria-label="Home" style="padding:4px 8px; font-size:14px; text-decoration:none; line-height:1;">←</a>
       <div class="brand">SAINTED-WORD <small>records</small></div>
       <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
+      <button class="tbtn ghost nav-arrow" id="nav-ver-prev" title="Previous visual version (Shift+←)" aria-label="Previous version" style="padding:4px 8px; font-size:11px; line-height:1;">← ver</button>
+      <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
       <span class="pill" id="status-pill">idle</span>
       <button class="tbtn ghost" id="load-song">Load song</button>
       <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" />
@@ -3471,6 +3473,46 @@
   <script type="module" src="/presets.client.js"></script>
   <script type="module" src="/presets-evolve.client.js"></script>
   <script type="module" src="/presets-panel.client.js"></script>
+  <script>
+    // Prev/Next visual version navigation (Shift+← / Shift+→)
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      // Visual style pages (excludes gallery.html which is the meta-page)
+      const STYLES = [
+        'aurora', 'baroque', 'chrome', 'eclipse', 'film', 'fractal', 'glitch', 'grid',
+        'hallucination', 'kraft', 'mosaic', 'neon', 'phosphor', 'pulse', 'smoke',
+        'tape', 'void', 'watercolor',
+      ];
+      let _idx = 0;
+      function go(dir) {
+        _idx = ((_idx + dir) % STYLES.length + STYLES.length) % STYLES.length;
+        const url = '/versions/' + STYLES[_idx] + '.html';
+        window.open(url, '_blank', 'noopener');
+        // Pulse the clicked button
+        const btn = dir === 1 ? $('nav-ver-next') : $('nav-ver-prev');
+        if (btn) {
+          btn.classList.add('nav-pulse');
+          setTimeout(() => btn.classList.remove('nav-pulse'), 250);
+        }
+      }
+      function init() {
+        $('nav-ver-prev').addEventListener('click', () => go(-1));
+        $('nav-ver-next').addEventListener('click', () => go(1));
+        document.addEventListener('keydown', (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+          if (e.target.isContentEditable) return;
+          if ($('daily-modal') && !$('daily-modal').hidden) return;
+          if (e.shiftKey && e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
+          if (e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
   <script>
     // Prev/Next preset + home navigation
     (function () {
