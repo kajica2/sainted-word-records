@@ -832,7 +832,9 @@
         <option value="b">Sainted Word wordmark</option>
         <option value="c">icon + SWR</option>
       </select>
-      <button class="tbtn danger" id="rec" disabled>● REC</button>
+      <button class="tbtn danger" id="rec" disabled title="Start / stop recording (export to WebM)">● REC</button>
+      <button class="tbtn primary" id="export-video" disabled title="Start a 30s recording and download the WebM" style="background:var(--accent-2);border-color:var(--accent-2);color:#000;">🎬 Export video</button>
+      <a class="tbtn ghost" id="last-video" hidden style="text-decoration:none;padding:4px 10px;font-size:9px;">↓ last video</a>
     </header>
 
     <aside id="library">
@@ -1258,6 +1260,8 @@
         $('song-name').innerHTML = saved + badge + '<b>' + escapeHtml(file.name) + '</b>';
         $('play').disabled = false;
         $('rec').disabled = false;
+        const ev = $('export-video');
+        if (ev) ev.disabled = false;
         this.history = { prev: null, bassAvg: 0, fluxAvg: 0 };
         this.beatTimes = [];
         this.feat.bpm = 0;
@@ -3015,6 +3019,56 @@
         $('rec').addEventListener('click', () => {
           if (Recorder.recording) Recorder.stop(); else Recorder.start();
         });
+      // === Export video (one-click 30s WebM) ===
+      $('export-video').addEventListener('click', () => {
+        if (Recorder.recording) { Recorder.stop(); return; }
+        if (!Audio.audioEl) { UI.setStatus && UI.setStatus('load a song first', 'warn'); return; }
+        // Auto-play so the recording has audio, then stop after the song's
+        // full duration (or 30s cap if 'manual' is selected)
+        if (!Audio.playing) Audio.play();
+        const durSel = $('rec-dur');
+        const dur = durSel ? durSel.value : '30';
+        const ms = (dur === 'song' && Audio.audioEl.duration)
+          ? Math.max(1000, Math.floor(Audio.audioEl.duration * 1000))
+          : (dur === '0' ? 0 : (parseInt(dur, 10) || 30) * 1000);
+        Recorder.start(ms);
+        UI.setStatus && UI.setStatus(`exporting · ${Math.round(ms/1000)}s · WebM`, 'live');
+        if (ms > 0) {
+          setTimeout(() => {
+            if (Recorder.recording) {
+              Recorder.stop();
+              UI.setStatus && UI.setStatus('export done · ↓ last video', 'ok');
+            }
+          }, ms + 200);
+        }
+      });
+      // Show "↓ last video" link after every recording stops
+      const _origStop = Recorder.stop.bind(Recorder);
+      Recorder.stop = function () {
+        _origStop();
+        // The original _save() already auto-downloads. Also keep a link visible
+        // so the user can re-download.
+        setTimeout(() => {
+          if (this.lastBlobUrl && $('last-video')) {
+            const a = $('last-video');
+            a.href = this.lastBlobUrl;
+            a.download = this.lastFilename || 'sainted-word.webm';
+            const mb = (this.lastBlobSize || 0) / (1024 * 1024);
+            a.textContent = `↓ ${this.lastFilename || 'last video'} (${mb.toFixed(1)} MB)`;
+            a.hidden = false;
+          }
+        }, 200);
+      };
+      const _origSave = Recorder._save.bind(Recorder);
+      Recorder._save = function () {
+        _origSave();
+        // Stash the blob URL so the link can stay available
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(this.chunks, { type: this.mime }));
+        this.lastBlobUrl = a.href;
+        this.lastFilename = a.download;
+        this.lastBlobSize = this.chunks.reduce((s, c) => s + c.size, 0);
+      };
         // Library
         $('add-assets').addEventListener('click', () => $('asset-input').click());
         $('clear-all').addEventListener('click', async () => {
