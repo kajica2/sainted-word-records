@@ -80,9 +80,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "grid.html",
-        "style_name": "Grid"
+        "style_name": "Grid",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -164,9 +165,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "film.html",
-        "style_name": "Film"
+        "style_name": "Film",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -246,9 +248,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "grid.html",
-        "style_name": "Grid"
+        "style_name": "Grid",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -328,9 +331,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "glitch.html",
-        "style_name": "Glitch"
+        "style_name": "Glitch",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -412,9 +416,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "fractal.html",
-        "style_name": "Fractal"
+        "style_name": "Fractal",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -496,9 +501,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "fractal.html",
-        "style_name": "Fractal"
+        "style_name": "Fractal",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -580,9 +586,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "film.html",
-        "style_name": "Film"
+        "style_name": "Film",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -663,9 +670,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "fractal.html",
-        "style_name": "Fractal"
+        "style_name": "Fractal",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -746,9 +754,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "grid.html",
-        "style_name": "Grid"
+        "style_name": "Grid",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -828,9 +837,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "film.html",
-        "style_name": "Film"
+        "style_name": "Film",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -911,9 +921,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "glitch.html",
-        "style_name": "Glitch"
+        "style_name": "Glitch",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -994,9 +1005,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "grid.html",
-        "style_name": "Grid"
+        "style_name": "Grid",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -1078,9 +1090,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "film.html",
-        "style_name": "Film"
+        "style_name": "Film",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -1163,9 +1176,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "neon.html",
-        "style_name": "Neon"
+        "style_name": "Neon",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -1246,9 +1260,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "pulse.html",
-        "style_name": "Pulse"
+        "style_name": "Pulse",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     },
     {
@@ -1331,9 +1346,10 @@
         ]
       },
       "demo": {
-        "audio": "library/audio/loop-demo.wav",
+        "audio": "library/audio/coltrane-like-sonny.mp3",
         "style": "aurora.html",
-        "style_name": "Aurora"
+        "style_name": "Aurora",
+        "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
     }
   ],
