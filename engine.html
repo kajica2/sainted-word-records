@@ -292,6 +292,31 @@
       text-align: center;
       color: var(--dim);
       font-family: var(--font-mono);
+    }
+    .songs-list {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 8px 10px; border-bottom: 1px solid var(--line);
+      margin-bottom: 8px;
+    }
+    .songs-head {
+      font-family: var(--font-mono); font-size: 9px;
+      color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 6px; margin-bottom: 2px;
+    }
+    .songs-head .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); }
+    .song-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: 4px; cursor: pointer;
+      background: rgba(0,240,255,0.04); border: 1px solid rgba(0,240,255,0.12);
+      font-family: var(--font-mono); font-size: 10px; color: var(--ink-2);
+      transition: 0.12s;
+    }
+    .song-row:hover { background: rgba(0,240,255,0.10); border-color: var(--accent-2); }
+    .song-row.active { background: rgba(0,255,163,0.12); border-color: var(--green); }
+    .song-row .note { color: var(--accent-2); font-size: 12px; }
+    .song-row .meta { color: var(--muted); font-size: 9px; margin-left: auto; }
+    .song-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .songs-empty { color: var(--muted); font-size: 10px; padding: 4px 0; }
       font-size: 11px;
       line-height: 1.7;
       border: 1px dashed var(--line-2);
@@ -775,6 +800,9 @@
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
       </div>
       <div class="panel-body">
+        <div id="songs-list" class="songs-list">
+          <div class="songs-empty">Loading bundled songs…</div>
+        </div>
         <div id="library-grid">
           <div class="lib-empty">
             Drop videos, GIFs, or images<br/>anywhere on the page
@@ -793,7 +821,7 @@
           bass, mids, treble, beats, and onsets drive a layered composition of your assets.
         </p>
         <div class="hint">
-          ⌘+Drop folder for bulk import · click any layer to edit · RE-MAP re-derives the assignment
+          ⌘+Drop folder for bulk import · click any layer to edit · RE-MAP re-derives the assignment · R rotates selected clip
         </div>
       </div>
     </section>
@@ -802,6 +830,7 @@
       <div class="panel-head">
         <h2>Layers</h2>
         <button class="tbtn ghost" id="add-layer" style="padding:4px 8px; font-size:9px;">+ Layer</button>
+        <button class="tbtn" id="rotate-sel" disabled title="Rotate selected clip 90° (R / Shift+R for -90°)" style="padding:4px 8px; font-size:9px; opacity:0.4; cursor:not-allowed;">↻ ROT</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
       </div>
       <div id="layer-list"></div>
@@ -1054,15 +1083,15 @@
     }
     function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
-    // Layer property helpers — handle nested props like 'pos.rot' so the
-    // rot slider in the per-layer panel writes to l.pos.rot (the actual
-    // rotation field) instead of a top-level l.rot.
+    // Layer property helpers — the rot slider in the per-layer panel writes
+    // to l.rotOffset (the per-clip persistent tilt), not l.pos.rot (which is
+    // audio-driven every frame). The final rotation is pos.rot + rotOffset.
     function readLayerProp(l, prop) {
-      if (prop === 'rot') return l.pos ? l.pos.rot || 0 : 0;
+      if (prop === 'rot') return l.rotOffset || 0;
       return l[prop];
     }
     function writeLayerProp(l, prop, value) {
-      if (prop === 'rot') { if (!l.pos) l.pos = { x: 0, y: 0, rot: 0 }; l.pos.rot = value; return; }
+      if (prop === 'rot') { l.rotOffset = value; return; }
       l[prop] = value;
     }
     function setStatus(t, cls) {
@@ -1785,6 +1814,7 @@
           brightness: 1,
           contrast: 1,
           pos: { x: 0, y: 0, rot: 0 },
+          rotOffset: 0,         // per-clip persistent tilt (added on top of pos.rot)
           z,
           reactors: pickReactors(this.list.length, asset, Audio.feat),
           snapBeat: false,
@@ -1807,6 +1837,12 @@
         for (const el of this.elCache.values()) el.classList.remove('selected');
         const e = this.elCache.get(layer.id);
         if (e) e.classList.add('selected');
+        const rotBtn = $('rotate-sel');
+        if (rotBtn) {
+          rotBtn.disabled = !layer;
+          rotBtn.style.opacity = layer ? '1' : '0.4';
+          rotBtn.style.cursor = layer ? 'pointer' : 'not-allowed';
+        }
       },
       updateSelected(patch) {
         if (!this.selected) return;
@@ -1882,7 +1918,7 @@
             r.value = readLayerProp(l, r.dataset.prop);
           }
           const rotV = el.querySelector('.rot-v');
-          if (rotV) rotV.textContent = `${Math.round(l.pos.rot)}°`;
+          if (rotV) rotV.textContent = `${Math.round(l.rotOffset || 0)}°`;
           if (l.asset && l.asset.thumb) {
             const img = new Image();
             img.src = l.asset.thumb;
@@ -1892,12 +1928,13 @@
             if (e.target.classList.contains('x')) { this.remove(l.id); return; }
             if (e.target.classList.contains('x-rot')) {
               // Shift+click = -90° (counter-clockwise), plain click = +90°
-              l.pos.rot = (l.pos.rot + (e.shiftKey ? -90 : 90) + 360) % 360;
+              // Mutates the per-clip offset so the user's tilt survives audio drift
+              l.rotOffset = (l.rotOffset + (e.shiftKey ? -90 : 90) + 360) % 360;
               // Update the slider + readout in the same layer card
               const rotSlider = el.querySelector('input[data-prop="rot"]');
               const rotV = el.querySelector('.rot-v');
-              if (rotSlider) rotSlider.value = l.pos.rot;
-              if (rotV) rotV.textContent = `${Math.round(l.pos.rot)}°`;
+              if (rotSlider) rotSlider.value = l.rotOffset;
+              if (rotV) rotV.textContent = `${Math.round(l.rotOffset)}°`;
               e.stopPropagation();
               return;
             }
@@ -2255,10 +2292,11 @@
       },
       applyReactors(layer) {
         // returns {scale, x, y, rot, opacity, hue, brightness, contrast}
+        // rot = audio-driven base + per-clip persistent offset
         const out = {
           scale: layer.baseScale,
           x: layer.pos.x, y: layer.pos.y,
-          rot: layer.pos.rot,
+          rot: (layer.pos.rot || 0) + (layer.rotOffset || 0),
           opacity: layer.opacity,
           hue: layer.hue,
           brightness: layer.brightness,
@@ -2997,11 +3035,21 @@
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
           if (e.code === 'Space') { e.preventDefault(); $('play').click(); }
           if (e.key === 'r' || e.key === 'R') {
-            // Context-sensitive: rotate the selected clip by 90° if one is selected;
-            // otherwise trigger RE-MAP.
+            // Context-sensitive: rotate the selected clip's offset by ±90° if
+            // one is selected; otherwise trigger RE-MAP. The offset is the
+            // sticky per-clip tilt that survives audio-driven drift.
             const sel = (window.Layers && window.Layers.selected) || null;
             if (sel) {
-              sel.pos.rot = (sel.pos.rot + 90) % 360;
+              const delta = e.shiftKey ? -90 : 90;
+              sel.rotOffset = (sel.rotOffset + delta + 360) % 360;
+              // Sync the layer card's rot slider + readout
+              const card = document.querySelector('.layer.selected');
+              if (card) {
+                const slider = card.querySelector('input[data-prop="rot"]');
+                const readout = card.querySelector('.rot-v');
+                if (slider) slider.value = sel.rotOffset;
+                if (readout) readout.textContent = `${Math.round(sel.rotOffset)}°`;
+              }
               if (window.Layers && typeof window.Layers.render === 'function') window.Layers.render();
             } else {
               $('re-map').click();
@@ -3016,6 +3064,26 @@
         $('drag-mode').addEventListener('click', () => {
           Renderer.setDragMode(Renderer.dragMode === 'auto' ? 'manual' : 'auto');
         });
+        // Rotate selected clip button (Shift+click = -90°).
+        // Mutates the per-clip rotOffset (sticky tilt), NOT pos.rot
+        // (which is overwritten by audio every frame in auto drag mode).
+        const rotateBtn = $('rotate-sel');
+        if (rotateBtn) {
+          rotateBtn.addEventListener('click', (e) => {
+            const sel = (window.Layers && window.Layers.selected) || null;
+            if (!sel) return;
+            sel.rotOffset = (sel.rotOffset + (e.shiftKey ? -90 : 90) + 360) % 360;
+            // Sync the layer card's rot slider + readout
+            const card = document.querySelector('.layer.selected');
+            if (card) {
+              const slider = card.querySelector('input[data-prop="rot"]');
+              const readout = card.querySelector('.rot-v');
+              if (slider) slider.value = sel.rotOffset;
+              if (readout) readout.textContent = `${Math.round(sel.rotOffset)}°`;
+            }
+            if (window.Layers && typeof window.Layers.render === 'function') window.Layers.render();
+          });
+        }
         Renderer.setDragMode('auto');
         // Canvas pointer events for manual drag
         stageCanvas.addEventListener('pointerdown', (e) => Renderer.onPointerDown(e));
@@ -3344,5 +3412,79 @@
   <script type="module" src="/presets.client.js"></script>
   <script type="module" src="/presets-evolve.client.js"></script>
   <script type="module" src="/presets-panel.client.js"></script>
+  <script>
+    // Bundled songs — one-click load into the audio source
+    (function () {
+      const SONGS = [
+        { url: '/library/audio/coltrane-like-sonny.mp3', name: 'Like Sonny (Alt. Take)', artist: 'John Coltrane', size: '14.5 MB' },
+        { url: '/library/audio/loop-drone.wav',   name: 'Drone',   artist: 'procedural',  size: '882 KB' },
+        { url: '/library/audio/loop-pulse.wav',   name: 'Pulse',   artist: 'procedural',  size: '662 KB' },
+        { url: '/library/audio/loop-shimmer.wav', name: 'Shimmer', artist: 'procedural',  size: '882 KB' },
+        { url: '/library/audio/loop-bass.wav',    name: 'Bass',    artist: 'procedural',  size: '662 KB' },
+        { url: '/library/audio/loop-grain.wav',   name: 'Grain',   artist: 'procedural',  size: '794 KB' },
+      ];
+      function fmtBytes(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1024*1024) return (b/1024).toFixed(0) + ' KB';
+        return (b/1024/1024).toFixed(1) + ' MB';
+      }
+      async function loadSong(song) {
+        try {
+          UI.setStatus && UI.setStatus('loading ' + song.name, 'busy');
+          const r = await fetch(song.url);
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const blob = await r.blob();
+          const file = new File([blob], song.url.split('/').pop(), { type: blob.type || 'audio/mpeg' });
+          // Use the engine's existing song-load path (triggers Audio.loadFile)
+          const input = document.getElementById('song-input');
+          if (!input) return;
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (e) {
+          UI.setStatus && UI.setStatus('load failed: ' + e.message, 'warn');
+        }
+      }
+      async function renderList() {
+        const root = document.getElementById('songs-list');
+        if (!root) return;
+        // Probe each song to get the real size + 404 detection
+        const rows = await Promise.all(SONGS.map(async (s) => {
+          let ok = false, size = 0;
+          try {
+            const r = await fetch(s.url, { method: 'HEAD' });
+            ok = r.ok;
+            size = parseInt(r.headers.get('content-length') || '0', 10);
+          } catch (_) {}
+          return { ...s, ok, size };
+        }));
+        root.innerHTML = '<div class="songs-head"><span class="dot"></span>Songs</div>' +
+          rows.map(s => `
+            <div class="song-row${s.ok ? '' : ' disabled'}" data-url="${s.url}" title="${s.ok ? 'Click to load as the audio source' : '404 — file missing'}">
+              <span class="note">♪</span>
+              <span class="name"><b>${s.name}</b> · ${s.artist}</span>
+              <span class="meta">${s.size || (s.size ? s.size : fmtBytes(s.size))}</span>
+            </div>
+          `).join('');
+        root.querySelectorAll('.song-row').forEach(el => {
+          if (el.classList.contains('disabled')) return;
+          el.addEventListener('click', () => {
+            const song = SONGS.find(s => s.url === el.dataset.url);
+            if (song) {
+              root.querySelectorAll('.song-row').forEach(r => r.classList.remove('active'));
+              el.classList.add('active');
+              loadSong(song);
+            }
+          });
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderList);
+      } else {
+        renderList();
+      }
+    })();
+  </script>
 </body>
 </html>
