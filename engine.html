@@ -603,6 +603,39 @@
 
     /* === CSS FX PANEL (popup) === */
     #css-fx-toggle[data-count]:not([data-count="0"])::after { content: ' ●'; color: var(--accent); }
+    /* Daily Practice modal */
+    .daily-modal {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    }
+    .daily-modal[hidden] { display: none; }
+    .daily-modal__panel {
+      max-width: 540px; width: calc(100% - 40px);
+      background: var(--panel, #15091e); border: 1px solid var(--accent, #ff2d8a);
+      border-radius: 14px; padding: 32px 36px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      font-family: var(--font-body, system-ui);
+    }
+    .daily-modal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .daily-modal__eyebrow { font-family: var(--font-mono); font-size: 11px; color: var(--accent-2, #00f0ff);
+      letter-spacing: 0.18em; text-transform: uppercase; }
+    .daily-modal__close { background: none; border: none; color: var(--muted, #8a7aa0);
+      font-size: 22px; cursor: pointer; padding: 0 6px; }
+    .daily-modal__close:hover { color: var(--ink, #f5e9ff); }
+    .daily-modal__title { font-family: var(--font-display, serif); font-weight: 500; font-size: 28px;
+      color: var(--ink, #f5e9ff); margin: 0 0 12px; letter-spacing: -0.01em; line-height: 1.15; }
+    .daily-modal__body { font-size: 15px; line-height: 1.55; color: var(--ink-2, #d4c5e8);
+      margin: 0 0 18px; }
+    .daily-modal__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
+    .daily-modal__chips .chip { font-family: var(--font-mono); font-size: 10px; color: var(--accent-2);
+      background: rgba(0,240,255,0.08); border: 1px solid rgba(0,240,255,0.3);
+      padding: 3px 8px; border-radius: 3px; letter-spacing: 0.06em; text-transform: lowercase; }
+    .daily-modal__actions { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .daily-modal__streak { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.06em; padding-top: 12px; border-top: 1px solid var(--line, #2a1d3e); }
+    .daily-modal__streak b { color: var(--gold, #fff04a); }
+
     .css-fx-panel {
       position: fixed;
       left: 50%;
@@ -772,6 +805,7 @@
       <canvas id="meter" width="360" height="48"></canvas>
       <span class="spacer"></span>
       <span class="pill" id="bpm-pill">— bpm</span>
+      <button class="tbtn ghost" id="daily-btn" title="Today's editing practice" style="padding:4px 10px; font-size:9px;">📅 Day 1 · Practice</button>
       <span class="pill" id="key-pill">— key</span>
       <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
       <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
@@ -1011,6 +1045,24 @@
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
+  </div>
+
+  <!-- Daily Practice modal -->
+  <div id="daily-modal" class="daily-modal" hidden>
+    <div class="daily-modal__panel">
+      <div class="daily-modal__head">
+        <span class="daily-modal__eyebrow">📅 Daily practice</span>
+        <button class="daily-modal__close" type="button" aria-label="Close">×</button>
+      </div>
+      <h2 class="daily-modal__title" id="daily-title">—</h2>
+      <p class="daily-modal__body" id="daily-body">—</p>
+      <div class="daily-modal__chips" id="daily-chips"></div>
+      <div class="daily-modal__actions">
+        <button class="rbtn" id="daily-reroll" type="button">↻ Another challenge</button>
+        <button class="rbtn rbtn--primary" id="daily-done" type="button">✓ Mark done</button>
+      </div>
+      <div class="daily-modal__streak" id="daily-streak">Streak: 0 day(s)</div>
+    </div>
   </div>
 
   <!-- CSS FX popup panel: 20 stackable CSS video filters applied to #stage -->
@@ -3412,6 +3464,123 @@
   <script type="module" src="/presets.client.js"></script>
   <script type="module" src="/presets-evolve.client.js"></script>
   <script type="module" src="/presets-panel.client.js"></script>
+  <script>
+    // Daily Practice — one editing challenge per day
+    (function () {
+      const POOL = [
+        { title: 'Load the Coltrane', body: 'Click "Like Sonny" in the Songs panel. Let the saxophone drive your composition for 60 seconds.', chips: ['song', 'coltrane'] },
+        { title: 'Three layers, one rotation', body: 'Add 3 library clips. Click any layer, then use the rot slider to spin it to 33°. Hit play and record.', chips: ['layers', 'rotate'] },
+        { title: 'Try a random preset', body: 'Open /versions, hit the Randomize button. Apply the picked preset in the engine and explore the FX for 30 seconds.', chips: ['preset', 'randomize'] },
+        { title: 'Snap to beat', body: 'Add 2 layers. Toggle the beat-snap button (⌐) on both. Watch them lock to the kick. Record a 15s clip.', chips: ['layers', 'beat-snap'] },
+        { title: 'Pure cinema', body: 'Load any song, then navigate to /versions/film.html. Try the visual style on its own, then apply a preset from the engine.', chips: ['style', 'film'] },
+        { title: 'Re-map with intent', body: 'Add 5+ library clips. Click RE-MAP. Read the reactor map it produces — every clip should react to something.', chips: ['remap', 'reactors'] },
+        { title: 'Mood palette', body: 'Pick a preset, then in /versions open its style. Note how the color choices change the same clip.', chips: ['palette', 'style'] },
+        { title: 'Freeze a moment', body: 'Load a song, find a dramatic moment, hit record for 10s. Replay. What FX could you change to make it hit harder?', chips: ['record', 'fx'] },
+        { title: 'Tunnel vision', body: 'Apply the tunnel shader (or pick a tunnel-style preset). Let the bass pump the perspective. Record 20s.', chips: ['shader', 'tunnel'] },
+        { title: 'Reverse-engineer a preset', body: 'Pick any preset, apply it. Open the FX panel and tweak 3 sliders away from their preset values. What did you break?', chips: ['fx', 'tweak'] },
+        { title: 'Onset fireworks', body: 'Add a single layer. Set its reactor to fire on every onset (bass:scale_pulse). Hit play. Watch the visual fire on drum hits.', chips: ['onset', 'single-layer'] },
+        { title: 'Cross-style compare', body: 'Apply preset A. Record 10s. Switch to preset B. Record 10s. Side by side: which told a better story?', chips: ['compare', 'record'] },
+        { title: 'Build from silence', body: 'Start the engine with NO library. Add one clip. One. Compose a 30s piece around only that clip and 2 layers of FX.', chips: ['minimal', 'fx'] },
+        { title: 'Beat grid test', body: 'Set sensitivity to 3.0, gate to 1.05, decay to 0.99. Push the system to its limits. Which layer breaks first?', chips: ['sensitivity', 'edge'] },
+        { title: 'Color story', body: 'Pick a palette. Build 4 layers that all share that palette. The result should feel like one image, not four clips stacked.', chips: ['palette', 'cohesion'] },
+        { title: 'Generative ambient', body: 'Set the engine to a drone-style preset. No RE-MAP, no manual tweaking. Let the audio do the work for 60 seconds. What surprised you?', chips: ['ambient', 'passive'] },
+        { title: 'Watermark check', body: 'Record a 30s video. Watch it. Is the watermark consistent? Are the layers stable? Note 3 things to improve.', chips: ['record', 'review'] },
+        { title: 'Negative space', body: 'Add one clip, set opacity to 0.4. The clip becomes texture, not subject. What does the negative space around it do?', chips: ['opacity', 'composition'] },
+        { title: 'Glitch intentionally', body: 'Apply a glitch-style preset. Push mutations to 0.9. Add a heavy bass song. Record. Embrace the break.', chips: ['glitch', 'intentional'] },
+        { title: 'Document today', body: 'Record a 10s video of whatever you made today. Save it. Future-you will see how far you\'ve come.', chips: ['record', 'archive'] },
+      ];
+      const STORAGE_KEY = 'swr.daily';
+      const today = new Date().toISOString().slice(0, 10);
+      function dayIndex(d) {
+        // Convert YYYY-MM-DD to a deterministic day-of-year index
+        const t = new Date(d + 'T00:00:00Z').getTime();
+        return Math.floor(t / 86400000);
+      }
+      function pickChallenge(d) {
+        // Deterministic pick based on date — same challenge for everyone
+        return POOL[dayIndex(d) % POOL.length];
+      }
+      function loadState() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+        catch (_) { return {}; }
+      }
+      function saveState(s) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (_) {}
+      }
+      function streakFromState(s) {
+        // Walk back from today counting consecutive done days
+        let n = 0;
+        let d = new Date();
+        while (true) {
+          const k = d.toISOString().slice(0, 10);
+          if (s[k]) { n++; d.setDate(d.getDate() - 1); }
+          else break;
+        }
+        return n;
+      }
+      let current = pickChallenge(today);
+      const $ = (id) => document.getElementById(id);
+      function render() {
+        const m = $('daily-modal');
+        if (!m) return;
+        $('daily-title').textContent = current.title;
+        $('daily-body').textContent = current.body;
+        const chips = $('daily-chips');
+        chips.innerHTML = current.chips.map(c => `<span class="chip">${c}</span>`).join('');
+        const s = loadState();
+        const streak = streakFromState(s);
+        const doneToday = !!s[today];
+        $('daily-streak').innerHTML =
+          `Streak: <b>${streak}</b> day(s) · today: <b style="color:${doneToday ? 'var(--green)' : 'var(--muted)'}">${doneToday ? 'done' : 'open'}</b>`;
+        $('daily-done').textContent = doneToday ? '✓ Done — undo' : '✓ Mark done';
+      }
+      function open() { render(); $('daily-modal').hidden = false; }
+      function close() { $('daily-modal').hidden = true; }
+      function reroll() {
+        current = POOL[(dayIndex(today) + Math.floor(Math.random() * (POOL.length - 1)) + 1) % POOL.length];
+        render();
+      }
+      function toggleDone() {
+        const s = loadState();
+        if (s[today]) {
+          delete s[today];
+        } else {
+          s[today] = { title: current.title, when: Date.now() };
+        }
+        saveState(s);
+        render();
+        updateHeader();
+      }
+      function updateHeader() {
+        const btn = $('daily-btn');
+        if (!btn) return;
+        const s = loadState();
+        const streak = streakFromState(s);
+        const dayNum = dayIndex(today) - dayIndex('2024-01-01') + 1;
+        const doneToday = !!s[today];
+        btn.textContent = `📅 Day ${dayNum} · ${doneToday ? '✓' : '○'} · ${streak}d`;
+        btn.title = doneToday
+          ? `Today's challenge complete · ${streak}-day streak`
+          : `Today's editing practice · ${streak}-day streak`;
+      }
+      function init() {
+        $('daily-btn').addEventListener('click', open);
+        document.querySelector('.daily-modal__close')?.addEventListener('click', close);
+        $('daily-modal').addEventListener('click', (e) => { if (e.target === $('daily-modal')) close(); });
+        $('daily-reroll').addEventListener('click', reroll);
+        $('daily-done').addEventListener('click', toggleDone);
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !$('daily-modal').hidden) close();
+        });
+        updateHeader();
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
   <script>
     // Bundled songs — one-click load into the audio source
     (function () {
