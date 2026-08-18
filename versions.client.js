@@ -173,6 +173,10 @@
     }
     btn.addEventListener('click', () => pickRandom());
     if (again) again.addEventListener('click', () => pickRandom());
+    const prevBtn = $('r-prev');
+    const nextBtn = $('r-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => pickRandom());
+    if (nextBtn) nextBtn.addEventListener('click', () => pickRandom());
     if (copyBtn) {
       copyBtn.addEventListener('click', async () => {
         const id = $('r-id')?.textContent?.trim() || '';

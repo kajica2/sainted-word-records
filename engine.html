@@ -123,6 +123,10 @@
     .tbtn.primary:hover { background: #ff5fa3; }
     .tbtn.danger { background: transparent; border-color: var(--warn); color: var(--warn); }
     .tbtn.danger.live { background: var(--warn); color: #000; animation: pulse 0.6s ease-in-out infinite; }
+    .nav-arrow { min-width: 26px; text-align: center; transition: 0.12s; padding: 4px 8px; }
+    .nav-arrow:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .nav-arrow.nav-pulse { animation: navPulse 0.25s ease; }
+    @keyframes navPulse { 0% { transform: scale(1); } 50% { transform: scale(1.18); background: var(--accent); color: #fff; border-color: var(--accent); } 100% { transform: scale(1); } }
     .tbtn.ghost { background: transparent; border-color: var(--line); }
     .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -794,12 +798,15 @@
 <body>
   <div id="app">
     <header id="transport">
+      <a class="tbtn ghost nav-arrow" id="nav-home" href="/" title="Back to home" aria-label="Home" style="padding:4px 8px; font-size:14px; text-decoration:none; line-height:1;">←</a>
       <div class="brand">SAINTED-WORD <small>records</small></div>
       <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
       <span class="pill" id="status-pill">idle</span>
       <button class="tbtn ghost" id="load-song">Load song</button>
       <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" />
       <span class="song-name" id="song-name">No song loaded</span>
+      <button class="tbtn ghost nav-arrow" id="nav-prev" title="Previous preset (←)" aria-label="Previous preset" style="padding:4px 8px; font-size:14px; line-height:1;">←</button>
+      <button class="tbtn ghost nav-arrow" id="nav-next" title="Next preset (→)" aria-label="Next preset" style="padding:4px 8px; font-size:14px; line-height:1;">→</button>
       <button class="tbtn primary" id="play" disabled>▶ Play</button>
       <span class="time" id="time">0:00 <b>/ 0:00</b></span>
       <canvas id="meter" width="360" height="48"></canvas>
@@ -3464,6 +3471,65 @@
   <script type="module" src="/presets.client.js"></script>
   <script type="module" src="/presets-evolve.client.js"></script>
   <script type="module" src="/presets-panel.client.js"></script>
+  <script>
+    // Prev/Next preset + home navigation
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      let _presets = [];
+      let _index = -1;
+      async function loadPresets() {
+        if (_presets.length) return _presets;
+        try {
+          const r = await fetch('/presets/manifest.json', { cache: 'no-store' });
+          if (!r.ok) return [];
+          const m = await r.json();
+          _presets = m.presets || [];
+        } catch (_) { _presets = []; }
+        return _presets;
+      }
+      async function applyAt(idx, dir) {
+        const ps = await loadPresets();
+        if (!ps.length) return;
+        _index = ((idx % ps.length) + ps.length) % ps.length;
+        const p = ps[_index];
+        if (window.SWR_PRESETS && window.SWR_PRESETS.apply) {
+          const r = window.SWR_PRESETS.apply(p.id);
+          if (r && r.ok) window.SWR_PRESETS.markSeen(p.id);
+          // Animate the buttons so the user feels the change
+          const btn = dir === 1 ? $('nav-next') : $('nav-prev');
+          if (btn) {
+            btn.classList.add('nav-pulse');
+            setTimeout(() => btn.classList.remove('nav-pulse'), 250);
+          }
+        }
+      }
+      function init() {
+        $('nav-prev').addEventListener('click', () => applyAt(_index - 1, -1));
+        $('nav-next').addEventListener('click', () => applyAt(_index + 1, 1));
+        // Keyboard arrows (only when no input/select is focused, no modal open)
+        document.addEventListener('keydown', (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+          if (e.target.isContentEditable) return;
+          if ($('daily-modal') && !$('daily-modal').hidden) return;
+          if (e.key === 'ArrowLeft')  { e.preventDefault(); applyAt(_index - 1, -1); }
+          if (e.key === 'ArrowRight') { e.preventDefault(); applyAt(_index + 1, 1); }
+        });
+        // Find current preset index from any applied preset
+        loadPresets().then(() => {
+          try {
+            const known = JSON.parse(localStorage.getItem('swr.presets.known') || '[]');
+            // Find the most recently applied (last in known) — but the engine doesn't
+            // expose that directly, so default to -1 and let users click to advance.
+          } catch (_) {}
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
   <script>
     // Daily Practice — one editing challenge per day
     (function () {

@@ -233,6 +233,11 @@
       to { opacity: 1; transform: translateY(0) scale(1); } }
     .rand-card .rand-head { display: flex; align-items: baseline; gap: 16px;
       margin-bottom: 16px; flex-wrap: wrap; }
+    .rand-card .rand-nav { display: flex; gap: 6px; margin-left: auto; }
+    .rand-card .rand-nav button { background: var(--bg-2); border: 1px solid var(--line-2);
+      color: var(--ink-2); width: 30px; height: 30px; border-radius: 4px;
+      font-size: 16px; line-height: 1; cursor: pointer; transition: 0.12s; }
+    .rand-card .rand-nav button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
     .rand-card .rand-picknum { font-family: var(--font-mono); font-size: 11px;
       color: var(--accent); letter-spacing: 0.14em; text-transform: uppercase; }
     .rand-card h3 { font-family: var(--font-display); font-weight: 500; font-size: 32px;
@@ -342,6 +347,10 @@
       <div class="rand-head">
         <span class="rand-picknum" id="r-picknum">pick #—</span>
         <h3 id="r-name">—</h3>
+        <div class="rand-nav">
+          <button type="button" id="r-prev" title="Previous preset" aria-label="Previous">←</button>
+          <button type="button" id="r-next" title="Next preset" aria-label="Next">→</button>
+        </div>
       </div>
       <div class="rand-id">id <code id="r-id">—</code> · created <span id="r-created">—</span></div>
       <p class="rand-desc" id="r-desc">—</p>
