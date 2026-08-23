@@ -1,32 +1,96 @@
-# This is a basic workflow that is manually triggered
+name: Presets Daily
 
-name: Manual workflow
+# Daily preset generation for the self-evolving engine.
+# Runs preset-pipeline/generate.py + verify.mjs and opens a PR with
+# the new presets. Once merged, Vercel auto-deploys.
+#
+# Schedule: 07:00 UTC = 09:00 CEST (Belgrade) / 08:00 CET (winter).
+# Adjust the cron if you want a different cadence.
 
-# Controls when the action will run. Workflow runs when manually triggered using the UI
-# or API.
 on:
+  schedule:
+    # 07:00 UTC daily. Override "push" branches if you want a different beat.
+    - cron: '0 7 * * *'
+  # Manual trigger — useful for testing the pipeline.
   workflow_dispatch:
-    # Inputs the workflow accepts.
     inputs:
-      name:
-        # Friendly description to be shown in the UI instead of 'name'
-        description: 'Person to greet'
-        # Default value if no value is explicitly provided
-        default: 'World'
-        # Input has to be provided for the workflow to run
-        required: true
-        # The data type of the input
-        type: string
+      count:
+        description: 'Number of presets to generate'
+        required: false
+        default: '2'
+      seed:
+        description: 'Seed (defaults to today YYYYMMDD)'
+        required: false
+        default: ''
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "greet"
-  greet:
-    # The type of runner that the job will run on
+  generate:
+    name: Generate + verify + PR
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Runs a single command using the runners shell
-    - name: Send greeting
-      run: echo "Hello ${{ inputs.name }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so the verifier can compare against existing presets.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate presets
+        id: generate
+        run: |
+          cd preset-pipeline
+          SEED="${{ github.event.inputs.seed }}"
+          if [ -z "$SEED" ]; then
+            SEED="$(date -u +%Y%m%d)"
+          fi
+          COUNT="${{ github.event.inputs.count || '2' }}"
+          echo "seed=$SEED count=$COUNT"
+          python3 generate.py --count "$COUNT" --seed "$SEED"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify schema
+        run: node preset-pipeline/verify.mjs
+
+      - name: Open PR with new presets
+        if: success()
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch-name: presets/${{ steps.generate.outputs.seed }}-${{ github.run_number }}
+          commit-message: "preset-pipeline: daily generation (${{ steps.generate.outputs.seed }})"
+          title: "Daily preset generation — ${{ steps.generate.outputs.seed }}"
+          body: |
+            Automated daily preset generation for the Sainted Word Records engine.
+
+            - **Seed:** ${{ steps.generate.outputs.seed }}
+            - **Run:** #${{ github.run_number }}
+            - **Generator:** `preset-pipeline/generate.py`
+            - **Verifier:** `preset-pipeline/verify.mjs` (passed)
+
+            ## What changed
+            - New preset JSON files in `presets/`
+            - Updated `presets/manifest.json` (append-only)
+
+            ## Review checklist
+            - [ ] Open one of the new presets and confirm the `fx_state` + `motion` + `palette` + `audio_reactivity` look like a coherent personality
+            - [ ] Check the new `preview` SVG renders (no broken paths)
+            - [ ] Confirm the `inspiration` blends sum to ~1.0
+            - [ ] Skim the auto-generated name and description
+
+            Merge to ship. Vercel will auto-deploy within ~30s of the merge.
+          labels: |
+            presets
+            automated
