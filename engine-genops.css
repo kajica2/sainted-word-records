@@ -233,3 +233,16 @@
   .genops { padding: 6px 8px 8px; gap: 5px; }
   .genops-desc { min-height: 0; }
 }
+
+/* Responsive layer card: allow rows to wrap when the layers aside
+   is narrow (default 240px desktop, shrinks on mobile via the per-engine
+   responsive codemod). Without this, the live mapping matrix
+   (.mapr = 3 selects + input + amt + 2 lockbtns) overflows by ~80px. */
+.l .lh { flex-wrap: wrap; row-gap: 4px; min-width: 0; }
+.l .lh .nm { min-width: 0; }
+.mapmx .mapr { flex-wrap: wrap; row-gap: 3px; min-width: 0; }
+.mapmx .mapr select { min-width: 0; max-width: 56px; }
+.mapmx .mapr input[type=range] { min-width: 32px; }
+.lockbtn { flex-shrink: 0; }
+.l .r { min-width: 0; }
+.l .r input, .l .r select { min-width: 0; max-width: 100%; }
