@@ -171,6 +171,9 @@
     </footer>
   </div>
   <script>
+    // Seeded randomness: routed through SWR_GENOPS so deterministic mode
+    // reproduces asset selection as well as parameters. Falls back when absent.
+    const _rnd = () => (window.SWR_GENOPS ? window.SWR_GENOPS.rand() : Math.random());
     function __shuffle_once(key, arr) {
       if (!__shuffle_once._cache || __shuffle_once._key !== key) {
         const a = arr.slice();
@@ -187,9 +190,6 @@
 
   (() => {
     const $ = (id) => document.getElementById(id);
-    // Seeded randomness: routed through SWR_GENOPS so deterministic mode
-    // reproduces asset selection as well as parameters. Falls back when absent.
-    const _rnd = () => (window.SWR_GENOPS ? window.SWR_GENOPS.rand() : Math.random());
     const stage = $('render');
     const ctx = stage.getContext('2d', { alpha: false });
     const meter = $('meter').getContext('2d');

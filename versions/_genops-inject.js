@@ -77,9 +77,15 @@ for (const name of ENGINES) {
   }
 
   // --- 2. seeded randomness (plan Task 3b) -------------------------------
-  // Insert the shim right after the page's `const $ = id => ...` line, which
-  // every engine opens its IIFE with.
-  const anchor = src.match(/^[ \t]*const \$ = \(?id\)? => document\.getElementById\(id\);\n/m);
+  // The shim must be declared before EVERY call site. On several pages
+  // __shuffle_once() sits outside the main IIFE, above it, so declaring inside
+  // the IIFE leaves that call unresolved (ReferenceError: _rnd is not defined).
+  // Anchor on the opening <script> tag of the block holding the engine code so
+  // the declaration precedes both the helper and the IIFE.
+  const scriptOpen = src.match(/\n[ \t]*<script>\n/);
+  const anchor = (scriptOpen && src.includes('const $ = '))
+    ? scriptOpen
+    : src.match(/^[ \t]*const \$ = \(?id\)? => document\.getElementById\(id\);\n/m);
   if (anchor) {
     src = src.replace(anchor[0], anchor[0] + RND_SHIM);
 
