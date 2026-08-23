@@ -1,0 +1,80 @@
+{
+  "id": "swr-preset-2026-08-23-dune-plasma-lateral",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-08-23T02:00:35.081618+00:00",
+  "name": "Dune Plasma Lateral",
+  "family": "MORPHA",
+  "description": "Dune Plasma Lateral: Flowing color gradients, classic synthwave palette. Paired with Desert orange + cool blue.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "plasma",
+      "weight": 0.46
+    },
+    {
+      "kind": "palette_ref",
+      "name": "dune-arrakis",
+      "weight": 0.21
+    },
+    {
+      "kind": "motion_ref",
+      "name": "lateral-drift",
+      "weight": 0.33
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.4,
+    "pearl": 0.2,
+    "glitch": 0.0,
+    "grain": 0.1,
+    "chroma": 0.7,
+    "bloom": 0.6,
+    "vignette": 0.3,
+    "sepia": 0.0,
+    "glow": 0.5,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.05,
+    "posterize": 8
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.1,
+    "pan_y": 0.05
+  },
+  "palette": {
+    "primary": "#e8945a",
+    "secondary": "#5a7fa8",
+    "accent": "#f5d4a0",
+    "bg": "#1a0a05"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "bloom",
+      "scale_pulse",
+      "pan_x"
+    ],
+    "mid": [
+      "rotation_speed",
+      "chroma"
+    ],
+    "treble": [
+      "glow"
+    ],
+    "onset": [
+      "pearl",
+      "pan_y"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a0a05\"/><circle cx=\"40\" cy=\"40\" r=\"23\" fill=\"#e8945a\" opacity=\"0.8\"/><circle cx=\"29\" cy=\"37\" r=\"9\" fill=\"#5a7fa8\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"4\" fill=\"#f5d4a0\"/></svg>",
+    "tags": [
+      "plasma",
+      "dune",
+      "lateral"
+    ]
+  }
+}

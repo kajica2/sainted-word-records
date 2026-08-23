@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-16T23:29:03.048985+00:00",
+  "updated_at": "2026-08-23T02:00:35.082301+00:00",
   "presets": [
     {
       "id": "swr-preset-2026-08-14-midsommar-voronoi-lateral",
@@ -1351,7 +1351,166 @@
         "style_name": "Aurora",
         "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
+    },
+    {
+      "id": "swr-preset-2026-08-23-dune-plasma-lateral",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-23T02:00:35.081618+00:00",
+      "name": "Dune Plasma Lateral",
+      "family": "MORPHA",
+      "description": "Dune Plasma Lateral: Flowing color gradients, classic synthwave palette. Paired with Desert orange + cool blue.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "plasma",
+          "weight": 0.46
+        },
+        {
+          "kind": "palette_ref",
+          "name": "dune-arrakis",
+          "weight": 0.21
+        },
+        {
+          "kind": "motion_ref",
+          "name": "lateral-drift",
+          "weight": 0.33
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.2,
+        "glitch": 0.0,
+        "grain": 0.1,
+        "chroma": 0.7,
+        "bloom": 0.6,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.5,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.05,
+        "posterize": 8
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.1,
+        "pan_y": 0.05
+      },
+      "palette": {
+        "primary": "#e8945a",
+        "secondary": "#5a7fa8",
+        "accent": "#f5d4a0",
+        "bg": "#1a0a05"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "bloom",
+          "scale_pulse",
+          "pan_x"
+        ],
+        "mid": [
+          "rotation_speed",
+          "chroma"
+        ],
+        "treble": [
+          "glow"
+        ],
+        "onset": [
+          "pearl",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a0a05\"/><circle cx=\"40\" cy=\"40\" r=\"23\" fill=\"#e8945a\" opacity=\"0.8\"/><circle cx=\"29\" cy=\"37\" r=\"9\" fill=\"#5a7fa8\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"4\" fill=\"#f5d4a0\"/></svg>",
+        "tags": [
+          "plasma",
+          "dune",
+          "lateral"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-08-23-vapor-curl-counter",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-08-23T02:00:35.081862+00:00",
+      "name": "Vapor Curl Counter",
+      "family": "GENERATIVE",
+      "description": "Vapor Curl Counter: Soft divergent flow with bass-pumped bloom. Paired with Vaporwave pastel + cyan.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "curl-noise",
+          "weight": 0.46
+        },
+        {
+          "kind": "palette_ref",
+          "name": "vapor-mono",
+          "weight": 0.37
+        },
+        {
+          "kind": "motion_ref",
+          "name": "counter-spin",
+          "weight": 0.17
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.2,
+        "glitch": 0.08,
+        "grain": 0.3,
+        "chroma": 0.5,
+        "bloom": 0.6,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.2,
+        "grayscale": 0.0,
+        "blur": 0.1,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": -0.03,
+        "scale_pulse": 0.15,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#f5a0d4",
+        "secondary": "#4cd4d4",
+        "accent": "#a0d4f5",
+        "bg": "#1a0a25"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "chroma",
+          "bloom",
+          "scale_pulse"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "scale_pulse",
+          "rotation_speed"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a0a25\"/><circle cx=\"40\" cy=\"40\" r=\"27\" fill=\"#f5a0d4\" opacity=\"0.8\"/><circle cx=\"29\" cy=\"40\" r=\"12\" fill=\"#4cd4d4\" opacity=\"0.7\"/><circle cx=\"40\" cy=\"40\" r=\"6\" fill=\"#a0d4f5\"/></svg>",
+        "tags": [
+          "curl",
+          "vapor",
+          "counter"
+        ]
+      }
     }
   ],
-  "count": 16
+  "count": 18
 }
