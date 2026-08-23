@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>KRAFT · SWR version · Cardboard paper</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@400;500;600&family=Archivo+Black&display=swap" />
+  <style>
+    :root {
+      --kraft: #c4a578; --kraft-dark: #8a6a48; --kraft-darker: #5a4028;
+      --ink: #3a2818; --ink-soft: #5a4028; --muted: #8a6a48;
+      --stamp: #a8202a; --accent: #1c5a3a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: var(--kraft-dark); color: var(--ink);
+      font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #app { display: grid; grid-template-rows: 50px 1fr 44px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 14px; padding: 0 18px;
+      background: var(--kraft); border-bottom: 2px dashed var(--kraft-darker);
+      position: relative; }
+    header::before, header::after { content: ''; position: absolute; bottom: -1px;
+      height: 0; width: 0; }
+    .v { font-family: 'Archivo Black', sans-serif; font-size: 22px; letter-spacing: 0.05em;
+      color: var(--ink); text-transform: uppercase; }
+    .v small { font-family: 'Special Elite', serif; font-size: 12px; color: var(--ink-soft);
+      margin-left: 8px; letter-spacing: 0.1em; font-weight: normal; }
+    .stamp { background: var(--stamp); color: var(--kraft); padding: 4px 10px;
+      font: bold 10px/1 'IBM Plex Mono', monospace; letter-spacing: 0.2em;
+      text-transform: uppercase; transform: rotate(-3deg);
+      border: 2px solid var(--kraft); }
+    .pill { font: 9px/1 'IBM Plex Mono', monospace; padding: 4px 8px;
+      border: 1px solid var(--ink-soft); color: var(--ink-soft);
+      letter-spacing: 0.2em; text-transform: uppercase; font-weight: 500; }
+    .pill.live { background: var(--ink); color: var(--kraft); border-color: var(--ink); }
+    .spacer { flex: 1; }
+    .tbtn { background: var(--kraft); color: var(--ink); border: 2px solid var(--ink);
+      font: bold 10px/1 'IBM Plex Mono', monospace; letter-spacing: 0.2em;
+      text-transform: uppercase; padding: 7px 14px; cursor: pointer; }
+    .tbtn:hover { background: var(--ink); color: var(--kraft); }
+    .tbtn.primary { background: var(--ink); color: var(--kraft); }
+    .tbtn.primary:hover { background: var(--stamp); border-color: var(--stamp); }
+    section.stage { position: relative; background: #5a4028; overflow: hidden;
+      padding: 14px; }
+    /* Cardboard frame around the stage */
+    .cardboard { position: absolute; inset: 14px; z-index: 1;
+      background: var(--kraft);
+      box-shadow: inset 0 0 0 2px var(--kraft-darker),
+                  inset 0 0 0 4px var(--kraft),
+                  inset 0 0 0 5px var(--kraft-darker);
+      border-radius: 2px; }
+    .cardboard::before { content: ''; position: absolute; inset: 12px;
+      border: 1px dashed var(--kraft-darker); opacity: 0.6; pointer-events: none; }
+    .cardboard::after { content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(0,0,0,0.08), transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(0,0,0,0.1), transparent 50%),
+        repeating-linear-gradient(45deg, transparent 0, transparent 4px, rgba(0,0,0,0.02) 4px, rgba(0,0,0,0.02) 5px);
+      pointer-events: none; }
+    #render { position: absolute; inset: 26px; display: block; width: calc(100% - 52px);
+      height: calc(100% - 52px); z-index: 2; }
+    .label { position: absolute; top: 22px; right: 26px; z-index: 5;
+      font: bold 11px/1 'IBM Plex Mono', monospace; color: var(--ink);
+      letter-spacing: 0.2em; text-transform: uppercase;
+      background: var(--kraft); padding: 4px 8px;
+      border: 1px solid var(--ink); }
+    .stamp-corner { position: absolute; bottom: 26px; right: 26px; z-index: 5;
+      width: 80px; height: 80px;
+      border: 3px solid var(--stamp); border-radius: 50%;
+      color: var(--stamp); font: bold 9px/1 'IBM Plex Mono', monospace;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; letter-spacing: 0.1em; text-transform: uppercase;
+      transform: rotate(-8deg); opacity: 0.85; }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 14px;
+      align-items: center; padding: 0 18px; background: var(--kraft);
+      border-top: 2px dashed var(--kraft-darker);
+      font: 9px/1 'IBM Plex Mono', monospace; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--ink-soft); }
+    .param b { color: var(--ink); font-weight: 600; margin-left: 4px; }
+    a.nav { color: var(--ink); text-decoration: none; font: bold 9px/1 'IBM Plex Mono', monospace;
+      letter-spacing: 0.2em; text-transform: uppercase; }
+    a.nav:hover { color: var(--stamp); }
+
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: #fff;
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid #ff0066;
+      background: rgba(20,0,10,0.65);
+      box-shadow: 0 0 32px rgba(255,0,102,0.25);
+    }
+    #swr-start .arrow { font-size: 56px; color: #ff0066; line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: #fff; }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff66; margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-page="kraft">
+  <div id="app">
+    <header>
+      <div class="v">KRAFT <small>· v1 · recycled paper</small></div>
+      <span class="stamp" id="stamp">★ APPROVED ★</span>
+      <span class="pill live" id="live">● ON AIR</span>
+      <span class="spacer"></span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+    <section class="stage">
+      <div class="cardboard"></div>
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div class="label">BATCH #0037</div>
+      <div class="stamp-corner">100%<br/>RECYCLED</div>
+    </section>
+    <footer>
+      <div class="param">sepia <b>0.65</b></div>
+      <div class="param">grain <b>0.55</b></div>
+      <div class="param">vignette <b>0.45</b></div>
+      <div class="param">temp <b>+0.25</b></div>
+      <div class="param">blur <b>0.05</b></div>
+      <span class="pill">HAND MADE</span>
+    </footer>
+  </div>
+
+  <script>
+    const stage = document.getElementById('render');
+    const ctx = stage.getContext('2d');
+    let t0 = performance.now();
+
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const W = stage.width, H = stage.height;
+      // Cardboard base
+      ctx.fillStyle = '#c4a578';
+      ctx.fillRect(0, 0, W, H);
+
+      // Faux cardboard texture — fibrous noise
+      const img = ctx.getImageData(0, 0, W, H);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() - 0.5) * 30;
+        d[i]     = Math.max(0, Math.min(255, d[i]     + n));
+        d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n * 0.7));
+        d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n * 0.4));
+      }
+      ctx.putImageData(img, 0, 0);
+
+      // Hand-stamped shapes
+      const cx = W/2, cy = H/2;
+      const rot = t * 0.2;
+      for (let i = 0; i < 5; i++) {
+        const r = 80 + i * 60 + Math.sin(t * 1.3 + i) * 20;
+        ctx.save();
+        ctx.translate(cx + Math.cos(t * 0.4 + i) * 30, cy + Math.sin(t * 0.5 + i) * 20);
+        ctx.rotate(rot + i);
+        ctx.strokeStyle = `rgba(58, 40, 24, ${0.4 - i * 0.06})`;
+        ctx.lineWidth = 3 - i * 0.3;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        // Irregular polygon
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * Math.PI * 2;
+          const rr = r + (Math.random() - 0.5) * 8;
+          const x = Math.cos(a) * rr;
+          const y = Math.sin(a) * rr;
+          if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.setLineDash([]);
+
+      // Hand-stamped typography
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-0.05);
+      ctx.font = 'bold 88px "Archivo Black", sans-serif';
+      ctx.fillStyle = 'rgba(58, 40, 24, 0.85)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('PLAY', 0, 0);
+      ctx.restore();
+
+      // Audio
+      const bass = 0.5 + Math.sin(t * 1.5) * 0.4;
+      const mid = 0.4 + Math.sin(t * 0.8) * 0.3;
+      const tr = 0.3 + Math.abs(Math.sin(t * 4)) * 0.4;
+      window.SWR = window.SWR || {};
+      window.SWR.Audio = window.SWR.Audio || {};
+      window.SWR.Audio.feat = { bass, mid, treble: tr, beat: Math.max(0, Math.sin(t * 3) - 0.7) * 2 };
+
+      requestAnimationFrame(paint);
+    }
+    paint();
+
+    const fxScript = document.createElement('script');
+    fxScript.src = '../fx-postprocess.js';
+    fxScript.onload = () => {
+      const apply = () => {
+        if (window.FX && window.FX.setPersona) {
+          window.FX.setPersona({
+            temp: 0.25,       // slightly warm
+            mut: 0.0,
+            mutAlgo: 0,
+            posterize: 0.15,  // mild — to keep hand-stamped feel
+            vignette: 0.45,
+            chroma: 0.0,
+            grain: 0.55,      // heavy grain — paper fiber
+            sepia: 0.65,      // heavy sepia — kraft color
+            glow: 0.0,
+            grayscale: 0.0,
+            blur: 0.05,       // slight softness
+            liquid: 0.0,
+            pearl: 0.0,
+            glitch: 0.0,
+          });
+        } else setTimeout(apply, 50);
+      };
+      apply();
+    };
+    document.body.appendChild(fxScript);
+  </script>
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../library/audio/loop-grain.wav';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    // Minimal shim for engines that only expose feat (no load/play).
+    // Kraft's engine is synth-only and does not implement real audio loading,
+    // so install a tiny <audio>-element shim on first use. Idempotent.
+    function ensureShim() {
+      if (!window.SWR || !window.SWR.Audio) return;
+      if (typeof window.SWR.Audio.load === 'function') return;
+      var el = document.createElement('audio');
+      el.crossOrigin = 'anonymous';
+      el.preload = 'auto';
+      window.SWR.Audio.load = function(f) {
+        try { el.pause(); } catch (e) {}
+        el.src = URL.createObjectURL(f);
+      };
+      window.SWR.Audio.play = function() {
+        var p = el.play();
+        if (p && p.catch) p.catch(function(){});
+        this.playing = true;
+      };
+      el.addEventListener('ended', function() { window.SWR.Audio.playing = false; });
+    }
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        var r = await fetch(DEFAULT_SONG, { cache: 'force-cache' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var blob = await r.blob();
+        var name = DEFAULT_SONG.split('/').pop();
+        var file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          ensureShim();
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+          if (sub) sub.textContent = 'playing · ' + name;
+        }
+      } catch (e) {
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+</body>
+</html>

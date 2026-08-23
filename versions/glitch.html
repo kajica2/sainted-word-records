@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>NEON · SWR engine v1</title>
+  <title>GLITCH · SWR engine v1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
       --bg: #05030a; --bg-2: #0a0612; --panel: #0e0818; --panel-2: #150b22;
       --ink: #f5e9ff; --muted: #8a7aa0; --line: #2a1d3e;
-      --m: #ff2d8a; --c: #00f0ff; --y: #fff04a; --g: #00ffa3;
+      --m: #00ff66; --c: #ff0066; --y: #fff; --g: #00ff66;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
@@ -90,13 +90,34 @@
       display: block;
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
     }
+
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--ink);
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid var(--c);
+      background: rgba(20,0,10,0.65);
+      box-shadow: 0 0 32px rgba(255,0,102,0.25);
+    }
+    #swr-start .arrow { font-size: 56px; color: var(--c); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--g); margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
   <link rel="stylesheet" href="../engine-genops.css" />
 </head>
-<body data-page="neon">
+<body data-page="glitch">
   <div id="app">
     <header>
-      <div class="v">NEON <small>v1</small></div>
+      <div class="v">GLITCH <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song">Load song</button>
       <input type="file" id="song-input" accept="audio/*" />
@@ -293,15 +314,15 @@
     const Layers = { list: [], sel: null,
       add(it) { const i=this.list.length;
         const presets = [
-          [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
-          [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
-          [ { feature:'treble',target:'rot',scale:60,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
-          [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
-          [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
-          [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
+          [ { feature:'onset', target:'x', scale:0.6, ease:'sharp' }, { feature:'beat', target:'scale', scale:0.4, ease:'sharp' } ],
+          [ { feature:'bass', target:'x', scale:0.3, ease:'soft' }, { feature:'onset', target:'rot', scale:2.0, ease:'sharp' } ],
+          [ { feature:'rms', target:'contrast', scale:1.2, ease:'smooth' }, { feature:'onset', target:'brightness', scale:1.0, ease:'sharp' } ],
+          [ { feature:'bass', target:'hue', scale:180, ease:'smooth' }, { feature:'beat', target:'opacity', scale:0.5, ease:'sharp' } ],
+          [ { feature:'mid', target:'scale', scale:0.5, ease:'soft' }, { feature:'onset', target:'y', scale:0.5, ease:'sharp' } ],
+          [ { feature:'beat', target:'scale', scale:0.7, ease:'sharp' }, { feature:'onset', target:'x', scale:0.4, ease:'sharp' } ],
         ];
-        const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
-          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
+        const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','multiply','difference','overlay','screen']))[i%6],
+          opacity: 0.95, baseScale: [1.3, 0.7, 1.1, 0.9, 1.6, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
         this.list.push(l); this.render(); this.sel = l; },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
       render() {
@@ -366,15 +387,15 @@
           if (!assignments[i]) continue;
           const it = assignments[i];
           const presets = [
-            [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
-            [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
-            [ { feature:'treble',target:'rot',scale:60,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
-            [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
-            [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
-            [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
-          ];
+          [ { feature:'onset', target:'x', scale:0.6, ease:'sharp' }, { feature:'beat', target:'scale', scale:0.4, ease:'sharp' } ],
+          [ { feature:'bass', target:'x', scale:0.3, ease:'soft' }, { feature:'onset', target:'rot', scale:2.0, ease:'sharp' } ],
+          [ { feature:'rms', target:'contrast', scale:1.2, ease:'smooth' }, { feature:'onset', target:'brightness', scale:1.0, ease:'sharp' } ],
+          [ { feature:'bass', target:'hue', scale:180, ease:'smooth' }, { feature:'beat', target:'opacity', scale:0.5, ease:'sharp' } ],
+          [ { feature:'mid', target:'scale', scale:0.5, ease:'soft' }, { feature:'onset', target:'y', scale:0.5, ease:'sharp' } ],
+          [ { feature:'beat', target:'scale', scale:0.7, ease:'sharp' }, { feature:'onset', target:'x', scale:0.4, ease:'sharp' } ],
+        ];
           this.list.push({
-            id:'L'+(i+1), asset: it, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
+            id:'L'+(i+1), asset: it, blend:['screen','lighter','multiply','difference','overlay','screen'][i%6],
             opacity:1, baseScale:[1.2,0.8,1.5,0.6,2.0,0.5][i%6], hue:0, brightness:1, contrast:1,
             reactors: presets[i%presets.length]
           });
@@ -455,21 +476,48 @@
       ctx.restore();
     }
     function drawFx() {
-      // scanline
+
+      // Glitch: scanline tear + chromatic split + per-row random offset
+      ctx.save();
+      ctx.globalCompositeOperation = 'difference';
+      const tearRows = Math.max(1, Math.floor(A.feat.onset * 14));
+      for (let r=0; r<tearRows; r++) {
+        const y = Math.floor(Math.random() * H);
+        const h = 1 + Math.floor(Math.random() * 4);
+        const dx = (Math.random() - 0.5) * 40 * A.feat.onset;
+        ctx.drawImage(proc, 0, y, W, h, dx, y, W, h);
+      }
+      ctx.restore();
+
+      // Beat stutter: occasional frame-hold flash
+      if (A.feat.beat > 0.6 && Math.random() < 0.5) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = 'rgba(0,255,102,0.18)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+
+      // Phosphor scanlines (CRT)
       ctx.save();
       ctx.globalCompositeOperation = 'overlay';
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = '#ff2d8a';
-      for (let y=0; y<H; y+=3) ctx.fillRect(0, y, W, 1);
+      ctx.globalAlpha = 0.22 + A.feat.onset * 0.4;
+      ctx.fillStyle = '#00ff66';
+      for (let y=0; y<H; y+=2) ctx.fillRect(0, y, W, 1);
       ctx.restore();
-      // beat flash
-      if (A.feat.beat > 0.05) {
-        ctx.save(); ctx.globalCompositeOperation = 'screen';
-        ctx.fillStyle = `rgba(255,45,138,${A.feat.beat*0.25})`;
-        ctx.fillRect(0,0,W,H); ctx.restore();
-      }
+
+      // Curvature vignette (CRT edge falloff)
+      const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.7);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
     }
-    function drawMeter() {
+
+        function drawMeter() {
       const m = meter; const w = m.canvas.width, h = m.canvas.height;
       m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
       const sens = parseFloat($('sens').value);
@@ -624,5 +672,46 @@
   })();
   </script>
 <script src="../versions-presets.js"></script>
-<script src="../engine-genops.client.js"></script></body>
+<script src="../engine-genops.client.js"></script>
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../library/audio/loop-pulse.wav';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        var r = await fetch(DEFAULT_SONG, { cache: 'force-cache' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var blob = await r.blob();
+        var name = DEFAULT_SONG.split('/').pop();
+        var file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+          if (sub) sub.textContent = 'playing · ' + name;
+        }
+      } catch (e) {
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+</body>
 </html>

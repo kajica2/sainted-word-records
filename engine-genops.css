@@ -1,0 +1,235 @@
+/* engine-genops.css — action bar + variation strip + per-parameter locks.
+   Uses each engine page's own CSS custom properties (--panel-2, --ink, --muted,
+   --line, --s, --bg) so it inherits every version's theme with no per-page CSS. */
+
+.genops {
+  border-bottom: 1px solid var(--line, #333);
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  color: var(--muted, #888);
+  background: var(--panel-2, rgba(0, 0, 0, 0.2));
+}
+
+.genops summary {
+  cursor: pointer;
+  font: italic 10px/1 ui-serif, serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted, #888);
+  list-style: none;
+  margin-bottom: 2px;
+}
+.genops summary::-webkit-details-marker { display: none; }
+.genops summary::before { content: '▾ '; color: var(--s, #c8a878); }
+.genops:not([open]) summary::before { content: '▸ '; }
+
+/* --- the four primary actions --- */
+
+.genops-ops {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.genops-ops button {
+  background: var(--bg, #111);
+  border: 1px solid var(--line, #333);
+  color: var(--ink, #ddd);
+  cursor: pointer;
+  padding: 6px 4px;
+  font: 9px/1 ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.genops-ops button:hover {
+  color: var(--s, #c8a878);
+  border-color: var(--s, #c8a878);
+  background: rgba(200, 168, 120, 0.08);
+}
+.genops-ops button:active { background: rgba(200, 168, 120, 0.18); }
+.genops-ops button.live {
+  color: var(--s, #c8a878);
+  border-color: var(--s, #c8a878);
+  background: rgba(200, 168, 120, 0.16);
+}
+
+/* one-line contract for the hovered / last-run action */
+.genops-desc {
+  min-height: 22px;
+  font: italic 9px/1.4 ui-serif, serif;
+  color: var(--muted, #888);
+  opacity: 0.9;
+}
+
+/* --- rows --- */
+
+.genops-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.genops-row > label {
+  font: italic 9px/1 ui-serif, serif;
+  color: var(--muted, #888);
+  white-space: nowrap;
+}
+.genops-row select,
+.genops-row input[type=text],
+.genops-row input[type=number] {
+  background: var(--bg, #111);
+  border: 1px solid var(--line, #333);
+  color: var(--ink, #ddd);
+  font: 9px ui-monospace, monospace;
+  padding: 2px 4px;
+}
+.genops-row input[type=range] { flex: 1; min-width: 60px; height: 14px; }
+.genops-row b {
+  font: 9px ui-monospace, monospace;
+  color: var(--s, #c8a878);
+  min-width: 26px;
+  text-align: right;
+}
+
+.genops-chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font: 9px ui-monospace, monospace;
+  color: var(--muted, #888);
+  border: 1px solid var(--line, #333);
+  padding: 2px 5px;
+  user-select: none;
+}
+.genops-chk input { margin: 0; width: 10px; height: 10px; }
+.genops-chk.on { color: var(--s, #c8a878); border-color: var(--s, #c8a878); }
+
+.genops-mini {
+  background: var(--bg, #111);
+  border: 1px solid var(--line, #333);
+  color: var(--muted, #888);
+  cursor: pointer;
+  padding: 2px 6px;
+  font: 9px ui-monospace, monospace;
+}
+.genops-mini:hover { color: var(--s, #c8a878); border-color: var(--s, #c8a878); }
+.genops-mini:disabled { opacity: 0.35; cursor: default; }
+.genops-mini:disabled:hover { color: var(--muted, #888); border-color: var(--line, #333); }
+
+.genops-seed {
+  font: 10px ui-monospace, monospace;
+  color: var(--s, #c8a878);
+  letter-spacing: 0.06em;
+}
+
+/* --- variation strip --- */
+
+.genops-strip {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.genops-strip .chip {
+  flex: 0 0 auto;
+  background: var(--bg, #111);
+  border: 1px solid var(--line, #333);
+  color: var(--muted, #888);
+  cursor: pointer;
+  padding: 3px 6px;
+  font: 9px ui-monospace, monospace;
+  white-space: nowrap;
+  position: relative;
+}
+.genops-strip .chip:hover { color: var(--s, #c8a878); border-color: var(--s, #c8a878); }
+.genops-strip .chip.current {
+  color: var(--ink, #ddd);
+  border-color: var(--s, #c8a878);
+  background: rgba(200, 168, 120, 0.12);
+}
+.genops-strip .chip.ghost { background: rgba(200, 168, 120, 0.28); color: var(--ink, #ddd); }
+.genops-strip .chip .kill { margin-left: 4px; opacity: 0.5; }
+.genops-strip .chip .kill:hover { opacity: 1; }
+
+.genops-gen {
+  font: 9px ui-monospace, monospace;
+  color: var(--s, #c8a878);
+}
+
+/* --- per-parameter locks in the layer card --- */
+
+.lockbtn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--muted, #888);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0.45;
+  transition: opacity .15s, color .15s;
+}
+.lockbtn:hover { opacity: 1; }
+.lockbtn.on { opacity: 1; color: var(--s, #c8a878); }
+
+/* --- live mapping matrix in the layer card --- */
+
+.mapmx { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.mapmx .mapr {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.mapmx .mapr select {
+  background: var(--bg, #111);
+  border: 1px solid var(--line, #333);
+  color: var(--ink, #ddd);
+  font: 8px ui-monospace, monospace;
+  padding: 1px 2px;
+  max-width: 62px;
+}
+.mapmx .mapr .arrow { color: var(--muted, #888); font-size: 8px; }
+.mapmx .mapr input[type=range] { flex: 1; min-width: 34px; height: 12px; }
+.mapmx .mapr .amt {
+  font: 8px ui-monospace, monospace;
+  color: var(--s, #c8a878);
+  min-width: 24px;
+  text-align: right;
+}
+.mapmx .mapadd {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--line, #333);
+  color: var(--muted, #888);
+  cursor: pointer;
+  font: 8px ui-monospace, monospace;
+  padding: 1px 5px;
+}
+.mapmx .mapadd:hover { color: var(--s, #c8a878); border-color: var(--s, #c8a878); }
+
+/* --- advanced drawer in the layer card --- */
+
+.l details.adv { margin-top: 4px; }
+.l details.adv summary {
+  cursor: pointer;
+  font: italic 8px/1 ui-serif, serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted, #888);
+  list-style: none;
+}
+.l details.adv summary::-webkit-details-marker { display: none; }
+.l details.adv summary::before { content: '+ '; color: var(--s, #c8a878); }
+.l details.adv[open] summary::before { content: '- '; }
+
+/* short viewports: collapse the bar by default via the [open] attribute toggle
+   handled in JS; this just keeps it from eating the layer list */
+@media (max-height: 720px) {
+  .genops { padding: 6px 8px 8px; gap: 5px; }
+  .genops-desc { min-height: 0; }
+}

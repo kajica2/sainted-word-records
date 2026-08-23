@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MOSAIC · SWR version · Posterize tile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Geist+Mono:wght@400;500;600&display=swap" />
+  <style>
+    :root {
+      --bg: #0a0a0a; --panel: #1a1a1a; --line: #2a2a2a;
+      --c1: #ff2d8a; --c2: #00d4ff; --c3: #ffd700; --c4: #00ff7a; --c5: #b400ff;
+      --ink: #fafafa; --muted: #888;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }
+    #app { display: grid; grid-template-rows: 50px 1fr 44px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 14px; padding: 0 18px;
+      background: var(--bg); border-bottom: 1px solid var(--line); }
+    .v { font-weight: 700; font-size: 20px; letter-spacing: 0.04em;
+      background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3), var(--c4));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-transform: uppercase; }
+    .v small { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--muted);
+      margin-left: 8px; letter-spacing: 0.1em; font-weight: 500; }
+    .swatches { display: flex; gap: 4px; }
+    .sw { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); }
+    .sw.c1 { background: var(--c1); }
+    .sw.c2 { background: var(--c2); }
+    .sw.c3 { background: var(--c3); }
+    .sw.c4 { background: var(--c4); }
+    .sw.c5 { background: var(--c5); }
+    .pill { font: 10px/1 'Geist Mono', monospace; padding: 4px 10px;
+      border: 1px solid var(--line); color: var(--muted);
+      letter-spacing: 0.15em; text-transform: uppercase; font-weight: 500; }
+    .pill.live { color: var(--c4); border-color: var(--c4);
+      box-shadow: 0 0 6px rgba(0, 255, 122, 0.3); animation: live 1.4s infinite; }
+    @keyframes live { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .spacer { flex: 1; }
+    .tbtn { background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+      font: 10px/1 'Geist Mono', monospace; letter-spacing: 0.15em;
+      text-transform: uppercase; padding: 7px 14px; cursor: pointer; font-weight: 500; }
+    .tbtn:hover { border-color: var(--c2); color: var(--c2); }
+    .tbtn.primary { background: var(--c1); color: #000; border-color: var(--c1); font-weight: 700; }
+    .tbtn.primary:hover { background: var(--c2); border-color: var(--c2); }
+    section.stage { position: relative; background: #000; overflow: hidden; }
+    #render { display: block; width: 100%; height: 100%; }
+    .pixel-grid { position: absolute; inset: 0; pointer-events: none; z-index: 3;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 16px 16px; }
+    .label { position: absolute; top: 14px; left: 18px; z-index: 4;
+      font: bold 11px/1 'Geist Mono', monospace; color: var(--c3);
+      letter-spacing: 0.2em; text-transform: uppercase;
+      background: rgba(0,0,0,0.6); padding: 4px 10px; border: 1px solid var(--c3); }
+    .fps { position: absolute; bottom: 14px; right: 18px; z-index: 4;
+      font: 11px/1 'Geist Mono', monospace; color: var(--c2);
+      letter-spacing: 0.15em; text-transform: uppercase;
+      background: rgba(0,0,0,0.6); padding: 4px 10px; border: 1px solid var(--c2); }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 14px;
+      align-items: center; padding: 0 18px; background: var(--bg);
+      border-top: 1px solid var(--line);
+      font: 9px/1 'Geist Mono', monospace; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--muted); }
+    .param b { color: var(--c2); font-weight: 600; margin-left: 4px; }
+    a.nav { color: var(--c2); text-decoration: none; font: 10px/1 'Geist Mono', monospace;
+      letter-spacing: 0.15em; text-transform: uppercase; font-weight: 500; }
+    a.nav:hover { color: var(--c1); }
+
+    /* SWR AUTO-START-OVERLAY */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: #fafafa;
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid #ff2d8a;
+      background: rgba(20,0,16,0.65);
+      box-shadow: 0 0 32px rgba(255,45,138,0.25);
+    }
+    #swr-start .arrow { font-size: 56px; color: #ff2d8a; line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: #fafafa; }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff7a; margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-page="mosaic">
+  <div id="app">
+    <header>
+      <div class="v">MOSAIC <small>· v1 · posterize</small></div>
+      <div class="swatches">
+        <div class="sw c1"></div><div class="sw c2"></div>
+        <div class="sw c3"></div><div class="sw c4"></div>
+        <div class="sw c5"></div>
+      </div>
+      <span class="pill live" id="live">● SIGNAL</span>
+      <span class="spacer"></span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div class="pixel-grid"></div>
+      <div class="label">★ 5-COLOR PALETTE</div>
+      <div class="fps" id="fps">— FPS</div>
+    </section>
+    <footer>
+      <div class="param">posterize <b>0.85</b></div>
+      <div class="param">glow <b>0.40</b></div>
+      <div class="param">vignette <b>0.20</b></div>
+      <div class="param">chroma <b>0.30</b></div>
+      <div class="param">liquid <b>0.15</b></div>
+      <span class="pill">v1.0</span>
+    </footer>
+  </div>
+
+  <script>
+    const stage = document.getElementById('render');
+    const ctx = stage.getContext('2d');
+    let t0 = performance.now();
+    let frameCount = 0;
+    let lastFps = performance.now();
+
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const W = stage.width, H = stage.height;
+      const cx = W/2, cy = H/2;
+
+      // Background — rotating gradient mesh
+      const bg = ctx.createLinearGradient(
+        cx + Math.cos(t * 0.3) * 400, cy + Math.sin(t * 0.3) * 400,
+        cx - Math.cos(t * 0.3) * 400, cy - Math.sin(t * 0.3) * 400
+      );
+      bg.addColorStop(0, '#0a002a');
+      bg.addColorStop(0.3, '#2a0040');
+      bg.addColorStop(0.6, '#40002a');
+      bg.addColorStop(1, '#001a40');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Big colored blobs
+      const blobs = [
+        { c: '#ff2d8a', r: 180, sx: 0.4, sy: 0.3, phase: 0 },
+        { c: '#00d4ff', r: 220, sx: -0.3, sy: 0.4, phase: 1 },
+        { c: '#ffd700', r: 160, sx: 0.3, sy: -0.4, phase: 2 },
+        { c: '#00ff7a', r: 140, sx: -0.4, sy: -0.3, phase: 3 },
+        { c: '#b400ff', r: 200, sx: 0.0, sy: 0.0, phase: 4 },
+      ];
+      for (const b of blobs) {
+        const x = cx + Math.cos(t * b.sx + b.phase) * 350;
+        const y = cy + Math.sin(t * b.sy + b.phase) * 280;
+        const r = b.r + Math.sin(t * 2 + b.phase) * 30;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, b.c);
+        g.addColorStop(0.5, b.c + 'aa');
+        g.addColorStop(1, b.c + '00');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Geometric — concentric squares
+      for (let i = 0; i < 6; i++) {
+        const r = 60 + i * 50 + Math.sin(t * 1.2 + i) * 20;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(t * 0.15 + i * 0.3);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 - i * 0.04})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-r, -r, r * 2, r * 2);
+        ctx.restore();
+      }
+
+      // Big bold title
+      ctx.font = 'bold 96px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fafafa';
+      ctx.fillText('NEON', cx, cy);
+
+      // Audio
+      const bass = 0.5 + Math.sin(t * 1.5) * 0.4;
+      const mid = 0.4 + Math.sin(t * 0.8) * 0.3;
+      const tr = 0.3 + Math.abs(Math.sin(t * 4)) * 0.4;
+      window.SWR = window.SWR || {};
+      window.SWR.Audio = window.SWR.Audio || {};
+      window.SWR.Audio.feat = { bass, mid, treble: tr, beat: Math.max(0, Math.sin(t * 3) - 0.7) * 2 };
+
+      // FPS counter
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFps > 1000) {
+        const fps = Math.round(frameCount * 1000 / (now - lastFps));
+        const el = document.getElementById('fps');
+        if (el) el.textContent = fps + ' FPS';
+        frameCount = 0;
+        lastFps = now;
+      }
+
+      requestAnimationFrame(paint);
+    }
+    paint();
+
+    const fxScript = document.createElement('script');
+    fxScript.src = '../fx-postprocess.js';
+    fxScript.onload = () => {
+      const apply = () => {
+        if (window.FX && window.FX.setPersona) {
+          window.FX.setPersona({
+            temp: 0.0,         // neutral
+            mut: 0.0,
+            mutAlgo: 0,
+            posterize: 0.85,   // heavy posterize — quantized color blocks
+            vignette: 0.2,
+            chroma: 0.3,       // light chroma split
+            grain: 0.0,
+            sepia: 0.0,
+            glow: 0.4,         // moderate glow — neon look
+            grayscale: 0.0,
+            blur: 0.0,
+            liquid: 0.15,      // light liquid warp
+            pearl: 0.0,
+            glitch: 0.0,
+          });
+        } else setTimeout(apply, 50);
+      };
+      apply();
+    };
+    document.body.appendChild(fxScript);
+  </script>
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    if (window.__SWR_AUTO_START_INJECTED__) return;
+    window.__SWR_AUTO_START_INJECTED__ = true;
+    var DEFAULT_SONG = '../library/audio/loop-grain.wav';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var audio = null;
+    function start() {
+      if (audio) return;
+      audio = new Audio(DEFAULT_SONG);
+      audio.loop = true;
+      audio.volume = 0.6;
+      audio.play().then(function() {
+        if (sub) sub.textContent = 'playing · ' + DEFAULT_SONG.split('/').pop();
+      }).catch(function(e) {
+        if (sub) sub.textContent = 'tap a video to start';
+        console.warn('swr auto-start failed:', e);
+      });
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!audio && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+</body>
+</html>

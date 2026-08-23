@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>BAROQUE · SWR version · Gold ornate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;600&display=swap" />
+  <style>
+    :root {
+      --bg: #0a0604; --panel: #1a1208; --line: #3a2a18;
+      --ink: #f5e9c8; --muted: #a89070;
+      --gold: #d4af37; --gold-bright: #ffd968; --gold-deep: #8a6a1f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Cormorant Garamond', ui-serif, Georgia, serif; }
+    #app { display: grid; grid-template-rows: 64px 1fr 60px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 18px; padding: 0 24px;
+      background: linear-gradient(180deg, #1a1208, #0a0604);
+      border-bottom: 1px solid var(--gold-deep);
+      position: relative; }
+    header::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .v { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 28px;
+      color: var(--gold-bright); text-shadow: 0 0 8px rgba(212, 175, 55, 0.4); }
+    .v small { font-family: 'Cormorant Garamond', serif; font-size: 12px; color: var(--muted);
+      margin-left: 12px; letter-spacing: 0.3em; text-transform: uppercase; font-style: normal; }
+    .pill { font: 9px/1 'Inter', sans-serif; padding: 4px 10px; border: 1px solid var(--gold-deep);
+      color: var(--gold); letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; }
+    .pill.live { color: var(--gold-bright); border-color: var(--gold);
+      box-shadow: 0 0 6px rgba(212, 175, 55, 0.3); }
+    .spacer { flex: 1; }
+    .tbtn { background: transparent; color: var(--gold); border: 1px solid var(--gold-deep);
+      font: 10px/1 'Inter', sans-serif; letter-spacing: 0.3em; text-transform: uppercase;
+      padding: 8px 16px; cursor: pointer; font-weight: 600; }
+    .tbtn:hover { border-color: var(--gold-bright); color: var(--gold-bright);
+      box-shadow: 0 0 8px rgba(212, 175, 55, 0.2); }
+    .tbtn.primary { background: var(--gold); color: #0a0604; border-color: var(--gold); }
+    .tbtn.primary:hover { background: var(--gold-bright); box-shadow: 0 0 12px var(--gold); }
+    section.stage { position: relative; background: #000; overflow: hidden; }
+    #render { display: block; width: 100%; height: 100%; }
+    /* Ornate corners */
+    .ornament { position: absolute; z-index: 4; width: 60px; height: 60px;
+      color: var(--gold); opacity: 0.7; pointer-events: none; }
+    .ornament.tl { top: 16px; left: 16px; }
+    .ornament.tr { top: 16px; right: 16px; transform: scaleX(-1); }
+    .ornament.bl { bottom: 16px; left: 16px; transform: scaleY(-1); }
+    .ornament.br { bottom: 16px; right: 16px; transform: scale(-1, -1); }
+    .ornament svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.2; }
+    .label { position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
+      z-index: 4; font-family: 'DM Serif Display', serif; font-style: italic;
+      font-size: 14px; color: var(--gold); letter-spacing: 0.4em; }
+    .composer { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      z-index: 4; font-family: 'Cormorant Garamond', serif; font-style: italic;
+      font-size: 13px; color: var(--muted); letter-spacing: 0.3em; }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 18px;
+      align-items: center; padding: 0 24px; background: var(--bg);
+      border-top: 1px solid var(--gold-deep);
+      font: 9px/1 'Inter', sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    footer::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .param b { color: var(--gold); font-weight: 600; margin-left: 4px; }
+    .orn-bullet { color: var(--gold); margin-right: 6px; }
+    a.nav { color: var(--gold); text-decoration: none; font: 9px/1 'Inter', sans-serif;
+      letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; }
+    a.nav:hover { color: var(--gold-bright); }
+
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: #fff;
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid #ff0066;
+      background: rgba(20,0,10,0.65);
+      box-shadow: 0 0 32px rgba(255,0,102,0.25);
+    }
+    #swr-start .arrow { font-size: 56px; color: #ff0066; line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: #fff; }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff66; margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-page="baroque">
+  <div id="app">
+    <header>
+      <div class="v">Baroque <small>· ORNAMENTUM AUREUM</small></div>
+      <span class="pill live" id="live">✦ VIVACE</span>
+      <span class="spacer"></span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div class="ornament tl"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+      <div class="ornament tr"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+      <div class="ornament bl"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+      <div class="ornament br"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+      <div class="label">Op. 1 · No. 1 in C major</div>
+      <div class="composer">a tempo ♩= 120</div>
+    </section>
+    <footer>
+      <div class="param"><span class="orn-bullet">❦</span>temp <b>+0.7</b></div>
+      <div class="param"><span class="orn-bullet">❦</span>glow <b>0.85</b></div>
+      <div class="param"><span class="orn-bullet">❦</span>vignette <b>0.75</b></div>
+      <div class="param"><span class="orn-bullet">❦</span>sepia <b>0.30</b></div>
+      <div class="param"><span class="orn-bullet">❦</span>blur <b>0.10</b></div>
+      <span class="pill live">●</span>
+    </footer>
+  </div>
+
+  <script>
+    const stage = document.getElementById('render');
+    const ctx = stage.getContext('2d');
+    let t0 = performance.now();
+
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const W = stage.width, H = stage.height;
+      // Deep velvet background
+      const bg = ctx.createRadialGradient(W/2, H/2, 50, W/2, H/2, Math.max(W, H) * 0.8);
+      bg.addColorStop(0, '#3a1f0a');
+      bg.addColorStop(0.4, '#1a0a04');
+      bg.addColorStop(1, '#000');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Golden sunburst rays
+      ctx.save();
+      ctx.translate(W/2, H/2);
+      const rays = 24;
+      for (let i = 0; i < rays; i++) {
+        const a = (i / rays) * Math.PI * 2 + t * 0.1;
+        const grad = ctx.createLinearGradient(0, 0, Math.cos(a) * 600, Math.sin(a) * 600);
+        grad.addColorStop(0, 'rgba(212, 175, 55, 0.18)');
+        grad.addColorStop(0.5, 'rgba(212, 175, 55, 0.04)');
+        grad.addColorStop(1, 'rgba(212, 175, 55, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, 600, a - 0.04, a + 0.04);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Central golden orb
+      const cx = W/2, cy = H/2;
+      const r = 100 + Math.sin(t * 1.5) * 15;
+      const orb = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      orb.addColorStop(0, '#fff5d0');
+      orb.addColorStop(0.3, '#ffd968');
+      orb.addColorStop(0.6, '#d4af37');
+      orb.addColorStop(1, '#5a3a0a');
+      ctx.fillStyle = orb;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Filigree — orbiting dots
+      for (let i = 0; i < 8; i++) {
+        const a = t * 0.3 + i * (Math.PI * 2 / 8);
+        const orbit = 220 + i * 15;
+        const x = cx + Math.cos(a) * orbit;
+        const y = cy + Math.sin(a) * orbit;
+        ctx.fillStyle = `rgba(255, 217, 104, ${0.6 - i * 0.05})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Serif title
+      ctx.font = 'italic bold 72px "DM Serif Display", serif';
+      ctx.fillStyle = '#fff5d0';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#d4af37';
+      ctx.shadowBlur = 20;
+      ctx.fillText('Allegro', cx, cy + 24);
+      ctx.shadowBlur = 0;
+
+      // Audio
+      const bass = 0.5 + Math.sin(t * 1.5) * 0.3;
+      const mid = 0.4 + Math.sin(t * 0.7) * 0.2;
+      const tr = 0.3 + Math.abs(Math.sin(t * 3)) * 0.4;
+      window.SWR = window.SWR || {};
+      window.SWR.Audio = window.SWR.Audio || {};
+      window.SWR.Audio.feat = { bass, mid, treble: tr, beat: Math.max(0, Math.sin(t * 2.5) - 0.6) * 2 };
+
+      requestAnimationFrame(paint);
+    }
+    paint();
+
+    // Minimal SWR.Audio.load/play for auto-start overlay (baroque engine has no audio otherwise)
+    if (!window.SWR.Audio.load) {
+      window.SWR.Audio.load = function(f) {
+        if (this.el) { try { this.el.pause(); this.el.src = ''; } catch(e){} }
+        this.el = document.createElement('audio');
+        this.el.crossOrigin = 'anonymous';
+        this.el.src = URL.createObjectURL(f);
+        this.el.preload = 'auto';
+      };
+    }
+    if (!window.SWR.Audio.play) {
+      window.SWR.Audio.play = function() {
+        if (this.el) { this.el.play(); this.playing = true; }
+      };
+    }
+
+    const fxScript = document.createElement('script');
+    fxScript.src = '../fx-postprocess.js';
+    fxScript.onload = () => {
+      const apply = () => {
+        if (window.FX && window.FX.setPersona) {
+          window.FX.setPersona({
+            temp: 0.7,        // very warm — gold
+            mut: 0.0,
+            mutAlgo: 0,
+            posterize: 0.0,
+            vignette: 0.75,   // heavy radial dark mask
+            chroma: 0.0,
+            grain: 0.0,
+            sepia: 0.3,       // hint of sepia to enhance gold
+            glow: 0.85,       // heavy bloom — gilded glow
+            grayscale: 0.0,
+            blur: 0.1,        // slight softness
+            liquid: 0.0,
+            pearl: 0.0,
+            glitch: 0.0,
+          });
+        } else setTimeout(apply, 50);
+      };
+      apply();
+    };
+    document.body.appendChild(fxScript);
+  </script>
+
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    if (window.__swr_autostart_initialized) return;
+    window.__swr_autostart_initialized = true;
+    var DEFAULT_SONG = '../library/audio/loop-grain.wav';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        var r = await fetch(DEFAULT_SONG, { cache: 'force-cache' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var blob = await r.blob();
+        var name = DEFAULT_SONG.split('/').pop();
+        var file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+          if (sub) sub.textContent = 'playing · ' + name;
+        }
+      } catch (e) {
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+</body>
+</html>

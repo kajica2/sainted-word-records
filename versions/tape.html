@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TAPE · SWR version · VHS degraded</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #1a1310; --panel: #2a1f1a; --line: #3a2a22;
+      --ink: #e8d8b8; --muted: #8a7860;
+      --rec: #c42a2a; --warn: #d4a04a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: #0a0806; color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #app { display: grid; grid-template-rows: 44px 1fr 56px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 14px; padding: 0 18px;
+      background: var(--bg); border-bottom: 2px solid var(--rec); position: relative; }
+    header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px;
+      height: 1px; background: var(--rec); opacity: 0.4; }
+    .v { font-weight: 700; letter-spacing: 0.18em; color: var(--rec); text-shadow: 2px 0 0 #0066ff; }
+    .v small { color: var(--warn); margin-left: 6px; font-weight: 400; letter-spacing: 0.1em; }
+    .pill { font-size: 9px; padding: 3px 8px; border: 1px solid var(--line); color: var(--muted);
+      letter-spacing: 0.14em; text-transform: uppercase; }
+    .pill.rec { color: var(--rec); border-color: var(--rec); animation: blink 1.2s infinite; }
+    @keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0.3; } }
+    .spacer { flex: 1; }
+    .tbtn { background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+      font: 10px/1 ui-monospace; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 7px 12px; cursor: pointer; }
+    .tbtn:hover { border-color: var(--rec); color: var(--rec); }
+    .tbtn.primary { background: var(--rec); color: #fff; border-color: var(--rec); font-weight: 700; }
+    .tbtn.primary:hover { background: #ff3838; }
+    section.stage { position: relative; background: #000; overflow: hidden; }
+    #render { display: block; width: 100%; height: 100%; }
+    /* Static noise overlay — VHS static feel */
+    .static { position: absolute; inset: 0; pointer-events: none; z-index: 3;
+      background: repeating-linear-gradient(0deg,
+        rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px,
+        transparent 1px, transparent 3px);
+      mix-blend-mode: overlay; }
+    .static::after { content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%),
+        linear-gradient(0deg, transparent 50%, rgba(255,255,255,0.02) 50%); }
+    .label { position: absolute; top: 14px; left: 16px; z-index: 4;
+      font: 11px/1 ui-monospace; color: var(--rec); letter-spacing: 0.18em;
+      text-shadow: 1px 0 0 #00d4ff, -1px 0 0 #ff3838; }
+    .timecode { position: absolute; bottom: 14px; right: 16px; z-index: 4;
+      font: 14px/1 ui-monospace; color: var(--warn); letter-spacing: 0.14em;
+      text-shadow: 1px 0 0 #000; }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 14px;
+      align-items: center; padding: 0 18px; background: var(--bg); border-top: 1px solid var(--line);
+      font: 9px/1 ui-monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .param b { color: var(--warn); font-weight: 400; margin-left: 4px; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: #000; border: 1px solid var(--rec); }
+    .led.on { background: var(--rec); box-shadow: 0 0 8px var(--rec); }
+    a.nav { color: var(--warn); text-decoration: none; font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase; }
+    a.nav:hover { color: var(--rec); }
+
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--ink);
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid #ff0066;
+      background: rgba(20,0,10,0.65);
+      box-shadow: 0 0 32px rgba(255,0,102,0.25);
+    }
+    #swr-start .arrow { font-size: 56px; color: #ff0066; line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff66; margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-page="tape">
+  <div id="app">
+    <header>
+      <div class="v">TAPE <small>v1 · VHS</small></div>
+      <span class="pill rec" id="rec">● REC</span>
+      <span class="pill" id="status">SP/LP</span>
+      <span class="spacer"></span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div class="static"></div>
+      <div class="label">CH-3 · 1986</div>
+      <div class="timecode" id="timecode">00:00:00:00</div>
+    </section>
+    <footer>
+      <div class="param">chroma <b>0.85</b></div>
+      <div class="param">sepia <b>0.55</b></div>
+      <div class="param">grain <b>0.40</b></div>
+      <div class="param">glitch <b>0.35</b></div>
+      <div class="param">vignette <b>0.60</b></div>
+      <span class="led on"></span>
+    </footer>
+  </div>
+
+  <script>
+    // === 2D stage animation — concentric VHS-degraded rings + chroma ribbons ===
+    const stage = document.getElementById('render');
+    const ctx = stage.getContext('2d');
+    let t0 = performance.now();
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const W = stage.width, H = stage.height;
+      // Background — burnt umber gradient
+      const bg = ctx.createRadialGradient(W/2, H/2, 50, W/2, H/2, Math.max(W, H) * 0.7);
+      bg.addColorStop(0, '#3a2a1a');
+      bg.addColorStop(0.5, '#1a0e08');
+      bg.addColorStop(1, '#000');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Sweeping ring — the "tape head" trace
+      const cx = W/2 + Math.cos(t * 0.3) * 60;
+      const cy = H/2 + Math.sin(t * 0.4) * 40;
+      for (let i = 0; i < 6; i++) {
+        const r = 80 + i * 60 + Math.sin(t * 1.2 + i) * 20;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(212, 160, 74, ${0.4 - i * 0.05})`;
+        ctx.lineWidth = 2 - i * 0.2;
+        ctx.stroke();
+      }
+
+      // Horizontal chroma ribbons (the "tracking" lines)
+      for (let i = 0; i < 12; i++) {
+        const y = ((t * 80 + i * 60) % (H + 80)) - 40;
+        const wobble = Math.sin(y * 0.04 + t * 2) * 30;
+        ctx.fillStyle = `hsla(${(t * 40 + i * 30) % 360}, 60%, 50%, 0.08)`;
+        ctx.fillRect(wobble, y, W, 3);
+      }
+
+      // Big "head" — central pulsing circle
+      const headR = 60 + Math.sin(t * 3) * 10;
+      const head = ctx.createRadialGradient(cx, cy, 0, cx, cy, headR);
+      head.addColorStop(0, 'rgba(255, 80, 80, 0.6)');
+      head.addColorStop(0.5, 'rgba(196, 42, 42, 0.3)');
+      head.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = head;
+      ctx.beginPath();
+      ctx.arc(cx, cy, headR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Timecode text
+      ctx.font = 'bold 96px ui-monospace';
+      ctx.fillStyle = 'rgba(232, 216, 184, 0.85)';
+      ctx.textAlign = 'center';
+      ctx.fillText('PLAY', cx, cy + 24);
+
+      // Drive fake audio features for the shader
+      window.SWR = window.SWR || {};
+      window.SWR.Audio = window.SWR.Audio || {};
+      window.SWR.Audio.feat = {
+        bass: 0.4 + Math.sin(t * 1.5) * 0.3,
+        mid: 0.5 + Math.sin(t * 0.8) * 0.2,
+        treble: 0.3 + Math.abs(Math.sin(t * 4)) * 0.5,
+        beat: Math.max(0, Math.sin(t * 3) - 0.7) * 3,
+      };
+
+      requestAnimationFrame(paint);
+    }
+    paint();
+
+    // Timecode
+    setInterval(() => {
+      const s = Math.floor(performance.now() / 33) % 10000;
+      const m = Math.floor(s / 60) % 60;
+      const sec = s % 60;
+      const f = Math.floor((performance.now() / 33) % 30);
+      const el = document.getElementById('timecode');
+      if (el) el.textContent =
+        `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}:${String(f).padStart(2, '0')}`;
+    }, 33);
+
+    // Audio stubs (so the SWR auto-start overlay can call .load() / .play())
+    window.SWR.Audio.playing = false;
+    window.SWR.Audio._el = null;
+    window.SWR.Audio.load = function(file) {
+      if (window.SWR.Audio._el) { try { window.SWR.Audio._el.pause(); } catch(e){} }
+      var url = URL.createObjectURL(file);
+      window.SWR.Audio._el = new Audio();
+      window.SWR.Audio._el.src = url;
+      window.SWR.Audio._el.preload = 'auto';
+    };
+    window.SWR.Audio.play = function() {
+      if (window.SWR.Audio._el) {
+        window.SWR.Audio._el.play();
+        window.SWR.Audio.playing = true;
+      }
+    };
+
+    // === Load FX post-process and apply the TAPE persona ===
+    const fxScript = document.createElement('script');
+    fxScript.src = '../fx-postprocess.js';
+    fxScript.onload = () => {
+      // Apply TAPE persona — heavy chroma, sepia, grain, glitch, vignette
+      const applyTape = () => {
+        if (window.FX && window.FX.setPersona) {
+          window.FX.setPersona({
+            temp: 0.5,        // warm
+            mut: 0.2,
+            mutAlgo: 1,       // glitch displacement
+            posterize: 0.05,  // light posterize
+            vignette: 0.6,
+            chroma: 0.85,     // heavy chromatic aberration
+            grain: 0.4,
+            sepia: 0.55,
+            glow: 0.1,
+            grayscale: 0.0,
+            blur: 0.0,
+            liquid: 0.0,
+            pearl: 0.0,
+            glitch: 0.35,     // horizontal slice displacement
+          });
+        } else {
+          setTimeout(applyTape, 50);
+        }
+      };
+      applyTape();
+    };
+    document.body.appendChild(fxScript);
+  </script>
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../library/audio/loop-grain.wav';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        var r = await fetch(DEFAULT_SONG, { cache: 'force-cache' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var blob = await r.blob();
+        var name = DEFAULT_SONG.split('/').pop();
+        var file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+          if (sub) sub.textContent = 'playing · ' + name;
+        }
+      } catch (e) {
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+</body>
+</html>

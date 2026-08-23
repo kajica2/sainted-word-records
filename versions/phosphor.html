@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PHOSPHOR · SWR version · CRT terminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0a1408; --panel: #0f1a0c; --line: #1f3018;
+      --ink: #4dff7a; --muted: #2a6a3a;
+      --amber: #ffb84d;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: #000; color: var(--ink);
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #app { display: grid; grid-template-rows: 38px 1fr 30px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 14px; padding: 0 16px;
+      background: var(--bg); border-bottom: 1px solid var(--line); }
+    .v { font-weight: 700; letter-spacing: 0.2em; color: var(--ink);
+      text-shadow: 0 0 4px var(--ink); }
+    .v small { color: var(--muted); margin-left: 6px; font-weight: 400; }
+    .pill { font-size: 9px; padding: 2px 7px; border: 1px solid var(--line);
+      color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+    .pill.live { color: var(--ink); border-color: var(--ink);
+      text-shadow: 0 0 4px var(--ink); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .spacer { flex: 1; }
+    .tbtn { background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+      font: 10px/1 ui-monospace; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer; }
+    .tbtn:hover { border-color: var(--ink); color: #fff; text-shadow: 0 0 4px var(--ink); }
+    .tbtn.primary { background: var(--ink); color: #000; border-color: var(--ink); font-weight: 700; }
+    section.stage { position: relative; background: #000; overflow: hidden;
+      border-top: 1px solid #2a3a22; border-bottom: 1px solid #2a3a22; }
+    #render { display: block; width: 100%; height: 100%; }
+    /* CRT scan lines */
+    .scan { position: absolute; inset: 0; pointer-events: none; z-index: 3;
+      background: repeating-linear-gradient(0deg,
+        rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px,
+        transparent 1px, transparent 3px); }
+    .scan::after { content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%); }
+    /* CRT curvature indicator */
+    .frame-tl, .frame-tr, .frame-bl, .frame-br { position: absolute; z-index: 4;
+      width: 12px; height: 12px; border: 1px solid var(--ink); opacity: 0.4; }
+    .frame-tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+    .frame-tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+    .frame-bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+    .frame-br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+    .label { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 4; font: 10px/1 ui-monospace; color: var(--ink); letter-spacing: 0.3em;
+      text-shadow: 0 0 4px var(--ink); }
+    .readout { position: absolute; bottom: 14px; left: 16px; z-index: 4;
+      font: 11px/1.3 ui-monospace; color: var(--ink); letter-spacing: 0.1em;
+      text-shadow: 0 0 4px var(--ink); }
+    .readout .amber { color: var(--amber); text-shadow: 0 0 4px var(--amber); }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 14px;
+      align-items: center; padding: 0 16px; background: var(--bg);
+      font: 9px/1 ui-monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .param b { color: var(--ink); font-weight: 400; margin-left: 4px; text-shadow: 0 0 3px var(--ink); }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: #000; border: 1px solid var(--ink); }
+    .led.on { background: var(--ink); box-shadow: 0 0 8px var(--ink); }
+    a.nav { color: var(--muted); text-decoration: none; font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase; }
+    a.nav:hover { color: var(--ink); text-shadow: 0 0 3px var(--ink); }
+
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--ink);
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid #ff0066;
+      background: rgba(20,0,10,0.65);
+      box-shadow: 0 0 32px rgba(255,0,102,0.25);
+    }
+    #swr-start .arrow { font-size: 56px; color: #ff0066; line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff66; margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-page="phosphor">
+  <div id="app">
+    <header>
+      <div class="v">PHOSPHOR <small>v1 · CRT-80</small></div>
+      <span class="pill live" id="live">● LIVE</span>
+      <span class="pill" id="status">TTY 9600</span>
+      <span class="spacer"></span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div class="scan"></div>
+      <div class="frame-tl"></div>
+      <div class="frame-tr"></div>
+      <div class="frame-bl"></div>
+      <div class="frame-br"></div>
+      <div class="label">SIG-READY · 0xC4F7</div>
+      <div class="readout">
+        <span class="amber">▶</span> BASS <span id="b-v">0.00</span> &nbsp;
+        MID <span id="m-v">0.00</span> &nbsp;
+        TRB <span id="t-v">0.00</span>
+      </div>
+    </section>
+    <footer>
+      <div class="param">grayscale <b>0.95</b></div>
+      <div class="param">glow <b>0.70</b></div>
+      <div class="param">chroma <b>0.30</b></div>
+      <div class="param">grain <b>0.15</b></div>
+      <div class="param">temp <b>+0.0</b></div>
+      <span class="led on"></span>
+    </footer>
+  </div>
+
+  <script>
+    const stage = document.getElementById('render');
+    const ctx = stage.getContext('2d');
+    let t0 = performance.now();
+    const COL_OK = '#4dff7a';
+    const COL_DIM = '#1a4a22';
+
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const W = stage.width, H = stage.height;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid of dots — terminal feel
+      const spacing = 40;
+      for (let x = spacing; x < W; x += spacing) {
+        for (let y = spacing; y < H; y += spacing) {
+          const d = Math.hypot(x - W/2, y - H/2);
+          const wave = Math.sin(d * 0.01 - t * 2);
+          const a = Math.max(0, wave) * 0.6;
+          ctx.fillStyle = `rgba(77, 255, 122, ${a})`;
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+
+      // Big "trace" line
+      ctx.beginPath();
+      ctx.strokeStyle = COL_OK;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = COL_OK;
+      ctx.shadowBlur = 12;
+      for (let i = 0; i < 200; i++) {
+        const x = (i / 200) * W;
+        const y = H/2 + Math.sin(i * 0.1 + t * 3) * 100 + Math.sin(i * 0.05 + t) * 60;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // ASCII-art label
+      ctx.font = 'bold 80px ui-monospace';
+      ctx.fillStyle = COL_OK;
+      ctx.shadowColor = COL_OK;
+      ctx.shadowBlur = 20;
+      ctx.textAlign = 'center';
+      ctx.fillText('AUDIO', W/2, H/2 - 60);
+      ctx.shadowBlur = 0;
+
+      // Audio feature values
+      const bass = 0.5 + Math.sin(t * 1.5) * 0.4;
+      const mid = 0.5 + Math.sin(t * 0.8) * 0.3;
+      const tr = 0.4 + Math.abs(Math.sin(t * 4)) * 0.4;
+
+      const bv = document.getElementById('b-v');
+      if (bv) bv.textContent = bass.toFixed(2);
+      const mv = document.getElementById('m-v');
+      if (mv) mv.textContent = mid.toFixed(2);
+      const tv = document.getElementById('t-v');
+      if (tv) tv.textContent = tr.toFixed(2);
+
+      window.SWR = window.SWR || {};
+      window.SWR.Audio = window.SWR.Audio || {};
+      window.SWR.Audio.feat = { bass, mid, treble: tr, beat: Math.max(0, Math.sin(t * 3) - 0.7) * 2 };
+
+      requestAnimationFrame(paint);
+    }
+    paint();
+
+    const fxScript = document.createElement('script');
+    fxScript.src = '../fx-postprocess.js';
+    fxScript.onload = () => {
+      const apply = () => {
+        if (window.FX && window.FX.setPersona) {
+          window.FX.setPersona({
+            temp: 0.0,         // neutral
+            mut: 0.0,
+            mutAlgo: 0,
+            posterize: 0.0,
+            vignette: 0.3,
+            chroma: 0.3,       // mild aberration (CRT)
+            grain: 0.15,
+            sepia: 0.0,
+            glow: 0.7,         // heavy bloom — phosphor look
+            grayscale: 0.95,   // near-B&W; leaves a hint of green tint via canvas
+            blur: 0.0,
+            liquid: 0.0,
+            pearl: 0.0,
+            glitch: 0.0,
+          });
+        } else setTimeout(apply, 50);
+      };
+      apply();
+    };
+    document.body.appendChild(fxScript);
+  </script>
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../library/audio/loop-shimmer.wav';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        var r = await fetch(DEFAULT_SONG, { cache: 'force-cache' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var blob = await r.blob();
+        var name = DEFAULT_SONG.split('/').pop();
+        var file = new File([blob], name, { type: blob.type || 'audio/wav' });
+        if (!window.SWR) window.SWR = {};
+        if (!window.SWR.Audio) window.SWR.Audio = {};
+        var hasEngine = window.SWR.Audio && typeof window.SWR.Audio.load === 'function' && typeof window.SWR.Audio.play === 'function';
+        if (hasEngine) {
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+        } else {
+          // phosphor has no engine Audio; spin up a local AudioContext so 'playing === true' holds
+          var AC = window.AudioContext || window.webkitAudioContext;
+          var ctx = new AC();
+          if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
+          var ab = await blob.arrayBuffer();
+          var buf = await ctx.decodeAudioData(ab.slice(0));
+          var src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(ctx.destination);
+          src.onended = function(){
+            if (window.SWR && window.SWR.Audio) window.SWR.Audio.playing = false;
+          };
+          src.start(0);
+          window.SWR.Audio.ctx = ctx;
+          window.SWR.Audio.source = src;
+          window.SWR.Audio.playing = true;
+        }
+        if (sub) sub.textContent = 'playing · ' + name;
+      } catch (e) {
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+</body>
+</html>

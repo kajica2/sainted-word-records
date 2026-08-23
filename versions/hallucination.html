@@ -92,6 +92,7 @@
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
     }
   </style>
+  <link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="hallucination">
   <div id="app">
@@ -153,7 +154,7 @@
       if (!__shuffle_once._cache || __shuffle_once._key !== key) {
         const a = arr.slice();
         for (let i = a.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
+          const j = Math.floor(_rnd() * (i + 1));
           [a[i], a[j]] = [a[j], a[i]];
         }
         __shuffle_once._cache = a;
@@ -165,6 +166,9 @@
 
   (() => {
     const $ = id => document.getElementById(id);
+    // Seeded randomness: routed through SWR_GENOPS so deterministic mode
+    // reproduces asset selection as well as parameters. Falls back when absent.
+    const _rnd = () => (window.SWR_GENOPS ? window.SWR_GENOPS.rand() : Math.random());
     const stage = $('render');
     const ctx = stage.getContext('2d');
     const noise = $('noise');
@@ -326,7 +330,7 @@
           return { it, sc };
         });
         // Pick from top-N candidates randomly so each remap = fresh look
-        const topN = 2 + (Math.floor(Math.random()*2)); // 2 or 3
+        const topN = 2 + (Math.floor(_rnd()*2)); // 2 or 3
         const used = new Set();
         const assignments = roles.map(r => {
           const cands = [];
@@ -336,7 +340,7 @@
           cands.sort((a,b) => b.v - a.v);
           const pool = cands.slice(0, Math.min(topN, cands.length));
           const total = pool.reduce((s,c) => s + Math.max(c.v, 0.01), 0);
-          let r2 = Math.random() * total;
+          let r2 = _rnd() * total;
           let pick = pool[0];
           for (const c of pool) { r2 -= Math.max(c.v, 0.01); if (r2 <= 0) { pick = c; break; } }
           used.add(pick.it.id);
@@ -601,5 +605,6 @@
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
   })();
   </script>
-<script src="../versions-presets.js"></script></body>
+<script src="../versions-presets.js"></script>
+<script src="../engine-genops.client.js"></script></body>
 </html>
