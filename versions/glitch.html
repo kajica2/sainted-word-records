@@ -112,7 +112,8 @@
     #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--g); margin-top: 8px; }
     #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
-  <link rel="stylesheet" href="../engine-genops.css" />
+  <script src="../engine-render.client.js"></script>
+<link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="glitch">
   <div id="app">
@@ -406,16 +407,10 @@
 
     // === RENDERER (NEON style) ===
     let fps=0, lastT=performance.now();
-    function fit() {
-      const vw = stage.clientWidth, vh = stage.clientHeight;
-      const target = 16/9; const ar = vw/vh;
-      let w, h;
-      if (Math.abs(ar - target) < 0.02) { w=vw; h=vh; }
-      else if (ar > target) { h = vh; w = h * target; }
-      else { w = vw; h = w / target; }
-      stage.width = Math.max(640, Math.round(w));
-      stage.height = Math.max(360, Math.round(h));
-      W = stage.width; H = stage.height;
+        function fit() {
+      const m = SWR_RENDER.fit(stage);
+      W = m.cssW; H = m.cssH;
+      ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
     }
     fit();
     const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
@@ -441,6 +436,7 @@
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.5, 0.1, 2.5);
         else if (r.target==='contrast') out.contrast = clamp(out.contrast + v*0.5, 0.1, 2.5);
       }
+      out._v = "0";
       return out;
     }
     function drawLayer(l) {
@@ -539,11 +535,10 @@
       const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
-      for (const l of sorted) drawLayer(l);
-      drawFx();
-      drawMeter();
+      SWR_RENDER.setBackground('#000');
+      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
+      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
       $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
       requestAnimationFrame(loop);
     }
@@ -668,6 +663,11 @@
         setStatus('exported · ' + ext.toUpperCase(), 'ok');
       },
     };
+        // Invalidate the per-layer cache whenever the page rebuilds.
+    if (Layers && typeof Layers.render === 'function') {
+      const __r = Layers.render.bind(Layers);
+      Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
+    }
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
   })();
   </script>

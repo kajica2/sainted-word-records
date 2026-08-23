@@ -92,7 +92,8 @@
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
     }
   </style>
-  <link rel="stylesheet" href="../engine-genops.css" />
+  <script src="../engine-render.client.js"></script>
+<link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="hallucination">
   <div id="app">
@@ -177,6 +178,13 @@
     let W, H, NW, NH;
     const lerp = (a,b,t) => a+(b-a)*t;
     const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+    function ease(name, t) {
+      if (name === 'sharp') return Math.pow(t, 0.4);
+      if (name === 'soft') return t * t * (3 - 2 * t);
+      if (name === 'smooth') return t;
+      return t;
+    }
+
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t,cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
     const A = { ctx:null, an:null, src:null, el:null, gain:null, fft:null, time:null,
@@ -367,15 +375,10 @@
       }
     };
     let fps=0, lastT=performance.now();
-    function fit() { const vw=stage.clientWidth,vh=stage.clientHeight;
-      stage.width=Math.max(640,Math.round(vw)); stage.height=Math.max(360,Math.round(vh));
-      noise.width=stage.width; noise.height=stage.height;
-      W=stage.width; H=stage.height; NW=W; NH=H; }
-    fit();
-    function ease(name,t) {
-      if (name==='sharp') return Math.pow(t,0.3);
-      if (name==='soft') return t*t*(3-2*t);
-      return t;
+        function fit() {
+      const m = SWR_RENDER.fit(stage);
+      W = m.cssW; H = m.cssH;
+      ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
     }
     function applyR(l) {
       const sens=parseFloat($('sens').value);
@@ -392,6 +395,7 @@
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.7, 0.1, 3);
         else if (r.target==='contrast') out.contrast = clamp(out.contrast + v*0.7, 0.1, 3);
       }
+      out._v = "0";
       return out;
     }
     function drawLayer(l, idx) {
@@ -484,12 +488,10 @@
       const dt=(t-lastT)/1000; lastT=t; fps=lerp(fps,1/Math.max(dt,0.0001),0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
-      for (let i=0; i<sorted.length; i++) drawLayer(sorted[i], i);
-      drawFx();
-      drawNoise();
-      drawMeter();
+      SWR_RENDER.setBackground('#000');
+      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
+      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
       requestAnimationFrame(loop);
 
     $('rec').addEventListener('click', () => {
@@ -602,6 +604,11 @@
         setStatus('exported · ' + ext.toUpperCase(), 'ok');
       },
     };
+        // Invalidate the per-layer cache whenever the page rebuilds.
+    if (Layers && typeof Layers.render === 'function') {
+      const __r = Layers.render.bind(Layers);
+      Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
+    }
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
   })();
   </script>

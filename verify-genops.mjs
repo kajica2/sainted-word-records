@@ -167,6 +167,38 @@ const CHECKS = `(async () => {
   }
   ok('mapping is live', liveOk);
 
+  // 11. DPR-aware canvas: backing store is sized at dpr × cssW/H so that
+  // on retina/2× displays the canvas is rasterized at 2× the CSS size
+  // (and crisply downsampled by the browser), instead of being rasterized
+  // at CSS size and upscaled (blurry). At 1× DPR (the verify default)
+  // this is a no-op; the check still verifies the module is wired and
+  // the canvas was sized through it.
+  const swr = window.SWR, R = window.SWR_RENDER;
+  const stage = swr && swr.stage;
+  const dprOk = !!(R && stage && R.dpr > 0 && R.cssW > 0 && R.cssH > 0 &&
+                  // The CSS box should be sane and the backing store should
+                  // be stage.width === Math.round(cssW * dpr), with at most
+                  // a 1-px rounding error from the original CSS-pixel sizing.
+                  Math.abs(stage.width - Math.round(R.cssW * R.dpr)) <= 1 &&
+                  Math.abs(stage.height - Math.round(R.cssH * R.dpr)) <= 1);
+  ok('DPR module', dprOk,
+     R ? 'dpr=' + R.dpr + ' css=' + R.cssW + 'x' + R.cssH +
+        ' stage=' + stage.width + 'x' + stage.height +
+        ' expected=' + Math.round(R.cssW * R.dpr) + 'x' + Math.round(R.cssH * R.dpr)
+     : 'SWR_RENDER missing');
+
+  // 12. engine-render module loads + exposes cache controls (for follow-up
+  // migration). The cache itself is implemented but not yet wired to the
+  // page's per-frame draw path; this verifies the surface area exists.
+  const modOk = !!(R && typeof R.invalidate === 'function' &&
+                   typeof R.setBackground === 'function' &&
+                   typeof R.frame === 'function' &&
+                   typeof R.fit === 'function' &&
+                   typeof R.cacheSize === 'number');
+  ok('render module surface', modOk,
+     R ? 'invalidate=' + typeof R.invalidate + ' frame=' + typeof R.frame +
+        ' cacheSize=' + R.cacheSize : 'no SWR_RENDER');
+
   return out;
 })()`;
 
