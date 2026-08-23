@@ -114,6 +114,10 @@ function copyStatic() {
     // ~4 MB total). Each engine auto-loads ../audios/<engine>.mp3 as the
     // default audio source so the reactivity has something to drive.
     { src: 'audios', dst: 'audios' },
+    // AUDIOS_REDEPLOY_TRIGGER: force a re-deploy to bust Vercel's build
+    // cache that was shipping the old vite.config.js without this entry.
+    // The extra .gitkeep file ensures the audios/ directory is copied.
+    { src: 'audios/.gitkeep', dst: 'audios/.gitkeep' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',
