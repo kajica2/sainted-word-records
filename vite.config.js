@@ -165,6 +165,17 @@ function copyStatic() {
       // will silently shadow our freshly-copied files if a same-named
       // file exists in public/.)
       doCopy();
+      // Strip heavy media dirs that Vite's copyPublicDir re-ships from
+      // ./public/ into outDir (public/library is 76MB, etc.). The engine
+      // pages handle a missing library manifest gracefully.
+      for (const heavy of ['library', 'style-graphics', 'style-videos',
+                           'style-videos-watermarked', 'style-videos-original']) {
+        const p = resolve(outDir, heavy);
+        if (existsSync(p)) {
+          rmSync(p, { recursive: true, force: true });
+          process.stdout.write('[copy-static] removed heavy dir ' + heavy + ' from outDir\n');
+        }
+      }
     },
   };
 }
@@ -185,11 +196,6 @@ export default defineConfig(({ command, mode }) => {
       // Vite's emptyOutDir wipes our copyStatic plugin's output. Disable
       // it; the plugin wipes dist/ itself before its buildStart run.
       emptyOutDir: false,
-      // Vite's copyPublicDir re-ships ./public/* into dist, including the
-      // 76MB public/library directory. Disable it so copyStatic is the
-      // single source of truth for what ships — and to stay under the
-      // Vercel Hobby 100MB build-output limit.
-      copyPublicDir: false,
       rollupOptions: {
         input: 'engine.html',
       },
