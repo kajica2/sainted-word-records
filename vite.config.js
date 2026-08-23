@@ -88,14 +88,23 @@ function copyStatic() {
     'director-mode-sainted-word.html',
     'intro.html',
   ];
+  // Build a curated copy of library/: only ship the files the boot manifest
+  // references, plus the manifest itself. The full library/ has ~58MB of
+  // tracked media plus another ~76MB in public/library/ (Vite's copyPublicDir
+  // ships public/* on its own). Together that's 134MB, well over the 100MB
+  // Vercel Hobby cap. Curating to the manifest list keeps the deploy at
+  // ~38MB, restoring the video-reactive demo content.
+  let LIB_FILES = null;
+  function getLibraryFiles() {
+    if (LIB_FILES) return LIB_FILES;
+    try {
+      const m = JSON.parse(readFileSync(resolve('library', 'manifest.json'), 'utf8'));
+      LIB_FILES = Array.isArray(m.files) ? m.files : [];
+    } catch (e) { LIB_FILES = []; }
+    return LIB_FILES;
+  }
+
   const dirs = [
-    // Heavy media dirs are excluded to stay under Vercel Hobby's 100MB limit.
-    // The engines handle missing library content gracefully (try/catch on the
-    // manifest fetch); users upload their own media anyway. To restore
-    // preloaded demo content, move these to a CDN or Vercel Blob.
-    //   library/         — ~58MB MP3s/MP4s
-    //   style-graphics/  — ~78MB PNGs
-    //   style-videos/    — ~65MB MP4s
     { src: 'versions', dst: 'versions' },
     { src: 'icons', dst: 'icons' },
     { src: 'presets', dst: 'presets' },
@@ -130,6 +139,9 @@ function copyStatic() {
         copyFileSync(src, dst);
       }
     }
+    // The curated library/ copy is done in closeBundle (after Vite's
+    // copyPublicDir has run) so the public/library/ mirror doesn't
+    // overwrite it.
     for (const { src, dst } of styleThumbs) {
       if (!existsSync(src)) continue;
       mkdirSync(dirname(dst), { recursive: true });
@@ -166,9 +178,11 @@ function copyStatic() {
       // will silently shadow our freshly-copied files if a same-named
       // file exists in public/.)
       doCopy();
-      // Strip heavy media dirs that Vite's copyPublicDir re-ships from
-      // ./public/ into outDir (public/library is 76MB, etc.). The engine
-      // pages handle a missing library manifest gracefully.
+      // Strip the heavy public/* dirs that Vite's copyPublicDir re-ships
+      // (copyPublicDir flattens: public/library/ → outDir/library/, so the
+      // path to remove is outDir/library, not outDir/public/library). The
+      // closeBundle re-copy of the curated library/ happens immediately
+      // after, so the curated set is authoritative.
       for (const heavy of ['library', 'style-graphics', 'style-videos',
                            'style-videos-watermarked', 'style-videos-original']) {
         const p = resolve(outDir, heavy);
@@ -176,6 +190,26 @@ function copyStatic() {
           rmSync(p, { recursive: true, force: true });
           process.stdout.write('[copy-static] removed heavy dir ' + heavy + ' from outDir\n');
         }
+      }
+      // Re-copy the curated library/ (manifest-listed files only) since
+      // copyPublicDir's stale public/library/ overwrote our earlier copy.
+      const libRoot = resolve('library');
+      if (existsSync(libRoot)) {
+        const libDst = resolve(outDir, 'library');
+        mkdirSync(libDst, { recursive: true });
+        const libFiles = getLibraryFiles();
+        let copied = 0;
+        for (const f of libFiles) {
+          const sp = resolve(libRoot, f);
+          const dp = resolve(libDst, f);
+          if (!existsSync(sp)) continue;
+          mkdirSync(dirname(dp), { recursive: true });
+          copyFileSync(sp, dp);
+          copied += 1;
+        }
+        const mp = resolve(libRoot, 'manifest.json');
+        if (existsSync(mp)) copyFileSync(mp, resolve(libDst, 'manifest.json'));
+        process.stdout.write('[copy-static] re-copied curated library/: ' + (copied + 1) + ' files\n');
       }
     },
   };

@@ -7,7 +7,11 @@ node_modules
 verify-*.mjs
 _vinyl-sample/
 versions/*.bak
-# library/ is demo media (~103MB) — Vercel Hobby's 100MB source limit rejects
-# any deploy that includes it. The engines handle a missing manifest gracefully
-# and users upload their own media anyway.
-library/
+# Curated library/ ships via copyStatic (only manifest-listed files, ~33MB).
+# Block public/library/ (the un-trimmed mirror, 75MB) from being re-shipped
+# by Vite's copyPublicDir. The 4 un-curated style-* dirs in public/ are
+# still stripped by the closeBundle hook in vite.config.js.
+public/library/
+# Audio loops and the coltrane track stay out of the deploy. The engine
+# loads audio on demand via the file picker, not at boot.
+library/audio/

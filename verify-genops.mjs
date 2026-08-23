@@ -199,6 +199,19 @@ const CHECKS = `(async () => {
      R ? 'invalidate=' + typeof R.invalidate + ' frame=' + typeof R.frame +
         ' cacheSize=' + R.cacheSize : 'no SWR_RENDER');
 
+  // 13. library/ ships with the deploy. If the engine pages can't reach
+  // ../library/manifest.json, the boot auto-load is a no-op and the
+  // "video reactive feature is empty" regression returns.
+  try {
+    const r = await fetch('../library/manifest.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const m = await r.json();
+    const libOk = !!(m && Array.isArray(m.files) && m.files.length > 0);
+    ok('library served', libOk, 'files=' + (m && m.files ? m.files.length : 0));
+  } catch (e) {
+    ok('library served', false, 'fetch failed: ' + e.message);
+  }
+
   return out;
 })()`;
 

@@ -1,11 +1,12 @@
+yaml
 name: Presets Daily
 
-# Daily preset generation for the self-evolving engine.
-# Runs preset-pipeline/generate.py + verify.mjs and auto-commits
-# the new presets to main. Vercel auto-deploys on push.
+Daily preset generation for the self-evolving engine.
+Runs preset-pipeline/generate.py + verify.mjs and auto-commits
+the new presets to main. Vercel auto-deploys on push.
 #
-# Schedule: 07:00 UTC = 09:00 CEST (Belgrade) / 08:00 CET (winter).
-# Adjust the cron if you want a different cadence.
+Schedule: 07:00 UTC = 09:00 CEST (Belgrade) / 08:00 CET (winter).
+Adjust the cron if you want a different cadence.
 
 on:
   schedule:
@@ -80,3 +81,4 @@ jobs:
             git push
             echo "Pushed $CHANGED new file(s) to main"
           fi
+
