@@ -183,7 +183,30 @@ function copyStatic() {
 export default defineConfig(({ command, mode }) => {
   const outDir = mode === 'development' ? 'dist-dev' : 'dist';
   return {
-    plugins: [copyStatic()],
+    plugins: [
+      copyStatic(),
+      // engine.html references many scripts with absolute paths (e.g.
+      // <script type="module" src="/pwa-bootstrap.js">). Vite's HTML
+      // transformer tries to bundle those as Rollup modules, which
+      // fails on Vercel (and locally) because the files live in the
+      // project root, not in public/. Strip the `type="module"` from
+      // absolute-path module scripts so the browser loads them as
+      // plain scripts; their order is preserved by the existing
+      // `defer`/manual ordering, and the modules are designed to run
+      // as global scripts anyway (they attach handlers to window).
+      {
+        name: 'strip-absolute-module-scripts',
+        transformIndexHtml: {
+          order: 'pre',
+          handler(html) {
+            return html.replace(
+              /<script\s+type="module"\s+src="\/([^"]+)"\s*><\/script>/g,
+              '<script src="/$1" defer></script>'
+            );
+          },
+        },
+      },
+    ],
     server: {
       port: 5174,
       host: '0.0.0.0',
