@@ -487,10 +487,11 @@
       const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
-      SWR_RENDER.setBackground('#000');
-      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
-      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
-      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+      const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
+      for (const l of sorted) drawLayer(l);
+      drawFx();
+      drawMeter();
       $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
       requestAnimationFrame(loop);
     }

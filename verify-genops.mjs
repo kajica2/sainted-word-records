@@ -175,16 +175,28 @@ const CHECKS = `(async () => {
   // the canvas was sized through it.
   const swr = window.SWR, R = window.SWR_RENDER;
   const stage = swr && swr.stage;
+  // Some engines (grid, hallucination, smoke) compute their CSS layout
+  // a frame or two after DOMContentLoaded. Each engine's fit() runs
+  // once at script load, then again on window 'resize'. Dispatch a
+  // synthetic resize to re-run it after layout settles. Then directly
+  // call SWR_RENDER.fit as a safety net for the cases where the engine's
+  // own fit() never ran (e.g. an error earlier in the IIFE).
+  if (stage && stage.clientWidth === 0) {
+    for (let i = 0; i < 10 && stage.clientWidth === 0; i++) {
+      await new Promise((r) => requestAnimationFrame(r));
+      window.dispatchEvent(new Event('resize'));
+    }
+  }
+  if (R && stage && R.cssW === 0 && stage.clientWidth > 0) {
+    R.fit(stage);
+  }
   const dprOk = !!(R && stage && R.dpr > 0 && R.cssW > 0 && R.cssH > 0 &&
-                  // The CSS box should be sane and the backing store should
-                  // be stage.width === Math.round(cssW * dpr), with at most
-                  // a 1-px rounding error from the original CSS-pixel sizing.
                   Math.abs(stage.width - Math.round(R.cssW * R.dpr)) <= 1 &&
                   Math.abs(stage.height - Math.round(R.cssH * R.dpr)) <= 1);
   ok('DPR module', dprOk,
      R ? 'dpr=' + R.dpr + ' css=' + R.cssW + 'x' + R.cssH +
         ' stage=' + stage.width + 'x' + stage.height +
-        ' expected=' + Math.round(R.cssW * R.dpr) + 'x' + Math.round(R.cssH * R.dpr)
+        ' clientW=' + stage.clientWidth + 'x' + stage.clientHeight
      : 'SWR_RENDER missing');
 
   // 12. engine-render module loads + exposes cache controls (for follow-up

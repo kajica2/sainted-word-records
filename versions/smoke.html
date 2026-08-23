@@ -442,10 +442,11 @@
       const dt=(t-lastT)/1000; lastT=t; fps=lerp(fps,1/Math.max(dt,0.0001),0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
-      SWR_RENDER.setBackground('#e8e1d4');
-      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
-      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
-      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      ctx.fillStyle = '#e8e1d4'; ctx.fillRect(0,0,W,H);
+      const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
+      for (const l of sorted) drawLayer(l);
+      drawFx();
+      drawMeter();
       requestAnimationFrame(loop);
 
     $('rec').addEventListener('click', () => {

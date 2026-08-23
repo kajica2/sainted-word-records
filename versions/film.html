@@ -551,10 +551,11 @@
       // === Onset micro-shake decay ===
       if (A.feat.onsetPulse) _shakeAmount = 1.0;
       else _shakeAmount = Math.max(0, _shakeAmount * 0.82);
-      SWR_RENDER.setBackground('#0a0805');
-      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
-      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
-      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      ctx.fillStyle = '#0a0805'; ctx.fillRect(0,0,W,H);
+      const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
+      for (const l of sorted) drawLayer(l);
+      drawFx();
+      drawMeter();
       requestAnimationFrame(loop);
 
     $('rec').addEventListener('click', () => {

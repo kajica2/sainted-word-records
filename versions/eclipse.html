@@ -453,8 +453,8 @@
     function draw() {
       A.sample();
       // pure-black base — anything beneath the shadow is invisible
-      SWR_RENDER.setBackground('#000');
-      SWR_RENDER.frame(stage, ctx, Layers.list, applyR, (l, r, c) => drawLayer(l, r, c, W, H));
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+      for (let i=0;i<Layers.list.length;i++) drawLayer(Layers.list[i], i);
 
       // === ECLIPSE corona overlay (driven by audio, replaces NEON's flash) ===
       // corona radius breathes with bass; corona hue rotates with mids
