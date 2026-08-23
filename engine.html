@@ -320,6 +320,36 @@
     .song-row .note { color: var(--accent-2); font-size: 12px; }
     .song-row .meta { color: var(--muted); font-size: 9px; margin-left: auto; }
     .song-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .song-row .song-play {
+      background: transparent;
+      border: 1px solid rgba(0,240,255,0.30);
+      color: var(--accent-2);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      line-height: 1;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: 0.12s;
+      flex-shrink: 0;
+    }
+    .song-row .song-play:hover {
+      background: rgba(0,240,255,0.18);
+      border-color: var(--accent-2);
+      color: var(--green);
+    }
+    .song-row .song-play:active { transform: scale(0.94); }
+    .song-row .song-play:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .song-row .song-play.loading {
+      animation: song-play-pulse 0.9s ease-in-out infinite;
+    }
+    @keyframes song-play-pulse {
+      0%, 100% { opacity: 0.4; }
+      50%      { opacity: 1.0; }
+    }
     .songs-empty { color: var(--muted); font-size: 10px; padding: 4px 0; }
       font-size: 11px;
       line-height: 1.7;
@@ -3777,6 +3807,37 @@
           UI.setStatus && UI.setStatus('load failed: ' + e.message, 'warn');
         }
       }
+      // Load + play a song in one click. Polls the toolbar's #play button
+      // until it becomes enabled (the change-event handler enables it
+      // asynchronously once Audio.loadFile finishes), then triggers it.
+      async function playSong(song, btn) {
+        if (btn) {
+          btn.classList.add('loading');
+          btn.disabled = true;
+        }
+        try {
+          await loadSong(song);
+          const playBtn = document.getElementById('play');
+          if (!playBtn) return;
+          // If already playing, just switch source (don't double-start)
+          for (let i = 0; i < 60; i++) {
+            if (!playBtn.disabled) {
+              // Only click if not already in the "Pause" state
+              if (playBtn.textContent.trim().startsWith('▶')) {
+                playBtn.click();
+              }
+              return;
+            }
+            await new Promise(r => setTimeout(r, 80));
+          }
+          UI.setStatus && UI.setStatus('play timed out: audio not ready', 'warn');
+        } finally {
+          if (btn) {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+          }
+        }
+      }
       async function renderList() {
         const root = document.getElementById('songs-list');
         if (!root) return;
@@ -3796,6 +3857,7 @@
               <span class="note">♪</span>
               <span class="name"><b>${s.name}</b> · ${s.artist}</span>
               <span class="meta">${s.size || (s.size ? s.size : fmtBytes(s.size))}</span>
+              <button class="song-play" data-url="${s.url}" title="${s.ok ? 'Load and play this song' : '404 — file missing'}" ${s.ok ? '' : 'disabled'}>▶</button>
             </div>
           `).join('');
         root.querySelectorAll('.song-row').forEach(el => {
@@ -3807,6 +3869,18 @@
               el.classList.add('active');
               loadSong(song);
             }
+          });
+        });
+        // Per-song play button: load + start in one click
+        root.querySelectorAll('.song-play').forEach(btn => {
+          if (btn.disabled) return;
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const song = SONGS.find(s => s.url === btn.dataset.url);
+            if (!song) return;
+            root.querySelectorAll('.song-row').forEach(r => r.classList.remove('active'));
+            btn.closest('.song-row').classList.add('active');
+            playSong(song, btn);
           });
         });
       }
