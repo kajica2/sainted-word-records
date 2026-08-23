@@ -13,6 +13,8 @@
     { "source": "/about/", "destination": "/about.html" },
     { "source": "/changelog", "destination": "/changelog.html" },
     { "source": "/changelog/", "destination": "/changelog.html" },
+    { "source": "/engine-demos", "destination": "/engine-demos.html" },
+    { "source": "/engine-demos/", "destination": "/engine-demos.html" },
     { "source": "/press", "destination": "/press.html" },
     { "source": "/press/", "destination": "/press.html" },
     { "source": "/status", "destination": "/status.html" },

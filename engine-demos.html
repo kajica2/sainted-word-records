@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Engine demos · Sainted Word Records</title>
+  <meta name="description" content="Every engine preset, with a real-time thumb of each canvas. Click to open the engine and record." />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0610; --bg-2: #100819; --panel: #15091e; --panel-2: #1c0e2a;
+      --ink: #f5e9ff; --ink-2: #d4c5e8; --muted: #8a7aa0;
+      --line: #2a1d3e; --line-2: #3a2854;
+      --accent: #ff2d8a; --accent-2: #00f0ff; --gold: #fff04a; --green: #00ffa3;
+      --font-display: 'Fraunces', serif;
+      --font-body: 'Geist', system-ui, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #faf7f5; --bg-2: #f0e9f5; --panel: #ffffff; --panel-2: #f5eef9;
+        --ink: #1a0e2a; --ink-2: #2d1a3e; --muted: #6a5a80;
+        --line: #e0d4ee; --line-2: #c8b8de;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+      font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+    body { background: radial-gradient(ellipse at top, var(--bg-2), var(--bg) 60%);
+      background-attachment: fixed; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 48px 32px 96px; }
+
+    header.page { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+    header.page h1 { font-family: var(--font-display); font-weight: 400; font-size: 48px;
+      letter-spacing: -0.02em; margin: 0; color: var(--ink); }
+    header.page h1 em { font-style: italic; color: var(--accent); }
+    .crumb { font: 11px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); margin-left: auto; }
+
+    .lead { font: 16px/1.55 var(--font-body); color: var(--ink-2); max-width: 720px;
+      margin: 16px 0 40px; }
+    .lead code, .lead a code { font-family: var(--font-mono); padding: 2px 6px; background: var(--panel-2);
+      border-radius: 3px; font-size: 14px; color: var(--accent-2); }
+    .lead a { color: var(--accent-2); text-decoration: none; }
+    .lead a:hover { color: var(--ink); }
+
+    .filters { display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; }
+    .filters label { font: 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-right: 8px; }
+    .chip { font: 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 8px 14px; border-radius: 999px; background: transparent;
+      border: 1px solid var(--line); color: var(--muted); cursor: pointer;
+      font-family: inherit; transition: 0.15s; }
+    .chip:hover { color: var(--ink); border-color: var(--line-2); }
+    .chip.on { background: var(--accent); border-color: var(--accent); color: white; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px; }
+
+    .demos { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; overflow: hidden; transition: 0.2s;
+      display: flex; flex-direction: column; text-decoration: none; color: inherit; }
+    .demos:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .demos .frame { aspect-ratio: 16/10; background: #000; position: relative; overflow: hidden; }
+
+    /* PNG fallback: clean image at frame aspect */
+    .demos .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .demos .frame .placeholder { position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center; color: var(--muted);
+      font: 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase;
+      pointer-events: none; z-index: 2; }
+    .demos .frame .placeholder.hidden { display: none; }
+
+    .demos .body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .demos .label { font: 10px/1 var(--font-mono); letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--muted); }
+    .demos h3 { font-family: var(--font-display); font-weight: 400;
+      font-size: 28px; letter-spacing: -0.01em; margin: 0; }
+    .demos h3 .v { color: var(--muted); font-size: 16px; margin-left: 6px; font-style: italic; }
+    .demos p.desc { font: 13px/1.5 var(--font-body); color: var(--ink-2); margin: 0; }
+
+    .demos .footer { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; border-top: 1px solid var(--line);
+      font: 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); }
+    .demos .open { color: var(--accent); }
+    .demos:hover .open { color: var(--accent-2); }
+
+    .empty { padding: 64px 0; text-align: center; color: var(--muted);
+      font: 14px/1.5 var(--font-body); }
+    .empty a { color: var(--accent); }
+
+    @media (max-width: 720px) {
+      .container { padding: 32px 16px 64px; }
+      header.page h1 { font-size: 36px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .demos, .chip { transition: none; }
+      .demos:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="page">
+      <h1>Engine <em>demos</em></h1>
+      <div class="crumb">SWR · ALL PRESETS · LIVE</div>
+    </header>
+
+    <p class="lead">
+      One preset per engine — running live in iframes against the curated library + audio.
+      Click any thumb to open the engine in <code>REC</code> mode.
+      Filter by what drew you here. <a href="/versions.html">Or browse all versions →</a>
+    </p>
+
+    <div class="filters" id="filters">
+      <label>Show</label>
+      <button class="chip on" data-filter="all">All · 0</button>
+      <button class="chip" data-filter="preset">FX presets · 0</button>
+      <button class="chip" data-filter="legacy">Earlier builds · 0</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="empty" id="empty" hidden>
+      No engines match this filter.
+    </div>
+  </div>
+
+  <script>
+    /* ---------- Engine metadata ----------
+       `desc` is hand-written for the 6 FX-preset engines and concise for the 7
+       earlier builds. `tint` matches each engine's color identity so the
+       heading reads as "this one". */
+    const ENGINES = [
+      { id: 'film',         v: 'v2', label: 'Warm · grain',       desc: '16mm grain + sepia + warm temperature. Cinematic.',       group: 'preset' },
+      { id: 'grid',         v: 'v3', label: 'Beat-pulse',          desc: 'Cell-snap rotation on every other beat, hard-edge frames.', group: 'preset' },
+      { id: 'smoke',        v: 'v4', label: 'Blur + sepia',        desc: 'Heavy blur on transients, warm sepia overlay.',            group: 'preset' },
+      { id: 'hallucination',v: 'v5', label: 'Lighter + tint',      desc: 'Brighten on energy, flash yellow on beats.',               group: 'preset' },
+      { id: 'eclipse',      v: 'v1', label: 'Diff + blur',         desc: 'Difference blend, moonlit edge softening.',                group: 'preset' },
+      { id: 'neon',         v: 'v1', label: 'Saturated · halo',     desc: 'Bright halos around saturated pixels. Pure nightclub.',    group: 'preset' },
+      { id: 'aurora',       v: 'v1', label: 'Earlier build',       desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
+      { id: 'chrome',       v: 'v1', label: 'Earlier build',       desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
+      { id: 'fractal',      v: 'v1', label: 'Earlier build',       desc: 'Difference blend, no per-page FX preset. Reference.',       group: 'legacy' },
+      { id: 'glitch',       v: 'v1', label: 'Earlier build',       desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
+      { id: 'pulse',        v: 'v1', label: 'Earlier build',       desc: 'Saturated additive light, no per-page FX preset. Reference.', group: 'legacy' },
+      { id: 'void',         v: 'v1', label: 'Earlier build',       desc: 'Same filter chain as chrome. Reference.',                   group: 'legacy' },
+      { id: 'watercolor',   v: 'v1', label: 'Earlier build',       desc: 'Lighter-offset passes, multiply base. Reference.',          group: 'legacy' },
+    ];
+
+    const grid = document.getElementById('grid');
+    const emptyEl = document.getElementById('empty');
+    const filtersEl = document.getElementById('filters');
+
+    /* Per-engine tint: derived from the engine's product identity. Warm gold,
+       magenta, cyan, etc. so the heading reads as "this one." */
+    const TINTS = {
+      film: 'c8a878', grid: 'ff2d8a', smoke: 'ffb3ba',
+      hallucination: 'fff04a', eclipse: 'd4c5e8', neon: '00f0ff',
+      aurora: '8a7aa0', chrome: '8a7aa0', fractal: '8a7aa0',
+      glitch: '8a7aa0', pulse: '8a7aa0', void: '8a7aa0', watercolor: '8a7aa0',
+    };
+
+    function build(engine) {
+      const a = document.createElement('a');
+      a.className = 'demos';
+      a.href = `/versions/${engine.id}.html`;
+      a.dataset.group = engine.group;
+      a.setAttribute('aria-label', `${engine.id} engine ${engine.v}`);
+      a.innerHTML = `
+        <div class="frame">
+          <img data-thumb-src="/verify-screenshots/${engine.id}.png" alt="${engine.id} engine preset thumb" loading="lazy"><div class="placeholder">${engine.id}…</div>
+        </div>
+        <div class="body">
+          <div class="label">${engine.label}</div>
+          <h3 style="color: #${TINTS[engine.id]};">${engine.id.charAt(0).toUpperCase() + engine.id.slice(1)}<span class="v">${engine.v}</span></h3>
+          <p class="desc">${engine.desc}</p>
+        </div>
+        <div class="footer">
+          <span>tap to REC</span>
+          <span class="open">open →</span>
+        </div>`;
+      return a;
+    }
+
+    function visibleEngines(filter) {
+      return ENGINES.filter((e) => filter === 'all' || e.group === filter);
+    }
+
+    function render(filter) {
+      const list = visibleEngines(filter);
+      grid.innerHTML = '';
+      for (const e of list) grid.appendChild(build(e));
+      emptyEl.hidden = list.length > 0;
+    }
+
+    function setFilter(name) {
+      for (const c of filtersEl.querySelectorAll('.chip')) {
+        c.classList.toggle('on', c.dataset.filter === name);
+      }
+      render(name);
+    }
+
+    filtersEl.addEventListener('click', (e) => {
+      const c = e.target.closest('.chip');
+      if (!c) return;
+      setFilter(c.dataset.filter);
+      e.preventDefault();
+    });
+
+    // Boot with 'all' selected
+    setFilter('all');
+
+    // Lazy-load PNGs: set src only when the image enters the viewport.
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        for (const ent of entries) {
+          if (!ent.isIntersecting) continue;
+          const node = ent.target;
+          if (node.tagName === 'IMG') node.src = node.dataset.thumbSrc;
+          // hide the placeholder sibling on intersection
+          const sib = node.parentElement.querySelector('.placeholder');
+          if (sib) sib.classList.add('hidden');
+          io.unobserve(node);
+        }
+      }, { rootMargin: '300px' });
+      // Observe after the grid is populated
+      const obs = () => document.querySelectorAll('.frame img').forEach((n) => io.observe(n));
+      // wrap render() so we re-observe on filter change
+      const origRender = render;
+      window.render = function (f) { origRender(f); obs(); };
+      // call once now since the initial setFilter('all') already ran
+      obs();
+    } else {
+      // very old browsers: just load everything immediately
+      document.querySelectorAll('.frame img').forEach((n) => n.src = n.dataset.thumbSrc);
+    }
+
+    // Update counts in chip labels (count is computable; we update at boot)
+    for (const c of filtersEl.querySelectorAll('.chip')) {
+      const f = c.dataset.filter;
+      const n = visibleEngines(f).length;
+      c.textContent = c.textContent.replace(/\b\d+\b/, n);
+    }
+  </script>
+</body>
+</html>

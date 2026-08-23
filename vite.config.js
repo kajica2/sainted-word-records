@@ -85,6 +85,7 @@ function copyStatic() {
     'about.html',
     'status.html',
     'versions.html',
+    'engine-demos.html',
     'versions.client.js',
     'director-mode-sainted-word.html',
     'intro.html',
