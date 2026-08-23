@@ -1,3 +1,4 @@
+// BUILD_MARKER_v3
 import { defineConfig } from 'vite';
 import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, readFileSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
