@@ -88,14 +88,18 @@ function copyStatic() {
     'intro.html',
   ];
   const dirs = [
-    { src: 'library', dst: 'library' },
+    // Heavy media dirs are excluded to stay under Vercel Hobby's 100MB limit.
+    // The engines handle missing library content gracefully (try/catch on the
+    // manifest fetch); users upload their own media anyway. To restore
+    // preloaded demo content, move these to a CDN or Vercel Blob.
+    //   library/         — ~58MB MP3s/MP4s
+    //   style-graphics/  — ~78MB PNGs
+    //   style-videos/    — ~65MB MP4s
     { src: 'versions', dst: 'versions' },
     { src: 'icons', dst: 'icons' },
     { src: 'presets', dst: 'presets' },
     { src: 'press', dst: 'press' },
     { src: 'legal', dst: 'legal' },
-    { src: 'style-graphics', dst: 'style-graphics' },
-    { src: 'style-videos', dst: 'style-videos' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',
@@ -181,6 +185,11 @@ export default defineConfig(({ command, mode }) => {
       // Vite's emptyOutDir wipes our copyStatic plugin's output. Disable
       // it; the plugin wipes dist/ itself before its buildStart run.
       emptyOutDir: false,
+      // Vite's copyPublicDir re-ships ./public/* into dist, including the
+      // 76MB public/library directory. Disable it so copyStatic is the
+      // single source of truth for what ships — and to stay under the
+      // Vercel Hobby 100MB build-output limit.
+      copyPublicDir: false,
       rollupOptions: {
         input: 'engine.html',
       },

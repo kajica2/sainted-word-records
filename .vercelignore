@@ -7,3 +7,7 @@ node_modules
 verify-*.mjs
 _vinyl-sample/
 versions/*.bak
+# library/ is demo media (~103MB) — Vercel Hobby's 100MB source limit rejects
+# any deploy that includes it. The engines handle a missing manifest gracefully
+# and users upload their own media anyway.
+library/
