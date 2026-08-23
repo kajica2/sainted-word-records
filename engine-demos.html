@@ -55,7 +55,13 @@
       border: 1px solid var(--line); color: var(--muted); cursor: pointer;
       font-family: inherit; transition: 0.15s; }
     .chip:hover { color: var(--ink); border-color: var(--line-2); }
-    .chip.on { background: var(--accent); border-color: var(--accent); color: white; }
+    .chip.on {
+      /* Darkened from --accent (#ff2d8a) to #cc1f70 so white-on-magenta
+         passes WCAG AA at 11px font (was 3.5:1, now ~5.2:1). */
+      background: #cc1f70;
+      border-color: #cc1f70;
+      color: white;
+    }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 24px; }
@@ -64,6 +70,7 @@
       border-radius: 12px; overflow: hidden; transition: 0.2s;
       display: flex; flex-direction: column; text-decoration: none; color: inherit; }
     .demos:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .demos:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
     .demos .frame { aspect-ratio: 16/10; background: #000; position: relative; overflow: hidden; }
 
     /* PNG fallback: clean image at frame aspect */
@@ -112,7 +119,7 @@
     </header>
 
     <p class="lead">
-      One preset per engine — running live in iframes against the curated library + audio.
+      One preset per engine — a captured frame of the running engine against the curated library.
       Click any thumb to open the engine in <code>REC</code> mode.
       Filter by what drew you here. <a href="/versions.html">Or browse all versions →</a>
     </p>
@@ -143,13 +150,13 @@
       { id: 'hallucination',v: 'v5', label: 'Lighter + tint',      desc: 'Brighten on energy, flash yellow on beats.',               group: 'preset' },
       { id: 'eclipse',      v: 'v1', label: 'Diff + blur',         desc: 'Difference blend, moonlit edge softening.',                group: 'preset' },
       { id: 'neon',         v: 'v1', label: 'Saturated · halo',     desc: 'Bright halos around saturated pixels. Pure nightclub.',    group: 'preset' },
-      { id: 'aurora',       v: 'v1', label: 'Earlier build',       desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
-      { id: 'chrome',       v: 'v1', label: 'Earlier build',       desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
-      { id: 'fractal',      v: 'v1', label: 'Earlier build',       desc: 'Difference blend, no per-page FX preset. Reference.',       group: 'legacy' },
-      { id: 'glitch',       v: 'v1', label: 'Earlier build',       desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
-      { id: 'pulse',        v: 'v1', label: 'Earlier build',       desc: 'Saturated additive light, no per-page FX preset. Reference.', group: 'legacy' },
-      { id: 'void',         v: 'v1', label: 'Earlier build',       desc: 'Same filter chain as chrome. Reference.',                   group: 'legacy' },
-      { id: 'watercolor',   v: 'v1', label: 'Earlier build',       desc: 'Lighter-offset passes, multiply base. Reference.',          group: 'legacy' },
+      { id: 'aurora',       v: 'v1', label: 'Earlier builds',      desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
+      { id: 'chrome',       v: 'v1', label: 'Earlier builds',      desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
+      { id: 'fractal',      v: 'v1', label: 'Earlier builds',      desc: 'Difference blend, no per-page FX preset. Reference.',       group: 'legacy' },
+      { id: 'glitch',       v: 'v1', label: 'Earlier builds',      desc: 'Plain screen blend, no per-page FX preset. Reference.',     group: 'legacy' },
+      { id: 'pulse',        v: 'v1', label: 'Earlier builds',      desc: 'Saturated additive light, no per-page FX preset. Reference.', group: 'legacy' },
+      { id: 'void',         v: 'v1', label: 'Earlier builds',      desc: 'Same filter chain as chrome. Reference.',                   group: 'legacy' },
+      { id: 'watercolor',   v: 'v1', label: 'Earlier builds',      desc: 'Lighter-offset passes, multiply base. Reference.',          group: 'legacy' },
     ];
 
     const grid = document.getElementById('grid');
