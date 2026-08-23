@@ -145,6 +145,28 @@ const CHECKS = `(async () => {
   ok('evolve', gens >= 3 && stopped,
      'generations=' + gens + ' autoStopped=' + !running + ' pausedOk=' + stopped);
 
+  // 9. layer card decoration: locks, live mapping matrix, advanced drawer
+  G._restore(base); G.commit();
+  window.SWR.Layers.render();
+  await sleep(120);
+  const card = document.querySelector('#layers .l');
+  const locks = card ? card.querySelectorAll('.lockbtn').length : 0;
+  const maps  = card ? card.querySelectorAll('.mapmx .mapr').length : 0;
+  const adv   = card ? card.querySelectorAll('details.adv input[type=range]').length : 0;
+  ok('layer card', locks >= 5 && maps >= 2 && adv === 2,
+     'locks=' + locks + ' mappingRows=' + maps + ' advSliders=' + adv);
+
+  // 10. mapping matrix is live: changing a destination updates the model
+  const tSel = card && card.querySelector('.mapmx .mapr select:nth-of-type(2)');
+  let liveOk = false;
+  if (tSel) {
+    const l0 = window.SWR.Layers.list[0];
+    tSel.value = 'rot';
+    tSel.dispatchEvent(new Event('change', { bubbles: true }));
+    liveOk = l0.reactors[0].target === 'rot';
+  }
+  ok('mapping is live', liveOk);
+
   return out;
 })()`;
 

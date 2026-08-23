@@ -49,6 +49,8 @@ function copyStatic() {
     'tutorial-30s.html',
     'swr-tutorial-30s.mp4',
     'versions-presets.js',
+    'engine-genops.client.js',
+    'engine-genops.css',
     'audio-analysis-v2.js',
     'swr-intro-10s.html',
     'swr-intro-10s-script.txt',

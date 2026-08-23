@@ -807,6 +807,242 @@
     window.addEventListener(n, renderUI);
   });
 
+  // =========================================================================
+  // Layer card augmentation — per-parameter locks, a live mapping matrix and an
+  // advanced drawer, applied to whatever markup the page's own render() built.
+  //
+  // Pages keep their existing Layers.render(); this decorates the result, so a
+  // page that changes its card markup degrades gracefully instead of breaking.
+  // =========================================================================
+
+  const LOCK_ROWS = { blend: 'blend', opacity: 'opacity', scale: 'scale', hue: 'hue' };
+
+  function layerFor(card, index) {
+    const L = layersObj();
+    if (!L) return null;
+    return L.list[index] || null;
+  }
+
+  function addLock(target, l, field) {
+    if (!l) return;
+    if (!l.locks) l.locks = {};
+    const on = !!l.locks[field];
+    const b = el('button', 'lockbtn' + (on ? ' on' : ''), on ? '☐\ufe0e' : '\u25a1');
+    // Above: a checked box when locked, an empty box when unlocked. Both render
+    // from the page's own font fallback (no emoji needed).
+    b.dataset.glyph = on ? 'locked' : 'unlocked';
+    b.type = 'button';
+    b.title = (l.locks[field] ? 'Unlock' : 'Lock') + ' ' + field +
+              ' — locked parameters survive every generative operation';
+    b.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      toggleLock(l.id, field);
+    });
+    target.appendChild(b);
+  }
+
+  // Replace the static `rms→scale ×0.40` text with real controls.
+  function buildMappingMatrix(l) {
+    const box = el('div', 'mapmx');
+    const rebuild = function () {
+      box.innerHTML = '';
+      l.reactors.forEach(function (r, ri) {
+        const row = el('div', 'mapr');
+
+        const fSel = el('select');
+        FEATURES.forEach(function (f) {
+          const o = el('option', null, f); o.value = f; fSel.appendChild(o);
+        });
+        fSel.value = r.feature;
+        fSel.title = 'Audio feature (source)';
+
+        row.appendChild(fSel);
+        row.appendChild(el('span', 'arrow', '→'));
+
+        const tSel = el('select');
+        TARGETS.forEach(function (t) {
+          const o = el('option', null, t); o.value = t; tSel.appendChild(o);
+        });
+        tSel.value = r.target;
+        tSel.title = 'Parameter (destination)';
+        row.appendChild(tSel);
+
+        const eSel = el('select');
+        EASES.forEach(function (e) {
+          const o = el('option', null, e); o.value = e; eSel.appendChild(o);
+        });
+        eSel.value = r.ease;
+        eSel.title = 'Response curve';
+        row.appendChild(eSel);
+
+        const range = TARGET_RANGE[r.target] || [0, 1];
+        const amt = el('input');
+        amt.type = 'range';
+        amt.min = String(range[0]); amt.max = String(range[1]);
+        amt.step = String((range[1] - range[0]) / 100);
+        amt.value = String(r.scale);
+        amt.title = 'Depth';
+        const amtOut = el('span', 'amt', (+r.scale).toFixed(2));
+        row.appendChild(amt); row.appendChild(amtOut);
+
+        addLock(row, l, 'mappings');
+
+        const kill = el('button', 'lockbtn', '×');
+        kill.type = 'button';
+        kill.title = 'Remove this mapping';
+        kill.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          l.reactors.splice(ri, 1);
+          rebuild();
+        });
+        row.appendChild(kill);
+
+        fSel.addEventListener('change', function () { r.feature = fSel.value; });
+        tSel.addEventListener('change', function () {
+          r.target = tSel.value;
+          const nr = TARGET_RANGE[r.target] || [0, 1];
+          amt.min = String(nr[0]); amt.max = String(nr[1]);
+          amt.step = String((nr[1] - nr[0]) / 100);
+          r.scale = Math.max(nr[0], Math.min(nr[1], r.scale));
+          amt.value = String(r.scale);
+          amtOut.textContent = (+r.scale).toFixed(2);
+        });
+        eSel.addEventListener('change', function () { r.ease = eSel.value; });
+        amt.addEventListener('input', function () {
+          r.scale = +amt.value;
+          amtOut.textContent = (+r.scale).toFixed(2);
+        });
+
+        box.appendChild(row);
+      });
+
+      if (l.reactors.length < 4) {
+        const add = el('button', 'mapadd', '+ mapping');
+        add.type = 'button';
+        add.title = 'Add another audio → parameter mapping';
+        add.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          l.reactors.push(newReactor());
+          rebuild();
+        });
+        box.appendChild(add);
+      }
+    };
+    rebuild();
+    return box;
+  }
+
+  // brightness/contrast already exist in the model and in applyR(); expose them
+  // so the visible parameter set matches what randomization can touch.
+  function buildAdvanced(l) {
+    const d = el('details', 'adv');
+    d.appendChild(el('summary', null, 'advanced'));
+    [['brightness', VISUAL_RANGE.brightness], ['contrast', VISUAL_RANGE.contrast]]
+      .forEach(function (spec) {
+        const key = spec[0], range = spec[1];
+        const row = el('div', 'r');
+        row.appendChild(el('label', null, key));
+        const inp = el('input');
+        inp.type = 'range';
+        inp.min = String(range[0]); inp.max = String(range[1]); inp.step = '0.01';
+        inp.value = String(l[key] == null ? 1 : l[key]);
+        inp.addEventListener('input', function () { l[key] = +inp.value; });
+        row.appendChild(inp);
+        d.appendChild(row);
+      });
+    return d;
+  }
+
+  function decorateCards() {
+    const L = layersObj();
+    const host = document.getElementById('layers');
+    if (!L || !host) return;
+    const cards = host.querySelectorAll('.l');
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      if (card.dataset.genops === '1') continue;
+      const l = layerFor(card, i);
+      if (!l) continue;
+      card.dataset.genops = '1';
+      if (!l.locks) l.locks = {};
+
+      // asset lock in the header, next to the name
+      const head = card.querySelector('.lh');
+      if (head) {
+        const x = head.querySelector('.x');
+        const holder = el('span');
+        addLock(holder, l, 'asset');
+        if (x) head.insertBefore(holder.firstChild, x); else head.appendChild(holder.firstChild);
+      }
+
+      // one lock per parameter row, keyed off the row's label text
+      const rows = card.querySelectorAll('.r');
+      for (const row of rows) {
+        const lab = row.querySelector('label');
+        if (!lab) continue;
+        const field = LOCK_ROWS[lab.textContent.trim()];
+        if (field) addLock(row, l, field);
+      }
+
+      // live mapping matrix replaces the static react text
+      const react = card.querySelector('.react');
+      if (react) {
+        react.textContent = '';
+        react.appendChild(buildMappingMatrix(l));
+      } else {
+        card.appendChild(buildMappingMatrix(l));
+      }
+
+      // advanced drawer
+      card.appendChild(buildAdvanced(l));
+
+      // route the page's per-layer dice through genops so it lands in history
+      const rnd = card.querySelector('.rnd');
+      if (rnd && !rnd.dataset.genops) {
+        rnd.dataset.genops = '1';
+        const clone = rnd.cloneNode(true);   // drop the page's own handler
+        rnd.parentNode.replaceChild(clone, rnd);
+        clone.title = "Randomize this layer only (scoped Randomize — undoable)";
+        clone.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          const prevScope = state.scope;
+          const prevSel = L.sel;
+          L.sel = l;
+          setScope('selected');
+          randomize();
+          setScope(prevScope);
+          L.sel = prevSel;
+          clone.classList.add('flash');
+          setTimeout(function () { clone.classList.remove('flash'); }, 220);
+        });
+      }
+    }
+  }
+
+  // Wrap the page's Layers.render() so cards are decorated after every rebuild.
+  function hookRender() {
+    const L = layersObj();
+    if (!L || typeof L.render !== 'function' || L.render.__genops) return false;
+    const orig = L.render.bind(L);
+    const wrapped = function () {
+      const r = orig.apply(null, arguments);
+      try { decorateCards(); } catch (e) { /* never break the page's render */ }
+      return r;
+    };
+    wrapped.__genops = true;
+    L.render = wrapped;
+    if (L.list && L.list.length) L.render();
+    return true;
+  }
+
+  // The pages define window.SWR at the end of their IIFE, and the library loads
+  // asynchronously, so poll briefly rather than assuming it exists at load.
+  let hookTries = 0;
+  const hookTimer = setInterval(function () {
+    hookTries += 1;
+    if (hookRender() || hookTries > 60) clearInterval(hookTimer);
+  }, 100);
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mountUI);
   } else {
@@ -814,4 +1050,6 @@
   }
   window.SWR_GENOPS.mountUI = mountUI;
   window.SWR_GENOPS.renderUI = renderUI;
+  window.SWR_GENOPS.decorateCards = decorateCards;
+  window.SWR_GENOPS.hookRender = hookRender;
 })();
