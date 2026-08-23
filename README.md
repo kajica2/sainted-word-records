@@ -144,3 +144,4 @@ MIT — see [LICENSE](./LICENSE).
 ## Author
 
 **Kai Djuric** · [@kai-djuric](https://github.com/kai-djuric) · kai [at] saintedwordrecords [dot] com
+
