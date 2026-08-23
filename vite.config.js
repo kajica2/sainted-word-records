@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, readFileSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 
 function copyDirRecursive(src, dst) {
@@ -19,34 +19,102 @@ function copyDirRecursive(src, dst) {
 }
 
 // Vite plugin: copy ./library/*, ./versions/*, and the GitHub project files
-// to the Vite-resolved outDir. Files are copied in `buildStart` (BEFORE Vite
-// emits its own output) so that Vercel's build snapshot, which is taken
-// right after Vite finishes, includes everything in dist/.
+// to the Vite-resolved outDir.
+//
+// Two-phase copy strategy:
+//   1) buildStart — wipe outDir, then copy our root-level + dir-tree files
+//      in BEFORE Vite emits its own output (so emptyOutDir: false doesn't
+//      wipe them mid-build).
+//   2) closeBundle — Vite copies ./public/* into outDir as part of
+//      `copyPublicDir` (default: true), which OVERWRITES any of our files
+//      that have a stale counterpart in ./public/. We re-copy from the
+//      project root so the canonical (fresh) source wins.
 //
 // The outDir must be read from `configResolved` because Vercel's Vite
 // preset may rewrite it to `.vercel/output/static/` and ignore any hardcoded
 // value passed at plugin-construction time.
 function copyStatic() {
   let outDir = 'dist';
+  const rootFiles = [
+    'landing.html', 'interactive-howto.html', 'market-study.html',
+    'profit-plan.html', 'campaign.html', 'personas.html',
+    'landing-personas-v1-editorial.html',
+    'landing-personas-v2-dark.html',
+    'landing-personas-v3-friendly.html',
+    'landing-personas-v4-dashboard.html',
+    'landing-personas-v5-brutalist.html',
+    'landing-personas-v6-wireframe.html',
+    'personas.json',
+    'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png',
+    'tutorial-30s.html',
+    'swr-tutorial-30s.mp4',
+    'versions-presets.js',
+    'audio-analysis-v2.js',
+    'swr-intro-10s.html',
+    'swr-intro-10s-script.txt',
+    'swr-intro-10s.mp4',
+    'swr-intro-10s-voice.mp4',
+    'thanks.html',
+    'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
+    'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
+    'watermark-monogram.svg',
+    'video-fx.css',
+    'login.html',
+    'brandkit.css',
+    'brandkit.client.js',
+    'manifest.webmanifest',
+    'sw.js',
+    'pwa-bootstrap.js',
+    'offline.html',
+    'pt.client.js',
+    'pt-panel.client.js',
+    'presets.client.js',
+    'presets-evolve.client.js',
+    'presets-panel.client.js',
+    'presets-panel.css',
+    'persona-preview.client.js',
+    'favicon.ico',
+    'apple-touch-icon.png',
+    '404.html',
+    'changelog.html',
+    'press.html',
+    'about.html',
+    'status.html',
+    'versions.html',
+    'versions.client.js',
+    'director-mode-sainted-word.html',
+    'intro.html',
+  ];
+  const dirs = [
+    { src: 'library', dst: 'library' },
+    { src: 'versions', dst: 'versions' },
+    { src: 'icons', dst: 'icons' },
+    { src: 'presets', dst: 'presets' },
+    { src: 'press', dst: 'press' },
+    { src: 'legal', dst: 'legal' },
+    { src: 'style-graphics', dst: 'style-graphics' },
+    { src: 'style-videos', dst: 'style-videos' },
+  ];
+  // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
+  const styleThumbs = ['neon','film','grid','smoke','hallucination',
+                       'glitch','aurora','pulse','void','chrome','watercolor','fractal',
+                       'eclipse'].map((n) => ({
+    src: resolve('verify-screenshots', n + '.png'),
+    dst: resolve(outDir, 'verify-screenshots', n + '.png'),
+  }));
   function doCopy() {
     const log = (m) => process.stdout.write('[copy-static] ' + m + '\n');
     log('outDir = ' + outDir);
-    const dirs = [
-      { src: resolve('library'), dst: resolve(outDir, 'library') },
-      { src: resolve('versions'), dst: resolve(outDir, 'versions') },
-      { src: resolve('icons'), dst: resolve(outDir, 'icons') },
-      { src: resolve('presets'), dst: resolve(outDir, 'presets') },
-      { src: resolve('press'), dst: resolve(outDir, 'press') },
-      { src: resolve('legal'), dst: resolve(outDir, 'legal') },
-    ];
-    // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
-    const styleThumbs = ['neon','film','grid','smoke','hallucination',
-                         'glitch','aurora','pulse','void','chrome','watercolor','fractal',
-                         'eclipse'].map((n) => ({
-      src: resolve('verify-screenshots', n + '.png'),
-      dst: resolve(outDir, 'verify-screenshots', n + '.png'),
-    }));
-    for (const { src, dst } of [...dirs, ...styleThumbs]) {
+    // If library/ doesn't exist on disk, the build is running in CI without
+    // demo assets. The prebuild step (scripts/fetch-library.mjs) should have
+    // already downloaded it from Vercel Blob. If we get here without it, the
+    // engine will still build — just with no bundled library. Log loudly.
+    if (!existsSync(resolve('library'))) {
+      log('WARNING: ./library not present — engine will ship without demo assets.');
+      log('  Local dev: this is fine (engine has no library to demo).');
+      log('  Production: prebuild should have fetched it from LIBRARY_BLOB_URL.');
+    }
+    for (const { src, dst } of dirs.map((d) => ({ src: resolve(d.src), dst: resolve(outDir, d.dst) }))) {
       if (!existsSync(src)) continue;
       if (statSync(src).isDirectory()) {
         copyDirRecursive(src, dst);
@@ -55,54 +123,11 @@ function copyStatic() {
         copyFileSync(src, dst);
       }
     }
-    // Copy root-level project files
-    const rootFiles = [
-      'landing.html', 'interactive-howto.html', 'market-study.html',
-      'profit-plan.html', 'campaign.html', 'personas.html',
-      'landing-personas-v1-editorial.html',
-      'landing-personas-v2-dark.html',
-      'landing-personas-v3-friendly.html',
-      'landing-personas-v4-dashboard.html',
-      'landing-personas-v5-brutalist.html',
-      'personas.json',
-      'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png',
-      'tutorial-30s.html',
-      'swr-tutorial-30s.mp4',
-      'versions-presets.js',
-      'audio-analysis-v2.js',
-      'swr-intro-10s.html',
-      'swr-intro-10s-script.txt',
-      'swr-intro-10s.mp4',
-      'swr-intro-10s-voice.mp4',
-      'thanks.html',
-      'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
-      'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
-      'watermark-monogram.svg',
-      'video-fx.css',
-      'login.html',
-      'brandkit.css',
-      'brandkit.client.js',
-      'manifest.webmanifest',
-      'sw.js',
-      'pwa-bootstrap.js',
-      'offline.html',
-      'pt.client.js',
-      'pt-panel.client.js',
-      'presets.client.js',
-      'presets-evolve.client.js',
-      'presets-panel.client.js',
-      'presets-panel.css',
-      'persona-preview.client.js',
-      'favicon.ico',
-      'apple-touch-icon.png',
-      '404.html',
-      'changelog.html',
-      'press.html',
-      'about.html',
-      'status.html',
-      'versions.html',
-      'versions.client.js',
-      ];
+    for (const { src, dst } of styleThumbs) {
+      if (!existsSync(src)) continue;
+      mkdirSync(dirname(dst), { recursive: true });
+      copyFileSync(src, dst);
+    }
     for (const f of rootFiles) {
       const sp = resolve(f);
       if (!existsSync(sp)) continue;
@@ -127,10 +152,13 @@ function copyStatic() {
       doCopy();
     },
     closeBundle() {
-      // No-op: the engine now lives at /engine/ (vercel.json rewrite) and
-      // its source file is engine.html. We do NOT create an index.html.
-      // (Previously this hook copied index_app.html → index.html, but that
-      // made / serve the engine instead of the splash landing page.)
+      // After Vite finishes — including the copyPublicDir phase that
+      // copies ./public/* → outDir — re-copy the canonical root files
+      // so a stale ./public/<name>.html cannot overwrite a fresh one
+      // at the project root. (Vite's public-dir copy is unguarded and
+      // will silently shadow our freshly-copied files if a same-named
+      // file exists in public/.)
+      doCopy();
     },
   };
 }

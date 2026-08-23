@@ -6,8 +6,11 @@
   "description": "Algorithmic audio-reactive video engine. Drop in a song, drop in a library of videos / GIFs / images, get a reactive layered composition.",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/fetch-library.mjs",
     "build": "vite build",
-    "preview": "vite preview --port 4173"
+    "build:vercel": "node scripts/fetch-library.mjs && vite build",
+    "preview": "vite preview --port 4173",
+    "upload:library": "node scripts/upload-library.mjs"
   },
   "devDependencies": {
     "vite": "^5.4.10"

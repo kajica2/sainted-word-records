@@ -1,5 +1,7 @@
 node_modules
 dist
+dist-dev
+library
 .DS_Store
 .vite
 *.log
