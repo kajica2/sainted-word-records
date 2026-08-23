@@ -474,39 +474,29 @@
     }
     function drawFx() {
 
-      // Watercolor: offset passes simulate soft bleed. The pre-computed
-      // `proc` canvas is empty unless we snapshot the current frame into
-      // it first — without this, the multiply offset passes and the
-      // gradient overlay multiply against an empty proc and the canvas
-      // stays black. Snapshot the current frame (which has the freshly
-      // drawn layers) into proc, then run the offset passes with light
-      // alpha so the layers stay visible.
-      if (proc.width !== stage.width || proc.height !== stage.height) {
-        proc.width = stage.width; proc.height = stage.height;
-      }
-      pcx.setTransform(1, 0, 0, 1, 0, 0);
-      pcx.globalCompositeOperation = 'source-over';
-      pcx.globalAlpha = 1;
-      pcx.drawImage(stage, 0, 0);
-
-      // Offset passes with light alpha so the watercolor feel is preserved
-      // without darkening the layers to black.
+      // Watercolor: gentle offset passes simulate soft bleed. The original
+      // design used a pre-computed `proc` canvas and multiply passes against
+      // it, but `multiply` against any dark content darkens further — every
+      // layer drew to a near-black canvas. Use the main ctx directly with
+      // `lighter` (additive) blends at low alpha so the layers stay vivid
+      // and the offset gives a soft watercolor glow instead of darkening.
+      const w = stage.width, h = stage.height;
       ctx.save();
-      ctx.globalCompositeOperation = 'multiply';
-      ctx.globalAlpha = 0.20;
-      ctx.drawImage(proc, -3, -2);
-      ctx.globalAlpha = 0.15;
-      ctx.drawImage(proc, 3, 2);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.18;
+      ctx.drawImage(stage, -3, -2);
       ctx.globalAlpha = 0.12;
-      ctx.drawImage(proc, 0, 0);
+      ctx.drawImage(stage, 3, 2);
+      ctx.globalAlpha = 0.10;
+      ctx.drawImage(stage, 0, 0);
       ctx.restore();
 
-      // Soft pastel overlay (cream + rose wash) — switched from multiply to
-      // soft-light so it tints the layers rather than darkening them.
+      // Soft pastel overlay (cream + rose wash) — soft-light tints without
+      // darkening. Alpha 0.12 keeps the layers visible underneath.
       const grad = ctx.createLinearGradient(0, 0, W, H);
-      grad.addColorStop(0, 'rgba(244,194,194,0.20)');
-      grad.addColorStop(0.5, 'rgba(184,212,184,0.12)');
-      grad.addColorStop(1, 'rgba(176,196,222,0.20)');
+      grad.addColorStop(0, 'rgba(244,194,194,0.12)');
+      grad.addColorStop(0.5, 'rgba(184,212,184,0.08)');
+      grad.addColorStop(1, 'rgba(176,196,222,0.12)');
       ctx.save();
       ctx.globalCompositeOperation = 'soft-light';
       ctx.fillStyle = grad;
