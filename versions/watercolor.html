@@ -207,7 +207,8 @@
         this.time = new Uint8Array(this.an.fftSize);
         this.gain = this.ctx.createGain(); this.gain.gain.value = 1;
         this.an.connect(this.gain); this.gain.connect(this.ctx.destination);
-        setStatus('ready', 'ok'); },
+        
+      setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
         if (this.el) { this.el.pause(); this.el.src=''; }
         this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
@@ -473,18 +474,35 @@
     }
     function drawFx() {
 
-      // Watercolor: offset passes simulate soft bleed
+      // Watercolor: offset passes simulate soft bleed. The pre-computed
+      // `proc` canvas is empty unless we snapshot the current frame into
+      // it first — without this, the multiply offset passes and the
+      // gradient overlay multiply against an empty proc and the canvas
+      // stays black. Snapshot the current frame (which has the freshly
+      // drawn layers) into proc, then run the offset passes with light
+      // alpha so the layers stay visible.
+      if (proc.width !== stage.width || proc.height !== stage.height) {
+        proc.width = stage.width; proc.height = stage.height;
+      }
+      pcx.setTransform(1, 0, 0, 1, 0, 0);
+      pcx.globalCompositeOperation = 'source-over';
+      pcx.globalAlpha = 1;
+      pcx.drawImage(stage, 0, 0);
+
+      // Offset passes with light alpha so the watercolor feel is preserved
+      // without darkening the layers to black.
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
-      ctx.globalAlpha = 0.55;
+      ctx.globalAlpha = 0.20;
       ctx.drawImage(proc, -3, -2);
-      ctx.globalAlpha = 0.40;
+      ctx.globalAlpha = 0.15;
       ctx.drawImage(proc, 3, 2);
-      ctx.globalAlpha = 0.30;
+      ctx.globalAlpha = 0.12;
       ctx.drawImage(proc, 0, 0);
       ctx.restore();
 
-      // Soft pastel overlay (cream + rose wash)
+      // Soft pastel overlay (cream + rose wash) — switched from multiply to
+      // soft-light so it tints the layers rather than darkening them.
       const grad = ctx.createLinearGradient(0, 0, W, H);
       grad.addColorStop(0, 'rgba(244,194,194,0.20)');
       grad.addColorStop(0.5, 'rgba(184,212,184,0.12)');
@@ -576,6 +594,15 @@
           setTimeout(() => Layers.remap(), 500);
         }
       } catch (e) { console.warn('no library', e); }
+      // === Auto-load default audio ===
+      try {
+        const ar = await fetch('../audios/watercolor.mp3', { cache: 'no-cache' });
+        if (ar.ok) {
+          const ab = await ar.blob();
+          const af = new File([ab], 'watercolor.mp3', { type: ab.type || 'audio/mpeg' });
+          if (A && typeof A.load === 'function') A.load(af);
+        }
+      } catch (e) {}
       setStatus('ready', 'ok');
     })();
     // === RECORDER (MP4 export) ===

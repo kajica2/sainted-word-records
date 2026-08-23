@@ -186,7 +186,8 @@
         this.time = new Uint8Array(this.an.fftSize);
         this.gain = this.ctx.createGain(); this.gain.gain.value = 1;
         this.an.connect(this.gain); this.gain.connect(this.ctx.destination);
-        setStatus('ready', 'ok'); },
+        
+      setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
         if (this.el) { this.el.pause(); this.el.src=''; }
         this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
@@ -533,6 +534,15 @@
           setTimeout(() => Layers.remap(), 500);
         }
       } catch (e) { console.warn('no library', e); }
+      // === Auto-load default audio ===
+      try {
+        const ar = await fetch('../audios/neon.mp3', { cache: 'no-cache' });
+        if (ar.ok) {
+          const ab = await ar.blob();
+          const af = new File([ab], 'neon.mp3', { type: ab.type || 'audio/mpeg' });
+          if (A && typeof A.load === 'function') A.load(af);
+        }
+      } catch (e) {}
       setStatus('ready', 'ok');
     })();
     // === RECORDER (MP4 export) ===

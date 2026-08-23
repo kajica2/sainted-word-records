@@ -195,4 +195,61 @@
     setActiveSet(ids) { state.activeSet = new Set(ids || []); },
     setActiveBudget(n) { state.activeBudget = Math.max(0, Math.min(8, n | 0)); },
   };
+
+  // Install a ResizeObserver on the engine's stage canvas as soon as the
+  // page exposes it. Every observed size change dispatches a window 'resize'
+  // event, which each engine's existing `window.addEventListener('resize',
+  // fit)` handler picks up. This recovers engines whose top-level fit()
+  // ran with clientWidth=0 because CSS hadn't laid out yet (grid, smoke,
+  // watercolor in the headless test) — they cache W=0/H=0 and never
+  // re-fit without this. The observer is attached from script load, before
+  // the page's IIFE runs, so the very first post-stylesheet pass triggers
+  // the resize.
+  function attachEngineResizeObserver() {
+    if (typeof ResizeObserver === 'undefined') return;
+    const tryAttach = () => {
+      const swr = window.SWR;
+      const stage = swr && swr.stage;
+      if (!stage) return false;
+      // Dispatch a resize when the canvas's CSS box changes; this triggers
+      // each engine's `window.addEventListener('resize', fit)` listener.
+      // We also call SWR_RENDER.fit directly in case the page didn't
+      // expose the fit listener to window.
+      let lastW = stage.clientWidth, lastH = stage.clientHeight;
+      const ro = new ResizeObserver(() => {
+        if (stage.clientWidth !== lastW || stage.clientHeight !== lastH) {
+          lastW = stage.clientWidth; lastH = stage.clientHeight;
+          state.dirty = true;
+          try { window.SWR_RENDER.fit(stage); } catch (_) {}
+          window.dispatchEvent(new Event('resize'));
+        }
+      });
+      ro.observe(stage);
+      // Some engines' first fit() runs while CSS hasn't laid out yet
+      // (clientWidth=0). The ResizeObserver catches the eventual change
+      // to the real size, but a few frames may have rendered with W=0.
+      // Force a re-fit + resize event after one frame so the engine
+      // picks up the real dimensions immediately, even if the observer's
+      // initial measurement is unchanged.
+      requestAnimationFrame(() => {
+        if (stage.clientWidth > 0) {
+          state.dirty = true;
+          try { window.SWR_RENDER.fit(stage); } catch (_) {}
+          window.dispatchEvent(new Event('resize'));
+        }
+      });
+      return true;
+    };
+    // Poll briefly until SWR.stage exists, then attach once.
+    let tries = 0;
+    const id = setInterval(() => {
+      tries += 1;
+      if (tryAttach() || tries > 60) clearInterval(id);
+    }, 100);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachEngineResizeObserver);
+  } else {
+    attachEngineResizeObserver();
+  }
 })();

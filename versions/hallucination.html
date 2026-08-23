@@ -522,6 +522,16 @@
           setTimeout(() => Layers.remap(), 600);
         }
       } catch (e) {}
+      
+      // === Auto-load default audio ===
+      try {
+        const ar = await fetch('../audios/hallucination.mp3', { cache: 'no-cache' });
+        if (ar.ok) {
+          const ab = await ar.blob();
+          const af = new File([ab], 'hallucination.mp3', { type: ab.type || 'audio/mpeg' });
+          if (A && typeof A.load === 'function') A.load(af);
+        }
+      } catch (e) {}
       setStatus('READY', 'ok');
     })();
     // === RECORDER (MP4 export) ===

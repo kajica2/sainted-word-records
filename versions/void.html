@@ -207,7 +207,8 @@
         this.time = new Uint8Array(this.an.fftSize);
         this.gain = this.ctx.createGain(); this.gain.gain.value = 1;
         this.an.connect(this.gain); this.gain.connect(this.ctx.destination);
-        setStatus('ready', 'ok'); },
+        
+      setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
         if (this.el) { this.el.pause(); this.el.src=''; }
         this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
@@ -473,9 +474,15 @@
     }
     function drawFx() {
 
-      // Deep black underlay (forces void baseline)
-      ctx.fillStyle = '#000';
+      // Soft baseline — the void look is "near black, not absolute black".
+      // We multiply by a small alpha (so layer content stays visible) instead
+      // of fully wiping the canvas. Without this every layer drew a vivid
+      // image that was immediately erased before the user could see it.
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.55 + 0.45 * (1 - Math.min(1, A.feat.rms * 4))})`;
       ctx.fillRect(0, 0, W, H);
+      ctx.restore();
 
       // Particle trail field — motion-driven dots fading in/out
       ctx.save();
@@ -496,10 +503,12 @@
       }
       ctx.restore();
 
-      // Vignette to deepen edges
+      // Vignette to deepen edges — gentler at idle so layer content stays
+      // visible, deeper when audio is loud.
+      const vig = 0.55 + 0.30 * Math.min(1, A.feat.rms * 4);
       const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.15, W/2, H/2, Math.max(W,H)*0.75);
       vg.addColorStop(0, 'rgba(0,0,0,0)');
-      vg.addColorStop(1, 'rgba(0,0,0,0.85)');
+      vg.addColorStop(1, 'rgba(0,0,0,' + vig + ')');
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
       ctx.fillStyle = vg;
@@ -575,6 +584,15 @@
           setTimeout(() => Layers.remap(), 500);
         }
       } catch (e) { console.warn('no library', e); }
+      // === Auto-load default audio ===
+      try {
+        const ar = await fetch('../audios/void.mp3', { cache: 'no-cache' });
+        if (ar.ok) {
+          const ab = await ar.blob();
+          const af = new File([ab], 'void.mp3', { type: ab.type || 'audio/mpeg' });
+          if (A && typeof A.load === 'function') A.load(af);
+        }
+      } catch (e) {}
       setStatus('ready', 'ok');
     })();
     // === RECORDER (MP4 export) ===

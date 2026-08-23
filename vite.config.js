@@ -110,6 +110,10 @@ function copyStatic() {
     { src: 'presets', dst: 'presets' },
     { src: 'press', dst: 'press' },
     { src: 'legal', dst: 'legal' },
+    // audios/ ships per-engine demo MP3s (one ~250KB file per engine,
+    // ~4 MB total). Each engine auto-loads ../audios/<engine>.mp3 as the
+    // default audio source so the reactivity has something to drive.
+    { src: 'audios', dst: 'audios' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',

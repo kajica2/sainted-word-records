@@ -182,7 +182,8 @@
         this.time = new Uint8Array(this.an.fftSize);
         this.gain = this.ctx.createGain(); this.gain.gain.value = 1;
         this.an.connect(this.gain); this.gain.connect(this.ctx.destination);
-        setStatus('ready', 'ok'); },
+        
+      setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
         if (this.el) { this.el.pause(); this.el.src=''; }
         this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
@@ -571,6 +572,15 @@
           const blobs = await Promise.all((m.files||[]).map(async f => { const fr=await fetch('../library/'+f); return await fr.blob(); }));
           await Lib.addFiles(blobs.map((b,i) => new File([b], m.files[i], { type: b.type })));
           setTimeout(() => Layers.remap(), 600);
+        }
+      } catch (e) {}
+      // === Auto-load default audio ===
+      try {
+        const ar = await fetch('../audios/eclipse.mp3', { cache: 'no-cache' });
+        if (ar.ok) {
+          const ab = await ar.blob();
+          const af = new File([ab], 'eclipse.mp3', { type: ab.type || 'audio/mpeg' });
+          if (A && typeof A.load === 'function') A.load(af);
         }
       } catch (e) {}
       setStatus('READY', 'ok');
