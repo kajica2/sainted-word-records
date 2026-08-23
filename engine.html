@@ -848,6 +848,12 @@
       <span class="pill" id="key-pill">— key</span>
       <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
       <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
+      <select id="rec-size" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Export size preset — re-fits the canvas to the chosen aspect ratio at full quality before recording">
+        <option value="landscape" selected>YouTube · 1920×1080</option>
+        <option value="square">Square · 1080×1080</option>
+        <option value="portrait">Instagram · 1080×1350</option>
+        <option value="reel">Reel / TikTok · 1080×1920</option>
+      </select>
       <select id="rec-dur" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
         <option value="10">10s</option>
@@ -862,8 +868,8 @@
         <option value="b">Sainted Word wordmark</option>
         <option value="c">icon + SWR</option>
       </select>
-      <button class="tbtn danger" id="rec" disabled title="Start / stop recording (export to WebM)">● REC</button>
-      <button class="tbtn primary" id="export-video" disabled title="Start a 30s recording and download the WebM" style="background:var(--accent-2);border-color:var(--accent-2);color:#000;">🎬 Export video</button>
+      <button class="tbtn danger" id="rec" disabled title="Start / stop recording (export to MP4 or WebM depending on browser). Loads a song for audio-reactive capture, or records video-only. Uses the size preset chosen in the dropdown next to REC.">● REC</button>
+      <button class="tbtn primary" id="export-video" disabled title="Start a 30s recording and download the file. Uses the size preset chosen in the dropdown next to REC. Records video-only if no song is loaded." style="background:var(--accent-2);border-color:var(--accent-2);color:#000;">🎬 Export video</button>
       <a class="tbtn ghost" id="last-video" hidden style="text-decoration:none;padding:4px 10px;font-size:9px;">↓ last video</a>
     </header>
 
@@ -2372,6 +2378,35 @@
         this.proc.width = stageCanvas.width;
         this.proc.height = stageCanvas.height;
       },
+      // Resize the stage + FX output canvas to a target width × height.
+      // Used by the size-preset recorder (Square / Reel / YouTube / TikTok)
+      // so the exported MP4 matches the chosen aspect ratio at full quality
+      // — independent of the on-screen viewport. The FX canvas (outputCanvas)
+      // is matched next, since the recorder captures from it.
+      // Returns the actual {width, height} used (clamped to sane bounds).
+      fitToSize(w, h) {
+        // Clamp to sane recording bounds. Below 360 wide is illegible; above
+        // 4K is wasted (8 Mbps target bitrate looks like garbage at 2160p).
+        const minW = 360, maxW = 3840, minH = 360, maxH = 2160;
+        const aw = Math.min(maxW, Math.max(minW, Math.round(w)));
+        const ah = Math.min(maxH, Math.max(minH, Math.round(h)));
+        stageCanvas.width = aw;
+        stageCanvas.height = ah;
+        this.proc.width = aw;
+        this.proc.height = ah;
+        // Sync the FX overlay canvas (#fx-canvas) so the captureStream
+        // picks up the new size. The fx-postprocess module resizes it via
+        // a ResizeObserver tied to #render, but we resize it explicitly too
+        // so the next captured frame is the right size.
+        try {
+          const fx = (window.FX && window.FX.outputCanvas) || document.getElementById('fx-canvas');
+          if (fx) { fx.width = aw; fx.height = ah; }
+        } catch (e) {}
+        // One synchronous redraw so captureStream sees the new frame.
+        // The renderer's main rAF loop will keep updating after this.
+        try { this.draw && this.draw(); } catch (e) {}
+        return { width: aw, height: ah };
+      },
       getFeature(react) {
         const s = this.smooth;
         const raw = Audio.feat[react.feature] ?? 0;
@@ -2798,6 +2833,37 @@
     };
 
     // ======================================================================
+    // SIZE PRESETS — exported video dimensions
+    // ======================================================================
+    // 4 presets covering the platforms musicians actually post to. The
+    // engine re-fits the stage + FX canvas to the preset on record start,
+    // so the exported MP4 actually matches the chosen aspect ratio at
+    // full quality (was: capture whatever size fit() last set, which
+    // depended on the browser window).
+    //
+    // Why these specific resolutions:
+    //   - YouTube 16:9: 1920×1080 is the canonical "1080p" target. YouTube
+    //     accepts anything but encodes best at multiples of 1080. 1920 is
+    //     also the max for the on-screen viewport in this engine.
+    //   - Square 1:1: 1080×1080 — Instagram feed, also a nice preview
+    //     size that works on every platform.
+    //   - Reel/TikTok 9:16: 1080×1920 — both platforms use the same
+    //     dimensions. Single preset covers both, with a label that hints
+    //     at the target. 1920 is the height the user sees on a phone.
+    //   - Instagram 4:5: 1080×1350 — IG's preferred portrait/feed aspect
+    //     (max that doesn't get cropped to 1:1 in the feed).
+    window.SIZE_PRESETS = {
+      landscape: { w: 1920, h: 1080, label: 'YouTube 16:9' },
+      square:    { w: 1080, h: 1080, label: 'Square 1:1' },
+      portrait:  { w: 1080, h: 1350, label: 'Instagram 4:5' },
+      reel:      { w: 1080, h: 1920, label: 'Reel / TikTok 9:16' },
+    };
+    // Aliases so the UI can use either name.
+    window.SIZE_PRESETS.youtube = window.SIZE_PRESETS.landscape;
+    window.SIZE_PRESETS.instagram = window.SIZE_PRESETS.portrait;
+    window.SIZE_PRESETS.tiktok = window.SIZE_PRESETS.reel;
+
+    // ======================================================================
     // RECORDER
     // ======================================================================
     const Recorder = {
@@ -2877,6 +2943,24 @@
         }
         this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
         const fps = 30;
+
+        // ---- SIZE PRESET: re-fit the canvas to the chosen export resolution
+        // so the recorded MP4/WebM actually matches the chosen aspect ratio
+        // (was previously: capture whatever size fit() last set, which
+        // depended on the browser window — exported files were often
+        // stretched or at the wrong aspect ratio). The on-screen view
+        // visibly resizes for the duration of recording, then we restore
+        // it on stop.
+        const sizeKey = $('rec-size') ? $('rec-size').value : 'landscape';
+        const preset = (window.SIZE_PRESETS && window.SIZE_PRESETS[sizeKey]) || window.SIZE_PRESETS.landscape;
+        const prevSize = { w: stageCanvas.width, h: stageCanvas.height };
+        const newSize = Renderer.fitToSize(preset.w, preset.h);
+        // Stash so stop() can restore the on-screen size
+        this._prevCanvasSize = prevSize;
+        this._exportSize = newSize;
+        this._sizeLabel = preset.label;
+        this._sizeKey = sizeKey;
+
         // Capture from FX canvas if present (it includes temperature/mutations/GLSL),
         // otherwise fall back to the raw 2D stage.
         const captureCanvas = (window.FX && window.FX.outputCanvas) || stageCanvas;
@@ -2889,17 +2973,35 @@
         const astream = dest.stream;
         const tracks = [...vstream.getVideoTracks(), ...astream.getAudioTracks()];
         const stream = new MediaStream(tracks);
-        // Pick the best supported codec. Note: 'video/mp4' is rarely supported
-        // in MediaRecorder across browsers (Chrome only added partial support
-        // recently and Safari is patchy). WebM/VP9 + Opus is the reliable default.
+        if (typeof setStatus === 'function') {
+          setStatus(`recording · ${this._sizeLabel} · ${newSize.width}×${newSize.height}`, 'ok');
+        }
+        // Pick the best supported codec. Prefer real MP4 (H.264 + AAC) when
+        // available — Chrome 126+ and Safari 14.5+ ship it natively and
+        // it matches the .mp4 extension in the filename. Fall back to WebM
+        // and save with the matching .webm extension so the file is actually
+        // playable in the user's editor.
         const mime = [
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4;codecs=avc1.42E01E',
+          'video/mp4;codecs=h264,aac',
+          'video/mp4',
           'video/webm;codecs=vp9,opus',
           'video/webm;codecs=vp8,opus',
           'video/webm',
-        ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+        ].find(m => {
+          try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; }
+        }) || 'video/webm';
         this.mime = mime;
+        // Bitrate scales with resolution to keep quality consistent across
+        // presets. 8 Mbps was the old single value (1080p); square/portrait
+        // need roughly the same bitrate per pixel, so we adjust.
+        const pixels = newSize.width * newSize.height;
+        const refPixels = 1920 * 1080;     // 2,073,600 — old reference
+        const refBits  = 8_000_000;
+        const bits = Math.max(4_000_000, Math.round(refBits * pixels / refPixels));
         try {
-          this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+          this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bits });
         } catch (err) {
           setStatus(`recorder error: ${err.message || err}`, 'err');
           return;
@@ -2988,6 +3090,16 @@
         this.recording = false;
         $('rec').classList.remove('live');
         $('rec').textContent = '● REC';
+        // Restore the on-screen canvas to the size it had before we re-fitted
+        // for recording — otherwise the engine would stay at the export
+        // resolution (e.g. 1080×1920) until the next window resize.
+        if (this._prevCanvasSize) {
+          try { Renderer.fitToSize(this._prevCanvasSize.w, this._prevCanvasSize.h); }
+          catch (e) {}
+          this._prevCanvasSize = null;
+          this._exportSize = null;
+          this._sizeLabel = null;
+        }
         // Show honest "rendering" status; the blob is finalized in onstop,
         // which fires asynchronously after this method returns.
         const totalBytes = this.chunks.reduce((s, c) => s + c.size, 0);
@@ -3009,7 +3121,11 @@
         a.href = URL.createObjectURL(blob);
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-        a.download = `sainted-word-${ts}.${ext}`;
+        // Include the size preset key in the filename so users can tell
+        // exports apart at a glance when they drop multiple in the same
+        // folder:  sainted-word-reel-2026-08-23T01-30-12.mp4
+        const sizeTag = this._sizeKey || (this._sizeLabel ? this._sizeLabel.toLowerCase().split(' ')[0] : null) || 'landscape';
+        a.download = `sainted-word-${sizeTag}-${ts}.${ext}`;
         document.body.appendChild(a);
         a.click();
         a.remove();
