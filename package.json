@@ -19,6 +19,7 @@
     "check:syntax": "node scripts/check-syntax.mjs",
     "check:manifest": "node scripts/check-manifest.mjs",
     "verify:cloud-auth": "node verify-cloud-auth.mjs",
+    "verify:rotation-enabled": "node verify-rotation-enabled.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

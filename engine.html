@@ -688,6 +688,35 @@
       width: 100%;
       height: 14px;
     }
+    /* ROTATE toggle row — same grid as .layer-row, but the right cell
+       holds a checkbox rather than a generic input. Keeps alignment with
+       the rot slider directly above. */
+    .layer-row-toggle {
+      grid-template-columns: 60px auto;
+      justify-content: start;
+    }
+    .layer-row-toggle input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      justify-self: start;
+    }
+    /* ROTATE-off reactor hint chip — shown next to the react chain when
+       rotationEnabled === false, so the user sees at a glance that any
+       rot-target reactors are silenced by the layer-wide toggle. */
+    .rot-off-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 5px;
+      border: 1px solid var(--accent);
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
 
     /* === GLOBAL === */
     footer#global {
@@ -2133,6 +2162,7 @@
           contrast: 1,
           pos: { x: 0, y: 0, rot: 0 },
           rotOffset: 0,         // per-clip persistent tilt (added on top of pos.rot)
+          rotationEnabled: true, // gate BOTH manual rot + audio rot reactors; undefined = enabled
           z,
           reactors: pickReactors(this.list.length, asset, Audio.feat),
           snapBeat: false,
@@ -2198,7 +2228,7 @@
             </div>
             <div class="layer-row">
               <label>react</label>
-              <span style="font-family:var(--font-mono);font-size:9px;color:var(--accent-2);">${reactors}</span>
+              <span style="font-family:var(--font-mono);font-size:9px;color:var(--accent-2);">${reactors}</span>${l.rotationEnabled === false ? ' <span class="rot-off-tag" title="ROTATE toggle is off — rot-target reactors are silenced">[rot off]</span>' : ''}
             </div>
             <div class="layer-row">
               <label>blend</label>
@@ -2229,14 +2259,24 @@
               <input type="range" data-prop="rot" min="-180" max="180" step="1" />
               <b class="rot-v" style="font-family:var(--font-mono);font-size:9px;color:var(--accent);min-width:30px;text-align:right;margin-left:4px;">0°</b>
             </div>
+            <div class="layer-row layer-row-toggle">
+              <label title="Gate ALL rotation on this layer (manual slider + audio reactors)">rotate</label>
+              <input type="checkbox" data-prop="rotationEnabled" class="rot-enable-toggle" title="On = manual rot + audio rot reactors apply. Off = rotation is suppressed entirely." />
+            </div>
           `;
           const sel = el.querySelector('select[data-prop="blend"]');
           sel.value = l.blend;
           for (const r of el.querySelectorAll('input[type=range]')) {
             r.value = readLayerProp(l, r.dataset.prop);
           }
+          const rotEnable = el.querySelector('input.rot-enable-toggle');
+          if (rotEnable) rotEnable.checked = l.rotationEnabled !== false;
           const rotV = el.querySelector('.rot-v');
-          if (rotV) rotV.textContent = `${Math.round(l.rotOffset || 0)}°`;
+          if (rotV) {
+            const off = l.rotationEnabled === false;
+            rotV.textContent = `${Math.round(l.rotOffset || 0)}°${off ? ' (held)' : ''}`;
+            rotV.style.opacity = off ? '0.45' : '1';
+          }
           if (l.asset && l.asset.thumb) {
             const img = new Image();
             img.src = l.asset.thumb;
@@ -2279,7 +2319,17 @@
           for (const r of el.querySelectorAll('input[type=range]')) {
             r.addEventListener('input', () => {
               writeLayerProp(l, r.dataset.prop, parseFloat(r.value));
-              if (r.dataset.prop === 'rot' && rotV) rotV.textContent = `${Math.round(r.value)}°`;
+              if (r.dataset.prop === 'rot' && rotV) rotV.textContent = `${Math.round(r.value)}°${l.rotationEnabled === false ? ' (held)' : ''}`;
+            });
+          }
+          // ROTATE checkbox — toggles the layer-wide gate for both manual
+          // rot and audio rot reactors. Re-render so the [rot off] hint,
+          // the rot readout state, and the slider styling update at once.
+          const rotEnableCb = el.querySelector('input.rot-enable-toggle');
+          if (rotEnableCb) {
+            rotEnableCb.addEventListener('change', () => {
+              l.rotationEnabled = rotEnableCb.checked;
+              this.render();
             });
           }
           this.elCache.set(l.id, el);
@@ -2639,16 +2689,35 @@
       },
       applyReactors(layer) {
         // returns {scale, x, y, rot, opacity, hue, brightness, contrast}
-        // rot = audio-driven base + per-clip persistent offset
+        // rot = audio-driven base + per-clip persistent offset (if rotationEnabled)
+        // rotationEnabled defaults to true (undefined === true); when false,
+        // both manual rotOffset and any rot-target reactors are silenced.
+        const enabled = layer.rotationEnabled !== false;
         const out = {
           scale: layer.baseScale,
           x: layer.pos.x, y: layer.pos.y,
-          rot: (layer.pos.rot || 0) + (layer.rotOffset || 0),
+          rot: enabled ? (layer.pos.rot || 0) + (layer.rotOffset || 0) : 0,
           opacity: layer.opacity,
           hue: layer.hue,
           brightness: layer.brightness,
           contrast: layer.contrast,
         };
+        if (!enabled) {
+          // Still apply every non-rot reactor (scale/x/y/opacity/hue/etc) — only
+          // rotation is gated by the layer-wide toggle.
+          for (const r of (layer.reactors || [])) {
+            let v = this.getFeature(r);
+            v = this.ease(r.ease, clamp(v, 0, 1)) * r.scale;
+            if (r.target === 'scale') out.scale += v;
+            else if (r.target === 'x') out.x += v;
+            else if (r.target === 'y') out.y += v;
+            else if (r.target === 'opacity') out.opacity = clamp(out.opacity + v, 0, 1.5);
+            else if (r.target === 'hue') out.hue += v;
+            else if (r.target === 'brightness') out.brightness = clamp(out.brightness + v, 0.1, 2.5);
+            else if (r.target === 'contrast') out.contrast = clamp(out.contrast + v, 0.1, 2.5);
+          }
+          return out;
+        }
         for (const r of (layer.reactors || [])) {
           let v = this.getFeature(r);
           v = this.ease(r.ease, clamp(v, 0, 1)) * r.scale;
