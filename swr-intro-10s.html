@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR · 10s intro · Hypnotic induction</title>
+  <meta name="description" content="10-second hypnotic intro to Sainted Word Records — the audio-reactive video engine." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%231a1028' stroke='%23ff3d92' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff3d92'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050308;
+      --bg-2: #0d0918;
+      --ink: #f5e9ff;
+      --ink-2: #b8a3c4;
+      --muted: #6a5870;
+      --line: #2a1d3a;
+      --accent: #ff3d92;        /* hot pink (replaces #e6306b in this asset only) */
+      --accent-2: #00d4ff;      /* cyan */
+      --accent-3: #ffaa3a;      /* warm amber */
+      --success: #00ffa3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    body { font-family: 'Fraunces', serif; color: var(--ink); }
+
+    /* Stage — 16:9 letterbox (1080×608 inside 1280×720, like a 9:16/16:9 dual-purpose stage) */
+    .stage {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: #000;
+    }
+    .stage__inner {
+      position: relative;
+      width: min(100vw, 177.78vh);   /* 16:9 */
+      height: min(56.25vw, 100vh);
+      background: radial-gradient(ellipse at center, var(--bg-2) 0%, var(--bg) 70%, #000 100%);
+      overflow: hidden;
+    }
+
+    /* Subtle vignette */
+    .stage__inner::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none; z-index: 100;
+    }
+
+    /* Voiceover captions */
+    .caption {
+      position: absolute; left: 50%; bottom: 8%;
+      transform: translateX(-50%);
+      max-width: 80%;
+      font-family: 'Fraunces', serif;
+      font-size: clamp(18px, 3.6vmin, 36px);
+      font-weight: 300;
+      font-style: italic;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+      text-align: center;
+      color: var(--ink);
+      opacity: 0;
+      text-shadow: 0 0 30px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6);
+    }
+    .caption--small {
+      font-size: clamp(14px, 2.4vmin, 22px);
+      font-style: normal;
+      color: var(--ink-2);
+    }
+
+    /* Phase 2: waveform bars */
+    .wave {
+      position: absolute; left: 50%; bottom: 25%;
+      transform: translateX(-50%);
+      display: flex; align-items: flex-end;
+      gap: 4px;
+      height: 0;
+      width: 60%;
+      max-width: 600px;
+    }
+    .wave__bar {
+      width: 6px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%);
+      border-radius: 3px 3px 0 0;
+      height: 8px;
+      opacity: 0.9;
+    }
+
+    /* Phase 3: video frame outline (the morph target) */
+    .frame {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 240px; height: 240px;
+      border: 2px solid var(--accent);
+      border-radius: 4px;
+      opacity: 0;
+      box-shadow: 0 0 60px rgba(255, 61, 146, 0.4);
+    }
+    .frame__inner {
+      position: absolute; inset: 4px;
+      background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 50%, var(--accent-3) 100%);
+      border-radius: 2px;
+      opacity: 0;
+    }
+    /* Play triangle in the middle of the frame */
+    .frame__play {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 0; height: 0;
+      border-left: 24px solid #fff;
+      border-top: 16px solid transparent;
+      border-bottom: 16px solid transparent;
+      opacity: 0;
+    }
+
+    /* Phase 4: stacked layers (the engine's 6 blend modes) */
+    .layers {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px; height: 280px;
+      opacity: 0;
+    }
+    .layer {
+      position: absolute; inset: 0;
+      border-radius: 6px;
+      mix-blend-mode: screen;
+    }
+    .layer:nth-child(1) { background: radial-gradient(circle at 30% 30%, var(--accent), transparent 70%); }
+    .layer:nth-child(2) { background: radial-gradient(circle at 70% 40%, var(--accent-2), transparent 70%); }
+    .layer:nth-child(3) { background: radial-gradient(circle at 50% 70%, var(--accent-3), transparent 70%); }
+    .layer:nth-child(4) { background: radial-gradient(circle at 20% 80%, var(--success), transparent 60%); }
+    .layer:nth-child(5) { background: radial-gradient(circle at 80% 80%, var(--accent), transparent 60%); opacity: 0.7; }
+    .layer:nth-child(6) { background: radial-gradient(circle at 50% 50%, #fff, transparent 50%); opacity: 0.3; }
+
+    /* Phase 5: wordmark */
+    .wordmark {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Fraunces', serif;
+      font-size: clamp(48px, 10vmin, 96px);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      line-height: 0.9;
+      text-align: center;
+      opacity: 0;
+    }
+    .wordmark__line1 {
+      display: block;
+      color: var(--ink);
+      font-style: italic;
+    }
+    .wordmark__line2 {
+      display: block;
+      color: var(--accent);
+      font-style: normal;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(12px, 1.6vmin, 16px);
+      letter-spacing: 0.3em;
+      margin-top: 16px;
+      text-transform: uppercase;
+    }
+    .wordmark__url {
+      display: block;
+      color: var(--ink-2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(10px, 1.3vmin, 13px);
+      letter-spacing: 0.15em;
+      margin-top: 8px;
+      text-transform: lowercase;
+    }
+
+    /* Brand dot */
+    .brand-dot {
+      position: absolute; top: 6%; left: 6%;
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--accent);
+      opacity: 0;
+    }
+    .brand-line {
+      position: absolute; top: 6%; left: calc(6% + 18px);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-2);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0;
+    }
+
+    /* Bottom progress bar */
+    .progress {
+      position: absolute; left: 0; bottom: 0;
+      width: 100%; height: 2px;
+      background: rgba(255,255,255,0.05);
+      z-index: 50;
+    }
+    .progress__fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+    }
+
+    /* Timestamp */
+    .timecode {
+      position: absolute; top: 6%; right: 6%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-2);
+      letter-spacing: 0.15em;
+      opacity: 0;
+    }
+
+    /* Breath dot for phase 1 */
+    .breath {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px; height: 12px;
+      background: var(--accent-2);
+      border-radius: 50%;
+      box-shadow: 0 0 20px var(--accent-2);
+      opacity: 0;
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" data-duration="10">
+    <div class="stage__inner">
+
+      <!-- Persistent brand chrome -->
+      <div class="brand-dot"></div>
+      <div class="brand-line">SWR · HYP_001 · AUDIO-REACTIVE</div>
+      <div class="timecode">00:00 / 00:10</div>
+
+      <!-- Phase 1: breath + first caption -->
+      <div class="breath"></div>
+      <div class="caption" data-caption="1">Close your eyes.</div>
+
+      <!-- Phase 2: waveform -->
+      <div class="wave" data-wave>
+        <!-- 24 bars, heights pre-calculated (deterministic, no Math.random) -->
+        <div class="wave__bar" style="height:14px"></div>
+        <div class="wave__bar" style="height:22px"></div>
+        <div class="wave__bar" style="height:38px"></div>
+        <div class="wave__bar" style="height:58px"></div>
+        <div class="wave__bar" style="height:82px"></div>
+        <div class="wave__bar" style="height:108px"></div>
+        <div class="wave__bar" style="height:132px"></div>
+        <div class="wave__bar" style="height:148px"></div>
+        <div class="wave__bar" style="height:156px"></div>
+        <div class="wave__bar" style="height:148px"></div>
+        <div class="wave__bar" style="height:132px"></div>
+        <div class="wave__bar" style="height:108px"></div>
+        <div class="wave__bar" style="height:82px"></div>
+        <div class="wave__bar" style="height:58px"></div>
+        <div class="wave__bar" style="height:38px"></div>
+        <div class="wave__bar" style="height:22px"></div>
+        <div class="wave__bar" style="height:14px"></div>
+        <div class="wave__bar" style="height:22px"></div>
+        <div class="wave__bar" style="height:38px"></div>
+        <div class="wave__bar" style="height:58px"></div>
+        <div class="wave__bar" style="height:82px"></div>
+        <div class="wave__bar" style="height:108px"></div>
+        <div class="wave__bar" style="height:82px"></div>
+        <div class="wave__bar" style="height:58px"></div>
+      </div>
+      <div class="caption caption--small" data-caption="2">Listen to the music...</div>
+
+      <!-- Phase 3: frame (the morph target) -->
+      <div class="frame">
+        <div class="frame__inner"></div>
+        <div class="frame__play"></div>
+      </div>
+      <div class="caption" data-caption="3">Now open them.</div>
+
+      <!-- Phase 4: stacked layers -->
+      <div class="layers">
+        <div class="layer"></div>
+        <div class="layer"></div>
+        <div class="layer"></div>
+        <div class="layer"></div>
+        <div class="layer"></div>
+        <div class="layer"></div>
+      </div>
+      <div class="caption caption--small" data-caption="4">The song becomes the screen.</div>
+
+      <!-- Phase 5: wordmark -->
+      <div class="wordmark">
+        <span class="wordmark__line1">Sainted Word Records</span>
+        <span class="wordmark__line2">drop a song · get a video</span>
+        <span class="wordmark__url">sainted-word-records.vercel.app</span>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress"><div class="progress__fill"></div></div>
+
+    </div>
+  </div>
+
+  <!-- GSAP from CDN — single paused timeline, deterministic, no random -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      // Wait for GSAP
+      if (typeof gsap === 'undefined') {
+        console.error('SWR intro: GSAP failed to load');
+        return;
+      }
+
+      // Register helper for moving waveform bars (deterministic — pre-calculated heights, not random)
+      // Phase anchors (in seconds)
+      const PHASE = {
+        p1_start: 0.0,   p1_end: 2.0,    // "Close your eyes" + breath
+        p2_start: 2.0,   p2_end: 4.0,    // waveform emerges, "Listen..."
+        p3_start: 4.0,   p3_end: 6.0,    // waveform morphs into frame, "Now open them"
+        p4_start: 6.0,   p4_end: 8.0,    // frame fills with stacked layers
+        p5_start: 8.0,   p5_end: 10.0,   // layers collapse into wordmark + CTA
+      };
+
+      const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut' } });
+      const dur = 10;
+
+      // --- Persistent chrome (fade in at t=0, stay) ---
+      tl.to('.brand-dot, .brand-line, .timecode', { opacity: 0.6, duration: 0.4 }, 0);
+
+      // --- Phase 1: breath + "Close your eyes" ---
+      tl.fromTo('.breath',
+        { opacity: 0, scale: 0.6 },
+        { opacity: 0.7, scale: 1, duration: 0.6, ease: 'power2.out' },
+        0.1
+      );
+      // breath pulse: 4 cycles of inhale/exhale over 1.6s (4s breath ≈ 0.25 Hz)
+      tl.to('.breath', { scale: 1.4, duration: 1.0, ease: 'sine.inOut', yoyo: true, repeat: 1 }, 0.5);
+      tl.fromTo('[data-caption="1"]',
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' },
+        0.3
+      );
+      tl.to('[data-caption="1"]', { opacity: 0, y: -10, duration: 0.5 }, 1.5);
+      tl.to('.breath', { opacity: 0, duration: 0.4 }, 1.7);
+
+      // --- Phase 2: waveform emerges ---
+      tl.fromTo('.wave',
+        { opacity: 0, height: 0 },
+        { opacity: 1, height: 156, duration: 0.8, ease: 'power3.out' },
+        2.0
+      );
+      // Stagger each bar's rise
+      tl.fromTo('.wave__bar',
+        { scaleY: 0, transformOrigin: '50% 100%' },
+        { scaleY: 1, duration: 0.6, ease: 'elastic.out(1, 0.6)', stagger: 0.025 },
+        2.1
+      );
+      tl.fromTo('[data-caption="2"]',
+        { opacity: 0, y: 16 },
+        { opacity: 0.7, y: 0, duration: 0.5 },
+        2.4
+      );
+      tl.to('[data-caption="2"]', { opacity: 0, duration: 0.4 }, 3.6);
+
+      // --- Phase 3: waveform morphs into frame ---
+      // Wave collapses to center, frame appears
+      tl.to('.wave', {
+        scale: 0.15,
+        x: '-50%',
+        opacity: 0.3,
+        duration: 0.7,
+        ease: 'power3.inOut',
+        transformOrigin: '50% 50%'
+      }, 4.0);
+      // Need to also compensate for the existing translateX(-50%) on .wave
+      tl.set('.wave', { xPercent: 0, left: '50%' }, 4.0);
+      tl.fromTo('.frame',
+        { opacity: 0, scale: 0.5, rotationY: -90 },
+        { opacity: 1, scale: 1, rotationY: 0, duration: 0.8, ease: 'back.out(1.4)' },
+        4.2
+      );
+      tl.fromTo('.frame__inner', { opacity: 0 }, { opacity: 0.85, duration: 0.4 }, 4.6);
+      tl.fromTo('.frame__play', { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.7)' }, 4.9);
+      tl.fromTo('[data-caption="3"]',
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.5 },
+        4.5
+      );
+      tl.to('[data-caption="3"]', { opacity: 0, duration: 0.4 }, 5.6);
+
+      // --- Phase 4: frame fills with stacked layers ---
+      // Frame fades, layers fade in (the engine in action)
+      tl.to('.frame', { opacity: 0, scale: 1.3, duration: 0.5, ease: 'power2.in' }, 6.0);
+      tl.fromTo('.layers', { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.6, ease: 'power3.out' }, 6.2);
+      // Each layer scales in with stagger
+      tl.fromTo('.layer',
+        { scale: 0, transformOrigin: '50% 50%' },
+        { scale: 1, duration: 0.5, ease: 'back.out(1.2)', stagger: 0.08 },
+        6.4
+      );
+      tl.fromTo('[data-caption="4"]',
+        { opacity: 0, y: 16 },
+        { opacity: 0.7, y: 0, duration: 0.5 },
+        6.6
+      );
+      tl.to('[data-caption="4"]', { opacity: 0, duration: 0.4 }, 7.6);
+
+      // --- Phase 5: layers collapse into wordmark + CTA ---
+      tl.to('.layers', {
+        scale: 0.05,
+        opacity: 0,
+        duration: 0.6,
+        ease: 'power3.in',
+        transformOrigin: '50% 50%'
+      }, 8.0);
+      tl.fromTo('.wordmark',
+        { opacity: 0, scale: 0.8, filter: 'blur(8px)' },
+        { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.7, ease: 'power3.out' },
+        8.2
+      );
+      // Wordmark line by line
+      tl.from('.wordmark__line1', { y: 30, opacity: 0, duration: 0.5, ease: 'power2.out' }, 8.4);
+      tl.from('.wordmark__line2', { y: 20, opacity: 0, duration: 0.4, ease: 'power2.out' }, 8.7);
+      tl.from('.wordmark__url', { y: 16, opacity: 0, duration: 0.4, ease: 'power2.out' }, 8.9);
+      // Final pink glow pulse
+      tl.to('.wordmark__line1', { textShadow: '0 0 30px rgba(255, 61, 146, 0.6)', duration: 0.3 }, 9.3);
+
+      // --- Persistent: progress bar (1s in, 9s out) ---
+      tl.to('.progress__fill', { width: '100%', duration: dur, ease: 'none' }, 0);
+      tl.to('.timecode', {
+        duration: dur,
+        ease: 'none',
+        onUpdate: function () {
+          const t = this.time();
+          const m = Math.floor(t / 60).toString().padStart(2, '0');
+          const s = Math.floor(t % 60).toString().padStart(2, '0');
+          const ms = Math.floor((t % 1) * 10);
+          document.querySelector('.timecode').textContent = `${m}:${s.padStart(2, '0')}.${ms} / 00:10`;
+        }
+      }, 0);
+
+      // Expose for inspection
+      window.__swrIntroTL = tl;
+
+      // Auto-play on load (paused timeline → just play())
+      // The page loads → animation plays from t=0 to t=10 once
+      window.addEventListener('load', function () {
+        tl.play();
+      });
+
+      // Optional: click to restart
+      document.addEventListener('click', function () {
+        tl.restart();
+      });
+    })();
+  </script>
+</body>
+</html>
