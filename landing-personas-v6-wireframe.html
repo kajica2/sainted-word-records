@@ -1,0 +1,1268 @@
+<!doctype html>
+<html lang="en" data-register="wireframe" data-version="v6">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personas · V6 Wireframe · Sainted Word Records</title>
+  <meta name="description" content="The 8 personas of Sainted Word Records, rendered in the V6 Wireframe register — a 3D Three.js scene with cyan wireframe primitives, deep-space background, and monospaced geometry." />
+  <meta name="color-scheme" content="dark" />
+  <meta name="author" content="Kai Djuric" />
+  <meta name="theme-color" content="#050810" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050810'/%3E%3Ccircle cx='16' cy='16' r='12' fill='none' stroke='%2300d4ff' stroke-width='1.5'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' text-anchor='middle' fill='%2300d4ff'%3EW%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" />
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
+  <style>
+    :root {
+      --bg:        #050810;
+      --surface:   #0a1020;
+      --surface-2: #0d1428;
+      --border:    #1a2a3f;
+      --border-2:  #243650;
+      --primary:   #00d4ff;
+      --primary-d: #00a3cc;
+      --secondary: #00ff88;
+      --accent:    #ffb84d;
+      --text:      #e0e6ed;
+      --text-2:    #b0bcc8;
+      --muted:     #6a7a8a;
+      --grid:      #0e1a2e;
+      --font:      'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', var(--font), ui-monospace, monospace; font-weight: 400; line-height: 1.5; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { overflow-x: hidden; background-image: linear-gradient(180deg, #050810 0%, #070b18 50%, #050810 100%); min-height: 100vh; }
+    a { color: var(--primary); text-decoration: none; font-family: 'JetBrains Mono', var(--font), ui-monospace, monospace; }
+    a:hover { color: var(--secondary); }
+    ::selection { background: var(--primary); color: var(--bg); }
+    img, svg { display: block; max-width: 100%; }
+    button { font-family: 'JetBrains Mono', var(--font), ui-monospace, monospace; cursor: pointer; background: transparent; color: inherit; border: none; }
+    code, pre, kbd { font-family: 'JetBrains Mono', var(--font), ui-monospace, monospace; }
+    h1, h2, h3, h4, h5, h6 { font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-family: 'JetBrains Mono', var(--font), ui-monospace, monospace; }
+
+    /* ===== LAYOUT ===== */
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 18px; } }
+
+    /* ===== TOP NAV ===== */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(5, 8, 16, 0.88);
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav__inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 32px;
+      display: flex; align-items: center; gap: 24px;
+      height: 52px;
+      font-size: 12px;
+    }
+    @media (max-width: 720px) { .nav__inner { padding: 0 18px; gap: 14px; } }
+    .nav__brand {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--primary);
+      font-weight: 700; letter-spacing: 0.06em;
+    }
+    .nav__brand .dot { width: 8px; height: 8px; background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+    .nav__links { display: flex; align-items: center; gap: 18px; }
+    .nav__links a { color: var(--text-2); font-size: 11px; letter-spacing: 0.04em; }
+    .nav__links a:hover { color: var(--primary); }
+    .nav__links a.active { color: var(--primary); }
+    .nav__counter {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--muted);
+      font-size: 11px; letter-spacing: 0.04em;
+    }
+    .nav__counter b { color: var(--secondary); font-weight: 700; }
+    @media (max-width: 720px) { .nav__links a:nth-child(3), .nav__links a:nth-child(4) { display: none; } }
+
+    /* ===== KICKER ===== */
+    .kicker {
+      padding: 76px 0 18px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      border-bottom: 1px dashed var(--border);
+    }
+    .kicker .accent { color: var(--primary); }
+    .kicker .green { color: var(--secondary); }
+    .kicker .amber { color: var(--accent); }
+
+    /* ===== HERO ===== */
+    .hero { padding: 36px 0 0; position: relative; }
+    .hero__grid {
+      display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px;
+      align-items: stretch;
+    }
+    @media (max-width: 920px) { .hero__grid { grid-template-columns: 1fr; } }
+    .hero__copy { padding: 28px 0 0; }
+    .hero__title {
+      font-size: clamp(48px, 8vw, 104px);
+      line-height: 0.92;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin: 0 0 18px;
+      text-transform: uppercase;
+    }
+    .hero__title .slash { color: var(--primary); }
+    .hero__title .v6 { color: var(--secondary); }
+    .hero__sub {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-2);
+      max-width: 540px;
+      margin: 0 0 24px;
+    }
+    .hero__sub .accent { color: var(--primary); }
+    .hero__sub .green { color: var(--secondary); }
+    .hero__cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 18px;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(0, 212, 255, 0.04);
+      transition: all 0.2s;
+    }
+    .hero__cta:hover { background: var(--primary); color: var(--bg); }
+    .hero__cta .arrow { font-family: var(--font); }
+    .hero__tags {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 22px;
+    }
+    .hero__tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border: 1px solid var(--border-2);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .hero__tag.cyan { border-color: var(--primary); color: var(--primary); }
+    .hero__tag.green { border-color: var(--secondary); color: var(--secondary); }
+    .hero__tag.amber { border-color: var(--accent); color: var(--accent); }
+
+    .hero__scene {
+      position: relative;
+      height: 420px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .hero__scene canvas { display: block; width: 100% !important; height: 100% !important; position: absolute; top: 0; left: 0; }
+    .hero__scene-overlay {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: 12px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .hero__scene-overlay .left { color: var(--primary); }
+    .hero__scene-overlay .right { color: var(--secondary); }
+    .hero__scene-corner {
+      position: absolute;
+      width: 12px; height: 12px;
+      border: 1px solid var(--primary);
+    }
+    .hero__scene-corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+    .hero__scene-corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+    .hero__scene-corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+    .hero__scene-corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+    /* ===== DIVIDER STRIP (low-poly mesh scroll) ===== */
+    .divider {
+      height: 80px;
+      position: relative;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .divider canvas { display: block; width: 100% !important; height: 100% !important; }
+
+    /* ===== ABOUT (3 columns) ===== */
+    .about { padding: 72px 0 48px; }
+    .about__head { margin-bottom: 32px; }
+    .about__head h2 {
+      font-size: 28px;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .about__head p {
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 720px;
+    }
+    .about__grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    @media (max-width: 820px) { .about__grid { grid-template-columns: 1fr; } }
+    .about__card {
+      padding: 24px 22px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      position: relative;
+    }
+    .about__card .label {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--primary);
+      margin-bottom: 16px;
+      letter-spacing: 0.12em;
+    }
+    .about__card h3 {
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .about__card p {
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+    .about__card .corner {
+      position: absolute; top: 0; right: 0;
+      width: 10px; height: 10px;
+      border-top: 1px solid var(--primary);
+      border-right: 1px solid var(--primary);
+    }
+
+    /* ===== PERSONAS GRID ===== */
+    .personas-section { padding: 64px 0 48px; }
+    .personas-section__head { margin-bottom: 28px; }
+    .personas-section__head h2 {
+      font-size: 28px;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .personas-section__head p {
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 720px;
+    }
+    .personas-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    }
+    @media (max-width: 980px) { .personas-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .personas-grid { grid-template-columns: 1fr; } }
+    .persona {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 18px 18px 16px;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .persona:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .persona__canvas-wrap {
+      width: 120px; height: 120px;
+      margin: 0 auto 14px;
+      border: 1px solid var(--border-2);
+      background: var(--bg);
+      position: relative;
+    }
+    .persona__canvas-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+    .persona__canvas-wrap .idx {
+      position: absolute; top: 4px; left: 4px;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    .persona__name {
+      font-size: 13px;
+      color: var(--primary);
+      margin-bottom: 6px;
+      letter-spacing: 0.06em;
+    }
+    .persona__body {
+      color: var(--text-2);
+      font-size: 11px;
+      line-height: 1.55;
+      margin-bottom: 12px;
+      min-height: 50px;
+    }
+    .persona__badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid var(--secondary);
+      color: var(--secondary);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      margin-bottom: 10px;
+    }
+    .persona__badge::before { content: '★ '; }
+    .persona__cta {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      border-top: 1px dashed var(--border-2);
+      padding-top: 10px;
+      width: 100%;
+    }
+    .persona__cta:hover { color: var(--primary); }
+    .persona__cta .arrow { color: var(--primary); }
+
+    /* ===== HOW IT WORKS ===== */
+    .how { padding: 64px 0 48px; }
+    .how__head { margin-bottom: 28px; }
+    .how__head h2 {
+      font-size: 28px;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .how__head p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .how__steps {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    @media (max-width: 820px) { .how__steps { grid-template-columns: 1fr; } }
+    .how__step {
+      padding: 24px 22px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .how__step .coord {
+      font-size: 10px;
+      color: var(--secondary);
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+    .how__step h3 {
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .how__step p {
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .how__step .num {
+      display: inline-block;
+      font-size: 28px;
+      color: var(--primary);
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    /* ===== TESTIMONIAL (quote axis) ===== */
+    .testimonial {
+      padding: 56px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .testimonial__inner {
+      max-width: 820px; margin: 0 auto;
+      padding: 0 32px;
+      text-align: center;
+    }
+    .testimonial__quote {
+      font-size: 18px;
+      line-height: 1.55;
+      color: var(--text);
+      margin-bottom: 16px;
+      letter-spacing: 0.02em;
+    }
+    .testimonial__quote::before { content: '> '; color: var(--primary); font-weight: 700; }
+    .testimonial__cite {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+    .testimonial__cite b { color: var(--accent); font-weight: 700; }
+
+    /* ===== PRICING / CTA ===== */
+    .pricing { padding: 64px 0 56px; }
+    .pricing__head { margin-bottom: 28px; text-align: center; }
+    .pricing__head h2 {
+      font-size: 28px;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .pricing__head p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pricing__grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    }
+    @media (max-width: 820px) { .pricing__grid { grid-template-columns: 1fr; } }
+    .tier {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 26px 22px 22px;
+      position: relative;
+    }
+    .tier--accent { border-color: var(--primary); }
+    .tier--accent .tier__corner { background: var(--primary); }
+    .tier__corner {
+      position: absolute; top: 0; right: 0;
+      width: 24px; height: 24px;
+      background: var(--border-2);
+    }
+    .tier__tag {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .tier--accent .tier__tag { color: var(--primary); }
+    .tier__name {
+      font-size: 22px;
+      color: var(--text);
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+    .tier__price {
+      font-size: 32px;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .tier--accent .tier__price { color: var(--secondary); }
+    .tier__price small {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+    }
+    .tier__sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      letter-spacing: 0.04em;
+    }
+    .tier__list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 18px;
+      font-size: 11px;
+      color: var(--text-2);
+    }
+    .tier__list li {
+      padding: 4px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .tier__list li::before { content: '[+] '; color: var(--secondary); }
+    .tier__cta {
+      display: block; text-align: center;
+      padding: 10px 14px;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .tier--accent .tier__cta { background: var(--primary); color: var(--bg); }
+    .tier__cta:hover { background: var(--primary); color: var(--bg); }
+
+    /* ===== FOOTER ===== */
+    .foot {
+      padding: 48px 0 32px;
+      border-top: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .foot__inner {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px;
+    }
+    @media (max-width: 820px) { .foot__inner { grid-template-columns: 1fr; gap: 24px; } }
+    .foot__brand {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--primary);
+      font-weight: 700; letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+    .foot__brand .dot { width: 8px; height: 8px; background: var(--primary); }
+    .foot__tag {
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.6;
+      max-width: 320px;
+    }
+    .foot__col h5 {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+    }
+    .foot__col ul { list-style: none; padding: 0; margin: 0; }
+    .foot__col li {
+      padding: 4px 0;
+      font-size: 11px;
+    }
+    .foot__col a { color: var(--text-2); }
+    .foot__col a:hover { color: var(--primary); }
+    .foot__col .arrow { color: var(--primary); margin-right: 4px; }
+    .foot__bottom {
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+    .foot__bottom .accent { color: var(--primary); }
+    .foot__bottom .green { color: var(--secondary); }
+
+    /* ===== FLOATING SWITCH WIDGET ===== */
+    .switcher {
+      position: fixed; bottom: 16px; right: 16px;
+      z-index: 80;
+      background: var(--surface);
+      border: 1px solid var(--primary);
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+    }
+    .switcher__label { color: var(--primary); margin-right: 8px; }
+    .switcher a {
+      color: var(--text-2);
+      padding: 2px 4px;
+    }
+    .switcher a:hover { color: var(--primary); }
+    .switcher .sep { color: var(--muted); margin: 0 2px; }
+
+    /* ===== ANIMATION / REDUCED MOTION ===== */
+    @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 50;
+      background: linear-gradient(180deg, transparent 0%, rgba(0, 212, 255, 0.012) 50%, transparent 100%);
+      animation: scanline 12s linear infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ INLINE PERSONAS DATA (single source of truth) ============ -->
+  <script type="application/json" id="personas-data">
+{
+  "_about": "Single source of truth for the 5 character presets of the SWR personas. Every register (Editorial / Dark / Friendly / Dashboard / Brutalist) renders this same data in its own visual register. Tweak here, all 5 pages update on next regen.",
+  "_note": "V6 · Wireframe register. 3D Three.js scene with cyan wireframe primitives. 2 best_fit markers.",
+  "section": {
+    "kicker": "Made for these people",
+    "title": "Who actually <em>uses</em> this.",
+    "lede": "The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first."
+  },
+  "personas": [
+    { "name": "Indie musician",            "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.", "icon": "♪", "best_fit": true,  "tool": "versions/neon.html",          "primitive": "torusKnot" },
+    { "name": "Beatmaker",                 "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.", "icon": "▰", "best_fit": false, "tool": "versions/grid.html",          "primitive": "octahedron" },
+    { "name": "DJ",                        "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.", "icon": "◐", "best_fit": false, "tool": "versions/smoke.html",         "primitive": "cone" },
+    { "name": "Small label",               "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.", "icon": "✦", "best_fit": false, "tool": "versions/film.html",          "primitive": "cylinder" },
+    { "name": "Belgrade / Serbian artist", "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.", "icon": "◎", "best_fit": true,  "tool": "campaign.html",              "primitive": "tetrahedron" },
+    { "name": "Podcaster",                 "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.", "icon": "≋", "best_fit": false, "tool": "versions/film.html",          "primitive": "dodecahedron" },
+    { "name": "Sound designer",            "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.", "icon": "⌗", "best_fit": false, "tool": "versions/hallucination.html", "primitive": "icosahedron" },
+    { "name": "Music manager / agency",    "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.", "icon": "◇", "best_fit": false, "tool": "profit-plan.html",           "primitive": "cube" }
+  ]
+}
+  </script>
+
+  <!-- ============ TOP NAV ============ -->
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="./engine.html">
+        <span class="dot"></span>
+        SWRSWR · V6
+      </a>
+      <div class="nav__links">
+        <a href="./engine.html">Engine</a>
+        <a href="./landing.html">Landing</a>
+        <a href="./personas.html">Personas</a>
+        <a href="./personas.html" class="active">V6 Gallery</a>
+      </div>
+      <span class="nav__counter">[ users: <b>8</b> ]</span>
+    </div>
+  </nav>
+
+  <!-- ============ KICKER ============ -->
+  <div class="wrap">
+    <p class="kicker">
+      <span class="accent">//</span> V6 · WIREFRAME · 2026-08-13 · <span class="green">[8 entries]</span> · <span class="amber">register=wireframe</span> · source=personas.json
+    </p>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__grid">
+        <div class="hero__copy">
+          <h1 class="hero__title">
+            WIREFRAME<br><span class="slash">/</span> <span class="v6">v6.</span>
+          </h1>
+          <p class="hero__sub">
+            <span class="accent">//</span> The engine. <span class="green">Now in 3D.</span> Eight personas. One data file. Zero database.
+            <br>Same JSON, same five versions, same five personas register — this one renders the register as a low-poly wireframe scene with cyan geometry on a deep-space ground plane.
+          </p>
+          <a class="hero__cta" href="#personas">
+            <span>OPEN REGISTER</span>
+            <span class="arrow">→</span>
+          </a>
+          <div class="hero__tags">
+            <span class="hero__tag cyan">// 3D</span>
+            <span class="hero__tag green">// eight</span>
+            <span class="hero__tag amber">// wireframe</span>
+            <span class="hero__tag">// no-database</span>
+            <span class="hero__tag">// static-html</span>
+          </div>
+        </div>
+        <div class="hero__scene" id="hero-scene">
+          <div class="hero__scene-corner tl"></div>
+          <div class="hero__scene-corner tr"></div>
+          <div class="hero__scene-corner bl"></div>
+          <div class="hero__scene-corner br"></div>
+          <canvas id="hero-canvas" width="600" height="420"></canvas>
+          <div class="hero__scene-overlay">
+            <span class="left">[ SCENE_01 · icosahedron ]</span>
+            <span class="right">128 ticks · 60fps</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ DIVIDER STRIP 1 ============ -->
+  <div class="divider" id="divider-1"><canvas width="1280" height="80"></canvas></div>
+
+  <!-- ============ ABOUT (3 columns) ============ -->
+  <section class="about">
+    <div class="wrap">
+      <div class="about__head">
+        <h2>// About this register</h2>
+        <p>The V6 register renders the same personas as a Three.js wireframe scene. The geometry is the only thing that changes — the data, the five character presets, the eight people below, all stay identical.</p>
+      </div>
+      <div class="about__grid">
+        <div class="about__card">
+          <span class="corner"></span>
+          <span class="label">[ 01 ]</span>
+          <h3>One JSON. Six renders.</h3>
+          <p>personas.json is the only source. Six visual registers render it: V1 editorial, V2 dark, V3 friendly, V4 dashboard, V5 brutalist, V6 wireframe. Tweak the JSON, all six update on next regen.</p>
+        </div>
+        <div class="about__card">
+          <span class="corner"></span>
+          <span class="label">[ 02 ]</span>
+          <h3>3D primitives as avatars</h3>
+          <p>Each persona gets its own wireframe primitive. The torus knot, the octahedron, the cone — a 3D glyph that says "this is a person, not a stock icon" without ever rendering a face.</p>
+        </div>
+        <div class="about__card">
+          <span class="corner"></span>
+          <span class="label">[ 03 ]</span>
+          <h3>Zero build. Pure CDN.</h3>
+          <p>Three.js loads from jsDelivr. Fonts from Google. The page is a single HTML file with inline CSS, inline JSON, inline SVG favicon. Open it from disk and it works — no server, no bundler, no Vite.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DIVIDER STRIP 2 ============ -->
+  <div class="divider" id="divider-2"><canvas width="1280" height="80"></canvas></div>
+
+  <!-- ============ PERSONAS GRID ============ -->
+  <section class="personas-section" id="personas">
+    <div class="wrap">
+      <div class="personas-section__head">
+        <h2>// <span style="color: var(--primary);">8</span> personas · wireframe register</h2>
+        <p>Same eight profiles, rendered as cyan wireframe primitives on a deep-space background. Two are flagged <span style="color: var(--secondary);">★ best fit</span>.</p>
+      </div>
+      <div class="personas-grid" id="personas-grid">
+        <!-- 8 persona cards · canvas tags + content rendered by JS from personas.json -->
+        <article class="persona" data-idx="0" data-primitive="torusKnot">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[01]</span></div>
+          <h3 class="persona__name"></h3><span class="persona__badge" hidden></span>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+        <article class="persona" data-idx="1" data-primitive="octahedron">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[02]</span></div>
+          <h3 class="persona__name"></h3>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+        <article class="persona" data-idx="2" data-primitive="cone">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[03]</span></div>
+          <h3 class="persona__name"></h3>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+        <article class="persona" data-idx="3" data-primitive="cylinder">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[04]</span></div>
+          <h3 class="persona__name"></h3>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+        <article class="persona" data-idx="4" data-primitive="tetrahedron">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[05]</span></div>
+          <h3 class="persona__name"></h3><span class="persona__badge" hidden></span>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+        <article class="persona" data-idx="5" data-primitive="dodecahedron">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[06]</span></div>
+          <h3 class="persona__name"></h3>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+        <article class="persona" data-idx="6" data-primitive="icosahedron">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[07]</span></div>
+          <h3 class="persona__name"></h3>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+        <article class="persona" data-idx="7" data-primitive="cube">
+          <div class="persona__canvas-wrap"><canvas width="120" height="120"></canvas><span class="idx">[08]</span></div>
+          <h3 class="persona__name"></h3>
+          <p class="persona__body"></p>
+          <a class="persona__cta" href=""><span class="arrow">→</span> open / versions / v6 / register</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TESTIMONIAL ============ -->
+  <section class="testimonial">
+    <div class="testimonial__inner">
+      <p class="testimonial__quote">Sell the video, not the engine. The eight personas below are the desks we built it against — the engine has to read as a tool, not a tutorial.</p>
+      <p class="testimonial__cite">// <b>profit-plan.html</b> · from the founder · 2026</p>
+    </div>
+  </section>
+
+  <!-- ============ DIVIDER STRIP 3 ============ -->
+  <div class="divider" id="divider-3"><canvas width="1280" height="80"></canvas></div>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="how">
+    <div class="wrap">
+      <div class="how__head">
+        <h2>// How it works</h2>
+        <p>Three coordinates, three steps, one HTML file.</p>
+      </div>
+      <div class="how__steps">
+        <div class="how__step">
+          <span class="coord">[ x:0 y:0 z:0 ]</span>
+          <span class="num">01</span>
+          <h3>Drop the audio</h3>
+          <p>WAV, MP3, or in-app mic. The engine reads it locally, runs Web Audio analysis, no upload, no server, no permission prompt for the file picker.</p>
+        </div>
+        <div class="how__step">
+          <span class="coord">[ x:1 y:0 z:0 ]</span>
+          <span class="num">02</span>
+          <h3>Pick a version</h3>
+          <p>Five character presets: neon, grid, smoke, film, hallucination. Each maps a different visual register to the same audio buffer. Pick the one that fits the release.</p>
+        </div>
+        <div class="how__step">
+          <span class="coord">[ x:2 y:0 z:0 ]</span>
+          <span class="num">03</span>
+          <h3>Render the MP4</h3>
+          <p>MediaRecorder exports the canvas at 30fps. 15s teaser, 30s single, 60s Reel — whatever the post needs. Local file, no watermark, MIT licensed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING / CTA ============ -->
+  <section class="pricing">
+    <div class="wrap">
+      <div class="pricing__head">
+        <h2>// Subscription levels</h2>
+        <p>Three tiers. No accounts, no monthly billing — pay once, render forever.</p>
+      </div>
+      <div class="pricing__grid">
+        <div class="tier">
+          <div class="tier__corner"></div>
+          <span class="tier__tag">[ tier_01 ]</span>
+          <h3 class="tier__name">INDIE</h3>
+          <div class="tier__price">€25<small> / one-time</small></div>
+          <p class="tier__sub">// for solo artists</p>
+          <ul class="tier__list">
+            <li>5 visual versions</li>
+            <li>30s MP4 export</li>
+            <li>MIT license · self-host</li>
+            <li>1 artist · unlimited renders</li>
+          </ul>
+          <a class="tier__cta" href="./landing.html">GET TIER_01 →</a>
+        </div>
+        <div class="tier tier--accent">
+          <div class="tier__corner"></div>
+          <span class="tier__tag">[ tier_02 · recommended ]</span>
+          <h3 class="tier__name">ROSTER</h3>
+          <div class="tier__price">€80<small> / month</small></div>
+          <p class="tier__sub">// for labels & agencies</p>
+          <ul class="tier__list">
+            <li>5 visual versions + custom presets</li>
+            <li>Up to 60s MP4 export</li>
+            <li>10 artists · 80 renders / month</li>
+            <li>Priority support · Slack channel</li>
+          </ul>
+          <a class="tier__cta" href="./profit-plan.html">GET TIER_02 →</a>
+        </div>
+        <div class="tier">
+          <div class="tier__corner"></div>
+          <span class="tier__tag">[ tier_03 ]</span>
+          <h3 class="tier__name">STUDIO</h3>
+          <div class="tier__price">€200<small> / month</small></div>
+          <p class="tier__sub">// for managers & studios</p>
+          <ul class="tier__list">
+            <li>All 5 versions + source access</li>
+            <li>Up to 120s MP4 export</li>
+            <li>Unlimited artists · 300 renders / month</li>
+            <li>Custom integration · API access</li>
+          </ul>
+          <a class="tier__cta" href="./campaign.html">GET TIER_03 →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot__inner">
+        <div>
+          <div class="foot__brand">
+            <span class="dot"></span>
+            SAINTED WORD RECORDS
+          </div>
+          <p class="foot__tag">
+            An audio-reactive video engine. Drop a song, drop a library, get a music video. Single HTML file, MIT licensed, zero backend. The V6 wireframe register renders the same eight personas as 3D geometry.
+          </p>
+        </div>
+        <div class="foot__col">
+          <h5>ENGINE</h5>
+          <ul>
+            <li><span class="arrow">→</span><a href="./engine.html">index.html</a></li>
+            <li><span class="arrow">→</span><a href="./landing.html">landing.html</a></li>
+            <li><span class="arrow">→</span><a href="./personas.html">personas.html</a></li>
+            <li><span class="arrow">→</span><a href="./personas.json">personas.json</a></li>
+          </ul>
+        </div>
+        <div class="foot__col">
+          <h5>SISTER PAGES</h5>
+          <ul>
+            <li><span class="arrow">→</span><a href="./campaign.html">campaign.html</a></li>
+            <li><span class="arrow">→</span><a href="./profit-plan.html">profit-plan.html</a></li>
+            <li><span class="arrow">→</span><a href="./market-study.html">market-study.html</a></li>
+            <li><span class="arrow">→</span><a href="./tutorial-30s.html">tutorial-30s.html</a></li>
+            <li><span class="arrow">→</span><a href="./interactive-howto.html">interactive-howto.html</a></li>
+          </ul>
+        </div>
+        <div class="foot__col">
+          <h5>SOURCE</h5>
+          <ul>
+            <li><span class="arrow">→</span><a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">GitHub repo</a></li>
+            <li><span class="arrow">→</span><a href="https://github.com/kai-djuric/sainted-word-records/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a></li>
+            <li><span class="arrow">→</span><a href="https://github.com/kai-djuric" target="_blank" rel="noopener">@kai-djuric</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot__bottom">
+        <span>© 2026 Kai Djuric · <span class="accent">MIT</span> · <span class="green">register=wireframe · v6</span> · personas.v6.wireframe</span>
+        <span>v1 · Web Audio + MediaRecorder · Three.js 0.160 · Chrome 126+ / Safari 14.5+</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ FLOATING SWITCH REGISTER WIDGET ============ -->
+  <nav class="switcher" aria-label="Switch visual register">
+    <span class="switcher__label">// register:</span>
+    <a href="./landing-personas-v1-editorial.html">V1</a>
+    <span class="sep">·</span>
+    <a href="./landing-personas-v2-dark.html">V2</a>
+    <span class="sep">·</span>
+    <a href="./landing-personas-v3-friendly.html">V3</a>
+    <span class="sep">·</span>
+    <a href="./landing-personas-v4-dashboard.html">V4</a>
+    <span class="sep">·</span>
+    <a href="./landing-personas-v5-brutalist.html">V5</a>
+  </nav>
+
+  <!-- ============ THREE.JS SCENES ============ -->
+  <script>
+  (function () {
+    'use strict';
+
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Wait for DOM + Three.js CDN
+    function ready(fn) {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+          if (window.THREE) fn(); else setTimeout(function () { ready(fn); }, 60);
+        });
+      } else {
+        if (window.THREE) fn(); else setTimeout(function () { ready(fn); }, 60);
+      }
+    }
+
+    // ========== UTIL: Wireframe material factory ==========
+    function makeWireMat(color, opacity) {
+      return new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity || 0.95 });
+    }
+    function makeFillMat(color, opacity) {
+      return new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: opacity || 0.02, wireframe: false });
+    }
+
+    // ========== IntersectionObserver helper to pause when off-screen ==========
+    function makeVisibleTracker(el, onEnter, onLeave) {
+      if (!('IntersectionObserver' in window)) { onEnter(); return null; }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) onEnter(); else onLeave();
+        });
+      }, { threshold: 0.01 });
+      io.observe(el);
+      return io;
+    }
+
+    // ========== 1) HERO SCENE ==========
+    function buildHeroScene(container) {
+      var canvas = container.querySelector('canvas');
+      if (!canvas) return null;
+      var w = container.clientWidth, h = container.clientHeight;
+      var scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x050810, 8, 22);
+      var camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
+      camera.position.set(3, 2.4, 5.5);
+      camera.lookAt(0, 0.4, 0);
+
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h, false);
+      renderer.setClearColor(0x050810, 1);
+
+      // --- Ground grid plane ---
+      var grid = new THREE.GridHelper(20, 24, 0x00d4ff, 0x0e1a2e);
+      grid.position.y = -1.2;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.5;
+      scene.add(grid);
+
+      // --- Wireframe icosahedron (hero) ---
+      var heroGeo = new THREE.IcosahedronGeometry(1.4, 1);
+      var heroEdges = new THREE.EdgesGeometry(heroGeo);
+      var heroWire = new THREE.LineSegments(heroEdges, makeWireMat(0x00d4ff, 0.95));
+      var heroFill = new THREE.Mesh(heroGeo, makeFillMat(0x00d4ff, 0.04));
+      var heroGroup = new THREE.Group();
+      heroGroup.add(heroWire);
+      heroGroup.add(heroFill);
+      heroGroup.position.set(0, 0.3, 0);
+      scene.add(heroGroup);
+
+      // --- Secondary inner dodecahedron (amber accent) ---
+      var dGeo = new THREE.DodecahedronGeometry(0.7, 0);
+      var dEdges = new THREE.EdgesGeometry(dGeo);
+      var dWire = new THREE.LineSegments(dEdges, makeWireMat(0xffb84d, 0.7));
+      scene.add(dWire);
+
+      // --- Ambient particle field ---
+      var pCount = 220;
+      var pPos = new Float32Array(pCount * 3);
+      for (var i = 0; i < pCount; i++) {
+        pPos[i * 3 + 0] = (Math.random() - 0.5) * 16;
+        pPos[i * 3 + 1] = (Math.random() - 0.2) * 8;
+        pPos[i * 3 + 2] = (Math.random() - 0.5) * 16;
+      }
+      var pGeo = new THREE.BufferGeometry();
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      var pMat = new THREE.PointsMaterial({ color: 0x00ff88, size: 0.025, transparent: true, opacity: 0.6, sizeAttenuation: true });
+      var points = new THREE.Points(pGeo, pMat);
+      scene.add(points);
+
+      // --- Camera orbit state ---
+      var camTheta = 0;
+      var camRadius = 5.5;
+
+      // --- Resize ---
+      function resize() {
+        var nw = container.clientWidth, nh = container.clientHeight;
+        if (nw === 0 || nh === 0) return;
+        renderer.setSize(nw, nh, false);
+        camera.aspect = nw / nh;
+        camera.updateProjectionMatrix();
+      }
+      window.addEventListener('resize', resize);
+
+      // --- Animate ---
+      var running = true;
+      function tick(t) {
+        if (!running) return;
+        requestAnimationFrame(tick);
+        var tt = t * 0.001;
+        heroGroup.rotation.x = tt * 0.3;
+        heroGroup.rotation.y = tt * 0.45;
+        dWire.rotation.x = -tt * 0.5;
+        dWire.rotation.y = -tt * 0.7;
+        dWire.position.copy(heroGroup.position);
+        // gentle camera orbit
+        camTheta += 0.0025;
+        camera.position.x = Math.cos(camTheta) * camRadius;
+        camera.position.z = Math.sin(camTheta) * camRadius;
+        camera.position.y = 2.4 + Math.sin(tt * 0.3) * 0.4;
+        camera.lookAt(0, 0.3, 0);
+        // particle drift
+        points.rotation.y = tt * 0.02;
+        renderer.render(scene, camera);
+      }
+      if (!reducedMotion) requestAnimationFrame(tick); else { renderer.render(scene, camera); }
+
+      // Visibility pause
+      makeVisibleTracker(container, function () { if (!reducedMotion && !running) { running = true; requestAnimationFrame(tick); } }, function () { running = false; });
+
+      return {
+        dispose: function () {
+          running = false;
+          window.removeEventListener('resize', resize);
+          heroGeo.dispose(); heroEdges.dispose(); heroWire.geometry.dispose(); heroWire.material.dispose();
+          heroFill.geometry.dispose(); heroFill.material.dispose();
+          dGeo.dispose(); dEdges.dispose(); dWire.geometry.dispose(); dWire.material.dispose();
+          pGeo.dispose(); pMat.dispose();
+          grid.geometry.dispose(); grid.material.dispose();
+          renderer.dispose();
+        }
+      };
+    }
+
+    // ========== 2) DIVIDER STRIPS (low-poly mesh scroll) ==========
+    function buildDivider(container) {
+      var canvas = container.querySelector('canvas');
+      if (!canvas) return null;
+      var w = container.clientWidth, h = container.clientHeight;
+      var scene = new THREE.Scene();
+      var camera = new THREE.OrthographicCamera(-1, 1, 0.5, -0.5, 0.1, 10);
+      camera.position.z = 1;
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h, false);
+      renderer.setClearColor(0x050810, 1);
+
+      // Low-poly wave mesh
+      var segs = 36, half = 18;
+      var verts = [], idx = [];
+      for (var x = -half; x <= half; x++) {
+        verts.push(x / half, 0, 0);
+      }
+      for (var i = 0; i < segs; i++) {
+        idx.push(i, i + 1);
+      }
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      g.setIndex(idx);
+      var m = new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.55 });
+      var lines = new THREE.LineSegments(g, m);
+      scene.add(lines);
+
+      // Add a second strip offset (green)
+      var verts2 = [];
+      for (var x = -half; x <= half; x++) verts2.push(x / half, 0.18, 0);
+      var g2 = new THREE.BufferGeometry();
+      g2.setAttribute('position', new THREE.Float32BufferAttribute(verts2, 3));
+      g2.setIndex(idx);
+      var m2 = new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.3 });
+      var lines2 = new THREE.LineSegments(g2, m2);
+      scene.add(lines2);
+
+      function resize() {
+        var nw = container.clientWidth, nh = container.clientHeight;
+        if (nw === 0 || nh === 0) return;
+        renderer.setSize(nw, nh, false);
+      }
+      window.addEventListener('resize', resize);
+
+      var offset = 0, running = true;
+      function tick(t) {
+        if (!running) return;
+        requestAnimationFrame(tick);
+        var tt = t * 0.001;
+        offset = (tt * 0.6) % (2 / segs);
+        var pos = lines.geometry.attributes.position;
+        var pos2 = lines2.geometry.attributes.position;
+        for (var i = 0; i <= segs; i++) {
+          var x = (i / segs - 0.5) * 2;
+          pos.array[i * 3 + 1] = Math.sin((x + offset) * Math.PI * 3) * 0.25;
+          pos2.array[i * 3 + 1] = 0.18 + Math.cos((x + offset) * Math.PI * 2.5) * 0.18;
+        }
+        pos.needsUpdate = true;
+        pos2.needsUpdate = true;
+        renderer.render(scene, camera);
+      }
+      if (!reducedMotion) requestAnimationFrame(tick); else { renderer.render(scene, camera); }
+
+      makeVisibleTracker(container, function () { if (!reducedMotion && !running) { running = true; requestAnimationFrame(tick); } }, function () { running = false; });
+
+      return {
+        dispose: function () {
+          running = false;
+          g.dispose(); m.dispose();
+          g2.dispose(); m2.dispose();
+          renderer.dispose();
+        }
+      };
+    }
+
+    // ========== 3) PERSONA MICRO-SCENES ==========
+    function buildPersonaScene(container, primitive) {
+      var canvas = container.querySelector('canvas');
+      if (!canvas) return null;
+      var w = container.clientWidth, h = container.clientHeight;
+      if (w === 0) w = 120;
+      if (h === 0) h = 120;
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 50);
+      camera.position.set(0, 0, 3.2);
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h, false);
+      renderer.setClearColor(0x050810, 1);
+
+      var mesh, edges, fill;
+      switch (primitive) {
+        case 'torusKnot':
+          var tg = new THREE.TorusKnotGeometry(0.7, 0.22, 64, 12);
+          edges = new THREE.EdgesGeometry(tg);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(tg, makeFillMat(0x00d4ff, 0.04));
+          break;
+        case 'octahedron':
+          var og = new THREE.OctahedronGeometry(0.95, 0);
+          edges = new THREE.EdgesGeometry(og);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(og, makeFillMat(0x00d4ff, 0.04));
+          break;
+        case 'cone':
+          var cg = new THREE.ConeGeometry(0.85, 1.5, 6, 1);
+          edges = new THREE.EdgesGeometry(cg);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(cg, makeFillMat(0x00d4ff, 0.04));
+          break;
+        case 'cylinder':
+          var cyg = new THREE.CylinderGeometry(0.7, 0.7, 1.4, 8, 1);
+          edges = new THREE.EdgesGeometry(cyg);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(cyg, makeFillMat(0x00d4ff, 0.04));
+          break;
+        case 'tetrahedron':
+          var teg = new THREE.TetrahedronGeometry(1.05, 0);
+          edges = new THREE.EdgesGeometry(teg);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(teg, makeFillMat(0x00d4ff, 0.04));
+          break;
+        case 'dodecahedron':
+          var ddg = new THREE.DodecahedronGeometry(0.95, 0);
+          edges = new THREE.EdgesGeometry(ddg);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(ddg, makeFillMat(0x00d4ff, 0.04));
+          break;
+        case 'icosahedron':
+          var ig = new THREE.IcosahedronGeometry(0.95, 0);
+          edges = new THREE.EdgesGeometry(ig);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(ig, makeFillMat(0x00d4ff, 0.04));
+          break;
+        case 'cube':
+        default:
+          var cg2 = new THREE.BoxGeometry(1.3, 1.3, 1.3);
+          edges = new THREE.EdgesGeometry(cg2);
+          mesh = new THREE.LineSegments(edges, makeWireMat(0x00d4ff, 0.95));
+          fill = new THREE.Mesh(cg2, makeFillMat(0x00d4ff, 0.04));
+          break;
+      }
+      var group = new THREE.Group();
+      group.add(mesh);
+      group.add(fill);
+      scene.add(group);
+
+      var running = true, speed = 0.005 + Math.random() * 0.01;
+      function tick(t) {
+        if (!running) return;
+        requestAnimationFrame(tick);
+        var tt = t * 0.001;
+        group.rotation.x = tt * speed * 60;
+        group.rotation.y = tt * speed * 90;
+        renderer.render(scene, camera);
+      }
+      if (!reducedMotion) requestAnimationFrame(tick); else { renderer.render(scene, camera); }
+
+      return {
+        dispose: function () {
+          running = false;
+          edges.dispose(); mesh.geometry.dispose(); mesh.material.dispose();
+          fill.geometry.dispose(); fill.material.dispose();
+          renderer.dispose();
+        }
+      };
+    }
+
+    // ========== MAIN: render personas grid + init scenes ==========
+    ready(function () {
+      if (!window.THREE) {
+        console.error('THREE.js failed to load');
+        return;
+      }
+
+      // Hero scene
+      var heroContainer = document.getElementById('hero-scene');
+      if (heroContainer) buildHeroScene(heroContainer);
+
+      // Dividers
+      ['divider-1', 'divider-2', 'divider-3'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) buildDivider(el);
+      });
+
+      // Persona grid: fill in pre-rendered cards from personas.json
+      var dataEl = document.getElementById('personas-data');
+      var data;
+      try { data = JSON.parse(dataEl.textContent); } catch (e) { console.error('personas parse', e); return; }
+      var personas = (data && data.personas) || [];
+      var grid = document.getElementById('personas-grid');
+      if (!grid) return;
+
+      var cards = grid.querySelectorAll('.persona');
+      personas.forEach(function (p, i) {
+        var card = cards[i];
+        if (!card) return;
+        var nameEl = card.querySelector('.persona__name');
+        var bodyEl = card.querySelector('.persona__body');
+        var ctaEl = card.querySelector('.persona__cta');
+        var badgeEl = card.querySelector('.persona__badge');
+        if (nameEl) nameEl.textContent = p.name;
+        if (bodyEl) bodyEl.textContent = p.body;
+        if (ctaEl) ctaEl.setAttribute('href', './' + p.tool);
+        if (badgeEl) {
+          if (p.best_fit) {
+            badgeEl.hidden = false;
+            badgeEl.textContent = 'BEST FIT';
+            badgeEl.setAttribute('aria-label', 'best fit');
+          } else {
+            badgeEl.hidden = true;
+          }
+        }
+        // Init mini scene on the canvas
+        var canvasWrap = card.querySelector('.persona__canvas-wrap');
+        if (canvasWrap) {
+          requestAnimationFrame(function () { buildPersonaScene(canvasWrap, p.primitive); });
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

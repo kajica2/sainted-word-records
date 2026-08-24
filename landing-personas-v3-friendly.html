@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Member directory — Sainted Word Records</title>
+  <meta name="description" content="A friendly directory of the 8 personas who actually use the Sainted Word Records audio-reactive video engine. 2 fan favorite badges." />
+  <meta property="og:title" content="Member directory — Sainted Word Records" />
+  <meta property="og:description" content="A friendly directory of the 8 personas who actually use the Sainted Word Records audio-reactive video engine." />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/landing-personas-v3-friendly.html" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23fdf6e8'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff6b6b' stroke-width='1.8'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23e6b34a'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Serif+Display:ital@0;1&family=Geist+Mono:wght@400;500&display=swap" />
+
+  <style>
+    :root {
+      --bg: #fdf6e8;
+      --bg-2: #fef9e8;
+      --cream: #fdf6e8;
+      --paper: #ffffff;
+      --coral: #ff6b6b;
+      --coral-soft: #ff8a8a;
+      --coral-deep: #e85858;
+      --mustard: #e6b34a;
+      --mustard-soft: #f3c878;
+      --ink: #2b1f17;
+      --ink-2: #5a4634;
+      --muted: #8a7560;
+      --line: #f0e3c8;
+      --line-2: #e6d3ad;
+      --shadow-soft: 0 4px 20px rgba(255, 107, 107, 0.08);
+      --shadow-soft-hover: 0 8px 32px rgba(255, 107, 107, 0.16);
+      --font-display: 'DM Serif Display', ui-serif, Georgia, serif;
+      --font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.2s ease;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: linear-gradient(180deg, #fdf6e8 0%, #fef9e8 100%);
+      background-attachment: fixed;
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: var(--coral); text-decoration: none; transition: color var(--transition); }
+    a:hover { color: var(--ink); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    img { max-width: 100%; display: block; }
+    button { font-family: inherit; cursor: pointer; }
+    ::selection { background: var(--coral); color: var(--paper); }
+
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 28px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    /* ===== NAV ===== */
+    .nav {
+      padding: 22px 0;
+      position: relative;
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 18px;
+      max-width: 880px; margin: 0 auto;
+      padding: 0 28px;
+    }
+    @media (max-width: 720px) { .nav__inner { padding: 0 20px; } }
+    .nav__brand {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-family: var(--font-display);
+      font-size: 20px; font-weight: 400; letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .nav__brand .face {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--coral);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 16px;
+    }
+    .nav__back {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 999px;
+      background: var(--paper);
+      color: var(--ink-2);
+      font-size: 13px; font-weight: 500;
+      border: 1px solid var(--line);
+      transition: all var(--transition);
+    }
+    .nav__back:hover {
+      background: var(--coral);
+      color: white;
+      border-color: var(--coral);
+      transform: translateY(-1px);
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      padding: 40px 0 36px;
+      text-align: center;
+    }
+    .hero__kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--coral); font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero__kicker::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--coral);
+      animation: wave 2s ease-in-out infinite;
+    }
+    @keyframes wave {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+    .hero__title {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(38px, 6vw, 64px);
+      line-height: 1.05; letter-spacing: -0.02em;
+      color: var(--ink);
+      margin: 0 0 18px;
+    }
+    .hero__title .wave {
+      display: inline-block;
+      transform: translateY(-3px) rotate(-6deg);
+      color: var(--coral);
+    }
+    .hero__lede {
+      font-size: 17px;
+      color: var(--ink-2);
+      max-width: 560px;
+      margin: 0 auto 36px;
+      line-height: 1.55;
+    }
+
+    /* Hand-drawn underline (CSS pseudo) */
+    .hero__title {
+      position: relative;
+      display: inline-block;
+    }
+    .hero__title::after {
+      content: '';
+      position: absolute;
+      left: 6%; right: 6%; bottom: -10px;
+      height: 10px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 10' preserveAspectRatio='none'><path d='M2 6 Q 30 1, 60 5 T 120 5 T 198 4' fill='none' stroke='%23ff6b6b' stroke-width='2.2' stroke-linecap='round'/></svg>");
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+      opacity: 0.85;
+    }
+    .hero__cluster {
+      display: flex; justify-content: center;
+      margin: 38px 0 14px;
+    }
+    .hero__cluster-row {
+      display: flex; align-items: center;
+    }
+    .hero__cluster .av {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--coral);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 22px; line-height: 1;
+      border: 3px solid var(--bg);
+      box-shadow: var(--shadow-soft);
+      transition: transform var(--transition);
+    }
+    .hero__cluster .av:hover { transform: translateY(-3px) scale(1.08); }
+    .hero__cluster .av + .av { margin-left: -14px; }
+    .hero__cluster .av:nth-child(2) { background: var(--mustard); color: white; }
+    .hero__cluster .av:nth-child(3) { background: var(--coral-deep); }
+    .hero__cluster .av:nth-child(5) { background: var(--mustard); }
+    .hero__cluster .av:nth-child(7) { background: var(--coral-deep); }
+
+    /* ===== FILTER CHIPS ===== */
+    .chips {
+      display: flex; flex-wrap: wrap;
+      gap: 8px; justify-content: center;
+      margin: 0 0 40px;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 999px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      color: var(--ink-2);
+      font-size: 13px; font-weight: 500;
+      transition: all var(--transition);
+      cursor: default;
+    }
+    .chip:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-soft);
+    }
+    .chip--active {
+      background: var(--coral);
+      color: white;
+      border-color: var(--coral);
+    }
+    .chip__count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    /* ===== DIRECTORY HEADER ===== */
+    .dir-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .dir-head__title {
+      font-family: var(--font-display);
+      font-size: 32px; font-weight: 400;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+      margin: 0;
+      position: relative;
+      display: inline-block;
+    }
+    .dir-head__title::after {
+      content: '';
+      position: absolute;
+      left: 0; bottom: -6px;
+      width: 64px; height: 6px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 6' preserveAspectRatio='none'><path d='M2 4 Q 20 1, 40 4 T 78 3' fill='none' stroke='%23e6b34a' stroke-width='2' stroke-linecap='round'/></svg>");
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+    }
+    .dir-head__date {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .dir-head__date::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #6cbf6c;
+    }
+
+    /* ===== PERSONA LIST ===== */
+    .personas {
+      display: flex; flex-direction: column;
+      gap: 18px;
+      margin-bottom: 64px;
+    }
+    .persona {
+      position: relative;
+      display: grid;
+      grid-template-columns: 64px 1fr auto;
+      gap: 20px; align-items: center;
+      padding: 22px 24px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    @media (max-width: 600px) {
+      .persona {
+        grid-template-columns: 56px 1fr;
+        gap: 14px;
+        padding: 18px 18px;
+      }
+      .persona__cta { grid-column: 1 / -1; }
+    }
+    .persona:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-soft-hover);
+    }
+    .persona:hover .persona__avatar { transform: scale(1.08); }
+    .persona:hover .persona__cta {
+      background: var(--mustard);
+      border-color: var(--mustard);
+    }
+    .persona__avatar {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--coral);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 28px; line-height: 1;
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.25);
+      transition: transform var(--transition);
+    }
+    .persona:nth-child(2) .persona__avatar { background: var(--mustard); }
+    .persona:nth-child(3) .persona__avatar { background: var(--coral-deep); }
+    .persona:nth-child(4) .persona__avatar { background: var(--mustard); }
+    .persona:nth-child(5) .persona__avatar { background: var(--coral); }
+    .persona:nth-child(6) .persona__avatar { background: var(--coral-deep); }
+    .persona:nth-child(7) .persona__avatar { background: var(--mustard); }
+    .persona:nth-child(8) .persona__avatar { background: var(--coral-deep); }
+    @media (max-width: 600px) {
+      .persona__avatar { width: 56px; height: 56px; font-size: 24px; }
+    }
+    .persona__body { min-width: 0; }
+    .persona__name {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      margin: 0 0 4px;
+    }
+    @media (max-width: 600px) {
+      .persona__name { font-size: 20px; }
+    }
+    .persona__tagline {
+      font-family: var(--font-body);
+      font-style: italic;
+      font-size: 14px;
+      color: var(--coral);
+      margin: 0 0 8px;
+      font-weight: 500;
+    }
+    .persona__desc {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.55;
+      margin: 0 0 10px;
+    }
+    .persona__tool {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .persona__tool code {
+      background: var(--bg);
+      color: var(--ink-2);
+      padding: 2px 7px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      font-size: 11px;
+    }
+    .persona__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: var(--coral);
+      color: white;
+      font-size: 13px; font-weight: 600;
+      border: 1px solid var(--coral);
+      transition: all var(--transition);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .persona__cta:hover { color: white; transform: translateY(-1px); }
+    .persona__cta::after { content: '→'; font-size: 14px; }
+    @media (max-width: 600px) {
+      .persona__cta { justify-content: center; }
+    }
+    .persona__badge {
+      position: absolute;
+      top: 14px; right: 14px;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--mustard);
+      color: white;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 8px rgba(230, 179, 74, 0.35);
+    }
+
+    /* ===== LANGUAGES ===== */
+    .langs {
+      text-align: center;
+      margin: 0 auto 72px;
+      padding: 28px 24px;
+      max-width: 600px;
+      background: var(--paper);
+      border: 1px dashed var(--line-2);
+      border-radius: var(--radius);
+    }
+    .langs__label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .langs__row {
+      display: flex; flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px 24px;
+    }
+    .langs__item {
+      display: inline-flex; align-items: baseline; gap: 6px;
+      font-family: var(--font-display);
+      font-size: 22px;
+      color: var(--ink);
+    }
+    .langs__item small {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 40px 0 56px;
+      background: rgba(255, 255, 255, 0.4);
+    }
+    .footer__grid {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, 1fr);
+      gap: 32px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 720px) {
+      .footer__grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+    }
+    @media (max-width: 480px) {
+      .footer__grid { grid-template-columns: 1fr; }
+    }
+    .footer__brand {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .footer__brand .face {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--coral);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 13px;
+    }
+    .footer__tag {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 280px;
+    }
+    .footer__col h4 {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 10px;
+    }
+    .footer__col ul { list-style: none; padding: 0; margin: 0; }
+    .footer__col li { margin-bottom: 6px; }
+    .footer__col a {
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .footer__col a:hover { color: var(--coral); }
+    .footer__bottom {
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ===== BACK TO TOP ===== */
+    .top-btn {
+      position: fixed;
+      right: 24px; bottom: 24px;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--coral);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; line-height: 1;
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.35);
+      border: none;
+      opacity: 0; pointer-events: none;
+      transform: translateY(8px);
+      transition: all var(--transition);
+      z-index: 100;
+    }
+    .top-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .top-btn:hover {
+      background: var(--mustard);
+      transform: translateY(-3px);
+    }
+    @media (max-width: 480px) {
+      .top-btn { right: 16px; bottom: 16px; width: 44px; height: 44px; }
+    }
+
+    /* ===== ANIMATIONS ===== */
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s, transform 0.5s; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .persona, .persona__avatar, .chip, .top-btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Two fan favorite badges render for: Indie musician + Belgrade / Serbian artist -->
+  <!-- ============ EMBEDDED PERSONAS DATA ============ -->
+  <script type="application/json" id="personas-data">
+{
+  "section": {
+    "kicker": "Made for these people",
+    "title": "Who actually uses this.",
+    "lede": "The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first."
+  },
+  "personas": [
+    {
+      "name": "Indie musician",
+      "tagline": "single · no video budget · 30s",
+      "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.",
+      "icon": "♪",
+      "best_fit": true,
+      "tool": "versions/neon.html"
+    },
+    {
+      "name": "Beatmaker",
+      "tagline": "selling beats · listing preview",
+      "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.",
+      "icon": "▰",
+      "tool": "versions/grid.html"
+    },
+    {
+      "name": "DJ",
+      "tagline": "60s mix teaser · vertical",
+      "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.",
+      "icon": "◐",
+      "tool": "versions/smoke.html"
+    },
+    {
+      "name": "Small label",
+      "tagline": "roster · one brand voice",
+      "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.",
+      "icon": "✦",
+      "tool": "versions/film.html"
+    },
+    {
+      "name": "Belgrade / Serbian artist",
+      "tagline": "local pricing · in-person demo",
+      "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.",
+      "icon": "◎",
+      "best_fit": true,
+      "tool": "campaign.html"
+    },
+    {
+      "name": "Podcaster",
+      "tagline": "ten clips per episode",
+      "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.",
+      "icon": "≋",
+      "tool": "versions/film.html"
+    },
+    {
+      "name": "Sound designer",
+      "tagline": "cover art from the engine",
+      "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.",
+      "icon": "⌗",
+      "tool": "versions/hallucination.html"
+    },
+    {
+      "name": "Music manager / agency",
+      "tagline": "ten artists · one workflow",
+      "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.",
+      "icon": "◇",
+      "tool": "profit-plan.html"
+    }
+  ]
+}
+  </script>
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="./engine.html">
+        <span class="face">♪</span>
+        Sainted Word Records
+      </a>
+      <a class="nav__back" href="./landing.html">
+        ← Back to landing
+      </a>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <div class="wrap">
+      <span class="hero__kicker">Member directory · v3 friendly</span>
+      <h1 class="hero__title">
+        Hey, who are you <span class="wave">here</span> for?
+      </h1>
+      <p class="hero__lede">
+        Eight people who actually reach for the engine. Pick your profile, say hi, and the right version opens in one click.
+      </p>
+
+      <div class="hero__cluster" aria-hidden="true">
+        <div class="hero__cluster-row" id="cluster"></div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="chips" role="list" aria-label="Filter chips (visual only)">
+        <span class="chip chip--active" role="listitem">All <span class="chip__count">8</span></span>
+        <span class="chip" role="listitem">Musicians <span class="chip__count">2</span></span>
+        <span class="chip" role="listitem">Producers <span class="chip__count">2</span></span>
+        <span class="chip" role="listitem">Labels <span class="chip__count">1</span></span>
+        <span class="chip" role="listitem">Other <span class="chip__count">3</span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ DIRECTORY ============ -->
+  <main class="wrap">
+    <div class="dir-head">
+      <h2 class="dir-head__title">Member directory</h2>
+      <span class="dir-head__date">Updated this week</span>
+    </div>
+
+    <div class="personas" id="personas"></div>
+
+    <!-- ============ LANGUAGES ============ -->
+    <div class="langs reveal">
+      <div class="langs__label">say hi in your language</div>
+      <div class="langs__row">
+        <span class="langs__item">Hey <small>EN</small></span>
+        <span class="langs__item">Ćao <small>SR</small></span>
+        <span class="langs__item">Hola <small>ES</small></span>
+        <span class="langs__item">やあ <small>JA</small></span>
+        <span class="langs__item">Hi <small>DE</small></span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer__grid">
+        <div>
+          <div class="footer__brand">
+            <span class="face">♪</span>
+            Sainted Word Records
+          </div>
+          <p class="footer__tag">
+            Audio-reactive video engine. One file, one song, one MP4. Member directory in the V3 · Friendly register.
+          </p>
+        </div>
+        <div class="footer__col">
+          <h4>Engine</h4>
+          <ul>
+            <li><a href="./engine.html">Main engine</a></li>
+            <li><a href="./landing.html">Landing page</a></li>
+            <li><a href="./interactive-howto.html">Interactive howto</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Marketing</h4>
+          <ul>
+            <li><a href="./campaign.html">Campaign</a></li>
+            <li><a href="./profit-plan.html">Profit plan</a></li>
+            <li><a href="./market-study.html">Market study</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Make</h4>
+          <ul>
+            <li><a href="./director-mode-sainted-word.html">Director mode</a></li>
+            <li><a href="./tutorial-30s.html">30s tutorial</a></li>
+            <li><a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">GitHub repo</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© 2026 Kai Djuric · MIT licensed</span>
+        <span>v3 · friendly register · cream + coral</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ SISTER REGISTERS (other personas pages) ============ -->
+  <nav class="sister-registers" aria-label="Other persona registers">
+    <span class="sister-registers__label">Other registers:</span>
+    <a href="./landing-personas-v1-editorial.html">V1 · Editorial</a>
+    <a href="./landing-personas-v2-dark.html">V2 · Dark</a>
+    <a href="./landing-personas-v4-dashboard.html">V4 · Dashboard</a>
+    <a href="./landing-personas-v5-brutalist.html">V5 · Brutalist</a>
+    <a href="./landing-personas-v6-wireframe.html">V6 · Wireframe</a>
+    <a href="./personas.html">personas.html (canonical)</a>
+  </nav>
+  <style>
+  .sister-registers {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 14px;
+    background: rgba(253, 246, 232, 0.94);
+    border: 1px solid #f0e3c8;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 500;
+    z-index: 50; max-width: calc(100vw - 32px);
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.12);
+  }
+  .sister-registers__label { color: #c4543a; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'DM Mono', monospace; font-size: 9px; }
+  .sister-registers a { color: #ff6b6b; text-decoration: none; padding: 2px 6px; border-radius: 3px; }
+  .sister-registers a:hover { background: rgba(255, 107, 107, 0.1); }
+  @media (max-width: 600px) {
+    .sister-registers { font-size: 10px; padding: 6px 10px; gap: 6px; }
+  }
+  </style>
+
+  <!-- ============ BACK TO TOP ============ -->
+  <button class="top-btn" id="topBtn" aria-label="Back to top" type="button">↑</button>
+
+  <!-- ============ RENDER SCRIPT ============ -->
+  <script>
+    (function () {
+      'use strict';
+
+      // 1. Parse embedded personas data
+      var dataEl = document.getElementById('personas-data');
+      var data;
+      try {
+        data = JSON.parse(dataEl.textContent);
+      } catch (e) {
+        console.error('personas data parse failed', e);
+        return;
+      }
+      var personas = (data && data.personas) || [];
+
+      // 2. Render the avatar cluster
+      var cluster = document.getElementById('cluster');
+      if (cluster) {
+        var clusterHTML = personas.map(function (p) {
+          return '<span class="av" title="' + escapeAttr(p.name) + '">' + escapeHTML(p.icon || '•') + '</span>';
+        }).join('');
+        cluster.innerHTML = clusterHTML;
+      }
+
+      // 3. Render the persona list
+      var list = document.getElementById('personas');
+      if (list) {
+        list.innerHTML = personas.map(function (p) {
+          var badge = p.best_fit
+            ? '<span class="persona__badge" aria-label="fan favorite">★ fan favorite</span>'
+            : '';
+          return (
+            '<article class="persona reveal">' +
+              badge +
+              '<div class="persona__avatar" aria-hidden="true">' + escapeHTML(p.icon || '•') + '</div>' +
+              '<div class="persona__body">' +
+                '<h3 class="persona__name">' + escapeHTML(p.name) + '</h3>' +
+                '<p class="persona__tagline">' + escapeHTML(p.tagline || '') + '</p>' +
+                '<p class="persona__desc">' + escapeHTML(p.body) + '</p>' +
+                '<span class="persona__tool">→ <code>' + escapeHTML(p.tool) + '</code></span>' +
+              '</div>' +
+              '<a class="persona__cta" href="./' + escapeAttr(p.tool) + '">Say hi</a>' +
+            '</article>'
+          );
+        }).join('');
+      }
+
+      // 4. Intersection observer for reveal
+      var reveals = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              e.target.classList.add('visible');
+              io.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+        reveals.forEach(function (el) { io.observe(el); });
+      } else {
+        reveals.forEach(function (el) { el.classList.add('visible'); });
+      }
+      // Fallback: force all reveals visible after 2.5s
+      setTimeout(function () {
+        reveals.forEach(function (el) { el.classList.add('visible'); });
+      }, 2500);
+
+      // 5. Back to top
+      var topBtn = document.getElementById('topBtn');
+      function onScroll() {
+        if (window.scrollY > 320) {
+          topBtn.classList.add('visible');
+        } else {
+          topBtn.classList.remove('visible');
+        }
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      topBtn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // helpers
+      function escapeHTML(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      function escapeAttr(s) { return escapeHTML(s); }
+    })();
+  </script>
+</body>
+</html>

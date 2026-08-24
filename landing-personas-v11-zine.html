@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR Personas · v11 ZINE · Cut-and-paste punk</title>
+  <meta name="description" content="The 8 personas rendered as a photocopied punk zine: ransom-note typography, hand-drawn, scissor-cuts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Permanent+Marker&family=Special+Elite&family=IBM+Plex+Mono:wght@400;500;700&family=Shadows+Into+Light&family=Inter:wght@400;700&display=swap" />
+  <style>
+    :root {
+      --bg: #f0e8d4;
+      --bg-2: #e3d6b6;
+      --ink: #0a0a0a;
+      --ink-2: #2a2a2a;
+      --hot: #ff2d8a;
+      --acid: #b5ff3a;
+      --blood: #c42020;
+      --orange: #ff6b1a;
+      --blue: #1a3a8a;
+      --violet: #6a1a8a;
+      --font-zine-head: 'Anton', 'Impact', sans-serif;
+      --font-zine-sub: 'Bebas Neue', 'Arial Narrow', sans-serif;
+      --font-marker: 'Permanent Marker', cursive;
+      --font-typer: 'Special Elite', monospace;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-hand: 'Shadows Into Light', cursive;
+      --font-body: 'Inter', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+      font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+    body {
+      background-image:
+        /* photocopier noise */
+        radial-gradient(circle at 10% 20%, rgba(0,0,0,0.06) 0, transparent 0.5px),
+        radial-gradient(circle at 50% 70%, rgba(0,0,0,0.05) 0, transparent 0.5px),
+        radial-gradient(circle at 80% 30%, rgba(0,0,0,0.04) 0, transparent 0.5px),
+        radial-gradient(circle at 30% 90%, rgba(0,0,0,0.05) 0, transparent 0.5px),
+        radial-gradient(circle at 90% 80%, rgba(0,0,0,0.04) 0, transparent 0.5px);
+      background-size: 200px 200px; }
+    .sheet { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px;
+      position: relative; }
+    /* Fold lines */
+    .sheet::before { content: ''; position: absolute; left: 33.33%; top: 0; bottom: 0;
+      width: 1px; background: rgba(0,0,0,0.1); pointer-events: none; }
+    .sheet::after { content: ''; position: absolute; left: 66.66%; top: 0; bottom: 0;
+      width: 1px; background: rgba(0,0,0,0.1); pointer-events: none; }
+
+    /* Top banner */
+    .banner { position: relative; padding: 28px 24px;
+      background: var(--ink); color: var(--bg);
+      margin-bottom: 16px;
+      border: 3px solid var(--ink);
+      box-shadow: 6px 6px 0 var(--hot); }
+    .banner__issue { display: inline-block; background: var(--acid);
+      color: var(--ink); font: 700 11px/1 var(--font-mono);
+      letter-spacing: 0.3em; text-transform: uppercase;
+      padding: 4px 8px; margin-bottom: 12px; }
+    .banner__title { font: 400 72px/0.9 var(--font-zine-head);
+      margin: 0 0 8px; letter-spacing: 0.01em; text-transform: uppercase; }
+    .banner__title em { font-style: normal; color: var(--hot); }
+    .banner__title b { font: 400 60px/0.9 var(--font-marker);
+      color: var(--acid); -webkit-text-stroke: 1px var(--ink); }
+    .banner__sub { font: 400 15px/1.4 var(--font-mono); margin: 0; max-width: 60ch; }
+    .banner__stamp { position: absolute; right: 24px; top: 50%; transform: translateY(-50%) rotate(8deg);
+      border: 3px solid var(--blood); color: var(--blood);
+      padding: 8px 14px; font: 700 14px/1.2 var(--font-zine-head);
+      text-transform: uppercase; letter-spacing: 0.05em; }
+    .banner__hand { position: absolute; left: 24px; bottom: -16px;
+      font: 400 22px/1 var(--font-hand); color: var(--blue);
+      background: var(--bg); padding: 0 8px; transform: rotate(-3deg); }
+
+    /* Marquee */
+    .strip { position: relative; background: var(--hot); color: var(--bg);
+      padding: 8px 16px; margin: 32px 0; overflow: hidden;
+      transform: rotate(-0.5deg);
+      box-shadow: 4px 4px 0 var(--ink); }
+    .strip__inner { display: flex; gap: 32px; white-space: nowrap;
+      animation: scroll 30s linear infinite;
+      font: 700 18px/1 var(--font-zine-sub); letter-spacing: 0.1em; }
+    @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .strip b { color: var(--acid); }
+
+    /* Pull quote — handwritten on ripped paper */
+    .scribble { position: relative; margin: 32px auto; padding: 24px;
+      max-width: 720px;
+      background: var(--bg-2);
+      transform: rotate(-1deg);
+      box-shadow: 4px 4px 0 var(--ink);
+      border: 2px solid var(--ink); }
+    .scribble__text { font: 400 26px/1.3 var(--font-marker);
+      margin: 0; color: var(--ink); }
+    .scribble__text em { font-style: normal; color: var(--blood);
+      text-decoration: underline wavy; }
+    .scribble__cite { font: 700 11px/1.4 var(--font-mono); letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--ink-2); margin-top: 12px; }
+    .scribble__tape { position: absolute; top: -10px; left: 50%;
+      transform: translateX(-50%) rotate(2deg);
+      background: var(--acid); padding: 4px 16px;
+      font: 700 10px/1 var(--font-mono); letter-spacing: 0.3em;
+      color: var(--ink); text-transform: uppercase; }
+
+    /* Persona cards — ransom note style */
+    .cutouts { display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 18px; margin-top: 32px; }
+    .cutout { position: relative; padding: 24px 20px;
+      background: var(--bg-2);
+      border: 2px solid var(--ink);
+      box-shadow: 5px 5px 0 var(--ink);
+      transition: transform 0.1s; }
+    .cutout:nth-child(odd) { transform: rotate(-0.6deg); }
+    .cutout:nth-child(even) { transform: rotate(0.5deg); }
+    .cutout:hover { transform: rotate(0); }
+    .cutout__num { position: absolute; top: -10px; left: 16px;
+      background: var(--ink); color: var(--bg);
+      font: 700 11px/1 var(--font-mono); letter-spacing: 0.3em;
+      padding: 4px 8px; text-transform: uppercase; }
+    .cutout__tape { position: absolute; top: -8px; right: 16px;
+      width: 60px; height: 16px; background: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(0,0,0,0.1); transform: rotate(-3deg); }
+    .cutout__icon { display: inline-block; padding: 2px 8px; margin-bottom: 8px;
+      font: 400 48px/1 var(--font-zine-head); color: var(--bg);
+      background: var(--ink); }
+    .cutout__name { font: 400 30px/0.95 var(--font-zine-head);
+      text-transform: uppercase; margin: 8px 0 12px; letter-spacing: 0.01em; }
+    .cutout__name em { font-style: normal; color: var(--hot);
+      -webkit-text-stroke: 1px var(--ink); }
+    .cutout__desc { font: 400 13px/1.5 var(--font-mono); color: var(--ink-2);
+      margin: 0 0 14px; }
+    .cutout__byline { font: 400 italic 14px/1.4 var(--font-hand);
+      color: var(--blue); margin: 0; padding-top: 10px;
+      border-top: 1px dashed var(--ink); transform: rotate(-1deg); }
+    .cutout__byline::before { content: '— '; color: var(--ink); }
+    .cutout__tool { display: inline-block; margin-top: 8px;
+      font: 700 9px/1 var(--font-mono); letter-spacing: 0.2em;
+      text-transform: uppercase; padding: 4px 8px;
+      background: var(--acid); color: var(--ink);
+      border: 1px solid var(--ink); }
+    .cutout__badge { display: inline-block; margin-left: 6px;
+      background: var(--blood); color: var(--bg);
+      padding: 2px 6px; font: 700 9px/1.2 var(--font-mono);
+      letter-spacing: 0.2em; text-transform: uppercase; vertical-align: middle; }
+    .cutout__corner { position: absolute; bottom: -8px; right: 16px;
+      font: 400 18px/1 var(--font-marker); color: var(--blood);
+      transform: rotate(5deg); }
+
+    /* Footer */
+    .colophon { margin-top: 64px; padding: 24px;
+      background: var(--ink); color: var(--bg);
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+      font: 700 10px/1.4 var(--font-mono); letter-spacing: 0.3em;
+      text-transform: uppercase; transform: rotate(-0.4deg); }
+    .colophon b { color: var(--acid); }
+    .colophon a { color: var(--hot); text-decoration: none; }
+    .colophon a:hover { color: var(--acid); }
+
+    @media (max-width: 720px) {
+      .cutouts { grid-template-columns: 1fr; }
+      .colophon { grid-template-columns: 1fr; }
+      .banner__title { font-size: 48px; }
+      .banner__title b { font-size: 40px; }
+      .banner__stamp { position: static; transform: rotate(8deg); margin-top: 16px; display: inline-block; }
+      .sheet::before, .sheet::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <header class="banner">
+      <span class="banner__issue">★ ISSUE #11 · v11 ZINE</span>
+      <h1 class="banner__title">Who actually <em>uses</em> <b>this?!</b></h1>
+      <p class="banner__sub">The engine and its 5 versions were built for people who have audio and a release date, and ZERO budget for a video editor. Read on. Or don't. Your call.</p>
+      <div class="banner__stamp">★ APPROVED ★</div>
+      <div class="banner__hand">— for the indie in you —</div>
+    </header>
+
+    <div class="strip">
+      <div class="strip__inner">
+        <span>8 PERSONAS ★ 1 ENGINE ★ ZERO DOLLARS ★ BELGRADE ON DEMAND ★ 5 VERSIONS ★ 1 TOOL ★ NO TRACK LIMITS ★</span>
+        <span>8 PERSONAS ★ 1 ENGINE ★ ZERO DOLLARS ★ BELGRADE ON DEMAND ★ 5 VERSIONS ★ 1 TOOL ★ NO TRACK LIMITS ★</span>
+      </div>
+    </div>
+
+    <section class="scribble">
+      <span class="scribble__tape">★ FROM THE EDITOR</span>
+      <p class="scribble__text">"Same engine, two days, <em>fifty music videos</em> — the bottleneck was the editor, not the code."</p>
+      <p class="scribble__cite">— A WORKING INDIE LABEL · ON ITS SWITCH</p>
+    </section>
+
+    <div class="cutouts" id="cutouts"></div>
+
+    <footer class="colophon">
+      <div>· v11 · ZINE · RIOT-FREE</div>
+      <div>RUN <b>1000 / 1000</b></div>
+      <div><a href="landing-personas-v1-editorial.html">← ALL 6 REGISTERS</a></div>
+    </footer>
+  </div>
+
+  <script type="application/json" id="personas-data">
+  {
+    "_about": "8 character presets. Same data feeds v1–v6, plus v11 ZINE.",
+    "_note": "Self-contained — embed inline for each register.",
+    "personas": [
+      { "name": "Indie musician", "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.", "icon": "♪", "best_fit": true, "tool": "versions/neon.html", "byline": "A master in Belgrade, a release on Friday, a visualizer before midnight on Thursday." },
+      { "name": "Beatmaker", "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.", "icon": "▰", "tool": "versions/grid.html", "byline": "50 beats on BeatStars, 50 still waveforms, 50 missed opportunities. Until now." },
+      { "name": "DJ", "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.", "icon": "◐", "tool": "versions/smoke.html", "byline": "Saturday's set was fire. Sunday's Reel is silent. The gap is the visual." },
+      { "name": "Small label", "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.", "icon": "✦", "tool": "versions/film.html", "byline": "Five artists, one brand, one render preset reused across the catalog." },
+      { "name": "Belgrade / Serbian artist", "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.", "icon": "◎", "best_fit": true, "tool": "campaign.html", "byline": "Same engine, half the price, twice the in-person trust." },
+      { "name": "Podcaster", "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.", "icon": "≋", "tool": "versions/film.html", "byline": "Two hours of interview, six pull-quote clips, zero video editor." },
+      { "name": "Sound designer", "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.", "icon": "⌗", "tool": "versions/hallucination.html", "byline": "The pack is the product. The cover is the engine's output." },
+      { "name": "Music manager / agency", "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.", "icon": "◇", "tool": "profit-plan.html", "byline": "Ten clients, one tool, ten mornings of social posts per month." }
+    ]
+  }
+  </script>
+
+  <script>
+    (function () {
+      'use strict';
+      var dataNode = document.getElementById('personas-data');
+      if (!dataNode) return;
+      var data;
+      try { data = JSON.parse(dataNode.textContent); }
+      catch (err) { console.error('zine personas parse error', err); return; }
+      var personas = (data && data.personas) || [];
+      var numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+      var html = '';
+      personas.forEach(function (p, i) {
+        html += '<article class="cutout">';
+        html += '<span class="cutout__tape"></span>';
+        html += '<span class="cutout__num">NO. ' + (numerals[i] || (i + 1)) + ' / VIII</span>';
+        html += '<div class="cutout__icon">' + (p.icon || '·') + '</div>';
+        html += '<h3 class="cutout__name">' + p.name;
+        if (p.best_fit) html += '<span class="cutout__badge">★ FIT</span>';
+        html += '</h3>';
+        html += '<p class="cutout__desc">' + p.body + '</p>';
+        if (p.byline) html += '<p class="cutout__byline">' + p.byline + '</p>';
+        if (p.tool) html += '<span class="cutout__tool">→ ' + p.tool + '</span>';
+        html += '<div class="cutout__corner">★</div>';
+        html += '</article>';
+      });
+      document.getElementById('cutouts').innerHTML = html;
+    })();
+  </script>
+</body>
+</html>

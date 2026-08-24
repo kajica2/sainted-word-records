@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en" data-register="dark" data-version="v2">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR · Personas · V2 Dark Mode</title>
+  <meta name="description" content="Sainted Word Records personas — rendered in the V2 Dark Mode (terminal/CLI) visual register. A live status board of the 8 user types the engine was built for." />
+  <meta name="color-scheme" content="dark" />
+  <meta name="author" content="Kai Djuric" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta property="og:title" content="SWR · Personas · V2 Dark Mode" />
+  <meta property="og:description" content="The 8 personas for the Sainted Word Records engine, rendered as a live activity feed in the dark terminal register." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SWR · Personas · V2 Dark Mode" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/landing-personas-v2-dark.html" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230a0a0a'/%3E%3Crect x='6' y='14' width='3' height='8' fill='%237af0c4'/%3E%3Crect x='11' y='10' width='3' height='14' fill='%237af0c4'/%3E%3Crect x='16' y='6' width='3' height='22' fill='%237af0c4'/%3E%3Crect x='21' y='12' width='3' height='12' fill='%237af0c4'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <style>
+    /* ============================================
+       V2 DARK MODE — TERMINAL / CLI REGISTER
+       bg #0a0a0a · accent #7af0c4 · secondary #5fa8ff
+       ============================================ */
+    :root {
+      --bg: #0a0a0a;
+      --bg-2: #111111;
+      --bg-3: #161616;
+      --bg-4: #1c1c1c;
+      --ink: #ececec;
+      --ink-2: #a8a8a8;
+      --ink-3: #7a7a7a;
+      --muted: #5e5e5e;
+      --line: #1f1f1f;
+      --line-2: #2a2a2a;
+      --line-3: #383838;
+      --accent: #7af0c4;
+      --accent-2: #5fa8ff;
+      --star: #7af0c4;
+      --warn: #ffb84a;
+      --err: #ff7a7a;
+      --font-display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-display);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-variant-numeric: tabular-nums;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent); text-decoration: none; transition: color 0.15s; }
+    a:hover { color: var(--accent-2); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    img { max-width: 100%; display: block; }
+    button { font-family: inherit; cursor: pointer; }
+    ::selection { background: var(--accent); color: var(--bg); }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--line-3); }
+
+    /* === LAYOUT === */
+    .wrap { max-width: 980px; margin: 0 auto; padding: 0 28px; }
+    @media (max-width: 720px) { .wrap { padding: 0 18px; } }
+
+    /* === TOPBAR === */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(14px) saturate(180%);
+      -webkit-backdrop-filter: blur(14px) saturate(180%);
+      background: rgba(10,10,10,0.78);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar__inner {
+      display: flex; align-items: center; gap: 16px;
+      padding: 11px 28px; max-width: 980px; margin: 0 auto;
+      font-family: var(--font-mono);
+      font-size: 11px; letter-spacing: 0.06em;
+    }
+    .topbar__brand {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--ink); font-weight: 500;
+    }
+    .topbar__brand .square {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(122,240,196,0.55);
+    }
+    .topbar__reg { color: var(--ink-3); }
+    .topbar__reg b { color: var(--accent); font-weight: 500; }
+    .topbar__links { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+    .topbar__links a { color: var(--ink-2); font-size: 11px; }
+    .topbar__links a:hover { color: var(--accent); }
+    .topbar__sep { color: var(--line-3); }
+    @media (max-width: 720px) {
+      .topbar__reg { display: none; }
+      .topbar__inner { padding: 11px 18px; }
+    }
+
+    /* === LIVE COUNTER (top-right corner) === */
+    .live-counter {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-2);
+      letter-spacing: 0.04em;
+    }
+    .live-counter__dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 rgba(122,240,196,0.7);
+      animation: live-pulse 1.6s cubic-bezier(0.66, 0, 0, 1) infinite;
+      flex-shrink: 0;
+    }
+    @keyframes live-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(122,240,196,0.7); }
+      70%  { box-shadow: 0 0 0 7px rgba(122,240,196,0); }
+      100% { box-shadow: 0 0 0 0 rgba(122,240,196,0); }
+    }
+    .live-counter b { color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+    /* === HERO (terminal splash) === */
+    .hero { padding: 44px 0 24px; }
+    .term {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--ink-2);
+    }
+    .term .prompt { color: var(--accent); user-select: none; }
+    .term .ok { color: var(--accent); }
+    .term .ok-mark { color: var(--accent); font-weight: 600; }
+    .term .info-tag { color: var(--accent-2); }
+    .term .muted { color: var(--muted); }
+    .term .star-mark { color: var(--star); }
+    .term .pipe { color: var(--line-3); margin: 0 6px; user-select: none; }
+    .term .cursor {
+      display: inline-block; width: 8px; height: 14px;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: blink 1.05s steps(2) infinite;
+      margin-left: 2px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .hero__splash {
+      padding: 18px 22px 22px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px rgba(122,240,196,0.04), 0 20px 60px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .hero__splash::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(122,240,196,0.025) 0%, transparent 40%);
+      border-radius: 10px; pointer-events: none;
+    }
+    .hero__splash-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+    }
+    .hero__splash-bar .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--line-2);
+    }
+    .hero__splash-bar .dot.r { background: #ff5f57; }
+    .hero__splash-bar .dot.y { background: #febc2e; }
+    .hero__splash-bar .dot.g { background: #28c840; }
+    .hero__splash-bar .title {
+      margin-left: auto; color: var(--ink-3); font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
+    }
+    .hero__splash-bar .title b { color: var(--accent); font-weight: 500; }
+
+    /* === FAKE COMMAND HISTORY === */
+    .cmd-history {
+      margin-bottom: 20px;
+      padding-bottom: 18px;
+      border-bottom: 1px dashed var(--line-2);
+    }
+    .cmd-history__line {
+      display: block;
+    }
+    .cmd-history__line + .cmd-history__line { margin-top: 2px; }
+
+    .hero__cmd {
+      font-size: 15px;
+      margin: 0 0 18px;
+      color: var(--ink);
+    }
+    .hero__cmd .arg { color: var(--accent-2); }
+    .hero__cmd .opt { color: var(--warn); }
+
+    .hero__title {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: clamp(38px, 5.6vw, 64px);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin: 18px 0 14px;
+    }
+    .hero__title em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .hero__lede {
+      font-size: 15px;
+      color: var(--ink-2);
+      max-width: 640px;
+      margin: 0 0 22px;
+      line-height: 1.6;
+    }
+    .hero__lede code {
+      background: var(--bg-3); color: var(--accent);
+      padding: 1px 6px; border-radius: 3px;
+      font-size: 13px;
+    }
+
+    /* === SYSTEM STATUS LINE === */
+    .hero__status {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px;
+      margin-top: 12px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-2);
+      flex-wrap: wrap;
+    }
+    .hero__status .led { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); flex-shrink: 0; }
+    .hero__status b { color: var(--accent); font-weight: 500; }
+    .hero__status .sep { color: var(--line-3); }
+    .hero__status .ok { color: var(--accent); }
+
+    /* === ACTIVITY FEED === */
+    .feed {
+      padding: 28px 0 48px;
+    }
+    .feed__head {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 0 4px 14px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-3);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      flex-wrap: wrap;
+    }
+    .feed__head .bracket { color: var(--accent); }
+    .feed__head .pipe { color: var(--line-3); }
+    .feed__head b { color: var(--accent); font-weight: 500; }
+    .feed__head .count {
+      margin-left: auto;
+      color: var(--ink-3);
+      letter-spacing: 0.1em;
+    }
+    .feed__head .count b { color: var(--accent); }
+    .feed__head .arrow { color: var(--accent-2); }
+
+    .feed__list {
+      display: flex; flex-direction: column;
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .log-line {
+      background: var(--bg-2);
+      padding: 14px 18px 16px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+      position: relative;
+    }
+    .log-line:hover {
+      background: var(--bg-3);
+      border-left-color: var(--accent);
+    }
+    .log-line--star {
+      border-left-color: var(--star);
+      background: linear-gradient(90deg, rgba(122,240,196,0.04) 0%, transparent 60%), var(--bg-2);
+    }
+    .log-line--star:hover {
+      border-left-color: var(--accent);
+    }
+    .log-line__head {
+      display: flex; align-items: center;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-2);
+      line-height: 1.6;
+    }
+    .log-line__ts { color: var(--ink-3); }
+    .log-line__lvl { color: var(--accent-2); font-weight: 500; }
+    .log-line__lvl--star { color: var(--star); }
+    .log-line__pid { color: var(--ink-2); }
+    .log-line__icon { color: var(--accent); font-size: 14px; }
+    .log-line__name {
+      color: var(--accent);
+      font-weight: 500;
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
+    .log-line__head .pipe { color: var(--line-3); margin: 0 10px; user-select: none; }
+    .log-line__head .prompt-mark {
+      color: var(--accent);
+      margin-right: 4px;
+      user-select: none;
+    }
+
+    .log-line__body {
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.55;
+      margin: 8px 0 0 0;
+      max-width: 760px;
+    }
+    .log-line__body .arrow {
+      display: inline-block;
+      margin-left: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-2);
+      letter-spacing: 0.04em;
+    }
+    .log-line__body .arrow a { color: var(--accent-2); }
+    .log-line__body .arrow a:hover { color: var(--accent); }
+    .log-line__body .star-tag {
+      display: inline-block;
+      margin-left: 8px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--star);
+      border: 1px solid var(--star);
+      padding: 2px 7px;
+      border-radius: 2px;
+      vertical-align: 1px;
+    }
+    .log-line__meta {
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-3);
+      letter-spacing: 0.04em;
+    }
+    .log-line__meta .pipe { color: var(--line-3); margin: 0 8px; }
+    .log-line__meta b { color: var(--accent-2); font-weight: 500; }
+
+    @media (max-width: 600px) {
+      .log-line__head { font-size: 11px; }
+      .log-line__head .pipe { margin: 0 6px; }
+      .log-line__body { font-size: 13px; }
+      .log-line { padding: 12px 14px 14px; }
+    }
+
+    /* === TICKER (post-feed live activity) === */
+    .ticker {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+      display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap;
+    }
+    .ticker .led { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 4px var(--accent); flex-shrink: 0; }
+    .ticker b { color: var(--accent); font-weight: 500; }
+    .ticker .sep { color: var(--line-3); }
+    .ticker .pipe { color: var(--line-3); margin: 0 6px; }
+
+    /* === TERMINAL FOOTER === */
+    .terminal-footer {
+      padding: 28px 0 36px;
+      border-top: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    .terminal-footer__close {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--ink-2);
+      margin-bottom: 18px;
+    }
+    .terminal-footer__close .prompt { color: var(--accent); user-select: none; }
+    .terminal-footer__close .arg { color: var(--accent-2); }
+    .terminal-footer__close .cursor {
+      display: inline-block; width: 8px; height: 14px;
+      background: var(--accent); vertical-align: text-bottom;
+      animation: blink 1.05s steps(2) infinite;
+      margin-left: 2px;
+    }
+
+    .footer__links {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 32px;
+      padding: 18px 0 22px;
+      border-top: 1px solid var(--line);
+    }
+    @media (max-width: 720px) {
+      .footer__links { grid-template-columns: 1fr; gap: 24px; }
+    }
+    .footer__col h4 {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin: 0 0 12px;
+      font-weight: 500;
+    }
+    .footer__col ul { list-style: none; padding: 0; margin: 0; }
+    .footer__col li {
+      margin-bottom: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-2);
+    }
+    .footer__col a { color: var(--ink-2); }
+    .footer__col a:hover { color: var(--accent); }
+    .footer__col li .arrow { color: var(--line-3); margin-right: 4px; }
+    .footer__brand {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .footer__brand .square {
+      width: 8px; height: 8px; background: var(--accent);
+    }
+    .footer__tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+      line-height: 1.65;
+      max-width: 360px;
+    }
+    .footer__bottom {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--ink-3);
+    }
+    .footer__bottom .colophon { color: var(--ink-2); }
+    .footer__bottom .colophon b { color: var(--accent); font-weight: 500; }
+    .footer__bottom .reg { color: var(--accent-2); }
+
+    /* === SUBTLE SCANLINE OVERLAY (terminal feel) === */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.012) 0,
+        rgba(255,255,255,0.012) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      z-index: 100;
+      mix-blend-mode: overlay;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ INLINE PERSONAS DATA (single source of truth) ============ -->
+  <script type="application/json" id="personas-data">
+{
+  "_about": "Single source of truth for the 5 character presets of the SWR personas. Every register (Editorial / Dark / Friendly / Dashboard / Brutalist) renders this same data in its own visual register. Tweak here, all 5 pages update on next regen.",
+  "_note": "When generating a register, embed this JSON inline in the HTML so each page is self-contained. The .personas.js file in the project root is the runtime version for the live <personas-block> component.",
+  "section": {
+    "kicker": "Made for these people",
+    "title": "Who actually <em>uses</em> this.",
+    "lede": "The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first."
+  },
+  "personas": [
+    {
+      "name": "Indie musician",
+      "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.",
+      "icon": "♪",
+      "best_fit": true,
+      "tool": "versions/neon.html"
+    },
+    {
+      "name": "Beatmaker",
+      "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.",
+      "icon": "▰",
+      "tool": "versions/grid.html"
+    },
+    {
+      "name": "DJ",
+      "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.",
+      "icon": "◐",
+      "tool": "versions/smoke.html"
+    },
+    {
+      "name": "Small label",
+      "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.",
+      "icon": "✦",
+      "tool": "versions/film.html"
+    },
+    {
+      "name": "Belgrade / Serbian artist",
+      "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.",
+      "icon": "◎",
+      "best_fit": true,
+      "tool": "campaign.html"
+    },
+    {
+      "name": "Podcaster",
+      "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.",
+      "icon": "≋",
+      "tool": "versions/film.html"
+    },
+    {
+      "name": "Sound designer",
+      "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.",
+      "icon": "⌗",
+      "tool": "versions/hallucination.html"
+    },
+    {
+      "name": "Music manager / agency",
+      "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.",
+      "icon": "◇",
+      "tool": "profit-plan.html"
+    }
+  ]
+}
+  </script>
+
+  <!-- ============ TOPBAR ============ -->
+  <nav class="topbar">
+    <div class="topbar__inner">
+      <a class="topbar__brand" href="./landing.html">
+        <span class="square"></span>
+        Sainted Word Records
+      </a>
+      <span class="topbar__reg">register=<b>dark</b> · v2 · <span style="color:var(--ink-3);">/personas</span></span>
+      <div class="topbar__links">
+        <a href="./landing.html">landing</a>
+        <a href="./engine.html">engine</a>
+        <span class="topbar__sep">|</span>
+        <span class="live-counter" title="Live render counter">
+          <span class="live-counter__dot"></span>
+          users_online: <b id="user-count">8</b>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============ HERO (terminal splash) ============ -->
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__splash">
+        <div class="hero__splash-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="title">~/swr/personas <b>— register=dark</b> · tty1</span>
+        </div>
+
+        <!-- FAKE COMMAND HISTORY (4 lines) -->
+        <div class="cmd-history term">
+          <span class="cmd-history__line"><span class="prompt">$ </span>swr init personas</span>
+          <span class="cmd-history__line"><span class="ok-mark">[OK]</span> loading personas.json <span class="info-tag">(8 entries)</span></span>
+          <span class="cmd-history__line"><span class="ok-mark">[OK]</span> rendering <span class="info-tag">register=dark</span></span>
+          <span class="cmd-history__line"><span class="ok-mark">[OK]</span> connecting to live counter</span>
+        </div>
+
+        <div class="hero__cmd term">
+          <span class="prompt">$ </span>swr personas <span class="arg">--render</span> <span class="arg">--register=dark</span><span class="cursor"></span>
+        </div>
+
+        <h1 class="hero__title">Who <em>actually</em> uses this.</h1>
+        <p class="hero__lede">
+          The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first. Same data, terminal register.
+        </p>
+
+        <!-- SYSTEM STATUS LINE -->
+        <div class="hero__status term">
+          <span class="led"></span>
+          <span class="ok">[OK]</span> engine running
+          <span class="sep">·</span>
+          <span><b>5</b> versions loaded</span>
+          <span class="sep">·</span>
+          <span><b>8</b> personas rendered</span>
+          <span class="sep">·</span>
+          <span>uptime 00:00:42</span>
+          <span class="sep">·</span>
+          <span>pid=<b>1337</b></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ ACTIVITY FEED (the 8 personas as log entries) ============ -->
+  <section class="feed">
+    <div class="wrap">
+      <div class="feed__head">
+        <span class="bracket">[</span><span>STREAM</span><span class="bracket">]</span>
+        <span class="pipe">|</span>
+        <span><b>8</b> entries</span>
+        <span class="pipe">|</span>
+        <span><b>2</b> starred</span>
+        <span class="pipe">|</span>
+        <span>filter=<b>all</b></span>
+        <span class="count">rendering <span class="arrow">→</span> register=<b>dark</b></span>
+      </div>
+      <div class="feed__list" id="feed-list">
+        <!-- Rendered by vanilla JS below -->
+      </div>
+
+      <!-- LIVE ACTIVITY TICKER (post-feed) -->
+      <div class="ticker">
+        <span class="led"></span>
+        <span class="ok">[OK]</span> feed closed cleanly
+        <span class="pipe">|</span>
+        <span>8 rows committed</span>
+        <span class="pipe">|</span>
+        <span><b>2</b> starred</span>
+        <span class="pipe">|</span>
+        <span>buffer 14.2 MB</span>
+        <span class="pipe">|</span>
+        <span>renders/sec: <b>12.3</b></span>
+        <span class="pipe">|</span>
+        <span>next tick: <b>1.0s</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER (terminal close) ============ -->
+  <footer class="terminal-footer">
+    <div class="wrap">
+      <div class="terminal-footer__close term">
+        <span class="prompt">$ </span>swr personas <span class="arg">--close</span><span class="cursor"></span>
+      </div>
+
+      <div class="footer__links">
+        <div>
+          <div class="footer__brand">
+            <span class="square"></span>
+            Sainted Word Records
+          </div>
+          <p class="footer__tag">
+            An audio-reactive video engine. Drop a song, drop a library, get a music video. Single HTML, zero backend, MIT licensed. The 8 personas below are the same data every register renders.
+          </p>
+        </div>
+        <div class="footer__col">
+          <h4>Sister pages</h4>
+          <ul>
+            <li><span class="arrow">→</span><a href="./campaign.html">campaign.html</a></li>
+            <li><span class="arrow">→</span><a href="./market-study.html">market-study.html</a></li>
+            <li><span class="arrow">→</span><a href="./profit-plan.html">profit-plan.html</a></li>
+            <li><span class="arrow">→</span><a href="./tutorial-30s.html">tutorial-30s.html</a></li>
+            <li><span class="arrow">→</span><a href="./interactive-howto.html">interactive-howto.html</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Engine</h4>
+          <ul>
+            <li><span class="arrow">→</span><a href="./landing.html">landing.html</a></li>
+            <li><span class="arrow">→</span><a href="./engine.html">index.html</a></li>
+            <li><span class="arrow">→</span><a href="./versions.html">versions/</a></li>
+            <li><span class="arrow">→</span><a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">github repo</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <span>© 2026 Kai Djuric · MIT · <span class="colophon">register=<b>dark</b> · v2</span> · <span class="reg">personas.v2.dark</span></span>
+        <span>v1 · Web Audio + MediaRecorder · Chrome 126+ / Safari 14.5+</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ SISTER REGISTERS (other personas pages) ============ -->
+<nav class="sister-registers" aria-label="Other persona registers">
+  <span class="sister-registers__label">Other registers:</span>
+  <a href="./landing-personas-v1-editorial.html">V1 · Editorial</a>
+  <a href="./landing-personas-v3-friendly.html" aria-current="false">V3 · Friendly</a>
+  <a href="./landing-personas-v4-dashboard.html">V4 · Dashboard</a>
+  <a href="./landing-personas-v5-brutalist.html">V5 · Brutalist</a>
+  <a href="./landing-personas-v6-wireframe.html">V6 · Wireframe</a>
+  <a href="./personas.html">personas.html (canonical)</a>
+</nav>
+<style>
+.sister-registers {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 14px;
+  background: rgba(10, 10, 10, 0.92);
+  border: 1px solid #1f1f1f;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.06em;
+  z-index: 50; max-width: calc(100vw - 32px);
+}
+.sister-registers__label { color: #5fa8ff; text-transform: uppercase; }
+.sister-registers a { color: #7af0c4; text-decoration: none; padding: 2px 6px; border-radius: 3px; }
+.sister-registers a:hover { background: rgba(122, 240, 196, 0.1); }
+@media (max-width: 600px) {
+  .sister-registers { font-size: 9px; padding: 6px 10px; gap: 6px; }
+}
+</style>
+
+<!-- ============ RENDER SCRIPT (vanilla JS) ============ -->
+  <script>
+    (function () {
+      'use strict';
+
+      // Parse inline personas.json
+      var dataEl = document.getElementById('personas-data');
+      var data = JSON.parse(dataEl.textContent);
+      var list = document.getElementById('feed-list');
+
+      // Pre-shuffled pids for visual interest
+      var pids = ['1337', '8842', '2049', '7777', '4242', '9001', '3141', '1984'];
+      // Pre-baked version bindings (which version each persona mostly uses)
+      var versionHint = ['neon', 'grid', 'smoke', 'film', 'campaign', 'film', 'hallucination', 'profit-plan'];
+      // Pre-baked file sizes (KB) for log-line meta
+      var sizes = ['128 KB', '96 KB', '142 KB', '110 KB', '74 KB', '88 KB', '156 KB', '64 KB'];
+      // Pre-baked job sizes (output duration)
+      var durations = ['30s MP4', '15s preview', '60s Reel', '45s promo', 'demo loop', '15s clip', '20s cover', '10s pack'];
+
+      var personas = data.personas;
+
+      // Helper: escape HTML
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      // Render each persona as a log entry
+      personas.forEach(function (p, i) {
+        var ts = 'T+00:00:' + String(i * 5).padStart(2, '0');
+        var isStar = !!p.best_fit;
+        var level = isStar ? '★ STARRED' : 'INFO';
+        var levelClass = isStar ? 'log-line__lvl--star' : '';
+        var lineClass = isStar ? 'log-line log-line--star' : 'log-line';
+        var starTag = isStar
+          ? '<span class="star-tag" aria-label="best fit">★ STARRED</span>'
+          : '';
+
+        var el = document.createElement('div');
+        el.className = lineClass;
+        el.innerHTML = ''
+          + '<div class="log-line__head">'
+          +   '<span class="log-line__ts">[' + ts + ']</span>'
+          +   '<span class="pipe">|</span>'
+          +   '<span class="log-line__lvl ' + levelClass + '">' + level + '</span>'
+          +   '<span class="pipe">|</span>'
+          +   '<span class="log-line__pid">pid=' + pids[i] + '</span>'
+          +   '<span class="pipe">|</span>'
+          +   '<span class="log-line__icon">[' + esc(p.icon) + ']</span>'
+          +   '<span class="pipe">|</span>'
+          +   '<span class="prompt-mark">&gt;</span>'
+          +   '<span class="log-line__name">' + esc(p.name) + '</span>'
+          + '</div>'
+          + '<p class="log-line__body">'
+          +   esc(p.body)
+          +   starTag
+          +   '<span class="arrow">→ <a href="./' + esc(p.tool) + '">' + esc(p.tool) + '</a></span>'
+          + '</p>'
+          + '<div class="log-line__meta">'
+          +   'route=<b>' + esc(versionHint[i]) + '</b>'
+          +   '<span class="pipe">|</span>'
+          +   'output=<b>' + esc(durations[i]) + '</b>'
+          +   '<span class="pipe">|</span>'
+          +   'mem=<b>' + esc(sizes[i]) + '</b>'
+          +   '<span class="pipe">|</span>'
+          +   'status=<b>committed</b>'
+          + '</div>';
+
+        list.appendChild(el);
+      });
+
+      // Tiny live counter jitter (stays in 7-9 range, doesn't change DOM on every frame)
+      var userCountEl = document.getElementById('user-count');
+      var baseCount = 8;
+      function tick() {
+        baseCount += (Math.random() < 0.5 ? -1 : 1) * (Math.random() < 0.15 ? 1 : 0);
+        if (baseCount < 7) baseCount = 7;
+        if (baseCount > 9) baseCount = 9;
+        userCountEl.textContent = String(baseCount);
+      }
+      setInterval(tick, 1800);
+    })();
+  </script>
+</body>
+</html>

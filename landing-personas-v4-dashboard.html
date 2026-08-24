@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personas · Dashboard · Sainted Word Records</title>
+  <meta name="description" content="User segments for the Sainted Word Records audio-reactive video engine. V4 · Dashboard register." />
+  <meta name="color-scheme" content="light" />
+  <meta name="author" content="Kai Djuric" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563eb'/%3E%3Cpath d='M8 12h16M8 16h16M8 20h10' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/landing-personas-v4-dashboard.html" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" />
+
+  <style>
+    /* ===== V4 · Dashboard register · palette =====
+       bg      #ffffff
+       accent  #2563eb  (electric blue)
+       second  #8b5cf6  (purple, for best-fit highlights)
+       success #10b981  warning #f59e0b  danger  #ef4444
+       line    #e5e7eb  zebra   #f9fafb
+       text    #111827 (ink-1)  #4b5563 (ink-2)  #6b7280 (muted)
+    */
+    :root {
+      --bg:        #ffffff;
+      --bg-2:      #f9fafb;
+      --bg-3:      #f3f4f6;
+      --ink-1:     #111827;
+      --ink-2:     #4b5563;
+      --muted:     #6b7280;
+      --line:      #e5e7eb;
+      --line-2:    #d1d5db;
+      --accent:    #2563eb;
+      --accent-2:  #1d4ed8;
+      --accent-t:  rgba(37, 99, 235, 0.08);
+      --accent-t2: rgba(37, 99, 235, 0.14);
+      --second:    #8b5cf6;
+      --second-t:  rgba(139, 92, 246, 0.10);
+      --second-2:  #7c3aed;
+      --success:   #10b981;
+      --warning:   #f59e0b;
+      --danger:    #ef4444;
+      --shadow-1:  0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-2:  0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+      --radius:    8px;
+      --radius-sm: 4px;
+      --font-display: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      --font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body { overflow-x: hidden; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink-1);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    /* Space Grotesk opentype features (display font only — not Inter body) */
+    .display-num, .kpi__num, .hero__title, .pname { font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01'; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-2); text-decoration: underline; }
+    code, kbd, .mono { font-family: var(--font-mono); }
+    button { font-family: inherit; cursor: pointer; }
+    ::selection { background: var(--accent); color: #fff; }
+
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    @media (max-width: 720px) { .wrap { padding: 0 16px; } }
+
+    /* ===== TOP BAR ===== */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: saturate(180%) blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar__inner {
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+      height: auto; min-height: 56px;
+      max-width: 100%; overflow-x: hidden;
+    }
+    .topbar__brand {
+      display: flex; align-items: center; gap: 10px;
+      color: var(--ink-1);
+      font-weight: 600; font-size: 14px;
+      letter-spacing: -0.005em;
+    }
+    .topbar__brand .logo {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      background: var(--accent);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+    }
+    .topbar__crumb {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.01em;
+      flex-wrap: wrap;
+      display: flex; align-items: center; gap: 0;
+    }
+    .topbar__crumb a { color: var(--ink-2); }
+    .topbar__crumb a:hover { color: var(--accent); text-decoration: none; }
+    .topbar__crumb .sep { color: var(--line-2); margin: 0 6px; }
+    .topbar__crumb .cur { color: var(--ink-1); font-weight: 500; }
+    .topbar__right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+    .updated {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted);
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--bg-2); border: 1px solid var(--line);
+    }
+    .updated .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+      animation: livepulse 2.4s infinite;
+    }
+    @keyframes livepulse {
+      0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+      70%  { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500;
+      background: var(--bg);
+      color: var(--ink-1);
+      border: 1px solid var(--line);
+      transition: background .15s, border-color .15s;
+    }
+    .btn:hover { background: var(--bg-2); border-color: var(--line-2); }
+    .btn--primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn--primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+    .btn svg { width: 14px; height: 14px; }
+    .savedviews {
+      position: relative;
+    }
+    .savedviews__menu {
+      position: absolute; right: 0; top: calc(100% + 6px);
+      background: #fff; border: 1px solid var(--line);
+      border-radius: var(--radius); box-shadow: var(--shadow-2);
+      min-width: 180px; padding: 4px;
+      display: none; z-index: 60;
+    }
+    .savedviews.open .savedviews__menu { display: block; }
+    .savedviews__menu a {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 10px; border-radius: var(--radius-sm);
+      font-size: 13px; color: var(--ink-1);
+    }
+    .savedviews__menu a:hover { background: var(--bg-2); text-decoration: none; }
+    .savedviews__menu a .count { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+    .savedviews__menu a.active { color: var(--accent); font-weight: 500; }
+
+    /* ===== HERO / KPI ===== */
+    .hero { padding: 36px 0 24px; }
+    .hero__head {
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 720px) { .hero__head { flex-direction: column; align-items: flex-start; } }
+    .hero__title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: clamp(28px, 3.6vw, 40px);
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin: 0 0 6px;
+      color: var(--ink-1);
+    }
+    .hero__lede {
+      color: var(--ink-2);
+      font-size: 14px;
+      max-width: 640px;
+      margin: 0;
+    }
+    .hero__meta {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+    }
+    @media (max-width: 720px) { .hero__meta { align-items: flex-start; text-align: left; } }
+    .hero__meta strong { color: var(--ink-1); font-weight: 600; }
+
+    /* KPI tiles */
+    .kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+    .kpi {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-1);
+      display: flex; flex-direction: column; gap: 6px;
+      transition: border-color .15s, transform .15s;
+    }
+    .kpi:hover { border-color: var(--line-2); transform: translateY(-1px); }
+    .kpi__label {
+      font-family: var(--font-mono);
+      font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .kpi__num {
+      font-family: var(--font-display);
+      font-size: 30px; font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--ink-1);
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi__num .unit {
+      font-size: 14px; font-weight: 500; color: var(--muted);
+      margin-left: 2px; letter-spacing: 0;
+    }
+    .kpi__delta {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--success);
+    }
+    .kpi__delta.down { color: var(--danger); }
+    .kpi__delta.flat { color: var(--muted); }
+    .kpi__delta svg { width: 10px; height: 10px; }
+    .kpi--accent .kpi__num { color: var(--accent); }
+    .kpi--second .kpi__num { color: var(--second); }
+
+    /* Filter row */
+    .filters {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 6px 6px 6px 14px;
+      box-shadow: var(--shadow-1);
+    }
+    .filters__search {
+      flex: 1; min-width: 0;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .filters__search svg { width: 14px; height: 14px; color: var(--muted); flex-shrink: 0; }
+    .filters__search input {
+      flex: 1; min-width: 0;
+      border: 0; outline: 0; background: transparent;
+      font: inherit; color: var(--ink-1);
+      padding: 8px 0;
+    }
+    .filters__search input::placeholder { color: var(--muted); }
+    .filters__chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 10px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 12px; color: var(--ink-2);
+      white-space: nowrap;
+    }
+    .filters__chip .v { color: var(--ink-1); font-weight: 500; }
+    .filters__chip .caret { color: var(--muted); font-size: 9px; }
+    .filters__divider {
+      width: 1px; height: 22px; background: var(--line);
+    }
+    .filters__demo {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 3px 8px;
+      border: 1px dashed var(--line-2);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .btn[aria-disabled="true"], .filters__chip[aria-disabled="true"], button[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .filters__chip[disabled] { background: var(--bg); }
+
+    /* ===== SEGMENT + SPARKLINE ===== */
+    .segment {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      margin: 28px 0 14px;
+    }
+    .segment__label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--ink-2);
+    }
+    .segment__label .swatch {
+      display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+      background: var(--accent);
+    }
+    .segment__label strong { color: var(--ink-1); font-weight: 600; }
+    .segment__chart {
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    }
+    .segment__chart svg { display: block; }
+    .segment__chart .legend { display: flex; align-items: center; gap: 5px; }
+    .segment__chart .legend .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .segment__chart .legend .swatch.second { background: var(--second); }
+    .segment__chart .axis { color: var(--muted); }
+
+    /* ===== TABLE ===== */
+    .tablewrap {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-1);
+      overflow: hidden;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table thead th {
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 500;
+      font-size: 11.5px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .table thead th .sort {
+      color: var(--line-2);
+      margin-left: 4px;
+      font-size: 9px;
+    }
+    .table thead th.sorted { color: var(--ink-1); }
+    .table thead th.sorted .sort { color: var(--accent); }
+    .table tbody tr {
+      border-bottom: 1px solid var(--line);
+      transition: background .12s;
+    }
+    .table tbody tr:nth-child(even) { background: var(--bg-2); }
+    .table tbody tr:last-child { border-bottom: 0; }
+    .table tbody tr:hover {
+      background: var(--accent-t);
+    }
+    .table tbody tr:hover td:first-child {
+      box-shadow: inset 3px 0 0 0 var(--accent);
+    }
+    .table td {
+      padding: 12px;
+      vertical-align: top;
+      color: var(--ink-1);
+      border-top: 0;
+    }
+    .col-num {
+      width: 40px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      padding-right: 14px !important;
+    }
+    .col-avatar { width: 56px; }
+    .col-name   { width: 180px; }
+    .col-tag    { width: 180px; }
+    .col-best   { width: 70px; text-align: center; }
+    .col-tool   { width: 220px; }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent-t);
+      color: var(--accent);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid var(--accent-t2);
+    }
+    .pname {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.005em;
+      color: var(--ink-1);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pname .picon { color: var(--accent); font-weight: 500; font-size: 13px; }
+    .pname .badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 1px 6px; border-radius: 3px;
+      background: var(--second-t); color: var(--second-2);
+      font-family: var(--font-mono); font-size: 9.5px;
+      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .ptag {
+      color: var(--ink-2);
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+    .pbody {
+      color: var(--ink-1);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .pbody .meta {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.01em;
+    }
+    .pbody .meta .k { color: var(--ink-2); }
+    .pbody .meta .sep { color: var(--line-2); margin: 0 4px; }
+    .bestcell {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      text-align: center;
+    }
+    .check {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--second-t); color: var(--second-2);
+      font-size: 12px; font-weight: 700;
+    }
+    .dash {
+      color: var(--line-2);
+      font-size: 14px;
+    }
+    .toolcell {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+    }
+    .toolcell code {
+      display: inline-block;
+      padding: 2px 7px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      color: var(--ink-2);
+      white-space: nowrap;
+    }
+    .toolcell a code { color: var(--accent); }
+    .toolcell a:hover code { background: var(--accent-t); border-color: var(--accent-t2); }
+
+    /* table footer */
+    .tablefoot {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      border-top: 1px solid var(--line);
+      background: var(--bg-2);
+      font-family: var(--font-mono); font-size: 11.5px;
+      color: var(--muted);
+    }
+    .tablefoot .pager { display: flex; align-items: center; gap: 4px; }
+    .tablefoot .pager button {
+      width: 26px; height: 26px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid var(--line);
+      background: #fff; color: var(--ink-2);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 11px;
+    }
+    .tablefoot .pager button:hover { border-color: var(--accent); color: var(--accent); }
+    .tablefoot .pager button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tablefoot .pager button[disabled] { opacity: .4; cursor: not-allowed; }
+
+    /* bottom status bar */
+    .statusbar {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 0 8px;
+      font-family: var(--font-mono); font-size: 11.5px;
+      color: var(--muted);
+    }
+    .statusbar .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 8px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink-2);
+    }
+    .statusbar .pill strong { color: var(--ink-1); font-weight: 600; }
+    .statusbar .sep { color: var(--line-2); }
+
+    /* ===== FOOTER ===== */
+    footer.foot {
+      margin-top: 64px;
+      padding: 36px 0 40px;
+      border-top: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    .foot__grid {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px;
+    }
+    @media (max-width: 820px) { .foot__grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .foot__grid { grid-template-columns: 1fr; } }
+    .foot__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 600; font-size: 15px;
+      color: var(--ink-1); margin-bottom: 10px;
+    }
+    .foot__brand .logo {
+      width: 22px; height: 22px;
+      border-radius: 5px;
+      background: var(--accent);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    }
+    .foot__tag {
+      color: var(--muted); font-size: 13px; line-height: 1.5;
+      max-width: 320px; margin: 0;
+    }
+    .foot__col h5 {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      margin: 0 0 10px;
+    }
+    .foot__col ul { list-style: none; margin: 0; padding: 0; }
+    .foot__col li { margin-bottom: 6px; }
+    .foot__col a {
+      color: var(--ink-2); font-size: 13px;
+    }
+    .foot__col a:hover { color: var(--accent); text-decoration: none; }
+    .foot__col a.current {
+      color: var(--accent); font-weight: 500;
+    }
+    .foot__bottom {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+      margin-top: 32px; padding-top: 20px;
+      border-top: 1px solid var(--line);
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted);
+    }
+    @media (max-width: 520px) { .foot__bottom { flex-direction: column; align-items: flex-start; } }
+
+    /* ===== MOBILE: table → card stack ===== */
+    @media (max-width: 720px) {
+      .table, .table thead, .table tbody, .table tr, .table td { display: block; }
+      .table thead { display: none; }
+      .table tbody tr {
+        padding: 14px 14px 12px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        margin: 0;
+      }
+      .table tbody tr:nth-child(even) { background: var(--bg-2); }
+      .table tbody tr:hover { background: var(--accent-t); }
+      .table tbody tr:hover td:first-child { box-shadow: none; }
+      .table td {
+        padding: 2px 0;
+        width: auto !important;
+        text-align: left !important;
+      }
+      .col-num, .col-avatar, .col-tag, .col-best, .col-tool { display: none; }
+      .col-name { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+      .col-name .pname { font-size: 15px; }
+      .col-tag { display: block; color: var(--ink-2); font-size: 12.5px; margin-bottom: 6px; }
+      .pbody .meta { font-size: 10.5px; }
+      /* show tag and best and tool inline at bottom of card */
+      .row-foot {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line);
+        font-family: var(--font-mono); font-size: 10.5px; color: var(--muted);
+      }
+      .row-foot .bestcell { font-size: 12px; }
+      .row-foot .bestcell .check { width: 18px; height: 18px; font-size: 10px; }
+      .row-foot .toolcell code { font-size: 10.5px; }
+      .row-foot .tag { color: var(--ink-2); }
+    }
+    @media (min-width: 721px) { .row-foot { display: none; } }
+  </style>
+
+  <!-- ====== PERSONAS DATA (inline embed) ====== -->
+  <script type="application/json" id="personas-data">
+  {
+    "_about": "Single source of truth for the 5 character presets of the SWR personas. Every register (Editorial / Dark / Friendly / Dashboard / Brutalist) renders this same data in its own visual register. Tweak here, all 5 pages update on next regen.",
+    "_note": "When generating a register, embed this JSON inline in the HTML so each page is self-contained. The .personas.js file in the project root is the runtime version for the live <personas-block> component.",
+    "section": {
+      "kicker": "Made for these people",
+      "title": "Who actually <em>uses</em> this.",
+      "lede": "The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first."
+    },
+    "personas": [
+      {
+        "name": "Indie musician",
+        "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.",
+        "icon": "♪",
+        "best_fit": true,
+        "tool": "versions/neon.html"
+      },
+      {
+        "name": "Beatmaker",
+        "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.",
+        "icon": "▰",
+        "tool": "versions/grid.html"
+      },
+      {
+        "name": "DJ",
+        "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.",
+        "icon": "◐",
+        "tool": "versions/smoke.html"
+      },
+      {
+        "name": "Small label",
+        "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.",
+        "icon": "✦",
+        "tool": "versions/film.html"
+      },
+      {
+        "name": "Belgrade / Serbian artist",
+        "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.",
+        "icon": "◎",
+        "best_fit": true,
+        "tool": "campaign.html"
+      },
+      {
+        "name": "Podcaster",
+        "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.",
+        "icon": "≋",
+        "tool": "versions/film.html"
+      },
+      {
+        "name": "Sound designer",
+        "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.",
+        "icon": "⌗",
+        "tool": "versions/hallucination.html"
+      },
+      {
+        "name": "Music manager / agency",
+        "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.",
+        "icon": "◇",
+        "tool": "profit-plan.html"
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ====== TOP BAR ====== -->
+  <div class="topbar">
+    <div class="wrap">
+      <div class="topbar__inner">
+        <a class="topbar__brand" href="./engine.html">
+          <span class="logo">/</span>
+          Sainted Word Records
+        </a>
+        <nav class="topbar__crumb" aria-label="Breadcrumb">
+          <a href="./engine.html">home</a><span class="sep">/</span>
+          <a href="./landing.html">landing</a><span class="sep">/</span>
+          <span class="cur">v1/personas</span>
+        </nav>
+        <div class="topbar__right">
+          <span class="updated" title="Static page · generated at build time"><span class="dot"></span>Last generated · 2026-08-17</span>
+          <button class="btn" type="button" aria-label="Refresh" aria-disabled="true" title="Demo only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+            Refresh
+          </button>
+          <button class="btn btn--primary" type="button" aria-label="Export CSV" aria-disabled="true" title="Demo only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+          <div class="savedviews" id="savedviews">
+            <button class="btn" type="button" id="savedviewsBtn" aria-haspopup="true" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              Saved views
+              <span class="caret">▾</span>
+            </button>
+            <div class="savedviews__menu" role="menu">
+              <a href="#" class="active" role="menuitem">All personas <span class="count">8</span></a>
+              <a href="#" role="menuitem">Best fit only <span class="count">2</span></a>
+              <a href="#" role="menuitem">By region <span class="count">3</span></a>
+              <a href="#" role="menuitem">By use case <span class="count">5</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== HERO / KPI ====== -->
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div class="hero__head">
+          <div>
+            <h1 class="hero__title">Personas <span style="color: var(--accent);">·</span> Dashboard</h1>
+            <p class="hero__lede">User segments for the audio-reactive video engine. Filter, sort, and export. <code>personas.json</code> is the single source of truth across all five visual registers.</p>
+          </div>
+          <div class="hero__meta">
+            <div><strong>register</strong>  v4 / dashboard</div>
+            <div>build · <strong>1 day</strong></div>
+            <div>source · <strong>personas.json</strong></div>
+          </div>
+        </div>
+
+        <!-- KPI tiles -->
+        <div class="kpis">
+          <div class="kpi">
+            <span class="kpi__label">Total personas</span>
+            <span class="kpi__num">8</span>
+            <span class="kpi__delta">
+              <svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 1 L9 7 H1 Z"/></svg>
+              +0 this week
+            </span>
+          </div>
+          <div class="kpi kpi--second">
+            <span class="kpi__label">Best fits</span>
+            <span class="kpi__num">2</span>
+            <span class="kpi__delta" title="Curated by the SWR team">
+              <svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 1 L9 7 H1 Z"/></svg>
+              25% of segments · curated
+            </span>
+          </div>
+          <div class="kpi kpi--accent">
+            <span class="kpi__label">Visual versions</span>
+            <span class="kpi__num">5</span>
+            <span class="kpi__delta">
+              <svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 1 L9 7 H1 Z"/></svg>
+              neon · grid · smoke · film · hallucination
+            </span>
+          </div>
+          <div class="kpi">
+            <span class="kpi__label">Avg build time</span>
+            <span class="kpi__num">1<span class="unit">day</span></span>
+            <span class="kpi__delta flat">
+              <svg viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="4" width="8" height="2"/></svg>
+              steady
+            </span>
+          </div>
+        </div>
+
+        <!-- Filter row -->
+        <div class="filters" role="search" aria-label="Persona filters (demo)">
+          <div class="filters__search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" placeholder="Search personas by name, tool, or use case…" aria-label="Search personas" aria-disabled="true" title="Demo only" disabled />
+          </div>
+          <div class="filters__divider"></div>
+          <button class="filters__chip" type="button" aria-disabled="true" title="Demo only" disabled>Region: <span class="v">All</span><span class="caret">▾</span></button>
+          <button class="filters__chip" type="button" aria-disabled="true" title="Demo only" disabled>Tool: <span class="v">Any</span><span class="caret">▾</span></button>
+          <button class="filters__chip" type="button" aria-disabled="true" title="Demo only" disabled>Best fit: <span class="v">Any</span><span class="caret">▾</span></button>
+          <div class="filters__divider"></div>
+          <button class="btn" type="button" aria-disabled="true" title="Demo only" disabled>+ Filter</button>
+          <span class="filters__demo mono">demo only</span>
+        </div>
+
+        <!-- Segment + sparkline -->
+        <div class="segment">
+          <div class="segment__label">
+            <span class="swatch"></span>
+            Segment: <strong>All personas</strong>
+            <span class="mono" style="color: var(--muted); margin-left: 6px;">8 active</span>
+          </div>
+          <div class="segment__chart">
+            <span class="legend"><span class="swatch"></span>Renders · 7d</span>
+            <svg width="120" height="28" viewBox="0 0 120 28" aria-hidden="true">
+              <defs>
+                <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#2563eb" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,22 L15,18 L30,20 L45,12 L60,15 L75,8 L90,11 L105,5 L120,9 L120,28 L0,28 Z" fill="url(#spark)"/>
+              <path d="M0,22 L15,18 L30,20 L45,12 L60,15 L75,8 L90,11 L105,5 L120,9" fill="none" stroke="#2563eb" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="120" cy="9" r="2.4" fill="#2563eb"/>
+              <circle cx="120" cy="9" r="4" fill="none" stroke="#2563eb" stroke-opacity="0.3" stroke-width="1"/>
+            </svg>
+            <span class="axis">M·T·W·T·F·S·S</span>
+          </div>
+        </div>
+
+        <!-- ====== TABLE ====== -->
+        <div class="tablewrap">
+          <table class="table" id="personasTable">
+            <thead>
+              <tr>
+                <th class="col-num">#</th>
+                <th class="col-avatar">Avatar</th>
+                <th class="col-name sorted">Persona <span class="sort">▲</span></th>
+                <th class="col-tag">Tagline</th>
+                <th>Body</th>
+                <th class="col-best sorted">Best fit <span class="sort">▼</span></th>
+                <th class="col-tool">Tool</th>
+              </tr>
+            </thead>
+            <tbody id="personasBody">
+              <!-- rows rendered by JS from #personas-data -->
+            </tbody>
+          </table>
+          <div class="tablefoot">
+            <div>Showing <strong style="color: var(--ink-1);">1–8</strong> of <strong style="color: var(--ink-1);">8</strong> personas</div>
+            <div class="pager" aria-label="Pagination">
+              <button disabled aria-label="Previous">‹</button>
+              <button class="active" aria-current="page">1</button>
+              <button disabled aria-label="Page 2">2</button>
+              <button disabled aria-label="Next">›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom status bar -->
+        <div class="statusbar">
+          <span class="pill"><strong>8</strong> rows</span>
+          <span class="sep">·</span>
+          <span class="pill"><strong>2</strong> best fit</span>
+          <span class="sep">·</span>
+          <span class="pill"><strong>7</strong> unique tools</span>
+          <span class="sep">·</span>
+          <span class="pill"><strong>5</strong> version-routed</span>
+          <span class="sep" style="margin-left:auto;">rendered · <span id="renderTime">just now</span></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot__grid">
+        <div>
+          <div class="foot__brand">
+            <span class="logo">/</span>
+            Sainted Word Records
+          </div>
+          <p class="foot__tag">
+            An audio-reactive video engine that ships as a single HTML file. Drop a song, drop a library, get a music video. Browser-based, MP4 export, no SaaS.
+          </p>
+        </div>
+
+        <div class="foot__col">
+          <h5>Personas</h5>
+          <ul>
+            <li><a href="./landing.html">← Back to landing</a></li>
+            <li><a class="current" href="./landing-personas-v4-dashboard.html">V4 · Dashboard (this page)</a></li>
+            <li><a href="./engine.html">Live engine</a></li>
+            <li><a href="./personas.json" target="_blank" rel="noopener">personas.json · source</a></li>
+          </ul>
+        </div>
+
+        <div class="foot__col">
+          <h5>Sister pages</h5>
+          <ul>
+            <li><a href="./profit-plan.html">profit-plan.html</a></li>
+            <li><a href="./interactive-howto.html">interactive-howto.html</a></li>
+            <li><a href="./market-study.html">market-study.html</a></li>
+            <li><a href="./campaign.html">campaign.html</a></li>
+            <li><a href="./tutorial-30s.html">tutorial-30s.html</a></li>
+          </ul>
+        </div>
+
+        <div class="foot__col">
+          <h5>Source</h5>
+          <ul>
+            <li><a href="https://github.com/kai-djuric/sainted-word-records" target="_blank" rel="noopener">GitHub repo</a></li>
+            <li><a href="https://github.com/kai-djuric/sainted-word-records/issues" target="_blank" rel="noopener">Report an issue</a></li>
+            <li><a href="https://github.com/kai-djuric/sainted-word-records/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a></li>
+            <li><a href="https://github.com/kai-djuric" target="_blank" rel="noopener">@kai-djuric</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot__bottom">
+        <span>© 2026 Kai Djuric · MIT licensed</span>
+        <span>v1 · Web Audio + MediaRecorder · Chrome 126+ / Safari 14.5+</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ====== JS: render rows from inline JSON ====== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // 1) Read inline personas data
+      var raw = document.getElementById('personas-data').textContent;
+      var data;
+      try { data = JSON.parse(raw); } catch (e) {
+        console.error('personas.json parse error', e);
+        return;
+      }
+      var personas = (data && data.personas) || [];
+
+      // 2) Per-persona enrichment: 1-2 numbers, realistic, fresh
+      //    Not in the source JSON — written here for the V4 dashboard register.
+      var meta = {
+        'Indie musician':           { k1: 'tracks_released', v1: '12', k2: 'avg_stream', v2: '2.4k', k3: 'launch_window_days', v3: '7' },
+        'Beatmaker':                { k1: 'beats_listed', v1: '47', k2: 'beatstars_sales', v2: '128', k3: 'top_track_plays', v3: '8.1k' },
+        'DJ':                       { k1: 'sets_per_month', v1: '8', k2: 'avg_set_min', v2: '72', k3: 'social_followers', v3: '3.2k' },
+        'Small label':              { k1: 'artists_signed', v1: '5', k2: 'releases_per_year', v2: '8', k3: 'roster_streams', v3: '180k' },
+        'Belgrade / Serbian artist':{ k1: 'hometown', v1: 'Belgrade', k2: 'local_shows_per_month', v2: '4', k3: 'releases_per_year', v3: '3' },
+        'Podcaster':                { k1: 'episodes_per_month', v1: '4', k2: 'avg_episode_min', v2: '58', k3: 'subscribers', v3: '1.2k' },
+        'Sound designer':           { k1: 'sample_packs', v1: '12', k2: 'downloads', v2: '22k', k3: 'top_pack_plays', v3: '15k' },
+        'Music manager / agency':   { k1: 'clients', v1: '10', k2: 'posts_per_client_per_month', v2: '8', k3: 'total_reach', v3: '45k' }
+      };
+
+      // 3) One-line taglines per persona (concise, dashboard-style)
+      var taglines = {
+        'Indie musician':           'Single + 30s MP4, no video budget',
+        'Beatmaker':                'BeatStars previews that out-sell a waveform',
+        'DJ':                       '60s vertical Reels teaser, BPM in frame 1',
+        'Small label':              'One brand voice across the roster',
+        'Belgrade / Serbian artist':'Local pricing · in-person demo',
+        'Podcaster':                'Long-form → 10 short clips per episode',
+        'Sound designer':           'Sample packs · engine as cover art',
+        'Music manager / agency':   'One tool, ten artists, every month'
+      };
+
+      // 4) Render rows
+      var body = document.getElementById('personasBody');
+      var frag = document.createDocumentFragment();
+      personas.forEach(function (p, i) {
+        var m = meta[p.name] || {};
+        var tag = taglines[p.name] || '';
+        var isBest = !!p.best_fit;
+        var toolLink = './' + p.tool;
+        var tr = document.createElement('tr');
+
+        // build cells
+        tr.innerHTML =
+          '<td class="col-num">' + String(i + 1).padStart(2, '0') + '</td>' +
+          '<td class="col-avatar"><span class="avatar">' + (p.icon || '·') + '</span></td>' +
+          '<td class="col-name">' +
+            '<span class="pname">' +
+              '<span class="picon">' + (p.icon || '') + '</span>' +
+              p.name +
+              (isBest ? ' <span class="badge" title="Best fit segment">★ best fit</span>' : '') +
+            '</span>' +
+            '<div class="ptag" style="margin-top:4px;">' + tag + '</div>' +
+          '</td>' +
+          '<td class="col-tag"><div class="ptag">' + tag + '</div></td>' +
+          '<td>' +
+            '<div class="pbody">' + p.body + '</div>' +
+            '<span class="meta">' +
+              (m.k1 ? '<span class="k">' + m.k1 + '</span> = <span class="v">' + m.v1 + '</span>' : '') +
+              (m.k2 ? '<span class="sep">·</span><span class="k">' + m.k2 + '</span> = <span class="v">' + m.v2 + '</span>' : '') +
+              (m.k3 ? '<span class="sep">·</span><span class="k">' + m.k3 + '</span> = <span class="v">' + m.v3 + '</span>' : '') +
+            '</span>' +
+          '</td>' +
+          '<td class="col-best bestcell">' + (isBest ? '<span class="check" title="Best fit">✓</span>' : '<span class="dash">—</span>') + '</td>' +
+          '<td class="col-tool toolcell"><a href="' + toolLink + '"><code>' + p.tool + '</code></a></td>';
+
+        // mobile card foot (rendered in CSS via @media but content lives in DOM)
+        var foot = document.createElement('tr');
+        foot.className = 'row-foot-wrap';
+        foot.innerHTML =
+          '<td colspan="7"><div class="row-foot">' +
+            '<span class="tag">tag: ' + tag + '</span>' +
+            '<span class="bestcell">' + (isBest ? '<span class="check">✓</span> best fit' : '<span class="dash">—</span>') + '</span>' +
+            '<span class="toolcell">tool: <code>' + p.tool + '</code></span>' +
+          '</div></td>';
+        frag.appendChild(tr);
+        frag.appendChild(foot);
+      });
+      body.appendChild(frag);
+
+      // 5) "Saved views" dropdown (vanilla JS toggle)
+      var sv = document.getElementById('savedviews');
+      var svBtn = document.getElementById('savedviewsBtn');
+      if (sv && svBtn) {
+        svBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var open = sv.classList.toggle('open');
+          svBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', function () {
+          sv.classList.remove('open');
+          svBtn.setAttribute('aria-expanded', 'false');
+        });
+        sv.querySelectorAll('.savedviews__menu a').forEach(function (a) {
+          a.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            sv.querySelectorAll('.savedviews__menu a').forEach(function (x) { x.classList.remove('active'); });
+            a.classList.add('active');
+            sv.classList.remove('open');
+            svBtn.setAttribute('aria-expanded', 'false');
+          });
+        });
+      }
+
+      // 6) "rendered · just now" timestamp
+      var t = document.getElementById('renderTime');
+      if (t) {
+        var d = new Date();
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mm = String(d.getMinutes()).padStart(2, '0');
+        t.textContent = hh + ':' + mm + ' local';
+      }
+    })();
+  </script>
+
+  <!-- ============ SISTER REGISTERS (other personas pages) ============ -->
+  <nav class="sister-registers" aria-label="Other persona registers">
+    <span class="sister-registers__label">OTHER REGISTERS</span>
+    <a href="./landing-personas-v1-editorial.html">V1 · Editorial</a>
+    <a href="./landing-personas-v2-dark.html">V2 · Dark</a>
+    <a href="./landing-personas-v3-friendly.html">V3 · Friendly</a>
+    <a href="./landing-personas-v5-brutalist.html">V5 · Brutalist</a>
+    <a href="./landing-personas-v6-wireframe.html">V6 · Wireframe</a>
+    <a href="./personas.html">personas.html (canonical)</a>
+  </nav>
+  <style>
+  .sister-registers {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px; font-weight: 500;
+    z-index: 50; max-width: calc(100vw - 32px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  .sister-registers__label { color: #6b7280; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.1em; }
+  .sister-registers a { color: #2563eb; text-decoration: none; padding: 2px 6px; border-radius: 3px; }
+  .sister-registers a:hover { background: rgba(37, 99, 235, 0.08); }
+  @media (max-width: 600px) {
+    .sister-registers { font-size: 10px; padding: 6px 10px; gap: 6px; }
+  }
+  </style>
+</body>
+</html>

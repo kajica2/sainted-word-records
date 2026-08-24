@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR Personas · v10 NEON · Late-night sign shop</title>
+  <meta name="description" content="The 8 personas rendered as neon-lit signs on a dark wet street. Tubular glow, reflection puddles, dim concrete." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" />
+  <style>
+    :root {
+      --bg: #0a0a0e;
+      --bg-2: #15151c;
+      --concrete: #2a2a32;
+      --ink: #f5e9c8;
+      --pink: #ff2d8a;     /* tube 1 */
+      --cyan: #00e5ff;     /* tube 2 */
+      --amber: #ffb000;    /* tube 3 */
+      --lime: #b5ff3a;     /* tube 4 */
+      --violet: #b366ff;   /* tube 5 */
+      --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
+      --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+      font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    body { background:
+      radial-gradient(ellipse at 20% 0%, rgba(255, 45, 138, 0.08), transparent 50%),
+      radial-gradient(ellipse at 80% 30%, rgba(0, 229, 255, 0.08), transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(255, 176, 0, 0.05), transparent 60%),
+      var(--bg);
+      min-height: 100vh; }
+    /* Subtle "concrete" texture */
+    body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(circle at 30% 40%, rgba(255,255,255,0.02) 0, transparent 0.5px),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.02) 0, transparent 0.5px);
+      background-size: 3px 3px; }
+
+    .street { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto;
+      padding: 48px 24px 96px; }
+
+    /* Top "OPEN" sign */
+    .open { display: inline-flex; align-items: center; gap: 12px;
+      padding: 8px 18px; background: rgba(255, 176, 0, 0.1);
+      border: 1px solid var(--amber);
+      color: var(--amber);
+      font: 600 11px/1 var(--font-mono); letter-spacing: 0.4em;
+      text-transform: uppercase;
+      box-shadow: 0 0 18px rgba(255, 176, 0, 0.4),
+                  inset 0 0 12px rgba(255, 176, 0, 0.15);
+      animation: flicker 4s infinite; }
+    .open::before { content: '●'; font-size: 14px; }
+    @keyframes flicker { 0%, 95%, 100% { opacity: 1; }
+      96% { opacity: 0.6; } 97% { opacity: 1; } 98% { opacity: 0.4; } }
+
+    /* Big neon title */
+    .title-block { padding: 32px 0 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .title { font: 400 clamp(56px, 9vw, 120px)/0.9 var(--font-display);
+      letter-spacing: 0.02em; margin: 0; color: var(--pink);
+      text-shadow:
+        0 0 4px var(--pink),
+        0 0 10px var(--pink),
+        0 0 20px var(--pink),
+        0 0 40px rgba(255, 45, 138, 0.6);
+      animation: pulse 3.5s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
+    .title em { font-style: normal; color: var(--cyan);
+      text-shadow:
+        0 0 4px var(--cyan),
+        0 0 10px var(--cyan),
+        0 0 20px var(--cyan),
+        0 0 40px rgba(0, 229, 255, 0.6); }
+    .subtitle { font: 300 16px/1.5 var(--font-sans); color: var(--ink);
+      max-width: 60ch; margin: 16px 0 0; opacity: 0.8; }
+    .subtitle b { color: var(--amber); font-weight: 600;
+      text-shadow: 0 0 8px var(--amber); }
+
+    /* Pull quote — neon marquee */
+    .marquee { position: relative; margin: 48px 0; padding: 32px 24px;
+      background: rgba(0, 0, 0, 0.4);
+      border-top: 2px solid var(--cyan);
+      border-bottom: 2px solid var(--cyan);
+      box-shadow: 0 0 30px rgba(0, 229, 255, 0.2),
+                  inset 0 0 30px rgba(0, 229, 255, 0.05); }
+    .marquee__text { font: 400 30px/1.2 var(--font-display);
+      color: var(--cyan); margin: 0; text-align: center;
+      text-shadow: 0 0 6px var(--cyan), 0 0 16px var(--cyan); }
+    .marquee__text em { font-style: normal; color: var(--pink);
+      text-shadow: 0 0 6px var(--pink), 0 0 16px var(--pink); }
+    .marquee__cite { font: 600 10px/1.4 var(--font-mono); letter-spacing: 0.4em;
+      text-transform: uppercase; color: var(--muted, var(--ink));
+      text-align: center; margin-top: 14px; opacity: 0.7; }
+
+    /* Persona signs — each a different neon color */
+    .signs { display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 28px; margin-top: 48px; }
+    .sign { position: relative;
+      background: linear-gradient(180deg, var(--concrete), var(--bg-2));
+      padding: 28px 24px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      overflow: hidden; }
+    /* Wet street reflection at the bottom */
+    .sign::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+      height: 30px; pointer-events: none;
+      background: linear-gradient(0deg, rgba(0,0,0,0.6), transparent);
+      filter: blur(0.5px); }
+    .sign__tube { position: absolute; top: 12px; left: 16px;
+      font: 600 10px/1 var(--font-mono); letter-spacing: 0.4em;
+      text-transform: uppercase; padding: 4px 10px;
+      border: 1px solid currentColor;
+      color: currentColor; opacity: 0.9; }
+    .sign__icon { font: 400 80px/1 var(--font-display); margin: 28px 0 12px;
+      color: currentColor;
+      text-shadow: 0 0 8px currentColor, 0 0 20px currentColor,
+                   0 0 40px currentColor;
+      animation: blink-soft 3.5s ease-in-out infinite; }
+    @keyframes blink-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .sign__name { font: 400 36px/1 var(--font-display); letter-spacing: 0.02em;
+      margin: 0 0 12px; color: currentColor;
+      text-shadow: 0 0 4px currentColor, 0 0 12px currentColor,
+                   0 0 24px currentColor; }
+    .sign__name em { font-style: normal; color: var(--ink); }
+    .sign__desc { font: 400 14px/1.5 var(--font-sans); color: var(--ink);
+      margin: 0 0 16px; opacity: 0.85; }
+    .sign__byline { font: 300 italic 13px/1.4 var(--font-sans);
+      color: var(--ink); opacity: 0.7; padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1); }
+    .sign__byline::before { content: '~ '; color: currentColor; }
+    .sign__tool { position: absolute; right: 12px; top: 12px;
+      font: 600 9px/1 var(--font-mono); letter-spacing: 0.2em;
+      text-transform: uppercase; padding: 4px 8px;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--ink); }
+    .sign__badge { display: inline-block; margin-left: 6px;
+      background: currentColor; color: var(--bg);
+      padding: 1px 6px; font: 600 9px/1.3 var(--font-mono);
+      letter-spacing: 0.2em; text-transform: uppercase; vertical-align: middle; }
+    .sign__num { position: absolute; bottom: 12px; right: 16px;
+      font: 600 11px/1 var(--font-mono); letter-spacing: 0.3em;
+      color: currentColor; opacity: 0.7; }
+    .sign--pink { color: var(--pink); }
+    .sign--cyan { color: var(--cyan); }
+    .sign--amber { color: var(--amber); }
+    .sign--lime { color: var(--lime); }
+
+    /* Footer */
+    .colophon { margin-top: 64px; padding: 24px 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;
+      font: 600 10px/1.4 var(--font-mono); letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--ink); opacity: 0.6; }
+    .colophon b { color: var(--cyan); }
+    .colophon a { color: var(--ink); text-decoration: none; opacity: 1; }
+    .colophon a:hover { color: var(--pink); }
+
+    @media (max-width: 720px) {
+      .signs { grid-template-columns: 1fr; }
+      .colophon { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="street">
+    <div class="open">OPEN · 24/7</div>
+
+    <header class="title-block">
+      <h1 class="title">Who actually <em>uses</em> this.</h1>
+      <p class="subtitle">The engine and its 5 versions were built for people who have audio and a release date, and <b>zero budget for a video editor</b>. The profiles below are the ones who reach for it first.</p>
+    </header>
+
+    <section class="marquee">
+      <p class="marquee__text">SAME ENGINE · TWO DAYS · <em>FIFTY MUSIC VIDEOS</em></p>
+      <p class="marquee__cite">— A WORKING INDIE LABEL · ON ITS SWITCH</p>
+    </section>
+
+    <div class="signs" id="signs"></div>
+
+    <footer class="colophon">
+      <div>· v10 · NEON · 24/7</div>
+      <div>TUBES <b>5 GAS · 0 BROKEN</b></div>
+      <div><a href="landing-personas-v1-editorial.html">← all 6 registers</a></div>
+    </footer>
+  </div>
+
+  <script type="application/json" id="personas-data">
+  {
+    "_about": "8 character presets. Same data feeds v1–v6, plus v10 NEON.",
+    "_note": "Self-contained — embed inline for each register.",
+    "personas": [
+      { "name": "Indie musician", "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.", "icon": "♪", "best_fit": true, "tool": "versions/neon.html", "byline": "A master in Belgrade, a release on Friday, a visualizer before midnight on Thursday." },
+      { "name": "Beatmaker", "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.", "icon": "▰", "tool": "versions/grid.html", "byline": "50 beats on BeatStars, 50 still waveforms, 50 missed opportunities. Until now." },
+      { "name": "DJ", "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.", "icon": "◐", "tool": "versions/smoke.html", "byline": "Saturday's set was fire. Sunday's Reel is silent. The gap is the visual." },
+      { "name": "Small label", "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.", "icon": "✦", "tool": "versions/film.html", "byline": "Five artists, one brand, one render preset reused across the catalog." },
+      { "name": "Belgrade / Serbian artist", "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.", "icon": "◎", "best_fit": true, "tool": "campaign.html", "byline": "Same engine, half the price, twice the in-person trust." },
+      { "name": "Podcaster", "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.", "icon": "≋", "tool": "versions/film.html", "byline": "Two hours of interview, six pull-quote clips, zero video editor." },
+      { "name": "Sound designer", "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.", "icon": "⌗", "tool": "versions/hallucination.html", "byline": "The pack is the product. The cover is the engine's output." },
+      { "name": "Music manager / agency", "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.", "icon": "◇", "tool": "profit-plan.html", "byline": "Ten clients, one tool, ten mornings of social posts per month." }
+    ]
+  }
+  </script>
+
+  <script>
+    (function () {
+      'use strict';
+      var dataNode = document.getElementById('personas-data');
+      if (!dataNode) return;
+      var data;
+      try { data = JSON.parse(dataNode.textContent); }
+      catch (err) { console.error('neon personas parse error', err); return; }
+      var personas = (data && data.personas) || [];
+      var colors = ['pink', 'cyan', 'amber', 'lime', 'pink', 'cyan', 'amber', 'lime'];
+      var tubes = ['T-01', 'T-02', 'T-03', 'T-04', 'T-05', 'T-06', 'T-07', 'T-08'];
+      var numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+      var html = '';
+      personas.forEach(function (p, i) {
+        var c = colors[i % colors.length];
+        html += '<article class="sign sign--' + c + '">';
+        html += '<span class="sign__tube">' + tubes[i] + '</span>';
+        if (p.tool) html += '<span class="sign__tool">' + p.tool + '</span>';
+        html += '<div class="sign__icon">' + (p.icon || '·') + '</div>';
+        html += '<h3 class="sign__name">' + p.name;
+        if (p.best_fit) html += '<span class="sign__badge">★ fit</span>';
+        html += '</h3>';
+        html += '<p class="sign__desc">' + p.body + '</p>';
+        if (p.byline) html += '<p class="sign__byline">' + p.byline + '</p>';
+        html += '<div class="sign__num">№ ' + (numerals[i] || (i + 1)) + '</div>';
+        html += '</article>';
+      });
+      document.getElementById('signs').innerHTML = html;
+    })();
+  </script>
+</body>
+</html>

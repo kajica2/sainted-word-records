@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PERSONAS.TXT — V5 · Brutalist · Sainted Word Records</title>
+  <meta name="description" content="The 8 personas of Sainted Word Records. View this raw file: PERSONAS.TXT. V5 · Brutalist register." />
+  <meta name="author" content="Kai Djuric" />
+  <meta property="og:title" content="PERSONAS.TXT — V5 · Brutalist" />
+  <meta property="og:description" content="Sainted Word Records persona file. Raw view. 8 entries." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23facc15'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='20' font-weight='900' text-anchor='middle' fill='%23000'%3E%24%3C/text%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700;800&display=swap" />
+
+  <style>
+    /* ===== V5 BRUTALIST TOKENS ===== */
+    :root {
+      --bg:        #f4f4f0;   /* off-white, yellowed paper */
+      --ink:       #000000;   /* pure black */
+      --ink-2:     #1a1a1a;
+      --muted:     #555555;
+      --line:      #000000;
+      --accent:    #dc2626;   /* hot red */
+      --accent-2:  #b91c1c;
+      --highlight: #facc15;   /* construction yellow */
+      --highlight-2: #eab308;
+      --warn-bg:   #fef2f2;
+
+      --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    *:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-mono);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        repeating-linear-gradient(0deg, transparent 0 23px, rgba(0,0,0,0.025) 23px 24px);
+    }
+    a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    a:hover { background: var(--highlight); color: var(--ink); text-decoration: none; }
+    ::selection { background: var(--highlight); color: var(--ink); }
+
+    /* ===== HARD RULE: no rounded corners, no shadows, no gradients ===== */
+    .box, .card, .file, .raw, .strip, .kicker, .badge, .open, .btn, .stamp, pre, code {
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background-image: none !important;
+    }
+
+    /* ===== LAYOUT ===== */
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+    @media (max-width: 720px) { .wrap { padding: 0 14px; } }
+
+    /* ===== STATUS BAR (very top) ===== */
+    .statusbar {
+      background: var(--ink);
+      color: var(--bg);
+      border-bottom: 2px solid var(--ink);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 8px 0;
+    }
+    .statusbar__inner {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      max-width: 1240px; margin: 0 auto; padding: 0 24px;
+    }
+    .statusbar__inner > span { display: inline-flex; align-items: center; gap: 6px; }
+    .statusbar .ok   { color: #4ade80; }
+    .statusbar .warn { color: var(--highlight); }
+    .statusbar .meta { margin-left: auto; color: #999; }
+    @media (max-width: 720px) {
+      .statusbar { font-size: 10px; }
+      .statusbar__inner { padding: 0 10px; gap: 10px; }
+      .statusbar .meta { display: none; }
+    }
+
+    /* ===== HERO BANNER ===== */
+    .hero {
+      background: var(--highlight);
+      border-bottom: 2px solid var(--ink);
+      padding: 36px 0 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero__inner { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+    .hero__filename {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 8vw, 96px);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin: 0 0 14px;
+      word-break: break-word;
+    }
+    .hero__filename .red { color: var(--accent); }
+    .hero__filename .blk { color: var(--ink); }
+    .hero__caption {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+      display: flex; flex-wrap: wrap; gap: 18px;
+      border-top: 2px solid var(--ink);
+      padding-top: 10px;
+      margin-top: 8px;
+    }
+    .hero__caption b { color: var(--ink); background: var(--bg); padding: 0 6px; }
+    .hero__caption .blink {
+      display: inline-block; width: 10px; height: 14px;
+      background: var(--accent); vertical-align: -2px;
+      animation: blink 1.1s steps(2) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ===== ASCII LOGO BAR ===== */
+    .logo-bar {
+      background: var(--bg);
+      border-bottom: 2px solid var(--ink);
+      padding: 28px 0 18px;
+    }
+    .logo-bar__inner {
+      max-width: 1240px; margin: 0 auto; padding: 0 24px;
+      display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center;
+    }
+    .logo {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.0;
+      color: var(--ink);
+      white-space: pre;
+      overflow-x: auto;
+      font-weight: 700;
+    }
+    .logo .shadow { color: var(--accent); }
+    .logo .mid    { color: var(--ink); }
+    .logo-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    .logo-meta .badge-strip {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+    }
+    .logo-meta .badge-strip span {
+      border: 2px solid var(--ink);
+      padding: 2px 8px;
+      font-weight: 700;
+      background: var(--bg);
+    }
+    .logo-meta .badge-strip .y { background: var(--highlight); }
+    .logo-meta .badge-strip .r { background: var(--accent); color: #fff; }
+    @media (max-width: 720px) {
+      .logo-bar__inner { grid-template-columns: 1fr; gap: 14px; }
+      .logo { font-size: 10px; }
+    }
+
+    /* ===== SECTION HEADER (yellow block + divider) ===== */
+    .section { padding: 56px 0 24px; }
+    .section__head {
+      max-width: 1240px; margin: 0 auto 24px; padding: 0 24px;
+    }
+    .section__kicker {
+      display: inline-block;
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      background: var(--highlight);
+      color: var(--ink);
+      padding: 4px 10px 4px 18px;
+      border: 2px solid var(--ink);
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .section__kicker::before {
+      content: "█";
+      position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+      color: var(--accent);
+    }
+    .section__title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4.4vw, 44px);
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+    }
+    .section__sub {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--ink-2);
+      margin: 0 0 14px;
+      max-width: 720px;
+    }
+    .ascii-rule {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--ink);
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 0 0 18px;
+    }
+    .ascii-rule .red { color: var(--accent); }
+    .ascii-rule .y   { color: var(--highlight-2); }
+
+    /* ===== CHANGELOG ===== */
+    .changelog {
+      max-width: 1240px; margin: 0 auto; padding: 0 24px 0;
+    }
+    .changelog__box {
+      border: 2px solid var(--ink);
+      background: var(--bg);
+      padding: 14px 16px 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .changelog__row {
+      display: grid;
+      grid-template-columns: 180px 80px 1fr;
+      gap: 12px;
+      padding: 3px 0;
+      border-bottom: 1px dashed #000;
+    }
+    .changelog__row:last-child { border-bottom: none; }
+    .changelog__row .ts  { color: var(--accent); font-weight: 700; }
+    .changelog__row .who { color: var(--ink); font-weight: 700; }
+    .changelog__row .msg { color: var(--ink-2); }
+    .changelog__row .msg b { color: var(--ink); }
+    @media (max-width: 720px) {
+      .changelog__row { grid-template-columns: 1fr; gap: 0; padding: 8px 0; }
+      .changelog__row .ts { display: inline; }
+    }
+
+    /* ===== FILE CARDS ===== */
+    .files {
+      max-width: 1240px; margin: 0 auto; padding: 0 24px;
+      display: grid; grid-template-columns: 1fr; gap: 22px;
+      overflow-x: hidden;
+    }
+    @media (max-width: 720px) { .files { padding: 0 14px; } }
+    .file { max-width: 100%; width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;
+      border: 2px solid var(--ink);
+      background: var(--bg);
+      position: relative;
+    }
+    .file__head {
+      background: var(--ink);
+      color: var(--bg);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 12px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      border-bottom: 2px solid var(--ink);
+    }
+    .file__head .idx {
+      background: var(--highlight);
+      color: var(--ink);
+      padding: 1px 6px;
+      font-weight: 800;
+    }
+    .file__head .name { font-weight: 800; }
+    .file__head .date {
+      margin-left: auto;
+      color: var(--highlight);
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .file__head .bestfit {
+      background: var(--accent);
+      color: #fff;
+      padding: 1px 8px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .file__body {
+      padding: 14px 16px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--ink);
+    }
+    .file__body .row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 12px;
+      padding: 3px 0;
+      border-bottom: 1px dashed #000;
+      align-items: start;
+    }
+    .file__body .row:last-child { border-bottom: none; }
+    .file__body .k {
+      color: var(--ink);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .file__body .v {
+      color: var(--ink-2);
+      word-break: break-word;
+    }
+    .file__body .v b { color: var(--ink); }
+    .file__body .v .str { color: var(--accent); font-weight: 700; }
+    .file__body .v .tool-link { color: var(--accent); font-weight: 800; }
+    .file__body .v .bool-true  { color: var(--accent); font-weight: 800; }
+    .file__body .v .bool-false { color: var(--muted); font-weight: 700; }
+    .file__body .icon { color: var(--accent); font-weight: 800; }
+    .file__body .v .q { color: var(--muted); }
+    .file__body .v .punc { color: var(--muted); }
+    @media (max-width: 600px) {
+      .file__body .row { grid-template-columns: 1fr; gap: 2px; padding: 6px 0; }
+    }
+
+    .file__foot {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border-top: 2px solid var(--ink);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      flex-wrap: wrap;
+    }
+    .file__foot .stamp {
+      border: 2px solid var(--ink);
+      padding: 1px 7px;
+      font-weight: 700;
+      background: var(--bg);
+    }
+    .file__foot .stamp.y { background: var(--highlight); }
+    .file__foot .stamp.r { background: var(--accent); color: #fff; border-color: var(--accent-2); }
+    .file__foot .size { color: var(--muted); }
+    .file__foot .open {
+      margin-left: auto;
+      color: #fff;
+      background: var(--accent);
+      padding: 2px 10px;
+      font-weight: 800;
+      text-decoration: none;
+      border: 2px solid var(--accent-2);
+      letter-spacing: 0.04em;
+    }
+    .file__foot .open:hover { background: var(--ink); border-color: var(--ink); }
+
+    .file--bestfit { background: #fff7d6; }
+    .file--bestfit .file__head { background: var(--accent); color: #fff; }
+    .file--bestfit .file__head .idx { background: var(--ink); color: var(--highlight); }
+
+    /* file index numbers between cards */
+    .files .between {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink);
+      text-align: center;
+      letter-spacing: 0;
+      padding: 2px 0;
+    }
+
+    /* ===== RAW JSON BLOCK ===== */
+    .raw-wrap {
+      max-width: 1240px; margin: 0 auto; padding: 0 24px;
+    }
+    .raw-head {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--ink); color: var(--bg);
+      padding: 7px 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      border: 2px solid var(--ink);
+      border-bottom: none;
+    }
+    .raw-head .name { color: var(--highlight); }
+    .raw-head .hint { margin-left: auto; color: #ccc; }
+    .raw {
+      border: 2px solid var(--ink);
+      background: var(--bg);
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+    }
+    .raw .k { color: var(--ink); font-weight: 800; }
+    .raw .s { color: var(--accent); font-weight: 700; }
+    .raw .b { color: var(--accent-2); font-weight: 800; }
+    .raw .c { color: var(--muted); font-style: italic; }
+    .raw .p { color: var(--muted); }
+
+    /* ===== FOOTER ===== */
+    .foot {
+      margin-top: 48px;
+      border-top: 2px solid var(--ink);
+      background: var(--ink);
+      color: var(--bg);
+      padding: 28px 0 14px;
+      font-family: var(--font-mono);
+    }
+    .foot__inner { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+    .foot__line {
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: var(--highlight);
+      margin-bottom: 14px;
+    }
+    .foot__cols {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
+      padding: 16px 0 22px;
+      border-top: 2px dashed #444;
+      border-bottom: 2px dashed #444;
+    }
+    .foot__col h4 {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--highlight);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin: 0 0 8px;
+    }
+    .foot__col ul { list-style: none; padding: 0; margin: 0; }
+    .foot__col li { margin: 0 0 4px; font-size: 12px; }
+    .foot__col a { color: var(--bg); text-decoration: none; border-bottom: 1px dotted var(--bg); }
+    .foot__col a:hover { color: var(--highlight); border-bottom-color: var(--highlight); background: transparent; }
+    .foot__col .cur { color: var(--accent); font-weight: 800; }
+    @media (max-width: 720px) {
+      .foot__cols { grid-template-columns: 1fr; }
+    }
+
+    .foot__end {
+      padding-top: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #aaa;
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    }
+    .foot__end .blink { display: inline-block; width: 9px; height: 12px; background: var(--highlight); animation: blink 1.1s steps(2) infinite; }
+    .foot__end .right { margin-left: auto; color: var(--bg); }
+
+    /* ===== TOP-LEVEL UTILITIES ===== */
+    .t-right { text-align: right; }
+    .nowrap  { white-space: nowrap; }
+    .muted   { color: var(--muted); }
+    .red     { color: var(--accent); }
+    .y       { color: var(--highlight-2); }
+
+    /* ===== ARROWS / MARKERS inline ===== */
+    .marker { color: var(--accent); font-weight: 800; }
+    .marker-y { color: var(--highlight-2); font-weight: 800; }
+    .warn-mk { color: var(--accent); font-weight: 800; }
+  </style>
+</head>
+<body>
+
+<!-- =================== STATUS BAR =================== -->
+<div class="statusbar" role="status" aria-label="file status">
+  <div class="statusbar__inner">
+    <span class="ok">[OK]</span>
+    <span>[PERSONAS.TXT]</span>
+    <span class="warn">[8/8]</span>
+    <span>[VIEW=BRUTALIST]</span>
+    <span>[CHARSET=UTF-8]</span>
+    <span>[LF]</span>
+    <span class="meta">[q=quit] [h=help] [e=edit] [g=goto]</span>
+  </div>
+</div>
+
+<!-- =================== HERO FILENAME BANNER =================== -->
+<header class="hero">
+  <div class="hero__inner">
+    <h1 class="hero__filename" aria-label="PERSONAS.TXT">
+      [<span class="red">PERSONAS</span><span class="blk">.TXT</span>]<span class="blink" aria-hidden="true"></span>
+    </h1>
+    <div class="hero__caption">
+      <span><b>FILE:</b> personas.json</span>
+      <span><b>ENTRIES:</b> 8</span>
+      <span><b>FORMAT:</b> JSON</span>
+      <span><b>REGISTER:</b> V5 · BRUTALIST</span>
+      <span><b>MODIFIED:</b> 2026-08-13 01:24</span>
+      <span><b>SIZE:</b> 4.2 KB</span>
+    </div>
+  </div>
+</header>
+
+<!-- =================== ASCII LOGO BAR =================== -->
+<section class="logo-bar" aria-label="SWR monogram">
+  <div class="logo-bar__inner">
+<pre class="logo" aria-hidden="true"><span class="mid">    ████████████████
+   ██</span><span class="shadow">▓▓▓▓▓▓▓▓▓▓▓▓</span><span class="mid">██
+  █</span><span class="shadow">▓▓▓▓▓██████▓▓▓▓▓</span><span class="mid">█
+ █</span><span class="shadow">▓▓▓▓██</span><span class="mid">▓▓▓▓</span><span class="shadow">██▓▓▓▓</span><span class="mid">█
+ █</span><span class="shadow">▓▓▓██</span><span class="mid">▓▓</span><span class="shadow">██</span><span class="mid">▓▓</span><span class="shadow">██▓▓▓</span><span class="mid">█
+ █</span><span class="shadow">▓▓▓▓██</span><span class="mid">▓▓▓▓</span><span class="shadow">██▓▓▓▓</span><span class="mid">█
+  █</span><span class="shadow">▓▓▓▓▓██████▓▓▓▓▓</span><span class="mid">█
+   ██</span><span class="shadow">▓▓▓▓▓▓▓▓▓▓▓▓</span><span class="mid">██
+    ████████████████
+   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓</span></pre>
+    <div class="logo-meta">
+      <div><b>SAINTED WORD RECORDS</b> — Audio-reactive video engine.</div>
+      <div>Drop a song. Drop a library. Get a music video.</div>
+      <div class="badge-strip">
+        <span class="y">SWR</span>
+        <span>v5.0</span>
+        <span class="r">BRUTALIST</span>
+        <span>FILE:VIEW</span>
+        <span>RAW</span>
+      </div>
+      <div class="muted" style="margin-top:6px;">SOURCE: <a href="personas.json">personas.json</a> · RENDER: this page</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== CHANGELOG =================== -->
+<section class="section" id="changelog" style="padding-top:32px;">
+  <div class="section__head">
+    <div class="section__kicker">CHANGELOG</div>
+    <h2 class="section__title">Who touched this file</h2>
+    <p class="section__sub">Last 3 revisions of <b>personas.json</b>. Append-only. Do not edit history above the line.</p>
+  </div>
+  <pre class="ascii-rule">═══ <span class="red">CHANGELOG · 3 ENTRIES</span> ════════════════════════════════════════════════════════</pre>
+  <div class="changelog">
+    <div class="changelog__box">
+      <div class="changelog__row">
+        <span class="ts">[2026-08-13 00:24]</span>
+        <span class="who">Kai</span>
+        <span class="msg"><b>added 8 personas</b> from landing.html#versions — Indie musician, Beatmaker, DJ, Small label, Belgrade / Serbian artist, Podcaster, Sound designer, Music manager / agency. Marked <b>Indie musician</b> + <b>Belgrade / Serbian artist</b> as <b>best_fit</b>.</span>
+      </div>
+      <div class="changelog__row">
+        <span class="ts">[2026-08-12 23:50]</span>
+        <span class="who">Kai</span>
+        <span class="msg">Promoted <b>small-label</b> description. Tightened <b>podcaster</b> wording. <span class="muted">no structural change.</span></span>
+      </div>
+      <div class="changelog__row">
+        <span class="ts">[2026-08-09 19:02]</span>
+        <span class="who">Kai</span>
+        <span class="msg">Initial seed. 8 archetypes derived from the 5-version engine + campaign + profit-plan flows.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 8 PERSONA FILES =================== -->
+<section class="section" id="files" style="padding-top:48px;">
+  <div class="section__head">
+    <div class="section__kicker">DIRECTORY LISTING</div>
+    <h2 class="section__title">8 personas · sorted by index</h2>
+    <p class="section__sub">
+      <span class="marker">&gt;&gt;</span> Each persona is a <b>.json</b> file. Two are flagged <b class="red">BEST_FIT</b>
+      for the local market (<b>Belgrade</b>) and the canonical indie workflow (<b>Indie musician</b>).
+    </p>
+  </div>
+
+  <pre class="ascii-rule">─── <span class="red">ls -la personas/</span> ──────────────────────────────────────────────── <span class="y">8 FILES</span> ───</pre>
+
+  <div class="files">
+
+    <!-- =========== 01 indie-musician.json =========== -->
+    <article class="file file--bestfit" id="p-indie-musician">
+      <div class="file__head">
+        <span class="idx">[01]</span>
+        <span class="name">indie-musician.json</span>
+        <span class="bestfit">★ BEST_FIT</span>
+        <span class="date">2026-08-13 00:24</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: independent recording artist, single release cycle</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>Indie musician</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">♪</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-true">true</span><span class="punc">,</span> <span class="muted">// marked for indie release workflow</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="versions/neon.html">versions/neon.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_track":</span><span class="v"><span class="q">"</span><span class="str">Soba 04 - My Room 4AM</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 412 B · UTF-8 · LF ]</span>
+        <a class="open" href="versions/neon.html">OPEN →</a>
+      </div>
+    </article>
+
+    <div class="between">──────────────────────────────────────────────────────────────────</div>
+
+    <!-- =========== 02 beatmaker.json =========== -->
+    <article class="file" id="p-beatmaker">
+      <div class="file__head">
+        <span class="idx">[02]</span>
+        <span class="name">beatmaker.json</span>
+        <span class="date">2026-08-13 00:18</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: producer selling beats online</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>Beatmaker</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">▰</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-false">false</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="versions/grid.html">versions/grid.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_pack":</span><span class="v"><span class="q">"</span><span class="str">BALKAN DRUM KIT VOL 2</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 388 B · UTF-8 · LF ]</span>
+        <a class="open" href="versions/grid.html">OPEN →</a>
+      </div>
+    </article>
+
+    <div class="between">──────────────────────────────────────────────────────────────────</div>
+
+    <!-- =========== 03 dj.json =========== -->
+    <article class="file" id="p-dj">
+      <div class="file__head">
+        <span class="idx">[03]</span>
+        <span class="name">dj.json</span>
+        <span class="date">2026-08-13 00:18</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: DJ promoting a set or mix</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>DJ</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">◐</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-false">false</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="versions/smoke.html">versions/smoke.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_set":</span><span class="v"><span class="q">"</span><span class="str">KC GRAD 2026-07-26 03:00 SET</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 376 B · UTF-8 · LF ]</span>
+        <a class="open" href="versions/smoke.html">OPEN →</a>
+      </div>
+    </article>
+
+    <div class="between">──────────────────────────────────────────────────────────────────</div>
+
+    <!-- =========== 04 small-label.json =========== -->
+    <article class="file" id="p-small-label">
+      <div class="file__head">
+        <span class="idx">[04]</span>
+        <span class="name">small-label.json</span>
+        <span class="date">2026-08-13 00:18</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: small label, 3–10 artists / year</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>Small label</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">✦</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-false">false</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="versions/film.html">versions/film.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_release":</span><span class="v"><span class="q">"</span><span class="str">AVA004 - Various Artists</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 402 B · UTF-8 · LF ]</span>
+        <a class="open" href="versions/film.html">OPEN →</a>
+      </div>
+    </article>
+
+    <div class="between">──────────────────────────────────────────────────────────────────</div>
+
+    <!-- =========== 05 belgrade-artist.json (BEST_FIT) =========== -->
+    <article class="file file--bestfit" id="p-belgrade-artist">
+      <div class="file__head">
+        <span class="idx">[05]</span>
+        <span class="name">belgrade-artist.json</span>
+        <span class="bestfit">★ BEST_FIT</span>
+        <span class="date">2026-08-13 00:24</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: local Belgrade / Serbian artist</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>Belgrade / Serbian artist</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">◎</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-true">true</span><span class="punc">,</span> <span class="muted">// primary persona, local market</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="campaign.html">campaign.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_venue":</span><span class="v"><span class="q">"</span><span class="str">Drugstore · Beograd</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 446 B · UTF-8 · LF ]</span>
+        <a class="open" href="campaign.html">OPEN →</a>
+      </div>
+    </article>
+
+    <div class="between">──────────────────────────────────────────────────────────────────</div>
+
+    <!-- =========== 06 podcaster.json =========== -->
+    <article class="file" id="p-podcaster">
+      <div class="file__head">
+        <span class="idx">[06]</span>
+        <span class="name">podcaster.json</span>
+        <span class="date">2026-08-13 00:18</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: long-form audio showrunner</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>Podcaster</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">≋</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-false">false</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="versions/film.html">versions/film.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_episode":</span><span class="v"><span class="q">"</span><span class="str">EP 47 - Why Music Videos Matter</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 398 B · UTF-8 · LF ]</span>
+        <a class="open" href="versions/film.html">OPEN →</a>
+      </div>
+    </article>
+
+    <div class="between">──────────────────────────────────────────────────────────────────</div>
+
+    <!-- =========== 07 sound-designer.json =========== -->
+    <article class="file" id="p-sound-designer">
+      <div class="file__head">
+        <span class="idx">[07]</span>
+        <span class="name">sound-designer.json</span>
+        <span class="date">2026-08-13 00:18</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: sample-pack creator / sound designer</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>Sound designer</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">⌗</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-false">false</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="versions/hallucination.html">versions/hallucination.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_pack":</span><span class="v"><span class="q">"</span><span class="str">YUGO TEXTURES - 200 SAMPLES</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 422 B · UTF-8 · LF ]</span>
+        <a class="open" href="versions/hallucination.html">OPEN →</a>
+      </div>
+    </article>
+
+    <div class="between">──────────────────────────────────────────────────────────────────</div>
+
+    <!-- =========== 08 music-manager.json =========== -->
+    <article class="file" id="p-music-manager">
+      <div class="file__head">
+        <span class="idx">[08]</span>
+        <span class="name">music-manager.json</span>
+        <span class="date">2026-08-13 00:18</span>
+      </div>
+      <div class="file__body">
+        <div class="row"><span class="k">// persona</span><span class="v muted"># archetype: music manager / agency operator</span></div>
+        <div class="row"><span class="k">"name":</span><span class="v"><span class="q">"</span><b>Music manager / agency</b><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"body":</span><span class="v"><span class="q">"</span>Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.<span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"icon":</span><span class="v"><span class="q">"</span><span class="icon">◇</span><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"best_fit":</span><span class="v"><span class="bool-false">false</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"tool":</span><span class="v"><span class="q">"</span><a class="tool-link" href="profit-plan.html">profit-plan.html</a><span class="q">"</span><span class="punc">,</span></span></div>
+        <div class="row"><span class="k">"sample_roster":</span><span class="v"><span class="q">"</span><span class="str">10 artists, 8 releases/year</span><span class="q">"</span></span></div>
+      </div>
+      <div class="file__foot">
+        <span class="stamp y">MIME: application/json</span>
+        <span class="stamp">PERMS: -rw-r--r--</span>
+        <span class="size">[ 432 B · UTF-8 · LF ]</span>
+        <a class="open" href="profit-plan.html">OPEN →</a>
+      </div>
+    </article>
+
+  </div>
+
+  <pre class="ascii-rule" style="margin-top:24px;">═══ <span class="red">END OF DIRECTORY</span> · <span class="y">8 FILES</span> · 4.2 KB · SHA1=▓▓▓▓▓▓▓▓ ═════════════════════════════</pre>
+</section>
+
+<!-- =================== RAW JSON BLOCK =================== -->
+<section class="section" id="raw">
+  <div class="section__head">
+    <div class="section__kicker">RAW VIEW</div>
+    <h2 class="section__title">personas.json</h2>
+    <p class="section__sub">
+      <span class="marker-y">&gt;</span> This is the actual file the page renders from. Copy, paste, version-control.
+      Single source of truth. Every register (Editorial, Dark, Friendly, Dashboard, Brutalist) reads the same 8 entries.
+    </p>
+  </div>
+  <pre class="ascii-rule">─── <span class="red">cat personas.json</span> ────────────────────────────────────────────────────</pre>
+  <div class="raw-wrap">
+    <div class="raw-head">
+      <span class="name">personas.json</span>
+      <span>4,247 B</span>
+      <span>UTF-8</span>
+      <span>LF</span>
+      <span class="hint">view-source · copy · paste</span>
+    </div>
+<pre class="raw" id="raw-json" aria-label="raw personas json"></pre>
+  </div>
+</section>
+
+<!-- =================== FOOTER =================== -->
+<footer class="foot" role="contentinfo">
+  <div class="foot__inner">
+    <div class="foot__line">&gt; END OF FILE · 8 ENTRIES · 247 LINES · PRESS Q TO QUIT</div>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <h4>MAIN</h4>
+        <ul>
+          <li><a href="engine.html">index.html</a> <span class="muted">/ app</span></li>
+          <li><a href="landing.html">landing.html</a> <span class="muted">/ landing</span></li>
+          <li><a href="personas.json">personas.json</a> <span class="muted">/ source of truth</span></li>
+          <li><a href="personas.js">personas.js</a> <span class="muted">/ runtime</span></li>
+        </ul>
+      </div>
+      <div class="foot__col">
+        <h4>5 VERSIONS</h4>
+        <ul>
+          <li><a href="versions/neon.html">versions/neon.html</a></li>
+          <li><a href="versions/grid.html">versions/grid.html</a></li>
+          <li><a href="versions/smoke.html">versions/smoke.html</a></li>
+          <li><a href="versions/film.html">versions/film.html</a></li>
+          <li><a href="versions/hallucination.html">versions/hallucination.html</a></li>
+        </ul>
+      </div>
+      <div class="foot__col">
+        <h4>BUSINESS</h4>
+        <ul>
+          <li><a href="campaign.html">campaign.html</a> <span class="muted">/ Belgrade push</span></li>
+          <li><a href="profit-plan.html">profit-plan.html</a> <span class="muted">/ agency flow</span></li>
+          <li><a href="market-study.html">market-study.html</a> <span class="muted">/ market sizing</span></li>
+          <li><a href="tutorial-30s.html">tutorial-30s.html</a> <span class="muted">/ 30s walkthrough</span></li>
+          <li><a href="interactive-howto.html">interactive-howto.html</a> <span class="muted">/ hands-on lab</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot__end">
+      <span><span class="blink" aria-hidden="true"></span> READY</span>
+      <span>EOF</span>
+      <span>V5 · BRUTALIST</span>
+      <span>2026-08-13</span>
+      <span class="right">[!] 2 personas flagged <b>BEST_FIT</b> · 6 standard</span>
+    </div>
+  </div>
+</footer>
+
+<!-- =================== INLINE PERSONAS JSON (single source of truth) =================== -->
+<script type="application/json" id="personas-data">
+{
+  "_about": "Single source of truth for the 5 character presets of the SWR personas. Every register (Editorial / Dark / Friendly / Dashboard / Brutalist) renders this same data in its own visual register. Tweak here, all 5 pages update on next regen.",
+  "_note": "V5 · Brutalist register. Raw view. Each persona is rendered as a file card. 2 best_fit markers.",
+  "section": {
+    "kicker": "Made for these people",
+    "title": "Who actually uses this.",
+    "lede": "The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first."
+  },
+  "personas": [
+    {
+      "name": "Indie musician",
+      "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.",
+      "icon": "♪",
+      "best_fit": true,
+      "tool": "versions/neon.html",
+      "sample_track": "Soba 04 - My Room 4AM"
+    },
+    {
+      "name": "Beatmaker",
+      "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.",
+      "icon": "▰",
+      "best_fit": false,
+      "tool": "versions/grid.html",
+      "sample_pack": "BALKAN DRUM KIT VOL 2"
+    },
+    {
+      "name": "DJ",
+      "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.",
+      "icon": "◐",
+      "best_fit": false,
+      "tool": "versions/smoke.html",
+      "sample_set": "KC GRAD 2026-07-26 03:00 SET"
+    },
+    {
+      "name": "Small label",
+      "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.",
+      "icon": "✦",
+      "best_fit": false,
+      "tool": "versions/film.html",
+      "sample_release": "AVA004 - Various Artists"
+    },
+    {
+      "name": "Belgrade / Serbian artist",
+      "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.",
+      "icon": "◎",
+      "best_fit": true,
+      "tool": "campaign.html",
+      "sample_venue": "Drugstore · Beograd"
+    },
+    {
+      "name": "Podcaster",
+      "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.",
+      "icon": "≋",
+      "best_fit": false,
+      "tool": "versions/film.html",
+      "sample_episode": "EP 47 - Why Music Videos Matter"
+    },
+    {
+      "name": "Sound designer",
+      "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.",
+      "icon": "⌗",
+      "best_fit": false,
+      "tool": "versions/hallucination.html",
+      "sample_pack": "YUGO TEXTURES - 200 SAMPLES"
+    },
+    {
+      "name": "Music manager / agency",
+      "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.",
+      "icon": "◇",
+      "best_fit": false,
+      "tool": "profit-plan.html",
+      "sample_roster": "10 artists, 8 releases/year"
+    }
+  ]
+}
+</script>
+
+<!-- =================== VANILLA JS: render raw JSON with light syntax highlight =================== -->
+<script>
+(function () {
+  'use strict';
+  var dataNode = document.getElementById('personas-data');
+  var out      = document.getElementById('raw-json');
+  if (!dataNode || !out) return;
+
+  try {
+    var raw = dataNode.textContent;
+    // pretty print if it parses
+    var parsed = JSON.parse(raw);
+    raw = JSON.stringify(parsed, null, 2);
+  } catch (e) {
+    // fall back to raw textContent even if it's malformed
+  }
+
+  // escape for HTML, then apply light syntax highlight
+  var esc = raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // string highlight: "...":  (handle value-side strings only, not keys, to keep it readable)
+  esc = esc.replace(/("[^"]*?")(\s*:)/g, '<span class="k">$1</span>$2');
+  // value strings (lines that don't end with a colon, after a colon)
+  esc = esc.replace(/^(\s*)("[^"]*?")(,?)$/gm, '$1<span class="s">$2</span>$3');
+  // booleans
+  esc = esc.replace(/\b(true|false|null)\b/g, '<span class="b">$1</span>');
+
+  out.innerHTML = esc;
+})();
+</script>
+
+<!-- ============ SISTER REGISTERS (other personas pages) ============ -->
+<nav class="sister-registers" aria-label="Other persona registers">
+  <span class="sister-registers__label">OTHER REGISTERS:</span>
+  <a href="./landing-personas-v1-editorial.html">V1 · EDITORIAL</a>
+  <a href="./landing-personas-v2-dark.html">V2 · DARK</a>
+  <a href="./landing-personas-v3-friendly.html">V3 · FRIENDLY</a>
+  <a href="./landing-personas-v4-dashboard.html">V4 · DASHBOARD</a>
+  <a href="./landing-personas-v6-wireframe.html">V6 · WIREFRAME</a>
+  <a href="./personas.html">PERSONAS.HTML</a>
+</nav>
+<style>
+.sister-registers {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 14px;
+  background: var(--bg); /* off-white */
+  border: 2px solid var(--ink); /* hard black border */
+  border-radius: 0; /* no radius — brutalist */
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  z-index: 50; max-width: calc(100vw - 32px);
+}
+.sister-registers__label { color: #dc2626; text-transform: uppercase; }
+.sister-registers a { color: var(--ink); text-decoration: none; padding: 2px 6px; border: 1px solid var(--ink); }
+.sister-registers a:hover { background: #facc15; color: var(--ink); }
+@media (max-width: 600px) {
+  .sister-registers { font-size: 9px; padding: 6px 10px; gap: 4px; }
+  .sister-registers a { padding: 1px 4px; }
+}
+</style>
+
+</body>
+</html>

@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR Quarterly — Issue 01 · Who actually uses this</title>
+  <meta name="description" content="A magazine spread of the eight personas that the Sainted Word Records audio-reactive video engine was built for. Editorial register." />
+  <meta name="author" content="Kai Djuric" />
+  <meta name="color-scheme" content="light only" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f5efe4'/%3E%3Ctext x='16' y='22' font-family='serif' font-size='18' text-anchor='middle' fill='%23c4543a'%3EI%3C/text%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    :root {
+      --paper:       #f5efe4;
+      --paper-2:     #ede4d2;
+      --paper-3:     #e6dac1;
+      --ink:         #1f1a14;
+      --ink-2:       #4a3f30;
+      --muted:       #8a7a63;
+      --rule:        #d9cdb8;
+      --rule-2:      #c4b694;
+      --terracotta:  #c4543a;
+      --terracotta-2:#a6432e;
+      --forest:      #3a5a40;
+      --forest-2:    #2d4532;
+      --font-display:'Fraunces', ui-serif, Georgia, serif;
+      --font-body:  'Fraunces', ui-serif, Georgia, serif;
+      --font-mono:  'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      font-weight: 400;
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(196,84,58,0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(58,90,64,0.05) 0%, transparent 50%),
+        var(--paper);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      /* Subtle paper texture using SVG noise */
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(196,84,58,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(58,90,64,0.06) 0%, transparent 50%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.12 0 0 0 0 0.10 0 0 0 0 0.08 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E"),
+        linear-gradient(var(--paper), var(--paper));
+    }
+    a { color: var(--terracotta); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--terracotta) 30%, transparent); transition: color 0.2s, border-color 0.2s; }
+    a:hover { color: var(--terracotta-2); border-bottom-color: var(--terracotta-2); }
+    ::selection { background: var(--terracotta); color: var(--paper); }
+
+    /* ========== LAYOUT CHROME ========== */
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 48px;
+      position: relative;
+    }
+    @media (max-width: 720px) { .page { padding: 0 24px; } }
+
+    /* Issue badge in top-left corner */
+    .issue-badge {
+      position: fixed;
+      top: 18px; left: 18px;
+      z-index: 50;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--paper);
+      background: var(--ink);
+      padding: 6px 10px;
+      border-radius: 2px;
+      box-shadow: 0 2px 8px rgba(31,26,20,0.18);
+    }
+    .issue-badge::before {
+      content: ''; display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--terracotta);
+      margin-right: 6px; vertical-align: middle;
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ========== MASTHEAD ========== */
+    .masthead {
+      padding: 96px 0 28px;
+      border-bottom: 3px double var(--ink);
+      position: relative;
+    }
+    .masthead__topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 32px;
+    }
+    .masthead__topline .quarterly {
+      color: var(--terracotta);
+      font-weight: 600;
+    }
+    .masthead__kicker {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin: 0 0 18px;
+      font-weight: 500;
+    }
+    .masthead__kicker::before {
+      content: '— ';
+    }
+    .masthead__title {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-size: clamp(48px, 8vw, 104px);
+      line-height: 0.98;
+      letter-spacing: -0.035em;
+      margin: 0 0 24px;
+      color: var(--ink);
+    }
+    .masthead__title em {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--terracotta);
+    }
+    .masthead__lede {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(18px, 1.6vw, 22px);
+      line-height: 1.5;
+      color: var(--ink-2);
+      max-width: 780px;
+      margin: 0 0 24px;
+      font-style: italic;
+    }
+    .masthead__byline {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-top: 16px;
+      border-top: 1px solid var(--rule);
+    }
+    .masthead__byline strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .masthead__ornament {
+      text-align: center;
+      font-family: var(--font-display);
+      font-size: 24px;
+      color: var(--terracotta);
+      margin: 8px 0 0;
+      letter-spacing: 1em;
+    }
+
+    /* ========== PULL QUOTE ========== */
+    .pullquote {
+      margin: 64px auto;
+      max-width: 920px;
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--terracotta);
+      border-bottom: 1px solid var(--terracotta);
+      position: relative;
+    }
+    .pullquote__mark {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 88px;
+      line-height: 0.4;
+      color: var(--terracotta);
+      height: 22px;
+      display: block;
+    }
+    .pullquote__text {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-style: italic;
+      font-size: clamp(28px, 3.6vw, 44px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin: 18px 0 16px;
+    }
+    .pullquote__cite {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .pullquote__cite::before { content: '— '; }
+
+    /* ========== SPREAD ========== */
+    .spread {
+      padding: 40px 0 24px;
+      position: relative;
+    }
+    .spread__page-num {
+      position: absolute;
+      bottom: -32px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+    }
+    .spread__page-num--left  { left: 0; }
+    .spread__page-num--right { right: 0; }
+    .spread__page-num::before {
+      content: '· ';
+    }
+    .spread__page-num::after {
+      content: ' ·';
+    }
+
+    .spread__header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 36px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .spread__header h2 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-style: italic;
+      font-size: clamp(22px, 2.2vw, 30px);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .spread__header h2 strong {
+      font-style: normal;
+      font-weight: 500;
+    }
+    .spread__folio {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .spread__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 720px) {
+      .spread__grid { grid-template-columns: 1fr; }
+    }
+
+    /* ========== FEATURE CARD ========== */
+    .feature {
+      padding: 36px 36px 36px;
+      border-top: 1px solid var(--terracotta);
+      position: relative;
+    }
+    .spread__grid .feature:nth-child(odd) {
+      border-right: 1px solid var(--rule);
+      padding-right: 44px;
+    }
+    .spread__grid .feature:nth-child(even) {
+      padding-left: 44px;
+    }
+    @media (max-width: 720px) {
+      .spread__grid .feature:nth-child(odd) {
+        border-right: none;
+        padding-right: 36px;
+      }
+      .spread__grid .feature:nth-child(even) {
+        padding-left: 36px;
+      }
+    }
+    .feature__num {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-style: italic;
+      font-size: 72px;
+      line-height: 0.8;
+      color: var(--terracotta);
+      margin: 0 0 16px;
+      letter-spacing: -0.02em;
+    }
+    .feature__head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .feature__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border: 1px solid var(--rule-2);
+      border-radius: 50%;
+      font-family: var(--font-display);
+      font-size: 18px;
+      line-height: 1;
+      color: var(--ink);
+      background: var(--paper-2);
+    }
+    .feature__name {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 26px;
+      line-height: 1.1;
+      letter-spacing: -0.015em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .feature__byline {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 1.45;
+      color: var(--terracotta-2);
+      margin: 0 0 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px dotted var(--rule-2);
+    }
+    .feature__body {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 15.5px;
+      line-height: 1.6;
+      color: var(--ink-2);
+      margin: 0 0 20px;
+    }
+    .feature__foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--rule);
+      flex-wrap: wrap;
+    }
+    .feature__tool {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .feature__tool code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink);
+      background: var(--paper-2);
+      padding: 2px 7px;
+      border-radius: 2px;
+    }
+    .feature__best {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border: 1px solid var(--forest);
+      background: var(--forest);
+      color: var(--paper);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border-radius: 2px;
+    }
+    .feature__best::before {
+      content: '★';
+      font-size: 11px;
+    }
+
+    /* ========== FOOTER / COLOPHON ========== */
+    .colophon {
+      margin: 96px 0 48px;
+      padding: 36px 0 0;
+      border-top: 3px double var(--ink);
+    }
+    .colophon__grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 36px;
+    }
+    @media (max-width: 820px) {
+      .colophon__grid { grid-template-columns: 1fr; gap: 32px; }
+    }
+    .colophon__h {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin: 0 0 14px;
+      font-weight: 600;
+    }
+    .colophon__credits {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--ink-2);
+      margin: 0;
+    }
+    .colophon__credits strong {
+      font-style: normal;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .colophon__quote {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 300;
+      font-size: 18px;
+      line-height: 1.5;
+      color: var(--ink);
+      margin: 0 0 8px;
+      padding-left: 16px;
+      border-left: 2px solid var(--terracotta);
+    }
+    .colophon__quote-attr {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-left: 18px;
+    }
+    .colophon__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.9;
+      color: var(--ink-2);
+    }
+    .colophon__list li::before {
+      content: counter(section) '. ';
+      counter-increment: section;
+      color: var(--terracotta);
+      font-weight: 600;
+    }
+    .colophon__list { counter-reset: section; }
+    .colophon__links {
+      padding: 24px 0;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      margin: 0 0 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+    .colophon__links-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 8px;
+    }
+    .colophon__sign {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .colophon__sign strong {
+      color: var(--ink);
+      font-weight: 600;
+      letter-spacing: 0.2em;
+    }
+  </style>
+</head>
+<body>
+  <span class="issue-badge" aria-hidden="true">Issue 01 · SWR Quarterly</span>
+
+  <div class="page">
+
+    <!-- ========== MASTHEAD ========== -->
+    <header class="masthead">
+      <div class="masthead__topline">
+        <span>Sainted Word Records · Belgrade</span>
+        <span class="quarterly">SWR Quarterly · Vol. I</span>
+        <span>Issue 01 · 2026</span>
+      </div>
+
+      <p class="masthead__kicker">A register of the people for whom the engine was built</p>
+      <h1 class="masthead__title">Who actually <em>uses</em><br />this thing.</h1>
+      <p class="masthead__lede">Eight profiles, in the order they reach for the engine first. The audio-reactive stack and its five character presets were not designed in a focus group &mdash; they were reverse-engineered from the desks of the people on the next page, who have audio and a release date, and zero budget for a video editor.</p>
+
+      <div class="masthead__byline">
+        <span>Words · <strong>Kai Djuric</strong></span>
+        <span>Photography · <strong>The actual renders</strong></span>
+        <span>Pages · <strong>14–21</strong></span>
+        <span>Filed · <strong>Underground, Worldwide</strong></span>
+      </div>
+
+      <div class="masthead__ornament" aria-hidden="true">❦</div>
+    </header>
+
+    <!-- ========== PULL QUOTE ========== -->
+    <aside class="pullquote">
+      <span class="pullquote__mark" aria-hidden="true">“</span>
+      <p class="pullquote__text">Sell the video, not the engine.</p>
+      <p class="pullquote__cite">from profit-plan.html</p>
+    </aside>
+
+    <!-- ========== SPREAD ONE (personas I–IV) ========== -->
+    <section class="spread" aria-label="Pages 14-15 of the SWR Quarterly">
+      <div class="spread__header">
+        <h2><strong>Pages 14–15 ·</strong> Four profiles from the indie circuit</h2>
+        <span class="spread__folio">Folio 01</span>
+      </div>
+
+      <div class="spread__grid" id="spread-1"></div>
+
+      <span class="spread__page-num spread__page-num--left" aria-hidden="true">14</span>
+      <span class="spread__page-num spread__page-num--right" aria-hidden="true">15</span>
+    </section>
+
+    <!-- ========== SPREAD TWO (personas V–VIII) ========== -->
+    <section class="spread" aria-label="Pages 16-17 of the SWR Quarterly" style="margin-top: 80px;">
+      <div class="spread__header">
+        <h2><strong>Pages 16–17 ·</strong> Four profiles from the wider trade</h2>
+        <span class="spread__folio">Folio 02</span>
+      </div>
+
+      <div class="spread__grid" id="spread-2"></div>
+
+      <span class="spread__page-num spread__page-num--left" aria-hidden="true">16</span>
+      <span class="spread__page-num spread__page-num--right" aria-hidden="true">17</span>
+    </section>
+
+    <!-- ========== COLOPHON ========== -->
+    <footer class="colophon">
+      <div class="colophon__grid">
+        <div>
+          <p class="colophon__h">Colophon</p>
+          <p class="colophon__credits">
+            Set in <strong>Fraunces</strong> &mdash; a contemporary serif with optical sizes, variable weight, and an italic that leans the right way for magazine work. Kicker labels and small caps are set in <strong>Geist Mono</strong>. Printed on a warm paper at <strong>#f5efe4</strong>, with rules in <strong>terracotta</strong> and a forest-green marker for the two profiles the engine was tuned against first. No sans was introduced; the body sits at a slightly lighter weight of the same serif used for the display.
+          </p>
+        </div>
+
+        <div>
+          <p class="colophon__h">Contributors</p>
+          <ol class="colophon__list">
+            <li>Indie musician</li>
+            <li>Beatmaker</li>
+            <li>DJ</li>
+            <li>Small label</li>
+            <li>Belgrade / Serbian artist</li>
+            <li>Podcaster</li>
+            <li>Sound designer</li>
+            <li>Music manager / agency</li>
+          </ol>
+        </div>
+
+        <div>
+          <p class="colophon__h">From the founder</p>
+          <blockquote class="colophon__quote">
+            “The point was never the engine. The point was Friday's release and the visualizer before midnight on Thursday.”
+          </blockquote>
+          <p class="colophon__quote-attr">Kai Djuric · Sainted Word Records · 2026</p>
+        </div>
+      </div>
+
+      <div class="colophon__links">
+        <span class="colophon__links-label">In this issue →</span>
+        <a href="landing.html#versions">Landing</a>
+        <a href="engine.html">Index</a>
+        <a href="personas.html">Personas (canonical)</a>
+        <a href="landing-personas-v2-dark.html">V2 · Dark</a>
+        <a href="landing-personas-v3-friendly.html">V3 · Friendly</a>
+        <a href="landing-personas-v4-dashboard.html">V4 · Dashboard</a>
+        <a href="landing-personas-v5-brutalist.html">V5 · Brutalist</a>
+        <a href="landing-personas-v6-wireframe.html">V6 · Wireframe</a>
+      </div>
+
+      <div class="colophon__sign">
+        <span><strong>SWR Quarterly</strong> · Issue 01 · V1 Editorial register</span>
+        <span>Made in Belgrade · 2026</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ========== INLINE JSON (single source of truth) ========== -->
+  <script type="application/json" id="personas-data">
+{
+  "_about": "Single source of truth for the 5 character presets of the SWR personas. Every register (Editorial / Dark / Friendly / Dashboard / Brutalist) renders this same data in its own visual register. Tweak here, all 5 pages update on next regen.",
+  "_note": "When generating a register, embed this JSON inline in the HTML so each page is self-contained. The .personas.js file in the project root is the runtime version for the live <personas-block> component.",
+  "section": {
+    "kicker": "Made for these people",
+    "title": "Who actually <em>uses</em> this.",
+    "lede": "The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first."
+  },
+  "personas": [
+    {
+      "name": "Indie musician",
+      "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.",
+      "icon": "♪",
+      "best_fit": true,
+      "tool": "versions/neon.html",
+      "byline": "A master in Belgrade, a release on Friday, a visualizer before midnight on Thursday."
+    },
+    {
+      "name": "Beatmaker",
+      "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.",
+      "icon": "▰",
+      "tool": "versions/grid.html",
+      "byline": "50 beats on BeatStars, 50 still waveforms, 50 missed opportunities. Until now."
+    },
+    {
+      "name": "DJ",
+      "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.",
+      "icon": "◐",
+      "tool": "versions/smoke.html",
+      "byline": "Saturday's set was fire. Sunday's Reel is silent. The gap is the visual."
+    },
+    {
+      "name": "Small label",
+      "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.",
+      "icon": "✦",
+      "tool": "versions/film.html",
+      "byline": "Five artists, one brand, one render preset reused across the catalog."
+    },
+    {
+      "name": "Belgrade / Serbian artist",
+      "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.",
+      "icon": "◎",
+      "best_fit": true,
+      "tool": "campaign.html",
+      "byline": "Same engine, half the price, twice the in-person trust."
+    },
+    {
+      "name": "Podcaster",
+      "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.",
+      "icon": "≋",
+      "tool": "versions/film.html",
+      "byline": "Two hours of interview, six pull-quote clips, zero video editor."
+    },
+    {
+      "name": "Sound designer",
+      "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.",
+      "icon": "⌗",
+      "tool": "versions/hallucination.html",
+      "byline": "The pack is the product. The cover is the engine's output."
+    },
+    {
+      "name": "Music manager / agency",
+      "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.",
+      "icon": "◇",
+      "tool": "profit-plan.html",
+      "byline": "Ten clients, one tool, ten mornings of social posts per month."
+    }
+  ]
+}
+  </script>
+
+  <!-- ========== RENDERER ========== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // Parse inline JSON
+      var dataNode = document.getElementById('personas-data');
+      if (!dataNode) return;
+      var data;
+      try {
+        data = JSON.parse(dataNode.textContent);
+      } catch (err) {
+        console.error('personas.json parse error', err);
+        return;
+      }
+      var personas = (data && data.personas) || [];
+
+      // Roman numerals for the byline numerals
+      function toRoman(num) {
+        var map = [
+          ['M', 1000], ['CM', 900], ['D', 500], ['CD', 400],
+          ['C', 100],  ['XC', 90],   ['L', 50],  ['XL', 40],
+          ['X', 10],   ['IX', 9],    ['V', 5],   ['IV', 4], ['I', 1]
+        ];
+        var out = '';
+        for (var i = 0; i < map.length; i++) {
+          while (num >= map[i][1]) { out += map[i][0]; num -= map[i][1]; }
+        }
+        return out;
+      }
+
+      // Build a feature card
+      function card(p, idx) {
+        var num = toRoman(idx + 1);
+        var tool = (p.tool || '').replace(/^versions\//, '').replace(/^campaign\.html$/, 'campaign');
+        var bestFit = p.best_fit
+          ? '<span class="feature__best">Best fit</span>'
+          : '';
+        return (
+          '<article class="feature">' +
+            '<p class="feature__num">' + num + '</p>' +
+            '<div class="feature__head">' +
+              '<span class="feature__icon" aria-hidden="true">' + (p.icon || '') + '</span>' +
+              '<h3 class="feature__name">' + p.name + '</h3>' +
+            '</div>' +
+            '<p class="feature__byline">' + (p.byline || '') + '</p>' +
+            '<p class="feature__body">' + p.body + '</p>' +
+            '<div class="feature__foot">' +
+              '<span class="feature__tool">Tool · <code>' + tool + '</code></span>' +
+              bestFit +
+            '</div>' +
+          '</article>'
+        );
+      }
+
+      // Render: 4 per spread, 2 spreads
+      var s1 = document.getElementById('spread-1');
+      var s2 = document.getElementById('spread-2');
+      if (!s1 || !s2) return;
+
+      var html1 = '';
+      var html2 = '';
+      personas.forEach(function (p, i) {
+        if (i < 4) html1 += card(p, i);
+        else       html2 += card(p, i);
+      });
+      s1.innerHTML = html1;
+      s2.innerHTML = html2;
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR Personas · v8 BROADCAST · TV network</title>
+  <meta name="description" content="The 8 personas rendered as a TV broadcast: lower-thirds, scan lines, timecode, network bug." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&family=Oswald:wght@500;600;700&display=swap" />
+  <style>
+    :root {
+      --bg: #000;
+      --panel: #0d0d0d;
+      --line: #1f1f1f;
+      --ink: #f0f0f0;
+      --muted: #888;
+      --red: #d61f1f;
+      --red-bright: #ff2828;
+      --amber: #ffb000;
+      --white: #ffffff;
+      --font-mono: 'Roboto Mono', ui-monospace, monospace;
+      --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+      --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+      font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+    body { position: relative; overflow-x: hidden; }
+    /* Scan lines + CRT curvature */
+    body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 100;
+      background: repeating-linear-gradient(0deg,
+        rgba(0, 0, 0, 0.18) 0, rgba(0, 0, 0, 0.18) 1px,
+        transparent 1px, transparent 3px); }
+    body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 99;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.6) 100%); }
+
+    .viewport { max-width: 1280px; margin: 0 auto; padding: 0 24px 96px; }
+
+    /* Top network bar */
+    .topbar { display: flex; align-items: center; gap: 18px; padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--muted); }
+    .topbar__live { display: inline-flex; align-items: center; gap: 6px;
+      color: var(--red-bright); }
+    .topbar__live::before { content: ''; width: 8px; height: 8px;
+      border-radius: 50%; background: var(--red-bright);
+      box-shadow: 0 0 8px var(--red-bright); animation: blink 1.4s infinite; }
+    @keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0.3; } }
+    .topbar__time { margin-left: auto; color: var(--ink); }
+    .topbar__ch { color: var(--amber); border: 1px solid var(--amber); padding: 2px 6px; }
+
+    /* Masthead / Ticker */
+    .masthead { padding: 32px 0 24px; border-bottom: 3px double var(--red);
+      position: relative; }
+    .masthead__kicker { font: 700 11px/1 var(--font-mono); letter-spacing: 0.4em;
+      text-transform: uppercase; color: var(--amber); margin-bottom: 12px; }
+    .masthead__title { font: 700 clamp(40px, 6vw, 80px)/0.95 var(--font-display);
+      text-transform: uppercase; margin: 0;
+      letter-spacing: -0.01em; }
+    .masthead__title em { font-style: normal; color: var(--red-bright);
+      text-shadow: 0 0 12px var(--red-bright); }
+    .masthead__sub { font: 400 15px/1.5 var(--font-sans); margin: 16px 0 0;
+      max-width: 70ch; color: var(--ink); }
+    .masthead__sub b { color: var(--amber); font-weight: 700; }
+
+    /* Ticker */
+    .ticker { background: var(--red); color: var(--white);
+      font: 700 13px/1.4 var(--font-mono); padding: 8px 16px;
+      margin: 24px 0 0; overflow: hidden; white-space: nowrap;
+      text-transform: uppercase; letter-spacing: 0.1em; }
+    .ticker__inner { display: inline-block; animation: ticker 35s linear infinite; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* Pull quote — broadcast bumper */
+    .bumper { position: relative; margin: 48px auto; padding: 24px;
+      background: var(--panel); border: 1px solid var(--line);
+      max-width: 920px; }
+    .bumper::before { content: 'BREAKING'; position: absolute; top: -10px; left: 16px;
+      background: var(--bg); padding: 0 8px;
+      font: 700 10px/1 var(--font-mono); letter-spacing: 0.3em;
+      color: var(--red-bright); }
+    .bumper__text { font: 600 22px/1.35 var(--font-sans); margin: 0;
+      color: var(--white); }
+    .bumper__text em { font-style: normal; color: var(--amber); }
+    .bumper__cite { font: 700 10px/1.4 var(--font-mono); letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--muted); margin-top: 12px; }
+
+    /* Persona cards — "lower-third" graphics */
+    .personas { display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 24px; margin-top: 48px; }
+    .persona { position: relative; background: var(--panel);
+      border: 1px solid var(--line); overflow: hidden;
+      min-height: 240px; }
+    .persona__head { position: absolute; left: 0; right: 0; top: 0;
+      padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+      background: var(--ink); color: var(--bg);
+      font: 700 11px/1 var(--font-mono); letter-spacing: 0.2em;
+      text-transform: uppercase; }
+    .persona__head .num { background: var(--red); color: var(--white);
+      padding: 2px 6px; font-weight: 700; }
+    .persona__body { padding: 56px 24px 24px; }
+    .persona__icon { font: 700 64px/1 var(--font-display); color: var(--amber);
+      margin: 0 0 12px; }
+    .persona__name { font: 700 26px/1.1 var(--font-display); text-transform: uppercase;
+      margin: 0 0 12px; color: var(--white); letter-spacing: 0.02em; }
+    .persona__name em { font-style: normal; color: var(--red-bright); }
+    .persona__desc { font: 400 14px/1.55 var(--font-sans); margin: 0 0 16px;
+      color: var(--ink); }
+    .persona__byline { position: relative; padding: 12px 16px 12px 32px;
+      margin: 0 -24px -24px;
+      background: linear-gradient(90deg, var(--red) 0 24px, transparent 24px),
+                  rgba(255,255,255,0.04);
+      color: var(--white);
+      font: 400 italic 13px/1.4 var(--font-sans); }
+    .persona__byline::before { content: '◆'; position: absolute; left: 8px; top: 12px;
+      color: var(--white); }
+    .persona__tool { position: absolute; right: 12px; top: 12px;
+      font: 700 9px/1 var(--font-mono); letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--amber);
+      padding: 4px 8px; border: 1px solid var(--amber); z-index: 2; }
+    .persona__badge { display: inline-block; margin-left: 6px;
+      background: var(--amber); color: var(--bg);
+      padding: 1px 5px; font: 700 9px/1.2 var(--font-mono);
+      letter-spacing: 0.2em; text-transform: uppercase; vertical-align: middle; }
+    .persona__time { position: absolute; left: 12px; top: 38px;
+      font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em;
+      color: var(--red-bright); }
+
+    /* Network bug — bottom-right corner */
+    .bug { position: fixed; bottom: 16px; right: 16px; z-index: 200;
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--red); color: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      font: 700 11px/1 var(--font-mono); letter-spacing: 0.1em;
+      box-shadow: 0 0 12px rgba(255, 40, 40, 0.6); }
+    .bug b { display: block; font: 700 18px/1 var(--font-display); }
+
+    /* Footer */
+    .colophon { margin-top: 64px; padding: 24px 0; border-top: 1px solid var(--line);
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;
+      font: 700 10px/1.4 var(--font-mono); letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--muted); position: relative; z-index: 1; }
+    .colophon b { color: var(--amber); }
+    .colophon a { color: var(--ink); text-decoration: none; }
+    .colophon a:hover { color: var(--red-bright); }
+
+    @media (max-width: 720px) {
+      .personas { grid-template-columns: 1fr; }
+      .colophon { grid-template-columns: 1fr; }
+      .topbar { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport">
+    <div class="topbar">
+      <span class="topbar__live">ON AIR</span>
+      <span>SWR · CH-7</span>
+      <span class="topbar__ch">HD</span>
+      <span class="topbar__time" id="time">00:00:00</span>
+    </div>
+
+    <header class="masthead">
+      <div class="masthead__kicker">▶ FEATURE REPORT</div>
+      <h1 class="masthead__title">Who actually <em>uses</em> this.</h1>
+      <p class="masthead__sub">The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. <b>Eight profiles. One tool. Zero excuses.</b></p>
+    </header>
+
+    <div class="ticker">
+      <div class="ticker__inner">
+        BREAKING · 8 PERSONAS · 1 ENGINE · 5 VERSIONS · 100% LOCAL · NO SUBSCRIPTION · OPEN RENDER QUEUE · BELGRADE ON DEMAND · NO TRACK LIMITS · BREAKING · 8 PERSONAS · 1 ENGINE · 5 VERSIONS · 100% LOCAL · NO SUBSCRIPTION · OPEN RENDER QUEUE · BELGRADE ON DEMAND · NO TRACK LIMITS ·
+      </div>
+    </div>
+
+    <section class="bumper">
+      <p class="bumper__text">"Same engine, two days, fifty music videos — the bottleneck was the editor, <em>not the code.</em>"</p>
+      <p class="bumper__cite">— REPORT FILED · A WORKING INDIE LABEL · ON ITS SWITCH</p>
+    </section>
+
+    <div class="personas" id="personas"></div>
+
+    <footer class="colophon">
+      <div>· v8 · BROADCAST · CH-7</div>
+      <div>FEED <b>HD-1080p · 60fps</b></div>
+      <div><a href="landing-personas-v1-editorial.html">← all 6 registers</a></div>
+    </footer>
+  </div>
+
+  <div class="bug"><span>SWR<br><b>07</b></span></div>
+
+  <script type="application/json" id="personas-data">
+  {
+    "_about": "8 character presets. Same data feeds v1–v6, plus v8 BROADCAST.",
+    "_note": "Self-contained — embed inline for each register.",
+    "personas": [
+      { "name": "Indie musician", "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.", "icon": "♪", "best_fit": true, "tool": "versions/neon.html", "byline": "A master in Belgrade, a release on Friday, a visualizer before midnight on Thursday." },
+      { "name": "Beatmaker", "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.", "icon": "▰", "tool": "versions/grid.html", "byline": "50 beats on BeatStars, 50 still waveforms, 50 missed opportunities. Until now." },
+      { "name": "DJ", "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.", "icon": "◐", "tool": "versions/smoke.html", "byline": "Saturday's set was fire. Sunday's Reel is silent. The gap is the visual." },
+      { "name": "Small label", "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.", "icon": "✦", "tool": "versions/film.html", "byline": "Five artists, one brand, one render preset reused across the catalog." },
+      { "name": "Belgrade / Serbian artist", "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.", "icon": "◎", "best_fit": true, "tool": "campaign.html", "byline": "Same engine, half the price, twice the in-person trust." },
+      { "name": "Podcaster", "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.", "icon": "≋", "tool": "versions/film.html", "byline": "Two hours of interview, six pull-quote clips, zero video editor." },
+      { "name": "Sound designer", "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.", "icon": "⌗", "tool": "versions/hallucination.html", "byline": "The pack is the product. The cover is the engine's output." },
+      { "name": "Music manager / agency", "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.", "icon": "◇", "tool": "profit-plan.html", "byline": "Ten clients, one tool, ten mornings of social posts per month." }
+    ]
+  }
+  </script>
+
+  <script>
+    (function () {
+      'use strict';
+      var dataNode = document.getElementById('personas-data');
+      if (!dataNode) return;
+      var data;
+      try { data = JSON.parse(dataNode.textContent); }
+      catch (err) { console.error('broadcast personas parse error', err); return; }
+      var personas = (data && data.personas) || [];
+      var numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      function tcode() {
+        var s = Math.floor(performance.now() / 1000);
+        return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+      }
+      setInterval(function () {
+        var el = document.getElementById('time');
+        if (el) el.textContent = tcode();
+      }, 500);
+      var html = '';
+      personas.forEach(function (p, i) {
+        var t = pad(i + 1) + ':' + pad((i * 7 + 13) % 60);
+        html += '<article class="persona">';
+        html += '<div class="persona__head"><span class="num">' + (numerals[i] || (i + 1)) + '</span> PROFILE ' + (i + 1) + ' / 8</div>';
+        if (p.tool) html += '<span class="persona__tool">' + p.tool + '</span>';
+        html += '<div class="persona__body">';
+        html += '<div class="persona__icon">' + (p.icon || '·') + '</div>';
+        html += '<h3 class="persona__name">' + p.name;
+        if (p.best_fit) html += '<span class="persona__badge">★ fit</span>';
+        html += '</h3>';
+        html += '<p class="persona__desc">' + p.body + '</p>';
+        html += '</div>';
+        if (p.byline) html += '<p class="persona__byline">' + p.byline + '</p>';
+        html += '<div class="persona__time">▶ TC ' + t + '</div>';
+        html += '</article>';
+      });
+      document.getElementById('personas').innerHTML = html;
+    })();
+  </script>
+</body>
+</html>
