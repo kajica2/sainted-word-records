@@ -274,7 +274,12 @@
       window.SWR.Audio.el = el;
       window.SWR.Audio.load = function(f) {
         try { el.pause(); } catch (e) {}
-        el.src = URL.createObjectURL(f);
+        // Free the previous Blob URL before allocating a new one.
+        if (el.__swr_blob_url) {
+          try { URL.revokeObjectURL(el.__swr_blob_url); } catch (_) {}
+        }
+        el.__swr_blob_url = URL.createObjectURL(f);
+        el.src = el.__swr_blob_url;
         // Recorder button becomes usable once a real audio element is loaded.
         var btn = document.getElementById('rec');
         if (btn) btn.disabled = false;
@@ -350,13 +355,16 @@
       _save() {
         const blob = new Blob(this.chunks, { type: this.mime });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        const recUrl = URL.createObjectURL(blob);
+        a.href = recUrl;
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
         a.download = 'kraft-' + ts + '.' + ext;
         document.body.appendChild(a);
         a.click();
         a.remove();
+        // Free the download URL once the click has been dispatched.
+        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
       },
     };
 

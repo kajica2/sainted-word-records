@@ -366,6 +366,9 @@
     const A = { ctx: null, an: null, src: null, el: null, gain: null,
       fft: null, time: null,
       feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
+      // Cached slider values — read once per slider input, not once
+      // per audio frame. Avoids forcing layout every audio sample.
+      params: { sens: 1.5, gate: 1.2, decay: 0.7 },
       hist: { prev:null, bassAvg:0, fluxAvg:0 }, beats: [], playing: false,
       unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
         this.an = this.ctx.createAnalyser(); this.an.fftSize = 2048; this.an.smoothingTimeConstant = 0.6;
@@ -377,8 +380,13 @@
       setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
         if (this.el) { this.el.pause(); this.el.src=''; }
+        // Free the previous Blob URL before allocating a new one.
+        if (this.el && this.el.__swr_blob_url) {
+          try { URL.revokeObjectURL(this.el.__swr_blob_url); } catch (_) {}
+        }
         this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
-        this.el.src = URL.createObjectURL(file); this.el.preload='auto';
+        this.el.__swr_blob_url = URL.createObjectURL(file);
+        this.el.src = this.el.__swr_blob_url; this.el.preload='auto';
         this.el.addEventListener('ended', ()=>{A.playing=false;$('play').textContent='▶';});
         this.el.addEventListener('timeupdate', ()=>{
           const t=this.el.currentTime,d=this.el.duration||0;
@@ -408,14 +416,14 @@
         let flux=0; if (this.hist.prev) for (let i=1;i<N;i++){const d=this.fft[i]-this.hist.prev[i]; if (d>0) flux+=d;}
         flux /= 255*N;
         this.hist.fluxAvg = lerp(this.hist.fluxAvg, flux, 0.08);
-        const onsetHit = flux > this.hist.fluxAvg * parseFloat($('gate').value) && flux > 0.02;
+        const onsetHit = flux > this.hist.fluxAvg * this.params.gate && flux > 0.02;
         this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.06);
-        const beatHit = this.feat.bass > this.hist.bassAvg * parseFloat($('gate').value) && this.feat.bass > 0.18;
+        const beatHit = this.feat.bass > this.hist.bassAvg * this.params.gate && this.feat.bass > 0.18;
         const now = this.ctx.currentTime;
         if (beatHit) { this.beats.push(now); while (this.beats.length&&this.beats[0]<now-8) this.beats.shift();
           if (this.beats.length>=4) { let t=0; for (let i=1;i<this.beats.length;i++) t+=this.beats[i]-this.beats[i-1];
             const a=t/(this.beats.length-1); if (a>0) this.feat.bpm=Math.round(60/a); } }
-        const dec = parseFloat($('decay').value);
+        const dec = this.params.decay;
         this.feat.beat = beatHit ? 1 : this.feat.beat*dec;
         this.feat.onset = onsetHit ? 1 : this.feat.onset*dec;
         this.feat.beatPulse = beatHit; this.feat.onsetPulse = onsetHit;
@@ -521,7 +529,7 @@
       },
       remap() {
         if (!Lib.items.length) return;
-        const f = A.feat; const sens = parseFloat($('sens').value);
+        const f = A.feat; const sens = A.params.sens;
         const roles = [
           { want:'motion', weight: 0.6 + f.bass * sens },
           { want:'mid',    weight: 0.4 + f.mid * sens },
@@ -594,7 +602,7 @@
       return t;
     }
     function applyR(l) {
-      const a = l.asset, sens = parseFloat($('sens').value);
+      const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
@@ -699,7 +707,7 @@
         function drawMeter() {
       const m = meter; const w = m.canvas.width, h = m.canvas.height;
       m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
-      const sens = parseFloat($('sens').value);
+      const sens = A.params.sens;
       const vals = [A.feat.bass*sens, A.feat.mid*sens, A.feat.treble*sens, A.feat.air*sens, A.feat.rms*sens];
       const bw = w / vals.length;
       for (let i=0;i<vals.length;i++) {
@@ -736,7 +744,13 @@
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
     for (const id of ['sens','gate','decay']) {
       const inp = $(id); const out = $(id+'-v');
-      inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2));
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (out) out.textContent = v.toFixed(2);
+        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
+          A.params[id] = v;
+        }
+      });
     }
     window.addEventListener('dragover', e => { e.preventDefault(); });
     window.addEventListener('drop', async e => {
@@ -845,13 +859,16 @@
       _save() {
         const blob = new Blob(this.chunks, { type: this.mime });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        const recUrl = URL.createObjectURL(blob);
+        a.href = recUrl;
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
         a.download = 'sainted-word-' + ts + '.' + ext;
         document.body.appendChild(a);
         a.click();
         a.remove();
+        // Free the download URL once the click has been dispatched.
+        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
         setStatus('exported · ' + ext.toUpperCase(), 'ok');
       },
     };

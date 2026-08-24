@@ -204,9 +204,16 @@
     window.SWR.Audio.playing = false;
     window.SWR.Audio._el = null;
     window.SWR.Audio.load = function(file) {
-      if (window.SWR.Audio._el) { try { window.SWR.Audio._el.pause(); } catch(e){} }
+      if (window.SWR.Audio._el) {
+        try { window.SWR.Audio._el.pause(); } catch(e){}
+        // Free the previous Blob URL before allocating a new one.
+        if (window.SWR.Audio._el.__swr_blob_url) {
+          try { URL.revokeObjectURL(window.SWR.Audio._el.__swr_blob_url); } catch (_) {}
+        }
+      }
       var url = URL.createObjectURL(file);
       window.SWR.Audio._el = new Audio();
+      window.SWR.Audio._el.__swr_blob_url = url;
       window.SWR.Audio._el.src = url;
       window.SWR.Audio._el.preload = 'auto';
     };

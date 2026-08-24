@@ -313,13 +313,16 @@
       _save() {
         const blob = new Blob(this.chunks, { type: this.mime });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        const recUrl = URL.createObjectURL(blob);
+        a.href = recUrl;
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
         a.download = 'typography-' + ts + '.' + ext;
         document.body.appendChild(a);
         a.click();
         a.remove();
+        // Free the download URL once the click has been dispatched.
+        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
       },
     };
 
@@ -332,9 +335,14 @@
     if (!window.SWR.Audio.load) {
       window.SWR.Audio.load = function (f) {
         if (this.el) { try { this.el.pause(); this.el.src = ''; } catch (e) {} }
+        // Free the previous Blob URL before allocating a new one.
+        if (this.el && this.el.__swr_blob_url) {
+          try { URL.revokeObjectURL(this.el.__swr_blob_url); } catch (_) {}
+        }
         this.el = document.createElement('audio');
         this.el.crossOrigin = 'anonymous';
-        this.el.src = URL.createObjectURL(f);
+        this.el.__swr_blob_url = URL.createObjectURL(f);
+        this.el.src = this.el.__swr_blob_url;
         this.el.preload = 'auto';
         var btn = document.getElementById('rec');
         if (btn) btn.disabled = false;
