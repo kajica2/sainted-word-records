@@ -851,6 +851,8 @@
 <script src="../versions-presets.js"></script>
 <script src="./temp-slider.js"></script>
 <script src="../engine-genops.client.js"></script>
+<script src="./last-song.js"></script>
+
   <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
     <div class="box">
       <div class="arrow">▶</div>
@@ -868,15 +870,22 @@
       if (fired) return;
       fired = true;
       try {
-        var r = await fetch(DEFAULT_SONG, { cache: 'force-cache' });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        var blob = await r.blob();
-        var name = DEFAULT_SONG.split('/').pop();
-        var file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+        // Prefer the user's last-loaded song (from engine.html IDB),
+        // fall back to the per-page hardcoded DEFAULT_SONG.
+        var picked = window.SWR_PICK_DEFAULT_SONG
+          ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
+          : null;
+        if (!picked) throw new Error('no song source available');
+        var blob = picked.blob;
+        var name = picked.name;
+        var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
         if (window.SWR && window.SWR.Audio) {
           window.SWR.Audio.load(file);
           window.SWR.Audio.play();
-          if (sub) sub.textContent = 'playing · ' + name;
+          if (sub) {
+            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
+            sub.textContent = tag + name;
+          }
         }
       } catch (e) {
         if (sub) sub.textContent = 'tap "load song" to start';

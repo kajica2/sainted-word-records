@@ -319,6 +319,8 @@
       <span id="fps" style="color:var(--rim);">— fps</span>
     </footer>
   </div>
+
+  <script src="./last-song.js"></script>
   <script>
   (() => {
     const $ = (id) => document.getElementById(id);
@@ -743,12 +745,16 @@
         }
       } catch (e) {}
       // === Auto-load default audio ===
+      // Prefer the user's last-loaded song (from engine.html IDB);
+      // fall back to the per-page bundled audios/<engine>.mp3.
       try {
-        const ar = await fetch('../audios/eclipse.mp3', { cache: 'no-cache' });
-        if (ar.ok) {
-          const ab = await ar.blob();
-          const af = new File([ab], 'eclipse.mp3', { type: ab.type || 'audio/mpeg' });
-          if (A && typeof A.load === 'function') A.load(af);
+        var picked = window.SWR_PICK_DEFAULT_SONG
+          ? await window.SWR_PICK_DEFAULT_SONG('../audios/eclipse.mp3')
+          : null;
+        if (picked && picked.blob && A && typeof A.load === 'function') {
+          var ab2 = await picked.blob.arrayBuffer();
+          var af2 = new File([ab2], picked.name, { type: picked.blob.type || picked.type || 'audio/mpeg' });
+          A.load(af2);
         }
       } catch (e) {}
       setStatus('READY', 'ok');
