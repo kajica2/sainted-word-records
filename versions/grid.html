@@ -314,6 +314,7 @@
   </div>
 
   <script src="./last-song.js"></script>
+  <script src="../lib/persist.client.js"></script>
   <script>
   (() => {
     const $ = id => document.getElementById(id);
@@ -851,6 +852,8 @@
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
   })();
   </script>
+
+<script src="../lib/persist-wire.client.js"></script>
 <script src="../versions-presets.js"></script>
 <script src="./temp-slider.js"></script>
 <script src="../engine-genops.client.js"></script></body>
