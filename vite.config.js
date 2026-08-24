@@ -58,6 +58,7 @@ function copyStatic() {
     'engine-genops.client.js',
     'engine-render.client.js',
     'engine-timing.client.js',
+    'engine-timing-panel.client.js',
     'layer-scheduler.client.js',
     'layer-scheduler.worker.js',
     'engine-genops.css',
