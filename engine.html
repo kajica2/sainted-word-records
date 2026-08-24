@@ -297,6 +297,89 @@
       color: var(--dim);
       font-family: var(--font-mono);
     }
+
+    /* ---- User Media library (SWR_MEDIA / IndexedDB) ----
+       A separate, CRUD-able media store that lives across page
+       reloads. Curated assets above; this is the user's own,
+       persistent library. Compatible CSS so existing tbtn
+       styles apply; everything scoped under .swr-user-media. */
+    .swr-user-media {
+      border-top: 1px solid var(--line);
+      margin-top: 8px;
+      padding: 8px 10px 12px;
+    }
+    .swr-user-media-head {
+      display: flex; align-items: center; gap: 6px;
+      padding-bottom: 6px;
+    }
+    .swr-user-media-title {
+      font-size: 10px; letter-spacing: 0.14em; color: var(--ink);
+      text-transform: uppercase;
+      flex: 1;
+    }
+    .swr-user-media-input { display: none; }
+    .swr-user-media-add,
+    .swr-user-media-clear {
+      padding: 4px 8px; font-size: 9px;
+      cursor: pointer;
+    }
+    .swr-user-media-clear { color: #f55; }
+    .swr-user-media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 4px;
+      min-height: 60px;
+    }
+    .swr-media-card {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border-radius: 3px;
+      overflow: hidden;
+      background: var(--bg-2, #111);
+      border: 1px solid var(--line);
+    }
+    .swr-media-card img,
+    .swr-media-card video {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .swr-media-meta {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      color: var(--ink, #fff);
+      padding: 14px 4px 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    .swr-media-del {
+      position: absolute;
+      top: 2px; right: 2px;
+      width: 18px; height: 18px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 14px;
+      padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 80ms ease;
+    }
+    .swr-media-card:hover .swr-media-del { opacity: 1; }
+    .swr-media-empty {
+      grid-column: 1 / -1;
+      padding: 18px 6px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--dim);
+    }
     .songs-list {
       display: flex; flex-direction: column; gap: 4px;
       padding: 8px 10px; border-bottom: 1px solid var(--line);
@@ -916,8 +999,92 @@
             Drop videos, GIFs, or images<br/>anywhere on the page
           </div>
         </div>
+        <div id="swr-user-media" class="swr-user-media">
+          <div class="swr-user-media-head">
+            <span class="swr-user-media-title">My Media</span>
+            <input type="file" id="swr-user-media-input" multiple
+                   accept="image/*,video/*"
+                   class="swr-user-media-input"
+                   title="Add images or videos to your library" />
+            <label for="swr-user-media-input" class="tbtn ghost swr-user-media-add">+ Add</label>
+            <button type="button" id="swr-user-media-clear"
+                    class="tbtn ghost swr-user-media-clear"
+                    title="Remove all media from your library">Clear</button>
+          </div>
+          <div id="swr-user-media-grid" class="swr-user-media-grid"></div>
+        </div>
       </div>
     </aside>
+
+    <script>
+      // ---- SWR_MEDIA wire-up (engine.html) ----
+      // Renders the user's IndexedDB-backed media library into
+      // #swr-user-media-grid. + Add opens a file picker that calls
+      // SWR_MEDIA.addMedia(); per-card × calls SWR_MEDIA.deleteMedia();
+      // Clear calls SWR_MEDIA.deleteAll().
+      //
+      // Lives in an inline non-module <script> so it can sit beside the
+      // DOM it mounts against, after media-store.client.js (module) has
+      // registered window.SWR_MEDIA. type=module scripts load deferred,
+      // so by DOMContentLoaded the API is available.
+      (function () {
+        var grid  = document.getElementById('swr-user-media-grid');
+        var input = document.getElementById('swr-user-media-input');
+        var clear = document.getElementById('swr-user-media-clear');
+        if (!grid) return;
+
+        function refresh() {
+          if (!window.SWR_MEDIA) return;
+          window.SWR_MEDIA.getUserMedia().then(function (items) {
+            controller = window.SWR_MEDIA.render(grid, items, {
+              emptyText: 'No media yet. Click + Add to upload images or videos.'
+            });
+          });
+        }
+
+        var controller = null;
+
+        if (input) {
+          input.addEventListener('change', function (ev) {
+            var files = ev.target.files;
+            if (!files || !files.length) return;
+            if (!window.SWR_MEDIA) {
+              console.warn('[user-media] SWR_MEDIA not loaded yet');
+              return;
+            }
+            window.SWR_MEDIA.addMedia(files).then(function (inserted) {
+              input.value = ''; // allow re-picking the same file
+              console.log('[user-media] added', inserted.length, 'files');
+              refresh();
+            }, function (err) {
+              console.warn('[user-media] addMedia failed', err);
+              if (typeof window.setStatus === 'function') {
+                window.setStatus('storage error: ' + (err && err.name || 'unknown'), 'err');
+              }
+            });
+          });
+        }
+
+        if (clear) {
+          clear.addEventListener('click', function () {
+            if (!window.SWR_MEDIA) return;
+            if (!confirm('Remove ALL media from your library? This cannot be undone.')) return;
+            window.SWR_MEDIA.deleteAll().then(function () {
+              refresh();
+            }, function (err) {
+              console.warn('[user-media] deleteAll failed', err);
+            });
+          });
+        }
+
+        // Initial render — wait for SWR_MEDIA to be present (module load).
+        function boot() {
+          if (window.SWR_MEDIA) { refresh(); return; }
+          setTimeout(boot, 30);
+        }
+        boot();
+      })();
+    </script>
 
     <section id="stage">
       <canvas id="render" width="1280" height="720"></canvas>
@@ -3812,6 +3979,7 @@
   <script type="module" src="/trim.client.js"></script>
   <script type="module" src="/persona-preview.client.js"></script>
   <script type="module" src="/media-sets.client.js"></script>
+<script type="module" src="/lib/media-store.client.js"></script>
   <script type="module" src="/share.client.js"></script>
   <script type="module" src="/pwa-bootstrap.js"></script>
   <script type="module" src="/pt.client.js"></script>

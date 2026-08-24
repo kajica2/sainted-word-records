@@ -332,6 +332,37 @@
     #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: #fff; }
     #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff66; margin-top: 8px; }
     #swr-start.hide { opacity: 0; pointer-events: none; }
+
+    /* SWR_MEDIA — user media library cards (consistent with engine.html) */
+    .swr-media-card {
+      position: relative; aspect-ratio: 1/1; overflow: hidden;
+      border: 1px solid var(--line); border-radius: 2px;
+      background: var(--bg-2, #111);
+    }
+    .swr-media-card img, .swr-media-card video {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .swr-media-meta {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      font-size: 8px; padding: 8px 3px 2px;
+      background: linear-gradient(transparent, rgba(0,0,0,.85));
+      color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    .swr-media-del {
+      position: absolute; top: 2px; right: 2px;
+      width: 16px; height: 16px; padding: 0; line-height: 14px;
+      background: rgba(0,0,0,.6); color: #fff;
+      border: 1px solid rgba(255,255,255,.3); border-radius: 50%;
+      cursor: pointer; font-size: 12px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 80ms ease;
+    }
+    .swr-media-card:hover .swr-media-del { opacity: 1; }
+    .swr-media-empty {
+      grid-column: 1 / -1; padding: 14px 4px;
+      text-align: center; font-size: 9px; color: var(--muted);
+    }
   </style>
   <script src="../engine-render.client.js"></script>
 <script src="../engine-timing.client.js"></script>
@@ -393,7 +424,17 @@
     <aside class="lib">
       <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
-      <div class="body"><div id="lib"></div></div>
+      <div class="body"><div id="lib"></div>
+        <div id="swr-user-media" class="swr-user-media">
+          <div class="head" style="padding:6px 8px 4px;">
+            <h2 style="font-size:10px;letter-spacing:.14em;">My Media</h2>
+            <label for="swr-user-media-input" class="tbtn" style="padding:3px 6px;font-size:9px;cursor:pointer;">+ Add</label>
+            <button type="button" id="swr-user-media-clear" class="tbtn" style="padding:3px 6px;font-size:9px;color:#f55;cursor:pointer;">Clear</button>
+          </div>
+          <input type="file" id="swr-user-media-input" multiple accept="image/*,video/*" style="display:none" />
+          <div id="swr-user-media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:3px;padding:6px 8px;"></div>
+        </div>
+      </div>
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
@@ -945,6 +986,7 @@
 <script src="./temp-slider.js"></script>
 <script src="../engine-genops.client.js"></script>
 <script src="./last-song.js"></script>
+<script src="../lib/media-store.client.js"></script>
 <script>
   // ---- Preset bank wiring (Shift+1..9) ----
   // Runs after versions-presets.js loaded. Click handlers on each
@@ -985,6 +1027,57 @@
       }
       try { window.dispatchEvent(new CustomEvent('swr:temp-changed')); } catch (_) {}
     });
+  })();
+</script>
+
+<script>
+  // ---- SWR_MEDIA wire-up (versions/pulse.html) ----
+  // Compact version of the engine.html mount: + Add opens picker,
+  // per-card × calls deleteMedia, Clear calls deleteAll. Same
+  // IndexedDB store as engine.html (DB = `swr-media`, store = `media`)
+  // so media uploaded on one page shows up on the other.
+  (function () {
+    var grid  = document.getElementById('swr-user-media-grid');
+    var input = document.getElementById('swr-user-media-input');
+    var clear = document.getElementById('swr-user-media-clear');
+    if (!grid) return;
+
+    function refresh() {
+      if (!window.SWR_MEDIA) return;
+      window.SWR_MEDIA.getUserMedia().then(function (items) {
+        window.SWR_MEDIA.render(grid, items, {
+          emptyText: 'No uploads yet.'
+        });
+      });
+    }
+
+    if (input) {
+      input.addEventListener('change', function (ev) {
+        var files = ev.target.files;
+        if (!files || !files.length) return;
+        if (!window.SWR_MEDIA) return;
+        window.SWR_MEDIA.addMedia(files).then(function () {
+          input.value = '';
+          refresh();
+        }, function (err) {
+          console.warn('[user-media] addMedia failed', err);
+        });
+      });
+    }
+
+    if (clear) {
+      clear.addEventListener('click', function () {
+        if (!window.SWR_MEDIA) return;
+        if (!confirm('Remove ALL media from your library?')) return;
+        window.SWR_MEDIA.deleteAll().then(function () { refresh(); });
+      });
+    }
+
+    function boot() {
+      if (window.SWR_MEDIA) { refresh(); return; }
+      setTimeout(boot, 30);
+    }
+    boot();
   })();
 </script>
 
