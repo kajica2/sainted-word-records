@@ -833,6 +833,106 @@
       // a short delay, then give up.
       window.setTimeout(function () { bindHelpButton(); }, 250);
     }
+
+    // Master rotation toggle: a sibling icon button placed directly
+    // before the "?" help button. When the page has a swr-keys-help-btn,
+    // we insert <button id="swr-rot-master">↻</button> immediately before
+    // it. Click: flips window.SWR_ROT_MASTER.enabled, walks every existing
+    // layer in window.Layers, sets rotationEnabled on each, and re-renders
+    // the layer panel so the per-layer toggles + [rot off] tags update.
+    // Pages without the "?" button get no button (no-op).
+    var ROT_MASTER_KEY = 'swr.rotMaster.enabled';
+    function loadMasterEnabled() {
+      try {
+        var v = localStorage.getItem(ROT_MASTER_KEY);
+        return v === null ? true : v === '1';
+      } catch (_) { return true; }
+    }
+    function saveMasterEnabled(v) {
+      try { localStorage.setItem(ROT_MASTER_KEY, v ? '1' : '0'); } catch (_) {}
+    }
+    window.SWR_ROT_MASTER = { enabled: loadMasterEnabled() };
+    function applyMasterToLayers() {
+      var L = window.Layers;
+      if (!L || !Array.isArray(L.list) || !L.list.length) return 0;
+      var count = 0;
+      for (var i = 0; i < L.list.length; i++) {
+        var lay = L.list[i];
+        if (!lay) continue;
+        lay.rotationEnabled = window.SWR_ROT_MASTER.enabled;
+        count += 1;
+      }
+      if (typeof L.render === 'function') L.render();
+      return count;
+    }
+    function paintMasterButton(btn) {
+      if (!btn) return;
+      if (window.SWR_ROT_MASTER.enabled) {
+        btn.textContent = '↻';
+        btn.style.opacity = '1';
+        btn.title = 'Master rotation: ON (click to disable rotation on ALL layers)';
+        btn.dataset.on = '1';
+      } else {
+        btn.textContent = '↻';
+        btn.style.opacity = '0.45';
+        btn.title = 'Master rotation: OFF (click to re-enable rotation on ALL layers)';
+        btn.dataset.on = '0';
+      }
+    }
+    function bindRotMasterButton() {
+      var helpBtn = document.getElementById('swr-keys-help-btn');
+      if (!helpBtn) return false;
+      // If already injected (e.g. page mounted twice), reuse it.
+      var btn = document.getElementById('swr-rot-master');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'swr-rot-master';
+        btn.className = helpBtn.className || 'tbtn';
+        // Match the "??" button's box; the icon is single-glyph.
+        btn.style.cssText = (helpBtn.getAttribute('style') || '') + 'font-weight:700;';
+        btn.textContent = '↻';
+        helpBtn.parentNode.insertBefore(btn, helpBtn);
+      }
+      paintMasterButton(btn);
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.SWR_ROT_MASTER.enabled = !window.SWR_ROT_MASTER.enabled;
+        saveMasterEnabled(window.SWR_ROT_MASTER.enabled);
+        applyMasterToLayers();
+        paintMasterButton(btn);
+        // Re-paint in case any panel observer is listening
+        try { document.dispatchEvent(new CustomEvent('swr-rot-master-change', { detail: { enabled: window.SWR_ROT_MASTER.enabled } })); } catch (_) {}
+      });
+      return true;
+    }
+    if (!bindRotMasterButton()) {
+      window.setTimeout(function () { bindRotMasterButton(); }, 250);
+    }
+
+    // Wrap window.Layers.add so every newly created layer inherits the
+    // current master value. Patches the prototype-style: the function is
+    // replaced with a wrapper that calls the original then forces the
+    // field. Idempotent — only wraps once.
+    (function wrapLayersAdd() {
+      var L = window.Layers;
+      if (!L || typeof L.add !== 'function' || L.add.__swrRotMasterWrapped) return;
+      var orig = L.add.bind(L);
+      var wrapped = function (asset) {
+        var ret = orig(asset);
+        try {
+          var last = L.list && L.list[L.list.length - 1];
+          if (last) last.rotationEnabled = window.SWR_ROT_MASTER.enabled;
+          if (typeof L.render === 'function') L.render();
+        } catch (_) {}
+        return ret;
+      };
+      wrapped.__swrRotMasterWrapped = true;
+      L.add = wrapped;
+    })();
+
+    // Apply master state to whatever layers already exist on first load.
+    applyMasterToLayers();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', install);
