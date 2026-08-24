@@ -247,6 +247,7 @@
     .swr-watermark img { width: 100%; height: auto; display: block; filter: drop-shadow(0 0 2px rgba(0,0,0,0.6)); }
   </style>
   <script src="../engine-render.client.js"></script>
+<script src="../engine-timing.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="eclipse">
@@ -561,6 +562,8 @@
       // Fold accumulated rot into (-90, +90] so the composition never visibly flips 180°. asin(sin(x)) preserves oscillation across 0 while collapsing wide swings back to the visible range. Without this, `out.rot += v*N` accumulates to extreme values and renders layers at 180° rotation once audio has played for a few seconds.
       if (out.rot) out.rot = Math.asin(Math.sin(out.rot * Math.PI / 180)) * 180 / Math.PI;
       out._v = "0";
+      out._v = "0";
+      out._v = "0";
       return out;
     }
     function drawLayer(l, idx) {
@@ -597,8 +600,8 @@
     function draw() {
       A.sample();
       // pure-black base — anything beneath the shadow is invisible
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      for (let i=0;i<Layers.list.length;i++) drawLayer(Layers.list[i], i);
+      SWR_RENDER.setBackground('#000');
+      SWR_RENDER.frame(stage, ctx, Layers.list, applyR, (l, r, c) => drawLayer(l, r, c, W, H));
 
       // === ECLIPSE corona overlay (driven by audio, replaces NEON's flash) ===
       // corona radius breathes with bass; corona hue rotates with mids

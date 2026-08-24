@@ -28,6 +28,7 @@ const ENGINES = [
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const RENDER_TAG = '<script src="../engine-render.client.js"></script>';
+const TIMING_TAG = '<script src="../engine-timing.client.js"></script>';
 
 const FIT_REPLACEMENT = `    function fit() {
       const m = SWR_RENDER.fit(stage);
@@ -49,6 +50,9 @@ for (const name of ENGINES) {
   // so the module MUST load before that inline script runs. Putting the
   // script tag in <head> achieves that; placing it at the end of <body>
   // would mean the page's IIFE runs first and SWR_RENDER is undefined.
+  // engine-timing.client.js is also injected here: SWR_RENDER.frame() calls
+  // into SWR_TIMING.step() every frame, so timing must load before the
+  // page's IIFE too.
   if (!src.includes('engine-render.client.js')) {
     const headTag = '</head>';
     if (!src.includes(headTag)) {
@@ -59,10 +63,15 @@ for (const name of ENGINES) {
     // gets a chance to load in parallel with the genops script.
     const genopsLink = '<link rel="stylesheet" href="../engine-genops.css" />';
     if (src.includes(genopsLink)) {
-      src = src.replace(genopsLink, RENDER_TAG + '\n' + genopsLink);
+      src = src.replace(genopsLink, RENDER_TAG + '\n' + TIMING_TAG + '\n' + genopsLink);
     } else {
-      src = src.replace(headTag, RENDER_TAG + headTag);
+      src = src.replace(headTag, RENDER_TAG + '\n' + TIMING_TAG + headTag);
     }
+  }
+  // Idempotent timing tag: a previous pass may have inserted it via a manual
+  // edit. Only add the line if both render and timing are not yet there.
+  if (src.includes('engine-render.client.js') && !src.includes('engine-timing.client.js')) {
+    src = src.replace(RENDER_TAG, RENDER_TAG + '\n' + TIMING_TAG);
   }
 
   // ---- 2. rewrite fit() ------------------------------------------------

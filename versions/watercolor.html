@@ -254,6 +254,7 @@
     #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
   <script src="../engine-render.client.js"></script>
+<script src="../engine-timing.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="watercolor">
@@ -581,6 +582,8 @@
       // Fold accumulated rot into (-90, +90] so the composition never visibly flips 180°. asin(sin(x)) preserves oscillation across 0 while collapsing wide swings back to the visible range. Without this, `out.rot += v*N` accumulates to extreme values and renders layers at 180° rotation once audio has played for a few seconds.
       if (out.rot) out.rot = Math.asin(Math.sin(out.rot * Math.PI / 180)) * 180 / Math.PI;
       out._v = "0";
+      out._v = "0";
+      out._v = "0";
       return out;
     }
     function drawLayer(l) {
@@ -681,11 +684,10 @@
       const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      const sorted = Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0));
-      for (const l of sorted) drawLayer(l);
-      drawFx();
-      drawMeter();
+      SWR_RENDER.setBackground('#000');
+      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
+      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
       $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
       requestAnimationFrame(loop);
     }

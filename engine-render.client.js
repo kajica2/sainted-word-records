@@ -11,6 +11,12 @@
 // from the layer's applyR() result and asset id; when either changes, the
 // next frame redraws. The "active" set (top N by audio energy) is never
 // cached, so per-frame motion never serves a stale blit.
+//
+// Fade stepper hook: SWR_RENDER.frame() calls SWR_TIMING.step(dt, l, r)
+// once per layer per frame before the offscreen draw, replacing r.opacity
+// with the eased currentOpacity. The cache key includes the stepped value
+// so a fade-in/out does NOT cache a frozen frame. engine-timing.client.js
+// is opt-in — if absent, r is passed through unchanged.
 
 (function () {
   'use strict';
@@ -153,10 +159,53 @@
 
     const backingW = stage.width, backingH = stage.height;
     const audioHash = audioFingerprint();
+    const T = window.SWR_TIMING;
+    // dt for the fade stepper: clamped to 0.5s so a backgrounded tab or a
+    // very slow headless render doesn't fully skip the fade step but still
+    // can't teleport opacity in a single frame. Empirically, Puppeteer
+    // headless RAF can run at ~10-15fps when the page is off-screen; with
+    // fadeOutMs=600 a 0.1s cap would silently drop half the elapsed time.
+    const now = performance.now();
+    let dt = (now - (state._lastFrameAt || now)) / 1000;
+    if (!isFinite(dt) || dt < 0) dt = 1/60;
+    if (dt > 0.5) dt = 0.5;
+    state._lastFrameAt = now;
+    // One-time attach for any layers that haven't been initialised. Cheap;
+    // attach() is idempotent and only writes when fields are missing.
+    if (T && typeof T.attach === 'function') {
+      T.attach(layers);
+    }
 
     for (let i = 0; i < layers.length; i++) {
       const l = layers[i];
-      const r = applyR(l);
+      let r = applyR(l);
+      // Fade stepper: if a crossfade is in flight and currentOpacity has
+      // crossed below the midpoint threshold, swap the asset under the
+      // curtain. The fade continues drawing the new asset at rising
+      // currentOpacity. See engine-timing.client.js crossfade().
+      if (T && l && l._swapPending && l._currentOpacity < (l.opacity || 1) * 0.5) {
+        const pending = l._swapPending;
+        l.asset = pending.newAsset;
+        l._currentOpacity = l._targetOpacity != null ? l._targetOpacity : 0;
+        // Inherit the outgoing layer's visual signature (A2 morph).
+        if (l._morphFrom) {
+          l.baseScale   = l._morphFrom.baseScale;
+          l.hue         = l._morphFrom.hue;
+          l.brightness  = l._morphFrom.brightness;
+          l.contrast    = l._morphFrom.contrast;
+          l._morphFrom  = null;
+        }
+        l._targetOpacity = l.opacity != null ? l.opacity : 1;
+        if (pending.fadeInMs) l.fadeInMs = pending.fadeInMs;
+        l._swapPending = null;
+        // Force a redraw by clearing this layer's cache.
+        invalidate(l.id);
+      }
+      // Step fades. step() returns a new r with opacity replaced by the
+      // eased currentOpacity (clamped to [0,1]).
+      if (T && typeof T.step === 'function') {
+        r = T.step(dt, l, r);
+      }
       const assetId = l.asset ? l.asset.id : 'none';
       const version = hashVersion(buildVersion(r, assetId, audioHash));
       const force = state.activeSet.has(l.id) || state.dirty;
@@ -171,7 +220,18 @@
         const oc = makeOffscreen(backingW, backingH);
         const octx = oc.getContext('2d');
         octx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-        drawToCtx(l, r, octx, state.cssW, state.cssH);
+        try {
+          drawToCtx(l, r, octx, state.cssW, state.cssH);
+        } catch (err) {
+          // A single broken layer (missing image, CORS, decoder error) must
+          // not abort the whole frame — the rest of the composition still
+          // draws. Cache the empty offscreen so we don't retry every frame;
+          // the next version bump (asset swap, reactor change) clears it.
+          if (!state._warnedAssets) {
+            state._warnedAssets = true;
+            try { console.warn('[SWR_RENDER] layer draw failed:', err && err.message); } catch (_) {}
+          }
+        }
         setCached(l.id, version, oc);
         ctx.drawImage(oc, 0, 0, state.cssW, state.cssH);
       }
