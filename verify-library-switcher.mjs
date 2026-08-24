@@ -96,7 +96,7 @@ try {
     }));
     ok(api.hasIt, 'SWR_LIBRARY_SWITCHER missing');
     ok(api.hasList && api.hasPick && api.hasRender, 'missing methods');
-    ok(Array.isArray(api.sources) && api.sources.length === 4, 'expected 4 sources');
+    ok(Array.isArray(api.sources) && api.sources.length === 5, 'expected 5 sources');
     ok(api.sources.includes('library') && api.sources.includes('uploads') &&
        api.sources.includes('playlist') && api.sources.includes('audio-bus'),
        'sources should include library/uploads/playlist/audio-bus');
@@ -191,7 +191,7 @@ try {
       host.remove();
       return result;
     });
-    ok(v.tabCount === 4, `expected 4 tabs, got ${v.tabCount}`);
+    ok(v.tabCount === 5, `expected 5 tabs, got ${v.tabCount}`);
     ok(v.hasPanel, 'panel not mounted');
     ok(v.activeTab === 'audio-bus', `expected audio-bus active, got ${v.activeTab}`);
   });

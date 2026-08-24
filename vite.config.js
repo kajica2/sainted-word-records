@@ -172,6 +172,7 @@ function copyStatic() {
 
   const dirs = [
     { src: 'versions', dst: 'versions' },
+    { src: 'data', dst: 'data' },
     // The layer scheduler worker is fetched from /versions/<file>
     // (not /<file>) because the engine's worker init resolves the URL
     // relative to the engine page's directory. Ship a copy in both

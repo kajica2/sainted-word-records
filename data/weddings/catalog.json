@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "categories": [
+    { "key": "ceremony",      "label": "CEREMONY" },
+    { "key": "reception",     "label": "RECEPTION" },
+    { "key": "first-dance",   "label": "FIRST DANCE" },
+    { "key": "cocktail-hour", "label": "COCKTAIL HOUR" },
+    { "key": "last-dance",    "label": "LAST DANCE" }
+  ],
+  "songs": [
+    { "id": "w-ceremony-01", "title": "Aria (Placeholder)",   "artist": "SWR Picks", "durationSec": 32, "category": "ceremony"      },
+    { "id": "w-ceremony-02", "title": "Candelight (Placeholder)", "artist": "SWR Picks", "durationSec": 28, "category": "ceremony" },
+    { "id": "w-ceremony-03", "title": "Vow (Placeholder)",   "artist": "SWR Picks", "durationSec": 24, "category": "ceremony"      },
+
+    { "id": "w-reception-01", "title": "Champagne (Placeholder)", "artist": "SWR Picks", "durationSec": 30, "category": "reception"   },
+    { "id": "w-reception-02", "title": "Lights (Placeholder)", "artist": "SWR Picks", "durationSec": 26, "category": "reception"   },
+    { "id": "w-reception-03", "title": "Toast (Placeholder)", "artist": "SWR Picks", "durationSec": 22, "category": "reception"   },
+
+    { "id": "w-firstdance-01", "title": "First Light (Placeholder)", "artist": "SWR Picks", "durationSec": 30, "category": "first-dance"   },
+    { "id": "w-firstdance-02", "title": "Two Become One (Placeholder)", "artist": "SWR Picks", "durationSec": 28, "category": "first-dance" },
+    { "id": "w-firstdance-03", "title": "Slow Waltz (Placeholder)", "artist": "SWR Picks", "durationSec": 30, "category": "first-dance"   },
+
+    { "id": "w-cocktail-01", "title": "Bossa (Placeholder)",   "artist": "SWR Picks", "durationSec": 24, "category": "cocktail-hour" },
+    { "id": "w-cocktail-02", "title": "Lounge (Placeholder)",  "artist": "SWR Picks", "durationSec": 26, "category": "cocktail-hour" },
+    { "id": "w-cocktail-03", "title": "Velvet (Placeholder)",   "artist": "SWR Picks", "durationSec": 24, "category": "cocktail-hour" },
+
+    { "id": "w-lastdance-01", "title": "Last Song (Placeholder)", "artist": "SWR Picks", "durationSec": 30, "category": "last-dance" },
+    { "id": "w-lastdance-02", "title": "Slow Burn (Placeholder)", "artist": "SWR Picks", "durationSec": 28, "category": "last-dance"  },
+    { "id": "w-lastdance-03", "title": "Finale (Placeholder)",   "artist": "SWR Picks", "durationSec": 30, "category": "last-dance"   }
+  ]
+}
