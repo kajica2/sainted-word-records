@@ -302,6 +302,17 @@
 .tl-thumb-loading { opacity: 0.6; }
 .tl-thumb-loading .tl-thumb-icon { color: var(--accent-2, #00ccff); }
 
+/* Phase 7: drag-from-clips-panel */
+.mvm-clip-card {
+  cursor: grab;
+}
+.mvm-clip-card:active { cursor: grabbing; }
+.mvm-clip-dragging {
+  opacity: 0.4 !important;
+  transform: scale(0.98);
+  transition: opacity .12s ease, transform .12s ease;
+}
+
 .current-song.has-song {
   color: var(--green, #00ff66);
   font-weight: 600;
