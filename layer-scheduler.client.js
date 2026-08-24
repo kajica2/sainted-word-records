@@ -187,6 +187,25 @@
     `;
 
     document.body.appendChild(panel);
+    // ---- Always hide ----
+    // The layer-scheduler panel is intentionally not part of the normal
+    // user UI surface. It's a developer / debugging tool, and the AUTO-SWAP
+    // behavior it controls is exposed through the gear menu's AUTO-SWAP
+    // toggle. We force display:none here so even if some other code path
+    // (a stale localStorage flag, a future script, an inline script that
+    // calls SWR_PANEL_VISIBILITY.toggle()) tries to make it visible,
+    // it stays hidden.
+    //
+    // Escape hatch for debugging:
+    //   localStorage.setItem('swr.ls-panel-force', '1'); location.reload();
+    //   ... or in DevTools console:
+    //   document.getElementById('layer-scheduler-panel').style.display = '';
+    try {
+      const force = localStorage.getItem('swr.ls-panel-force') === '1';
+      if (!force) panel.style.display = 'none';
+    } catch (_) {
+      panel.style.display = 'none';
+    }
     if (window.SWR_PANEL_VISIBILITY) window.SWR_PANEL_VISIBILITY.apply();
 
     // ---- Drag support (title bar → grab to reposition) ----

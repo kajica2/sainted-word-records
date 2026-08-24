@@ -1,19 +1,23 @@
-// engine-panel-visibility.client.js — shared hide/show for the 3 floating
-// panels (LFO, TIMING, AUTO-SWAP / layer-scheduler). Loaded BEFORE the
-// individual panel builders so they can read the initial state.
+// engine-panel-visibility.client.js — shared hide/show for the 2 user-facing
+// floating panels (LFO, TIMING). Loaded BEFORE the individual panel
+// builders so they can read the initial state.
+//
+// The layer-scheduler panel is always hidden — see the SELECTOR note below.
 //
 // State lives in localStorage['swr.panels-hidden']:
 //   '1' (default) = panels hidden by default
 //   '0'           = panels visible
 //
-// All three panels opt in by listening for the 'swr:panels-visibility' event
+// Panels opt in by listening for the 'swr:panels-visibility' event
 // or by calling window.SWR_PANEL_VISIBILITY.apply() after they mount.
 //
 // Exposes:
 //   window.SWR_PANEL_VISIBILITY = {
 //     isHidden()           — current state (boolean)
 //     setHidden(bool)      — persist + apply + broadcast
-//     apply()              — toggle display on every .ls-panel and the layer-scheduler panel
+//     apply()              — toggle display on every .ls-panel *except*
+//                            #layer-scheduler-panel (which is always
+//                            hidden — see SELECTOR)
 //     toggle()             — flip state
 //     onChange(fn)         — subscribe to changes
 //   }
@@ -28,7 +32,10 @@
   const SELECTOR = [
     '#ls-panel-lfo',
     '#ls-panel-timing',
-    '#layer-scheduler-panel',
+    // '#layer-scheduler-panel' intentionally excluded: that panel is
+    // always hidden. It's a developer / power-user surface — too
+    // noisy for normal use. Set localStorage['swr.ls-panel-force']='1'
+    // temporarily to bring it back while debugging.
     '.ls-panel'  // belt-and-braces for any future ls-panel-* panels
   ].join(', ');
 
