@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000002",
+  "name": "Smoke Portrait",
+  "author": "SWR",
+  "description": "Atmospheric smoke-overlay portrait treatment. Cinematic, slow. Best for vocals, ballads, indie folk.",
+  "tags": ["smoke", "portrait", "cinematic", "indie"],
+  "createdAt": "2026-08-24T00:00:00Z",
+  "engine": "smoke",
+  "audio": {
+    "name": "loop-drone.wav",
+    "mimeType": "audio/wav",
+    "size": 924000,
+    "url": "library/audio/loop-drone.wav"
+  },
+  "fx": {
+    "temp": -0.2,
+    "mut": 0.0,
+    "mutAlgo": 0,
+    "posterize": 0.0,
+    "vignette": 0.75,
+    "chroma": 0.1,
+    "grain": 0.25,
+    "sepia": 0.15,
+    "glow": 0.6,
+    "grayscale": 0.3,
+    "blur": 0.1,
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Subject",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1.05,
+      "pos": { "x": 0, "y": 0, "rot": 0 },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "p03.jpg",
+        "mimeType": "image/jpeg",
+        "size": 102400,
+        "url": "library/p03.jpg"
+      }
+    }
+  ],
+  "settings": { "bpm": 92, "key": "F", "scale": "major" }
+}

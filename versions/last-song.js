@@ -3,9 +3,12 @@
 // (or in addition to) the per-page hardcoded bundled loop.
 //
 // Storage layout (matches engine.html Library.init() / Audio._saveCurrentSong):
-//   DB:    'sainted-word-records' v2
+//   DB:    'sainted-word-records' v4
 //   Store: 'songs'
 //   Key:   'current'  → { id: 'current', blob, name, type, savedAt }
+//
+//   Store: 'sets'   (added in v4) — installed .swr-set documents for the
+//   marketplace page. Key is the set's UUID.
 //
 // Clearing: Library.clearAll() in engine.html calls Audio._clearCurrentSong()
 // which deletes this record. The next visit to a versions/*.html page sees no
@@ -58,7 +61,7 @@
       // stores filled in. Users with an existing populated v2 DB don't
       // exist in the wild (the bug prevented the stores from being
       // created in the first place) so there's no data to lose.
-      const req = indexedDB.open('sainted-word-records', 3);
+      const req = indexedDB.open('sainted-word-records', 4);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('songs')) {
@@ -66,6 +69,10 @@
         }
         if (!db.objectStoreNames.contains('assets')) {
           db.createObjectStore('assets', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('sets')) {
+          // Installed .swr-set documents (for marketplace page)
+          db.createObjectStore('sets', { keyPath: 'id' });
         }
       };
       req.onsuccess = (e) => {

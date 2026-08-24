@@ -60,9 +60,11 @@ function copyStatic() {
     'engine-timing.client.js',
     'engine-timing-panel.client.js',
     'engine-lfos.client.js',
+    'swr-sets.js',
     'engine-lfo-panel.client.js',
     'engine-automap.client.js',
     'engine-settings.client.js',
+    'persona-onboarding.js',
     'engine-keys.client.js',
     'project.client.js',
     'timeline.client.js',
@@ -74,6 +76,7 @@ function copyStatic() {
     'swr-intro-10s-script.txt',
     'swr-intro-10s.mp4',
     'swr-intro-10s-voice.mp4',
+    'marketplace.html',
     'thanks.html',
     'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
     'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
@@ -154,6 +157,10 @@ function copyStatic() {
     { src: 'presets', dst: 'presets' },
     { src: 'press', dst: 'press' },
     { src: 'legal', dst: 'legal' },
+    // marketplace/curated/ ships the starter .swr-set files. The
+    // marketplace.html page fetches them by relative path, so they must
+    // be at marketplace/curated/<file>.swr-set.json in dist.
+    { src: 'marketplace', dst: 'marketplace' },
     // audios/ ships per-engine demo MP3s (one ~250KB file per engine,
     // ~4 MB total). Each engine auto-loads ../audios/<engine>.mp3 as the
     // default audio source so the reactivity has something to drive.

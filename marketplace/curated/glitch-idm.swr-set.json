@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000006",
+  "name": "Glitch · IDM",
+  "author": "SWR",
+  "description": "Heavy glitch engine with onset micro-shakes. Best for IDM, breakcore, experimental electronic, anything with sharp transients.",
+  "tags": ["glitch", "experimental", "idm", "breakcore"],
+  "createdAt": "2026-08-24T00:00:00Z",
+  "engine": "glitch",
+  "audio": {
+    "name": "loop-pulse.wav",
+    "mimeType": "audio/wav",
+    "size": 412000,
+    "url": "library/audio/loop-pulse.wav"
+  },
+  "fx": {
+    "temp": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0,
+    "posterize": 0.0,
+    "vignette": 0.4,
+    "chroma": 0.4,
+    "grain": 0.3,
+    "sepia": 0.0,
+    "glow": 0.4,
+    "grayscale": 0.2,
+    "blur": 0.05,
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": { "x": 0, "y": 0, "rot": 0 },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "c09-security.mp4",
+        "mimeType": "video/mp4",
+        "size": 2800000,
+        "url": "library/c09-security.mp4"
+      }
+    }
+  ],
+  "settings": { "bpm": 174, "key": "C", "scale": "minor" }
+}

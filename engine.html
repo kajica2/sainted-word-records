@@ -881,6 +881,11 @@
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
       </div>
       <div class="panel-body">
+        <div class="sets-bar" style="display:flex; gap:6px; padding:6px 8px; border-bottom:1px solid var(--line);">
+          <button class="tbtn ghost" id="save-set" style="padding:4px 10px; font-size:9px;">↓ Save Set</button>
+          <button class="tbtn ghost" id="import-set" style="padding:4px 10px; font-size:9px;">↑ Import .swr-set</button>
+          <input type="file" id="set-input" accept=".swr-set,application/json" style="display:none" />
+        </div>
         <div id="songs-list" class="songs-list">
           <div class="songs-empty">Loading bundled songs…</div>
         </div>
@@ -1136,6 +1141,8 @@
   </div>
 
   <script src="/audio-analysis-v2.js" defer></script>
+  <script src="/swr-sets.js" defer></script>
+  <script src="/persona-onboarding.js" defer></script>
   <script type="module">
     // ======================================================================
     // SAINTED-WORD RECORDS — Algorithmic audio-reactive video engine
@@ -1557,7 +1564,7 @@
       nextId: 1,
       db: null,
       async init() {
-        this.db = await openDb('sainted-word-records', 3, (db) => {
+        this.db = await openDb('sainted-word-records', 4, (db) => {
           if (!db.objectStoreNames.contains('assets')) {
             const s = db.createObjectStore('assets', { keyPath: 'id' });
             s.createIndex('added', 'added');
@@ -1568,6 +1575,10 @@
             // survives. The blob itself is large (could be 100MB+ for an MP4 song) so we
             // keep it in IDB and not in localStorage.
             db.createObjectStore('songs', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('sets')) {
+            // Installed .swr-set documents (marketplace page)
+            db.createObjectStore('sets', { keyPath: 'id' });
           }
         });
         // Load existing assets
@@ -3232,6 +3243,38 @@
           if (!confirm('Erase all uploaded assets and the saved song from this browser?')) return;
           await Library.clearAll();
         });
+        // .swr-set save / import (marketplace v1: file-based)
+        $('save-set').addEventListener('click', async () => {
+          if (!window.SWR_SETS) {
+            alert('swr-sets module not loaded; refresh the page.');
+            return;
+          }
+          try {
+            setStatus('exporting set…', 'busy');
+            const doc = await window.SWR_SETS.exportState({});
+            window.SWR_SETS.download(doc);
+            setStatus('set exported · ' + doc.name, 'ok');
+          } catch (e) {
+            console.error('export set', e);
+            setStatus('export failed: ' + e.message, 'warn');
+          }
+        });
+        $('import-set').addEventListener('click', () => $('set-input').click());
+        $('set-input').addEventListener('change', async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          e.target.value = '';
+          try {
+            setStatus('importing ' + file.name + '…', 'busy');
+            const set = await window.SWR_SETS.importSet(file);
+            const result = await window.SWR_SETS.applySet(set);
+            const okCount = (result.log || []).filter(l => l.ok).length;
+            setStatus('imported "' + (set.meta.name || file.name) + '" · ' + okCount + ' step(s)', 'ok');
+          } catch (err) {
+            console.error('import set', err);
+            setStatus('import failed: ' + err.message, 'warn');
+          }
+        });
         $('asset-input').addEventListener('change', (e) => {
           Library.addFiles(e.target.files);
           e.target.value = '';
@@ -3601,6 +3644,25 @@
       window.Layers = Layers;
       window.Library = Library;
       window.CSSFX = CSSFX;
+      // Auto-apply a pending .swr-set if the marketplace page queued one.
+      // Marketplace stores the full set doc in localStorage under
+      // 'swr.pending-set'; engine.html reads it on boot and applies via
+      // swr-sets.js. Cleared after apply so a refresh doesn't re-apply.
+      try {
+        const pending = localStorage.getItem('swr.pending-set');
+        if (pending && window.SWR_SETS && window.SWR_SETS.applySet) {
+          localStorage.removeItem('swr.pending-set');
+          // Slight delay so Library finishes its init() pass
+          setTimeout(() => {
+            window.SWR_SETS.applySet(JSON.parse(pending))
+              .then(result => {
+                const okCount = (result.log || []).filter(l => l.ok).length;
+                setStatus('set applied · ' + okCount + ' step(s)', 'ok');
+              })
+              .catch(err => setStatus('set apply failed: ' + err.message, 'warn'));
+          }, 200);
+        }
+      } catch (e) { /* localStorage unavailable, ignore */ }
       // Mount the timeline (waveform + beat markers). timeline.client.js
       // self-mounts on DOMContentLoaded if a canvas with id=timeline-canvas
       // exists, so no explicit mount call is required here.

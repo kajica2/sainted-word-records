@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Marketplace · Sainted Word Records</title>
+  <meta name="description" content="SWR Marketplace — browse curated .swr-set templates, install to your engine, open in one click. Free for v1." />
+  <meta name="theme-color" content="#0a0a0e" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:title" content="Marketplace · Sainted Word Records" />
+  <meta property="og:description" content="Curated music-video templates · one-click install · run in the browser" />
+  <meta property="og:type" content="website" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;800&family=Space+Mono:wght@400;700&display=swap" />
+  <style>
+    :root {
+      --bg: #0a0a0e; --panel: #131319; --line: #1f1f28;
+      --ink: #fafafa; --muted: #777;
+      --accent: #ff6090; --accent-2: #6090ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--ink);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+    header { display: flex; align-items: center; gap: 16px; padding: 18px 28px;
+      border-bottom: 1px solid var(--line); }
+    header h1 { font: 800 22px/1 'Archivo Black', sans-serif; letter-spacing: -0.01em; }
+    header h1 em { font-style: normal; color: var(--accent); }
+    header .spacer { flex: 1; }
+    header a.nav { color: var(--ink); text-decoration: none; font: 9px/1 'Space Mono', monospace;
+      letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+    header a.nav:hover { opacity: 1; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 28px 24px 80px; }
+    .intro { margin-bottom: 32px; }
+    .intro h2 { font: 800 36px/1.1 'Archivo Black', sans-serif; letter-spacing: -0.02em; max-width: 720px; }
+    .intro p { font-size: 15px; line-height: 1.55; color: var(--muted); margin-top: 12px; max-width: 680px; }
+    .intro p em { color: var(--ink); font-style: normal; font-weight: 600; }
+    .drop-zone { margin: 32px 0; padding: 28px; border: 2px dashed var(--line);
+      text-align: center; color: var(--muted); background: var(--panel);
+      border-radius: 6px; transition: all 0.2s ease; }
+    .drop-zone.drag { border-color: var(--accent); color: var(--accent); background: #1a1520; }
+    .drop-zone strong { color: var(--ink); display: block; font-size: 16px; margin-bottom: 6px; }
+    .drop-zone .or { font-size: 12px; opacity: 0.7; margin-top: 8px; }
+    .drop-zone button { margin-top: 12px; font: 500 11px/1 'Space Mono', monospace;
+      letter-spacing: 0.16em; text-transform: uppercase; padding: 10px 18px;
+      background: var(--accent); color: #fff; border: 0; border-radius: 3px; cursor: pointer; }
+    .drop-zone button:hover { background: #ff80a8; }
+    .section-head { display: flex; align-items: baseline; gap: 12px;
+      margin: 40px 0 18px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .section-head h3 { font: 800 18px/1 'Archivo Black', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
+    .section-head .count { font: 9px/1 'Space Mono', monospace; color: var(--muted);
+      letter-spacing: 0.18em; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+      padding: 18px; display: flex; flex-direction: column; gap: 8px; transition: all 0.15s ease; }
+    .card:hover { transform: translateY(-2px); border-color: #2a2a35; }
+    .card .tag { display: inline-block; font: 9px/1 'Space Mono', monospace;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent);
+      border: 1px solid var(--accent); padding: 4px 8px; align-self: flex-start; }
+    .card h4 { font: 700 16px/1.2 'Inter', sans-serif; margin: 4px 0 2px; }
+    .card .author { font: 9px/1.2 'Space Mono', monospace; color: var(--muted);
+      letter-spacing: 0.16em; text-transform: uppercase; }
+    .card .desc { font-size: 12px; line-height: 1.5; color: var(--ink);
+      opacity: 0.75; margin: 8px 0 4px; }
+    .card .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .card .tags span { font: 8px/1 'Space Mono', monospace; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+      border: 1px solid var(--line); padding: 3px 6px; }
+    .card .actions { display: flex; gap: 6px; margin-top: auto; padding-top: 12px; }
+    .card .actions button { flex: 1; font: 9px/1 'Space Mono', monospace;
+      letter-spacing: 0.16em; text-transform: uppercase; padding: 10px 12px;
+      background: transparent; color: var(--ink); border: 1px solid var(--line);
+      border-radius: 3px; cursor: pointer; }
+    .card .actions button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .card .actions button.primary:hover { background: #ff80a8; }
+    .card .actions button:hover { border-color: var(--accent); color: var(--accent); }
+    .empty { padding: 32px; text-align: center; color: var(--muted);
+      border: 1px dashed var(--line); border-radius: 4px; font-size: 14px; }
+    .empty strong { color: var(--ink); display: block; font-size: 16px; margin-bottom: 6px; }
+    .engine-tag { display: inline-block; font: 8px/1 'Space Mono', monospace;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-2);
+      border: 1px solid var(--accent-2); padding: 3px 6px; margin-top: 4px; }
+    .toast { position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+      padding: 12px 18px; background: var(--accent); color: #fff;
+      font: 600 12px/1.2 'Inter', sans-serif; border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(255,96,144,0.3);
+      transform: translateY(80px); opacity: 0; transition: all 0.25s ease; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: #d8232a; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MAR<em>KET</em>PLACE</h1>
+    <a class="nav" href="./engine.html">→ engine</a>
+    <a class="nav" href="./landing.html">← home</a>
+    <span class="spacer"></span>
+    <a class="nav" href="./marketplace/curated/" id="curated-link" style="display:none">→ curated sets (raw)</a>
+  </header>
+
+  <div class="container">
+    <div class="intro">
+      <h2>Music-video templates for designers, musicians, and mixed-media creators.</h2>
+      <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Drop a custom .swr-set file to add it to your library.</p>
+    </div>
+
+    <div class="drop-zone" id="drop-zone">
+      <strong>Drop a .swr-set file here</strong>
+      <span>Or click to browse · installs to your local engine library</span>
+      <br />
+      <button id="browse-btn">Choose file…</button>
+      <input type="file" id="set-input" accept=".swr-set,.json,application/json" style="display:none" />
+    </div>
+
+    <div class="section-head">
+      <h3>Curated Sets</h3>
+      <span class="count" id="curated-count">— loading…</span>
+    </div>
+    <div class="grid" id="curated-grid">
+      <div class="empty"><strong>Loading…</strong></div>
+    </div>
+
+    <div class="section-head">
+      <h3>Installed Sets</h3>
+      <span class="count" id="installed-count">0 installed</span>
+    </div>
+    <div class="grid" id="installed-grid">
+      <div class="empty" id="installed-empty">
+        <strong>No installed sets yet</strong>
+        Install a curated set above, or drop a .swr-set file to get started.
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/swr-sets.js"></script>
+  <script>
+    (function () {
+      const toast = (msg, isError) => {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.toggle('error', !!isError);
+        el.classList.add('show');
+        clearTimeout(window.__toastT);
+        window.__toastT = setTimeout(() => el.classList.remove('show'), 3500);
+      };
+
+      // Render a set card
+      function renderCard(set, opts) {
+        opts = opts || {};
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.id = set.id || set.name;
+        const tags = (set.tags || []).slice(0, 4);
+        const persona = (set.tags && set.tags[0]) || 'curated';
+        card.innerHTML = `
+          <span class="tag">${escapeHtml(persona)}</span>
+          <h4>${escapeHtml(set.name || 'Untitled')}</h4>
+          <div class="author">by ${escapeHtml(set.author || 'unknown')}</div>
+          <p class="desc">${escapeHtml(set.description || '')}</p>
+          <span class="engine-tag">engine: ${escapeHtml(set.engine || 'unknown')}</span>
+          ${tags.length ? `<div class="tags">${tags.map(t => `<span>${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+          <div class="actions">
+            ${opts.installed
+              ? `<button data-action="open" data-id="${set.id}">Open in engine</button>
+                 <button data-action="remove" data-id="${set.id}">Remove</button>`
+              : `<button data-action="install" data-id="${set.id}">Install</button>
+                 <button data-action="preview" data-id="${set.id}">Preview</button>`}
+          </div>
+        `;
+        return card;
+      }
+
+      function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+
+      // Load curated set metadata from marketplace/curated/index.json
+      // (built by build step OR hardcoded fallback below)
+      async function loadCurated() {
+        // First try the manifest. If it doesn't exist, fall back to scanning
+        // the curated directory via a known hardcoded list.
+        const KNOWN = [
+          { file: 'marketplace/curated/neon-pulse.swr-set.json' },
+          { file: 'marketplace/curated/smoke-portrait.swr-set.json' },
+          { file: 'marketplace/curated/typography-loud.swr-set.json' },
+          { file: 'marketplace/curated/collage-mag.swr-set.json' },
+          { file: 'marketplace/curated/spectrum-bass.swr-set.json' },
+          { file: 'marketplace/curated/glitch-idm.swr-set.json' },
+        ];
+        const sets = [];
+        for (const k of KNOWN) {
+          try {
+            const r = await fetch(k.file, { cache: 'no-cache' });
+            if (r.ok) {
+              const doc = await r.json();
+              sets.push(doc);
+            }
+          } catch (e) { /* skip */ }
+        }
+        return sets;
+      }
+
+      function renderCuratedGrid(sets) {
+        const grid = document.getElementById('curated-grid');
+        const count = document.getElementById('curated-count');
+        count.textContent = sets.length + ' available';
+        if (!sets.length) {
+          grid.innerHTML = '<div class="empty"><strong>No curated sets found</strong>The marketplace/curated/ folder is empty.</div>';
+          return;
+        }
+        grid.innerHTML = '';
+        for (const s of sets) grid.appendChild(renderCard(s, { installed: false }));
+      }
+
+      async function loadInstalled() {
+        if (!window.SWR_SETS) return [];
+        try { return await window.SWR_SETS.listInstalled(); } catch (e) { return []; }
+      }
+
+      function renderInstalledGrid(records) {
+        const grid = document.getElementById('installed-grid');
+        const count = document.getElementById('installed-count');
+        const empty = document.getElementById('installed-empty');
+        count.textContent = records.length + ' installed';
+        // Remove existing dynamic cards (keep empty node)
+        Array.from(grid.querySelectorAll('.card')).forEach(c => c.remove());
+        if (!records.length) {
+          empty.style.display = '';
+          return;
+        }
+        empty.style.display = 'none';
+        for (const r of records) {
+          grid.appendChild(renderCard(r.doc, { installed: true }));
+        }
+      }
+
+      async function installSet(doc) {
+        if (!window.SWR_SETS) {
+          toast('swr-sets module not loaded', true);
+          return false;
+        }
+        try {
+          await window.SWR_SETS.saveInstalled(doc);
+          return true;
+        } catch (e) {
+          toast('install failed: ' + e.message, true);
+          return false;
+        }
+      }
+
+      async function removeInstalled(id) {
+        if (!window.SWR_SETS) return;
+        try { await window.SWR_SETS.removeInstalled(id); } catch (e) {}
+      }
+
+      function openInEngine(set) {
+        // Encode the set in localStorage so the engine page can pick it up
+        // on load and auto-apply.
+        try {
+          localStorage.setItem('swr.pending-set', JSON.stringify(set));
+        } catch (e) {
+          toast('storage full — could not queue set', true);
+          return;
+        }
+        // Open the engine on the right page
+        const engine = (set.engine || 'neon') + '.html';
+        window.location.href = '/versions/' + engine;
+      }
+
+      function previewSet(set) {
+        // Quick preview: open the engine page without applying (just show
+        // the engine in its default state for visual context).
+        const engine = (set.engine || 'neon') + '.html';
+        window.open('/versions/' + engine, '_blank');
+      }
+
+      // === Drop zone ===
+      const drop = document.getElementById('drop-zone');
+      const input = document.getElementById('set-input');
+      document.getElementById('browse-btn').addEventListener('click', () => input.click());
+      input.addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        await installFile(f);
+        e.target.value = '';
+      });
+      ['dragenter', 'dragover'].forEach(ev =>
+        drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+      ['dragleave', 'drop'].forEach(ev =>
+        drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+      drop.addEventListener('drop', async (e) => {
+        const f = e.dataTransfer.files[0];
+        if (!f) return;
+        await installFile(f);
+      });
+
+      async function installFile(file) {
+        try {
+          const text = await file.text();
+          const set = await window.SWR_SETS.importSet(text);
+          if (set.meta.schemaVersion !== 1) throw new Error('unsupported schema v' + set.meta.schemaVersion);
+          // We want to save the original .swr-set doc (with dataUrls) to
+          // the IDB 'sets' store, but importSet returns a parsed object
+          // with audio/layers as Files. Re-parse the raw text and store
+          // the doc as-is so future exports work.
+          const doc = JSON.parse(text);
+          const ok = await installSet(doc);
+          if (ok) {
+            toast('Installed: ' + doc.name);
+            await refreshInstalled();
+          }
+        } catch (e) {
+          toast('Install failed: ' + e.message, true);
+        }
+      }
+
+      async function refreshInstalled() {
+        const records = await loadInstalled();
+        renderInstalledGrid(records);
+      }
+
+      // === Card actions (event delegation on both grids) ===
+      function wireActions(grid) {
+        grid.addEventListener('click', async (e) => {
+          const btn = e.target.closest('button[data-action]');
+          if (!btn) return;
+          const action = btn.dataset.action;
+          const id = btn.dataset.id;
+          if (action === 'install') {
+            const card = btn.closest('.card');
+            // Find the curated set by id
+            const allCards = Array.from(document.querySelectorAll('.card'));
+            // Pull doc from the curated grid by matching the name in the
+            // card title
+            const title = card.querySelector('h4')?.textContent;
+            const r = await fetch('marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            if (r.ok) {
+              const doc = await r.json();
+              const ok = await installSet(doc);
+              if (ok) { toast('Installed: ' + doc.name); await refreshInstalled(); }
+            } else {
+              toast('Install failed: source not found', true);
+            }
+          } else if (action === 'preview') {
+            const card = btn.closest('.card');
+            const title = card.querySelector('h4')?.textContent;
+            // Try to find the curated set
+            const r = await fetch('marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            if (r.ok) {
+              const doc = await r.json();
+              previewSet(doc);
+            }
+          } else if (action === 'remove') {
+            await removeInstalled(id);
+            await refreshInstalled();
+            toast('Removed set');
+          } else if (action === 'open') {
+            const records = await loadInstalled();
+            const r = records.find(x => x.id === id);
+            if (r) openInEngine(r.doc);
+          }
+        });
+      }
+      wireActions(document.getElementById('curated-grid'));
+      wireActions(document.getElementById('installed-grid'));
+
+      // === Init ===
+      (async function init() {
+        const curated = await loadCurated();
+        renderCuratedGrid(curated);
+        await refreshInstalled();
+      })();
+    })();
+  </script>
+</body>
+</html>

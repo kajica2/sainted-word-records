@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TYPOGRAPHY · SWR version · Animated type for designers</title>
+  <meta name="description" content="SWR engine — TYPOGRAPHY: animated type for designers and brands. Drop your copy, audio, and brand kit, get motion typography." />
+  <meta name="theme-color" content="#0e0e0e" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site-name" content="Sainted Word Records" />
+  <meta property="og:title" content="TYPOGRAPHY · SWR engine" />
+  <meta property="og:description" content="Animated motion typography. Drop in your copy + audio, get brand-safe motion graphics." />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/versions/typography.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TYPOGRAPHY · SWR engine" />
+  <meta name="twitter:description" content="Animated motion typography for designers" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;800&family=Space+Mono:wght@400;700&display=swap');
+    :root {
+      --bg: #0e0e0e; --panel: #181818; --line: #2a2a2a;
+      --ink: #fafafa; --muted: #888;
+      --accent: #ff3030;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif; }
+    #app { display: grid; grid-template-rows: 60px 1fr 52px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 14px; padding: 0 24px;
+      background: var(--bg); border-bottom: 1px solid var(--line); }
+    .v { font: 800 22px/1 'Archivo Black', sans-serif; letter-spacing: -0.01em; }
+    .v small { font: 500 10px/1 'Space Mono', monospace; color: var(--muted);
+      margin-left: 12px; letter-spacing: 0.2em; text-transform: uppercase; }
+    .pill { font: 9px/1 'Space Mono', monospace; padding: 4px 10px;
+      border: 1px solid var(--line); color: var(--muted);
+      letter-spacing: 0.18em; text-transform: uppercase; }
+    .pill.live { color: var(--accent); border-color: var(--accent);
+      animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .spacer { flex: 1; }
+    a.nav { color: var(--ink); text-decoration: none; font-size: 10px;
+      font-family: 'Space Mono', monospace; letter-spacing: 0.18em;
+      text-transform: uppercase; opacity: 0.6; }
+    a.nav:hover { opacity: 1; }
+    section.stage { position: relative; background: var(--bg); overflow: hidden; }
+    #render { display: block; width: 100%; height: 100%; }
+    .copy-editor { position: absolute; top: 18px; left: 24px; z-index: 5;
+      display: flex; flex-direction: column; gap: 6px; max-width: 60%; }
+    .copy-editor input, .copy-editor textarea {
+      background: rgba(20,20,20,0.7); border: 1px solid var(--line);
+      color: var(--ink); padding: 8px 12px; font: 500 13px/1.3 'Inter', sans-serif;
+      outline: none; backdrop-filter: blur(8px); }
+    .copy-editor input:focus, .copy-editor textarea:focus { border-color: var(--accent); }
+    .copy-editor input { font: 800 22px/1.1 'Archivo Black', sans-serif; }
+    .copy-editor textarea { resize: vertical; min-height: 36px; max-height: 80px; }
+    .copy-editor .row { display: flex; gap: 6px; }
+    .copy-editor .row > * { flex: 1; }
+    .copy-editor .lbl { font: 9px/1 'Space Mono', monospace; color: var(--muted);
+      letter-spacing: 0.18em; text-transform: uppercase; }
+    .badge { position: absolute; top: 18px; right: 24px;
+      font: 9px/1 'Space Mono', monospace; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--muted);
+      border: 1px solid var(--line); padding: 5px 10px; }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 18px;
+      align-items: center; padding: 0 24px; background: var(--bg);
+      border-top: 1px solid var(--line);
+      font: 9px/1 'Space Mono', monospace; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+    .param b { color: var(--ink); font-weight: 700; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: #000; border: 1px solid var(--line); }
+    .led.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    button.tbtn { font: 9px/1 'Space Mono', monospace; letter-spacing: 0.18em;
+      text-transform: uppercase; padding: 6px 12px; background: transparent;
+      color: var(--ink); border: 1px solid var(--line); cursor: pointer; }
+    button.tbtn:hover { border-color: var(--accent); color: var(--accent); }
+    /* AUTO-START */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(14,14,14,0.88);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+      backdrop-filter: blur(8px);
+    }
+    #swr-start .box {
+      text-align: center; color: #fff;
+      padding: 36px 52px;
+      border: 1px solid var(--accent);
+      background: rgba(30,15,15,0.7);
+      box-shadow: 0 0 60px rgba(255,48,48,0.2);
+      max-width: 480px;
+    }
+    #swr-start .arrow { font-size: 56px; color: var(--accent); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font: 800 18px/1 'Archivo Black', sans-serif;
+      letter-spacing: 0.04em; text-transform: uppercase; color: #fff; position: static; }
+    #swr-start .sub { font: 11px/1.4 'Space Mono', monospace; letter-spacing: 0.16em;
+      text-transform: uppercase; color: #888; margin-top: 14px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-page="typography">
+  <div id="app">
+    <header>
+      <div class="v">TYPOGRAPHY<small>· MOTION TYPE FOR DESIGNERS</small></div>
+      <span class="pill live" id="live">● ON</span>
+      <span class="spacer"></span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div class="copy-editor">
+        <div class="lbl">Headline</div>
+        <input id="headline" type="text" value="MAKE IT LOUD" maxlength="40" />
+        <div class="row">
+          <div>
+            <div class="lbl">Subhead</div>
+            <textarea id="subhead" rows="1">brand-safe motion typography · audio-reactive</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="badge">audio-reactive type</div>
+    </section>
+    <footer>
+      <div class="param">scale <b id="scale-v">1.00</b></div>
+      <div class="param">weight <b id="weight-v">800</b></div>
+      <div class="param">tracking <b id="track-v">0</b></div>
+      <div class="param">kicker <b id="kicker-v">100%</b></div>
+      <div class="param">temp <b id="temp-v">+0.0</b></div>
+      <button class="tbtn" id="rec" disabled>● REC</button>
+    </footer>
+  </div>
+
+  <script>
+    const stage = document.getElementById('render');
+    const ctx = stage.getContext('2d');
+    let t0 = performance.now();
+
+    const headlineEl = document.getElementById('headline');
+    const subheadEl = document.getElementById('subhead');
+    headlineEl.addEventListener('input', () => { /* re-render on next frame */ });
+    subheadEl.addEventListener('input', () => {});
+
+    // Audio reactivity
+    function getAudioFeat() {
+      if (window.Audio && window.Audio.feat) return window.Audio.feat;
+      // Synthetic fallback
+      const t = (performance.now() - t0) / 1000;
+      return {
+        bass: 0.5 + Math.sin(t * 1.5) * 0.4,
+        mid: 0.5 + Math.sin(t * 0.8) * 0.3,
+        treble: 0.4 + Math.abs(Math.sin(t * 4)) * 0.4,
+        beat: Math.max(0, Math.sin(t * 2.5) - 0.6) * 2,
+      };
+    }
+
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const W = stage.width, H = stage.height;
+      const feat = getAudioFeat();
+
+      // Background: subtle off-white that pulses with bass
+      const bgLerp = 0.92 + feat.bass * 0.08;
+      ctx.fillStyle = `rgb(${Math.floor(14 * (1 - bgLerp) + 245 * bgLerp)}, ${Math.floor(14 * (1 - bgLerp) + 245 * bgLerp)}, ${Math.floor(14 * (1 - bgLerp) + 245 * bgLerp)})`;
+      ctx.fillRect(0, 0, W, H);
+
+      // Headline: scale + weight pulse with beat
+      const beatScale = 1.0 + feat.beat * 0.15;     // 1.0 .. 1.15
+      const weight = Math.floor(800 + feat.bass * 200);  // 800..1000
+      const tracking = Math.floor(feat.mid * 40) - 20;   // -20..20 em thousandths
+      const kicker = Math.floor(80 + feat.treble * 100);  // bottom kicker size
+
+      document.getElementById('scale-v').textContent = beatScale.toFixed(2);
+      document.getElementById('weight-v').textContent = weight;
+      document.getElementById('track-v').textContent = tracking;
+      document.getElementById('kicker-v').textContent = kicker + '%';
+
+      // Center the headline
+      ctx.save();
+      ctx.translate(W/2, H * 0.45);
+      ctx.scale(beatScale, beatScale);
+
+      const headline = headlineEl.value || 'MAKE IT LOUD';
+      ctx.font = `${weight} ${220}px "Archivo Black", "Inter", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Letter spacing (em thousandths → px for 220px font)
+      // (Canvas 2D doesn't support letter-spacing directly, draw char by char)
+      const charW = (220 * 0.5);  // rough char width
+      const totalW = headline.length * charW * 1.0;
+      const startX = -totalW / 2;
+      for (let i = 0; i < headline.length; i++) {
+        const ch = headline[i];
+        const charOffset = i * charW * 1.0;
+        // Subtle drop shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.fillText(ch, startX + charOffset + 6, 6);
+        // Main fill
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillText(ch, startX + charOffset, 0);
+      }
+      ctx.restore();
+
+      // Subhead below
+      ctx.save();
+      ctx.translate(W/2, H * 0.7);
+      const subhead = subheadEl.value || '';
+      const subSize = 28;
+      const subCharW = subSize * 0.55;
+      const subWidth = subhead.length * subCharW;
+      ctx.font = `500 ${subSize}px "Inter", sans-serif`;
+      ctx.fillStyle = `rgba(20,20,20,${0.6 + feat.mid * 0.4})`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Word-wrap if too long
+      if (subWidth > W * 0.8) {
+        // Split into two lines
+        const mid = Math.floor(subhead.length / 2);
+        const split = subhead.lastIndexOf(' ', mid);
+        const l1 = subhead.slice(0, split > 0 ? split : mid);
+        const l2 = subhead.slice(split > 0 ? split + 1 : mid);
+        ctx.fillText(l1, 0, -subSize);
+        ctx.fillText(l2, 0, subSize);
+      } else {
+        ctx.fillText(subhead, 0, 0);
+      }
+      ctx.restore();
+
+      // Kicker bar at the bottom: thin line that pulses
+      const kickerY = H * 0.88;
+      const kickerH = 4 + feat.treble * 12;
+      const kickerW = W * 0.4 * (0.7 + kicker / 200);
+      const kickerX = (W - kickerW) / 2;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(kickerX, kickerY, kickerW, kickerH);
+
+      // Bass-driven accent strip across the whole bottom
+      ctx.fillStyle = `rgba(255,48,48,${0.05 + feat.bass * 0.4})`;
+      ctx.fillRect(0, H - 4, W * (0.3 + feat.bass * 0.7), 4);
+
+      // Temperature slider: subtle warm/cool tint via mix-blend would be ideal,
+      // but in 2D canvas we can do a very subtle BG overlay.
+      const temp = (window.FX && window.FX.state && window.FX.state.temp) || 0;
+      if (Math.abs(temp) > 0.01) {
+        const tint = temp > 0 ? `rgba(255,180,80,${Math.abs(temp) * 0.08})` : `rgba(80,180,255,${Math.abs(temp) * 0.08})`;
+        ctx.fillStyle = tint;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // Audio feature exposure
+      window.SWR = window.SWR || {};
+      window.SWR.Audio = window.SWR.Audio || {};
+      window.SWR.Audio.feat = feat;
+
+      requestAnimationFrame(paint);
+    }
+    paint();
+
+    // === RECORDER ===
+    const Recorder = {
+      rec: null, chunks: [], recording: false, mime: 'video/webm',
+      mediaCtx: null, mediaSrc: null, mediaDest: null,
+      start() {
+        const audioEl = window.SWR.Audio && window.SWR.Audio.el;
+        if (!audioEl) { alert('load a song first'); return; }
+        try {
+          const fps = 30;
+          const vstream = stage.captureStream(fps);
+          const AC = window.AudioContext || window.webkitAudioContext;
+          this.mediaCtx = new AC();
+          this.mediaSrc = this.mediaCtx.createMediaElementSource(audioEl);
+          this.mediaDest = this.mediaCtx.createMediaStreamDestination();
+          this.mediaSrc.connect(this.mediaDest);
+          this.mediaSrc.connect(this.mediaCtx.destination);
+          const stream = new MediaStream([
+            ...vstream.getVideoTracks(),
+            ...this.mediaDest.stream.getAudioTracks(),
+          ]);
+          const mime = [
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+            'video/mp4;codecs=avc1',
+            'video/mp4',
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+          ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+          this.mime = mime;
+          this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+          this.chunks = [];
+          this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
+          this.rec.onstop = () => this._save();
+          this.rec.start(500);
+          this.recording = true;
+          $('rec').classList.add('live');
+          $('rec').textContent = '■ STOP';
+          console.log('typography: recording', mime);
+        } catch (e) {
+          console.error('typography: recorder start failed', e);
+        }
+      },
+      stop() {
+        if (!this.rec) return;
+        this.rec.stop();
+        this.recording = false;
+        $('rec').classList.remove('live');
+        $('rec').textContent = '● REC';
+        try { this.mediaSrc && this.mediaSrc.disconnect(); } catch {}
+        try { this.mediaDest && this.mediaDest.disconnect(); } catch {}
+        try { this.mediaCtx && this.mediaCtx.close(); } catch {}
+        this.mediaCtx = this.mediaSrc = this.mediaDest = null;
+      },
+      _save() {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        a.download = 'typography-' + ts + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      },
+    };
+
+    const recBtn = document.getElementById('rec');
+    if (recBtn) recBtn.addEventListener('click', () => {
+      if (Recorder.recording) Recorder.stop();
+      else Recorder.start();
+    });
+
+    if (!window.SWR.Audio.load) {
+      window.SWR.Audio.load = function (f) {
+        if (this.el) { try { this.el.pause(); this.el.src = ''; } catch (e) {} }
+        this.el = document.createElement('audio');
+        this.el.crossOrigin = 'anonymous';
+        this.el.src = URL.createObjectURL(f);
+        this.el.preload = 'auto';
+        var btn = document.getElementById('rec');
+        if (btn) btn.disabled = false;
+      };
+      window.SWR.Audio.play = function () {
+        if (this.el) { this.el.play(); this.playing = true; }
+      };
+    }
+  </script>
+
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Or load saved last song</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../audios/typography.mp3';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        var picked = window.SWR_PICK_DEFAULT_SONG
+          ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
+          : null;
+        if (!picked) throw new Error('no song source available');
+        var blob = picked.blob;
+        var name = picked.name;
+        if (!window.SWR) window.SWR = {};
+        if (!window.SWR.Audio) window.SWR.Audio = {};
+        if (typeof window.SWR.Audio.load === 'function') {
+          var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+          if (sub) {
+            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
+            sub.textContent = tag + name;
+          }
+        }
+      } catch (e) {
+        if (sub) sub.textContent = 'tap a song to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+<script src="./last-song.js"></script>
+<script src="./temp-slider.js"></script>
+</body>
+</html>

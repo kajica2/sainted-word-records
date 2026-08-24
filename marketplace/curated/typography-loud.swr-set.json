@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000003",
+  "name": "Type · Loud",
+  "author": "SWR",
+  "description": "Bold Archivo Black typography with beat-synced weight and scale. Drop in your own copy via the engine UI. Best for social clips, lyric videos, brand motion.",
+  "tags": ["typography", "bold", "social", "lyric-video"],
+  "createdAt": "2026-08-24T00:00:00Z",
+  "engine": "typography",
+  "audio": {
+    "name": "loop-pulse.wav",
+    "mimeType": "audio/wav",
+    "size": 412000,
+    "url": "library/audio/loop-pulse.wav"
+  },
+  "fx": {
+    "temp": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0,
+    "posterize": 0.0,
+    "vignette": 0.0,
+    "chroma": 0.0,
+    "grain": 0.0,
+    "sepia": 0.0,
+    "glow": 0.0,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.0
+  },
+  "layers": [],
+  "settings": { "bpm": 124, "key": "C", "scale": "major" }
+}

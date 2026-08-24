@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SPECTRUM · SWR version · Audio-reactive visualizer</title>
+  <meta name="description" "SWR engine — SPECTRUM: pure audio-reactive visualizer for musicians. No footage required, just your track and the analyzer does the rest." />
+  <meta name="theme-color" content="#0a0d18" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta property="og:title" content="SPECTRUM · SWR engine" />
+  <meta property="og:description" content="Pure audio-reactive visualizer — drop a song, get a music-reactive geometric composition. No footage, no library, just signal." />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/versions/spectrum.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SPECTRUM · SWR engine" />
+  <meta name="twitter:description" content="Pure audio-reactive visualizer for musicians" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #050811; --panel: #0a0d1c; --line: #1a2040;
+      --ink: #a8d0ff; --muted: #5060a0;
+      --accent: #ff6090; --hi: #fff0a0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+    #app { display: grid; grid-template-rows: 64px 1fr 56px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 14px; padding: 0 24px;
+      background: linear-gradient(180deg, #0a0d1c, #050811);
+      border-bottom: 1px solid var(--line);
+    }
+    .v { font-weight: 800; font-size: 22px; letter-spacing: 0.04em; color: var(--ink); }
+    .v em { font-style: normal; color: var(--accent); }
+    .v small { font-weight: 500; font-size: 11px; color: var(--muted);
+      margin-left: 10px; letter-spacing: 0.18em; text-transform: uppercase; }
+    .pill { font: 10px/1 ui-monospace, 'JetBrains Mono', monospace;
+      padding: 4px 10px; border: 1px solid var(--line);
+      color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; }
+    .pill.live { color: var(--accent); border-color: var(--accent); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.5 } }
+    .spacer { flex: 1; }
+    a.nav { color: var(--ink); text-decoration: none; font-size: 10px;
+      letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+    a.nav:hover { opacity: 1; }
+    section.stage { position: relative; background: #000; overflow: hidden; }
+    #render { display: block; width: 100%; height: 100%; }
+    .badge { position: absolute; top: 16px; right: 16px;
+      font: 9px/1 ui-monospace, monospace; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--accent);
+      border: 1px solid var(--accent); padding: 6px 10px; opacity: 0.8; }
+    .label { position: absolute; top: 20px; left: 24px; z-index: 4;
+      font: 600 11px/1 ui-monospace, monospace; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--ink); }
+    .readout { position: absolute; bottom: 20px; left: 24px; z-index: 4;
+      font: 11px/1.4 ui-monospace, monospace; letter-spacing: 0.1em;
+      color: var(--ink); }
+    .readout .lbl { color: var(--muted); margin-right: 6px; }
+    .readout .v { color: var(--accent); }
+    .readout span + span { margin-left: 18px; }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 18px;
+      align-items: center; padding: 0 24px; background: var(--bg);
+      border-top: 1px solid var(--line);
+      font: 10px/1 ui-monospace, monospace; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .param b { color: var(--ink); font-weight: 500; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: #000; border: 1px solid var(--line); }
+    .led.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+    /* AUTO-START overlay */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(5,8,17,0.85);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+      backdrop-filter: blur(8px);
+    }
+    #swr-start .box {
+      text-align: center; color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      padding: 32px 48px;
+      border: 1px solid var(--accent);
+      background: rgba(20,12,32,0.7);
+      box-shadow: 0 0 60px rgba(255,96,144,0.25);
+      max-width: 440px;
+    }
+    #swr-start .arrow { font-size: 56px; color: var(--accent); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font: 600 18px/1 'Inter', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: #fff; position: static; }
+    #swr-start .sub { font: 11px/1.4 ui-monospace, monospace; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink); margin-top: 14px; opacity: 0.8; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-page="spectrum">
+  <div id="app">
+    <header>
+      <div class="v">SPEC<em>TRUM</em><small>· AUDIO-REACTIVE</small></div>
+      <span class="pill live" id="live">● LIVE</span>
+      <span class="pill" id="bpm-pill">— bpm</span>
+      <span class="spacer"></span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div class="badge">no footage required · just audio</div>
+      <div class="label">SPECTRUM · 128-BIN FFT</div>
+      <div class="readout">
+        <span><span class="lbl">BASS</span><span class="v" id="b-v">0.00</span></span>
+        <span><span class="lbl">MID</span><span class="v" id="m-v">0.00</span></span>
+        <span><span class="lbl">TRB</span><span class="v" id="t-v">0.00</span></span>
+      </div>
+    </section>
+    <footer>
+      <div class="param">bands <b>128</b></div>
+      <div class="param">glow <b>0.7</b></div>
+      <div class="param">vignette <b>0.4</b></div>
+      <div class="param">chroma <b>0.15</b></div>
+      <div class="param">temp <b>+0.0</b></div>
+      <button class="tbtn" id="rec" disabled style="font-size:10px;background:transparent;color:var(--ink);border:1px solid var(--line);padding:6px 12px;cursor:pointer;letter-spacing:0.16em;text-transform:uppercase;font:10px/1 ui-monospace,monospace;">● REC</button>
+    </footer>
+  </div>
+
+  <script>
+    const stage = document.getElementById('render');
+    const ctx = stage.getContext('2d');
+    let t0 = performance.now();
+    let fftData = null;     // 128-bin FFT magnitudes (0..1)
+    let waveform = null;    // 256-sample time-domain
+
+    // Pull from window.Audio (engine) or local analyser (versions page)
+    function pullAudioFeatures() {
+      if (window.Audio && window.Audio.an && window.Audio.ctx) {
+        const an = window.Audio.an;
+        if (!fftData) fftData = new Uint8Array(an.frequencyBinCount);
+        if (!waveform) waveform = new Uint8Array(an.fftSize);
+        try {
+          an.getByteFrequencyData(fftData);
+          an.getByteTimeDomainData(waveform);
+          return { ok: true, bins: Math.min(128, fftData.length), t: waveform.length };
+        } catch (e) { return { ok: false, err: e.message }; }
+      }
+      return { ok: false, err: 'no Audio.an' };
+    }
+
+    // Generate procedural 128-bin spectrum from window.Audio.feat (fallback)
+    function syntheticSpectrum(t) {
+      // Sub: very low, driven by sinusoid
+      // Bass: pulsed
+      // Mid: medium-amplitude rolling
+      // Treble: high-freq noise on transient
+      const bass = 0.5 + Math.sin(t * 1.5) * 0.4;
+      const mid = 0.5 + Math.sin(t * 0.8 + 0.5) * 0.3;
+      const tr = 0.4 + Math.abs(Math.sin(t * 4)) * 0.4;
+      const bins = 128;
+      const out = new Float32Array(bins);
+      for (let i = 0; i < bins; i++) {
+        const f = i / bins;
+        let amp;
+        if (f < 0.05) amp = bass * 0.6;                                  // sub
+        else if (f < 0.2) amp = bass * (1 - (f - 0.05) / 0.15);          // bass
+        else if (f < 0.5) amp = mid * (1 - (f - 0.2) / 0.3) * 0.9;       // mid
+        else if (f < 0.8) amp = tr * (1 - (f - 0.5) / 0.3) * 0.7;        // treble
+        else amp = tr * 0.3 * (1 - (f - 0.8) / 0.2);                   // air
+        // small wobble
+        amp *= 0.85 + 0.15 * Math.sin(t * 3 + i * 0.4);
+        out[i] = Math.max(0, Math.min(1, amp));
+      }
+      return out;
+    }
+
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const W = stage.width, H = stage.height;
+
+      // Background: deep gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, '#0a0d20');
+      bgGrad.addColorStop(1, '#02030a');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Get spectrum
+      let spec;
+      const audioPull = pullAudioFeatures();
+      if (audioPull.ok && fftData) {
+        spec = new Float32Array(128);
+        for (let i = 0; i < 128; i++) {
+          // Bin mapping: log scale for better visual
+          const bin = Math.floor(Math.pow(i / 128, 1.6) * (fftData.length - 1));
+          spec[i] = fftData[bin] / 255;
+        }
+      } else {
+        spec = syntheticSpectrum(t);
+      }
+
+      // Draw: stacked layers
+      // Layer 1: Centerline (mirrored spectrum bars) — main visual
+      const midY = H / 2;
+      const barW = W / 128;
+      const peakHold = new Float32Array(128);
+      // Decay peaks
+      for (let i = 0; i < 128; i++) {
+        if (spec[i] > peakHold[i]) peakHold[i] = spec[i];
+        else peakHold[i] = Math.max(0, peakHold[i] - 0.012);
+      }
+
+      // Draw peak hold (white-ish, thin)
+      for (let i = 0; i < 128; i++) {
+        const x = i * barW;
+        const ph = peakHold[i] * H * 0.42;
+        ctx.fillStyle = 'rgba(255,240,180,0.85)';
+        ctx.fillRect(x + 1, midY - ph - 2, barW - 2, 1.5);
+        ctx.fillRect(x + 1, midY + ph + 1, barW - 2, 1.5);
+      }
+
+      // Draw spectrum bars (gradient: blue → pink)
+      for (let i = 0; i < 128; i++) {
+        const x = i * barW;
+        const h = spec[i] * H * 0.4;
+        // Color shift: bass = accent pink, mid = blue, treble = white
+        const f = i / 128;
+        let r, g, b;
+        if (f < 0.2) {      // bass
+          const t = f / 0.2;
+          r = 255 * (0.4 + 0.6 * (1 - t));
+          g = 96;
+          b = 144 + 100 * t;
+        } else if (f < 0.6) { // mid
+          r = 96 + 100 * (f - 0.2) / 0.4;
+          g = 144 + 60 * (1 - (f - 0.2) / 0.4);
+          b = 255 * (0.9 - 0.3 * (f - 0.2) / 0.4);
+        } else {              // treble
+          const t = (f - 0.6) / 0.4;
+          r = 196 + 60 * t;
+          g = 204;
+          b = 255 * (1 - 0.2 * t);
+        }
+        ctx.fillStyle = `rgba(${r|0}, ${g|0}, ${b|0}, 0.92)`;
+        ctx.fillRect(x + 1, midY - h, barW - 2, h * 2);
+      }
+
+      // Glow (additive, low intensity)
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 128; i++) {
+        const x = i * barW;
+        const h = spec[i] * H * 0.5;
+        const f = i / 128;
+        const alpha = 0.18;
+        let color;
+        if (f < 0.2) color = `rgba(255, 96, 144, ${alpha})`;
+        else if (f < 0.6) color = `rgba(96, 144, 255, ${alpha})`;
+        else color = `rgba(200, 220, 255, ${alpha})`;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, midY - h, barW, h * 2);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Centerline accent
+      ctx.fillStyle = 'rgba(255,96,144,0.18)';
+      ctx.fillRect(0, midY - 0.5, W, 1);
+
+      // Beat-pulse circle in the center
+      const beat = window.Audio && window.Audio.feat ? window.Audio.feat.beat : 0;
+      const pulseR = 30 + beat * 80;
+      const ringGrad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, pulseR);
+      ringGrad.addColorStop(0, `rgba(255,96,144,${0.18 + beat * 0.3})`);
+      ringGrad.addColorStop(0.7, `rgba(255,96,144,${0.04 + beat * 0.06})`);
+      ringGrad.addColorStop(1, 'rgba(255,96,144,0)');
+      ctx.fillStyle = ringGrad;
+      ctx.beginPath();
+      ctx.arc(W/2, H/2, pulseR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Update readouts
+      if (window.Audio && window.Audio.feat) {
+        document.getElementById('b-v').textContent = window.Audio.feat.bass.toFixed(2);
+        document.getElementById('m-v').textContent = window.Audio.feat.mid.toFixed(2);
+        document.getElementById('t-v').textContent = window.Audio.feat.treble.toFixed(2);
+        const bpmEl = document.getElementById('bpm-pill');
+        if (window.Audio.feat.bpm) bpmEl.textContent = Math.round(window.Audio.feat.bpm) + ' bpm';
+      } else {
+        // Synthetic readout (no Audio yet — show synthetic)
+        const synthBass = 0.5 + Math.sin(t * 1.5) * 0.4;
+        const synthMid = 0.5 + Math.sin(t * 0.8) * 0.3;
+        const synthTr = 0.4 + Math.abs(Math.sin(t * 4)) * 0.4;
+        document.getElementById('b-v').textContent = synthBass.toFixed(2);
+        document.getElementById('m-v').textContent = synthMid.toFixed(2);
+        document.getElementById('t-v').textContent = synthTr.toFixed(2);
+      }
+
+      // Expose for recorder + state-snapshot
+      window.SWR = window.SWR || {};
+      window.SWR.Audio = window.SWR.Audio || {};
+      window.SWR.Audio.feat = window.SWR.Audio.feat || {
+        bass: spec[10] || 0,
+        mid: spec[64] || 0,
+        treble: spec[110] || 0,
+        beat: beat,
+      };
+
+      requestAnimationFrame(paint);
+    }
+    paint();
+
+    // === RECORDER (MP4/WebM canvas + audio export) ===
+    // Same shape as other engines: MediaRecorder over canvas captureStream
+    // + MediaStreamDestination fed from the audio element (when available).
+    // When the page is run standalone (no engine.html wrapper), audio is
+    // still playable via the same SWR.Audio.load path; this page's
+    // auto-start fetches a bundled audio file (or the saved last song)
+    // and connects it through a fresh AudioContext for recording.
+    const Recorder = {
+      rec: null, chunks: [], recording: false, mime: 'video/webm',
+      mediaCtx: null, mediaSrc: null, mediaDest: null,
+      start() {
+        const audioEl = window.SWR.Audio && window.SWR.Audio.el;
+        if (!audioEl) { alert('load a song first'); return; }
+        try {
+          const fps = 30;
+          const vstream = stage.captureStream(fps);
+          const AC = window.AudioContext || window.webkitAudioContext;
+          this.mediaCtx = new AC();
+          this.mediaSrc = this.mediaCtx.createMediaElementSource(audioEl);
+          this.mediaDest = this.mediaCtx.createMediaStreamDestination();
+          this.mediaSrc.connect(this.mediaDest);
+          this.mediaSrc.connect(this.mediaCtx.destination);
+          const stream = new MediaStream([
+            ...vstream.getVideoTracks(),
+            ...this.mediaDest.stream.getAudioTracks(),
+          ]);
+          const mime = [
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+            'video/mp4;codecs=avc1',
+            'video/mp4',
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+          ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+          this.mime = mime;
+          this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+          this.chunks = [];
+          this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
+          this.rec.onstop = () => this._save();
+          this.rec.start(500);
+          this.recording = true;
+          $('rec').classList.add('live');
+          $('rec').textContent = '■ STOP';
+          const ext = mime.startsWith('video/mp4') ? 'MP4' : 'WebM';
+          console.log('spectrum: recording', ext);
+        } catch (e) {
+          console.error('spectrum: recorder start failed', e);
+        }
+      },
+      stop() {
+        if (!this.rec) return;
+        this.rec.stop();
+        this.recording = false;
+        $('rec').classList.remove('live');
+        $('rec').textContent = '● REC';
+        try { this.mediaSrc && this.mediaSrc.disconnect(); } catch {}
+        try { this.mediaDest && this.mediaDest.disconnect(); } catch {}
+        try { this.mediaCtx && this.mediaCtx.close(); } catch {}
+        this.mediaCtx = this.mediaSrc = this.mediaDest = null;
+      },
+      _save() {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        a.download = 'spectrum-' + ts + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      },
+    };
+
+    const recBtn = document.getElementById('rec');
+    if (recBtn) recBtn.addEventListener('click', () => {
+      if (Recorder.recording) Recorder.stop();
+      else Recorder.start();
+    });
+
+    // Expose the simple audio API used by the auto-start overlay
+    if (!window.SWR.Audio.load) {
+      window.SWR.Audio.load = function (f) {
+        if (this.el) { try { this.el.pause(); this.el.src = ''; } catch (e) {} }
+        this.el = document.createElement('audio');
+        this.el.crossOrigin = 'anonymous';
+        this.el.src = URL.createObjectURL(f);
+        this.el.preload = 'auto';
+        var btn = document.getElementById('rec');
+        if (btn) btn.disabled = false;
+      };
+      window.SWR.Audio.play = function () {
+        if (this.el) { this.el.play(); this.playing = true; }
+      };
+    }
+  </script>
+
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Or load saved last song</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../audios/spectrum.mp3';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        var picked = window.SWR_PICK_DEFAULT_SONG
+          ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
+          : null;
+        if (!picked) throw new Error('no song source available');
+        var blob = picked.blob;
+        var name = picked.name;
+        if (!window.SWR) window.SWR = {};
+        if (!window.SWR.Audio) window.SWR.Audio = {};
+        if (typeof window.SWR.Audio.load === 'function') {
+          var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+          if (sub) {
+            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
+            sub.textContent = tag + name;
+          }
+        }
+      } catch (e) {
+        if (sub) sub.textContent = 'tap a song to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+<script src="./last-song.js"></script>
+<script src="./temp-slider.js"></script>
+</body>
+</html>

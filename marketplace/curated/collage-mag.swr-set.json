@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000004",
+  "name": "Collage · Mag",
+  "author": "SWR",
+  "description": "6-panel magazine-grid layout with beat-synced cut animations. Drop your own clips to fill the panels. Best for lyric videos, social reels, mixed-media stories.",
+  "tags": ["collage", "magazine", "lyric-video", "mixed-media"],
+  "createdAt": "2026-08-24T00:00:00Z",
+  "engine": "collage",
+  "audio": {
+    "name": "loop-shimmer.wav",
+    "mimeType": "audio/wav",
+    "size": 845000,
+    "url": "library/audio/loop-shimmer.wav"
+  },
+  "fx": {
+    "temp": 0.1,
+    "mut": 0.0,
+    "mutAlgo": 0,
+    "posterize": 0.0,
+    "vignette": 0.4,
+    "chroma": 0.15,
+    "grain": 0.1,
+    "sepia": 0.0,
+    "glow": 0.0,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.0
+  },
+  "layers": [],
+  "settings": { "bpm": 110, "key": "G", "scale": "major" }
+}
