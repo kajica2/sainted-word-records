@@ -4,30 +4,113 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/", "destination": "/landing.html" },
-    { "source": "/engine", "destination": "/engine.html" },
-    { "source": "/engine/", "destination": "/engine.html" },
-    { "source": "/versions", "destination": "/versions.html" },
-    { "source": "/versions/", "destination": "/versions.html" },
-    { "source": "/about", "destination": "/about.html" },
-    { "source": "/about/", "destination": "/about.html" },
-    { "source": "/changelog", "destination": "/changelog.html" },
-    { "source": "/changelog/", "destination": "/changelog.html" },
-    { "source": "/engine-demos", "destination": "/engine-demos.html" },
-    { "source": "/engine-demos/", "destination": "/engine-demos.html" },
-    { "source": "/press", "destination": "/press.html" },
-    { "source": "/press/", "destination": "/press.html" },
-    { "source": "/status", "destination": "/status.html" },
-    { "source": "/status/", "destination": "/status.html" },
-    { "source": "/personas", "destination": "/personas.html" },
-    { "source": "/personas/", "destination": "/personas.html" },
-    { "source": "/thanks", "destination": "/thanks.html" },
-    { "source": "/thanks/", "destination": "/thanks.html" },
-    { "source": "/login", "destination": "/login.html" },
-    { "source": "/login/", "destination": "/login.html" },
-    { "source": "/campaign", "destination": "/campaign.html" },
-    { "source": "/campaign/", "destination": "/campaign.html" },
-    { "source": "/intro", "destination": "/intro.html" },
-    { "source": "/intro/", "destination": "/intro.html" }
+    {
+      "source": "/",
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/engine",
+      "destination": "/engine.html"
+    },
+    {
+      "source": "/engine/",
+      "destination": "/engine.html"
+    },
+    {
+      "source": "/versions",
+      "destination": "/versions.html"
+    },
+    {
+      "source": "/versions/",
+      "destination": "/versions.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/about/",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/changelog",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/changelog/",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/engine-demos",
+      "destination": "/engine-demos.html"
+    },
+    {
+      "source": "/engine-demos/",
+      "destination": "/engine-demos.html"
+    },
+    {
+      "source": "/press",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/press/",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/status/",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/personas",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/thanks",
+      "destination": "/thanks.html"
+    },
+    {
+      "source": "/thanks/",
+      "destination": "/thanks.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/login/",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/campaign",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/campaign/",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/portfolio/",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/intro",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/intro/",
+      "destination": "/intro.html"
+    }
   ]
 }

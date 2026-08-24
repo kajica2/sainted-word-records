@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in · Sainted Word Records</title>
+  <meta name="color-scheme" content="dark" />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root {
+      --bg-0: #0a0410;
+      --bg-1: #14061f;
+      --bg-2: #1f0a30;
+      --panel: #1a0828;
+      --panel-2: #250c38;
+      --line: #3a1f55;
+      --line-2: #5a2f7a;
+      --fg: #f5e9ff;
+      --muted: #9a8aaa;
+      --dim: #5a4a6a;
+      --accent: #ff3d92;
+      --accent-2: #00e5ff;
+      --accent-3: #ffd24a;
+      --warn: #ff7a3d;
+      --ok: #00ffa3;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100vh;
+      background: var(--bg-0);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        radial-gradient(ellipse at 15% 0%, rgba(255, 61, 146, 0.18), transparent 55%),
+        radial-gradient(ellipse at 85% 100%, rgba(0, 229, 255, 0.14), transparent 55%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    }
+    .shell {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+    .top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 56px;
+    }
+    .brand {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      font-size: 14px;
+      color: var(--accent);
+      text-shadow: 0 0 12px rgba(255, 61, 146, 0.4);
+    }
+    .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; letter-spacing: 0.06em; }
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line-2);
+      color: var(--muted);
+    }
+    .hero { text-align: center; margin-bottom: 48px; }
+    .hero h1 {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      letter-spacing: 0.04em;
+      margin: 0 0 12px;
+      color: var(--fg);
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p { color: var(--muted); max-width: 540px; margin: 0 auto; line-height: 1.55; }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--bg-1));
+      border: 1px solid var(--line-2);
+      border-radius: 12px;
+      padding: 28px 32px 32px;
+      box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+    }
+    .card h2 {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      margin: 0 0 4px;
+    }
+    .card .sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 24px;
+    }
+
+    .row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+    .row label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .row input[type="text"],
+    .row input[type="email"] {
+      background: var(--bg-0);
+      border: 1px solid var(--line-2);
+      border-radius: 6px;
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 10px 12px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .row input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg-1);
+    }
+    .row .hint { font-size: 11px; color: var(--dim); }
+
+    .actions {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-top: 24px;
+    }
+    .actions .note {
+      font-size: 11px; color: var(--dim); max-width: 380px; line-height: 1.5;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #000;
+      border: 1px solid var(--accent);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 10px 22px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background 0.12s, transform 0.06s;
+    }
+    button.primary:hover { background: #ff5fa3; }
+    button.primary:active { transform: translateY(1px); }
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button.ghost:hover { color: var(--fg); border-color: var(--accent); }
+
+    .err {
+      color: var(--warn);
+      font-size: 12px;
+      margin-top: 12px;
+      min-height: 16px;
+    }
+
+    .foot {
+      text-align: center;
+      color: var(--dim);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 28px; }
+      .card { padding: 22px 20px; }
+      .actions { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div class="brand">SAINTED WORD <small>RECORDS</small></div>
+      <div class="badge">local profile · v0.1</div>
+    </div>
+
+    <div class="hero">
+      <h1>Sign in to your <em>brand kit</em></h1>
+      <p>Your brand kit follows you across the studio: your logo, your colors, your fonts. One profile, one identity, every export.</p>
+    </div>
+
+    <div class="card">
+      <h2>Local profile</h2>
+      <div class="sub">No password, no server, no signup. Your profile lives in this browser. (Real auth ships later.)</div>
+
+      <form id="login-form" autocomplete="on">
+        <div class="row">
+          <label for="name">Display name</label>
+          <input type="text" id="name" name="name" required minlength="2" maxlength="48" placeholder="e.g. Kai Records" />
+        </div>
+
+        <div class="row">
+          <label for="email">Email (optional)</label>
+          <input type="email" id="email" name="email" placeholder="you@label.fm" />
+          <div class="hint">Used as a profile key. Never sent anywhere.</div>
+        </div>
+
+        <div class="err" id="err"></div>
+
+        <div class="actions">
+          <div class="note">By continuing you create a local profile. Switch or delete it any time from the studio header.</div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="ghost" id="skip-btn">Skip for now</button>
+            <button type="submit" class="primary" id="enter-btn">Enter studio →</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="foot">SAINTED WORD RECORDS · ALGORITHMIC AUDIO-REACTIVE VIDEO ENGINE</div>
+  </div>
+
+  <!-- Synchronous safety net: prevent default submit if the module hasn't
+       loaded yet. The module script below installs the real handler and
+       clears this once attached. Without this, a fast form submit (or a
+       user with a slow connection) falls through to a GET request and
+       refreshes the page with query params. -->
+  <script>
+    (function () {
+      var form = document.getElementById('login-form');
+      if (!form) return;
+      form.addEventListener('submit', function (e) {
+        if (window.__loginHandlerReady) return;  // module handler is in charge
+        e.preventDefault();
+        // Re-dispatch as a click on the button once the module finishes.
+        var btn = document.getElementById('enter-btn');
+        var pending = setInterval(function () {
+          if (window.__loginHandlerReady) {
+            clearInterval(pending);
+            btn.click();
+          }
+        }, 30);
+      }, true);
+    })();
+  </script>
+
+  <script type="module">
+    // login.html — local profile capture
+    // The brandkit module owns the localStorage shape + the dev/prod
+    // studio URL probe. We just call its readProfile / writeProfile.
+    await import('./brandkit.client.js');
+
+    // Tell the safety net above that we're now in charge of submit.
+    window.__loginHandlerReady = true;
+
+    const $ = (id) => document.getElementById(id);
+    const form = $('login-form');
+    const nameInput = $('name');
+    const emailInput = $('email');
+    const errEl = $('err');
+    const skipBtn = $('skip-btn');
+
+    // If a profile already exists, prefill and let the user re-enter the studio
+    const existing = window.SWR_Brandkit ? window.SWR_Brandkit.readProfile() : null;
+    if (existing && existing.name) {
+      nameInput.value = existing.name;
+      if (existing.email) emailInput.value = existing.email;
+    }
+
+    function writeProfile(patch) {
+      return window.SWR_Brandkit.writeProfile(patch);
+    }
+
+    async function goToStudio() {
+      const studioUrl = await window.SWR_Brandkit.probeStudio();
+      window.location.href = studioUrl;
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+      if (name.length < 2) {
+        errEl.textContent = 'Name must be at least 2 characters.';
+        nameInput.focus();
+        return;
+      }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errEl.textContent = 'That email doesn\'t look right.';
+        emailInput.focus();
+        return;
+      }
+      writeProfile({ name, email: email || null });
+      goToStudio();
+    });
+
+    skipBtn.addEventListener('click', () => {
+      writeProfile({ name: 'Guest', email: null, skipped: true });
+      goToStudio();
+    });
+
+    // Enter key on name field submits even if focus is in the field
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); form.requestSubmit(); }
+    });
+  </script>
+</body>
+</html>
