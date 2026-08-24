@@ -139,6 +139,9 @@ try {
     });
     await page.reload({ waitUntil: 'networkidle0' });
     await page.addScriptTag({ path: joinPath(ROOT, 'lib', 'playlist.client.js') });
+    if (managerReady) {
+      await page.addScriptTag({ path: joinPath(ROOT, 'lib', 'library-manager.client.js') });
+    }
     const r = await page.evaluate(() => {
       const list = window.SWR_PLAYLIST.list();
       return { n: list.length, first: list[0] && list[0].title };

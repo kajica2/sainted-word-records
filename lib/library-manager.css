@@ -1,0 +1,279 @@
+/* lib/library-manager.css — Library Manager UI styling.
+ *
+ * Companion to lib/library-switcher.css. Uses the engine's existing CSS
+ * variables so the manager blends into any page that already loads the
+ * engine stylesheet (make-video.html, engine.html, etc.).
+ *
+ * Selector namespace: `.lmp-*` (Library Manager Panel) — distinct from
+ * the picker UI's `.lsw-*` (Library Switcher) so the two never collide.
+ */
+
+.lmp-root {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink, #fff);
+  user-select: none;
+}
+
+.lmp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(10, 0, 8, 0.85);
+  border: 1px solid var(--line, #330022);
+  border-radius: 4px;
+  padding: 10px;
+  width: 100%;
+  max-width: 560px;
+  box-sizing: border-box;
+}
+
+.lmp-tabs {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.lmp-tab {
+  flex: 1 1 auto;
+  min-width: 80px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--line, #330022);
+  border-radius: 3px;
+  color: var(--muted, #ff44aa);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lmp-tab:hover {
+  border-color: var(--accent-2, #00ccff);
+  color: var(--ink, #fff);
+}
+
+.lmp-tab.active {
+  background: var(--accent-2, #00ccff);
+  border-color: var(--accent-2, #00ccff);
+  color: #000;
+  font-weight: 700;
+}
+
+/* toolbar */
+
+.lmp-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lmp-toolbar-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.lmp-search {
+  flex: 1 1 200px;
+  min-width: 160px;
+  padding: 5px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--line, #330022);
+  border-radius: 3px;
+  color: var(--ink, #fff);
+  font: inherit;
+  letter-spacing: 0.04em;
+}
+
+.lmp-search:focus {
+  outline: none;
+  border-color: var(--accent-2, #00ccff);
+}
+
+.lmp-sort {
+  padding: 5px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--line, #330022);
+  border-radius: 3px;
+  color: var(--ink, #fff);
+  font: inherit;
+  letter-spacing: 0.04em;
+}
+
+.lmp-bulk {
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 9px;
+  background: transparent;
+  border: 1px solid var(--line, #330022);
+  border-radius: 3px;
+  color: var(--ink, #fff);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lmp-bulk:hover:not(:disabled) {
+  border-color: var(--accent-2, #00ccff);
+  color: var(--accent-2, #00ccff);
+}
+
+.lmp-bulk:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lmp-bulk.lmp-add-pl {
+  border-color: var(--green, #00ff66);
+  color: var(--green, #00ff66);
+}
+
+.lmp-bulk.lmp-add-pl:hover:not(:disabled) {
+  background: var(--green, #00ff66);
+  color: #000;
+}
+
+.lmp-bulk.lmp-remove {
+  border-color: var(--accent, #ff0066);
+  color: var(--accent, #ff0066);
+}
+
+.lmp-bulk.lmp-remove:hover:not(:disabled) {
+  background: var(--accent, #ff0066);
+  color: #000;
+}
+
+.lmp-bulk.lmp-clear {
+  border-color: var(--line, #330022);
+  color: var(--muted, #ff44aa);
+  margin-left: auto;
+}
+
+.lmp-bulk.lmp-clear:hover:not(:disabled) {
+  border-color: var(--accent, #ff0066);
+  color: var(--accent, #ff0066);
+}
+
+.lmp-counter {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  color: var(--muted, #ff44aa);
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+/* rows */
+
+.lmp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.lmp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  border-radius: 3px;
+}
+
+.lmp-row:hover {
+  background: rgba(0, 240, 255, 0.06);
+  border-color: var(--line, #330022);
+}
+
+.lmp-check {
+  flex: 0 0 auto;
+  cursor: pointer;
+  accent-color: var(--accent-2, #00ccff);
+}
+
+.lmp-thumb {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  background: var(--panel-2, #1f0010);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lmp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lmp-thumb-fallback {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted, #ff44aa);
+}
+
+.lmp-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lmp-title {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink, #fff);
+}
+
+.lmp-sub {
+  font-size: 9px;
+  color: var(--muted, #ff44aa);
+  opacity: 0.8;
+  letter-spacing: 0.04em;
+}
+
+.lmp-row-del {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid var(--line, #330022);
+  border-radius: 3px;
+  color: var(--muted, #ff44aa);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lmp-row-del:hover {
+  border-color: var(--accent, #ff0066);
+  color: var(--accent, #ff0066);
+  background: rgba(255, 0, 102, 0.08);
+}
+
+.lmp-empty {
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted, #ff44aa);
+  opacity: 0.75;
+  font-style: italic;
+  border: 1px dashed var(--line, #330022);
+  border-radius: 3px;
+}
