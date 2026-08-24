@@ -31,6 +31,7 @@ const RENDER_TAG = '<script src="../engine-render.client.js"></script>';
 const TIMING_TAG = '<script src="../engine-timing.client.js"></script>';
 const TIMING_PANEL_TAG = '<script src="../engine-timing-panel.client.js"></script>';
 const LFOS_TAG = '<script src="../engine-lfos.client.js"></script>';
+const LFO_PANEL_TAG = '<script src="../engine-lfo-panel.client.js"></script>';
 const SCHEDULER_TAG = '<script src="../layer-scheduler.client.js"></script>';
 
 const FIT_REPLACEMENT = `    function fit() {
@@ -69,9 +70,9 @@ for (const name of ENGINES) {
     // commands through SWR_TIMING.crossfade).
     const genopsLink = '<link rel="stylesheet" href="../engine-genops.css" />';
     if (src.includes(genopsLink)) {
-      src = src.replace(genopsLink, RENDER_TAG + '\n' + TIMING_TAG + '\n' + TIMING_PANEL_TAG + '\n' + LFOS_TAG + '\n' + SCHEDULER_TAG + '\n' + genopsLink);
+      src = src.replace(genopsLink, RENDER_TAG + '\n' + TIMING_TAG + '\n' + TIMING_PANEL_TAG + '\n' + LFOS_TAG + '\n' + LFO_PANEL_TAG + '\n' + SCHEDULER_TAG + '\n' + genopsLink);
     } else {
-      src = src.replace(headTag, RENDER_TAG + '\n' + TIMING_TAG + '\n' + TIMING_PANEL_TAG + '\n' + LFOS_TAG + '\n' + SCHEDULER_TAG + headTag);
+      src = src.replace(headTag, RENDER_TAG + '\n' + TIMING_TAG + '\n' + TIMING_PANEL_TAG + '\n' + LFOS_TAG + '\n' + LFO_PANEL_TAG + '\n' + SCHEDULER_TAG + headTag);
     }
   }
   // Idempotent tag fills: a previous pass may have inserted some tags via
@@ -85,8 +86,11 @@ for (const name of ENGINES) {
   if (src.includes('engine-timing-panel.client.js') && !src.includes('engine-lfos.client.js')) {
     src = src.replace(TIMING_PANEL_TAG, TIMING_PANEL_TAG + '\n' + LFOS_TAG);
   }
+  if (src.includes('engine-lfos.client.js') && !src.includes('engine-lfo-panel.client.js')) {
+    src = src.replace(LFOS_TAG, LFOS_TAG + '\n' + LFO_PANEL_TAG);
+  }
   if (src.includes('engine-render.client.js') && !src.includes('layer-scheduler.client.js')) {
-    src = src.replace(RENDER_TAG, RENDER_TAG + '\n' + TIMING_TAG + '\n' + TIMING_PANEL_TAG + '\n' + LFOS_TAG + '\n' + SCHEDULER_TAG);
+    src = src.replace(RENDER_TAG, RENDER_TAG + '\n' + TIMING_TAG + '\n' + TIMING_PANEL_TAG + '\n' + LFOS_TAG + '\n' + LFO_PANEL_TAG + '\n' + SCHEDULER_TAG);
   }
 
   // ---- 2. rewrite fit() ------------------------------------------------
