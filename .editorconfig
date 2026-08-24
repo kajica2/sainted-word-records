@@ -1,0 +1,27 @@
+# EditorConfig — https://editorconfig.org
+# Keeps indentation, line endings, and charset consistent across editors.
+# Per-file overrides follow the most-specific-wins rule.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Markdown files often have intentional trailing whitespace (line breaks).
+# Don't strip it.
+[*.md]
+trim_trailing_whitespace = false
+
+# Makefiles require literal tabs in recipe lines.
+[Makefile]
+indent_style = tab
+
+# Yarn 1 / npm shrinkwrap files: don't touch them at all.
+[{package-lock.json,yarn.lock,pnpm-lock.yaml}]
+trim_trailing_whitespace = false
+insert_final_newline = false

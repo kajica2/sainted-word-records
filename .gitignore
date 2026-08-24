@@ -35,14 +35,16 @@ style-videos/
 style-videos-original/
 style-videos-watermarked/
 
-# One-off scratch scripts (debug/audit/verification on demand)
-check-*.mjs
-snap-*.mjs
-generate-*.mjs
-inspect-*.mjs
-crawl.mjs
-deploy-verify.mjs
-render-*.mjs
+# One-off scratch scripts (debug/audit/verification on demand).
+# Anchored at the repo root so scripts/check-*.mjs (build tooling that
+# npm run + CI calls) stays tracked.
+/check-*.mjs
+/snap-*.mjs
+/generate-*.mjs
+/inspect-*.mjs
+/crawl.mjs
+/deploy-verify.mjs
+/render-*.mjs
 
 # Accidental editor backups
 *.bak1
@@ -74,3 +76,7 @@ verify-watermark.png
 
 # Python tooling (icon generator; not part of the JS build)
 _gen_*.py
+
+# Throwaway smoke/probe scripts (debug on demand, not part of the JS build)
+_probe_*.mjs
+_smoke_*.mjs
