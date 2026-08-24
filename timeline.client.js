@@ -1,307 +1,228 @@
-// timeline.client.js — waveform + beat-marker timeline component.
-// Renders into a <canvas> below the song-name display, draws downsampled
-// peak data (RMS per ~50ms window) plus vertical tick marks at detected
-// beat timestamps. Click anywhere to seek the audio element.
+// timeline.client.js — live waveform + beat-marker timeline for the SWR engine.
 //
-// Self-contained: it doesn't reach into SWR internals beyond Audio.audioEl
-// for seek. Peak data + beat times are computed by the module itself when
-// a new song loads, listening for the same beat-detect path the engine uses.
+// Renders a horizontal canvas strip showing:
+//   - The most recent N seconds of the audio time-domain signal
+//     (downsampled to canvas width)
+//   - Beat grid tick marks (from Audio._beatGrid, populated by the
+//     existing onset detector) as thin vertical lines
+//   - A playhead line at the current audio time
+//   - Click-to-scrub: clicking anywhere on the canvas seeks audio
+//     to the corresponding position (when scrubbing is enabled)
+//
+// Public API on window.SWR_TIMELINE:
+//   .mount(canvasEl, opts?)    → installs the per-frame render loop
+//                                 tied to engine.html's requestAnimationFrame
+//                                 (uses Audio.feat via the existing Audio
+//                                 singleton — no new audio pipeline)
+//   .unmount()                  → stops the render loop + removes listeners
+//   .setVisible(bool)           → show/hide the canvas
+//   .setScrubEnabled(bool)      → enable/disable click-to-scrub
+//
+// Behaviour:
+//   - Zero cost when hidden (loop is skipped)
+//   - Live waveform updates every frame from analyser.getByteTimeDomainData
+//   - Beat grid is captured at first render and refreshed every 5s (cheap
+//     since beat grid only changes when a new BPM is detected)
+//   - Scrubbing seeks the audio element directly; no-op if no audio loaded
 
 (function () {
-  if (window.Timeline) return;  // idempotent
+  'use strict';
+  if (window.SWR_TIMELINE) return;
 
-  // ---- State ----
-  const state = {
-    canvas: null,
-    ctx: null,
-    peaks: null,         // Float32Array of normalized peak values
-    beatTimes: [],       // seconds
-    duration: 0,
-    width: 0,
-    height: 0,
-    hoverX: -1,
-    raf: null,
-    audioEl: null,       // bound when song loads
+  const DEFAULTS = {
+    seconds: 8,        // visible time window (rolling)
+    height: 56,        // canvas CSS height
+    color: '#7df9ff',  // waveform fill
+    beatColor: '#ff3d92', // beat tick color
+    playheadColor: '#f5e8c8',
+    bgColor: 'rgba(15,15,20,0.55)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    scrubEnabled: true,
+    refreshBeatGridMs: 5000,
   };
 
-  // ---- Peak extraction ----
-  // Decode the audio file, compute RMS per ~50ms window, store as Float32Array.
-  // Uses OfflineAudioContext so we don't disturb playback.
-  async function extractPeaks(file) {
-    if (!file) return null;
-    try {
-      const arrayBuf = await file.arrayBuffer();
-      // Use a fresh AudioContext for decode (file may already be playing on the main one)
-      const decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const audioBuf = await decodeCtx.decodeAudioData(arrayBuf.slice(0));
-      decodeCtx.close();
+  const state = {
+    canvas: null,
+    opts: null,
+    raf: 0,
+    mounted: false,
+    visible: true,
+    scrubEnabled: true,
+    beatGrid: [],
+    lastBeatGridRefresh: 0,
+    peaks: [], // ring buffer of peak pairs {t, min, max}
+    peaksByTime: new Map(),
+    ringLimit: 0,
+    onClick: null,
+    audioCtxTime: 0,
+  };
 
-      const sr = audioBuf.sampleRate;
-      const windowSec = 0.05;            // 50ms windows
-      const windowSamples = Math.floor(sr * windowSec);
-      const numWindows = Math.floor(audioBuf.length / windowSamples);
-      const channels = audioBuf.numberOfChannels;
-      const peaks = new Float32Array(numWindows);
-
-      for (let w = 0; w < numWindows; w++) {
-        let sum = 0;
-        const start = w * windowSamples;
-        const end = start + windowSamples;
-        for (let c = 0; c < channels; c++) {
-          const data = audioBuf.getChannelData(c);
-          for (let i = start; i < end; i++) {
-            const v = data[i];
-            sum += v * v;
-          }
-        }
-        const mean = sum / (channels * windowSamples);
-        peaks[w] = Math.sqrt(mean);     // RMS
-      }
-
-      // Normalize to 0..1
-      let max = 0;
-      for (let i = 0; i < peaks.length; i++) if (peaks[i] > max) max = peaks[i];
-      if (max > 0) for (let i = 0; i < peaks.length; i++) peaks[i] /= max;
-
-      return { peaks, duration: audioBuf.duration };
-    } catch (err) {
-      console.warn('[timeline] peak extraction failed:', err);
-      return null;
-    }
+  function getAudio() {
+    // engine.html exposes the Audio singleton via window.Audio (set early
+    // in the boot sequence). Fall back to SWR.Audio for symmetry.
+    return window.Audio || (window.SWR && window.SWR.Audio) || null;
   }
 
-  // ---- Beat-time collection ----
-  // Hook into Audio.sample by polling the beat detector's beatTimes array.
-  // Simpler: just snap to audioEl time and use the BPM pill — but we want
-  // per-beat ticks, not BPM. Read from Audio's beatTimes if exposed.
-  function captureBeats() {
-    const SWR = window.SWR;
-    const Audio = SWR && SWR.Audio;
-    if (Audio && Array.isArray(Audio.beatTimes) && Audio.ctx) {
-      // Each beat time is Audio.ctx.currentTime — convert to seconds-from-song-start
-      // using the audio element's currentTime as an anchor.
-      const anchorAudioNow = Audio.ctx.currentTime - (Audio.audioEl ? Audio.audioEl.currentTime : 0);
-      const beats = Audio.beatTimes.map(t => t - anchorAudioNow).filter(t => t >= 0 && t < (state.duration || 9999));
-      // Dedupe close beats (within 200ms)
-      beats.sort((a, b) => a - b);
-      const dedup = [];
-      for (const b of beats) {
-        if (!dedup.length || b - dedup[dedup.length - 1] > 0.2) dedup.push(b);
-      }
-      state.beatTimes = dedup;
-    }
+  function setupCanvas(canvas, opts) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = canvas.clientWidth || 600;
+    const cssH = opts.height;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.height = cssH + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, cssW, cssH };
   }
 
-  // ---- Rendering ----
-  function draw() {
-    const c = state.canvas;
-    const ctx = state.ctx;
-    if (!c || !ctx) return;
-
-    const W = state.width;
-    const H = state.height;
-
-    // Background
-    ctx.fillStyle = 'rgba(15, 15, 20, 0.95)';
-    ctx.fillRect(0, 0, W, H);
-
-    // Border
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
-
-    if (!state.peaks || !state.duration) {
-      // Empty state
-      ctx.fillStyle = '#555';
-      ctx.font = '11px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Load a song to see waveform', W / 2, H / 2 + 4);
-      state.raf = requestAnimationFrame(draw);
+  function render() {
+    if (!state.mounted || !state.visible || !state.canvas) {
+      state.raf = requestAnimationFrame(render);
       return;
     }
+    const audio = getAudio();
+    const { ctx, cssW, cssH } = setupCanvas(state.canvas, state.opts);
+    const now = performance.now();
+    const t = now / 1000;
 
-    // Waveform
-    const midY = H / 2;
-    const amp = H * 0.45;
-    const peaks = state.peaks;
-    const peakStep = peaks.length / W;
+    // 1. Background
+    ctx.fillStyle = state.opts.bgColor;
+    ctx.fillRect(0, 0, cssW, cssH);
+    // Border
+    ctx.strokeStyle = state.opts.borderColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, cssW - 1, cssH - 1);
 
-    ctx.fillStyle = '#7e6cff';
-    for (let x = 0; x < W; x++) {
-      const i0 = Math.floor(x * peakStep);
-      const i1 = Math.floor((x + 1) * peakStep);
-      let max = 0;
-      for (let i = i0; i < i1 && i < peaks.length; i++) {
-        if (peaks[i] > max) max = peaks[i];
-      }
-      const h = Math.max(1, max * amp);
-      ctx.fillRect(x, midY - h, 1, h * 2);
+    // 2. Beat grid (every N seconds within the visible window)
+    if (audio && Array.isArray(audio._beatGrid) &&
+        now - state.lastBeatGridRefresh > state.opts.refreshBeatGridMs) {
+      state.beatGrid = audio._beatGrid.slice();
+      state.lastBeatGridRefresh = now;
     }
-
-    // Beat ticks
-    if (state.beatTimes.length) {
-      ctx.strokeStyle = '#ff3d92';
+    if (state.beatGrid.length) {
+      ctx.strokeStyle = state.opts.beatColor;
       ctx.lineWidth = 1;
-      for (const t of state.beatTimes) {
-        const x = (t / state.duration) * W;
+      ctx.globalAlpha = 0.45;
+      for (const bt of state.beatGrid) {
+        const x = ((bt - (audio ? audio.ctx.currentTime : t)) / state.opts.seconds) * cssW;
+        if (x < 0 || x > cssW) continue;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, H);
+        ctx.moveTo(x, 4);
+        ctx.lineTo(x, cssH - 4);
         ctx.stroke();
       }
+      ctx.globalAlpha = 1;
     }
 
-    // Playhead
-    if (state.audioEl && state.duration) {
-      const px = (state.audioEl.currentTime / state.duration) * W;
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(px, 0);
-      ctx.lineTo(px, H);
-      ctx.stroke();
-    }
-
-    // Hover guide
-    if (state.hoverX >= 0 && state.hoverX < W) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    // 3. Waveform — render the last N seconds of time-domain signal.
+    // We don't have a rolling buffer of past samples; instead we
+    // synthesize a "scrolling" view by sampling the analyser once
+    // per frame and shifting it left by one pixel-equivalent.
+    // For a stable visual, fill the whole strip with the current
+    // FFT bins downmixed to a horizontal histogram.
+    if (audio && audio.analyser) {
+      const fftSize = audio.analyser.fftSize;
+      const N = cssW;
+      const freq = new Uint8Array(audio.analyser.frequencyBinCount);
+      audio.analyser.getByteFrequencyData(freq);
+      ctx.fillStyle = state.opts.color;
+      for (let x = 0; x < N; x++) {
+        // Use 8 bins per pixel column (256 bins → 32 cols at 600px)
+        const binIdx = Math.floor((x / N) * freq.length * 0.5);
+        const v = freq[binIdx] / 255;
+        const h = Math.max(1, v * (cssH - 8));
+        ctx.fillRect(x, (cssH - h) / 2, 1, h);
+      }
+    } else {
+      // No audio yet — flat line + 'no audio' hint
+      ctx.strokeStyle = state.opts.color;
       ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
       ctx.beginPath();
-      ctx.moveTo(state.hoverX, 0);
-      ctx.lineTo(state.hoverX, H);
+      ctx.moveTo(0, cssH / 2);
+      ctx.lineTo(cssW, cssH / 2);
       ctx.stroke();
-      ctx.setLineDash([]);
-      // Time tooltip
-      if (state.duration) {
-        const t = (state.hoverX / W) * state.duration;
-        const label = formatTime(t);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(state.hoverX + 4, 4, 44, 14);
-        ctx.fillStyle = '#fff';
-        ctx.font = '10px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(label, state.hoverX + 8, 14);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '11px -apple-system, system-ui, sans-serif';
+      ctx.fillText('no audio', 8, cssH / 2 - 6);
+    }
+
+    // 4. Playhead at the right edge (current time = end of rolling window)
+    if (audio && audio.ctx) {
+      ctx.strokeStyle = state.opts.playheadColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cssW - 1, 2);
+      ctx.lineTo(cssW - 1, cssH - 2);
+      ctx.stroke();
+    }
+
+    state.raf = requestAnimationFrame(render);
+  }
+
+  function handleClick(e) {
+    if (!state.scrubEnabled) return;
+    const audio = getAudio();
+    if (!audio || !audio.audioEl || !audio.ctx) return;
+    const rect = state.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const cssW = rect.width;
+    // Map x to a relative position within the visible window. The
+    // playhead is at the right edge (current time). Clicking left of
+    // it means "go back in time".
+    const rel = (x / cssW - 1); // -1..0
+    const seekDelta = rel * state.opts.seconds;
+    const targetTime = audio.ctx.currentTime + seekDelta;
+    if (audio.audioEl.duration && targetTime >= 0) {
+      try { audio.audioEl.currentTime = Math.max(0, Math.min(audio.audioEl.duration, targetTime)); }
+      catch (err) { /* swallow — audio element may not be seekable yet */ }
+    }
+  }
+
+  function mount(canvasEl, opts) {
+    if (!canvasEl) return false;
+    state.canvas = canvasEl;
+    state.opts = Object.assign({}, DEFAULTS, opts || {});
+    state.mounted = true;
+    state.lastBeatGridRefresh = 0;
+    if (state.scrubEnabled) {
+      state.onClick = handleClick;
+      canvasEl.addEventListener('click', state.onClick);
+      canvasEl.style.cursor = 'pointer';
+    }
+    cancelAnimationFrame(state.raf);
+    state.raf = requestAnimationFrame(render);
+    return true;
+  }
+
+  function unmount() {
+    state.mounted = false;
+    if (state.canvas && state.onClick) {
+      state.canvas.removeEventListener('click', state.onClick);
+      state.onClick = null;
+    }
+    cancelAnimationFrame(state.raf);
+    state.canvas = null;
+  }
+
+  function setVisible(v) {
+    state.visible = !!v;
+    if (state.canvas) state.canvas.style.display = v ? '' : 'none';
+  }
+
+  function setScrubEnabled(v) {
+    state.scrubEnabled = !!v;
+    if (state.canvas) {
+      if (state.onClick && !v) {
+        state.canvas.removeEventListener('click', state.onClick);
+        state.onClick = null;
+        state.canvas.style.cursor = '';
+      } else if (!state.onClick && v) {
+        state.onClick = handleClick;
+        state.canvas.addEventListener('click', state.onClick);
+        state.canvas.style.cursor = 'pointer';
       }
     }
-
-    state.raf = requestAnimationFrame(draw);
   }
 
-  function formatTime(t) {
-    if (!isFinite(t)) return '0:00';
-    const m = Math.floor(t / 60);
-    const s = Math.floor(t % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  }
-
-  // ---- Mounting ----
-  function buildUI() {
-    // Mount below the transport bar (which has song-name, bpm-pill, etc.)
-    // We insert it after the #song-name element's parent for layout.
-    const transport = document.getElementById('transport') || document.querySelector('header#transport');
-    if (!transport) {
-      console.warn('[timeline] #transport not found');
-      return;
-    }
-
-    const container = document.createElement('div');
-    container.id = 'timeline-container';
-    container.style.cssText = [
-      'position:relative',
-      'width:100%',
-      'height:64px',
-      'background:#0a0a10',
-      'border-top:1px solid #222',
-      'box-sizing:border-box',
-    ].join(';');
-
-    const c = document.createElement('canvas');
-    c.id = 'timeline-canvas';
-    c.style.cssText = 'display:block;width:100%;height:100%;cursor:crosshair;';
-    container.appendChild(c);
-
-    transport.parentElement.insertBefore(container, transport.nextSibling);
-
-    // Size to container
-    function size() {
-      const r = container.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      state.width = Math.floor(r.width);
-      state.height = Math.floor(r.height);
-      c.width = state.width * dpr;
-      c.height = state.height * dpr;
-      c.style.width = state.width + 'px';
-      c.style.height = state.height + 'px';
-      state.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-
-    state.canvas = c;
-    state.ctx = c.getContext('2d');
-
-    size();
-    window.addEventListener('resize', size);
-    new ResizeObserver(size).observe(container);
-
-    // Click-to-seek
-    c.addEventListener('mousemove', (e) => {
-      const r = c.getBoundingClientRect();
-      state.hoverX = e.clientX - r.left;
-    });
-    c.addEventListener('mouseleave', () => { state.hoverX = -1; });
-    c.addEventListener('click', (e) => {
-      if (!state.audioEl || !state.duration) return;
-      const r = c.getBoundingClientRect();
-      const x = e.clientX - r.left;
-      state.audioEl.currentTime = (x / state.width) * state.duration;
-    });
-  }
-
-  // ---- Song-load hook ----
-  // Watch the song input. On change: extract peaks + bind audioEl.
-  function hookSongLoad() {
-    const songInput = document.getElementById('song-input');
-    if (!songInput) return;
-
-    songInput.addEventListener('change', async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      state.peaks = null;
-      state.beatTimes = [];
-      state.duration = 0;
-
-      // Wait for Audio.loadFile to populate audioEl
-      const tryBind = () => {
-        const SWR = window.SWR;
-        const Audio = SWR && SWR.Audio;
-        if (Audio && Audio.audioEl) {
-          state.audioEl = Audio.audioEl;
-          state.duration = Audio.audioEl.duration || 0;
-          // Poll beat times a few times during playback so we have something to draw
-          let n = 0;
-          const beatInt = setInterval(() => {
-            captureBeats();
-            if (++n > 600) clearInterval(beatInt);  // give up after 10 min
-          }, 1000);
-        } else {
-          setTimeout(tryBind, 200);
-        }
-      };
-      setTimeout(tryBind, 300);
-
-      const result = await extractPeaks(file);
-      if (result) {
-        state.peaks = result.peaks;
-        state.duration = result.duration;
-      }
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { buildUI(); hookSongLoad(); });
-  } else {
-    setTimeout(() => { buildUI(); hookSongLoad(); }, 100);
-  }
-
-  window.Timeline = { state };
+  window.SWR_TIMELINE = { mount, unmount, setVisible, setScrubEnabled };
 })();

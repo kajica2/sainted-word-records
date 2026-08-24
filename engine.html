@@ -917,6 +917,17 @@
       <div id="layer-list"></div>
     </aside>
 
+    <!-- Waveform + beat-marker timeline. Mounted by timeline.client.js
+         after the engine boot. Click anywhere on the strip to scrub. -->
+    <div id="timeline-host" style="grid-column: 2 / 3; padding: 6px 10px; background: var(--panel); border-top: 1px solid var(--line);">
+      <div style="display:flex; align-items:center; gap:10px; font: 10px/1 ui-monospace, Menlo, monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px;">
+        <span>📊 Waveform + Beats</span>
+        <span style="flex:1"></span>
+        <span id="timeline-status" style="font-size:9px;">no audio</span>
+      </div>
+      <canvas id="timeline-canvas" style="display:block; width: 100%; height: 56px; background: rgba(15,15,20,0.55); border-radius: 4px;"></canvas>
+    </div>
+
     <footer id="global">
       <span class="gctrl">
         sensitivity
@@ -3590,6 +3601,16 @@
       window.Layers = Layers;
       window.Library = Library;
       window.CSSFX = CSSFX;
+      // Mount the timeline (waveform + beat markers) if the canvas is
+      // present in the DOM. timeline.client.js loads as a module that
+      // also runs as a standalone IIFE; the canvas mount is a one-liner
+      // and only runs if the strip is visible.
+      try {
+        if (window.SWR_TIMELINE && window.SWR_TIMELINE.mount) {
+          const c = document.getElementById('timeline-canvas');
+          if (c) window.SWR_TIMELINE.mount(c, { height: 56 });
+        }
+      } catch (e) { console.warn('timeline mount', e); }
       // Restore the last-loaded song from IndexedDB (silent restore, no user
       // gesture needed — the user has to click play anyway since browsers gate
       // audio playback on a real gesture).
@@ -3664,6 +3685,7 @@
   <script type="module" src="/engine-settings.client.js"></script>
   <script type="module" src="/engine-keys.client.js"></script>
   <script type="module" src="/project.client.js"></script>
+  <script type="module" src="/timeline.client.js"></script>
   <script type="module" src="/fx-postprocess.js"></script>
   <script type="module" src="/wizard.js"></script>
   <script type="module" src="/personas.js"></script>

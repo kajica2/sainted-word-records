@@ -65,6 +65,7 @@ function copyStatic() {
     'engine-settings.client.js',
     'engine-keys.client.js',
     'project.client.js',
+    'timeline.client.js',
     'layer-scheduler.client.js',
     'layer-scheduler.worker.js',
     'engine-genops.css',
