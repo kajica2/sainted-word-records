@@ -198,6 +198,55 @@
   vertical-align: middle;
 }
 
+/* Phase 3: drag reorder + edge resize */
+.mvm-timeline-row {
+  position: relative;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 18px 4px 4px; /* extra right padding for the grip */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mvm-timeline-row:active { cursor: grabbing; }
+.mvm-timeline-row[draggable="true"]:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.mvm-tl-dragging {
+  opacity: 0.4 !important;
+  transform: scale(0.99);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.mvm-tl-drop-before {
+  box-shadow: inset 0 2px 0 var(--accent, #ff0066);
+}
+.mvm-tl-drop-after {
+  box-shadow: inset 0 -2px 0 var(--accent, #ff0066);
+}
+.mvm-tl-grip {
+  position: absolute;
+  top: 0;
+  right: 28px;  /* sit just left of the ✕ button */
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  background: transparent;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  transition: border-color .12s ease, background .12s ease;
+}
+.mvm-tl-grip:hover {
+  border-left-color: var(--accent-2, #00ccff);
+  border-right-color: var(--accent-2, #00ccff);
+  background: rgba(0, 204, 255, 0.05);
+}
+.mvm-tl-grip-active {
+  border-left-color: var(--accent-2, #00ccff) !important;
+  border-right-color: var(--accent-2, #00ccff) !important;
+  background: rgba(0, 204, 255, 0.12) !important;
+}
+
 .current-song.has-song {
   color: var(--green, #00ff66);
   font-weight: 600;
