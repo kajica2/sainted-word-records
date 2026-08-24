@@ -98,9 +98,13 @@
   function attach(layers) {
     if (!layers) return;
     const arr = Array.isArray(layers) ? layers : [layers];
+    let needStagger = false;
     for (const l of arr) {
       if (!l || typeof l !== 'object') continue;
-      if (typeof l._currentOpacity !== 'number') l._currentOpacity = 0;
+      if (typeof l._currentOpacity !== 'number') {
+        l._currentOpacity = 0;
+        needStagger = true;       // first-time attach on a fresh layer set
+      }
       if (typeof l._targetOpacity !== 'number')  l._targetOpacity  = l.opacity != null ? l.opacity : 1;
       if (!l.fadeInMs)  l.fadeInMs  = cfg.fadeInMs;
       if (!l.fadeOutMs) l.fadeOutMs = cfg.fadeOutMs;
@@ -109,6 +113,10 @@
       // Cached once on attach + recomputed on layer add via recomputeStagger().
       if (typeof l._staggerOrder !== 'number') l._staggerOrder = 0;
     }
+    // A1 — auto-compute luma-sorted intro stagger on first-time attach.
+    // Skip on subsequent attach() calls (those are just touching fields);
+    // recomputeStagger() is the explicit re-entry point.
+    if (needStagger) recomputeStagger(arr, 'lumaAsc');
   }
 
   // A1 — compute ascending luma stagger order over a layer list. Layers
@@ -139,6 +147,25 @@
     if (mode === 'lumaDesc') scored.sort((a, b) => b.m - a.m);
     else                     scored.sort((a, b) => a.m - b.m);
     scored.forEach((s, i) => { s.l._staggerOrder = i; });
+  }
+
+  // A1 — staggered fade-in over the layer list, ordered by _staggerOrder
+  // (set by recomputeStagger). Walks layers in stagger order with
+  // cfg.eventIntro.staggerMs between each, so the composition "blooms".
+  // No-op if Layers has < 2 items or if SWR_TIMING.attach() hasn't run.
+  function staggeredFadeIn(layers, opts) {
+    if (!layers || !layers.length) return false;
+    const o = Object.assign({ staggerMs: cfg.eventIntro.staggerMs, fadeInMs: cfg.eventIntro.fadeInMs }, opts || {});
+    const sorted = layers.slice().sort((a, b) => (a._staggerOrder || 0) - (b._staggerOrder || 0));
+    sorted.forEach((l, i) => {
+      const delay = i * (o.staggerMs || 0);
+      if (delay <= 0) {
+        fadeIn(l, o.fadeInMs);
+      } else {
+        setTimeout(() => fadeIn(l, o.fadeInMs), delay);
+      }
+    });
+    return true;
   }
 
   // ---- public mutators -------------------------------------------------
@@ -263,6 +290,33 @@
     return id;
   }
 
+  // ---- intro trigger ----------------------------------------------------
+  // The first time Audio flips from !playing to playing after page boot,
+  // fire staggeredFadeIn() so the composition blooms from darkest to
+  // lightest. Subsequent play→pause→play cycles (toggle within the same
+  // session) do NOT re-trigger the intro — that would feel like a reset.
+  // To re-trigger manually, call SWR_TIMING.staggeredFadeIn(Layers.list).
+  let __introFired = false;
+  function bootIntroHook() {
+    const poll = () => {
+      const Audio = window.SWR && window.SWR.Audio;
+      const Layers = window.SWR && window.SWR.Layers;
+      if (!Audio || !Layers || !Layers.list || !Layers.list.length) return false;
+      // Drop a check on Audio.playing every 200ms; cheap, no events needed.
+      if (Audio.playing && !__introFired) {
+        __introFired = true;
+        staggeredFadeIn(Layers.list);
+      }
+      return true;
+    };
+    setInterval(poll, 200);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootIntroHook);
+  } else {
+    bootIntroHook();
+  }
+
   // ---- public exposure -------------------------------------------------
 
   window.SWR_TIMING = {
@@ -270,6 +324,7 @@
     cfg,
     attach,
     recomputeStagger,
+    staggeredFadeIn,
     step,
     fadeIn,
     fadeOut,
