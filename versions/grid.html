@@ -253,6 +253,7 @@
 <script src="../engine-lfo-panel.client.js"></script>
 <script src="../engine-automap.client.js"></script>
 <script src="../engine-settings.client.js"></script>
+<script src="../engine-keys.client.js"></script>
 <script src="../layer-scheduler.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
@@ -582,6 +583,7 @@
       }
       // Fold accumulated rot into (-90, +90] so the composition never visibly flips 180°. asin(sin(x)) preserves oscillation across 0 while collapsing wide swings back to the visible range. Without this, `out.rot += v*N` accumulates to extreme values and renders layers at 180° rotation once audio has played for a few seconds.
       if (out.rot) out.rot = Math.asin(Math.sin(out.rot * Math.PI / 180)) * 180 / Math.PI;
+      out._v = "0";
       out._v = "0";
       out._v = "0";
       out._v = "0";

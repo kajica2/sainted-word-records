@@ -63,6 +63,7 @@ function copyStatic() {
     'engine-lfo-panel.client.js',
     'engine-automap.client.js',
     'engine-settings.client.js',
+    'engine-keys.client.js',
     'layer-scheduler.client.js',
     'layer-scheduler.worker.js',
     'engine-genops.css',
