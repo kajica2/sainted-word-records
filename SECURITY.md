@@ -56,6 +56,7 @@ The M1 backend adds:
 - **Email enumeration** — `/api/auth/magic` returns `{ ok: true }` for every email to avoid leaking which addresses are signed up. The trade-off: an attacker can spray magic-link emails to arbitrary addresses; the per-IP rate limit is the cap.
 - **Session fixation** — sessions are server-side and only minted after token verification, so this isn't a concern yet.
 - **Magic-link forwarding** — anyone with the email can sign in. We rely on email-account security for this.
+- **Magic-link IP spoofing via `x-forwarded-for`** — the rate limit on `/api/auth/magic` uses the leftmost entry in `x-forwarded-for` as the bucket key. On Vercel this is safe (Vercel sets the header from a trusted edge). If the API is ever deployed behind a different proxy (or no proxy) without the `TRUSTED_PROXIES` env var, an attacker can spoof the header and bypass the per-IP rate limit. Add `process.env.TRUSTED_PROXIES` gating before exposing this endpoint outside Vercel.
 
 ## Hall of Fame
 

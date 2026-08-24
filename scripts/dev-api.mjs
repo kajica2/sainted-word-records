@@ -93,13 +93,38 @@ export async function handleApi(req, res, next) {
   // Buffer POST/PUT bodies so handlers can use req.body OR req.on('data').
   // We preserve the original req stream so handlers that listen for 'data'
   // continue to work, but we also set req.body to a string for readJsonBody.
+  //
+  // Cap the body at 60 MB so a malicious client can't OOM the dev server.
+  // Handlers cap themselves lower (1 MB / 2 MB / 50 MB); this is just a
+  // last-resort guard at the middleware layer.
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    const MAX_MIDDLEWARE_BODY = 60 * 1024 * 1024;
     const chunks = [];
+    let total = 0;
+    let aborted = false;
     await new Promise((resolve) => {
-      req.on('data', (c) => chunks.push(c));
+      req.on('data', (c) => {
+        if (aborted) return;
+        total += c.length;
+        if (total > MAX_MIDDLEWARE_BODY) {
+          aborted = true;
+          try { req.destroy(); } catch {}
+          resolve();
+          return;
+        }
+        chunks.push(c);
+      });
       req.on('end', resolve);
       req.on('error', resolve);
     });
+    if (aborted) {
+      if (!res.headersSent) {
+        res.statusCode = 413;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'payload_too_large', max: MAX_MIDDLEWARE_BODY }));
+      }
+      return;
+    }
     const buf = Buffer.concat(chunks);
     Object.defineProperty(req, 'body', {
       value: buf.length ? buf.toString('utf8') : '',
@@ -107,14 +132,17 @@ export async function handleApi(req, res, next) {
     });
     // Replace req with a PassThrough that emits our buffered data then
     // ends. Handlers that read req.on('data') get the full body in one go.
+    //
+    // NOTE: we intentionally don't forward the original req's 'error'
+    // event — by the time handlers run, we've already consumed the body.
+    // Handlers that want connection-error semantics should rely on Vite's
+    // own middleware-level timeouts.
     const { PassThrough } = require('node:stream');
     const replay = new PassThrough();
     replay.end(buf);
     const origOn = req.on.bind(req);
     const origOnce = req.once.bind(req);
     const origEmit = req.emit.bind(req);
-    // Monkey-patch: route 'data' and 'end' to the replay stream; everything
-    // else uses the original req.
     req.on = function (event, listener) {
       if (event === 'data' || event === 'end' || event === 'readable') {
         return replay.on(event, listener);

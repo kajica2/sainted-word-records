@@ -87,10 +87,16 @@ export async function readJsonBody(req, { maxBytes = 1_000_000 } = {}) {
 }
 
 export function setCors(res, origin) {
-  // Tight CORS: same-origin only by default. For cross-origin dev (e.g. a
-  // separate preview domain), allow the explicit origin from the request.
-  res.setHeader('Access-Control-Allow-Origin', origin || 'same-origin');
-  res.setHeader('Vary', 'Origin');
+  // Tight CORS: same-origin by default (return no ACAO header so the
+  // browser refuses any cross-origin attempt). When an explicit Origin
+  // is present AND it looks like an http(s) URL, echo it back — this
+  // enables separate preview domains (e.g. a Vercel preview URL).
+  // The literal string "same-origin" is NOT a valid origin and would
+  // cause browsers to refuse the response.
+  if (origin && /^https?:\/\//i.test(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
