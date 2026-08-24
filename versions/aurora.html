@@ -3,6 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <title>AURORA · SWR engine v1</title>
+  <meta name="description" content="Pastel-mint/cyan/cyan-violet drift, low chroma, gentle bloom" />
+  <meta name="theme-color" content="#0a0d12" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta property="og:title" content="AURORA · SWR engine" />
+  <meta property="og:description" content="Pastel-mint/cyan/cyan-violet drift, low chroma, gentle bloom" />
+  <meta property="og:image" content="/keyart/aurora.png" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/versions/aurora.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AURORA · SWR engine" />
+  <meta name="twitter:description" content="Pastel-mint/cyan/cyan-violet drift, low chroma, gentle bloom" />
+  <meta name="twitter:image" content="/keyart/aurora.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -254,6 +269,8 @@
     #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
   <script src="../engine-render.client.js"></script>
+<script src="../engine-timing.client.js"></script>
+<script src="../layer-scheduler.client.js"></script>
   <script src="../engine-timing.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 </head>
@@ -581,6 +598,7 @@
       }
       // Fold accumulated rot into (-90, +90] so the composition never visibly flips 180°. asin(sin(x)) preserves oscillation across 0 while collapsing wide swings back to the visible range. Without this, `out.rot += v*N` accumulates to extreme values and renders layers at 180° rotation once audio has played for a few seconds.
       if (out.rot) out.rot = Math.asin(Math.sin(out.rot * Math.PI / 180)) * 180 / Math.PI;
+      out._v = "0";
       out._v = "0";
       out._v = "0";
       out._v = "0";

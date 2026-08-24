@@ -10,10 +10,27 @@
   if (window.LayerScheduler) return;  // idempotent
 
   // ---- Worker ----
-  // Resolve the worker URL relative to this module so Vite can bundle it.
-  // `new URL(name, import.meta.url)` is the Vite-recommended pattern for worker
-  // loading from a module — it survives both `vite dev` and `vite build`.
-  const worker = new Worker(new URL('./layer-scheduler.worker.js', import.meta.url));
+  // Resolve the worker URL. In a module context (import.meta.url present,
+  // the engine.html path) use the Vite-recommended relative-URL pattern so
+  // the worker survives both `vite dev` and `vite build`. In a plain-script
+  // context (loaded via <script src=...> from a versions/*.html page) fall
+  // back to an absolute URL constructed from window.location so the worker
+  // can still resolve its sibling file.
+  // Feature-detect import.meta.url: in plain <script> contexts the parser
+  // rejects `import.meta` BEFORE our code runs, so we have to access it via
+  // a Function constructor (string body) to keep it out of the script's own
+  // syntactic scope. If that throws, we're in a non-module context.
+  const metaUrl = (() => {
+    try { return new Function('return import.meta.url')(); }
+    catch (_) { return null; }
+  })();
+  let worker;
+  if (metaUrl) {
+    worker = new Worker(new URL('./layer-scheduler.worker.js', metaUrl));
+  } else {
+    const base = window.location.href.replace(/[^/]*$/, '');
+    worker = new Worker(base + 'layer-scheduler.worker.js');
+  }
 
   // ---- State ----
   const state = {
@@ -21,6 +38,11 @@
     minSeconds: 5,
     maxSeconds: 10,
     beatSync: false,
+    // A3: when true, applySwap defers the crossfade to the next downbeat
+    // (capped 750ms). Independent of `beatSync` (which controls the worker's
+    // swap-interval tick) — a user can want rhythmic swap intervals without
+    // wanting beat-snapped fade endpoints, or vice versa.
+    beatSnap: false,
     poolIds: [],
     lastSwapAt: 0,
     swapCount: 0,
@@ -66,19 +88,49 @@
     if (!asset) return false;
     const layer = findLayerByIndex(layerIndex === -1 ? -1 : layerIndex);
     if (!layer) return false;
-    // Swap the asset in place. Keep existing reactors/blend/scale/opacity so the
-    // visual energy signature stays, but the asset changes.
-    layer.asset = asset;
-    // Refresh reactors to match the new asset's motion/luma profile
-    // pickReactors lives in the main IIFE; reach it via SWR if exposed, else skip.
-    if (Audio && Audio.feat) {
-      // Reuse existing reactors — they were tuned for the role, not the asset,
-      // and re-picking every swap would cause visual jitter.
+
+    // Cross-fade under the curtain (A2 reactor morph). If SWR_TIMING is
+    // available, hand the swap to its crossfade() — it will:
+    //   1) snapshot the outgoing visual signature onto _morphFrom
+    //   2) start fading targetOpacity toward 0 over cfg.eventSwap.fadeOutMs
+    //   3) the render loop swaps the asset when currentOpacity crosses the
+    //      midpoint, inheriting _morphFrom's baseScale/hue/brightness/contrast
+    //      onto the NEW asset's role so the picture underneath changes but
+    //      the role's visual identity is preserved
+    //   4) the render loop continues the fade-in with cfg.eventSwap.fadeInMs
+    //
+    // If SWR_TIMING is absent (older build, or unit test) fall back to the
+    // legacy hard-swap behaviour.
+    if (window.SWR_TIMING && typeof window.SWR_TIMING.crossfade === 'function') {
+      window.SWR_TIMING.attach(layer);          // ensure _currentOpacity / _targetOpacity exist
+      // A3 beat-snap the swap start: defer the crossfade until the next
+      // downbeat (capped at 750ms). Fades triggered mid-bar look visibly
+      // worse than fades triggered on the beat — same trick is used for
+      // the song-end outro. The helper is a no-op if Audio.feat isn't
+      // pumping beats (e.g. song not playing yet).
+      const begin = () => {
+        const ok = window.SWR_TIMING.crossfade(layer, asset);
+        if (ok) {
+          state.lastSwapAt = Date.now();
+          state.swapCount++;
+          const UI = app().UI;
+          if (UI && typeof UI.setStatus === 'function') {
+            UI.setStatus('cross-fading → ' + asset.name, 'ok');
+          }
+        }
+      };
+      if (state.beatSnap && window.SWR_TIMING.snapToBeat) {
+        window.SWR_TIMING.snapToBeat(begin);
+      } else {
+        begin();
+      }
+      return true;
     }
+    // Legacy fallback — hard swap, no fade.
+    layer.asset = asset;
     if (Layers.render) Layers.render();
     state.lastSwapAt = Date.now();
     state.swapCount++;
-    // Best-effort status update via SWR.UI if present
     const UI = app().UI;
     if (UI && typeof UI.setStatus === 'function') {
       UI.setStatus('auto-swapped → ' + asset.name, 'ok');
@@ -216,6 +268,9 @@
       state.minSeconds = min;
       state.maxSeconds = max;
       state.beatSync = beatIn.checked;
+      // Pair beatSnap with beatSync: if you're beat-locking the swap timing,
+      // you almost always want the fade endpoint to land on the beat too.
+      state.beatSnap = beatIn.checked;
       state.enabled = enable.checked;
       post({
         type: 'config',
@@ -228,7 +283,7 @@
           beatsPerSwap: 16,
         },
       });
-      status.textContent = state.enabled ? 'on · ' + state.minSeconds + '–' + state.maxSeconds + 's' : 'off';
+      status.textContent = state.enabled ? 'on · ' + state.minSeconds + '–' + state.maxSeconds + 's' + (state.beatSync ? ' · beat' : '') : 'off';
       status.style.color = state.enabled ? '#7f7' : '#888';
     }
 

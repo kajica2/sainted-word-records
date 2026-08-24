@@ -29,6 +29,7 @@ const DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const RENDER_TAG = '<script src="../engine-render.client.js"></script>';
 const TIMING_TAG = '<script src="../engine-timing.client.js"></script>';
+const SCHEDULER_TAG = '<script src="../layer-scheduler.client.js"></script>';
 
 const FIT_REPLACEMENT = `    function fit() {
       const m = SWR_RENDER.fit(stage);
@@ -60,18 +61,24 @@ for (const name of ENGINES) {
       failed++; continue;
     }
     // Insert before the genops module's <link rel="stylesheet"> so render
-    // gets a chance to load in parallel with the genops script.
+    // gets a chance to load in parallel with the genops script. layer-scheduler
+    // loads last because it depends on SWR + SWR_TIMING being ready (the
+    // scheduler reads SWR.Layers + SWR.Library on boot and applies swap
+    // commands through SWR_TIMING.crossfade).
     const genopsLink = '<link rel="stylesheet" href="../engine-genops.css" />';
     if (src.includes(genopsLink)) {
-      src = src.replace(genopsLink, RENDER_TAG + '\n' + TIMING_TAG + '\n' + genopsLink);
+      src = src.replace(genopsLink, RENDER_TAG + '\n' + TIMING_TAG + '\n' + SCHEDULER_TAG + '\n' + genopsLink);
     } else {
-      src = src.replace(headTag, RENDER_TAG + '\n' + TIMING_TAG + headTag);
+      src = src.replace(headTag, RENDER_TAG + '\n' + TIMING_TAG + '\n' + SCHEDULER_TAG + headTag);
     }
   }
-  // Idempotent timing tag: a previous pass may have inserted it via a manual
-  // edit. Only add the line if both render and timing are not yet there.
+  // Idempotent tag fills: a previous pass may have inserted some tags via
+  // a manual edit. Add the missing ones without disturbing the others.
   if (src.includes('engine-render.client.js') && !src.includes('engine-timing.client.js')) {
     src = src.replace(RENDER_TAG, RENDER_TAG + '\n' + TIMING_TAG);
+  }
+  if (src.includes('engine-render.client.js') && !src.includes('layer-scheduler.client.js')) {
+    src = src.replace(RENDER_TAG, RENDER_TAG + '\n' + TIMING_TAG + '\n' + SCHEDULER_TAG);
   }
 
   // ---- 2. rewrite fit() ------------------------------------------------
