@@ -29,7 +29,8 @@ NEW = (
     '<button class="tbtn" id="swr-keys-help-btn" '
     'title="Keyboard shortcuts (?)" '
     'style="font-family:ui-monospace,monospace;font-weight:700;'
-    'min-width:24px;padding:5px 8px;line-height:1;">?</button>'
+    'min-width:24px;padding:5px 8px;line-height:1;'
+    'position:relative;z-index:10001;">?</button>'
 )
 
 
