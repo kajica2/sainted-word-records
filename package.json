@@ -28,6 +28,7 @@
     "verify:music-video-maker": "node verify-music-video-maker.mjs",
     "verify:mvm-review-fixes": "node verify-mvm-review-fixes.mjs",
     "verify:mvm-phase8": "node verify-mvm-phase8.mjs",
+    "verify:mvm-phase9": "node verify-mvm-phase9.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {
