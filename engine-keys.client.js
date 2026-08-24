@@ -61,6 +61,23 @@
   // Each entry: { keys: 'human-readable', label, action(code, ev) }.
   // `code` is the KeyboardEvent.code (layout-independent). `ev` is the
   // original keydown event so handlers can read modifiers.
+  //
+  // Naming convention used in the help overlay:
+  //   Cmd / Ctrl  is shown as "Cmd" (the action works with either; meta on
+  //   macOS, ctrl elsewhere — this is what video editors do).
+  //
+  // Layout (left hand = top row, right hand = bracket/punctuation block):
+  //
+  //   Transport     Space  ·  M
+  //   Generation    R  ·  N  ·  A  ·  Ctrl+Z/Shift+Ctrl+Z  ·  Ctrl+S  ·  Ctrl+O
+  //   Layers        1..9  ·  0  ·  ↑/↓  ·  [/]  ·  ;/'  ·  ,/.  ·  /  ·  Shift+/  ·  Del
+  //   View          F  ·  Esc
+  //   Panels        M  ·  T  ·  L  ·  S  ·  ?
+  //   Recording     Ctrl+R  ·  Shift+R
+  //
+  // Bracket pattern (Photoshop-style nudges) maps to the most-used
+  // per-layer knobs: alpha [ ], hue , ., scale ; '. The legacy "+/-"
+  // stays for fadeIn/fadeOut bump but is supplemented by Shift+/Shift-.
   const ACTIONS = {
     play: {
       keys: 'Space',
@@ -71,9 +88,22 @@
         try { A.playing ? A.pause() : A.play(); } catch (_) {}
       },
     },
+    mute: {
+      keys: 'M',
+      label: 'Toggle mute (audio still plays, gain→0)',
+      action: function () {
+        const A = audio();
+        if (!A || !A.gain) return;
+        try {
+          const before = A.gain.gain.value;
+          A.gain.gain.value = before > 0.01 ? 0 : 1;
+          if (window.setStatus) window.setStatus('mute: ' + (A.gain.gain.value < 0.01 ? 'on' : 'off'), 'ok');
+        } catch (_) {}
+      },
+    },
     remap: {
       keys: 'R',
-      label: 'Remap (GENOPS)',
+      label: 'Remap (GENOPS) — new assets, same patch',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.remap === 'function') G.remap();
@@ -81,35 +111,43 @@
     },
     randomize: {
       keys: 'N',
-      label: 'Randomize (GENOPS)',
+      label: 'Randomize (GENOPS) — full re-roll of the patch',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.randomize === 'function') G.randomize();
       },
     },
+    mutate: {
+      keys: 'Shift+N',
+      label: 'Mutate (GENOPS) — small perturbation (smaller than randomize)',
+      action: function () {
+        const G = window.SWR_GENOPS;
+        if (G && typeof G.mutate === 'function') G.mutate();
+      },
+    },
     toggleAutoSwap: {
-      keys: 'M',
+      keys: 'Shift+M',
       label: 'Toggle AUTO-SWAP panel',
       action: function () {
         if (window.SWR_SETTINGS) window.SWR_SETTINGS.togglePanel('ls-panel-swap');
       },
     },
     toggleTiming: {
-      keys: 'T',
+      keys: 'Shift+T',
       label: 'Toggle TIMING panel',
       action: function () {
         if (window.SWR_SETTINGS) window.SWR_SETTINGS.togglePanel('ls-panel-timing');
       },
     },
     toggleLfOs: {
-      keys: 'L',
+      keys: 'Shift+L',
       label: 'Toggle LFOs panel',
       action: function () {
         if (window.SWR_SETTINGS) window.SWR_SETTINGS.togglePanel('ls-panel-lfo');
       },
     },
     openSettings: {
-      keys: 'S or ?',
+      keys: 'S',
       label: 'Open settings menu',
       action: function () {
         if (window.SWR_SETTINGS) window.SWR_SETTINGS.open();
@@ -117,7 +155,7 @@
     },
     closeSettings: {
       keys: 'Esc',
-      label: 'Close settings menu / help',
+      label: 'Close settings menu / help overlay',
       action: function () {
         if (window.SWR_SETTINGS) window.SWR_SETTINGS.close();
         hideHelp();
@@ -135,7 +173,7 @@
     },
     cycleAutoMap: {
       keys: 'A',
-      label: 'Re-randomize auto-map (current page)',
+      label: 'Re-randomize auto-map (this engine)',
       action: function () {
         const M = window.SWR_AUTOMAP;
         if (!M) return;
@@ -145,7 +183,7 @@
     },
     cycleNextRecipe: {
       keys: 'Shift+A',
-      label: 'Apply next engine recipe',
+      label: 'Apply next engine recipe (cross-page)',
       action: function () {
         const M = window.SWR_AUTOMAP;
         if (!M) return;
@@ -157,12 +195,12 @@
       },
     },
     bumpFadeIn: {
-      keys: '+',
+      keys: 'Shift++',
       label: 'Bump fadeInMs by 100ms (selected layer)',
       action: function () { bumpFade(+100, 'fadeInMs'); },
     },
     bumpFadeOut: {
-      keys: '-',
+      keys: 'Shift+-',
       label: 'Bump fadeOutMs by 100ms (selected layer)',
       action: function () { bumpFade(+100, 'fadeOutMs'); },
     },
@@ -176,20 +214,267 @@
       },
     },
     bloom: {
-      keys: 'Space (no audio)',
-      label: 'Bloom layers (re-stagger fade-in)',
+      keys: 'B',
+      label: 'Bloom layers (stagger fade-in)',
       action: function () {
         const T = window.SWR_TIMING;
         const L = window.SWR && window.SWR.Layers;
         if (T && L && L.list && L.list.length) T.staggeredFadeIn(L.list);
       },
     },
+    crossfade: {
+      keys: 'X',
+      label: 'Crossfade all layers (A2 swap)',
+      action: function () {
+        const T = window.SWR_TIMING;
+        const L = window.SWR && window.SWR.Layers;
+        if (!T || !L || !L.list || !L.list.length) return;
+        L.list.forEach(function (l) { try { T.crossfade(l); } catch (_) {} });
+        if (window.setStatus) window.setStatus('crossfade: ' + L.list.length + ' layers', 'ok');
+      },
+    },
     showHelp: {
       keys: '?',
-      label: 'Show keymap help',
+      label: 'Show this help overlay',
       action: showHelp,
     },
+
+    // ---- universal editor conventions (Cmd / Ctrl modifiers) ----
+
+    undo: {
+      keys: 'Cmd+Z',
+      label: 'Undo last GENOPS op (Cmd/Ctrl+Z)',
+      action: function () {
+        const G = window.SWR_GENOPS;
+        if (G && typeof G.undo === 'function') G.undo();
+      },
+    },
+    redo: {
+      keys: 'Cmd+Shift+Z',
+      label: 'Redo last undone op (Cmd/Ctrl+Shift+Z)',
+      action: function () {
+        const G = window.SWR_GENOPS;
+        if (G && typeof G.redo === 'function') G.redo();
+      },
+    },
+    commit: {
+      keys: 'Cmd+Enter',
+      label: 'Commit current GENOPS state to history',
+      action: function () {
+        const G = window.SWR_GENOPS;
+        if (G && typeof G.commit === 'function') G.commit();
+      },
+    },
+    saveProject: {
+      keys: 'Cmd+S',
+      label: 'Save project (.swr-project download)',
+      action: function () {
+        if (window.SWR_PROJECT && typeof window.SWR_PROJECT.save === 'function') {
+          try { window.SWR_PROJECT.save(); } catch (_) {}
+        }
+      },
+    },
+    openProject: {
+      keys: 'Cmd+O',
+      label: 'Open project (.swr-project file picker)',
+      action: function () {
+        if (window.SWR_PROJECT && typeof window.SWR_PROJECT.loadFromFile === 'function') {
+          try { window.SWR_PROJECT.loadFromFile(); } catch (_) {}
+        }
+      },
+    },
+    toggleRecord: {
+      keys: 'Cmd+R',
+      label: 'Start / stop recording (Cmd/Ctrl+R)',
+      action: function () {
+        const recBtn = document.getElementById('rec');
+        if (recBtn) recBtn.click();
+      },
+    },
+    fullscreen: {
+      keys: 'F',
+      label: 'Toggle fullscreen',
+      action: function () {
+        if (document.fullscreenElement) {
+          try { document.exitFullscreen(); } catch (_) {}
+        } else if (document.documentElement.requestFullscreen) {
+          try { document.documentElement.requestFullscreen(); } catch (_) {}
+        }
+      },
+    },
+
+    // ---- per-layer tweaks (Photoshop-bracket pattern) ----
+    // The selected layer is mutated directly. Default nudge = 5% of the
+    // field's typical range; Shift+key = 4x nudge (Photoshop convention).
+
+    nudgeAlphaDown: {
+      keys: '[',
+      label: '− alpha (selected layer, ×0.05 / Shift ×0.20)',
+      action: function () { nudgeLayer('alpha', -0.05, 0, 1.5); },
+    },
+    nudgeAlphaUp: {
+      keys: ']',
+      label: '+ alpha (selected layer)',
+      action: function () { nudgeLayer('alpha', +0.05, 0, 1.5); },
+    },
+    nudgeHueDown: {
+      keys: ',',
+      label: '− hue (selected layer, −6° / Shift −24°)',
+      action: function () { nudgeLayer('hue', -6, -180, 180); },
+    },
+    nudgeHueUp: {
+      keys: '.',
+      label: '+ hue (selected layer)',
+      action: function () { nudgeLayer('hue', +6, -180, 180); },
+    },
+    nudgeScaleDown: {
+      keys: ';',
+      label: '− scale (selected layer, −0.05)',
+      action: function () { nudgeLayer('baseScale', -0.05, 0.1, 3); },
+    },
+    nudgeScaleUp: {
+      keys: "'",
+      label: "+ scale (selected layer)",
+      action: function () { nudgeLayer('baseScale', +0.05, 0.1, 3); },
+    },
+    nudgeContrastDown: {
+      keys: 'Shift+,',
+      label: '− contrast (selected layer, −0.05 / Shift ×0.20)',
+      action: function () { nudgeLayer('contrast', -0.05, 0.1, 2.5); },
+    },
+    nudgeContrastUp: {
+      keys: 'Shift+.',
+      label: '+ contrast (selected layer)',
+      action: function () { nudgeLayer('contrast', +0.05, 0.1, 2.5); },
+    },
+    nudgeBrightnessDown: {
+      keys: 'Shift+;',
+      label: '− brightness (selected layer, −0.05)',
+      action: function () { nudgeLayer('brightness', -0.05, 0.1, 2.5); },
+    },
+    nudgeBrightnessUp: {
+      keys: "Shift+'",
+      label: '+ brightness (selected layer)',
+      action: function () { nudgeLayer('brightness', +0.05, 0.1, 2.5); },
+    },
+    nudgeMutateDown: {
+      keys: 'Shift+[',
+      label: '− mutate jitter (selected layer)',
+      action: function () { nudgeLayer('mutate', -0.05, 0, 1); },
+    },
+    nudgeMutateUp: {
+      keys: 'Shift+]',
+      label: '+ mutate jitter (selected layer)',
+      action: function () { nudgeLayer('mutate', +0.05, 0, 1); },
+    },
+    nudgeOpacityUp: {
+      keys: 'Shift+/',
+      label: '+ opacity (selected layer, +0.05)',
+      action: action_nudgeOpacityUp,
+    },
+    nudgeOpacityDown: {
+      keys: '/',
+      label: '− opacity (selected layer, −0.05)',
+      action: action_nudgeOpacityDown,
+    },
+
+    // ---- per-layer ops (vim-style single keys) ----
+
+    cycleBlend: {
+      keys: 'C',
+      label: 'Cycle blend mode (selected layer)',
+      action: function () { cycleBlend(); },
+    },
+    duplicateLayer: {
+      keys: 'Y',
+      label: 'Duplicate selected layer',
+      action: function () { duplicateLayer(); },
+    },
+    deleteLayer: {
+      keys: 'Del',
+      label: 'Remove selected layer',
+      action: function () { deleteSelectedLayer(); },
+    },
   };
+
+  // Per-layer nudges. The Shift = ×4 multiplier is read from the most
+  // recently dispatched keyboard event (stashed on window.__swrLastKeydown
+  // by handle()). This lets nudgeLayer stay a pure value-tweaker with no
+  // KeyboardEvent plumbing.
+  function nudgeLayer(field, delta, lo, hi) {
+    const L = layers();
+    if (!L || !L.sel) return;
+    const ev = window.__swrLastKeydown;
+    const shift = ev && ev.shiftKey;
+    const step = delta * (shift ? 4 : 1);
+    const before = L.sel[field];
+    if (typeof before !== 'number') return;
+    const after = Math.max(lo, Math.min(hi, before + step));
+    L.sel[field] = after;
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) {
+      window.setStatus(field + ': ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
+    }
+  }
+
+  function action_nudgeOpacityUp() {
+    // Bound to Shift+/ — Photoshop-style opacity nudge up
+    const L = layers();
+    if (!L || !L.sel) return;
+    const before = L.sel.opacity;
+    const after = Math.max(0, Math.min(1, before + 0.05));
+    L.sel.opacity = after;
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) window.setStatus('opacity: ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
+  }
+  function action_nudgeOpacityDown() {
+    const L = layers();
+    if (!L || !L.sel) return;
+    const before = L.sel.opacity;
+    const after = Math.max(0, Math.min(1, before - 0.05));
+    L.sel.opacity = after;
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) window.setStatus('opacity: ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
+  }
+
+  function cycleBlend() {
+    const L = layers();
+    if (!L || !L.sel) return;
+    const BLENDS = ['source-over','screen','lighter','multiply','overlay','difference','soft-light','lighten','darken'];
+    const cur = L.sel.blend || 'source-over';
+    const i = BLENDS.indexOf(cur);
+    L.sel.blend = BLENDS[(i + 1) % BLENDS.length];
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) window.setStatus('blend: ' + L.sel.blend, 'ok');
+  }
+
+  function duplicateLayer() {
+    const L = layers();
+    if (!L || !L.sel || !L.list) return;
+    const src = L.sel;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = 'L' + (Date.now() % 100000);
+    copy.asset = src.asset;
+    const idx = L.list.indexOf(src);
+    L.list.splice(idx + 1, 0, copy);
+    L.sel = copy;
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) window.setStatus('layer duplicated', 'ok');
+  }
+
+  function deleteSelectedLayer() {
+    const L = layers();
+    if (!L || !L.sel || !L.list || !L.list.length) return;
+    if (L.list.length <= 1) {
+      if (window.setStatus) window.setStatus('cannot delete last layer', 'err');
+      return;
+    }
+    const id = L.sel.id;
+    L.list = L.list.filter(function (l) { return l.id !== id; });
+    L.sel = L.list[0] || null;
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) window.setStatus('layer removed', 'ok');
+  }
 
   // ---- helpers --------------------------------------------------------
 
@@ -231,21 +516,22 @@
     helpEl.id = 'swr-keys-help';
     helpEl.style.cssText = [
       'position:fixed', 'top:60px', 'right:14px', 'z-index:10002',
-      'min-width:280px', 'max-width:360px',
+      'min-width:340px', 'max-width:440px', 'max-height:calc(100vh - 100px)',
+      'overflow-y:auto',
       'background:rgba(10,6,18,0.97)', 'color:#f5e9ff',
       'border:1px solid #ff3d92', 'border-radius:10px',
-      'padding:14px 16px', 'font:12px/1.5 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+      'padding:14px 16px', 'font:11px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
       'box-shadow:0 12px 40px rgba(255,61,146,0.25)',
       'user-select:none',
     ].join(';');
     const rows = help().map(function (r) {
-      return '<div style="display:flex;justify-content:space-between;gap:12px;padding:3px 0;">' +
-               '<span style="color:#ff3d92;font-family:monospace;flex-shrink:0;">' + r.keys + '</span>' +
+      return '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0;border-bottom:1px solid rgba(255,61,146,0.08);">' +
+               '<span style="color:#ff3d92;font-family:monospace;flex-shrink:0;min-width:90px;">' + r.keys + '</span>' +
                '<span style="text-align:right;color:#ccc;">' + r.label + '</span>' +
              '</div>';
     }).join('');
     helpEl.innerHTML =
-      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,61,146,0.4);">' +
         '<strong style="font-size:13px;letter-spacing:0.04em;">⌨ KEYBOARD</strong>' +
         '<span style="font-size:10px;color:#888;margin-left:auto;">esc to close</span>' +
       '</div>' + rows;
@@ -275,23 +561,49 @@
     const key = ev.key;
     let action = null;
 
-    // ---- navigation + panel toggles (no modifier) ----
-    if (!ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+    // ---- Cmd / Ctrl combos first (universal editor conventions) ----
+    const cmd = ev.ctrlKey || ev.metaKey;
+    if (cmd && !ev.altKey) {
       switch (code) {
-        case 'Space':           action = ev.shiftKey ? ACTIONS.bloom : ACTIONS.play; break;
+        case 'KeyZ': action = ev.shiftKey ? ACTIONS.redo : ACTIONS.undo; break;
+        case 'KeyS': action = ACTIONS.saveProject; break;
+        case 'KeyO': action = ACTIONS.openProject; break;
+        case 'KeyR': action = ACTIONS.toggleRecord; break;
+        case 'Enter': action = ACTIONS.commit; break;
+      }
+    }
+
+    // ---- main keydown handler (no Ctrl/Meta) ----
+    if (!action && !cmd && !ev.altKey) {
+      switch (code) {
+        case 'Space':           action = ACTIONS.play; break;
         case 'KeyR':            action = ev.shiftKey ? ACTIONS.forceSwap : ACTIONS.remap; break;
-        case 'KeyN':            action = ACTIONS.randomize; break;
-        case 'KeyM':            action = ACTIONS.toggleAutoSwap; break;
-        case 'KeyT':            action = ACTIONS.toggleTiming; break;
-        case 'KeyL':            action = ACTIONS.toggleLfOs; break;
+        case 'KeyN':            action = ev.shiftKey ? ACTIONS.mutate : ACTIONS.randomize; break;
+        case 'KeyA':            action = ev.shiftKey ? ACTIONS.cycleNextRecipe : ACTIONS.cycleAutoMap; break;
+        case 'KeyM':            action = ev.shiftKey ? ACTIONS.toggleAutoSwap : ACTIONS.mute; break;
+        case 'KeyT':            action = ev.shiftKey ? ACTIONS.toggleTiming : null; break;
+        case 'KeyL':            action = ev.shiftKey ? ACTIONS.toggleLfOs : null; break;
+        case 'KeyB':            action = ACTIONS.bloom; break;
+        case 'KeyX':            action = ACTIONS.crossfade; break;
         case 'KeyS':            action = ACTIONS.openSettings; break;
+        case 'KeyC':            action = ACTIONS.cycleBlend; break;
+        case 'KeyY':            action = ACTIONS.duplicateLayer; break;
+        case 'KeyF':            action = ACTIONS.fullscreen; break;
         case 'ArrowUp':         action = ACTIONS.selectPrev; ev.preventDefault(); break;
         case 'ArrowDown':       action = ACTIONS.selectNext; ev.preventDefault(); break;
-        case 'KeyA':            action = ev.shiftKey ? ACTIONS.cycleNextRecipe : ACTIONS.cycleAutoMap; break;
-        case 'Equal':           // +
-        case 'NumpadAdd':       action = ACTIONS.bumpFadeIn; break;
+        case 'Equal':           // +/=
+        case 'NumpadAdd':       action = ev.shiftKey ? ACTIONS.bumpFadeIn : ACTIONS.nudgeOpacityUp; break;
         case 'Minus':           // -
-        case 'NumpadSubtract':  action = ACTIONS.bumpFadeOut; break;
+        case 'NumpadSubtract':  action = ev.shiftKey ? ACTIONS.bumpFadeOut : ACTIONS.nudgeOpacityDown; break;
+        case 'BracketLeft':     action = ev.shiftKey ? ACTIONS.nudgeMutateUp : ACTIONS.nudgeAlphaDown; break;
+        case 'BracketRight':    action = ev.shiftKey ? ACTIONS.nudgeMutateDown : ACTIONS.nudgeAlphaUp; break;
+        case 'Comma':           action = ev.shiftKey ? ACTIONS.nudgeContrastUp : ACTIONS.nudgeHueDown; break;
+        case 'Period':          action = ev.shiftKey ? ACTIONS.nudgeContrastDown : ACTIONS.nudgeHueUp; break;
+        case 'Semicolon':       action = ev.shiftKey ? ACTIONS.nudgeBrightnessUp : ACTIONS.nudgeScaleDown; break;
+        case 'Quote':           action = ev.shiftKey ? ACTIONS.nudgeBrightnessDown : ACTIONS.nudgeScaleUp; break;
+        case 'Slash':           action = ACTIONS.nudgeOpacityDown; break;
+        case 'Delete':
+        case 'Backspace':       action = ACTIONS.deleteLayer; break;
         case 'Escape':          action = ACTIONS.closeSettings; break;
       }
       // ? key as a literal (some keyboards send Slash with shift)
@@ -309,7 +621,6 @@
             if (typeof window.setStatus === 'function') {
               window.setStatus('layer: ' + (L.list[idx].id || ('#' + idx)), 'ok');
             }
-            // Don't dispatch further — 1..9 handled inline.
             try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
               detail: { key, code, mods: { shift: !!ev.shiftKey, alt: !!ev.altKey }, action: 'select-layer-' + idx }
             })); } catch (_) {}
@@ -334,6 +645,10 @@
     // (e.g. Space scrolling, Arrow keys moving the slider).
     if (ev.preventDefault) ev.preventDefault();
 
+    // Stash the original event so nudgeLayer() / etc. can read modifiers
+    // for the "Shift = 4x nudge" Photoshop convention.
+    window.__swrLastKeydown = ev;
+
     try { action.action(); } catch (_) {}
 
     try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
@@ -344,21 +659,65 @@
   // ---- public --------------------------------------------------------
 
   function help() {
+    // Grouped by category. The render code looks for an optional `group`
+    // property to insert a section heading.
     return [
+      // ---- Transport ----
       { keys: 'Space',          label: 'play / pause' },
-      { keys: 'Space (no audio)', label: 'bloom layers (staggered fade-in)' },
-      { keys: 'R',              label: 'remap (GENOPS)' },
-      { keys: 'Shift+R',        label: 'force auto-swap now' },
-      { keys: 'N',              label: 'randomize (GENOPS)' },
-      { keys: 'A',              label: 're-randomize auto-map (this page)' },
+      { keys: 'M',              label: 'toggle mute' },
+      { keys: 'F',              label: 'fullscreen' },
+      { keys: 'Esc',            label: 'close settings / help overlay' },
+
+      // ---- Generation ----
+      { keys: 'R',              label: 'remap (GENOPS — new assets)' },
+      { keys: 'N',              label: 'randomize (full re-roll)' },
+      { keys: 'Shift+N',        label: 'mutate (small perturbation)' },
+      { keys: 'A',              label: 're-randomize auto-map (this engine)' },
       { keys: 'Shift+A',        label: 'cycle to next engine recipe' },
+      { keys: 'B',              label: 'bloom layers (stagger fade-in)' },
+      { keys: 'X',              label: 'crossfade all layers (A2 swap)' },
+      { keys: 'Shift+R',        label: 'force auto-swap now' },
+
+      // ---- Undo / Save ----
+      { keys: 'Cmd+Z',          label: 'undo (Cmd/Ctrl+Z)' },
+      { keys: 'Cmd+Shift+Z',    label: 'redo (Cmd/Ctrl+Shift+Z)' },
+      { keys: 'Cmd+Enter',      label: 'commit current state to history' },
+      { keys: 'Cmd+S',          label: 'save project (.swr-project)' },
+      { keys: 'Cmd+O',          label: 'open project (.swr-project picker)' },
+      { keys: 'Cmd+R',          label: 'start / stop recording' },
+
+      // ---- Layer selection ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '1..9',           label: 'select layer by index (1-based)' },
       { keys: '0',              label: 'deselect layer' },
-      { keys: 'M / T / L',      label: 'toggle AUTO-SWAP / TIMING / LFOs' },
-      { keys: 'S or ?',         label: 'open settings menu' },
-      { keys: '+ / -',          label: 'bump fadeIn / fadeOut by 100ms' },
-      { keys: 'Esc',            label: 'close settings menu / help' },
+
+      // ---- Per-layer tweaks (right-hand bracket pattern) ----
+      { keys: '[ / ]',          label: '− / + alpha' },
+      { keys: ', / .',          label: '− / + hue (±6°)' },
+      { keys: "; / '",           label: '− / + scale' },
+      { keys: '/',              label: '− opacity' },
+      { keys: 'Shift+/',        label: '+ opacity (legacy: bump fadeIn)' },
+      { keys: 'Shift+,',        label: '− contrast  ·  Shift = ×4 nudge' },
+      { keys: 'Shift+.',        label: '+ contrast' },
+      { keys: 'Shift+;',        label: '− brightness' },
+      { keys: "Shift+'",        label: '+ brightness' },
+      { keys: 'Shift+[',        label: '− mutate jitter' },
+      { keys: 'Shift+]',        label: '+ mutate jitter' },
+
+      // ---- Per-layer ops ----
+      { keys: 'C',              label: 'cycle blend mode' },
+      { keys: 'Y',              label: 'duplicate selected layer' },
+      { keys: 'Del / Bksp',     label: 'remove selected layer' },
+      { keys: 'Shift+T',        label: 'bump fadeInMs by 100ms' },
+      { keys: 'Shift+-',        label: 'bump fadeOutMs by 100ms' },
+
+      // ---- Panels ----
+      { keys: 'Shift+M',        label: 'toggle AUTO-SWAP panel' },
+      { keys: 'Shift+T',        label: 'toggle TIMING panel' },
+      { keys: 'Shift+L',        label: 'toggle LFOs panel' },
+      { keys: 'S',              label: 'open settings menu' },
+
+      // ---- Help ----
       { keys: '?',              label: 'show this help overlay' },
     ];
   }

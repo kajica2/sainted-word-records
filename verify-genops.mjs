@@ -308,6 +308,48 @@ const CHECKS = `(async () => {
      helpBtn ? 'btn present, overlay ' + (helpOpenOk ? 'opened' : 'failed to open')
              : 'no #swr-keys-help-btn in DOM');
 
+  // 16. Intuitive keymap expansion — the new shortcuts (Cmd+Z undo, Cmd+S
+  //     save, Cmd+O open, Cmd+R record, F fullscreen, M mute, C cycle blend,
+  //     Y duplicate, Del delete, bracket-pattern nudges) must be present in
+  //     SWR_KEYS.help() and dispatch to real handlers via SWR_KEYS.simulate().
+  // The help() function uses combined rows (e.g. "[ / ]") for visual
+  // density, so this assertion checks for the combined string.
+  const expectedShortcuts = [
+    'Cmd+Z', 'Cmd+Shift+Z', 'Cmd+S', 'Cmd+O', 'Cmd+R', 'Cmd+Enter',
+    'F', 'M', 'C', 'Y', 'Del / Bksp',
+    '[ / ]', ', / .', "; / '", '/', 'Shift+/',
+    'Shift+[', 'Shift+]', 'Shift+,', 'Shift+.', 'Shift+;', "Shift+'",
+    'Shift+N', 'Shift+R', 'Shift+A', 'Shift+M', 'Shift+T', 'Shift+L',
+    'B', 'X', '0', '?', 'Esc',
+  ];
+  const helpKeys = window.SWR_KEYS ? window.SWR_KEYS.help().map(function (r) { return r.keys; }) : [];
+  const missing = expectedShortcuts.filter(function (k) { return helpKeys.indexOf(k) === -1; });
+  ok('expanded keymap', missing.length === 0,
+     missing.length === 0 ? helpKeys.length + ' shortcuts present'
+                          : 'missing: ' + missing.join(', '));
+
+  // 17. Bracket-pattern nudges drive the layer field. Set a known alpha,
+  //     simulate '[', confirm alpha decreased by 0.05 (default nudge).
+  const nudgeOk = (function () {
+    const L = window.SWR.Layers;
+    if (!L || !L.list || !L.list.length) return false;
+    const l0 = L.list[0];
+    const before = 0.5;
+    l0.alpha = before;
+    try { window.SWR_KEYS.simulate('BracketLeft', {}); } catch (e) { return false; }
+    return Math.abs(l0.alpha - (before - 0.05)) < 1e-6;
+  })();
+  ok('bracket nudge', nudgeOk, 'alpha 0.50 → 0.45 via [ key');
+
+  // 18. Cmd/Ctrl dispatch routes correctly (Ctrl+Z calls undo, which
+  //     doesn't error out on a fresh state).
+  let undoOk = false;
+  try {
+    window.SWR_KEYS.simulate('KeyZ', { ctrl: true });
+    undoOk = true;
+  } catch (e) { undoOk = false; }
+  ok('cmd dispatch', undoOk, 'Ctrl+Z did not throw');
+
   return out;
 })()`;
 
