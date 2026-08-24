@@ -162,6 +162,71 @@ try {
     ok(v.activeTab === 'audio-bus', `expected audio-bus active, got ${v.activeTab}`);
   });
 
+  await step('pick("library", id) is leak-safe under render() lifecycle', async () => {
+    // SWR_MEDIA only exists on engine.html (lib/media-store.client.js is
+    // loaded there). Open a second tab against engine.html for this test
+    // so the IndexedDB-backed library is actually populated.
+    const page2 = await browser.newPage();
+    await page2.setViewport({ width: 1280, height: 720 });
+    await page2.goto(`${BASE}/engine.html`, { waitUntil: 'networkidle0', timeout: 45000 });
+    // The library-switcher script lives on hallucination.html (it's a
+    // standalone lib/ module — engine.html doesn't include it). Load it
+    // directly here so we can exercise pick() against engine.html's IDB.
+    await page2.addScriptTag({ path: path.join(ROOT, 'lib', 'library-switcher.client.js') });
+    let waited2 = 0;
+    while (waited2 < 30000) {
+      const ok = await page2.evaluate(() =>
+        !!(window.SWR_MEDIA && typeof window.SWR_MEDIA.addMedia === 'function' &&
+           window.SWR_LIBRARY_SWITCHER && typeof window.SWR_LIBRARY_SWITCHER.pick === 'function'));
+      if (ok) break;
+      await new Promise((r) => setTimeout(r, 500));
+      waited2 += 500;
+    }
+    if (waited2 >= 30000) throw new Error('SWR_MEDIA + SWR_LIBRARY_SWITCHER never came up on engine.html');
+    const v = await page2.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      // Add a fake row to the library so we have a stable IDB row to pick.
+      const fakeBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'video/mp4' });
+      const file = new File([fakeBlob], 'leak-test.mp4', { type: 'video/mp4' });
+      const rec = await M.addMedia([file]);
+      const id = rec[0].id;
+
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const r = window.SWR_LIBRARY_SWITCHER.render(host, { onPick() {} });
+
+      // First pick: creates an object URL.
+      const url1 = await window.SWR_LIBRARY_SWITCHER.pick('library', id);
+      // Second pick on the SAME id: should reuse the same URL.
+      const url2 = await window.SWR_LIBRARY_SWITCHER.pick('library', id);
+      // Third pick on a different (non-existent) id: should revoke url1/url2
+      // and return null.
+      const url3 = await window.SWR_LIBRARY_SWITCHER.pick('library', 'does-not-exist');
+
+      // After destroy: any subsequent pick on the original id creates a
+      // fresh URL (since the previous one was revoked). It must NOT equal
+      // url1.
+      r.destroy();
+      const url4 = await window.SWR_LIBRARY_SWITCHER.pick('library', id);
+
+      // Cleanup so we don't leak the row in IDB.
+      await M.deleteMedia(id);
+      host.remove();
+
+      return {
+        firstNonEmpty: typeof url1 === 'string' && url1.startsWith('blob:'),
+        reuse: url1 === url2,
+        nullOnMiss: url3 === null,
+        freshAfterDestroy: url4 !== url1 && typeof url4 === 'string' && url4.startsWith('blob:'),
+      };
+    });
+    await page2.close();
+    ok(v.firstNonEmpty, 'first pick should return a blob: URL');
+    ok(v.reuse, 're-pick of same id should reuse the URL');
+    ok(v.nullOnMiss, 'pick on missing id should return null');
+    ok(v.freshAfterDestroy, 'post-destroy pick should create a fresh URL distinct from url1');
+  });
+
   await step('clicking a tab switches the visible list', async () => {
     const v = await page.evaluate(async () => {
       const host = document.createElement('div');
