@@ -22,6 +22,7 @@
     "verify:rotation-enabled": "node verify-rotation-enabled.mjs",
     "verify:story-graph": "node verify-story-graph.mjs",
     "verify:hallucination-story": "node verify-hallucination-story.mjs",
+    "verify:autoplay": "node verify-autoplay.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

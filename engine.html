@@ -4652,7 +4652,19 @@
       // audio playback on a real gesture).
       try {
         const restored = await Audio._loadCurrentSong();
-        if (restored) setStatus('song restored', 'ok');
+        if (restored) {
+          setStatus('song restored', 'ok');
+          // Auto-play if the browser allows it (user previously interacted
+          // with the page in this tab) or queue for the first user gesture.
+          // Without this the user reloads the engine expecting audio to
+          // resume, but stays silent until they manually press Play.
+          const tryPlay = () => Audio.play();
+          tryPlay();
+          document.addEventListener('pointerdown', function _autoplayOnGesture() {
+            document.removeEventListener('pointerdown', _autoplayOnGesture);
+            tryPlay();
+          }, { once: true });
+        }
       } catch (e) { console.warn('song restore', e); }
       // Auto-load any pre-seeded assets from ./library/ on the first run per
       // browser. We use a localStorage flag so the manifest only seeds once:

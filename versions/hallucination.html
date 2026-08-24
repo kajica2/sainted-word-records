@@ -868,6 +868,28 @@
           var ab2 = await picked.blob.arrayBuffer();
           var af2 = new File([ab2], picked.name, { type: picked.blob.type || picked.type || 'audio/mpeg' });
           A.load(af2);
+          // Auto-play if the browser allows it; otherwise queue for the first
+          // user gesture (any pointerdown anywhere on the page). Mirrors the
+          // engine.html behavior so reloads don't strand the user in silence.
+          var __halAutoplay = function () {
+            try {
+              if (A.unlock) A.unlock();
+              if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume();
+              if (A.el && A.el.play) A.el.play();
+              A.playing = true;
+              var playBtn = document.getElementById('play');
+              if (playBtn) {
+                playBtn.textContent = '❚❚ Pause';
+                playBtn.classList.remove('primary');
+                playBtn.classList.add('danger');
+              }
+            } catch (e) { /* autoplay blocked, will retry on gesture */ }
+          };
+          __halAutoplay();
+          document.addEventListener('pointerdown', function _halAutoplayOnce() {
+            document.removeEventListener('pointerdown', _halAutoplayOnce);
+            __halAutoplay();
+          }, { once: true });
         }
       } catch (e) {}
       setStatus('READY', 'ok');
