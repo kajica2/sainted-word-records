@@ -389,6 +389,26 @@
     if (state._installed) return;
     window.addEventListener('keydown', handle, { passive: false });
     state._installed = true;
+    // Wire the clickable "?" help icon (if the page exposes one) so users
+    // who don't know the keyboard shortcut can still open the overlay.
+    // The button is opt-in — pages that want it add a
+    //   <button id="swr-keys-help-btn">?</button>
+    // somewhere in their header; this listener is a no-op otherwise.
+    function bindHelpButton() {
+      const btn = document.getElementById('swr-keys-help-btn');
+      if (!btn) return false;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (state.helpVisible) hideHelp(); else showHelp();
+      });
+      btn.title = 'Keyboard shortcuts (?)';
+      return true;
+    }
+    if (!bindHelpButton()) {
+      // Page may mount the button after SWR_KEYS loads — try once more on
+      // a short delay, then give up.
+      window.setTimeout(bindHelpButton, 250);
+    }
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', install);

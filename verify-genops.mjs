@@ -55,7 +55,8 @@ const SEED_PAGE = `(() => {
   L.list = Lib.items.slice(0, 4).map((it, i) => ({
     id: 'L' + (i + 1), asset: it,
     blend: 'source-over', opacity: 0.9, baseScale: 1.0,
-    hue: 0, brightness: 1.0, contrast: 1.0, locks: {},
+    hue: 0, brightness: 1.0, contrast: 1.0,
+    alpha: 1.0, mutate: 0.0, locks: {},
     reactors: [ { feature: 'rms', target: 'scale', scale: 0.4, ease: 'soft' },
                 { feature: 'bass', target: 'x', scale: 20, ease: 'soft' } ],
   }));
@@ -121,7 +122,7 @@ const CHECKS = `(async () => {
     const x = JSON.parse(a), y = JSON.parse(b);
     let s = 0, n = 0;
     for (let i = 0; i < x.length; i++)
-      for (const f of ['opacity','baseScale','hue','brightness','contrast']) {
+      for (const f of ['opacity','baseScale','hue','brightness','contrast','alpha','mutate']) {
         s += Math.abs((x[i][f] || 0) - (y[i][f] || 0)); n++;
       }
     return s / n;
@@ -223,6 +224,89 @@ const CHECKS = `(async () => {
   } catch (e) {
     ok('library served', false, 'fetch failed: ' + e.message);
   }
+
+  // 14. Per-layer color-motion sliders (contrast / brightness / alpha / mutate).
+  //     The color-motion upgrade exposes these on every engine study's layer
+  //     card. We re-render to ensure a fresh DOM, then look for an input
+  //     whose current value matches the layer's corresponding field.
+  G._restore(base); G.commit();
+  window.SWR.Layers.render();
+  await sleep(120);
+  const l0 = window.SWR.Layers.list[0] || {};
+  const allCards = document.querySelectorAll('#layers .l');
+  const findInputByValue = (val) => {
+    for (const card of allCards) {
+      const inputs = card.querySelectorAll('input[type=range]');
+      for (const inp of inputs) {
+        if (Math.abs(+inp.value - val) < 1e-6) return inp;
+      }
+    }
+    return null;
+  };
+  const ctOk  = !!findInputByValue(l0.contrast   ?? 1);
+  const brOk  = !!findInputByValue(l0.brightness ?? 1);
+  const alOk  = !!findInputByValue(l0.alpha      ?? 1);
+  const mtOk  = !!findInputByValue(l0.mutate     ?? 0);
+  ok('color-motion sliders',
+     ctOk && brOk && alOk && mtOk,
+     'ct=' + ctOk + ' br=' + brOk + ' al=' + alOk + ' mt=' + mtOk +
+     ' (values ' + JSON.stringify({
+       ct: l0.contrast, br: l0.brightness, al: l0.alpha, mt: l0.mutate
+     }) + ')');
+
+  // 14b. Drive each slider and confirm the corresponding layer field updates
+  //      — verifies the binding (not just the DOM presence).
+  let driveOk = false;
+  const drive = () => {
+    const l0 = window.SWR.Layers.list[0];
+    const card = document.querySelector('#layers .l');
+    if (!l0 || !card) return false;
+    const inputs = card.querySelectorAll('input[type=range]');
+    if (!inputs.length) return false;
+    // The 4 new fields are appended after the legacy 3 (opacity, baseScale,
+    // hue) in the order ct, br, alpha, mutate. For engines with no hue
+    // (grid), the indices shift by one — handled below.
+    // Find the inputs by inspecting adjacent labels.
+    const findByLabel = (text) => {
+      for (const inp of inputs) {
+        const lab = inp.parentElement && inp.parentElement.querySelector('label');
+        if (lab && lab.textContent.trim() === text) return inp;
+      }
+      return null;
+    };
+    const ct = findByLabel('ct');
+    const br = findByLabel('br');
+    const al = findByLabel('\u03b1');
+    const mt = findByLabel('mt');
+    if (!ct || !br || !al || !mt) return false;
+    ct.value = '1.7'; ct.dispatchEvent(new Event('input', { bubbles: true }));
+    br.value = '1.3'; br.dispatchEvent(new Event('input', { bubbles: true }));
+    al.value = '0.5'; al.dispatchEvent(new Event('input', { bubbles: true }));
+    mt.value = '0.4'; mt.dispatchEvent(new Event('input', { bubbles: true }));
+    return Math.abs(l0.contrast - 1.7) < 1e-6
+        && Math.abs(l0.brightness - 1.3) < 1e-6
+        && Math.abs(l0.alpha - 0.5) < 1e-6
+        && Math.abs(l0.mutate - 0.4) < 1e-6;
+  };
+  driveOk = drive();
+  ok('color-motion drive', driveOk,
+     driveOk ? '' : 'input event did not propagate to layer field');
+
+  // 15. Keyboard shortcuts help: a clickable "?" icon must be present and
+  //     open the SWR_KEYS overlay when clicked. The overlay (SWR_KEYS.showHelp
+  //     creates <div id="swr-keys-help">) is the source of truth.
+  const helpBtn = document.getElementById('swr-keys-help-btn');
+  let helpOpenOk = false;
+  if (helpBtn && window.SWR_KEYS && typeof window.SWR_KEYS.showHelp === 'function') {
+    helpBtn.click();
+    helpOpenOk = !!document.getElementById('swr-keys-help');
+    if (helpOpenOk && typeof window.SWR_KEYS.hideHelp === 'function') {
+      window.SWR_KEYS.hideHelp();
+    }
+  }
+  ok('keys help icon', helpOpenOk,
+     helpBtn ? 'btn present, overlay ' + (helpOpenOk ? 'opened' : 'failed to open')
+             : 'no #swr-keys-help-btn in DOM');
 
   return out;
 })()`;

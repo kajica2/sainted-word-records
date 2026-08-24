@@ -270,7 +270,7 @@
       <button class="tbtn primary" id="play" disabled data-icon="▶">▶</button>
       <span id="time" style="font-size:10px;color:var(--muted);">0:00 / 0:00</span>
       <canvas class="meter" id="meter" width="320" height="32"></canvas>
-      <span class="spacer"></span>
+      <span class="spacer"></span><button class="tbtn" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="font-family:ui-monospace,monospace;font-weight:700;min-width:24px;padding:5px 8px;line-height:1;">?</button>
       <span class="gc">beat <span class="led" id="beat-led" data-icon="●"></span></span>
       <span class="gc">onset <span class="led" id="onset-led" data-icon="●"></span></span>
       <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
@@ -479,7 +479,7 @@
         for (let i=0;i<this.list.length;i++) {
           const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
-          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div>`;
+          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
           d.querySelector('select').value = l.blend;
           for (const inp of d.querySelectorAll('input[type=range]')) {
             const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
@@ -487,10 +487,15 @@
           }
           const ins = d.querySelectorAll('input[type=range]');
           ins[0].value = l.opacity; ins[1].value = l.baseScale; ins[2].value = l.hue;
+          ins[3].value = l.contrast; ins[4].value = l.brightness; ins[5].value = l.alpha; ins[6].value = l.mutate;
           d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
           ins[0].addEventListener('input', e => l.opacity = +e.target.value);
           ins[1].addEventListener('input', e => l.baseScale = +e.target.value);
           ins[2].addEventListener('input', e => l.hue = +e.target.value);
+          ins[3].addEventListener('input', e => l.contrast = +e.target.value);
+          ins[4].addEventListener('input', e => l.brightness = +e.target.value);
+          ins[5].addEventListener('input', e => l.alpha = +e.target.value);
+          ins[6].addEventListener('input', e => l.mutate = +e.target.value);
           d.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
           el.appendChild(d);
         }
@@ -546,6 +551,7 @@
           this.list.push({
             id:'L'+(i+1), asset: it, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
             opacity:1, baseScale:[1.2,0.8,1.5,0.6,2.0,0.5][i%6], hue:0, brightness:1, contrast:1,
+          alpha:1, mutate:0,
             reactors: presets[i%presets.length]
           });
         }
@@ -575,6 +581,7 @@
         let v = A.feat[r.feature] ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
+        if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 200;
         else if (r.target==='y') out.y += v * 200;
@@ -614,7 +621,7 @@
       const r = applyR(l);
       ctx.save();
       ctx.globalCompositeOperation = l.blend || 'screen';
-      ctx.globalAlpha = clamp(r.opacity, 0, 1);
+      ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;
       let dw, dh;

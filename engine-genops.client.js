@@ -170,6 +170,8 @@
           hue: l.hue,
           brightness: l.brightness,
           contrast: l.contrast,
+          alpha: l.alpha,
+          mutate: l.mutate,
           locks: l.locks ? Object.assign({}, l.locks) : {},
           reactors: l.reactors.map(function (r) { return Object.assign({}, r); }),
         };
@@ -190,6 +192,8 @@
         hue: p.hue,
         brightness: p.brightness,
         contrast: p.contrast,
+        alpha: p.alpha,
+        mutate: p.mutate,
         locks: Object.assign({}, p.locks),
         reactors: p.reactors.map(function (r) { return Object.assign({}, r); }),
       };
