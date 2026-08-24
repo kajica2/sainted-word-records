@@ -312,29 +312,45 @@
       // each engine's `window.addEventListener('resize', fit)` listener.
       // We also call SWR_RENDER.fit directly in case the page didn't
       // expose the fit listener to window.
+      //
+      // Cache lastW/lastH and only re-fit when the box actually changes —
+      // ResizeObserver fires once on attach with the initial measurement,
+      // and we already know the size from `clientWidth/Height`, so we can
+      // skip the redundant re-fit that would otherwise cascade into a
+      // window 'resize' event and force every engine listener to re-layout.
       let lastW = stage.clientWidth, lastH = stage.clientHeight;
-      const ro = new ResizeObserver(() => {
-        if (stage.clientWidth !== lastW || stage.clientHeight !== lastH) {
-          lastW = stage.clientWidth; lastH = stage.clientHeight;
-          state.dirty = true;
-          try { window.SWR_RENDER.fit(stage); } catch (_) {}
-          window.dispatchEvent(new Event('resize'));
-        }
+      // Belt-and-braces: if the engine booted with clientWidth=0 (CSS not
+      // laid out yet), schedule one rAF to re-fit when the real size
+      // arrives. Without this, some engines cache W=0/H=0 forever.
+      const needsLazyFit = (lastW === 0 || lastH === 0);
+      const ro = new ResizeObserver((entries) => {
+        const entry = entries[entries.length - 1];
+        // Prefer contentBoxSize when available — avoids a forced layout
+        // to read clientWidth/Height. Falls back to the property read for
+        // older browsers.
+        const w = entry && entry.contentBoxSize
+          ? entry.contentBoxSize[0].inlineSize
+          : stage.clientWidth;
+        const h = entry && entry.contentBoxSize
+          ? entry.contentBoxSize[0].blockSize
+          : stage.clientHeight;
+        if (w === lastW && h === lastH) return;
+        lastW = w; lastH = h;
+        state.dirty = true;
+        try { window.SWR_RENDER.fit(stage); } catch (_) {}
+        window.dispatchEvent(new Event('resize'));
       });
       ro.observe(stage);
-      // Some engines' first fit() runs while CSS hasn't laid out yet
-      // (clientWidth=0). The ResizeObserver catches the eventual change
-      // to the real size, but a few frames may have rendered with W=0.
-      // Force a re-fit + resize event after one frame so the engine
-      // picks up the real dimensions immediately, even if the observer's
-      // initial measurement is unchanged.
-      requestAnimationFrame(() => {
-        if (stage.clientWidth > 0) {
+      if (needsLazyFit) {
+        requestAnimationFrame(() => {
+          const w = stage.clientWidth, h = stage.clientHeight;
+          if (w === 0 || h === 0 || (w === lastW && h === lastH)) return;
+          lastW = w; lastH = h;
           state.dirty = true;
           try { window.SWR_RENDER.fit(stage); } catch (_) {}
           window.dispatchEvent(new Event('resize'));
-        }
-      });
+        });
+      }
       return true;
     };
     // Poll briefly until SWR.stage exists, then attach once.

@@ -8,7 +8,8 @@ library
 .env
 .env.local
 verify-screenshots/
-verify-*.mjs
+_probe_*.mjs
+_smoke_*.mjs
 _vinyl-sample/
 .vercel
 
