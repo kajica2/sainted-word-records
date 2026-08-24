@@ -3601,16 +3601,9 @@
       window.Layers = Layers;
       window.Library = Library;
       window.CSSFX = CSSFX;
-      // Mount the timeline (waveform + beat markers) if the canvas is
-      // present in the DOM. timeline.client.js loads as a module that
-      // also runs as a standalone IIFE; the canvas mount is a one-liner
-      // and only runs if the strip is visible.
-      try {
-        if (window.SWR_TIMELINE && window.SWR_TIMELINE.mount) {
-          const c = document.getElementById('timeline-canvas');
-          if (c) window.SWR_TIMELINE.mount(c, { height: 56 });
-        }
-      } catch (e) { console.warn('timeline mount', e); }
+      // Mount the timeline (waveform + beat markers). timeline.client.js
+      // self-mounts on DOMContentLoaded if a canvas with id=timeline-canvas
+      // exists, so no explicit mount call is required here.
       // Restore the last-loaded song from IndexedDB (silent restore, no user
       // gesture needed — the user has to click play anyway since browsers gate
       // audio playback on a real gesture).

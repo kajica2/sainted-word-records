@@ -225,4 +225,26 @@
   }
 
   window.SWR_TIMELINE = { mount, unmount, setVisible, setScrubEnabled };
+
+  // ---- auto-mount on DOMContentLoaded ---------------------------------
+  // Lets engine.html (or any host page) include timeline.client.js as a
+  // module without needing to wire up the mount call in its own boot
+  // sequence. If a canvas with id=timeline-canvas exists, mount it
+  // automatically when the DOM is ready. If host pages want to mount
+  // to a different canvas or pass options, they can still call
+  // window.SWR_TIMELINE.mount(canvas, opts) explicitly; the explicit
+  // call unmounts the auto-mount first.
+  function autoMount() {
+    if (state.mounted) return;
+    const c = document.getElementById('timeline-canvas');
+    if (!c) return;
+    mount(c, { height: 56 });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoMount);
+  } else {
+    // DOM is already ready (the script tag is at the bottom of body,
+    // so this is the common case)
+    autoMount();
+  }
 })();
