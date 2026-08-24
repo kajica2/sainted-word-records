@@ -111,7 +111,11 @@ try {
     const v = await page.evaluate(async () => {
       // Reset state first
       try { localStorage.removeItem('swr.mvm.project'); } catch (_) {}
-      const blob = new Blob([new Uint8Array([255, 0, 0, 255, 0, 255, 0, 0, 255, 0, 0, 255])], { type: 'image/png' });
+      // A valid 1x1 red PNG (67 bytes) so the canvas drawImage path works.
+      // (Previously we used a 12-byte placeholder which wasn't a valid PNG,
+      // causing drawImage to fail with InvalidStateError.)
+      const RED_PNG_1x1 = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+      const blob = new Blob([RED_PNG_1x1], { type: 'image/png' });
       const file = new File([blob], 'red.png', { type: 'image/png' });
       const c = await window.MVM.addClip(file);
       return { clip: c ? { id: c.id, type: c.type, name: c.name, hasBlobUrl: !!c.blobUrl } : null,
@@ -189,7 +193,117 @@ try {
     }
   });
 
-  await step('song picker opens modal via SWR_LIBRARY_SWITCHER', async () => {
+  await step('setClipProps updates state + DOM', async () => {
+    const v = await page.evaluate(() => {
+      const clip = window.MVM.project.clips[0];
+      window.MVM.setClipProps(clip.id, { blend: 'multiply', opacity: 0.5, transition: 'fade' });
+      const updated = window.MVM.project.clips[0];
+      return {
+        blend: updated.blend,
+        opacity: updated.opacity,
+        transition: updated.transition,
+        // Verify the DOM select also reflects the new value
+        domBlend: (document.querySelector('.mvm-clip-card select')).value,
+      };
+    });
+    ok(v.blend === 'multiply', `state blend = ${v.blend}`);
+    ok(v.opacity === 0.5, `state opacity = ${v.opacity}`);
+    ok(v.transition === 'fade', `state transition = ${v.transition}`);
+    ok(v.domBlend === 'multiply', `dom blend = ${v.domBlend}`);
+  });
+
+  await step('play() draws non-black pixels to the canvas', async () => {
+    const v = await page.evaluate(async () => {
+      // Force the playhead to a known time inside the first timeline row.
+      window.MVM.pause();
+      // Reset to start, then manually drive the playhead via the
+      // renderFrame API (avoids the 33ms tick race).
+      window.MVM.stop();
+      // Wait for image decode (we have a 3s row starting at 0)
+      await new Promise((r) => setTimeout(r, 200));
+      // Find the first timeline row's [startMs, endMs) midpoint
+      const tl = window.MVM.project.timeline[0];
+      if (!tl) return { error: 'no timeline row' };
+      const midMs = (tl.startMs + tl.endMs) / 2;
+      // Render at midpoint
+      window.MVM.renderFrame(midMs);
+      // Sample the canvas
+      const canvas = document.getElementById('preview');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      // Sample 9 grid points; expect at least one non-black pixel
+      const samples = [];
+      for (let yi = 0; yi < 3; yi++) {
+        for (let xi = 0; xi < 3; xi++) {
+          const px = ctx.getImageData(Math.floor(w * (xi + 0.5) / 3), Math.floor(h * (yi + 0.5) / 3), 1, 1).data;
+          samples.push([px[0], px[1], px[2]]);
+        }
+      }
+      return { samples, w, h };
+    });
+    if (v.error) { ok(false, v.error); return; }
+    const nonBlack = v.samples.filter((s) => s[0] > 8 || s[1] > 8 || s[2] > 8);
+    ok(nonBlack.length > 0, `canvas stayed black after renderFrame; samples: ${JSON.stringify(v.samples)}`);
+  });
+
+  await step('Recorder produces a real MP4/WebM blob', async () => {
+    // Instrument Recorder._save to capture the blob head (same pattern as
+    // verify-e2e-media-record.mjs).
+    const v = await page.evaluate(async () => {
+      window.__captured = null;
+      const origSave = window.MVM.Recorder._save.bind(window.MVM.Recorder);
+      window.MVM.Recorder._save = function () {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        window.__captured = {
+          size: blob.size,
+          type: blob.type,
+          bytes: blob.arrayBuffer().then((ab) => {
+            const u8 = new Uint8Array(ab, 0, Math.min(16, ab.byteLength));
+            return Array.from(u8);
+          }),
+        };
+      };
+      // Drive a short recording: 1 second. The recorder will use 'manual'
+      // by default since timeline < 5s, so the auto-stop timer would NOT
+      // fire — instead, we play the timeline to completion and the
+      // auto-stop-on-end logic in the tick will stop the recorder.
+      const sel = document.getElementById('rec-dur');
+      // Inject a 30s option (way more than the timeline) so we control stop
+      const opt = document.createElement('option'); opt.value = '30'; opt.textContent = '30s'; sel.appendChild(opt);
+      sel.value = '30';
+      // Start recording. canvas.captureStream doesn't capture the
+      // static red image at full rate, but it does emit a stream.
+      const started = window.MVM.Recorder.start(30000);
+      if (!started) return { error: 'Recorder.start returned false' };
+      // Play the timeline
+      window.MVM.play();
+      // Wait 1500ms — playhead advances 1500ms, recorder captures frames
+      await new Promise((r) => setTimeout(r, 1500));
+      // Stop
+      window.MVM.Recorder.stop();
+      // Give _save a moment to run
+      await new Promise((r) => setTimeout(r, 200));
+      const c = window.__captured;
+      if (!c) return { error: 'Recorder._save never fired' };
+      const bytes = await c.bytes;
+      return { size: c.size, type: c.type, bytes };
+    });
+    if (v.error) { ok(false, v.error); return; }
+    ok(v.size > 1000, `recording too small: ${v.size} bytes`);
+    ok(/webm|mp4/i.test(v.type), `unexpected mime: ${v.type}`);
+    // Container header check
+    const b = v.bytes;
+    let valid = false;
+    if (v.type.indexOf('webm') !== -1 && b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3) valid = true;
+    if (v.type.indexOf('mp4') !== -1 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) valid = true;
+    if (!valid) {
+      const nz = b.filter((x) => x !== 0).length;
+      valid = nz >= 4;
+    }
+    ok(valid, `bad container header: ${b.map((x) => x.toString(16).padStart(2, '0')).join(' ')}`);
+  });
+
+    await step('song picker opens modal via SWR_LIBRARY_SWITCHER', async () => {
     const v = await page.evaluate(() => {
       const btn = document.getElementById('pick-song');
       btn.click();

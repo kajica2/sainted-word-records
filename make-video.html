@@ -157,6 +157,15 @@
   <footer class="mvm-foot">
     <button class="tbtn" id="play-pause" disabled>▶ PLAY</button>
     <button class="tbtn" id="stop" disabled>■ STOP</button>
+    <button class="tbtn" id="rec" disabled>● REC</button>
+    <select id="rec-dur" style="background:var(--bg-2);color:var(--ink);border:1px solid var(--line);font:9px ui-monospace;padding:3px 4px;letter-spacing:0.04em;" title="Auto-stop recording after N seconds (0 = manual)">
+      <option value="0">manual</option>
+      <option value="5">5s</option>
+      <option value="10">10s</option>
+      <option value="30">30s</option>
+      <option value="60">60s</option>
+      <option value="song">song</option>
+    </select>
     <span id="time-readout" style="color:var(--ink);font-size:10px;">0:00 / 0:00</span>
     <span style="flex:1"></span>
     <span id="foot-meta" style="color:var(--muted);font-size:9px;letter-spacing:0.08em;">—</span>

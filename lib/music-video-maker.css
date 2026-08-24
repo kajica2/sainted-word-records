@@ -152,6 +152,52 @@
   background: rgba(0, 240, 255, 0.04);
 }
 
+/* Per-clip controls: blend / opacity / transition */
+.mvm-clip-controls {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: stretch;
+  min-width: 90px;
+}
+.mvm-clip-controls select,
+.mvm-clip-controls input[type="range"] {
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  background: var(--bg-2, #0a0008);
+  color: var(--ink, #fff);
+  border: 1px solid var(--line, #330022);
+  padding: 2px 3px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.mvm-clip-controls input[type="range"] {
+  padding: 0;
+  height: 14px;
+  accent-color: var(--accent, #ff0066);
+}
+.mvm-clip-controls select:focus,
+.mvm-clip-controls input[type="range"]:focus { outline: 1px solid var(--accent-2, #00ccff); }
+
+/* RECORDING indicator */
+.mvm-recording {
+  color: var(--accent, #ff0066) !important;
+  animation: mvm-rec-pulse 1s ease-in-out infinite;
+}
+@keyframes mvm-rec-pulse {
+  0%, 100% { opacity: 1.0; }
+  50% { opacity: 0.4; }
+}
+.mvm-rec-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  background: var(--accent, #ff0066);
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .current-song.has-song {
   color: var(--green, #00ff66);
   font-weight: 600;
