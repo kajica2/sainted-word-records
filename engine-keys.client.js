@@ -27,6 +27,9 @@
 //   T                  toggle TIMING panel
 //   L                  toggle LFOs panel
 //   S or ?             open settings menu      (SWR_SETTINGS.open)
+//                       Also reveals the ⚙ gear in the top-right so
+//                       the user has a persistent entry point after
+//                       first use.
 //   Esc                close settings menu    (SWR_SETTINGS.close)
 //   ↑ / ↓              select prev / next layer
 //   1..9               select layer by index  (1-based; 0 = layer 0)
@@ -402,12 +405,18 @@
         if (state.helpVisible) hideHelp(); else showHelp();
       });
       btn.title = 'Keyboard shortcuts (?)';
+      try { console.log('[swr-keys] help button bound'); } catch (_) {}
       return true;
     }
     if (!bindHelpButton()) {
       // Page may mount the button after SWR_KEYS loads — try once more on
       // a short delay, then give up.
-      window.setTimeout(bindHelpButton, 250);
+      try { console.log('[swr-keys] help button not yet in DOM, retrying in 250ms'); } catch (_) {}
+      window.setTimeout(function () {
+        if (!bindHelpButton()) {
+          try { console.log('[swr-keys] help button still missing after retry'); } catch (_) {}
+        }
+      }, 250);
     }
   }
   if (document.readyState === 'loading') {

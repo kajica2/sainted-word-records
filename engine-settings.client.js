@@ -37,12 +37,25 @@
       const raw = localStorage.getItem(LS_VIS);
       const obj = raw ? JSON.parse(raw) : {};
       return {
+        // Gear + menu default HIDDEN. They come up only when the user
+        // presses the keyboard shortcut (S or ?). Once shown, the
+        // preference is remembered.
+        'swr-settings-gear': obj['swr-settings-gear'] === true,
+        'swr-settings-menu': obj['swr-settings-menu'] === true,
+        // Auto-swap stays visible by default (it's part of the core UI).
         'ls-panel-swap':   obj['ls-panel-swap']   !== false,
-        'ls-panel-timing': obj['ls-panel-timing'] !== false,
-        'ls-panel-lfo':    obj['ls-panel-lfo']    !== false,
+        // Timing + LFO default HIDDEN — advanced, opt-in.
+        'ls-panel-timing': obj['ls-panel-timing'] === true,
+        'ls-panel-lfo':    obj['ls-panel-lfo']    === true,
       };
     } catch (_) {
-      return { 'ls-panel-swap': true, 'ls-panel-timing': true, 'ls-panel-lfo': true };
+      return {
+        'swr-settings-gear': false,
+        'swr-settings-menu': false,
+        'ls-panel-swap':   true,
+        'ls-panel-timing': false,
+        'ls-panel-lfo':    false,
+      };
     }
   }
 
@@ -51,6 +64,14 @@
   }
 
   function applyVisibility(v) {
+    // Gear: respect the explicit gear preference.
+    const gear = document.getElementById(GEAR_ID);
+    if (gear) gear.style.display = v['swr-settings-gear'] ? '' : 'none';
+    // Menu is hidden by default; it only ever shows on user action
+    // (gear click or SWR_SETTINGS.open()), not from preferences.
+    const menu = document.getElementById(MENU_ID);
+    if (menu) menu.style.display = 'none';
+    // Panels: respect their preference.
     for (const p of PANELS) {
       const el = document.getElementById(p.id);
       if (!el) continue;
@@ -72,8 +93,14 @@
     for (const k of ['swr-layer-scheduler.pos', 'swr.timing-panel.pos', 'swr.lfo-panel.pos', LS_VIS]) {
       try { localStorage.removeItem(k); } catch (_) {}
     }
-    // Reset visibility to default (all on).
-    applyVisibility({ 'ls-panel-swap': true, 'ls-panel-timing': true, 'ls-panel-lfo': true });
+    // Reset visibility to defaults (advanced hidden, swap visible).
+    applyVisibility({
+      'swr-settings-gear': false,
+      'swr-settings-menu': false,
+      'ls-panel-swap':   true,
+      'ls-panel-timing': false,
+      'ls-panel-lfo':    false,
+    });
     // Move panels back to their CSS default positions by clearing inline
     // left/top/right/bottom.
     for (const p of PANELS) {
@@ -295,13 +322,25 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
   } else {
-    // Slight defer so other panels (which load just before us) are mounted.
-    setTimeout(boot, 0);
+    // Defer so the timing + LFO panel modules (which load just before us
+    // via <script defer>) have appended their panels to the DOM. Without
+    // this, applyVisibility() runs before ls-panel-timing / ls-panel-lfo
+    // exist and the preference is a no-op for that load.
+    setTimeout(boot, 50);
   }
 
   // Public surface (testing + future extension).
   window.SWR_SETTINGS = {
     open: function () {
+      // Reveal the gear (if it isn't already) and open the menu. The
+      // gear preference is remembered so it stays visible across reloads
+      // once the user has opened settings at least once.
+      const v = readVisibility();
+      if (!v['swr-settings-gear']) {
+        v['swr-settings-gear'] = true;
+        writeVisibility(v);
+      }
+      applyVisibility(v);
       const m = document.getElementById(MENU_ID);
       if (m) m.style.display = '';
     },
