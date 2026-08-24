@@ -1,0 +1,80 @@
+# =============================================================================
+# SWR · 10-second intro · Hypnotic voiceover script
+# =============================================================================
+# Format: Apple embedded speech commands (works with macOS `say`, iOS, AvOS,
+# AVSpeechSynthesizer, and most TTS engines that respect these tokens)
+#
+#   [[slnc N]]      → pause for N milliseconds
+#   [[emph +]]w[[emph -]]  → emphasize word
+#   # comment       → ignored by TTS
+#   %VARIABLE%      → string substitution at runtime
+#
+# Suggested voice: Samantha / Daniel (en-US, calm), or any low-mid voice.
+# Suggested rate: 0.5× normal (≈180 wpm) for maximum calm. Faster if used as
+# an ad spot.
+#
+# Total duration (incl. pauses): ~13 seconds at 0.5× rate, ~9 seconds at 0.7×.
+# =============================================================================
+
+
+# =============================================================================
+# SESSION 1 · INDUCTION (0 – 4s) — guide the viewer into trance
+# =============================================================================
+
+[[slnc 800]]
+Close your eyes. [[slnc 600]]
+And listen... to the music. [[slnc 800]]
+[[emph +]]Feel[[emph -]] the bass. [[slnc 400]]
+[[emph +]]Feel[[emph -]] the rhythm. [[slnc 1000]]
+
+
+# =============================================================================
+# SESSION 2 · SUGGESTION (4 – 8s) — deliver the experiential content
+# =============================================================================
+
+Now... open your eyes. [[slnc 800]]
+The song you just heard... [[slnc 600]]
+is the song your audience will see. [[slnc 1000]]
+Audio-reactive video. [[slnc 400]]
+From your browser. [[slnc 600]]
+In 48 hours. [[slnc 1000]]
+
+
+# =============================================================================
+# SESSION 3 · WAKENER (8 – 13s) — return to normal awareness, lock in CTA
+# =============================================================================
+
+Drop a song. Get a video. [[slnc 700]]
+[[emph +]]Sainted Word Records.[[emph -]]
+
+
+# =============================================================================
+# DELIVERY NOTES
+# =============================================================================
+#
+# 1. Pair with `swr-intro-10s.html` — the animation has the same 5-phase
+#    structure with caption overlays that hit the same beats:
+#    0.0s "Close your eyes."        (caption 1)
+#    2.0s "Listen to the music..."   (caption 2)
+#    4.5s "Now open them."           (caption 3)
+#    6.6s "The song becomes the screen."  (caption 4)
+#    8.4s "Sainted Word Records"      (wordmark line 1)
+#    8.7s "drop a song · get a video" (wordmark line 2)
+#    8.9s "sainted-word-records.vercel.app"  (wordmark URL)
+#
+# 2. To render to MP4 with TTS voice:
+#      macOS  : `say -v Samantha -r 180 -o intro.aiff \
+#                   --file-format=LEI16@22050Hz swr-intro-10s-script.txt`
+#      then   : `ffmpeg -i intro.aiff -i swr-intro-screen.mp4 \
+#                   -c:v copy -c:a aac -shortest swr-intro-10s.mp4`
+#
+# 3. Variant B (faster / ad-spot pace, ~9s total):
+#    - Drop the "And listen..." line
+#    - Reduce all pauses to 50% of their values
+#    - Read at 0.7× rate
+#
+# 4. Ethical framing: This script is for self-promotion of a tool, not for
+#    therapeutic use. The "induction" is purely stylistic (it sets a calm
+#    tone for a product intro). The "suggestion" describes what the tool
+#    actually does. The "wakener" is a normal call-to-action.
+# =============================================================================

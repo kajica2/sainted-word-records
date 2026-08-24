@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SWR Watermark A · SWR Monogram (geometric letterforms)
+  ──────────────────────────────────────────────────────
+  - 3 chunky geometric letters "S", "W", "R" side by side
+  - Bottom-right corner placement, scales 8-12% of frame width
+  - Pure-rect + polyline construction (no font dependencies)
+  - White with subtle drop shadow
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" width="360" height="120" role="img" aria-label="SWR monogram watermark">
+  <defs>
+    <filter id="swr-a-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="1.5" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.5"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#swr-a-shadow)" fill="#ffffff" fill-opacity="0.94" stroke="#ffffff" stroke-opacity="0.94">
+    <!-- S : 5-stroke zigzag, 80w × 96h -->
+    <g transform="translate(0, 12)">
+      <rect x="0"  y="0"  width="80" height="14" stroke="none"/>
+      <rect x="0"  y="14" width="14" height="32" stroke="none"/>
+      <rect x="0"  y="41" width="80" height="14" stroke="none"/>
+      <rect x="66" y="55" width="14" height="32" stroke="none"/>
+      <rect x="0"  y="82" width="80" height="14" stroke="none"/>
+    </g>
+    <!-- W : 96w × 96h, drawn as a single polyline with stroke-width -->
+    <g transform="translate(108, 12)" fill="none" stroke-width="14" stroke-linejoin="miter" stroke-linecap="butt">
+      <polyline points="0,0 24,96 48,32 72,96 96,0"/>
+    </g>
+    <!-- R : 80w × 96h, vertical bar + closed bowl + diagonal leg -->
+    <g transform="translate(232, 12)">
+      <rect x="0"  y="0"  width="14" height="96" stroke="none"/>
+      <rect x="14" y="0"  width="52" height="14" stroke="none"/>
+      <rect x="66" y="14" width="14" height="32" stroke="none"/>
+      <rect x="14" y="41" width="52" height="14" stroke="none"/>
+      <polygon points="42,55 66,55 66,68 50,68 66,96 50,96 36,72" stroke="none"/>
+    </g>
+  </g>
+
+  <!-- Hairline accent under the monogram -->
+  <g fill="#ff3d92" fill-opacity="0.85">
+    <rect x="0"  y="112" width="40" height="2"/>
+    <rect x="48" y="112" width="2"  height="2"/>
+    <rect x="56" y="112" width="2"  height="2"/>
+  </g>
+</svg>

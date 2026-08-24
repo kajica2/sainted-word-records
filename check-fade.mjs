@@ -91,7 +91,7 @@ const SEED_PAGE = `(() => {
 
 const TEST_PAGE = `(async () => {
   const T = window.SWR_TIMING;
-  if (!T) return { ok: false, reason: 'SWR_TIMING not loaded on page' };
+  if (!T) return { ok: false, reason: 'SWR_TIMING not loaded' };
   const L = window.SWR.Layers;
   const layer = L.list[0];
 
@@ -178,14 +178,54 @@ const TEST_PAGE = `(async () => {
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
     const page = await browser.newPage();
+    // Install fetch() interceptor BEFORE any page script runs, so the
+    // engine's auto-audio-load (which can asynchronously add Library.items
+    // to L.list mid-test) is short-circuited. Without this, the test loses
+    // its tracked layer to a Library-loaded swap and the fade math appears
+    // to fail. The stub returns an empty 200 for /audios/* paths so the
+    // Audio element thinks the file loaded but no items are added.
+    // ALSO: monkey-patch Layers.add to be a no-op until the test explicitly
+    // re-enables it via window.__layersAddGuard=false. The engine's
+    // auto-classifier triggers a click that adds layers asynchronously,
+    // racing with the test's seed and corrupting the fade math.
+    await page.evaluateOnNewDocument(() => {
+      const __orig = window.fetch;
+      window.fetch = function (url, ...rest) {
+        const s = (typeof url === 'string' ? url : (url && url.url) || '');
+        // The engine auto-loads (a) the library manifest + files and (b) the
+        // default audio. Both race the test seed and corrupt L.list. Return
+        // empty 200s so the engines think they loaded but add no items.
+        if (s.indexOf('audios/') !== -1) return Promise.resolve(new Response(new ArrayBuffer(0), { status: 200 }));
+        if (s.indexOf('library/') !== -1) return Promise.resolve(new Response('{"files":[]}', { status: 200, headers: { 'content-type': 'application/json' } }));
+        return __orig.apply(this, [url, ...rest]);
+      };
+      // ALSO guard Layers.add as a belt-and-braces measure in case the
+      // auto-load races the fetch interceptor for some other path.
+      const wireGuard = () => {
+        if (!window.SWR || !window.SWR.Layers) { setTimeout(wireGuard, 20); return; }
+        window.__layersAddGuard = true;
+        const __add = window.SWR.Layers.add.bind(window.SWR.Layers);
+        window.SWR.Layers.add = function () {
+          if (window.__swrDebug) console.log('Layers.add GUARDED, args=', arguments[0] && arguments[0].id);
+          if (window.__layersAddGuard) return null;
+          return __add.apply(this, arguments);
+        };
+      };
+      wireGuard();
+    });
     const errs = [];
     page.on('pageerror', e => errs.push('pageerror: ' + e.message));
     page.on('console', m => {
-      if (m.type() === 'error') errs.push('console.error: ' + m.text());
+      if (m.type() === 'log' || m.type() === 'warning') errs.push(m.type() + ': ' + m.text());
+      else if (m.type() === 'error') errs.push('console.error: ' + m.text());
     });
-    await page.goto(`http://localhost:${PORT}/versions/${ENGINE}.html`, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(`http://localhost:${PORT}/versions/${ENGINE}.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     // Give the page a beat to expose SWR + SWR_TIMING.
     await page.waitForFunction(() => window.SWR && window.SWR.Layers && window.SWR.Layers.list, { timeout: 10000 });
+    // Clear any persisted localStorage from previous test runs so the
+    // values we set in SEED_PAGE are authoritative.
+    await page.evaluate(() => { try { localStorage.clear(); } catch (_) {} });
+    await page.evaluate(() => { window.__swrDebug = true; });
     await page.evaluate(SEED_PAGE);
     const result = await page.evaluate(TEST_PAGE);
 

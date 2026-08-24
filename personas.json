@@ -1,0 +1,61 @@
+{
+  "_about": "Single source of truth for the 5 character presets of the SWR personas. Every register (Editorial / Dark / Friendly / Dashboard / Brutalist) renders this same data in its own visual register. Tweak here, all 5 pages update on next regen.",
+  "_note": "When generating a register, embed this JSON inline in the HTML so each page is self-contained. The .personas.js file in the project root is the runtime version for the live <personas-block> component.",
+  "section": {
+    "kicker": "Made for these people",
+    "title": "Who actually <em>uses</em> this.",
+    "lede": "The engine and its 5 versions were built for people who have audio and a release date, and zero budget for a video editor. The profiles below are the ones who reach for it first."
+  },
+  "personas": [
+    {
+      "name": "Indie musician",
+      "body": "Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.",
+      "icon": "♪",
+      "best_fit": true,
+      "tool": "versions/neon.html"
+    },
+    {
+      "name": "Beatmaker",
+      "body": "Selling beats on BeatStars / Airbit. Renders a 15s preview per track so the listing beats a static waveform.",
+      "icon": "▰",
+      "tool": "versions/grid.html"
+    },
+    {
+      "name": "DJ",
+      "body": "Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.",
+      "icon": "◐",
+      "tool": "versions/smoke.html"
+    },
+    {
+      "name": "Small label",
+      "body": "3–10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.",
+      "icon": "✦",
+      "tool": "versions/film.html"
+    },
+    {
+      "name": "Belgrade / Serbian artist",
+      "body": "Local pricing (€25 vs €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.",
+      "icon": "◎",
+      "best_fit": true,
+      "tool": "campaign.html"
+    },
+    {
+      "name": "Podcaster",
+      "body": "One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.",
+      "icon": "≋",
+      "tool": "versions/film.html"
+    },
+    {
+      "name": "Sound designer",
+      "body": "Sample pack creator showcasing the patches. The visualizer becomes the cover art — engine output doubles as marketing.",
+      "icon": "⌗",
+      "tool": "versions/hallucination.html"
+    },
+    {
+      "name": "Music manager / agency",
+      "body": "Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.",
+      "icon": "◇",
+      "tool": "profit-plan.html"
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SWR Watermark B · "SAINTED WORD RECORDS" Wordmark
+  ──────────────────────────────────────────────────
+  - Compact horizontal layout: "SAINTED WORD" big, "RECORDS" smaller tracked beneath
+  - Bottom edge placement, centered or right-aligned
+  - Pure-rect + polyline construction (no font dependencies)
+  - White with subtle drop shadow
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200" role="img" aria-label="Sainted Word Records wordmark watermark">
+  <defs>
+    <filter id="swr-b-shadow" x="-5%" y="-15%" width="110%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="1.5" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.5"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#swr-b-shadow)" fill="#ffffff" fill-opacity="0.95">
+    <!-- "SAINTED" : 7 chunky glyphs, 50w each + 10px gap, 80h -->
+    <g transform="translate(0, 0)">
+      <!-- S 50w -->
+      <g>
+        <rect x="0"  y="0"  width="50" height="10"/>
+        <rect x="0"  y="10" width="10" height="25"/>
+        <rect x="0"  y="30" width="50" height="10"/>
+        <rect x="40" y="40" width="10" height="25"/>
+        <rect x="0"  y="60" width="50" height="10"/>
+      </g>
+      <!-- A 50w : pillar + crossbar -->
+      <g transform="translate(60, 0)">
+        <rect x="0"  y="0"  width="10" height="70"/>
+        <rect x="40" y="0"  width="10" height="70"/>
+        <rect x="0"  y="0"  width="50" height="10"/>
+        <rect x="0"  y="30" width="50" height="10"/>
+      </g>
+      <!-- I 24w -->
+      <g transform="translate(120, 0)">
+        <rect x="0"  y="0"  width="24" height="10"/>
+        <rect x="7"  y="10" width="10" height="50"/>
+        <rect x="0"  y="60" width="24" height="10"/>
+      </g>
+      <!-- N 50w : left + right vertical, diagonal stroke as triangle -->
+      <g transform="translate(154, 0)">
+        <rect x="0"  y="0"  width="10" height="70"/>
+        <rect x="40" y="0"  width="10" height="70"/>
+        <polygon points="10,0 40,0 40,70 30,70"/>
+      </g>
+      <!-- T 50w -->
+      <g transform="translate(214, 0)">
+        <rect x="0"  y="0"  width="50" height="10"/>
+        <rect x="20" y="10" width="10" height="60"/>
+      </g>
+      <!-- E 46w -->
+      <g transform="translate(274, 0)">
+        <rect x="0"  y="0"  width="10" height="70"/>
+        <rect x="0"  y="0"  width="40" height="10"/>
+        <rect x="0"  y="30" width="32" height="10"/>
+        <rect x="0"  y="60" width="40" height="10"/>
+      </g>
+      <!-- D 50w : vertical bar + top/bottom horizontal + right vertical -->
+      <g transform="translate(330, 0)">
+        <rect x="0"  y="0"  width="10" height="70"/>
+        <rect x="10" y="0"  width="32" height="10"/>
+        <rect x="40" y="10" width="10" height="50"/>
+        <rect x="10" y="60" width="32" height="10"/>
+      </g>
+    </g>
+
+    <!-- "WORD" : 4 glyphs, 50w each + 10px gap, 70h -->
+    <g transform="translate(420, 0)">
+      <!-- W 50w : polyline stroke -->
+      <g fill="none" stroke="#ffffff" stroke-opacity="0.95" stroke-width="10" stroke-linejoin="miter">
+        <polyline points="0,0 12,70 25,25 38,70 50,0"/>
+      </g>
+      <!-- O 50w : rectangle outline -->
+      <g transform="translate(60, 0)">
+        <rect x="0"  y="0"  width="50" height="10"/>
+        <rect x="0"  y="60" width="50" height="10"/>
+        <rect x="0"  y="10" width="10" height="50"/>
+        <rect x="40" y="10" width="10" height="50"/>
+      </g>
+      <!-- R 50w : pillar + bowl + leg -->
+      <g transform="translate(120, 0)">
+        <rect x="0"  y="0"  width="10" height="70"/>
+        <rect x="10" y="0"  width="32" height="10"/>
+        <rect x="40" y="10" width="10" height="20"/>
+        <rect x="10" y="30" width="32" height="10"/>
+        <polygon points="26,40 50,40 50,55 34,55 50,70 38,70 22,55"/>
+      </g>
+      <!-- D 50w -->
+      <g transform="translate(190, 0)">
+        <rect x="0"  y="0"  width="10" height="70"/>
+        <rect x="10" y="0"  width="32" height="10"/>
+        <rect x="40" y="10" width="10" height="50"/>
+        <rect x="10" y="60" width="32" height="10"/>
+      </g>
+    </g>
+
+    <!-- "RECORDS" : 7 tracked glyphs, 36w each + 16px gap, 50h, scaled-up for legibility -->
+    <g transform="translate(50, 100)">
+      <!-- R 36w -->
+      <g>
+        <rect x="0"  y="0"  width="6"  height="50"/>
+        <rect x="6"  y="0"  width="24" height="6"/>
+        <rect x="28" y="6"  width="6"  height="20"/>
+        <rect x="6"  y="22" width="24" height="6"/>
+        <polygon points="20,28 34,28 34,38 24,38 34,50 26,50 18,40"/>
+      </g>
+      <!-- E 30w -->
+      <g transform="translate(46, 0)">
+        <rect x="0"  y="0"  width="6"  height="50"/>
+        <rect x="0"  y="0"  width="26" height="6"/>
+        <rect x="0"  y="22" width="22" height="6"/>
+        <rect x="0"  y="44" width="26" height="6"/>
+      </g>
+      <!-- C 30w -->
+      <g transform="translate(86, 0)">
+        <rect x="0"  y="0"  width="6"  height="50"/>
+        <rect x="0"  y="0"  width="26" height="6"/>
+        <rect x="0"  y="44" width="26" height="6"/>
+        <rect x="20" y="6"  width="6"  height="14"/>
+        <rect x="20" y="30" width="6"  height="14"/>
+      </g>
+      <!-- O 30w -->
+      <g transform="translate(126, 0)">
+        <rect x="0"  y="0"  width="30" height="6"/>
+        <rect x="0"  y="44" width="30" height="6"/>
+        <rect x="0"  y="6"  width="6"  height="38"/>
+        <rect x="24" y="6"  width="6"  height="38"/>
+      </g>
+      <!-- R 36w -->
+      <g transform="translate(166, 0)">
+        <rect x="0"  y="0"  width="6"  height="50"/>
+        <rect x="6"  y="0"  width="24" height="6"/>
+        <rect x="28" y="6"  width="6"  height="20"/>
+        <rect x="6"  y="22" width="24" height="6"/>
+        <polygon points="20,28 34,28 34,38 24,38 34,50 26,50 18,40"/>
+      </g>
+      <!-- D 30w -->
+      <g transform="translate(216, 0)">
+        <rect x="0"  y="0"  width="6"  height="50"/>
+        <rect x="6"  y="0"  width="20" height="6"/>
+        <rect x="24" y="6"  width="6"  height="38"/>
+        <rect x="6"  y="44" width="20" height="6"/>
+      </g>
+      <!-- S 30w -->
+      <g transform="translate(256, 0)">
+        <rect x="0"  y="0"  width="30" height="6"/>
+        <rect x="0"  y="6"  width="6"  height="18"/>
+        <rect x="0"  y="22" width="30" height="6"/>
+        <rect x="24" y="28" width="6"  height="18"/>
+        <rect x="0"  y="44" width="30" height="6"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Pink accent tick at left edge for brand color identity -->
+  <rect x="0" y="195" width="32" height="2" fill="#ff3d92" fill-opacity="0.85"/>
+</svg>

@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR · 30s tutorial · How to use the engine</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%231a1028' stroke='%23ff3d92' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff3d92'/%3E%3Ccircle cx='16' cy='16' r='0.8' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --cool: #0085b3;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: 'Geist', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    .stage { display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 18px; }
+    h1 { font-family: 'Fraunces', serif; font-weight: 300; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+    h1 em { font-style: italic; color: var(--accent); }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    button {
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      padding: 10px 20px; border-radius: 999px; border: 1px solid var(--line);
+      background: var(--ink); color: var(--bg); cursor: pointer;
+    }
+    button:hover { background: var(--accent); }
+    button.secondary { background: transparent; color: var(--ink); }
+    button.secondary:hover { background: var(--ink); color: var(--bg); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .status { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+    .stage-frame {
+      width: 360px; height: 640px; /* 9:16 */
+      background: #0e0c0a;
+      border-radius: 16px; overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+    .overlay { position: absolute; inset: 0; pointer-events: none; }
+    .scene-label {
+      position: absolute; top: 24px; left: 24px;
+      font-family: 'Geist Mono', monospace; font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+    }
+    .scene-step {
+      position: absolute; top: 24px; right: 24px;
+      font-family: 'Geist Mono', monospace; font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent);
+    }
+    .scene-title {
+      position: absolute; bottom: 60px; left: 24px; right: 24px;
+      font-family: 'Fraunces', serif; font-weight: 300;
+      font-size: 32px; line-height: 1.05; color: white;
+      letter-spacing: -0.02em;
+    }
+    .scene-title em { font-style: italic; color: var(--accent-2); }
+    .scene-sub {
+      position: absolute; bottom: 24px; left: 24px; right: 24px;
+      font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.4;
+    }
+    .progress {
+      width: 360px; height: 4px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 2px; overflow: hidden;
+    }
+    .progress__bar {
+      height: 100%; background: var(--accent);
+      width: 0%; transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <h1>SWR <em>30-second</em> tutorial</h1>
+    <div class="stage-frame">
+      <canvas id="c" width="720" height="1280"></canvas>
+      <div class="overlay">
+        <div class="scene-label" id="label">SWR · 2026</div>
+        <div class="scene-step" id="step">01 / 04</div>
+        <div class="scene-title" id="title">Drop in your <em>song</em>.</div>
+        <div class="scene-sub" id="sub">WAV, MP3, M4A, FLAC. Any audio. The engine handles the rest.</div>
+      </div>
+    </div>
+    <div class="progress"><div class="progress__bar" id="progress"></div></div>
+    <div class="controls">
+      <button id="play">▶ Play</button>
+      <button id="record" class="secondary">⏺ Record MP4</button>
+      <span class="status" id="status">ready · 30s</span>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // Scenes — 4 × 7.5s = 30s
+  const SCENES = [
+    {
+      t: 0, dur: 7.5,
+      step: '01 / 04',
+      label: 'SWR · load',
+      title: 'Drop in your <em>song</em>.',
+      sub: 'WAV · MP3 · M4A · FLAC. Any audio, the engine handles the rest.',
+      bg: '#0e0c0a',
+      draw: drawLoadScene,
+    },
+    {
+      t: 7.5, dur: 7.5,
+      step: '02 / 04',
+      label: 'SWR · style',
+      title: 'Pick a <em>style</em>.',
+      sub: 'Neon · Film · Grid · Smoke · Hallucination. One click, instant aesthetic.',
+      bg: '#160a14',
+      draw: drawStyleScene,
+    },
+    {
+      t: 15, dur: 7.5,
+      step: '03 / 04',
+      label: 'SWR · remix',
+      title: 'Hit <em>RE-MAP</em>.',
+      sub: 'Auto-mixes 6 layers to your song. Adaptive beat, onset, 5 frequency bands.',
+      bg: '#0a1014',
+      draw: drawRemapScene,
+    },
+    {
+      t: 22.5, dur: 7.5,
+      step: '04 / 04',
+      label: 'SWR · export',
+      title: 'Record your <em>video</em>.',
+      sub: 'H.264 + AAC, 48kHz stereo, 30fps. Ready for TikTok, Reels, Shorts.',
+      bg: '#0e0c0a',
+      draw: drawRecordScene,
+    },
+  ];
+
+  const TOTAL = 30;
+  let startTime = null;
+  let playing = false;
+  let rafId = null;
+  let recordedChunks = [];
+  let mediaRecorder = null;
+  let recordingStream = null;
+  let recordStartTime = 0;
+
+  const els = {
+    label: document.getElementById('label'),
+    step: document.getElementById('step'),
+    title: document.getElementById('title'),
+    sub: document.getElementById('sub'),
+    play: document.getElementById('play'),
+    record: document.getElementById('record'),
+    status: document.getElementById('status'),
+    progress: document.getElementById('progress'),
+  };
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeInOutSine(t) { return 0.5 - 0.5 * Math.cos(Math.PI * t); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+  function setOverlay(scene) {
+    els.label.textContent = scene.label;
+    els.step.textContent = scene.step;
+    els.title.innerHTML = scene.title;
+    els.sub.textContent = scene.sub;
+  }
+
+  function currentScene(t) {
+    for (let i = SCENES.length - 1; i >= 0; i--) {
+      if (t >= SCENES[i].t) return SCENES[i];
+    }
+    return SCENES[0];
+  }
+
+  function sceneTime(t) {
+    const s = currentScene(t);
+    return { scene: s, local: (t - s.t) / s.dur, abs: t };
+  }
+
+  // ========== SCENE 1: LOAD — audio waveform dropping in ==========
+  function drawLoadScene(t) {
+    const { local } = sceneTime(t);
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0e0c0a');
+    bg.addColorStop(1, '#1a0a14');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // Audio file card
+    const cardW = 480, cardH = 240;
+    const cardX = (W - cardW) / 2;
+    const cardY = H * 0.32 + (1 - easeOutCubic(local)) * 80;
+    const cardAlpha = clamp(local * 4, 0, 1);
+
+    ctx.save();
+    ctx.globalAlpha = cardAlpha;
+    // Card
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cardX, cardY, cardW, cardH, 12);
+    ctx.fill(); ctx.stroke();
+    // File icon
+    ctx.fillStyle = '#e6306b';
+    roundRect(ctx, cardX + 24, cardY + 24, 56, 56, 8);
+    ctx.fill();
+    ctx.fillStyle = 'white'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('♪', cardX + 52, cardY + 60);
+    // Filename
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '500 22px "Geist Mono", monospace'; ctx.textAlign = 'left';
+    ctx.fillText('your-song.wav', cardX + 100, cardY + 50);
+    ctx.font = '12px "Geist Mono", monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText('3:42 · 48kHz · 24-bit', cardX + 100, cardY + 72);
+    // Waveform (after card lands)
+    if (local > 0.3) {
+      const waveAlpha = clamp((local - 0.3) * 3, 0, 1);
+      ctx.globalAlpha = waveAlpha;
+      ctx.fillStyle = '#e6306b';
+      const waveY = cardY + 130;
+      const bars = 32;
+      const barW = (cardW - 48) / bars;
+      for (let i = 0; i < bars; i++) {
+        const h = 20 + Math.abs(Math.sin((i + t * 4) * 0.5)) * 30 + Math.cos(i * 0.7) * 12;
+        ctx.fillRect(cardX + 24 + i * barW + 1, waveY - h / 2 + 15, barW - 2, h);
+      }
+    }
+    ctx.restore();
+
+    // Floating particles
+    drawParticles(t, 20, ['#e6306b', '#ff8a3a', '#ffffff']);
+  }
+
+  // ========== SCENE 2: STYLE — 5 cards flipping in ==========
+  function drawStyleScene(t) {
+    const { local } = sceneTime(t);
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#160a14');
+    bg.addColorStop(1, '#0e0c0a');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    const styles = [
+      { name: 'Neon', color: '#e6306b', angle: 0 },
+      { name: 'Film', color: '#ff8a3a', angle: 0.2 },
+      { name: 'Grid', color: '#00e5ff', angle: -0.1 },
+      { name: 'Smoke', color: '#d4c7b3', angle: 0.1 },
+      { name: 'Halu', color: '#ff2d8a', angle: -0.2 },
+    ];
+
+    const cardW = 110, cardH = 150, gap = 14;
+    const totalW = styles.length * cardW + (styles.length - 1) * gap;
+    const startX = (W - totalW) / 2;
+    const baseY = H * 0.38;
+
+    styles.forEach((s, i) => {
+      const delay = i * 0.08;
+      const cardLocal = clamp((local - delay) / 0.4, 0, 1);
+      const e = easeOutCubic(cardLocal);
+      const y = baseY + (1 - e) * 60;
+      const scale = 0.6 + 0.4 * e;
+      const alpha = e;
+      const isPicked = i === 1 && local > 0.7;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(startX + i * (cardW + gap) + cardW / 2, y + cardH / 2);
+      ctx.rotate(s.angle * (1 - e));
+      ctx.scale(scale, scale);
+
+      // Card
+      ctx.fillStyle = isPicked ? s.color : 'rgba(255,255,255,0.05)';
+      ctx.strokeStyle = isPicked ? s.color : 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = isPicked ? 4 : 1.5;
+      roundRect(ctx, -cardW / 2, -cardH / 2, cardW, cardH, 8);
+      ctx.fill(); ctx.stroke();
+
+      // Glow on picked
+      if (isPicked) {
+        ctx.shadowColor = s.color;
+        ctx.shadowBlur = 30;
+        ctx.strokeStyle = s.color;
+        roundRect(ctx, -cardW / 2, -cardH / 2, cardW, cardH, 8);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Card name
+      ctx.fillStyle = isPicked ? '#0e0c0a' : 'white';
+      ctx.font = '600 14px "Geist Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(s.name.toUpperCase(), 0, cardH / 2 - 16);
+      ctx.restore();
+    });
+
+    // "Pick" indicator
+    if (local > 0.7) {
+      const a = clamp((local - 0.7) * 5, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#ff8a3a';
+      ctx.font = '500 11px "Geist Mono", monospace';
+      ctx.textAlign = 'center';
+      const y = baseY + 200 + Math.sin(t * 8) * 4;
+      ctx.fillText('▼', W / 2, y);
+      ctx.fillStyle = 'rgba(255,138,58,0.8)';
+      ctx.font = '10px "Geist Mono", monospace';
+      ctx.fillText('FILM · PICKED', W / 2, y + 18);
+      ctx.restore();
+    }
+
+    drawParticles(t, 12, ['#ff8a3a', '#e6306b', '#00e5ff']);
+  }
+
+  // ========== SCENE 3: RE-MAP — 6 layers rearranging ==========
+  function drawRemapScene(t) {
+    const { local } = sceneTime(t);
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0a1014');
+    bg.addColorStop(1, '#0e0c0a');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // 6 layers as circles on a grid
+    const colors = ['#e6306b', '#ff8a3a', '#1c8c64', '#0085b3', '#d4c7b3', '#ff2d8a'];
+    const cx = W / 2, cy = H * 0.42;
+    const radius = 130;
+
+    // Orbit ring
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Central element
+    ctx.fillStyle = '#1a1612';
+    ctx.strokeStyle = '#e6306b';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'white';
+    ctx.font = '600 11px "Geist Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('MIX', cx, cy + 4);
+
+    // 6 layer nodes
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      // Animate position: start at random offset, settle to ring
+      const startAngle = angle + Math.sin(i * 2.3) * 1.5;
+      const startRadius = radius * (0.4 + Math.abs(Math.cos(i * 1.7)) * 0.8);
+      const px = cx + Math.cos(lerp(startAngle, angle, easeInOutSine(local))) * lerp(startRadius, radius, easeInOutSine(local));
+      const py = cy + Math.sin(lerp(startAngle, angle, easeInOutSine(local))) * lerp(startRadius, radius, easeInOutSine(local));
+      const sz = 18 + Math.abs(Math.sin(t * 2 + i)) * 6;
+
+      ctx.fillStyle = colors[i];
+      ctx.shadowColor = colors[i];
+      ctx.shadowBlur = 15;
+      ctx.beginPath(); ctx.arc(px, py, sz, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Number
+      ctx.fillStyle = 'white';
+      ctx.font = '700 12px "Geist Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText((i + 1).toString(), px, py + 4);
+    }
+    ctx.restore();
+
+    // Lines from center to each layer (after settling)
+    if (local > 0.5) {
+      const lineAlpha = clamp((local - 0.5) * 3, 0, 0.3);
+      ctx.strokeStyle = `rgba(230, 48, 107, ${lineAlpha})`;
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+      }
+    }
+
+    // "RE-MAP" stamp
+    if (local > 0.4) {
+      const a = clamp((local - 0.4) * 4, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(cx, cy - 200);
+      ctx.rotate(-0.05);
+      ctx.fillStyle = '#e6306b';
+      ctx.font = '600 14px "Geist Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('◉ RE-MAPPED', 0, 0);
+      ctx.restore();
+    }
+
+    drawParticles(t, 15, ['#1c8c64', '#0085b3', '#e6306b']);
+  }
+
+  // ========== SCENE 4: RECORD — REC indicator + waveform + file saved ==========
+  function drawRecordScene(t) {
+    const { local } = sceneTime(t);
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0e0c0a');
+    bg.addColorStop(1, '#160a14');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // REC indicator (top center)
+    const pulse = 0.7 + 0.3 * Math.abs(Math.sin(t * 5));
+    ctx.save();
+    ctx.fillStyle = `rgba(230, 48, 107, ${pulse})`;
+    ctx.beginPath(); ctx.arc(W / 2, H * 0.32, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = '700 16px "Geist Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('REC', W / 2, H * 0.32 + 5);
+    ctx.restore();
+
+    // Waveform (active)
+    ctx.fillStyle = '#e6306b';
+    const waveY = H * 0.5;
+    const bars = 48;
+    const barW = (W - 80) / bars;
+    for (let i = 0; i < bars; i++) {
+      const h = 30 + Math.abs(Math.sin((i + t * 6) * 0.4)) * 70 + Math.cos(i * 0.6) * 30;
+      const al = 0.6 + 0.4 * Math.abs(Math.sin((i + t * 8) * 0.3));
+      ctx.globalAlpha = al;
+      ctx.fillRect(40 + i * barW + 1, waveY - h / 2, barW - 2, h);
+    }
+    ctx.globalAlpha = 1;
+
+    // Time counter
+    const recordTime = (local * 30).toFixed(1);
+    ctx.fillStyle = 'white';
+    ctx.font = '500 28px "Geist Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`00:${String(Math.floor(local * 30)).padStart(2, '0')}`, W / 2, waveY + 130);
+
+    // Progress bar
+    const pbW = W - 80;
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.fillRect(40, H * 0.72, pbW, 4);
+    ctx.fillStyle = '#e6306b';
+    ctx.fillRect(40, H * 0.72, pbW * local, 4);
+
+    // "Saved" notification (last 1.5s)
+    if (local > 0.8) {
+      const sa = clamp((local - 0.8) * 5, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = sa;
+      const cardX = W / 2 - 200, cardY = H * 0.8, cardW2 = 400, cardH2 = 64;
+      ctx.fillStyle = '#1c8c64';
+      roundRect(ctx, cardX, cardY, cardW2, cardH2, 8);
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = '600 14px "Geist Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('✓ your-song.mp4 saved', cardX + 24, cardY + 28);
+      ctx.font = '11px "Geist Mono", monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillText('H.264 + AAC · 30s · ready to post', cardX + 24, cardY + 48);
+      ctx.restore();
+    }
+  }
+
+  function drawParticles(t, n, colors) {
+    for (let i = 0; i < n; i++) {
+      const phase = (t * 0.3 + i * 0.7) % 8;
+      const x = (Math.sin(i * 12.9 + t * 0.4) * 0.5 + 0.5) * W;
+      const y = H - (phase * (H / 8));
+      const al = clamp(1 - phase / 8, 0, 0.4);
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.globalAlpha = al;
+      ctx.beginPath(); ctx.arc(x, y, 2 + (i % 3), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function renderFrame(t) {
+    // Clear with bg gradient
+    ctx.fillStyle = '#0e0c0a';
+    ctx.fillRect(0, 0, W, H);
+    const { scene } = sceneTime(t);
+    scene.draw(t);
+  }
+
+  function tick() {
+    if (!playing) return;
+    const t = (performance.now() - startTime) / 1000;
+    if (t >= TOTAL) {
+      stop();
+      els.status.textContent = 'finished · 30s';
+      return;
+    }
+    renderFrame(t);
+    setOverlay(currentScene(t));
+    els.progress.style.width = `${(t / TOTAL) * 100}%`;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function play() {
+    if (playing) return;
+    playing = true;
+    startTime = performance.now();
+    els.play.textContent = '⏸ Pause';
+    els.status.textContent = 'playing...';
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pause() {
+    if (!playing) return;
+    playing = false;
+    cancelAnimationFrame(rafId);
+    els.play.textContent = '▶ Play';
+    els.status.textContent = 'paused';
+  }
+
+  function stop() {
+    playing = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    els.play.textContent = '▶ Play';
+    els.progress.style.width = '0%';
+  }
+
+  function reset() {
+    pause();
+    renderFrame(0);
+    setOverlay(SCENES[0]);
+    els.progress.style.width = '0%';
+    els.status.textContent = 'ready · 30s';
+  }
+
+  async function record() {
+    if (recordingStream) {
+      stopRecording();
+      return;
+    }
+    if (!playing) play();
+    els.record.textContent = '⏹ Stop & save';
+    els.status.textContent = 'recording...';
+    recordingStream = canvas.captureStream(30);
+    const mime = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2')
+      ? 'video/mp4;codecs=avc1.42E01E,mp4a.40.2'
+      : 'video/webm;codecs=vp9';
+    mediaRecorder = new MediaRecorder(recordingStream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      a.download = `swr-tutorial-30s.${ext}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      els.status.textContent = `saved · ${(blob.size / 1024 / 1024).toFixed(1)} MB · ${ext.toUpperCase()}`;
+      els.record.textContent = '⏺ Record MP4';
+      recordingStream = null;
+    };
+    recordStartTime = performance.now();
+    mediaRecorder.start(100);
+    // Auto-stop at 30s
+    setTimeout(() => { if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); }, 30_500);
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+    }
+  }
+
+  // Wire up
+  els.play.addEventListener('click', () => playing ? pause() : play());
+  els.record.addEventListener('click', record);
+
+  // Initial frame
+  renderFrame(0);
+  setOverlay(SCENES[0]);
+
+  // Expose for Puppeteer testing
+  window.__tutorial = { play, pause, stop, reset, record, stopRecording, renderFrame, scenes: SCENES, TOTAL };
+})();
+</script>
+</body>
+</html>

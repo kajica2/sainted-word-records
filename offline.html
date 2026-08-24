@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050308">
+<meta name="theme-color" content="#f5a524" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="dark light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SWR">
+<title>Sainted Word Records — offline</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050308'/%3E%3Cpath d='M2 16 Q 6 6 10 16 T 18 16 T 26 16 T 30 16' stroke='%23f5a524' fill='none' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg-0: #050308;
+    --bg-1: #0d0918;
+    --fg-0: #ece6f3;
+    --fg-1: #b9aec8;
+    --fg-2: #6f617a;
+    --amber: #f5a524;
+    --pink: #ff3d92;
+    --cyan: #00e5ff;
+    --line: #1a1226;
+    --radius-md: 14px;
+    --radius-pill: 999px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-theme="light"] {
+    --bg-0: #faf6ee;
+    --bg-1: #ffffff;
+    --fg-0: #1a0e22;
+    --fg-1: #4a3a55;
+    --fg-2: #6b5a76;
+    --line: #e3ddd0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg-0: #faf6ee; --bg-1: #ffffff;
+      --fg-0: #1a0e22; --fg-1: #4a3a55; --fg-2: #6b5a76;
+      --line: #e3ddd0;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100dvh; }
+  body {
+    background: var(--bg-0);
+    color: var(--fg-0);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.5;
+    display: flex; align-items: center; justify-content: center;
+    padding: clamp(20px, 4vw, 64px);
+    overflow: hidden; position: relative;
+  }
+  /* Aurora wash — pink + amber (matches SWR engine accent) */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(60% 80% at 30% 20%, rgba(255, 61, 146, 0.08) 0%, transparent 70%),
+      radial-gradient(50% 70% at 80% 70%, rgba(245, 165, 36, 0.10) 0%, transparent 70%);
+    animation: drift 30s ease-in-out infinite;
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(-2%, -1%); }
+    50%      { transform: translate(2%, 1%); }
+  }
+  @media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+  .card {
+    position: relative; z-index: 1;
+    max-width: 480px; text-align: center;
+    padding: 36px 32px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 12px 36px rgba(0, 0, 0, 0.30);
+  }
+  .icon {
+    width: 72px; height: 72px;
+    margin: 0 auto 22px;
+    border-radius: 16px;
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon svg { width: 40px; height: 40px; }
+  h1 {
+    font-family: 'Iowan Old Style', 'Apple Garamond', Georgia, 'Times New Roman', serif;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 500;
+    margin: 0 0 12px;
+    letter-spacing: -0.01em;
+  }
+  p { color: var(--fg-1); font-size: 15px; margin: 0 0 24px; }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: rgba(245, 165, 36, 0.08);
+    border: 1px solid rgba(245, 165, 36, 0.30);
+    border-radius: var(--radius-pill);
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: var(--amber);
+    margin-bottom: 20px;
+  }
+  .status::before {
+    content: ""; width: 6px; height: 6px;
+    background: var(--amber); border-radius: 50%;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.9); }
+    50%      { opacity: 1; transform: scale(1.1); }
+  }
+  .actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    padding: 12px 24px;
+    background: var(--amber); color: #0a0d12;
+    border: 0; border-radius: var(--radius-pill);
+    cursor: pointer; min-width: 160px;
+    transition: transform 200ms var(--ease);
+  }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  .hint { font-size: 12px; color: var(--fg-2); margin-top: 8px; }
+  .footer {
+    margin-top: 26px; padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-size: 11px; color: var(--fg-2);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  @media (prefers-reduced-motion: reduce) { .status::before { animation: none; } }
+</style>
+</head>
+<body>
+<main class="card" role="main">
+  <div class="icon" aria-hidden="true">
+    <svg viewBox="0 0 32 32" fill="none">
+      <path d="M2 16 Q 6 6 10 16 T 18 16 T 26 16 T 30 16" stroke="#f5a524" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <span class="status" aria-live="polite">you're offline</span>
+  <h1>SWR is paused</h1>
+  <p>Your device isn't connected to the network right now. Once you're back online, the engine will load automatically.</p>
+  <div class="actions">
+    <button type="button" onclick="window.location.reload()" aria-label="Try again">try again</button>
+    <span class="hint">or wait for the connection to come back</span>
+  </div>
+  <p class="footer">your projects stay on this device · no account needed</p>
+</main>
+</body>
+</html>

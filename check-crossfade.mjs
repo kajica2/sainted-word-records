@@ -160,8 +160,9 @@ const TEST_PAGE = `(async () => {
     const errs = [];
     page.on('pageerror', e => errs.push('pageerror: ' + e.message));
     page.on('console', m => { if (m.type() === 'error') errs.push('console.error: ' + m.text()); });
-    await page.goto(`http://localhost:${PORT}/versions/${ENGINE}.html`, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(`http://localhost:${PORT}/versions/${ENGINE}.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForFunction(() => window.SWR && window.SWR.Layers && window.SWR.Layers.list, { timeout: 10000 });
+    await page.evaluate(() => { try { localStorage.clear(); } catch (_) {} });
     // With layer-scheduler.client.js now injected into every version page
     // (via _render-inject.js), LayerScheduler.swapNow() is available. We
     // still bypass it via __triggerSwap in TEST_PAGE to avoid the worker's
@@ -169,6 +170,11 @@ const TEST_PAGE = `(async () => {
     // the crossfade path is reachable in the real product.
     const hasScheduler = await page.evaluate(() => typeof window.LayerScheduler === 'object' && typeof window.LayerScheduler.swapNow === 'function');
     console.log('LayerScheduler loaded:', hasScheduler);
+    // Give the RAF loop a beat to tick at least once. networkidle2 was
+    // waiting on every image/audio request to settle, which is what made
+    // the original test work; domcontentloaded is faster but the first RAF
+    // tick might not have run yet by the time we seed.
+    await new Promise(r => setTimeout(r, 500));
     await page.evaluate(SEED_PAGE);
     const result = await page.evaluate(TEST_PAGE);
     if (result == null) {
