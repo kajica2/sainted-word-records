@@ -5,6 +5,7 @@
 <title>MUSIC VIDEO MAKER · SWR engine v5</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="../lib/library-switcher.css">
+<link rel="stylesheet" href="../lib/library-manager.css">
 <link rel="stylesheet" href="../lib/music-video-maker.css">
 <style>
   :root {
@@ -101,7 +102,7 @@
     border: 1px solid var(--line);
     padding: 16px;
     border-radius: 4px;
-    max-width: 420px;
+    max-width: 600px;
     width: 90%;
   }
 
@@ -115,6 +116,7 @@
     <span class="brand" style="color:var(--accent);font-weight:700;letter-spacing:0.16em;">MVM</span>
     <span class="version" style="color:var(--muted);font-size:9px;">v5 · music video maker</span>
     <button class="tbtn accent" id="pick-song">PICK SONG</button>
+    <button class="tbtn" id="manage-library">MANAGE LIBRARY</button>
     <span id="current-song" class="current-song" style="color:var(--muted);font-size:10px;letter-spacing:0.06em;">— no song —</span>
     <button class="tbtn" id="remove-song" style="display:none;">REMOVE</button>
     <span style="flex:1"></span>
@@ -172,8 +174,21 @@
   </div>
 </div>
 
+<!-- Library manager modal -->
+<div class="mvm-modal-bg" id="library-modal">
+  <div class="mvm-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">LIBRARY</span>
+      <button class="tbtn" id="close-library-modal">CLOSE</button>
+    </div>
+    <div id="library-modal-host"></div>
+  </div>
+</div>
+
 <script src="../lib/library-switcher.client.js"></script>
 <script src="../lib/media-store.client.js"></script>
+<script src="../lib/playlist.client.js"></script>
+<script src="../lib/library-manager.client.js"></script>
 <script src="../lib/music-video-maker.client.js"></script>
 </body>
 </html>
