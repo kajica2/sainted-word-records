@@ -434,6 +434,16 @@
     document.getElementById('pj-cloud-save').addEventListener('click', saveToCloud);
     document.getElementById('pj-cloud-open').addEventListener('click', openCloudPicker);
 
+    // If the lib/* clients aren't on the page (e.g. on a version page
+    // that doesn't load engine.html's script stack), hide the cloud
+    // buttons so the user doesn't see something that errors on click.
+    if (!window.SWR_AUTH || !window.SWR_STORAGE) {
+      const a = document.getElementById('pj-cloud-save');
+      const b = document.getElementById('pj-cloud-open');
+      if (a) a.style.display = 'none';
+      if (b) b.style.display = 'none';
+    }
+
     // Hide cloud buttons until SWR_AUTH reports a signed-in user.
     // The chip is updated by syncChip() on every state change.
     syncChip();
