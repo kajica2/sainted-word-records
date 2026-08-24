@@ -11,3 +11,66 @@ verify-screenshots/
 verify-*.mjs
 _vinyl-sample/
 .vercel
+
+# Build outputs (also covers timestamped snapshots like "dist 15.28.45/")
+dist*/
+
+# Caches / tooling scratch
+__pycache__/
+.hermes/
+.hermes-plans/
+
+# Build / source shadows. Vite copies public/* into dist on every build via
+# copyPublicDir, then copyStatic() re-copies the canonical root files in
+# closeBundle, so root wins. public/ is therefore stale and shadowed by root.
+public/
+
+# Heavy media directories — not part of the deployable build (curated
+# library/ is the only media shipped; see vite.config.js closeBundle).
+launch/
+items_/
+keyart/
+style-graphics/
+style-videos/
+style-videos-original/
+style-videos-watermarked/
+
+# One-off scratch scripts (debug/audit/verification on demand)
+check-*.mjs
+snap-*.mjs
+generate-*.mjs
+inspect-*.mjs
+crawl.mjs
+deploy-verify.mjs
+render-*.mjs
+
+# Accidental editor backups
+*.bak1
+
+# Throwaway HTML scratch (one-off pages not part of deploy)
+audio-analysis-v2-test.html
+interactive-personas.html
+PR-rendered.html
+
+# Planning docs not yet ready for commit
+PRD.md
+ROADMAP.md
+media-prompts.md
+
+# Test / audit / verify scratch outputs. Several verify-*.mjs scripts write
+# here (e.g. verify-versions.mjs → out/versions_live.png). Files here are
+# never part of the deploy.
+out/
+
+# Planning output (PRD drafts, process-flow, prototype HTML)
+output/
+
+# Render pipeline output (render-intro-10s.mjs → render-out/intro-10s/)
+render-out/
+
+# Verify scripts write here. check-*.mjs / verify-watermark.mjs sometimes
+# leave an orphan root-level PNG.
+verify-watermark.png
+
+# Python tooling (icon generator; not part of the JS build)
+_gen_*.py
