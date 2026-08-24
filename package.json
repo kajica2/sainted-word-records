@@ -21,6 +21,7 @@
     "verify:cloud-auth": "node verify-cloud-auth.mjs",
     "verify:rotation-enabled": "node verify-rotation-enabled.mjs",
     "verify:story-graph": "node verify-story-graph.mjs",
+    "verify:hallucination-story": "node verify-hallucination-story.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

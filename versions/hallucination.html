@@ -247,6 +247,137 @@
       display: block;
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
     }
+
+    /* === HALLUCINATION STORY STRIP === */
+    .story-strip {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-start;
+      padding: 8px 16px 12px;
+      background: rgba(20, 0, 10, 0.85);
+      border-top: 1px solid var(--line, #330022);
+      font: 10px/1.3 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+    }
+    .story-head { display: inline-flex; align-items: center; gap: 10px; width: 100%; }
+    .story-label {
+      color: var(--r, #ff0066);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .story-current {
+      color: var(--ink);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      font-size: 11px;
+    }
+    .story-shift-hint {
+      color: var(--p, #cc00ff);
+      font-size: 9px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+    .story-auto-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted, #ff44aa);
+      cursor: pointer;
+      user-select: none;
+    }
+    .story-auto-label input { accent-color: var(--r, #ff0066); width: 11px; height: 11px; margin: 0; }
+    .story-chapters {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .story-chapter {
+      font-family: ui-monospace, monospace;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 3px;
+      border: 1px solid var(--line, #330022);
+      background: transparent;
+      color: var(--muted, #ff44aa);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      line-height: 1;
+    }
+    .story-chapter:hover {
+      border-color: var(--b, #00ccff);
+      color: var(--ink);
+    }
+    .story-chapter.active {
+      background: var(--b, #00ccff);
+      border-color: var(--b, #00ccff);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 0 0 1px var(--b, #00ccff), 0 0 14px rgba(0, 204, 255, 0.45);
+    }
+    .story-chapter.past {
+      border-color: var(--r, #ff0066);
+      color: var(--r, #ff0066);
+      opacity: 0.6;
+    }
+    .story-chapter.past:hover { opacity: 1; }
+    .story-chapter .story-ch-num {
+      font-size: 8px;
+      opacity: 0.7;
+      font-weight: 400;
+    }
+    .story-controls {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .story-controls .tbtn {
+      padding: 4px 10px;
+      font-size: 9px;
+      letter-spacing: 0.10em;
+    }
+    .story-history {
+      color: var(--muted, #ff44aa);
+      font-size: 8px;
+      letter-spacing: 0.05em;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      opacity: 0.75;
+    }
+    /* Transition classes applied to .stage during enter() */
+    section.stage.story-bloom {
+      animation: story-bloom-kf 800ms ease-out;
+    }
+    @keyframes story-bloom-kf {
+      0%   { opacity: 0.0; filter: blur(8px); transform: scale(0.96); }
+      60%  { opacity: 0.6; filter: blur(2px); }
+      100% { opacity: 1.0; filter: blur(0);   transform: scale(1.00); }
+    }
+    section.stage.story-fade {
+      animation: story-fade-kf 400ms ease-out;
+    }
+    @keyframes story-fade-kf {
+      0%   { opacity: 0.4; }
+      100% { opacity: 1.0; }
+    }
+    section.stage.story-morph {
+      animation: story-morph-kf 900ms ease-in-out;
+    }
+    @keyframes story-morph-kf {
+      0%   { opacity: 0.0; transform: scale(1.08); filter: hue-rotate(45deg); }
+      100% { opacity: 1.0; transform: scale(1.00); filter: hue-rotate(0deg); }
+    }
   </style>
   <script src="../engine-render.client.js"></script>
 <script src="../engine-timing.client.js"></script>
@@ -315,9 +446,27 @@
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--y);">— fps</span>
     </footer>
+    <div id="story-strip" class="story-strip">
+      <span class="story-head">
+        <span class="story-label">STORY</span>
+        <span id="story-current" class="story-current">— none —</span>
+        <span class="story-shift-hint">Shift+1..5</span>
+        <span class="spacer" style="flex:1"></span>
+        <label class="story-auto-label"><input type="checkbox" id="story-auto" /> AUTO</label>
+      </span>
+      <span id="story-chapters" class="story-chapters"></span>
+      <span class="story-controls">
+        <button type="button" class="tbtn" id="story-hold">HOLD</button>
+        <button type="button" class="tbtn" id="story-next">NEXT →</button>
+        <button type="button" class="tbtn" id="story-reset">RESET</button>
+      </span>
+      <span id="story-history" class="story-history"></span>
+    </div>
   </div>
 
   <script src="./last-song.js"></script>
+  <script src="../lib/persist.client.js"></script>
+  <script src="../lib/persist-wire.client.js"></script>
   <script>
     // Seeded randomness: routed through SWR_GENOPS so deterministic mode
     // reproduces asset selection as well as parameters. Falls back when absent.
@@ -810,6 +959,422 @@
       Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
     }
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
+
+    // =====================================================================
+    // HALLUCINATION STORY ARC — 5-chapter narrative tuned for this engine.
+    // =====================================================================
+    //
+    // A focused variant of the engine-level 9-chapter STORY graph:
+    //
+    //   fragments  →  signal  →  pursuit  →  fracture  →  afterimage
+    //       ↑                                              │
+    //       └──────────────────────────────────────────────┘ (loops)
+    //
+    // Each chapter mutates chaos/gate/decay + the per-layer reactor mix
+    // (via the existing `pickReactors` path through applyR + applyR mutate),
+    // so the narrative arc is a curated "tell a 30-second story" preset,
+    // not a parameter snapshot.
+    //
+    // Wire:
+    //   Shift+1..5 — jump to chapter (performer's director override)
+    //   AUTO checkbox — toggle auto-mode; advances on trigger rules
+    //   NEXT / RESET — manual advance / return to chapter 1
+    //   bar counter — derived from BPM (60/BPM seconds per bar)
+
+    (function () {
+      const STORY_ORDER = ['fragments', 'signal', 'pursuit', 'fracture', 'afterimage'];
+
+      // Hal-specific chapter parameters. The apply functions read these
+      // through `window.SWR_HAL_STORY` so a chapter change is just a
+      // reassignment of the active node, not a state machine rebuild.
+      const STORY = {
+        fragments: {
+          id: 'fragments', label: '01 · FRAGMENTS', index: 1,
+          desc: 'Sparse, dim, restrained. The opening image.',
+          // Story-time knobs the user can read in the UI:
+          chaos: 1.4, gate: 1.6, decay: 0.7, opacityScale: 0.55,
+          // Evolution: gentle drift every 8 bars; allow ~12% jitter.
+          evolve: { everyBars: 8, amount: 0.12,
+                    targets: ['opacity','hue','x','y'],
+                    preserve: ['assets','blend'] },
+          // Trigger to advance: sustained energy above 0.4 for 2 bars.
+          trigger: { type: 'energyAbove', value: 0.42, holdBars: 2 },
+          // Fallback: max 48 bars before forced advance.
+          maxBars: 48,
+          // Style of transition into this chapter.
+          transition: 'bloom',
+        },
+        signal: {
+          id: 'signal', label: '02 · SIGNAL', index: 2,
+          desc: 'Beat reveals layers and color. First sign of life.',
+          chaos: 1.7, gate: 1.4, decay: 0.65, opacityScale: 0.75,
+          evolve: { everyBars: 4, amount: 0.18,
+                    targets: ['opacity','hue','x','y','scale'],
+                    preserve: ['assets','blend'] },
+          trigger: { type: 'energyAbove', value: 0.55, holdBars: 2 },
+          maxBars: 40,
+          transition: 'bloom',
+        },
+        pursuit: {
+          id: 'pursuit', label: '03 · PURSUIT', index: 3,
+          desc: 'Faster drift, rotation. The chase begins.',
+          chaos: 2.0, gate: 1.25, decay: 0.55, opacityScale: 0.9,
+          evolve: { everyBars: 4, amount: 0.22,
+                    targets: ['opacity','hue','x','y','rot','scale','contrast'],
+                    preserve: ['assets','blend'] },
+          trigger: { type: 'onsetBurst', value: 3 },
+          maxBars: 40,
+          transition: 'crossfade',
+        },
+        fracture: {
+          id: 'fracture', label: '04 · FRACTURE', index: 4,
+          desc: 'Mutation breaks the form. The break before the fall.',
+          chaos: 2.5, gate: 1.15, decay: 0.5, opacityScale: 1.0,
+          evolve: { everyBars: 2, amount: 0.35,
+                    targets: ['opacity','hue','x','y','rot','scale','brightness','contrast'],
+                    preserve: [] },
+          trigger: { type: 'afterBars', value: 24 },
+          maxBars: 32,
+          transition: 'morph',
+        },
+        afterimage: {
+          id: 'afterimage', label: '05 · AFTERIMAGE', index: 5,
+          desc: 'Fade. Slow hue travel. Trails. The comedown.',
+          chaos: 1.2, gate: 1.8, decay: 0.85, opacityScale: 0.55,
+          evolve: { everyBars: 8, amount: 0.08,
+                    targets: ['opacity','hue','brightness'],
+                    preserve: ['assets','blend'] },
+          trigger: { type: 'afterBars', value: 16 },
+          maxBars: 24,
+          transition: 'morph',
+        },
+      };
+
+      const LS_KEY = 'swrc.hal.story';
+      const state = {
+        current: 'fragments',
+        history: [],
+        mode: 'manual',
+        _barsInNode: 0,
+        _lastEvoBar: 0,
+      };
+      // Bar counter derived from BPM and wall clock
+      let _barStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      function getBpm() {
+        try {
+          // Hal reads BPM from window.SWR.Audio.feat.bpm (set by audio-analysis).
+          // If we don't have one yet, default to 120 so the bar counter
+          // still ticks (helpful when previewing without audio).
+          return (window.SWR && window.SWR.Audio && window.SWR.Audio.feat && window.SWR.Audio.feat.bpm) || 120;
+        } catch (_) { return 120; }
+      }
+      function getBar() {
+        const bpm = getBpm();
+        if (!bpm) return 0;
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        return Math.floor(((now - _barStart) / 1000) / (60 / bpm));
+      }
+      function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+      function persist() {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify({
+            current: state.current, history: state.history.slice(-32), mode: state.mode,
+          }));
+        } catch (_) {}
+      }
+      function restore() {
+        try {
+          const raw = localStorage.getItem(LS_KEY);
+          if (!raw) return null;
+          return JSON.parse(raw);
+        } catch (_) { return null; }
+      }
+      const r = restore();
+      if (r && STORY[r.current]) {
+        state.current = r.current;
+        state.history = Array.isArray(r.history) ? r.history : [];
+        state.mode = r.mode || 'manual';
+      }
+
+      // Apply a chapter's story-time knobs to the DOM (chaos/gate/decay sliders).
+      // We don't reach into the Reactors here — the existing chaotic reactor
+      // selectors (pickReactors / randomize on RE-MAP) already cover the visual
+      // side. This chapter changes *how the user perceives the chaos*.
+      function applyStoryState(node) {
+        if (!node) return;
+        const sens = document.getElementById('sens');
+        const gate = document.getElementById('gate');
+        const decay = document.getElementById('decay');
+        if (sens) { sens.value = node.chaos; if ($('sens-v')) $('sens-v').textContent = node.chaos.toFixed(2); }
+        if (gate) { gate.value = node.gate; if ($('gate-v')) $('gate-v').textContent = node.gate.toFixed(2); }
+        if (decay) { decay.value = node.decay; if ($('decay-v')) $('decay-v').textContent = node.decay.toFixed(2); }
+        // Trigger DOM input events so the engine picks up the slider changes
+        for (const el of [sens, gate, decay]) {
+          if (el) el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+
+      // --- transitions (lightweight; no canvas fades — just classlist) ---
+      function runTransition(style) {
+        return new Promise((resolve) => {
+          const stageEl = document.querySelector('section.stage') || document.getElementById('render');
+          if (!stageEl) return resolve();
+          if (style === 'bloom') {
+            stageEl.classList.add('story-bloom');
+            setTimeout(() => { stageEl.classList.remove('story-bloom'); resolve(); }, 800);
+          } else if (style === 'crossfade') {
+            stageEl.classList.add('story-fade');
+            setTimeout(() => { stageEl.classList.remove('story-fade'); resolve(); }, 400);
+          } else {
+            // 'morph' or default: a quick zoom-out + back
+            stageEl.classList.add('story-morph');
+            setTimeout(() => { stageEl.classList.remove('story-morph'); resolve(); }, 900);
+          }
+        });
+      }
+
+      async function enterChapter(id, reason) {
+        try {
+          await enterChapterInner(id, reason);
+        } catch (e) {
+          try { console.error('[story] enterChapter failed:', e.message, e.stack); } catch (_) {}
+        }
+      }
+      async function enterChapterInner(id, reason) {
+        const node = STORY[id];
+        if (!node || id === state.current) return false;
+        state.history.push(state.current);
+        if (state.history.length > 32) state.history.splice(0, state.history.length - 32);
+        state.current = id;
+        state._barsInNode = 0;
+        state._lastEvoBar = 0;
+        _barStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        applyStoryState(node);
+        await runTransition(node.transition || 'morph');
+        persist();
+        renderStrip();
+        if (typeof setStatus === 'function') {
+          setStatus('story: ' + node.label + (reason ? ' (' + reason + ')' : ''), 'ok');
+        }
+        try {
+          window.dispatchEvent(new CustomEvent('swr-story-enter', { detail: { id, reason } }));
+        } catch (_) {}
+        return true;
+      }
+
+      // Evolution: drift numeric params every N bars (x, y, hue, opacity, ...).
+      // We only touch params that exist on the layer objects; Hal's `applyR`
+      // mutates by direct field assignment, so this is safe.
+      function evolve() {
+        const node = STORY[state.current];
+        if (!node || !node.evolve) return false;
+        const bar = getBar();
+        if (!bar) return false;
+        if (bar - state._lastEvoBar < node.evolve.everyBars) return false;
+        state._lastEvoBar = bar;
+        if (!Layers || !Layers.list) return false;
+        const rng = () => Math.random();
+        for (const l of Layers.list) {
+          if (!l || typeof l !== 'object') continue;
+          for (const p of (node.evolve.targets || [])) {
+            const cur = l[p];
+            if (typeof cur !== 'number') continue;
+            const amp = p === 'opacity' ? 0.5 : p === 'hue' ? 30 : p === 'x' || p === 'y' ? 40 : 25;
+            const jitter = (rng() - 0.5) * 2 * node.evolve.amount * amp;
+            l[p] = cur + jitter;
+          }
+        }
+        if (typeof Layers.render === 'function') Layers.render();
+        return true;
+      }
+
+      function shouldAdvance(audio) {
+        const node = STORY[state.current];
+        if (!node) return false;
+        const t = node.trigger;
+        const rms = (audio && audio.rms) || (window.SWR && window.SWR.Audio && window.SWR.Audio.feat && window.SWR.Audio.feat.rms) || 0;
+        const onsets = (audio && audio.onsetsInLastBar) || 0;
+        const bars = state._barsInNode;
+        let fired = false;
+        if (t.type === 'energyAbove') fired = rms > t.value && bars >= (t.holdBars || 0);
+        else if (t.type === 'energyBelow') fired = rms < t.value && bars >= (t.holdBars || 0);
+        else if (t.type === 'afterBars') fired = bars >= t.value;
+        else if (t.type === 'onsetBurst') fired = onsets >= t.value;
+        const maxFired = bars >= (node.maxBars || 64);
+        return fired || maxFired;
+      }
+
+      function tick(audio) {
+        state._barsInNode = getBar();
+        evolve();
+        if (state.mode === 'auto') {
+          if (shouldAdvance(audio)) {
+            const node = STORY[state.current];
+            const next = (node && node.id === 'afterimage') ? 'fragments' : (STORY_ORDER[STORY_ORDER.indexOf(node.id) + 1] || 'fragments');
+            enterChapter(next, 'auto').catch(() => {});
+          }
+        }
+      }
+
+      function renderStrip() {
+        try {
+          renderStripInner();
+        } catch (e) {
+          try { console.error('[story] renderStrip failed:', e.message, e.stack); } catch (_) {}
+        }
+      }
+      function renderStripInner() {
+        const strip = document.getElementById('story-strip');
+        if (!strip) return;
+        const pills = document.getElementById('story-chapters');
+        if (!pills) {
+          // UI strip elements haven't mounted yet (e.g. before DOMContentLoaded).
+          // Persisted-state reload calls renderStrip() before wire(); silently
+          // bail and let wire() take the first paint.
+          return;
+        }
+        pills.innerHTML = STORY_ORDER.map((id) => {
+          const node = STORY[id];
+          const cls = 'story-chapter' + (id === state.current ? ' active' : '') +
+                     (state.history.indexOf(id) >= 0 ? ' past' : '');
+          return '<button type="button" class="' + cls + '" data-node="' + id + '" ' +
+                 'title="' + (node.desc || node.label) + '">' +
+                 '<span class="story-ch-num">' + (node.index || '') + '</span>' +
+                 '<span class="story-ch-label">' + node.label.replace(/^\d+\s*·\s*/, '') + '</span>' +
+                 '</button>';
+        }).join('');
+        pills.querySelectorAll('.story-chapter').forEach((el) => {
+          el.addEventListener('click', () => {
+            const id = el.getAttribute('data-node');
+            if (id) enterChapter(id, 'click').catch(() => {});
+          });
+        });
+        const curEl = document.getElementById('story-current');
+        if (curEl) {
+          const cur = STORY[state.current];
+          curEl.textContent = cur ? cur.label : '— none —';
+        }
+        const autoBox = document.getElementById('story-auto');
+        if (autoBox) autoBox.checked = (state.mode === 'auto');
+        const histEl = document.getElementById('story-history');
+        if (histEl) {
+          const path = state.history.concat([state.current]).map((id) => {
+            const n = STORY[id];
+            return n ? n.label.replace(/^\d+\s*·\s*/, '') : id;
+          });
+          histEl.textContent = path.join(' → ');
+        }
+      }
+
+      function setMode(m) {
+        if (['manual', 'auto'].indexOf(m) === -1) return;
+        state.mode = m;
+        persist();
+        renderStrip();
+        if (typeof setStatus === 'function') setStatus('story mode: ' + m, 'ok');
+      }
+      function reset() {
+        state.current = 'fragments';
+        state.history = [];
+        state._barsInNode = 0;
+        state._lastEvoBar = 0;
+        _barStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        persist();
+        applyStoryState(STORY.fragments);
+        renderStrip();
+        if (typeof setStatus === 'function') setStatus('story: reset → fragments', 'ok');
+      }
+      function hold() {
+        setMode('manual');
+      }
+      function next() {
+        const node = STORY[state.current];
+        const i = STORY_ORDER.indexOf(node.id);
+        const nextId = (node.id === 'afterimage') ? 'fragments' : (STORY_ORDER[i + 1] || 'fragments');
+        enterChapter(nextId, 'manual').catch(() => {});
+      }
+
+      const HalStory = {
+        ORDER: STORY_ORDER,
+        STORY,
+        get current() { return state.current; },
+        get history() { return state.history.slice(); },
+        get mode() { return state.mode; },
+        enter: enterChapter,
+        tick,
+        evolve,
+        shouldAdvance,
+        next,
+        reset,
+        hold,
+        setMode,
+        renderStrip,
+      };
+      window.SWR = window.SWR || {};
+      window.SWR.Story = HalStory;
+      window.HalStory = HalStory;
+
+      // Drive the runtime on each animation frame (Hal's `loop(t)` at line 673).
+      // Wrap the existing loop so tick runs after the frame draws.
+      try {
+        const __origLoop = window.loop;
+        if (typeof __origLoop === 'function') {
+          // Hal's loop is the IIFE-local `loop`; we can't easily wrap it from
+          // outside. Instead, schedule our tick on rAF — one extra tick per
+          // frame is cheap (mulberry32-free; uses Math.random via evolve).
+          const __halTick = function () { try { HalStory.tick(); } catch (_) {} requestAnimationFrame(__halTick); };
+          requestAnimationFrame(__halTick);
+        }
+      } catch (_) {}
+
+      // Wire UI once DOM is ready (button click handlers + initial render)
+      function wire() {
+        const hold = document.getElementById('story-hold');
+        if (hold) hold.addEventListener('click', () => HalStory.hold());
+        const next = document.getElementById('story-next');
+        if (next) next.addEventListener('click', () => HalStory.next());
+        const reset = document.getElementById('story-reset');
+        if (reset) reset.addEventListener('click', () => HalStory.reset());
+        const auto = document.getElementById('story-auto');
+        if (auto) auto.addEventListener('change', (e) => HalStory.setMode(e.target.checked ? 'auto' : 'manual'));
+        // First paint (defensive: renderStrip now bails when the strip
+        // elements aren't in the DOM yet, so this is safe to call repeatedly).
+        try { HalStory.renderStrip(); } catch (_) {}
+        // Initial chapter apply
+        try {
+          const cur = STORY[HalStory.current];
+          if (cur) applyStoryState(cur);
+        } catch (_) {}
+      }
+      // Capture unhandled errors so the page doesn't go dark if a chapter's
+      // transition glitches. Logs to console; lets the runtime keep running.
+      window.addEventListener('error', (e) => {
+        try {
+          const msg = (e.error && (e.error.stack || e.error.message)) || e.message || 'unknown';
+          console.error('[story] uncaught', msg);
+        } catch (_) {}
+      });
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+      else wire();
+
+      // Shift+1..5 = jump to chapter. Uses `code` (DigitN) so any keyboard
+      // layout works. Wired in capture phase so it fires before the engine's
+      // own keydown handlers consume the event.
+      window.addEventListener('keydown', function (e) {
+        if (!e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+        const m = /^Digit([1-5])$/.exec(e.code || '');
+        if (!m) return;
+        const id = STORY_ORDER[parseInt(m[1], 10) - 1];
+        if (id) {
+          enterChapter(id, 'keyboard').catch(() => {});
+          if (e.preventDefault) e.preventDefault();
+        }
+      }, true);
+
+      // Persist state across page loads
+      window.addEventListener('beforeunload', persist);
+    })();
   })();
   </script>
 <script src="../versions-presets.js"></script>
