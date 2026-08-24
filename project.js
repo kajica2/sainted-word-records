@@ -402,17 +402,19 @@
       'border:1px solid #333', 'border-radius:10px',
       'padding:10px 12px', 'font:11px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
       'box-shadow:0 4px 18px rgba(0,0,0,0.4)', 'user-select:none',
-      'min-width:180px'
+      'min-width:220px'
     ].join(';');
     panel.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
         <strong style="font-size:11px;letter-spacing:0.04em;">📁 PROJECT</strong>
-        <button id="pj-hide" title="Hide panel" style="margin-left:auto;background:transparent;border:0;color:#888;cursor:pointer;font-size:14px;line-height:1;">×</button>
+        <span id="pj-cloud-status" title="cloud sync status" style="margin-left:auto;font-size:9px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">local</span>
+        <button id="pj-hide" title="Hide panel" style="background:transparent;border:0;color:#888;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 6px;">×</button>
       </div>
-      <button id="pj-save"   style="width:100%;padding:6px;background:#222;color:#ddd;border:1px solid #444;border-radius:6px;cursor:pointer;margin-bottom:4px;">⬇  Save</button>
-      <button id="pj-load"   style="width:100%;padding:6px;background:#222;color:#ddd;border:1px solid #444;border-radius:6px;cursor:pointer;">⬆  Load</button>
+      <button id="pj-save"   style="width:100%;padding:6px;background:#222;color:#ddd;border:1px solid #444;border-radius:6px;cursor:pointer;margin-bottom:4px;">⬇  Save (local)</button>
+      <button id="pj-cloud-save" style="width:100%;padding:6px;background:#1c8c64;color:#fff;border:0;border-radius:6px;cursor:pointer;margin-bottom:4px;">☁  Save to cloud</button>
+      <button id="pj-cloud-open" style="width:100%;padding:6px;background:#222;color:#ddd;border:1px solid #444;border-radius:6px;cursor:pointer;margin-bottom:4px;">☁  Open from cloud…</button>
+      <button id="pj-load"   style="width:100%;padding:6px;background:#222;color:#ddd;border:1px solid #444;border-radius:6px;cursor:pointer;">⬆  Load file</button>
       <input id="pj-file"    type="file" accept="application/json,.json" style="display:none;">
-      <div style="margin-top:6px;font-size:10px;color:#888;">Saves JSON. Assets not bundled — re-import on load.</div>
     `;
     document.body.appendChild(panel);
 
@@ -428,6 +430,157 @@
     document.getElementById('pj-hide').addEventListener('click', () => {
       panel.style.display = 'none';
     });
+
+    document.getElementById('pj-cloud-save').addEventListener('click', saveToCloud);
+    document.getElementById('pj-cloud-open').addEventListener('click', openCloudPicker);
+
+    // Hide cloud buttons until SWR_AUTH reports a signed-in user.
+    // The chip is updated by syncChip() on every state change.
+    syncChip();
+  }
+
+  // ---- Cloud sync (M1) ----
+  let lastCloudId = null; // remembers the most recently saved cloud project id
+
+  async function saveToCloud() {
+    if (!window.SWR_AUTH || !window.SWR_STORAGE) {
+      if (typeof setStatus === 'function') setStatus('cloud save: client modules missing', 'err');
+      return;
+    }
+    const user = await window.SWR_AUTH.session({ force: true });
+    if (!user) {
+      if (typeof setStatus === 'function') setStatus('cloud save: sign in first (top-right)', 'warn');
+      return;
+    }
+    setSync('saving');
+    try {
+      // 1. Capture project doc (no audio yet)
+      const project = get();
+      // 2. Upload audio as a separate blob (keeps the project doc small
+      //    and lets the audio be streamed on load).
+      if (project.audio && project.audio.dataUrl) {
+        try {
+          const resp = await fetch(project.audio.dataUrl);
+          const blob = await resp.blob();
+          const file = new File([blob], project.audio.name || 'song', { type: project.audio.type || blob.type || 'audio/mpeg' });
+          const up = await window.SWR_STORAGE.uploadFile(file, 'songs');
+          project.audio = { name: file.name, type: file.type, key: up.key, size: up.size };
+        } catch (e) {
+          console.warn('[project] audio upload failed; saving without audio', e);
+          project.audio = null;
+        }
+      }
+      // 3. Upsert project
+      if (lastCloudId) project.id = lastCloudId;
+      const meta = await window.SWR_STORAGE.saveProject(project);
+      lastCloudId = meta.id;
+      if (typeof setStatus === 'function') setStatus('cloud save: ' + meta.name + ' (' + project.layers.length + ' layers)', 'ok');
+      setSync('synced');
+    } catch (e) {
+      if (typeof setStatus === 'function') setStatus('cloud save failed: ' + (e.body && e.body.error || e.message), 'err');
+      setSync('error');
+    }
+  }
+
+  async function openCloudPicker() {
+    if (!window.SWR_AUTH || !window.SWR_STORAGE) return;
+    const user = await window.SWR_AUTH.session({ force: true });
+    if (!user) {
+      if (typeof setStatus === 'function') setStatus('sign in first', 'warn');
+      return;
+    }
+    try {
+      const items = await window.SWR_STORAGE.listProjects();
+      if (!items.length) {
+        if (typeof setStatus === 'function') setStatus('no cloud projects yet', 'warn');
+        return;
+      }
+      // Build a tiny modal listing the user's projects
+      const modal = document.createElement('div');
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;';
+      const box = document.createElement('div');
+      box.style.cssText = 'background:#0a0a0e;color:#eee;padding:18px 22px;border-radius:10px;max-width:520px;width:90%;border:1px solid #333;';
+      box.innerHTML = '<strong style="font-size:14px;letter-spacing:0.06em;text-transform:uppercase;">☁ Open cloud project</strong><div id="pj-cloud-list" style="margin-top:12px;max-height:60vh;overflow:auto;"></div><div style="margin-top:12px;text-align:right;"><button id="pj-cloud-cancel" style="background:#222;color:#ddd;border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;">Cancel</button></div>';
+      modal.appendChild(box);
+      document.body.appendChild(modal);
+      const list = box.querySelector('#pj-cloud-list');
+      for (const it of items) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #222;gap:8px;';
+        const date = new Date(it.updatedAt);
+        row.innerHTML = '<div><div style="font-weight:600">' + escapeHtml(it.name) + '</div><div style="font-size:10px;color:#888">' + date.toLocaleString() + '</div></div>';
+        const btn = document.createElement('button');
+        btn.textContent = 'Open';
+        btn.style.cssText = 'background:#1c8c64;color:#fff;border:0;border-radius:6px;padding:6px 12px;cursor:pointer;';
+        btn.addEventListener('click', async () => {
+          modal.remove();
+          await loadFromCloud(it.id);
+        });
+        row.appendChild(btn);
+        list.appendChild(row);
+      }
+      box.querySelector('#pj-cloud-cancel').addEventListener('click', () => modal.remove());
+    } catch (e) {
+      if (typeof setStatus === 'function') setStatus('cloud list failed: ' + e.message, 'err');
+    }
+  }
+
+  async function loadFromCloud(id) {
+    if (!window.SWR_STORAGE) return;
+    setSync('loading');
+    try {
+      const project = await window.SWR_STORAGE.loadProject(id);
+      // Re-hydrate audio from cloud storage if present
+      if (project && project.doc && project.doc.audio && project.doc.audio.key) {
+        try {
+          const file = await window.SWR_STORAGE.downloadAsFile(project.doc.audio.key, project.doc.audio.name);
+          // Convert back to dataUrl so apply() can decode it (same path as file load)
+          const fr = new FileReader();
+          const dataUrl = await new Promise((resolve, reject) => {
+            fr.onload = () => resolve(fr.result);
+            fr.onerror = reject;
+            fr.readAsDataURL(file);
+          });
+          project.doc.audio = Object.assign({}, project.doc.audio, { dataUrl });
+          // Drop the key — it's been consumed
+          delete project.doc.audio.key;
+        } catch (e) {
+          console.warn('[project] audio hydrate failed; loading without audio', e);
+          project.doc.audio = null;
+        }
+      }
+      // The stored doc may be {id, name, userId, doc, ...}; pull .doc if present
+      const docToApply = project && project.doc ? project.doc : project;
+      lastCloudId = docToApply && docToApply.id ? docToApply.id : id;
+      apply(docToApply);
+      setSync('synced');
+    } catch (e) {
+      if (typeof setStatus === 'function') setStatus('cloud load failed: ' + (e.body && e.body.error || e.message), 'err');
+      setSync('error');
+    }
+  }
+
+  function setSync(state) {
+    const chip = document.getElementById('pj-cloud-status');
+    if (!chip) return;
+    chip.dataset.state = state;
+    const colors = {
+      idle: '#888', saving: '#f5a524', loading: '#f5a524',
+      synced: '#1c8c64', error: '#d8232a', local: '#888',
+    };
+    chip.style.color = colors[state] || '#888';
+    chip.textContent = state;
+  }
+
+  async function syncChip() {
+    if (!window.SWR_AUTH) return setSync('local');
+    const user = await window.SWR_AUTH.session();
+    if (!user) return setSync('local');
+    setSync('synced');
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   if (document.readyState === 'loading') {
@@ -436,5 +589,5 @@
     setTimeout(buildUI, 100);
   }
 
-  window.Project = { get, apply, loadFile, download, VERSION };
+  window.Project = { get, apply, loadFile, download, saveToCloud, loadFromCloud, openCloudPicker, VERSION };
 })();

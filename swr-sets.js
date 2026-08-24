@@ -5,7 +5,32 @@
 // can be shared, dropped onto the marketplace page to install, or
 // dropped onto engine.html to restore a previous state.
 //
-// SCHEMA (v1):
+// SCHEMA (v2 — backward-compatible with v1):
+// {
+//   "schemaVersion": 2,
+//   "id": "<uuid>",
+//   "name": "Synthwave Sunset",
+//   "author": "Kai",
+//   "description": "...",
+//   "tags": ["synthwave", "neon", "80s"],
+//   "createdAt": "<iso8601>",
+//   "engine": "neon",         // one of the 16 version pages
+//   "ownerId": "<user-uuid>" | null,   // M1: who owns this set; null = anonymous
+//   "visibility": "private" | "unlisted" | "public",   // M1: shared sets carry this
+//   "audio": { ... },         // same as v1
+//   "fx": { ... },            // same as v1
+//   "layers": [ ... ],        // same as v1
+//   "settings": { ... }
+// }
+//
+// M1 ownership rules:
+//   - Sets exported while signed in get ownerId = currentUser.id and
+//     visibility = 'private' (default).
+//   - On import, if ownerId is set AND differs from the current user AND
+//     visibility is not 'public', the set is rejected with a clear error.
+//   - v1 files (no schemaVersion OR schemaVersion: 1) still validate
+//     and import as before; they are treated as visibility='public' for
+//     backward compatibility with curated marketplace sets.
 // {
 //   "schemaVersion": 1,
 //   "id": "<uuid>",
@@ -115,6 +140,19 @@
     // Pull current page's engine id from body[data-page]
     const engine = (document.body && document.body.dataset && document.body.dataset.page) || 'unknown';
 
+    // M1: attach ownerId + visibility if signed in
+    let ownerId = null;
+    let visibility = 'public'; // default for unauthenticated exports
+    try {
+      if (window.SWR_AUTH) {
+        const u = await window.SWR_AUTH.session();
+        if (u) {
+          ownerId = u.id;
+          visibility = meta.visibility || 'private';
+        }
+      }
+    } catch {}
+
     // Audio: prefer the raw <audio> element's src (which is a blob: URL
     // from the loaded file). Fetch it to embed as data URL.
     let audioDoc = null;
@@ -219,13 +257,15 @@
     }
 
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: uuid(),
       name: meta.name || `Set ${new Date().toISOString().slice(0, 10)}`,
-      author: meta.author || 'anonymous',
+      author: meta.author || (ownerId ? 'me' : 'anonymous'),
       description: meta.description || '',
       tags: meta.tags || [],
       createdAt: new Date().toISOString(),
+      ownerId,
+      visibility,
       engine,
       audio: audioDoc,
       fx: fxDoc,
@@ -254,8 +294,32 @@
       doc = fileOrJson;  // assume already-parsed object
     }
 
-    if (doc.schemaVersion !== 1) {
-      throw new Error(`Unsupported .swr-set schema version: ${doc.schemaVersion} (expected 1)`);
+    // v1 backward-compat: accept schemaVersion 1 (treated as visibility=public)
+    // v2 introduces ownerId + visibility.
+    if (doc.schemaVersion !== 1 && doc.schemaVersion !== 2) {
+      throw new Error(`Unsupported .swr-set schema version: ${doc.schemaVersion} (expected 1 or 2)`);
+    }
+    if (!doc.schemaVersion) {
+      // No version field — assume v1 (legacy)
+      doc.schemaVersion = 1;
+    }
+    if (doc.schemaVersion === 1) {
+      doc.visibility = 'public'; // legacy sets are public
+    }
+
+    // Ownership check: if a v2 set has an ownerId that isn't the current
+    // user AND isn't marked public/unlisted, refuse the import.
+    if (doc.schemaVersion === 2 && doc.ownerId && doc.visibility === 'private') {
+      let currentUserId = null;
+      try {
+        if (window.SWR_AUTH) {
+          const u = await window.SWR_AUTH.session();
+          currentUserId = u && u.id;
+        }
+      } catch {}
+      if (currentUserId && doc.ownerId !== currentUserId) {
+        throw new Error('Cannot import: this set is private to another user');
+      }
     }
 
     // Convert audio dataUrl back to File (so it can be loaded via the
@@ -326,6 +390,8 @@
         createdAt: doc.createdAt,
         engine: doc.engine,
         schemaVersion: doc.schemaVersion,
+        ownerId: doc.ownerId || null,
+        visibility: doc.visibility || 'public',
       },
       audio: audioFile,
       fx: doc.fx,
@@ -487,7 +553,7 @@
 
   // === Public API ===
   window.SWR_SETS = {
-    SCHEMA_VERSION: 1,
+    SCHEMA_VERSION: 2,
     uuid,
     blobToDataUrl,
     dataUrlToBlob,

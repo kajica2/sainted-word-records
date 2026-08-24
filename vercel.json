@@ -82,11 +82,27 @@
     },
     {
       "source": "/login",
-      "destination": "/login.html"
+      "destination": "/auth/login.html"
     },
     {
       "source": "/login/",
-      "destination": "/login.html"
+      "destination": "/auth/login.html"
+    },
+    {
+      "source": "/auth/verify",
+      "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/auth/verify/",
+      "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/auth/login",
+      "destination": "/auth/login.html"
+    },
+    {
+      "source": "/auth/login/",
+      "destination": "/auth/login.html"
     },
     {
       "source": "/campaign",
