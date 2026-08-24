@@ -207,20 +207,32 @@
     menu.appendChild(makeDivider());
 
     // PROJECT section: save / load the user's current state as JSON.
-    // project.client.js handles serialization + file I/O; settings
-    // just adds the menu rows.
+    // project.js handles serialization + file I/O; settings
+    // just adds the menu rows. project.js exports its API on
+    // window.Project (not window.SWR_PROJECT), so we look there.
+    // The download side is exposed as Project.download() (it triggers
+    // a browser save dialog), not Project.save(). The load side is
+    // Project.loadFile(file).
     menu.appendChild(makeRow('SAVE PROJECT', '↓', () => {
-      if (!window.SWR_PROJECT) { setStatus('project module not loaded', 'err'); return; }
-      const ok = window.SWR_PROJECT.save();
-      if (ok) {
-        if (typeof window.setStatus === 'function') window.setStatus('project saved', 'ok');
-        closeMenu();
-      } else {
-        if (typeof window.setStatus === 'function') window.setStatus('project save failed', 'err');
+      if (!window.Project || typeof window.Project.download !== 'function') { setStatus('project module not loaded', 'err'); return; }
+      try {
+        const ok = window.Project.download();
+        if (ok || ok === undefined) {
+          if (typeof window.setStatus === 'function') window.setStatus('project saved', 'ok');
+          closeMenu();
+        } else {
+          if (typeof window.setStatus === 'function') window.setStatus('project save failed', 'err');
+        }
+      } catch (e) {
+        if (typeof window.setStatus === 'function') window.setStatus('project save error: ' + e.message, 'err');
       }
     }));
     menu.appendChild(makeRow('LOAD PROJECT', '↑', () => {
-      if (!window.SWR_PROJECT) { setStatus('project module not loaded', 'err'); return; }
+      if (!window.Project || typeof window.Project.loadFile !== 'function') { setStatus('project module not loaded', 'err'); return; }
+      // Don't pause the song — loadFile restores audio from the project
+      // (if embedded) or leaves the current audio playing. The file-picker
+      // dialog is non-modal; it overlays the canvas but doesn't interrupt
+      // playback.
       ensureFileInput();
       fileInput.click();
       closeMenu();
@@ -293,9 +305,9 @@
     fileInput.addEventListener('change', async function () {
       const f = fileInput.files && fileInput.files[0];
       fileInput.value = '';  // reset so the same file can be picked again
-      if (!f || !window.SWR_PROJECT) return;
+      if (!f || !window.Project || typeof window.Project.loadFile !== 'function') return;
       try {
-        const r = await window.SWR_PROJECT.loadFromFile(f);
+        const r = await window.Project.loadFile(f);
         if (r && r.ok) {
           if (typeof window.setStatus === 'function')
             window.setStatus('project loaded (' + r.applied + ' layers, ' +
