@@ -297,6 +297,25 @@ function copyStatic() {
         }
         const mp = resolve(libRoot, 'manifest.json');
         if (existsSync(mp)) copyFileSync(mp, resolve(libDst, 'manifest.json'));
+        // Always copy library/audio/* — the SONGS list in engine.html
+        // references these directly, and the curated manifest only lists
+        // image/video assets, not audio. Without this, the Songs panel
+        // shows every track as "404 — file missing" in production.
+        const audioRoot = resolve(libRoot, 'audio');
+        if (existsSync(audioRoot)) {
+          const audioDst = resolve(libDst, 'audio');
+          mkdirSync(audioDst, { recursive: true });
+          let audioCopied = 0;
+          for (const f of readdirSync(audioRoot)) {
+            const sp = resolve(audioRoot, f);
+            if (!statSync(sp).isFile()) continue;
+            copyFileSync(sp, resolve(audioDst, f));
+            audioCopied += 1;
+          }
+          if (audioCopied > 0) {
+            process.stdout.write('[copy-static] copied library/audio/: ' + audioCopied + ' files\n');
+          }
+        }
         process.stdout.write('[copy-static] re-copied curated library/: ' + (copied + 1) + ' files\n');
       }
     },
