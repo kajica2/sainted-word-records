@@ -62,6 +62,10 @@
       trim: l.trim || null,
       fadeInMs: typeof l.fadeInMs === 'number' ? l.fadeInMs : undefined,
       fadeOutMs: typeof l.fadeOutMs === 'number' ? l.fadeOutMs : undefined,
+      // Persist the per-layer rotation gate so the master toggle state
+      // survives a save/load round-trip. Projects written by older builds
+      // lack this field; apply() defaults to the live master.
+      rotationEnabled: typeof l.rotationEnabled === 'boolean' ? l.rotationEnabled : undefined,
     };
   }
   function sanitizeAsset(a) {
@@ -168,6 +172,11 @@
     }
     SWR.Layers.list.length = 0;
 
+    // Honor the master rotation toggle when applying a project: layers
+    // pushed below bypass the engine-keys Layers.add wrapper, so we
+    // explicitly seed rotationEnabled from the master state (or from
+    // any value the saved project already recorded).
+    const masterRotOn = !!(window.SWR_ROT_MASTER && window.SWR_ROT_MASTER.enabled);
     let missing = 0;
     for (const lp of project.layers || []) {
       const asset = lp.assetId ? byId.get(lp.assetId) : null;
@@ -197,6 +206,10 @@
         trim: lp.trim || null,
         fadeInMs: lp.fadeInMs,
         fadeOutMs: lp.fadeOutMs,
+        // Persisted projects written by older builds won't have this
+        // field; default to the live master toggle so toggling the
+        // master OFF actually keeps rotation off after a project load.
+        rotationEnabled: typeof lp.rotationEnabled === 'boolean' ? lp.rotationEnabled : masterRotOn,
       };
       SWR.Layers.list.push(layer);
     }
