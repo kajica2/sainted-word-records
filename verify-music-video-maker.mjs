@@ -247,6 +247,20 @@ try {
   });
 
   await step('Recorder produces a real MP4/WebM blob', async () => {
+    // The previous test's timeline is only 3s long, so the playhead reaches
+    // end before the recorder can capture anything. Add a fresh 10s clip
+    // to the timeline so we have a recording window long enough to capture
+    // a non-trivial MediaRecorder payload.
+    await page.evaluate(async () => {
+      const RED_PNG_1x1 = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+      const blob = new Blob([RED_PNG_1x1], { type: 'image/png' });
+      const file = new File([blob], 'rec.png', { type: 'image/png' });
+      const c = await window.MVM.addClip(file);
+      // Stretch the duration so we have plenty of room for the recorder.
+      c.durationMs = 10000;
+      window.MVM.addToTimeline(c.id);
+    });
+
     // Instrument Recorder._save to capture the blob head (same pattern as
     // verify-e2e-media-record.mjs).
     const v = await page.evaluate(async () => {
@@ -275,13 +289,17 @@ try {
       // static red image at full rate, but it does emit a stream.
       const started = window.MVM.Recorder.start(30000);
       if (!started) return { error: 'Recorder.start returned false' };
-      // Play the timeline
-      window.MVM.play();
-      // Wait 1500ms — playhead advances 1500ms, recorder captures frames
-      await new Promise((r) => setTimeout(r, 1500));
+      // Manually drive renderFrame() in a tight loop. Headless Chrome
+      // does not always emit canvas frames to captureStream when rAF
+      // is throttled, so we paint the canvas synchronously ~30x/sec.
+      const t0 = performance.now();
+      while (performance.now() - t0 < 1500) {
+        window.MVM.renderFrame(performance.now() - t0);
+        await new Promise((r) => setTimeout(r, 33));
+      }
       // Stop
       window.MVM.Recorder.stop();
-      // Give _save a moment to run
+      // Give ondataavailable a tick to fire after stop()
       await new Promise((r) => setTimeout(r, 200));
       const c = window.__captured;
       if (!c) return { error: 'Recorder._save never fired' };
