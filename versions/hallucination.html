@@ -877,11 +877,24 @@
           // Auto-play if the browser allows it; otherwise queue for the first
           // user gesture (any pointerdown anywhere on the page). Mirrors the
           // engine.html behavior so reloads don't strand the user in silence.
+          //
+          // We deliberately do NOT call resume()/play() on page load before a
+          // gesture: Chrome rejects both with NotAllowedError and prints a
+          // console warning ("AudioContext was not allowed to start"). Instead,
+          // gate the eager attempt on whether the context is already running
+          // (which only happens if the page has a prior user-gesture chain) and
+          // always install the pointerdown fallback. Both branches catch the
+          // play()/resume() promise rejections so we never surface
+          // "Uncaught (in promise) NotAllowedError" in the console.
           var __halAutoplay = function () {
             try {
               if (A.unlock) A.unlock();
-              if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume();
-              if (A.el && A.el.play) A.el.play();
+            } catch (_) {}
+            var p1 = (A.ctx && A.ctx.state === 'suspended')
+              ? A.ctx.resume()
+              : Promise.resolve();
+            var p2 = (A.el && A.el.play) ? A.el.play() : Promise.resolve();
+            Promise.all([p1, p2]).then(function () {
               A.playing = true;
               var playBtn = document.getElementById('play');
               if (playBtn) {
@@ -889,9 +902,17 @@
                 playBtn.classList.remove('primary');
                 playBtn.classList.add('danger');
               }
-            } catch (e) { /* autoplay blocked, will retry on gesture */ }
+            }).catch(function () {
+              // Autoplay gated — leave A.playing=false and let the
+              // pointerdown fallback below retry on the first user gesture.
+              A.playing = false;
+            });
           };
-          __halAutoplay();
+          // Eager attempt only if the context is already running (e.g. user
+          // just navigated from another page on this origin with a fresh
+          // gesture chain). On a cold load the context is suspended and we
+          // skip straight to the gesture handler.
+          if (A.ctx && A.ctx.state === 'running') __halAutoplay();
           document.addEventListener('pointerdown', function _halAutoplayOnce() {
             document.removeEventListener('pointerdown', _halAutoplayOnce);
             __halAutoplay();
