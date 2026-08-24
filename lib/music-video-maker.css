@@ -1,0 +1,158 @@
+/* lib/music-video-maker.css — page-specific styles for /make-video.
+ *
+ * Most panel layout is inlined in make-video.html because it's tightly
+ * coupled to the grid structure. This file is for the timeline rows,
+ * clip cards, and the canvas preview overlay.
+ */
+
+.mvm-clip-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--line, #330022);
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.mvm-clip-card:hover {
+  background: rgba(0, 240, 255, 0.06);
+  border-color: var(--accent-2, #00ccff);
+}
+
+.mvm-clip-thumb {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 30px;
+  background: var(--panel-2, #1f0010);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted, #ff44aa);
+}
+
+.mvm-clip-thumb img,
+.mvm-clip-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mvm-clip-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mvm-clip-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink, #fff);
+}
+
+.mvm-clip-sub {
+  color: var(--muted, #ff44aa);
+  opacity: 0.75;
+  font-size: 9px;
+}
+
+.mvm-clip-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 3px;
+}
+
+.mvm-clip-actions button {
+  background: transparent;
+  border: 1px solid var(--line, #330022);
+  color: var(--muted, #ff44aa);
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.mvm-clip-actions button:hover {
+  border-color: var(--accent, #ff0066);
+  color: var(--accent, #ff0066);
+}
+
+.mvm-clip-actions button.tl-add {
+  border-color: var(--accent-2, #00ccff);
+  color: var(--accent-2, #00ccff);
+}
+
+.mvm-clip-actions button.tl-remove {
+  border-color: var(--accent, #ff0066);
+  color: var(--accent, #ff0066);
+}
+
+.mvm-timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 3px;
+  background: rgba(0, 240, 255, 0.04);
+  border-left: 3px solid var(--accent-2, #00ccff);
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.mvm-timeline-row .tl-time {
+  flex: 0 0 auto;
+  color: var(--accent-2, #00ccff);
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  min-width: 70px;
+}
+
+.mvm-timeline-row .tl-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mvm-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted, #ff44aa);
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.mvm-drop-target {
+  border: 2px dashed var(--line, #330022);
+  border-radius: 4px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted, #ff44aa);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin: 8px 0;
+}
+
+.mvm-drop-target.dragover {
+  border-color: var(--accent-2, #00ccff);
+  color: var(--accent-2, #00ccff);
+  background: rgba(0, 240, 255, 0.04);
+}
+
+.current-song.has-song {
+  color: var(--green, #00ff66);
+  font-weight: 600;
+}

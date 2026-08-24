@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MUSIC VIDEO MAKER · SWR engine v5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../lib/library-switcher.css">
+<link rel="stylesheet" href="../lib/music-video-maker.css">
+<style>
+  :root {
+    --bg: #000000;
+    --bg-2: #0a0008;
+    --panel: #14000a;
+    --panel-2: #1f0010;
+    --ink: #ffffff;
+    --muted: #ff44aa;
+    --line: #330022;
+    --accent: #ff0066;
+    --accent-2: #00ccff;
+    --green: #00ff66;
+    --yellow: #ffff00;
+  }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 11px ui-monospace, "SF Mono", Menlo, monospace;
+    overflow: hidden;
+  }
+  #app {
+    display: grid;
+    grid-template-rows: 48px 1fr 40px;
+    grid-template-columns: 220px 1fr 280px;
+    grid-template-areas:
+      "head head head"
+      "left center right"
+      "foot foot foot";
+    height: 100vh;
+    width: 100vw;
+  }
+  header.mvm-head {
+    grid-area: head;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+  }
+  .left-col { grid-area: left; background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; }
+  .center-col { grid-area: center; background: #000; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .right-col { grid-area: right; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
+  footer.mvm-foot {
+    grid-area: foot;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+  }
+  .col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-2);
+  }
+  .col-head h2 { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; margin: 0; color: var(--accent); font-weight: 700; }
+  .col-body { padding: 8px 10px; }
+
+  /* Buttons */
+  .tbtn {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    font: 10px ui-monospace, monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 9px;
+    cursor: pointer;
+  }
+  .tbtn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+  .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tbtn.accent { border-color: var(--accent); color: var(--accent); }
+  .tbtn.accent:hover { background: var(--accent); color: #000; }
+
+  /* Song picker modal */
+  .mvm-modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .mvm-modal-bg.open { display: flex; }
+  .mvm-modal {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    padding: 16px;
+    border-radius: 4px;
+    max-width: 420px;
+    width: 90%;
+  }
+
+  /* Hide file input, use label */
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="mvm-head">
+    <span class="brand" style="color:var(--accent);font-weight:700;letter-spacing:0.16em;">MVM</span>
+    <span class="version" style="color:var(--muted);font-size:9px;">v5 · music video maker</span>
+    <button class="tbtn accent" id="pick-song">PICK SONG</button>
+    <span id="current-song" class="current-song" style="color:var(--muted);font-size:10px;letter-spacing:0.06em;">— no song —</span>
+    <button class="tbtn" id="remove-song" style="display:none;">REMOVE</button>
+    <span style="flex:1"></span>
+    <button class="tbtn" id="reset-project">RESET</button>
+    <span id="status" style="color:var(--green);font-size:10px;">READY</span>
+  </header>
+
+  <aside class="left-col">
+    <div class="col-head">
+      <h2>Clips</h2>
+      <div>
+        <button class="tbtn" id="add-clip">+ ADD</button>
+        <input type="file" id="clip-input" multiple accept="video/*,image/*" />
+      </div>
+    </div>
+    <div class="col-body">
+      <div id="clips-list"></div>
+    </div>
+  </aside>
+
+  <section class="center-col">
+    <canvas id="preview" width="640" height="360" style="background:#0a0008;max-width:100%;max-height:100%;"></canvas>
+    <div style="position:absolute;bottom:8px;left:8px;color:var(--muted);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;">
+      Preview · Phase 1 (timeline + transport)
+    </div>
+  </section>
+
+  <aside class="right-col">
+    <div class="col-head">
+      <h2>Timeline</h2>
+      <span id="tl-duration" style="color:var(--muted);font-size:10px;">0:00</span>
+    </div>
+    <div class="col-body">
+      <div id="timeline-list"></div>
+    </div>
+  </aside>
+
+  <footer class="mvm-foot">
+    <button class="tbtn" id="play-pause" disabled>▶ PLAY</button>
+    <button class="tbtn" id="stop" disabled>■ STOP</button>
+    <span id="time-readout" style="color:var(--ink);font-size:10px;">0:00 / 0:00</span>
+    <span style="flex:1"></span>
+    <span id="foot-meta" style="color:var(--muted);font-size:9px;letter-spacing:0.08em;">—</span>
+  </footer>
+</div>
+
+<!-- Song picker modal -->
+<div class="mvm-modal-bg" id="song-modal">
+  <div class="mvm-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">PICK SONG</span>
+      <button class="tbtn" id="close-song-modal">CLOSE</button>
+    </div>
+    <div id="song-modal-host"></div>
+  </div>
+</div>
+
+<script src="../lib/library-switcher.client.js"></script>
+<script src="../lib/media-store.client.js"></script>
+<script src="../lib/music-video-maker.client.js"></script>
+</body>
+</html>

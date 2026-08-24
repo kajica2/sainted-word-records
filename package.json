@@ -25,6 +25,7 @@
     "verify:autoplay": "node verify-autoplay.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
     "verify:library-switcher": "node verify-library-switcher.mjs",
+    "verify:music-video-maker": "node verify-music-video-maker.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

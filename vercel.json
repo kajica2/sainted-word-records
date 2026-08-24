@@ -127,6 +127,14 @@
     {
       "source": "/intro/",
       "destination": "/intro.html"
+    },
+    {
+      "source": "/make-video",
+      "destination": "/make-video.html"
+    },
+    {
+      "source": "/make-video/",
+      "destination": "/make-video.html"
     }
   ]
 }

@@ -83,6 +83,7 @@ function copyStatic() {
     'swr-intro-10s-voice.mp4',
     'marketplace.html',
     'thanks.html',
+    'make-video.html',
     'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
     'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
     'watermark-monogram.svg',
