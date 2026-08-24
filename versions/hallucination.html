@@ -629,7 +629,12 @@
       render() {
         const el=$('layers'); el.innerHTML='';
         for (let i=0;i<this.list.length;i++) {
-          const l=this.list[i]; const d=document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
+          const l=this.list[i];
+          // Defensive: legacy persisted state or hand-edited localStorage
+          // may omit `reactors`. Fall back to an empty list so the panel
+          // renders and downstream `applyR` doesn't throw.
+          if (!Array.isArray(l.reactors)) l.reactors = [];
+          const d=document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
           d.innerHTML=`<div class="lh"><span class="n">${(i+1).toString().padStart(2,'0')}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option></select></div><div class="r"><label>opacity</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>scale</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
           d.querySelector('select').value=l.blend;
@@ -714,14 +719,21 @@
     function applyR(l) {
       const sens=A.params.sens;
       const out = { scale:l.baseScale, x:0, y:0, rot:l.hue*0.1, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
-      for (const r of l.reactors) {
+      // Defensive: legacy persisted state may not include `reactors`.
+      // Skip the reactor loop rather than crash every frame.
+      const reactors = Array.isArray(l.reactors) ? l.reactors : [];
+      for (const r of reactors) {
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
+        // Master rotation toggle gate: when the user has turned rotation
+        // OFF globally (swr-rot-master button), skip rot reactor writes so
+        // audio doesn't compound the canvas into 180-degree flips.
+        const _rotOn = l.rotationEnabled !== false;
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 150;
         else if (r.target==='y') out.y += v * 150;
-        else if (r.target==='rot') out.rot += v * 45;
+        else if (r.target==='rot') { if (_rotOn) out.rot += v * 45; }
         else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.7, 0, 1.5);
         else if (r.target==='hue') out.hue += v * 80;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.7, 0.1, 3);
