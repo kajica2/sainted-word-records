@@ -197,6 +197,267 @@ try {
 
   // (subsequent tasks will append their gate() blocks here.)
 
+  // ==================================================================
+  // MANAGER FEATURE TESTS  (Tasks 5-12)
+  //
+  // We use setData() to inject rows directly (instead of seeding IndexedDB
+  // via fake File blobs) and exercise each control. Rows keep the UnifiedSong
+  // shape so the manager treats them the same as IDB-sourced rows.
+  // ==================================================================
+
+  await gate('search box filters rows by title/artist (Task 5)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      api.setData([
+        { id: 'a', source: 'library', sourceId: 'a', title: 'Coltrane Like Sonny', artist: 'Sonny',  duration: 200 },
+        { id: 'b', source: 'library', sourceId: 'b', title: 'Giant Steps',         artist: 'Coltrane', duration: 300 },
+        { id: 'c', source: 'library', sourceId: 'c', title: 'So What',             artist: 'Miles', duration: 540 },
+      ]);
+      const inp = host.querySelector('.lmp-search');
+      const fireInput = (v) => { inp.value = v; inp.dispatchEvent(new Event('input')); };
+      fireInput('coltrane');
+      const c1 = host.querySelectorAll('.lmp-row').length;
+      fireInput('so what');
+      const c2 = host.querySelectorAll('.lmp-row').length;
+      fireInput('nope');
+      const c3 = host.querySelectorAll('.lmp-row').length;
+      const emptyText = (host.querySelector('.lmp-empty') || {}).textContent || '';
+      fireInput('');
+      const c4 = host.querySelectorAll('.lmp-row').length;
+      api.destroy(); host.remove();
+      return { c1, c2, c3, emptyText, c4 };
+    });
+    ok(r.c1 === 2, `search "coltrane" should match 2 rows, got ${r.c1}`);
+    ok(r.c2 === 1, `search "so what" should match 1 row, got ${r.c2}`);
+    ok(r.c3 === 0, `search "nope" should match 0 rows, got ${r.c3}`);
+    ok(/No songs match/i.test(r.emptyText), `expected empty-state copy, got "${r.emptyText}"`);
+    ok(r.c4 === 3, 'clearing search should restore all 3');
+  });
+
+  await gate('sort dropdown reorders by title/artist/date (Task 6)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      api.setData([
+        { id: 't', source: 'library', sourceId: 't', title: 'Banana', artist: 'Zelda', createdAt: 100 },
+        { id: 'a', source: 'library', sourceId: 'a', title: 'Apple',  artist: 'Mario', createdAt: 300 },
+        { id: 'm', source: 'library', sourceId: 'm', title: 'Mango',  artist: 'Yoshi', createdAt: 200 },
+      ]);
+      const sel = host.querySelector('.lmp-sort');
+      const fire = (v) => { sel.value = v; sel.dispatchEvent(new Event('change')); };
+      const titles = () => Array.from(host.querySelectorAll('.lmp-row .lmp-title')).map(n => n.textContent);
+      fire('title'); const titlesAZ = titles();
+      fire('artist'); const titlesByArtist = titles();
+      fire('date');   const titlesByDate = titles();
+      api.destroy(); host.remove();
+      return { titlesAZ, titlesByArtist, titlesByDate };
+    });
+    ok(JSON.stringify(r.titlesAZ) === JSON.stringify(['Apple','Banana','Mango']), `title sort: ${r.titlesAZ}`);
+    // artist sort: Mario→Yoshi→Zelda, with title as tiebreaker (Apple, Mango, Banana)
+    ok(JSON.stringify(r.titlesByArtist) === JSON.stringify(['Apple','Mango','Banana']), `artist sort: ${r.titlesByArtist}`);
+    // date sort: newest first by createdAt → Apple(300), Mango(200), Banana(100)
+    ok(JSON.stringify(r.titlesByDate) === JSON.stringify(['Apple','Mango','Banana']), `date sort: ${r.titlesByDate}`);
+  });
+
+  await gate('multi-select checkboxes + Select All (Task 7)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      api.setData([
+        { id: '1', source: 'library', sourceId: '1', title: 'One' },
+        { id: '2', source: 'library', sourceId: '2', title: 'Two' },
+        { id: '3', source: 'library', sourceId: '3', title: 'Three' },
+      ]);
+      const checks = () => Array.from(host.querySelectorAll('.lmp-check'));
+      const counter = () => (host.querySelector('.lmp-counter') || {}).textContent || '';
+      checks()[0].click();
+      checks()[2].click();
+      const after2 = counter();
+      const sa = host.querySelector('.lmp-select-all');
+      sa.click();
+      const afterAll = counter();
+      const saText = sa.textContent;
+      sa.click(); // toggle off
+      const afterNone = counter();
+      const saTextBack = sa.textContent;
+      api.destroy(); host.remove();
+      return { after2, afterAll, saText, afterNone, saTextBack };
+    });
+    ok(/2 selected/.test(r.after2), `expected 2 selected, got "${r.after2}"`);
+    ok(/3 selected/.test(r.afterAll), `expected 3 selected, got "${r.afterAll}"`);
+    ok(/deselect all/i.test(r.saText), `select-all should toggle to "deselect all", got "${r.saText}"`);
+    ok(/0 selected/.test(r.afterNone), `expected 0 selected, got "${r.afterNone}"`);
+    ok(/select all/i.test(r.saTextBack), `should toggle back to "select all", got "${r.saTextBack}"`);
+  });
+
+  await gate('bulk Remove Selected deletes from SWR_MEDIA (Task 8)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      const mk = (name) => {
+        const b = new Blob([new Uint8Array([1,2,3])], { type: 'video/mp4' });
+        return new File([b], name, { type: 'video/mp4' });
+      };
+      await M.addMedia([mk('bulk-a.mp3'), mk('bulk-b.mp3')]);
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      await api.refresh();
+      const checks = host.querySelectorAll('.lmp-check');
+      if (checks.length !== 2) {
+        const remaining = await M.getUserMedia();
+        await Promise.all(remaining.map(x => M.deleteMedia(x.id)));
+        api.destroy(); host.remove();
+        return { seeded: false, rowCount: checks.length };
+      }
+      checks[0].click();
+      checks[1].click();
+      const removeBtn = host.querySelector('.lmp-remove');
+      removeBtn.click();
+      // Wait for deleteMedia + refresh to land.
+      await new Promise(res => setTimeout(res, 400));
+      const remaining = await M.getUserMedia();
+      const rowCount = host.querySelectorAll('.lmp-row').length;
+      api.destroy(); host.remove();
+      return { seeded: true, idbLeft: remaining.length, rowCount };
+    });
+    ok(r.seeded, `expected 2 rows after seeding, got ${r.rowCount}`);
+    ok(r.idbLeft === 0, `expected 0 rows in IDB after remove, got ${r.idbLeft}`);
+    ok(r.rowCount === 0, `expected 0 rendered rows after remove, got ${r.rowCount}`);
+  });
+
+  await gate('per-row Remove button (Task 9)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      const mk = (name) => {
+        const b = new Blob([new Uint8Array([1,2,3])], { type: 'video/mp4' });
+        return new File([b], name, { type: 'video/mp4' });
+      };
+      await M.addMedia([mk('row-a.mp3'), mk('row-b.mp3')]);
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      await api.refresh();
+      const rowsBefore = host.querySelectorAll('.lmp-row').length;
+      const firstDel = host.querySelector('.lmp-row .lmp-row-del');
+      if (!firstDel) {
+        const left = await M.getUserMedia();
+        await Promise.all(left.map(x => M.deleteMedia(x.id)));
+        api.destroy(); host.remove();
+        return { rowsBefore, rowsAfter: -1, idbLeft: left.length };
+      }
+      firstDel.click();
+      await new Promise(res => setTimeout(res, 400));
+      const rowsAfter = host.querySelectorAll('.lmp-row').length;
+      const left = await M.getUserMedia();
+      await Promise.all(left.map(x => M.deleteMedia(x.id)));
+      api.destroy(); host.remove();
+      return { rowsBefore, rowsAfter, idbLeft: left.length };
+    });
+    ok(r.rowsBefore === 2, `expected 2 rows, got ${r.rowsBefore}`);
+    ok(r.rowsAfter === 1, `expected 1 row after per-row remove, got ${r.rowsAfter}`);
+    ok(r.idbLeft === 1, `expected 1 row in IDB, got ${r.idbLeft}`);
+  });
+
+  await gate('Add Selected to Playlist pushes to SWR_PLAYLIST (Task 10)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      const P = window.SWR_PLAYLIST;
+      P.clear();
+      const mk = (name) => {
+        const b = new Blob([new Uint8Array([1,2,3])], { type: 'video/mp4' });
+        return new File([b], name, { type: 'video/mp4' });
+      };
+      await M.addMedia([mk('pl-a.mp3'), mk('pl-b.mp3')]);
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      await api.refresh();
+      const checks = host.querySelectorAll('.lmp-check');
+      if (checks.length !== 2) {
+        const left = await M.getUserMedia();
+        await Promise.all(left.map(x => M.deleteMedia(x.id)));
+        api.destroy(); host.remove();
+        return { playlistLen: 0, firstTitle: '', firstSource: '', firstHasUrl: false, rowCount: checks.length };
+      }
+      checks[0].click();
+      checks[1].click();
+      const btn = host.querySelector('.lmp-add-pl');
+      btn.click();
+      await new Promise(res => setTimeout(res, 50));
+      const plist = P.list();
+      const left = await M.getUserMedia();
+      await Promise.all(left.map(x => M.deleteMedia(x.id)));
+      api.destroy(); host.remove();
+      return {
+        playlistLen: plist.length,
+        firstTitle: plist[0] && plist[0].title,
+        firstSource: plist[0] && plist[0].source,
+        firstHasUrl: plist[0] && 'url' in plist[0],
+      };
+    });
+    ok(r.playlistLen === 2, `expected 2 in playlist, got ${r.playlistLen}`);
+    ok(/pl-[ab]\.mp3/.test(r.firstTitle || ''), `unexpected playlist row title: "${r.firstTitle}"`);
+    ok(r.firstSource === 'library', `source should be 'library', got "${r.firstSource}"`);
+    ok(r.firstHasUrl === false, 'playlist row should not carry a url field');
+  });
+
+  await gate('Clear Library prompts confirm + deleteAll (Task 11)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      const mk = (name) => {
+        const b = new Blob([new Uint8Array([1,2,3])], { type: 'video/mp4' });
+        return new File([b], name, { type: 'video/mp4' });
+      };
+      await M.addMedia([mk('cl-a.mp3'), mk('cl-b.mp3'), mk('cl-c.mp3')]);
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      await api.refresh();
+      const rowCount = host.querySelectorAll('.lmp-row').length;
+      const origConfirm = window.confirm;
+      let promptText = '';
+      window.confirm = (m) => { promptText = m; return true; };
+      const clearBtn = host.querySelector('.lmp-clear');
+      if (clearBtn) clearBtn.click();
+      await new Promise(res => setTimeout(res, 400));
+      window.confirm = origConfirm;
+      const remaining = await M.getUserMedia();
+      const rowsAfter = host.querySelectorAll('.lmp-row').length;
+      api.destroy(); host.remove();
+      return { rowCount, promptText, idbLeft: remaining.length, rowsAfter };
+    });
+    ok(r.rowCount === 3, `expected 3 rows before clear, got ${r.rowCount}`);
+    ok(/remove every song/i.test(r.promptText || ''), `confirm copy: "${r.promptText}"`);
+    ok(r.idbLeft === 0, `expected 0 after clear, got ${r.idbLeft}`);
+    ok(r.rowsAfter === 0, `expected 0 rendered rows, got ${r.rowsAfter}`);
+  });
+
+  await gate('empty-state UI hides toolbar when library is empty (Task 12)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      api.setData([]); // empty library
+      const emptyVisible = host.querySelector('.lmp-empty').style.display !== 'none';
+      const toolbarVisible = host.querySelector('.lmp-toolbar').style.display !== 'none';
+      const emptyText = host.querySelector('.lmp-empty').textContent;
+      api.setData([{ id: 'x', source: 'library', sourceId: 'x', title: 'After' }]);
+      const toolbarAfterVisible = host.querySelector('.lmp-toolbar').style.display !== 'none';
+      const rowCount = host.querySelectorAll('.lmp-row').length;
+      api.destroy(); host.remove();
+      return { emptyVisible, toolbarVisible, emptyText, toolbarAfterVisible, rowCount };
+    });
+    ok(r.emptyVisible, 'empty placeholder should be visible when library is empty');
+    ok(!r.toolbarVisible, 'toolbar should be hidden when library is empty');
+    ok(/empty/i.test(r.emptyText), `empty copy: "${r.emptyText}"`);
+    ok(r.toolbarAfterVisible, 'toolbar should appear after a row is added');
+    ok(r.rowCount === 1, `expected 1 row, got ${r.rowCount}`);
+  });
+
   if (errors.length) {
     process.stderr.write('Console errors during run:\n');
     errors.forEach((e) => process.stderr.write('  ' + e + '\n'));
