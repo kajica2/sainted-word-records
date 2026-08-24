@@ -171,6 +171,33 @@ try {
     ok(r.finalN === 1, 'post-unsubscribe add should not have been emitted to seen');
   });
 
+  await step('SWR.PLAYLIST.songs = […] triggers hydrate event (3rd-party writer)', async () => {
+    // Plan risk #2: external code writing through the proxy-mirrored songs
+    // setter should fire subscribers with reason='hydrate'. Also proves
+    // the persistence still round-trips through localStorage when set via
+    // the setter path (not just add()).
+    const r = await page.evaluate(async () => {
+      const P = window.SWR_PLAYLIST;
+      P.clear();
+      const seen = [];
+      const off = P.subscribe((list, reason) => seen.push({ reason, n: list.length }));
+      window.SWR.PLAYLIST.songs = [{ id: 'ext-1', title: 'External One' }, { id: 'ext-2', title: 'External Two' }];
+      // Clear subscribers list and re-check persistence.
+      const finalList = P.list();
+      off();
+      return { seen, finalLen: finalList.length, firstTitle: finalList[0] && finalList[0].title };
+    });
+    ok(r.seen.length === 1, `expected 1 hydrate event from the setter, got ${r.seen.length}`);
+    ok(r.seen[0].reason === 'hydrate', `expected reason 'hydrate', got '${r.seen[0].reason}'`);
+    ok(r.finalLen === 2, `expected 2 rows after assignment, got ${r.finalLen}`);
+    ok(r.firstTitle === 'External One', `expected first row 'External One', got '${r.firstTitle}'`);
+    // Persistence should also have caught the assignment (localStorage write).
+    const stored = await page.evaluate(() => {
+      try { return JSON.parse(localStorage.getItem('swr.playlist.v1')); } catch { return null; }
+    });
+    ok(Array.isArray(stored) && stored.length === 2, `expected localStorage to hold 2 rows, got ${stored && stored.length}`);
+  });
+
   // ==================================================================
   // MANAGER RENDER SHELL  (Task 4)
   // ==================================================================
@@ -456,6 +483,39 @@ try {
     ok(/empty/i.test(r.emptyText), `empty copy: "${r.emptyText}"`);
     ok(r.toolbarAfterVisible, 'toolbar should appear after a row is added');
     ok(r.rowCount === 1, `expected 1 row, got ${r.rowCount}`);
+  });
+
+  await gate('auto-refresh on visibilitychange (Review I-2)', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      await M.deleteAll().catch(() => {});
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      // Wait for the render's initial load to settle (empty).
+      await api.refresh();
+      const rowsBefore = host.querySelectorAll('.lmp-row').length;
+      // External mutator: add a row in IDB WITHOUT calling api.refresh().
+      const b = new Blob([new Uint8Array([9,9,9])], { type: 'video/mp4' });
+      const f = new File([b], 'vischange.mp4', { type: 'video/mp4' });
+      await M.addMedia([f]);
+      // Manager should still see 0 rows (it doesn't auto-poll by itself).
+      const stillBefore = host.querySelectorAll('.lmp-row').length;
+      // Now simulate the tab becoming visible again — the manager's
+      // visibilitychange listener should fire loadFromMedia.
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await new Promise(res => setTimeout(res, 200));
+      const rowsAfter = host.querySelectorAll('.lmp-row').length;
+      // Cleanup.
+      const leftover = await M.getUserMedia();
+      await Promise.all(leftover.map(x => M.deleteMedia(x.id)));
+      api.destroy(); host.remove();
+      return { rowsBefore, stillBefore, rowsAfter };
+    });
+    ok(r.rowsBefore === 0, `should start empty, got ${r.rowsBefore}`);
+    ok(r.stillBefore === 0, `should not auto-observe external writes without the visibility trigger, got ${r.stillBefore}`);
+    ok(r.rowsAfter === 1, `after visibilitychange→visible should pick up the external row, got ${r.rowsAfter}`);
   });
 
   // ==================================================================
