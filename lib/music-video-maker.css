@@ -313,6 +313,19 @@
   transition: opacity .12s ease, transform .12s ease;
 }
 
+/* Phase 8: two-click STOP REC safety */
+.mvm-pending-stop {
+  /* A second class on the same REC button — outlines to confirm
+     "click again to stop" without losing the recording red. */
+  outline: 2px solid var(--accent, #ff0066);
+  outline-offset: 2px;
+  animation: mvm-pending-pulse 0.4s ease-in-out infinite alternate;
+}
+@keyframes mvm-pending-pulse {
+  0%   { transform: scale(1.0); }
+  100% { transform: scale(1.04); }
+}
+
 .current-song.has-song {
   color: var(--green, #00ff66);
   font-weight: 600;
