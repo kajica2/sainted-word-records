@@ -69,6 +69,11 @@ try {
   await page.goto(`${BASE}/versions/hallucination.html`,
                   { waitUntil: 'networkidle0', timeout: 45000 });
 
+  // Load the playlist client. hallucination.html doesn't include it by
+  // default (it's a Phase-2+ consumer on make-video.html). The library-
+  // switcher test for the 'playlist' source needs the global present.
+  await page.addScriptTag({ path: path.join(ROOT, 'lib', 'playlist.client.js') });
+
   // Wait for SWR_LIBRARY_SWITCHER + a loaded audio bus.
   let waited = 0;
   while (waited < 30000) {
@@ -126,11 +131,40 @@ try {
     ok(Array.isArray(v), 'expected array from uploads');
   });
 
-  await step('list("playlist") returns [] when no SWR.PLAYLIST', async () => {
+  await step('list("playlist") reflects SWR_PLAYLIST.add / remove', async () => {
+    // The library-switcher reads window.SWR.PLAYLIST.songs directly.
+    // Seed a song, assert the picker sees it; remove it, assert it's gone.
     const v = await page.evaluate(async () => {
-      return await window.SWR_LIBRARY_SWITCHER.list('playlist');
+      // Find a song to use as the source. The audio-bus is the safest
+      // because it's always present.
+      const busList = await window.SWR_LIBRARY_SWITCHER.list('audio-bus');
+      const seed = busList[0] && {
+        id: 'pl-test-' + Date.now(),
+        title: (busList[0].title || 'song') + ' [playlist copy]',
+        duration: busList[0].duration,
+        url: busList[0].url,
+        // Mark provenance so we can tell them apart
+        source: 'audio-bus',
+      };
+      const before = await window.SWR_LIBRARY_SWITCHER.list('playlist');
+      // Add to the playlist via the public API
+      window.SWR.PLAYLIST.add(seed);
+      const afterAdd = await window.SWR_LIBRARY_SWITCHER.list('playlist');
+      // Remove and confirm
+      window.SWR.PLAYLIST.remove(seed.id);
+      const afterRemove = await window.SWR_LIBRARY_SWITCHER.list('playlist');
+      return {
+        beforeLen: before.length,
+        afterAddLen: afterAdd.length,
+        afterRemoveLen: afterRemove.length,
+        hasSeed: afterAdd.some((s) => s.sourceId === seed.id),
+        seedTitle: seed.title,
+      };
     });
-    ok(Array.isArray(v) && v.length === 0, 'expected empty array');
+    ok(v.beforeLen === 0, 'expected empty list before add, got ' + v.beforeLen);
+    ok(v.afterAddLen === 1, 'expected 1 after add, got ' + v.afterAddLen);
+    ok(v.hasSeed, 'add result should include the seeded song');
+    ok(v.afterRemoveLen === 0, 'expected empty list after remove, got ' + v.afterRemoveLen);
   });
 
   await step('pick("audio-bus", id) returns a playable URL', async () => {
@@ -172,7 +206,9 @@ try {
     // The library-switcher script lives on hallucination.html (it's a
     // standalone lib/ module — engine.html doesn't include it). Load it
     // directly here so we can exercise pick() against engine.html's IDB.
+    // Also load the playlist client so window.SWR.PLAYLIST is defined.
     await page2.addScriptTag({ path: path.join(ROOT, 'lib', 'library-switcher.client.js') });
+    await page2.addScriptTag({ path: path.join(ROOT, 'lib', 'playlist.client.js') });
     let waited2 = 0;
     while (waited2 < 30000) {
       const ok = await page2.evaluate(() =>
