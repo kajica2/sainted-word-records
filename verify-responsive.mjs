@@ -50,14 +50,31 @@ const js = `(() => {
   const innerW = window.innerWidth;
   const innerH = window.innerHeight;
   const overflows = [];
+  // Walk up each element's parent chain; if any ancestor has
+  // overflow-x: auto or overflow-x: scroll, the element is in a
+  // horizontally-scrollable container (an intentional mobile pattern
+  // for the engine header at narrow widths). We don't flag such
+  // elements — the user can scroll to them. We still flag elements
+  // inside overflow:hidden containers (the previous failure mode
+  // that hid controls entirely).
+  const hasHorizScroll = (el) => {
+    let cur = el.parentElement;
+    while (cur && cur.tagName !== 'HTML') {
+      const cs = window.getComputedStyle(cur);
+      if (cs.overflowX === 'auto' || cs.overflowX === 'scroll') return true;
+      cur = cur.parentElement;
+    }
+    return false;
+  };
   document.querySelectorAll('*').forEach((el) => {
     if (el.tagName === 'HTML' || el.tagName === 'BODY' || el.tagName === 'HEAD' || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) return;
-    const isInteractive = ['BUTTON','INPUT','SELECT','TEXTAREA','A'].includes(el.tagName);
+    const isInteractive = ['BUTTON','INPUT','SELECT','TEXTAREA','A','LABEL'].includes(el.tagName);
     const offRight = r.right > innerW + 1;
     const offLeft = r.left < -1;
     if (offRight || offLeft) {
+      if (isInteractive && hasHorizScroll(el)) return;  // scrollable, OK
       overflows.push({
         tag: el.tagName,
         cls: (el.className || '').toString().substring(0, 40),

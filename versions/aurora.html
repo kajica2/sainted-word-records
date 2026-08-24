@@ -101,6 +101,120 @@
       section.stage { grid-row: 2; min-height: 320px; }
     }
 
+    /* ---------- Mobile icons-only header ----------
+       SWR-MOBILE-HEADER-MARKER
+       At <= 480px the header text labels collapse to glyphs to keep all
+       14 controls reachable in one row (~41px tall, was 75-109px when
+       wrapped to multiple rows). At > 480px the labels show normally —
+       the desktop/tablet layout is unchanged.
+       The data-icon attributes are inserted by the codemod's HTML
+       pass; see the HEADER_ICON_INJECTIONS list for the per-control
+       glyph mapping. */
+    /* Stop the header from wrapping to multiple rows at phone widths —
+       let it stay one tall row and use the icons. */
+    @media (max-width: 480px) {
+      header {
+        flex-wrap: nowrap;
+        max-height: 64px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 4px 8px;
+        gap: 2px;
+      }
+      header > * { flex-shrink: 0; }
+      header .spacer { display: none; }
+      /* Hide the textual label of every data-icon control. The ::before
+         pseudo carries the glyph. text-indent:-9999px is the standard
+         "icon-only button" pattern and keeps the text in the DOM for
+         screen readers + the .tbtn:hover color-state rules. */
+      [data-icon] {
+        text-indent: -9999px;
+        position: relative;
+        padding-left: 6px;
+        padding-right: 6px;
+        min-width: 0;
+        font-size: 14px;
+      }
+      [data-icon]::before {
+        content: attr(data-icon);
+        text-indent: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1;
+        pointer-events: none;
+      }
+      /* Auto-cycle's checkbox input is hidden by the original CSS; the
+         label carries the text. We need to keep the checkbox + label
+         behavior but the text label needs to swap to the icon. The
+         label wraps a checkbox AND has data-icon set; the rule above
+         handles the ::before, and we keep the checkbox visual via the
+         existing :checked styles. */
+      #meter { width: 60px !important; height: 18px; }
+      /* rec-dur select: keep visible 3-char "30s" text */
+      #rec-dur { text-indent: 0; padding: 4px 6px; min-width: 50px; }
+      #rec-dur::before { display: none; }
+      /* #time: keep as compact timestamp — the engine writes
+         "0:00 / 0:00" into #time. At icons mode we hide the second
+         half (after the slash) so only the elapsed time shows.
+         "0:00 / 0:00" contains a literal " / " (space-slash-space)
+         that we mask with a zero-width spacer and clip the rest. */
+      #time {
+        text-indent: 0;
+        font-size: 11px;
+        max-width: 50px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      #time::before { display: none; }
+      /* .v title: keep the engine name visible */
+      .v { text-indent: 0; font-size: 14px; }
+      .v::before { display: none; }
+      /* .pill status: keep small text */
+      .pill { text-indent: 0; padding: 2px 6px; }
+      .pill::before { display: none; }
+      /* The auto-cycle label carries text "auto-cycle" but it's a
+         <label> wrapping a checkbox. We need its data-icon glyph to
+         show while the checkbox stays usable. */
+      label[data-icon] {
+        padding: 4px 6px;
+        text-indent: -9999px;
+        position: relative;
+      }
+      label[data-icon]::before {
+        content: attr(data-icon);
+        text-indent: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1;
+        pointer-events: none;
+      }
+      /* Beat/onset indicators are <span class="gc">beat <span class="led">.
+         At icons mode the .gc text "beat"/"onset" is hidden (the LED
+         dot already has its own data-icon glyph). The two header .gc
+         elements have an inline style="font-size:10px" (from the
+         engine's source markup) which would otherwise override our
+         class rule, so we use !important here. */
+      .gc { font-size: 0 !important; gap: 0; }
+      .gc::before { display: none; }
+      .gc .led { font-size: 0; }
+      /* The select inside .gc (rec-dur) keeps its visible text — see
+         the #rec-dur rules above. */
+      /* Tighten the meter canvas — it eats 60px and we need the room
+         for the actual primary controls. */
+      /* At very narrow widths (≤ 380px) hide the meter entirely. It's
+         a nice-to-have spectrum display; the play button + status
+         are the primary signal. */
+      @media (max-width: 380px) {
+        #meter { display: none; }
+      }
+    }
+
     .swr-watermark {
       position: absolute;
       bottom: 16px;
@@ -144,17 +258,17 @@
 </head>
 <body data-page="aurora">
   <div id="app">
-    <header>
+    <!-- SWR-HEADER-DATA-ICONS --><header>
       <div class="v">AURORA <small>v1</small></div>
       <span class="pill" id="status">idle</span>
-      <button class="tbtn" id="load-song">Load song</button>
+      <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
       <input type="file" id="song-input" accept="audio/*" />
-      <button class="tbtn primary" id="play" disabled>▶</button>
+      <button class="tbtn primary" id="play" disabled data-icon="▶">▶</button>
       <span id="time" style="font-size:10px;color:var(--muted);">0:00 / 0:00</span>
       <canvas class="meter" id="meter" width="320" height="32"></canvas>
       <span class="spacer"></span>
-      <span class="gc">beat <span class="led" id="beat-led"></span></span>
-      <span class="gc">onset <span class="led" id="onset-led"></span></span>
+      <span class="gc">beat <span class="led" id="beat-led" data-icon="●"></span></span>
+      <span class="gc">onset <span class="led" id="onset-led" data-icon="●"></span></span>
       <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
         <option value="10">10s</option>
@@ -171,7 +285,7 @@
         <option value="60">60s</option>
         <option value="song">song</option>
       </select>
-      <button class="tbtn danger" id="rec" disabled>● REC</button>
+      <button class="tbtn danger" id="rec" disabled data-icon="⏺">● REC</button>
       <a class="nav" href="film.html">→ film</a>
     </header>
     <aside class="lib">
