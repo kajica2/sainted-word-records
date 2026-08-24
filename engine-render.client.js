@@ -148,6 +148,7 @@
   //   extraDraws   — array of () => {} called after layers but before meter
   function frame(stage, ctx, layers, applyR, drawToCtx, opts) {
     opts = opts || {};
+    if (window.__swrDebug) console.log('frame-START layers=' + (layers && layers.length));
     const bg = opts.bgColor || state.bgColor;
     if (state.dirty) fit(stage);
 
@@ -176,68 +177,107 @@
       T.attach(layers);
     }
 
+    // Wrap each layer's full pipeline (applyR → fade step → LFO apply → draw)
+    // in try/catch so one broken layer (bad applyR, missing audio feature,
+    // decoded-image error) can't freeze the render loop. Without this guard,
+    // the first failure aborts the for-loop AND the per-layer draw try/catch
+    // never wraps the applyR/step/LFO work — silent freeze.
     for (let i = 0; i < layers.length; i++) {
-      const l = layers[i];
-      let r = applyR(l);
-      // Fade stepper: if a crossfade is in flight and currentOpacity has
-      // crossed below the midpoint threshold, swap the asset under the
-      // curtain. The fade continues drawing the new asset at rising
-      // currentOpacity. See engine-timing.client.js crossfade().
-      if (T && l && l._swapPending && l._currentOpacity < (l.opacity || 1) * 0.5) {
-        const pending = l._swapPending;
-        l.asset = pending.newAsset;
-        l._currentOpacity = l._targetOpacity != null ? l._targetOpacity : 0;
-        // Inherit the outgoing layer's visual signature (A2 morph).
-        if (l._morphFrom) {
-          l.baseScale   = l._morphFrom.baseScale;
-          l.hue         = l._morphFrom.hue;
-          l.brightness  = l._morphFrom.brightness;
-          l.contrast    = l._morphFrom.contrast;
-          l._morphFrom  = null;
-        }
-        l._targetOpacity = l.opacity != null ? l.opacity : 1;
-        if (pending.fadeInMs) l.fadeInMs = pending.fadeInMs;
-        l._swapPending = null;
-        // Force a redraw by clearing this layer's cache.
-        invalidate(l.id);
-      }
-      // Step fades. step() returns a new r with opacity replaced by the
-      // eased currentOpacity (clamped to [0,1]).
-      if (T && typeof T.step === 'function') {
-        r = T.step(dt, l, r);
-      }
-      const assetId = l.asset ? l.asset.id : 'none';
-      const version = hashVersion(buildVersion(r, assetId, audioHash));
-      const force = state.activeSet.has(l.id) || state.dirty;
-
-      const cached = !force && getCached(l.id, version);
-      if (cached) {
-        // Blit cached layer. Cached canvas is at backing-store size; draw it
-        // sized to CSS px so the transform we set above scales it.
-        ctx.drawImage(cached, 0, 0, state.cssW, state.cssH);
-      } else {
-        // Render into offscreen at backing-store size, then blit.
-        const oc = makeOffscreen(backingW, backingH);
-        const octx = oc.getContext('2d');
-        octx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-        try {
-          drawToCtx(l, r, octx, state.cssW, state.cssH);
-        } catch (err) {
-          // A single broken layer (missing image, CORS, decoder error) must
-          // not abort the whole frame — the rest of the composition still
-          // draws. Cache the empty offscreen so we don't retry every frame;
-          // the next version bump (asset swap, reactor change) clears it.
-          if (!state._warnedAssets) {
-            state._warnedAssets = true;
-            try { console.warn('[SWR_RENDER] layer draw failed:', err && err.message); } catch (_) {}
+      try {
+        const l = layers[i];
+        if (window.__swrDebug && i === 0) console.log('layer0 cur=', l._currentOpacity, 'tgt=', l._targetOpacity);
+        let r = applyR(l);
+        // Fade stepper: if a crossfade is in flight and currentOpacity has
+        // crossed below the midpoint threshold, swap the asset under the
+        // curtain. The fade continues drawing the new asset at rising
+        // currentOpacity. See engine-timing.client.js crossfade().
+        if (T && l && l._swapPending && l._currentOpacity < (l.opacity || 1) * 0.5) {
+          const pending = l._swapPending;
+          l.asset = pending.newAsset;
+          l._currentOpacity = l._targetOpacity != null ? l._targetOpacity : 0;
+          // Inherit the outgoing layer's visual signature (A2 morph).
+          if (l._morphFrom) {
+            l.baseScale   = l._morphFrom.baseScale;
+            l.hue         = l._morphFrom.hue;
+            l.brightness  = l._morphFrom.brightness;
+            l.contrast    = l._morphFrom.contrast;
+            l._morphFrom  = null;
           }
+          l._targetOpacity = l.opacity != null ? l.opacity : 1;
+          if (pending.fadeInMs) l.fadeInMs = pending.fadeInMs;
+          l._swapPending = null;
+          // Force a redraw by clearing this layer's cache.
+          invalidate(l.id);
         }
-        setCached(l.id, version, oc);
-        ctx.drawImage(oc, 0, 0, state.cssW, state.cssH);
+        // Step fades. step() returns a new r with opacity replaced by the
+        // eased currentOpacity (clamped to [0,1]).
+        if (T && typeof T.step === 'function') {
+          r = T.step(dt, l, r);
+        }
+        // Apply LFO modulators: each registered modulator on the layer
+        // returns a per-frame scalar in [-1, +1] that the engine's own
+        // applyR() already knows how to merge (opacity additive, scale
+        // multiplicative, x/y additive, hue additive, rot additive).
+        // The LFO registry reads .sample() and writes back into r via a
+        // small per-target merger that mirrors the page's reactor maths.
+        if (window.SWR_LFOS && typeof window.SWR_LFOS.apply === 'function') {
+          r = window.SWR_LFOS.apply(dt, l, r);
+        }
+        const assetId = l.asset ? l.asset.id : 'none';
+        const version = hashVersion(buildVersion(r, assetId, audioHash));
+        const force = state.activeSet.has(l.id) || state.dirty;
+
+        const cached = !force && getCached(l.id, version);
+        if (cached) {
+          // Blit cached layer. Cached canvas is at backing-store size; draw it
+          // sized to CSS px so the transform we set above scales it.
+          ctx.drawImage(cached, 0, 0, state.cssW, state.cssH);
+        } else {
+          // Render into offscreen at backing-store size, then blit.
+          const oc = makeOffscreen(backingW, backingH);
+          const octx = oc.getContext('2d');
+          octx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+          try {
+            drawToCtx(l, r, octx, state.cssW, state.cssH);
+          } catch (err) {
+            // A single broken layer (missing image, CORS, decoder error) must
+            // not abort the whole frame — the rest of the composition still
+            // draws. Cache the empty offscreen so we don't retry every frame;
+            // the next version bump (asset swap, reactor change) clears it.
+            if (!state._warnedAssets) {
+              state._warnedAssets = true;
+              try { console.warn('[SWR_RENDER] layer draw failed:', err && err.message); } catch (_) {}
+            }
+          }
+          setCached(l.id, version, oc);
+          ctx.drawImage(oc, 0, 0, state.cssW, state.cssH);
+        }
+      } catch (err) {
+        // Defensive: applyR, T.step, or SWR_LFOS.apply threw. Skip this
+        // layer for this frame, but keep the render loop alive. Warn once
+        // per error category so we don't spam the console.
+        const k = (err && err.message) || 'unknown';
+        if (!state._warnedLayer || state._warnedLayer !== k) {
+          state._warnedLayer = k;
+          try { console.warn('[SWR_RENDER] layer pipeline failed:', k, 'at layer', i); } catch (_) {}
+        }
       }
     }
+    if (window.__swrDebug) console.log('frame-end layers=' + layers.length + ' dt=' + dt.toFixed(3));
 
-    if (opts.extraDraws) for (let i = 0; i < opts.extraDraws.length; i++) opts.extraDraws[i]();
+    // Per-engine extras (drawFx, drawMeter, etc.) — wrap each call so a
+    // broken extra draw can't kill the RAF loop either.
+    if (opts.extraDraws) {
+      for (let i = 0; i < opts.extraDraws.length; i++) {
+        try { opts.extraDraws[i](); }
+        catch (err) {
+          if (!state._warnedExtras) {
+            state._warnedExtras = true;
+            try { console.warn('[SWR_RENDER] extraDraws failed:', err && err.message); } catch (_) {}
+          }
+        }
+      }
+    }
 
     state.dirty = false;
   }
