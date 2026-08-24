@@ -24,6 +24,7 @@
     "verify:hallucination-story": "node verify-hallucination-story.mjs",
     "verify:autoplay": "node verify-autoplay.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
+    "verify:library-switcher": "node verify-library-switcher.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

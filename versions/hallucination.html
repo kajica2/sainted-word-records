@@ -1410,5 +1410,53 @@
   </script>
 <script src="../versions-presets.js"></script>
 <script src="./temp-slider.js"></script>
-<script src="../engine-genops.client.js"></script></body>
+<script src="../engine-genops.client.js"></script>
+<link rel="stylesheet" href="../lib/library-switcher.css">
+<script src="../lib/library-switcher.client.js"></script>
+<script>
+  // Demo mount for the library switcher. Attaches a small panel to the
+  // topbar so devs can see the picker behavior without spinning up the
+  // Music Video Maker page. Click "OPEN LIBRARY SWITCHER" to toggle.
+  (function () {
+    function ensureBtn() {
+      var existing = document.getElementById('lsw-demo-btn');
+      if (existing) return existing;
+      var btn = document.createElement('button');
+      btn.id = 'lsw-demo-btn';
+      btn.type = 'button';
+      btn.textContent = 'LIBRARY SWITCHER';
+      btn.style.cssText = 'position:fixed;top:8px;right:8px;z-index:99999;font:10px ui-monospace;padding:5px 9px;background:#000;color:var(--ink,#fff);border:1px solid var(--line,#330022);cursor:pointer;letter-spacing:0.10em;text-transform:uppercase;';
+      btn.addEventListener('click', toggle);
+      document.body.appendChild(btn);
+      return btn;
+    }
+    var panelHost = null;
+    function toggle() {
+      if (panelHost) {
+        panelHost.destroy();
+        panelHost = null;
+        document.getElementById('lsw-demo-btn').textContent = 'LIBRARY SWITCHER';
+        return;
+      }
+      panelHost = document.createElement('div');
+      panelHost.id = 'lsw-demo-host';
+      panelHost.style.cssText = 'position:fixed;top:38px;right:8px;z-index:99998;';
+      document.body.appendChild(panelHost);
+      var r = window.SWR_LIBRARY_SWITCHER.render(panelHost, {
+        onPick: function (song) {
+          console.log('[lsw-demo] picked', song);
+        }
+      });
+      panelHost.destroy = r.destroy;
+      document.getElementById('lsw-demo-btn').textContent = 'CLOSE';
+    }
+    function boot() {
+      if (!window.SWR_LIBRARY_SWITCHER) { setTimeout(boot, 100); return; }
+      ensureBtn();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  })();
+</script>
+</body>
 </html>

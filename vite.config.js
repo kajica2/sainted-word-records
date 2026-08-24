@@ -136,6 +136,8 @@ function copyStatic() {
     'lib/auth.client.js',
     'lib/storage.client.js',
     'lib/migrate.client.js',
+    'lib/library-switcher.client.js',
+    'lib/library-switcher.css',
     'api/health.js',
     'api/auth/session.js',
     'api/auth/magic.js',
