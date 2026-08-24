@@ -10,6 +10,8 @@ library
 verify-screenshots/
 _probe_*.mjs
 _smoke_*.mjs
+# Local dev artifacts
+data/auth/
 _vinyl-sample/
 .vercel
 

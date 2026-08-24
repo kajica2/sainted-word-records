@@ -333,7 +333,7 @@ try {
       };
     });
     ok(v.modalOpen, 'modal did not open');
-    ok(v.tabs === 4, `expected 4 tabs, got ${v.tabs}`);
+    ok(v.tabs === 5, `expected 5 tabs (added weddings), got ${v.tabs}`);
     // Close it for cleanup
     await page.evaluate(() => {
       const close = document.getElementById('close-song-modal');

@@ -129,6 +129,14 @@
       "destination": "/intro.html"
     },
     {
+      "source": "/weddings",
+      "destination": "/weddings.html"
+    },
+    {
+      "source": "/weddings/",
+      "destination": "/weddings.html"
+    },
+    {
       "source": "/make-video",
       "destination": "/make-video.html"
     },
