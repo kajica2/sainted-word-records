@@ -28,7 +28,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
+    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px auto 1fr 36px; height: 100vh; }
     header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 14px;
       background: var(--bg-2); border-bottom: 1px solid var(--line); }
     .v { font-weight: 700; letter-spacing: 0.16em; color: var(--m); text-shadow: 0 0 8px var(--m); }
@@ -79,6 +79,70 @@
       opacity: 0; mix-blend-mode: screen; }
     footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 14px;
       background: var(--bg-2); border-top: 1px solid var(--line); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+    /* ---- Preset bank ----
+       A compact horizontal strip between <header> and the main
+       row, so users discover the Shift+1..9 mapping at a glance.
+       Each button shows the keycap (⇧1) and the preset name.
+       Selected preset gets the .active class (gold border + glow). */
+    .preset-bank {
+      grid-column: 1 / -1;
+      grid-row: 2 / 3;
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .preset-bank .section-label {
+      font-size: 9px; letter-spacing: 0.18em;
+      color: var(--muted); padding-right: 6px;
+      border-right: 1px solid var(--line);
+      margin-right: 2px;
+    }
+    .preset-bank button {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 8px 3px 4px;
+      font-size: 9px; letter-spacing: 0.10em;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: border-color 80ms ease, background 80ms ease, transform 60ms ease;
+      font-family: inherit;
+    }
+    .preset-bank button:hover {
+      border-color: var(--c);
+      background: var(--panel-3);
+    }
+    .preset-bank button:active { transform: translateY(1px); }
+    .preset-bank button.active {
+      border-color: var(--m);
+      background: var(--panel-3);
+      box-shadow: 0 0 10px var(--m), inset 0 0 6px rgba(255, 45, 138, 0.15);
+      color: var(--m);
+    }
+    .preset-bank kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      font-size: 9px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--ink);
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 2px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+    }
+    .preset-bank button.active kbd { color: var(--m); border-color: var(--m); }
+    .preset-bank span { letter-spacing: 0.10em; }
+    @media (max-width: 720px) {
+      .preset-bank { padding: 4px 8px; gap: 4px; }
+      .preset-bank button { padding: 2px 6px 2px 3px; font-size: 8px; }
+      .preset-bank .section-label { font-size: 8px; }
+    }
     .gc { display: flex; align-items: center; gap: 6px; }
     .gc input { width: 80px; }
     .gc b { color: var(--c); min-width: 26px; text-align: right; }
@@ -106,14 +170,15 @@
     @media (max-width: 720px) {
       #app {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto auto 1fr auto auto;
+        grid-template-rows: auto auto auto 1fr auto auto;
       }
       header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
+      .preset-bank { grid-row: 3 / 4; padding: 4px 8px; gap: 4px; }
       .meter { width: 100px; }
       aside.lib, aside.layers { max-height: 30vh; }
-      aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
-      aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
-      section.stage { grid-row: 2; min-height: 320px; }
+      aside.lib { grid-row: 5; border-right: none; border-top: 1px solid var(--line); }
+      aside.layers { grid-row: 6; border-left: none; border-top: 1px solid var(--line); }
+      section.stage { grid-row: 4; min-height: 320px; }
     }
 
     /* ---------- Mobile icons-only header ----------
@@ -313,6 +378,18 @@
       <button class="tbtn danger" id="rec" disabled data-icon="⏺">● REC</button>
       <a class="nav" href="film.html">→ film</a>
     </header>
+    <section class="preset-bank" aria-label="Presets" id="swr-preset-bank">
+      <span class="section-label">PRESETS</span>
+      <button type="button" data-preset="pulse"  data-slot="1"><kbd>⇧1</kbd><span>PULSE</span></button>
+      <button type="button" data-preset="neon"   data-slot="2"><kbd>⇧2</kbd><span>NEON</span></button>
+      <button type="button" data-preset="grid"   data-slot="3"><kbd>⇧3</kbd><span>GRID</span></button>
+      <button type="button" data-preset="eclipse" data-slot="4"><kbd>⇧4</kbd><span>ECLIPSE</span></button>
+      <button type="button" data-preset="smoke"  data-slot="5"><kbd>⇧5</kbd><span>SMOKE</span></button>
+      <button type="button" data-preset="aurora" data-slot="6"><kbd>⇧6</kbd><span>AURORA</span></button>
+      <button type="button" data-preset="film"   data-slot="7"><kbd>⇧7</kbd><span>FILM</span></button>
+      <button type="button" data-preset="glitch" data-slot="8"><kbd>⇧8</kbd><span>GLITCH</span></button>
+      <button type="button" data-preset="void"   data-slot="9"><kbd>⇧9</kbd><span>VOID</span></button>
+    </section>
     <aside class="lib">
       <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
@@ -868,6 +945,48 @@
 <script src="./temp-slider.js"></script>
 <script src="../engine-genops.client.js"></script>
 <script src="./last-song.js"></script>
+<script>
+  // ---- Preset bank wiring (Shift+1..9) ----
+  // Runs after versions-presets.js loaded. Click handlers on each
+  // preset button call VersionsPresets.applyPreset(pageKey), which
+  // pushes the FX configuration into window.FX.setPersona and
+  // dispatches 'swr:preset-applied' for any page-local listeners.
+  // The keyboard handler lives in engine-keys.client.js (loaded on
+  // engine.html and inherited on versions pages via project.client.js).
+  (function () {
+    var bank = document.getElementById('swr-preset-bank');
+    if (!bank) return;
+    var lastActive = null;
+    bank.addEventListener('click', function (ev) {
+      var btn = ev.target.closest && ev.target.closest('button[data-preset]');
+      if (!btn) return;
+      var key = btn.getAttribute('data-preset');
+      var VP = window.VersionsPresets;
+      if (!VP || typeof VP.applyPreset !== 'function') return;
+      var ok = VP.applyPreset(key);
+      if (ok !== false) {
+        if (lastActive && lastActive !== btn) lastActive.classList.remove('active');
+        btn.classList.add('active');
+        lastActive = btn;
+        if (window.setStatus) window.setStatus('preset: ' + (btn.querySelector('span') ? btn.querySelector('span').textContent : key.toUpperCase()), 'ok');
+        // Re-render temp slider if present so it picks up the new temp
+        try { window.dispatchEvent(new CustomEvent('swr:temp-changed')); } catch (_) {}
+      }
+    });
+    // React to keyboard-applied presets (Shift+1..9 from engine-keys.client.js)
+    window.addEventListener('swr:preset-applied', function (ev) {
+      if (!ev || !ev.detail || !ev.detail.pageKey) return;
+      var key = ev.detail.pageKey;
+      var btn = bank.querySelector('button[data-preset="' + key + '"]');
+      if (btn) {
+        if (lastActive && lastActive !== btn) lastActive.classList.remove('active');
+        btn.classList.add('active');
+        lastActive = btn;
+      }
+      try { window.dispatchEvent(new CustomEvent('swr:temp-changed')); } catch (_) {}
+    });
+  })();
+</script>
 
   <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
     <div class="box">

@@ -929,5 +929,56 @@
       }
       return PRESETS[pageKey] ? PRESETS[pageKey].temp : 0;
     },
+    // Apply a named preset's FX configuration to the running engine.
+    // Updates the in-page FX uniforms via window.FX.setPersona(...) so
+    // the change is immediately visible. Returns true if the preset was
+    // found and applied, false otherwise.
+    //
+    // The same FX schema is used by fx-postprocess.js:
+    //   temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia,
+    //   glow, grayscale, blur, liquid, pearl, glitch
+    //
+    // Note: the per-page `effect` amount and `tint` color are NOT exposed
+    // by FX.setPersona — they're page-specific uniforms driven by the
+    // version page's own bootstrap. To apply those, the page can read
+    // PRESETS[pageKey] directly after calling applyPreset().
+    applyPreset(pageKey) {
+      var preset = PRESETS[pageKey];
+      if (!preset) return false;
+      var FX = window.FX;
+      if (FX && typeof FX.setPersona === 'function') {
+        FX.setPersona({
+          temp:      preset.temp      || 0,
+          mut:       preset.mut       || 0,
+          mutAlgo:   preset.mutAlgo   || 0,
+          posterize: preset.posterize || 0,
+          vignette:  preset.vignette  || 0,
+          chroma:    preset.chroma    || 0,
+          grain:     preset.grain     || 0,
+          sepia:     preset.sepia     || 0,
+          glow:      preset.glow      || 0,
+          grayscale: preset.grayscale || 0,
+          blur:      preset.blur      || 0,
+          liquid:    preset.liquid    || 0,
+          pearl:     preset.pearl     || 0,
+          glitch:    preset.glitch    || 0,
+        });
+      }
+      // Track the override so subsequent temp-slider.js reads see the new value
+      _state[pageKey] = _state[pageKey] || {};
+      _state[pageKey].tempOverride = preset.temp || 0;
+      // Expose the preset for the page to pick up the per-page uniforms
+      // (effect amount, tint color) if it wants to.
+      try {
+        window.dispatchEvent(new CustomEvent('swr:preset-applied', {
+          detail: { pageKey: pageKey, preset: preset }
+        }));
+      } catch (_) { /* CustomEvent may not be available in ancient browsers */ }
+      return true;
+    },
+    // Stable ordering so the keyboard map (Shift+1..9) doesn't change as
+    // the PRESETS dict grows. Picks the most distinctive presets first;
+    // you can still call applyPreset(key) with any key for the full list.
+    SHORTCUT_PRESETS: ['pulse','neon','grid','eclipse','smoke','aurora','film','glitch','void'],
   };
 })();

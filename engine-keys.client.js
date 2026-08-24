@@ -34,6 +34,10 @@
 //   ↑ / ↓              select prev / next layer
 //   1..9               select layer by index  (1-based; 0 = layer 0)
 //   0                  deselect               (L.sel = null)
+//   Shift+1..9         load preset 1..9       (VersionsPresets.SHORTCUT_PRESETS)
+//                        Applies a known FX configuration (temp, vignette,
+//                        glow, …) to the running engine. The page stays put;
+//                        only the look changes.
 //   A                  cycle auto-map recipe (randomized) — within page
 //   Shift+A            cycle to next engine's recipe
 //   + / -              bump fadeInMs / fadeOutMs by 100ms for selected layer
@@ -628,6 +632,32 @@
           }
         }
       }
+      // Shift+1..9 to load a preset from VersionsPresets.SHORTCUT_PRESETS.
+      // The list is a fixed 9-entry ordering so the keyboard map stays
+      // stable even when PRESETS grows. Each preset applies a known FX
+      // configuration (temp, vignette, glow, …) to the running engine
+      // via window.FX.setPersona without leaving the page.
+      if (!action && ev.shiftKey && /^[1-9]$/.test(key)) {
+        const VP = window.VersionsPresets;
+        if (VP && Array.isArray(VP.SHORTCUT_PRESETS)) {
+          const slot = parseInt(key, 10) - 1;
+          const pageKey = VP.SHORTCUT_PRESETS[slot];
+          if (pageKey) {
+            const ok = VP.applyPreset(pageKey);
+            if (ok !== false) {
+              const label = (VP.PRESETS && VP.PRESETS[pageKey] && VP.PRESETS[pageKey].label) || pageKey.toUpperCase();
+              if (typeof window.setStatus === 'function') {
+                window.setStatus('preset: ' + label + ' (' + (slot + 1) + ')', 'ok');
+              }
+              try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+                detail: { key, code, mods: { shift: !!ev.shiftKey, alt: !!ev.altKey }, action: 'preset-' + pageKey }
+              })); } catch (_) {}
+              if (ev.preventDefault) ev.preventDefault();
+              return;
+            }
+          }
+        }
+      }
       if (!action && key === '0') {
         const L = layers();
         if (L) L.sel = null;
@@ -690,6 +720,9 @@
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '1..9',           label: 'select layer by index (1-based)' },
       { keys: '0',              label: 'deselect layer' },
+
+      // ---- Presets ----
+      { keys: 'Shift+1..9',     label: 'load preset (PULSE / NEON / GRID / …)' },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
       { keys: '[ / ]',          label: '− / + alpha' },
