@@ -148,7 +148,6 @@
   //   extraDraws   — array of () => {} called after layers but before meter
   function frame(stage, ctx, layers, applyR, drawToCtx, opts) {
     opts = opts || {};
-    if (window.__swrDebug) console.log('frame-START layers=' + (layers && layers.length));
     const bg = opts.bgColor || state.bgColor;
     if (state.dirty) fit(stage);
 
@@ -185,7 +184,6 @@
     for (let i = 0; i < layers.length; i++) {
       try {
         const l = layers[i];
-        if (window.__swrDebug && i === 0) console.log('layer0 cur=', l._currentOpacity, 'tgt=', l._targetOpacity);
         let r = applyR(l);
         // Fade stepper: if a crossfade is in flight and currentOpacity has
         // crossed below the midpoint threshold, swap the asset under the
@@ -263,7 +261,6 @@
         }
       }
     }
-    if (window.__swrDebug) console.log('frame-end layers=' + layers.length + ' dt=' + dt.toFixed(3));
 
     // Per-engine extras (drawFx, drawMeter, etc.) — wrap each call so a
     // broken extra draw can't kill the RAF loop either.

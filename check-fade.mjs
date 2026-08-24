@@ -199,16 +199,25 @@ const TEST_PAGE = `(async () => {
         if (s.indexOf('library/') !== -1) return Promise.resolve(new Response('{"files":[]}', { status: 200, headers: { 'content-type': 'application/json' } }));
         return __orig.apply(this, [url, ...rest]);
       };
-      // ALSO guard Layers.add as a belt-and-braces measure in case the
-      // auto-load races the fetch interceptor for some other path.
+      // ALSO guard Layers.add + Layers.remap — the engine auto-load IIFE
+      // calls setTimeout(Layers.remap, 500) after fetching the manifest,
+      // which replaces L.list with a fresh shuffle and breaks any test
+      // that seeded layers. With the fetch interceptor returning empty,
+      // the remap path still fires after the timeout.
       const wireGuard = () => {
         if (!window.SWR || !window.SWR.Layers) { setTimeout(wireGuard, 20); return; }
         window.__layersAddGuard = true;
         const __add = window.SWR.Layers.add.bind(window.SWR.Layers);
+        const __remap = window.SWR.Layers.remap ? window.SWR.Layers.remap.bind(window.SWR.Layers) : null;
         window.SWR.Layers.add = function () {
-          if (window.__swrDebug) console.log('Layers.add GUARDED, args=', arguments[0] && arguments[0].id);
+          if (window.__swrDebug) console.log('Layers.add GUARDED');
           if (window.__layersAddGuard) return null;
           return __add.apply(this, arguments);
+        };
+        if (__remap) window.SWR.Layers.remap = function () {
+          if (window.__swrDebug) console.log('Layers.remap GUARDED');
+          if (window.__layersAddGuard) return null;
+          return __remap.apply(this, arguments);
         };
       };
       wireGuard();
