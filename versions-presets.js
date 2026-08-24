@@ -35,6 +35,10 @@
 (function () {
   if (window.VersionsPresets) return;  // idempotent
 
+  // Per-page runtime overrides (set by versions/_temp-slider.js).
+  // key → { tempOverride: number|null }
+  const _state = {};
+
   // ---- Per-page presets ----
   // FX uniforms use the same shape as fx-postprocess.js state.
   // `effect` is a 0..1 amount for the page-specific GLSL effect.
@@ -723,6 +727,10 @@
     }
     const preset = PRESETS[pageKey];
 
+    // temp override (set by versions/_temp-slider.js). Render loop uses
+    // this if defined; falls back to preset.temp.
+    let tempOverride = null;
+
     // Create overlay canvas
     let out = document.getElementById('fx-canvas');
     if (!out) {
@@ -856,7 +864,7 @@
       gl.uniform1f(u.mid,       mid);
       gl.uniform1f(u.treble,    treble);
       gl.uniform1f(u.beat,      beat);
-      gl.uniform1f(u.temp,      preset.temp);
+      gl.uniform1f(u.temp,      tempOverride !== null ? tempOverride : preset.temp);
       gl.uniform1f(u.mut,       preset.mut);
       gl.uniform1f(u.mutAlgo,   preset.mutAlgo);
       gl.uniform1f(u.posterize, preset.posterize);
@@ -904,5 +912,22 @@
     init();
   }
 
-  window.VersionsPresets = { PRESETS, init };
+  window.VersionsPresets = {
+    PRESETS,
+    init,
+    setTemp(pageKey, v) {
+      v = Math.max(-1, Math.min(1, +v || 0));
+      if (!PRESETS[pageKey]) return false;
+      _state[pageKey] = _state[pageKey] || {};
+      _state[pageKey].tempOverride = v;
+      return true;
+    },
+    getTemp(pageKey) {
+      var s = _state[pageKey];
+      if (s && s.tempOverride !== null && s.tempOverride !== undefined) {
+        return s.tempOverride;
+      }
+      return PRESETS[pageKey] ? PRESETS[pageKey].temp : 0;
+    },
+  };
 })();
