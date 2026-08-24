@@ -43,14 +43,31 @@
         resolve(null);
         return;
       }
-      const req = indexedDB.open('sainted-word-records', 2, (db) => {
+      // NB: indexedDB.open() takes ONLY (name, version) — a third arg is
+      // silently ignored by all current browsers (it was an early WebKit
+      // extension that never made it to spec). To run schema setup we MUST
+      // wire onupgradeneeded on the returned request. Using the 3-arg
+      // form here created a v2 database with NO stores, which then
+      // prevented engine.html from ever upgrading (same version = no
+      // onupgradeneeded fire) and left the songs store uncreatable.
+      // Bump version to 3 so the onupgradeneeded callback fires even for
+      // users whose DB was previously created at v2 by the buggy 3-arg
+      // form of indexedDB.open() (which silently ignored the upgrade
+      // callback and created an empty schema). Fresh users hit v3
+      // directly; poisoned users upgrade v2→v3 and get the missing
+      // stores filled in. Users with an existing populated v2 DB don't
+      // exist in the wild (the bug prevented the stores from being
+      // created in the first place) so there's no data to lose.
+      const req = indexedDB.open('sainted-word-records', 3);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
         if (!db.objectStoreNames.contains('songs')) {
           db.createObjectStore('songs', { keyPath: 'id' });
         }
         if (!db.objectStoreNames.contains('assets')) {
           db.createObjectStore('assets', { keyPath: 'id' });
         }
-      });
+      };
       req.onsuccess = (e) => {
         const db = e.target.result;
         try {

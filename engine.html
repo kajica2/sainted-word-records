@@ -1546,7 +1546,7 @@
       nextId: 1,
       db: null,
       async init() {
-        this.db = await openDb('sainted-word-records', 2, (db) => {
+        this.db = await openDb('sainted-word-records', 3, (db) => {
           if (!db.objectStoreNames.contains('assets')) {
             const s = db.createObjectStore('assets', { keyPath: 'id' });
             s.createIndex('added', 'added');
