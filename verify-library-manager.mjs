@@ -458,6 +458,89 @@ try {
     ok(r.rowCount === 1, `expected 1 row, got ${r.rowCount}`);
   });
 
+  // ==================================================================
+  // END-TO-END  (Task 15)
+  //
+  // Seed 3 rows → render manager → sort by artist → multi-select 2 →
+  // remove 1 of them → add the remaining to playlist → reload page →
+  // confirm playlist persists → cleanup.
+  // ==================================================================
+
+  await gate('end-to-end: seed → sort → select → remove → add → reload → persist', managerReady, async () => {
+    const r = await page.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      const P = window.SWR_PLAYLIST;
+      P.clear();
+      await M.deleteAll().catch(() => {});
+      const mk = (name, artist, createdAt) => {
+        const b = new Blob([new Uint8Array([1,2,3])], { type: 'video/mp4' });
+        return new File([b], name, { type: 'video/mp4', lastModified: createdAt });
+      };
+      await M.addMedia([
+        mk('zzz.mp4', 'Ziggy', 1000),
+        mk('aaa.mp4', 'Alice', 2000),
+        mk('mmm.mp4', 'Marvin', 3000),
+      ]);
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const api = window.SWR_LIBRARY_MANAGER.render(host, {});
+      await api.refresh();
+      const sortSel = host.querySelector('.lmp-sort');
+      sortSel.value = 'artist';
+      sortSel.dispatchEvent(new Event('change'));
+      // After sort by artist A→Z, the visible order should be: aaa (Alice),
+      // mmm (Marvin), zzz (Ziggy). Tick the first two (Alice + Marvin).
+      const checks = host.querySelectorAll('.lmp-check');
+      checks[0].click();
+      checks[1].click();
+      // Bulk remove the two selected.
+      const removeBtn = host.querySelector('.lmp-remove');
+      removeBtn.click();
+      // After remove, ONE row remains (Ziggy).
+      await new Promise(res => setTimeout(res, 500));
+      const remaining = host.querySelectorAll('.lmp-row').length;
+      const titlesAfterRemove = Array.from(host.querySelectorAll('.lmp-row .lmp-title')).map(n => n.textContent);
+      // Tick the remaining row and add to playlist.
+      const lastCheck = host.querySelector('.lmp-check');
+      if (!lastCheck) {
+        api.destroy(); host.remove();
+        return { remaining: 0, titlesAfterRemove, playlistBeforeReload: [], playlistAfterReload: [] };
+      }
+      lastCheck.click();
+      host.querySelector('.lmp-add-pl').click();
+      await new Promise(res => setTimeout(res, 100));
+      const playlistBeforeReload = P.list().map(s => ({ id: s.id, title: s.title, source: s.source }));
+      api.destroy(); host.remove();
+      return { remaining, titlesAfterRemove, playlistBeforeReload };
+    });
+    ok(r.remaining === 1, `expected 1 row after bulk remove, got ${r.remaining}`);
+    ok(/zzz/i.test(r.titlesAfterRemove[0] || ''), `expected 'zzz.mp4' as the survivor, got ${r.titlesAfterRemove[0]}`);
+    ok(r.playlistBeforeReload.length === 1, `expected 1 in playlist before reload, got ${r.playlistBeforeReload.length}`);
+    ok(/zzz/i.test(r.playlistBeforeReload[0].title || ''), `playlist row title should be zzz.mp4, got ${r.playlistBeforeReload[0].title}`);
+    ok(r.playlistBeforeReload[0].source === 'library', `playlist source should be library, got ${r.playlistBeforeReload[0].source}`);
+
+    // Now reload and confirm the playlist is still there.
+    await page.reload({ waitUntil: 'networkidle0' });
+    await page.addScriptTag({ path: joinPath(ROOT, 'lib', 'playlist.client.js') });
+    if (managerReady) {
+      await page.addScriptTag({ path: joinPath(ROOT, 'lib', 'library-manager.client.js') });
+    }
+    const persisted = await page.evaluate(() => {
+      const list = window.SWR_PLAYLIST.list();
+      return { n: list.length, first: list[0] && list[0].title, firstSource: list[0] && list[0].source };
+    });
+    ok(persisted.n === 1, `expected 1 playlist row after reload, got ${persisted.n}`);
+    ok(/zzz/i.test(persisted.first || ''), `expected 'zzz.mp4' to persist in playlist, got ${persisted.first}`);
+    ok(persisted.firstSource === 'library', `source should remain library, got ${persisted.firstSource}`);
+
+    // Cleanup: nuke IDB + playlist.
+    await page.evaluate(async () => {
+      const M = window.SWR_MEDIA;
+      window.SWR_PLAYLIST.clear();
+      await M.deleteAll().catch(() => {});
+    });
+  });
+
   if (errors.length) {
     process.stderr.write('Console errors during run:\n');
     errors.forEach((e) => process.stderr.write('  ' + e + '\n'));
