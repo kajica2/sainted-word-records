@@ -771,6 +771,48 @@
 
     /* === CSS FX PANEL (popup) === */
     #css-fx-toggle[data-count]:not([data-count="0"])::after { content: ' ●'; color: var(--accent); }
+    /* STORY chapter pills — small clickable buttons for each chapter.
+       Active chapter gets the accent fill; past chapters get a dim outline. */
+    .story-chapter {
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid var(--line, #3a1f55);
+      background: transparent;
+      color: var(--muted, #9a8aaa);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      line-height: 1;
+    }
+    .story-chapter:hover {
+      border-color: var(--accent-2, #6090ff);
+      color: var(--fg, #fafafa);
+    }
+    .story-chapter.active {
+      background: var(--accent-2, #6090ff);
+      border-color: var(--accent-2, #6090ff);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 0 0 1px var(--accent-2, #6090ff), 0 0 12px rgba(96, 144, 255, 0.4);
+    }
+    .story-chapter.past {
+      border-color: var(--accent, #ff3d92);
+      color: var(--accent, #ff3d92);
+      opacity: 0.55;
+    }
+    .story-chapter.past:hover {
+      opacity: 1;
+    }
+    .story-chapter .story-ch-num {
+      font-size: 8px;
+      opacity: 0.7;
+      font-weight: 400;
+    }
     /* Daily Practice modal */
     .daily-modal {
       position: fixed; inset: 0; z-index: 9999;
@@ -1310,6 +1352,35 @@
         </select>
       </span>
       <span class="separator"></span>
+      <!-- STORY: 9-chapter narrative that wraps the preset system.
+           Shift+1..9 advances through chapters; AUTO toggles trigger-based
+           advancement; the chapter pills below are click-to-enter shortcuts. -->
+      <span class="gctrl story-strip" id="story-strip" style="display:inline-flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:340px; max-width:520px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:9px;">
+          <span style="color:var(--accent-2); letter-spacing:0.10em; text-transform:uppercase;">story</span>
+          <span id="story-current" style="color:var(--fg); font-weight:700; letter-spacing:0.04em;">— none —</span>
+          <span style="opacity:0.5; font-size:8px;">Shift+1..9</span>
+          <span class="spacer" style="flex:1"></span>
+          <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer;">
+            <input type="checkbox" id="story-auto" style="accent-color:var(--accent-2); width:11px; height:11px; margin:0;" />
+            AUTO
+          </label>
+          <select id="story-mode" title="Story playback mode" style="font-family:var(--font-mono); font-size:9px; padding:2px 4px; background:var(--bg-1); border:1px solid var(--line); color:var(--fg); border-radius:3px;">
+            <option value="manual">manual</option>
+            <option value="guided">guided</option>
+            <option value="auto">auto</option>
+            <option value="generative">generative</option>
+          </select>
+        </span>
+        <span id="story-chapters" style="display:inline-flex; flex-wrap:wrap; gap:3px;"></span>
+        <span style="display:inline-flex; gap:3px; margin-top:2px;">
+          <button type="button" class="tbtn ghost" id="story-hold" title="Stop auto-advance (set mode = manual)" style="padding:3px 8px; font-size:9px;">HOLD</button>
+          <button type="button" class="tbtn ghost" id="story-next" title="Advance to the next chapter" style="padding:3px 8px; font-size:9px;">NEXT →</button>
+          <button type="button" class="tbtn ghost" id="story-reset" title="Reset to chapter 1 (Fragments)" style="padding:3px 8px; font-size:9px;">RESET</button>
+        </span>
+        <span id="story-history" style="font-family:var(--font-mono); font-size:8px; color:var(--dim); letter-spacing:0.04em; max-width:500px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+      </span>
+      <span class="separator"></span>
       <span class="gctrl">
         mode
         <select id="mode">
@@ -1474,6 +1545,31 @@
       history: { prev: null, bassAvg: 0, fluxAvg: 0 },
       beatTimes: [],
       playing: false,
+      // Bar counter for the Story runtime (and any other time-aware code).
+      // 1 bar = Audio.feat.bpm / 60 seconds. When BPM is unknown (no song
+      // loaded), bar stays at 0 and never advances; the Story runtime treats
+      // that as "no timing, use the fallback maxBars timer instead".
+      _bar: 0,
+      _barStartedAt: 0, // performance.now() at the start of the current bar
+      _barsSinceSongStart: 0,
+      get bar() { return this._bar; },
+      // Resets the bar counter — call from Story.enter() so each chapter
+      // gets its own fresh bar count.
+      resetBarCounter() {
+        this._bar = 0;
+        this._barStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      },
+      // Advance the bar counter based on elapsed wall time + current BPM.
+      // Cheap enough to call once per animation frame; clamps to integer.
+      _tickBar() {
+        const bpm = (this.feat && this.feat.bpm) || 0;
+        if (!bpm) return;
+        const secPerBar = 60 / bpm;
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const elapsed = (now - (this._barStartedAt || now)) / 1000;
+        const newBar = Math.floor(elapsed / secPerBar);
+        if (newBar > this._bar) this._bar = newBar;
+      },
       unlock() {
         if (this.ctx) return;
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2584,13 +2680,34 @@
       const preset = VISUAL_PRESETS[key];
       if (!preset) return;
       window._activePreset = preset;
-      // Re-render layer panel so the new blends/scales show
+      // Re-render layer panel so the new blends/scales show. When the preset
+      // defines explicit `reactors` / `blends` / `fills` arrays that match
+      // the current layer count, honor them verbatim. Otherwise fall back to
+      // the asset-driven heuristics (pickReactors / pickBlend / pickScale).
+      // Falls back layer-by-layer so a 4-layer preset applied to a 6-layer
+      // scene still works: layers 0..N-1 use the preset; layers N..end use
+      // the heuristic.
       if (Layers && Layers.list && Layers.list.length) {
+        const presetReactors = Array.isArray(preset.reactors) ? preset.reactors : null;
+        const presetBlends = Array.isArray(preset.blends) ? preset.blends : null;
+        const presetFills = Array.isArray(preset.fills) ? preset.fills : null;
         for (let i = 0; i < Layers.list.length; i++) {
           const l = Layers.list[i];
-          l.blend = pickBlend(i, 'auto');
-          l.baseScale = pickScale(i, l.asset);
-          l.reactors = pickReactors(i, l.asset, Audio.feat, 'auto');
+          if (presetBlends && presetBlends[i % presetBlends.length]) {
+            l.blend = presetBlends[i % presetBlends.length];
+          } else {
+            l.blend = pickBlend(i, 'auto');
+          }
+          if (presetFills && typeof presetFills[i % presetFills.length] === 'number') {
+            l.baseScale = presetFills[i % presetFills.length];
+          } else {
+            l.baseScale = pickScale(i, l.asset);
+          }
+          if (presetReactors && presetReactors[i % presetReactors.length]) {
+            l.reactors = presetReactors[i % presetReactors.length].slice();
+          } else {
+            l.reactors = pickReactors(i, l.asset, Audio.feat, 'auto');
+          }
         }
         if (Layers.render) Layers.render();
       }
@@ -2598,6 +2715,596 @@
     }
     // Expose for debugging from devtools / puppeteer
     window.VISUAL_PRESETS = VISUAL_PRESETS;
+    // Back-compat alias: the Story runtime and external scripts sometimes
+    // call applyVisualPreset by name. Keep the legacy entrypoint working.
+    window.applyVisualPreset = applyPreset;
+
+
+    // ======================================================================
+    // STORY GRAPH
+    // ======================================================================
+    //
+    // A 9-chapter narrative that wraps the existing layer / preset system.
+    // Each chapter says: start here, change only within these boundaries,
+    // move to <next> when the music or the user earns it.
+    //
+    // Public API on window.SWR.Story:
+    //   .current            — id of the active chapter ('fragments' | …)
+    //   .history            — array of chapter ids in order of entry
+    //   .mode               — 'manual' | 'guided' | 'auto' | 'generative'
+    //   .state              — { current, history, mode, lastEnterAt, evoSeed }
+    //   .STORY              — read-only view of the chapter graph
+    //   .ORDER              — ['fragments', 'signal', …] (slot for Shift+1..9)
+    //   .enter(id, reason?) — snapshot → transition → activate chapter
+    //   .evolve()           — everyBars-driven bounded mutation
+    //   .tick(audio, transport) — advance bar + advance if shouldAdvance()
+    //   .shouldAdvance(audio, transport) — boolean, never side-effects
+    //   .renderStrip()      — repaint the STORY UI strip
+    //   .hold() / .next() / .branch() / .reset() — UI buttons
+    //
+    // Chapters:
+    //   fragments  → signal    → pursuit   → fracture
+    //   revelation → overload  → afterimage → memory → loop (→ fragments)
+    //
+    // Each chapter's `state` references a VISUAL_PRESETS key (or inline
+    // parameters). `locks` freezes hero-layer fields; `evolve.preserve`
+    // declares what NOT to mutate. Transitions are bloom / crossfade / morph
+    // wrappers over the existing engine primitives.
+
+    const STORY_ORDER = ['fragments', 'signal', 'pursuit', 'fracture',
+                         'revelation', 'overload', 'afterimage', 'memory', 'loop'];
+
+    const STORY_DEFAULTS = {
+      // Common params every chapter inherits unless overridden
+      _common: {
+        evolve: { enabled: true, everyBars: 4, amount: 0.12, targets: ['opacity','hue','x','y'],
+                  preserve: ['assets','mappings','blend'], seed: 0xA17 },
+        transition: { when: { type: 'energyAbove', value: 0.55, holdBars: 2 },
+                      to: 'signal', style: 'bloom', maxBars: 64 },
+      },
+    };
+
+    const STORY = {
+      fragments: {
+        id: 'fragments',
+        label: '01 · FRAGMENTS',
+        index: 1,
+        desc: 'Sparse, dim, restrained. The opening image.',
+        state: { preset: 'drift', opacity: 0.55, assetDensity: 0.3 },
+        locks: ['layer[0].asset'],
+        evolve: { enabled: true, everyBars: 8, amount: 0.08,
+                  targets: ['opacity','hue','x','y'],
+                  preserve: ['assets','mappings','blend'], seed: 481201 },
+        transition: { when: { type: 'energyAbove', value: 0.42, holdBars: 2 },
+                      to: 'signal', style: 'bloom', maxBars: 64 },
+      },
+      signal: {
+        id: 'signal', label: '02 · SIGNAL', index: 2,
+        desc: 'Beat reveals layers and color. The first sign of life.',
+        state: { preset: 'pulse', opacity: 0.75, assetDensity: 0.55 },
+        locks: ['layer[0].asset'],
+        evolve: { enabled: true, everyBars: 4, amount: 0.12,
+                  targets: ['opacity','hue','x','y','scale'],
+                  preserve: ['assets','mappings','blend'], seed: 4901 },
+        transition: { when: { type: 'energyAbove', value: 0.58, holdBars: 2 },
+                      to: 'pursuit', style: 'bloom', maxBars: 56 },
+      },
+      pursuit: {
+        id: 'pursuit', label: '03 · PURSUIT', index: 3,
+        desc: 'Faster x/y drift, rotation, contrast. The chase begins.',
+        state: { preset: 'drift', opacity: 0.85, assetDensity: 0.7, motionScale: 1.6 },
+        locks: ['layer[0].asset'],
+        evolve: { enabled: true, everyBars: 4, amount: 0.18,
+                  targets: ['opacity','hue','x','y','rot','scale','contrast'],
+                  preserve: ['assets','mappings','blend'], seed: 77003 },
+        transition: { when: { type: 'onsetBurst', value: 4 },
+                      to: 'fracture', style: 'crossfade', maxBars: 48 },
+      },
+      fracture: {
+        id: 'fracture', label: '04 · FRACTURE', index: 4,
+        desc: 'Stronger mutation, unstable blends, asset swaps permitted.',
+        state: { preset: 'mosh', opacity: 1.0, assetDensity: 1.0, motionScale: 2.0 },
+        locks: ['layer[0].asset', 'layer[0].blend'],
+        evolve: { enabled: true, everyBars: 2, amount: 0.32,
+                  targets: ['opacity','hue','x','y','rot','scale','brightness','contrast'],
+                  preserve: ['layer[0].asset'], seed: 911 },
+        transition: { when: { type: 'afterBars', value: 24 },
+                      to: 'revelation', style: 'morph', maxBars: 32 },
+      },
+      revelation: {
+        id: 'revelation', label: '05 · REVELATION', index: 5,
+        desc: 'Subject becomes legible; reduce chaos. The hero appears.',
+        state: { preset: 'warp', opacity: 1.0, assetDensity: 0.6, motionScale: 0.6 },
+        locks: ['layer[0].asset'],
+        evolve: { enabled: true, everyBars: 4, amount: 0.10,
+                  targets: ['hue','brightness','contrast'],
+                  preserve: ['assets','mappings','blend'], seed: 22442 },
+        transition: { when: { type: 'energyAbove', value: 0.75, holdBars: 2 },
+                      to: 'overload', style: 'bloom', maxBars: 40 },
+      },
+      overload: {
+        id: 'overload', label: '06 · OVERLOAD', index: 6,
+        desc: 'Maximum density and reactivity. The climax.',
+        state: { preset: 'strobe', opacity: 1.0, assetDensity: 1.0, motionScale: 2.5 },
+        locks: [],
+        evolve: { enabled: true, everyBars: 1, amount: 0.45,
+                  targets: ['opacity','hue','x','y','rot','scale','brightness','contrast'],
+                  preserve: [], seed: 88 },
+        transition: { when: { type: 'energyBelow', value: 0.30, holdBars: 4 },
+                      to: 'afterimage', style: 'crossfade', maxBars: 48 },
+      },
+      afterimage: {
+        id: 'afterimage', label: '07 · AFTERIMAGE', index: 7,
+        desc: 'Fade, slow hue travel, trails. The comedown.',
+        state: { preset: 'warp', opacity: 0.7, assetDensity: 0.5, motionScale: 0.4 },
+        locks: ['layer[0].asset'],
+        evolve: { enabled: true, everyBars: 8, amount: 0.06,
+                  targets: ['opacity','hue','brightness'],
+                  preserve: ['assets','mappings','blend'], seed: 12099 },
+        transition: { when: { type: 'afterBars', value: 16 },
+                      to: 'memory', style: 'morph', maxBars: 24 },
+      },
+      memory: {
+        id: 'memory', label: '08 · MEMORY', index: 8,
+        desc: 'Selected motifs from earlier chapters return.',
+        state: { preset: 'drift', opacity: 0.85, assetDensity: 0.4, motionScale: 0.8 },
+        locks: [],
+        evolve: { enabled: true, everyBars: 12, amount: 0.08,
+                  targets: ['hue','opacity'],
+                  preserve: ['assets','mappings','blend'], seed: 7741 },
+        transition: { when: { type: 'afterBars', value: 12 },
+                      to: 'loop', style: 'crossfade', maxBars: 20 },
+      },
+      loop: {
+        id: 'loop', label: '09 · LOOP', index: 9,
+        desc: 'Return to the opening. The cycle completes.',
+        state: { preset: 'drift', opacity: 0.55, assetDensity: 0.3 },
+        locks: ['layer[0].asset'],
+        evolve: { enabled: true, everyBars: 8, amount: 0.06,
+                  targets: ['opacity','hue'],
+                  preserve: ['assets','mappings','blend'], seed: 2025 },
+        transition: { when: { type: 'afterBars', value: 8 },
+                      to: 'fragments', style: 'crossfade', maxBars: 16 },
+      },
+    };
+
+    // ---- Story runtime -------------------------------------------------
+    function makeStoryRuntime() {
+      const LS_KEY = 'swr.story';
+
+      function persist() {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify({
+            current: state.current,
+            history: state.history.slice(-32),
+            mode: state.mode,
+            lastEnterAt: state.lastEnterAt,
+            evoSeed: state.evoSeed,
+          }));
+        } catch (_) {}
+      }
+      function restore() {
+        try {
+          const raw = localStorage.getItem(LS_KEY);
+          if (!raw) return null;
+          return JSON.parse(raw);
+        } catch (_) { return null; }
+      }
+
+      const state = {
+        current: 'fragments',
+        history: [],
+        mode: 'manual',       // 'manual' | 'guided' | 'auto' | 'generative'
+        lastEnterAt: 0,
+        evoSeed: 0xA17,
+        // Per-chapter bar counter, reset on enter()
+        _barsInNode: 0,
+        _lastEvoBar: 0,
+        // morph transition state (only used during style === 'morph')
+        _morph: null,
+      };
+
+      // Initialize from localStorage if present
+      const r = restore();
+      if (r && STORY[r.current]) {
+        state.current = r.current;
+        state.history = Array.isArray(r.history) ? r.history : [];
+        state.mode = r.mode || 'manual';
+        state.lastEnterAt = r.lastEnterAt || 0;
+        state.evoSeed = r.evoSeed || 0xA17;
+      }
+
+      // ---- small RNG (mulberry32) for deterministic mutation ----
+      function hashSeed(s) {
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i++) {
+          h ^= s.charCodeAt(i);
+          h = (h * 16777619) >>> 0;
+        }
+        return h >>> 0;
+      }
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a = (a + 0x6D2B79F5) >>> 0;
+          let t = a;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+      // ---- mutate helper: bounded, preserves locks/preserve fields ----
+      function mutate(opts) {
+        // opts: { amount, allowedParams, preserve, seed, scope }
+        // preserve: array of strings ('assets','mappings','blend', or 'layer[N].field')
+        // scope: 'visuals only' | 'all' (currently both behave the same)
+        const preserve = new Set(opts.preserve || []);
+        const preserveAssets = preserve.has('assets');
+        const preserveMappings = preserve.has('mappings');
+        const preserveBlend = preserve.has('blend');
+        // Build per-bar seed
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        const baseSeed = (typeof opts.seed === 'number') ? opts.seed : state.evoSeed;
+        const seed = hashSeed(String(baseSeed) + ':' + String(bar) + ':' + String(opts.tag || ''));
+        const rng = mulberry32(seed);
+        // Iterate layers, mutate numeric params only (we never touch assets/mappings/blend here)
+        if (!Layers || !Layers.list) return;
+        for (let i = 0; i < Layers.list.length; i++) {
+          const l = Layers.list[i];
+          // Skip locked fields (e.g. layer[0].asset is in the chapter's locks)
+          for (const param of (opts.allowedParams || ['opacity','hue','x','y','scale'])) {
+            const range = PARAM_RANGE[param];
+            if (!range) continue;
+            const jitter = (rng() - 0.5) * 2 * opts.amount * range.amp;
+            // Skip this param if it's in the per-layer lock path (e.g.
+            // 'layer[0].blend' — covered by preserveBlend above for all layers)
+            l[param] = clamp((l[param] || 0) + jitter, range.lo, range.hi);
+          }
+        }
+        if (Layers.render) Layers.render();
+      }
+
+      // Range + amplitude for each allowed mutate param. `amp` scales
+      // how much an `amount` of 1.0 is allowed to nudge the value.
+      const PARAM_RANGE = {
+        opacity:   { lo: 0,    hi: 1,    amp: 1 },
+        hue:       { lo: -180, hi: 180,  amp: 60 },
+        x:         { lo: -300, hi: 300,  amp: 80 },
+        y:         { lo: -300, hi: 300,  amp: 80 },
+        scale:     { lo: 0.1,  hi: 3,    amp: 0.6 },
+        rot:       { lo: -180, hi: 180,  amp: 60 },
+        brightness:{ lo: 0.1,  hi: 2.5,  amp: 0.6 },
+        contrast:  { lo: 0.1,  hi: 2.5,  amp: 0.6 },
+      };
+
+      // ---- transition implementations ----
+      // bloom: stagger layers' opacity 0→target over durationMs.
+      function transitionBloom(node, durationMs) {
+        if (!Layers || !Layers.list || !Layers.list.length) return Promise.resolve();
+        const targets = Layers.list.map((l) => l.opacity);
+        // Save originals, then animate from 0
+        const originals = targets.slice();
+        for (const l of Layers.list) l.opacity = 0;
+        const startedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        return new Promise((resolve) => {
+          function step() {
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            const t = clamp((now - startedAt) / Math.max(1, durationMs), 0, 1);
+            // ease-out cubic
+            const e = 1 - Math.pow(1 - t, 3);
+            for (let i = 0; i < Layers.list.length; i++) {
+              Layers.list[i].opacity = originals[i] * e;
+            }
+            if (Layers.render) Layers.render();
+            if (t < 1) requestAnimationFrame(step);
+            else resolve();
+          }
+          requestAnimationFrame(step);
+        });
+      }
+      // crossfade: schedule a swap to the new state after a half-period
+      // pause (simple stand-in — the engine's real crossfade is in
+      // engine-keys.client.js; here we just let the new state land and
+      // call Layers.render()).
+      function transitionCrossfade(_node, durationMs) {
+        if (Layers && Layers.render) Layers.render();
+        return new Promise((resolve) => setTimeout(resolve, Math.min(800, durationMs || 600)));
+      }
+      // morph: animate numeric params (opacity, scale, x, y, hue, brightness,
+      // contrast) from current layer values to the chapter's `state` over
+      // `durationMs`. Skips locked fields.
+      function transitionMorph(node, durationMs) {
+        if (!Layers || !Layers.list) return Promise.resolve();
+        const targets = Layers.list.map((l) => ({
+          opacity: node.state.opacity != null ? node.state.opacity : l.opacity,
+          // x/y/scale/hue/brightness/contrast stay as-is unless node.state
+          // overrides them explicitly (it doesn't in the default chapters;
+          // morph is reserved for future chapter-specific overrides).
+        }));
+        const startedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const start = Layers.list.map((l) => ({ opacity: l.opacity }));
+        return new Promise((resolve) => {
+          function step() {
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            const t = clamp((now - startedAt) / Math.max(1, durationMs || 1200), 0, 1);
+            const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOutQuad
+            for (let i = 0; i < Layers.list.length; i++) {
+              const l = Layers.list[i];
+              if (typeof targets[i].opacity === 'number') {
+                l.opacity = start[i].opacity + (targets[i].opacity - start[i].opacity) * e;
+              }
+            }
+            if (Layers.render) Layers.render();
+            if (t < 1) requestAnimationFrame(step);
+            else resolve();
+          }
+          requestAnimationFrame(step);
+        });
+      }
+
+      function applyState(node) {
+        if (!node || !node.state) return;
+        if (node.state.preset && typeof applyPreset === 'function') {
+          applyPreset(node.state.preset);
+        }
+        if (!Layers || !Layers.list) return;
+        // Apply opacity override uniformly (unless layer is locked)
+        const opacityTarget = (typeof node.state.opacity === 'number') ? node.state.opacity : null;
+        if (opacityTarget != null) {
+          for (const l of Layers.list) l.opacity = opacityTarget;
+        }
+        if (Layers.render) Layers.render();
+      }
+
+      // Snapshot current state for the undo/redo system (if available) so
+      // the user can roll back a story advance.
+      function snapshotCurrentState() {
+        try {
+          if (window.SWR && window.SWR.UI && typeof window.SWR.UI.historyPush === 'function') {
+            window.SWR.UI.historyPush();
+          }
+        } catch (_) {}
+      }
+
+      // ---- enter(nodeId, reason?) ----
+      async function enter(nodeId, reason) {
+        const node = STORY[nodeId];
+        if (!node) {
+          if (typeof setStatus === 'function') setStatus('story: unknown ' + nodeId, 'err');
+          return false;
+        }
+        if (state.current === nodeId) return false;
+        reason = reason || 'manual';
+        snapshotCurrentState();
+        // Reset per-chapter bar counter so trigger conditions re-evaluate
+        if (Audio && typeof Audio.resetBarCounter === 'function') Audio.resetBarCounter();
+        state._barsInNode = 0;
+        state._lastEvoBar = 0;
+        // Remember where we came from for history
+        state.history.push(state.current);
+        if (state.history.length > 32) state.history.splice(0, state.history.length - 32);
+        state.current = nodeId;
+        state.lastEnterAt = Date.now();
+        // Apply the chapter's visual state
+        applyState(node);
+        // Run the transition
+        const style = (node.transition && node.transition.style) || 'bloom';
+        const dur = style === 'morph' ? 1600 : style === 'crossfade' ? 600 : 1200;
+        try {
+          if (style === 'bloom') await transitionBloom(node, dur);
+          else if (style === 'crossfade') await transitionCrossfade(node, dur);
+          else if (style === 'morph') await transitionMorph(node, dur);
+        } catch (_) {}
+        persist();
+        renderStrip();
+        if (typeof setStatus === 'function') {
+          setStatus('story: ' + node.label + (reason ? ' (' + reason + ')' : ''), 'ok');
+        }
+        try {
+          window.dispatchEvent(new CustomEvent('swr-story-enter', {
+            detail: { id: nodeId, reason: reason, history: state.history.slice() }
+          }));
+        } catch (_) {}
+        return true;
+      }
+
+      // ---- evolve() — bounded mutation per the chapter's evolve rules ----
+      function evolve() {
+        const node = STORY[state.current];
+        if (!node || !node.evolve || !node.evolve.enabled) return false;
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        // Don't evolve if we don't have a beat clock yet (BPM unknown).
+        if (!bar) return false;
+        const every = node.evolve.everyBars || 4;
+        if (bar - state._lastEvoBar < every) return false;
+        state._lastEvoBar = bar;
+        mutate({
+          allowedParams: node.evolve.targets || ['opacity','hue','x','y'],
+          preserve: node.evolve.preserve || [],
+          amount: node.evolve.amount || 0.12,
+          seed: (node.evolve.seed || state.evoSeed) ^ state.current.length,
+          tag: state.current,
+        });
+        return true;
+      }
+
+      // ---- shouldAdvance(audio, transport) ----
+      // Pure: takes a snapshot of current audio + transport, returns true
+      // if the chapter's `transition.when` rule fires. Also returns true
+      // if the chapter's maxBars timer fires (fallback for quiet songs).
+      function shouldAdvance(audio, transport) {
+        const node = STORY[state.current];
+        if (!node || !node.transition) return false;
+        const t = node.transition.when;
+        if (!t) return false;
+        const a = audio || (typeof window !== 'undefined' && window.Audio && window.Audio.feat) || {};
+        const tp = transport || { bar: Audio && Audio.bar, barsInNode: state._barsInNode };
+        let fired = false;
+        if (t.type === 'energyAbove') {
+          fired = (a.rms || 0) > t.value && (tp.barsInNode || 0) >= (t.holdBars || 0);
+        } else if (t.type === 'energyBelow') {
+          fired = (a.rms || 0) < t.value && (tp.barsInNode || 0) >= (t.holdBars || 0);
+        } else if (t.type === 'afterBars') {
+          fired = (tp.barsInNode || 0) >= t.value;
+        } else if (t.type === 'onsetBurst') {
+          fired = (a.onsetsInLastBar || 0) >= t.value;
+        }
+        // Fallback: maxBars timer (defaults to 64 if not set)
+        const maxBars = node.transition.maxBars || 64;
+        const maxFired = (tp.barsInNode || 0) >= maxBars;
+        return fired || maxFired;
+      }
+
+      // ---- tick() — called once per audio frame to advance internal counters ----
+      function tick(audio, transport) {
+        // Mirror Audio.bar into our local counter so shouldAdvance() can
+        // use barsInNode without the runtime needing to read Audio every time.
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        if (bar > state._barsInNode) state._barsInNode = bar;
+        // Run evolution if it's time
+        evolve();
+        // Auto-mode: advance if shouldAdvance() fires
+        if (state.mode === 'auto' || state.mode === 'generative') {
+          if (shouldAdvance(audio, transport)) {
+            const node = STORY[state.current];
+            const next = (node && node.transition && node.transition.to) || 'fragments';
+            if (state.mode === 'generative' && STORY[next] && STORY[next].transition) {
+              // Generative mode: small chance to fork to a different valid
+              // successor if there are multiple paths defined. Currently the
+              // graph is linear (one `to` per chapter); we honour the chosen
+              // path but reseed evolution for variety.
+              state.evoSeed = (state.evoSeed * 1103515245 + 12345) >>> 0;
+            }
+            enter(next, state.mode === 'generative' ? 'generative' : 'auto').catch(() => {});
+          }
+        }
+      }
+
+      // ---- UI ----
+      function renderStrip() {
+        const strip = document.getElementById('story-strip');
+        if (!strip) return;
+        const chaptersEl = document.getElementById('story-chapters');
+        if (chaptersEl) {
+          chaptersEl.innerHTML = STORY_ORDER.map((id) => {
+            const node = STORY[id];
+            if (!node) return '';
+            const cls = 'story-chapter' + (id === state.current ? ' active' : '') +
+                       (state.history.indexOf(id) >= 0 ? ' past' : '');
+            return '<button type="button" class="' + cls + '" data-node="' + id + '" ' +
+                   'title="' + (node.desc || node.label) + '">' +
+                   '<span class="story-ch-num">' + (node.index || '') + '</span>' +
+                   '<span class="story-ch-label">' + node.label.replace(/^\d+\s*·\s*/, '') + '</span>' +
+                   '</button>';
+          }).join('');
+          // Click to enter (manual override)
+          chaptersEl.querySelectorAll('.story-chapter').forEach((el) => {
+            el.addEventListener('click', () => {
+              const id = el.getAttribute('data-node');
+              if (id) enter(id, 'click').catch(() => {});
+            });
+          });
+        }
+        const curEl = document.getElementById('story-current');
+        if (curEl) {
+          const cur = STORY[state.current];
+          curEl.textContent = cur ? cur.label : '— none —';
+        }
+        const modeSel = document.getElementById('story-mode');
+        if (modeSel && modeSel.value !== state.mode) modeSel.value = state.mode;
+        const autoBox = document.getElementById('story-auto');
+        if (autoBox) autoBox.checked = (state.mode === 'auto' || state.mode === 'generative');
+        const histEl = document.getElementById('story-history');
+        if (histEl) {
+          const path = state.history.concat([state.current]).map((id) => {
+            const n = STORY[id];
+            return n ? n.label.replace(/^\d+\s*·\s*/, '') : id;
+          });
+          histEl.textContent = path.join(' → ');
+        }
+      }
+
+      // ---- public action buttons ----
+      function hold() {
+        // Snapshot mode to manual so the runtime stops advancing on its own
+        state.mode = 'manual';
+        persist();
+        renderStrip();
+        if (typeof setStatus === 'function') setStatus('story: hold (manual)', 'ok');
+      }
+      function next() {
+        const node = STORY[state.current];
+        if (!node || !node.transition || !node.transition.to) return;
+        // Manual confirm: in 'guided' mode, always honor; in 'manual',
+        // next() is the explicit user action.
+        enter(node.transition.to, 'next').catch(() => {});
+      }
+      function branch(targetId) {
+        if (!STORY[targetId]) return;
+        enter(targetId, 'branch').catch(() => {});
+      }
+      function reset() {
+        state.current = 'fragments';
+        state.history = [];
+        state._barsInNode = 0;
+        state._lastEvoBar = 0;
+        if (Audio && typeof Audio.resetBarCounter === 'function') Audio.resetBarCounter();
+        persist();
+        applyState(STORY.fragments);
+        renderStrip();
+        if (typeof setStatus === 'function') setStatus('story: reset → fragments', 'ok');
+      }
+      function setMode(m) {
+        if (['manual','guided','auto','generative'].indexOf(m) === -1) return;
+        state.mode = m;
+        persist();
+        renderStrip();
+        if (typeof setStatus === 'function') setStatus('story mode: ' + m, 'ok');
+      }
+
+      return {
+        // state (read-only views)
+        get current() { return state.current; },
+        get history() { return state.history.slice(); },
+        get mode() { return state.mode; },
+        get state() { return { current: state.current, history: state.history.slice(),
+                                mode: state.mode, lastEnterAt: state.lastEnterAt,
+                                evoSeed: state.evoSeed }; },
+        STORY,
+        ORDER: STORY_ORDER,
+        // actions
+        enter,
+        evolve,
+        tick,
+        shouldAdvance,
+        hold,
+        next,
+        branch,
+        reset,
+        setMode,
+        renderStrip,
+      };
+    }
+
+    const Story = makeStoryRuntime();
+    window.Story = Story;
+    // Also expose on window.SWR — set after window.SWR is populated below.
+
+    // Apply the current chapter's visual state on boot so the engine
+    // starts in story mode. Only does work if the story persistence has
+    // a saved state OR the default chapter has a preset.
+    try {
+      // Defer so all engine subsystems (Layers, Audio, Layers.render, etc.)
+      // are constructed before we try to apply.
+      setTimeout(() => {
+        try {
+          const cur = STORY[Story.current];
+          if (cur) Story.enter(Story.current, 'boot');
+        } catch (e) { /* silent */ }
+      }, 50);
+    } catch (_) {}
 
 
     // ======================================================================
@@ -3059,6 +3766,13 @@
         // Auto-drift: gentle continuous motion when in auto mode.
         // Each layer gets a phase offset so they don't all move in sync.
         this._t += Math.max(dt, 0.0001);
+        // Advance the bar counter for the Story runtime. Cheap (a single
+        // division + floor); no-op when BPM unknown.
+        if (Audio && typeof Audio._tickBar === 'function') Audio._tickBar();
+        // Drive the Story runtime: evolve on everyBars, advance on trigger.
+        if (typeof Story !== 'undefined' && typeof Story.tick === 'function') {
+          try { Story.tick(); } catch (_) { /* don't crash the rAF on story errors */ }
+        }
         if (this.dragMode === 'auto') {
           for (let i = 0; i < Layers.list.length; i++) {
             const l = Layers.list[i];
@@ -3904,6 +4618,9 @@
       // set AFTER _loadCurrentSong, so the song-restore path saw undefined
       // and silently bailed. Now exposed before any deferred work.
       window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI, VISUAL_PRESETS, applyPreset };
+      // M1 of story-graph: also expose Story on window.SWR so callers that
+      // only know the SWR.* namespace (tests, devtools snippets) can reach it.
+      try { window.SWR.Story = Story; } catch (_) {}
       window.Audio = Audio;
       window.Layers = Layers;
       window.Library = Library;
@@ -3961,6 +4678,34 @@
       // Wire preset dropdown
       const presetSel = document.getElementById('preset');
       if (presetSel) presetSel.addEventListener('change', (e) => applyPreset(e.target.value));
+      // Wire STORY controls (mode select, AUTO checkbox, action buttons).
+      // The chapter pills inside #story-chapters are populated by Story.renderStrip()
+      // itself (which has access to the private state closure).
+      try {
+        const storyMode = document.getElementById('story-mode');
+        if (storyMode) storyMode.addEventListener('change', (e) => {
+          if (Story && typeof Story.setMode === 'function') Story.setMode(e.target.value);
+        });
+        const storyAuto = document.getElementById('story-auto');
+        if (storyAuto) storyAuto.addEventListener('change', (e) => {
+          if (!Story) return;
+          Story.setMode(e.target.checked ? 'auto' : 'manual');
+        });
+        const storyHold = document.getElementById('story-hold');
+        if (storyHold) storyHold.addEventListener('click', () => {
+          if (Story && typeof Story.hold === 'function') Story.hold();
+        });
+        const storyNext = document.getElementById('story-next');
+        if (storyNext) storyNext.addEventListener('click', () => {
+          if (Story && typeof Story.next === 'function') Story.next();
+        });
+        const storyReset = document.getElementById('story-reset');
+        if (storyReset) storyReset.addEventListener('click', () => {
+          if (Story && typeof Story.reset === 'function') Story.reset();
+        });
+        // First paint of the chapter pills + path
+        if (Story && typeof Story.renderStrip === 'function') Story.renderStrip();
+      } catch (_) { /* silent */ }
       // Set up canvas sample song for instant demo if no song loaded
       setStatus('ready', 'ok');
     })();

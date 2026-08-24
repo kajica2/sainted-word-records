@@ -34,7 +34,8 @@
 //   ↑ / ↓              select prev / next layer
 //   1..9               select layer by index  (1-based; 0 = layer 0)
 //   0                  deselect               (L.sel = null)
-//   Shift+1..9         load preset 1..9       (VersionsPresets.SHORTCUT_PRESETS)
+//   Shift+1..9         advance story chapters (FRAGMENTS / SIGNAL / …)
+//   Cmd+1..9 / Ctrl+1..9  legacy FX palette preset (PULSE / NEON / …)
 //                        Applies a known FX configuration (temp, vignette,
 //                        glow, …) to the running engine. The page stays put;
 //                        only the look changes.
@@ -632,25 +633,52 @@
           }
         }
       }
-      // Shift+1..9 to load a preset from VersionsPresets.SHORTCUT_PRESETS.
-      // The list is a fixed 9-entry ordering so the keyboard map stays
-      // stable even when PRESETS grows. Each preset applies a known FX
-      // configuration (temp, vignette, glow, …) to the running engine
-      // via window.FX.setPersona without leaving the page.
-      if (!action && ev.shiftKey && /^[1-9]$/.test(key)) {
+      // Shift+1..9 to advance the STORY runtime through its 9 chapters
+      // (Fragments, Signal, Pursuit, Fracture, Revelation, Overload,
+      // Afterimage, Memory, Loop). This is the performer's "director
+      // override" — always wins regardless of mode (manual / guided /
+      // auto / generative). The legacy FX-palette shortcut map moved
+      // to Cmd/Ctrl+1..9 below.
+      //
+      // Digits via `code` (layout-independent): on US keyboards, Shift+Digit2
+      // produces key='@' which would fail a regex test. We check `code` for
+      // Digit1..Digit9 so any keyboard layout works.
+      if (!action && ev.shiftKey && /^Digit[1-9]$/.test(code || '')) {
+        const slot = parseInt(code.replace('Digit', ''), 10) - 1;
+        const Story = window.SWR && window.SWR.Story;
+        if (Story && Array.isArray(Story.ORDER)) {
+          const id = Story.ORDER[slot];
+          if (id) {
+            Story.enter(id, 'keyboard');
+            if (typeof window.setStatus === 'function') {
+              window.setStatus('story: ' + (slot + 1) + ' → ' + id, 'ok');
+            }
+            try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+              detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'story-' + id }
+            })); } catch (_) {}
+            if (ev.preventDefault) ev.preventDefault();
+            return;
+          }
+        }
+      }
+      // Cmd/Ctrl+1..9 — legacy FX palette preset shortcuts (preserved
+      // verbatim from the previous behavior; uses VersionsPresets.SHORTCUT_PRESETS).
+      // Same DigitN handling so Cmd+2 works on every layout.
+      if (!action && (ev.metaKey || ev.ctrlKey) && !ev.shiftKey && !ev.altKey && /^Digit[1-9]$/.test(code || '')) {
+        const slot = parseInt(code.replace('Digit', ''), 10) - 1;
         const VP = window.VersionsPresets;
         if (VP && Array.isArray(VP.SHORTCUT_PRESETS)) {
-          const slot = parseInt(key, 10) - 1;
           const pageKey = VP.SHORTCUT_PRESETS[slot];
           if (pageKey) {
             const ok = VP.applyPreset(pageKey);
             if (ok !== false) {
               const label = (VP.PRESETS && VP.PRESETS[pageKey] && VP.PRESETS[pageKey].label) || pageKey.toUpperCase();
               if (typeof window.setStatus === 'function') {
-                window.setStatus('preset: ' + label + ' (' + (slot + 1) + ')', 'ok');
+                window.setStatus('fx preset: ' + label + ' (' + (slot + 1) + ')', 'ok');
               }
               try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
-                detail: { key, code, mods: { shift: !!ev.shiftKey, alt: !!ev.altKey }, action: 'preset-' + pageKey }
+                detail: { key, code, mods: { meta: !!ev.metaKey, ctrl: !!ev.ctrlKey },
+                          action: 'fx-preset-' + pageKey }
               })); } catch (_) {}
               if (ev.preventDefault) ev.preventDefault();
               return;
@@ -722,7 +750,8 @@
       { keys: '0',              label: 'deselect layer' },
 
       // ---- Presets ----
-      { keys: 'Shift+1..9',     label: 'load preset (PULSE / NEON / GRID / …)' },
+      { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)' },
+      { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)' },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
       { keys: '[ / ]',          label: '− / + alpha' },
