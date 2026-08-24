@@ -609,10 +609,14 @@
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
+        // Master rotation toggle gate: when the user has turned rotation
+        // OFF globally (swr-rot-master button), skip rot reactor writes so
+        // audio doesn't compound the canvas into 180-degree flips.
+        const _rotOn = l.rotationEnabled !== false;
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 200;
         else if (r.target==='y') out.y += v * 200;
-        else if (r.target==='rot') out.rot += v * 30;
+        else if (r.target==='rot') { if (_rotOn) out.rot += v * 30; }
         else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.5, 0, 1);
         else if (r.target==='hue') out.hue += v * 60;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.5, 0.1, 2.5);

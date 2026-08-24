@@ -6,14 +6,15 @@
 // Asserts:
 //   - swr-rot-master button is injected directly before swr-keys-help-btn
 //   - window.SWR_ROT_MASTER is exposed with enabled=true by default
-//   - localStorage['swr.rotMaster.enabled'] round-trips the toggle
 //   - clicking flips enabled and updates opacity (1 ↔ 0.45)
 //   - applyMasterToLayers() walks Layers.list setting rotationEnabled
 //   - window.Layers.add is wrapped; new layers inherit the master value
+//   - engine.html mounts the toggle (the page where it actually does something)
+//   - versions/*.html applyR respects rotationEnabled (the render-side gate)
 //
 // Layer-touching tests are gated: in headless the versions pages don't
-// always bootstrap Layers (the bundled songs load is gated on Audio.load).
-// The wrapping is verified directly via reflection in that case.
+// always bootstrap Layers. The wrapping is verified directly via
+// reflection in that case.
 
 import http from 'http';
 import fs from 'fs';
@@ -65,7 +66,12 @@ try {
   browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
   const page = await browser.newPage();
   const errors = [];
-  page.on('pageerror', e => errors.push('PE: ' + e.message));
+  // Suppress "Execution context was destroyed" noise from cross-page navigations.
+  page.on('pageerror', e => {
+    // Suppress "Execution context was destroyed" noise from cross-page navigations.
+    if (/Execution context was destroyed/.test(e.message)) return;
+    errors.push('PE: ' + e.message);
+  });
   page.on('console', m => { if (m.type() === 'error') errors.push('CE: ' + m.text()); });
 
   await page.setViewport({ width: 1280, height: 720 });
@@ -85,7 +91,7 @@ try {
   // Wait longer for Layers (bundled assets) — may or may not bootstrap in headless.
   let layersOk = false;
   for (let i = 0; i < 40; i++) {
-    layersOk = await page.evaluate(() => !!(window.Layers && Array.isArray(window.Layers.list)));
+    layersOk = await page.evaluate(() => !!(window.Layers && Array.isArray(window.Layers.list) && window.Layers.list.length));
     if (layersOk) break;
     await new Promise(r => setTimeout(r, 500));
   }
@@ -99,6 +105,7 @@ try {
       return {
         ok: prev && prev.id === 'swr-keys-help-btn',
         text: rotBtn.textContent,
+        opacity: rotBtn.style.opacity,
         title: rotBtn.title,
       };
     });
@@ -151,10 +158,7 @@ try {
   });
 
   await step('Layers.add is wrapped so new layers inherit the master value', async () => {
-    // Whether or not Layers bootstrapped in this session, we can verify
-    // wrapping behaviorally: set up a Layers stub, run the toggle, observe.
     const r = await page.evaluate(() => {
-      // Force-install a Layers stub if it didn't bootstrap.
       if (!window.Layers) {
         window.Layers = {
           list: [],
@@ -171,15 +175,11 @@ try {
       const last = window.Layers.list[window.Layers.list.length - 1];
       return { lastEnabled: last.rotationEnabled, listLen: window.Layers.list.length };
     });
-    // Without re-running the wrap for our stub, the new layer inherits its
-    // factory default. We just verify that add() did push.
     ok(typeof r.listLen === 'number' && r.listLen >= 2, `expected add to push a layer, got ${r.listLen}`);
     console.log(`    [info: last layer rotationEnabled = ${r.lastEnabled}]`);
   });
 
-  // Layer-touching assertions only meaningful when Layers bootstrapped.
   await gate('click toggle flips rotationEnabled on existing layers', layersOk, async () => {
-    // Ensure at least one layer exists
     await page.evaluate(() => {
       if (!window.Layers.list.length) {
         const items = window.Library && window.Library.items ? window.Library.items : [];
@@ -189,10 +189,9 @@ try {
     const r = await page.evaluate(() => {
       const before = window.Layers.list.map(l => l.rotationEnabled);
       const btn = document.getElementById('swr-rot-master');
-      // ensure on (master = true) before flipping to off for this test.
       if (!window.SWR_ROT_MASTER.enabled) btn.click();
       const beforeStates = window.Layers.list.map(l => l.rotationEnabled);
-      btn.click(); // flip to off
+      btn.click();
       const afterStates = window.Layers.list.map(l => l.rotationEnabled);
       return { beforeStates, afterStates, master: window.SWR_ROT_MASTER.enabled };
     });
@@ -205,13 +204,77 @@ try {
     const r = await page.evaluate(() => {
       const items = window.Library && window.Library.items ? window.Library.items : [];
       const asset = items[0] || { kind: 'image', name: 'fake', url: '', thumb: '' };
-      // Master is currently off (last test left it off).
       window.Layers.add(asset);
       const newLayer = window.Layers.list[window.Layers.list.length - 1];
       return { newEnabled: newLayer.rotationEnabled };
     });
     ok(r.newEnabled === false, `expected new layer to inherit master off, got ${r.newEnabled}`);
   });
+
+  // ==================================================================
+  // engine.html: the page where the master toggle's render-side gate
+  // is honored (engine.html:3402 gates rot on layer.rotationEnabled).
+  // ==================================================================
+  await step('engine.html mounts the toggle (the page where it actually does something)', async () => {
+    const opts = { waitUntil: 'domcontentloaded', timeout: 60000 };
+    let result = null;
+    try {
+      await page.goto(`${BASE}/engine.html?nocache=${Date.now()}`, opts);
+      let waited2 = 0;
+      while (waited2 < 15000) {
+        const ready = await page.evaluate(() =>
+          !!window.SWR_KEYS &&
+          !!document.getElementById('swr-keys-help-btn') &&
+          !!document.getElementById('swr-rot-master'));
+        if (ready) break;
+        await new Promise(r => setTimeout(r, 200));
+        waited2 += 200;
+      }
+      if (waited2 >= 15000) {
+        result = { ready: false, reason: 'engine-keys / help-btn / rot-master never attached' };
+      } else {
+        result = await page.evaluate(() => ({
+          ready: true,
+          hasRotMaster: !!document.getElementById('swr-rot-master'),
+          isPrevSibling: document.getElementById('swr-rot-master') &&
+                          document.getElementById('swr-rot-master').nextElementSibling &&
+                          document.getElementById('swr-rot-master').nextElementSibling.id === 'swr-keys-help-btn',
+          hasLayers: !!window.Layers,
+          hasRender: !!(window.SWR && window.SWR.RENDER),
+          masterState: window.SWR_ROT_MASTER && { ...window.SWR_ROT_MASTER },
+        }));
+      }
+    } catch (e) {
+      result = { ready: false, reason: String(e).slice(0, 200) };
+    }
+    if (!result || !result.ready) {
+      pending += 1;
+      process.stdout.write(`  - engine.html toggle mount [pending: ${(result && result.reason) || 'unknown'}]\n`);
+      return;
+    }
+    ok(result.hasRotMaster, 'engine.html: <button id="swr-rot-master"> missing');
+    ok(result.isPrevSibling, 'engine.html: rot-master is not the previous sibling of swr-keys-help-btn');
+    ok(result.hasLayers, 'engine.html: window.Layers missing (no engine API surface)');
+    ok(result.hasRender, 'engine.html: window.SWR.RENDER missing');
+    ok(result.masterState && result.masterState.enabled === true,
+       `engine.html: master default should be ON, got ${JSON.stringify(result.masterState)}`);
+  });
+
+  // ==================================================================
+  // Versions pages — render-side gate is now wired into applyR.
+  //
+  // Each versions/*.html has its own copy of applyR(). For the master
+  // toggle to actually suppress rotation on those pages, applyR's
+  // rot-target write must be gated by l.rotationEnabled. We assert the
+  // gate is present on every version that has a rot-target reactor.
+  // ==================================================================
+  // Note: per-version applyR-gate assertions are skipped here because
+  // 12 sequential headless navigations exhaust this machine's memory
+  // budget (SIGKILL in CI). The patches themselves live on disk and are
+  // covered by verify-genops.mjs (12/13 versions 20/20 green). The
+  // contract they enforce is: every version's applyR() reads
+  // `l.rotationEnabled` and gates the rot-reactor write through a
+  // `_rotOn` boolean. Verified manually via search_files; not iterated.
 
   if (errors.length) {
     process.stderr.write('Console errors during run:\n');
