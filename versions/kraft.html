@@ -141,7 +141,7 @@
       <div class="param">vignette <b>0.45</b></div>
       <div class="param">temp <b>+0.25</b></div>
       <div class="param">blur <b>0.05</b></div>
-      <span class="pill">HAND MADE</span>
+      <button class="tbtn" id="rec" disabled style="font-size:10px;">● REC</button>
     </footer>
   </div>
 
@@ -268,9 +268,14 @@
       var el = document.createElement('audio');
       el.crossOrigin = 'anonymous';
       el.preload = 'auto';
+      // Expose the audio element so the Recorder can hook into it.
+      window.SWR.Audio.el = el;
       window.SWR.Audio.load = function(f) {
         try { el.pause(); } catch (e) {}
         el.src = URL.createObjectURL(f);
+        // Recorder button becomes usable once a real audio element is loaded.
+        var btn = document.getElementById('rec');
+        if (btn) btn.disabled = false;
       };
       window.SWR.Audio.play = function() {
         var p = el.play();
@@ -279,6 +284,87 @@
       };
       el.addEventListener('ended', function() { window.SWR.Audio.playing = false; });
     }
+
+    // === RECORDER (MP4/WebM canvas + audio export) ===
+    // Same shape as neon / film / etc.: MediaRecorder over the canvas
+    // captureStream + a MediaStreamDestination fed from the audio element.
+    // Kraft's ensureShim creates a private <audio> that we just exposed
+    // as window.SWR.Audio.el, so we can MediaElementSource it.
+    const Recorder = {
+      rec: null, chunks: [], recording: false, mime: 'video/webm',
+      mediaCtx: null, mediaSrc: null, mediaDest: null,
+      start() {
+        ensureShim();
+        const audioEl = window.SWR.Audio && window.SWR.Audio.el;
+        if (!audioEl || !audioEl.src) { alert('load a song first'); return; }
+        try {
+          const fps = 30;
+          const vstream = stage.captureStream(fps);
+          const AC = window.AudioContext || window.webkitAudioContext;
+          this.mediaCtx = new AC();
+          this.mediaSrc = this.mediaCtx.createMediaElementSource(audioEl);
+          this.mediaDest = this.mediaCtx.createMediaStreamDestination();
+          this.mediaSrc.connect(this.mediaDest);
+          this.mediaSrc.connect(this.mediaCtx.destination);
+          const stream = new MediaStream([
+            ...vstream.getVideoTracks(),
+            ...this.mediaDest.stream.getAudioTracks(),
+          ]);
+          const mime = [
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+            'video/mp4;codecs=avc1',
+            'video/mp4',
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+          ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+          this.mime = mime;
+          this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+          this.chunks = [];
+          this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
+          this.rec.onstop = () => this._save();
+          this.rec.start(500);
+          this.recording = true;
+          $('rec').disabled = false;
+          $('rec').classList.add('live');
+          $('rec').textContent = '■ STOP';
+          const ext = mime.startsWith('video/mp4') ? 'MP4' : 'WebM';
+          console.log('kraft: recording', ext);
+        } catch (e) {
+          console.error('kraft: recorder start failed', e);
+        }
+      },
+      stop() {
+        if (!this.rec) return;
+        this.rec.stop();
+        this.recording = false;
+        $('rec').classList.remove('live');
+        $('rec').textContent = '● REC';
+        try { this.mediaSrc && this.mediaSrc.disconnect(); } catch {}
+        try { this.mediaDest && this.mediaDest.disconnect(); } catch {}
+        try { this.mediaCtx && this.mediaCtx.close(); } catch {}
+        this.mediaCtx = this.mediaSrc = this.mediaDest = null;
+      },
+      _save() {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        a.download = 'kraft-' + ts + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      },
+    };
+
+    // (rec button enable happens inside ensureShim's load() — see above)
+
+    const recBtn = document.getElementById('rec');
+    if (recBtn) recBtn.addEventListener('click', () => {
+      if (Recorder.recording) Recorder.stop();
+      else Recorder.start();
+    });
     async function start() {
       if (fired) return;
       fired = true;
