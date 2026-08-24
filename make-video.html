@@ -119,6 +119,12 @@
     <button class="tbtn" id="manage-library">MANAGE LIBRARY</button>
     <span id="current-song" class="current-song" style="color:var(--muted);font-size:10px;letter-spacing:0.06em;">— no song —</span>
     <button class="tbtn" id="remove-song" style="display:none;">REMOVE</button>
+    <label class="mvm-viz-toggle" title="Toggle the audio-reactive visualizer overlay on the preview canvas">
+      <input type="checkbox" id="viz-toggle" checked> viz
+    </label>
+    <label class="mvm-viz-toggle" title="Toggle the audio-reactive visualizer overlay on the preview canvas">
+      <input type="checkbox" id="viz-toggle" checked> viz
+    </label>
     <span style="flex:1"></span>
     <button class="tbtn" id="reset-project">RESET</button>
     <span id="status" style="color:var(--green);font-size:10px;">READY</span>
@@ -195,6 +201,7 @@
 </div>
 
 <script src="../lib/mvm-audio-bus.client.js"></script>
+<script src="../lib/audio-visualizer.client.js"></script>
 <script src="../lib/library-switcher.client.js"></script>
 <script src="../lib/media-store.client.js"></script>
 <script src="../lib/playlist.client.js"></script>
