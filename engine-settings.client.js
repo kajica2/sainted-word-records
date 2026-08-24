@@ -178,6 +178,28 @@
 
     // Divider + reset
     menu.appendChild(makeDivider());
+
+    // PROJECT section: save / load the user's current state as JSON.
+    // project.client.js handles serialization + file I/O; settings
+    // just adds the menu rows.
+    menu.appendChild(makeRow('SAVE PROJECT', '↓', () => {
+      if (!window.SWR_PROJECT) { setStatus('project module not loaded', 'err'); return; }
+      const ok = window.SWR_PROJECT.save();
+      if (ok) {
+        if (typeof window.setStatus === 'function') window.setStatus('project saved', 'ok');
+        closeMenu();
+      } else {
+        if (typeof window.setStatus === 'function') window.setStatus('project save failed', 'err');
+      }
+    }));
+    menu.appendChild(makeRow('LOAD PROJECT', '↑', () => {
+      if (!window.SWR_PROJECT) { setStatus('project module not loaded', 'err'); return; }
+      ensureFileInput();
+      fileInput.click();
+      closeMenu();
+    }));
+
+    menu.appendChild(makeDivider());
     menu.appendChild(makeRow('RESET ALL PANELS', '×', () => { resetAllPanels(); closeMenu(); }, true));
 
     document.body.appendChild(menu);
@@ -229,6 +251,37 @@
   function closeMenu() {
     const m = document.getElementById(MENU_ID);
     if (m) m.style.display = 'none';
+  }
+
+  // ---- file picker for project.loadFromFile --------------------------
+  // Lazy-initialized: the <input type="file"> is appended once on
+  // first LOAD click, hidden, and reused.
+  let fileInput = null;
+  function ensureFileInput() {
+    if (fileInput) return;
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/json,.json';
+    fileInput.style.cssText = 'display:none;position:absolute;left:-9999px;';
+    fileInput.addEventListener('change', async function () {
+      const f = fileInput.files && fileInput.files[0];
+      fileInput.value = '';  // reset so the same file can be picked again
+      if (!f || !window.SWR_PROJECT) return;
+      try {
+        const r = await window.SWR_PROJECT.loadFromFile(f);
+        if (r && r.ok) {
+          if (typeof window.setStatus === 'function')
+            window.setStatus('project loaded (' + r.applied + ' layers, ' +
+              (r.missing || 0) + ' missing)', 'ok');
+        } else {
+          const why = r && r.errors ? r.errors.join('; ') : 'unknown';
+          if (typeof window.setStatus === 'function') window.setStatus('project load failed: ' + why, 'err');
+        }
+      } catch (e) {
+        if (typeof window.setStatus === 'function') window.setStatus('project load threw: ' + e.message, 'err');
+      }
+    });
+    document.body.appendChild(fileInput);
   }
 
   // ---- boot -----------------------------------------------------------
