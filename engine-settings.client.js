@@ -118,6 +118,34 @@
 
   // ---- menu rendering -------------------------------------------------
 
+  // Two project modules exist with overlapping but different APIs:
+  //   - project.js (loaded on engine.html) exports window.Project =
+  //     { download(), loadFile(file), ... }
+  //   - project.client.js (loaded on versions/*.html) exports
+  //     window.SWR_PROJECT = { save(), loadFromFile(file), ... }
+  // The menu has to work on both pages. Each helper returns the
+  // bound function for the module that's actually present (or null).
+  // Defined at IIFE scope so both buildMenu() and the file-input
+  // change handler (ensureFileInput) can reach them.
+  function projectSave() {
+    if (window.Project && typeof window.Project.download === 'function') {
+      return window.Project.download.bind(window.Project);
+    }
+    if (window.SWR_PROJECT && typeof window.SWR_PROJECT.save === 'function') {
+      return window.SWR_PROJECT.save.bind(window.SWR_PROJECT);
+    }
+    return null;
+  }
+  function projectLoadFile(file) {
+    if (window.Project && typeof window.Project.loadFile === 'function') {
+      return window.Project.loadFile.bind(window.Project);
+    }
+    if (window.SWR_PROJECT && typeof window.SWR_PROJECT.loadFromFile === 'function') {
+      return window.SWR_PROJECT.loadFromFile.bind(window.SWR_PROJECT);
+    }
+    return null;
+  }
+
   function buildGear() {
     if (document.getElementById(GEAR_ID)) return;
     const btn = document.createElement('button');
@@ -207,16 +235,18 @@
     menu.appendChild(makeDivider());
 
     // PROJECT section: save / load the user's current state as JSON.
-    // project.js handles serialization + file I/O; settings
-    // just adds the menu rows. project.js exports its API on
-    // window.Project (not window.SWR_PROJECT), so we look there.
-    // The download side is exposed as Project.download() (it triggers
-    // a browser save dialog), not Project.save(). The load side is
-    // Project.loadFile(file).
+    // Two project modules exist with overlapping but different APIs:
+    //   - project.js (loaded on engine.html) exports window.Project =
+    //     { download(), loadFile(file), get(), apply(p), ... }
+    //   - project.client.js (loaded on versions/*.html where a song is
+    //     playing) exports window.SWR_PROJECT =
+    //     { save(), loadFromFile(file), serialize(), apply(p), ... }
+    // The menu has to work on both pages. Use whichever is present.
     menu.appendChild(makeRow('SAVE PROJECT', '↓', () => {
-      if (!window.Project || typeof window.Project.download !== 'function') { setStatus('project module not loaded', 'err'); return; }
+      const fn = projectSave();
+      if (!fn) { setStatus('project module not loaded', 'err'); return; }
       try {
-        const ok = window.Project.download();
+        const ok = fn();
         if (ok || ok === undefined) {
           if (typeof window.setStatus === 'function') window.setStatus('project saved', 'ok');
           closeMenu();
@@ -228,11 +258,10 @@
       }
     }));
     menu.appendChild(makeRow('LOAD PROJECT', '↑', () => {
-      if (!window.Project || typeof window.Project.loadFile !== 'function') { setStatus('project module not loaded', 'err'); return; }
-      // Don't pause the song — loadFile restores audio from the project
-      // (if embedded) or leaves the current audio playing. The file-picker
-      // dialog is non-modal; it overlays the canvas but doesn't interrupt
-      // playback.
+      // Don't pause the song — loadFile/loadFromFile either restore the
+      // project's embedded audio or leave the current track playing. The
+      // file-picker dialog is non-modal; it overlays the canvas but
+      // doesn't interrupt playback.
       ensureFileInput();
       fileInput.click();
       closeMenu();
@@ -292,9 +321,12 @@
     if (m) m.style.display = 'none';
   }
 
-  // ---- file picker for project.loadFromFile --------------------------
+  // ---- file picker for project.loadFile / project.loadFromFile -----
   // Lazy-initialized: the <input type="file"> is appended once on
-  // first LOAD click, hidden, and reused.
+  // first LOAD click, hidden, and reused. The change handler looks
+  // up the right loader at file-pick time because the page may have
+  // either project.js (window.Project) or project.client.js
+  // (window.SWR_PROJECT).
   let fileInput = null;
   function ensureFileInput() {
     if (fileInput) return;
@@ -305,12 +337,15 @@
     fileInput.addEventListener('change', async function () {
       const f = fileInput.files && fileInput.files[0];
       fileInput.value = '';  // reset so the same file can be picked again
-      if (!f || !window.Project || typeof window.Project.loadFile !== 'function') return;
+      const loader = projectLoadFile();
+      if (!f || !loader) return;
       try {
-        const r = await window.Project.loadFile(f);
-        if (r && r.ok) {
+        const r = await loader(f);
+        // Both modules return { ok, applied, missing, errors } but with
+        // slightly different field names — handle both.
+        if (r && r.ok !== false) {
           if (typeof window.setStatus === 'function')
-            window.setStatus('project loaded (' + r.applied + ' layers, ' +
+            window.setStatus('project loaded (' + (r.applied || '?') + ' layers, ' +
               (r.missing || 0) + ' missing)', 'ok');
         } else {
           const why = r && r.errors ? r.errors.join('; ') : 'unknown';
