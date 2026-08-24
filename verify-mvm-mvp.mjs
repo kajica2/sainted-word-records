@@ -175,6 +175,7 @@ try {
   // C. Clip upload — synthetic file drop
   await step('C. addClip (image) lands in clips list', async () => {
     const v = await page.evaluate(async () => {
+      const RED_PNG_1x1 = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
       const blob = new Blob([RED_PNG_1x1], { type: 'image/png' });
       const file = new File([blob], 'mv-test.png', { type: 'image/png' });
       const c = await window.MVM.addClip(file);
@@ -206,10 +207,12 @@ try {
 
   // E. Transport
   await step('E. PLAY advances the playhead', async () => {
+    // Wait 1200ms so the playhead crosses the 1-second boundary
+    // (fmtMs rounds 0..999ms to '0:00' which would be a false negative).
     const v = await page.evaluate(async () => {
       window.MVM.stop();
       window.MVM.play();
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 1200));
       const before = document.getElementById('time-readout').textContent;
       window.MVM.pause();
       return { readout: before };
@@ -217,8 +220,10 @@ try {
     const m = /^(\d+):(\d+) \/ (\d+):(\d+)/.exec(v.readout);
     ok(m, `bad readout: ${v.readout}`);
     if (m) {
-      const s = parseInt(m[2], 10);
-      ok(s > 0, `playhead should have advanced, got ${v.readout}`);
+      const m2 = parseInt(m[2], 10);
+      const s2 = parseInt(m[4], 10);
+      const cur = m2 * 60 + s2;
+      ok(cur >= 1, `playhead should have advanced past 1s, got ${v.readout}`);
     }
   });
 
