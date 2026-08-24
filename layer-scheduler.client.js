@@ -187,6 +187,7 @@
     `;
 
     document.body.appendChild(panel);
+    if (window.SWR_PANEL_VISIBILITY) window.SWR_PANEL_VISIBILITY.apply();
 
     // ---- Drag support (title bar → grab to reposition) ----
     // Position is persisted in localStorage so the user's chosen spot survives

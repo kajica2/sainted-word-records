@@ -1,13 +1,17 @@
-// BUILD_MARKER_v3
+// BUILD_MARKER_v4
 import { defineConfig } from 'vite';
 import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, readFileSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
+import { handleApi } from './scripts/dev-api.mjs';
 
 function copyDirRecursive(src, dst) {
   if (!existsSync(src)) return;
   mkdirSync(dst, { recursive: true });
   for (const f of readdirSync(src)) {
-    if (f.startsWith('_') || f.endsWith('.bak')) continue;
+    // Skip dotfiles and backup files anywhere; recurse into everything else,
+    // including directories like api/_lib/ (the underscore-prefix skip
+    // would have silently dropped our shared helpers).
+    if (f.startsWith('.') || f.endsWith('.bak')) continue;
     const sp = join(src, f);
     const dp = join(dst, f);
     const st = statSync(sp);
@@ -62,6 +66,7 @@ function copyStatic() {
     'engine-lfos.client.js',
     'swr-sets.js',
     'engine-lfo-panel.client.js',
+    'engine-panel-visibility.client.js',
     'engine-automap.client.js',
     'engine-settings.client.js',
     'persona-onboarding.js',
@@ -124,6 +129,26 @@ function copyStatic() {
     'swr-social-content.html',
     'swr-stripe-setup.html',
     'swr-watermark-plan.html',
+    'auth/login.html',
+    'auth/login.client.js',
+    'auth/verify.html',
+    'auth/verify.client.js',
+    'lib/auth.client.js',
+    'lib/storage.client.js',
+    'lib/migrate.client.js',
+    'api/health.js',
+    'api/auth/session.js',
+    'api/auth/magic.js',
+    'api/auth/verify.js',
+    'api/storage/sign-upload.js',
+    'api/storage/sign-download.js',
+    'api/storage/object.js',
+    'api/projects/index.js',
+    'api/projects/[id].js',
+    'api/_lib/db.js',
+    'api/_lib/http.js',
+    'api/_lib/session.js',
+    'api/_lib/email.js',
     'versions.client.js',
     'director-mode-sainted-word.html',
     'intro.html',
@@ -165,6 +190,10 @@ function copyStatic() {
     // ~4 MB total). Each engine auto-loads ../audios/<engine>.mp3 as the
     // default audio source so the reactivity has something to drive.
     { src: 'audios', dst: 'audios' },
+    // M1: ship the auth pages and api/ tree.
+    { src: 'auth', dst: 'auth' },
+    { src: 'api', dst: 'api' },
+    { src: 'lib', dst: 'lib' },
     // AUDIOS_REDEPLOY_TRIGGER: force a re-deploy to bust Vercel's build
     // cache that was shipping the old vite.config.js without this entry.
     // The extra .gitkeep file ensures the audios/ directory is copied.
@@ -279,6 +308,29 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       copyStatic(),
+      // M1: route /api/* through the same handlers that run on Vercel.
+      // This is a Vite plugin (NOT a server.configureServer — that doesn't
+      // exist in Vite 5; configureServer goes on plugins).
+      {
+        name: 'swrc-api-middleware',
+        configureServer(server) {
+          process.stderr.write('[dev-api] registering /api/* middleware\n');
+          server.middlewares.use(async (req, res, next) => {
+            const url = req.url || '';
+            if (!url.startsWith('/api/')) return next();
+            try {
+              await handleApi(req, res, () => {});
+            } catch (e) {
+              process.stderr.write('[dev-api] middleware error: ' + (e.stack || e.message) + '\n');
+              if (!res.headersSent) {
+                res.statusCode = 500;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'dev_api_error', message: e.message }));
+              }
+            }
+          });
+        },
+      },
       // engine.html references many scripts with absolute paths (e.g.
       // <script type="module" src="/pwa-bootstrap.js">). Vite's HTML
       // transformer tries to bundle those as Rollup modules, which
@@ -306,6 +358,13 @@ export default defineConfig(({ command, mode }) => {
       host: '0.0.0.0',
       strictPort: false,
     },
+    // api/ files are serverless handlers — they're copied to dist by the
+    // copyStatic plugin and executed by Vercel at runtime. We don't want
+    // Vite/Rollup to scan them, transform them, or pull them into the
+    // engine bundle. Treat them as opaque:
+    optimizeDeps: {
+      exclude: ['api/**', 'api/_lib/**'],
+    },
     build: {
       target: 'es2022',
       outDir,
@@ -315,6 +374,9 @@ export default defineConfig(({ command, mode }) => {
       emptyOutDir: false,
       rollupOptions: {
         input: 'engine.html',
+        // The engine's index.html should never pull api/ code in. Treat
+        // everything under api/ as external so Rollup leaves it alone.
+        external: [/^api\//],
       },
     },
   };

@@ -76,6 +76,7 @@
     `;
 
     document.body.appendChild(panel);
+    if (window.SWR_PANEL_VISIBILITY) window.SWR_PANEL_VISIBILITY.apply();
 
     // ---- drag (same pattern as layer-scheduler.client.js) ----------
     try {

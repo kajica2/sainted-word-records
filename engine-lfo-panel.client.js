@@ -127,6 +127,7 @@
       '</div>';
 
     document.body.appendChild(panel);
+    if (window.SWR_PANEL_VISIBILITY) window.SWR_PANEL_VISIBILITY.apply();
 
     // ---- drag (same pattern as the timing + scheduler panels) -------
     try {

@@ -1105,6 +1105,8 @@
       <button class="tbtn" id="drag-mode" style="padding:4px 10px; font-size:9px;" title="Toggle auto-drift / manual drag">AUTO DRIFT</button>
       <span class="separator"></span>
       <button class="tbtn" id="css-fx-toggle" data-count="0" style="padding:4px 10px; font-size:9px;" title="Stackable CSS video filters (kenburns, vhs, crt, film-grain, …)">CSS FX <b id="css-fx-count">0</b>/20</button>
+      <span class="separator"></span>
+      <button class="tbtn" id="panels-toggle" style="padding:4px 10px; font-size:9px;" title="Show/hide the LFO, TIMING, and AUTO-SWAP floating panels">PANELS: <b id="panels-toggle-state">hidden</b></button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
@@ -3731,6 +3733,7 @@
       }
     })();
   </script>
+  <script type="module" src="/engine-panel-visibility.client.js"></script>
   <script type="module" src="/layer-scheduler.client.js"></script>
   <script type="module" src="/engine-timing.client.js"></script>
   <script type="module" src="/engine-timing-panel.client.js"></script>
@@ -3740,6 +3743,39 @@
   <script type="module" src="/engine-settings.client.js"></script>
   <script type="module" src="/engine-keys.client.js"></script>
   <script type="module" src="/project.client.js"></script>
+  <script type="module">
+    // PANELS toggle (LFO + TIMING + AUTO-SWAP). Depends on the visibility
+    // helper loaded above; safe no-op if it's not there.
+    (function () {
+      const btn = document.getElementById('panels-toggle');
+      const label = document.getElementById('panels-toggle-state');
+      if (!btn || !label) return;
+
+      function paint() {
+        const v = window.SWR_PANEL_VISIBILITY;
+        const hidden = v ? v.isHidden() : true;
+        label.textContent = hidden ? 'hidden' : 'shown';
+        btn.setAttribute('aria-pressed', hidden ? 'false' : 'true');
+      }
+
+      btn.addEventListener('click', () => {
+        const v = window.SWR_PANEL_VISIBILITY;
+        if (!v) return;
+        v.toggle();
+        paint();
+      });
+
+      // Re-sync label if another tab/script flips the flag.
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'swr.panels-hidden') paint();
+      });
+      if (window.SWR_PANEL_VISIBILITY) {
+        window.SWR_PANEL_VISIBILITY.onChange(paint);
+      }
+
+      paint();
+    })();
+  </script>
   <script type="module" src="/timeline.client.js"></script>
   <script type="module" src="/fx-postprocess.js"></script>
   <script type="module" src="/wizard.js"></script>
