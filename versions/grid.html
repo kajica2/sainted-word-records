@@ -739,7 +739,13 @@
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
     for (const id of ['sens','gate','decay']) { const inp=$(id); const out=$(id+'-v');
-      inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2)); }
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (out) out.textContent = v.toFixed(2);
+        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
+          A.params[id] = v;
+        }
+      }); }
     // Wire the auto-cycle toggle
     const ac = $('auto-cycle');
     if (ac) ac.addEventListener('change', () => { _autoCycle = ac.checked; });

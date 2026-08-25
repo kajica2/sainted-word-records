@@ -58,6 +58,9 @@ function copyStatic() {
     'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png',
     'tutorial-30s.html',
     'swr-tutorial-30s.mp4',
+    // /package.json — /tools/hf-publish fetches this at runtime to pre-fill
+    // the release tag. Ship it at the dist root so the relative URL resolves.
+    'package.json',
     'versions-presets.js',
     'engine-genops.client.js',
     'engine-render.client.js',

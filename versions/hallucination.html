@@ -550,7 +550,7 @@
         flux /= 255*N;
         this.hist.fluxAvg = lerp(this.hist.fluxAvg, flux, 0.1);
         this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.08);
-        const gate = parseFloat($('gate').value);
+        const gate = this.params.gate;
         const onsetHit = flux > this.hist.fluxAvg*gate && flux > 0.025;
         const beatHit = this.feat.bass > this.hist.bassAvg*gate && this.feat.bass > 0.16;
         const now = this.ctx.currentTime;
@@ -712,16 +712,23 @@
       ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
     }
     function applyR(l) {
-      const sens=parseFloat($('sens').value);
+      const sens=A.params.sens;
       const out = { scale:l.baseScale, x:0, y:0, rot:l.hue*0.1, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
-      for (const r of l.reactors) {
+      // Defensive: legacy persisted state may not include `reactors`.
+      // Skip the reactor loop rather than crash every frame.
+      const reactors = Array.isArray(l.reactors) ? l.reactors : [];
+      for (const r of reactors) {
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
+        // Master rotation toggle gate: when the user has turned rotation
+        // OFF globally (swr-rot-master button), skip rot reactor writes so
+        // audio doesn't compound the canvas into 180-degree flips.
+        const _rotOn = l.rotationEnabled !== false;
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 150;
         else if (r.target==='y') out.y += v * 150;
-        else if (r.target==='rot') out.rot += v * 45;
+        else if (r.target==='rot') { if (_rotOn) out.rot += v * 45; }
         else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.7, 0, 1.5);
         else if (r.target==='hue') out.hue += v * 80;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.7, 0.1, 3);
@@ -806,7 +813,7 @@
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;
       m.fillStyle='#000'; m.fillRect(0,0,w,h);
-      const sens=parseFloat($('sens').value);
+      const sens=A.params.sens;
       const vals=[A.feat.bass*sens, A.feat.mid*sens, A.feat.treble*sens, A.feat.air*sens, A.feat.onset*sens*2];
       const bw=w/vals.length;
       for (let i=0;i<vals.length;i++) {
@@ -841,7 +848,13 @@
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('CHAOS ' + Layers.list.length, 'live'); });
     for (const id of ['sens','gate','decay']) { const inp=$(id); const out=$(id+'-v');
-      inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2)); }
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (out) out.textContent = v.toFixed(2);
+        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
+          A.params[id] = v;
+        }
+      }); }
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', async e => { e.preventDefault(); if (e.dataTransfer.files?.length) await Lib.addFiles(e.dataTransfer.files); });
     window.addEventListener('resize', fit);
