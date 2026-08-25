@@ -931,6 +931,125 @@
     }
     .css-fx-chip__name { flex: 1; }
 
+    /* === AGI BG — HF Space embed (kaidjuric/agi-background-working-system) ===
+       A floating panel that iframes the Space. Shows a 404/offline fallback when
+       the Space is unreachable (the live URL currently returns 404 — known state
+       as of embed; revisit once the Space has a real backend or static route). */
+    .agi-bg-panel {
+      position: fixed;
+      right: 16px;
+      bottom: 64px;
+      width: min(420px, calc(100vw - 32px));
+      height: min(360px, calc(100vh - 96px));
+      background: linear-gradient(180deg, rgba(17,9,26,0.97), rgba(13,9,24,0.97));
+      border: 1px solid rgba(0,240,255,0.30);
+      border-radius: 10px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    /* Left-anchored variant — used by mg-agi-panel so it doesn't collide with
+       the right-anchored agi-bg-panel when both are open. */
+    .agi-bg-panel--left {
+      right: auto;
+      left: 16px;
+      border-color: rgba(255,45,138,0.30);
+    }
+    .agi-bg-panel[hidden] { display: none !important; }
+    .agi-bg-panel.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .agi-bg-panel__head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .agi-bg-panel__title {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent-2, #00f0ff);
+      font-weight: 600;
+      margin: 0;
+    }
+    .agi-bg-panel__pill {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(0,240,255,0.08);
+      border: 1px solid rgba(0,240,255,0.30);
+      color: rgba(0,240,255,0.9);
+      letter-spacing: 0.04em;
+    }
+    .agi-bg-panel__pill[data-state="offline"] {
+      background: rgba(255,80,80,0.08);
+      border-color: rgba(255,80,80,0.35);
+      color: rgba(255,120,120,0.95);
+    }
+    .agi-bg-panel__spacer { flex: 1; }
+    .agi-bg-panel__btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.7);
+      padding: 3px 8px;
+      font-size: 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-mono, ui-monospace, monospace);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .agi-bg-panel__btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .agi-bg-panel__frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: transparent;
+    }
+    .agi-bg-panel__fallback {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 20px;
+      color: rgba(255,255,255,0.6);
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 11px;
+      text-align: center;
+    }
+    .agi-bg-panel__fallback[hidden] { display: none; }
+    .agi-bg-panel__fallback h4 {
+      margin: 0;
+      font-size: 11px;
+      color: rgba(255,120,120,0.95);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .agi-bg-panel__fallback code {
+      font-size: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: rgba(255,255,255,0.7);
+    }
+
     /* === PERSONAL TIER (PT) CHIP + PANEL === */
     .pt-chip {
       background: rgba(245, 165, 36, 0.10);
@@ -1396,6 +1515,10 @@
       <span class="separator"></span>
       <button class="tbtn" id="css-fx-toggle" data-count="0" style="padding:4px 10px; font-size:9px;" title="Stackable CSS video filters (kenburns, vhs, crt, film-grain, …)">CSS FX <b id="css-fx-count">0</b>/20</button>
       <span class="separator"></span>
+      <button class="tbtn" id="agi-bg-toggle" style="padding:4px 10px; font-size:9px;" title="Embed: kaidjuric/agi-background-working-system (HF Space)">AGI BG</button>
+      <span class="separator"></span>
+      <button class="tbtn" id="mg-agi-toggle" style="padding:4px 10px; font-size:9px;" title="Embed: kaidjuric/motion-graphic-designer-agi-system (HF Space)">MG AGI</button>
+      <span class="separator"></span>
       <button class="tbtn" id="panels-toggle" style="padding:4px 10px; font-size:9px;" title="Show/hide the LFO, TIMING, and AUTO-SWAP floating panels">PANELS: <b id="panels-toggle-state">hidden</b></button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
@@ -1429,6 +1552,45 @@
     </div>
     <div class="css-fx-panel__grid" id="css-fx-grid">
       <!-- chips injected by CSSFX.init() -->
+    </div>
+  </div>
+
+  <!-- AGI BG embed panel: iframes kaidjuric/agi-background-working-system (HF Space) -->
+  <div id="agi-bg-panel" class="agi-bg-panel" hidden aria-label="AGI Background Working System (Hugging Face Space)">
+    <div class="agi-bg-panel__head">
+      <h3 class="agi-bg-panel__title">AGI Background Working System</h3>
+      <span class="agi-bg-panel__pill" id="agi-bg-state" data-state="loading">loading</span>
+      <span class="agi-bg-panel__spacer"></span>
+      <button class="agi-bg-panel__btn" id="agi-bg-reload" type="button" title="Reload the Space">↻ Reload</button>
+      <button class="agi-bg-panel__btn" id="agi-bg-open" type="button" title="Open the Space in a new tab">↗ Open</button>
+      <button class="agi-bg-panel__btn" id="agi-bg-close" type="button" title="Close panel">×</button>
+    </div>
+    <iframe id="agi-bg-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms" title="AGI Background Working System"></iframe>
+    <div class="agi-bg-panel__fallback" id="agi-bg-fallback" hidden>
+      <h4>Space offline</h4>
+      <div><code id="agi-bg-fallback-url">kaidjuric-agi-background-working-system.hf.space</code></div>
+      <div>The Space didn't respond. It may be 404, sleeping, or not yet public.</div>
+      <button class="agi-bg-panel__btn" id="agi-bg-retry" type="button">↻ Retry</button>
+    </div>
+  </div>
+
+  <!-- MG AGI embed panel: iframes kaidjuric/motion-graphic-designer-agi-system (HF Space)
+       Anchored on the LEFT so it doesn't collide with the right-anchored AGI BG panel. -->
+  <div id="mg-agi-panel" class="agi-bg-panel agi-bg-panel--left" hidden aria-label="Motion Graphic Designer AGI System (Hugging Face Space)">
+    <div class="agi-bg-panel__head">
+      <h3 class="agi-bg-panel__title">Motion Graphic Designer AGI</h3>
+      <span class="agi-bg-panel__pill" id="mg-agi-state" data-state="loading">loading</span>
+      <span class="agi-bg-panel__spacer"></span>
+      <button class="agi-bg-panel__btn" id="mg-agi-reload" type="button" title="Reload the Space">↻ Reload</button>
+      <button class="agi-bg-panel__btn" id="mg-agi-open" type="button" title="Open the Space in a new tab">↗ Open</button>
+      <button class="agi-bg-panel__btn" id="mg-agi-close" type="button" title="Close panel">×</button>
+    </div>
+    <iframe id="mg-agi-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms" title="Motion Graphic Designer AGI System"></iframe>
+    <div class="agi-bg-panel__fallback" id="mg-agi-fallback" hidden>
+      <h4>Space offline</h4>
+      <div><code id="mg-agi-fallback-url">kaidjuric-motion-graphic-designer-agi-system.static.hf.space</code></div>
+      <div>The Space didn't respond. It may be 404, sleeping, or not yet public.</div>
+      <button class="agi-bg-panel__btn" id="mg-agi-retry" type="button">↻ Retry</button>
     </div>
   </div>
 
@@ -4796,6 +4958,172 @@
       paint();
     })();
   </script>
+  <script type="module">
+    // HF Space embed panels — shared factory.
+    // Mounts an iframe-based embed for a Hugging Face Space, with a state pill
+    // (loading → embed | offline) and a fallback panel for unreachable hosts.
+    //
+    // Cross-origin honesty: the iframe load event fires for any HTTP response,
+    // including 404, because browsers don't expose cross-origin status. We mark
+    // "embed" rather than "live" because we can't verify what rendered inside.
+    // If the Space genuinely 404s, the user sees HF's own 404 inside the iframe.
+    //
+    // Usage: SWR.mountHfSpacePanel({
+    //   panelId, toggleId, closeId, reloadId, retryId, openId, frameId,
+    //   stateId, fallbackId, fallbackUrlId, spaceUrl, persistKey
+    // })
+    (function () {
+      window.SWR = window.SWR || {};
+
+      window.SWR.mountHfSpacePanel = function (opts) {
+        const panelEl    = document.getElementById(opts.panelId);
+        const toggleEl   = document.getElementById(opts.toggleId);
+        const closeEl    = document.getElementById(opts.closeId);
+        const reloadEl   = document.getElementById(opts.reloadId);
+        const retryEl    = document.getElementById(opts.retryId);
+        const openEl     = document.getElementById(opts.openId);
+        const frameEl    = document.getElementById(opts.frameId);
+        const stateEl    = document.getElementById(opts.stateId);
+        const fallbackEl = document.getElementById(opts.fallbackId);
+        const urlEl      = document.getElementById(opts.fallbackUrlId);
+        const persistKey = opts.persistKey;
+        const spaceUrl   = opts.spaceUrl;
+
+        if (!panelEl || !toggleEl || !frameEl) return;
+        if (urlEl) urlEl.textContent = spaceUrl.replace(/^https?:\/\//, '');
+
+        let loadTimer = null;
+
+        function setState(s, label) {
+          if (!stateEl) return;
+          stateEl.dataset.state = s;
+          stateEl.textContent = label;
+        }
+
+        function showOffline() {
+          if (frameEl) frameEl.style.display = 'none';
+          if (fallbackEl) fallbackEl.removeAttribute('hidden');
+          setState('offline', 'offline');
+        }
+
+        function loadFrame() {
+          if (!frameEl) return;
+          frameEl.style.display = '';
+          if (fallbackEl) fallbackEl.setAttribute('hidden', '');
+          setState('loading', 'loading');
+          frameEl.src = spaceUrl;
+          clearTimeout(loadTimer);
+          loadTimer = setTimeout(() => {
+            if (frameEl.src === 'about:blank') return;
+            if (stateEl && stateEl.dataset.state === 'loading') showOffline();
+          }, 8000);
+        }
+
+        function setOpen(open) {
+          if (open) {
+            panelEl.removeAttribute('hidden');
+            requestAnimationFrame(() => panelEl.classList.add('show'));
+            try { localStorage.setItem(persistKey, '1'); } catch (e) {}
+            loadFrame();
+          } else {
+            panelEl.classList.remove('show');
+            setTimeout(() => panelEl.setAttribute('hidden', ''), 180);
+            try { localStorage.setItem(persistKey, '0'); } catch (e) {}
+          }
+        }
+
+        frameEl.addEventListener('load', () => {
+          clearTimeout(loadTimer);
+          if (frameEl.src && frameEl.src !== 'about:blank') {
+            if (fallbackEl && !fallbackEl.hasAttribute('hidden')) return;
+            setState('embed', 'embed');
+          }
+        });
+
+        toggleEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setOpen(panelEl.hasAttribute('hidden'));
+        });
+        if (closeEl)  closeEl.addEventListener('click', (e) => { e.stopPropagation(); setOpen(false); });
+        if (reloadEl) reloadEl.addEventListener('click', (e) => { e.stopPropagation(); loadFrame(); });
+        if (retryEl)  retryEl.addEventListener('click', (e) => { e.stopPropagation(); loadFrame(); });
+        if (openEl)   openEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.open(spaceUrl, '_blank', 'noopener,noreferrer');
+        });
+
+        // Click outside closes (only this panel — and only if the click
+        // isn't on a different HF space panel/toggle, which would otherwise
+        // immediately re-close that other panel as we open it).
+        document.addEventListener('click', (e) => {
+          if (panelEl.hasAttribute('hidden')) return;
+          if (panelEl.contains(e.target)) return;
+          if (toggleEl.contains(e.target)) return;
+          // Don't close if the click landed on another HF space panel or its
+          // toggle — the user is interacting with a sibling, not dismissing us.
+          if (e.target.closest('.agi-bg-panel, .agi-bg-panel__btn')) return;
+          if (e.target.closest('[id$="-toggle"][class*="tbtn"]')) {
+            // Any other footer toggle button — likely opening a sibling.
+            return;
+          }
+          setOpen(false);
+        });
+        // Escape closes — if multiple panels are open, escape closes the
+        // topmost (last-opened) one. We approximate "topmost" with whichever
+        // panel is still in the DOM and not hidden.
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          if (panelEl.hasAttribute('hidden')) return;
+          setOpen(false);
+        });
+
+        // Persisted state — default to OPEN so the embeds are discoverable.
+        let persisted = '0';
+        try { persisted = localStorage.getItem(persistKey) || '1'; } catch (e) {}
+        if (persisted === '1') setOpen(true);
+      };
+    })();
+
+    // Mount both Spaces.
+    (function () {
+      // 1) AGI Background Working System — kaidjuric/agi-background-working-system
+      //    Currently the live URL is 404; this is a placeholder embed.
+      window.SWR.mountHfSpacePanel({
+        panelId:       'agi-bg-panel',
+        toggleId:      'agi-bg-toggle',
+        closeId:       'agi-bg-close',
+        reloadId:      'agi-bg-reload',
+        retryId:       'agi-bg-retry',
+        openId:        'agi-bg-open',
+        frameId:       'agi-bg-frame',
+        stateId:       'agi-bg-state',
+        fallbackId:    'agi-bg-fallback',
+        fallbackUrlId: 'agi-bg-fallback-url',
+        spaceUrl:      'https://kaidjuric-agi-background-working-system.hf.space/',
+        persistKey:    'swr.agi-bg-panel-open',
+      });
+
+      // 2) Motion Graphic Designer AGI System — kaidjuric/motion-graphic-designer-agi-system
+      //    Live URL serves real content (56 KB HTML). Branded "Sainted Word
+      //    Records — Motion Graphic Designer AGI" so it pairs naturally with
+      //    this repo.
+      window.SWR.mountHfSpacePanel({
+        panelId:       'mg-agi-panel',
+        toggleId:      'mg-agi-toggle',
+        closeId:       'mg-agi-close',
+        reloadId:      'mg-agi-reload',
+        retryId:       'mg-agi-retry',
+        openId:        'mg-agi-open',
+        frameId:       'mg-agi-frame',
+        stateId:       'mg-agi-state',
+        fallbackId:    'mg-agi-fallback',
+        fallbackUrlId: 'mg-agi-fallback-url',
+        spaceUrl:      'https://kaidjuric-motion-graphic-designer-agi-system.static.hf.space/',
+        persistKey:    'swr.mg-agi-panel-open',
+      });
+    })();
+  </script>
+
   <script type="module" src="/timeline.client.js"></script>
   <script type="module" src="/fx-postprocess.js"></script>
   <script type="module" src="/wizard.js"></script>
