@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>SWR Mobile Visualizer Controller</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background: #0a0a0c; color: #f6f6f6;
+      font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      margin: 0; padding: 0;
+      min-height: 100vh; min-height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    header {
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; gap: 8px;
+    }
+    header h1 { font-size: 14px; margin: 0; font-weight: 600; letter-spacing: 0.04em; }
+    header .dot { width: 8px; height: 8px; border-radius: 50%; background: #5b5b66; transition: background 200ms; }
+    header .dot.on { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    main { padding: 16px; max-width: 720px; margin: 0 auto; }
+    fieldset { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 16px; margin: 0 0 16px; }
+    legend { font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: #92959a; padding: 0 6px; }
+    .row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .row label { flex: 0 0 70px; font-size: 13px; color: #c8c8c8; }
+    .row input[type=range] { flex: 1; min-width: 0; }
+    .row .v { flex: 0 0 56px; text-align: right; font-variant-numeric: tabular-nums; color: #f6f6f6; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    button {
+      background: #1c1d22; color: #f6f6f6; border: 1px solid rgba(255,255,255,0.12);
+      padding: 12px 14px; border-radius: 8px; font: inherit; font-weight: 500;
+      cursor: pointer; -webkit-user-select: none; user-select: none;
+    }
+    button:active { background: #2a2b32; transform: translateY(1px); }
+    button.primary { background: #4ade80; color: #0a0a0c; border-color: #4ade80; font-weight: 600; }
+    .row select { background: #1c1d22; color: #f6f6f6; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 6px 8px; font: inherit; }
+    .log {
+      margin-top: 12px; padding: 10px 12px; border-radius: 8px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px; line-height: 1.5; max-height: 140px; overflow: auto;
+      color: #c8c8c8;
+    }
+    .log .err { color: #ff8482; }
+    .log .ok { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="dot" id="dot"></span>
+    <h1>SWR · Mobile Visualizer Controller</h1>
+  </header>
+  <main>
+    <fieldset>
+      <legend>Visualizer</legend>
+      <div class="row">
+        <label for="host">Host</label>
+        <input id="host" type="text" value="" placeholder="192.168.1.x" />
+      </div>
+      <div class="row">
+        <label for="port">WS port</label>
+        <input id="port" type="number" value="8787" min="1" max="65535" />
+      </div>
+      <div class="row">
+        <label for="version">Page</label>
+        <select id="version">
+          <option value="aurora">aurora</option>
+          <option value="baroque">baroque</option>
+          <option value="chrome">chrome</option>
+          <option value="collage">collage</option>
+          <option value="eclipse">eclipse</option>
+          <option value="film">film</option>
+          <option value="fractal">fractal</option>
+          <option value="glitch">glitch</option>
+          <option value="grid">grid</option>
+          <option value="hallucination">hallucination</option>
+          <option value="kraft">kraft</option>
+          <option value="mosaic">mosaic</option>
+          <option value="neon">neon</option>
+          <option value="phosphor">phosphor</option>
+          <option value="pulse">pulse</option>
+          <option value="smoke">smoke</option>
+          <option value="spectrum">spectrum</option>
+          <option value="tape">tape</option>
+          <option value="typography">typography</option>
+          <option value="void">void</option>
+          <option value="watercolor">watercolor</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button id="open">Open visualizer</button>
+        <button id="play" class="primary">▶ Play</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Engine parameters</legend>
+      <div class="row">
+        <label for="sens">sens</label>
+        <input id="sens" type="range" min="0.2" max="3" step="0.05" value="1.2" />
+        <span class="v" id="sens-v">1.20</span>
+      </div>
+      <div class="row">
+        <label for="gate">gate</label>
+        <input id="gate" type="range" min="1.05" max="2.5" step="0.05" value="1.4" />
+        <span class="v" id="gate-v">1.40</span>
+      </div>
+      <div class="row">
+        <label for="decay">decay</label>
+        <input id="decay" type="range" min="0.5" max="0.99" step="0.01" value="0.85" />
+        <span class="v" id="decay-v">0.85</span>
+      </div>
+    </fieldset>
+
+    <pre class="log" id="log">ready · enter host & port, then connect</pre>
+  </main>
+
+  <script>
+  /* Mobile visualizer controller. Speaks the same WS protocol as
+     client/visualizer-controller.js (inbox on any visualizer that
+     loads it). No deps, no framework. */
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const log = (msg, cls) => {
+    const el = $('log');
+    el.textContent = (cls ? `· ${msg}` : msg) + '\n' + el.textContent;
+    el.className = 'log' + (cls ? ' ' + cls : '');
+  };
+
+  // Pre-fill host from location.hostname if blank.
+  if (!$('host').value && location.hostname) $('host').value = location.hostname;
+
+  let ws = null;
+  let wsUrl = '';
+  const dot = $('dot');
+
+  function setDot(on) { dot.classList.toggle('on', !!on); }
+
+  function connect() {
+    const host = $('host').value.trim();
+    const port = parseInt($('port').value, 10);
+    if (!host) { log('enter host first', 'err'); return; }
+    if (Number.isNaN(port) || port < 1 || port > 65535) { log('bad port', 'err'); return; }
+    if (ws && ws.readyState === WebSocket.OPEN) return;
+
+    wsUrl = `ws://${host}:${port}`;
+    log(`connecting ${wsUrl}`);
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (e) {
+      log(`connect failed: ${e.message}`, 'err');
+      setDot(false);
+      return;
+    }
+    ws.addEventListener('open', () => {
+      log('connected · ' + new Date().toLocaleTimeString(), 'ok');
+      setDot(true);
+    });
+    ws.addEventListener('close', () => {
+      log('disconnected', '');
+      setDot(false);
+    });
+    ws.addEventListener('error', () => {
+      log('ws error', 'err');
+      setDot(false);
+    });
+    ws.addEventListener('message', (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'param') {
+          const v = $('v-' + msg.param);
+          if (v) v.textContent = Number(msg.value).toFixed(2);
+        } else if (msg.type === 'peer:hello') {
+          log(`peer joined: ${JSON.stringify(msg.peer)}`, '');
+        } else {
+          log('inbound: ' + JSON.stringify(msg).slice(0, 80));
+        }
+      } catch (_) { /* ignore */ }
+    });
+  }
+
+  function send(obj) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      log('not connected', 'err');
+      return;
+    }
+    try { ws.send(JSON.stringify(obj)); } catch (e) { log(`send failed: ${e.message}`, 'err'); }
+  }
+
+  // Param binding — each slider updates both its DOM display and the WS.
+  function bindParam(id, def) {
+    const inp = $(id); const out = $(`${id}-v`);
+    if (!inp) return;
+    inp.value = def;
+    out.textContent = Number(def).toFixed(2);
+    inp.addEventListener('input', () => {
+      const v = parseFloat(inp.value);
+      if (out) out.textContent = v.toFixed(2);
+      send({ type: 'set', param: id, value: v });
+    });
+  }
+  bindParam('sens', 1.2);
+  bindParam('gate', 1.4);
+  bindParam('decay', 0.85);
+
+  // UI actions.
+  $('open').addEventListener('click', () => {
+    const v = $('version').value;
+    const host = $('host').value.trim();
+    if (!host) { log('enter host first', 'err'); return; }
+    const url = `http://${host}:5174/versions/${v}.html`;
+    log(`opening ${url}`);
+    window.open(url, '_blank', 'noopener');
+    send({ type: 'load', version: v });
+  });
+
+  $('play').addEventListener('click', () => {
+    log('play');
+    send({ type: 'action', name: 'play' });
+  });
+
+  // Auto-connect with current host/port values.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) connect(); });
+  connect();
+  </script>
+</body>
+</html>
