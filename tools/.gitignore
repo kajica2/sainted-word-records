@@ -1,0 +1,8 @@
+# tools/.dev-pids and tools/.dev-logs/ are runtime state managed by
+# tools/dev-up.sh and tools/dev-down.sh. Never commit.
+.dev-pids
+.dev-logs/
+
+# Python tooling compiled artifacts.
+__pycache__/
+*.pyc
