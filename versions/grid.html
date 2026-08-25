@@ -337,11 +337,11 @@
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t,cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
     const A = { ctx:null, an:null, src:null, el:null, gain:null, fft:null, time:null,
-      feat:{bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0},
-      // Cached slider values — read once per slider input, not once
-      // per audio frame. Avoids forcing layout every audio sample.
-      params: { sens: 1.5, gate: 1.2, decay: 0.7 },
-      hist:{prev:null,bassAvg:0,fluxAvg:0}, beats:[], playing:false,
+      feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
+            // Cached slider values — read once per slider input, not once
+            // per audio frame. Avoids forcing layout every audio sample.
+            params: { sens: 1.5, gate: 1.2, decay: 0.7 },
+            hist: { prev:null, bassAvg:0, fluxAvg:0 }, beats: [], playing: false,
       unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
         this.an = this.ctx.createAnalyser(); this.an.fftSize=2048; this.an.smoothingTimeConstant=0.4;
         this.fft = new Uint8Array(this.an.frequencyBinCount); this.time = new Uint8Array(this.an.fftSize);
@@ -509,7 +509,7 @@
       },
       remap() {
         if (!Lib.items.length) return;
-        const f=A.feat; const sens=A.params.sens;
+        const f = A.feat; const sens = A.params.sens;
         const roles = [
           { want:'motion', weight: 0.6 + f.bass * sens },
           { want:'luma',   weight: 0.3 + f.mid * sens },
@@ -738,16 +738,8 @@
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
-    for (const id of ['sens','gate','decay']) {
-      const inp = $(id); const out = $(id+'-v');
-      inp.addEventListener('input', () => {
-        const v = parseFloat(inp.value);
-        if (out) out.textContent = v.toFixed(2);
-        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
-          A.params[id] = v;
-        }
-      });
-    }
+    for (const id of ['sens','gate','decay']) { const inp=$(id); const out=$(id+'-v');
+      inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2)); }
     // Wire the auto-cycle toggle
     const ac = $('auto-cycle');
     if (ac) ac.addEventListener('change', () => { _autoCycle = ac.checked; });

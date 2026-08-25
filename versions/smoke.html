@@ -389,7 +389,7 @@
         const onsetHit = flux > this.hist.fluxAvg*gate && flux > 0.02;
         const beatHit = this.feat.bass > this.hist.bassAvg*gate && this.feat.bass > 0.15;
         const now = this.ctx.currentTime;
-        if (beatHit) { this.beats.push(now); while (this.beats.length&&this.beats[0]<now-8) this.beats.shift();
+        if (beatHit) { this.beats.push(now); while(this.beats.length&&this.beats[0]<now-8) this.beats.shift();
           if (this.beats.length>=4) { let t=0; for (let i=1;i<this.beats.length;i++) t+=this.beats[i]-this.beats[i-1];
             const a=t/(this.beats.length-1); if (a>0) this.feat.bpm=Math.round(60/a); } }
         const dec = this.params.decay;

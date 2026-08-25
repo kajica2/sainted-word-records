@@ -505,11 +505,11 @@
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t,cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
     const A = { ctx:null, an:null, src:null, el:null, gain:null, fft:null, time:null,
-      feat:{bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0},
-      // Cached slider values — read once per slider input, not once
-      // per audio frame. Avoids forcing layout every audio sample.
-      params: { sens: 1.5, gate: 1.2, decay: 0.7 },
-      hist:{prev:null,bassAvg:0,fluxAvg:0}, beats:[], playing:false,
+      feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
+            // Cached slider values — read once per slider input, not once
+            // per audio frame. Avoids forcing layout every audio sample.
+            params: { sens: 1.5, gate: 1.2, decay: 0.7 },
+            hist: { prev:null, bassAvg:0, fluxAvg:0 }, beats: [], playing: false,
       unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
         this.an = this.ctx.createAnalyser(); this.an.fftSize=2048; this.an.smoothingTimeConstant=0.4;
         this.fft = new Uint8Array(this.an.frequencyBinCount); this.time = new Uint8Array(this.an.fftSize);
@@ -550,7 +550,7 @@
         flux /= 255*N;
         this.hist.fluxAvg = lerp(this.hist.fluxAvg, flux, 0.1);
         this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.08);
-        const gate = this.params.gate;
+        const gate = parseFloat($('gate').value);
         const onsetHit = flux > this.hist.fluxAvg*gate && flux > 0.025;
         const beatHit = this.feat.bass > this.hist.bassAvg*gate && this.feat.bass > 0.16;
         const now = this.ctx.currentTime;
@@ -629,12 +629,7 @@
       render() {
         const el=$('layers'); el.innerHTML='';
         for (let i=0;i<this.list.length;i++) {
-          const l=this.list[i];
-          // Defensive: legacy persisted state or hand-edited localStorage
-          // may omit `reactors`. Fall back to an empty list so the panel
-          // renders and downstream `applyR` doesn't throw.
-          if (!Array.isArray(l.reactors)) l.reactors = [];
-          const d=document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
+          const l=this.list[i]; const d=document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
           d.innerHTML=`<div class="lh"><span class="n">${(i+1).toString().padStart(2,'0')}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option></select></div><div class="r"><label>opacity</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>scale</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
           d.querySelector('select').value=l.blend;
@@ -655,7 +650,7 @@
       },
       remap() {
         if (!Lib.items.length) return;
-        const f=A.feat; const sens=A.params.sens;
+        const f = A.feat; const sens = A.params.sens;
         const roles = [
           { want:'motion', weight: 0.6 + f.bass * sens * 2 },
           { want:'mid',    weight: 0.4 + f.mid * sens * 2 },
@@ -717,23 +712,16 @@
       ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
     }
     function applyR(l) {
-      const sens=A.params.sens;
+      const sens=parseFloat($('sens').value);
       const out = { scale:l.baseScale, x:0, y:0, rot:l.hue*0.1, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
-      // Defensive: legacy persisted state may not include `reactors`.
-      // Skip the reactor loop rather than crash every frame.
-      const reactors = Array.isArray(l.reactors) ? l.reactors : [];
-      for (const r of reactors) {
+      for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
-        // Master rotation toggle gate: when the user has turned rotation
-        // OFF globally (swr-rot-master button), skip rot reactor writes so
-        // audio doesn't compound the canvas into 180-degree flips.
-        const _rotOn = l.rotationEnabled !== false;
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 150;
         else if (r.target==='y') out.y += v * 150;
-        else if (r.target==='rot') { if (_rotOn) out.rot += v * 45; }
+        else if (r.target==='rot') out.rot += v * 45;
         else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.7, 0, 1.5);
         else if (r.target==='hue') out.hue += v * 80;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.7, 0.1, 3);
@@ -818,7 +806,7 @@
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;
       m.fillStyle='#000'; m.fillRect(0,0,w,h);
-      const sens=A.params.sens;
+      const sens=parseFloat($('sens').value);
       const vals=[A.feat.bass*sens, A.feat.mid*sens, A.feat.treble*sens, A.feat.air*sens, A.feat.onset*sens*2];
       const bw=w/vals.length;
       for (let i=0;i<vals.length;i++) {
@@ -852,16 +840,8 @@
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('CHAOS ' + Layers.list.length, 'live'); });
-    for (const id of ['sens','gate','decay']) {
-      const inp = $(id); const out = $(id+'-v');
-      inp.addEventListener('input', () => {
-        const v = parseFloat(inp.value);
-        if (out) out.textContent = v.toFixed(2);
-        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
-          A.params[id] = v;
-        }
-      });
-    }
+    for (const id of ['sens','gate','decay']) { const inp=$(id); const out=$(id+'-v');
+      inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2)); }
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', async e => { e.preventDefault(); if (e.dataTransfer.files?.length) await Lib.addFiles(e.dataTransfer.files); });
     window.addEventListener('resize', fit);
@@ -889,24 +869,11 @@
           // Auto-play if the browser allows it; otherwise queue for the first
           // user gesture (any pointerdown anywhere on the page). Mirrors the
           // engine.html behavior so reloads don't strand the user in silence.
-          //
-          // We deliberately do NOT call resume()/play() on page load before a
-          // gesture: Chrome rejects both with NotAllowedError and prints a
-          // console warning ("AudioContext was not allowed to start"). Instead,
-          // gate the eager attempt on whether the context is already running
-          // (which only happens if the page has a prior user-gesture chain) and
-          // always install the pointerdown fallback. Both branches catch the
-          // play()/resume() promise rejections so we never surface
-          // "Uncaught (in promise) NotAllowedError" in the console.
           var __halAutoplay = function () {
             try {
               if (A.unlock) A.unlock();
-            } catch (_) {}
-            var p1 = (A.ctx && A.ctx.state === 'suspended')
-              ? A.ctx.resume()
-              : Promise.resolve();
-            var p2 = (A.el && A.el.play) ? A.el.play() : Promise.resolve();
-            Promise.all([p1, p2]).then(function () {
+              if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume();
+              if (A.el && A.el.play) A.el.play();
               A.playing = true;
               var playBtn = document.getElementById('play');
               if (playBtn) {
@@ -914,17 +881,9 @@
                 playBtn.classList.remove('primary');
                 playBtn.classList.add('danger');
               }
-            }).catch(function () {
-              // Autoplay gated — leave A.playing=false and let the
-              // pointerdown fallback below retry on the first user gesture.
-              A.playing = false;
-            });
+            } catch (e) { /* autoplay blocked, will retry on gesture */ }
           };
-          // Eager attempt only if the context is already running (e.g. user
-          // just navigated from another page on this origin with a fresh
-          // gesture chain). On a cold load the context is suspended and we
-          // skip straight to the gesture handler.
-          if (A.ctx && A.ctx.state === 'running') __halAutoplay();
+          __halAutoplay();
           document.addEventListener('pointerdown', function _halAutoplayOnce() {
             document.removeEventListener('pointerdown', _halAutoplayOnce);
             __halAutoplay();
@@ -1443,53 +1402,5 @@
   </script>
 <script src="../versions-presets.js"></script>
 <script src="./temp-slider.js"></script>
-<script src="../engine-genops.client.js"></script>
-<link rel="stylesheet" href="../lib/library-switcher.css">
-<script src="../lib/library-switcher.client.js"></script>
-<script>
-  // Demo mount for the library switcher. Attaches a small panel to the
-  // topbar so devs can see the picker behavior without spinning up the
-  // Music Video Maker page. Click "OPEN LIBRARY SWITCHER" to toggle.
-  (function () {
-    function ensureBtn() {
-      var existing = document.getElementById('lsw-demo-btn');
-      if (existing) return existing;
-      var btn = document.createElement('button');
-      btn.id = 'lsw-demo-btn';
-      btn.type = 'button';
-      btn.textContent = 'LIBRARY SWITCHER';
-      btn.style.cssText = 'position:fixed;top:8px;right:8px;z-index:99999;font:10px ui-monospace;padding:5px 9px;background:#000;color:var(--ink,#fff);border:1px solid var(--line,#330022);cursor:pointer;letter-spacing:0.10em;text-transform:uppercase;';
-      btn.addEventListener('click', toggle);
-      document.body.appendChild(btn);
-      return btn;
-    }
-    var panelHost = null;
-    function toggle() {
-      if (panelHost) {
-        panelHost.destroy();
-        panelHost = null;
-        document.getElementById('lsw-demo-btn').textContent = 'LIBRARY SWITCHER';
-        return;
-      }
-      panelHost = document.createElement('div');
-      panelHost.id = 'lsw-demo-host';
-      panelHost.style.cssText = 'position:fixed;top:38px;right:8px;z-index:99998;';
-      document.body.appendChild(panelHost);
-      var r = window.SWR_LIBRARY_SWITCHER.render(panelHost, {
-        onPick: function (song) {
-          console.log('[lsw-demo] picked', song);
-        }
-      });
-      panelHost.destroy = r.destroy;
-      document.getElementById('lsw-demo-btn').textContent = 'CLOSE';
-    }
-    function boot() {
-      if (!window.SWR_LIBRARY_SWITCHER) { setTimeout(boot, 100); return; }
-      ensureBtn();
-    }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-    else boot();
-  })();
-</script>
-</body>
+<script src="../engine-genops.client.js"></script></body>
 </html>

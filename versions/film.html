@@ -344,11 +344,11 @@
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t, cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
     const A = { ctx:null, an:null, src:null, el:null, gain:null, fft:null, time:null,
-      feat:{bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0},
-      // Cached slider values — read once per slider input, not once
-      // per audio frame. Avoids forcing layout every audio sample.
-      params: { sens: 1.5, gate: 1.2, decay: 0.7 },
-      hist:{prev:null,bassAvg:0,fluxAvg:0}, beats:[], playing:false,
+      feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
+            // Cached slider values — read once per slider input, not once
+            // per audio frame. Avoids forcing layout every audio sample.
+            params: { sens: 1.5, gate: 1.2, decay: 0.7 },
+            hist: { prev:null, bassAvg:0, fluxAvg:0 }, beats: [], playing: false,
       unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
         this.an = this.ctx.createAnalyser(); this.an.fftSize=2048; this.an.smoothingTimeConstant=0.85;
         this.fft = new Uint8Array(this.an.frequencyBinCount); this.time = new Uint8Array(this.an.fftSize);
@@ -357,11 +357,11 @@
         setStatus('ready','ok'); },
       load(f) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{};
         if (this.el) { this.el.pause(); this.el.src=''; }
-        this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
         // Free the previous Blob URL before allocating a new one.
         if (this.el && this.el.__swr_blob_url) {
           try { URL.revokeObjectURL(this.el.__swr_blob_url); } catch (_) {}
         }
+        this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
         this.el.__swr_blob_url = URL.createObjectURL(f);
         this.el.src = this.el.__swr_blob_url; this.el.preload='auto';
         this.el.addEventListener('ended', ()=>{A.playing=false;$('play').textContent='Play';});
@@ -510,7 +510,7 @@
       },
       remap() {
         if (!Lib.items.length) return;
-        const f=A.feat; const sens=A.params.sens;
+        const f = A.feat; const sens = A.params.sens;
         const roles = [
           { want:'motion', weight: 0.3 + f.bass * sens },
           { want:'luma',   weight: 0.5 + f.mid * sens },
@@ -594,14 +594,10 @@
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
-        // Master rotation toggle gate: when the user has turned rotation
-        // OFF globally (swr-rot-master button), skip rot reactor writes so
-        // audio doesn't compound the canvas into 180-degree flips.
-        const _rotOn = l.rotationEnabled !== false;
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 250;
         else if (r.target==='y') out.y += v * 250;
-        else if (r.target==='rot') { if (_rotOn) out.rot += v * 12; }
+        else if (r.target==='rot') out.rot += v * 12;
         else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.4, 0, 1);
         else if (r.target==='hue') out.hue += v * 40;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.3, 0.1, 2.5);
@@ -770,16 +766,8 @@
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('re-mapped ' + Layers.list.length, 'ok'); });
-    for (const id of ['sens','gate','decay']) {
-      const inp = $(id); const out = $(id+'-v');
-      inp.addEventListener('input', () => {
-        const v = parseFloat(inp.value);
-        if (out) out.textContent = v.toFixed(2);
-        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
-          A.params[id] = v;
-        }
-      });
-    }
+    for (const id of ['sens','gate','decay']) { const inp=$(id); const out=$(id+'-v');
+      inp.addEventListener('input', () => out.textContent = parseFloat(inp.value).toFixed(2)); }
     // Wire the auto-cycle toggle
     const ac = $('auto-cycle');
     if (ac) ac.addEventListener('change', () => { _autoCycle = ac.checked; });

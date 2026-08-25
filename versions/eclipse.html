@@ -588,20 +588,16 @@
       return t; // smooth
     }
     function applyR(l) {
-      const sens = A.params.sens;
+      const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:0, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
-        // Master rotation toggle gate: when the user has turned rotation
-        // OFF globally (swr-rot-master button), skip rot reactor writes so
-        // audio doesn't compound the canvas into 180-degree flips.
-        const _rotOn = l.rotationEnabled !== false;
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 180;
         else if (r.target==='y') out.y += v * 180;
-        else if (r.target==='rot') { if (_rotOn) out.rot += v * 25; }
+        else if (r.target==='rot') out.rot += v * 25;
         else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.6, 0, 1);
         else if (r.target==='hue') out.hue += v * 60;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.5, 0.1, 2.5);
@@ -710,9 +706,23 @@
     $('add').onclick = () => $('asset-input').click();
     $('asset-input').onchange = e => Lib.addFiles([...e.target.files]);
     $('remap').onclick = () => Layers.remap();
-    $('sens').oninput = e => { $('sens-v').textContent = (+e.target.value).toFixed(2); };
-    $('gate').oninput = e => { $('gate-v').textContent = (+e.target.value).toFixed(2); };
-    $('decay').oninput = e => { $('decay-v').textContent = (+e.target.value).toFixed(2); };
+    // Slider input handlers — also cache the parsed value into A.params
+    // so A.sample() doesn't refetch the DOM on every audio frame.
+    $('sens').oninput = e => {
+      const v = +e.target.value;
+      $('sens-v').textContent = v.toFixed(2);
+      if (A && A.params) A.params.sens = v;
+    };
+    $('gate').oninput = e => {
+      const v = +e.target.value;
+      $('gate-v').textContent = v.toFixed(2);
+      if (A && A.params) A.params.gate = v;
+    };
+    $('decay').oninput = e => {
+      const v = +e.target.value;
+      $('decay-v').textContent = v.toFixed(2);
+      if (A && A.params) A.params.decay = v;
+    };
     setStatus('idle');
 
     // === Drag & drop ===
