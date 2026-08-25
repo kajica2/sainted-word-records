@@ -31,8 +31,11 @@ function showOutput(text, kind = '') {
 }
 
 function loadDefaults() {
-  // Pre-fill tag from package.json fetched at runtime
-  fetch('../package.json', { cache: 'no-store' })
+  // Pre-fill tag from package.json fetched at runtime. The admin UI is
+  // served from /tools/hf-publish, so the relative path to the repo-root
+  // package.json is ../../package.json (tools/hf-publish.html → /tools/,
+  // then up one more to /, then package.json).
+  fetch('../../package.json', { cache: 'no-store' })
     .then((r) => (r.ok ? r.json() : null))
     .then((pkg) => {
       if (pkg && pkg.version) $('#hf-tag').value = `v${pkg.version}`;
