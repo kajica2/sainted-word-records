@@ -25,17 +25,34 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'no
 import { join, dirname } from 'node:path';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 
-const ROOT = process.env.SWRC_DATA_DIR || join(process.cwd(), 'data');
+// On Vercel serverless (/var/task is read-only), fall back to /tmp so module
+// evaluation doesn't crash on the top-level ensureDir() below. Persistent
+// auth requires SWRC_DATA_DIR pointing at Vercel KV / Blob / Postgres, but
+// that's a M2 concern — for now /tmp keeps every handler importable so
+// function cold-starts succeed.
+function pickDataRoot() {
+  if (process.env.SWRC_DATA_DIR) return process.env.SWRC_DATA_DIR;
+  if (process.env.VERCEL) return '/tmp/swr-data';
+  return join(process.cwd(), 'data');
+}
+const ROOT = pickDataRoot();
 const LOCK = join(ROOT, '.lock');
 
 function ensureDir(p) {
-  if (!existsSync(p)) mkdirSync(p, { recursive: true });
+  // /var/task may be read-only; swallow EROFS / EACCES so module evaluation
+  // succeeds. Writes at runtime will surface real errors via fs.* calls.
+  try {
+    if (!existsSync(p)) mkdirSync(p, { recursive: true });
+  } catch (e) {
+    if (e && (e.code === 'EACCES' || e.code === 'EROFS')) return;
+    throw e;
+  }
 }
 
 ensureDir(ROOT);
-ensureDir(join(ROOT, 'auth'));
-ensureDir(join(ROOT, 'projects'));
-ensureDir(join(ROOT, 'storage'));
+try { ensureDir(join(ROOT, 'auth')); } catch (_) {}
+try { ensureDir(join(ROOT, 'projects')); } catch (_) {}
+try { ensureDir(join(ROOT, 'storage')); } catch (_) {}
 
 // ---- Naive file lock (process-local; sufficient for Vercel single-lambda) ----
 let lockChain = Promise.resolve();
