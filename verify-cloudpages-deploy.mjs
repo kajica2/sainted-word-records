@@ -24,6 +24,7 @@ const PAGES = [
   { path: '/profit-plan.html', name: 'profit-plan', kind: 'html' },
   { path: '/personas.json', name: 'personas-json', kind: 'json' },
   { path: '/swr-tutorial-30s.mp4', name: 'mp4', kind: 'json' },
+  { path: '/tools/hf-publish.html', name: 'hf-publish (admin panel)', kind: 'html' },
 ];
 
 mkdirSync('verify-screenshots/vercel', { recursive: true });

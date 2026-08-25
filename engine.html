@@ -5077,9 +5077,11 @@
           setOpen(false);
         });
 
-        // Persisted state — default to OPEN so the embeds are discoverable.
+        // Persisted state — default CLOSED. Both HF embeds open at once made
+        // the engine toolbar busy on first paint; users open via the AGI BG /
+        // MG AGI toggles in the toolbar. Once opened, the choice is remembered.
         let persisted = '0';
-        try { persisted = localStorage.getItem(persistKey) || '1'; } catch (e) {}
+        try { persisted = localStorage.getItem(persistKey) || '0'; } catch (e) {}
         if (persisted === '1') setOpen(true);
       };
     })();
