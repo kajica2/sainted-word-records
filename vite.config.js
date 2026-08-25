@@ -202,6 +202,7 @@ function copyStatic() {
     // cache that was shipping the old vite.config.js without this entry.
     // The extra .gitkeep file ensures the audios/ directory is copied.
     { src: 'audios/.gitkeep', dst: 'audios/.gitkeep' },
+    { src: 'tools', dst: 'tools' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',

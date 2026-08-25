@@ -143,6 +143,18 @@
     {
       "source": "/make-video/",
       "destination": "/make-video.html"
+    },
+    {
+      "source": "/tools/hf-publish",
+      "destination": "/tools/hf-publish.html"
+    },
+    {
+      "source": "/tools/hf-publish/",
+      "destination": "/tools/hf-publish.html"
+    },
+    {
+      "source": "/tools/lib/hf-publish.client.js",
+      "destination": "/tools/lib/hf-publish.client.js"
     }
   ]
 }
