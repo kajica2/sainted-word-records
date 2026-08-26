@@ -55,7 +55,8 @@ Background-process exit notifications received during this session:
 | proc_3b2693e90ae8 | 0 | Vite dev server, SIGTERM via dev-down.sh |
 | proc_027a78f454bc | -15 (SIGTERM) | WS bridge, SIGTERM via dev-down.sh |
 | proc_47d37ccdbe47 | None (SIGTERM) | `bash tools/dev-up.sh`, SIGTERM via dev-down.sh |
-| proc_24515e92c04e | not yet logged | loop-8 smoke test, SIGTERM via dev-down.sh |
+| proc_24515e92c04e | None (SIGTERM) | loop-8 smoke test, SIGTERM via dev-down.sh |
+| proc_5d6e1ecadb74 | None (SIGTERM) | (loop-9 — see below) |
 
 **Canonical interpretation:**
 - `None` exit = killed by signal, normal cleanup
