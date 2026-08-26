@@ -24,19 +24,31 @@ detects this and exits cleanly with a message.
 ## One-command deploy
 
 ```bash
-bash tools/deploy-vercel.sh
+bash tools/deploy-vercel.sh                  # smoke + build + preview (default)
+bash tools/deploy-vercel.sh --no-check       # skip the smoke (faster iteration)
+bash tools/deploy-vercel.sh --prod           # promote the deploy after build
+bash tools/deploy-vercel.sh --token=***      # non-interactive auth via flag
+VERCEL_TOKEN=*** bash tools/deploy-vercel.sh # same, via env
 ```
+
+Auth resolution order: `--token` flag → `$VERCEL_TOKEN` env →
+`~/.config/vercel/token` POSIX cache → interactive `vercel login`.
 
 This runs, in order:
 
 1. **`npm run check`** — full smoke (syntax + manifest + magenta-dsp
    bundle + API tests). All green is required before the deploy.
+   Skipped with `--no-check`.
 2. **`npm run build:vercel`** — runs `scripts/fetch-library.mjs` to pull
    the curated library/audio assets, then Vite builds into `dist/`.
-3. **`vercel deploy --yes --archive=tgz`** — non-interactive deploy,
-   packaged as a tarball (faster than the default per-file upload).
-   The CLI returns a preview URL like
+3. **`vercel deploy --yes --archive=tgz --target=<preview|production>`** —
+   non-interactive deploy, packaged as a tarball (faster than the
+   default per-file upload). The CLI returns a preview URL like
    `https://sainted-word-records-<hash>.vercel.app`.
+
+If `--prod` was passed, the script runs `vercel promote <url>`
+after a successful preview deploy — that's the single irreversible
+step (the production URL now points at the new deployment).
 
 Total time on a clean build: ~30–60 seconds.
 
