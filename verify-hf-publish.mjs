@@ -11,8 +11,7 @@
 //      "hf upload kaidjuric/magenta-dsp-procedural" command
 //   5. /api/hf-upload is registered in vercel.json with proper rewrites
 //
-// Puppeteer resolves from the magenta-dsp sibling repo (same pattern as
-// verify-e2e-export.mjs / verify-brandkit.mjs).
+// Puppeteer resolves from this repo's node_modules (added as devDep).
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -20,8 +19,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const PUPPETEER_PATH = '/Users/kajicadjuric/Documents/autodashboard/magenta-dsp-procedural/node_modules/puppeteer/lib/puppeteer/puppeteer.js';
-const puppeteer = (await import(PUPPETEER_PATH)).default;
+import puppeteer from 'puppeteer';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8079;
@@ -57,11 +55,17 @@ const ok = (cond, msg) => { if (!cond) throw new Error(msg || 'assertion failed'
 const server = await localServe();
 let browser;
 try {
-  browser = await puppeteer.launch({
-    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    headless: 'new',
+  // executablePath falls back to Puppeteer's bundled "Chrome for Testing".
+  // Override with $PUPPETEER_EXECUTABLE_PATH if you want to use a
+  // system-installed Chrome (e.g. on CI without downloaded browser).
+  const launchOpts = {
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  };
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  browser = await puppeteer.launch(launchOpts);
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', (err) => errors.push('PE: ' + err.message));
