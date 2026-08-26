@@ -870,12 +870,12 @@
       if (window.SWR_ROT_MASTER.enabled) {
         btn.textContent = '↻';
         btn.style.opacity = '1';
-        btn.title = 'Master rotation: ON (click to disable rotation on ALL layers)';
+        btn.title = 'Master rotation: ON · click = toggle off · Shift-click = clear all asset rotations';
         btn.dataset.on = '1';
       } else {
         btn.textContent = '↻';
         btn.style.opacity = '0.45';
-        btn.title = 'Master rotation: OFF (click to re-enable rotation on ALL layers)';
+        btn.title = 'Master rotation: OFF · click = toggle on · Shift-click = clear all asset rotations';
         btn.dataset.on = '0';
       }
     }
@@ -894,16 +894,70 @@
         helpBtn.parentNode.insertBefore(btn, helpBtn);
       }
       paintMasterButton(btn);
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        window.SWR_ROT_MASTER.enabled = !window.SWR_ROT_MASTER.enabled;
-        saveMasterEnabled(window.SWR_ROT_MASTER.enabled);
-        applyMasterToLayers();
-        paintMasterButton(btn);
-        // Re-paint in case any panel observer is listening
-        try { document.dispatchEvent(new CustomEvent('swr-rot-master-change', { detail: { enabled: window.SWR_ROT_MASTER.enabled } })); } catch (_) {}
-      });
+      // Long-press / contextmenu handler: clears every Library item's
+          // per-asset manual rotation override (`item.rotation`) back to 0.
+          // Pairs with the per-asset `↻` button added in engine.html — clicking
+          // each thumbnail cycles 0/90/180/270, but if the user has cycled
+          // many clips across many keys they need a bulk-reset affordance.
+          // (Originally the master toggle existed as a workaround for sideways
+          // uploads; now that intrinsic orientation is auto-applied at upload,
+          // this is its real job.)
+          function clearAllAssetRotations() {
+            var Lib = window.Library;
+            if (!Lib || !Array.isArray(Lib.items) || !Lib.items.length) return 0;
+            var n = 0;
+            for (var i = 0; i < Lib.items.length; i++) {
+              var it = Lib.items[i];
+              if (!it || !it.rotation) continue;
+              it.rotation = 0;
+              it.thumb = null;        // forces _buildThumb to redraw
+              if (it._rotated) it._rotated = null;
+              it.rotationUserSet = false;
+              n += 1;
+            }
+            // Rebuild every thumb so the badge disappears and the artwork refreshes.
+            if (typeof Lib.render === 'function') Lib.render();
+            for (var j = 0; j < Lib.items.length; j++) {
+              try { Lib._buildThumb(Lib.items[j]); } catch (_) {}
+            }
+            // Persist each cleared asset to IDB.
+            if (typeof Lib._save === 'function') {
+              for (var k = 0; k < Lib.items.length; k++) {
+                try { Lib._save(Lib.items[k]); } catch (_) {}
+              }
+            }
+            return n;
+          }
+          function flashMasterHint(msg) {
+            // Mirror the help-button hint styling for a short toast without
+            // dragging in a new module. Tooltip-only by default (cheap, non-modal).
+            try { btn.title = msg; } catch (_) {}
+            if (typeof window.setStatus === 'function') window.setStatus(msg, 'ok');
+          }
+          btn.addEventListener('click', function (e) {
+            // Shift+click (or middle-click) = bulk-clear asset rotations.
+            // Plain click = toggle audio rotation on/off as before.
+            if (e.shiftKey || e.button === 1 || e.metaKey || e.ctrlKey) {
+              e.preventDefault();
+              e.stopPropagation();
+              var cleared = clearAllAssetRotations();
+              flashMasterHint('cleared ' + cleared + ' asset rotation' + (cleared === 1 ? '' : 's'));
+              return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            window.SWR_ROT_MASTER.enabled = !window.SWR_ROT_MASTER.enabled;
+            saveMasterEnabled(window.SWR_ROT_MASTER.enabled);
+            applyMasterToLayers();
+            paintMasterButton(btn);
+            // Re-paint in case any panel observer is listening
+            try { document.dispatchEvent(new CustomEvent('swr-rot-master-change', { detail: { enabled: window.SWR_ROT_MASTER.enabled } })); } catch (_) {}
+          });
+          btn.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            var cleared = clearAllAssetRotations();
+            flashMasterHint('cleared ' + cleared + ' asset rotation' + (cleared === 1 ? '' : 's') + ' (right-click)');
+          });
       return true;
     }
     if (!bindRotMasterButton()) {
