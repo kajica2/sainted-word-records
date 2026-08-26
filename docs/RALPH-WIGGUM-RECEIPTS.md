@@ -40,6 +40,7 @@ Reversibility table:
 | 7 | Read-only server-status tool | `9cd54c4` |
 | 8 | LAN pair helper — share-button + URL-param pre-fill | `02415ea` |
 | 9 | Vercel deploy recipe (script + doc, no actual deploy) | `01af195` |
+| 10 | One-liner deploy (auth resolution, --prod, --no-check, --token, --help) | `f97dd2b` |
 
 Plus a parallel session landed commit `5ec611e feat(library):
 per-asset × button with optimistic delete + 5s undo` against
