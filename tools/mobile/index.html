@@ -97,6 +97,9 @@
         <button id="open">Open visualizer</button>
         <button id="play" class="primary">▶ Play</button>
       </div>
+      <div class="actions">
+        <button id="share">📱 Pair with this phone</button>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -136,6 +139,16 @@
 
   // Pre-fill host from location.hostname if blank.
   if (!$('host').value && location.hostname) $('host').value = location.hostname;
+
+  // Pre-fill from URL params: ?host=…&port=…&auto=1
+  // (sent from a paired mobile, or from a desktop "share this URL" link).
+  (function applyUrlParams() {
+    const qs = new URLSearchParams(location.search);
+    const h = qs.get('host');
+    const p = qs.get('port');
+    if (h) $('host').value = h;
+    if (p && !Number.isNaN(parseInt(p, 10))) $('port').value = String(parseInt(p, 10));
+  })();
 
   let ws = null;
   let wsUrl = '';
@@ -224,6 +237,60 @@
   $('play').addEventListener('click', () => {
     log('play');
     send({ type: 'action', name: 'play' });
+  });
+
+  // Pair-with-this-phone: build the page URL with current host/port
+  // pre-filled, then either call navigator.share() (mobile browsers
+  // support it natively) or fall back to clipboard. One button, no
+  // QR cryptography needed — the user texts/emails/airdrops the
+  // link to themselves and opens it on the phone.
+  $('share').addEventListener('click', async () => {
+    const host = $('host').value.trim();
+    const port = parseInt($('port').value, 10);
+    if (!host) { log('enter host first', 'err'); return; }
+    if (Number.isNaN(port)) { log('bad port', 'err'); return; }
+
+    // Same path the user is on now (strip query), with host/port params.
+    const base = location.origin + location.pathname;
+    const shareUrl = base + '?host=' + encodeURIComponent(host) +
+                     '&port=' + encodeURIComponent(String(port));
+
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'SWR visualizer controller',
+            url: shareUrl,
+            text: 'Open this URL on your phone to drive the visualizer.',
+          });
+          log('shared', 'ok');
+          return;
+        } catch (e) { /* user cancelled; fall through */ }
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          log('link copied to clipboard · open it in your phone browser', 'ok');
+          return;
+        } catch (e) { /* fall through */ }
+      }
+      // Last resort: a temporary, copyable text area.
+      const ta = document.createElement('textarea');
+      ta.value = shareUrl;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        log('link copied (legacy) · open it in your phone browser', 'ok');
+      } catch (e) {
+        log('copy failed · here is the URL: ' + shareUrl);
+      }
+      ta.remove();
+    } catch (e) {
+      log('share failed: ' + (e && e.message ? e.message : 'unknown'));
+    }
   });
 
   // Auto-connect with current host/port values.
