@@ -39,6 +39,7 @@ Reversibility table:
 | 6 | "Good outside look" — `tools/dev-up.sh` + `dev-down.sh` + `VISUALIZER-CONTROL.md` | `323810d` |
 | 7 | Read-only server-status tool | `9cd54c4` |
 | 8 | LAN pair helper — share-button + URL-param pre-fill | `02415ea` |
+| 9 | Vercel deploy recipe (script + doc, no actual deploy) | `01af195` |
 
 Plus a parallel session landed commit `5ec611e feat(library):
 per-asset × button with optimistic delete + 5s undo` against
@@ -75,6 +76,7 @@ ground truth on what is running.
 | **Freq-Lab cross-app bridge deployment** | Needs freq-lab write access for the 1-PR option (Option A). |
 | **TLS + auth on the WS bridge** | Production hardening. Free-text WS today. |
 | **QR code bootstrap** | Follow-up loop after the share-link helper; needs inlined QR generator or a tiny dep. |
+| **Actual Vercel deploy (loop 10)** | Loop 9 shipped the recipe; the actual `vercel deploy` needs `VERCEL_TOKEN` or `vercel login`. Run `bash tools/deploy-vercel.sh` once auth is in place. |
 
 Each is a single commit when unblocked; nothing else depends on them.
 
