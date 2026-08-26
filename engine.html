@@ -308,6 +308,24 @@
       font: 600 9px ui-monospace, Menlo, monospace;
       border: 1px solid rgba(0, 229, 255, 0.4);
     }
+    .lib-del {
+      position: absolute; top: 26px; right: 4px;     /* below the rotation badge */
+      width: 18px; height: 18px;
+      background: rgba(0,0,0,0.7); color: #ff6b88;
+      border: 1px solid rgba(255, 61, 146, 0.45);
+      border-radius: 3px; font: 600 14px ui-monospace, Menlo, monospace;
+      cursor: pointer; padding: 0; line-height: 16px;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    /* If there's no rotation badge, the × sits one row higher so it stays
+       visually on the right edge of the card. The badge uses .lib-rot-badge
+       and lives at top:4px;right:4px with `display:none` when rotation is 0,
+       so this sibling rule below matches the layout above. */
+    .lib-item:not(:has(.lib-rot-badge)) .lib-del { top: 4px; }
+    .lib-item:hover .lib-del { opacity: 1; }
+    .lib-del:hover { background: #ff2d8a; color: #fff; }
+    /* Touch / no-hover environments: always visible so a tap-target is reachable. */
+    @media (hover: none) { .lib-del { opacity: 1; } }
     .lib-empty {
       grid-column: 1 / -1;
       padding: 32px 12px;
@@ -2091,9 +2109,99 @@
         this.render();
         setStatus(this.items.length ? 'lib ' + this.items.length : 'idle', this.items.length ? 'ok' : '');
       },
-      // Wipe everything: library assets + saved song. Used by the Clear button.
-      // After this, both the on-screen library and the IndexedDB 'songs'/'assets'
-      // stores are empty, and the song-name pill goes back to "no song".
+      // Remove a single asset with a 5-second undo window.
+      //
+      // UI path: user clicks the × button on a Library thumbnail. The asset
+      // leaves the visible grid immediately (optimistic), persists removal
+      // to IDB, and surfaces a status-bar undo affordance. If the user
+      // doesn't click the undo prompt within 5 s, the underlying blob is
+      // revoked and forgotten forever. If they do, the blob URL is re-issued
+      // from a stored buffer and the asset is put back at the original index.
+      //
+      // Why optimistic + undo rather than confirm() modals: the user already
+      // has a global Clear-All (which does confirm()) for the dangerous case;
+      // per-item × should be one click. The 5 s window is short enough that
+      // a stray click is recoverable, long enough that any deliberate click
+      // has time to land.
+      async removeItem(id, opts) {
+        opts = opts || {};
+        const idx = this.items.findIndex(i => i.id === id);
+        if (idx < 0) return false;
+        const it = this.items[idx];
+        // Snapshot for potential undo. Buffer is cheap (we're not in the
+        // hot path; the asset was just sitting on disk).
+        const snapshot = { index: idx, item: it };
+        // If this asset is currently used as a layer on stage, refuse quietly
+        // (setStatus='err') — the user must remove the layer first. The
+        // global Clear-All handles the bulk case where they accept losing refs.
+        if (window.Layers && Array.isArray(window.Layers.list)) {
+          const usedAsLayer = window.Layers.list.some(l => l.asset === it);
+          if (usedAsLayer) {
+            if (typeof setStatus === 'function') setStatus('remove it from the stage first', 'err');
+            return false;
+          }
+        }
+        // Optimistic UI removal
+        this.items.splice(idx, 1);
+        try { URL.revokeObjectURL(it.url); } catch {}
+        if (it._el) { try { it._el.src = ''; } catch {} }
+        this.render();
+        // Persist removal to IDB
+        if (this.db) {
+          try { await this.db.delete('assets', it.id); }
+          catch (e) { console.warn('remove asset', e); }
+        }
+        // Surface the undo prompt
+        if (typeof setStatus === 'function' && !opts.skipUndo) {
+          // Use the engine's status pill with a click target embedded as a
+          // CSS-classed child — setStatus() in this codebase takes a string
+          // (or DOM node). Build the pill inline.
+          const pill = document.createElement('span');
+          pill.appendChild(document.createTextNode(`removed ${it.name} · `));
+          const undo = document.createElement('a');
+          undo.href = '#';
+          undo.textContent = 'undo';
+          undo.style.cssText = 'color: var(--accent-2); text-decoration: underline; cursor: pointer; margin-left: 4px;';
+          pill.appendChild(undo);
+          const armed = { done: false };
+          const restore = async () => {
+            if (armed.done) return;
+            armed.done = true;
+            // Put the blob back at its original index.
+            try { it.url = URL.createObjectURL(it.blob); } catch {}
+            this.items.splice(Math.min(snapshot.index, this.items.length), 0, it);
+            if (this.db) {
+              try { await this.db.put('assets', {
+                id: it.id, name: it.name, type: it.type, blob: it.blob,
+                added: it.added, motion: it.motion, luma: it.luma, hue: it.hue,
+                w: it.w, h: it.h, duration: it.duration || 0, rotation: it.rotation || 0,
+              }); } catch (e) { console.warn('undo save', e); }
+            }
+            this.render();
+            this._buildThumb(it);
+          };
+          undo.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            restore().then(() => {
+              if (typeof setStatus === 'function') setStatus(`restored ${it.name}`, 'ok');
+            });
+          });
+          if (typeof setStatus === 'function') setStatus(pill, 'ok');
+          // After 5 s the unguarded path finalizes the removal (blob URL is
+          // already revoked; the asset is already gone from IDB; nothing to do
+          // except clear `armed` so an undo arriving in the post-window race
+          // doesn't re-add a stale item).
+          setTimeout(() => { armed.done = true; }, 5000);
+        }
+        return true;
+      },
+
+      // Wipe everything: library assets + saved song. Used by the Clear All
+      // button (with a confirm() prompt — the per-item × button on each
+      // thumbnail has its own optimistic-delete + 5s undo flow and does not
+      // ask for confirmation). After this, both the on-screen library and the
+      // IndexedDB 'songs'/'assets' stores are empty, and the song-name pill
+      // goes back to "no song".
       async clearAll() {
         // 1. In-memory items + their blob URLs
         for (const it of this.items) {
@@ -2346,11 +2454,17 @@
           // The asset rotation persists in IDB and shows the rotation badge.
           const rotBadge = it.rotation ? `<span class="lib-rot-badge">${it.rotation}°</span>` : '';
           const rotBtn = '<button class="lib-rot" title="Rotate this asset 90° clockwise">↻</button>';
+          // Per-asset remove (top-right ×). Distinct from the global Clear
+          // All button — this deletes one item, with a 5s undo window via
+          // the existing setStatus() helper. Hover-revealed to keep the
+          // card clean; always-visible on touch devices (see CSS).
+          const delBtn = '<button class="lib-del" aria-label="Remove this asset" title="Remove this asset (5s undo via status bar)">×</button>';
           d.innerHTML = `
             <span class="tag">${tag}</span>
             <span class="name">${escapeHtml(it.name)}</span>
             ${rotBadge}
             ${rotBtn}
+            ${delBtn}
             ${songBtn}
           `;
           if (it.thumb) {
@@ -2386,6 +2500,16 @@
               this._buildThumb(it);
               this._save(it).catch(() => {});
               if (typeof setStatus === 'function') setStatus(`${it.name}: ${it.rotation}°`, 'ok');
+              return;
+            }
+            // Per-asset × (top-right). One-click optimistic delete with a 5s
+            // undo window surfaced via setStatus — see Library.removeItem for
+            // the IDB + layer-ref safety details. Refuses (toast=err) if the
+            // asset is currently a layer on stage; user removes the layer first.
+            if (e.target && e.target.classList && e.target.classList.contains('lib-del')) {
+              e.stopPropagation();
+              e.preventDefault();
+              this.removeItem(it.id);
               return;
             }
             // Add a new layer using this asset
