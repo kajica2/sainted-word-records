@@ -290,6 +290,24 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .lib-rot {
+      position: absolute; top: 4px; left: 4px;
+      width: 18px; height: 18px;
+      background: rgba(0,0,0,0.7); color: var(--accent-2);
+      border: 1px solid rgba(0, 229, 255, 0.45);
+      border-radius: 3px; font: 600 11px ui-monospace, Menlo, monospace;
+      cursor: pointer; padding: 0; line-height: 16px;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .lib-item:hover .lib-rot { opacity: 1; }
+    .lib-rot:hover { background: var(--accent-2); color: #000; }
+    .lib-rot-badge {
+      position: absolute; top: 4px; right: 4px;
+      background: rgba(0,0,0,0.7); color: var(--accent-2);
+      padding: 1px 4px; border-radius: 2px;
+      font: 600 9px ui-monospace, Menlo, monospace;
+      border: 1px solid rgba(0, 229, 255, 0.4);
+    }
     .lib-empty {
       grid-column: 1 / -1;
       padding: 32px 12px;
@@ -2127,6 +2145,7 @@
             added: Date.now(),
             thumb: null,
             motion: 0, luma: 0.5, hue: 0, w: 0, h: 0, duration: 0,
+            rotation: 0,   // overridden by _detectRotation() once metadata loads
           };
           this.items.push(item);
           this.render();
@@ -2146,6 +2165,7 @@
           blob: item.blob, added: item.added,
           motion: item.motion, luma: item.luma, hue: item.hue,
           w: item.w, h: item.h, duration: item.duration || 0,
+          rotation: item.rotation || 0,   // 0/90/180/270 — user-set asset orientation override
         };
         await this.db.put('assets', rec);
       },
@@ -2158,6 +2178,7 @@
             thumb: null,
             motion: rec.motion, luma: rec.luma, hue: rec.hue,
             w: rec.w, h: rec.h, duration: rec.duration || 0,
+            rotation: rec.rotation || 0,
           };
           // Build thumb
           this._buildThumb(item);
@@ -2172,31 +2193,79 @@
         const onThumb = () => {
           if (typeof Layers !== 'undefined') Layers.render();
         };
+        // drawRotated: writes `src` into `cx` fitting a `w x h` square,
+        // pre-rotating by `deg` (0/90/180/270). Used by thumbs and stage draw.
+        const drawRotated = (src, deg) => {
+          cx.save();
+          cx.clearRect(0, 0, w, h);
+          if (!deg) {
+            cx.drawImage(src, 0, 0, w, h);
+          } else {
+            // For 90/270 we swap the canvas so the rotated image still fills.
+            const swap = (deg === 90 || deg === 270);
+            const dw = swap ? h : w;
+            const dh = swap ? w : h;
+            const cx2 = (cx.canvas.width - dw) / 2;
+            const cy2 = (cx.canvas.height - dh) / 2;
+            cx.translate(cx.canvas.width / 2, cx.canvas.height / 2);
+            cx.rotate(deg * Math.PI / 180);
+            cx.drawImage(src, -dw / 2, -dh / 2, dw, dh);
+          }
+          cx.restore();
+        };
         if (item.type === 'video') {
           const v = document.createElement('video');
           v.muted = true; v.playsInline = true; v.preload = 'metadata';
           v.src = item.url;
-          v.addEventListener('loadeddata', () => {
+          v.addEventListener('loadedmetadata', () => {
             try { v.currentTime = Math.min(0.5, (v.duration || 1) * 0.1); } catch {}
           });
           v.addEventListener('seeked', () => {
             try {
               item.w = v.videoWidth; item.h = v.videoHeight;
               item.duration = v.duration;
-              cx.drawImage(v, 0, 0, w, h);
+              drawRotated(v, item.rotation || 0);
               item.thumb = c.toDataURL('image/jpeg', 0.7);
               this.render();
               onThumb();
             } catch {}
           });
+          // Detect tkhd rotation if we haven't already (one-shot, lazy).
+          if (!item.rotationProbeDone) {
+            item.rotationProbeDone = true;
+            detectMp4Rotation(item.blob).then(deg => {
+              if (deg && !item.rotationUserSet) {
+                item.rotation = deg;
+                // Re-render thumb + save to IDB once the seeked event has run.
+                // (If thumb is already built, we just re-mark it dirty.)
+                item.thumb = null;
+                this._buildThumb(item);
+                // _save runs after _classify; if rotation was discovered after classification,
+                // persist explicitly.
+                if (item.id) this._save(item).catch(() => {});
+              }
+            }).catch(() => {});
+          }
         } else {
           const img = new Image();
           img.onload = () => {
             item.w = img.naturalWidth; item.h = img.naturalHeight;
-            cx.drawImage(img, 0, 0, w, h);
+            drawRotated(img, item.rotation || 0);
             item.thumb = c.toDataURL('image/jpeg', 0.7);
             this.render();
             onThumb();
+            // Detect EXIF orientation for JPEGs (very common on phone photos).
+            if (item.type === 'image' && !item.rotationProbeDone) {
+              item.rotationProbeDone = true;
+              detectImageOrientation(item.blob).then(deg => {
+                if (deg && !item.rotationUserSet) {
+                  item.rotation = deg;
+                  item.thumb = null;
+                  this._buildThumb(item);
+                  if (item.id) this._save(item).catch(() => {});
+                }
+              }).catch(() => {});
+            }
           };
           img.src = item.url;
         }
@@ -2272,9 +2341,16 @@
           const songBtn = (it.type === 'video')
             ? '<button class="lib-use-as-song" title="Use this clip as the song (audio only)">♪</button>'
             : '';
+          // Rotate-the-asset button. This is the (orthogonal) "fix sideways"
+          // control — the per-layer `↻ ROT` button tilts the layer on stage.
+          // The asset rotation persists in IDB and shows the rotation badge.
+          const rotBadge = it.rotation ? `<span class="lib-rot-badge">${it.rotation}°</span>` : '';
+          const rotBtn = '<button class="lib-rot" title="Rotate this asset 90° clockwise">↻</button>';
           d.innerHTML = `
             <span class="tag">${tag}</span>
             <span class="name">${escapeHtml(it.name)}</span>
+            ${rotBadge}
+            ${rotBtn}
             ${songBtn}
           `;
           if (it.thumb) {
@@ -2296,6 +2372,20 @@
             if (e.target && e.target.classList && e.target.classList.contains('lib-use-as-song')) {
               e.stopPropagation();
               Library.promoteToSong(it);
+              return;
+            }
+            // Asset rotate: flips through 0/90/180/270, marks user-set so the
+            // EXIF/tkhd auto-detect won't clobber it, rebuilds the thumb, and
+            // persists to IDB. Sideways-phone clips → click ↻ until right-side up.
+            if (e.target && e.target.classList && e.target.classList.contains('lib-rot')) {
+              e.stopPropagation();
+              it.rotation = (((it.rotation || 0) + 90) % 360);
+              it.rotationUserSet = true;          // protect from detection clobber
+              it.thumb = null;
+              it._rotated = null;                // invalidate stage cache too
+              this._buildThumb(it);
+              this._save(it).catch(() => {});
+              if (typeof setStatus === 'function') setStatus(`${it.name}: ${it.rotation}°`, 'ok');
               return;
             }
             // Add a new layer using this asset
@@ -2330,6 +2420,130 @@
         }
       },
     };
+
+    // ------------------------------------------------------------------
+    // Orientation detection — used to auto-rotate videos / images whose
+    // display orientation is encoded in the file metadata (phone-recorded
+    // portrait clips ship sideways without it). The rotate button in the
+    // library overrides the detected value with a user-chosen 0/90/180/270.
+    // ------------------------------------------------------------------
+
+    // Walk an MP4 / MOV box tree. Yields every box whose type is `name`.
+    // Returns nothing; calls cb(boxStart, boxSize) for each match.
+    async function _walkMp4Boxes(blob, name, cb, _opts) {
+      // Read up to 16 MiB — enough for tkhd in the moov.trak.tkhd location
+      // for any reasonable file. Larger uploads fall back to "0 deg".
+      const MAX = 16 * 1024 * 1024;
+      const size = Math.min(blob.size, MAX);
+      const buf = await blob.slice(0, size).arrayBuffer();
+      const dv = new DataView(buf);
+      const dec = new TextDecoder('latin1');
+      const parse = (off, end) => {
+        let p = off;
+        while (p + 8 <= end) {
+          let boxSize = dv.getUint32(p);
+          const type = dec.decode(buf.slice(p + 4, p + 8));
+          if (boxSize === 0) return;          // box extends to EOF
+          if (boxSize === 1 && p + 16 <= end) { // 64-bit largesize
+            const hi = dv.getUint32(p + 8), lo = dv.getUint32(p + 12);
+            boxSize = hi * 0x100000000 + lo;
+          }
+          if (type === name) cb(p, boxSize, dv);
+          // Recurse into container boxes (moov, trak, mdia, minf, stbl, edts, udta).
+          const containers = ['moov', 'trak', 'mdia', 'minf', 'stbl', 'edts', 'udta'];
+          if (containers.indexOf(type) >= 0 && boxSize > 8 && p + boxSize <= end) {
+            parse(p + 8, p + boxSize);
+          }
+          if (boxSize < 8) return;
+          p += boxSize;
+        }
+      };
+      parse(0, dv.byteLength);
+    }
+
+    // Read the QuickTime display matrix out of the first 'tkhd' box.
+    // The matrix is 36 bytes of signed 16.16 fixed-point at content offset 36.
+    // Returns 0/90/180/270 clockwise as the user would see when played.
+    async function detectMp4Rotation(blob) {
+      if (!blob) return 0;
+      try {
+        return await new Promise(resolve => {
+          let found = 0;
+          _walkMp4Boxes(blob, 'tkhd', (off, size, dv) => {
+            if (found) return;
+            found = 1;
+            // tkhd layout (QuickTime / ISO-BMFF, version 0):
+            //   version(1) flags(3) creation(4) modification(4)
+            //   track_id(4) reserved(4) duration(4) reserved(8)
+            //   layer(2) alternate_group(2) volume(2) reserved(2)
+            //   matrix(36) width(4) height(4)
+            // That's 40 bytes of header before the matrix.
+            // We also account for the 8-byte box header (size + 'tkhd') passed
+            // in `off` (which points at the start of the size field).
+            const m = off + 8 + 40;
+            if (size < 48 + 36) return;
+            const a = dv.getInt32(m + 0) / 65536;   // matrix[0][0]
+            const b = dv.getInt32(m + 4) / 65536;   // matrix[1][0]
+            if (!isFinite(a) || !isFinite(b)) return;
+            // For a pure 2D screen transform, the rotation θ satisfies
+            // matrix[0][0] = a = cos θ, matrix[1][0] = b = sin θ (CW positive).
+            const deg = Math.round(Math.atan2(b, a) * 180 / Math.PI / 90) * 90;
+            const norm = ((deg % 360) + 360) % 360;
+            resolve(norm);
+          });
+          // If we never hit a tkhd (rare), resolve 0 after the file is scanned.
+          setTimeout(() => { if (!found) resolve(0); }, 50);
+        });
+      } catch {
+        return 0;
+      }
+    }
+
+    // Minimal EXIF orientation reader for JPEGs. We only need the IFD0
+    // orientation tag (0x0112). Returns 0/90/180/270.
+    function detectImageOrientation(blob) {
+      return new Promise(resolve => {
+        if (!blob || blob.type !== 'image/jpeg') return resolve(0);
+        // Node and very-old browsers won't have FileReader; treat that as "no EXIF".
+        if (typeof FileReader === 'undefined') return resolve(0);
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const dv = new DataView(reader.result);
+            if (dv.getUint16(0) !== 0xFFD8) return resolve(0); // not JPEG
+            let p = 2;
+            while (p < dv.byteLength) {
+              const markerSize = dv.getUint16(p + 2);
+              if (dv.getUint16(p) === 0xFFE1) { // APP1 (EXIF)
+                // EXIF starts with "Exif\0\0" then 'MM' (big) or 'II' (little).
+                const tiff = p + 4 + 6;
+                const little = dv.getUint16(tiff) === 0x4949;
+                const get16 = o => dv.getUint16(o + (little ? 0 : 0), little);
+                const get32 = o => dv.getUint32(o + (little ? 0 : 0), little);
+                if (get16(tiff) === 0x002A) {
+                  const ifd0 = tiff + get32(tiff + 4);
+                  const entries = get16(ifd0);
+                  for (let i = 0; i < entries; i++) {
+                    const ent = ifd0 + 2 + i * 12;
+                    if (get16(ent) === 0x0112) {
+                      // orientation is a SHORT in the value field (first 2 bytes).
+                      const raw = get16(ent + 8);
+                      const map = { 1: 0, 3: 180, 6: 90, 8: 270 };
+                      return resolve(map[raw] || 0);
+                    }
+                  }
+                }
+              }
+              p += 2 + markerSize;
+            }
+            return resolve(0);
+          } catch { return resolve(0); }
+        };
+        reader.onerror = () => resolve(0);
+        // Only read first 64 KiB — EXIF is always in the first segment.
+        reader.readAsArrayBuffer(blob.slice(0, 65536));
+      });
+    }
 
     function sampleLuma(data) {
       let s = 0;
@@ -3651,6 +3865,40 @@
           src = a._el;
         }
         if ((a.type === 'video' || a.type === 'camera') && src.readyState < 2) return;
+        // Apply the asset's intrinsic rotation (0/90/180/270) to a scratch surface
+        // before the layer's reactor-driven draw. CSS/HTML don't honor tkhd or EXIF
+        // orientation so we have to compensate here and in _buildThumb().
+        let drawSrc = src;
+        let drawW = a.w || src.naturalWidth || src.videoWidth || 1;
+        let drawH = a.h || src.naturalHeight || src.videoHeight || 1;
+        if (a.rotation && (a.rotation === 90 || a.rotation === 270)) {
+          // Swap w/h so downstream cover-fit math uses the rotated footprint.
+          const tmp = drawW; drawW = drawH; drawH = tmp;
+          // Pre-rotate into the existing proc canvas so we don't allocate.
+          const p = this.proc, pc = this.procCtx;
+          // Don't stomp a hue/brightness/contrast pre-pass — but we only get here
+          // if those aren't being used, because the swapped-w fit math below
+          // assumes the source matches the swapped dims.  Keeping it simple:
+          // we always render the raw rotated asset into proc when rotation is set,
+          // and the hue branch (further down) draws `drawSrc = src` through `r`.
+          // To keep behavior symmetric across both branches, we cache a CSS-style
+          // pre-rotated Image once per asset per rotation change.
+          if (!a._rotated || a._rotated.deg !== a.rotation) {
+            const sw = drawW, sh = drawH;
+            const r = document.createElement('canvas');
+            r.width = sw; r.height = sh;
+            const rc = r.getContext('2d');
+            rc.translate(sw / 2, sh / 2);
+            rc.rotate(a.rotation * Math.PI / 180);
+            // drawImage uses the ORIGINAL source dimensions because that's the
+            // un-rotated intrinsic content; rotation happens around the center.
+            const ow = src.naturalWidth || src.videoWidth || drawH;
+            const oh = src.naturalHeight || src.videoHeight || drawW;
+            rc.drawImage(src, -ow / 2, -oh / 2);
+            a._rotated = { deg: a.rotation, canvas: r };
+          }
+          drawSrc = a._rotated.canvas;
+        }
         const r = this.applyReactors(layer);
         cx.save();
         cx.globalCompositeOperation = layer.blend || 'source-over';
@@ -3662,8 +3910,8 @@
           const pc = this.procCtx;
           pc.clearRect(0, 0, p.width, p.height);
           pc.filter = `hue-rotate(${r.hue}deg) brightness(${r.brightness}) contrast(${r.contrast})`;
-          // cover-fit
-          const ar = (a.w || src.naturalWidth || src.videoWidth || 1) / (a.h || src.naturalHeight || src.videoHeight || 1);
+          // cover-fit (uses swapped w/h so the pre-rotated asset fits the canvas)
+          const ar = drawW / drawH;
           const canvasAR = cw / chh;
           let dw, dh, dx, dy;
           if (ar > canvasAR) {
@@ -3677,31 +3925,31 @@
           if (r.rot) {
             pc.translate(cw / 2 + r.x, chh / 2 + r.y);
             pc.rotate(r.rot * Math.PI / 180);
-            pc.drawImage(src, -dw / 2, -dh / 2, dw, dh);
+            pc.drawImage(drawSrc, -dw / 2, -dh / 2, dw, dh);
           } else {
-            pc.drawImage(src, dx, dy, dw, dh);
+            pc.drawImage(drawSrc, dx, dy, dw, dh);
           }
           pc.filter = 'none';
           cx.drawImage(p, 0, 0);
         } else {
-          // Fast path: draw directly
+          // Fast path: draw directly (uses swapped w/h so the pre-rotated asset fits)
           cx.save();
           if (r.rot) {
             cx.translate(cw / 2 + r.x, chh / 2 + r.y);
             cx.rotate(r.rot * Math.PI / 180);
-            const ar = (a.w || src.naturalWidth || src.videoWidth || 1) / (a.h || src.naturalHeight || src.videoHeight || 1);
+            const ar = drawW / drawH;
             const canvasAR = cw / chh;
             let dw, dh;
             if (ar > canvasAR) { dh = chh * r.scale; dw = dh * ar; }
             else { dw = cw * r.scale; dh = dw / ar; }
-            cx.drawImage(src, -dw / 2, -dh / 2, dw, dh);
+            cx.drawImage(drawSrc, -dw / 2, -dh / 2, dw, dh);
           } else {
-            const ar = (a.w || src.naturalWidth || src.videoWidth || 1) / (a.h || src.naturalHeight || src.videoHeight || 1);
+            const ar = drawW / drawH;
             const canvasAR = cw / chh;
             let dw, dh, dx, dy;
             if (ar > canvasAR) { dh = chh * r.scale; dw = dh * ar; dx = (cw - dw) / 2 + r.x; dy = 0 + r.y; }
             else { dw = cw * r.scale; dh = dw / ar; dx = 0 + r.x; dy = (chh - dh) / 2 + r.y; }
-            cx.drawImage(src, dx, dy, dw, dh);
+            cx.drawImage(drawSrc, dx, dy, dw, dh);
           }
           cx.restore();
         }
