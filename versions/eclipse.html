@@ -773,22 +773,31 @@
     $('rec').onclick = () => recorder && recorder.state==='recording' ? stopRec() : startRec();
 
     // === Auto-load 27-item library from /library/manifest.json (matches sibling versions) ===
-    (function () {
-      if (window.SWR_LIBLOAD && window.Lib) {
-        // Two-phase: manifest + first 8 image thumbs synchronously,
-        // videos + remaining thumbs deferred to idle time. See
-        // client/library-loader.client.js for the implementation.
-        // window.__swrPhase2Done resolves when phase 2 finishes
-        // (verify tests can await it instead of magic setTimeouts).
-        window.SWR_LIBLOAD.boot({
-          manifestUrl: '../library/manifest.json',
-          filePrefix:  '../library/',
-          phase1Count: 8,
-          Lib: window.Lib,
-          doneFlag: 'swr-manifest-loaded',
-        }).then(() => { try { Layers.remap(); } catch (_) {} });
+    // Defer to DOMContentLoaded so the deferred `<script
+    // src="../client/library-loader.client.js">` (loaded in <head>
+    // with the defer attribute) has executed first. Without this,
+    // window.SWR_LIBLOAD is undefined when this IIFE runs and boot()
+    // silently never fires — a regression that shipped before this
+    // defer was added (see verify-library-loads.mjs for the guard).
+    function __swr_libboot() {
+      if (!window.SWR_LIBLOAD) return;
+      if (typeof Lib === 'undefined') {
+        console.warn('[swr-libload] inline Lib not found at boot time');
+        return;
       }
-    })();
+      window.SWR_LIBLOAD.boot({
+        manifestUrl: '../library/manifest.json',
+        filePrefix:  '../library/',
+        phase1Count: 8,
+        Lib: Lib,
+        doneFlag: 'swr-manifest-loaded',
+      }).then(() => { try { Layers.remap(); } catch (_) {} });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
+    } else {
+      __swr_libboot();
+    }
 
     // === Expose SWR for sibling scripts (match shape used by neon/film/grid/smoke/hallucination) ===
         // Invalidate the per-layer cache whenever the page rebuilds.

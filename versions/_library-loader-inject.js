@@ -31,22 +31,31 @@ const ENGINES = [
 
 const LOADER_SCRIPT_TAG = '<script src="../client/library-loader.client.js" defer></script>';
 
-const BOOT_REPLACEMENT = `    (function () {
-      if (window.SWR_LIBLOAD && window.Lib) {
-        // Two-phase: manifest + first 8 image thumbs synchronously,
-        // videos + remaining thumbs deferred to idle time. See
-        // client/library-loader.client.js for the implementation.
-        // window.__swrPhase2Done resolves when phase 2 finishes
-        // (verify tests can await it instead of magic setTimeouts).
-        window.SWR_LIBLOAD.boot({
-          manifestUrl: '../library/manifest.json',
-          filePrefix:  '../library/',
-          phase1Count: 8,
-          Lib: window.Lib,
-          doneFlag: 'swr-manifest-loaded',
-        }).then(() => { try { Layers.remap(); } catch (_) {} });
+const BOOT_REPLACEMENT = `    // Defer to DOMContentLoaded so the deferred \`<script
+    // src="../client/library-loader.client.js">\` (loaded in <head>
+    // with the defer attribute) has executed first. Without this,
+    // window.SWR_LIBLOAD is undefined when this IIFE runs and boot()
+    // silently never fires — a regression that shipped before this
+    // defer was added (see verify-library-loads.mjs for the guard).
+    function __swr_libboot() {
+      if (!window.SWR_LIBLOAD) return;
+      if (typeof Lib === 'undefined') {
+        console.warn('[swr-libload] inline Lib not found at boot time');
+        return;
       }
-    })();`;
+      window.SWR_LIBLOAD.boot({
+        manifestUrl: '../library/manifest.json',
+        filePrefix:  '../library/',
+        phase1Count: 8,
+        Lib: Lib,
+        doneFlag: 'swr-manifest-loaded',
+      }).then(() => { try { Layers.remap(); } catch (_) {} });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
+    } else {
+      __swr_libboot();
+    }`;
 
 let patched = 0, skipped = 0, failed = 0;
 
@@ -71,8 +80,34 @@ for (const name of ENGINES) {
   }
 
   // Replace the synchronous library boot block.
-  if (src.includes("window.SWR_LIBLOAD.boot")) {
+  // Idempotency: a page is considered patched if it has the
+  // SWR_LIBLOAD.boot call AND references Lib lexically (not via
+  // window.Lib — that was the broken v1 codemod) AND defers via
+  // DOMContentLoaded (the broken v2 codemod ran the boot
+  // synchronously inside the engine IIFE, but the loader script
+  // itself was deferred, so window.SWR_LIBLOAD was undefined at
+  // boot time).
+  const HAS_NEW_PATTERN  = src.includes("SWR_LIBLOAD.boot") &&
+                            !/Lib:\s*window\.Lib/.test(src) &&
+                            /DOMContentLoaded.*swr_libboot|__swr_libboot/.test(src);
+  const HAS_BROKEN_V1    = /Lib:\s*window\.Lib/.test(src);
+  const HAS_BROKEN_V2    = src.includes("SWR_LIBLOAD.boot") &&
+                            !HAS_NEW_PATTERN;
+  if (HAS_NEW_PATTERN) {
     // already done
+  } else if (HAS_BROKEN_V1 || HAS_BROKEN_V2) {
+    // Repair: replace the broken IIFE in place. The shape is
+    // consistent across all 13 pages — match the IIFE that wraps
+    // the SWR_LIBLOAD.boot call.
+    const brokenRe = /(    \(function \(\) \{\n      if \(window\.SWR_LIBLOAD[^)]*\) \{\n[\s\S]*?Layers\.remap\(\);[\s\S]*?\}\n    \}\)\(\);)/;
+    const bm = src.match(brokenRe);
+    if (bm) {
+      src = src.replace(bm[1], BOOT_REPLACEMENT);
+    } else {
+      console.log(`  ${name}.html: broken pattern not matched`);
+      failed++;
+      continue;
+    }
   } else {
     // Match the IIFE that contains the synchronous fetch. Each engine has
     // slight wording differences; match the broadest common shape:
