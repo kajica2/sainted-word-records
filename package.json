@@ -29,6 +29,7 @@
     "verify:autoplay": "node verify-autoplay.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
     "verify:library-loads": "node verify-library-loads.mjs",
+    "verify:collage-loads": "node verify-collage-loads.mjs",
     "verify:library-switcher": "node verify-library-switcher.mjs",
     "verify:music-video-maker": "node verify-music-video-maker.mjs",
     "verify:mvm-review-fixes": "node verify-mvm-review-fixes.mjs",

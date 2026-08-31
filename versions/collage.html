@@ -94,6 +94,7 @@
       text-transform: uppercase; color: var(--muted); margin-top: 14px; }
     #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
+  <script src="../client/library-loader.client.js" defer></script>
 </head>
 <body data-page="collage">
   <div id="app">
@@ -127,8 +128,9 @@
     let t0 = performance.now();
 
     // Magazine grid: 3 columns x 2 rows = 6 panels
-    // Each panel gets a synthetic pattern (no library assets loaded by default)
-    // When library assets ARE loaded, fill the next panel with the asset
+    // Each panel gets a synthetic pattern by default; once the
+    // library is loaded, panels are assigned library assets and
+    // paintPanel draws the asset instead of the synthetic pattern.
     const GRID = { cols: 3, rows: 2 };
     const GUTTER = 6;
     const panels = [];
@@ -140,8 +142,123 @@
           hue: 20 + (r * GRID.cols + c) * 47 % 360,
           sat: 30 + (r * GRID.cols + c) * 11 % 50,
           pattern: (r * GRID.cols + c) % 6,  // 0-5 patterns
+          asset: null,                         // assigned from Lib after load
         });
       }
+    }
+
+    // === LIBRARY ===
+    // Mirrors the inline Lib object used by the 13 main engines
+    // (aurora, chrome, eclipse, film, fractal, glitch, grid,
+    // hallucination, neon, pulse, smoke, void, watercolor) so the
+    // shared client/library-loader.client.js can populate it via
+    // SWR_LIBLOAD.boot({...}). Collage has no Layers object — the
+    // 6 panels themselves take library items.
+    const Lib = {
+      items: [],
+      nextId: 1,
+      async addFiles(files) {
+        const seen = new Set(this.items.map((i) => i.name + ':' + (i.blob ? i.blob.size : 0)));
+        for (const f of files) {
+          if (!f.type) continue;
+          const k = f.name + ':' + f.size;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          const it = {
+            id: this.nextId++,
+            name: f.name,
+            type: f.type.startsWith('video/') ? 'video' : 'image',
+            blob: f,
+            url: URL.createObjectURL(f),
+            motion: 0, luma: 0.5, hue: 0, w: 0, h: 0,
+            added: Date.now(),
+            thumb: null,
+          };
+          this.items.push(it);
+          this._classify(it);
+        }
+        assignPanelsFromLib();
+      },
+      _classify(it) {
+        // Tiny 32x32 sample to compute luma/hue for asset selection.
+        const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+        const cx = c.getContext('2d');
+        const src = it.type === 'video'
+          ? Object.assign(document.createElement('video'), { src: it.url, muted: true, playsInline: true, preload: 'metadata' })
+          : Object.assign(new Image(), { src: it.url });
+        src.addEventListener(src.tagName === 'VIDEO' ? 'loadeddata' : 'load', () => {
+          if (it.type === 'video') it.duration = src.duration;
+          try { cx.drawImage(src, 0, 0, 32, 32); } catch (_) {}
+          const d = cx.getImageData(0, 0, 32, 32).data;
+          let luma = 0;
+          for (let i = 0; i < d.length; i += 4) luma += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          it.luma = (luma / (d.length / 4)) / 255;
+          it.w = src.videoWidth || src.naturalWidth || 0;
+          it.h = src.videoHeight || src.naturalHeight || 0;
+        }, { once: true });
+      },
+    };
+
+    // Round-robin assign the first N library items to the 6 panels.
+    // Images + videos both qualify; later beats cycle the assignment
+    // for the "cut" effect.
+    let __collageLibCursor = 0;
+    function assignPanelsFromLib() {
+      if (!Lib.items.length) return;
+      for (let i = 0; i < panels.length; i++) {
+        const p = panels[i];
+        const it = Lib.items[(__collageLibCursor + i) % Lib.items.length];
+        p.asset = it;
+        // Force creation of the underlying media element so it's
+        // ready by the time paintPanel runs. Videos get a muted
+        // autoplay-friendly element; images are pre-decoded.
+        if (it.type === 'video' && !it._el) {
+          const v = document.createElement('video');
+          v.src = it.url; v.muted = true; v.loop = true;
+          v.playsInline = true; v.preload = 'auto';
+          it._el = v;
+        } else if (it.type === 'image' && !it._el) {
+          const im = new Image();
+          im.src = it.url;
+          it._el = im;
+        }
+      }
+    }
+    // Advance the cursor on strong beats so the panels "cut" to a
+    // new set of clips (matches the page's "beat-synced cuts" copy).
+    let __collageLastCutT = -1;
+    function maybeCutPanels(t, feat) {
+      if (feat.beat < 0.4) return;
+      if (t - __collageLastCutT < 0.45) return;  // ~130 BPM max
+      __collageLastCutT = t;
+      if (Lib.items.length <= panels.length) return;
+      __collageLibCursor = (__collageLibCursor + panels.length) % Lib.items.length;
+      assignPanelsFromLib();
+    }
+
+    // Defer to DOMContentLoaded so the deferred
+    // `<script src="../client/library-loader.client.js">` in <head>
+    // has executed first. Without this, window.SWR_LIBLOAD is
+    // undefined when this IIFE runs and boot() silently never
+    // fires — same guard used by the 13 main engines.
+    function __swr_libboot() {
+      if (!window.SWR_LIBLOAD) return;
+      if (typeof Lib === 'undefined') {
+        console.warn('[swr-libload] inline Lib not found at boot time');
+        return;
+      }
+      window.SWR_LIBLOAD.boot({
+        manifestUrl: '../library/manifest.json',
+        filePrefix:  '../library/',
+        phase1Count: 8,
+        Lib: Lib,
+        doneFlag: 'swr-manifest-loaded',
+      }).then(() => { try { assignPanelsFromLib(); } catch (_) {} });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
+    } else {
+      __swr_libboot();
     }
 
     function getAudioFeat() {
@@ -165,8 +282,43 @@
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
 
-      // Panel-specific content (synthetic patterns — would be library assets in production)
-      switch (panel.pattern) {
+      // Library asset (when assigned). Falls back to the synthetic
+      // pattern below if the asset isn't ready yet.
+      let drewAsset = false;
+      if (panel.asset) {
+        const a = panel.asset;
+        if (a._el) {
+          const ready = a.type === 'video'
+            ? (a._el.readyState >= 2)
+            : (a._el.complete && a._el.naturalWidth > 0);
+          if (ready) {
+            // Cover-fit the asset into the panel.
+            const srcW = a.type === 'video' ? (a._el.videoWidth || a.w) : (a._el.naturalWidth || a.w);
+            const srcH = a.type === 'video' ? (a._el.videoHeight || a.h) : (a._el.naturalHeight || a.h);
+            if (srcW > 0 && srcH > 0) {
+              const ar = srcW / srcH, par = w / h;
+              let dw, dh;
+              if (ar > par) { dh = h; dw = dh * ar; } else { dw = w; dh = dw / ar; }
+              const dx = x + (w - dw) / 2;
+              const dy = y + (h - dh) / 2;
+              // Videos get a subtle punch on heavy beats.
+              if (a.type === 'video') {
+                if (window.SWR && window.SWR.Audio && window.SWR.Audio.playing && a._el.paused) {
+                  a._el.play().catch(() => {});
+                } else if (window.SWR && window.SWR.Audio && !window.SWR.Audio.playing && !a._el.paused) {
+                  a._el.pause();
+                }
+              }
+              ctx.drawImage(a._el, dx, dy, dw, dh);
+              drewAsset = true;
+            }
+          }
+        }
+      }
+
+      // Panel-specific content (synthetic patterns — used as a
+      // fallback when no library asset is assigned or ready).
+      if (!drewAsset) switch (panel.pattern) {
         case 0: { // Big circle
           const cr = Math.min(w, h) * 0.35 * (1 + feat.bass * 0.1);
           ctx.fillStyle = `hsl(${panel.hue}, ${panel.sat}%, 60%)`;
@@ -257,6 +409,7 @@
       const t = (performance.now() - t0) / 1000;
       const W = stage.width, H = stage.height;
       const feat = getAudioFeat();
+      maybeCutPanels(t, feat);
 
       // Paper background
       ctx.fillStyle = '#f4f0e8';
@@ -302,6 +455,10 @@
       window.SWR = window.SWR || {};
       window.SWR.Audio = window.SWR.Audio || {};
       window.SWR.Audio.feat = feat;
+      // Expose Library + panels so verify scripts and other consumers
+      // can read the same shape the 13 main engines expose.
+      window.SWR.Library = Lib;
+      window.SWR.collage_panels = panels;
 
       requestAnimationFrame(paint);
     }
