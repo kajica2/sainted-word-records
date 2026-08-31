@@ -46,6 +46,15 @@ for (const name of ENGINES) {
   let src = fs.readFileSync(file, 'utf8');
   const before = src;
 
+  // Repair the v1 codemod's bad output (double `))`) if present.
+  // This makes re-runs of the codemod safe — old broken state gets
+  // fixed before the new patch logic runs.
+  if (src.includes('willReadFrequently: true }))')) {
+    src = src.replace(/willReadFrequently: true \}\)\)/g,
+                       'willReadFrequently: true })');
+    console.log(`  ${name}.html: repaired bad v1 codemod output`);
+  }
+
   if (src.includes('willReadFrequently: true')) {
     console.log(`  ${name}.html: already patched`);
     alreadyPatched++;
