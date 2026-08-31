@@ -90,9 +90,17 @@
       audio.onset && audio.onset.length ? 'onset: ' + audio.onset.join(',') : '',
     ].filter(Boolean).join(' · ');
     const tags = (p.preview && p.preview.tags) || [];
-    const safeThumb = (p.preview && p.preview.thumbnail_svg) || '<svg width="80" height="80" xmlns="http://www.w3.org/2000/svg"></svg>';
+    // Prefer the live first-frame preview (cached in window.SWR_PRESET_PREVIEW
+    // by preset-preview.client.js) over the static SVG. The cache is async —
+    // if a render is still in flight or hasn't started, we either kick one
+    // off (on hover) or fall back to the SVG so the card never blanks.
+    const cachedFrame = (window.SWR_PRESET_PREVIEW && window.SWR_PRESET_PREVIEW.get(p.id)) || null;
+    const svgThumb = (p.preview && p.preview.thumbnail_svg) || '<svg width="80" height="80" xmlns="http://www.w3.org/2000/svg"></svg>';
+    const initialThumb = cachedFrame
+      ? `<img class="presets-card-frame" src="${cachedFrame}" alt="" loading="lazy" />`
+      : svgThumb;
     card.innerHTML = `
-      <div class="presets-card-thumb">${safeThumb}</div>
+      <div class="presets-card-thumb" data-thumb-mount>${initialThumb}</div>
       <div class="presets-card-body">
         <div class="presets-card-name">${escapeHtml(p.name || p.id)}</div>
         <div class="presets-card-meta">
@@ -120,6 +128,40 @@
         <button class="presets-dismiss" type="button" data-id="${escapeAttr(p.id)}">Dismiss</button>
       </div>
     `;
+    const thumbMount = card.querySelector('[data-thumb-mount]');
+    // Swap SVG -> rendered first frame as soon as the preview cache has it.
+    // If the render is still in flight (e.g. just-loaded), request it now
+    // and listen for the swr-preset-preview-ready event to do the swap.
+    function swapToFrameIfReady() {
+      const dataURL = window.SWR_PRESET_PREVIEW && window.SWR_PRESET_PREVIEW.get(p.id);
+      if (dataURL && thumbMount) {
+        const existing = thumbMount.querySelector('img.presets-card-frame');
+        if (existing) existing.src = dataURL;
+        else {
+          thumbMount.innerHTML = '';
+          const img = document.createElement('img');
+          img.className = 'presets-card-frame';
+          img.src = dataURL;
+          img.alt = '';
+          img.loading = 'lazy';
+          thumbMount.appendChild(img);
+        }
+      }
+    }
+    if (!cachedFrame) {
+      if (window.SWR_PRESET_PREVIEW && typeof window.SWR_PRESET_PREVIEW.render === 'function') {
+        window.SWR_PRESET_PREVIEW.render(p).then(swapToFrameIfReady).catch(() => {});
+      }
+      // Also subscribe to the ready event in case another consumer finished
+      // the render while we were attaching the listener.
+      const onReady = (e) => {
+        if (e && e.detail && e.detail.id === p.id) {
+          swapToFrameIfReady();
+          window.removeEventListener('swr-preset-preview-ready', onReady);
+        }
+      };
+      window.addEventListener('swr-preset-preview-ready', onReady);
+    }
     card.querySelector('.presets-apply').addEventListener('click', () => {
       if (!window.SWR_PRESETS) return;
       const r = window.SWR_PRESETS.apply(p.id);

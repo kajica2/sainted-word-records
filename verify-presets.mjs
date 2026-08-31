@@ -108,7 +108,12 @@ const fail = (m) => { checks.push({ ok: false, m }); console.log('✗', m); };
       hasFamily: !!c.querySelector('.presets-card-family')?.textContent.trim(),
       hasDesc: !!c.querySelector('.presets-card-desc')?.textContent.trim(),
       paletteCount: c.querySelectorAll('.presets-color').length,
-      hasThumb: !!c.querySelector('.presets-card-thumb svg'),
+      // Thumb can be either the static SVG fallback OR the live rendered
+      // first frame from preset-preview.client.js.
+      hasThumb: !!(
+        c.querySelector('.presets-card-thumb svg') ||
+        c.querySelector('.presets-card-thumb img.presets-card-frame')
+      ),
       hasApply: !!c.querySelector('.presets-apply'),
       hasDismiss: !!c.querySelector('.presets-dismiss'),
     };
