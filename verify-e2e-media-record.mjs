@@ -110,6 +110,14 @@ try {
   });
 
   await step('audio element is loaded + playing', async () => {
+    // The auto-start overlay requires a user gesture (browser
+    // autoplay policy). Click it to trigger SWR.Audio.load() and
+    // play(). Then wait for the audio element to reach HAVE_ENOUGH_DATA.
+    await page.evaluate(() => {
+      const o = document.getElementById('swr-start');
+      if (o) o.click();
+    });
+    await new Promise((r) => setTimeout(r, 2500));
     const a = await page.evaluate(() => ({
       el: !!window.SWR.Audio.el,
       readyState: window.SWR.Audio.el ? window.SWR.Audio.el.readyState : 0,

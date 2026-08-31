@@ -239,6 +239,27 @@
       display: block;
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
     }
+  
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--ink);
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid var(--r);
+      background: rgba(0,0,0,0.65);
+      box-shadow: 0 0 32px var(--r);
+    }
+    #swr-start .arrow { font-size: 56px; color: var(--r); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--g); margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
@@ -302,6 +323,55 @@
       <span id="fps" style="color:var(--warm);">— fps</span>
     </footer>
   </div>
+
+  
+  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../audios/smoke.mp3';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    async function start() {
+      if (fired) return;
+      fired = true;
+      try {
+        // Prefer the user's last-loaded song (from engine.html IDB),
+        // fall back to the per-page bundled audio.
+        var picked = window.SWR_PICK_DEFAULT_SONG
+          ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
+          : null;
+        if (!picked) throw new Error('no song source available');
+        var blob = picked.blob;
+        var name = picked.name;
+        var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          window.SWR.Audio.load(file);
+          window.SWR.Audio.play();
+          if (sub) {
+            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
+            sub.textContent = tag + name;
+          }
+        }
+      } catch (e) {
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
 
   <script src="./last-song.js"></script>
   <script src="../lib/persist.client.js"></script>
