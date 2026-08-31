@@ -114,10 +114,26 @@ SCOPE_FLAG=""
 if [ -n "${VERCEL_SCOPE:-}" ]; then
   SCOPE_FLAG="--scope $VERCEL_SCOPE"
 elif vercel whoami >/dev/null 2>&1; then
-  # `vercel whoami` resolves the active scope; if the project team differs,
-  # the deploy errors with "Could not retrieve Project Settings" — fall back
-  # to the team `vercel ls` reports for this project.
-  PROJECT_TEAM="$(vercel ls sainted-word-records --yes 2>/dev/null | grep -oE 'in [a-zA-Z0-9_-]+' | head -1 | awk '{print $2}')"
+  # `vercel ls <project>` writes only URLs to stdout and the
+  # "Fetching deployments in <team>" header to stderr — so grep stdout
+  # for `in <team>` matches nothing. The deployment URLs themselves
+  # contain the team slug (e.g. https://sainted-word-records-<hash>-kai-djurics-projects.vercel.app),
+  # so extract from there.
+  #
+  # Capture both streams, then look for either:
+  #   1) the stderr "in <team>" header (older CLI versions)
+  #   2) the team slug in a deployment URL (current CLI behavior)
+  LS_OUT="$(vercel ls sainted-word-records --yes 2>&1)"
+  PROJECT_TEAM="$(printf '%s\n' "$LS_OUT" \
+    | grep -oE 'in [a-zA-Z0-9_-]+' \
+    | head -1 \
+    | awk '{print $2}')"
+  if [ -z "$PROJECT_TEAM" ]; then
+    PROJECT_TEAM="$(printf '%s\n' "$LS_OUT" \
+      | grep -oE 'https?://sainted-word-records-[a-zA-Z0-9_-]+' \
+      | head -1 \
+      | sed -E 's|.*-kai-djurics-projects\.vercel\.app$|kai-djurics-projects|;s|.*-([a-zA-Z0-9_-]+)\.vercel\.app$|\1|')"
+  fi
   if [ -n "$PROJECT_TEAM" ]; then
     SCOPE_FLAG="--scope $PROJECT_TEAM"
   fi
