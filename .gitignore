@@ -83,3 +83,4 @@ _gen_*.py
 # Throwaway smoke/probe scripts (debug on demand, not part of the JS build)
 _probe_*.mjs
 _smoke_*.mjs
+.env*
