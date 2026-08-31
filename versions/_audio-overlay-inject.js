@@ -120,6 +120,7 @@ function buildOverlay(defaultSong) {
     async function start() {
       if (fired) return;
       fired = true;
+      var succeeded = false;
       try {
         // Prefer the user's last-loaded song (from engine.html IDB),
         // fall back to the per-page bundled audio.
@@ -138,12 +139,26 @@ function buildOverlay(defaultSong) {
             sub.textContent = tag + name;
           }
         }
+        succeeded = true;
       } catch (e) {
+        // Failure path: leave the overlay visible so the user can
+        // click again. Reset the fired flag so the click handler
+        // can fire a fresh attempt. Without this, a single failed
+        // autoplay leaves the user stranded — the overlay disappears
+        // and the "tap to start" hint vanishes with it. This is the
+        // exact "media is not loading" symptom we were trying to
+        // avoid.
+        fired = false;
         if (sub) sub.textContent = 'tap "load song" to start';
         console.warn('swr auto-start failed:', e);
       }
-      overlay.classList.add('hide');
-      setTimeout(function(){ overlay.remove(); }, 600);
+      // Only hide + remove the overlay on success. The overlay is
+      // the manual fallback for browsers that still block autoplay;
+      // removing it on failure strands the user with no retry path.
+      if (succeeded) {
+        overlay.classList.add('hide');
+        setTimeout(function(){ overlay.remove(); }, 600);
+      }
     }
 
     // Track a one-shot user gesture anywhere on the page to arm the
@@ -213,22 +228,38 @@ for (const target of TARGETS) {
   // v3 pattern (with the waitForPick race fix). The v1 pattern
   // (just the click handler) and the v2 pattern (no race fix) get
   // re-patched.
-  const HAS_V3_PATTERN  = /function waitForPick/.test(src);
-  const HAS_V2_PATTERN  = /canAutoplay|swr\.audio\.armed/.test(src) && !HAS_V3_PATTERN;
+  // v3-with-failure-fix: the current canonical overlay. Has the
+  // `var succeeded = false;` guard plus the conditional hide+remove.
+  // Pages that match this are up-to-date — skip.
+  // v3-without-fix: the original v3 from commit 7d9bb75. Has
+  // `function waitForPick` but lacks the failure-path guard. Needs
+  // re-patch to upgrade.
+  const HAS_V3_FIXED = /var succeeded = false;/.test(src);
+  const HAS_V3_OLD   = /function waitForPick/.test(src) && !HAS_V3_FIXED;
+  const HAS_V2_PATTERN  = /canAutoplay|swr\.audio\.armed/.test(src) && !HAS_V3_OLD && !HAS_V3_FIXED;
   const HAS_V1_PATTERN  = src.includes('id="swr-start"') && !HAS_V2_PATTERN;
   const HAS_BROKEN_OVERLAY_CLICK = /overlay\.addEventListener\('click',\s*start,\s*\{\s*once:\s*true\s*\}\);/.test(src);
 
-  if (HAS_V3_PATTERN) {
-    console.log(`  ${target.file}: already patched (v3)`);
+  if (HAS_V3_FIXED) {
+    console.log(`  ${target.file}: already patched (v3 with failure fix)`);
     alreadyPatched++;
     continue;
   }
 
-  // For pages with v1 (broken) or v2 (race-condition) pattern, repair
-  // by replacing the entire overlay IIFE block. The shape is consistent
-  // across all 6 patched pages: an inline <script>...</script> block
-  // that contains the overlay IIFE.
-  if (HAS_BROKEN_OVERLAY_CLICK || HAS_V2_PATTERN) {
+  // v3-without-fix gets re-patched: the codemod will replace the
+  // entire overlay block with the canonical template (which now
+  // includes the failure-path guard). The HAS_BROKEN_OVERLAY_CLICK
+  // check below intentionally does NOT match v3-old (no
+  // `once: true` on the click handler), so we use HAS_V3_OLD as an
+  // additional repair trigger.
+  const NEEDS_REPAIR = HAS_BROKEN_OVERLAY_CLICK || HAS_V2_PATTERN || HAS_V3_OLD;
+
+  // For pages with v1 (broken), v2 (race-condition), or v3-old
+  // (missing the failure-path fix) pattern, repair by replacing
+  // the entire overlay IIFE block. The shape is consistent across
+  // all patched pages: an inline <script>...</script> block that
+  // contains the overlay IIFE.
+  if (NEEDS_REPAIR) {
     // The original v1 overlay block: <div id="swr-start" ...></div>
     // followed by a <script> IIFE that ends with `})();\n</script>`.
     // The exact whitespace before <div>, before })(), and before
@@ -245,7 +276,8 @@ for (const target of TARGETS) {
     const bm = src.match(brokenRe);
     if (bm) {
       src = src.replace(bm[1], buildOverlay(target.song) + '\n');
-      console.log(`  ${target.file}: repaired v${HAS_BROKEN_OVERLAY_CLICK ? '1' : '2'} → v3 overlay`);
+      const fromVer = HAS_BROKEN_OVERLAY_CLICK ? '1' : (HAS_V2_PATTERN ? '2' : '3 (no failure fix)');
+      console.log(`  ${target.file}: repaired v${fromVer} → v3 with failure fix`);
       if (src === before) { console.log(`  ${target.file}: no change`); skipped++; continue; }
       fs.writeFileSync(file, src, 'utf8');
       patched++;

@@ -883,6 +883,7 @@
   <script src="../lib/persist-wire.client.js"></script>
 
   
+  
   <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
     <div class="box">
       <div class="arrow">▶</div>
@@ -914,6 +915,7 @@
     async function start() {
       if (fired) return;
       fired = true;
+      var succeeded = false;
       try {
         // Prefer the user's last-loaded song (from engine.html IDB),
         // fall back to the per-page bundled audio.
@@ -932,12 +934,26 @@
             sub.textContent = tag + name;
           }
         }
+        succeeded = true;
       } catch (e) {
+        // Failure path: leave the overlay visible so the user can
+        // click again. Reset the fired flag so the click handler
+        // can fire a fresh attempt. Without this, a single failed
+        // autoplay leaves the user stranded — the overlay disappears
+        // and the "tap to start" hint vanishes with it. This is the
+        // exact "media is not loading" symptom we were trying to
+        // avoid.
+        fired = false;
         if (sub) sub.textContent = 'tap "load song" to start';
         console.warn('swr auto-start failed:', e);
       }
-      overlay.classList.add('hide');
-      setTimeout(function(){ overlay.remove(); }, 600);
+      // Only hide + remove the overlay on success. The overlay is
+      // the manual fallback for browsers that still block autoplay;
+      // removing it on failure strands the user with no retry path.
+      if (succeeded) {
+        overlay.classList.add('hide');
+        setTimeout(function(){ overlay.remove(); }, 600);
+      }
     }
 
     // Track a one-shot user gesture anywhere on the page to arm the
@@ -992,6 +1008,8 @@
     }, { once: true });
   })();
   </script>
+
+
 
 
 </body>
