@@ -5348,6 +5348,8 @@
             // Phase 2 — defer to idle time. If rIC isn't available, fall back
             // to a short setTimeout so we still don't block first paint.
             const phase2Files = [...imageFiles.slice(8), ...videoFiles];
+            let phase2Resolve;
+            window.__swrPhase2Done = new Promise((res) => { phase2Resolve = res; });
             if (phase2Files.length) {
               const runPhase2 = async () => {
                 const blobs = await Promise.all(phase2Files.map(async f => {
@@ -5356,14 +5358,16 @@
                 }));
                 await Library.addFiles(blobs.map(({ name, blob }) => new File([blob], name, { type: blob.type })));
                 localStorage.setItem('swr-manifest-loaded', '1');
+                phase2Resolve();
               };
               if (typeof requestIdleCallback === 'function') {
-                requestIdleCallback(() => { runPhase2().catch(() => {}); }, { timeout: 5000 });
+                requestIdleCallback(() => { runPhase2().catch(() => phase2Resolve()); }, { timeout: 5000 });
               } else {
-                setTimeout(() => { runPhase2().catch(() => {}); }, 100);
+                setTimeout(() => { runPhase2().catch(() => phase2Resolve()); }, 100);
               }
             } else {
               localStorage.setItem('swr-manifest-loaded', '1');
+              phase2Resolve();
             }
           }
         } catch (e) {

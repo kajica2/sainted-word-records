@@ -24,6 +24,12 @@
 
   const LS_DPR_CAP = 'swr.render.dprCap';
   const LS_AUTO_DPR = 'swr.render.autoDpr';
+  // Lower bound chosen by the auto-DPR step-DOWN heuristic. Persisted so
+  // it survives fit() — fit() calls devicePixelRatio() on every dirty
+  // frame and would otherwise overwrite state.dpr with the cap value,
+  // silently undoing the autoDpr adjustment. Cleared when the user steps
+  // back UP to the natural cap or disables autoDpr.
+  const LS_DPR_AUTO_LOW = 'swr.render.dprAutoLow';
 
   // ---- state ------------------------------------------------------------
 
@@ -49,6 +55,7 @@
     autoDprDownThresholdMs: 18, // step DOWN if avg frame > 18ms (missing 60fps)
     _frameSamples: [],        // rolling window of frame times
     _lastDprAdjustAt: 0,
+    _lastBeat: -1,            // last beat value seen by audioFingerprint() (for memo invalidation)
   };
 
   function isAutoDprEnabled() {
@@ -63,7 +70,17 @@
   function devicePixelRatio() {
     let cap = 2;
     try { const v = parseFloat(localStorage.getItem(LS_DPR_CAP)); if (v > 0 && isFinite(v)) cap = v; } catch (_) {}
-    return Math.min(window.devicePixelRatio || 1, cap);
+    const natural = Math.min(window.devicePixelRatio || 1, cap);
+    // Honor the auto-DPR step-down lower bound if set. Without this the
+    // autoAdjustDpr() mutation gets clobbered by the next fit() call:
+    // fit() invokes devicePixelRatio() which would return the natural
+    // (cap-clamped) DPR, silently undoing the auto-adjustment on every
+    // dirty frame. Stepping UP clears the bound so the user returns to
+    // the natural cap; setAutoDpr(false) also clears it.
+    let low = 0;
+    try { const v = parseFloat(localStorage.getItem(LS_DPR_AUTO_LOW)); if (v > 0 && isFinite(v)) low = v; } catch (_) {}
+    if (low > 0 && low < natural) return low;
+    return natural;
   }
 
   function setDprCap(n) {
@@ -74,6 +91,11 @@
   function setAutoDpr(on) {
     state.autoDpr = !!on;
     try { localStorage.setItem(LS_AUTO_DPR, on ? '1' : '0'); } catch (_) {}
+    if (!on) {
+      // Disabling clears the step-down bound so the next fit() returns
+      // to the natural cap immediately.
+      try { localStorage.removeItem(LS_DPR_AUTO_LOW); } catch (_) {}
+    }
     state._frameSamples = [];
     state._lastDprAdjustAt = 0;
   }
@@ -99,6 +121,12 @@
       const next = Math.max(1, +(state.dpr - 0.25).toFixed(2));
       if (next !== state.dpr) {
         state.dpr = next;
+        // Persist the step-down lower bound so fit()'s next call to
+        // devicePixelRatio() returns the auto-chosen value instead of
+        // silently resetting to the cap. Without this, the autoDpr
+        // feature is a no-op on every device where natural DPR > cap
+        // (every iPhone, iPad, and most Android phones since 2018).
+        try { localStorage.setItem(LS_DPR_AUTO_LOW, String(next)); } catch (_) {}
         state.dirty = true;
         state._lastDprAdjustAt = now;
         state._frameSamples = [];
@@ -107,6 +135,11 @@
       const next = Math.min(target, +(state.dpr + 0.25).toFixed(2));
       if (next !== state.dpr) {
         state.dpr = next;
+        // Stepping back UP to the natural cap clears the bound so the
+        // next fit() doesn't keep clamping us at the previous step-down.
+        if (next >= target) {
+          try { localStorage.removeItem(LS_DPR_AUTO_LOW); } catch (_) {}
+        }
         state.dirty = true;
         state._lastDprAdjustAt = now;
         state._frameSamples = [];
@@ -192,10 +225,20 @@
   let _lastAudioHashAt = 0;
   function audioFingerprint() {
     const now = performance.now();
+    const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+    // Beat onset detection: a hard beat (analyser fires beat=1.0 in one
+    // frame, drops to 0 the next) within the memo TTL would produce a
+    // stale cache key for one frame — visible as a one-frame lag on
+    // bass-driven layers. Invalidate the memo whenever beat flips so
+    // the very next cache key includes the new value. Cheap (one int
+    // compare per call).
+    if (state._lastBeat !== f.beat) {
+      state._lastBeat = f.beat;
+      _lastAudioHashAt = 0;
+    }
     if (_lastAudioHash && (now - _lastAudioHashAt) < FINGERPRINT_TTL_MS) {
       return _lastAudioHash;
     }
-    const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
     const round = (v) => Math.round((v || 0) * 10);
     _lastAudioHash = round(f.bass) + '|' + round(f.mid) + '|' + round(f.treble) + '|' +
                      round(f.rms) + '|' + round(f.centroid) + '|' + round(f.beat) + '|' +

@@ -465,6 +465,15 @@
       if (!overlayVisible) {
         out.style.display = '';
         overlayVisible = true;
+        // Reset the shader clock on the inactive→active transition so
+        // animations don't snap forward by however long FX was off.
+        // u_time drives fbm/voronoi/grain/glitch slots; a 30s jump skips
+        // 360 glitch slots and produces a hard-reset visual. Cheap fix:
+        // treat the resume moment as t0. The shader will still pick up
+        // exactly where it left off in pattern space because all the
+        // noise functions are seeded by u_time + position; only the
+        // pattern INDEX resets, not the visual continuity.
+        t0 = performance.now();
       }
       const now = performance.now();
       state.time = (now - t0) / 1000;
