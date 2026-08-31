@@ -4656,11 +4656,16 @@
           if (e && e.unsupported) {
             setStatus('WebCodecs unsupported, falling back to MediaRecorder', 'warn');
             this._wcActive = false;
-            // Re-enter the standard path. Note: re-fit may double-fit the
-            // canvas; safe because Renderer.fitToSize is idempotent for
-            // matching dimensions.
+            // Re-enter the standard path. SWR_RECORDER_WORKER is toggled off
+            // for the recursive call so start() takes the MediaRecorder
+            // branch instead of bouncing back into _startWebCodecs (which
+            // would throw unsupported again and infinite-loop). The flag
+            // is restored in `finally` so the next visit still opts in.
+            const prevFlag = window.SWR_RECORDER_WORKER;
+            window.SWR_RECORDER_WORKER = false;
             this._prevCanvasSize = null;
-            return this.start();
+            try { this.start(); } finally { window.SWR_RECORDER_WORKER = prevFlag; }
+            return;
           }
           setStatus(`recorder start failed: ${e.message || e}`, 'err');
           this._wcActive = false;
