@@ -4752,10 +4752,10 @@
       };
         // Library
         $('add-assets').addEventListener('click', () => $('asset-input').click());
-        $('clear-all').addEventListener('click', async () => {
-          if (!confirm('Erase all uploaded assets and the saved song from this browser?')) return;
-          await Library.clearAll();
-        });
+        // The 'clear-all' button is now wired by /lib/reset-state.client.js,
+        // which wipes assets + songs + sets across every IDB the product
+        // uses and reloads the page. The old inline Library.clearAll() path
+        // is gone — see lib/reset-state.client.js for the full scope.
         // .swr-set save / import (marketplace v1: file-based)
         $('save-set').addEventListener('click', async () => {
           if (!window.SWR_SETS) {
@@ -5512,6 +5512,7 @@
   <script src="/lib/persist.client.js"></script>
   <script src="/lib/persist-wire.client.js"></script>
   <script src="/lib/persist-fx.client.js"></script>
+  <script src="/lib/reset-state.client.js"></script>
   <script type="module" src="/share.client.js"></script>
   <script type="module" src="/pwa-bootstrap.js"></script>
   <script type="module" src="/pt.client.js"></script>

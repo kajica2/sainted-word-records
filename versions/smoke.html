@@ -251,6 +251,7 @@
 <script src="../engine-keys.client.js"></script>
 <script src="../project.client.js"></script>
 <script src="../layer-scheduler.client.js"></script>
+<script src="../lib/reset-state.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="smoke">
@@ -277,7 +278,7 @@
       <a class="nav" href="hallucination.html">→ hallucination</a>
     </header>
     <aside class="lib">
-      <div class="head"><h2>library</h2><button class="tbtn" id="add" style="padding:4px 12px;">+</button>
+      <div class="head"><h2>library</h2><button class="tbtn" id="add" style="padding:4px 12px;">+</button><button class="tbtn" id="reset-state" style="padding:4px 12px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
       <div class="body"><div id="lib"></div></div>
     </aside>

@@ -375,6 +375,7 @@
 <script src="../engine-keys.client.js"></script>
 <script src="../project.client.js"></script>
 <script src="../layer-scheduler.client.js"></script>
+<script src="../lib/reset-state.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="pulse">
@@ -414,7 +415,7 @@
       <button type="button" data-preset="void"   data-slot="9"><kbd>⇧9</kbd><span>VOID</span></button>
     </section>
     <aside class="lib">
-      <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button>
+      <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
       <div class="body"><div id="lib"></div>
         <div id="swr-user-media" class="swr-user-media">
