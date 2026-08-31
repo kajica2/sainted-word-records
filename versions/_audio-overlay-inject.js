@@ -25,13 +25,38 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Pages known to be missing the auto-load overlay. gallery.html is
 // excluded — it's a marketing page that links TO engines, not an
 // engine page itself (no engine IIFE, no SWR, no Audio module).
+//
+// The 13 main reactive engines + collage (which loads library media
+// in panels). The 3 decorative engines (spectrum/typography/collage)
+// have hard-coded DEFAULT_SONGs pointing to MP3s that were never
+// created (collage.mp3 / spectrum.mp3 / typography.mp3 don't exist
+// in audios/). They fall back to the shared loop WAVs that the other
+// decorative engines use — same shape as the engine, just no bespoke
+// demo audio.
 const TARGETS = [
-  { file: 'eclipse.html',     song: '../audios/eclipse.mp3' },
-  { file: 'film.html',        song: '../audios/film.mp3' },
-  { file: 'grid.html',        song: '../audios/grid.mp3' },
-  { file: 'hallucination.html', song: '../audios/hallucination.mp3' },
-  { file: 'neon.html',        song: '../audios/neon.mp3' },
-  { file: 'smoke.html',       song: '../audios/smoke.mp3' },
+  // 13 main reactive engines
+  { file: 'aurora.html',         song: '../audios/aurora.mp3' },
+  { file: 'chrome.html',         song: '../audios/chrome.mp3' },
+  { file: 'eclipse.html',        song: '../audios/eclipse.mp3' },
+  { file: 'film.html',           song: '../audios/film.mp3' },
+  { file: 'fractal.html',        song: '../audios/fractal.mp3' },
+  { file: 'glitch.html',         song: '../audios/glitch.mp3' },
+  { file: 'grid.html',           song: '../audios/grid.mp3' },
+  { file: 'hallucination.html',  song: '../audios/hallucination.mp3' },
+  { file: 'neon.html',           song: '../audios/neon.mp3' },
+  { file: 'pulse.html',          song: '../audios/pulse.mp3' },
+  { file: 'smoke.html',          song: '../audios/smoke.mp3' },
+  { file: 'void.html',           song: '../audios/void.mp3' },
+  { file: 'watercolor.html',     song: '../audios/watercolor.mp3' },
+  // collage has a real library pipeline (panels load clips + video)
+  // but its bespoke collage.mp3 was never created. Fall back to
+  // loop-grain.wav so the auto-start actually plays something.
+  { file: 'collage.html',        song: '../library/audio/loop-grain.wav' },
+  // Decorative engines with missing demo audio. Each gets a loop
+  // that suits its visual (loop-demo for the spectrum visualizer,
+  // loop-shimmer for the typography temperature slider).
+  { file: 'spectrum.html',       song: '../library/audio/loop-demo.wav' },
+  { file: 'typography.html',     song: '../library/audio/loop-shimmer.wav' },
 ];
 
 // CSS block to inject right before </style>. Matches the
@@ -204,7 +229,19 @@ for (const target of TARGETS) {
   // across all 6 patched pages: an inline <script>...</script> block
   // that contains the overlay IIFE.
   if (HAS_BROKEN_OVERLAY_CLICK || HAS_V2_PATTERN) {
-    const brokenRe = /(  <div id="swr-start"[\s\S]*?  \}\)\(\);\n  <\/script>\n)/;
+    // The original v1 overlay block: <div id="swr-start" ...></div>
+    // followed by a <script> IIFE that ends with `})();\n</script>`.
+    // The exact whitespace before <div>, before })(), and before
+    // </script> varies across the 13+8 engines (some pages indent by
+    // 2 spaces, some have <div> flush with the previous line). Match
+    // any whitespace, not a fixed indent.
+    //
+    // Capture group required — bm[1] is the matched text, not the
+    // regex match object. Without `()`, bm[1] is undefined and
+    // String.replace(undefined, …) would replace the literal
+    // "undefined" somewhere in the page (e.g. `typeof x !==
+    // 'undefined'`).
+    const brokenRe = /(<div id="swr-start"[\s\S]*?\}\)\(\);\s*<\/script>)/;
     const bm = src.match(brokenRe);
     if (bm) {
       src = src.replace(bm[1], buildOverlay(target.song) + '\n');
