@@ -3181,6 +3181,24 @@
       const preset = VISUAL_PRESETS[key];
       if (!preset) return;
       window._activePreset = preset;
+      // Auto-populate the stage when the user picks a preset on an
+      // empty canvas: presets are styled for N layers (the preset's
+      // reactors/blends/fills array length). Picking pulse on an empty
+      // stage used to do nothing visible because the apply-loop was
+      // gated on Layers.list.length > 0. Pick N images from the library
+      // and add them as layers so the preset has something to style.
+      if (Layers && Layers.list && Layers.list.length === 0 && Library && Library.items && Library.items.length) {
+        // N = the largest array in the preset (whichever has the most
+        // entries); fall back to 4 (the typical preset shape) if no
+        // arrays defined.
+        const arrs = ['reactors', 'blends', 'fills'].map(k => Array.isArray(preset[k]) ? preset[k].length : 0);
+        const N = Math.max(4, ...arrs);
+        const images = Library.items.filter(it => it && it.type === 'image').slice(0, N);
+        for (const it of images) {
+          try { Layers.add(it); } catch (_) { /* skip broken items */ }
+        }
+        if (typeof setStatus === 'function') setStatus('preset: ' + preset.name + ' (' + images.length + ' layers)', 'ok');
+      }
       // Re-render layer panel so the new blends/scales show. When the preset
       // defines explicit `reactors` / `blends` / `fills` arrays that match
       // the current layer count, honor them verbatim. Otherwise fall back to
