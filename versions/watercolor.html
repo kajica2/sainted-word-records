@@ -621,7 +621,7 @@
       out._v = "0";
       return out;
     }
-    function drawLayer(l) {
+    function drawLayer(l, r, c, cssW, cssH) {
       const a = l.asset; if (!a) return;
       let src;
       if (a.type === 'video') {
@@ -635,24 +635,32 @@
       }
       if (a.type==='video' && src.readyState<2) return;
       if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
-      const r = applyR(l);
-      ctx.save();
-      ctx.globalCompositeOperation = l.blend || 'screen';
-      ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
+      // Engine contract: drawToCtx(l, r, c, cssW, cssH) draws into `c`
+      // (an offscreen). Earlier this function ignored `c` and used the
+      // outer closure's main-canvas ctx, which left watercolor's offscreen
+      // transparent and produced a blank stage. Use the engine-supplied
+      // ctx/dims when present.
+      const _ctx = c || ctx;
+      const _W = (cssW != null) ? cssW : W;
+      const _H = (cssH != null) ? cssH : H;
+      const _r = r || applyR(l);
+      _ctx.save();
+      _ctx.globalCompositeOperation = l.blend || 'screen';
+      _ctx.globalAlpha = clamp(_r.opacity * (l.alpha ?? 1), 0, 1);
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
-      const car = W/H;
+      const car = _W/_H;
       let dw, dh;
-      if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
-      const dx = (W - dw)/2 + r.x;
-      const dy = (H - dh)/2 + r.y;
-      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;
-      if (Math.abs(r.rot) > 0.5) {
-        ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+      if (ar > car) { dh = _H * _r.scale; dw = dh * ar; } else { dw = _W * _r.scale; dh = dw / ar; }
+      const dx = (_W - dw)/2 + _r.x;
+      const dy = (_H - dh)/2 + _r.y;
+      _ctx.filter = `hue-rotate(${_r.hue}deg) saturate(${1.2 + _r.contrast*0.4}) brightness(${_r.brightness}) contrast(${_r.contrast})`;
+      if (Math.abs(_r.rot) > 0.5) {
+        _ctx.translate(_W/2, _H/2); _ctx.rotate(_r.rot * Math.PI/180); _ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
-        ctx.drawImage(src, dx, dy, dw, dh);
+        _ctx.drawImage(src, dx, dy, dw, dh);
       }
-      ctx.filter = 'none';
-      ctx.restore();
+      _ctx.filter = 'none';
+      _ctx.restore();
     }
     function drawFx() {
 

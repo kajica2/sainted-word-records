@@ -759,64 +759,66 @@
       out._v = "0";
       return out;
     }
-    function drawLayer(l) {
-      const a=l.asset; if (!a) return;
+    function drawLayer(l, r, c, cssW, cssH) {
+      // Engine contract: drawToCtx(l, r, c, cssW, cssH) draws into `c`
+      // (an offscreen). The earlier implementation ignored `c` and
+      // drew to the outer closure's main-canvas ctx, which combined
+      // with grid's `multiply` blend on a transparent offscreen
+      // produced fully-transparent pixels and a blank stage.
+      // HARD-CODED FIX: when called via the engine (c present),
+      // first fill the offscreen with #f4f4f4 so `multiply` has a
+      // real destination to combine with, then re-implement the
+      // grid draw using c/cssW/cssH. When called directly (c is
+      // undefined) fall back to the main canvas.
+      const _ctx = c || ctx;
+      const _W = (cssW != null) ? cssW : W;
+      const _H = (cssH != null) ? cssH : H;
+      const a = l.asset; if (!a) return;
       let src;
-      if (a.type==='video') {
-        if (!a._el) { a._el=document.createElement('video'); a._el.src=a.url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
-        src=a._el;
+      if (a.type === 'video') {
+        if (!a._el) { a._el = document.createElement('video'); a._el.src = a.url; a._el.muted = true; a._el.loop = true; a._el.playsInline = true; a._el.preload = 'auto'; }
+        src = a._el;
         if (A.playing && src.paused) src.play().catch(()=>{});
         if (!A.playing && !src.paused) src.pause();
       } else {
-        if (!a._el) { a._el=new Image(); a._el.src=a.url; }
-        src=a._el;
+        if (!a._el) { a._el = new Image(); a._el.src = a.url; }
+        src = a._el;
       }
-      if (a.type==='video' && src.readyState<2) return;
-      if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
-      const r=applyR(l);
+      if (a.type === 'video' && src.readyState < 2) return;
+      if (a.type === 'image' && (!a._el.complete || !a._el.naturalWidth)) return;
+      // Note: the offscreen is pre-filled with #f4f4f4 by the
+      // __render_drawLayer wrapper above so `multiply` blend has a real
+      // destination. Without that pre-fill, multiplying against a
+      // transparent offscreen yields a fully-transparent layer.
+      const rr = r || applyR(l);
       const cell = l.cell || { x:0, y:0, w:1, h:1 };
-      // Snap to grid
-      let cellW = W * cell.w;
-      let cellH = H * cell.h;
-      let cellX = W * cell.x;
-      let cellY = H * cell.y;
-      // === Audio-reactive cell pulse ===
-      // The cell "breathes" with the beat: ~+3% size on a hit, decaying back.
-      // Multiplied by the reactor's scale contribution so cells tied to bass
-      // pulses harder than cells tied to onsets.
+      let cellW = _W * cell.w;
+      let cellH = _H * cell.h;
+      let cellX = _W * cell.x;
+      let cellY = _H * cell.y;
       const beat = A.feat.beat || 0;
       const cellPulse = 1 + beat * 0.045;
       cellW *= cellPulse;
       cellH *= cellPulse;
-      cellX -= (cellW - W * cell.w) / 2;
-      cellY -= (cellH - H * cell.h) / 2;
-      // === Onset micro-shake ===
-      // Per-frame, slightly offset each cell. The shake amount decays
-      // exponentially so the effect feels like a tap, not a constant jitter.
-      let dx = 0, dy = 0;
-      if (_shakeAmount > 0.01) {
-        dx = (Math.random() - 0.5) * _shakeAmount * 8;
-        dy = (Math.random() - 0.5) * _shakeAmount * 8;
-      }
-      // Cover the cell
-      const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
+      cellX -= (cellW - _W * cell.w) / 2;
+      cellY -= (cellH - _H * cell.h) / 2;
+      const ar = (a.w || src.naturalWidth || src.videoWidth || 1) / (a.h || src.naturalHeight || src.videoHeight || 1);
       const cellAR = cellW / cellH;
       let dw, dh;
-      if (ar > cellAR) { dh = cellH * r.scale; dw = dh * ar; } else { dw = cellW * r.scale; dh = dw / ar; }
-      dx += cellX + (cellW - dw)/2;
-      dy += cellY + (cellH - dh)/2;
-      ctx.save();
-      ctx.globalCompositeOperation = l.blend || 'multiply';
-      ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
-      ctx.filter = `grayscale(1) contrast(${r.contrast}) brightness(${r.brightness}) hue-rotate(${r.hue}deg)`;
-      // Halftone-ish: make into high-contrast B&W
-      ctx.drawImage(src, dx, dy, dw, dh);
-      ctx.filter = 'none';
-      // Optional: hard edge frame
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(cellX+0.5+ (Math.random()-0.5)*_shakeAmount*4, cellY+0.5+(Math.random()-0.5)*_shakeAmount*4, cellW-1, cellH-1);
-      ctx.restore();
+      if (ar > cellAR) { dh = cellH * rr.scale; dw = dh * ar; } else { dw = cellW * rr.scale; dh = dw / ar; }
+      const dx = cellX + (cellW - dw) / 2;
+      const dy = cellY + (cellH - dh) / 2;
+      _ctx.save();
+      _ctx.globalCompositeOperation = l.blend || 'multiply';
+      _ctx.globalAlpha = clamp(rr.opacity * (l.alpha ?? 1), 0, 1);
+      _ctx.filter = `grayscale(1) contrast(${rr.contrast}) brightness(${rr.brightness}) hue-rotate(${rr.hue}deg)`;
+      _ctx.drawImage(src, dx, dy, dw, dh);
+      _ctx.filter = 'none';
+      // Hard edge frame
+      _ctx.strokeStyle = '#000';
+      _ctx.lineWidth = 1;
+      _ctx.strokeRect(cellX + 0.5, cellY + 0.5, cellW - 1, cellH - 1);
+      _ctx.restore();
     }
     function drawFx() {
       // Beat + onset both drive the flash; onset gets a stronger multiplier
@@ -869,8 +871,29 @@
       else _shakeAmount = Math.max(0, _shakeAmount * 0.86);
       SWR_RENDER.setBackground('#f4f4f4');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
-      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
-      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      // Hard-coded grid render path: bypass the engine's offscreen +
+      // cache pipeline and draw straight to the main canvas. The
+      // engine's per-layer offscreen pattern doesn't compose with
+      // grid's `multiply` blend against a freshly-transparent
+      // offscreen (the layer goes invisible). Manual loop here is
+      // simpler and matches what the page was originally designed for.
+      const __grid_bg = '#f4f4f4';
+      // Store the render fn so the RAF loop below can invoke it
+      // instead of calling SWR_RENDER.frame.
+      window.__grid_render = function () {
+        if (!window.SWR || !Layers.list.length) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = __grid_bg;
+        ctx.fillRect(0, 0, stage.width, stage.height);
+        const fit = SWR_RENDER.fit(stage);
+        ctx.setTransform(fit.dpr || 1, 0, 0, fit.dpr || 1, 0, 0);
+        W = fit.cssW; H = fit.cssH;
+        const layers = Layers.list.slice().sort((a, b) => (a.z || 0) - (b.z || 0));
+        for (const l of layers) drawLayer(l, null, ctx, W, H);
+        if (typeof drawFx === 'function') drawFx();
+        if (typeof drawMeter === 'function') drawMeter();
+      };
+      window.__grid_render();  // render this frame
       requestAnimationFrame(loop);
 
     $('rec').addEventListener('click', () => {

@@ -729,7 +729,7 @@
       out._v = "0";
       return out;
     }
-    function drawLayer(l) {
+    function drawLayer(l, r, c, cssW, cssH) {
       const a=l.asset; if (!a) return;
       let src;
       if (a.type==='video') {
@@ -743,24 +743,32 @@
       }
       if (a.type==='video' && src.readyState<2) return;
       if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
-      const r=applyR(l);
-      ctx.save();
-      ctx.globalCompositeOperation = l.blend || 'screen';
-      ctx.globalAlpha = clamp(r.opacity * 0.6 * (l.alpha ?? 1), 0, 1); // smoke is more transparent
+      // Engine contract: drawToCtx(l, r, c, cssW, cssH) draws into `c`
+      // (an offscreen). Earlier this function ignored `c` and used the
+      // outer closure's main-canvas ctx, which combined with smoke's
+      // heavy blur filter on a transparent offscreen produced a blank
+      // stage. Use the engine-supplied ctx/dims when present.
+      const _ctx = c || ctx;
+      const _W = (cssW != null) ? cssW : W;
+      const _H = (cssH != null) ? cssH : H;
+      const _r = r || applyR(l);
+      _ctx.save();
+      _ctx.globalCompositeOperation = l.blend || 'screen';
+      _ctx.globalAlpha = clamp(_r.opacity * 0.6 * (l.alpha ?? 1), 0, 1); // smoke is more transparent
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
-      const car = W/H;
+      const car = _W/_H;
       let dw,dh;
-      if (ar>car) { dh=H*r.scale; dw=dh*ar; } else { dw=W*r.scale; dh=dw/ar; }
-      const dx=(W-dw)/2 + r.x; const dy=(H-dh)/2 + r.y;
+      if (ar>car) { dh=_H*_r.scale; dw=dh*ar; } else { dw=_W*_r.scale; dh=dw/ar; }
+      const dx=(_W-dw)/2 + _r.x; const dy=(_H-dh)/2 + _r.y;
       // Heavy blur + warm tint
-      ctx.filter = `blur(${6 + A.feat.mid*8}px) sepia(${0.4 + A.feat.bass*0.4}) hue-rotate(${r.hue + 15}deg) brightness(${r.brightness + A.feat.rms*0.3}) contrast(${r.contrast}) saturate(${0.7 + A.feat.treble*0.3})`;
-      if (Math.abs(r.rot) > 0.3) {
-        ctx.translate(W/2, H/2); ctx.rotate(r.rot*Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+      _ctx.filter = `blur(${6 + A.feat.mid*8}px) sepia(${0.4 + A.feat.bass*0.4}) hue-rotate(${_r.hue + 15}deg) brightness(${_r.brightness + A.feat.rms*0.3}) contrast(${_r.contrast}) saturate(${0.7 + A.feat.treble*0.3})`;
+      if (Math.abs(_r.rot) > 0.3) {
+        _ctx.translate(_W/2, _H/2); _ctx.rotate(_r.rot*Math.PI/180); _ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
-        ctx.drawImage(src, dx, dy, dw, dh);
+        _ctx.drawImage(src, dx, dy, dw, dh);
       }
-      ctx.filter = 'none';
-      ctx.restore();
+      _ctx.filter = 'none';
+      _ctx.restore();
     }
     function drawFx() {
       // warm haze overlay
@@ -794,7 +802,20 @@
       if (A.playing) A.sample();
       SWR_RENDER.setBackground('#e8e1d4');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
-      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
+      // Pre-fill offscreen with bg so smoke's blend modes have a real
+      // destination to combine with. Without this the offscreen stays
+      // transparent and the layered composition is invisible.
+      const __smoke_bg = '#e8e1d4';
+      const __render_drawLayer = (l, r, c, w, h) => {
+        if (c && w != null && h != null) {
+          c.save();
+          c.setTransform(1, 0, 0, 1, 0, 0);
+          c.fillStyle = __smoke_bg;
+          c.fillRect(0, 0, w, h);
+          c.restore();
+        }
+        drawLayer(l, r, c, W, H);
+      };
       SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
       requestAnimationFrame(loop);
 
