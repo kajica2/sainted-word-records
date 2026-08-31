@@ -17,6 +17,35 @@
 //
 // The script tag insertion is idempotent: we look for the existing
 // tag and add ours only if absent.
+//
+// ============================================================================
+// COVERAGE GAP — read this before adding to ENGINES
+// ============================================================================
+// ENGINES below is the 13 reactive media engines. The 7 landing-variant
+// engines (baroque, kraft, mosaic, phosphor, spectrum, tape, typography)
+// and the marketing page (gallery) are EXCLUDED by design.
+//
+// collage WAS excluded in the same way before commit 2501032; it was
+// the bug: the page promises "drop clips + audio · beat-synced cuts"
+// but had no library wiring. That regression is now fixed manually
+// and the diagnostic scan below treats collage as "wired" (it has
+// the library loader script tag + Lib + boot code).
+//
+// Why the rest are excluded:
+//   - baroque, kraft, mosaic, phosphor, spectrum, tape, typography:
+//                  intentionally procedural / decorative engines. They
+//                  have audio overlay but no `Lib` and no Layers. The
+//                  page copy + meta descriptions make it clear they
+//                  don't load media (e.g. spectrum:
+//                  "No footage, no library, just signal"). Leave alone.
+//   - gallery:     marketing page, not an engine. No SWR, no Audio,
+//                  no engine IIFE.
+//
+// The diagnostic scan at the bottom of this file walks all 21
+// versions/*.html and reports MISSING_LIBRARY for any page that has
+// the audio overlay but no library wiring — so a future regression of
+// the kind caught for collage can't ship silently.
+// ============================================================================
 
 import fs from 'fs';
 import path from 'path';
@@ -28,6 +57,24 @@ const ENGINES = [
   'aurora', 'chrome', 'eclipse', 'film', 'fractal', 'glitch', 'grid',
   'hallucination', 'neon', 'pulse', 'smoke', 'void', 'watercolor',
 ];
+
+// Engines the codemod does NOT process (intentionally). These have the
+// audio overlay but no library by design — their page copy + meta
+// descriptions make it clear they don't load media. If a regression
+// ever adds a library loader to one of these, that's fine — the
+// diagnostic will reclassify it as "wired" automatically. But if one
+// of these ever LOSES the loader they never had, the diagnostic
+// still won't flag it (it's just "excluded by design").
+const EXCLUDED_ENGINES = new Set([
+  'baroque',     // decorative — no media
+  'kraft',       // decorative — no media
+  'mosaic',      // decorative — no media
+  'phosphor',    // decorative — no media
+  'spectrum',    // decorative — "no footage, no library, just signal"
+  'tape',        // decorative — no media
+  'typography',  // decorative — no media
+  'gallery',     // marketing page, not an engine
+]);
 
 const LOADER_SCRIPT_TAG = '<script src="../client/library-loader.client.js" defer></script>';
 
@@ -151,4 +198,62 @@ for (const name of ENGINES) {
 }
 
 console.log(`\n${patched} patched, ${skipped} skipped, ${failed} failed`);
+
+// ============================================================================
+// DIAGNOSTIC SCAN — surface any versions/*.html that has the audio overlay
+// but no library wiring. Catches the exact regression class that bit
+// collage: the codemod's ENGINES list missed a page that needed wiring.
+// Always runs (even on a clean re-run) and never writes to the page.
+// ============================================================================
+console.log('\n--- library-loader coverage scan ---');
+const coverage = { ok: [], missing: [], excluded: [], notEngine: [] };
+const allFiles = fs.readdirSync(__dirname)
+  .filter((f) => f.endsWith('.html'))
+  .sort();
+for (const f of allFiles) {
+  const name = f.replace(/\.html$/, '');
+  const src = fs.readFileSync(path.join(__dirname, f), 'utf8');
+  const hasOverlay = /id="swr-start"/.test(src);
+  // The library-loader CLIENT is what exposes window.SWR_LIBLOAD on
+  // the page. An inline `const Lib = ...` alone is dead code: the
+  // library items never get fetched. So "wired" strictly means
+  // "the library-loader.client.js script tag is present".
+  const hasLibraryLoader = /<script src="(?:\.\.\/)?client\/library-loader\.client\.js" defer><\/script>/.test(src);
+
+  // (1) Pure non-engine pages (no overlay, no library loader) — gallery, etc.
+  if (!hasOverlay && !hasLibraryLoader) {
+    coverage.notEngine.push(name);
+    continue;
+  }
+  // (2) The page has BOTH overlay + library loader → it's wired.
+  //     Don't second-guess just because we excluded it from the
+  //     codemod's patch loop (collage was wired by hand and that's
+  //     correct).
+  if (hasOverlay && hasLibraryLoader) {
+    coverage.ok.push(name);
+    continue;
+  }
+  // (3) Overlay but no library loader → a candidate for MISSING_LIBRARY.
+  //     If it's in EXCLUDED_ENGINES, treat as intentional and explain.
+  if (hasOverlay && !hasLibraryLoader) {
+    if (EXCLUDED_ENGINES.has(name)) {
+      coverage.excluded.push(name);
+    } else {
+      coverage.missing.push(name);
+    }
+    continue;
+  }
+  // (4) Library loader but no overlay — unusual, count as wired.
+  coverage.ok.push(name);
+}
+for (const name of coverage.ok) console.log(`  ✓ ${name}.html  (overlay + library wiring)`);
+for (const name of coverage.missing) console.log(`  ✗ ${name}.html  MISSING_LIBRARY  (overlay present, no Lib / library-loader)`);
+for (const name of coverage.excluded) console.log(`  - ${name}.html  (excluded by design — see COVERAGE GAP above)`);
+for (const name of coverage.notEngine) console.log(`  · ${name}.html  (no overlay, no library — not an engine page)`);
+
+console.log(`\n${coverage.ok.length} wired, ${coverage.missing.length} missing, ${coverage.excluded.length} excluded, ${coverage.notEngine.length} non-engine`);
+if (coverage.missing.length) {
+  console.log('\nFIX: each MISSING_LIBRARY page either needs the loader wired (run this codemod after adding the page to ENGINES) or a one-off manual fix (see collage commit 2501032 for the pattern).');
+  process.exit(1);
+}
 process.exit(failed ? 1 : 0);
