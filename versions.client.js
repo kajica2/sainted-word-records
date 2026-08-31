@@ -261,12 +261,16 @@
       return;
     }
     demoRoot.style.display = '';
-    const audio = (p.demo.audio || '').split('/').pop().replace(/\.[^.]+$/, '');
+    // Audio paths in the manifest are relative ("library/audio/...") — this page
+    // lives at /versions, so without a leading slash they 404 (resolving to
+    // /versions/library/audio/...). Prefix with "/" so the link is always absolute.
+    const audioPath = (p.demo.audio || '').startsWith('/') ? p.demo.audio : '/' + (p.demo.audio || '');
+    const audioFile = (p.demo.audio || '').split('/').pop().replace(/\.[^.]+$/, '');
     const style = p.demo.style_name || (p.demo.style || '').replace('.html', '');
     demoRoot.innerHTML = `
-      <a class="rand-demo-link" href="${p.demo.audio || '#'}" download title="Download demo song">
+      <a class="rand-demo-link" href="${audioPath || '#'}" download title="Download demo song">
         <span class="rand-demo-lbl">♪ song</span>
-        <span class="rand-demo-val">${audio}</span>
+        <span class="rand-demo-val">${audioFile}</span>
       </a>
       <span class="rand-demo-sep">·</span>
       <a class="rand-demo-link" href="/versions/${p.demo.style || ''}" target="_blank" rel="noopener" title="Open in ${style} style">

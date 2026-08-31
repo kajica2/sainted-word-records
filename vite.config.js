@@ -206,6 +206,9 @@ function copyStatic() {
     // The extra .gitkeep file ensures the audios/ directory is copied.
     { src: 'audios/.gitkeep', dst: 'audios/.gitkeep' },
     { src: 'tools', dst: 'tools' },
+    // Engine pages reference /client/visualizer-controller.js (and possibly
+    // other shared client scripts added later). Ship the whole directory.
+    { src: 'client', dst: 'client' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',
