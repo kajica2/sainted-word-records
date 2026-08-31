@@ -401,6 +401,7 @@
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
       <input type="file" id="song-input" accept="audio/*" />
       <button class="tbtn primary" id="play" disabled data-icon="▶">▶</button>
+      <span id="song-name" style="font-size:10px;color:var(--accent-2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <span id="time" style="font-size:10px;color:var(--muted);">0:00 / 0:00</span>
       <canvas class="meter" id="meter" width="320" height="36"></canvas>
       <span class="spacer"></span><button class="tbtn" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="font-family:ui-monospace,monospace;font-weight:700;min-width:24px;padding:5px 8px;line-height:1;position:relative;z-index:10001;">?</button>
@@ -852,7 +853,15 @@
     }
     requestAnimationFrame(loop);
     $('load-song').addEventListener('click', () => $('song-input').click());
-    $('song-input').addEventListener('change', e => { if (e.target.files[0]) A.load(e.target.files[0]); });
+    $('song-input').addEventListener('change', e => {
+      if (!e.target.files[0]) return;
+      A.load(e.target.files[0]);
+      // Surface the loaded filename in the header — without this the user
+      // has no idea what's loaded until they hit play. Mirrors the engine.html
+      // "SAVED" badge pattern.
+      var nameEl = document.getElementById('song-name');
+      if (nameEl) nameEl.innerHTML = '<span style="color:#0fa;font:9px ui-monospace;margin-right:4px;">[new]</span>' + e.target.files[0].name;
+    });
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing?A.pause():A.play(); });
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
@@ -889,6 +898,17 @@
           var ab2 = await picked.blob.arrayBuffer();
           var af2 = new File([ab2], picked.name, { type: picked.blob.type || picked.type || 'audio/mpeg' });
           A.load(af2);
+          // Show the user what's loaded — without this they have no idea
+          // whether the "remember last track" feature fired or not. The
+          // badge colour signals source: cyan = remembered from IDB,
+          // amber = bundled fallback.
+          var nameEl = document.getElementById('song-name');
+          if (nameEl) {
+            var badge = picked.source === 'saved'
+              ? '<span style="color:#0fa;font:9px ui-monospace;margin-right:4px;">[remembered]</span>'
+              : '<span style="color:#fa0;font:9px ui-monospace;margin-right:4px;">[bundled]</span>';
+            nameEl.innerHTML = badge + picked.name;
+          }
           // Auto-play if the browser allows it; otherwise queue for the first
           // user gesture (any pointerdown anywhere on the page). Mirrors the
           // engine.html behavior so reloads don't strand the user in silence.
@@ -896,13 +916,36 @@
             try {
               if (A.unlock) A.unlock();
               if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume();
-              if (A.el && A.el.play) A.el.play();
-              A.playing = true;
-              var playBtn = document.getElementById('play');
-              if (playBtn) {
-                playBtn.textContent = '❚❚ Pause';
-                playBtn.classList.remove('primary');
-                playBtn.classList.add('danger');
+              if (A.el && A.el.play) {
+                // A.el.play() returns a Promise. We only flip the UI to
+                // "playing" if the browser actually starts playback —
+                // otherwise the button lies ("Pause" while silent).
+                var p = A.el.play();
+                if (p && typeof p.then === 'function') {
+                  p.then(function () {
+                    A.playing = true;
+                    var playBtn = document.getElementById('play');
+                    if (playBtn) {
+                      playBtn.textContent = '❚❚ Pause';
+                      playBtn.classList.remove('primary');
+                      playBtn.classList.add('danger');
+                    }
+                  }).catch(function () {
+                    // Autoplay blocked — leave UI showing ▶ so the user
+                    // knows playback hasn't started.
+                    A.playing = false;
+                    var playBtn = document.getElementById('play');
+                    if (playBtn) { playBtn.textContent = '▶ Play'; }
+                  });
+                } else {
+                  A.playing = true;
+                  var playBtn = document.getElementById('play');
+                  if (playBtn) {
+                    playBtn.textContent = '❚❚ Pause';
+                    playBtn.classList.remove('primary');
+                    playBtn.classList.add('danger');
+                  }
+                }
               }
             } catch (e) { /* autoplay blocked, will retry on gesture */ }
           };
