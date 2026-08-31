@@ -107,13 +107,46 @@ fi
 echo "[2/3] npm run build:vercel …"
 npm run build:vercel
 
+# Resolve scope once (the global Vercel CLI's currentTeam may point at a
+# team the project doesn't live under — known issue when the local CLI
+# config drifts from the actual project owner).
+SCOPE_FLAG=""
+if [ -n "${VERCEL_SCOPE:-}" ]; then
+  SCOPE_FLAG="--scope $VERCEL_SCOPE"
+elif vercel whoami >/dev/null 2>&1; then
+  # `vercel ls <project>` writes only URLs to stdout and the
+  # "Fetching deployments in <team>" header to stderr — so grep stdout
+  # for `in <team>` matches nothing. The deployment URLs themselves
+  # contain the team slug (e.g. https://sainted-word-records-<hash>-kai-djurics-projects.vercel.app),
+  # so extract from there.
+  #
+  # Capture both streams, then look for either:
+  #   1) the stderr "in <team>" header (older CLI versions)
+  #   2) the team slug in a deployment URL (current CLI behavior)
+  LS_OUT="$(vercel ls sainted-word-records --yes 2>&1)"
+  PROJECT_TEAM="$(printf '%s\n' "$LS_OUT" \
+    | grep -oE 'in [a-zA-Z0-9_-]+' \
+    | head -1 \
+    | awk '{print $2}')"
+  if [ -z "$PROJECT_TEAM" ]; then
+    PROJECT_TEAM="$(printf '%s\n' "$LS_OUT" \
+      | grep -oE 'https?://sainted-word-records-[a-zA-Z0-9_-]+' \
+      | head -1 \
+      | sed -E 's|.*-kai-djurics-projects\.vercel\.app$|kai-djurics-projects|;s|.*-([a-zA-Z0-9_-]+)\.vercel\.app$|\1|')"
+  fi
+  if [ -n "$PROJECT_TEAM" ]; then
+    SCOPE_FLAG="--scope $PROJECT_TEAM"
+  fi
+fi
+[ -n "$SCOPE_FLAG" ] && echo "[scope] using $SCOPE_FLAG"
+
 # ---- 3. Deploy --------------------------------------------------------
-echo "[3/3] vercel deploy --yes --archive=tgz --target=$DEPLOY_TARGET …"
+echo "[3/3] vercel deploy --yes --archive=tgz --target=$DEPLOY_TARGET $SCOPE_FLAG …"
 
 # We deliberately avoid --no-clipboard: when interactive, the CLI
 # shows the URL on stdout and copies it; in non-interactive mode
 # it skips the clipboard call.
-DEPLOY_OUT="$(vercel deploy --yes --archive=tgz --target="$DEPLOY_TARGET")" || {
+DEPLOY_OUT="$(vercel deploy --yes --archive=tgz --target="$DEPLOY_TARGET" $SCOPE_FLAG)" || {
   echo "vercel deploy failed."
   echo "$DEPLOY_OUT" | tail -40
   exit 1
@@ -131,6 +164,6 @@ echo "  List all:   vercel ls"
 # Auto-promote iff --prod was passed.
 if [ "$PROMOTE" -eq 1 ] && [ -n "$DEPLOY_URL" ]; then
   echo
-  echo "[bonus] vercel promote $DEPLOY_URL"
-  vercel promote "$DEPLOY_URL"
+  echo "[bonus] vercel promote $DEPLOY_URL $SCOPE_FLAG"
+  vercel promote "$DEPLOY_URL" $SCOPE_FLAG
 fi
