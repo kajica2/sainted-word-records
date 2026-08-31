@@ -736,7 +736,7 @@
     let recorder = null, recChunks = [], recMixDest = null, recAutoStopAt = 0;
     function startRec() {
       try {
-        const vStream = stage.captureStream(30);
+        const vStream = stage.captureStream(24);
         recMixDest = A.ctx.createMediaStreamDestination();
         A.gain.connect(recMixDest);
         const aTrack = recMixDest.stream.getAudioTracks()[0];

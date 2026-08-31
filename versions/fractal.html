@@ -791,7 +791,7 @@
       autoStopTimer: null,
       start() {
         if (!A.el) { setStatus('load a song first', ''); return; }
-        const fps = 30;
+        const fps = 24;
         const vstream = stage.captureStream(fps);
         const dest = A.ctx.createMediaStreamDestination();
         this.mediaDest = dest;

@@ -265,7 +265,7 @@
         const audioEl = window.SWR.Audio && window.SWR.Audio.el;
         if (!audioEl) { alert('load a song first'); return; }
         try {
-          const fps = 30;
+          const fps = 24;
           const vstream = stage.captureStream(fps);
           const AC = window.AudioContext || window.webkitAudioContext;
           this.mediaCtx = new AC();

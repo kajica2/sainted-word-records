@@ -316,7 +316,7 @@
         const src = window.SWR.Audio && window.SWR.Audio.source;
         if (!ctx || !src) { alert('load a song first'); return; }
         try {
-          const fps = 30;
+          const fps = 24;
           const vstream = stage.captureStream(fps);
           this.mediaDest = ctx.createMediaStreamDestination();
           src.connect(this.mediaDest);
