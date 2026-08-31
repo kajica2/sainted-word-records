@@ -23,6 +23,7 @@
   if (window.SWR_RENDER) return;
 
   const LS_DPR_CAP = 'swr.render.dprCap';
+  const LS_AUTO_DPR = 'swr.render.autoDpr';
 
   // ---- state ------------------------------------------------------------
 
@@ -39,7 +40,25 @@
     // max layer count with headroom and keeps the working set under
     // ~128 MB worst case. Tunable via SWR_RENDER.setCacheCap().
     cacheCap: 16,
+    // Auto-DPR state. The auto mode measures rolling frame time and
+    // steps DPR down (or back up) to hold ~60fps. Defaults to off; opt
+    // in with SWR_RENDER.setAutoDpr(true) or localStorage.swr.render.autoDpr=1.
+    autoDpr: false,
+    autoDprCooldownMs: 2000,  // minimum gap between adjustments
+    autoDprUpThresholdMs: 12, // step UP only if avg frame < 12ms (room to spare)
+    autoDprDownThresholdMs: 18, // step DOWN if avg frame > 18ms (missing 60fps)
+    _frameSamples: [],        // rolling window of frame times
+    _lastDprAdjustAt: 0,
   };
+
+  function isAutoDprEnabled() {
+    try {
+      const v = localStorage.getItem(LS_AUTO_DPR);
+      if (v === '1' || v === 'true') return true;
+      if (v === '0' || v === 'false') return false;
+    } catch (_) {}
+    return state.autoDpr;
+  }
 
   function devicePixelRatio() {
     let cap = 2;
@@ -50,6 +69,49 @@
   function setDprCap(n) {
     try { localStorage.setItem(LS_DPR_CAP, String(n)); } catch (_) {}
     state.dirty = true;
+  }
+
+  function setAutoDpr(on) {
+    state.autoDpr = !!on;
+    try { localStorage.setItem(LS_AUTO_DPR, on ? '1' : '0'); } catch (_) {}
+    state._frameSamples = [];
+    state._lastDprAdjustAt = 0;
+  }
+
+  // Record one frame's render time and step DPR up or down when the
+  // rolling average crosses the thresholds. Called once per RAF from frame().
+  // Conservative: 2s cooldown, asymmetric thresholds (easier to step DOWN
+  // than UP — battery cost of stepping UP is real).
+  function autoAdjustDpr(frameMs) {
+    if (!isAutoDprEnabled()) return;
+    state._frameSamples.push(frameMs);
+    if (state._frameSamples.length > 60) state._frameSamples.shift();
+    if (state._frameSamples.length < 30) return; // need a stable sample
+    let sum = 0;
+    for (let i = 0; i < state._frameSamples.length; i++) sum += state._frameSamples[i];
+    const avg = sum / state._frameSamples.length;
+    const now = performance.now();
+    if (now - state._lastDprAdjustAt < state.autoDprCooldownMs) return;
+    let cap = 2;
+    try { const v = parseFloat(localStorage.getItem(LS_DPR_CAP)); if (v > 0 && isFinite(v)) cap = v; } catch (_) {}
+    const target = Math.min(cap, window.devicePixelRatio || 1);
+    if (avg > state.autoDprDownThresholdMs && state.dpr > 1) {
+      const next = Math.max(1, +(state.dpr - 0.25).toFixed(2));
+      if (next !== state.dpr) {
+        state.dpr = next;
+        state.dirty = true;
+        state._lastDprAdjustAt = now;
+        state._frameSamples = [];
+      }
+    } else if (avg < state.autoDprUpThresholdMs && state.dpr < target) {
+      const next = Math.min(target, +(state.dpr + 0.25).toFixed(2));
+      if (next !== state.dpr) {
+        state.dpr = next;
+        state.dirty = true;
+        state._lastDprAdjustAt = now;
+        state._frameSamples = [];
+      }
+    }
   }
 
   function setBackground(color) { state.bgColor = color || '#000'; }
@@ -311,13 +373,19 @@
       }
     }
 
+    // Auto-DPR: feed this frame's elapsed time (post-draw, so it reflects
+    // the full frame cost including extras). Only runs when opted in
+    // (off by default). State adjustment marks dirty, picked up on next
+    // frame's fit().
+    autoAdjustDpr(performance.now() - now);
+
     state.dirty = false;
   }
 
   // ---- public ----------------------------------------------------------
 
   window.SWR_RENDER = {
-    fit, frame, invalidate, setBackground, setDprCap, devicePixelRatio,
+    fit, frame, invalidate, setBackground, setDprCap, setAutoDpr, devicePixelRatio,
     get dpr() { return state.dpr; },
     get cssW() { return state.cssW; },
     get cssH() { return state.cssH; },
