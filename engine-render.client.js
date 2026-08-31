@@ -39,13 +39,15 @@
     bgColor: '#000',         // pages set this via setBackground() if they want
     cache: new Map(),         // layerId -> { canvas, version, lastDpr, lastSize }
     activeSet: new Set(),     // layerIds that should always redraw
-    activeBudget: 2,          // how many layers stay uncached (top by audio energy)
+    activeBudget: 1,          // how many layers stay uncached (top by audio energy)
     // Cap on cached entries. Each entry holds a full backing-store canvas
-    // (~8 MB at 1920x1080 RGBA); without a cap, long sessions that swap
-    // many layers leak canvases forever. 16 layers covers every engine's
-    // max layer count with headroom and keeps the working set under
-    // ~128 MB worst case. Tunable via SWR_RENDER.setCacheCap().
-    cacheCap: 16,
+    // (~16.6 MB at the DPR-2 default backing store). Without a cap, long
+    // sessions that swap many layers leak canvases forever. Cap=4 covers
+    // the visual sweet spot (most engines use 4-8 layers; the rest get
+    // redrawn uncached each frame, which is fine because the per-layer
+    // draw is fast for uncached entries). Worst-case GPU memory drops
+    // from ~266 MB to ~66 MB. Tunable via SWR_RENDER.setCacheCap(n).
+    cacheCap: 4,
     // Auto-DPR state. The auto mode measures rolling frame time and
     // steps DPR down (or back up) to hold ~60fps. Defaults to off; opt
     // in with SWR_RENDER.setAutoDpr(true) or localStorage.swr.render.autoDpr=1.
