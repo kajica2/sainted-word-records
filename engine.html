@@ -4477,6 +4477,13 @@
           durMs = parseInt(durSel) * 1000;
         }
         this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
+        // ---- WebCodecs path (off by default; opt in with SWR_RECORDER_WORKER=1)
+        // The encode moves to a Web Worker; the main thread keeps producing
+        // rAF frames via VideoFrame. Video-only for now; audio lands in a
+        // follow-up. Falls back to the MediaRecorder path on any failure.
+        if (window.SWR_RECORDER_WORKER && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs()) {
+          return this._startWebCodecs();
+        }
         const fps = 24;
 
         // ---- SIZE PRESET: re-fit the canvas to the chosen export resolution
@@ -4612,7 +4619,112 @@
           }, Math.max(50, this.autoStopAt - Date.now()));
         }
       },
+      // ---- WebCodecs recording path (P2) -------------------------------
+      // Encode runs in a Web Worker; the main thread sends VideoFrame
+      // objects per rAF. The orchestrator resolves with a single MP4
+      // blob on stop. Audio is not yet wired — this path is video-only.
+      async _startWebCodecs() {
+        const sizeKey = $('rec-size') ? $('rec-size').value : 'landscape';
+        const preset = (window.SIZE_PRESETS && window.SIZE_PRESETS[sizeKey]) || window.SIZE_PRESETS.landscape;
+        const prevSize = { w: stageCanvas.width, h: stageCanvas.height };
+        const newSize = Renderer.fitToSize(preset.w, preset.h);
+        this._prevCanvasSize = prevSize;
+        this._exportSize = newSize;
+        this._sizeLabel = preset.label;
+        this._sizeKey = sizeKey;
+        const captureCanvas = (window.FX && window.FX.outputCanvas) || stageCanvas;
+        this.mime = 'video/mp4';
+        this.chunks = [];
+        this._wcActive = true;
+        this._wcResult = null;
+        const pixels = newSize.width * newSize.height;
+        const refPixels = 1920 * 1080;
+        const refBits  = 8_000_000;
+        const bits = Math.max(4_000_000, Math.round(refBits * pixels / refPixels));
+        if (typeof setStatus === 'function') {
+          setStatus(`recording · ${this._sizeLabel} · ${newSize.width}×${newSize.height} · WebCodecs`, 'ok');
+        }
+        try {
+          this._wcStartPromise = window.SWR_RECORDER.start({
+            canvas: captureCanvas,
+            width: newSize.width,
+            height: newSize.height,
+            fps: 24,
+            videoBitsPerSecond: bits,
+          });
+        } catch (e) {
+          if (e && e.unsupported) {
+            setStatus('WebCodecs unsupported, falling back to MediaRecorder', 'warn');
+            this._wcActive = false;
+            // Re-enter the standard path. Note: re-fit may double-fit the
+            // canvas; safe because Renderer.fitToSize is idempotent for
+            // matching dimensions.
+            this._prevCanvasSize = null;
+            return this.start();
+          }
+          setStatus(`recorder start failed: ${e.message || e}`, 'err');
+          this._wcActive = false;
+          return;
+        }
+        this.recording = true;
+        this.startedAt = Date.now();
+        $('rec').classList.add('live');
+        $('rec').textContent = '■ STOP';
+        // Preload watermark
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
+        this._loadWatermark(wmSel);
+        // PT license chip
+        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
+          const lic = window.SWR_PT.load();
+          setStatus(`recording · WebCodecs · watermark removed · ${lic.credits} credits left`, 'live');
+          if (window.SWR_PT_Panel && window.SWR_PT_Panel.renderChip) window.SWR_PT_Panel.renderChip();
+        }
+        // Live progress ticker (size unknown until stop; show duration only)
+        if (this.progressTimer) clearInterval(this.progressTimer);
+        this.progressTimer = setInterval(() => {
+          if (!this.recording) return;
+          const elapsedSec = Math.floor((Date.now() - this.startedAt) / 1000);
+          const totalSec = Math.max(0, Math.round((this.autoStopAt - Date.now()) / 1000));
+          if (this.autoStopAt > 0) {
+            setStatus(`recording · WebCodecs · ${elapsedSec}/${totalSec}s`, 'live');
+          } else {
+            setStatus(`recording · WebCodecs · ${elapsedSec}s`, 'live');
+          }
+        }, 1000);
+        // Auto-stop
+        if (this.autoStopAt > 0) {
+          this.autoStopTimer = setTimeout(() => {
+            if (this.recording) this.stop();
+          }, Math.max(50, this.autoStopAt - Date.now()));
+        }
+      },
       stop() {
+        // WebCodecs path (P2): the orchestrator owns the encode worker
+        // and the stop handshake. _save() needs the same (chunks, mime)
+        // shape it always consumed, so we materialize the final blob as
+        // a single-entry chunks array and re-enter the standard _save
+        // pipeline.
+        if (this._wcActive) {
+          if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+          if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
+          if (this._wmRaf) { cancelAnimationFrame(this._wmRaf); this._wmRaf = null; }
+          this._wcActive = false;
+          this.recording = false;
+          $('rec').classList.remove('live');
+          $('rec').textContent = '● REC';
+          if (this._prevCanvasSize) {
+            try { Renderer.fitToSize(this._prevCanvasSize.w, this._prevCanvasSize.h); } catch (e) {}
+            this._prevCanvasSize = null;
+          }
+          window.SWR_RECORDER.stop().then((res) => {
+            this.chunks = [res.blob];
+            this.mime = res.mime;
+            this._save();
+          }).catch((err) => {
+            setStatus(`recorder stop failed: ${err.message || err}`, 'err');
+          });
+          return;
+        }
         if (!this.rec) return;
         if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
         if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
@@ -5513,6 +5625,7 @@
   <script src="/lib/persist-wire.client.js"></script>
   <script src="/lib/persist-fx.client.js"></script>
   <script src="/lib/reset-state.client.js"></script>
+  <script src="/lib/recorder.client.js"></script>
   <script type="module" src="/share.client.js"></script>
   <script type="module" src="/pwa-bootstrap.js"></script>
   <script type="module" src="/pt.client.js"></script>
