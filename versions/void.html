@@ -268,7 +268,8 @@
     #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff66; margin-top: 8px; }
     #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
-  <script src="../client/visualizer-controller.js"></script>
+  <script src="../client/library-loader.client.js" defer></script>
+<script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -756,29 +757,21 @@
     });
 
     // === Auto-load library ===
-    (async () => {
-      try {
-        const r = await fetch('../library/manifest.json', { cache: 'no-cache' });
-        if (r.ok) {
-          const m = await r.json();
-          const blobs = await Promise.all((m.files||[]).map(async f => {
-            const fr = await fetch('../library/' + f);
-            return await fr.blob();
-          }));
-          await Lib.addFiles(blobs.map((b,i) => new File([b], m.files[i], { type: b.type })));
-          setTimeout(() => Layers.remap(), 500);
-        }
-      } catch (e) { console.warn('no library', e); }
-      // === Auto-load default audio ===
-      try {
-        const ar = await fetch('../audios/void.mp3', { cache: 'no-cache' });
-        if (ar.ok) {
-          const ab = await ar.blob();
-          const af = new File([ab], 'void.mp3', { type: ab.type || 'audio/mpeg' });
-          if (A && typeof A.load === 'function') A.load(af);
-        }
-      } catch (e) {}
-      setStatus('ready', 'ok');
+    (function () {
+      if (window.SWR_LIBLOAD && window.Lib) {
+        // Two-phase: manifest + first 8 image thumbs synchronously,
+        // videos + remaining thumbs deferred to idle time. See
+        // client/library-loader.client.js for the implementation.
+        // window.__swrPhase2Done resolves when phase 2 finishes
+        // (verify tests can await it instead of magic setTimeouts).
+        window.SWR_LIBLOAD.boot({
+          manifestUrl: '../library/manifest.json',
+          filePrefix:  '../library/',
+          phase1Count: 8,
+          Lib: window.Lib,
+          doneFlag: 'swr-manifest-loaded',
+        }).then(() => { try { Layers.remap(); } catch (_) {} });
+      }
     })();
     // === RECORDER (MP4 export) ===
     const Recorder = {

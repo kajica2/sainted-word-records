@@ -379,7 +379,8 @@
       100% { opacity: 1.0; transform: scale(1.00); filter: hue-rotate(0deg); }
     }
   </style>
-  <script src="../client/visualizer-controller.js"></script>
+  <script src="../client/library-loader.client.js" defer></script>
+<script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -870,86 +871,21 @@
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', async e => { e.preventDefault(); if (e.dataTransfer.files?.length) await Lib.addFiles(e.dataTransfer.files); });
     window.addEventListener('resize', fit);
-    (async () => {
-      try {
-        const r = await fetch('../library/manifest.json', { cache: 'no-cache' });
-        if (r.ok) { const m = await r.json();
-          const blobs = await Promise.all((m.files||[]).map(async f => { const fr=await fetch('../library/'+f); return await fr.blob(); }));
-          await Lib.addFiles(blobs.map((b,i) => new File([b], m.files[i], { type: b.type })));
-          setTimeout(() => Layers.remap(), 600);
-        }
-      } catch (e) {}
-      
-      // === Auto-load default audio ===
-      // Prefer the user's last-loaded song (from engine.html IDB);
-      // fall back to the per-page bundled audios/<engine>.mp3.
-      try {
-        var picked = window.SWR_PICK_DEFAULT_SONG
-          ? await window.SWR_PICK_DEFAULT_SONG('../audios/hallucination.mp3')
-          : null;
-        if (picked && picked.blob && A && typeof A.load === 'function') {
-          var ab2 = await picked.blob.arrayBuffer();
-          var af2 = new File([ab2], picked.name, { type: picked.blob.type || picked.type || 'audio/mpeg' });
-          A.load(af2);
-          // Show the user what's loaded — without this they have no idea
-          // whether the "remember last track" feature fired or not. The
-          // badge colour signals source: cyan = remembered from IDB,
-          // amber = bundled fallback.
-          var nameEl = document.getElementById('song-name');
-          if (nameEl) {
-            var badge = picked.source === 'saved'
-              ? '<span style="color:#0fa;font:9px ui-monospace;margin-right:4px;">[remembered]</span>'
-              : '<span style="color:#fa0;font:9px ui-monospace;margin-right:4px;">[bundled]</span>';
-            nameEl.innerHTML = badge + picked.name;
-          }
-          // Auto-play if the browser allows it; otherwise queue for the first
-          // user gesture (any pointerdown anywhere on the page). Mirrors the
-          // engine.html behavior so reloads don't strand the user in silence.
-          var __halAutoplay = function () {
-            try {
-              if (A.unlock) A.unlock();
-              if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume();
-              if (A.el && A.el.play) {
-                // A.el.play() returns a Promise. We only flip the UI to
-                // "playing" if the browser actually starts playback —
-                // otherwise the button lies ("Pause" while silent).
-                var p = A.el.play();
-                if (p && typeof p.then === 'function') {
-                  p.then(function () {
-                    A.playing = true;
-                    var playBtn = document.getElementById('play');
-                    if (playBtn) {
-                      playBtn.textContent = '❚❚ Pause';
-                      playBtn.classList.remove('primary');
-                      playBtn.classList.add('danger');
-                    }
-                  }).catch(function () {
-                    // Autoplay blocked — leave UI showing ▶ so the user
-                    // knows playback hasn't started.
-                    A.playing = false;
-                    var playBtn = document.getElementById('play');
-                    if (playBtn) { playBtn.textContent = '▶ Play'; }
-                  });
-                } else {
-                  A.playing = true;
-                  var playBtn = document.getElementById('play');
-                  if (playBtn) {
-                    playBtn.textContent = '❚❚ Pause';
-                    playBtn.classList.remove('primary');
-                    playBtn.classList.add('danger');
-                  }
-                }
-              }
-            } catch (e) { /* autoplay blocked, will retry on gesture */ }
-          };
-          __halAutoplay();
-          document.addEventListener('pointerdown', function _halAutoplayOnce() {
-            document.removeEventListener('pointerdown', _halAutoplayOnce);
-            __halAutoplay();
-          }, { once: true });
-        }
-      } catch (e) {}
-      setStatus('READY', 'ok');
+    (function () {
+      if (window.SWR_LIBLOAD && window.Lib) {
+        // Two-phase: manifest + first 8 image thumbs synchronously,
+        // videos + remaining thumbs deferred to idle time. See
+        // client/library-loader.client.js for the implementation.
+        // window.__swrPhase2Done resolves when phase 2 finishes
+        // (verify tests can await it instead of magic setTimeouts).
+        window.SWR_LIBLOAD.boot({
+          manifestUrl: '../library/manifest.json',
+          filePrefix:  '../library/',
+          phase1Count: 8,
+          Lib: window.Lib,
+          doneFlag: 'swr-manifest-loaded',
+        }).then(() => { try { Layers.remap(); } catch (_) {} });
+      }
     })();
     // === RECORDER (MP4 export) ===
     const Recorder = {
