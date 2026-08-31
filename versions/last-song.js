@@ -23,6 +23,18 @@
 //   window.SWR_PICK_DEFAULT_SONG(fallbackUrl)  →  Promise<{ blob, name, url }>
 //     High-level helper: returns the saved song's blob if one exists, else
 //     fetches fallbackUrl and returns its blob. Returns null if both fail.
+//
+//   window.SWR_LAST_SONG_SAVE(file)  →  Promise<void>
+//     Persist the user-picked file to the 'songs' store under key 'current'
+//     so the next visit auto-restores it as the default. Fire-and-forget —
+//     callers should not await this in the song-input change handler; the
+//     A.load() call below should run on the same file. Failures are logged
+//     but do not throw. The write is debounced against rapid re-saves of
+//     the same file (same name + size + lastModified).
+//
+//   window.SWR_LAST_SONG_CLEAR()  →  Promise<void>
+//     Delete the saved record. Used by "Clear All" buttons that want to
+//     reset the auto-restore state without touching assets/sets.
 
 (function () {
   if (window.SWR_LAST_SONG && window.SWR_PICK_DEFAULT_SONG) return; // idempotent
@@ -115,6 +127,86 @@
   // null if neither source produces a blob.
   window.SWR_LAST_SONG = getSavedSong();
 
+  // ---- save the user's pick to IDB so the next visit auto-restores it ----
+  // The version pages used to auto-restore the saved song (via
+  // SWR_PICK_DEFAULT_SONG) but never wrote back: when the user picked a
+  // new file via <input type="song-input">, A.load() ran but the IDB
+  // record stayed stale (or empty), so a reload still served the OLD
+  // saved song or fell through to the bundled MP3. Wiring the save into
+  // the file-input change handler closes that loop.
+  var _lastSaveSig = null;
+  function saveCurrentSong(file) {
+    if (!file) return Promise.resolve();
+    // Cheap de-dupe: skip if the user re-picks the exact same file
+    // (browsers fire `change` on cancel + re-select, etc.). Same name +
+    // size + lastModified is a strong-enough identity signal for an
+    // audio file the user just chose in a file picker.
+    var sig = (file.name || '') + '|' + (file.size || 0) + '|' + (file.lastModified || 0);
+    if (sig === _lastSaveSig) return Promise.resolve();
+    _lastSaveSig = sig;
+    return new Promise(function (resolve) {
+      if (typeof indexedDB === 'undefined') { resolve(); return; }
+      try {
+        const req = indexedDB.open('sainted-word-records', 4);
+        req.onupgradeneeded = function (e) {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('songs')) db.createObjectStore('songs', { keyPath: 'id' });
+          if (!db.objectStoreNames.contains('assets')) db.createObjectStore('assets', { keyPath: 'id' });
+          if (!db.objectStoreNames.contains('sets')) db.createObjectStore('sets', { keyPath: 'id' });
+        };
+        req.onsuccess = function (e) {
+          const db = e.target.result;
+          try {
+            const tx = db.transaction('songs', 'readwrite');
+            tx.objectStore('songs').put({
+              id:      'current',
+              blob:    file,
+              name:    file.name || 'song',
+              type:    file.type || 'audio/mpeg',
+              savedAt: Date.now(),
+            });
+            tx.oncomplete = function () { db.close(); resolve(); };
+            tx.onerror    = function () { db.close(); resolve(); };
+            tx.onabort    = function () { db.close(); resolve(); };
+          } catch (_) {
+            try { db.close(); } catch (_) {}
+            resolve();
+          }
+        };
+        req.onerror   = function () { resolve(); };
+        req.onblocked = function () { resolve(); };
+      } catch (_) {
+        resolve();
+      }
+    });
+  }
+
+  function clearCurrentSong() {
+    return new Promise(function (resolve) {
+      if (typeof indexedDB === 'undefined') { resolve(); return; }
+      try {
+        const req = indexedDB.open('sainted-word-records', 4);
+        req.onsuccess = function (e) {
+          const db = e.target.result;
+          try {
+            if (!db.objectStoreNames.contains('songs')) { db.close(); resolve(); return; }
+            const tx = db.transaction('songs', 'readwrite');
+            tx.objectStore('songs').delete('current');
+            tx.oncomplete = function () { db.close(); resolve(); };
+            tx.onerror    = function () { db.close(); resolve(); };
+          } catch (_) {
+            try { db.close(); } catch (_) {}
+            resolve();
+          }
+        };
+        req.onerror   = function () { resolve(); };
+        req.onblocked = function () { resolve(); };
+      } catch (_) {
+        resolve();
+      }
+    });
+  }
+
   window.SWR_PICK_DEFAULT_SONG = async function (fallbackUrl) {
     // 1. Try the user's last-loaded song
     try {
@@ -147,5 +239,27 @@
     }
 
     return null;
+  };
+
+  // Refresh the cached SWR_LAST_SONG promise after a save so the next
+  // call to SWR_PICK_DEFAULT_SONG sees the freshly-picked file (instead
+  // of the old IDB record that the first read fetched).
+  function _refreshAfterSave(file) {
+    _lastSaveSig = (file.name || '') + '|' + (file.size || 0) + '|' + (file.lastModified || 0);
+    window.SWR_LAST_SONG = Promise.resolve({
+      blob:    file,
+      name:    file.name || 'song',
+      type:    file.type || 'audio/mpeg',
+      savedAt: Date.now(),
+    });
+  }
+
+  window.SWR_LAST_SONG_SAVE = function (file) {
+    return saveCurrentSong(file).then(function () { if (file) _refreshAfterSave(file); });
+  };
+  window.SWR_LAST_SONG_CLEAR = function () {
+    _lastSaveSig = null;
+    window.SWR_LAST_SONG = Promise.resolve(null);
+    return clearCurrentSong();
   };
 })();

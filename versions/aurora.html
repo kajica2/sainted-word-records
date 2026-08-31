@@ -725,7 +725,7 @@
 
     // === UI WIRING ===
     $('load-song').addEventListener('click', () => $('song-input').click());
-    $('song-input').addEventListener('change', e => { if (e.target.files[0]) A.load(e.target.files[0]); });
+    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); } });
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
