@@ -121,6 +121,14 @@ try {
     const r = spawnSync('bash', ['scripts/build-magenta-dsp-bundle.sh'], {
       cwd: ROOT, encoding: 'utf8', stdio: 'pipe',
     });
+    // The build script intentionally skips with a notice when the sibling
+    // Magenta DSP source repo is absent (see build-magenta-dsp-bundle.sh:74-88).
+    // Match `npm run check`'s skip-with-notice design so this verify doesn't
+    // break on developer machines / CI runners without that sibling repo.
+    if (/skip: source not found/.test(r.stdout || '')) {
+      process.stdout.write('    (env skip: sibling source missing)\n');
+      return;
+    }
     ok(r.status === 0, `bundle dry-run should exit 0, got ${r.status}; stderr=${r.stderr}`);
     ok(/hf upload kaidjuric\/magenta-dsp-procedural/.test(r.stdout || ''),
        `dry-run output should include hf upload kaidjuric/magenta-dsp-procedural, got:\n${r.stdout}`);
@@ -138,6 +146,16 @@ try {
   });
 
   await step('6. push script dry-run prints the hf upload command', async () => {
+    // Same env-skip as test 4: if the sibling source is missing, the build
+    // can't populate dist-hf/<tag> and the push dry-run has nothing to
+    // upload. Match the build script's skip-with-notice design.
+    const precheck = spawnSync('bash', ['scripts/build-magenta-dsp-bundle.sh'], {
+      cwd: ROOT, encoding: 'utf8', stdio: 'pipe',
+    });
+    if (/skip: source not found/.test(precheck.stdout || '')) {
+      process.stdout.write('    (env skip: sibling source missing)\n');
+      return;
+    }
     // Run the LIVE path (which auto-builds, then dry-runs the upload).
     // This proves both scripts chain end-to-end without contacting the Hub.
     const r = spawnSync('bash', ['scripts/push-magenta-dsp-to-hf.sh', '--dry-run', '--no-build'], {
