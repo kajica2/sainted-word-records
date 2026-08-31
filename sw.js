@@ -86,7 +86,35 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Same-origin assets: cache-first.
+  // Vite-bundled assets (/assets/*.{js,css,webmanifest,png,svg,woff2}):
+  // stale-while-revalidate. Return the cached copy immediately so the
+  // first paint doesn't wait on the network, and kick off a background
+  // fetch to refresh the cache for the next visit. New deploys feel
+  // instant because the stale bundle is served until the fresh one
+  // lands in the background — the user gets the new content on their
+  // NEXT navigation, not after a manual reload. The Response lifetime
+  // is subtle: we must clone the response before passing it to cache.put
+  // because `cached` is the body stream that the SW will send back.
+  if (sameOrigin && url.pathname.startsWith('/assets/')) {
+    e.respondWith((async () => {
+      const cache = await caches.open(CACHE_VERSION);
+      const cached = await cache.match(req);
+      const network = fetch(req)
+        .then((fresh) => {
+          if (fresh && fresh.ok) {
+            // Don't await — cache in the background; if the user is offline
+            // the cache.put just rejects silently.
+            cache.put(req, fresh.clone()).catch(() => {});
+          }
+          return fresh;
+        })
+        .catch(() => null);
+      return cached || (await network) || new Response('', { status: 504, statusText: 'Gateway Timeout' });
+    })());
+    return;
+  }
+
+  // Same-origin assets (root-level .js, .html, .css, images): cache-first.
   if (sameOrigin) {
     e.respondWith((async () => {
       const cache = await caches.open(CACHE_VERSION);
