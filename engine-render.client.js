@@ -118,13 +118,28 @@
   // Coarse fingerprint of the audio features. 1 decimal of precision is
   // enough to invalidate on audible change but stable across the quantisation
   // noise of the analyser on idle frames.
+  // Memoized for ~32 ms (3 RAF frames at 60fps) — the audio analyser updates
+  // at most at its own rate (60 Hz typically) but with float32 quantisation
+  // noise; the cache key doesn't need to change on every frame. Throttling
+  // the fingerprint cuts cache invalidations from analyser noise by ~3x,
+  // which means fewer offscreen redraws and smoother motion on busy audio.
+  // The shader still reads SWR.Audio.feat directly every frame — only the
+  // cache-key fingerprint is throttled.
+  const FINGERPRINT_TTL_MS = 32;
   let _lastAudioHash = '';
+  let _lastAudioHashAt = 0;
   function audioFingerprint() {
+    const now = performance.now();
+    if (_lastAudioHash && (now - _lastAudioHashAt) < FINGERPRINT_TTL_MS) {
+      return _lastAudioHash;
+    }
     const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
     const round = (v) => Math.round((v || 0) * 10);
-    return round(f.bass) + '|' + round(f.mid) + '|' + round(f.treble) + '|' +
-           round(f.rms) + '|' + round(f.centroid) + '|' + round(f.beat) + '|' +
-           round(f.onset);
+    _lastAudioHash = round(f.bass) + '|' + round(f.mid) + '|' + round(f.treble) + '|' +
+                     round(f.rms) + '|' + round(f.centroid) + '|' + round(f.beat) + '|' +
+                     round(f.onset);
+    _lastAudioHashAt = now;
+    return _lastAudioHash;
   }
 
   function getCached(layerId, version) {
