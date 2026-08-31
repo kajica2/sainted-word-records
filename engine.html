@@ -1664,7 +1664,7 @@
     // ---------- DOM refs ----------
     const $ = (id) => document.getElementById(id);
     const stageCanvas = $('render');
-    const stageCtx = stageCanvas.getContext('2d', { alpha: false });
+    const stageCtx = stageCanvas.getContext('2d', { alpha: false, willReadFrequently: true });
     const meterCanvas = $('meter');
     const meterCtx = meterCanvas.getContext('2d');
     const stageEmpty = $('stage-empty');
@@ -3989,6 +3989,14 @@
           src = a._el;
         }
         if ((a.type === 'video' || a.type === 'camera') && src.readyState < 2) return;
+        // Image guard: skip drawImage if the Image hasn't finished
+        // decoding yet. Without this, drawImage throws
+        // "HTMLImageElement in 'broken' state" for one frame after
+        // the asset is added (the engine's catch block handles the
+        // throw but logs a warning). _el.complete becomes true after
+        // load; naturalWidth > 0 means the decode succeeded (not an
+        // error result).
+        if (a.type === 'image' && (!a._el.complete || !a._el.naturalWidth)) return;
         // Apply the asset's intrinsic rotation (0/90/180/270) to a scratch surface
         // before the layer's reactor-driven draw. CSS/HTML don't honor tkhd or EXIF
         // orientation so we have to compensate here and in _buildThumb().

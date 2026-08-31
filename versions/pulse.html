@@ -470,7 +470,7 @@
   (() => {
     const $ = (id) => document.getElementById(id);
     const stage = $('render');
-    const ctx = stage.getContext('2d', { alpha: false });
+    const ctx = stage.getContext('2d', { alpha: false, willReadFrequently: true });
     const meter = $('meter').getContext('2d');
     let W, H;
 
@@ -751,7 +751,8 @@
         if (!a._el) { a._el = new Image(); a._el.src=a.url; }
         src = a._el;
       }
-      if (a.type === 'video' && src.readyState < 2) return;
+      if (a.type==='video' && src.readyState<2) return;
+      if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
       const r = applyR(l);
       ctx.save();
       ctx.globalCompositeOperation = l.blend || 'screen';

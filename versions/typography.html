@@ -134,7 +134,7 @@
 
   <script>
     const stage = document.getElementById('render');
-    const ctx = stage.getContext('2d');
+    const ctx = stage.getContext('2d', { willReadFrequently: true }));
     let t0 = performance.now();
 
     const headlineEl = document.getElementById('headline');

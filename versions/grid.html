@@ -324,7 +324,7 @@
     // reproduces asset selection as well as parameters. Falls back when absent.
     const _rnd = () => (window.SWR_GENOPS ? window.SWR_GENOPS.rand() : Math.random());
     const stage = $('render');
-    const ctx = stage.getContext('2d');
+    const ctx = stage.getContext('2d', { willReadFrequently: true });
     const meter = $('meter').getContext('2d');
     let W, H;
     const lerp = (a,b,t) => a+(b-a)*t;
@@ -618,6 +618,7 @@
         src=a._el;
       }
       if (a.type==='video' && src.readyState<2) return;
+      if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
       const r=applyR(l);
       const cell = l.cell || { x:0, y:0, w:1, h:1 };
       // Snap to grid

@@ -483,7 +483,7 @@
   (() => {
     const $ = id => document.getElementById(id);
     const stage = $('render');
-    const ctx = stage.getContext('2d');
+    const ctx = stage.getContext('2d', { willReadFrequently: true });
     const noise = $('noise');
     const nctx = noise.getContext('2d');
     const meter = $('meter').getContext('2d');
@@ -756,6 +756,7 @@
         src=a._el;
       }
       if (a.type==='video' && src.readyState<2) return;
+      if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
       const r=applyR(l);
       // RGB shift: offset color channels
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);

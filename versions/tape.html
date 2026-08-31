@@ -125,7 +125,7 @@
   <script>
     // === 2D stage animation — concentric VHS-degraded rings + chroma ribbons ===
     const stage = document.getElementById('render');
-    const ctx = stage.getContext('2d');
+    const ctx = stage.getContext('2d', { willReadFrequently: true }));
     let t0 = performance.now();
     function paint() {
       const t = (performance.now() - t0) / 1000;

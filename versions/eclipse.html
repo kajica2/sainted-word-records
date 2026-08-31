@@ -337,7 +337,7 @@
     // reproduces asset selection as well as parameters. Falls back when absent.
     const _rnd = () => (window.SWR_GENOPS ? window.SWR_GENOPS.rand() : Math.random());
     const stage = $('render');
-    const ctx = stage.getContext('2d', { alpha: false });
+    const ctx = stage.getContext('2d', { alpha: false, willReadFrequently: true });
     const meter = $('meter').getContext('2d');
     const coronaEl = $('corona');
     const ringEl = $('ring');
@@ -626,7 +626,8 @@
         if (!a._el) { a._el = new Image(); a._el.src = a.url; }
         src = a._el;
       }
-      if (a.type==='video' && src.readyState < 2) return;
+      if (a.type==='video' && src.readyState<2) return;
+      if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
       const r = applyR(l);
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;

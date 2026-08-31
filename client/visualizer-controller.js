@@ -300,6 +300,22 @@
       typeof WebSocket !== 'undefined') {
     const tryAutoConnect = () => {
       if (document.body && document.body.dataset.vcNoAutoconnect === '1') return;
+      // Production deploys (Vercel) don't run a local freq-bridge at
+      // :8787 — skip the connect attempt so console stays clean.
+      //
+      // import.meta.env.PROD is the Vite-injected production flag, but
+      // this script is loaded as a plain <script> (not type="module"),
+      // so `import.meta` itself is undefined at parse time in any
+      // browser that supports it — and a SyntaxError in browsers that
+      // don't. The original script is loaded as a plain defer script,
+      // not as ESM; we can't safely reference `import.meta` here. Use
+      // location.hostname heuristics instead: localhost / 127.0.0.1 /
+      // *.local / vercel preview hostnames are dev; production
+      // hostnames are skipped.
+      const h = location.hostname;
+      const isDevHost = h === 'localhost' || h === '127.0.0.1' || /\.local$/.test(h);
+      const isVercelPreview = /\.vercel\.app$/.test(h) && h.includes('-git-'); // git-branch previews
+      if (!isDevHost && !isVercelPreview) return; // production: skip
       try { VC.connect(); } catch (_) { /* swallow */ }
     };
     if (document.readyState === 'loading') {
