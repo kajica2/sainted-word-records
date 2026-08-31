@@ -18,10 +18,30 @@
   'use strict';
 
   // ──────────────── FFT helpers ────────────────
+  // Cached Hann window per FFT size. The window never changes once
+  // computed, so caching it across calls avoids a 4-16 KB allocation
+  // per call (Hann for FFT size 4096 is 16 KB of Float32). computeMagnitudes
+  // reuses the same real/imag buffers per FFT size too — they're scratch
+  // for the in-place Cooley-Tukey pass and don't need to be fresh per
+  // call. Live analysis (startLive) doesn't call computeMagnitudes, but
+  // a one-off buffer reuse for batch analysis still helps when presets
+  // analyze many songs back-to-back.
+  const _winCache = new Map();
   function hannWindow(N) {
-    const w = new Float32Array(N);
+    let w = _winCache.get(N);
+    if (w) return w;
+    w = new Float32Array(N);
     for (let i = 0; i < N; i++) w[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (N - 1)));
+    _winCache.set(N, w);
     return w;
+  }
+  const _fftBufCache = new Map();   // fftSize -> { real, imag, half }
+  function getFftBuffers(N) {
+    let b = _fftBufCache.get(N);
+    if (b) return b;
+    b = { real: new Float32Array(N), imag: new Float32Array(N), half: N >> 1 };
+    _fftBufCache.set(N, b);
+    return b;
   }
 
   // In-place radix-2 Cooley-Tukey FFT. N must be a power of 2.
@@ -65,16 +85,15 @@
   // window of length fftSize. Defaults to 4096-point FFT.
   function computeMagnitudes(samples, sampleRate, fftSize) {
     const N = fftSize || 4096;
-    const real = new Float32Array(N);
-    const imag = new Float32Array(N);
+    const { real, imag, half } = getFftBuffers(N);
     const win = hannWindow(N);
     const off = Math.max(0, Math.floor(samples.length / 2) - Math.floor(N / 2));
     for (let i = 0; i < N; i++) {
       const s = i + off < samples.length ? samples[i + off] : 0;
       real[i] = s * win[i];
+      imag[i] = 0;
     }
     fft(real, imag);
-    const half = N >> 1;
     const mags = new Float32Array(half);
     for (let i = 0; i < half; i++) {
       mags[i] = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
