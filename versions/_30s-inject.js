@@ -1,5 +1,21 @@
-// Add a 30s auto-stop preset to the Recorder in each of the 5 versions
+// Add a 30s auto-stop preset to the Recorder in each of the 5 versions.
+//
+// Idempotent: re-running on an already-patched page is a no-op.
+//
+// Run from the product root:
+//   node versions/_30s-inject.js
+//
+// Implementation note: the rec-dur <select> is prepended to the existing
+// <button id="rec">. Because the replacement still contains the exact
+// button text it just matched, a naive re-run would prepend a second
+// rec-dur <select> on top of the first. We guard the replacement on
+// `id="rec-dur"` not already being present so a second run no-ops.
+
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const versions = ['neon', 'film', 'grid', 'smoke', 'hallucination'];
 
 const REC_BUTTON_PATTERNS = [
@@ -79,18 +95,28 @@ const NEW_STOP = `      stop() {
       },`;
 
 for (const v of versions) {
-  const p = `/Users/kajicadjuric/Documents/autodashboard/products/sainted-word-records/versions/${v}.html`;
+  const p = path.join(__dirname, `${v}.html`);
   let html = fs.readFileSync(p, 'utf8');
   let touched = false;
-  for (const pat of REC_BUTTON_PATTERNS) {
-    if (html.includes(pat)) {
-      html = html.replace(pat, REC_BUTTON_NEW);
-      touched = true;
-      break;
+  // Idempotency: if the rec-dur <select> is already in the page, the
+  // recorder UI has been wired up by a prior pass. Skip the button
+  // replacement (which would prepend a second rec-dur) and only check
+  // the autoStop* fields + start/stop methods, which are also already
+  // present. Re-running still reports "already updated" so it's
+  // observably a no-op rather than a silent skip.
+  const alreadyHasRecDur = html.includes('id="rec-dur"');
+  if (!alreadyHasRecDur) {
+    for (const pat of REC_BUTTON_PATTERNS) {
+      if (html.includes(pat)) {
+        html = html.replace(pat, REC_BUTTON_NEW);
+        touched = true;
+        break;
+      }
     }
   }
-  if (html.includes('mediaDest: null,')) {
+  if (html.includes('mediaDest: null,') && !html.includes('autoStopAt: 0,')) {
     html = html.replace('mediaDest: null,', 'mediaDest: null,\n      autoStopAt: 0,\n      autoStopTimer: null,');
+    touched = true;
   }
   if (html.includes(OLD_START)) {
     html = html.replace(OLD_START, NEW_START);

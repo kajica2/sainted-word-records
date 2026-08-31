@@ -105,8 +105,12 @@ for (const name of ENGINES) {
   if (src.includes('engine-keys.client.js') && !src.includes('project.client.js')) {
     src = src.replace(KEYS_TAG, KEYS_TAG + '\n' + PROJECT_TAG);
   }
-  if (src.includes('engine-render.client.js') && !src.includes('layer-scheduler.client.js')) {
-    src = src.replace(RENDER_TAG, RENDER_TAG + '\n' + TIMING_TAG + '\n' + TIMING_PANEL_TAG + '\n' + LFOS_TAG + '\n' + LFO_PANEL_TAG + '\n' + AUTOMAP_TAG + '\n' + SETTINGS_TAG + '\n' + KEYS_TAG + '\n' + PROJECT_TAG + '\n' + SCHEDULER_TAG);
+  // layer-scheduler: only add the tag itself, never re-insert the whole
+  // tail block. The block re-emit (previously here) silently duplicated
+  // every tag already present, which is what produced the
+  // engine-timing.client.js double-load on the live site.
+  if (src.includes('project.client.js') && !src.includes('layer-scheduler.client.js')) {
+    src = src.replace(PROJECT_TAG, PROJECT_TAG + '\n' + SCHEDULER_TAG);
   }
 
   // ---- 2. rewrite fit() ------------------------------------------------
@@ -226,10 +230,16 @@ for (const name of ENGINES) {
   //
   // For now: append `r._v = …` to applyR so cache versioning works. This is
   // a one-line addition per page.
-  if (!/r\._v\s*=/.test(src)) {
-    // Add `r._v = '0';` after the applyR function builds `out`.
+  if (!/out\._v\s*=\s*["']0["']/.test(src)) {
+    // Add `out._v = "0";` after the applyR function builds `out`.
     // The pattern: `return out;` inside applyR (the ONLY function with that
-    // return shape) — replace with `out._v = '0'; return out;`
+    // return shape) — replace with `out._v = "0"; return out;`
+    //
+    // Idempotency: the guard regex looks for the exact line we're about
+    // to insert. The previous guard used `/r\._v\s*=/` (looking for
+    // `r._v =`) which never matched `out._v = "0"` and so this block
+    // re-fired on every run, accumulating 10+ duplicate `out._v = "0";`
+    // lines per page. See fix(versions): dedupe out._v in engine pages.
     const arRe = /(function applyR\([^)]*\)\s*\{[\s\S]*?)(\n\s*)return out;/;
     if (arRe.test(src)) {
       src = src.replace(arRe, (full, body, lead) => body + lead + 'out._v = "0";' + lead + 'return out;');
