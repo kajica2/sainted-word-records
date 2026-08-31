@@ -26,11 +26,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // excluded — it's a marketing page that links TO engines, not an
 // engine page itself (no engine IIFE, no SWR, no Audio module).
 const TARGETS = [
-  { file: 'eclipse.html',   song: '../audios/eclipse.mp3' },
-  { file: 'film.html',      song: '../audios/film.mp3' },
-  { file: 'grid.html',      song: '../audios/grid.mp3' },
-  { file: 'neon.html',      song: '../audios/neon.mp3' },
-  { file: 'smoke.html',     song: '../audios/smoke.mp3' },
+  { file: 'eclipse.html',     song: '../audios/eclipse.mp3' },
+  { file: 'film.html',        song: '../audios/film.mp3' },
+  { file: 'grid.html',        song: '../audios/grid.mp3' },
+  { file: 'hallucination.html', song: '../audios/hallucination.mp3' },
+  { file: 'neon.html',        song: '../audios/neon.mp3' },
+  { file: 'smoke.html',       song: '../audios/smoke.mp3' },
 ];
 
 // CSS block to inject right before </style>. Matches the
@@ -76,6 +77,21 @@ function buildOverlay(defaultSong) {
     var overlay = document.getElementById('swr-start');
     var sub = document.getElementById('swr-start-sub');
     var fired = false;
+
+    // Can we autoplay without a user gesture? Modern browsers
+    // (Chrome 94+, Safari 16.4+, Firefox 121+) relax autoplay for
+    // sites the user has interacted with before. The MediaSession
+    // API surfaces a "activation hint" — non-empty activation
+    // means the user has clicked/tapped/typed since the page loaded,
+    // and we can autoplay. On pages where this is true, run start()
+    // immediately and skip the overlay.
+    var canAutoplay = false;
+    try {
+      if (navigator.userActivation && navigator.userActivation.isActive) {
+        canAutoplay = true;
+      }
+    } catch (_) {}
+
     async function start() {
       if (fired) return;
       fired = true;
@@ -91,7 +107,7 @@ function buildOverlay(defaultSong) {
         var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
         if (window.SWR && window.SWR.Audio) {
           window.SWR.Audio.load(file);
-          window.SWR.Audio.play();
+          await window.SWR.Audio.play();
           if (sub) {
             var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
             sub.textContent = tag + name;
@@ -104,7 +120,54 @@ function buildOverlay(defaultSong) {
       overlay.classList.add('hide');
       setTimeout(function(){ overlay.remove(); }, 600);
     }
-    overlay.addEventListener('click', start, { once: true });
+
+    // Track a one-shot user gesture anywhere on the page to arm the
+    // audio for next time. Once armed, the overlay can autoplay.
+    document.addEventListener('pointerdown', function arm() {
+      try { localStorage.setItem('swr.audio.armed', '1'); } catch (_) {}
+    }, { once: true, capture: true });
+
+    if (canAutoplay || (function () {
+      try { return localStorage.getItem('swr.audio.armed') === '1'; }
+      catch (_) { return false; }
+    })()) {
+      // Try to autoplay immediately — if the browser blocks, the
+      // overlay stays visible (start()'s catch path) and the user
+      // can click it manually. Either way, the engine renders
+      // visual content on enter via the normal RAF loop.
+      //
+      // Wait for window.SWR_PICK_DEFAULT_SONG to be defined —
+      // last-song.js (which defines it) loads AFTER this inline
+      // script. Poll until it's there, then fire. This avoids the
+      // race where the auto-start fires before last-song.js has
+      // registered the helper.
+      function waitForPick() {
+        if (window.SWR_PICK_DEFAULT_SONG) {
+          start();
+          return;
+        }
+        var tries = 0;
+        var iv = setInterval(function() {
+          tries++;
+          if (window.SWR_PICK_DEFAULT_SONG) {
+            clearInterval(iv);
+            start();
+          } else if (tries > 50) {  // ~5s timeout
+            clearInterval(iv);
+            // Don't fire — overlay stays as fallback.
+          }
+        }, 100);
+      }
+      waitForPick();
+    }
+
+    // If the autoplay attempt didn't fire the overlay (because
+    // play() resolved), keep the overlay visible until the user
+    // explicitly hides it. The overlay remains the manual fallback
+    // for browsers that still block autoplay.
+    overlay.addEventListener('click', function manualStart() {
+      if (!fired) start();
+    });
     document.addEventListener('keydown', function(ev){
       if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
     }, { once: true });
@@ -121,8 +184,45 @@ for (const target of TARGETS) {
   let src = fs.readFileSync(file, 'utf8');
   const before = src;
 
+  // Idempotency: a page is "already patched" only if it has the
+  // v3 pattern (with the waitForPick race fix). The v1 pattern
+  // (just the click handler) and the v2 pattern (no race fix) get
+  // re-patched.
+  const HAS_V3_PATTERN  = /function waitForPick/.test(src);
+  const HAS_V2_PATTERN  = /canAutoplay|swr\.audio\.armed/.test(src) && !HAS_V3_PATTERN;
+  const HAS_V1_PATTERN  = src.includes('id="swr-start"') && !HAS_V2_PATTERN;
+  const HAS_BROKEN_OVERLAY_CLICK = /overlay\.addEventListener\('click',\s*start,\s*\{\s*once:\s*true\s*\}\);/.test(src);
+
+  if (HAS_V3_PATTERN) {
+    console.log(`  ${target.file}: already patched (v3)`);
+    alreadyPatched++;
+    continue;
+  }
+
+  // For pages with v1 (broken) or v2 (race-condition) pattern, repair
+  // by replacing the entire overlay IIFE block. The shape is consistent
+  // across all 6 patched pages: an inline <script>...</script> block
+  // that contains the overlay IIFE.
+  if (HAS_BROKEN_OVERLAY_CLICK || HAS_V2_PATTERN) {
+    const brokenRe = /(  <div id="swr-start"[\s\S]*?  \}\)\(\);\n  <\/script>\n)/;
+    const bm = src.match(brokenRe);
+    if (bm) {
+      src = src.replace(bm[1], buildOverlay(target.song) + '\n');
+      console.log(`  ${target.file}: repaired v${HAS_BROKEN_OVERLAY_CLICK ? '1' : '2'} → v3 overlay`);
+      if (src === before) { console.log(`  ${target.file}: no change`); skipped++; continue; }
+      fs.writeFileSync(file, src, 'utf8');
+      patched++;
+      continue;
+    } else {
+      console.log(`  ${target.file}: broken pattern detected but regex didn't match`);
+      failed++;
+      continue;
+    }
+  }
+
   if (src.includes('id="swr-start"')) {
-    console.log(`  ${target.file}: already patched`);
+    // Some other version of the overlay is present; skip.
+    console.log(`  ${target.file}: already patched (other)`);
     alreadyPatched++;
     continue;
   }
