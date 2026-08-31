@@ -624,7 +624,16 @@
           [ { feature:'bass', target:'scale', scale: 1.5, ease:'sharp' }, { feature:'beat', target:'opacity', scale: 1.2, ease:'sharp' }, { feature:'mid', target:'rot', scale: 90, ease:'sharp' } ],
         ];
         const l = { id:'L'+(i+1), asset: it, blend:['lighter','difference','screen','multiply','lighter','difference'][i%6],
-          opacity: 0.85, baseScale: [1.0, 1.3, 0.8, 1.5, 0.6, 1.8][i%6], hue: 0, brightness: 1.4, contrast: 1.6, reactors: presets[i%presets.length] };
+          opacity: 0.85, baseScale: [1.0, 1.3, 0.8, 1.5, 0.6, 1.8][i%6], hue: 0, brightness: 1.4, contrast: 1.6,
+          // α and mt sliders need defaults here too — Layers.render() reads
+          // them via l.alpha / l.mutate to set the slider .value, and the
+          // input handlers write back to the same fields. Without these,
+          // freshly-added layers show empty α/mt sliders (and writing NaN
+          // back from the input event leaves the layer in a broken state).
+          // Persisted layers get the same defaults from persist-wire.client.js
+          // (alpha: 1, mutate: 0), so this matches what the load path produces.
+          alpha: 1, mutate: 0,
+          reactors: presets[i%presets.length] };
         this.list.push(l); this.render(); this.sel=l; },
       rm(id) { this.list=this.list.filter(l=>l.id!==id); this.render(); },
       render() {

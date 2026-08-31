@@ -459,7 +459,9 @@
           [ { feature:'mid', target:'x', scale: 50, ease:'soft' }, { feature:'air', target:'y', scale: 40, ease:'soft' } ],
         ];
         const l = { id:'L'+(i+1), asset: it, blend:['screen','soft-light','overlay','soft-light','screen','overlay'][i%6],
-          opacity: 0.5, baseScale: [1.2, 0.9, 1.4, 0.8, 1.6, 0.7][i%6], hue: 0, brightness: 1.05, contrast: 0.85, reactors: presets[i%presets.length] };
+          opacity: 0.5, baseScale: [1.2, 0.9, 1.4, 0.8, 1.6, 0.7][i%6], hue: 0, brightness: 1.05, contrast: 0.85,
+          alpha: 1, mutate: 0,
+          reactors: presets[i%presets.length] };
         this.list.push(l); this.render(); this.sel=l; },
       rm(id) { this.list=this.list.filter(l=>l.id!==id); this.render(); },
       render() {
