@@ -49,9 +49,13 @@
     // from ~266 MB to ~66 MB. Tunable via SWR_RENDER.setCacheCap(n).
     cacheCap: 4,
     // Auto-DPR state. The auto mode measures rolling frame time and
-    // steps DPR down (or back up) to hold ~60fps. Defaults to off; opt
-    // in with SWR_RENDER.setAutoDpr(true) or localStorage.swr.render.autoDpr=1.
-    autoDpr: false,
+    // steps DPR down (or back up) to hold ~60fps. Defaults to on;
+    // opt out via SWR_RENDER.setAutoDpr(false) or
+    // localStorage.swr.render.autoDpr=0. The default was off in the
+    // initial commit but the integration reviewer flagged that the
+    // feature ships dead as opt-in — mobile users (the target
+    // audience) never enable it manually.
+    autoDpr: true,
     autoDprCooldownMs: 2000,  // minimum gap between adjustments
     autoDprUpThresholdMs: 12, // step UP only if avg frame < 12ms (room to spare)
     autoDprDownThresholdMs: 18, // step DOWN if avg frame > 18ms (missing 60fps)
