@@ -33,6 +33,12 @@
     cache: new Map(),         // layerId -> { canvas, version, lastDpr, lastSize }
     activeSet: new Set(),     // layerIds that should always redraw
     activeBudget: 2,          // how many layers stay uncached (top by audio energy)
+    // Cap on cached entries. Each entry holds a full backing-store canvas
+    // (~8 MB at 1920x1080 RGBA); without a cap, long sessions that swap
+    // many layers leak canvases forever. 16 layers covers every engine's
+    // max layer count with headroom and keeps the working set under
+    // ~128 MB worst case. Tunable via SWR_RENDER.setCacheCap().
+    cacheCap: 16,
   };
 
   function devicePixelRatio() {
@@ -131,10 +137,24 @@
   }
 
   function setCached(layerId, version, sourceCanvas) {
+    // If the entry already exists at a stale version/size, delete it first
+    // so the new .set() places it at the tail (Map insertion order). This
+    // keeps the eviction policy (oldest-first) predictable even when the
+    // same layerId is re-rendered at a new size/version.
+    if (state.cache.has(layerId)) state.cache.delete(layerId);
     state.cache.set(layerId, {
       canvas: sourceCanvas, version,
       lastDpr: state.dpr, lastSize: state.cssW + 'x' + state.cssH,
     });
+    // Evict the oldest entry (first iteration key) when over cap. This is
+    // technically FIFO rather than LRU, but for layer caching where recently
+    // *set* entries are also recently *used* the distinction is academic —
+    // and FIFO avoids the re-insert-on-hit cost of a true LRU.
+    while (state.cache.size > state.cacheCap) {
+      const oldest = state.cache.keys().next().value;
+      if (oldest === undefined) break;
+      state.cache.delete(oldest);
+    }
   }
 
   // ---- frame scheduler -------------------------------------------------
@@ -288,6 +308,8 @@
     get cssH() { return state.cssH; },
     get dirty() { return state.dirty; },
     get cacheSize() { return state.cache.size; },
+    get cacheCap() { return state.cacheCap; },
+    setCacheCap(n) { state.cacheCap = Math.max(1, Math.min(64, n | 0)); while (state.cache.size > state.cacheCap) { const oldest = state.cache.keys().next().value; if (oldest === undefined) break; state.cache.delete(oldest); } },
     markDirty() { state.dirty = true; },
     setActiveSet(ids) { state.activeSet = new Set(ids || []); },
     setActiveBudget(n) { state.activeBudget = Math.max(0, Math.min(8, n | 0)); },
