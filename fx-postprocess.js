@@ -431,10 +431,40 @@
 
     let t0 = performance.now();
     let lastResize = 0;
+    // Cache the "any FX active" mask so we can short-circuit the GPU upload +
+    // shader pass when nothing is doing visual work. The default shipped
+    // config has every persona uniform at 0 — without this guard we re-upload
+    // the stage canvas (~1-3 MB/frame at 1920x1080 RGBA) and re-run the full
+    // shader every RAF for no visible difference. Toggle the canvas off when
+    // skipping so the compositor doesn't re-blit a transparent overlay.
+    let overlayVisible = true;
+    function anyFxActive() {
+      return state.temp !== 0 || state.mut !== 0 || state.posterize !== 0 ||
+             state.vignette !== 0 || state.chroma !== 0 || state.grain !== 0 ||
+             state.sepia !== 0 || state.glow !== 0 || state.grayscale !== 0 ||
+             state.blur !== 0 || state.liquid !== 0 || state.pearl !== 0 ||
+             state.glitch !== 0;
+    }
     function render() {
       if (!state.enabled) {
         requestAnimationFrame(render);
         return;
+      }
+      // Skip the entire GPU upload + shader pass when no FX is active. The
+      // underlying stage canvas still draws every frame via engine-render;
+      // we just don't re-process it. Resumes automatically on the first
+      // non-zero uniform because anyFxActive() is re-checked each RAF.
+      if (!anyFxActive()) {
+        if (overlayVisible) {
+          out.style.display = 'none';
+          overlayVisible = false;
+        }
+        requestAnimationFrame(render);
+        return;
+      }
+      if (!overlayVisible) {
+        out.style.display = '';
+        overlayVisible = true;
       }
       const now = performance.now();
       state.time = (now - t0) / 1000;
