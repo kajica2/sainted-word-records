@@ -5322,18 +5322,49 @@
       // browser. We use a localStorage flag so the manifest only seeds once:
       // if the user has uploaded their own assets, the manifest skips; if
       // they later Clear, the next visit stays empty (no manifest surprise).
+      //
+      // Two-phase load:
+      //   Phase 1 (boot): fetch the manifest + first 8 image thumbs (cheap).
+      //     First paint is no longer blocked on 5 videos decoding; user can
+      //     drop a song and start playing immediately.
+      //   Phase 2 (idle): videos + remaining thumbs in a requestIdleCallback
+      //     slice. By the time the user opens the library tab, the rest is
+      //     already in IDB.
       if (Library.items.length === 0 && !localStorage.getItem('swr-manifest-loaded')) {
         try {
           const r = await fetch('./library/manifest.json', { cache: 'no-cache' });
           if (r.ok) {
             const m = await r.json();
             const files = m.files || [];
-            const blobs = await Promise.all(files.map(async f => {
+            // Partition by type. Images decode fast; videos are the bottleneck.
+            const imageFiles = files.filter(f => /\.(jpe?g|png|webp|gif)$/i.test(f));
+            const videoFiles = files.filter(f => /\.(mp4|webm|mov)$/i.test(f));
+            const phase1 = imageFiles.slice(0, 8);
+            const phase1Blobs = await Promise.all(phase1.map(async f => {
               const fr = await fetch('./library/' + f);
-              return await fr.blob();
+              return { name: f, blob: await fr.blob() };
             }));
-            await Library.addFiles(blobs.map((b, i) => new File([b], files[i], { type: b.type })));
-            localStorage.setItem('swr-manifest-loaded', '1');
+            await Library.addFiles(phase1Blobs.map(({ name, blob }) => new File([blob], name, { type: blob.type })));
+            // Phase 2 — defer to idle time. If rIC isn't available, fall back
+            // to a short setTimeout so we still don't block first paint.
+            const phase2Files = [...imageFiles.slice(8), ...videoFiles];
+            if (phase2Files.length) {
+              const runPhase2 = async () => {
+                const blobs = await Promise.all(phase2Files.map(async f => {
+                  const fr = await fetch('./library/' + f);
+                  return { name: f, blob: await fr.blob() };
+                }));
+                await Library.addFiles(blobs.map(({ name, blob }) => new File([blob], name, { type: blob.type })));
+                localStorage.setItem('swr-manifest-loaded', '1');
+              };
+              if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(() => { runPhase2().catch(() => {}); }, { timeout: 5000 });
+              } else {
+                setTimeout(() => { runPhase2().catch(() => {}); }, 100);
+              }
+            } else {
+              localStorage.setItem('swr-manifest-loaded', '1');
+            }
           }
         } catch (e) {
           // No library folder, that's fine
