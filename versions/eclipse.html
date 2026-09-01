@@ -310,6 +310,16 @@
       <span class="spacer"></span><button class="tbtn" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="font-family:ui-monospace,monospace;font-weight:700;min-width:24px;padding:5px 8px;line-height:1;position:relative;z-index:10001;">?</button>
       <span class="gc">beat <span class="led" id="beat-led" data-icon="●"></span></span>
       <span class="gc">onset <span class="led" id="onset-led" data-icon="●"></span></span>
+      <select id="rec-fps" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording frame rate">
+        <option value="24">24fps</option>
+        <option value="30" selected>30fps</option>
+        <option value="60">60fps</option>
+      </select>
+      <select id="rec-quality" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording quality (video bitrate)">
+        <option value="low">3 Mbps</option>
+        <option value="med">6 Mbps</option>
+        <option value="high" selected>12 Mbps</option>
+      </select>
       <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
         <option value="10">10s</option>

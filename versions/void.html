@@ -296,6 +296,16 @@
       <span class="spacer"></span><button class="tbtn" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="font-family:ui-monospace,monospace;font-weight:700;min-width:24px;padding:5px 8px;line-height:1;position:relative;z-index:10001;">?</button>
       <span class="gc">beat <span class="led" id="beat-led" data-icon="●"></span></span>
       <span class="gc">onset <span class="led" id="onset-led" data-icon="●"></span></span>
+      <select id="rec-fps" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording frame rate">
+        <option value="24">24fps</option>
+        <option value="30" selected>30fps</option>
+        <option value="60">60fps</option>
+      </select>
+      <select id="rec-quality" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording quality (video bitrate)">
+        <option value="low">3 Mbps</option>
+        <option value="med">6 Mbps</option>
+        <option value="high" selected>12 Mbps</option>
+      </select>
       <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
         <option value="10">10s</option>
@@ -831,29 +841,56 @@
       autoStopTimer: null,
       start() {
         if (!A.el) { setStatus('load a song first', ''); return; }
-        const fps = 24;
+        // Read user-configurable quality & fps from the toolbar selects.
+        // Falls back to 30fps / high bitrate when the selects aren't in
+        // the DOM (older variant pages or studio-mode layouts that hide
+        // them).
+        const fpsSel = $('rec-fps') ? $('rec-fps').value : '30';
+        const fps = parseInt(fpsSel, 10) || 30;
+        const qualSel = $('rec-quality') ? $('rec-quality').value : 'high';
+        const BITRATE = { high: 12_000_000, med: 6_000_000, low: 3_000_000 }[qualSel] || 12_000_000;
         const vstream = stage.captureStream(fps);
         const dest = A.ctx.createMediaStreamDestination();
         this.mediaDest = dest;
+        // Guard against double-connection: if A.an is already routed to
+        // this exact dest from a previous unfinished recording, disconnect
+        // first. (Has happened on hot-reload during dev.)
+        try { A.an.disconnect(dest); } catch {}
         A.an.connect(dest);
         const tracks = [...vstream.getVideoTracks(), ...dest.stream.getAudioTracks()];
         const stream = new MediaStream(tracks);
+        // Prefer VP9 (best quality per bitrate, hardware decoded on most
+        // platforms) over VP8 over MP4. MP4 encoders are still patchy in
+        // Chrome — only Safari supports them natively, so we list MP4 last.
         const mime = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
           'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
           'video/mp4;codecs=avc1,mp4a.40.2',
           'video/mp4;codecs=avc1',
           'video/mp4',
-          'video/webm;codecs=vp9,opus',
-          'video/webm;codecs=vp8,opus',
           'video/webm',
         ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
         this.mime = mime;
-        this.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+        // audioBitsPerSecond=192k for the music: video is the heavier
+        // signal but audio is what the user actually hears — keep it
+        // high enough that the encoder doesn't choke on treble transients.
+        this.rec = new MediaRecorder(stream, {
+          mimeType: mime,
+          videoBitsPerSecond: BITRATE,
+          audioBitsPerSecond: 192_000,
+        });
         this.chunks = [];
         this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
         this.rec.onstop = () => this._save();
-        this.rec.start(500);
+        // timeslice 250ms — smaller than the previous 500ms so a sudden
+        // tab close still yields a usable partial file (the last 250ms
+        // chunk is flushed to ondataavailable). The trade-off is more
+        // chunk concatenations at save time, but Blob stitching is O(n)
+        // and we're talking ~24 chunks per minute.
+        this.rec.start(250);
         this.recording = true;
+        this.startedAt = Date.now();
         const durSel = $('rec-dur') ? $('rec-dur').value : '0';
         let durMs = 0;
         if (durSel === 'song' && A.el && A.el.duration) {
@@ -865,13 +902,31 @@
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
         const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        const formatDur = (ms) => {
+          const s = Math.max(0, Math.round(ms / 1000));
+          return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0');
+        };
         if (this.autoStopAt > 0) {
-          const sec = Math.round((this.autoStopAt - Date.now()) / 1000);
-          setStatus('recording · ' + ext.toUpperCase() + ' · ' + sec + 's', 'live');
+          const durLabel = durSel === 'song' ? 'song' : (durSel + 's');
+          setStatus('rec · ' + ext.toUpperCase() + ' · ' + formatDur(this.autoStopAt - Date.now()) + ' / ' + durLabel, 'live');
           this.autoStopTimer = setTimeout(() => { if (this.recording) Recorder.stop(); }, this.autoStopAt - Date.now());
         } else {
-          setStatus('recording · ' + ext.toUpperCase(), 'live');
+          setStatus('rec · ' + ext.toUpperCase(), 'live');
         }
+        // Per-second elapsed/remaining ticker. Cleared on stop().
+        this.tickTimer = setInterval(() => {
+          if (!this.recording) { clearInterval(this.tickTimer); this.tickTimer = null; return; }
+          const el = formatDur(Date.now() - this.startedAt);
+          if (this.autoStopAt > 0) {
+            const rem = formatDur(this.autoStopAt - Date.now());
+            const durSel2 = $('rec-dur') ? $('rec-dur').value : '0';
+            const durLabel = durSel2 === 'song' ? 'song' : (durSel2 + 's');
+            setStatus('rec · ' + ext.toUpperCase() + ' · ' + el + ' / ' + durLabel, 'live');
+          } else {
+            setStatus('rec · ' + ext.toUpperCase() + ' · ' + el, 'live');
+          }
+        }, 500);
+        // SWR_REC_IMPROVED_v2
       },
       stop() {
         if (!this.rec) return;
