@@ -499,6 +499,13 @@
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, tex);
       try {
+        // Flip Y on upload. WebGL's texture origin is bottom-left while
+        // 2D-Canvas origin is top-left, so without this #fx-canvas shows
+        // #render rotated 180°. The fragment shader's `v_uv = a_pos*0.5+0.5`
+        // assumes top-left UV origin (matches the 2D canvas), so flipping
+        // here is the correct side of the mismatch to fix — flipping
+        // v_uv instead would mirror every texture sample inside the shader.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, stageCanvas);
       } catch (e) {
         // Texture size mismatch (canvas not ready yet). Skip this frame.
