@@ -254,6 +254,7 @@
   </script>
 <script src="./last-song.js"></script>
   <script src="../lib/persist.client.js"></script>
+    <script src="../lib/recorder.client.js"></script>
   <script src="../lib/persist-fx.client.js"></script>
 
   <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
@@ -312,29 +313,84 @@
     const Recorder = {
       rec: null, chunks: [], recording: false, mime: 'video/webm',
       mediaCtx: null, mediaSrc: null, mediaDest: null,
+    // SWR_REC_MP4_INTEGRATION
       start() {
         if (!A.el) { setStatus('load a song first', ''); return; }
-        // Read user-configurable quality & fps from the toolbar selects.
-        // Falls back to 30fps / high bitrate when the selects aren't in
-        // the DOM (older variant pages or studio-mode layouts that hide
-        // them).
         const fpsSel = $('rec-fps') ? $('rec-fps').value : '30';
         const fps = parseInt(fpsSel, 10) || 30;
         const qualSel = $('rec-quality') ? $('rec-quality').value : 'high';
         const BITRATE = { high: 12_000_000, med: 6_000_000, low: 3_000_000 }[qualSel] || 12_000_000;
+        const formatSel = $('rec-format') ? $('rec-format').value : 'auto';
+        const wantMp4 = formatSel === 'mp4' || (formatSel === 'auto' && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs());
+        if (wantMp4 && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs()) {
+          this._wcActive = true;
+          this._wcPending = window.SWR_RECORDER.start({
+            canvas: stage,
+            audioSource: A.an,
+            audioSampleRate: A.ctx ? A.ctx.sampleRate : 0,
+            audioNumberOfChannels: 2,
+            width: stage.width,
+            height: stage.height,
+            fps: fps,
+            videoBitsPerSecond: BITRATE,
+          }).then(() => {
+            this.recording = true;
+            this.startedAt = Date.now();
+            const durSel = $('rec-dur') ? $('rec-dur').value : '0';
+            let durMs = 0;
+            if (durSel === 'song' && A.el && A.el.duration) {
+              durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
+            } else if (durSel !== '0' && durSel !== 'manual') {
+              durMs = parseInt(durSel) * 1000;
+            }
+            this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
+            $('rec').classList.add('live');
+            $('rec').textContent = '■ STOP';
+            const formatDur = (ms) => {
+              const s = Math.max(0, Math.round(ms / 1000));
+              return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0');
+            };
+            if (this.autoStopAt > 0) {
+              const durLabel = durSel === 'song' ? 'song' : (durSel + 's');
+              setStatus('rec · MP4 · ' + formatDur(this.autoStopAt - Date.now()) + ' / ' + durLabel, 'live');
+              this.autoStopTimer = setTimeout(() => { if (this.recording) Recorder.stop(); }, this.autoStopAt - Date.now());
+            } else {
+              setStatus('rec · MP4', 'live');
+            }
+            this.tickTimer = setInterval(() => {
+              if (!this.recording) { clearInterval(this.tickTimer); this.tickTimer = null; return; }
+              const el = formatDur(Date.now() - this.startedAt);
+              if (this.autoStopAt > 0) {
+                const rem = formatDur(this.autoStopAt - Date.now());
+                const durSel2 = $('rec-dur') ? $('rec-dur').value : '0';
+                const durLabel = durSel2 === 'song' ? 'song' : (durSel2 + 's');
+                setStatus('rec · MP4 · ' + el + ' / ' + durLabel, 'live');
+              } else {
+                setStatus('rec · MP4 · ' + el, 'live');
+              }
+            }, 500);
+          }).catch((err) => {
+            this._wcActive = false;
+            if (err && err.unsupported) {
+              setStatus('WebCodecs unsupported · falling back to WebM', 'warn');
+              const prev = $('rec-format') ? $('rec-format').value : formatSel;
+              if ($('rec-format')) $('rec-format').value = 'webm';
+              this.start();
+              if ($('rec-format')) $('rec-format').value = prev;
+            } else {
+              setStatus('recorder start failed: ' + (err && err.message || err), 'err');
+            }
+          });
+          return;
+        }
+        // === MEDIA-RECORDER (WEBM) PATH — same as before ===
         const vstream = stage.captureStream(fps);
         const dest = A.ctx.createMediaStreamDestination();
         this.mediaDest = dest;
-        // Guard against double-connection: if A.an is already routed to
-        // this exact dest from a previous unfinished recording, disconnect
-        // first. (Has happened on hot-reload during dev.)
         try { A.an.disconnect(dest); } catch {}
         A.an.connect(dest);
         const tracks = [...vstream.getVideoTracks(), ...dest.stream.getAudioTracks()];
         const stream = new MediaStream(tracks);
-        // Prefer VP9 (best quality per bitrate, hardware decoded on most
-        // platforms) over VP8 over MP4. MP4 encoders are still patchy in
-        // Chrome — only Safari supports them natively, so we list MP4 last.
         const mime = [
           'video/webm;codecs=vp9,opus',
           'video/webm;codecs=vp8,opus',
@@ -345,9 +401,6 @@
           'video/webm',
         ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
         this.mime = mime;
-        // audioBitsPerSecond=192k for the music: video is the heavier
-        // signal but audio is what the user actually hears — keep it
-        // high enough that the encoder doesn't choke on treble transients.
         this.rec = new MediaRecorder(stream, {
           mimeType: mime,
           videoBitsPerSecond: BITRATE,
@@ -356,11 +409,6 @@
         this.chunks = [];
         this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
         this.rec.onstop = () => this._save();
-        // timeslice 250ms — smaller than the previous 500ms so a sudden
-        // tab close still yields a usable partial file (the last 250ms
-        // chunk is flushed to ondataavailable). The trade-off is more
-        // chunk concatenations at save time, but Blob stitching is O(n)
-        // and we're talking ~24 chunks per minute.
         this.rec.start(250);
         this.recording = true;
         this.startedAt = Date.now();
@@ -386,7 +434,6 @@
         } else {
           setStatus('rec · ' + ext.toUpperCase(), 'live');
         }
-        // Per-second elapsed/remaining ticker. Cleared on stop().
         this.tickTimer = setInterval(() => {
           if (!this.recording) { clearInterval(this.tickTimer); this.tickTimer = null; return; }
           const el = formatDur(Date.now() - this.startedAt);
@@ -402,15 +449,35 @@
         // SWR_REC_IMPROVED_v2
       },
       stop() {
+        if (this._wcActive) {
+          if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+          if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
+          this._wcActive = false;
+          this.recording = false;
+          $('rec').classList.remove('live');
+          $('rec').textContent = '● REC';
+          setStatus('finalizing MP4…', '');
+          window.SWR_RECORDER.stop().then((res) => {
+            this.chunks = [res.blob];
+            this.mime = res.mime;
+            this._save();
+          }).catch((err) => {
+            setStatus('recorder stop failed: ' + (err && err.message || err), 'err');
+          });
+          return;
+        }
         if (!this.rec) return;
+        if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+        if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
         this.rec.stop();
         this.recording = false;
         $('rec').classList.remove('live');
         $('rec').textContent = '● REC';
-        try { this.mediaSrc && this.mediaSrc.disconnect(); } catch {}
-        try { this.mediaDest && this.mediaDest.disconnect(); } catch {}
-        try { this.mediaCtx && this.mediaCtx.close(); } catch {}
-        this.mediaCtx = this.mediaSrc = this.mediaDest = null;
+        setStatus('rendering…', '');
+        if (this.mediaDest) {
+          try { A.an.disconnect(this.mediaDest); } catch {}
+          this.mediaDest = null;
+        }
       },
       _save() {
         const blob = new Blob(this.chunks, { type: this.mime });
