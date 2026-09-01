@@ -623,7 +623,7 @@
         const presets = [
           [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
           [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
-          [ { feature:'treble',target:'rot',scale:60,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
+          [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
           [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
           [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
           [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
@@ -701,7 +701,7 @@
           const presets = [
             [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
             [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
-            [ { feature:'treble',target:'rot',scale:60,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
+            [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
             [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
             [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
             [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
@@ -738,18 +738,23 @@
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
-        v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
+        v = ease(r.ease, clamp(v,0,1)) * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
         // Master rotation toggle gate: when the user has turned rotation
         // OFF globally (swr-rot-master button), skip rot reactor writes so
         // audio doesn't compound the canvas into 180-degree flips.
         const _rotOn = l.rotationEnabled !== false;
-        if (r.target==='scale') out.scale += v;
-        else if (r.target==='x') out.x += v * 200;
-        else if (r.target==='y') out.y += v * 200;
-        else if (r.target==='rot') { if (_rotOn) out.rot += v * 30; }
+        // `r.scale` is now the per-reactor *target gain* in its target's natural
+        // units (px, deg, scale-factor, hue-deg). The previous `v * r.scale * 30`
+        // form coupled reactor sensitivity to a magic 30× multiplier, which made
+        // any scale > 1 accumulate hundreds of degrees per audio frame and snapped
+        // through (-180, 180] multiple times a second. Read it straight now.
+        if (r.target==='scale') out.scale += v * r.scale;
+        else if (r.target==='x') out.x += v * r.scale;
+        else if (r.target==='y') out.y += v * r.scale;
+        else if (r.target==='rot') { if (_rotOn) out.rot += v * r.scale; }
         else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.5, 0, 1);
-        else if (r.target==='hue') out.hue += v * 60;
+        else if (r.target==='hue') out.hue += v * r.scale;
         else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.5, 0.1, 2.5);
         else if (r.target==='contrast') out.contrast = clamp(out.contrast + v*0.5, 0.1, 2.5);
       }
