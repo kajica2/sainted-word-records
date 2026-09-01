@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library Manifest · Sainted Word Records</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    :root {
+      --bg: #0a0d12; --panel: #11151c; --panel-2: #161b24; --line: #232a36;
+      --ink: #e7ecf3; --muted: #7d8794; --accent: #ff2d8a; --accent-2: #00f0ff;
+      --ok: #4ade80; --warn: #ffae42; --err: #f87171;
+    }
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font: 14px ui-monospace, SFMono-Regular, Menlo, monospace;
+      min-height: 100vh; padding: 24px;
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+    h2 { font-size: 13px; margin: 24px 0 8px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .toolbar .grow { flex: 1; }
+    .btn {
+      background: var(--panel-2); color: var(--ink); border: 1px solid var(--line);
+      font: 12px ui-monospace, monospace; padding: 7px 12px; border-radius: 3px;
+      cursor: pointer; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+    .btn.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+    .btn.danger { color: var(--err); border-color: var(--err); }
+    .btn.danger:hover { background: var(--err); color: #000; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .status { padding: 8px 12px; border-radius: 3px; font-size: 12px; }
+    .status.ok { background: #0e2b1a; color: var(--ok); border: 1px solid #1a5232; }
+    .status.warn { background: #2a1e0a; color: var(--warn); border: 1px solid #5a3e0a; }
+    .status.err { background: #2a0e0e; color: var(--err); border: 1px solid #5a1a1a; }
+    .grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    .panel-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+    .panel-h h3 { margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); flex: 1; }
+    .panel-b { padding: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 400; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+    tr.missing td { color: var(--err); }
+    tr.invalid td { color: var(--warn); }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .pill { display: inline-block; padding: 2px 6px; border-radius: 2px; font-size: 10px; letter-spacing: 0.08em; }
+    .pill.image { background: #1e3a5f; color: #93c5fd; }
+    .pill.video { background: #3a1e5f; color: #c4b5fd; }
+    .pill.persona { background: #1e5f3a; color: #86efac; }
+    .pill.audio { background: #5f3a1e; color: #fcd34d; }
+    .row-actions { display: flex; gap: 4px; }
+    .row-actions button { padding: 4px 8px; font-size: 10px; }
+    input[type="text"] {
+      background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+      font: 12px ui-monospace, monospace; padding: 6px 8px; border-radius: 3px;
+      width: 100%;
+    }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    .group-block { border: 1px solid var(--line); border-radius: 4px; padding: 8px; margin-bottom: 8px; background: var(--panel-2); }
+    .group-block h4 { margin: 0 0 6px; font-size: 11px; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+    .group-block input { margin-bottom: 6px; }
+    .group-files { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    .group-files .tag { background: var(--bg); border: 1px solid var(--line); padding: 3px 6px; border-radius: 2px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; }
+    .group-files .tag button { background: none; border: none; color: var(--err); cursor: pointer; font-size: 12px; padding: 0; }
+    .dropzone { border: 2px dashed var(--line); border-radius: 6px; padding: 24px; text-align: center; color: var(--muted); margin-bottom: 12px; transition: all 0.15s; cursor: pointer; }
+    .dropzone:hover, .dropzone.drag { border-color: var(--accent); color: var(--accent); background: rgba(255,45,138,0.05); }
+    .kbd { background: var(--bg); border: 1px solid var(--line); padding: 2px 5px; border-radius: 2px; font-size: 10px; }
+    .raw { width: 100%; min-height: 240px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); font: 11px ui-monospace, monospace; padding: 8px; border-radius: 3px; resize: vertical; }
+    .raw:focus { outline: none; border-color: var(--accent); }
+    .hidden { display: none !important; }
+    .stats { display: flex; gap: 16px; padding: 8px 14px; background: var(--panel-2); border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+    .stats b { color: var(--ink); }
+    .err-row { color: var(--err); font-size: 11px; padding: 4px 8px; background: rgba(248,113,113,0.08); border-radius: 3px; margin-top: 4px; }
+    .ok-banner { background: #0e2b1a; color: var(--ok); border: 1px solid #1a5232; padding: 8px 12px; border-radius: 3px; font-size: 12px; margin-bottom: 8px; }
+    .file-thumb { width: 28px; height: 28px; object-fit: cover; border-radius: 2px; vertical-align: middle; margin-right: 8px; background: var(--bg); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>📚 library/manifest.json</h1>
+    <p class="sub">Edit the curated library entries. Drag in new files, tag with persona groups, validate, then download or push.</p>
+
+    <div class="toolbar">
+      <button class="btn primary" id="btn-load">Load from /api/manifest</button>
+      <button class="btn" id="btn-sample">Load sample</button>
+      <button class="btn" id="btn-add-empty">Add empty row</button>
+      <button class="btn danger" id="btn-dedupe">Dedupe</button>
+      <button class="btn danger" id="btn-strip-missing">Strip missing</button>
+      <span class="grow"></span>
+      <button class="btn" id="btn-validate">Validate</button>
+      <button class="btn" id="btn-raw">View raw JSON</button>
+      <button class="btn primary" id="btn-download">Download manifest.json</button>
+      <button class="btn primary" id="btn-push">Save to /api/manifest</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <div class="panel-h">
+            <h3>Files <span id="files-count">(0)</span></h3>
+            <span class="pill image">image</span>
+            <span class="pill video">video</span>
+            <span class="pill persona">persona</span>
+            <span class="pill audio">audio</span>
+          </div>
+          <div class="panel-b">
+            <div class="dropzone" id="dropzone">
+              <strong>Drop files here</strong> or click to choose. They will be added by filename only — copy the actual files into library/ on disk separately.
+              <br><span style="font-size:10px;">(Web pages can list filenames; the file content must be in the repo. This page does NOT upload binaries.)</span>
+            </div>
+            <input type="file" id="file-input" multiple class="hidden" />
+            <table id="files-table">
+              <thead>
+                <tr><th>Kind</th><th>Path</th><th>Group(s)</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody id="files-tbody"></tbody>
+            </table>
+            <div class="stats">
+              <span>Total: <b id="stat-total">0</b></span>
+              <span>Images: <b id="stat-img">0</b></span>
+              <span>Videos: <b id="stat-vid">0</b></span>
+              <span>Persona: <b id="stat-persona">0</b></span>
+              <span>Missing on disk: <b id="stat-missing">0</b></span>
+              <span>Not in any group: <b id="stat-orphan">0</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="panel-h">
+            <h3>Persona groups</h3>
+            <button class="btn" id="btn-add-group">+ group</button>
+          </div>
+          <div class="panel-b" id="groups-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="raw-panel" style="margin-top:16px;">
+      <div class="panel-h"><h3>Raw JSON</h3><button class="btn" id="btn-format">Format</button></div>
+      <div class="panel-b">
+        <textarea class="raw" id="raw-textarea" spellcheck="false"></textarea>
+        <button class="btn primary" id="btn-raw-apply" style="margin-top:8px;">Apply raw JSON to editor</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="manifest-editor.client.js"></script>
+</body>
+</html>

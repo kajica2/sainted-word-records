@@ -1,14 +1,40 @@
 {
   "files": [
-    "p01.jpg", "p02.png", "p03.jpg", "p04.jpg", "p05.jpg",
-    "p06.jpg", "p07.jpg", "p08.jpg", "p09.jpg", "p10.jpg",
-    "p11.jpg", "p12.jpg", "p13.jpg", "p14.jpg", "p15.jpg",
-    "p_01.jpg", "p_02.jpg", "p_03.jpg", "p_04.jpg", "p_05.jpg",
     "c01-rooftop.mp4",
     "c03-taxi.mp4",
     "c06-smoke.mp4",
     "c07-sunrise.mp4",
     "c09-security.mp4",
+    "p01.jpg",
+    "p02.png",
+    "p03.jpg",
+    "p04.jpg",
+    "p05.jpg",
+    "p06.jpg",
+    "p07.jpg",
+    "p08.jpg",
+    "p09.jpg",
+    "p10.jpg",
+    "p11.jpg",
+    "p12.jpg",
+    "p13.jpg",
+    "p14.jpg",
+    "p15.jpg",
+    "p_01.jpg",
+    "p_010.png",
+    "p_011.png",
+    "p_012.png",
+    "p_013.png",
+    "p_014.png",
+    "p_015.png",
+    "p_02.jpg",
+    "p_03.jpg",
+    "p_04.jpg",
+    "p_05.jpg",
+    "p_06.png",
+    "p_07.png",
+    "p_08.png",
+    "p_09.png",
     "persona/p16-raw-1.png",
     "persona/p17-raw-2.png",
     "persona/p18-poster-1.png",
@@ -31,15 +57,45 @@
     "persona/p35-hallucination-2.png"
   ],
   "personaGroups": {
-    "raw":       ["persona/p16-raw-1.png", "persona/p17-raw-2.png"],
-    "poster":    ["persona/p18-poster-1.png", "persona/p19-poster-2.png"],
-    "mask":      ["persona/p20-mask-1.png", "persona/p21-mask-2.png"],
-    "fx":        ["persona/p22-fx-1.png", "persona/p23-fx-2.png"],
-    "filter":    ["persona/p24-filter-1.png", "persona/p25-filter-2.png"],
-    "neon":      ["persona/p26-neon-1.png", "persona/p27-neon-2.png"],
-    "film":      ["persona/p28-film-1.png", "persona/p29-film-2.png"],
-    "grid":      ["persona/p30-grid-1.png", "persona/p31-grid-2.png"],
-    "smoke":     ["persona/p32-smoke-1.png", "persona/p33-smoke-2.png"],
-    "hallucination": ["persona/p34-hallucination-1.png", "persona/p35-hallucination-2.png"]
+    "raw": [
+      "persona/p16-raw-1.png",
+      "persona/p17-raw-2.png"
+    ],
+    "poster": [
+      "persona/p18-poster-1.png",
+      "persona/p19-poster-2.png"
+    ],
+    "mask": [
+      "persona/p20-mask-1.png",
+      "persona/p21-mask-2.png"
+    ],
+    "fx": [
+      "persona/p22-fx-1.png",
+      "persona/p23-fx-2.png"
+    ],
+    "filter": [
+      "persona/p24-filter-1.png",
+      "persona/p25-filter-2.png"
+    ],
+    "neon": [
+      "persona/p26-neon-1.png",
+      "persona/p27-neon-2.png"
+    ],
+    "film": [
+      "persona/p28-film-1.png",
+      "persona/p29-film-2.png"
+    ],
+    "grid": [
+      "persona/p30-grid-1.png",
+      "persona/p31-grid-2.png"
+    ],
+    "smoke": [
+      "persona/p32-smoke-1.png",
+      "persona/p33-smoke-2.png"
+    ],
+    "hallucination": [
+      "persona/p34-hallucination-1.png",
+      "persona/p35-hallucination-2.png"
+    ]
   }
 }
