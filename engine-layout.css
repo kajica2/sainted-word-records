@@ -56,6 +56,34 @@
   color: var(--accent, #ff2d8a);
 }
 
+/* ============================================================
+   FULLSCREEN MODE — hide every chrome surface, leave only stage.
+   Triggered by Shift+F; combines browser requestFullscreen() with
+   the truly-fullscreen layout class. Escape (browser default) exits
+   the browser fullscreen and the layout reverts to studio.
+   ============================================================ */
+[data-layout="fullscreen"] body { background: #000; }
+[data-layout="fullscreen"] header,
+[data-layout="fullscreen"] footer,
+[data-layout="fullscreen"] aside.lib,
+[data-layout="fullscreen"] aside.layers,
+[data-layout="fullscreen"] #swr-start,
+[data-layout="fullscreen"] #swr-layout-badge {
+  display: none !important;
+}
+[data-layout="fullscreen"] #app {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  width: 100dvw;
+}
+[data-layout="fullscreen"] section.stage {
+  width: 100%;
+  height: 100%;
+}
+
 /* Floating mini-mode badge — only visible in wide layout, top-right. */
 [data-layout="wide"] #swr-layout-badge {
   position: fixed;
