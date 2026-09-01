@@ -853,6 +853,14 @@
       try {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, tex);
+        // Flip Y on upload. WebGL's texture origin is bottom-left while
+        // 2D-Canvas origin is top-left, so without this the overlay canvas
+        // displays #render rotated 180° on every variant that mounts the
+        // WebGL post-process pass (i.e. all of versions/*.html that load
+        // versions-presets.js). The fragment shader's v_uv assumes
+        // top-left UV origin, so the flip is on the upload side — flipping
+        // v_uv inside the shader would also mirror the texture sampling.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, stageCanvas);
       } catch (e) {
         requestAnimationFrame(render);
