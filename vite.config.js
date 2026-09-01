@@ -74,11 +74,13 @@ function copyStatic() {
     'engine-settings.client.js',
     'persona-onboarding.js',
     'engine-keys.client.js',
+    'engine-layout.client.js',
     'project.client.js',
     'timeline.client.js',
     'layer-scheduler.client.js',
     'layer-scheduler.worker.js',
     'engine-genops.css',
+    'engine-layout.css',
     'audio-analysis-v2.js',
     'swr-intro-10s.html',
     'swr-intro-10s-script.txt',
@@ -378,6 +380,27 @@ export default defineConfig(({ command, mode }) => {
             return html.replace(
               /<script\s+type="module"\s+src="\/([^"]+)"\s*><\/script>/g,
               '<script src="/$1" defer></script>'
+            );
+          },
+        },
+      },
+      // engine-layout-inject — for any HTML that already imports
+      // engine-genops (every variant does), inject the shared layout
+      // stylesheet + controller. Two modes: studio (default 3-column)
+      // and wide (full-bleed). Keyboard toggle: L. URL param: ?layout=wide.
+      {
+        name: 'engine-layout-inject',
+        transformIndexHtml: {
+          order: 'pre',
+          handler(html) {
+            if (!/engine-genops\.client\.js/.test(html)) return html;
+            if (/engine-layout\.client\.js/.test(html)) return html; // idempotent
+            return html.replace(
+              /(<link rel="stylesheet" href="\.\.\/engine-genops\.css" \/>)/,
+              '$1\n  <link rel="stylesheet" href="../engine-layout.css" />'
+            ).replace(
+              /(<script src="\.\.\/engine-genops\.client\.js"><\/script>)/,
+              '$1\n<script src="../engine-layout.client.js"></script>'
             );
           },
         },

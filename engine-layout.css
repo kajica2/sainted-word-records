@@ -1,0 +1,80 @@
+/* engine-layout.css — shared 2-mode layout toggle for all versions/*.html.
+   Two layouts:
+     - studio (default): 220px lib | flexible canvas | 240px layers  (current behavior)
+     - wide:               0   lib | flexible canvas | 0    layers — header + footer only,
+                          full-bleed stage, "press L or ?L to restore" hint
+   Toggle:
+     - URL param:  ?layout=wide   (or  ?layout=studio  to revert)
+     - Keyboard:   L (Shift+L)  cycles studio → wide → studio
+     - Storage:    localStorage[swr.layout] = 'studio' | 'wide'
+   The two modes share every other CSS variable; only the grid columns +
+   sidebar visibility change. The shrunken library/layers panels in wide
+   mode collapse to a single header icon button that reopens them in a
+   floating overlay (kept tiny — wide mode is for performance review, not
+   curation). */
+
+[data-layout="studio"] #app {
+  /* default 3-column: library | stage | layers */
+  grid-template-columns: 220px minmax(0, 1fr) 240px;
+}
+[data-layout="studio"] aside.lib,
+[data-layout="studio"] aside.layers { display: block; }
+
+[data-layout="wide"] #app {
+  /* full-bleed: huge canvas + thin icon column for re-open */
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+}
+[data-layout="wide"] aside.lib,
+[data-layout="wide"] aside.layers {
+  /* Collapse the side panels into icon-only columns. The body of the
+     aside stays in the DOM so existing JS keeps working — we just zero
+     out its width and hide the internal grid + children except a
+     single re-open button injected below. */
+  width: 56px;
+  overflow: hidden;
+  position: relative;
+}
+[data-layout="wide"] aside.lib > *,
+[data-layout="wide"] aside.layers > * {
+  display: none !important;
+}
+[data-layout="wide"] aside.lib::before,
+[data-layout="wide"] aside.layers::before {
+  content: '⤢';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--muted, #888);
+  cursor: pointer;
+  user-select: none;
+}
+[data-layout="wide"] aside.lib:hover::before,
+[data-layout="wide"] aside.layers:hover::before {
+  color: var(--accent, #ff2d8a);
+}
+
+/* Floating mini-mode badge — only visible in wide layout, top-right. */
+[data-layout="wide"] #swr-layout-badge {
+  position: fixed;
+  top: 56px;
+  right: 12px;
+  z-index: 10001;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 3px;
+  font: 10px/1 ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+[data-layout="studio"] #swr-layout-badge { display: none; }
+
+/* Hide the layout badge overlay during a recorder session so it
+   doesn't end up baked into a take. */
+[data-recording="1"] #swr-layout-badge { display: none !important; }
