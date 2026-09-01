@@ -704,6 +704,50 @@
         ctx.fillRect(x, y, 1, 1);
       }
       ctx.restore();
+
+      // === Paint drip — a saturated colored line that grows down ===
+      // Spawns occasionally (treble-driven), grows for ~30 frames, then
+      // evaporates. Color picked from a soft pastel palette. Each drip is
+      // ~3px wide so it reads as a real watercolour streak.
+      if (A.feat.treble > 0.45 && Math.random() < 0.04) {
+        if (!window.__watercolor_drips) window.__watercolor_drips = [];
+        if (window.__watercolor_drips.length < 3) {
+          const palette = [
+            [244, 120, 140],   // rose
+            [ 80, 170, 120],   // sage
+            [ 90, 150, 210],   // powder blue
+            [220, 180, 100],   // ochre
+          ];
+          const c = palette[(Math.random() * palette.length) | 0];
+          window.__watercolor_drips.push({
+            x: Math.random() * W,
+            y0: Math.random() * H * 0.5,
+            length: 30 + Math.random() * 60,
+            life: 0,
+            maxLife: 180 + Math.random() * 180,
+            r: c[0], g: c[1], b: c[2],
+          });
+        }
+      }
+      if (window.__watercolor_drips && window.__watercolor_drips.length) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        for (let i = window.__watercolor_drips.length - 1; i >= 0; i--) {
+          const d = window.__watercolor_drips[i];
+          d.life++;
+          if (d.life > d.maxLife) { window.__watercolor_drips.splice(i, 1); continue; }
+          const t = d.life / d.maxLife;
+          const grown = Math.min(1, t * 3) * d.length;
+          const alpha = (t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3) * 0.45;
+          const g = ctx.createLinearGradient(d.x, d.y0, d.x, d.y0 + grown);
+          g.addColorStop(0,    `rgba(${d.r},${d.g},${d.b},${alpha})`);
+          g.addColorStop(0.85, `rgba(${d.r},${d.g},${d.b},${alpha * 0.4})`);
+          g.addColorStop(1,    `rgba(${d.r},${d.g},${d.b},0)`);
+          ctx.fillStyle = g;
+          ctx.fillRect(d.x - 1, d.y0, 3, grown);
+        }
+        ctx.restore();
+      }
     }
 
         function drawMeter() {

@@ -780,6 +780,24 @@
       ctx.fillStyle = `rgba(184,154,114,${0.05 + A.feat.bass*0.10})`;
       ctx.fillRect(0,0,W,H);
       ctx.restore();
+      // === Amber ghost — chromatic-aberration echo that drifts with bass ===
+      // Pull a soft-blurred copy of the canvas, offset it by a few pixels,
+      // and tint it amber. Damped so the offset doesn't twitch.
+      const _D = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp : null;
+      const _bass = (_D ? _D(A.feat.bass || 0, 0.5) : (A.feat.bass || 0));
+      if (_bass > 0.1) {
+        const offX = Math.sin(performance.now() / 1100) * 4;
+        const offY = Math.cos(performance.now() / 900) * 3;
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 0.18 * _bass;
+        ctx.filter = 'blur(8px) sepia(0.8)';
+        ctx.drawImage(stage, offX, offY, W, H);
+        ctx.filter = 'none';
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
     }
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;

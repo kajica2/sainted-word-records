@@ -666,6 +666,37 @@
       ctx.fillRect(0, 0, W, H);
       ctx.restore();
 
+      // === Twinkling stars — solo white pixels that breathe for ~2s ===
+      // Triggered by treble spikes. Each star is a single 1-2px point that
+      // fades in then out, sits in state. Max 5 simultaneous to avoid
+      // filling the void with sparkles on noisy treble.
+      if (A.feat.treble > 0.55 && Math.random() < 0.05) {
+        if (!window.__void_stars) window.__void_stars = [];
+        if (window.__void_stars.length < 5) {
+          window.__void_stars.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            life: 0,
+            maxLife: 60 + Math.floor(Math.random() * 60),
+          });
+        }
+      }
+      if (window.__void_stars && window.__void_stars.length) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        for (let i = window.__void_stars.length - 1; i >= 0; i--) {
+          const s = window.__void_stars[i];
+          s.life++;
+          if (s.life > s.maxLife) { window.__void_stars.splice(i, 1); continue; }
+          const t = s.life / s.maxLife;
+          // Triangle envelope: fade in, hold, fade out
+          const alpha = (t < 0.3 ? t / 0.3 : (t > 0.7 ? (1 - t) / 0.3 : 1));
+          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+          ctx.fillRect(s.x, s.y, 2, 2);
+        }
+        ctx.restore();
+      }
+
       // Particle trail field — motion-driven dots fading in/out
       ctx.save();
       ctx.globalCompositeOperation = 'screen';

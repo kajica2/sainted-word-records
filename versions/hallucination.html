@@ -947,6 +947,29 @@
         ctx.fillStyle = `rgba(255,255,0,${A.feat.beat * 0.4})`;
         ctx.fillRect(0,0,W,H); ctx.restore();
       }
+      // === Hallucination strobe — violent RGB ghosts + noise spike on kick ===
+      // Reads as a torn video signal. The shift amount is bass-driven so
+      // heavy kicks produce larger ghosts; capped to 14px so the layer
+      // content is still recognizable. On every 2nd beat, drop a 1-frame
+      // overlay of pure-noise white that punches through the composition.
+      const _D = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp : null;
+      const bassD = (_D ? _D(A.feat.bass || 0, 0.3) : (A.feat.bass || 0));
+      const shift = 6 + bassD * 14;
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(stage, -shift, 0, W, H);
+      ctx.drawImage(stage,  shift, 0, W, H);
+      ctx.restore();
+      // Noise punch on every other beat
+      if (A.feat.beatPulse && A.feat.beat > 0.5) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = 'rgba(220,220,255,0.18)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
     }
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;

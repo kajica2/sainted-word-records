@@ -669,6 +669,50 @@
         ctx.restore();
       }
 
+      // === Shooting stars — every 4-8s a bright dot streaks across ===
+      // State held in closure. Each star lives ~1.5s, fading from the
+      // head to the tail with a soft trail.
+      if (!window.__aurora_stars) {
+        window.__aurora_stars = [];
+        window.__aurora_nextSpawn = performance.now() + 2000;
+      }
+      const now = performance.now();
+      if (now > window.__aurora_nextSpawn) {
+        window.__aurora_stars.push({
+          x: Math.random() * W,
+          y: -10,
+          vx: (Math.random() - 0.5) * 6,
+          vy: 1 + Math.random() * 2,
+          life: 0,
+          maxLife: 60 + Math.floor(Math.random() * 90),
+          hue: 180 + Math.floor(Math.random() * 120),
+        });
+        window.__aurora_nextSpawn = now + 4000 + Math.random() * 4000;
+        if (window.__aurora_stars.length > 3) window.__aurora_stars.shift();
+      }
+      for (let i = window.__aurora_stars.length - 1; i >= 0; i--) {
+        const s = window.__aurora_stars[i];
+        s.life++;
+        s.x += s.vx;
+        s.y += s.vy;
+        if (s.life > s.maxLife || s.y > H + 20) {
+          window.__aurora_stars.splice(i, 1);
+          continue;
+        }
+        const alpha = 1 - s.life / s.maxLife;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        // 12-segment trail
+        for (let t = 0; t < 12; t++) {
+          const f = t / 12;
+          const tx = s.x - s.vx * t * 1.5;
+          const ty = s.y - s.vy * t * 1.5;
+          ctx.fillStyle = `hsla(${s.hue}, 90%, 75%, ${alpha * (1 - f) * 0.85})`;
+          ctx.fillRect(tx - 1, ty - 1, 2 + t * 0.4, 2 + t * 0.4);
+        }
+        ctx.restore();
+      }
+
       // Pastel curtain overlay (animated gradient that pulses with bass)
       const grad = ctx.createLinearGradient(0, 0, 0, H);
       const t = performance.now() * 0.0002;

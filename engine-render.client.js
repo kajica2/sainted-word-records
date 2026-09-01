@@ -316,6 +316,11 @@
     if (!isFinite(dt) || dt < 0) dt = 1/60;
     if (dt > 0.5) dt = 0.5;
     state._lastFrameAt = now;
+    // Expose the clamped dt for variants to use in their RAF loops so
+    // audio-reactive motion is frame-rate independent (LFO cadence,
+    // particle decay, camera drift — all should use this same dt, not
+    // their own dt-derived values).
+    window.SWR_FRAME_DT = dt;
     // One-time attach for any layers that haven't been initialised. Cheap;
     // attach() is idempotent and only writes when fields are missing.
     if (T && typeof T.attach === 'function') {

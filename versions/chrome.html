@@ -695,6 +695,26 @@
       ctx.drawImage(proc, 0, 0);
       ctx.filter = 'none';
       ctx.restore();
+
+      // === Mirror sweep — bright vertical highlight that travels L→R ===
+      // Position seeded from performance.now() so it doesn't sync to fps,
+      // speed amplified by beat so heavy kicks accelerate the sweep.
+      // Looks like light catching the chrome's polished surface.
+      const beat = A.feat.beat || 0;
+      const tNow = Date.now();
+      const cycleT2 = (tNow * 0.00012) % 1;
+      const x = -0.2 + cycleT2 * 1.4;
+      const sweepWidth = 0.18;
+      const g = ctx.createLinearGradient((x - sweepWidth) * W, 0, (x + sweepWidth) * W, 0);
+      g.addColorStop(0,    'rgba(255,255,255,0)');
+      g.addColorStop(0.45, `rgba(255,255,255,${0.25 + beat * 0.45})`);
+      g.addColorStop(0.55, `rgba(255,255,255,${0.25 + beat * 0.45})`);
+      g.addColorStop(1,    'rgba(255,255,255,0)');
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
     }
 
         function drawMeter() {

@@ -811,6 +811,34 @@
       ctx.fillStyle = '#00f0ff';
       for (let y=0; y<H; y+=3) ctx.fillRect(0, y, W, 1);
       ctx.restore();
+
+      // === White ring shockwave on kick — fires when beatPulse fires ===
+      // Counter ticks once per detected beat, so the ring spawns at
+      // the right moment and expands outward over ~0.6s. White core
+      // fades to magenta then transparent.
+      if (A.feat.beatPulse) {
+        if (!window.__pulse_ring) window.__pulse_ring = [];
+        window.__pulse_ring.push({ life: 0 });
+        if (window.__pulse_ring.length > 4) window.__pulse_ring.shift();
+      }
+      if (window.__pulse_ring && window.__pulse_ring.length) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        for (let i = window.__pulse_ring.length - 1; i >= 0; i--) {
+          const r = window.__pulse_ring[i];
+          r.life++;
+          const phase = r.life / 36;             // ~0.6s lifetime
+          if (phase >= 1) { window.__pulse_ring.splice(i, 1); continue; }
+          const radius = phase * Math.max(W, H) * 0.6;
+          const a = (1 - phase) * 0.85;
+          ctx.strokeStyle = `rgba(255,255,255,${a})`;
+          ctx.lineWidth = 2 + phase * 6;
+          ctx.beginPath();
+          ctx.arc(W/2, H/2, radius, 0, Math.PI*2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
     }
 
         function drawMeter() {

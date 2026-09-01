@@ -822,7 +822,10 @@
       // === Audio-reactive film grain ===
       // Base grain 0.04, but bass kicks push it up to ~0.10 so the texture
       // visibly coarsens on every hit (like a film projector shuddering).
-      const bass = A.feat.bass || 0;
+      // Damped so the grain density doesn't strobe on noisy onset frames.
+      const _D = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp : null;
+      const bass = (_D ? _D(A.feat.bass || 0, 0.35) : (A.feat.bass || 0));
       const beat = A.feat.beat || 0;
       const rms  = A.feat.rms  || 0;
       const onset = A.feat.onset || 0;
@@ -835,6 +838,19 @@
           d[i] = clamp(d[i]+n,0,255); d[i+1]=clamp(d[i+1]+n,0,255); d[i+2]=clamp(d[i+2]+n,0,255);
         }
         ctx.putImageData(id,0,0);
+      }
+      // === Film flicker — classic cinema projector ===
+      // Every ~5s a single bright white frame washes across the whole
+      // composition (catches the eye, feels like real film). Cadence
+      // derived from a slow-running counter so it doesn't sync to fps.
+      const _now = performance.now() / 1000;
+      const flickerPhase = (_now % 5) / 5;          // 0..1 every 5s
+      if (flickerPhase < 0.015) {                     // ~75ms window
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = `rgba(255,248,230,${0.55 * (1 - flickerPhase / 0.015)})`;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
       }
       // === Audio-reactive warm overlay ===
       // Adds a beat-driven amber wash on top of the rms-driven base.

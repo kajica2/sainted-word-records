@@ -831,6 +831,16 @@
       // Grid line pulse — the overlay becomes more visible on heavy hits
       const gridOpacity = 0.35 + beat * 0.4;
       $('grid').style.opacity = String(Math.min(1, gridOpacity));
+      // Kick drum punch — every 2nd beat (≈ downbeat at common tempos)
+      // a single white frame flashes the entire canvas for one tick.
+      // Tracked via the same _beatCount used for cell rotation so they
+      // stay in phase.
+      if (A.feat.beatPulse && _beatCount % 2 === 0) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
     }
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;

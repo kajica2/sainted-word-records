@@ -805,6 +805,24 @@
         ctx.fillStyle = `rgba(255,45,138,${A.feat.beat*0.25})`;
         ctx.fillRect(0,0,W,H); ctx.restore();
       }
+      // Vignette glow pulse — radial gradient from the stage center
+      // that breathes with the beat. Damped to avoid strobing on noisy
+      // onset detection (smoothed via SWR_AUDIO_DAMP at 0.4s half-life).
+      const pulse = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp(A.feat.beat, 0.4)
+        : A.feat.beat;
+      if (pulse > 0.05) {
+        const cx = W * 0.5, cy = H * 0.5;
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.6);
+        g.addColorStop(0,   `rgba(255,240,74,${0.18 * pulse})`);
+        g.addColorStop(0.5, `rgba(0,240,255,${0.10 * pulse})`);
+        g.addColorStop(1,   'rgba(0,0,0,0)');
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
     }
     function drawMeter() {
       const m = meter; const w = m.canvas.width, h = m.canvas.height;

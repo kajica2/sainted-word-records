@@ -246,3 +246,15 @@
 .lockbtn { flex-shrink: 0; }
 .l .r { min-width: 0; }
 .l .r input, .l .r select { min-width: 0; max-width: 100%; }
+
+
+/* ---- rendering smoothness hints (applied everywhere via engine-genops)
+   These let the browser compositor skip paint/layout work for the hot
+   paths: the canvas itself, the stage, and the audio meter. The CSS
+   rules are scoped so they don't bleed onto content surfaces. ---- */
+section.stage { will-change: transform; }
+#render { image-rendering: optimizeQuality; }
+.meter { image-rendering: pixelated; }   /* spectrum meter stays crisp */
+/* Stop the canvas from anti-aliasing during subpixel movement — keeps
+   composite crisp when grid/film layers float over half-pixels. */
+#render, canvas#render { transform: translateZ(0); }

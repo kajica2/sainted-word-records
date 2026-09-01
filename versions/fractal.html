@@ -655,6 +655,19 @@
       ctx.restore();
     }
     function drawFx() {
+      // Slow zoom drift — sine over 32s, ±3% scale. Inverted triangle
+      // wave so the eye can't predict direction. Drawn as a clip then
+      // re-blit of stage so it scales the live canvas (not just blurs).
+      const zoomT = performance.now() / 1000 / 32;
+      const zoom = 1 + Math.sin(zoomT * Math.PI * 2) * 0.03;
+      if (Math.abs(zoom - 1) > 0.001) {
+        ctx.save();
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(zoom, zoom);
+        ctx.translate(-W / 2, -H / 2);
+        ctx.drawImage(stage, 0, 0);
+        ctx.restore();
+      }
 
       // Fractal: tunnel-zoom concentric rings with rainbow tint
       ctx.save();

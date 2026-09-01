@@ -677,6 +677,22 @@
         ctx.restore();
       }
 
+      // === Freeze-frame strobe — reads as a literal glitched frame ===
+      // On a heavy bass spike we invert the canvas and add a 1-frame
+      // RGB-shift ghost. The visual cortex reads it as the video
+      // briefly skipping. Damped to 1.5s half-life so the strobes
+      // don't cluster on noisy bass frames.
+      const _D = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp : null;
+      const _bassD = (_D ? _D(A.feat.bass || 0, 1.5) : (A.feat.bass || 0));
+      if (_bassD > 0.7 && Math.random() < 0.35) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'difference';
+        ctx.drawImage(stage, -6, 0, W, H);
+        ctx.drawImage(stage,  6, 0, W, H);
+        ctx.restore();
+      }
+
       // Phosphor scanlines (CRT)
       ctx.save();
       ctx.globalCompositeOperation = 'overlay';

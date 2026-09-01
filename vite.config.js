@@ -405,6 +405,24 @@ export default defineConfig(({ command, mode }) => {
           },
         },
       },
+      // audio-damp-inject — same pattern as engine-layout. Injects the
+      // shared exponential-smoothing helper (lib/audio-damp.client.js)
+      // into every variant. Each variant can then call SWR_AUDIO_DAMP.damp
+      // on audio feature reads to kill the per-frame jitter.
+      {
+        name: 'audio-damp-inject',
+        transformIndexHtml: {
+          order: 'pre',
+          handler(html) {
+            if (!/engine-genops\.client\.js/.test(html)) return html;
+            if (/audio-damp\.client\.js/.test(html)) return html; // idempotent
+            return html.replace(
+              /(<script src="\.\.\/engine-genops\.client\.js"><\/script>)/,
+              '$1\n<script src="../lib/audio-damp.client.js"></script>'
+            );
+          },
+        },
+      },
     ],
     server: {
       port: 5174,
