@@ -162,6 +162,51 @@ await test('rateLimit caps and recovers', () => {
   assert.equal(blocked.ok, false);
 });
 
+// --- P3.4: getSharedProject ---
+await test('getSharedProject returns null for unknown shareId', async () => {
+  const r = await db.getSharedProject('zzz_nope_' + Date.now());
+  assert.equal(r, null);
+});
+await test('getSharedProject rejects malformed shareId', async () => {
+  assert.equal(await db.getSharedProject(''), null);
+  assert.equal(await db.getSharedProject(null), null);
+  // Path traversal: must be rejected by the shareId regex.
+  assert.equal(await db.getSharedProject('../etc/passwd'), null);
+  assert.equal(await db.getSharedProject('has spaces'), null);
+});
+await test('getSharedProject returns the doc when share:true + shareId match', async () => {
+  // Need a user to create the project. Reuse the project-save path from
+  // earlier tests — create a user, upsert a project with share:true +
+  // shareId, then look it up.
+  const user = await db.createUser({ email: `share-${Date.now()}@example.com`, name: 'Share User' });
+  const shareId = 'sh_' + Math.random().toString(36).slice(2, 10);
+  const meta = await db.upsertProject(user.id, null, {
+    name: 'Shared Project',
+    doc: { foo: 'bar' },
+    share: true,
+    shareId,
+  });
+  const got = await db.getSharedProject(shareId);
+  assert.ok(got, 'expected shared project to be returned');
+  assert.equal(got.share, true);
+  assert.equal(got.shareId, shareId);
+  // The user-provided fields live under .doc (project doc nesting)
+  assert.equal(got.doc.doc.foo, 'bar');
+  // Privacy: userId must NOT be in the public payload
+  assert.equal(got.userId, undefined, 'userId must be stripped from public doc');
+});
+await test('getSharedProject returns null for share:false projects', async () => {
+  const user = await db.createUser({ email: `noshare-${Date.now()}@example.com`, name: 'No Share' });
+  await db.upsertProject(user.id, null, {
+    name: 'Private Project',
+    doc: { foo: 'bar' },
+    share: false,
+    shareId: 'private123',
+  });
+  const got = await db.getSharedProject('private123');
+  assert.equal(got, null, 'private projects must not be retrievable via shareId');
+});
+
 // --- health ---
 await test('health reports user/session/project counts', async () => {
   const h = await db.health();

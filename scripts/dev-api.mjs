@@ -24,6 +24,8 @@ const HANDLER_PATHS = {
   'storage/object': '../api/storage/object.js',
   'projects/': '../api/projects/index.js',
   'projects/item': '../api/projects/[id].js',
+  // P3.4 — public share endpoint. No auth required.
+  'projects/share': '../api/projects/share/[shareId].js',
   'health': '../api/health.js',
   'manifest': '../api/manifest.js',
   'manifest-known-files': '../api/manifest-known-files.js',
@@ -42,6 +44,8 @@ function pickHandlerPath(urlPath) {
   }
   if (segs[1] === 'projects') {
     if (!segs[2]) return HANDLER_PATHS['projects/'];
+    // /api/projects/share/<shareId> → share endpoint (P3.4)
+    if (segs[2] === 'share' && segs[3]) return HANDLER_PATHS['projects/share'];
     return HANDLER_PATHS['projects/item'];
   }
   if (segs[1] === 'health') return HANDLER_PATHS['health'];

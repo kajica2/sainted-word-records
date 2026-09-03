@@ -294,6 +294,32 @@ export async function getProject(userId, id) {
   return p;
 }
 
+// P3.4 — public share: look up a project by its shareId (no auth).
+// Returns the project doc if it has share:true and a matching shareId,
+// otherwise null. We strip the userId before returning so the public
+// viewer can't see who owns the project.
+export async function getSharedProject(shareId) {
+  if (!shareId || !/^[a-z0-9_-]{4,24}$/i.test(shareId)) return null;
+  const idx = await readJson(PROJECTS_INDEX, []);
+  // Linear scan is fine — projects index is per-user only, so we have
+  // to read each project file to check shareId. For an MVP this is
+  // fine; if the project count grows past a few hundred we'd add a
+  // separate shareId → projectId map file.
+  for (const entry of idx) {
+    if (entry.deletedAt) continue;
+    const proj = await readJson(projectPath(entry.id), null);
+    if (!proj) continue;
+    if (proj.share && proj.shareId === shareId) {
+      // Project doc has the audio blob inline (b64) when uploaded. The
+      // audio.url we add below is what the viewer reads; we don't
+      // transform the existing blob shape. Strip userId for privacy.
+      const { userId, ...rest } = proj;
+      return rest;
+    }
+  }
+  return null;
+}
+
 export async function upsertProject(userId, id, doc) {
   if (!userId) throw new Error('userId required');
   if (!id) id = uuid();
@@ -316,9 +342,17 @@ export async function upsertProject(userId, id, doc) {
     }
     await writeJson(PROJECTS_INDEX, nextIdx);
 
+    // P3.4 — hoist share/shareId out of `doc` and onto the top-level
+    // meta block. The share state is project-level metadata (used by
+    // the public viewer at /s/<shareId>), not user-doc content, and
+    // keeping it at top level lets getSharedProject() find it without
+    // crawling into doc.
+    const { share, shareId, ...docOnly } = doc || {};
     const file = {
       ...meta,
-      doc: doc || null,
+      share: !!share,
+      shareId: shareId || null,
+      doc: docOnly || null,
     };
     await writeJson(projectPath(id), file);
     return meta;
