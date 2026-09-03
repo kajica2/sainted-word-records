@@ -3198,6 +3198,20 @@
         { id: 'typography', name: 'Typography',    sub: 'reactive type',   visible: true, blend: 'difference', opacity: 80 },
         { id: 'effects',    name: 'Effects',       sub: 'glitch + bloom',  visible: true, blend: 'lighten', opacity: 70 }
       ],
+      // P1.2: which library assets are bound to which layer. Each layer
+      // can hold multiple assets; drawVisual composites them in order.
+      // Auto-populated on user upload (round-robin), manually populated
+      // by clicking an asset in the Media tab.
+      layerAssets: {
+        background: [],
+        overlay: [],
+        typography: [],
+        effects: []
+      },
+      // P1.2: which layer is "active" for manual asset assignment.
+      // Set by the layer panel in the sidebar; click an asset in the
+      // Media tab to add it to the active layer.
+      activeLayer: 'background',
       library: {
         // Each asset: { id, name, src, layer ('background'|'overlay'|'typography'|'effects'), kind ('image'|'gradient'|'solid'), added, origin ('user'|'url'|'library') }
         items: [],
@@ -3423,6 +3437,9 @@
         if (saved.sliders) Object.assign(state.sliders, saved.sliders);
         if (saved.export) Object.assign(state.export, saved.export);
         if (saved.layers && saved.layers.length === state.layers.length) state.layers = saved.layers;
+        if (saved.activeLayer && state.layers.find(l => l.id === saved.activeLayer)) {
+          state.activeLayer = saved.activeLayer;
+        }
         if (saved.library && Array.isArray(saved.library.items)) {
           state.library.items = saved.library.items;
           if (saved.library.filter) state.library.filter = saved.library.filter;
@@ -3431,6 +3448,18 @@
           // after reload. libraryLoaded stays session-only — false until
           // the next fetchLibraryManifest() re-pins it.
           if (saved.library.librarySource) state.library.librarySource = saved.library.librarySource;
+          // P1.2: now that the library is loaded, restore the layer-asset
+          // bindings. We deferred this until now so we can prune IDs whose
+          // library items no longer exist.
+          if (saved.layerAssets && typeof saved.layerAssets === 'object') {
+            for (const lid of Object.keys(saved.layerAssets)) {
+              if (state.layerAssets[lid] === undefined) state.layerAssets[lid] = [];
+              const validIds = (saved.layerAssets[lid] || []).filter(aid =>
+                state.library.items.some(a => a.id === aid)
+              );
+              state.layerAssets[lid] = validIds;
+            }
+          }
         }
         if (saved.audioTracks && Array.isArray(saved.audioTracks.items)) {
           // Strip bytes markers — they're session-only
@@ -3467,6 +3496,8 @@
           sliders: state.sliders,
           export: state.export,
           layers: state.layers,
+          layerAssets: state.layerAssets,
+          activeLayer: state.activeLayer,
           library: {
             items: state.library.items,
             filter: state.library.filter,
@@ -4568,11 +4599,21 @@
     }
 
     function applyAssetToLayer(asset) {
-      const layer = state.layers.find(l => l.id === asset.layer);
+      // P1.2: actually push the asset into the layer's binding list so it
+      // appears on the stage. Target = asset.layer (set when uploaded) or
+      // the current activeLayer for manual clicks from the library tab.
+      const targetLayer = asset.layer || state.activeLayer || 'background';
+      if (!state.layerAssets[targetLayer]) state.layerAssets[targetLayer] = [];
+      // Avoid duplicates (same id in the same layer)
+      if (state.layerAssets[targetLayer].indexOf(asset.id) === -1) {
+        state.layerAssets[targetLayer].push(asset.id);
+      }
+      const layer = state.layers.find(l => l.id === targetLayer);
       if (layer) layer.visible = true;
       saveState();
       renderLayerStack();
-      showToast(`Applied "${asset.name}" to ${asset.layer}`);
+      renderLibrary();
+      showToast(`Applied "${asset.name}" to ${targetLayer}`);
     }
 
     function handleLibraryFile(file) {
@@ -4594,9 +4635,36 @@
           origin: 'user'
         };
         state.library.items.unshift(item);
+        // P1.2: auto-assign user uploads to layers in round-robin order
+        // so the first 4 uploads fill background → overlay → typography →
+        // effects, the 5th starts again at background, etc. This makes the
+        // canvas respond immediately without the user needing to drag.
+        const layerIds = ['background', 'overlay', 'typography', 'effects'];
+        // Find the first layer with < 1 user-asset to spread evenly;
+        // fall back to round-robin if all are full.
+        let target = null;
+        for (const lid of layerIds) {
+          const ids = state.layerAssets[lid] || [];
+          if (ids.length === 0) { target = lid; break; }
+        }
+        if (!target) {
+          // Count how many user assets are in each layer
+          const counts = layerIds.map(lid => (state.layerAssets[lid] || []).filter(aid => {
+            const a = state.library.items.find(it => it.id === aid);
+            return a && a.origin === 'user';
+          }).length);
+          const minCount = Math.min.apply(null, counts);
+          target = layerIds[counts.indexOf(minCount)];
+        }
+        if (state.layerAssets[target].indexOf(item.id) === -1) {
+          state.layerAssets[target].push(item.id);
+        }
+        // Auto-set the user's "Send uploads to" dropdown to the layer we just used
+        state.library.assignLayer = layerIds[(layerIds.indexOf(target) + 1) % layerIds.length];
+        if (libLayerAssign) libLayerAssign.value = state.library.assignLayer;
         saveState();
         renderLibrary();
-        showToast(`Added "${item.name}" (${item.kind}) to ${item.layer}`);
+        showToast(`Added "${item.name}" (${item.kind}) to ${target} layer`);
       };
       reader.readAsDataURL(file);
     }
@@ -4623,6 +4691,12 @@
 
     function removeLibraryAsset(id) {
       state.library.items = state.library.items.filter(a => a.id !== id);
+      // P1.2: also remove the asset from any layer binding so the canvas
+      // doesn't try to render a missing reference.
+      for (const lid of Object.keys(state.layerAssets)) {
+        state.layerAssets[lid] = (state.layerAssets[lid] || []).filter(aid => aid !== id);
+      }
+      dropLayerAssetCache(id);
       saveState();
       renderLibrary();
       showToast('Asset removed.');
@@ -4785,6 +4859,48 @@
 
     // In-memory Blob-URL cache. Cleared on reload (Blob URLs are session-only).
     const audioBlobCache = Object.create(null);
+
+    // P1.2: cache for layer-asset rendering. Maps asset.id -> HTMLImageElement
+    // or HTMLVideoElement (both implement drawImage semantics). The first
+    // time drawLayerAssets needs an asset, it creates the element; onload
+    // marks it ready, and subsequent frames use the cached version.
+    const layerAssetCache = Object.create(null);
+    function getLayerAssetImage(asset) {
+      if (layerAssetCache[asset.id]) return layerAssetCache[asset.id];
+      let el;
+      if (asset.kind === 'video') {
+        el = document.createElement('video');
+        el.muted = true;
+        el.loop = true;
+        el.playsInline = true;
+        el.preload = 'auto';
+      } else {
+        el = new Image();
+        el.crossOrigin = 'anonymous';
+      }
+      // Some browsers don't fire load events on Image() elements that
+      // aren't attached to the DOM. Attach to an off-screen container so
+      // the asset is fetched + decoded before drawLayerAssets needs it.
+      // We tag each with a data-asset-id for easy debugging.
+      el.dataset.assetId = asset.id;
+      el.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
+      (document.body || document.documentElement).appendChild(el);
+      el.src = asset.src;
+      layerAssetCache[asset.id] = { el, ready: false, asset };
+      el.addEventListener('loadeddata', () => { layerAssetCache[asset.id].ready = true; });
+      el.addEventListener('canplay',    () => { layerAssetCache[asset.id].ready = true; });
+      el.addEventListener('load',       () => { layerAssetCache[asset.id].ready = true; });
+      el.addEventListener('error',      () => { layerAssetCache[asset.id].ready = false; });
+      return layerAssetCache[asset.id];
+    }
+    // Drop a cached asset (called when the user deletes it from the library)
+    function dropLayerAssetCache(assetId) {
+      const entry = layerAssetCache[assetId];
+      if (!entry) return;
+      try { if (entry.el && entry.el.parentNode) entry.el.parentNode.removeChild(entry.el); } catch (e) {}
+      try { if (entry.el && entry.el.tagName === 'VIDEO') entry.el.pause(); } catch (e) {}
+      delete layerAssetCache[assetId];
+    }
 
     audioAddBtn.addEventListener('click', () => audioFileInput.click());
     audioFileInput.addEventListener('change', (e) => {
@@ -4982,6 +5098,8 @@
         format: state.export.format,
         duration: state.export.duration,
         layers: state.layers,
+        layerAssets: state.layerAssets,
+        activeLayer: state.activeLayer,
         branding: state.branding
       };
       const enc = btoa(unescape(encodeURIComponent(JSON.stringify(snapshot))));
@@ -5197,8 +5315,107 @@
       ctx.fillRect(0, 0, w, h);
     }
 
+    // P1.2: composite a layer's assigned assets onto the stage. Each
+    // asset is drawn to fill the canvas (cover-fit) with the layer's
+    // blend mode and opacity. Audio reactivity applies a small
+    // scale/translate/rotate modulation so the assets move with the
+    // music, matching the existing reactor behavior.
+    function drawLayerAssets(ctx, layer, assetIds, w, h, bands, t) {
+      const lib = state.library.items;
+      let anyDrawn = false;
+      ctx.save();
+      // Map our blend string to a real canvas composite mode
+      const blendMap = {
+        normal: 'source-over', screen: 'screen', overlay: 'overlay',
+        difference: 'difference', multiply: 'multiply', lighten: 'lighten',
+        'soft-light': 'soft-light', darken: 'darken', color: 'overlay',
+        'hard-light': 'hard-light', exclusion: 'exclusion'
+      };
+      const blendMode = blendMap[layer.blend] || 'source-over';
+      ctx.globalCompositeOperation = blendMode;
+      ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity || 100) / 100));
+      // Per-layer audio modulation: bass pushes the background layer
+      // toward the camera (scale up); treble pushes typography to
+      // rotate; mid pulses overlay scale. These mirror the engine's
+      // legacy per-layer reactivity.
+      const reactMod = {
+        background: { sx: 1 + (bands.bass   || 0) * 0.08, sy: 1 + (bands.bass   || 0) * 0.08, rot: 0, ty: 0 },
+        overlay:    { sx: 1 + (bands.mid    || 0) * 0.05, sy: 1 + (bands.mid    || 0) * 0.05, rot: 0, ty: 0 },
+        typography: { sx: 1,                            sy: 1,                            rot: (bands.treble || 0) * 0.04, ty: 0 },
+        effects:    { sx: 1 + Math.sin(t * 0.0008) * 0.02, sy: 1 + Math.cos(t * 0.0008) * 0.02, rot: 0, ty: 0 }
+      }[layer.id] || { sx: 1, sy: 1, rot: 0, ty: 0 };
+
+      assetIds.forEach((aid, idx) => {
+        const asset = lib.find(a => a.id === aid);
+        if (!asset) return;
+        const entry = getLayerAssetImage(asset);
+        if (!entry || !entry.ready) return;
+        const el = entry.el;
+        // Cover-fit: scale to fill the canvas, crop overflow
+        const elAR = (el.videoWidth || el.naturalWidth || w) /
+                     (el.videoHeight || el.naturalHeight || h);
+        const dstAR = w / h;
+        let dw, dh;
+        if (elAR > dstAR) {
+          dh = h;
+          dw = h * elAR;
+        } else {
+          dw = w;
+          dh = w / elAR;
+        }
+        // Per-asset micro-offset so multi-asset layers look layered, not stacked
+        const slot = assetIds.length > 1 ? (idx / assetIds.length) : 0;
+        const dx = (w - dw) / 2 + (slot - 0.5) * w * 0.06;
+        const dy = (h - dh) / 2;
+        ctx.save();
+        // Subtle per-asset rotation, with a slow drift so the layer feels alive
+        const aRot = (reactMod.rot || 0) + (assetIds.length > 1 ? Math.sin(t * 0.0004 + idx) * 0.03 : 0);
+        if (aRot !== 0) {
+          ctx.translate(dx + dw / 2, dy + dh / 2);
+          ctx.rotate(aRot);
+          ctx.translate(-(dx + dw / 2), -(dy + dh / 2));
+        }
+        // For images, drawImage covers everything. For videos, we want the
+        // first usable frame; once canplay fires, drawImage of a video
+        // element renders the current frame.
+        try {
+          ctx.drawImage(el, dx, dy, dw, dh);
+          anyDrawn = true;
+        } catch (e) { /* media not ready */ }
+        ctx.restore();
+      });
+      ctx.restore();
+      return anyDrawn;
+    }
+
     function drawVisual(ctx, w, h, preset, params, bands, t) {
       clearBg(ctx, w, h);
+
+      // P1.2: composite assigned layer assets BEFORE the procedural
+      // shapes. Each visible layer's assets draw in order with the
+      // layer's blend mode and opacity. If a layer has no assets, the
+      // procedural shapes below act as a fallback.
+      const layerOrder = ['background', 'overlay', 'typography', 'effects'];
+      let anyLayerDrawn = false;
+      layerOrder.forEach((layerId) => {
+        const layer = state.layers.find(l => l.id === layerId);
+        if (!layer || !layer.visible) return;
+        const assetIds = state.layerAssets[layerId] || [];
+        if (assetIds.length === 0) return;
+        const drawn = drawLayerAssets(ctx, layer, assetIds, w, h, bands, t);
+        if (drawn) anyLayerDrawn = true;
+      });
+
+      // P1.2: brand watermark + hashtag (drawn on top of layer assets
+      // so they always show, but below the procedural shapes for a soft
+      // composite effect).
+      if (typeof drawStageWatermark === 'function') drawStageWatermark(ctx, w, h);
+
+      // P1.2: when any layer has assigned assets, the procedural shapes
+      // would cover them up. Skip them so the user's media is the focal
+      // point. (Toggle this behavior in a future phase with a "show
+      // procedural over media" button.)
+      if (anyLayerDrawn) return;
 
       ctx.save();
       const cx = w / 2, cy = h / 2;
