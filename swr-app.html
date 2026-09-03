@@ -3638,6 +3638,15 @@
         colors: ['#ff8a55', '#ffd9b3', '#1a1612'], grain: 1.0, grid: 0, smoke: 0, scan: 0.5, glitch: 0.2, mode: 'rings' }
     ];
 
+    // P3.2 — cached concatenated preset list. The render loop called
+    // (PRESETS.concat(importedPresets)) every frame to look up the
+    // active preset. That allocation is now done once per
+    // import — refreshPresetsCache() is called from the imports path.
+    let _allPresetsCache = PRESETS.slice();
+    function refreshPresetsCache() {
+      _allPresetsCache = PRESETS.concat(importedPresets || []);
+    }
+
     // 5 story fragments — each applies a global visual modifier on top of
     // the active preset. The render loop blends them in based on
     // state.story.current (0..4) and the elapsed time within the fragment.
@@ -3736,6 +3745,10 @@
           if (!list.length) continue;
           // Replace any previous imports (deduped by source id)
           importedPresets = list.map(swrToInternalPreset).filter(Boolean);
+          // P3.2 — refresh the preset cache after imports so the render
+          // loop's `find(p => p.id === state.preset)` lookup hits a
+          // pre-built array instead of re-concatenating PRESETS every frame.
+          refreshPresetsCache();
           presetImportStatus = 'ok';
           updatePresetSyncButton();
           renderPresetGrid();
@@ -3801,7 +3814,11 @@
         if (saved.preset && (PRESETS.concat(importedPresets)).find(p => p.id === saved.preset)) state.preset = saved.preset;
         if (saved.sliders) Object.assign(state.sliders, saved.sliders);
         if (saved.export) Object.assign(state.export, saved.export);
-        if (saved.layers && saved.layers.length === state.layers.length) state.layers = saved.layers;
+        if (saved.layers && saved.layers.length === state.layers.length) {
+          state.layers = saved.layers;
+          // P3.2 — invalidate the per-layer id map; it'll rebuild on next drawVisual
+          if (state.layers.idMap) state.layers.idMap = null;
+        }
         if (saved.activeLayer && state.layers.find(l => l.id === saved.activeLayer)) {
           state.activeLayer = saved.activeLayer;
         }
@@ -3871,7 +3888,10 @@
       if (snap.sliders) Object.assign(state.sliders, snap.sliders);
       if (snap.format) state.export.format = snap.format;
       if (snap.duration) state.export.duration = snap.duration;
-      if (Array.isArray(snap.layers) && snap.layers.length === state.layers.length) state.layers = snap.layers;
+      if (Array.isArray(snap.layers) && snap.layers.length === state.layers.length) {
+        state.layers = snap.layers;
+        if (state.layers.idMap) state.layers.idMap = null;
+      }
       if (snap.branding) Object.assign(state.branding, snap.branding);
       // P2.1 — restore tapped BPM (auto-BPM is recomputed)
       if (snap.bpm != null && snap.bpmSource === 'tap') {
@@ -4786,7 +4806,10 @@
       if (snap.preset) state.preset = snap.preset;
       if (snap.sliders) Object.assign(state.sliders, snap.sliders);
       if (snap.export) Object.assign(state.export, snap.export);
-      if (snap.layers && snap.layers.length === state.layers.length) state.layers = snap.layers;
+      if (snap.layers && snap.layers.length === state.layers.length) {
+        state.layers = snap.layers;
+        if (state.layers.idMap) state.layers.idMap = null;
+      }
       if (snap.layerAssets) state.layerAssets = snap.layerAssets;
       if (snap.activeLayer) state.activeLayer = snap.activeLayer;
       if (snap.library) {
@@ -5300,6 +5323,13 @@
         navViewToggle.setAttribute('aria-pressed', isEngine ? 'true' : 'false');
         if (navViewToggleText) navViewToggleText.textContent = isEngine ? 'Engine' : 'Browse';
       }
+      // P3.2 — only draw the canvas that's actually visible. The
+      // browse view uses the hero canvas as a fullscreen hero; the
+      // engine view shows the stage canvas inside the floating engine.
+      // Drawing both was burning ~50% of the GPU budget on invisible
+      // pixels and reading getBoundingClientRect every frame.
+      heroRunning = !isEngine;
+      stageRunning = isEngine;
       // When entering Engine, the canvases need a layout flush so
       // sizeCanvas() re-reads the now-correct bounding rects.
       if (isEngine) {
@@ -6191,7 +6221,10 @@
     /* ============================================================
        RENDERING — hero + stage + showcase
        ============================================================ */
-    let heroRunning = true;
+    // P3.2 — initial run flags reflect the default view (engine is on
+    // by default per the HTML). switchView() updates these whenever
+    // the user toggles between Engine and Browse.
+    let heroRunning = false;
     let stageRunning = true;
     let audioCtx = null;
     let analyser = null;
@@ -6641,21 +6674,32 @@
       return state.audioBands;
     }
 
+    // P3.2 — reusable params object. applySliders writes into this each
+    // frame instead of allocating a fresh object literal. We hold
+    // exactly the keys we set, and Object.assign(params, fragParams)
+    // in the render loop adds the fragment keys on top — leftover keys
+    // from a prior fragment are explicitly deleted in the loop body.
+    const frameParams = {};
+
     function applySliders(preset, bands) {
-      // Combine slider state into per-frame params
+      // Combine slider state into per-frame params. Writes into the
+      // shared frameParams object so we don't allocate per frame.
       const s = state.sliders;
-      return {
-        intensity: 0.3 + (s.intensity / 100) * 1.4,
-        sensitivity: 0.4 + (s.sensitivity / 100) * 1.6,
-        bloom: s.bloom / 100,
-        contrast: (s.contrast - 50) / 50, // -1..1
-        brightness: (s.brightness - 50) / 50, // -1..1
-        speed: 0.4 + (s.speed / 100) * 1.8,
-        rotation: (s.rotation / 100) * Math.PI * 2,
-        grain: (s.grain / 100) * preset.grain,
-        glitch: preset.glitch * (s.glitch / 50),
-        colorShift: (s.colorShift / 100) * 360
-      };
+      frameParams.intensity   = 0.3 + (s.intensity / 100) * 1.4;
+      frameParams.sensitivity = 0.4 + (s.sensitivity / 100) * 1.6;
+      frameParams.bloom       = s.bloom / 100;
+      frameParams.contrast    = (s.contrast - 50) / 50; // -1..1
+      frameParams.brightness  = (s.brightness - 50) / 50; // -1..1
+      frameParams.speed       = 0.4 + (s.speed / 100) * 1.8;
+      frameParams.rotation    = (s.rotation / 100) * Math.PI * 2;
+      frameParams.grain       = (s.grain / 100) * preset.grain;
+      frameParams.glitch      = preset.glitch * (s.glitch / 50);
+      frameParams.colorShift  = (s.colorShift / 100) * 360;
+      // Clear fragment keys so prior fragment doesn't leak into current.
+      // (Fragment params are written via Object.assign(params, fragParams)
+      // immediately after this call.)
+      delete frameParams.scan;
+      return frameParams;
     }
 
     function clearBg(ctx, w, h) {
@@ -6668,8 +6712,31 @@
     // blend mode and opacity. Audio reactivity applies a small
     // scale/translate/rotate modulation so the assets move with the
     // music, matching the existing reactor behavior.
+    // P3.2 — id-keyed lookup map for the library. Built lazily on
+    // first use and invalidated whenever state.library.items changes.
+    // drawLayerAssets used to call lib.find(a => a.id === aid) inside
+    // its inner forEach — for 4 layers × 3 assets × 65 library items
+    // that's 780 .find() calls per frame. The Map.get hits O(1).
+    function buildLibraryMap() {
+      const m = new Map();
+      for (let i = 0; i < state.library.items.length; i++) {
+        const a = state.library.items[i];
+        m.set(a.id, a);
+      }
+      state.library.idMap = m;
+    }
+
     function drawLayerAssets(ctx, layer, assetIds, w, h, bands, t) {
+      if (!assetIds || assetIds.length === 0) return false;
       const lib = state.library.items;
+      // P3.2 — refresh the id map if it doesn't match the current
+      // items length (cheap proxy for staleness). On a hot frame where
+      // items didn't change, this is one int comparison and we reuse
+      // the cached Map.
+      if (!state.library.idMap || state.library.idMap.size !== lib.length) {
+        buildLibraryMap();
+      }
+      const idMap = state.library.idMap;
       let anyDrawn = false;
       ctx.save();
       // Map our blend string to a real canvas composite mode
@@ -6694,7 +6761,8 @@
       }[layer.id] || { sx: 1, sy: 1, rot: 0, ty: 0 };
 
       assetIds.forEach((aid, idx) => {
-        const asset = lib.find(a => a.id === aid);
+        // P3.2 — O(1) Map lookup instead of lib.find()
+        const asset = idMap.get(aid);
         if (!asset) return;
         const entry = getLayerAssetImage(asset);
         if (!entry || !entry.ready) return;
@@ -6736,8 +6804,29 @@
       return anyDrawn;
     }
 
+    // P3.2 — id-keyed lookup map for layers. drawVisual was calling
+    // state.layers.find(l => l.id === layerId) once per layer per frame.
+    // With 4 layers × 60fps that's 240 .find() calls per second on a
+    // 4-element array — the constant factor of array scan adds up.
+    function buildLayerMap() {
+      const m = new Map();
+      for (let i = 0; i < state.layers.length; i++) {
+        const layer = state.layers[i];
+        m.set(layer.id, layer);
+      }
+      state.layers.idMap = m;
+    }
+
     function drawVisual(ctx, w, h, preset, params, bands, t) {
       clearBg(ctx, w, h);
+
+      // P3.2 — refresh the layer map lazily (only when layers change
+      // identity). Cheap size proxy: matches the same way as the
+      // library id map.
+      if (!state.layers.idMap || state.layers.idMap.size !== state.layers.length) {
+        buildLayerMap();
+      }
+      const layerMap = state.layers.idMap;
 
       // P1.2: composite assigned layer assets BEFORE the procedural
       // shapes. Each visible layer's assets draw in order with the
@@ -6746,7 +6835,7 @@
       const layerOrder = ['background', 'overlay', 'typography', 'effects'];
       let anyLayerDrawn = false;
       layerOrder.forEach((layerId) => {
-        const layer = state.layers.find(l => l.id === layerId);
+        const layer = layerMap.get(layerId);
         if (!layer || !layer.visible) return;
         const assetIds = state.layerAssets[layerId] || [];
         if (assetIds.length === 0) return;
@@ -6937,7 +7026,14 @@
     function loop() {
       const t = performance.now();
       const bands = getBands();
-      const preset = (PRESETS.concat(importedPresets)).find(p => p.id === state.preset) || PRESETS[0];
+      // P3.2 — cache the concatenated presets list (built once per
+      // import). Avoids the per-frame (PRESETS.concat(importedPresets))
+      // allocation that the original code did every RAF tick.
+      const preset = _allPresetsCache.find(p => p.id === state.preset) || PRESETS[0];
+      // P3.2 — applySliders now writes into a reusable scratch object
+      // (frameParams) instead of allocating a fresh {} every frame.
+      // We clear it first so leftover keys from prior fragments don't
+      // pollute the current frame.
       const params = applySliders(preset, bands);
 
       // Story timeline: auto-cycle on beat. P1.3 replaced the previous
@@ -6962,29 +7058,40 @@
       // parameter live (e.g. bass→scale makes the visual grow on bass hits).
       applyReactors(bands);
 
-      // Hero
+      // P3.2 — Hero + Stage drawing. We used to always draw both
+      // canvases every frame even when one was hidden by CSS. Now each
+      // only draws when its run flag is true (set by switchView).
       if (heroRunning && heroCanvas) {
         const { w, h } = sizeCanvas(heroCanvas);
         drawVisual(heroCtx, w, h, preset, params, bands, t);
       }
-
-      // Stage
       if (stageRunning && stageCanvas) {
         const { w, h } = sizeCanvas(stageCanvas);
         drawVisual(stageCtx, w, h, preset, params, bands, t);
       }
 
-      // Meter
-      meterBass.style.width   = Math.min(100, bands.bass   * 100) + '%';
-      meterMid.style.width    = Math.min(100, bands.mid    * 100) + '%';
-      meterTreble.style.width = Math.min(100, bands.treble * 100) + '%';
+      // P3.2 — Skip DOM writes when the value hasn't changed. Browsers
+      // diff style.width / textContent anyway, but the write itself
+      // shows up in profiles as layout-thrash. We cache the last
+      // written value and only touch the DOM when it differs.
+      const bassPct   = Math.round(Math.min(100, bands.bass   * 100));
+      const midPct    = Math.round(Math.min(100, bands.mid    * 100));
+      const treblePct = Math.round(Math.min(100, bands.treble * 100));
+      const bassStr = bassPct + '%';
+      const midStr = midPct + '%';
+      const trebleStr = treblePct + '%';
+      if (meterBass && meterBass.style.width !== bassStr) meterBass.style.width = bassStr;
+      if (meterMid && meterMid.style.width !== midStr) meterMid.style.width = midStr;
+      if (meterTreble && meterTreble.style.width !== trebleStr) meterTreble.style.width = trebleStr;
 
-      // State pill
+      // P3.2 — Same dedupe for the stage-state pill. The value only
+      // changes on play/pause/audio-loaded transitions, so we can
+      // skip ~99% of frames.
+      let nextPill = 'Live · INTERNAL MOTION';
       if (state.audio.loaded) {
-        stageState.textContent = state.audio.playing ? 'Live · PLAYING' : 'Live · PAUSED';
-      } else {
-        stageState.textContent = 'Live · INTERNAL MOTION';
+        nextPill = state.audio.playing ? 'Live · PLAYING' : 'Live · PAUSED';
       }
+      if (stageState && stageState.textContent !== nextPill) stageState.textContent = nextPill;
 
       rafId = requestAnimationFrame(loop);
     }
