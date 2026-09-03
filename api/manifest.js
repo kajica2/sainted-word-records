@@ -6,6 +6,11 @@
 // header `x-swr-manifest-token: <MANIFEST_EDITOR_TOKEN>` when the env
 // var is set; when unset, writes are blocked entirely (dev mode).
 //
+// Also handles `?action=known-files` (GET only) — walks the on-disk
+// library/ and returns the file list, used by the editor's "missing on
+// disk" column. (Previously a separate endpoint; merged here to stay
+// under Vercel's 12-endpoint Hobby cap.)
+//
 // This is NOT a replacement for the offline "edit JSON, commit, push"
 // flow — it's a convenience for local dev where pushing + waiting for
 // Vercel is slow. Production deployments should treat this endpoint
@@ -16,6 +21,7 @@ import path from 'node:path';
 import { setCors, send, readJsonBody } from './_lib/http.js';
 
 const MANIFEST_PATH = path.join(process.cwd(), 'library', 'manifest.json');
+const LIBRARY_ROOT = path.join(process.cwd(), 'library');
 const WRITE_TOKEN = process.env.MANIFEST_EDITOR_TOKEN || '';
 
 function setCorsPublic(res, origin) {
@@ -28,6 +34,37 @@ function setCorsPublic(res, origin) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-swr-manifest-token');
   res.setHeader('Access-Control-Max-Age', '600');
+}
+
+async function walkDiskFiles() {
+  const files = [];
+  async function walk(dir, prefix) {
+    let entries;
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch (e) { return; }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      const rel = prefix ? `${prefix}/${e.name}` : e.name;
+      if (e.isDirectory()) {
+        await walk(full, rel);
+      } else if (e.isFile()) {
+        files.push(rel);
+      }
+    }
+  }
+  await walk(LIBRARY_ROOT, '');
+  // Filter:
+  //   - skip the manifest itself
+  //   - skip hidden files (.DS_Store etc.)
+  //   - skip the audio/ subdir (audio is not part of the visual curated
+  //     library; the variant engine loads it from /audios/ at boot)
+  return files.filter((f) => {
+    if (f === 'manifest.json') return false;
+    if (f.startsWith('.')) return false;
+    if (f === 'audio' || f.startsWith('audio/')) return false;
+    return true;
+  });
 }
 
 function validate(m) {
@@ -69,6 +106,24 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    // P3.5b — `?action=known-files` merges the previously-separate
+    // /api/manifest-known-files endpoint (Vercel Hobby plan caps at
+    // 12 serverless functions; merging buys us one slot). Behavior
+    // matches the old endpoint exactly: walks library/ on disk and
+    // returns { files: [...] } filtered to visual curated assets.
+    const url = req.url || '';
+    const qsIdx = url.indexOf('?');
+    if (qsIdx >= 0) {
+      const params = new URLSearchParams(url.slice(qsIdx + 1));
+      if (params.get('action') === 'known-files') {
+        try {
+          const files = await walkDiskFiles();
+          return send(res, 200, { files });
+        } catch (e) {
+          return send(res, 500, { error: 'walk_failed', message: e.message });
+        }
+      }
+    }
     try {
       const raw = await fs.readFile(MANIFEST_PATH, 'utf8');
       const json = JSON.parse(raw);

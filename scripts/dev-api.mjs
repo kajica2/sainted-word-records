@@ -28,7 +28,6 @@ const HANDLER_PATHS = {
   'projects/share': '../api/projects/share/[shareId].js',
   'health': '../api/health.js',
   'manifest': '../api/manifest.js',
-  'manifest-known-files': '../api/manifest-known-files.js',
 };
 
 function pickHandlerPath(urlPath) {
@@ -49,8 +48,7 @@ function pickHandlerPath(urlPath) {
     return HANDLER_PATHS['projects/item'];
   }
   if (segs[1] === 'health') return HANDLER_PATHS['health'];
-  if (segs[1] === 'manifest' && segs[2] === 'known-files') return HANDLER_PATHS['manifest-known-files'];
-  if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];
+  if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files too
   return null;
 }
 

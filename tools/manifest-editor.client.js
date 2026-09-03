@@ -360,10 +360,10 @@
   // ----- API + disk check -----
   async function checkPresentOnDisk() {
     // The browser page can't read /library/ directly (security), but
-    // /api/manifest-known-files can return a Set of files that exist on disk.
+    // /api/manifest?action=known-files can return a Set of files that exist on disk.
     // Falls back to optimistic present=true if endpoint unavailable.
     try {
-      var r = await fetch('/api/manifest-known-files');
+      var r = await fetch('/api/manifest?action=known-files');
       if (!r.ok) throw new Error(r.status);
       var known = await r.json();
       var set = new Set(known.files || []);
@@ -515,7 +515,7 @@
 
   // ----- boot -----
   // Try the API on load. If unavailable, fall back to local sample.
-  fetch('/api/manifest-known-files').then(function (r) {
+  fetch('/api/manifest?action=known-files').then(function (r) {
     state.apiAvailable = r.ok;
     if (r.ok) {
       loadFromApi();
