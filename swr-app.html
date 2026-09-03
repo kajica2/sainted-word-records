@@ -5673,22 +5673,205 @@
       }
     });
 
+    /* ============================================================
+       P1.1 — REAL MediaRecorder EXPORT
+       Replaces the previous timer-only stub. Captures the stage canvas
+       via canvas.captureStream(fps), pipes through MediaRecorder with
+       the user's codec/fps/bitrate pickers, and downloads the result
+       when the duration timer fires (or stop is clicked).
+       ============================================================ */
+
+    // Detect which MIME types the browser can actually encode. Some
+    // browsers (older Safari, Firefox) only support WebM; Chrome and Edge
+    // support both. We pick the best match for the user's picker.
+    function pickRecorderMime(codec) {
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+      // Try the user's choice first, then fall back to a compatible type.
+      const candidates = codec === 'mp4'
+        ? ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+        : ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/mp4;codecs=avc1'];
+      for (const m of candidates) {
+        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
+      }
+      return ''; // browser supports no candidate — caller will show a toast
+    }
+
+    let mediaRecorder = null;
+    let recordedBlobs = [];
+    let recordingStream = null;
+    let recordingMime = '';
+
     function startRecording() {
+      // P1.1: real MediaRecorder capture. We use the stage canvas
+      // (not the hero canvas) so the recorded output matches what the
+      // user sees in the workspace. The captureStream respects the
+      // canvas's current pixel size; we set it via a hidden crop
+      // canvas when the user picks 9:16/1:1/16:9.
+      if (typeof MediaRecorder === 'undefined') {
+        showToast('Your browser does not support MediaRecorder. Try Chrome or Edge.');
+        return;
+      }
+      recordingMime = pickRecorderMime(state.export.codec);
+      if (!recordingMime) {
+        showToast('No supported video codec found. Try Chrome.');
+        return;
+      }
+      // Build a recording canvas at the picked aspect ratio. We composite
+      // the live stage canvas into this rect each frame via requestAnimationFrame.
+      const dims = recordingDims();
+      const recCanvas = document.createElement('canvas');
+      recCanvas.width = dims.w;
+      recCanvas.height = dims.h;
+      const recCtx = recCanvas.getContext('2d');
+
+      // Composite loop: blit the live stage canvas into the recording canvas,
+      // scaled to fit the target aspect ratio. We use a cover-fit so the
+      // visual fills the frame, with letterboxing if the aspect doesn't match.
+      let stopBlit = false;
+      function blit() {
+        if (stopBlit) return;
+        if (stageCanvas && stageCanvas.width > 0 && stageCanvas.height > 0) {
+          recCtx.fillStyle = '#000';
+          recCtx.fillRect(0, 0, dims.w, dims.h);
+          // cover-fit: scale so the source covers the dest, crop overflow
+          const srcAR = stageCanvas.width / stageCanvas.height;
+          const dstAR = dims.w / dims.h;
+          let sx, sy, sw, sh, dx, dy, dw, dh;
+          if (srcAR > dstAR) {
+            // source is wider — crop horizontally
+            sh = stageCanvas.height;
+            sw = sh * dstAR;
+            sx = (stageCanvas.width - sw) / 2;
+            sy = 0;
+            dw = dims.w;
+            dh = dims.h;
+            dx = 0;
+            dy = 0;
+          } else {
+            // source is taller — crop vertically
+            sw = stageCanvas.width;
+            sh = sw / dstAR;
+            sx = 0;
+            sy = (stageCanvas.height - sh) / 2;
+            dw = dims.w;
+            dh = dims.h;
+            dx = 0;
+            dy = 0;
+          }
+          recCtx.drawImage(stageCanvas, sx, sy, sw, sh, dx, dy, dw, dh);
+        }
+        requestAnimationFrame(blit);
+      }
+      blit();
+      // Stop the blit when recording stops
+      const stopBlitOnEnd = () => { stopBlit = true; };
+      // We attach a one-shot listener below; onstop fires both on natural
+      // end and manual stop.
+
+      // captureStream at the picked fps. If the browser doesn't accept a
+      // frameRate hint (Safari), it falls back to 30.
+      let stream;
+      try {
+        stream = recCanvas.captureStream(state.export.fps || 30);
+      } catch (e) {
+        stream = recCanvas.captureStream(30);
+      }
+      recordingStream = stream;
+      recordedBlobs = [];
+
+      const bitrate = (state.export.bitrate || 6) * 1_000_000; // Mbps → bps
+      try {
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: recordingMime,
+          videoBitsPerSecond: bitrate
+        });
+      } catch (e) {
+        // Some browsers reject videoBitsPerSecond for some codecs — retry without
+        try {
+          mediaRecorder = new MediaRecorder(stream, { mimeType: recordingMime });
+        } catch (e2) {
+          showToast('MediaRecorder could not start: ' + e2.message);
+          stopBlit = true;
+          return;
+        }
+      }
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedBlobs.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        stopBlit = true;
+        const blob = new Blob(recordedBlobs, { type: recordingMime });
+        const url = URL.createObjectURL(blob);
+        const ext = recordingMime.includes('mp4') ? 'mp4' : 'webm';
+        const a = document.createElement('a');
+        a.href = url;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const presetName = (PRESETS.concat(importedPresets)).find(p => p.id === state.preset);
+        a.download = `swr-${(presetName ? presetName.name : 'session').toLowerCase().replace(/\s+/g, '-')}-${state.export.format.replace(':','x')}-${ts}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        // Revoke after a tick so the download has time to start
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        // Stop the stream
+        if (recordingStream) {
+          recordingStream.getTracks().forEach(t => t.stop());
+          recordingStream = null;
+        }
+        mediaRecorder = null;
+        // Reset the UI state (button class + label + overlay)
+        state.export.recording = false;
+        btnRecord.classList.remove('is-recording');
+        recordLabel.textContent = 'Record Video';
+        recOverlay.classList.remove('is-on');
+        if (recordTimer) { clearTimeout(recordTimer); recordTimer = null; }
+        const sizeMb = (blob.size / 1024 / 1024).toFixed(2);
+        showToast(`Saved ${a.download} (${sizeMb} MB)`);
+      };
+      mediaRecorder.onerror = (e) => {
+        stopBlit = true;
+        showToast('Recording error: ' + (e.error && e.error.message || 'unknown'));
+      };
+
+      mediaRecorder.start(100); // emit a chunk every 100ms for resilience
+
       state.export.recording = true;
       btnRecord.classList.add('is-recording');
       recordLabel.textContent = 'Recording · ' + state.export.duration + 's';
       recOverlay.classList.add('is-on');
-      showToast('Recording started — capture canvas every frame.');
-      recordTimer = setTimeout(finishRecording, state.export.duration * 1000);
+      const fmt = recordingMime.includes('mp4') ? 'MP4' : 'WebM';
+      showToast(`Recording ${state.export.format} ${state.export.duration}s @ ${state.export.fps}fps · ${state.export.bitrate}Mbps · ${fmt}`);
+      // Natural end after the picked duration
+      recordTimer = setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      }, state.export.duration * 1000);
+    }
+
+    // Compute the recording canvas dimensions from the picked aspect ratio
+    // and the live stage canvas size. We target 1080p on the long edge
+    // and scale the short edge to match the aspect.
+    function recordingDims() {
+      const aspect = state.export.format;
+      const longEdge = 1080;
+      if (aspect === '9:16') return { w: 607,  h: 1080 }; // 9:16 portrait
+      if (aspect === '1:1')  return { w: 1080, h: 1080 }; // 1:1 square
+      if (aspect === '16:9') return { w: 1920, h: 1080 }; // 16:9 wide
+      return { w: 1080, h: 1080 };
     }
 
     function finishRecording() {
+      // If a real MediaRecorder is in flight, stop it. The onstop
+      // handler does the actual file save + download.
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
       state.export.recording = false;
       btnRecord.classList.remove('is-recording');
       recordLabel.textContent = 'Record Video';
       recOverlay.classList.remove('is-on');
       if (recordTimer) { clearTimeout(recordTimer); recordTimer = null; }
-      showToast('Recording complete · saved to downloads');
     }
 
     /* ============================================================
