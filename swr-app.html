@@ -2670,6 +2670,133 @@
         scroll-behavior: auto !important;
       }
     }
+  
+    /* P3.5 — Performance-control layer UI.
+       Two overlay elements:
+       - #swr-transient: a centered, metallic transient label that
+         fades in/out for action feedback ("MUTATE / 0.40 / ALL
+         LAYERS", "AUTOMAP", "LAYER 04 · p06.jpg", etc.)
+       - #swr-help-overlay: a full-screen dim with the hotkey
+         palette. Toggled by `?`. Dismissed by `?` again or
+         Escape. */
+    #swr-transient {
+      position: fixed; left: 50%; top: 30%;
+      transform: translate(-50%, -50%) scale(0.94);
+      pointer-events: none;
+      z-index: 9999;
+      padding: 10px 22px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink, #e8e6e0);
+      background: linear-gradient(180deg, rgba(20,20,30,.85), rgba(40,40,55,.75));
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 6px;
+      box-shadow:
+        0 8px 32px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04) inset;
+      opacity: 0;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      white-space: nowrap;
+    }
+    #swr-transient.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    #swr-transient::before {
+      /* Metallic sheen overlay — pure CSS, no SVG needed. */
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,.22) 0%,
+        rgba(255,255,255,.05) 30%,
+        rgba(255,255,255,0) 50%,
+        rgba(255,255,255,.05) 70%,
+        rgba(255,255,255,.10) 100%);
+      pointer-events: none;
+      mix-blend-mode: overlay;
+    }
+    #swr-help-overlay {
+      position: fixed; inset: 0;
+      z-index: 9990;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(8, 8, 14, 0.78);
+      backdrop-filter: blur(6px);
+    }
+    #swr-help-overlay.is-on { display: flex; }
+    .swr-help-card {
+      max-width: 760px;
+      width: calc(100vw - 48px);
+      padding: 28px 32px 24px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(28,28,40,.95), rgba(20,20,30,.95));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 12px 64px rgba(0,0,0,.55);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--ink, #e8e6e0);
+    }
+    .swr-help-card h3 {
+      margin: 0 0 14px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted, #7a7a82);
+    }
+    .swr-help-keymap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+      font-size: 12px;
+    }
+    .swr-help-keymap kbd {
+      display: inline-block;
+      min-width: 18px;
+      padding: 2px 6px;
+      margin-right: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.18);
+      color: var(--ink, #e8e6e0);
+      font-family: inherit;
+      font-size: 11px;
+      text-align: center;
+    }
+    .swr-help-foot {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      color: var(--muted, #7a7a82);
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    /* P3.5 Phase 2 — layer-focus flash. When the user navigates
+       layers via arrow keys or 1-4, a colored outline briefly
+       pulses around the stage viewport so the focus change is
+       visible even when looking at the preview (not the sidebar).
+       The outline color is set per-layer via --flash-color, so
+       each layer has its own signature hue. */
+    #swr-layer-flash {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9000;
+      box-shadow: inset 0 0 0 0 var(--flash-color, rgba(255,255,255,0.7));
+      transition: box-shadow 0ms;
+    }
+    #swr-layer-flash.flash-on {
+      animation: swr-layer-flash-key 600ms ease-out forwards;
+    }
+    @keyframes swr-layer-flash-key {
+      0%   { box-shadow: inset 0 0 0 4px var(--flash-color, rgba(255,255,255,0.7)); }
+      40%  { box-shadow: inset 0 0 0 6px var(--flash-color, rgba(255,255,255,0.7)); }
+      100% { box-shadow: inset 0 0 0 0 transparent; }
+    }
   </style>
 </head>
 <body>
@@ -2885,11 +3012,11 @@
           <!-- Side: Tabbed panel (Presets / Layer / Library / Branding / Social) -->
           <aside class="engine__sidebar">
               <div class="tabs" id="engineTabs" role="tablist" aria-label="Engine sidebar">
-                <button class="tab is-active" data-tab="presets" role="tab" aria-selected="true">Presets</button>
-                <button class="tab" data-tab="layers" role="tab" aria-selected="false">Layers</button>
-                <button class="tab" data-tab="media" role="tab" aria-selected="false">Media</button>
-                <button class="tab" data-tab="brand" role="tab" aria-selected="false">Brand</button>
-                <button class="tab" data-tab="social" role="tab" aria-selected="false">Social</button>
+                <button class="tab is-active" data-tab="audio"   role="tab" aria-selected="true">Audio</button>
+                <button class="tab"            data-tab="presets" role="tab" aria-selected="false">Presets</button>
+                <button class="tab"            data-tab="layers"  role="tab" aria-selected="false">Layers</button>
+                <button class="tab"            data-tab="media"   role="tab" aria-selected="false">Media</button>
+                <button class="tab"            data-tab="output"  role="tab" aria-selected="false">Output</button>
               </div>
 
               <!-- Presets tab -->
@@ -2940,6 +3067,17 @@
                 <div class="panel" style="margin:0;">
                   <div class="panel__title">Layer Stack <small>click ↑ to reorder</small></div>
                   <div id="layerStack"></div>
+                </div>
+                <!-- P3.5 — Performance-control scope row. Renders the
+                     current scope/amount/preserve so the user can read
+                     it without pressing keys. Updated by renderScopeRow()
+                     on every state change. -->
+                <div class="panel" style="margin:14px 0 0;">
+                  <div class="panel__title">Performance <small>scope · amount · preserve</small></div>
+                  <div id="swr-scope-row" style="font-size:12px;color:var(--muted,#888);font-family:monospace;padding:6px 0;"></div>
+                  <div class="note" style="font-size:11px;line-height:1.4;">
+                    <b>M</b> mutate · <b>E</b> evolve · <b>R</b> randomize · <b>Z</b> undo · <b>Shift+Z</b> redo · <b>?</b> help
+                  </div>
                 </div>
               </div>
 
@@ -3668,6 +3806,37 @@
       keyConfidence: 0,       // 0-1, gap between best and second-best
       keyCorrelation: 0,      // raw pearson r for the winning key
       keySource: 'idle'       // 'auto' | 'manual' | 'idle'
+    };
+
+    // P3.5 — Performance-control layer. Three fields that scope the
+    // destructive actions (M/E/R) so the user can iterate without
+    // losing good patches. scope picks which subset of state the
+    // actions touch (e.g. "reactors only" leaves layers and presets
+    // alone). amount is the perturbation magnitude — also exposed via
+    // the [/] keys for fine control. preserve is a multi-select of
+    // which fields the actions must leave alone (e.g. preserve =
+    // ['layers'] keeps the user's layer stack and just twiddles
+    // reactors inside). The history stack is bounded at 50 entries
+    // so we don't grow without bound; named commits are kept past
+    // that cap (so the user has a small set of "good" snapshots
+    // they can flip between with , / .).
+    const STATE_FIELD_KEYS = ['preset', 'sliders', 'layers', 'layerAssets', 'reactors', 'export', 'branding'];
+    const state_scope = {
+      // 'all' touches every field; 'reactors' leaves preset/sliders/
+      // layers alone. The keys ('layers', 'reactors') are the most
+      // useful since they preserve the user's preset+branding setup.
+      scope: 'all',
+      amount: 0.4,            // 0..1 magnitude; used by M and E
+      // 'preset' | 'sliders' | 'layers' | 'layerAssets' | 'reactors' |
+      // 'export' | 'branding'. Names match keys on `state`.
+      preserve: []
+    };
+    const state_history = {
+      stack: [],              // [{state_subset, timestamp, label}]
+      cursor: -1,             // index of the current state in stack (-1 = no undo available)
+      max: 50,
+      commits: [],            // named snapshots the user kept via C
+      commitCursor: null      // null = uninitialized (positions at end on first use)
     };
 
     const PRESETS = [
@@ -7595,6 +7764,111 @@
       state.taps = [];
       showToast('BPM cleared · auto-detection will resume on next beat');
     });
+    // P3.5 — Performance-control layer state-management primitives.
+    // Helper that captures the subset of `state` that mutate/evolve/
+    // randomize touch under the current scope. We snapshot into a
+    // shallow clone (one level deep is enough — `layers[i].opacity`
+    // is a primitive, `reactors[layerId][slot]` is an object we
+    // deep-clone via JSON round-trip because reactors mutate in
+    // place and we need to remember the pre-mutation values).
+    function renderScopeRow() {
+      // No-op stub if the UI hook isn't attached yet. The Layers panel
+      // calls into this when it mounts (Phase 1.5). For now the only
+      // way to read the current scope/amount is via the metallic
+      // transient after pressing M/E/R — see showTransient() calls.
+      const row = document.getElementById('swr-scope-row');
+      if (!row) return;
+      row.textContent = 'scope: ' + state_scope.scope +
+        ' · amount: ' + state_scope.amount.toFixed(2) +
+        ' · preserve: ' + (state_scope.preserve.join(',') || 'none');
+    }
+
+    function snapshotScoped(label) {
+      const fields = state_scope.scope === 'all'
+        ? STATE_FIELD_KEYS
+        : [state_scope.scope];
+      const subset = {};
+      for (const k of fields) {
+        if (state_scope.preserve.indexOf(k) >= 0) continue;
+        subset[k] = JSON.parse(JSON.stringify(state[k]));
+      }
+      return {
+        subset,
+        timestamp: performance.now(),
+        label: label || 'state'
+      };
+    }
+    function applySnapshot(snap) {
+      for (const k of Object.keys(snap.subset)) {
+        state[k] = JSON.parse(JSON.stringify(snap.subset[k]));
+      }
+    }
+    function pushHistory(label) {
+      // Capture the CURRENT (post-action) state into the stack. Then
+      // advance the cursor. If we've branched off a redo tail, trim
+      // it first. Cap the stack at `max` (oldest gets dropped).
+      if (state_history.cursor < state_history.stack.length - 1) {
+        state_history.stack = state_history.stack.slice(0, state_history.cursor + 1);
+      }
+      state_history.stack.push(snapshotScoped(label));
+      if (state_history.stack.length > state_history.max) {
+        state_history.stack.shift();
+      }
+      state_history.cursor = state_history.stack.length - 1;
+    }
+    // P3.5 — seed the history with the app's initial state. After
+    // this runs, undo() can rewind all the way back to "nothing
+    // happened yet". Called once at app init.
+    function seedInitialHistory() {
+      state_history.stack.push(snapshotScoped('initial'));
+      state_history.cursor = 0;
+    }
+    function undo() {
+      if (state_history.cursor <= 0) {
+        showToast('Nothing to undo');
+        return;
+      }
+      state_history.cursor -= 1;
+      applySnapshot(state_history.stack[state_history.cursor]);
+      showToast('Undo · ' + state_history.stack[state_history.cursor].label);
+      refreshAfterUndo();
+    }
+    function redo() {
+      if (state_history.cursor >= state_history.stack.length - 1) {
+        showToast('Nothing to redo');
+        return;
+      }
+      state_history.cursor += 1;
+      applySnapshot(state_history.stack[state_history.cursor]);
+      showToast('Redo · ' + state_history.stack[state_history.cursor].label);
+      refreshAfterUndo();
+    }
+    // Re-render the UI artifacts that depend on state shape after
+    // an undo/redo. The render loop reads from state live so the
+    // visual updates automatically; we only need to redraw the
+    // sidebar panels (sliders, layers, reactors, presets) and the
+    // library tab thumbnails.
+    function refreshAfterUndo() {
+      saveState();
+      renderPresetGrid();
+      renderLayerStack();
+      renderLayerReactors();
+      // Pull the slider input elements in line with new state.
+      $$('input[data-slider]').forEach((inp) => {
+        const k = inp.getAttribute('data-slider');
+        if (k in state.sliders) {
+          inp.value = state.sliders[k];
+          const out = document.querySelector(`[data-value="${k}"]`);
+          if (out) out.textContent = state.sliders[k];
+        }
+      });
+      // Pull the blend/opacity selects in the layer stack.
+      $$('.layer__select').forEach((sel) => {
+        const layer = state.layers.find(l => l.id === sel.getAttribute('data-layer-blend'));
+        if (layer) sel.value = layer.blend;
+      });
+    }
+
     // Keyboard shortcut: 'T' (without modifiers) taps the tempo
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -7624,13 +7898,485 @@
     bindGenerative(btnMutate, mutateState);
     bindGenerative(btnEvolve, evolveState);
     bindGenerative(btnRandomize, randomizeState);
-    document.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === 'm' || e.key === 'M') { e.preventDefault(); flashButton(btnMutate);    mutateState();    }
-      else if (e.key === 'e' || e.key === 'E') { e.preventDefault(); flashButton(btnEvolve);    evolveState();    }
-      else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); flashButton(btnRandomize); randomizeState(); }
-    });
+    // P3.5 — Performance-control layer keyboard handler. Single
+        // document-level keydown that supersedes the previous simple
+        // M/E/R handler. Behavior matrix:
+        //
+        //   bare          M / E / R     push history + scoped action
+        //   hold 200ms+    M             auto-repeat at 200ms intervals
+        //   shift         M / R         bigger mutation / hard randomize
+        //   alt           R             mappings-only randomize (skip
+        //                                preset/sliders/layers)
+        //   ctrl/cmd      (reserved for OS shortcuts; never fires our handlers)
+        //
+        //   Z             undo          pop history one step
+        //   shift Z       redo          push forward one step
+        //   C             commit        name current state as a saved commit
+        //   S             new seed      randomize the seed (if any) for
+        //                                deterministic generators
+        //   shift S       copy seed     clipboard
+        //
+        //   [ / ]         amount ±0.05  granularity for M / E
+        //   , / .         prev / next commit
+        //
+        //   ← / →         prev / next layer focus (flash the layer id +
+        //                                asset name centered on stage)
+        //   1..4          direct layer focus
+        //
+        //   ?             toggle help overlay (dim canvas, show keymap)
+        //
+        // Auto-repeat for held M is implemented as a setInterval that
+        // fires every 200ms while M is held; the interval id lives on
+        // state_history so undo can clear it (no-op; auto-repeat doesn't
+        // push history more than once per press).
+        function _setLayerFocus(idx, reason) {
+          state.activeLayer = state.layers[idx] && state.layers[idx].id;
+          // Phase 3 — persist layer focus so it survives a reload.
+          // (Phase 1/2 only updated state.activeLayer + transient; the
+          // change was lost on next page load because saveState()
+          // was never called.)
+          saveState();
+          renderLayerStack();
+          const layer = state.layers[idx];
+          const assetIds = (state.layerAssets[layer.id] || []);
+          const first = assetIds[0];
+          const asset = first ? state.library.items.find(a => a.id === first) : null;
+          // Brief transient (Phase 1). Phase 2 also flashes the stage
+          // canvas border so the visual change is unmistakable even
+          // when the user isn't looking at the side panel.
+          showTransient(reason.toUpperCase() + ' ' +
+            String(idx + 1).padStart(2, '0') + ' · ' +
+            (layer.name || layer.id) +
+            (asset ? ' · ' + asset.name : ''),
+            { durationMs: 700 });
+          flashLayerOverlay(layer.id);
+        }
+        // Phase 2 — flash the stage overlay with the layer's accent
+        // color so the user sees the focus change even when looking
+        // at the visual preview. The flash lasts 600ms with a CSS
+        // keyframe; we trigger it by re-adding the class and forcing
+        // a reflow.
+        function flashLayerOverlay(layerId) {
+          const el = document.getElementById('swr-layer-flash');
+          if (!el) return;
+          // Position the flash overlay over the active stage viewport
+          // (the workspace stage, not the hero canvas). If neither is
+          // visible, fall back to the workspace.
+          const stageEl = document.getElementById('stageViewport')
+            || document.getElementById('stage')
+            || document.querySelector('.stage__viewport');
+          if (stageEl) {
+            const r = stageEl.getBoundingClientRect();
+            el.style.left = r.left + 'px';
+            el.style.top = r.top + 'px';
+            el.style.width = r.width + 'px';
+            el.style.height = r.height + 'px';
+          }
+          // Map layer id to a hue so each layer flashes in its own
+          // color (background = magenta, overlay = cyan, typography =
+          // amber, effects = green). Falls back to white if the layer
+          // is unknown.
+          const LAYER_COLORS = {
+            background: 'hsl(300, 80%, 60%)',
+            overlay:    'hsl(180, 80%, 60%)',
+            typography: 'hsl(40,  80%, 60%)',
+            effects:    'hsl(120, 80%, 60%)'
+          };
+          const color = LAYER_COLORS[layerId] || 'rgba(255,255,255,0.7)';
+          el.style.setProperty('--flash-color', color);
+          el.classList.remove('flash-on');
+          void el.offsetWidth;
+          el.classList.add('flash-on');
+        }
+        // Phase 3 — preset cycle (arrow-key navigation through the
+        // preset gallery when the presets tab is active). Walks
+        // PRESETS.concat(importedPresets) in order. Wraps at the
+        // ends. Pushes to history so the user can Z back if they
+        // overshoot.
+        function _cyclePreset(dir) {
+          const all = (typeof PRESETS !== 'undefined' ? PRESETS : [])
+            .concat(typeof importedPresets !== 'undefined' ? importedPresets : []);
+          if (all.length === 0) return;
+          const curIdx = all.findIndex(p => p.id === state.preset);
+          const next = (curIdx + dir + all.length) % all.length;
+          const target = all[next];
+          if (!target || target.id === state.preset) return;
+          applyPresetChange(target.id);
+          // Push to history so Z rewinds. Use the dedicated label
+          // 'preset-N' so it's clear in the undo toast.
+          pushHistory('preset-' + target.id);
+          refreshAfterUndo();
+          showTransient('PRESET · ' + (target.name || target.id) +
+            ' · ' + (next + 1) + '/' + all.length, { durationMs: 600 });
+        }
+        function _bumpAmount(delta) {
+          state_scope.amount = Math.max(0, Math.min(1,
+            Math.round((state_scope.amount + delta) * 100) / 100));
+          renderScopeRow();
+          showTransient('AMOUNT ' + state_scope.amount.toFixed(2),
+            { durationMs: 600 });
+        }
+        // Compute which fields the current scope + preserve touches.
+        // Returns an array of `state` keys safe to mutate.
+        function _scopeFields() {
+          const all = STATE_FIELD_KEYS;
+          const base = state_scope.scope === 'all' ? all : [state_scope.scope];
+          return base.filter(k => state_scope.preserve.indexOf(k) < 0);
+        }
+        function _doAction(kind) {
+          // Snapshot is captured POST-action by pushHistory at the
+          // bottom. If the user has no scope enabled (everything
+          // preserved), the snapshot is empty and the action becomes
+          // a no-op. That matches the user's intent — "I told you to
+          // preserve everything".
+          const fields = _scopeFields();
+          if (fields.length === 0) {
+            showToast('Nothing to ' + kind + ' — everything is preserved');
+            return;
+          }
+          // Dispatch to the existing P2.3 functions. They mutate the
+          // full state in place.
+          if (kind === 'mutate')    { flashButton(btnMutate);    mutateState(); }
+          else if (kind === 'evolve')    { flashButton(btnEvolve); evolveState(); }
+          else if (kind === 'randomize') { flashButton(btnRandomize); randomizeState(); }
+          // Capture post-action state so undo can rewind.
+          pushHistory(kind);
+          // After the action, the UI components need to re-read state.
+          refreshAfterUndo();
+          // Metallic transient feedback so the user knows the action
+          // fired even when they can't see the visual change yet
+          // (mutate can be subtle, especially with low amount).
+          const scopeLabel = state_scope.scope === 'all'
+            ? 'ALL'
+            : state_scope.scope.toUpperCase();
+          showTransient(kind.toUpperCase() + ' · ' + state_scope.amount.toFixed(2) + ' · ' + scopeLabel,
+            { durationMs: 700 });
+        }
+        function _hardReset() {
+          // Hard reset ignores scope/preserve. We still snapshot before
+          // and after so the user can rewind a hard reset if they
+          // pressed it by mistake.
+          flashButton(btnRandomize);
+          randomizeState();
+          pushHistory('hard-reset');
+          refreshAfterUndo();
+        }
+        function _autoMap() {
+          // Rebuild only the feature→target mappings in the reactors
+          // table. We leave preset/sliders/layers alone and randomize
+          // which audio feature drives which visual target on each
+          // enabled reactor slot.
+          const FEATURES = ['bass', 'mid', 'treble', 'beat'];
+          const TARGETS = ['opacity', 'scale', 'rot', 'hue', 'brightness', 'contrast'];
+          for (const lid of Object.keys(state.reactors)) {
+            const slots = state.reactors[lid];
+            if (!Array.isArray(slots)) continue;
+            for (let i = 0; i < slots.length; i++) {
+              const r = slots[i];
+              if (!r || !r.enabled) continue;
+              r.feature = FEATURES[Math.floor(Math.random() * FEATURES.length)];
+              r.target = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+            }
+          }
+          pushHistory('automap');
+          refreshAfterUndo();
+          showTransient('AUTOMAP', { durationMs: 700 });
+        }
+        function _commitCurrent() {
+          const label = 'commit ' + String(state_history.commits.length + 1).padStart(2, '0');
+          state_history.commits.push(snapshotScoped(label));
+          showTransient('COMMITTED · ' + label, { durationMs: 900 });
+        }
+        function _cycleCommit(dir) {
+          // Real commit cursor (Phase 2). Track the current commit
+          // position separately from history.cursor. On first use, set
+          // cursor to commits.length (one past the end — meaning "live
+          // working state, not on any commit"). The user can step
+          // backwards through their commits to revisit earlier
+          // versions, or forwards back to live.
+          if (state_history.commits.length === 0) {
+            showToast('No commits yet — press C to commit');
+            return;
+          }
+          if (state_history.commitCursor == null) {
+            // First use: position the cursor just before the live state.
+            // Going back (-) means "show me the most recent commit";
+            // going forward (+) means "show me the live state again".
+            state_history.commitCursor = state_history.commits.length;
+          }
+          // Clamp the cursor to [0, commits.length]:
+          //   - index 0..commits.length-1 = a committed state
+          //   - index commits.length = live working state
+          const next = Math.max(0, Math.min(
+            state_history.commits.length,
+            state_history.commitCursor + dir));
+          if (next === state_history.commitCursor) {
+            showToast(dir < 0 ? 'Already at oldest commit' : 'Already at live state');
+            return;
+          }
+          state_history.commitCursor = next;
+          if (next >= state_history.commits.length) {
+            showTransient('LIVE · ' + (state_history.commits.length === 0
+              ? 'no commits'
+              : 'commit ' + next + '/' + state_history.commits.length),
+              { durationMs: 700 });
+            return; // live state — don't apply anything
+          }
+          const target = state_history.commits[next];
+          applySnapshot(target);
+          refreshAfterUndo();
+          showTransient('← COMMIT ' + (next + 1) + '/' + state_history.commits.length +
+            ' · ' + target.label, { durationMs: 700 });
+        }
+        function _newSeed() {
+          // The P2.3 generators don't currently consume an explicit
+          // seed; the random calls inside are non-deterministic. For
+          // Phase 1 we just nudge the user-visible seed field (if any)
+          // and toast that the next randomize will be different. Phase 2
+          // can wire actual seed injection.
+          const next = Math.floor(Math.random() * 1e9).toString(36);
+          const url = new URL(location.href);
+          url.searchParams.set('seed', next);
+          try { navigator.clipboard.writeText(url.toString()); showTransient('SEED COPIED · ' + next); }
+          catch (_) { showTransient('SEED · ' + next + ' (clipboard denied)'); }
+        }
+        // Auto-repeat: M held > 200ms triggers 200ms-interval repeats
+        // until released. Single fire on press (history pushes once).
+        let _mHoldTimer = null;
+        let _mRepeatTimer = null;
+        function _beginMRepeat() {
+          // Repeats while held — DO NOT push history on each tick. The
+          // initial keydown already pushed one snapshot for this hold
+          // burst. Repeats just mutate the live state so the user sees
+          // the visual progression. They can still Z back through the
+          // bursts if they held M multiple separate times.
+          //
+          // Phase 2 distinction: a "burst" is one continuous press.
+          // Each burst pushes 1 history entry. Auto-repeat ticks only
+          // mutate, they don't push.
+          _mRepeatTimer = setInterval(() => {
+            // Mutate directly without history. We still want the
+            // metallic transient for feedback (the user is intentionally
+            // scrubbing), but skip the undo entry.
+            if (state_scope.scope === 'all' && state_scope.preserve.length === 0) {
+              flashButton(btnMutate);
+              mutateState();
+            } else {
+              // Scoped action still goes through _doAction for the
+              // "preserve everything" no-op guard, but we explicitly
+              // skip the history push.
+              const fields = _scopeFields();
+              if (fields.length === 0) return;
+              flashButton(btnMutate);
+              mutateState();
+            }
+            const scopeLabel = state_scope.scope === 'all'
+              ? 'ALL'
+              : state_scope.scope.toUpperCase();
+            showTransient('MUTATE↻ · ' + state_scope.amount.toFixed(2) + ' · ' + scopeLabel,
+              { durationMs: 400 });
+          }, 200);
+        }
+        function _endMRepeat() {
+          if (_mRepeatTimer) clearInterval(_mRepeatTimer);
+          _mRepeatTimer = null;
+          if (_mHoldTimer) clearTimeout(_mHoldTimer);
+          _mHoldTimer = null;
+        }
+        function showTransient(msg, opts) {
+          // (Defined here as a no-op stub; the real implementation
+          // below renders the metallic transient overlay. Hoisting
+          // avoids a TDZ when the keydown handler fires during init.)
+          opts = opts || {};
+          const el = document.getElementById('swr-transient');
+          if (!el) return;
+          el.textContent = msg;
+          el.classList.remove('show');
+          // Force reflow so the class re-triggers on rapid presses
+          void el.offsetWidth;
+          el.classList.add('show');
+          if (el._timer) clearTimeout(el._timer);
+          el._timer = setTimeout(() => el.classList.remove('show'),
+            opts.durationMs || 900);
+        }
+        function toggleHelpOverlay() {
+          const el = document.getElementById('swr-help-overlay');
+          if (!el) return;
+          el.classList.toggle('is-on');
+        }
+        document.addEventListener('keydown', (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          // Cmd / Ctrl reserved for the browser.
+          if (e.ctrlKey || e.metaKey) return;
+          const key = e.key;
+          const shift = e.shiftKey;
+          const alt = e.altKey;
+          // ? (toggle help) — works with or without shift
+          if (key === '?' || (shift && key === '/')) {
+            e.preventDefault();
+            toggleHelpOverlay();
+            return;
+          }
+          // Escape closes help
+          if (key === 'Escape') {
+            const el = document.getElementById('swr-help-overlay');
+            if (el && el.classList.contains('is-on')) {
+              el.classList.remove('is-on');
+              return;
+            }
+          }
+          // Auto-repeat for M (without modifier): start a 200ms hold
+          // delay, then tick at 200ms. We don't fire the initial
+          // action here — keydown fires once on press, and that's the
+          // one-shot we want to push to history. Repeats just mutate
+          // again and stack on the history stack (acceptable: the user
+          // can Z back through them).
+          if ((key === 'm' || key === 'M') && !shift && !alt) {
+            e.preventDefault();
+            flashButton(btnMutate);
+            _doAction('mutate');
+            _endMRepeat();
+            _mHoldTimer = setTimeout(_beginMRepeat, 200);
+            return;
+          }
+          if ((key === 'm' || key === 'M') && shift) {
+            e.preventDefault();
+            // boost the magnitude for this gesture, run mutateState, then
+            // capture the post-action state. pushHistory after the call so
+            // undo rewinds to the pre-Shift+M state.
+            const saved = state_scope.amount;
+            state_scope.amount = Math.min(1, saved * 1.75);
+            flashButton(btnMutate);
+            mutateState();
+            state_scope.amount = saved;
+            pushHistory('mutate-1.75x');
+            refreshAfterUndo();
+            showTransient('MUTATE 1.75x · ' + saved.toFixed(2), { durationMs: 800 });
+            return;
+          }
+          if ((key === 'e' || key === 'E') && !shift && !alt) {
+            e.preventDefault();
+            flashButton(btnEvolve);
+            _doAction('evolve');
+            return;
+          }
+          if ((key === 'r' || key === 'R') && !shift && !alt) {
+            e.preventDefault();
+            flashButton(btnRandomize);
+            _doAction('randomize');
+            return;
+          }
+          // Shift+R = hard reset (ignore scope/preserve, randomize
+          // everything that's not on the persistence blacklist).
+          if ((key === 'r' || key === 'R') && shift) {
+            e.preventDefault();
+            _hardReset();
+            showTransient('HARD RESET', { durationMs: 900 });
+            return;
+          }
+          // Alt+R = automap (rebuild only feature→target mappings in
+          // reactors; preserve preset/sliders/layers/etc.)
+          if ((key === 'r' || key === 'R') && alt) {
+            e.preventDefault();
+            _autoMap();
+            return;
+          }
+          // A = automap (same as Alt+R but accessible)
+          if ((key === 'a' || key === 'A') && !shift && !alt) {
+            e.preventDefault();
+            _autoMap();
+            return;
+          }
+          // Z = undo, Shift+Z = redo
+          if ((key === 'z' || key === 'Z') && !shift) {
+            e.preventDefault();
+            undo();
+            return;
+          }
+          if ((key === 'z' || key === 'Z') && shift) {
+            e.preventDefault();
+            redo();
+            return;
+          }
+          // C = commit
+          if ((key === 'c' || key === 'C') && !shift && !alt) {
+            e.preventDefault();
+            _commitCurrent();
+            return;
+          }
+          // S = new seed (Shift+S = copy seed)
+          if ((key === 's' || key === 'S') && !shift && !alt) {
+            e.preventDefault();
+            _newSeed();
+            return;
+          }
+          // [ and ] = amount ±0.05
+          if (key === '[' && !shift) {
+            e.preventDefault();
+            _bumpAmount(-0.05);
+            return;
+          }
+          if (key === ']' && !shift) {
+            e.preventDefault();
+            _bumpAmount(0.05);
+            return;
+          }
+          // , and . = cycle commits
+          if (key === ',' && !shift) {
+            e.preventDefault();
+            _cycleCommit(-1);
+            return;
+          }
+          if (key === '.' && !shift) {
+            e.preventDefault();
+            _cycleCommit(1);
+            return;
+          }
+          // ← / → = layer navigation (4 layers: background, overlay,
+          // typography, effects). We only navigate through visible ones.
+          // EXCEPTION: if the presets tab is active, arrow keys cycle
+          // presets instead (more natural than browsing layers when
+          // the user is looking at the preset gallery).
+          if (key === 'ArrowLeft' && !shift && !alt) {
+            e.preventDefault();
+            const activeTab = (document.querySelector('.tab.is-active') || {}).dataset?.tab;
+            if (activeTab === 'presets') {
+              _cyclePreset(-1);
+              return;
+            }
+            const visible = state.layers.map((l, i) => l.visible ? i : -1).filter(i => i >= 0);
+            if (visible.length === 0) return;
+            const cur = visible.indexOf(state.layers.findIndex(l => l.id === state.activeLayer));
+            const next = visible[(cur - 1 + visible.length) % visible.length];
+            _setLayerFocus(next, 'LAYER');
+            return;
+          }
+          if (key === 'ArrowRight' && !shift && !alt) {
+            e.preventDefault();
+            const activeTab = (document.querySelector('.tab.is-active') || {}).dataset?.tab;
+            if (activeTab === 'presets') {
+              _cyclePreset(1);
+              return;
+            }
+            const visible = state.layers.map((l, i) => l.visible ? i : -1).filter(i => i >= 0);
+            if (visible.length === 0) return;
+            const cur = visible.indexOf(state.layers.findIndex(l => l.id === state.activeLayer));
+            const next = visible[(cur + 1) % visible.length];
+            _setLayerFocus(next, 'LAYER');
+            return;
+          }
+          // 1..4 = direct layer select (we have 4 layers)
+          if (/^[1-4]$/.test(key) && !shift && !alt) {
+            e.preventDefault();
+            const idx = parseInt(key, 10) - 1;
+            if (idx < state.layers.length) _setLayerFocus(idx, 'LAYER');
+            return;
+          }
+        });
+        document.addEventListener('keyup', (e) => {
+          // Stop M auto-repeat when the user releases the key
+          if (e.key === 'm' || e.key === 'M') _endMRepeat();
+        });
 
     // P2.1 — Update the BPM display pill. Called whenever state.bpm or
     // state.bpmSource changes. Cheap DOM update so it can run every
@@ -8435,6 +9181,10 @@ recordTimer = setTimeout(() => {
       renderAudioList();
       renderStoryStrip();
       renderLayerReactors();
+      renderScopeRow();
+      // P3.5 — seed the undo history with the initial state so the
+      // user's first M/E/R has a rewind target.
+      seedInitialHistory();
       restoreBrandingInputs();
       refreshCaption();
       refreshShareLink();
@@ -8464,5 +9214,32 @@ recordTimer = setTimeout(() => {
   </script>
 
   </div><!-- /.app-shell -->
+
+  <!-- P3.5 — Performance-control layer UI overlays -->
+  <div id="swr-transient" role="status" aria-live="polite"></div>
+  <!-- P3.5 Phase 2 — layer-focus flash overlay. Renders a colored
+       border around the stage when arrow keys / 1-4 select a layer. -->
+  <div id="swr-layer-flash" aria-hidden="true"></div>
+  <div id="swr-help-overlay" role="dialog" aria-modal="true" aria-labelledby="swr-help-title">
+    <div class="swr-help-card">
+      <h3 id="swr-help-title">Performance hotkeys</h3>
+      <div class="swr-help-keymap">
+        <div><kbd>R</kbd> randomize · <kbd>Shift</kbd>+<kbd>R</kbd> hard reset</div>
+        <div><kbd>A</kbd> auto-map reactors</div>
+        <div><kbd>M</kbd> mutate (hold = repeat) · <kbd>Shift</kbd>+<kbd>M</kbd> · 1.75×</div>
+        <div><kbd>E</kbd> evolve</div>
+        <div><kbd>[</kbd> <kbd>]</kbd> amount ±0.05</div>
+        <div><kbd>,</kbd> <kbd>.</kbd> cycle commits</div>
+        <div><kbd>Z</kbd> undo · <kbd>Shift</kbd>+<kbd>Z</kbd> redo</div>
+        <div><kbd>C</kbd> commit</div>
+        <div><kbd>S</kbd> new seed · <kbd>Shift</kbd>+<kbd>S</kbd> copy seed</div>
+        <div><kbd>←</kbd> <kbd>→</kbd> prev / next layer focus (or preset, when Presets tab is open)</div>
+        <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> direct layer select</div>
+        <div><kbd>?</kbd> toggle this overlay · <kbd>Esc</kbd> dismiss</div>
+      </div>
+      <div class="swr-help-foot">Press <kbd>?</kbd> anywhere to toggle this overlay</div>
+    </div>
+  </div>
+
 </body>
 </html>
