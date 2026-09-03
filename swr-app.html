@@ -1124,27 +1124,55 @@
     .layer-reactor {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       margin-top: 8px;
       padding: 8px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: var(--ink-2);
     }
-    .layer-reactor__row {
+    .layer-reactor__head {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed var(--line);
+    }
+    .layer-reactor__slot {
       display: grid;
-      grid-template-columns: 56px 56px 1fr 32px;
+      grid-template-columns: 18px 64px 16px 64px 1fr 32px 26px 24px;
       gap: 4px;
       align-items: center;
       font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: 0.08em;
-      color: var(--text-dim);
+      padding: 3px 0;
     }
-    .layer-reactor__row select,
-    .layer-reactor__row input[type="range"] {
+    .layer-reactor__slot.is-empty {
+      grid-template-columns: 18px 1fr;
+      opacity: 0.6;
+    }
+    .layer-reactor__slot.is-filled:hover { background: rgba(255,255,255,0.02); }
+    .layer-reactor__chip {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--lime);
+      text-align: center;
+      background: rgba(196, 255, 61, 0.08);
+      border-radius: 4px;
+      padding: 2px 0;
+    }
+    .layer-reactor__chip.is-empty { color: var(--text-mute); background: transparent; border: 1px dashed var(--line); }
+    .layer-reactor__arrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-mute);
+      text-align: center;
+    }
+    .layer-reactor__slot select,
+    .layer-reactor__slot input[type="range"] {
       width: 100%;
-      padding: 4px 6px;
+      padding: 3px 5px;
       border: 1px solid var(--line);
       border-radius: 4px;
       background: var(--ink-3);
@@ -1152,7 +1180,7 @@
       font-family: var(--mono);
       font-size: 10px;
     }
-    .layer-reactor__row input[type="range"] { padding: 0; height: 18px; }
+    .layer-reactor__slot input[type="range"] { padding: 0; height: 16px; }
     .layer-reactor__scale {
       font-family: var(--mono);
       font-size: 9px;
@@ -1163,16 +1191,52 @@
       background: transparent;
       border: 1px solid var(--line);
       color: var(--text-dim);
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
+      padding: 0;
     }
     .layer-reactor__power.is-on {
       background: rgba(215,255,61,0.16);
       color: var(--lime);
       border-color: var(--lime);
+    }
+    .layer-reactor__remove {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--text-mute);
+      width: 22px;
+      height: 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.1s, border-color 0.1s;
+    }
+    .layer-reactor__remove:hover { color: var(--red); border-color: var(--red); }
+    .layer-reactor__add {
+      background: transparent;
+      border: 1px dashed var(--line);
+      color: var(--text-dim);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-align: left;
+      width: 100%;
+    }
+    .layer-reactor__add:hover {
+      color: var(--lime);
+      border-color: var(--lime);
+      border-style: dashed;
+    }
+    .layer-reactor__row {
+      display: none; /* legacy, hidden under new slot-based layout */
     }
     .btn-record {
       width: 100%;
@@ -2919,7 +2983,7 @@
               <button class="pill" id="storyNextBtn" type="button" aria-label="Next fragment">Next →</button>
               <button class="pill" id="storyResetBtn" type="button" aria-label="Reset to fragment 1">Reset</button>
             </div>
-            <div class="panel__title" style="margin-top: 14px;">Per-Layer Reactor <small>audio feature → target</small></div>
+            <div class="panel__title" style="margin-top: 14px;">Per-Layer Reactors <small>up to 3 per layer · audio feature → target</small></div>
             <div id="layerReactors"></div>
           </div>
 
@@ -3329,13 +3393,34 @@
         lastBeatIndex: -1
       },
       reactors: {
-        // Per-layer reactor: { feature, target, scale, enabled }
-        // Defaults: bass → opacity on background, mid → scale on overlay,
-        // treble → rotation on typography, beat → hue on effects.
-        background: { feature: 'bass',   target: 'opacity', scale: 0.5, enabled: true },
-        overlay:    { feature: 'mid',    target: 'scale',   scale: 0.4, enabled: true },
-        typography: { feature: 'treble', target: 'rot',     scale: 0.3, enabled: false },
-        effects:    { feature: 'beat',   target: 'hue',     scale: 0.6, enabled: true }
+        // P2.2 — multi-reactor per layer. Each layer now holds up to 3
+        // reactors; each reactor is independent and can be enabled or
+        // disabled. A null/undefined slot means "empty" — the UI shows
+        // an Add button there.
+        //
+        // Slot 1 is the legacy default reactor (preserved from P1 for
+        // visual continuity); slots 2-3 default to null so the UI
+        // starts compact but lets the user stack up to 3 reactors.
+        background: [
+          { feature: 'bass',   target: 'opacity', scale: 0.5, enabled: true },
+          null,
+          null
+        ],
+        overlay: [
+          { feature: 'mid',    target: 'scale',   scale: 0.4, enabled: true },
+          null,
+          null
+        ],
+        typography: [
+          { feature: 'treble', target: 'rot',     scale: 0.3, enabled: false },
+          null,
+          null
+        ],
+        effects: [
+          { feature: 'beat',   target: 'hue',     scale: 0.6, enabled: true },
+          null,
+          null
+        ]
       },
       audioBands: { bass: 0, mid: 0, treble: 0 },
       beat: 0,  // P1.3: 1.0 on each detected beat, decays to 0 over ~300ms
@@ -3570,6 +3655,21 @@
           state.bpmSource = 'tap';
           state.bpmConfidence = 1.0;
         }
+        // P2.2 — restore per-layer reactors. Migrate legacy single-object
+        // shape ({feature, target, scale, enabled}) into the new array
+        // shape ([obj, null, null]).
+        if (saved.reactors) {
+          Object.keys(saved.reactors).forEach((lid) => {
+            const r = saved.reactors[lid];
+            if (Array.isArray(r)) {
+              // Already migrated; ensure exactly 3 slots
+              state.reactors[lid] = [r[0] || null, r[1] || null, r[2] || null];
+            } else if (r && typeof r === 'object') {
+              // Legacy single-object format
+              state.reactors[lid] = [r, null, null];
+            }
+          });
+        }
       } catch (e) { /* ignore corrupt */ }
     }
 
@@ -3618,7 +3718,9 @@
           // P2.1 — persist user's tapped BPM so it survives reload.
           // Auto-detected BPM is NOT persisted (always recomputed on next play).
           bpm: state.bpmSource === 'tap' ? state.bpm : null,
-          bpmSource: state.bpmSource === 'tap' ? 'tap' : 'idle'
+          bpmSource: state.bpmSource === 'tap' ? 'tap' : 'idle',
+          // P2.2 — persist per-layer reactors (3 slots each).
+          reactors: state.reactors
         }));
       } catch (e) { /* quota */ }
     }
@@ -4231,7 +4333,17 @@
         if (snap.library.filter) state.library.filter = snap.library.filter;
         if (snap.library.assignLayer) state.library.assignLayer = snap.library.assignLayer;
       }
-      if (snap.reactors) state.reactors = snap.reactors;
+      if (snap.reactors) {
+        // P2.2 — migrate legacy single-object shape to 3-slot array
+        Object.keys(snap.reactors).forEach((lid) => {
+          const r = snap.reactors[lid];
+          if (Array.isArray(r)) {
+            state.reactors[lid] = [r[0] || null, r[1] || null, r[2] || null];
+          } else if (r && typeof r === 'object') {
+            state.reactors[lid] = [r, null, null];
+          }
+        });
+      }
       if (snap.story) {
         state.story.current = snap.story.current || 0;
         state.story.autoCycle = false; // never restore auto-cycle
@@ -4580,48 +4692,93 @@
       if (!layerReactors) return;
       layerReactors.innerHTML = '';
       state.layers.forEach((layer) => {
-        const r = state.reactors[layer.id] || { feature: 'bass', target: 'opacity', scale: 0.5, enabled: false };
-        const el = document.createElement('div');
-        el.className = 'layer-reactor';
-        el.setAttribute('data-layer', layer.id);
-        const featOpts = REACTOR_FEATURES.map(f =>
-          `<option value="${f}" ${f === r.feature ? 'selected' : ''}>${f}</option>`).join('');
-        const tgtOpts = REACTOR_TARGETS.map(t =>
-          `<option value="${t}" ${t === r.target ? 'selected' : ''}>${t}</option>`).join('');
-        el.innerHTML = `
-          <div class="layer-reactor__row">
-            <select data-reactor-field="feature" aria-label="Reactor feature for ${layer.name}">${featOpts}</select>
-            <select data-reactor-field="target"  aria-label="Reactor target for ${layer.name}">${tgtOpts}</select>
-            <input type="range" data-reactor-field="scale" min="0" max="100" value="${Math.round(r.scale * 100)}" aria-label="Reactor scale for ${layer.name}" />
-            <button class="layer-reactor__power ${r.enabled ? 'is-on' : ''}" data-reactor-field="enabled" type="button" aria-pressed="${r.enabled}" aria-label="Toggle reactor for ${layer.name}">${r.enabled ? '●' : '○'}</button>
-          </div>
-          <div class="layer-reactor__row" style="grid-template-columns: 56px 56px 1fr 32px;">
-            <span>${layer.name}</span>
-            <span></span>
-            <span></span>
-            <span class="layer-reactor__scale" data-reactor-scale>${Math.round(r.scale * 100)}%</span>
-          </div>
-        `;
-        el.querySelector('[data-reactor-field="feature"]').addEventListener('change', (e) => {
-          state.reactors[layer.id].feature = e.target.value;
-          saveState();
+        // P2.2 — render up to 3 reactor slots per layer. Each slot is
+        // either a populated reactor (feature / target / scale / enabled)
+        // or null (renders an "Add reactor" button that fills it with
+        // defaults).
+        const reactors = state.reactors[layer.id] || [];
+        // Pad / truncate to exactly 3 slots
+        const slots = [0, 1, 2].map((i) => reactors[i] || null);
+
+        const layerCard = document.createElement('div');
+        layerCard.className = 'layer-reactor';
+        layerCard.setAttribute('data-layer', layer.id);
+        layerCard.innerHTML = `<div class="layer-reactor__head"><span>${layer.name}</span></div>`;
+
+        slots.forEach((r, slotIdx) => {
+          const slot = document.createElement('div');
+          slot.className = 'layer-reactor__slot' + (r ? ' is-filled' : ' is-empty');
+          slot.setAttribute('data-slot', slotIdx);
+          if (r) {
+            const featOpts = REACTOR_FEATURES.map(f =>
+              `<option value="${f}" ${f === r.feature ? 'selected' : ''}>${f}</option>`).join('');
+            const tgtOpts = REACTOR_TARGETS.map(t =>
+              `<option value="${t}" ${t === r.target ? 'selected' : ''}>${t}</option>`).join('');
+            slot.innerHTML = `
+              <span class="layer-reactor__chip">${slotIdx + 1}</span>
+              <select data-reactor-field="feature" aria-label="Reactor ${slotIdx + 1} feature for ${layer.name}">${featOpts}</select>
+              <span class="layer-reactor__arrow">→</span>
+              <select data-reactor-field="target"  aria-label="Reactor ${slotIdx + 1} target for ${layer.name}">${tgtOpts}</select>
+              <input type="range" data-reactor-field="scale" min="0" max="100" value="${Math.round(r.scale * 100)}" aria-label="Reactor ${slotIdx + 1} scale for ${layer.name}" />
+              <span class="layer-reactor__scale" data-reactor-scale>${Math.round(r.scale * 100)}%</span>
+              <button class="layer-reactor__power ${r.enabled ? 'is-on' : ''}" data-reactor-field="enabled" type="button" aria-pressed="${r.enabled}" aria-label="Toggle reactor ${slotIdx + 1} for ${layer.name}">${r.enabled ? '●' : '○'}</button>
+              <button class="layer-reactor__remove" data-reactor-field="remove" type="button" aria-label="Remove reactor ${slotIdx + 1} from ${layer.name}" title="Remove">×</button>
+            `;
+            slot.querySelector('[data-reactor-field="feature"]').addEventListener('change', (e) => {
+              state.reactors[layer.id][slotIdx].feature = e.target.value;
+              saveState();
+            });
+            slot.querySelector('[data-reactor-field="target"]').addEventListener('change', (e) => {
+              state.reactors[layer.id][slotIdx].target = e.target.value;
+              saveState();
+            });
+            const scaleInput = slot.querySelector('[data-reactor-field="scale"]');
+            scaleInput.addEventListener('input', (e) => {
+              const v = +e.target.value;
+              state.reactors[layer.id][slotIdx].scale = v / 100;
+              slot.querySelector('[data-reactor-scale]').textContent = v + '%';
+              saveState();
+            });
+            slot.querySelector('[data-reactor-field="enabled"]').addEventListener('click', () => {
+              state.reactors[layer.id][slotIdx].enabled = !state.reactors[layer.id][slotIdx].enabled;
+              renderLayerReactors();
+              saveState();
+            });
+            slot.querySelector('[data-reactor-field="remove"]').addEventListener('click', () => {
+              state.reactors[layer.id][slotIdx] = null;
+              renderLayerReactors();
+              saveState();
+              showToast(`Removed reactor ${slotIdx + 1} from ${layer.name}`);
+            });
+          } else {
+            // Empty slot: show an Add button. The default reactor is
+            // chosen to NOT clash with existing reactors (pick the next
+            // unused feature / target combo).
+            slot.innerHTML = `
+              <span class="layer-reactor__chip is-empty">${slotIdx + 1}</span>
+              <button class="layer-reactor__add" data-reactor-field="add" type="button" aria-label="Add reactor ${slotIdx + 1} to ${layer.name}">+ Add reactor</button>
+            `;
+            slot.querySelector('[data-reactor-field="add"]').addEventListener('click', () => {
+              // Pick defaults that aren't already used in earlier slots
+              const usedFeatures = new Set();
+              const usedTargets = new Set();
+              for (let i = 0; i < slotIdx; i++) {
+                const prev = state.reactors[layer.id][i];
+                if (prev) { usedFeatures.add(prev.feature); usedTargets.add(prev.target); }
+              }
+              const defaultFeature = REACTOR_FEATURES.find(f => !usedFeatures.has(f)) || 'bass';
+              const defaultTarget  = REACTOR_TARGETS.find(t => !usedTargets.has(t))   || 'opacity';
+              state.reactors[layer.id][slotIdx] = {
+                feature: defaultFeature, target: defaultTarget, scale: 0.4, enabled: true
+              };
+              renderLayerReactors();
+              saveState();
+              showToast(`Added reactor ${slotIdx + 1} to ${layer.name}`);
+            });
+          }
+          layerCard.appendChild(slot);
         });
-        el.querySelector('[data-reactor-field="target"]').addEventListener('change', (e) => {
-          state.reactors[layer.id].target = e.target.value;
-          saveState();
-        });
-        el.querySelector('[data-reactor-field="scale"]').addEventListener('input', (e) => {
-          const v = +e.target.value;
-          state.reactors[layer.id].scale = v / 100;
-          el.querySelector('[data-reactor-scale]').textContent = v + '%';
-          saveState();
-        });
-        el.querySelector('[data-reactor-field="enabled"]').addEventListener('click', () => {
-          state.reactors[layer.id].enabled = !state.reactors[layer.id].enabled;
-          renderLayerReactors();
-          saveState();
-        });
-        layerReactors.appendChild(el);
+        layerReactors.appendChild(layerCard);
       });
     }
 
@@ -4670,6 +4827,7 @@
       }
       if (name === 'social') refreshShareLink();
       if (name === 'brand') refreshStageBrand();
+      if (name === 'layers') renderLayerReactors();
     }
 
     function switchView(name) {
@@ -6209,36 +6367,47 @@
     // setting; the active draw value is `state.layers[i]._active`.
     function applyReactors(bands) {
       state.layers.forEach((layer) => {
-        const r = state.reactors[layer.id];
-        if (!r || !r.enabled) {
-          layer._activeOpacity = layer.opacity;
-          layer._activeScale    = 100;
-          layer._activeRot       = layer._rot || 0;
-          layer._activeHue       = 0;
-          return;
-        }
-        const featureVal = bands[r.feature] != null ? bands[r.feature] : bands.bass;
-        const delta = featureVal * r.scale;
-        switch (r.target) {
-          case 'opacity':
-            layer._activeOpacity = Math.max(0, Math.min(100, layer.opacity + delta * 100));
-            break;
-          case 'scale':
-            layer._activeScale = 100 + delta * 100;
-            break;
-          case 'rot':
-            layer._activeRot = (layer._rot || 0) + delta * 360;
-            break;
-          case 'hue':
-            layer._activeHue = delta * 360;
-            break;
-          case 'brightness':
-            layer._activeBrightness = delta;
-            break;
-          case 'contrast':
-            layer._activeContrast = delta;
-            break;
-        }
+        // P2.2 — reactors is now an array of up to 3 reactors per layer.
+        // Initialize per-layer active values to baseline so layers with
+        // no enabled reactors keep their resting state.
+        layer._activeOpacity   = layer.opacity;
+        layer._activeScale     = 100;
+        layer._activeRot       = layer._rot || 0;
+        layer._activeHue       = 0;
+        layer._activeBrightness = 0;
+        layer._activeContrast  = 0;
+        const rs = state.reactors[layer.id];
+        if (!Array.isArray(rs)) return;
+        // Iterate reactors in slot order. Multiple reactors can target
+        // the same property (e.g. bass→opacity + beat→opacity both
+        // stacking); the last one wins. Different targets compose
+        // additively (e.g. bass→scale + treble→rot gives you a pulse
+        // that grows AND rotates).
+        rs.forEach((r) => {
+          if (!r || !r.enabled) return;
+          const featureVal = bands[r.feature] != null ? bands[r.feature] : bands.bass;
+          const delta = featureVal * r.scale;
+          switch (r.target) {
+            case 'opacity':
+              layer._activeOpacity = Math.max(0, Math.min(100, layer.opacity + delta * 100));
+              break;
+            case 'scale':
+              layer._activeScale = 100 + delta * 100;
+              break;
+            case 'rot':
+              layer._activeRot = (layer._rot || 0) + delta * 360;
+              break;
+            case 'hue':
+              layer._activeHue = delta * 360;
+              break;
+            case 'brightness':
+              layer._activeBrightness = delta;
+              break;
+            case 'contrast':
+              layer._activeContrast = delta;
+              break;
+          }
+        });
       });
     }
 
