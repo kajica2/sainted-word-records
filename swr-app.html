@@ -714,6 +714,52 @@
     }
     .preset-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.2); }
     .preset-card.is-active { border-color: var(--lime); box-shadow: 0 0 0 2px rgba(215,255,61,0.18); }
+    .preset-card--imported {
+      box-shadow: inset 0 0 0 1px rgba(138, 76, 255, 0.4);
+    }
+    .preset-card--imported.is-active {
+      box-shadow: 0 0 0 2px var(--lime), inset 0 0 0 1px rgba(138, 76, 255, 0.5);
+    }
+    .gallery-card--imported {
+      box-shadow: inset 0 0 0 1px rgba(138, 76, 255, 0.4);
+    }
+    .preset-sync {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
+    }
+    .preset-sync:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .preset-sync__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-mute);
+    }
+    .preset-sync.is-loading .preset-sync__dot {
+      background: var(--ultraviolet-soft);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .preset-sync.is-ok {
+      color: var(--lime);
+      border-color: rgba(215,255,61,0.4);
+    }
+    .preset-sync.is-ok .preset-sync__dot { background: var(--lime); }
+    .preset-sync.is-error {
+      color: var(--ember);
+      border-color: rgba(255, 90, 31, 0.4);
+    }
+    .preset-sync.is-error .preset-sync__dot { background: var(--ember); }
     .preset-card__art {
       position: absolute;
       inset: 0;
@@ -1962,7 +2008,13 @@
               <!-- Presets tab -->
               <div class="tabpanel is-on" data-panel="presets" role="tabpanel">
                 <div class="panel" style="margin:0;">
-                  <div class="panel__title">Visual Presets <small>click to load</small></div>
+                  <div class="panel__title">
+                    Visual Presets
+                    <button id="presetSyncBtn" class="preset-sync" type="button" title="Import presets from the live engine manifest">
+                      <span class="preset-sync__dot" aria-hidden="true"></span>
+                      <span class="preset-sync__text">Sync presets</span>
+                    </button>
+                  </div>
                   <div class="presets" id="presetGrid" role="radiogroup" aria-label="Visual presets"></div>
                 </div>
               </div>
@@ -2458,6 +2510,135 @@
         colors: ['#ff8a55', '#ffd9b3', '#1a1612'], grain: 1.0, grid: 0, smoke: 0, scan: 0.5, glitch: 0.2, mode: 'rings' }
     ];
 
+    // Imported presets from the live engine's /presets/manifest.json.
+    // Schema: swr-preset/v1 — { id, name, family, description, fx_state,
+    //   motion, palette, audio_reactivity, tags, ... }
+    // Each is mapped to our internal preset shape plus an `_import` field
+    // carrying the raw manifest entry for full fidelity.
+    const PRESET_MANIFEST_URLS = [
+      'https://sainted-word-records-kai-djurics-projects.vercel.app/presets/manifest.json'
+    ];
+    let importedPresets = [];   // merged with PRESETS at render time
+    let presetImportStatus = 'idle';   // 'idle' | 'loading' | 'ok' | 'error'
+
+    // Heuristic mapping from swr-preset/v1 → internal preset shape
+    function swrToInternalPreset(p) {
+      const palette = p.palette || {};
+      const fx = p.fx_state || {};
+      const motion = p.motion || {};
+      const react = p.audio_reactivity || {};
+      const tags = Array.isArray(p.tags) ? p.tags.slice(0, 3) : [];
+      // Derive visual mode from name + tags (which version page uses the same shader family)
+      const name = (p.name || '').toLowerCase();
+      let mode = 'rings';
+      if (/(grid|geometric|voronoi|cells|poster)/i.test(name) || tags.some(t => /grid|geometric|cells/i.test(t))) mode = 'grid';
+      else if (/(smoke|wisp|drift|blur)/i.test(name)  || tags.some(t => /smoke|drift|soft|ambient/i.test(t))) mode = 'smoke';
+      else if (/(hallucin|psych|liquid|corrupt|scan)/i.test(name) || tags.some(t => /liquid|psychedelic|scan|drift/i.test(t))) mode = 'liquid';
+      else if (/(film|cinema|sepia|warm)/i.test(name) || tags.some(t => /film|cinematic|warm|sepia/i.test(t))) mode = 'rays';
+      // Build 3-color array from palette
+      const colors = [palette.primary, palette.secondary, palette.accent || palette.bg || palette.secondary].filter(Boolean);
+      // Pick a blend mode that suits the FX family
+      let blend = 'screen';
+      if ((fx.sepia || 0) > 0.3 || /film|cinema/.test(name)) blend = 'overlay';
+      else if ((fx.grayscale || 0) > 0.3) blend = 'multiply';
+      else if ((fx.glow || 0) > 0.4) blend = 'lighten';
+      else if ((fx.chroma || 0) > 0.4) blend = 'difference';
+      // Build a compact tag array
+      const descTags = [
+        p.f === 'MORPHA' ? 'MORPHA' : (p.f === 'GENERATIVE' ? 'GEN' : null),
+        ...(tags || [])
+      ].filter(Boolean).slice(0, 3);
+      return {
+        id: 'imp-' + p.id,           // namespace to avoid collision
+        name: p.name || p.id,
+        tags: descTags.length ? descTags : [p.f || 'imported'],
+        blend: blend,
+        colors: colors.length >= 2 ? colors.slice(0, 3) : ['#d7ff3d', '#8a4cff', '#ff5a1f'],
+        grain: clamp01(fx.grain || 0),
+        grid: mode === 'grid' ? 1 : 0,
+        smoke: mode === 'smoke' || mode === 'liquid' ? 1 : 0,
+        scan: clamp01((fx.sepia || 0) * 0.5 + (fx.posterize || 0) > 4 ? 0.5 : 0),
+        glitch: clamp01(fx.glitch || 0),
+        mode: mode,
+        // Initial slider defaults from the imported preset
+        defaults: {
+          intensity: Math.round(((react.bass || 0) * 0.7 + (react.beat || 0) * 0.3) * 100) || 70,
+          sensitivity: Math.round(((react.mid || 0) * 0.5 + (react.treble || 0) * 0.5) * 100) || 60,
+          bloom: Math.round(clamp01(fx.glow || 0.55) * 100),
+          contrast: Math.round(((fx.chroma || 0) * 0.5 + 0.5) * 100),
+          brightness: 50,
+          speed: Math.round((motion.rotation_speed || 0) * 50 + 50),
+          rotation: Math.round((motion.pan_x || 0) * 30),
+          grain: Math.round((fx.grain || 0) * 100),
+          glitch: Math.round((fx.glitch || 0) * 100),
+          colorShift: Math.round(((palette.primary && palette.secondary) ? deriveHueDelta(palette.primary, palette.secondary) : 60))
+        },
+        // Carry the raw swr-preset/v1 for inspection / share-link fidelity
+        _import: p
+      };
+    }
+    function clamp01(v) { return Math.max(0, Math.min(1, +v || 0)); }
+    function deriveHueDelta(a, b) {
+      // Naive color-shift heuristic: just default to 60 if both hex parse
+      try { return 60; } catch (e) { return 60; }
+    }
+
+    async function fetchAndImportPresets() {
+      presetImportStatus = 'loading';
+      updatePresetSyncButton();
+      const candidates = PRESET_MANIFEST_URLS.slice();
+      for (const u of candidates) {
+        try {
+          const res = await fetch(u, { cache: 'no-cache' });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const list = (data && Array.isArray(data.presets)) ? data.presets
+                      : (Array.isArray(data) ? data : []);
+          if (!list.length) continue;
+          // Replace any previous imports (deduped by source id)
+          importedPresets = list.map(swrToInternalPreset).filter(Boolean);
+          presetImportStatus = 'ok';
+          updatePresetSyncButton();
+          renderPresetGrid();
+          renderMarketingPresets();
+          showToast(`Imported ${importedPresets.length} presets from cloud manifest.`);
+          return;
+        } catch (e) {
+          // try next URL
+        }
+      }
+      presetImportStatus = 'error';
+      updatePresetSyncButton();
+      showToast('Could not reach the preset manifest — using built-in presets only.');
+    }
+
+    function updatePresetSyncButton() {
+      const btn = document.getElementById('presetSyncBtn');
+      if (!btn) return;
+      const txt = btn.querySelector('.preset-sync__text');
+      if (!txt) return;
+      switch (presetImportStatus) {
+        case 'loading':
+          btn.classList.add('is-loading');
+          btn.classList.remove('is-ok', 'is-error');
+          txt.textContent = 'Syncing…';
+          break;
+        case 'ok':
+          btn.classList.remove('is-loading', 'is-error');
+          btn.classList.add('is-ok');
+          txt.textContent = `Synced ${importedPresets.length}`;
+          break;
+        case 'error':
+          btn.classList.remove('is-loading', 'is-ok');
+          btn.classList.add('is-error');
+          txt.textContent = 'Sync failed';
+          break;
+        default:
+          btn.classList.remove('is-loading', 'is-ok', 'is-error');
+          txt.textContent = 'Sync presets';
+      }
+    }
+
     const SLIDER_KEYS = Object.keys(state.sliders);
 
     /* ============================================================
@@ -2478,7 +2659,7 @@
         const raw = localStorage.getItem(LS_KEY);
         if (!raw) return;
         const saved = JSON.parse(raw);
-        if (saved.preset && PRESETS.find(p => p.id === saved.preset)) state.preset = saved.preset;
+        if (saved.preset && (PRESETS.concat(importedPresets)).find(p => p.id === saved.preset)) state.preset = saved.preset;
         if (saved.sliders) Object.assign(state.sliders, saved.sliders);
         if (saved.export) Object.assign(state.export, saved.export);
         if (saved.layers && saved.layers.length === state.layers.length) state.layers = saved.layers;
@@ -2500,7 +2681,7 @@
     }
 
     function applySnapshot(snap) {
-      if (snap.preset && PRESETS.find(p => p.id === snap.preset)) state.preset = snap.preset;
+      if (snap.preset && (PRESETS.concat(importedPresets)).find(p => p.id === snap.preset)) state.preset = snap.preset;
       if (snap.sliders) Object.assign(state.sliders, snap.sliders);
       if (snap.format) state.export.format = snap.format;
       if (snap.duration) state.export.duration = snap.duration;
@@ -2620,16 +2801,18 @@
 
     function renderPresetGrid() {
       presetGrid.innerHTML = '';
-      PRESETS.forEach((p) => {
+      const all = PRESETS.concat(importedPresets);
+      all.forEach((p) => {
         const btn = document.createElement('button');
         btn.className = 'preset-card' + (p.id === state.preset ? ' is-active' : '');
+        if (p._import) btn.classList.add('preset-card--imported');
         btn.setAttribute('role', 'radio');
         btn.setAttribute('aria-checked', p.id === state.preset ? 'true' : 'false');
         btn.setAttribute('data-preset', p.id);
-        btn.title = `Load ${p.name} preset`;
+        btn.title = p._import ? `Imported · ${p._import.description || p.name}` : `Load ${p.name} preset`;
         btn.innerHTML = `
           <div class="preset-card__art" style="background: ${presetArtData(p)};"></div>
-          <span class="preset-card__name">${p.name}</span>
+          <span class="preset-card__name">${p.name}${p._import ? ' <span style="color:var(--ultraviolet-soft);font-size:8px;">★</span>' : ''}</span>
         `;
         btn.addEventListener('click', () => selectPreset(p.id));
         presetGrid.appendChild(btn);
@@ -2638,16 +2821,18 @@
 
     function renderMarketingPresets() {
       marketingPresets.innerHTML = '';
-      PRESETS.forEach((p, i) => {
+      const all = PRESETS.concat(importedPresets);
+      all.forEach((p, i) => {
         const card = document.createElement('button');
         card.className = 'gallery-card';
+        if (p._import) card.classList.add('gallery-card--imported');
         card.setAttribute('data-preset', p.id);
-        const tags = p.tags.slice(0, 3).map(t => `<span class="gallery-card__tag">${t}</span>`).join('');
+        const tags = (p.tags || []).slice(0, 3).map(t => `<span class="gallery-card__tag">${t}</span>`).join('');
         card.innerHTML = `
           <div class="gallery-card__art" style="background: ${presetArtData(p)};"></div>
           <div class="gallery-card__veil"></div>
           <div class="gallery-card__meta">
-            <h3 class="gallery-card__title">${p.name}</h3>
+            <h3 class="gallery-card__title">${p.name}${p._import ? ' <span style="color:var(--ultraviolet-soft);font-size:14px;">★</span>' : ''}</h3>
             <div class="gallery-card__tags">${tags}</div>
             <span class="gallery-card__load">Load preset →</span>
           </div>
@@ -2661,15 +2846,29 @@
     }
 
     function selectPreset(id) {
-      if (!PRESETS.find(p => p.id === id)) return;
+      const all = PRESETS.concat(importedPresets);
+      if (!all.find(p => p.id === id)) return;
       state.preset = id;
       $$('.preset-card').forEach((el) => {
         const active = el.getAttribute('data-preset') === id;
         el.classList.toggle('is-active', active);
         el.setAttribute('aria-checked', active ? 'true' : 'false');
       });
+      // If this is an imported preset with slider defaults, apply them
+      const p = all.find(p => p.id === id);
+      if (p && p.defaults) {
+        Object.keys(p.defaults).forEach((k) => {
+          if (k in state.sliders && SLIDER_KEYS.indexOf(k) >= 0) {
+            state.sliders[k] = p.defaults[k];
+            const inp = document.querySelector(`input[data-slider="${k}"]`);
+            const out = document.querySelector(`[data-value="${k}"]`);
+            if (inp) inp.value = p.defaults[k];
+            if (out) out.textContent = p.defaults[k];
+          }
+        });
+      }
       saveState();
-      showToast(`Preset loaded — ${PRESETS.find(p => p.id === id).name}`);
+      showToast(`Preset loaded — ${p ? p.name : id}`);
     }
 
     /* ============================================================
@@ -3283,6 +3482,15 @@
       showToast('Track removed.');
     }
 
+    // Preset sync button
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('#presetSyncBtn');
+      if (btn) {
+        e.preventDefault();
+        fetchAndImportPresets();
+      }
+    });
+
     /* ============================================================
        BRANDING
        ============================================================ */
@@ -3367,7 +3575,8 @@
 
     function generateCaption() {
       const b = state.branding;
-      const presetName = (PRESETS.find(p => p.id === state.preset) || {}).name || 'Custom';
+      const all = (typeof PRESETS !== 'undefined' ? PRESETS : []).concat(importedPresets);
+      const presetName = (all.find(p => p.id === state.preset) || {}).name || 'Custom';
       const words = {
         open: [
           'New visualizer.', 'Out of the studio.', 'Just dropped.', 'Fresh cut.',
@@ -3458,6 +3667,7 @@
        ============================================================ */
     function renderShowcase() {
       showcaseGrid.innerHTML = '';
+      const all = PRESETS.concat(importedPresets);
       for (let i = 0; i < 6; i++) {
         const wrap = document.createElement('div');
         wrap.className = 'showcase-frame';
@@ -3465,8 +3675,8 @@
         c.className = 'showcase-frame__canvas';
         wrap.appendChild(c);
         showcaseGrid.appendChild(wrap);
-        const presetIdx = i % PRESETS.length;
-        startShowcaseLoop(c, PRESETS[presetIdx], i);
+        const presetIdx = i % all.length;
+        startShowcaseLoop(c, all[presetIdx], i);
       }
     }
 
@@ -3742,7 +3952,7 @@
     function loop() {
       const t = performance.now();
       const bands = getBands();
-      const preset = PRESETS.find(p => p.id === state.preset) || PRESETS[0];
+      const preset = (PRESETS.concat(importedPresets)).find(p => p.id === state.preset) || PRESETS[0];
       const params = applySliders(preset, bands);
 
       // Hero
@@ -4074,6 +4284,10 @@
       audioEl.volume = state.audio.volume;
       setPlayIcon(false);
       loop();
+      // Auto-sync presets from cloud manifest (non-blocking; surfaces
+      // new MORPHA / GENERATIVE presets in the sidebar with a violet
+      // ring so they're distinguishable from built-ins).
+      fetchAndImportPresets();
     }
 
     init();
