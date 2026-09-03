@@ -980,6 +980,150 @@
       transition: border-color 0.2s var(--ease);
     }
     .export-dur.is-active { border-color: var(--lime); color: var(--lime); }
+    .export-pick {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+    }
+    .export-pick__btn {
+      padding: 8px 4px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease);
+    }
+    .export-pick__btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .export-pick__btn.is-active {
+      border-color: var(--lime);
+      color: var(--lime);
+      background: rgba(215,255,61,0.06);
+    }
+    .export-pick[aria-label="Video codec"] .export-pick__btn,
+    .export-pick[aria-label="Frame rate"] .export-pick__btn {
+      font-size: 9px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Story timeline (5 fragments) */
+    .story-strip {
+      display: flex;
+      gap: 4px;
+      align-items: stretch;
+      padding: 4px;
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .story-frag {
+      flex: 1;
+      padding: 6px 4px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.2s var(--ease), background 0.2s var(--ease);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: center;
+    }
+    .story-frag:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .story-frag__num { color: var(--text-mute); font-size: 9px; }
+    .story-frag.is-active {
+      background: var(--ink-3);
+      color: var(--lime);
+      border-color: var(--lime);
+    }
+    .story-frag.is-active .story-frag__num { color: var(--lime); }
+    .story-strip__auto {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    .story-strip__auto .pill {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      color: var(--text-dim);
+      cursor: pointer;
+    }
+    .story-strip__auto .pill.is-on {
+      color: var(--lime);
+      border-color: var(--lime);
+    }
+
+    /* Layer reactor */
+    .layer-reactor {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--ink-2);
+    }
+    .layer-reactor__row {
+      display: grid;
+      grid-template-columns: 56px 56px 1fr 32px;
+      gap: 4px;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+    .layer-reactor__row select,
+    .layer-reactor__row input[type="range"] {
+      width: 100%;
+      padding: 4px 6px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--ink-3);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+    .layer-reactor__row input[type="range"] { padding: 0; height: 18px; }
+    .layer-reactor__scale {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-mute);
+      text-align: right;
+    }
+    .layer-reactor__power {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--text-dim);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .layer-reactor__power.is-on {
+      background: rgba(215,255,61,0.16);
+      color: var(--lime);
+      border-color: var(--lime);
+    }
     .btn-record {
       width: 100%;
       padding: 14px;
@@ -2680,13 +2824,27 @@
             </aside>
         </div>
 
-        <!-- Controls + Export below stage -->
-        <div class="engine__workspace reveal" style="margin-top: 24px; grid-template-columns: 1fr 320px;">
+        <!-- Story timeline + reactor per layer -->
+        <div class="engine__workspace reveal" style="margin-top: 16px; grid-template-columns: 1fr 320px;">
+          <div class="panel">
+            <div class="panel__title">Story Timeline <small>5 fragments · Shift+1..5</small></div>
+            <div class="story-strip" id="storyStrip" role="tablist" aria-label="Story fragments"></div>
+            <div class="story-strip__auto">
+              <span>Auto-cycle on beat</span>
+              <button class="pill" id="storyAutoBtn" type="button" aria-pressed="false">off</button>
+              <button class="pill" id="storyNextBtn" type="button" aria-label="Next fragment">Next →</button>
+              <button class="pill" id="storyResetBtn" type="button" aria-label="Reset to fragment 1">Reset</button>
+            </div>
+            <div class="panel__title" style="margin-top: 14px;">Per-Layer Reactor <small>audio feature → target</small></div>
+            <div id="layerReactors"></div>
+          </div>
+
           <div class="panel">
             <div class="panel__title">Reactive Controls <small>live · persisted</small></div>
             <div class="controls-grid" id="controlsGrid"></div>
           </div>
-
+        </div>
+        <div class="engine__workspace reveal" style="margin-top: 24px; grid-template-columns: 1fr 320px;">
           <div class="panel">
             <div class="panel__title">Export <small>record video</small></div>
             <div class="export-formats" id="exportFormats" role="radiogroup" aria-label="Output aspect ratio">
@@ -2707,9 +2865,29 @@
             <div class="panel__title" style="margin-top: 6px;">Duration</div>
             <div class="export-durations" id="exportDurations" role="radiogroup" aria-label="Recording duration">
               <button class="export-dur" data-sec="10" role="radio" aria-checked="false">10s</button>
-              <button class="export-dur is-active" data-sec="20" role="radio" aria-checked="true">20s</button>
+              <button class="export-dur" data-sec="15" role="radio" aria-checked="false">15s</button>
               <button class="export-dur" data-sec="30" role="radio" aria-checked="false">30s</button>
-              <button class="export-dur" data-sec="60" role="radio" aria-checked="false">60s</button>
+              <button class="export-dur is-active" data-sec="60" role="radio" aria-checked="true">60s</button>
+            </div>
+
+            <div class="panel__title" style="margin-top: 6px;">Codec</div>
+            <div class="export-pick" id="exportCodec" role="radiogroup" aria-label="Video codec">
+              <button class="export-pick__btn is-active" data-codec="mp4" role="radio" aria-checked="true">MP4 (H.264)</button>
+              <button class="export-pick__btn" data-codec="webm" role="radio" aria-checked="false">WebM (VP9)</button>
+            </div>
+
+            <div class="panel__title" style="margin-top: 6px;">Frame rate</div>
+            <div class="export-pick" id="exportFps" role="radiogroup" aria-label="Frame rate">
+              <button class="export-pick__btn" data-fps="24" role="radio" aria-checked="false">24 fps</button>
+              <button class="export-pick__btn is-active" data-fps="30" role="radio" aria-checked="true">30 fps</button>
+              <button class="export-pick__btn" data-fps="60" role="radio" aria-checked="false">60 fps</button>
+            </div>
+
+            <div class="panel__title" style="margin-top: 6px;">Bitrate</div>
+            <div class="export-pick" id="exportBitrate" role="radiogroup" aria-label="Bitrate">
+              <button class="export-pick__btn" data-bitrate="3" role="radio" aria-checked="false">3 Mbps</button>
+              <button class="export-pick__btn is-active" data-bitrate="6" role="radio" aria-checked="true">6 Mbps</button>
+              <button class="export-pick__btn" data-bitrate="12" role="radio" aria-checked="false">12 Mbps</button>
             </div>
 
             <button class="btn-record" id="btnRecord" aria-label="Record video">
@@ -3046,7 +3224,21 @@
         lastCaptionSeed: 0
       },
       audio: { loaded: false, playing: false, src: null, name: '', duration: 0, current: 0, volume: 0.8, mic: false },
-      export: { format: '9:16', duration: 20, recording: false },
+      export: { format: '9:16', duration: 60, recording: false, codec: 'mp4', fps: 30, bitrate: 6 },
+      story: {
+        current: 0,         // 0..4
+        autoCycle: false,
+        lastBeatIndex: -1
+      },
+      reactors: {
+        // Per-layer reactor: { feature, target, scale, enabled }
+        // Defaults: bass → opacity on background, mid → scale on overlay,
+        // treble → rotation on typography, beat → hue on effects.
+        background: { feature: 'bass',   target: 'opacity', scale: 0.5, enabled: true },
+        overlay:    { feature: 'mid',    target: 'scale',   scale: 0.4, enabled: true },
+        typography: { feature: 'treble', target: 'rot',     scale: 0.3, enabled: false },
+        effects:    { feature: 'beat',   target: 'hue',     scale: 0.6, enabled: true }
+      },
       audioBands: { bass: 0, mid: 0, treble: 0 }
     };
 
@@ -3065,6 +3257,17 @@
         colors: ['#ffd9b3', '#e6f7ff', '#1a1612'], grain: 0.95, grid: 0.2, smoke: 0, scan: 0.7, glitch: 0.04, mode: 'rays' },
       { id: 'cassette',      name: 'Cassette',      tags: ['Tape', 'Retro', 'Warm'],            blend: 'soft-light',
         colors: ['#ff8a55', '#ffd9b3', '#1a1612'], grain: 1.0, grid: 0, smoke: 0, scan: 0.5, glitch: 0.2, mode: 'rings' }
+    ];
+
+    // 5 story fragments — each applies a global visual modifier on top of
+    // the active preset. The render loop blends them in based on
+    // state.story.current (0..4) and the elapsed time within the fragment.
+    const FRAGMENTS = [
+      { id: 0, name: 'Fragments', modifier: 'rings',     desc: 'opening — soft pulse' },
+      { id: 1, name: 'Signal',    modifier: 'rings+scan', desc: 'build — scanlines' },
+      { id: 2, name: 'Pursuit',   modifier: 'liquid',    desc: 'rising — liquid' },
+      { id: 3, name: 'Fracture',  modifier: 'glitch',    desc: 'peak — glitch' },
+      { id: 4, name: 'Afterimage',modifier: 'smoke',     desc: 'release — fade' }
     ];
 
     // Imported presets from the live engine's /presets/manifest.json.
@@ -3344,6 +3547,15 @@
     const floatingEngineMinimize = $('#floatingEngineMinimize');
     const floatingEngineTitle = $('#floatingEngineTitle');
     const floatingEnginePreset = $('#floatingEnginePreset');
+
+    const storyStrip = $('#storyStrip');
+    const storyAutoBtn = $('#storyAutoBtn');
+    const storyNextBtn = $('#storyNextBtn');
+    const storyResetBtn = $('#storyResetBtn');
+    const layerReactors = $('#layerReactors');
+    const exportCodec = $('#exportCodec');
+    const exportFps = $('#exportFps');
+    const exportBitrate = $('#exportBitrate');
 
     const audioAddBtn = $('#audioAddBtn');
     const audioFileInput = $('#audioFileInput');
@@ -3674,8 +3886,14 @@
       applyFloatingEnginePosition();
     });
 
-    /* ----- ESC exits fullscreen / minimizes / restores ----- */
+    /* ----- ESC exits fullscreen / minimizes / restores, Shift+1..5 jumps fragments ----- */
     document.addEventListener('keydown', (e) => {
+      // Story fragment hotkeys: Shift+1..5
+      if (e.shiftKey && /^[1-5]$/.test(e.key)) {
+        e.preventDefault();
+        selectFragment(parseInt(e.key, 10) - 1);
+        return;
+      }
       if (e.key !== 'Escape') return;
       if (floatingEngineState.isFullscreen) toggleFullscreen();
       else if (floatingEngineState.isMinimized) toggleMinimize();
@@ -3917,6 +4135,135 @@
         controlsGrid.appendChild(el);
       });
     }
+
+    /* ============================================================
+       STORY TIMELINE — 5 fragments with shift+1..5 hotkeys
+       ============================================================ */
+    function renderStoryStrip() {
+      if (!storyStrip) return;
+      storyStrip.innerHTML = '';
+      FRAGMENTS.forEach((f, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'story-frag' + (i === state.story.current ? ' is-active' : '');
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', i === state.story.current ? 'true' : 'false');
+        btn.setAttribute('data-frag', i);
+        btn.title = f.desc;
+        btn.innerHTML = `<span class="story-frag__num">${i + 1}</span><span>${f.name}</span>`;
+        btn.addEventListener('click', () => selectFragment(i));
+        storyStrip.appendChild(btn);
+      });
+    }
+
+    function selectFragment(i) {
+      if (i < 0 || i >= FRAGMENTS.length) return;
+      state.story.current = i;
+      renderStoryStrip();
+      // Update the floating engine title to show the fragment name
+      if (floatingEngineTitle) {
+        const preset = (PRESETS.concat(importedPresets)).find(p => p.id === state.preset);
+        const presetName = preset ? preset.name : 'Custom';
+        floatingEngineTitle.textContent = `${presetName} · ${FRAGMENTS[i].name}`;
+      }
+      showToast(`Fragment ${i + 1}: ${FRAGMENTS[i].name} — ${FRAGMENTS[i].desc}`);
+    }
+
+    if (storyAutoBtn) {
+      storyAutoBtn.addEventListener('click', () => {
+        state.story.autoCycle = !state.story.autoCycle;
+        storyAutoBtn.classList.toggle('is-on', state.story.autoCycle);
+        storyAutoBtn.setAttribute('aria-pressed', state.story.autoCycle ? 'true' : 'false');
+        storyAutoBtn.textContent = state.story.autoCycle ? 'on' : 'off';
+        showToast(state.story.autoCycle
+          ? 'Auto-cycle on — fragment advances on each beat.'
+          : 'Auto-cycle off — click fragments manually.');
+      });
+    }
+    if (storyNextBtn) {
+      storyNextBtn.addEventListener('click', () => {
+        selectFragment((state.story.current + 1) % FRAGMENTS.length);
+      });
+    }
+    if (storyResetBtn) {
+      storyResetBtn.addEventListener('click', () => selectFragment(0));
+    }
+
+    /* ============================================================
+       LAYER REACTORS — per-layer audio feature → target mapping
+       ============================================================ */
+    const REACTOR_FEATURES = ['bass', 'mid', 'treble', 'beat'];
+    const REACTOR_TARGETS  = ['opacity', 'scale', 'rot', 'hue', 'brightness', 'contrast'];
+
+    function renderLayerReactors() {
+      if (!layerReactors) return;
+      layerReactors.innerHTML = '';
+      state.layers.forEach((layer) => {
+        const r = state.reactors[layer.id] || { feature: 'bass', target: 'opacity', scale: 0.5, enabled: false };
+        const el = document.createElement('div');
+        el.className = 'layer-reactor';
+        el.setAttribute('data-layer', layer.id);
+        const featOpts = REACTOR_FEATURES.map(f =>
+          `<option value="${f}" ${f === r.feature ? 'selected' : ''}>${f}</option>`).join('');
+        const tgtOpts = REACTOR_TARGETS.map(t =>
+          `<option value="${t}" ${t === r.target ? 'selected' : ''}>${t}</option>`).join('');
+        el.innerHTML = `
+          <div class="layer-reactor__row">
+            <select data-reactor-field="feature" aria-label="Reactor feature for ${layer.name}">${featOpts}</select>
+            <select data-reactor-field="target"  aria-label="Reactor target for ${layer.name}">${tgtOpts}</select>
+            <input type="range" data-reactor-field="scale" min="0" max="100" value="${Math.round(r.scale * 100)}" aria-label="Reactor scale for ${layer.name}" />
+            <button class="layer-reactor__power ${r.enabled ? 'is-on' : ''}" data-reactor-field="enabled" type="button" aria-pressed="${r.enabled}" aria-label="Toggle reactor for ${layer.name}">${r.enabled ? '●' : '○'}</button>
+          </div>
+          <div class="layer-reactor__row" style="grid-template-columns: 56px 56px 1fr 32px;">
+            <span>${layer.name}</span>
+            <span></span>
+            <span></span>
+            <span class="layer-reactor__scale" data-reactor-scale>${Math.round(r.scale * 100)}%</span>
+          </div>
+        `;
+        el.querySelector('[data-reactor-field="feature"]').addEventListener('change', (e) => {
+          state.reactors[layer.id].feature = e.target.value;
+          saveState();
+        });
+        el.querySelector('[data-reactor-field="target"]').addEventListener('change', (e) => {
+          state.reactors[layer.id].target = e.target.value;
+          saveState();
+        });
+        el.querySelector('[data-reactor-field="scale"]').addEventListener('input', (e) => {
+          const v = +e.target.value;
+          state.reactors[layer.id].scale = v / 100;
+          el.querySelector('[data-reactor-scale]').textContent = v + '%';
+          saveState();
+        });
+        el.querySelector('[data-reactor-field="enabled"]').addEventListener('click', () => {
+          state.reactors[layer.id].enabled = !state.reactors[layer.id].enabled;
+          renderLayerReactors();
+          saveState();
+        });
+        layerReactors.appendChild(el);
+      });
+    }
+
+    /* ============================================================
+       EXPORT PICKERS — codec / fps / bitrate
+       ============================================================ */
+    function bindExportPicker(rootEl, attr, key) {
+      if (!rootEl) return;
+      rootEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.export-pick__btn');
+        if (!btn) return;
+        const v = btn.getAttribute(attr);
+        state.export[key] = isNaN(+v) ? v : +v;
+        $$('#' + rootEl.id + ' .export-pick__btn').forEach(b => {
+          const active = b === btn;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-checked', active ? 'true' : 'false');
+        });
+        showToast(`Export: ${key} = ${v}`);
+      });
+    }
+    bindExportPicker(exportCodec, 'data-codec', 'codec');
+    bindExportPicker(exportFps, 'data-fps', 'fps');
+    bindExportPicker(exportBitrate, 'data-bitrate', 'bitrate');
 
     /* ============================================================
        TABS
@@ -5028,6 +5375,25 @@
       const preset = (PRESETS.concat(importedPresets)).find(p => p.id === state.preset) || PRESETS[0];
       const params = applySliders(preset, bands);
 
+      // Story timeline: auto-cycle on beat. We treat any bass > 0.7 as a beat
+      // (the legacy engine used a real beat detector, this is a good-enough proxy).
+      if (state.story.autoCycle && bands.bass > 0.7) {
+        const beatIndex = Math.floor(t / 250); // quantize to 250ms windows to avoid double-fires
+        if (beatIndex !== state.story.lastBeatIndex) {
+          state.story.lastBeatIndex = beatIndex;
+          selectFragment((state.story.current + 1) % FRAGMENTS.length);
+        }
+      }
+
+      // Apply the current story fragment as a global modifier on the draw params.
+      const frag = FRAGMENTS[state.story.current] || FRAGMENTS[0];
+      const fragParams = applyStoryFragment(frag, bands, t);
+      Object.assign(params, fragParams);
+
+      // Apply per-layer reactors — the feature value scales the target
+      // parameter live (e.g. bass→scale makes the visual grow on bass hits).
+      applyReactors(bands);
+
       // Hero
       if (heroRunning && heroCanvas) {
         const { w, h } = sizeCanvas(heroCanvas);
@@ -5053,6 +5419,65 @@
       }
 
       rafId = requestAnimationFrame(loop);
+    }
+
+    // Map a story fragment to a set of draw-time parameter overrides.
+    function applyStoryFragment(frag, bands, t) {
+      switch (frag.modifier) {
+        case 'rings':
+          // subtle: just bump intensity
+          return { intensity: 0.9 };
+        case 'rings+scan':
+          return { intensity: 1.05, scan: 0.3, glitch: 0.15 + bands.treble * 0.3 };
+        case 'liquid':
+          // liquid preset modifiers — increase scan, slow rotation
+          return { intensity: 1.1, scan: 0.4, speed: 0.6 };
+        case 'glitch':
+          return { intensity: 1.2, glitch: 0.6 + bands.bass * 0.4, colorShift: (t * 0.05) % 360 };
+        case 'smoke':
+          return { intensity: 0.7, grain: 0.8, glitch: 0 };
+        default:
+          return {};
+      }
+    }
+
+    // Apply reactors: walk each layer, read its reactor, scale the matching
+    // target by the audio feature * scale. We mutate state.layers' runtime
+    // values, not persisted ones — the persisted opacity stays the user's
+    // setting; the active draw value is `state.layers[i]._active`.
+    function applyReactors(bands) {
+      state.layers.forEach((layer) => {
+        const r = state.reactors[layer.id];
+        if (!r || !r.enabled) {
+          layer._activeOpacity = layer.opacity;
+          layer._activeScale    = 100;
+          layer._activeRot       = layer._rot || 0;
+          layer._activeHue       = 0;
+          return;
+        }
+        const featureVal = bands[r.feature] != null ? bands[r.feature] : bands.bass;
+        const delta = featureVal * r.scale;
+        switch (r.target) {
+          case 'opacity':
+            layer._activeOpacity = Math.max(0, Math.min(100, layer.opacity + delta * 100));
+            break;
+          case 'scale':
+            layer._activeScale = 100 + delta * 100;
+            break;
+          case 'rot':
+            layer._activeRot = (layer._rot || 0) + delta * 360;
+            break;
+          case 'hue':
+            layer._activeHue = delta * 360;
+            break;
+          case 'brightness':
+            layer._activeBrightness = delta;
+            break;
+          case 'contrast':
+            layer._activeContrast = delta;
+            break;
+        }
+      });
     }
 
     /* Showcase: per-element mini loop driven by index */
@@ -5364,6 +5789,8 @@
       renderShowcase();
       renderLibrary();
       renderAudioList();
+      renderStoryStrip();
+      renderLayerReactors();
       restoreBrandingInputs();
       refreshCaption();
       refreshShareLink();
