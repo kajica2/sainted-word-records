@@ -1263,6 +1263,366 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    /* ============================================================
+       TABS — Library / Branding / Social (engine sidebar)
+       ============================================================ */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+    .tab {
+      flex: 1;
+      padding: 8px 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: background 0.2s var(--ease), color 0.2s var(--ease);
+    }
+    .tab:hover { color: var(--text); }
+    .tab.is-active {
+      background: var(--ink-3);
+      color: var(--lime);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    .tabpanel { display: none; flex-direction: column; gap: 14px; }
+    .tabpanel.is-on { display: flex; }
+
+    /* Library */
+    .lib-toolbar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .lib-pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .lib-pill.is-on { color: var(--lime); border-color: var(--lime); }
+    .lib-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .lib-card {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .lib-card__art {
+      position: absolute;
+      inset: 0;
+    }
+    .lib-card__name {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 6px;
+      padding: 4px 6px;
+      border-radius: 5px;
+      background: var(--glass-strong);
+      backdrop-filter: blur(6px);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .lib-card__layer {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      padding: 3px 6px;
+      border-radius: 5px;
+      background: var(--glass-strong);
+      backdrop-filter: blur(6px);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--lime);
+    }
+    .lib-card__delete {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.7);
+      color: var(--text);
+      border: 1px solid var(--line);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .lib-card:hover .lib-card__delete { display: inline-flex; }
+    .lib-card__add {
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      border: 1px dashed var(--line);
+      background: transparent;
+      color: var(--text-mute);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      position: relative;
+    }
+    .lib-card__add:hover { color: var(--lime); border-color: var(--lime); }
+    .lib-card__add input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .lib-empty {
+      padding: 16px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      text-align: center;
+      color: var(--text-mute);
+      font-size: 12px;
+    }
+
+    /* Branding */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field__label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      display: flex;
+      justify-content: space-between;
+    }
+    .field__input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--sans);
+      outline: none;
+      transition: border-color 0.2s var(--ease);
+    }
+    .field__input:focus { border-color: var(--lime); }
+    .field__row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .color-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .swatch-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .swatch-row .field__input { flex: 1; }
+    .toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      cursor: pointer;
+    }
+    .toggle__name {
+      font-size: 12px;
+      color: var(--text);
+    }
+    .toggle__hint {
+      display: block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--text-mute);
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+    .toggle__switch {
+      width: 36px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--ink-3);
+      border: 1px solid var(--line);
+      position: relative;
+      transition: background 0.2s var(--ease);
+      flex-shrink: 0;
+    }
+    .toggle__switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+    }
+    .toggle.is-on .toggle__switch {
+      background: var(--lime);
+      border-color: var(--lime);
+    }
+    .toggle.is-on .toggle__switch::after {
+      transform: translateX(16px);
+      background: var(--black);
+    }
+
+    /* Social */
+    .social-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .social-tile {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      transition: border-color 0.2s var(--ease);
+      text-align: left;
+    }
+    .social-tile:hover { border-color: var(--lime); }
+    .social-tile__name {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--lime);
+    }
+    .social-tile__hint {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .caption-box {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .caption-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .caption-actions button {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--ink-3);
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .caption-actions button:hover { border-color: var(--lime); }
+    .share-link {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+    }
+    .share-link input {
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+    .share-link button {
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--lime);
+      background: var(--lime);
+      color: var(--black);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    /* Branding watermark on stage */
+    .stage__brand {
+      position: absolute;
+      pointer-events: none;
+      font-family: var(--display);
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      mix-blend-mode: difference;
+      bottom: 70px;
+      right: 24px;
+      opacity: 0;
+      transition: opacity 0.4s var(--ease);
+    }
+    .stage__brand.is-on { opacity: 1; }
+    .stage__brand--hashtag {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: none;
+      bottom: 56px;
+    }
+
     /* Mobile engine layout adjustments */
     @media (max-width: 720px) {
       .stage__overlay { padding: 12px; }
@@ -1395,6 +1755,9 @@
               </div>
 
               <div class="rec-overlay" id="recOverlay" aria-hidden="true"></div>
+
+              <div class="stage__brand" id="stageBrand" aria-hidden="true"></div>
+              <div class="stage__brand stage__brand--hashtag" id="stageHashtag" aria-hidden="true"></div>
             </div>
 
             <div class="transport">
@@ -1418,16 +1781,153 @@
             </div>
           </div>
 
-          <!-- Side: Presets + Controls -->
+          <!-- Side: Tabbed panel (Presets / Layer / Library / Branding / Social) -->
           <aside class="engine__sidebar">
-              <div class="panel">
-                <div class="panel__title">Visual Presets <small>click to load</small></div>
-                <div class="presets" id="presetGrid" role="radiogroup" aria-label="Visual presets"></div>
+              <div class="tabs" id="engineTabs" role="tablist" aria-label="Engine sidebar">
+                <button class="tab is-active" data-tab="presets" role="tab" aria-selected="true">Presets</button>
+                <button class="tab" data-tab="layers" role="tab" aria-selected="false">Layers</button>
+                <button class="tab" data-tab="library" role="tab" aria-selected="false">Library</button>
+                <button class="tab" data-tab="brand" role="tab" aria-selected="false">Brand</button>
+                <button class="tab" data-tab="social" role="tab" aria-selected="false">Social</button>
               </div>
 
-              <div class="panel">
-                <div class="panel__title">Layer Stack <small>drag to reorder</small></div>
-                <div id="layerStack"></div>
+              <!-- Presets tab -->
+              <div class="tabpanel is-on" data-panel="presets" role="tabpanel">
+                <div class="panel" style="margin:0;">
+                  <div class="panel__title">Visual Presets <small>click to load</small></div>
+                  <div class="presets" id="presetGrid" role="radiogroup" aria-label="Visual presets"></div>
+                </div>
+              </div>
+
+              <!-- Layers tab -->
+              <div class="tabpanel" data-panel="layers" role="tabpanel">
+                <div class="panel" style="margin:0;">
+                  <div class="panel__title">Layer Stack <small>click ↑ to reorder</small></div>
+                  <div id="layerStack"></div>
+                </div>
+              </div>
+
+              <!-- Library tab -->
+              <div class="tabpanel" data-panel="library" role="tabpanel">
+                <div class="panel" style="margin:0;">
+                  <div class="panel__title">Media Library <small id="libCount">0 assets</small></div>
+                  <div class="lib-toolbar" id="libFilter" role="toolbar" aria-label="Filter library by layer">
+                    <button class="lib-pill is-on" data-filter="all">All</button>
+                    <button class="lib-pill" data-filter="background">Background</button>
+                    <button class="lib-pill" data-filter="overlay">Overlay</button>
+                    <button class="lib-pill" data-filter="typography">Type</button>
+                    <button class="lib-pill" data-filter="effects">Effects</button>
+                  </div>
+                  <div class="lib-grid" id="libGrid"></div>
+                  <div class="field" style="margin-top: 4px;">
+                    <label class="field__label" for="libNameInput">Add asset by URL <small>(image or GIF)</small></label>
+                    <div class="share-link" style="grid-template-columns: 1fr auto;">
+                      <input type="text" class="field__input" id="libUrlInput" placeholder="https://example.com/photo.jpg" />
+                      <button id="libUrlAdd">Add</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="libLayerAssign">Assign new uploads to</label>
+                    <select id="libLayerAssign" class="field__input" style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;">
+                      <option value="background">Background</option>
+                      <option value="overlay">Overlay</option>
+                      <option value="typography">Typography</option>
+                      <option value="effects">Effects</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Branding tab -->
+              <div class="tabpanel" data-panel="brand" role="tabpanel">
+                <div class="panel" style="margin:0;">
+                  <div class="panel__title">Branding <small>appears on stage + export</small></div>
+
+                  <div class="field">
+                    <label class="field__label" for="brandName">Wordmark</label>
+                    <input type="text" class="field__input" id="brandName" placeholder="Your label or artist name" />
+                  </div>
+
+                  <div class="field">
+                    <label class="field__label" for="brandTag">Tagline / hashtag</label>
+                    <input type="text" class="field__input" id="brandTag" placeholder="#newrelease · spring 2026" />
+                  </div>
+
+                  <div class="field">
+                    <label class="field__label">Accent color <small id="brandAccentHint">overrides lime</small></label>
+                    <div class="swatch-row">
+                      <span class="color-swatch" id="brandSwatch" aria-hidden="true"></span>
+                      <input type="text" class="field__input" id="brandAccent" placeholder="#d7ff3d" />
+                    </div>
+                  </div>
+
+                  <div class="toggle" id="brandWatermark" role="switch" aria-checked="true" tabindex="0">
+                    <span>
+                      <span class="toggle__name">Show wordmark on stage</span>
+                      <span class="toggle__hint">Burn-in for export</span>
+                    </span>
+                    <span class="toggle__switch" aria-hidden="true"></span>
+                  </div>
+
+                  <div class="toggle" id="brandHashtag" role="switch" aria-checked="false" tabindex="0">
+                    <span>
+                      <span class="toggle__name">Show hashtag overlay</span>
+                      <span class="toggle__hint">Lower-right corner</span>
+                    </span>
+                    <span class="toggle__switch" aria-hidden="true"></span>
+                  </div>
+
+                  <div class="field">
+                    <label class="field__label" for="brandHandle">Social handle <small>@yourname</small></label>
+                    <input type="text" class="field__input" id="brandHandle" placeholder="@saintedwordrecords" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Social tab -->
+              <div class="tabpanel" data-panel="social" role="tabpanel">
+                <div class="panel" style="margin:0;">
+                  <div class="panel__title">Share & Publish <small>auto-generated</small></div>
+
+                  <div class="field">
+                    <label class="field__label">Shareable link <small>encodes current preset + state</small></label>
+                    <div class="share-link">
+                      <input type="text" class="field__input" id="shareLink" readonly />
+                      <button id="shareCopy">Copy</button>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="field__label">Caption</label>
+                    <div class="caption-box" id="captionBox" aria-live="polite"></div>
+                    <div class="caption-actions">
+                      <button id="captionCopy">Copy Caption</button>
+                      <button id="captionRefresh">Regenerate</button>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="field__label">Publish to</label>
+                    <div class="social-grid">
+                      <button class="social-tile" data-platform="instagram">
+                        <span class="social-tile__name">Instagram</span>
+                        <span class="social-tile__hint">Reels · Posts · Stories</span>
+                      </button>
+                      <button class="social-tile" data-platform="tiktok">
+                        <span class="social-tile__name">TikTok</span>
+                        <span class="social-tile__hint">9:16 vertical · 60s</span>
+                      </button>
+                      <button class="social-tile" data-platform="youtube">
+                        <span class="social-tile__name">YouTube</span>
+                        <span class="social-tile__hint">Shorts · 9:16</span>
+                      </button>
+                      <button class="social-tile" data-platform="x">
+                        <span class="social-tile__name">X / Twitter</span>
+                        <span class="social-tile__hint">Video posts · 1:1</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </aside>
         </div>
@@ -1704,6 +2204,23 @@
         { id: 'typography', name: 'Typography',    sub: 'reactive type',   visible: true, blend: 'difference', opacity: 80 },
         { id: 'effects',    name: 'Effects',       sub: 'glitch + bloom',  visible: true, blend: 'lighten', opacity: 70 }
       ],
+      library: {
+        // Each asset: { id, name, src, layer ('background'|'overlay'|'typography'|'effects'), kind ('image'|'gradient'|'solid'), added }
+        items: [],
+        filter: 'all',
+        assignLayer: 'background'
+      },
+      branding: {
+        wordmark: '',
+        tagline: '',
+        handle: '',
+        accent: '',         // hex string, empty = keep default lime
+        showWatermark: true,
+        showHashtag: false
+      },
+      social: {
+        lastCaptionSeed: 0
+      },
       audio: { loaded: false, playing: false, src: null, name: '', duration: 0, current: 0, volume: 0.8, mic: false },
       export: { format: '9:16', duration: 20, recording: false },
       audioBands: { bass: 0, mid: 0, treble: 0 }
@@ -1734,6 +2251,15 @@
     const LS_KEY = 'swr_app_state_v1';
     function loadState() {
       try {
+        // 1. Hash snapshot wins (deep-link share)
+        const hashMatch = location.hash.match(/^#s=(.+)$/);
+        if (hashMatch) {
+          const decoded = decodeURIComponent(escape(atob(hashMatch[1])));
+          const snap = JSON.parse(decoded);
+          applySnapshot(snap);
+          return;
+        }
+        // 2. Fall back to localStorage
         const raw = localStorage.getItem(LS_KEY);
         if (!raw) return;
         const saved = JSON.parse(raw);
@@ -1741,7 +2267,23 @@
         if (saved.sliders) Object.assign(state.sliders, saved.sliders);
         if (saved.export) Object.assign(state.export, saved.export);
         if (saved.layers && saved.layers.length === state.layers.length) state.layers = saved.layers;
+        if (saved.library && Array.isArray(saved.library.items)) {
+          state.library.items = saved.library.items;
+          if (saved.library.filter) state.library.filter = saved.library.filter;
+          if (saved.library.assignLayer) state.library.assignLayer = saved.library.assignLayer;
+        }
+        if (saved.branding) Object.assign(state.branding, saved.branding);
       } catch (e) { /* ignore corrupt */ }
+    }
+
+    function applySnapshot(snap) {
+      if (snap.preset && PRESETS.find(p => p.id === snap.preset)) state.preset = snap.preset;
+      if (snap.sliders) Object.assign(state.sliders, snap.sliders);
+      if (snap.format) state.export.format = snap.format;
+      if (snap.duration) state.export.duration = snap.duration;
+      if (Array.isArray(snap.layers) && snap.layers.length === state.layers.length) state.layers = snap.layers;
+      if (snap.branding) Object.assign(state.branding, snap.branding);
+      saveState();
     }
     function saveState() {
       try {
@@ -1749,7 +2291,13 @@
           preset: state.preset,
           sliders: state.sliders,
           export: state.export,
-          layers: state.layers
+          layers: state.layers,
+          library: {
+            items: state.library.items,
+            filter: state.library.filter,
+            assignLayer: state.library.assignLayer
+          },
+          branding: state.branding
         }));
       } catch (e) { /* quota */ }
     }
@@ -1796,6 +2344,30 @@
 
     const navToggle = $('#navToggle');
     const navLinks = $('#navLinks');
+
+    const engineTabs = $('#engineTabs');
+    const libGrid = $('#libGrid');
+    const libFilter = $('#libFilter');
+    const libCount = $('#libCount');
+    const libUrlInput = $('#libUrlInput');
+    const libUrlAdd = $('#libUrlAdd');
+    const libLayerAssign = $('#libLayerAssign');
+
+    const brandName = $('#brandName');
+    const brandTag = $('#brandTag');
+    const brandHandle = $('#brandHandle');
+    const brandAccent = $('#brandAccent');
+    const brandSwatch = $('#brandSwatch');
+    const brandWatermark = $('#brandWatermark');
+    const brandHashtag = $('#brandHashtag');
+    const stageBrand = $('#stageBrand');
+    const stageHashtag = $('#stageHashtag');
+
+    const shareLink = $('#shareLink');
+    const shareCopy = $('#shareCopy');
+    const captionBox = $('#captionBox');
+    const captionCopy = $('#captionCopy');
+    const captionRefresh = $('#captionRefresh');
 
     /* ============================================================
        PRESETS UI
@@ -1924,6 +2496,358 @@
         });
         controlsGrid.appendChild(el);
       });
+    }
+
+    /* ============================================================
+       TABS
+       ============================================================ */
+    function switchTab(name) {
+      $$('#engineTabs .tab').forEach((t) => {
+        const active = t.getAttribute('data-tab') === name;
+        t.classList.toggle('is-active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      $$('.tabpanel').forEach((p) => {
+        p.classList.toggle('is-on', p.getAttribute('data-panel') === name);
+      });
+      if (name === 'social') refreshShareLink();
+      if (name === 'brand') refreshStageBrand();
+    }
+    engineTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab');
+      if (btn) switchTab(btn.getAttribute('data-tab'));
+    });
+    engineTabs.addEventListener('keydown', (e) => {
+      const tabs = $$('#engineTabs .tab');
+      const idx = tabs.findIndex(t => t === document.activeElement);
+      if (e.key === 'ArrowRight' && idx >= 0) { e.preventDefault(); tabs[(idx + 1) % tabs.length].focus(); }
+      if (e.key === 'ArrowLeft' && idx >= 0)  { e.preventDefault(); tabs[(idx - 1 + tabs.length) % tabs.length].focus(); }
+    });
+
+    /* ============================================================
+       LIBRARY
+       ============================================================ */
+    const SEED_LIBRARY = [
+      // Seed a small set so the tab feels alive on first visit
+      { name: 'Grid Noise',     layer: 'background', kind: 'gradient', src: 'linear-gradient(135deg, #17171c 0%, #2e2e38 100%)' },
+      { name: 'Ember Glow',     layer: 'overlay',    kind: 'gradient', src: 'radial-gradient(circle, #ff5a1f 0%, transparent 70%)' },
+      { name: 'Volcanic Bloom', layer: 'overlay',    kind: 'gradient', src: 'radial-gradient(circle, #d7ff3d 0%, transparent 65%)' },
+      { name: 'UV Mist',        layer: 'effects',    kind: 'gradient', src: 'radial-gradient(circle, #8a4cff 0%, transparent 70%)' },
+      { name: 'Type Beat',      layer: 'typography', kind: 'gradient', src: 'linear-gradient(180deg, #e6f7ff 0%, transparent 100%)' },
+      { name: 'Tape Hiss',      layer: 'overlay',    kind: 'gradient', src: 'repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.04) 3px 4px)' }
+    ];
+
+    function seedLibraryIfEmpty() {
+      if (state.library.items.length > 0) return;
+      const now = Date.now();
+      state.library.items = SEED_LIBRARY.map((s, i) => ({
+        id: 'seed-' + i,
+        name: s.name,
+        layer: s.layer,
+        kind: s.kind,
+        src: s.src,
+        added: now - (SEED_LIBRARY.length - i) * 1000
+      }));
+      saveState();
+    }
+
+    function renderLibrary() {
+      libGrid.innerHTML = '';
+      const filtered = state.library.filter === 'all'
+        ? state.library.items
+        : state.library.items.filter(a => a.layer === state.library.filter);
+
+      if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'lib-empty';
+        empty.style.gridColumn = '1 / -1';
+        empty.textContent = 'No assets in this layer. Drop a file or paste a URL.';
+        libGrid.appendChild(empty);
+      } else {
+        filtered.forEach((a) => {
+          const card = document.createElement('div');
+          card.className = 'lib-card';
+          card.setAttribute('role', 'button');
+          card.setAttribute('aria-label', `${a.name}, ${a.layer} layer`);
+          card.innerHTML = `
+            <div class="lib-card__art" style="background: ${a.src};"></div>
+            <span class="lib-card__layer">${a.layer}</span>
+            <button class="lib-card__delete" data-action="delete" aria-label="Delete ${a.name}">×</button>
+            <span class="lib-card__name">${a.name}</span>
+          `;
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('[data-action="delete"]')) return;
+            applyAssetToLayer(a);
+          });
+          card.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeLibraryAsset(a.id);
+          });
+          libGrid.appendChild(card);
+        });
+      }
+
+      // Add-asset tile
+      const add = document.createElement('label');
+      add.className = 'lib-card__add';
+      add.innerHTML = `
+        <span style="font-size: 22px; line-height: 1;">+</span>
+        <span>Upload</span>
+        <input type="file" accept="image/*" data-action="upload" multiple />
+      `;
+      add.querySelector('[data-action="upload"]').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(handleLibraryFile);
+        e.target.value = '';
+      });
+      libGrid.appendChild(add);
+
+      libCount.textContent = state.library.items.length + (state.library.items.length === 1 ? ' asset' : ' assets');
+    }
+
+    function applyAssetToLayer(asset) {
+      // Reflect selection in layer visibility (toggle the asset's layer on)
+      const layer = state.layers.find(l => l.id === asset.layer);
+      if (layer) layer.visible = true;
+      saveState();
+      renderLayerStack();
+      showToast(`Applied "${asset.name}" to ${asset.layer}`);
+    }
+
+    function handleLibraryFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const item = {
+          id: 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+          name: file.name.replace(/\.[^.]+$/, ''),
+          layer: state.library.assignLayer || 'background',
+          kind: 'image',
+          src: ev.target.result,
+          added: Date.now()
+        };
+        state.library.items.unshift(item);
+        saveState();
+        renderLibrary();
+        showToast(`Added "${item.name}" to ${item.layer}`);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function addLibraryFromUrl(url) {
+      if (!url) return;
+      // Heuristic: it's an image
+      const item = {
+        id: 'url-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+        name: url.split('/').pop().split('?')[0].replace(/\.[^.]+$/, '').slice(0, 24) || 'asset',
+        layer: state.library.assignLayer || 'background',
+        kind: 'image',
+        src: url,
+        added: Date.now()
+      };
+      state.library.items.unshift(item);
+      saveState();
+      renderLibrary();
+      showToast(`Added "${item.name}" to ${item.layer}`);
+    }
+
+    function removeLibraryAsset(id) {
+      state.library.items = state.library.items.filter(a => a.id !== id);
+      saveState();
+      renderLibrary();
+      showToast('Asset removed.');
+    }
+
+    libFilter.addEventListener('click', (e) => {
+      const pill = e.target.closest('.lib-pill');
+      if (!pill) return;
+      state.library.filter = pill.getAttribute('data-filter');
+      $$('#libFilter .lib-pill').forEach(p => p.classList.toggle('is-on', p === pill));
+      saveState();
+      renderLibrary();
+    });
+    libLayerAssign.addEventListener('change', (e) => {
+      state.library.assignLayer = e.target.value;
+      saveState();
+    });
+    libUrlAdd.addEventListener('click', () => {
+      const v = libUrlInput.value.trim();
+      if (!v) { showToast('Paste an image URL first.'); return; }
+      addLibraryFromUrl(v);
+      libUrlInput.value = '';
+    });
+    libUrlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); libUrlAdd.click(); }
+    });
+
+    /* ============================================================
+       BRANDING
+       ============================================================ */
+    function refreshStageBrand() {
+      const b = state.branding;
+      if (b.showWatermark && b.wordmark) {
+        stageBrand.textContent = b.wordmark;
+        stageBrand.classList.add('is-on');
+      } else {
+        stageBrand.classList.remove('is-on');
+      }
+      if (b.showHashtag && (b.tagline || b.handle)) {
+        stageHashtag.textContent = [b.tagline, b.handle].filter(Boolean).join('  ·  ');
+        stageHashtag.classList.add('is-on');
+      } else {
+        stageHashtag.classList.remove('is-on');
+      }
+    }
+
+    function refreshAccent() {
+      const accent = state.branding.accent;
+      if (accent && /^#[0-9a-fA-F]{3,8}$/.test(accent)) {
+        document.documentElement.style.setProperty('--lime', accent);
+        document.documentElement.style.setProperty('--lime-soft', accent);
+        brandSwatch.style.background = accent;
+      } else {
+        document.documentElement.style.removeProperty('--lime');
+        document.documentElement.style.removeProperty('--lime-soft');
+        brandSwatch.style.background = 'var(--lime)';
+      }
+    }
+
+    brandName.addEventListener('input', (e) => { state.branding.wordmark = e.target.value; saveState(); refreshStageBrand(); });
+    brandTag.addEventListener('input',  (e) => { state.branding.tagline  = e.target.value; saveState(); refreshStageBrand(); });
+    brandHandle.addEventListener('input', (e) => { state.branding.handle  = e.target.value; saveState(); refreshStageBrand(); });
+    brandAccent.addEventListener('input', (e) => {
+      state.branding.accent = e.target.value.trim();
+      refreshAccent();
+      saveState();
+    });
+
+    function bindToggle(el, key, onChange) {
+      const update = () => {
+        const on = state.branding[key];
+        el.classList.toggle('is-on', on);
+        el.setAttribute('aria-checked', on ? 'true' : 'false');
+        onChange && onChange(on);
+      };
+      el.addEventListener('click', () => {
+        state.branding[key] = !state.branding[key];
+        saveState();
+        update();
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); el.click(); }
+      });
+      update();
+    }
+    bindToggle(brandWatermark, 'showWatermark', refreshStageBrand);
+    bindToggle(brandHashtag, 'showHashtag', refreshStageBrand);
+
+    /* ============================================================
+       SOCIAL — share link + caption
+       ============================================================ */
+    function buildShareLink() {
+      const snapshot = {
+        preset: state.preset,
+        sliders: state.sliders,
+        format: state.export.format,
+        duration: state.export.duration,
+        layers: state.layers,
+        branding: state.branding
+      };
+      const enc = btoa(unescape(encodeURIComponent(JSON.stringify(snapshot))));
+      const base = location.origin + location.pathname;
+      return base + '#s=' + enc;
+    }
+
+    function refreshShareLink() {
+      shareLink.value = buildShareLink();
+    }
+
+    function generateCaption() {
+      const b = state.branding;
+      const presetName = (PRESETS.find(p => p.id === state.preset) || {}).name || 'Custom';
+      const words = {
+        open: [
+          'New visualizer.', 'Out of the studio.', 'Just dropped.', 'Fresh cut.',
+          'A new piece.', 'New from the lab.', 'Made in the dark.'
+        ],
+        middle: [
+          'Audio-reactive · 4K-ready · single-file.',
+          'Reactive engine, zero plugins.',
+          'Drawn live by the audio.',
+          'Every frame reacts to the mix.',
+          'Procedural · real-time · your-track-driven.'
+        ],
+        close: [
+          'Made with @saintedwordrecords.',
+          'Build it yourself → sainted-word-records.',
+          'Record, share, repeat.',
+          'Full studio in your browser tab.'
+        ],
+        moods: {
+          neon:          ['electric', 'after-hours', 'warehouse-ready'],
+          film:          ['cinematic', 'editorial', 'warm-toned'],
+          grid:          ['geometric', 'minimal', 'techno-clean'],
+          smoke:         ['ambient', 'drone-soft', 'late-night'],
+          hallucination: ['liquid', 'psych', 'experimental'],
+          broadcast:     ['lo-fi', 'vintage', 'tape-aged'],
+          cassette:      ['tape', 'retro', 'warm']
+        }
+      };
+      state.social.lastCaptionSeed = (state.social.lastCaptionSeed + 1) % 1000;
+      const seed = state.social.lastCaptionSeed;
+      const pick = (arr) => arr[(seed + arr.length) % arr.length];
+      const open = pick(words.open);
+      const mid  = pick(words.middle);
+      const close = pick(words.close);
+      const mood = pick(words.moods[state.preset] || ['custom']);
+      const wm = b.wordmark ? b.wordmark + ' · ' : '';
+      const tag = b.tagline ? '\n' + b.tagline : '';
+      const handle = b.handle ? '\n' + b.handle : '';
+      return `${open} ${wm}${presetName} preset · ${mood}.\n${mid}${tag}${handle}\n\n${close}`;
+    }
+
+    function refreshCaption() {
+      captionBox.textContent = generateCaption();
+    }
+
+    shareCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(shareLink.value).then(
+        () => showToast('Share link copied.'),
+        () => showToast('Copy failed — select the field and ⌘C.')
+      );
+    });
+    captionCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(captionBox.textContent).then(
+        () => showToast('Caption copied.'),
+        () => showToast('Copy failed.')
+      );
+    });
+    captionRefresh.addEventListener('click', refreshCaption);
+
+    // Publish-to-platform tiles: in a real build these wire to OAuth flows.
+    // Here they copy a platform-shaped hint to clipboard.
+    document.addEventListener('click', (e) => {
+      const tile = e.target.closest('.social-tile');
+      if (!tile) return;
+      const platform = tile.getAttribute('data-platform');
+      const formatMap = { instagram: '9:16', tiktok: '9:16', youtube: '9:16', x: '1:1' };
+      const fmt = formatMap[platform] || state.export.format;
+      const note = `Export as ${fmt} → upload to ${platform}.\n\nCaption:\n${captionBox.textContent}`;
+      navigator.clipboard.writeText(note).then(
+        () => showToast(`${platform}: ${fmt} hint copied.`),
+        () => showToast('Copy failed.')
+      );
+    });
+
+    // Restore branding inputs from state
+    function restoreBrandingInputs() {
+      brandName.value = state.branding.wordmark || '';
+      brandTag.value = state.branding.tagline || '';
+      brandHandle.value = state.branding.handle || '';
+      brandAccent.value = state.branding.accent || '';
+      libLayerAssign.value = state.library.assignLayer || 'background';
+      refreshAccent();
+      refreshStageBrand();
     }
 
     /* ============================================================
@@ -2521,14 +3445,27 @@
        ============================================================ */
     function init() {
       loadState();
+      // If we restored from a hash, clear it so the URL stays clean
+      if (location.hash.startsWith('#s=')) {
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      }
       renderPresetGrid();
       renderMarketingPresets();
       renderLayerStack();
       renderControls();
       renderShowcase();
+      seedLibraryIfEmpty();
+      renderLibrary();
+      restoreBrandingInputs();
+      refreshCaption();
+      refreshShareLink();
       // restore export
       setFormat(state.export.format);
       setDuration(state.export.duration);
+      // restore lib filter pill state
+      $$('#libFilter .lib-pill').forEach(p => {
+        p.classList.toggle('is-on', p.getAttribute('data-filter') === state.library.filter);
+      });
       // restore volume
       volumeInput.value = state.audio.volume * 100;
       audioEl.volume = state.audio.volume;
