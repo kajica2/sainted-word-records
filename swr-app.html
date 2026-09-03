@@ -67,6 +67,7 @@
     }
 
     html, body {
+      height: 100%;
       margin: 0;
       padding: 0;
       background: var(--black);
@@ -77,9 +78,40 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
-      scroll-behavior: smooth;
-      overflow-x: hidden;
+      overflow: hidden;  /* app-shell prevents page-level scroll */
     }
+
+    /* App shell: viewport-locked, flex column.
+       Header (the sticky nav) is one child; the rest is a scrollable
+       flex region. Children with .app-shell__scroll handle their own
+       vertical overflow; everything else fits within 100vh. */
+    .app-shell {
+      width: 100vw;
+      max-width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100vh;
+      max-height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .app-shell__main {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .app-shell__scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    .app-shell__scroll > section:last-child { padding-bottom: 96px; }
 
     /* Persistent procedural grain overlay */
     body::before {
@@ -1310,6 +1342,87 @@
     }
 
     /* ============================================================
+       VIEWS — Engine (default) and Browse (marketing sections)
+       ============================================================ */
+    .view {
+      display: none;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+    }
+    .view.is-on { display: flex; }
+
+    /* The Engine view fills the viewport: the workspace sections
+       inside are flex children that share the available space. */
+    .view--engine > section {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding-top: 24px;
+      padding-bottom: 24px;
+    }
+    .view--engine > section > .wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    /* Hide the marketing-hero when in Engine view (workspace fills it) */
+    .view--engine .hero { display: none; }
+
+    /* The Browse view is one scrollable column. The marketing sections
+       inside keep their original spacing; only the container scrolls. */
+    .view--browse > .app-shell__scroll > section {
+      padding-top: 96px;
+      padding-bottom: 96px;
+    }
+    .view--browse > .app-shell__scroll > section:first-child {
+      padding-top: 64px;
+    }
+
+    /* The View toggle pill in the nav */
+    .nav__view-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease);
+    }
+    .nav__view-toggle:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .nav__view-toggle__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--lime);
+      transition: background 0.2s var(--ease);
+    }
+    .nav__view-toggle[aria-pressed="false"] .nav__view-toggle__dot { background: var(--ultraviolet-soft); }
+    .nav__view-toggle[aria-pressed="false"] {
+      color: var(--ultraviolet-soft);
+      border-color: rgba(138,76,255,0.4);
+    }
+
+    @media (max-width: 920px) {
+      /* On mobile, hide the view toggle label, keep just the dot.
+         The Browse view becomes a full-screen overlay; clicking the
+         nav links does deep-link to anchors inside it. */
+      .nav__view-toggle__text { display: none; }
+      .nav__view-toggle { padding: 8px 10px; }
+    }
+
+    /* ============================================================
        TABS — Library / Branding / Social (engine sidebar)
        ============================================================ */
     .tabs {
@@ -1481,6 +1594,31 @@
       color: var(--text-mute);
       font-size: 12px;
     }
+    .lib-grid.is-drag-over {
+      outline: 2px dashed var(--lime);
+      outline-offset: 6px;
+      border-radius: 10px;
+      background: rgba(215,255,61,0.04);
+      transition: background 0.15s var(--ease);
+    }
+    .lib-grid.is-drag-over::after {
+      content: 'Drop image or video files';
+      position: absolute;
+      inset: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--lime);
+      pointer-events: none;
+      background: rgba(10,10,12,0.65);
+      backdrop-filter: blur(2px);
+      border-radius: 8px;
+    }
+    .lib-grid { position: relative; }
     .lib-source {
       display: flex;
       gap: 8px;
@@ -1861,6 +1999,15 @@
 </head>
 <body>
 
+  <!--
+    App shell: viewport-locked, flex column.
+    Header = sticky nav (flex-shrink: 0).
+    .app-shell__main = the rest of the screen.
+    Inside, either an Engine view (the workspace fills the viewport) or
+    a Browse view (marketing sections become a single scrollable panel).
+  -->
+  <div class="app-shell">
+
   <!-- ============================================================
        NAVIGATION
        ============================================================ -->
@@ -1876,6 +2023,10 @@
         <a href="#how" class="nav__link">How It Works</a>
         <a href="#showcase" class="nav__link">Gallery</a>
         <a href="#pricing" class="nav__link">Pricing</a>
+        <button class="nav__view-toggle" id="navViewToggle" type="button" aria-pressed="true" title="Switch between the engine workspace and the marketing site">
+          <span class="nav__view-toggle__dot" aria-hidden="true"></span>
+          <span class="nav__view-toggle__text">Engine</span>
+        </button>
         <a href="#engine" class="cta nav__cta-desktop" data-cta="launch">
           Launch Engine
           <span class="cta__arrow" aria-hidden="true">→</span>
@@ -1887,7 +2038,12 @@
     </div>
   </header>
 
-  <main id="top">
+  <main id="top" class="app-shell__main">
+
+    <!-- ============================================================
+         ENGINE VIEW — the workspace fills the viewport.
+         ============================================================ -->
+    <div class="view view--engine is-on" data-view="engine">
 
     <!-- ============================================================
          HERO
@@ -2231,6 +2387,13 @@
         </div>
       </div>
     </section>
+    </div><!-- /.view--engine -->
+
+    <!-- ============================================================
+         BROWSE VIEW — marketing site, scrollable inside the app shell.
+         ============================================================ -->
+    <div class="view view--browse" data-view="browse">
+    <div class="app-shell__scroll">
 
     <!-- ============================================================
          PRESET GALLERY (marketing)
@@ -2382,6 +2545,8 @@
         </div>
       </div>
     </section>
+  </div><!-- /.app-shell__scroll -->
+  </div><!-- /.view--browse -->
   </main>
 
   <!-- ============================================================
@@ -2758,6 +2923,8 @@
 
     const navToggle = $('#navToggle');
     const navLinks = $('#navLinks');
+    const navViewToggle = $('#navViewToggle');
+    const navViewToggleText = navViewToggle ? navViewToggle.querySelector('.nav__view-toggle__text') : null;
 
     const engineTabs = $('#engineTabs');
     const libGrid = $('#libGrid');
@@ -2961,6 +3128,33 @@
       }
       if (name === 'social') refreshShareLink();
       if (name === 'brand') refreshStageBrand();
+    }
+
+    function switchView(name) {
+      const isEngine = name === 'engine';
+      $$('.view').forEach((v) => {
+        v.classList.toggle('is-on', v.getAttribute('data-view') === name);
+      });
+      if (navViewToggle) {
+        navViewToggle.setAttribute('aria-pressed', isEngine ? 'true' : 'false');
+        if (navViewToggleText) navViewToggleText.textContent = isEngine ? 'Engine' : 'Browse';
+      }
+      // When entering Engine, the canvases need a layout flush so
+      // sizeCanvas() re-reads the now-correct bounding rects.
+      if (isEngine) {
+        requestAnimationFrame(() => {
+          // Force a single resize tick so hero/stage canvases adopt the
+          // new viewport dimensions without waiting for a window resize.
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
+    }
+
+    if (navViewToggle) {
+      navViewToggle.addEventListener('click', () => {
+        const currentlyEngine = navViewToggle.getAttribute('aria-pressed') === 'true';
+        switchView(currentlyEngine ? 'browse' : 'engine');
+      });
     }
     engineTabs.addEventListener('click', (e) => {
       const btn = e.target.closest('.tab');
@@ -3286,6 +3480,64 @@
     });
     libUrlInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); libUrlAdd.click(); }
+    });
+
+    /* ----- Drag-and-drop file upload on the library grid ----- */
+    let libDragDepth = 0;
+    function isMediaDrag(e) {
+      if (!e.dataTransfer) return false;
+      const types = Array.from(e.dataTransfer.types || []);
+      return types.indexOf('Files') >= 0;
+    }
+    libGrid.addEventListener('dragenter', (e) => {
+      if (!isMediaDrag(e)) return;
+      e.preventDefault();
+      libDragDepth++;
+      libGrid.classList.add('is-drag-over');
+    });
+    libGrid.addEventListener('dragover', (e) => {
+      if (!isMediaDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    libGrid.addEventListener('dragleave', (e) => {
+      if (!isMediaDrag(e)) return;
+      libDragDepth = Math.max(0, libDragDepth - 1);
+      if (libDragDepth === 0) libGrid.classList.remove('is-drag-over');
+    });
+    libGrid.addEventListener('drop', (e) => {
+      if (!isMediaDrag(e)) return;
+      e.preventDefault();
+      libDragDepth = 0;
+      libGrid.classList.remove('is-drag-over');
+      const files = Array.from(e.dataTransfer.files || []);
+      if (!files.length) return;
+      const accepted = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|jpe?g|png|gif|webp|avif)$/i.test(f.name));
+      if (!accepted.length) { showToast('Drop image or video files (jpg/png/gif/mp4/webm/mov).'); return; }
+      accepted.forEach(handleLibraryFile);
+      showToast(`Importing ${accepted.length} file${accepted.length === 1 ? '' : 's'}…`);
+    });
+
+    /* ----- Paste a file from the clipboard (Cmd-V / Ctrl-V) ----- */
+    document.addEventListener('paste', (e) => {
+      // Only handle when the Media tab is open, so we don't intercept
+      // normal text inputs in branding fields, etc.
+      const mediaPanel = document.querySelector('.tabpanel[data-panel="media"]');
+      if (!mediaPanel || !mediaPanel.classList.contains('is-on')) return;
+      if (!e.clipboardData || !e.clipboardData.files || !e.clipboardData.files.length) return;
+      // Don't hijack pastes into the URL input or layer-assign dropdown
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
+        // If user is focused on the URL input, let the normal paste go through.
+        if (active.id === 'libUrlInput') return;
+      }
+      const files = Array.from(e.clipboardData.files).filter(f =>
+        f.type.startsWith('image/') || f.type.startsWith('video/') ||
+        /\.(mp4|webm|mov|m4v|jpe?g|png|gif|webp|avif)$/i.test(f.name));
+      if (!files.length) return;
+      e.preventDefault();
+      files.forEach(handleLibraryFile);
+      showToast(`Pasted ${files.length} file${files.length === 1 ? '' : 's'} from clipboard.`);
     });
 
     /* ----- Sub-tab toggle: Images | Audio ----- */
@@ -4206,7 +4458,13 @@
       if (e.target.matches('a')) navLinks.classList.remove('is-open');
     });
 
-    // Smooth scroll for hash links (CSS scroll-behavior already does most of it, but account for sticky nav)
+    // Smooth scroll for hash links. Two cases:
+    //   - #engine → engine view, no scroll (workspace fills viewport)
+    //   - #presets / #how / #showcase / #pricing / etc → switch to
+    //     browse view and scroll the inner .app-shell__scroll container.
+    // We pick the right scroller (window vs the .app-shell__scroll
+    // element) based on which view is currently active so existing
+    // nav anchors keep working in both modes.
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href^="#"]');
       if (!a) return;
@@ -4215,9 +4473,25 @@
       const target = document.getElementById(id);
       if (!target) return;
       e.preventDefault();
+      // Close mobile nav menu if open
+      if (typeof navLinks !== 'undefined') navLinks.classList.remove('is-open');
       const navHeight = 64;
-      const top = target.getBoundingClientRect().top + window.pageYOffset - navHeight + 1;
-      window.scrollTo({ top, behavior: 'smooth' });
+      const marketingIds = new Set(['presets', 'how', 'showcase', 'pricing', 'top']);
+      if (id === 'engine' || id === 'top') {
+        switchView('engine');
+        return;
+      }
+      // Switch to browse view, then scroll to the section inside its
+      // internal scroller (which is the only thing that scrolls).
+      if (marketingIds.has(id) || !document.getElementById('engine-' + id)) {
+        switchView('browse');
+        const scroller = document.querySelector('.view--browse .app-shell__scroll');
+        const target2 = document.getElementById(id);
+        if (scroller && target2) {
+          const top = target2.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - navHeight + 1;
+          scroller.scrollTo({ top, behavior: 'smooth' });
+        }
+      }
     });
 
     // Reveal on scroll
@@ -4293,5 +4567,7 @@
     init();
   })();
   </script>
+
+  </div><!-- /.app-shell -->
 </body>
 </html>
