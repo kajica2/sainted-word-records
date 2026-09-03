@@ -155,6 +155,53 @@ try {
 
   // Test 10: ensure no JS errors during all of the above
   ok(failed === 0 || true, 'no JS errors', '(tracked separately)');
+
+  // Test 11: C commits + , cycles commits back to most recent
+  await page.evaluate(() => document.querySelector('button[data-onboard="dismiss"]')?.click());
+  // Make sure we have a non-trivial state to commit
+  await page.keyboard.press('m');
+  await new Promise(r => setTimeout(r, 200));
+  // Commit current state
+  await page.keyboard.press('c');
+  await new Promise(r => setTimeout(r, 200));
+  // Mutate again so live != commit
+  await page.keyboard.press('m');
+  await new Promise(r => setTimeout(r, 200));
+  // Press , (cycle backward) — should jump to commit 1 (most recent)
+  await page.keyboard.press(',');
+  await new Promise(r => setTimeout(r, 200));
+  const commitTrans = await page.evaluate(() => document.getElementById('swr-transient').textContent);
+  ok(commitTrans.includes('COMMIT 1/1'),
+     'commit cursor transient after ,', `text="${commitTrans}"`);
+
+  // Test 12: layer flash overlay is positioned over stage
+  await page.keyboard.press('3');
+  await new Promise(r => setTimeout(r, 50));
+  const flashInfo = await page.evaluate(() => {
+    const el = document.getElementById('swr-layer-flash');
+    if (!el) return { found: false };
+    const r = el.getBoundingClientRect();
+    return {
+      found: true,
+      hasFlash: el.classList.contains('flash-on'),
+      width: r.width,
+      height: r.height,
+      color: getComputedStyle(el).getPropertyValue('--flash-color').trim()
+    };
+  });
+  ok(flashInfo.found && flashInfo.width > 100 && flashInfo.height > 100,
+     'layer flash overlay positioned', `w=${flashInfo.width} h=${flashInfo.height}`);
+  ok(flashInfo.color.includes('hsl'), 'layer flash has layer color', `color=${flashInfo.color}`);
+  ok(flashInfo.hasFlash, 'layer flash is currently active');
+
+  // Test 13: [ reduces amount
+  await page.keyboard.press('[');
+  await new Promise(r => setTimeout(r, 100));
+  const amtAfterDown = await page.evaluate(() => {
+    const el = document.querySelector('#swr-scope-row');
+    return el ? el.textContent : '';
+  });
+  ok(amtAfterDown.includes('0.40'), '[ bumps amount down', `text="${amtAfterDown.slice(0, 60)}"`);
 } finally {
   await browser.close();
   server.close();

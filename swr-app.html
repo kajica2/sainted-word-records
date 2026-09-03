@@ -2776,6 +2776,27 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
+    /* P3.5 Phase 2 — layer-focus flash. When the user navigates
+       layers via arrow keys or 1-4, a colored outline briefly
+       pulses around the stage viewport so the focus change is
+       visible even when looking at the preview (not the sidebar).
+       The outline color is set per-layer via --flash-color, so
+       each layer has its own signature hue. */
+    #swr-layer-flash {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9000;
+      box-shadow: inset 0 0 0 0 var(--flash-color, rgba(255,255,255,0.7));
+      transition: box-shadow 0ms;
+    }
+    #swr-layer-flash.flash-on {
+      animation: swr-layer-flash-key 600ms ease-out forwards;
+    }
+    @keyframes swr-layer-flash-key {
+      0%   { box-shadow: inset 0 0 0 4px var(--flash-color, rgba(255,255,255,0.7)); }
+      40%  { box-shadow: inset 0 0 0 6px var(--flash-color, rgba(255,255,255,0.7)); }
+      100% { box-shadow: inset 0 0 0 0 transparent; }
+    }
   </style>
 </head>
 <body>
@@ -3814,7 +3835,8 @@
       stack: [],              // [{state_subset, timestamp, label}]
       cursor: -1,             // index of the current state in stack (-1 = no undo available)
       max: 50,
-      commits: []             // named snapshots the user kept via C
+      commits: [],            // named snapshots the user kept via C
+      commitCursor: null      // null = uninitialized (positions at end on first use)
     };
 
     const PRESETS = [
@@ -7914,11 +7936,52 @@
           const assetIds = (state.layerAssets[layer.id] || []);
           const first = assetIds[0];
           const asset = first ? state.library.items.find(a => a.id === first) : null;
+          // Brief transient (Phase 1). Phase 2 also flashes the stage
+          // canvas border so the visual change is unmistakable even
+          // when the user isn't looking at the side panel.
           showTransient(reason.toUpperCase() + ' ' +
             String(idx + 1).padStart(2, '0') + ' · ' +
             (layer.name || layer.id) +
             (asset ? ' · ' + asset.name : ''),
             { durationMs: 700 });
+          flashLayerOverlay(layer.id);
+        }
+        // Phase 2 — flash the stage overlay with the layer's accent
+        // color so the user sees the focus change even when looking
+        // at the visual preview. The flash lasts 600ms with a CSS
+        // keyframe; we trigger it by re-adding the class and forcing
+        // a reflow.
+        function flashLayerOverlay(layerId) {
+          const el = document.getElementById('swr-layer-flash');
+          if (!el) return;
+          // Position the flash overlay over the active stage viewport
+          // (the workspace stage, not the hero canvas). If neither is
+          // visible, fall back to the workspace.
+          const stageEl = document.getElementById('stageViewport')
+            || document.getElementById('stage')
+            || document.querySelector('.stage__viewport');
+          if (stageEl) {
+            const r = stageEl.getBoundingClientRect();
+            el.style.left = r.left + 'px';
+            el.style.top = r.top + 'px';
+            el.style.width = r.width + 'px';
+            el.style.height = r.height + 'px';
+          }
+          // Map layer id to a hue so each layer flashes in its own
+          // color (background = magenta, overlay = cyan, typography =
+          // amber, effects = green). Falls back to white if the layer
+          // is unknown.
+          const LAYER_COLORS = {
+            background: 'hsl(300, 80%, 60%)',
+            overlay:    'hsl(180, 80%, 60%)',
+            typography: 'hsl(40,  80%, 60%)',
+            effects:    'hsl(120, 80%, 60%)'
+          };
+          const color = LAYER_COLORS[layerId] || 'rgba(255,255,255,0.7)';
+          el.style.setProperty('--flash-color', color);
+          el.classList.remove('flash-on');
+          void el.offsetWidth;
+          el.classList.add('flash-on');
         }
         function _bumpAmount(delta) {
           state_scope.amount = Math.max(0, Math.min(1,
@@ -7999,23 +8062,45 @@
           showTransient('COMMITTED · ' + label, { durationMs: 900 });
         }
         function _cycleCommit(dir) {
-          // We need a cursor for commits, separate from history.cursor.
-          // Use the most-recent commit as the "current" target.
+          // Real commit cursor (Phase 2). Track the current commit
+          // position separately from history.cursor. On first use, set
+          // cursor to commits.length (one past the end — meaning "live
+          // working state, not on any commit"). The user can step
+          // backwards through their commits to revisit earlier
+          // versions, or forwards back to live.
           if (state_history.commits.length === 0) {
             showToast('No commits yet — press C to commit');
             return;
           }
-          // For simplicity, just apply the last commit if going forward,
-          // or the first commit if going backward, without a cursor.
-          // (Full commit cursor is Phase 2.)
-          if (dir < 0) {
-            applySnapshot(state_history.commits[0]);
-            showTransient('← FIRST COMMIT', { durationMs: 600 });
-          } else {
-            applySnapshot(state_history.commits[state_history.commits.length - 1]);
-            showTransient('LAST COMMIT →', { durationMs: 600 });
+          if (state_history.commitCursor == null) {
+            // First use: position the cursor just before the live state.
+            // Going back (-) means "show me the most recent commit";
+            // going forward (+) means "show me the live state again".
+            state_history.commitCursor = state_history.commits.length;
           }
+          // Clamp the cursor to [0, commits.length]:
+          //   - index 0..commits.length-1 = a committed state
+          //   - index commits.length = live working state
+          const next = Math.max(0, Math.min(
+            state_history.commits.length,
+            state_history.commitCursor + dir));
+          if (next === state_history.commitCursor) {
+            showToast(dir < 0 ? 'Already at oldest commit' : 'Already at live state');
+            return;
+          }
+          state_history.commitCursor = next;
+          if (next >= state_history.commits.length) {
+            showTransient('LIVE · ' + (state_history.commits.length === 0
+              ? 'no commits'
+              : 'commit ' + next + '/' + state_history.commits.length),
+              { durationMs: 700 });
+            return; // live state — don't apply anything
+          }
+          const target = state_history.commits[next];
+          applySnapshot(target);
           refreshAfterUndo();
+          showTransient('← COMMIT ' + (next + 1) + '/' + state_history.commits.length +
+            ' · ' + target.label, { durationMs: 700 });
         }
         function _newSeed() {
           // The P2.3 generators don't currently consume an explicit
@@ -8034,8 +8119,37 @@
         let _mHoldTimer = null;
         let _mRepeatTimer = null;
         function _beginMRepeat() {
-          // Already firing once via keydown; here we just schedule repeats.
-          _mRepeatTimer = setInterval(() => _doAction('mutate'), 200);
+          // Repeats while held — DO NOT push history on each tick. The
+          // initial keydown already pushed one snapshot for this hold
+          // burst. Repeats just mutate the live state so the user sees
+          // the visual progression. They can still Z back through the
+          // bursts if they held M multiple separate times.
+          //
+          // Phase 2 distinction: a "burst" is one continuous press.
+          // Each burst pushes 1 history entry. Auto-repeat ticks only
+          // mutate, they don't push.
+          _mRepeatTimer = setInterval(() => {
+            // Mutate directly without history. We still want the
+            // metallic transient for feedback (the user is intentionally
+            // scrubbing), but skip the undo entry.
+            if (state_scope.scope === 'all' && state_scope.preserve.length === 0) {
+              flashButton(btnMutate);
+              mutateState();
+            } else {
+              // Scoped action still goes through _doAction for the
+              // "preserve everything" no-op guard, but we explicitly
+              // skip the history push.
+              const fields = _scopeFields();
+              if (fields.length === 0) return;
+              flashButton(btnMutate);
+              mutateState();
+            }
+            const scopeLabel = state_scope.scope === 'all'
+              ? 'ALL'
+              : state_scope.scope.toUpperCase();
+            showTransient('MUTATE↻ · ' + state_scope.amount.toFixed(2) + ' · ' + scopeLabel,
+              { durationMs: 400 });
+          }, 200);
         }
         function _endMRepeat() {
           if (_mRepeatTimer) clearInterval(_mRepeatTimer);
@@ -9064,6 +9178,9 @@ recordTimer = setTimeout(() => {
 
   <!-- P3.5 — Performance-control layer UI overlays -->
   <div id="swr-transient" role="status" aria-live="polite"></div>
+  <!-- P3.5 Phase 2 — layer-focus flash overlay. Renders a colored
+       border around the stage when arrow keys / 1-4 select a layer. -->
+  <div id="swr-layer-flash" aria-hidden="true"></div>
   <div id="swr-help-overlay" role="dialog" aria-modal="true" aria-labelledby="swr-help-title">
     <div class="swr-help-card">
       <h3 id="swr-help-title">Performance hotkeys</h3>
