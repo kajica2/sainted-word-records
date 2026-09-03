@@ -4006,7 +4006,15 @@
     const stageCanvas = $('#stageCanvas');
     const stageViewport = $('#stageViewport');
     const heroCtx = heroCanvas.getContext('2d');
-    const stageCtx = stageCanvas.getContext('2d');
+    // P3.2.5 — willReadFrequently:true on the stage context. The
+    // drawVisual pipeline calls ctx.getImageData() per frame for the
+    // brightness/contrast post-process, and Chrome is slow on readback
+    // unless the context opts in. Without this, we get a console
+    // warning every frame and the readback path uses a software
+    // fallback (~5x slower). Stage is the only canvas that reads
+    // back; hero and showcase are pure write-only so they leave
+    // the default (write-fast path).
+    const stageCtx = stageCanvas.getContext('2d', { willReadFrequently: true });
 
     const presetGrid = $('#presetGrid');
     const marketingPresets = $('#marketingPresets');
