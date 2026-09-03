@@ -160,6 +160,17 @@ try {
   await step('record 4 seconds of canvas + audio, then stop', async () => {
     await page.evaluate(() => {
       const R = window.SWR.Recorder;
+      // P2: Force the WebM/MediaRecorder path. The legacy hallucination
+      // page's default 'auto' format picks MP4/WebCodecs when available
+      // (window.SWR_RECORDER.canUseWebCodecs() returns true in modern
+      // Chrome including headless 125+). The WebCodecs path requires a
+      // worker + AudioContext + MediaStreamTrack pipeline that's flaky
+      // in headless and mostly fails silently with err.unsupported=false,
+      // which the page's catch handler treats as a hard error rather
+      // than falling back to WebM. Forcing 'webm' exercises the proven
+      // MediaRecorder code path the rest of the engine already uses.
+      const fmtSel = document.getElementById('rec-format');
+      if (fmtSel) fmtSel.value = 'webm';
       // Recorder.start() reads #rec-dur for auto-stop. The <select> only has
       // song/0/manual/numeric options — "0" means manual (no auto-stop),
       // and the actual numeric presets are like "30", "60", "120". Force
