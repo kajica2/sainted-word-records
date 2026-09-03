@@ -84,3 +84,7 @@ _gen_*.py
 _probe_*.mjs
 _smoke_*.mjs
 .env*
+
+# Throwaway Puppeteer-driven Vercel debug sessions (manual Chrome
+# inspection via CDP :9222). One-off helpers; not part of the app.
+_vercel-debug.mjs
