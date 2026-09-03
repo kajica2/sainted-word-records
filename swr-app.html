@@ -3224,7 +3224,10 @@
           state.library.items = saved.library.items;
           if (saved.library.filter) state.library.filter = saved.library.filter;
           if (saved.library.assignLayer) state.library.assignLayer = saved.library.assignLayer;
-          // Note: libraryLoaded/librarySource are session-only, never restored.
+          // librarySource is persisted so thumbnail URLs resolve correctly
+          // after reload. libraryLoaded stays session-only — false until
+          // the next fetchLibraryManifest() re-pins it.
+          if (saved.library.librarySource) state.library.librarySource = saved.library.librarySource;
         }
         if (saved.audioTracks && Array.isArray(saved.audioTracks.items)) {
           // Strip bytes markers — they're session-only
@@ -3264,8 +3267,10 @@
           library: {
             items: state.library.items,
             filter: state.library.filter,
-            assignLayer: state.library.assignLayer
-            // libraryLoaded/librarySource are session-only
+            assignLayer: state.library.assignLayer,
+            // librarySource is now persisted so thumbnail paths survive reload.
+            // (libraryLoaded stays session-only — false after reload triggers a re-fetch.)
+            librarySource: state.library.librarySource
           },
           audioTracks: audioForSave,
           branding: state.branding
@@ -4090,8 +4095,18 @@
           if (a.kind === 'video') card.classList.add('lib-card--video');
           card.setAttribute('role', 'button');
           card.setAttribute('aria-label', `${a.name}, ${a.layer} layer`);
-          const resolvedSrc = (a.origin === 'library' && a.src && !/^https?:|^data:/.test(a.src))
-            ? (state.library.librarySource.replace(/manifest\.json$/, '') + a.src)
+          // Resolve the thumbnail URL. Two cases:
+          //   1. Items fetched from /library/manifest.json this session —
+          //      librarySource is set, prepend it to relative paths.
+          //   2. Items restored from localStorage (librarySource now also
+          //      persisted, but defensively handle empty): if no source,
+          //      assume the path is under /library/ (matching the manifest
+          //      layout) so thumbnails resolve correctly on first paint.
+          const isLibraryPath = a.origin === 'library' && a.src && !/^https?:|^data:/.test(a.src);
+          let base = state.library.librarySource;
+          if (!base && isLibraryPath) base = '/library/manifest.json';
+          const resolvedSrc = isLibraryPath && base
+            ? (base.replace(/manifest\.json$/, '') + a.src)
             : a.src;
           const kindBadge = a.kind === 'video'
             ? '<span class="lib-card__kind">▶ video</span>'
