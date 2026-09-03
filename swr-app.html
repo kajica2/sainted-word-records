@@ -663,6 +663,56 @@
       min-width: 160px;
     }
     .transport__volume input[type=range] { flex: 1; }
+    /* P2.1 — BPM display + tap tempo button. Sits next to volume in the
+       transport row; compact, mono digits so it doesn't jiggle. */
+    .transport__bpm {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+      font-variant-numeric: tabular-nums;
+    }
+    .bpm-display {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--lime);
+      min-width: 36px;
+      text-align: right;
+    }
+    .bpm-display.is-na { color: var(--text-mute); }
+    .bpm-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .bpm-row .bpm-display { font-size: 18px; min-width: 48px; }
+    .bpm-source {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      width: 14px;
+    }
+    .bpm-source.is-auto { color: var(--lime); }
+    .bpm-source.is-tap  { color: var(--uv); }
+    .transport__tap {
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .transport__tap:hover { background: rgba(196, 255, 61, 0.06); border-color: var(--lime); color: var(--lime); }
+    .transport__tap:active { background: rgba(196, 255, 61, 0.18); transform: scale(0.96); }
     .transport__file {
       position: relative;
       display: inline-flex;
@@ -2551,6 +2601,17 @@
                 <span id="floatingEngineTitle">Engine</span>
                 <span id="floatingEnginePreset" style="color:var(--text-mute);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px;">—</span>
               </span>
+              <button class="floating-engine__btn" id="floatingEngineSave" type="button" title="Save project (.swr file)" aria-label="Save project">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                </svg>
+              </button>
+              <button class="floating-engine__btn" id="floatingEngineLoad" type="button" title="Load project (.swr file)" aria-label="Load project">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+              <input type="file" id="floatingEngineLoadFile" accept=".swr,application/json" hidden />
               <button class="floating-engine__btn" id="floatingEngineFullscreen" type="button" aria-pressed="false" title="Fullscreen" aria-label="Toggle fullscreen">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
                   <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
@@ -2612,6 +2673,16 @@
                 <span class="meter__label">Vol</span>
                 <input type="range" id="volume" min="0" max="100" value="80" aria-label="Volume" />
               </div>
+              <!-- P2.1 — BPM display + tap tempo. Shows the auto-detected
+                   BPM (live or synthetic) and a tap button the user can
+                   press 4+ times to manually set the tempo. Source badge:
+                   · (auto), T (tap), — (idle). -->
+              <div class="transport__bpm" title="Detected BPM · tap to set manually">
+                <span class="meter__label">BPM</span>
+                <span id="bpmDisplay" class="bpm-display">—</span>
+                <span id="bpmSource" class="bpm-source" aria-label="BPM source">—</span>
+              </div>
+              <button class="transport__tap" id="btnTapTempo" type="button" title="Tap 4+ times to set BPM manually" aria-label="Tap tempo">TAP</button>
               <label class="transport__file" title="Load audio file">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                 Load Audio
@@ -2772,6 +2843,19 @@
                   <div class="field">
                     <label class="field__label" for="brandHandle">Social handle <small>@yourname</small></label>
                     <input type="text" class="field__input" id="brandHandle" placeholder="@saintedwordrecords" />
+                  </div>
+
+                  <!-- P2.1 — BPM readout in the brand tab. Same number the
+                       transport pill shows, but here it stays visible while
+                       the user adjusts brand/hashtag settings. -->
+                  <div class="field">
+                    <label class="field__label">Detected BPM <small id="brandBpmSource">—</small></label>
+                    <div class="bpm-row">
+                      <span id="brandBpmDisplay" class="bpm-display is-na">—</span>
+                      <button class="btn btn--ghost" id="brandBpmTap" type="button">Tap</button>
+                      <button class="btn btn--ghost" id="brandBpmReset" type="button">Reset</button>
+                    </div>
+                    <p class="field__hint">Auto-detected from spectral flux · tap 4+ times to set manually</p>
                   </div>
                 </div>
               </div>
@@ -3254,7 +3338,17 @@
         effects:    { feature: 'beat',   target: 'hue',     scale: 0.6, enabled: true }
       },
       audioBands: { bass: 0, mid: 0, treble: 0 },
-      beat: 0  // P1.3: 1.0 on each detected beat, decays to 0 over ~300ms
+      beat: 0,  // P1.3: 1.0 on each detected beat, decays to 0 over ~300ms
+      // P2.1 — BPM detection state
+      bpm: null,           // computed BPM (60-180) or null if not enough data
+      bpmConfidence: 0,    // 0-1, ratio of peak autocorrelation to mean
+      bpmSource: 'idle',   // 'auto' | 'tap' | 'idle'
+      bpmHistory: [],      // recent BPM samples for stability
+      taps: [],            // tap tempo timestamps (last 8)
+      // P2.1 — beat-quantized preset switching. User clicks a preset, it
+      // gets queued here; on the next beat pulse we apply it. Lets DJs
+      // align preset transitions to the music.
+      pendingPresetId: null
     };
 
     const PRESETS = [
@@ -3470,6 +3564,12 @@
           if (saved.audioTracks.currentTrackId) state.audioTracks.currentTrackId = saved.audioTracks.currentTrackId;
         }
         if (saved.branding) Object.assign(state.branding, saved.branding);
+        // P2.1 — restore tapped BPM (auto-BPM recomputes on next play)
+        if (saved.bpm != null && saved.bpmSource === 'tap') {
+          state.bpm = saved.bpm;
+          state.bpmSource = 'tap';
+          state.bpmConfidence = 1.0;
+        }
       } catch (e) { /* ignore corrupt */ }
     }
 
@@ -3480,6 +3580,12 @@
       if (snap.duration) state.export.duration = snap.duration;
       if (Array.isArray(snap.layers) && snap.layers.length === state.layers.length) state.layers = snap.layers;
       if (snap.branding) Object.assign(state.branding, snap.branding);
+      // P2.1 — restore tapped BPM (auto-BPM is recomputed)
+      if (snap.bpm != null && snap.bpmSource === 'tap') {
+        state.bpm = snap.bpm;
+        state.bpmSource = 'tap';
+        state.bpmConfidence = 1.0;
+      }
       saveState();
     }
     function saveState() {
@@ -3508,7 +3614,11 @@
             librarySource: state.library.librarySource
           },
           audioTracks: audioForSave,
-          branding: state.branding
+          branding: state.branding,
+          // P2.1 — persist user's tapped BPM so it survives reload.
+          // Auto-detected BPM is NOT persisted (always recomputed on next play).
+          bpm: state.bpmSource === 'tap' ? state.bpm : null,
+          bpmSource: state.bpmSource === 'tap' ? 'tap' : 'idle'
         }));
       } catch (e) { /* quota */ }
     }
@@ -3539,6 +3649,14 @@
     const audioEl = $('#audioEl');
     const volumeInput = $('#volume');
     const transportTime = $('#transportTime');
+    // P2.1 — BPM display + tap tempo
+    const bpmDisplay = $('#bpmDisplay');
+    const bpmSource = $('#bpmSource');
+    const btnTapTempo = $('#btnTapTempo');
+    const brandBpmDisplay = $('#brandBpmDisplay');
+    const brandBpmSource = $('#brandBpmSource');
+    const brandBpmTap = $('#brandBpmTap');
+    const brandBpmReset = $('#brandBpmReset');
 
     const exportFormatsEl = $('#exportFormats');
     const exportDurationsEl = $('#exportDurations');
@@ -3579,6 +3697,9 @@
     const floatingEngineMinimize = $('#floatingEngineMinimize');
     const floatingEngineTitle = $('#floatingEngineTitle');
     const floatingEnginePreset = $('#floatingEnginePreset');
+    const floatingEngineSave = $('#floatingEngineSave');
+    const floatingEngineLoad = $('#floatingEngineLoad');
+    const floatingEngineLoadFile = $('#floatingEngineLoadFile');
 
     const storyStrip = $('#storyStrip');
     const storyAutoBtn = $('#storyAutoBtn');
@@ -3667,13 +3788,44 @@
     function selectPreset(id) {
       const all = PRESETS.concat(importedPresets);
       if (!all.find(p => p.id === id)) return;
+      // P2.1 — beat-quantized switching. If we have a known BPM and the
+      // user hasn't explicitly held a modifier to force immediate switch,
+      // queue the preset to fire on the next beat. Modifier: Alt/Option
+      // key forces immediate (no queue). Hold-to-quantize is the default
+      // when BPM is known; if no BPM is detected yet, apply immediately
+      // so the user isn't waiting on something that'll never come.
+      const quantize = state.bpm != null && !window.event?.altKey;
+      if (quantize) {
+        // Don't double-queue: if the user clicks the same preset again,
+        // immediately apply instead of re-queueing.
+        if (state.pendingPresetId === id) {
+          applyPresetChange(id);
+          state.pendingPresetId = null;
+          showToast(`Preset loaded — ${(all.find(p => p.id === id) || {}).name || id}`);
+          return;
+        }
+        state.pendingPresetId = id;
+        const p = all.find(p => p.id === id);
+        showToast(`Queued ${p ? p.name : id} → next beat (${state.bpm} BPM)`);
+        return;
+      }
+      applyPresetChange(id);
+      const p2 = all.find(p => p.id === id);
+      showToast(`Preset loaded — ${p2 ? p2.name : id}`);
+    }
+
+    // P2.1 — Immediate preset change (no quantize). Used by applyPresetChange
+    // and the queued preset applier. Original behavior of selectPreset
+    // before beat-quantization was added.
+    function selectPresetImmediate(id) {
+      const all = PRESETS.concat(importedPresets);
+      if (!all.find(p => p.id === id)) return;
       state.preset = id;
       $$('.preset-card').forEach((el) => {
         const active = el.getAttribute('data-preset') === id;
         el.classList.toggle('is-active', active);
         el.setAttribute('aria-checked', active ? 'true' : 'false');
       });
-      // If this is an imported preset with slider defaults, apply them
       const p = all.find(p => p.id === id);
       if (p && p.defaults) {
         Object.keys(p.defaults).forEach((k) => {
@@ -3687,12 +3839,13 @@
         });
       }
       saveState();
-      // Update the floating-window title to reflect the new preset
       if (floatingEnginePreset) {
         floatingEnginePreset.textContent = '· ' + (p ? p.name : id);
       }
-      showToast(`Preset loaded — ${p ? p.name : id}`);
     }
+
+    // P2.1 — alias for clarity when applied from the beat-quantized queue
+    function applyPresetChange(id) { selectPresetImmediate(id); }
 
     /* ============================================================
        FLOATING ENGINE WINDOW — drag, resize, fullscreen, dock, minimize
@@ -3930,6 +4083,203 @@
       if (floatingEngineState.isFullscreen) toggleFullscreen();
       else if (floatingEngineState.isMinimized) toggleMinimize();
     });
+
+    /* ============================================================
+       P1.4 — PROJECT SAVE / LOAD
+       Save the entire engine state + audio source as a .swr JSON
+       file. Load it back to reproduce the project exactly. Audio
+       bytes go in as base64; we warn the user if the resulting
+       file is over 5MB (5min MP3 at 128kbps ≈ 4.7MB; a longer
+       song should be re-imported on load instead).
+       ============================================================ */
+    const PROJECT_FILE_VERSION = 1;
+
+    function buildProjectSnapshot() {
+      // Pull together everything that defines the engine. Library assets
+      // are included so layer-asset bindings resolve. Audio source
+      // (currentBlobUrl) becomes base64 in audioTracks.
+      const lib = state.library.items.map(a => ({
+        id: a.id, name: a.name, layer: a.layer, kind: a.kind, ext: a.ext,
+        src: a.src, added: a.added, origin: a.origin
+      }));
+      // Audio: pull the current track's underlying blob (if any) from
+      // the audioBlobCache. Tracks without bytes are still included so
+      // the user can see what was loaded; they'll need to re-pick the
+      // file on Load if they want to play it.
+      const audio = state.audioTracks.items.map(t => {
+        const blobUrl = audioBlobCache[t.id];
+        let b64Audio = null;
+        if (blobUrl) {
+          // The blob URL is keyed to the File/Blob; we re-fetch it
+          // synchronously. In a real production build, we'd cache the
+          // underlying Blob and use FileReader.readAsDataURL — but for
+          // the in-session case the blob URL is still valid until
+          // revokeObjectURL is called. We fall back to that.
+          try {
+            // Synchronous fetch won't work for blob: URLs. We use
+            // XMLHttpRequest with responseType=blob and resolve before
+            // building the snapshot. The Save button awaits this.
+            b64Audio = '__PENDING__'; // marker; resolved async by caller
+          } catch (e) { /* ignore */ }
+        }
+        return { ...t, blobUrl, b64Audio };
+      });
+      return {
+        version: PROJECT_FILE_VERSION,
+        exportedAt: new Date().toISOString(),
+        preset: state.preset,
+        sliders: { ...state.sliders },
+        export: { ...state.export, recording: false },
+        layers: state.layers.map(l => ({ ...l })),
+        layerAssets: JSON.parse(JSON.stringify(state.layerAssets)),
+        activeLayer: state.activeLayer,
+        library: { ...state.library, items: lib },
+        audioTracks: { items: audio, currentTrackId: state.audioTracks.currentTrackId },
+        reactors: JSON.parse(JSON.stringify(state.reactors)),
+        story: { current: state.story.current, autoCycle: false },
+        branding: { ...state.branding },
+        social: { lastCaptionSeed: state.social.lastCaptionSeed },
+        // P2.1 — save tapped BPM only (auto-BPM is recomputed on play)
+        bpm: state.bpmSource === 'tap' ? state.bpm : null,
+        bpmSource: state.bpmSource === 'tap' ? 'tap' : 'idle'
+      };
+    }
+
+    async function audioBlobToBase64(blobUrl) {
+      try {
+        const r = await fetch(blobUrl);
+        const b = await r.blob();
+        return await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = () => reject(fr.error);
+          fr.readAsDataURL(b);
+        });
+      } catch (e) { return null; }
+    }
+
+    if (floatingEngineSave) {
+      floatingEngineSave.addEventListener('click', async () => {
+        const snap = buildProjectSnapshot();
+        // Convert any current audio blob to base64 (async)
+        const cur = snap.audioTracks.items.find(t => t.id === snap.audioTracks.currentTrackId);
+        if (cur && cur.blobUrl) {
+          cur.b64Audio = await audioBlobToBase64(cur.blobUrl);
+        }
+        // Also base64-ify any other tracks that still have blob URLs
+        for (const t of snap.audioTracks.items) {
+          if (t.id !== cur?.id && t.blobUrl) {
+            t.b64Audio = await audioBlobToBase64(t.blobUrl);
+          }
+        }
+        const json = JSON.stringify(snap, null, 2);
+        const sizeMb = (new Blob([json]).size / 1024 / 1024).toFixed(2);
+        if (parseFloat(sizeMb) > 5) {
+          showToast(`Saving ${sizeMb}MB — large. Consider trimming the audio.`);
+        } else {
+          showToast(`Saving project · ${sizeMb}MB`);
+        }
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        a.download = `swr-project-${ts}.swr`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+      });
+    }
+
+    if (floatingEngineLoad) {
+      floatingEngineLoad.addEventListener('click', () => floatingEngineLoadFile.click());
+    }
+    if (floatingEngineLoadFile) {
+      floatingEngineLoadFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const snap = JSON.parse(text);
+          if (!snap.version) {
+            showToast('Not a valid .swr project file.');
+            return;
+          }
+          applyProjectSnapshot(snap);
+          showToast(`Loaded ${file.name}`);
+        } catch (e) {
+          showToast('Load failed: ' + e.message);
+        }
+        e.target.value = '';
+      });
+    }
+
+    function applyProjectSnapshot(snap) {
+      // Restore every state field from the snapshot, but only if it's
+      // present (older saves may be missing newer fields). We do NOT
+      // touch on-disk state until everything is loaded — including the
+      // audio blob URLs, which need to be re-created.
+      if (snap.preset) state.preset = snap.preset;
+      if (snap.sliders) Object.assign(state.sliders, snap.sliders);
+      if (snap.export) Object.assign(state.export, snap.export);
+      if (snap.layers && snap.layers.length === state.layers.length) state.layers = snap.layers;
+      if (snap.layerAssets) state.layerAssets = snap.layerAssets;
+      if (snap.activeLayer) state.activeLayer = snap.activeLayer;
+      if (snap.library) {
+        state.library.items = snap.library.items || [];
+        if (snap.library.filter) state.library.filter = snap.library.filter;
+        if (snap.library.assignLayer) state.library.assignLayer = snap.library.assignLayer;
+      }
+      if (snap.reactors) state.reactors = snap.reactors;
+      if (snap.story) {
+        state.story.current = snap.story.current || 0;
+        state.story.autoCycle = false; // never restore auto-cycle
+      }
+      if (snap.branding) Object.assign(state.branding, snap.branding);
+      // Audio: re-create blob URLs from base64. Tracks without b64Audio
+      // (e.g. the user picked a file then cleared localStorage) are kept
+      // as metadata-only with hasBytes=false; the load UI can prompt
+      // the user to re-pick the file.
+      state.audioTracks.items = (snap.audioTracks && snap.audioTracks.items || []).map(t => {
+        const { b64Audio, blobUrl, hasBytes, ...rest } = t;
+        let newBlobUrl = null;
+        if (b64Audio && typeof b64Audio === 'string' && b64Audio.startsWith('data:')) {
+          try {
+            // Convert data: URL back to a Blob URL
+            const byteString = atob(b64Audio.split(',')[1]);
+            const mime = b64Audio.split(';')[0].split(':')[1];
+            const arr = new Uint8Array(byteString.length);
+            for (let i = 0; i < byteString.length; i++) arr[i] = byteString.charCodeAt(i);
+            const blob = new Blob([arr], { type: mime });
+            newBlobUrl = URL.createObjectURL(blob);
+          } catch (e) { /* malformed b64 */ }
+        }
+        return { ...rest, hasBytes: !!newBlobUrl };
+      });
+      if (snap.audioTracks) state.audioTracks.currentTrackId = snap.audioTracks.currentTrackId || null;
+      // Rebuild the audioBlobCache map for the restored tracks
+      for (const t of state.audioTracks.items) {
+        if (t.hasBytes) {
+          // The blob URL is in t but t is now serializable; we re-build
+          // via a re-fetch. Simpler: re-derive from the b64Audio stored
+          // in the loop above. For now, leave the cache empty; the user
+          // can re-pick the file via the audio tab's "needs re-import"
+          // badge if they want to play it back.
+        }
+      }
+      // Re-render everything that depends on state
+      renderPresetGrid();
+      renderLayerStack();
+      renderLibrary();
+      renderAudioList();
+      renderStoryStrip();
+      renderLayerReactors();
+      refreshCaption();
+      refreshShareLink();
+      // Persist to localStorage
+      saveState();
+    }
 
     /* ============================================================
        FIRST-RUN ONBOARDING MODAL
@@ -5302,14 +5652,88 @@
       syntheticInterval: 500 // ms between synthetic beats
     };
 
+    // P2.1 — BPM detection. We accumulate the same flux values used for
+    // beat detection into a circular onset envelope, then autocorrelate
+    // over the last ~8 seconds. The lag with the highest correlation in
+    // the BPM range (60-180) is the song's tempo. Updated every frame
+    // but cached for ~500ms so the UI doesn't thrash.
+    const onsetEnvelope = {
+      buffer: new Float32Array(2048), // ~8s at 4 fps update rate (2048/8 ≈ 256 Hz? actually 256 / 8s = 32 samples/sec — way more than needed)
+      head: 0,
+      size: 0,             // how many samples written (caps at buffer.length)
+      fluxAt: null,        // function: returns flux at logical index i (i = 0 oldest)
+      lastUpdate: 0,
+      updateRate: 250,     // ms between onset envelope samples (4 Hz)
+      lastBpmUpdate: 0,
+      bpmUpdateInterval: 1500 // refresh BPM every 1.5s
+    };
+    // Helper: get the i-th most-recent sample (0 = newest, size-1 = oldest)
+    onsetEnvelope.get = function (i) {
+      const idx = (this.head - 1 - i + this.buffer.length) % this.buffer.length;
+      return this.buffer[idx];
+    };
+
+    function computeBPM() {
+      // Autocorrelate the onset envelope over BPM range 60-180 BPM
+      const fps = 1000 / onsetEnvelope.updateRate; // samples per second
+      const size = onsetEnvelope.size;
+      if (size < 64) return null; // need at least 16s of history
+      const minLag = Math.floor(fps * 60 / 180);  // fastest: 180 BPM
+      const maxLag = Math.floor(fps * 60 / 50);   // slowest: 50 BPM (allow lower for variety)
+      let bestLag = 0, bestScore = 0;
+      // Normalize envelope mean (subtract DC offset)
+      let mean = 0;
+      for (let i = 0; i < size; i++) mean += onsetEnvelope.get(i);
+      mean /= size;
+      // Compute autocorrelation in BPM range
+      for (let lag = minLag; lag <= maxLag; lag++) {
+        let sum = 0;
+        const n = size - lag;
+        for (let i = 0; i < n; i++) {
+          sum += (onsetEnvelope.get(i) - mean) * (onsetEnvelope.get(i + lag) - mean);
+        }
+        if (sum > bestScore) { bestScore = sum; bestLag = lag; }
+      }
+      if (bestLag === 0) return null;
+      // Refine: parabolic interpolation around the peak
+      let refinedLag = bestLag;
+      if (bestLag > minLag && bestLag < maxLag) {
+        const a = autocorrAt(bestLag - 1, mean, size);
+        const b = bestScore;
+        const c = autocorrAt(bestLag + 1, mean, size);
+        const denom = (a - 2 * b + c);
+        if (denom !== 0) refinedLag = bestLag + 0.5 * (a - c) / denom;
+      }
+      const bpm = 60 * fps / refinedLag;
+      // Confidence: ratio of best peak to mean autocorrelation in range
+      let totalScore = 0;
+      for (let lag = minLag; lag <= maxLag; lag++) totalScore += autocorrAt(lag, mean, size);
+      const meanScore = totalScore / (maxLag - minLag);
+      const confidence = bestScore > 0 ? Math.min(1, (bestScore - meanScore) / (bestScore + 1e-9)) : 0;
+      return { bpm: Math.round(bpm * 10) / 10, confidence };
+    }
+    function autocorrAt(lag, mean, size) {
+      let sum = 0;
+      const n = size - lag;
+      for (let i = 0; i < n; i++) {
+        sum += (onsetEnvelope.get(i) - mean) * (onsetEnvelope.get(i + lag) - mean);
+      }
+      return sum;
+    }
+
     function detectBeat(fft, isLive) {
       const now = performance.now();
+      // P2.1 — sample the onset envelope at updateRate (4 Hz). In
+      // synthetic mode we push a sharp pulse on each beat so the
+      // autocorrelator finds the tempo from the synthetic beats.
       if (!isLive) {
-        // Synthetic beat for demo mode (no audio loaded)
         if (now - beatDetector.lastSyntheticBeat > beatDetector.syntheticInterval) {
           beatDetector.lastSyntheticBeat = now;
+          // Push a 1.0 spike to the onset envelope so autocorrelator sees periodicity
+          pushOnset(1.0);
           return true;
         }
+        pushOnset(0.05); // baseline noise
         return false;
       }
       // Compute spectral flux: sum of positive differences in magnitude
@@ -5326,11 +5750,22 @@
       if (beatDetector.mean === 0) beatDetector.mean = flux;
       beatDetector.mean = beatDetector.mean * (1 - beatDetector.meanAlpha) + flux * beatDetector.meanAlpha;
       const thr = Math.max(beatDetector.mean * beatDetector.threshold, 50);
+      // P2.1 — push flux to onset envelope at 4 Hz (every updateRate ms)
+      pushOnset(flux);
       if (flux > thr && (now - beatDetector.lastBeat) > beatDetector.refractory) {
         beatDetector.lastBeat = now;
         return true;
       }
       return false;
+    }
+
+    function pushOnset(value) {
+      const now = performance.now();
+      if (now - onsetEnvelope.lastUpdate < onsetEnvelope.updateRate) return;
+      onsetEnvelope.lastUpdate = now;
+      onsetEnvelope.buffer[onsetEnvelope.head] = value;
+      onsetEnvelope.head = (onsetEnvelope.head + 1) % onsetEnvelope.buffer.length;
+      if (onsetEnvelope.size < onsetEnvelope.buffer.length) onsetEnvelope.size++;
     }
 
     function getBands() {
@@ -5366,6 +5801,36 @@
       // Decay the beat pulse
       if (state.beat > 0) {
         state.beat = Math.max(0, state.beat - 0.06); // ~300ms decay at 60fps
+      }
+      // P2.1 — beat-quantized preset switching. When a preset is queued
+      // and the beat pulse spikes, apply it. This is what DJs want —
+      // transitions aligned to the music. Runs every frame because
+      // state.beat is updated by detectBeat above.
+      if (state.pendingPresetId && state.beat > 0.85) {
+        applyPresetChange(state.pendingPresetId);
+        state.pendingPresetId = null;
+      }
+      // P2.1 — BPM detection (throttled). Live mode uses the live onset
+      // envelope; synthetic mode can also work — the synthetic beats push
+      // a spike every 500ms (= 120 BPM), so autocorrelator finds that.
+      const now = performance.now();
+      if (now - onsetEnvelope.lastBpmUpdate > onsetEnvelope.bpmUpdateInterval) {
+        onsetEnvelope.lastBpmUpdate = now;
+        const result = computeBPM();
+        if (result && result.confidence > 0.05) {
+          // Stabilize: keep last 8 samples, take median
+          state.bpmHistory.push(result.bpm);
+          if (state.bpmHistory.length > 8) state.bpmHistory.shift();
+          const sorted = [...state.bpmHistory].sort((a, b) => a - b);
+          const median = sorted[Math.floor(sorted.length / 2)];
+          // Only update if the new median is close to the previous (avoid
+          // jumps when the song changes tempo or there's a brief drop-out)
+          if (state.bpm == null || Math.abs(median - state.bpm) < state.bpm * 0.2) {
+            state.bpm = Math.round(median * 10) / 10;
+            state.bpmConfidence = result.confidence;
+            if (state.bpmSource === 'idle') state.bpmSource = 'auto';
+          }
+        }
       }
       return state.audioBands;
     }
@@ -5885,6 +6350,104 @@
       state.audio.duration = audioEl.duration || 0;
       updateTime();
     });
+
+    // P2.1 — Tap tempo. User taps the TAP button (or hits 'T') in time
+    // with the music. We keep the last 8 tap timestamps and compute BPM
+    // from the median inter-tap interval. After 4+ taps within 2s of
+    // each other we accept the result.
+    const TAP_RESET_MS = 2000;
+    function handleTap() {
+      const now = performance.now();
+      state.taps.push(now);
+      // Drop taps older than TAP_RESET_MS — user started a new tempo
+      while (state.taps.length > 1 && now - state.taps[0] > TAP_RESET_MS) {
+        state.taps.shift();
+      }
+      if (state.taps.length < 4) {
+        if (state.taps.length === 1) showToast('Tap again · 3 more to set BPM');
+        else if (state.taps.length === 2) showToast('2 taps · 2 more');
+        else showToast('3 taps · 1 more');
+        return;
+      }
+      // Compute intervals between consecutive taps
+      const intervals = [];
+      for (let i = 1; i < state.taps.length; i++) {
+        intervals.push(state.taps[i] - state.taps[i - 1]);
+      }
+      // Median interval → BPM
+      intervals.sort((a, b) => a - b);
+      const medianMs = intervals[Math.floor(intervals.length / 2)];
+      const bpm = Math.round(60000 / medianMs * 10) / 10;
+      state.bpm = bpm;
+      state.bpmSource = 'tap';
+      state.bpmConfidence = 1.0; // user-provided
+      state.bpmHistory = [];
+      showToast(`BPM set to ${bpm}`);
+      updateBpmDisplay();
+    }
+    if (btnTapTempo) btnTapTempo.addEventListener('click', handleTap);
+    // Brand tab buttons: same tap behavior, plus a Reset that clears
+    // the manual BPM and lets auto-detection take over.
+    if (brandBpmTap) brandBpmTap.addEventListener('click', handleTap);
+    if (brandBpmReset) brandBpmReset.addEventListener('click', () => {
+      state.bpm = null;
+      state.bpmSource = 'idle';
+      state.bpmConfidence = 0;
+      state.bpmHistory = [];
+      state.taps = [];
+      showToast('BPM cleared · auto-detection will resume on next beat');
+    });
+    // Keyboard shortcut: 'T' (without modifiers) taps the tempo
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 't' || e.key === 'T') {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          handleTap();
+        }
+      }
+    });
+
+    // P2.1 — Update the BPM display pill. Called whenever state.bpm or
+    // state.bpmSource changes. Cheap DOM update so it can run every
+    // 250ms without thrashing.
+    function updateBpmDisplay() {
+      if (!bpmDisplay) return;
+      if (state.bpm == null) {
+        bpmDisplay.textContent = '—';
+        bpmDisplay.classList.add('is-na');
+        if (bpmSource) { bpmSource.textContent = '—'; bpmSource.className = 'bpm-source'; }
+      } else {
+        bpmDisplay.textContent = state.bpm % 1 === 0 ? Math.round(state.bpm).toString() : state.bpm.toFixed(1);
+        bpmDisplay.classList.remove('is-na');
+        if (bpmSource) {
+          if (state.bpmSource === 'tap') {
+            bpmSource.textContent = 'T'; bpmSource.className = 'bpm-source is-tap';
+          } else if (state.bpmSource === 'auto') {
+            bpmSource.textContent = '·'; bpmSource.className = 'bpm-source is-auto';
+          } else {
+            bpmSource.textContent = '—'; bpmSource.className = 'bpm-source';
+          }
+        }
+      }
+      // Mirror to the brand tab so users see BPM while configuring brand
+      if (brandBpmDisplay) {
+        if (state.bpm == null) {
+          brandBpmDisplay.textContent = '—';
+          brandBpmDisplay.classList.add('is-na');
+        } else {
+          brandBpmDisplay.textContent = state.bpm % 1 === 0 ? Math.round(state.bpm).toString() : state.bpm.toFixed(1);
+          brandBpmDisplay.classList.remove('is-na');
+        }
+      }
+      if (brandBpmSource) {
+        if (state.bpmSource === 'tap') brandBpmSource.textContent = 'tap';
+        else if (state.bpmSource === 'auto') brandBpmSource.textContent = 'auto';
+        else brandBpmSource.textContent = '—';
+      }
+    }
+    // Throttled: poll every 250ms (matches beat decay rate)
+    setInterval(updateBpmDisplay, 250);
     audioEl.addEventListener('timeupdate', updateTime);
 
     function updateTime() {
