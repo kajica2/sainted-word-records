@@ -1342,6 +1342,158 @@
     }
 
     /* ============================================================
+       ENGINE WORKSPACE — adapts inside the floating window
+       ============================================================ */
+    .floating-engine__body .engine__workspace {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+    }
+    .floating-engine__body .engine__workspace > .stage,
+    .floating-engine__body .engine__workspace > .engine__sidebar {
+      width: 100%;
+    }
+    /* Default: stack vertically inside the floating body. The fullscreen
+       mode (toggled by body.engine-fullscreen) restores the side-by-side grid. */
+    body.engine-fullscreen .floating-engine__body .engine__workspace {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      padding: 16px;
+    }
+    @media (max-width: 1080px) {
+      body.engine-fullscreen .floating-engine__body .engine__workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============================================================
+       FLOATING ENGINE WINDOW
+       Draggable, resizable, with optional fullscreen mode.
+       ============================================================ */
+    .engine-viewport {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .floating-engine {
+      position: absolute;
+      inset: 16px;
+      display: flex;
+      flex-direction: column;
+      background: var(--ink-1);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+      z-index: 5;
+      min-width: 320px;
+      min-height: 240px;
+    }
+    .floating-engine.is-fullscreen {
+      position: fixed;
+      inset: 0;
+      border-radius: 0;
+      border: none;
+      z-index: 50;
+    }
+    .floating-engine.is-minimized {
+      height: auto !important;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+    .floating-engine.is-minimized .floating-engine__body { display: none; }
+    .floating-engine.is-minimized .floating-engine__resize { display: none; }
+    .floating-engine__titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--ink-2);
+      border-bottom: 1px solid var(--line);
+      cursor: grab;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .floating-engine__titlebar.is-dragging { cursor: grabbing; }
+    .floating-engine__title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .floating-engine__title .is-active-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--lime);
+      margin-right: 6px;
+      vertical-align: middle;
+      box-shadow: 0 0 6px var(--lime);
+    }
+    .floating-engine__btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--ink-3);
+      color: var(--text-dim);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+    }
+    .floating-engine__btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+    .floating-engine__btn svg { width: 12px; height: 12px; }
+    .floating-engine__btn.is-on {
+      background: rgba(215,255,61,0.16);
+      color: var(--lime);
+      border-color: var(--lime);
+    }
+    .floating-engine__body {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+      background: var(--ink-1);
+    }
+    .floating-engine__body .wrap { padding: 16px; }
+    /* When fullscreen, hide the sidebar panels (presets/layers/media/brand/social)
+       by hiding everything except the stage+transport. We do this via a class
+       on the body that hides specific elements in fullscreen mode. */
+    body.engine-fullscreen .floating-engine__body .engine__sidebar { display: none; }
+    body.engine-fullscreen .floating-engine__body .engine__workspace:not(.engine__workspace--primary) { display: none; }
+    body.engine-fullscreen .engine-section-header { display: none; }
+
+    /* Resize handles (8 directions) */
+    .floating-engine__resize {
+      position: absolute;
+      z-index: 10;
+    }
+    .floating-engine__resize--n  { top: -3px;    left: 12px;   right: 12px;   height: 6px; cursor: ns-resize; }
+    .floating-engine__resize--s  { bottom: -3px; left: 12px;   right: 12px;   height: 6px; cursor: ns-resize; }
+    .floating-engine__resize--e  { right: -3px;  top: 12px;    bottom: 12px;  width: 6px;  cursor: ew-resize; }
+    .floating-engine__resize--w  { left: -3px;   top: 12px;    bottom: 12px;  width: 6px;  cursor: ew-resize; }
+    .floating-engine__resize--ne { top: -3px;    right: -3px;  width: 14px;   height: 14px; cursor: nesw-resize; }
+    .floating-engine__resize--nw { top: -3px;    left: -3px;   width: 14px;   height: 14px; cursor: nwse-resize; }
+    .floating-engine__resize--se { bottom: -3px; right: -3px;  width: 14px;   height: 14px; cursor: nwse-resize; }
+    .floating-engine__resize--sw { bottom: -3px; left: -3px;   width: 14px;   height: 14px; cursor: nesw-resize; }
+    .floating-engine.is-fullscreen .floating-engine__resize { display: none; }
+
+    /* ============================================================
        VIEWS — Engine (default) and Browse (marketing sections)
        ============================================================ */
     .view {
@@ -1420,6 +1572,154 @@
          nav links does deep-link to anchors inside it. */
       .nav__view-toggle__text { display: none; }
       .nav__view-toggle { padding: 8px 10px; }
+    }
+
+    /* Library source + actions row */
+    .lib-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .lib-actions .lib-pill {
+      flex: 1;
+      min-width: 0;
+      justify-content: center;
+    }
+    .lib-actions .lib-pill.danger {
+      color: var(--ember);
+      border-color: rgba(255, 90, 31, 0.4);
+    }
+    .lib-actions .lib-pill.danger:hover {
+      background: rgba(255, 90, 31, 0.12);
+    }
+
+    /* ============================================================
+       ONBOARDING MODAL — first-run upload prompt
+       ============================================================ */
+    .onboard {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+    .onboard.is-on { display: flex; }
+    .onboard__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 5, 8, 0.78);
+      backdrop-filter: blur(8px);
+    }
+    .onboard__card {
+      position: relative;
+      max-width: 520px;
+      width: 100%;
+      background: var(--ink-1);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      animation: onboard-in 0.4s var(--ease);
+    }
+    @keyframes onboard-in {
+      from { opacity: 0; transform: translateY(20px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .onboard__close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--ink-2);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .onboard__close:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+    .onboard__eyebrow { margin-bottom: 12px; }
+    .onboard__title {
+      font-family: var(--display);
+      font-size: clamp(24px, 3vw, 32px);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .onboard__copy {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+    .onboard__drop {
+      display: block;
+      position: relative;
+      padding: 28px;
+      border: 2px dashed var(--line);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+      background: var(--ink-2);
+    }
+    .onboard__drop:hover,
+    .onboard__drop.is-drag-over {
+      border-color: var(--lime);
+      background: rgba(215,255,61,0.05);
+    }
+    .onboard__drop-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--text-dim);
+    }
+    .onboard__drop-inner svg { color: var(--lime); flex-shrink: 0; }
+    .onboard__drop-text { display: flex; flex-direction: column; gap: 4px; }
+    .onboard__drop-text strong { color: var(--text); font-weight: 600; font-size: 14px; }
+    .onboard__drop-text span { font-size: 12px; }
+    .onboard__actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .onboard__actions .cta { flex: 1; justify-content: center; }
+    .onboard__formats {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 0 0;
+      display: grid;
+      gap: 6px;
+    }
+    .onboard__formats li {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 12px;
+      align-items: center;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-mute);
+    }
+    .onboard__formats li span {
+      color: var(--text-dim);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .onboard__formats li code {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+    @media (max-width: 540px) {
+      .onboard__card { padding: 24px; }
+      .onboard__drop-inner { flex-direction: column; text-align: center; }
     }
 
     /* ============================================================
@@ -2080,12 +2380,12 @@
     <!-- ============================================================
          ENGINE WORKSPACE
          ============================================================ -->
-    <section class="engine" id="engine" aria-labelledby="engine-title">
+    <section class="engine" id="engine" aria-labelledby="engine-section-title">
       <div class="wrap">
-        <header class="section-head reveal">
+        <header class="section-head reveal engine-section-header">
           <div>
             <span class="eyebrow">Engine</span>
-            <h2 id="engine-title" class="section-head__title" style="margin-top:14px;">
+            <h2 id="engine-section-title" class="section-head__title" style="margin-top:14px;">
               The <em>workspace</em>, not the brochure.
             </h2>
           </div>
@@ -2095,7 +2395,36 @@
           </p>
         </header>
 
-        <div class="engine__workspace reveal">
+        <!-- Floating window wraps the engine workspace. Draggable titlebar,
+             resizable from 8 handles, fullscreen toggle. By default it's
+             docked inside the section; the user can drag/resize, then
+             return to default with the "Dock" button. -->
+        <div class="engine-viewport">
+          <div class="floating-engine" id="floatingEngine" aria-label="Engine window">
+            <div class="floating-engine__titlebar" id="floatingEngineTitlebar" role="toolbar" aria-label="Engine window controls">
+              <span class="floating-engine__title">
+                <span class="is-active-dot" aria-hidden="true"></span>
+                <span id="floatingEngineTitle">Engine</span>
+                <span id="floatingEnginePreset" style="color:var(--text-mute);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px;">—</span>
+              </span>
+              <button class="floating-engine__btn" id="floatingEngineFullscreen" type="button" aria-pressed="false" title="Fullscreen" aria-label="Toggle fullscreen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                  <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+                </svg>
+              </button>
+              <button class="floating-engine__btn" id="floatingEngineDock" type="button" title="Dock (reset position + size)" aria-label="Dock window" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h6v2H6v4H4zM20 4v6h-2V6h-4V4zM4 14h2v4h4v2H4zM14 20v-2h4v-4h2v6z"/>
+                </svg>
+              </button>
+              <button class="floating-engine__btn" id="floatingEngineMinimize" type="button" title="Minimize" aria-label="Minimize window">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12h14"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="floating-engine__body" id="floatingEngineBody">
           <!-- Stage + Transport -->
           <div class="stage">
             <div class="stage__viewport" id="stageViewport">
@@ -2212,7 +2541,11 @@
 
                     <div class="lib-source" id="libSourceHint">
                       <span class="lib-source__pill" id="libSourcePill">Library: not loaded</span>
-                      <button class="lib-pill" id="libRefetch" type="button">Fetch library</button>
+                    </div>
+
+                    <div class="lib-actions" id="libActions">
+                      <button class="lib-pill" id="libLoadDemo" type="button" title="Replace your library with the curated /library/manifest.json demo (75 assets)">Load demo library</button>
+                      <button class="lib-pill danger" id="libClearAll" type="button" title="Remove every asset from the library (uploads + fetched)">Clear library</button>
                     </div>
 
                     <div class="lib-grid" id="libGrid"></div>
@@ -2385,6 +2718,19 @@
             </button>
           </div>
         </div>
+            </div><!-- /.floating-engine__body -->
+
+            <!-- 8 resize handles -->
+            <div class="floating-engine__resize floating-engine__resize--n"  data-resize="n"  aria-hidden="true"></div>
+            <div class="floating-engine__resize floating-engine__resize--s"  data-resize="s"  aria-hidden="true"></div>
+            <div class="floating-engine__resize floating-engine__resize--e"  data-resize="e"  aria-hidden="true"></div>
+            <div class="floating-engine__resize floating-engine__resize--w"  data-resize="w"  aria-hidden="true"></div>
+            <div class="floating-engine__resize floating-engine__resize--ne" data-resize="ne" aria-hidden="true"></div>
+            <div class="floating-engine__resize floating-engine__resize--nw" data-resize="nw" aria-hidden="true"></div>
+            <div class="floating-engine__resize floating-engine__resize--se" data-resize="se" aria-hidden="true"></div>
+            <div class="floating-engine__resize floating-engine__resize--sw" data-resize="sw" aria-hidden="true"></div>
+          </div><!-- /.floating-engine -->
+        </div><!-- /.engine-viewport -->
       </div>
     </section>
     </div><!-- /.view--engine -->
@@ -2598,6 +2944,52 @@
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ============================================================
+       FIRST-RUN ONBOARDING MODAL
+       Shown on first load only (gated by swr_onboarded_v1 localStorage).
+       Asks the user to upload their media (mp3, mp4, mpg, png, gif, jpg).
+       Batch upload + drag-drop. Dismissable.
+       ============================================================ -->
+  <div class="onboard" id="onboardModal" aria-hidden="true" role="dialog" aria-labelledby="onboardTitle">
+    <div class="onboard__backdrop" data-onboard="dismiss"></div>
+    <div class="onboard__card">
+      <button class="onboard__close" data-onboard="dismiss" type="button" aria-label="Dismiss onboarding">×</button>
+      <div class="onboard__eyebrow">
+        <span class="eyebrow">First time here</span>
+      </div>
+      <h2 id="onboardTitle" class="onboard__title">Load your media to get started.</h2>
+      <p class="onboard__copy">
+        Drop in songs (mp3, wav), video clips (mp4, mpg), or stills (png, gif, jpg). The engine
+        will route each to the right place — audio drives the visualizer, video + images fill
+        your media library. You can skip this and use the Media tab anytime.
+      </p>
+      <label class="onboard__drop" id="onboardDrop">
+        <input type="file" id="onboardFiles" accept=".mp3,.wav,.ogg,.m4a,.flac,.mp4,.webm,.mov,.m4v,.mpg,.mpeg,.png,.jpg,.jpeg,.gif,.webp,.avif,audio/*,video/*,image/*" multiple hidden />
+        <div class="onboard__drop-inner">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          <div class="onboard__drop-text">
+            <strong>Drop files here</strong>
+            <span>or click to browse — accepts batch uploads</span>
+          </div>
+        </div>
+      </label>
+      <div class="onboard__actions">
+        <button class="cta cta--ghost" id="onboardBrowse" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Browse files
+        </button>
+        <button class="cta cta--ghost" data-onboard="dismiss" type="button">Skip for now</button>
+      </div>
+      <ul class="onboard__formats">
+        <li><span>audio</span><code>mp3 · wav · ogg · m4a · flac</code></li>
+        <li><span>video</span><code>mp4 · mpg · webm · mov</code></li>
+        <li><span>image</span><code>png · jpg · gif · webp · avif</code></li>
+      </ul>
+    </div>
+  </div>
 
   <audio id="audioEl" preload="auto" crossorigin="anonymous"></audio>
 
@@ -2934,8 +3326,19 @@
     const libUrlAdd = $('#libUrlAdd');
     const libLayerAssign = $('#libLayerAssign');
     const libSourcePill = $('#libSourcePill');
-    const libRefetch = $('#libRefetch');
+    const libLoadDemo = $('#libLoadDemo');
+    const libClearAll = $('#libClearAll');
     const mediaSubtabs = $('#mediaSubtabs');
+
+    // Floating engine window
+    const floatingEngine = $('#floatingEngine');
+    const floatingEngineTitlebar = $('#floatingEngineTitlebar');
+    const floatingEngineBody = $('#floatingEngineBody');
+    const floatingEngineFullscreen = $('#floatingEngineFullscreen');
+    const floatingEngineDock = $('#floatingEngineDock');
+    const floatingEngineMinimize = $('#floatingEngineMinimize');
+    const floatingEngineTitle = $('#floatingEngineTitle');
+    const floatingEnginePreset = $('#floatingEnginePreset');
 
     const audioAddBtn = $('#audioAddBtn');
     const audioFileInput = $('#audioFileInput');
@@ -3035,7 +3438,412 @@
         });
       }
       saveState();
+      // Update the floating-window title to reflect the new preset
+      if (floatingEnginePreset) {
+        floatingEnginePreset.textContent = '· ' + (p ? p.name : id);
+      }
       showToast(`Preset loaded — ${p ? p.name : id}`);
+    }
+
+    /* ============================================================
+       FLOATING ENGINE WINDOW — drag, resize, fullscreen, dock, minimize
+       ============================================================ */
+    const floatingEngineState = {
+      // When null, the window uses its CSS-default position (inset:16px).
+      // When set, {x, y, w, h} are the rectangle inside the viewport.
+      x: null, y: null, w: null, h: null,
+      isDragging: false,
+      isResizing: false,
+      isFullscreen: false,
+      isMinimized: false
+    };
+
+    function applyFloatingEnginePosition() {
+      if (!floatingEngine) return;
+      if (floatingEngineState.isFullscreen) {
+        // Position fixed so the window escapes its parent containers
+        // and covers the entire viewport.
+        floatingEngine.style.position = 'fixed';
+        floatingEngine.style.inset = '0';
+        floatingEngine.style.left = '0';
+        floatingEngine.style.top = '0';
+        floatingEngine.style.width = '100%';
+        floatingEngine.style.height = '100%';
+        return;
+      }
+      if (floatingEngineState.isMinimized) {
+        floatingEngine.style.position = '';
+        floatingEngine.style.inset = '';
+        floatingEngine.style.left = 'auto';
+        floatingEngine.style.top = 'auto';
+        floatingEngine.style.right = '16px';
+        floatingEngine.style.bottom = '16px';
+        floatingEngine.style.width = '320px';
+        floatingEngine.style.height = 'auto';
+        return;
+      }
+      const s = floatingEngineState;
+      floatingEngine.style.position = '';
+      floatingEngine.style.inset = '';
+      if (s.x !== null && s.y !== null && s.w !== null && s.h !== null) {
+        floatingEngine.style.left = s.x + 'px';
+        floatingEngine.style.top  = s.y + 'px';
+        floatingEngine.style.width = s.w + 'px';
+        floatingEngine.style.height = s.h + 'px';
+      } else {
+        floatingEngine.style.left = '';
+        floatingEngine.style.top = '';
+        floatingEngine.style.width = '';
+        floatingEngine.style.height = '';
+      }
+    }
+
+    function dockFloatingEngine() {
+      floatingEngineState.x = null;
+      floatingEngineState.y = null;
+      floatingEngineState.w = null;
+      floatingEngineState.h = null;
+      floatingEngineState.isFullscreen = false;
+      floatingEngineState.isMinimized = false;
+      floatingEngine.classList.remove('is-fullscreen');
+      document.body.classList.remove('engine-fullscreen');
+      floatingEngineFullscreen.classList.remove('is-on');
+      floatingEngineFullscreen.setAttribute('aria-pressed', 'false');
+      floatingEngineDock.hidden = true;
+      applyFloatingEnginePosition();
+      // Trigger a resize so canvases re-read the bounding rect
+      requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+      showToast('Engine docked to default position.');
+    }
+
+    function toggleFullscreen() {
+      floatingEngineState.isFullscreen = !floatingEngineState.isFullscreen;
+      if (floatingEngineState.isFullscreen) {
+        floatingEngineState.isMinimized = false;
+        // Snapshot current position so we can restore on exit
+        const rect = floatingEngine.getBoundingClientRect();
+        floatingEngineState._savedRect = { x: rect.left, y: rect.top, w: rect.width, h: rect.height };
+        floatingEngine.classList.add('is-fullscreen');
+        document.body.classList.add('engine-fullscreen');
+        floatingEngineFullscreen.classList.add('is-on');
+        floatingEngineFullscreen.setAttribute('aria-pressed', 'true');
+        floatingEngineDock.hidden = false;
+        showToast('Fullscreen mode — sidebar hidden, stage fills viewport.');
+      } else {
+        floatingEngine.classList.remove('is-fullscreen');
+        document.body.classList.remove('engine-fullscreen');
+        floatingEngineFullscreen.classList.remove('is-on');
+        floatingEngineFullscreen.setAttribute('aria-pressed', 'false');
+        // After exiting, restore the saved rect relative to the current
+        // viewport so the window pops back to where it was.
+        if (floatingEngineState._savedRect) {
+          floatingEngineState.x = floatingEngineState._savedRect.x;
+          floatingEngineState.y = floatingEngineState._savedRect.y;
+          floatingEngineState.w = floatingEngineState._savedRect.w;
+          floatingEngineState.h = floatingEngineState._savedRect.h;
+        } else {
+          // First-time exit without prior drag: go back to default dock
+          floatingEngineState.x = null;
+          floatingEngineState.y = null;
+          floatingEngineState.w = null;
+          floatingEngineState.h = null;
+        }
+        showToast('Exited fullscreen.');
+      }
+      applyFloatingEnginePosition();
+      requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    }
+
+    function toggleMinimize() {
+      floatingEngineState.isMinimized = !floatingEngineState.isMinimized;
+      if (floatingEngineState.isMinimized) {
+        floatingEngine.classList.add('is-minimized');
+      } else {
+        floatingEngine.classList.remove('is-minimized');
+      }
+      applyFloatingEnginePosition();
+    }
+
+    if (floatingEngineFullscreen) floatingEngineFullscreen.addEventListener('click', toggleFullscreen);
+    if (floatingEngineDock) floatingEngineDock.addEventListener('click', dockFloatingEngine);
+    if (floatingEngineMinimize) floatingEngineMinimize.addEventListener('click', toggleMinimize);
+
+    /* ----- Drag-to-move ----- */
+    if (floatingEngineTitlebar) {
+      let dragStartX = 0, dragStartY = 0, origX = 0, origY = 0;
+      floatingEngineTitlebar.addEventListener('mousedown', (e) => {
+        // Ignore clicks on the titlebar buttons
+        if (e.target.closest('.floating-engine__btn')) return;
+        if (floatingEngineState.isFullscreen) return;
+        if (floatingEngineState.isMinimized) return;
+        const rect = floatingEngine.getBoundingClientRect();
+        const parentRect = floatingEngine.parentElement.getBoundingClientRect();
+        // Initialize stored position from current rect
+        floatingEngineState.x = rect.left - parentRect.left;
+        floatingEngineState.y = rect.top - parentRect.top;
+        floatingEngineState.w = rect.width;
+        floatingEngineState.h = rect.height;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        origX = floatingEngineState.x;
+        origY = floatingEngineState.y;
+        floatingEngineState.isDragging = true;
+        floatingEngineTitlebar.classList.add('is-dragging');
+        floatingEngineDock.hidden = false;
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!floatingEngineState.isDragging) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        const parentRect = floatingEngine.parentElement.getBoundingClientRect();
+        floatingEngineState.x = Math.max(0, Math.min(parentRect.width  - floatingEngineState.w, origX + dx));
+        floatingEngineState.y = Math.max(0, Math.min(parentRect.height - 40,       origY + dy));
+        applyFloatingEnginePosition();
+      });
+      document.addEventListener('mouseup', () => {
+        if (floatingEngineState.isDragging) {
+          floatingEngineState.isDragging = false;
+          if (floatingEngineTitlebar) floatingEngineTitlebar.classList.remove('is-dragging');
+        }
+        if (floatingEngineState.isResizing) {
+          floatingEngineState.isResizing = false;
+          document.body.style.cursor = '';
+        }
+      });
+    }
+
+    /* ----- Resize from 8 handles ----- */
+    $$('.floating-engine__resize').forEach((handle) => {
+      handle.addEventListener('mousedown', (e) => {
+        if (floatingEngineState.isFullscreen) return;
+        if (floatingEngineState.isMinimized) return;
+        const dir = handle.getAttribute('data-resize');
+        const rect = floatingEngine.getBoundingClientRect();
+        const parentRect = floatingEngine.parentElement.getBoundingClientRect();
+        floatingEngineState.x = rect.left - parentRect.left;
+        floatingEngineState.y = rect.top - parentRect.top;
+        floatingEngineState.w = rect.width;
+        floatingEngineState.h = rect.height;
+        floatingEngineState.isResizing = true;
+        floatingEngineState.resizeDir = dir;
+        floatingEngineState.resizeStartX = e.clientX;
+        floatingEngineState.resizeStartY = e.clientY;
+        floatingEngineState.resizeOrigX = floatingEngineState.x;
+        floatingEngineState.resizeOrigY = floatingEngineState.y;
+        floatingEngineState.resizeOrigW = floatingEngineState.w;
+        floatingEngineState.resizeOrigH = floatingEngineState.h;
+        document.body.style.cursor = getComputedStyle(handle).cursor;
+        floatingEngineDock.hidden = false;
+        e.preventDefault();
+      });
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!floatingEngineState.isResizing) return;
+      const dx = e.clientX - floatingEngineState.resizeStartX;
+      const dy = e.clientY - floatingEngineState.resizeStartY;
+      const dir = floatingEngineState.resizeDir;
+      const parentRect = floatingEngine.parentElement.getBoundingClientRect();
+      let newX = floatingEngineState.resizeOrigX;
+      let newY = floatingEngineState.resizeOrigY;
+      let newW = floatingEngineState.resizeOrigW;
+      let newH = floatingEngineState.resizeOrigH;
+      const minW = 320, minH = 240;
+      if (dir.indexOf('e') >= 0) newW = Math.max(minW, floatingEngineState.resizeOrigW + dx);
+      if (dir.indexOf('s') >= 0) newH = Math.max(minH, floatingEngineState.resizeOrigH + dy);
+      if (dir.indexOf('w') >= 0) {
+        newW = Math.max(minW, floatingEngineState.resizeOrigW - dx);
+        newX = floatingEngineState.resizeOrigX + (floatingEngineState.resizeOrigW - newW);
+      }
+      if (dir.indexOf('n') >= 0) {
+        newH = Math.max(minH, floatingEngineState.resizeOrigH - dy);
+        newY = floatingEngineState.resizeOrigY + (floatingEngineState.resizeOrigH - newH);
+      }
+      // Clamp inside parent
+      newX = Math.max(0, Math.min(parentRect.width  - newW, newX));
+      newY = Math.max(0, Math.min(parentRect.height - newH, newY));
+      floatingEngineState.x = newX;
+      floatingEngineState.y = newY;
+      floatingEngineState.w = newW;
+      floatingEngineState.h = newH;
+      applyFloatingEnginePosition();
+    });
+
+    /* ----- ESC exits fullscreen / minimizes / restores ----- */
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (floatingEngineState.isFullscreen) toggleFullscreen();
+      else if (floatingEngineState.isMinimized) toggleMinimize();
+    });
+
+    /* ============================================================
+       FIRST-RUN ONBOARDING MODAL
+       On first load (no swr_onboarded flag), surface an upload
+       prompt that accepts the user's local media files: mp3, mp4,
+       mpg, png, gif, jpg. Batch selection + drag-drop. Routes
+       each file to the right handler based on MIME/extension.
+       Dismissable; remembers the user said yes-or-no in localStorage.
+       ============================================================ */
+    function maybeShowOnboarding() {
+      // Already onboarded?
+      try {
+        if (localStorage.getItem('swr_onboarded_v1') === 'true') return;
+      } catch (e) { /* quota */ }
+
+      // Defer one frame so the rest of init can paint first
+      requestAnimationFrame(() => {
+        const m = document.getElementById('onboardModal');
+        if (!m) return;
+        m.classList.add('is-on');
+        m.setAttribute('aria-hidden', 'false');
+        // Focus the first interactive element
+        const firstBtn = m.querySelector('button, input');
+        if (firstBtn) firstBtn.focus();
+      });
+    }
+    function dismissOnboarding() {
+      const m = document.getElementById('onboardModal');
+      if (m) {
+        m.classList.remove('is-on');
+        m.setAttribute('aria-hidden', 'true');
+      }
+      try { localStorage.setItem('swr_onboarded_v1', 'true'); } catch (e) {}
+    }
+    // Wire the onboarding modal (deferred until DOM refs are available)
+    document.addEventListener('DOMContentLoaded', () => {
+      const m = document.getElementById('onboardModal');
+      if (!m) return;
+      // Skip / close buttons
+      m.querySelectorAll('[data-onboard="dismiss"]').forEach(btn => {
+        btn.addEventListener('click', dismissOnboarding);
+      });
+      // Upload button — opens picker
+      const fileInput = document.getElementById('onboardFiles');
+      const dropZone = document.getElementById('onboardDrop');
+      const browseBtn = document.getElementById('onboardBrowse');
+      if (browseBtn && fileInput) {
+        browseBtn.addEventListener('click', () => fileInput.click());
+      }
+      if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+          handleOnboardingFiles(Array.from(e.target.files || []));
+        });
+      }
+      if (dropZone) {
+        dropZone.addEventListener('dragover', (e) => {
+          if (e.dataTransfer && Array.from(e.dataTransfer.types).indexOf('Files') >= 0) {
+            e.preventDefault();
+            dropZone.classList.add('is-drag-over');
+          }
+        });
+        dropZone.addEventListener('dragleave', () => {
+          dropZone.classList.remove('is-drag-over');
+        });
+        dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('is-drag-over');
+          handleOnboardingFiles(Array.from(e.dataTransfer.files || []));
+        });
+      }
+    });
+
+    async function handleOnboardingFiles(files) {
+      if (!files.length) return;
+      const audios = [];
+      const videos = [];
+      const images = [];
+      for (const f of files) {
+        const name = (f.name || '').toLowerCase();
+        const mime = (f.type || '').toLowerCase();
+        if (mime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac)$/i.test(name)) audios.push(f);
+        else if (mime.startsWith('video/') || /\.(mp4|webm|mov|m4v|mpg|mpeg)$/i.test(name)) videos.push(f);
+        else if (mime.startsWith('image/') || /\.(png|jpe?g|gif|webp|avif)$/i.test(name)) images.push(f);
+      }
+      let count = 0;
+      if (audios.length) {
+        await handleAudioFiles(audios);
+        count += audios.length;
+      }
+      if (videos.length || images.length) {
+        // Combine all media into the library. The handler figures out kind.
+        [...videos, ...images].forEach(handleLibraryFile);
+        count += videos.length + images.length;
+      }
+      if (count === 0) {
+        showToast('No supported files. Accepted: mp3, mp4, mpg, png, gif, jpg.');
+        return;
+      }
+      showToast(`Imported ${count} file${count === 1 ? '' : 's'}.`);
+      // Close the modal once files land
+      dismissOnboarding();
+    }
+
+    /* ============================================================
+       MEDIA LIBRARY — clear + load demo
+       ============================================================ */
+    if (libClearAll) {
+      libClearAll.addEventListener('click', () => {
+        const count = state.library.items.length;
+        if (!count) { showToast('Library is already empty.'); return; }
+        // Detach any in-memory Blob URLs we'd lose track of
+        state.library.items = [];
+        state.library.libraryLoaded = false;
+        state.library.librarySource = '';
+        libSourcePill.textContent = 'Library: not loaded';
+        libSourcePill.classList.remove('is-loaded');
+        saveState();
+        renderLibrary();
+        showToast('Cleared ' + count + ' asset' + (count === 1 ? '' : 's') + '.');
+      });
+    }
+
+    if (libLoadDemo) {
+      libLoadDemo.addEventListener('click', () => {
+        // The fetch is async; show a loading state immediately.
+        showToast('Loading demo library…');
+        fetchLibraryManifest().then(() => {
+          // fetchLibraryManifest already populates state.library.items,
+          // sets the source pill, and renders. But it skips if already
+          // loaded — for "Load demo" we want a force-refresh: clear first.
+        }).catch(() => {});
+        // Force a re-fetch even if already loaded: nuke the cached list
+        // (keeping user uploads aside in a temp save), fetch fresh, then
+        // merge user uploads back in.
+        const userUploads = state.library.items.filter(a => a.origin === 'user' || a.origin === 'url');
+        const before = state.library.items.length;
+        // Force the fetch to re-run even when libraryLoaded is true.
+        state.library.libraryLoaded = false;
+        state.library.librarySource = '';
+        libSourcePill.textContent = 'Library: loading…';
+        libSourcePill.classList.remove('is-loaded');
+        // Fetch and merge
+        (async () => {
+          const urls = ['/library/manifest.json', './library/manifest.json'];
+          let ok = false;
+          for (const u of urls) {
+            try {
+              const res = await fetch(u, { cache: 'no-cache' });
+              if (!res.ok) continue;
+              const data = await res.json();
+              const files = Array.isArray(data) ? data : (data.files || []);
+              if (!files.length) continue;
+              // Build a fresh item set: library files first, then user uploads
+              state.library.items = [];
+              populateLibraryFromManifest(files, u);
+              state.library.items = state.library.items.concat(userUploads);
+              saveState();
+              renderLibrary();
+              showToast(`Demo library loaded — ${files.length} curated + ${userUploads.length} uploads.`);
+              ok = true;
+              break;
+            } catch (e) { /* try next */ }
+          }
+          if (!ok) {
+            showToast('Could not reach /library/manifest.json — using uploads only.');
+            libSourcePill.textContent = 'Library: not loaded';
+          }
+        })();
+      });
     }
 
     /* ============================================================
@@ -3258,9 +4066,7 @@
       showToast('Loaded ' + added + ' library assets from manifest.');
     }
 
-    libRefetch.addEventListener('click', () => {
-      fetchLibraryManifest();
-    });
+    /* libRefetch click handler removed — replaced by Load demo library button below */
 
     function renderLibrary() {
       libGrid.innerHTML = '';
@@ -4562,6 +5368,9 @@
       // new MORPHA / GENERATIVE presets in the sidebar with a violet
       // ring so they're distinguishable from built-ins).
       fetchAndImportPresets();
+      // First-run onboarding modal (gated by swr_onboarded_v1).
+      // Asks the user to upload media before doing anything else.
+      maybeShowOnboarding();
     }
 
     init();
