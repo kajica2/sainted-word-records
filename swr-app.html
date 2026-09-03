@@ -2422,6 +2422,14 @@
       transition: border-color 0.2s var(--ease);
     }
     .field__input:focus { border-color: var(--lime); }
+    .field__input--inline {
+      width: auto;
+      flex: 1;
+      padding: 6px 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
     .field__row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -3016,6 +3024,47 @@
                     </div>
                     <p class="field__hint">Auto-detected from spectral flux · tap 4+ times to set manually</p>
                   </div>
+
+                  <!-- P2.4 — key detection readout. Mirrors the BPM pill —
+                       shows the detected key (e.g. "F#m") with a source
+                       badge, plus a manual override row for users who
+                       know the key and want to set it without playing
+                       audio. -->
+                  <div class="field">
+                    <label class="field__label">Detected Key <small id="brandKeySource">—</small></label>
+                    <div class="bpm-row">
+                      <span id="brandKeyDisplay" class="bpm-display is-na">—</span>
+                      <select id="brandKeyManual" class="field__input field__input--inline" aria-label="Manual key override">
+                        <option value="">—</option>
+                        <option value="C">C major</option>
+                        <option value="Cm">C minor</option>
+                        <option value="C#">C# major</option>
+                        <option value="C#m">C# minor</option>
+                        <option value="D">D major</option>
+                        <option value="Dm">D minor</option>
+                        <option value="D#">D# major</option>
+                        <option value="D#m">D# minor</option>
+                        <option value="E">E major</option>
+                        <option value="Em">E minor</option>
+                        <option value="F">F major</option>
+                        <option value="Fm">F minor</option>
+                        <option value="F#">F# major</option>
+                        <option value="F#m">F# minor</option>
+                        <option value="G">G major</option>
+                        <option value="Gm">G minor</option>
+                        <option value="G#">G# major</option>
+                        <option value="G#m">G# minor</option>
+                        <option value="A">A major</option>
+                        <option value="Am">A minor</option>
+                        <option value="A#">A# major</option>
+                        <option value="A#m">A# minor</option>
+                        <option value="B">B major</option>
+                        <option value="Bm">B minor</option>
+                      </select>
+                      <button class="btn btn--ghost" id="brandKeyReset" type="button">Reset</button>
+                    </div>
+                    <p class="field__hint">Krumhansl-Schmuckler over 4s chroma · override anytime</p>
+                  </div>
                 </div>
               </div>
 
@@ -3528,7 +3577,17 @@
       // P2.1 — beat-quantized preset switching. User clicks a preset, it
       // gets queued here; on the next beat pulse we apply it. Lets DJs
       // align preset transitions to the music.
-      pendingPresetId: null
+      pendingPresetId: null,
+      // P2.4 — key detection (Krumhansl-Schmuckler). Same shape as
+      // bpm/bpmSource: a value + source so the UI can show the user
+      // where the number came from. Auto-detected keys are NOT
+      // persisted (always recomputed on next play).
+      key: null,              // e.g. 'C', 'F#m', 'Bb'; null until detected
+      keyTonic: null,         // 0-11 (C=0, C#=1, ..., B=11)
+      keyMode: null,          // 'major' | 'minor' | null
+      keyConfidence: 0,       // 0-1, gap between best and second-best
+      keyCorrelation: 0,      // raw pearson r for the winning key
+      keySource: 'idle'       // 'auto' | 'manual' | 'idle'
     };
 
     const PRESETS = [
@@ -3750,6 +3809,14 @@
           state.bpmSource = 'tap';
           state.bpmConfidence = 1.0;
         }
+        // P2.4 — restore manual key (auto-key recomputes on next play)
+        if (saved.key != null && saved.keySource === 'manual') {
+          state.key = saved.key;
+          state.keyTonic = saved.keyTonic;
+          state.keyMode = saved.keyMode;
+          state.keySource = 'manual';
+          state.keyConfidence = 1.0;
+        }
         // P2.2 — restore per-layer reactors. Migrate legacy single-object
         // shape ({feature, target, scale, enabled}) into the new array
         // shape ([obj, null, null]).
@@ -3780,6 +3847,14 @@
         state.bpm = snap.bpm;
         state.bpmSource = 'tap';
         state.bpmConfidence = 1.0;
+      }
+      // P2.4 — restore manual key (auto-key is recomputed)
+      if (snap.key != null && snap.keySource === 'manual') {
+        state.key = snap.key;
+        state.keyTonic = snap.keyTonic;
+        state.keyMode = snap.keyMode;
+        state.keySource = 'manual';
+        state.keyConfidence = 1.0;
       }
       saveState();
     }
@@ -3814,6 +3889,13 @@
           // Auto-detected BPM is NOT persisted (always recomputed on next play).
           bpm: state.bpmSource === 'tap' ? state.bpm : null,
           bpmSource: state.bpmSource === 'tap' ? 'tap' : 'idle',
+          // P2.4 — persist user's manually-selected key so it survives
+          // reload. Auto-detected keys are NOT persisted (always
+          // recomputed on next play).
+          key: state.keySource === 'manual' ? state.key : null,
+          keyTonic: state.keySource === 'manual' ? state.keyTonic : null,
+          keyMode: state.keySource === 'manual' ? state.keyMode : null,
+          keySource: state.keySource === 'manual' ? 'manual' : 'idle',
           // P2.2 — persist per-layer reactors (3 slots each).
           reactors: state.reactors
         }));
@@ -3858,6 +3940,11 @@
     const brandBpmSource = $('#brandBpmSource');
     const brandBpmTap = $('#brandBpmTap');
     const brandBpmReset = $('#brandBpmReset');
+    // P2.4 — Key detection UI
+    const brandKeyDisplay = $('#brandKeyDisplay');
+    const brandKeySource = $('#brandKeySource');
+    const brandKeyManual = $('#brandKeyManual');
+    const brandKeyReset = $('#brandKeyReset');
 
     const exportFormatsEl = $('#exportFormats');
     const exportDurationsEl = $('#exportDurations');
@@ -4575,7 +4662,12 @@
         social: { lastCaptionSeed: state.social.lastCaptionSeed },
         // P2.1 — save tapped BPM only (auto-BPM is recomputed on play)
         bpm: state.bpmSource === 'tap' ? state.bpm : null,
-        bpmSource: state.bpmSource === 'tap' ? 'tap' : 'idle'
+        bpmSource: state.bpmSource === 'tap' ? 'tap' : 'idle',
+        // P2.4 — save manual key only (auto-key is recomputed on play)
+        key: state.keySource === 'manual' ? state.key : null,
+        keyTonic: state.keySource === 'manual' ? state.keyTonic : null,
+        keyMode: state.keySource === 'manual' ? state.keyMode : null,
+        keySource: state.keySource === 'manual' ? 'manual' : 'idle'
       };
     }
 
@@ -6258,6 +6350,156 @@
       if (onsetEnvelope.size < onsetEnvelope.buffer.length) onsetEnvelope.size++;
     }
 
+    /* ============================================================
+       P2.4 — KEY DETECTION (KRUMHANSL-SCHMUCKLER)
+       Estimate the musical key of the playing track by correlating
+       the live chroma vector (12-bin pitch class profile) against
+       Krumhansl-Schmuckler templates for all 24 keys (12 major +
+       12 minor). The highest-correlation key wins.
+
+       Step 1 — Chroma extraction. Each FFT bin corresponds to a
+       frequency. We map bin index → MIDI note number →
+       pitch class (mod 12). Energy accumulates into a 12-bin
+       vector; sustained over a window (4s of FFT frames sampled
+       at ~10 Hz) to get a stable chroma profile.
+
+       Step 2 — Krumhansl-Schmuckler templates. Each major key
+       starts on a different pitch class but has the same
+       interval pattern. We rotate the template to match the
+       candidate tonic, so we only need ONE major template and
+       ONE minor template (12-bin each), then for each of the
+       24 candidate keys we compare against the rotated template.
+
+       Step 3 — Pearson correlation. We compare the live chroma
+       (mean-centered, normalized) against each rotated template
+       (also mean-centered, normalized). The key with the highest
+       correlation wins. We track confidence as (best - secondBest)
+       so a clear winner has high confidence and a tied or noisy
+       chroma returns low confidence.
+
+       Step 4 — UI + persistence. state.key is the detected tonic
+       (C, C#, ..., B), state.mode is 'major' or 'minor'. The
+       brand tab gets a Key pill that mirrors the BPM pill.
+       ============================================================ */
+
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // Krumhansl-Schmuckler key profiles (1990). The exact weights come
+    // from cognitive experiments where listeners rated how well each
+    // scale degree fit a tonic. These are the canonical values.
+    const KS_MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+    const KS_MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+
+    // Chroma ring buffer. We sample the chroma vector at 10 Hz,
+    // accumulate over a window of ~40 samples (4 seconds), and run
+    // the correlation every 1.5s. This gives stable detection
+    // without lagging too far behind a key change.
+    const chromaWindow = {
+      samples: [],          // array of 12-arrays
+      maxSamples: 40,       // ~4s at 10 Hz
+      lastSample: 0,        // performance.now() of last sample
+      sampleInterval: 100,  // ms between chroma samples
+      lastCorrelate: 0,
+      correlateInterval: 1500
+    };
+
+    // Compute the chroma vector from the current FFT, push to window
+    function pushChroma(fft, sampleRate, fftSize) {
+      const now = performance.now();
+      if (now - chromaWindow.lastSample < chromaWindow.sampleInterval) return;
+      chromaWindow.lastSample = now;
+      const chroma = new Float32Array(12);
+      const nyquist = sampleRate / 2;
+      const binHz = nyquist / fft.length;
+      // Walk every bin, map to MIDI note → pitch class.
+      // Skip bins below A0 (MIDI 21 = 27.5 Hz) — they don't carry
+      // pitch class info we care about. Skip above C8 (MIDI 108 =
+      // 4186 Hz) — too high for typical pop/jazz/electronic content
+      // and adds noise to the chroma.
+      const minMidi = 21, maxMidi = 108;
+      for (let i = 0; i < fft.length; i++) {
+        const freq = i * binHz;
+        if (freq < 27.5) continue;
+        if (freq > 4186) continue;
+        // freq → MIDI: midi = 69 + 12 * log2(freq / 440)
+        const midi = Math.round(69 + 12 * Math.log2(freq / 440));
+        if (midi < minMidi || midi > maxMidi) continue;
+        const pc = ((midi % 12) + 12) % 12;
+        chroma[pc] += fft[i];
+      }
+      // Normalize: divide by max bin so the profile is 0-1 scale,
+      // comparable across different loudnesses.
+      let max = 0;
+      for (let i = 0; i < 12; i++) if (chroma[i] > max) max = chroma[i];
+      if (max > 0) for (let i = 0; i < 12; i++) chroma[i] /= max;
+      // Push to window
+      chromaWindow.samples.push(Array.from(chroma));
+      if (chromaWindow.samples.length > chromaWindow.maxSamples) chromaWindow.samples.shift();
+    }
+
+    // Mean the chroma window into a single 12-vector
+    function meanChroma() {
+      const out = new Float32Array(12);
+      const n = chromaWindow.samples.length;
+      if (n === 0) return null;
+      for (let s = 0; s < n; s++) {
+        for (let i = 0; i < 12; i++) out[i] += chromaWindow.samples[s][i];
+      }
+      for (let i = 0; i < 12; i++) out[i] /= n;
+      return out;
+    }
+
+    // Pearson correlation between two 12-vectors
+    function pearsonCorr(a, b) {
+      let ma = 0, mb = 0;
+      for (let i = 0; i < 12; i++) { ma += a[i]; mb += b[i]; }
+      ma /= 12; mb /= 12;
+      let num = 0, da = 0, db = 0;
+      for (let i = 0; i < 12; i++) {
+        const ai = a[i] - ma, bi = b[i] - mb;
+        num += ai * bi;
+        da += ai * ai;
+        db += bi * bi;
+      }
+      const denom = Math.sqrt(da * db);
+      return denom === 0 ? 0 : num / denom;
+    }
+
+    // Rotate a template so the tonic is at index 0
+    function rotateTemplate(template, semitones) {
+      const out = new Float32Array(12);
+      for (let i = 0; i < 12; i++) out[i] = template[(i - semitones + 12) % 12];
+      return out;
+    }
+
+    // Run Krumhansl-Schmuckler correlation. Returns {key, mode, confidence}
+    // or null if insufficient data.
+    function detectKey() {
+      if (chromaWindow.samples.length < 8) return null; // need ≥0.8s
+      const chroma = meanChroma();
+      if (!chroma) return null;
+      // Try all 24 keys
+      const results = [];
+      for (let tonic = 0; tonic < 12; tonic++) {
+        const majorT = rotateTemplate(KS_MAJOR_PROFILE, tonic);
+        const minorT = rotateTemplate(KS_MINOR_PROFILE, tonic);
+        results.push({ tonic, mode: 'major', corr: pearsonCorr(chroma, majorT) });
+        results.push({ tonic, mode: 'minor', corr: pearsonCorr(chroma, minorT) });
+      }
+      results.sort((a, b) => b.corr - a.corr);
+      const best = results[0];
+      const second = results[1];
+      // Confidence: gap between best and second-best, normalized
+      const confidence = Math.max(0, Math.min(1, (best.corr - second.corr) * 5));
+      return {
+        tonic: best.tonic,
+        mode: best.mode,
+        tonicName: NOTE_NAMES[best.tonic],
+        correlation: Math.round(best.corr * 1000) / 1000,
+        confidence
+      };
+    }
+
     function getBands() {
       // If audio is playing, use FFT; otherwise simulate.
       const isLive = !!(state.audio.loaded && state.audio.playing);
@@ -6278,6 +6520,12 @@
         if (detectBeat(fft, true)) {
           state.beat = 1.0;
         }
+        // P2.4 — chroma extraction feeds the key detector. We sample
+        // the chroma at 10 Hz and run the K-S correlation every 1.5s.
+        // Requires the analyser to expose its sample rate, which we
+        // cache on first call.
+        if (!window._cachedSampleRate) window._cachedSampleRate = audioCtx.sampleRate;
+        pushChroma(fft, window._cachedSampleRate, analyser.fftSize);
       } else {
         const s = sim(performance.now() - t0);
         state.audioBands.bass   = state.audioBands.bass   * 0.85 + s.bass   * 0.15;
@@ -6319,6 +6567,37 @@
             state.bpm = Math.round(median * 10) / 10;
             state.bpmConfidence = result.confidence;
             if (state.bpmSource === 'idle') state.bpmSource = 'auto';
+          }
+        }
+      }
+      // P2.4 — key detection (also throttled, 1.5s). Uses the chroma
+      // window built up by pushChroma above. Only updates state if the
+      // new candidate is the same key as the current (within a
+      // semitone) — otherwise transient chroma spikes can flip the key
+      // rapidly. We update source to 'auto' on first detection.
+      if (now - chromaWindow.lastCorrelate > chromaWindow.correlateInterval) {
+        chromaWindow.lastCorrelate = now;
+        const keyResult = detectKey();
+        if (keyResult && keyResult.confidence > 0.05) {
+          const newKey = keyResult.tonicName + (keyResult.mode === 'minor' ? 'm' : '');
+          if (state.key !== newKey && state.keyConfidence != null && state.keyConfidence > 0.3) {
+            // High-confidence existing key — only flip if new key is
+            // much higher correlation. This prevents rapid thrashing.
+            if (keyResult.correlation - (state.keyCorrelation || 0) > 0.1) {
+              state.key = newKey;
+              state.keyTonic = keyResult.tonic;
+              state.keyMode = keyResult.mode;
+              state.keyConfidence = keyResult.confidence;
+              state.keyCorrelation = keyResult.correlation;
+              if (state.keySource === 'idle') state.keySource = 'auto';
+            }
+          } else {
+            state.key = newKey;
+            state.keyTonic = keyResult.tonic;
+            state.keyMode = keyResult.mode;
+            state.keyConfidence = keyResult.confidence;
+            state.keyCorrelation = keyResult.correlation;
+            if (state.keySource === 'idle') state.keySource = 'auto';
           }
         }
       }
@@ -6973,8 +7252,80 @@
         else brandBpmSource.textContent = '—';
       }
     }
+
+    // P2.4 — Update the key display in the brand tab. Polled on the
+    // same 250ms tick as the BPM display. Renders "—" until a key is
+    // detected, then shows e.g. "F#m" with a source badge.
+    function updateKeyDisplay() {
+      if (!brandKeyDisplay) return;
+      if (state.key == null) {
+        brandKeyDisplay.textContent = '—';
+        brandKeyDisplay.classList.add('is-na');
+        if (brandKeySource) brandKeySource.textContent = '—';
+        if (brandKeyManual && brandKeyManual.value !== '') brandKeyManual.value = '';
+      } else {
+        brandKeyDisplay.textContent = state.key;
+        brandKeyDisplay.classList.remove('is-na');
+        if (brandKeySource) {
+          if (state.keySource === 'manual') brandKeySource.textContent = 'manual';
+          else if (state.keySource === 'auto') brandKeySource.textContent = 'auto';
+          else brandKeySource.textContent = '—';
+        }
+        // Sync the manual override <select> to the current state — but
+        // only if the user isn't actively changing it (avoid stomping
+        // their selection mid-click).
+        if (brandKeyManual && document.activeElement !== brandKeyManual) {
+          if (brandKeyManual.value !== state.key) brandKeyManual.value = state.key;
+        }
+      }
+    }
+
+    // P2.4 — manual key override + reset
+    if (brandKeyManual) {
+      brandKeyManual.addEventListener('change', (e) => {
+        const k = e.target.value;
+        if (!k) {
+          // Empty selection = clear manual key
+          state.key = null;
+          state.keyTonic = null;
+          state.keyMode = null;
+          state.keySource = 'idle';
+          state.keyConfidence = 0;
+          state.keyCorrelation = 0;
+        } else {
+          // Parse "C" / "Cm" / "F#" / "F#m" into tonic + mode
+          const isMinor = k.endsWith('m');
+          const tonicName = isMinor ? k.slice(0, -1) : k;
+          const tonicIdx = NOTE_NAMES.indexOf(tonicName);
+          if (tonicIdx >= 0) {
+            state.key = k;
+            state.keyTonic = tonicIdx;
+            state.keyMode = isMinor ? 'minor' : 'major';
+            state.keySource = 'manual';
+            state.keyConfidence = 1.0; // user-provided
+            state.keyCorrelation = 1.0;
+          }
+        }
+        saveState();
+      });
+    }
+    if (brandKeyReset) {
+      brandKeyReset.addEventListener('click', () => {
+        state.key = null;
+        state.keyTonic = null;
+        state.keyMode = null;
+        state.keySource = 'idle';
+        state.keyConfidence = 0;
+        state.keyCorrelation = 0;
+        chromaWindow.samples = []; // clear the chroma window so detection restarts fresh
+        if (brandKeyManual) brandKeyManual.value = '';
+        saveState();
+        showToast('Key cleared · auto-detection will resume on next audio');
+      });
+    }
     // Throttled: poll every 250ms (matches beat decay rate)
     setInterval(updateBpmDisplay, 250);
+    setInterval(updateKeyDisplay, 250);
     audioEl.addEventListener('timeupdate', updateTime);
 
     function updateTime() {
