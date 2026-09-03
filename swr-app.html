@@ -502,6 +502,136 @@
       .floating-engine__resize { display: none !important; }
     }
 
+    /* P3.5b — responsive fixes. Three breakpoints that close gaps the
+       640px breakpoint leaves open:
+
+       ≤480px  : tiny phones. Transport buttons + labels shrink so all
+                 6 controls fit on two rows instead of three; stage
+                 aspect ratio relaxes from 16:9 to 4:3 so the preview
+                 fills more vertical real estate (was a 178px postage
+                 stamp on a 414px viewport before).
+       481–640px : small phones. Compact transport without the aspect
+                 ratio change (kept wide for preview legibility).
+       641–1080px: tablets. Floating engine fills more of the viewport
+                 (wider horizontal inset) so the 1-column workspace
+                 doesn't leave a lot of dead space on the right.
+    */
+    @media (max-width: 480px) {
+      .transport {
+        padding: 8px 10px;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .btn-icon { width: 36px; height: 36px; }
+      .transport__time { font-size: 11px; min-width: 84px; }
+      .transport__volume { min-width: 110px; gap: 4px; }
+      .transport__bpm { padding: 3px 8px; gap: 4px; }
+      .transport__file,
+      .transport__mic,
+      .transport__tap,
+      .btn-record {
+        padding: 6px 10px;
+        font-size: 11px;
+        min-height: 36px;
+      }
+      /* Switch the stage aspect ratio so the preview is taller (and
+         therefore a usable size) on portrait phones. 4:3 lands at
+         ~330×247 on a 414px viewport — meaningful, not a postage stamp.
+         We override .stage__viewport (declared earlier in the file)
+         with the same selector and a !important-equivalent specificity
+         bump by chaining a class that always resolves. */
+      .floating-engine__body .stage__viewport { aspect-ratio: 4 / 3; }
+      /* Tighten panel padding so 360px viewports don't overflow. */
+      .panel { padding: 14px; gap: 12px; }
+      .panel + .panel { margin-top: 12px; }
+      /* Drop the engine-section-header copy on the smallest phones —
+         it eats vertical space the engine needs more. */
+      .engine-section-header .section-head__copy { display: none; }
+    }
+
+    @media (min-width: 481px) and (max-width: 640px) {
+      /* Small phones — same breakpoint family as the ≤480px rules but
+         keep the 16:9 stage (preserves the cinematic look) and only
+         compact the transport. */
+      .transport {
+        padding: 10px;
+        gap: 8px;
+      }
+      .transport__volume { min-width: 130px; }
+      .transport__file,
+      .transport__mic,
+      .transport__tap,
+      .btn-record {
+        padding: 7px 10px;
+        font-size: 11px;
+        min-height: 38px;
+      }
+    }
+
+    @media (min-width: 641px) and (max-width: 1080px) {
+      /* Tablets. Workspace already collapses to 1 column at ≤1080px;
+         give the floating engine wider horizontal insets so the
+         stage isn't pinned to a tiny center column. */
+      .floating-engine { inset: 16px 24px; }
+      /* Make sure the stage doesn't get crushed when its row in the
+         flex column has to share height with the sidebar. */
+      .floating-engine__body > .stage { min-height: 320px; }
+    }
+
+    /* P3.5b — Mobile stage sizing. On phones the floating engine body
+       is a flex column with .stage and .engine__sidebar as siblings.
+       Without explicit flex sizing the stage takes its natural 16:9
+       aspect-ratio height and the sidebar eats the rest of the space.
+       Force the stage to flex-grow and the sidebar to flex-shrink so
+       the preview fills the available vertical area. The sidebar caps
+       itself with max-height: 40vh (already in the ≤640px rule) so
+       the stage gets at least 60vh of the engine body. */
+    @media (max-width: 640px) {
+      .floating-engine__body > .stage { flex: 1 1 auto; min-height: 220px; }
+      .floating-engine__body > .engine__sidebar { flex: 0 0 auto; }
+      /* The engine section's .wrap is a flex column. If the only visible
+         child of the wrap (engine-viewport) has only absolutely-positioned
+         children (the floating engine is position:absolute), the wrap
+         collapses to 0px wide. Force both the wrap and the viewport to
+         take full container width on mobile, regardless of their content. */
+      .engine .wrap,
+      .engine-viewport {
+        width: 100%;
+        max-width: 1320px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      /* On the engine section specifically, the wrap is the only flex
+         child of a section that's also flex-column. Force the section
+         to grow to fill the viewport and pass that height down to the
+         wrap (so the floating engine gets the full available height). */
+      .engine { flex: 1 1 auto; min-height: 0; }
+      /* The Story Timeline + Per-Layer Reactors block is a legacy
+         .engine__workspace (NOT the main floating engine workspace) that
+         ships with an inline `grid-template-columns: 1fr 320px` style.
+         On mobile that pushes a 320px column into a 318px viewport and
+         causes the inner .panel to overflow by 6-48px. Override the
+         inline grid to single column, and force the panel to shrink
+         so its content doesn't push the column past the container. */
+      .engine__workspace[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+      }
+      .engine__workspace[style*="grid-template-columns"] .panel {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .engine__workspace[style*="grid-template-columns"] .panel > * {
+        min-width: 0;
+        max-width: 100%;
+      }
+      /* Hide the eyebrow + title on mobile to reclaim ~80px of vertical
+         space. Keep the copy paragraph so the section-head remains a
+         real block element and the wrap doesn't collapse. */
+      .engine-section-header .eyebrow,
+      .engine-section-header .section-head__title { display: none; }
+      .engine-section-header { margin-bottom: 12px; }
+    }
+
     /* Stage / Preview */
     .stage {
       background: var(--ink-1);
