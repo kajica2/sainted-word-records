@@ -474,6 +474,34 @@
       .engine__workspace { grid-template-columns: 1fr; }
     }
 
+    /* P3.3 — Mobile breakpoint. On narrow screens, the floating engine
+       fills the viewport by default, the side tabs collapse to a
+       bottom strip, and the transport controls get larger touch targets.
+       We also auto-dismiss the sidebar by default on phones — the user
+       can tap the Presets tab to bring it up. */
+    @media (max-width: 640px) {
+      .floating-engine {
+        inset: 8px;
+        border-radius: 10px;
+      }
+      .floating-engine__resize {
+        /* Larger hit areas for fingers (44px recommended). Cursor
+           cursors don't matter on touch but cover that aesthetic
+           edge case where a stylus or mouse is also used. */
+        transform: scale(2.5);
+        transform-origin: center;
+      }
+      .engine__sidebar {
+        max-height: 40vh;
+        border-radius: 12px 12px 0 0;
+      }
+      .transport__file, .transport__tap, .btn-record {
+        min-height: 44px;
+      }
+      /* Hide resize handles — pinch-to-zoom handles resizing on mobile */
+      .floating-engine__resize { display: none !important; }
+    }
+
     /* Stage / Preview */
     .stage {
       background: var(--ink-1);
@@ -1718,6 +1746,21 @@
       z-index: 5;
       min-width: 320px;
       min-height: 240px;
+      /* P3.3 — disable default touch gestures (scroll, zoom) on the
+         floating engine so our pinch/drag/resize handlers don't fight
+         the browser. We re-enable on the inner scrollable body. */
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* Re-enable touch scrolling inside the engine body */
+    .floating-engine__body { touch-action: pan-y; }
+    .floating-engine__titlebar { touch-action: none; }
+    /* P3.3 — when scaling via pinch, we set this class so the transform
+       is applied via CSS for smooth GPU-accelerated zoom. JS keeps
+       tracking the dimensions for state. */
+    .floating-engine.is-pinch-zooming {
+      transition: none !important;
     }
     .floating-engine.is-fullscreen {
       position: fixed;
@@ -4548,17 +4591,39 @@
     if (floatingEngineDock) floatingEngineDock.addEventListener('click', dockFloatingEngine);
     if (floatingEngineMinimize) floatingEngineMinimize.addEventListener('click', toggleMinimize);
 
-    /* ----- Drag-to-move ----- */
+    /* ----- Drag-to-move ----- P3.3 — Pointer Events (mouse + touch + pen)
+       instead of mousedown/move/up. We use setPointerCapture so the
+       gesture continues even if the pointer leaves the titlebar or
+       the browser fires spurious pointercancel events. Pinch-to-zoom
+       is handled by tracking 2 simultaneous pointers on the body
+       and computing the distance delta. Double-tap toggles fullscreen.
+       ============================================================ */
     if (floatingEngineTitlebar) {
       let dragStartX = 0, dragStartY = 0, origX = 0, origY = 0;
-      floatingEngineTitlebar.addEventListener('mousedown', (e) => {
-        // Ignore clicks on the titlebar buttons
-        if (e.target.closest('.floating-engine__btn')) return;
-        if (floatingEngineState.isFullscreen) return;
-        if (floatingEngineState.isMinimized) return;
+
+      // Multi-pointer tracking for pinch and double-tap detection.
+      // We keep a Map<pointerId, {x,y,startX,startY}> of all active
+      // pointers touching the engine. When 2 are active simultaneously
+      // we enter "pinch mode" and disable single-finger drag.
+      const activePointers = new Map();
+      let pinchStartDist = 0, pinchStartW = 0, pinchStartH = 0;
+      let pinchStartX = 0, pinchStartY = 0;
+      let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+
+      function pointerDistance() {
+        const pts = Array.from(activePointers.values());
+        if (pts.length < 2) return 0;
+        const dx = pts[0].x - pts[1].x;
+        const dy = pts[0].y - pts[1].y;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      function beginDrag(e) {
+        if (floatingEngineState.isFullscreen) return false;
+        if (floatingEngineState.isMinimized) return false;
+        if (e.target.closest('.floating-engine__btn')) return false;
         const rect = floatingEngine.getBoundingClientRect();
         const parentRect = floatingEngine.parentElement.getBoundingClientRect();
-        // Initialize stored position from current rect
         floatingEngineState.x = rect.left - parentRect.left;
         floatingEngineState.y = rect.top - parentRect.top;
         floatingEngineState.w = rect.width;
@@ -4569,19 +4634,11 @@
         origY = floatingEngineState.y;
         floatingEngineState.isDragging = true;
         floatingEngineTitlebar.classList.add('is-dragging');
-        floatingEngineDock.hidden = false;
-        e.preventDefault();
-      });
-      document.addEventListener('mousemove', (e) => {
-        if (!floatingEngineState.isDragging) return;
-        const dx = e.clientX - dragStartX;
-        const dy = e.clientY - dragStartY;
-        const parentRect = floatingEngine.parentElement.getBoundingClientRect();
-        floatingEngineState.x = Math.max(0, Math.min(parentRect.width  - floatingEngineState.w, origX + dx));
-        floatingEngineState.y = Math.max(0, Math.min(parentRect.height - 40,       origY + dy));
-        applyFloatingEnginePosition();
-      });
-      document.addEventListener('mouseup', () => {
+        if (floatingEngineDock) floatingEngineDock.hidden = false;
+        return true;
+      }
+
+      function endDrag() {
         if (floatingEngineState.isDragging) {
           floatingEngineState.isDragging = false;
           if (floatingEngineTitlebar) floatingEngineTitlebar.classList.remove('is-dragging');
@@ -4590,12 +4647,134 @@
           floatingEngineState.isResizing = false;
           document.body.style.cursor = '';
         }
+      }
+
+      function maybePinchZoom(e) {
+        // Called on every pointer move. If we have 2 pointers active
+        // and a pinch is in progress, scale the window proportionally.
+        if (activePointers.size !== 2) return;
+        if (!pinchStartDist) {
+          pinchStartDist = pointerDistance();
+          pinchStartW = floatingEngineState.w;
+          pinchStartH = floatingEngineState.h;
+          pinchStartX = floatingEngineState.x;
+          pinchStartY = floatingEngineState.y;
+          floatingEngine.classList.add('is-pinch-zooming');
+          return;
+        }
+        const dist = pointerDistance();
+        if (!dist || !pinchStartDist) return;
+        const scale = dist / pinchStartDist;
+        const parentRect = floatingEngine.parentElement.getBoundingClientRect();
+        const minW = 320, minH = 240;
+        const newW = Math.max(minW, Math.min(parentRect.width  - pinchStartX, pinchStartW * scale));
+        const newH = Math.max(minH, Math.min(parentRect.height - pinchStartY, pinchStartH * scale));
+        // Anchor the pinch at the centroid of the two pointers so the
+        // gesture feels natural — content stays under the fingers.
+        const pts = Array.from(activePointers.values());
+        const cx = (pts[0].x + pts[1].x) / 2;
+        const cy = (pts[0].y + pts[1].y) / 2;
+        const newX = Math.max(0, Math.min(parentRect.width  - newW, cx - (newW / 2)));
+        const newY = Math.max(0, Math.min(parentRect.height - newH, cy - (newH / 2)));
+        floatingEngineState.x = newX;
+        floatingEngineState.y = newY;
+        floatingEngineState.w = newW;
+        floatingEngineState.h = newH;
+        applyFloatingEnginePosition();
+      }
+
+      function checkDoubleTap(e) {
+        // Quick tap detection: two pointerdowns within 350ms, within 12px.
+        const now = performance.now();
+        const dx = e.clientX - lastTapX;
+        const dy = e.clientY - lastTapY;
+        if (now - lastTapTime < 350 && Math.hypot(dx, dy) < 12) {
+          toggleFullscreen();
+          lastTapTime = 0; // reset so triple-tap doesn't fire again
+        } else {
+          lastTapTime = now;
+          lastTapX = e.clientX;
+          lastTapY = e.clientY;
+        }
+      }
+
+      floatingEngineTitlebar.addEventListener('pointerdown', (e) => {
+        if (floatingEngineState.isFullscreen) {
+          // Fullscreen mode ignores drag/pinch but we still track the
+          // pointer for double-tap to exit fullscreen.
+          activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          checkDoubleTap(e);
+          return;
+        }
+        if (floatingEngineState.isMinimized) {
+          // Restore from minimized on any tap on the titlebar.
+          toggleMinimize();
+          return;
+        }
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        // Capture so we keep receiving events even when the pointer
+        // leaves the titlebar element. Falls back gracefully on browsers
+        // that don't support setPointerCapture.
+        try { floatingEngineTitlebar.setPointerCapture(e.pointerId); } catch (_) {}
+        if (activePointers.size === 1) {
+          if (!beginDrag(e)) {
+            // Titlebar button — drop the pointer.
+            activePointers.delete(e.pointerId);
+            return;
+          }
+        } else if (activePointers.size === 2) {
+          // We went from 1 to 2 pointers — switch from drag to pinch.
+          // Cancel the drag and start tracking pinch.
+          floatingEngineState.isDragging = false;
+          if (floatingEngineTitlebar) floatingEngineTitlebar.classList.remove('is-dragging');
+          pinchStartDist = 0; // will be set on next move
+        }
+        checkDoubleTap(e);
       });
+
+      // Move handler on the document so we keep tracking even when
+      // the pointer leaves the titlebar.
+      document.addEventListener('pointermove', (e) => {
+        // Update the pointer position in the active set
+        if (activePointers.has(e.pointerId)) {
+          activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        }
+        // Pinch zoom
+        if (activePointers.size === 2) {
+          maybePinchZoom(e);
+          return;
+        }
+        // Single-finger drag
+        if (!floatingEngineState.isDragging) return;
+        if (activePointers.size !== 1) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        const parentRect = floatingEngine.parentElement.getBoundingClientRect();
+        floatingEngineState.x = Math.max(0, Math.min(parentRect.width  - floatingEngineState.w, origX + dx));
+        floatingEngineState.y = Math.max(0, Math.min(parentRect.height - 40,       origY + dy));
+        applyFloatingEnginePosition();
+      });
+
+      function clearPointer(e) {
+        activePointers.delete(e.pointerId);
+        // Reset pinch state when we drop below 2 pointers
+        if (activePointers.size < 2) {
+          pinchStartDist = 0;
+          if (floatingEngine) floatingEngine.classList.remove('is-pinch-zooming');
+        }
+        if (activePointers.size === 0) {
+          endDrag();
+        }
+      }
+      document.addEventListener('pointerup',     clearPointer);
+      document.addEventListener('pointercancel', clearPointer);
+      // Some browsers fire lostpointercapture instead of pointercancel
+      document.addEventListener('lostpointercapture', clearPointer);
     }
 
-    /* ----- Resize from 8 handles ----- */
+    /* ----- Resize from 8 handles ----- P3.3 — also pointer events */
     $$('.floating-engine__resize').forEach((handle) => {
-      handle.addEventListener('mousedown', (e) => {
+      const onResizeStart = (e) => {
         if (floatingEngineState.isFullscreen) return;
         if (floatingEngineState.isMinimized) return;
         const dir = handle.getAttribute('data-resize');
@@ -4614,11 +4793,13 @@
         floatingEngineState.resizeOrigW = floatingEngineState.w;
         floatingEngineState.resizeOrigH = floatingEngineState.h;
         document.body.style.cursor = getComputedStyle(handle).cursor;
-        floatingEngineDock.hidden = false;
+        if (floatingEngineDock) floatingEngineDock.hidden = false;
+        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
         e.preventDefault();
-      });
+      };
+      handle.addEventListener('pointerdown', onResizeStart);
     });
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener('pointermove', (e) => {
       if (!floatingEngineState.isResizing) return;
       const dx = e.clientX - floatingEngineState.resizeStartX;
       const dy = e.clientY - floatingEngineState.resizeStartY;
@@ -4639,7 +4820,6 @@
         newH = Math.max(minH, floatingEngineState.resizeOrigH - dy);
         newY = floatingEngineState.resizeOrigY + (floatingEngineState.resizeOrigH - newH);
       }
-      // Clamp inside parent
       newX = Math.max(0, Math.min(parentRect.width  - newW, newX));
       newY = Math.max(0, Math.min(parentRect.height - newH, newY));
       floatingEngineState.x = newX;
@@ -4647,6 +4827,12 @@
       floatingEngineState.w = newW;
       floatingEngineState.h = newH;
       applyFloatingEnginePosition();
+    });
+    document.addEventListener('pointerup', () => {
+      if (floatingEngineState.isResizing) {
+        floatingEngineState.isResizing = false;
+        document.body.style.cursor = '';
+      }
     });
 
     /* ----- ESC exits fullscreen / minimizes / restores, Shift+1..5 jumps fragments ----- */
@@ -5164,6 +5350,31 @@
     }
     if (storyResetBtn) {
       storyResetBtn.addEventListener('click', () => selectFragment(0));
+    }
+
+    // P3.3 — swipe the story strip left/right to change fragments.
+    // We track horizontal pointer movement; if the user moves more
+    // than 50px in either direction, fire next/prev. Vertical
+    // movement is ignored so scrolling the page isn't accidentally
+    // treated as a swipe.
+    if (storyStrip) {
+      let swipeStartX = 0, swipeStartT = 0, swipeActive = false;
+      storyStrip.addEventListener('pointerdown', (e) => {
+        swipeStartX = e.clientX;
+        swipeStartT = performance.now();
+        swipeActive = true;
+      });
+      storyStrip.addEventListener('pointerup', (e) => {
+        if (!swipeActive) return;
+        swipeActive = false;
+        const dx = e.clientX - swipeStartX;
+        const elapsed = performance.now() - swipeStartT;
+        if (Math.abs(dx) > 50 && elapsed < 600) {
+          if (dx < 0) selectFragment((state.story.current + 1) % FRAGMENTS.length);
+          else selectFragment((state.story.current - 1 + FRAGMENTS.length) % FRAGMENTS.length);
+        }
+      });
+      storyStrip.addEventListener('pointercancel', () => { swipeActive = false; });
     }
 
     /* ============================================================
@@ -8114,6 +8325,31 @@ recordTimer = setTimeout(() => {
     });
     stageViewport.setAttribute('tabindex', '0');
     stageViewport.setAttribute('aria-label', 'Visual preview (press space to play/pause when audio is loaded)');
+
+    // P3.3 — Tap the stage to play/pause on touch devices. The keyboard
+    // space shortcut doesn't apply on touch, so a single tap on the
+    // stage canvas toggles audio. We use a flag to suppress the tap when
+    // the user is actually dragging the stage viewport (resize handle
+    // drags bubble up and would otherwise be misread as taps).
+    let stagePointerDown = 0;
+    let stageMoved = false;
+    if (stageViewport) {
+      stageViewport.addEventListener('pointerdown', () => {
+        stagePointerDown = performance.now();
+        stageMoved = false;
+      });
+      stageViewport.addEventListener('pointermove', () => {
+        if (stagePointerDown) stageMoved = true;
+      });
+      stageViewport.addEventListener('pointerup', () => {
+        const elapsed = performance.now() - stagePointerDown;
+        // Treat as a tap if under 250ms and the pointer didn't move
+        if (!stageMoved && elapsed < 250 && btnPlay && state.audio.loaded) {
+          btnPlay.click();
+        }
+        stagePointerDown = 0;
+      });
+    }
 
     // Resize: canvases adapt on next frame (sizeCanvas reads rect)
     window.addEventListener('resize', () => { /* sizeCanvas handles it */ });
