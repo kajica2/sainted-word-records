@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Sainted Word Records — Shared</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0a0d12" />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root {
+      --bg-0: #0a0d12;
+      --bg-1: #111114;
+      --ink: #e8e6e0;
+      --muted: #7a7a82;
+      --line: #1f1f25;
+      --lime: #d7ff3d;
+      --red: #ff5a1f;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%; min-height: 100dvh;
+      background: var(--bg-0); color: var(--ink);
+      font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    #stage {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100dvh;
+      background: #050507;
+      display: block;
+    }
+    /* Centered stage viewport for desktop. On mobile, fills the screen. */
+    @media (min-width: 800px) {
+      #stageWrap {
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+      }
+      #stage {
+        position: relative;
+        width: min(100vw, calc(100dvh * 16 / 9));
+        height: min(100dvh, calc(100vw * 9 / 16));
+        max-width: calc(100dvh * 16 / 9);
+        max-height: 100dvh;
+      }
+    }
+    /* HUD overlay */
+    .hud {
+      position: fixed; z-index: 10; pointer-events: none;
+    }
+    .hud-tl { top: 16px; left: 16px; }
+    .hud-br { bottom: 16px; right: 16px; }
+    .hud-bl { bottom: 16px; left: 16px; }
+
+    .badge {
+      pointer-events: auto;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(17, 17, 20, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--line);
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .badge svg { width: 14px; height: 14px; }
+    .play-pause {
+      pointer-events: auto;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--lime); color: var(--bg-0);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 32px rgba(215, 255, 61, 0.25);
+      transition: transform 0.15s ease;
+    }
+    .play-pause:hover { transform: scale(1.05); }
+    .play-pause:active { transform: scale(0.95); }
+    .play-pause.is-playing { background: rgba(17, 17, 20, 0.7); color: var(--lime); border: 1px solid var(--lime); }
+
+    /* Loader */
+    #loader {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--bg-0);
+      gap: 24px;
+      transition: opacity 0.4s ease;
+    }
+    #loader.is-hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 2px solid var(--line);
+      border-top-color: var(--lime);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { color: var(--muted); font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    /* Error state */
+    #error {
+      display: none;
+      padding: 32px; max-width: 480px;
+      background: rgba(17, 17, 20, 0.8);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      text-align: center;
+    }
+    #error.is-shown { display: block; }
+    #error h2 { margin: 0 0 8px; font-size: 18px; }
+    #error p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .brand {
+      font-family: ui-sans-serif, system-ui;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      font-size: 13px;
+    }
+    .brand .dot { color: var(--lime); }
+
+    /* BPM/Key display under the watermark */
+    .meta-line {
+      display: block;
+      margin-top: 2px;
+      font-family: ui-monospace, monospace;
+      font-size: 9px;
+      color: rgba(232, 230, 224, 0.6);
+      letter-spacing: 0.08em;
+    }
+  </style>
+</head>
+<body>
+
+<div id="stageWrap">
+  <canvas id="stage"></canvas>
+</div>
+
+<!-- HUD: brand pill (top-left) -->
+<div class="hud hud-tl">
+  <a href="https://sainted-word-records.vercel.app" target="_blank" rel="noopener" class="badge brand">
+    <span class="dot">●</span> SAINTED WORD RECORDS
+  </a>
+</div>
+
+<!-- HUD: play/pause (bottom-center) -->
+<div class="hud" style="bottom: 24px; left: 50%; transform: translateX(-50%);">
+  <button id="playPause" class="play-pause" aria-label="Play">
+    <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24" aria-hidden="true">
+      <path d="M8 5v14l11-7z"/>
+    </svg>
+  </button>
+</div>
+
+<!-- HUD: BPM/Key (bottom-right) -->
+<div class="hud hud-br">
+  <div class="badge">
+    <span id="bpmDisplay">—</span><span id="keyDisplay" class="meta-line"></span>
+  </div>
+</div>
+
+<!-- HUD: title (bottom-left) -->
+<div class="hud hud-bl">
+  <div class="badge" id="titleBadge">Loading…</div>
+</div>
+
+<!-- Loader -->
+<div id="loader">
+  <div class="spinner"></div>
+  <div class="loader-text" id="loaderText">Loading shared project…</div>
+  <div id="error">
+    <h2 id="errorTitle">Couldn't load this share</h2>
+    <p id="errorBody">Check the URL or ask the person who shared it to re-publish.</p>
+  </div>
+</div>
+
+<!-- Hidden audio element -->
+<audio id="audio" preload="auto"></audio>
+
+<script>
+'use strict';
+
+(async function () {
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  const stageCanvas = $('#stage');
+  const stageCtx = stageCanvas.getContext('2d', { willReadFrequently: true });
+  const audioEl = $('#audio');
+  const loader = $('#loader');
+  const loaderText = $('#loaderText');
+  const errorEl = $('#error');
+  const errorTitle = $('#errorTitle');
+  const errorBody = $('#errorBody');
+  const playPauseBtn = $('#playPause');
+  const playIcon = $('#playIcon');
+  const bpmDisplay = $('#bpmDisplay');
+  const keyDisplay = $('#keyDisplay');
+  const titleBadge = $('#titleBadge');
+
+  // P3.4 — accept the snapshot in either of two encodings:
+  //   1. ?id=<shareId>  → fetch /api/projects/share/<id> from the backend
+  //   2. #s=<base64-json> → legacy deep-link hash, parse inline (no server)
+  // The hash path lets us ship share links BEFORE the auth backend is
+  // wired through the engine. Once it is, the URL becomes plain
+  // /s/<id> with no hash, and the fetch path takes over.
+  const url = new URL(location.href);
+  const hashMatch = url.hash.match(/^#s=(.+)$/);
+  const idParam  = url.searchParams.get('id');
+
+  let proj = null;
+  if (hashMatch) {
+    try {
+      // Reverse URL-safe base64: - → +, _ → /, missing padding → =
+      let b64 = hashMatch[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const decoded = decodeURIComponent(escape(atob(b64)));
+      proj = JSON.parse(decoded);
+      proj.doc = proj.doc || proj; // legacy snapshots put fields at top level
+    } catch (e) {
+      showError('Couldn\'t load share', 'The link is malformed or corrupted.');
+      return;
+    }
+  } else if (idParam && /^[a-z0-9_-]{4,24}$/i.test(idParam)) {
+    try {
+      const res = await fetch(`/api/projects/share/${encodeURIComponent(idParam)}`);
+      if (res.status === 404) {
+        showError('Share not found', 'This share may have been revoked.');
+        return;
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      proj = await res.json();
+    } catch (e) {
+      showError('Network error', e.message);
+      return;
+    }
+  } else {
+    showError('No share specified', 'Open a /s/<shareId> link.');
+    return;
+  }
+
+  // Resolve the project state. Project shape is { share, shareId, doc: {...} }
+  const doc = proj.doc || {};
+  const presetId = doc.preset || 'neon';
+  const sliders = doc.sliders || {};
+  const reactors = doc.reactors || null;
+  const layers = doc.layers || null;
+  const layerAssets = doc.layerAssets || null;
+  const library = doc.library || null;
+  const librarySource = doc.librarySource || null;
+  const branding = doc.branding || {};
+  const bpm = doc.bpm || null;
+  const bpmSource = doc.bpmSource || null;
+  const key = doc.key || null;
+  const keySource = doc.keySource || null;
+  const trackName = (doc.audio && doc.audio.name) || 'Shared project';
+
+  titleBadge.textContent = trackName;
+  document.title = `${trackName} · Sainted Word Records`;
+
+  // Display BPM/Key
+  if (bpm != null && bpmSource === 'tap') {
+    bpmDisplay.textContent = `${bpm} BPM`;
+  } else {
+    bpmDisplay.textContent = '—';
+  }
+  if (key != null && keySource === 'manual') {
+    keyDisplay.textContent = `Key ${key}`;
+  }
+
+  // Load the PRESETS table from the parent swr-app.html so we don't
+  // ship 1693 lines of duplicated preset definitions here. We fetch
+  // a tiny JSON manifest we ship at /presets/manifest.json (already
+  // a public file), and look up the preset id.
+  // For now, fall back to a built-in minimal preset table.
+  const PRESETS = await loadPresetTable();
+  const preset = PRESETS.find(p => p.id === presetId) || PRESETS[0];
+
+  // Load library + layer assets if the doc carries them. The library
+  // manifest is keyed by source URL — we read the librarySource field
+  // (e.g. "/library/manifest.json") and try to fetch it.
+  let libraryItems = [];
+  if (library && Array.isArray(library.items)) {
+    libraryItems = library.items;
+  } else if (librarySource) {
+    try {
+      const r = await fetch(librarySource);
+      if (r.ok) {
+        const m = await r.json();
+        libraryItems = (m && Array.isArray(m.files)) ? m.files.map(f => ({ name: f, src: librarySource.replace(/[^/]+$/, '') + f })) : [];
+      }
+    } catch (_) { /* manifest unavailable */ }
+  }
+  // Build idMap
+  const libraryIdMap = new Map();
+  for (const item of libraryItems) libraryIdMap.set(item.id, item);
+
+  // Pre-load any layer-asset images so they're ready by the time
+  // drawVisual runs.
+  const assetCache = new Map();
+  if (layerAssets) {
+    const allIds = [];
+    for (const lid of Object.keys(layerAssets)) {
+      if (Array.isArray(layerAssets[lid])) allIds.push(...layerAssets[lid]);
+    }
+    await Promise.all(allIds.map((aid) => {
+      if (assetCache.has(aid)) return Promise.resolve();
+      const asset = libraryIdMap.get(aid);
+      if (!asset || !asset.src) return Promise.resolve();
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => { assetCache.set(aid, { el: img, ready: true }); resolve(); };
+        img.onerror = () => resolve(); // skip silently
+        img.src = asset.src;
+      });
+    }));
+  }
+
+  // Load audio. The project may carry audio as inline base64 (in
+  // proj.audio.b64 or proj.audio.dataUrl) or as a URL (proj.audio.url).
+  try {
+    let audioSrc = null;
+    if (proj.audio) {
+      if (proj.audio.b64) audioSrc = `data:${proj.audio.type || 'audio/mpeg'};base64,${proj.audio.b64}`;
+      else if (proj.audio.dataUrl) audioSrc = proj.audio.dataUrl;
+      else if (proj.audio.url) audioSrc = proj.audio.url;
+    } else if (doc.audio && doc.audio.b64) {
+      audioSrc = `data:${doc.audio.type || 'audio/mpeg'};base64,${doc.audio.b64}`;
+    }
+    if (audioSrc) {
+      audioEl.src = audioSrc;
+      // Wait for HAVE_ENOUGH_DATA so the play button works immediately.
+      await new Promise((resolve) => {
+        if (audioEl.readyState >= 3) return resolve();
+        audioEl.addEventListener('canplaythrough', resolve, { once: true });
+        audioEl.addEventListener('error', resolve, { once: true });
+        // safety timeout
+        setTimeout(resolve, 8000);
+      });
+    }
+  } catch (e) { /* no audio — visuals run silent */ }
+
+  // Audio analysis setup — MediaStreamSource → AnalyserNode. Same as
+  // swr-app.html's audio path.
+  let audioCtx = null;
+  let analyser = null;
+  let sourceNode = null;
+  function ensureAudioCtx() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        analyser.smoothingTimeConstant = 0.7;
+        sourceNode = audioCtx.createMediaElementSource(audioEl);
+        sourceNode.connect(analyser);
+        analyser.connect(audioCtx.destination);
+      } catch (e) {
+        audioCtx = null;
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  // Synthetic audio bands — used when no audio is loaded or playback
+  // is paused. Drives the visual so it always feels alive.
+  const t0 = performance.now();
+  function sim(t) {
+    const tt = t * 0.001;
+    return {
+      bass:   0.35 + 0.25 * Math.sin(tt * 1.7) + 0.10 * Math.sin(tt * 0.7),
+      mid:    0.40 + 0.20 * Math.sin(tt * 2.3 + 1.0) + 0.10 * Math.sin(tt * 0.9 + 0.5),
+      treble: 0.30 + 0.25 * Math.sin(tt * 3.1 + 2.0) + 0.10 * Math.sin(tt * 1.3 + 1.0),
+    };
+  }
+  function readAudioBands() {
+    if (!audioCtx || !analyser) return null;
+    const N = analyser.frequencyBinCount;
+    const arr = new Uint8Array(N);
+    analyser.getByteFrequencyData(arr);
+    const bassRange = arr.slice(0, Math.floor(N * 0.08));
+    const midRange  = arr.slice(Math.floor(N * 0.08), Math.floor(N * 0.4));
+    const treRange  = arr.slice(Math.floor(N * 0.4), Math.floor(N * 0.85));
+    const avg = (r) => r.reduce((s, v) => s + v, 0) / (r.length * 255);
+    return { bass: avg(bassRange), mid: avg(midRange), treble: avg(treRange) };
+  }
+  // Smoothed audio bands. Always start at zero so the first frames
+  // are smooth.
+  const bands = { bass: 0, mid: 0, treble: 0 };
+  function getBands() {
+    const live = readAudioBands();
+    if (live) {
+      bands.bass   = bands.bass   * 0.55 + live.bass   * 0.45;
+      bands.mid    = bands.mid    * 0.55 + live.mid    * 0.45;
+      bands.treble = bands.treble * 0.55 + live.treble * 0.45;
+    } else {
+      const s = sim(performance.now() - t0);
+      bands.bass   = bands.bass   * 0.85 + s.bass   * 0.15;
+      bands.mid    = bands.mid    * 0.85 + s.mid    * 0.15;
+      bands.treble = bands.treble * 0.85 + s.treble * 0.15;
+    }
+    return bands;
+  }
+
+  // Resize the canvas to fill its CSS box, keeping it crisp on
+  // hi-DPI displays.
+  function sizeCanvas() {
+    const rect = stageCanvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    stageCanvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    stageCanvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    return { w: stageCanvas.width, h: stageCanvas.height };
+  }
+  let dims = sizeCanvas();
+  window.addEventListener('resize', () => { dims = sizeCanvas(); });
+
+  // Convert slider values into draw-time parameters.
+  function applySliders() {
+    const s = sliders || {};
+    return {
+      intensity: 0.3 + ((s.intensity || 70) / 100) * 1.4,
+      sensitivity: 0.4 + ((s.sensitivity || 60) / 100) * 1.6,
+      bloom: (s.bloom || 55) / 100,
+      contrast: ((s.contrast || 50) - 50) / 50,
+      brightness: ((s.brightness || 50) - 50) / 50,
+      speed: 0.4 + ((s.speed || 50) / 100) * 1.8,
+      rotation: ((s.rotation || 30) / 100) * Math.PI * 2,
+      grain: ((s.grain || 40) / 100) * (preset.grain || 0.5),
+      glitch: (preset.glitch || 0.18) * ((s.glitch || 20) / 50),
+      colorShift: ((s.colorShift || 50) / 100) * 360,
+    };
+  }
+
+  // The visual pipeline. Adapted from swr-app.html's drawVisual —
+  // preserves the same look (rings, rays, grid, smoke, liquid) and
+  // audio-reactive modulation. Excludes the showcase / marketing
+  // paths; we only have one canvas here.
+  function hsla(h, s, l, a) { return `hsla(${h}, ${s}%, ${l}%, ${a})`; }
+
+  function drawVisual(ctx, w, h, params, bands, t) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+
+    // Layer composite — same approach as swr-app.html but trimmed
+    // to just the path. We composite each non-empty layer above its
+    // procedural shapes.
+    if (layerAssets && layers && libraryIdMap.size > 0) {
+      for (const lid of ['background', 'overlay', 'typography', 'effects']) {
+        const layer = (layers || []).find(l => l.id === lid);
+        if (!layer || !layer.visible) continue;
+        const ids = layerAssets[lid] || [];
+        if (!ids.length) continue;
+        // simple cover-fit for each asset
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity || 100) / 100));
+        for (const aid of ids) {
+          const asset = libraryIdMap.get(aid);
+          const entry = assetCache.get(aid);
+          if (!asset || !entry || !entry.ready) continue;
+          const el = entry.el;
+          const elAR = (el.videoWidth || el.naturalWidth || w) /
+                       (el.videoHeight || el.naturalHeight || h);
+          const dstAR = w / h;
+          let dw, dh;
+          if (elAR > dstAR) { dh = h; dw = h * elAR; }
+          else { dw = w; dh = w / elAR; }
+          const dx = (w - dw) / 2;
+          const dy = (h - dh) / 2;
+          try { ctx.drawImage(el, dx, dy, dw, dh); } catch (_) {}
+        }
+        ctx.restore();
+      }
+    }
+
+    // Brand watermark (top-left text).
+    if (branding.wordmark) {
+      ctx.save();
+      ctx.fillStyle = branding.accent || '#d7ff3d';
+      ctx.font = `700 ${Math.round(w * 0.018)}px ui-sans-serif, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(branding.wordmark, w * 0.02, w * 0.02);
+      ctx.restore();
+    }
+
+    // Procedural shapes — same as swr-app.html but no overlay fallback.
+    ctx.save();
+    const cx = w / 2, cy = h / 2;
+    const baseR = Math.min(w, h) * 0.32;
+    const shiftDeg = params.colorShift;
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, hsla(shiftDeg, 80, 12, 1));
+    grad.addColorStop(1, hsla((shiftDeg + 90) % 360, 80, 8, 1));
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+
+    const bassR = baseR * (0.7 + bands.bass * params.sensitivity * 1.2) * params.intensity;
+    const midR  = baseR * (0.5 + bands.mid  * params.sensitivity * 0.9) * params.intensity;
+    const treR  = baseR * (0.3 + bands.treble * params.sensitivity * 0.7) * params.intensity;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(params.rotation + t * 0.0001 * params.speed);
+    if (preset.mode === 'rings' || preset.mode === 'liquid') {
+      for (let i = 0; i < 14; i++) {
+        const a = i / 14 + t * 0.00012 * params.speed;
+        const r = bassR * (0.4 + i * 0.06) + bands.bass * 30 * params.intensity;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, a, a + Math.PI * 1.4);
+        ctx.strokeStyle = preset.colors[i % 3];
+        ctx.globalAlpha = 0.18 + bands.mid * 0.5;
+        ctx.lineWidth = 1.4 + bands.treble * 5 * params.intensity;
+        ctx.stroke();
+      }
+    }
+    if (preset.mode === 'rays' || preset.mode === 'broadcast') {
+      const rays = 96;
+      for (let i = 0; i < rays; i++) {
+        const a = (i / rays) * Math.PI * 2;
+        const len = bassR * (1.2 + bands.treble * 1.5) + 30;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 20, Math.sin(a) * 20);
+        ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+        ctx.strokeStyle = i % 3 === 0 ? preset.colors[2] : preset.colors[0];
+        ctx.globalAlpha = 0.16 + bands.bass * 0.4;
+        ctx.lineWidth = 1.2 + bands.mid * 3;
+        ctx.stroke();
+      }
+    }
+    if (preset.mode === 'grid') {
+      const step = 28 + bands.mid * 12;
+      ctx.globalAlpha = 0.2 + bands.treble * 0.5;
+      ctx.strokeStyle = preset.colors[0];
+      ctx.lineWidth = 1 + bands.treble * 2;
+      for (let x = -w; x < w; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, -h);
+        ctx.lineTo(x + Math.sin(t * 0.001) * 10, h);
+        ctx.stroke();
+      }
+      for (let y = -h; y < h; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(-w, y);
+        ctx.lineTo(w, y + Math.cos(t * 0.001) * 10);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, bassR * 1.3, 0, Math.PI * 2);
+      ctx.strokeStyle = preset.colors[1];
+      ctx.globalAlpha = 0.4 + bands.bass * 0.5;
+      ctx.lineWidth = 2 + bands.bass * 6;
+      ctx.stroke();
+    }
+    if (preset.mode === 'smoke' || preset.mode === 'liquid') {
+      for (let i = 0; i < 8; i++) {
+        const r = midR * (0.6 + i * 0.18) + bands.bass * 18;
+        const a = (i / 8) * Math.PI * 2 + t * 0.00008 * params.speed;
+        const gx = Math.cos(a) * r * 0.4;
+        const gy = Math.sin(a) * r * 0.4;
+        const rg = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
+        rg.addColorStop(0, preset.colors[i % 3] + 'cc');
+        rg.addColorStop(1, 'transparent');
+        ctx.globalAlpha = 0.18 + bands.mid * 0.4;
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.arc(gx, gy, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    // Bright core
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, bassR * 1.2);
+    coreGrad.addColorStop(0, preset.colors[0]);
+    coreGrad.addColorStop(0.4, preset.colors[1] + '88');
+    coreGrad.addColorStop(1, 'transparent');
+    ctx.globalCompositeOperation = preset.blend;
+    ctx.globalAlpha = 0.6 + bands.bass * 0.4 * params.intensity;
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, bassR * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bloom
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = params.bloom * (0.3 + bands.treble * 0.6);
+    const bloomGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.6);
+    bloomGrad.addColorStop(0, preset.colors[1]);
+    bloomGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = bloomGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Reset
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+
+    // Brightness/contrast post
+    try {
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      const contrast = 1 + params.contrast * 0.6;
+      const brightness = params.brightness * 40;
+      for (let i = 0; i < d.length; i += 4) {
+        d[i]   = Math.max(0, Math.min(255, (d[i]   - 128) * contrast + 128 + brightness));
+        d[i+1] = Math.max(0, Math.min(255, (d[i+1] - 128) * contrast + 128 + brightness));
+        d[i+2] = Math.max(0, Math.min(255, (d[i+2] - 128) * contrast + 128 + brightness));
+      }
+      ctx.putImageData(imgData, 0, 0);
+    } catch (_) { /* getImageData fails in some sandboxed contexts */ }
+
+    // Grain overlay
+    ctx.globalAlpha = params.grain * 0.6;
+    for (let i = 0; i < w * h * 0.05; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
+      ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Render loop
+  let rafId = null;
+  function loop() {
+    const t = performance.now();
+    const b = getBands();
+    const params = applySliders();
+    drawVisual(stageCtx, dims.w, dims.h, params, b, t);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // Play/pause
+  function setPlaying(playing) {
+    if (playing) {
+      ensureAudioCtx();
+      audioEl.play().catch((e) => {
+        console.warn('audio play failed:', e);
+      });
+      playPauseBtn.classList.add('is-playing');
+      playPauseBtn.setAttribute('aria-label', 'Pause');
+      playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>';
+    } else {
+      audioEl.pause();
+      playPauseBtn.classList.remove('is-playing');
+      playPauseBtn.setAttribute('aria-label', 'Play');
+      playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    }
+  }
+  playPauseBtn.addEventListener('click', () => setPlaying(audioEl.paused));
+  audioEl.addEventListener('ended', () => setPlaying(false));
+  audioEl.addEventListener('pause', () => setPlaying(false));
+  audioEl.addEventListener('play', () => setPlaying(true));
+
+  // Hide loader, start loop
+  loader.classList.add('is-hidden');
+  setTimeout(() => { loader.style.display = 'none'; }, 500);
+  loop();
+
+  function showError(title, body) {
+    loaderText.style.display = 'none';
+    document.querySelector('.spinner').style.display = 'none';
+    errorTitle.textContent = title;
+    errorBody.textContent = body;
+    errorEl.classList.add('is-shown');
+  }
+
+  // Load preset table. We embed the built-in presets (the 7 hardcoded
+  // ones) so we don't need to fetch the full swr-app.html. Imported
+  // presets would require a separate manifest fetch — out of MVP scope.
+  function loadPresetTable() {
+    return Promise.resolve([
+      { id: 'neon',          name: 'Neon',          blend: 'screen',
+        colors: ['#d7ff3d', '#8a4cff', '#ff5a1f'], grain: 0.5, glitch: 0.18, mode: 'rings' },
+      { id: 'film',          name: 'Film',          blend: 'overlay',
+        colors: ['#ffd9b3', '#ff5a1f', '#1a1612'], grain: 0.85, glitch: 0.05, mode: 'rays' },
+      { id: 'grid',          name: 'Grid',          blend: 'normal',
+        colors: ['#e6f7ff', '#d7ff3d', '#17171c'], grain: 0.25, glitch: 0.08, mode: 'grid' },
+      { id: 'smoke',         name: 'Smoke',         blend: 'soft-light',
+        colors: ['#8a4cff', '#b288ff', '#1a1612'], grain: 0.6, glitch: 0.0, mode: 'smoke' },
+      { id: 'hallucination', name: 'Hallucination', blend: 'difference',
+        colors: ['#d7ff3d', '#ff5a1f', '#8a4cff'], grain: 0.7, glitch: 0.5, mode: 'liquid' },
+      { id: 'broadcast',     name: 'Broadcast',     blend: 'multiply',
+        colors: ['#ffd9b3', '#e6f7ff', '#1a1612'], grain: 0.95, glitch: 0.04, mode: 'rays' },
+      { id: 'cassette',      name: 'Cassette',      blend: 'soft-light',
+        colors: ['#ff8a55', '#ffd9b3', '#1a1612'], grain: 1.0, glitch: 0.2, mode: 'rings' },
+    ]);
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -163,6 +163,10 @@
     {
       "source": "/app/",
       "destination": "/swr-app.html"
+    },
+    {
+      "source": "/s/:id",
+      "destination": "/share-view.html"
     }
   ]
 }

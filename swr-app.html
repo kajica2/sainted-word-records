@@ -2793,6 +2793,12 @@
                 </svg>
               </button>
               <input type="file" id="floatingEngineLoadFile" accept=".swr,application/json" hidden />
+              <button class="floating-engine__btn" id="floatingEngineShare" type="button" title="Share public link (P3.4)" aria-label="Share public link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </button>
               <button class="floating-engine__btn" id="floatingEngineFullscreen" type="button" aria-pressed="false" title="Fullscreen" aria-label="Toggle fullscreen">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
                   <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
@@ -4096,6 +4102,7 @@
     const floatingEngineSave = $('#floatingEngineSave');
     const floatingEngineLoad = $('#floatingEngineLoad');
     const floatingEngineLoadFile = $('#floatingEngineLoadFile');
+    const floatingEngineShare = $('#floatingEngineShare');
 
     const storyStrip = $('#storyStrip');
     const storyAutoBtn = $('#storyAutoBtn');
@@ -4972,6 +4979,54 @@
     if (floatingEngineLoad) {
       floatingEngineLoad.addEventListener('click', () => floatingEngineLoadFile.click());
     }
+
+    // P3.4 — Share button. POSTs the current project snapshot to the
+    // auth-required projects API (so we can store the doc under the
+    // user's account), gets back a shareId, and shows the public URL
+    // at /s/<shareId>. Since this requires auth and we don't have a
+    // user account in the SPA yet, we fall back to a local-only mode
+    // when no user is logged in: encode the snapshot into the URL
+    // hash (same shape as the deep-link share) so anyone with the URL
+    // can see it via the share-view.html path. The remote path lights
+    // up once the auth system is wired through.
+    if (floatingEngineShare) {
+      floatingEngineShare.addEventListener('click', async () => {
+        const snap = buildProjectSnapshot();
+        // Convert audio to base64 first (same as save)
+        const cur = snap.audioTracks.items.find(t => t.id === snap.audioTracks.currentTrackId);
+        if (cur && cur.blobUrl) {
+          try { cur.b64Audio = await audioBlobToBase64(cur.blobUrl); } catch (_) {}
+        }
+        for (const t of snap.audioTracks.items) {
+          if (t.id !== cur?.id && t.blobUrl) {
+            try { t.b64Audio = await audioBlobToBase64(t.blobUrl); } catch (_) {}
+          }
+        }
+        // Generate a short shareId and a hash-encoded URL. We use the
+        // existing #s= deep-link encoding so anyone with the URL can
+        // see the share, even before auth lands. The future server
+        // path will replace this with /api/projects/share/<id>.
+        const shareId = Math.random().toString(36).slice(2, 10) +
+                         Math.random().toString(36).slice(2, 10);
+        const payload = { ...snap, shareId, share: true };
+        // URL-safe base64: replace + with -, / with _, drop padding =.
+        // The viewer reverses this before atob. We can't use plain
+        // btoa + encodeURIComponent because the browser encodes = to
+        // %3D in the URL, which atob then chokes on.
+        const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+                         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const url = `${location.origin}/s/${shareId}#s=${b64}`;
+        // Copy to clipboard if available, otherwise show a toast with
+        // the URL so the user can copy it manually.
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast(`Share link copied to clipboard · /s/${shareId}`);
+        } catch (_) {
+          showToast(`Share link: ${url}`);
+        }
+      });
+    }
+
     if (floatingEngineLoadFile) {
       floatingEngineLoadFile.addEventListener('change', async (e) => {
         const file = e.target.files && e.target.files[0];
