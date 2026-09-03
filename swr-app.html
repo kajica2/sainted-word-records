@@ -3182,6 +3182,25 @@
               <button class="export-pick__btn" data-bitrate="12" role="radio" aria-checked="false">12 Mbps</button>
             </div>
 
+            <!-- P3.1 — Export mode toggle. Loop mode keeps the original
+                 single-preset recording. Music Video mode walks through
+                 a planned timeline (intro card + N preset fragments +
+                 outro card) with persistent watermark overlay. The
+                 timeline editor below shows only when MV mode is active. -->
+            <div class="panel__title" style="margin-top: 14px;">Mode</div>
+            <div class="export-pick" id="exportMode" role="radiogroup" aria-label="Export mode">
+              <button class="export-pick__btn is-active" data-mode="loop" role="radio" aria-checked="true">Loop</button>
+              <button class="export-pick__btn" data-mode="musicvideo" role="radio" aria-checked="false">Music Video</button>
+            </div>
+
+            <div id="mvTimelineEditor" style="display:none; margin-top: 10px;">
+              <div class="panel__title" style="margin-top: 0; font-size: 11px;">Timeline
+                <small id="mvTotalDuration">—</small>
+              </div>
+              <div id="mvTimelineList"></div>
+              <button class="btn btn--ghost" id="mvAddFragment" type="button" style="width:100%; margin-top: 6px;">+ Add fragment</button>
+            </div>
+
             <button class="btn-record" id="btnRecord" aria-label="Record video">
               <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
               <span id="recordLabel">Record Video</span>
@@ -3530,7 +3549,19 @@
         lastCaptionSeed: 0
       },
       audio: { loaded: false, playing: false, src: null, name: '', duration: 0, current: 0, volume: 0.8, mic: false },
-      export: { format: '9:16', duration: 60, recording: false, codec: 'mp4', fps: 30, bitrate: 6 },
+      export: { format: '9:16', duration: 60, recording: false, codec: 'mp4', fps: 30, bitrate: 6,
+        // P3.1 — music video mode. When mode === 'musicvideo', the
+        // exporter walks through a planned timeline of presets and
+        // durations, with intro/outro title cards and a persistent
+        // watermark. mode === 'loop' (default) keeps the original
+        // single-preset recording behavior.
+        mode: 'loop',
+        timeline: [
+          // Each fragment: { preset: <id>, duration: <sec> }
+          // Default: a single fragment matching the current preset
+          { preset: 'neon', duration: 60 }
+        ]
+      },
       story: {
         current: 0,         // 0..4
         autoCycle: false,
@@ -3950,6 +3981,12 @@
     const exportDurationsEl = $('#exportDurations');
     const btnRecord = $('#btnRecord');
     const recordLabel = $('#recordLabel');
+    // P3.1 — export mode toggle + MV timeline editor
+    const exportMode = $('#exportMode');
+    const mvTimelineEditor = $('#mvTimelineEditor');
+    const mvTimelineList = $('#mvTimelineList');
+    const mvAddFragment = $('#mvAddFragment');
+    const mvTotalDuration = $('#mvTotalDuration');
 
     const meterBass = $('#meterBass');
     const meterMid = $('#meterMid');
@@ -7402,6 +7439,113 @@
       if (btn) setDuration(+btn.getAttribute('data-sec'));
     });
 
+    // P3.1 — export mode toggle. Switches between single-preset Loop
+    // recording and multi-fragment Music Video recording.
+    if (exportMode) {
+      exportMode.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-mode]');
+        if (!btn) return;
+        const mode = btn.getAttribute('data-mode');
+        if (mode === state.export.mode) return;
+        state.export.mode = mode;
+        $$('#exportMode .export-pick__btn').forEach((b) => {
+          const active = b.getAttribute('data-mode') === mode;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-checked', active ? 'true' : 'false');
+        });
+        // Show / hide the timeline editor
+        if (mvTimelineEditor) {
+          mvTimelineEditor.style.display = mode === 'musicvideo' ? '' : 'none';
+        }
+        if (mode === 'musicvideo') {
+          // Seed the timeline with the current preset if it's empty
+          if (!state.export.timeline || state.export.timeline.length === 0) {
+            state.export.timeline = [
+              { preset: state.preset, duration: 15 },
+              { preset: state.preset, duration: 15 }
+            ];
+          }
+          renderMvTimeline();
+        }
+        saveState();
+        showToast(`Mode: ${mode === 'musicvideo' ? 'Music Video' : 'Loop'}`);
+      });
+    }
+
+    // P3.1 — render the timeline editor. Each fragment row has:
+    //   - chip (1-indexed)
+    //   - preset <select>
+    //   - duration <input type=number> (seconds)
+    //   - × remove button (hidden when only 1 fragment remains)
+    // Total duration is shown in the panel header (intro + sum + outro).
+    function renderMvTimeline() {
+      if (!mvTimelineList) return;
+      const all = PRESETS.concat(importedPresets);
+      mvTimelineList.innerHTML = '';
+      const tl = state.export.timeline || [];
+      tl.forEach((frag, idx) => {
+        const row = document.createElement('div');
+        row.className = 'mv-frag';
+        const opts = all.map(p =>
+          `<option value="${p.id}" ${p.id === frag.preset ? 'selected' : ''}>${p.name}</option>`
+        ).join('');
+        row.innerHTML = `
+          <span class="mv-frag__chip">${idx + 1}</span>
+          <select class="mv-frag__preset" aria-label="Preset for fragment ${idx + 1}">${opts}</select>
+          <input type="number" class="mv-frag__dur" min="2" max="180" step="1" value="${frag.duration}" aria-label="Duration in seconds for fragment ${idx + 1}" />
+          <span class="mv-frag__sec">s</span>
+          <button class="mv-frag__remove" type="button" aria-label="Remove fragment ${idx + 1}" title="Remove" ${tl.length === 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>×</button>
+        `;
+        row.querySelector('.mv-frag__preset').addEventListener('change', (e) => {
+          state.export.timeline[idx].preset = e.target.value;
+          saveState();
+          renderMvTimelineTotal();
+        });
+        row.querySelector('.mv-frag__dur').addEventListener('input', (e) => {
+          const v = Math.max(2, Math.min(180, parseInt(e.target.value, 10) || 0));
+          state.export.timeline[idx].duration = v;
+          saveState();
+          renderMvTimelineTotal();
+        });
+        row.querySelector('.mv-frag__remove').addEventListener('click', () => {
+          if (state.export.timeline.length <= 1) return;
+          state.export.timeline.splice(idx, 1);
+          renderMvTimeline();
+          saveState();
+        });
+        mvTimelineList.appendChild(row);
+      });
+      renderMvTimelineTotal();
+    }
+
+    function renderMvTimelineTotal() {
+      if (!mvTotalDuration) return;
+      const tl = state.export.timeline || [];
+      const sum = tl.reduce((s, f) => s + (f.duration || 0), 0);
+      const total = sum + 2 + 2.5; // intro + outro
+      mvTotalDuration.textContent = `${tl.length} frag · ${total.toFixed(1)}s total`;
+    }
+
+    if (mvAddFragment) {
+      mvAddFragment.addEventListener('click', () => {
+        if (!state.export.timeline) state.export.timeline = [];
+        if (state.export.timeline.length >= 8) {
+          showToast('Max 8 fragments per music video.');
+          return;
+        }
+        // Pick a preset different from the last one for variety
+        const all = PRESETS.concat(importedPresets);
+        const lastPreset = state.export.timeline[state.export.timeline.length - 1]?.preset;
+        const candidates = lastPreset
+          ? all.filter(p => p.id !== lastPreset)
+          : all;
+        const next = candidates[Math.floor(Math.random() * candidates.length)] || all[0];
+        state.export.timeline.push({ preset: next.id, duration: 15 });
+        renderMvTimeline();
+        saveState();
+      });
+    }
+
     let recordTimer = null;
     btnRecord.addEventListener('click', () => {
       if (state.export.recording) {
@@ -7465,9 +7609,154 @@
       // Composite loop: blit the live stage canvas into the recording canvas,
       // scaled to fit the target aspect ratio. We use a cover-fit so the
       // visual fills the frame, with letterboxing if the aspect doesn't match.
+      // P3.1: in music-video mode, drawIntroCard / drawOutroCard overlay
+      // branded title cards at the start and end, and drawWatermark
+      // burns brand + BPM + key into every frame.
       let stopBlit = false;
+      // Track which timeline fragment is current (music-video mode only).
+      let timelineIdx = -1;
+      let timelineStartTime = performance.now();
+      let introDone = false;
+      let outroActive = false;
+      let outroStartTime = 0;
+      const INTRO_DURATION_MS = 2000; // 2-second title card at start
+      const OUTRO_DURATION_MS = 2500; // 2.5-second title card at end
+
+      // Compute total music-video duration: intro + sum(timeline[*].duration) + outro
+      function totalMVDurationMs() {
+        const tl = state.export.timeline || [{ preset: state.preset, duration: state.export.duration }];
+        const sum = tl.reduce((s, f) => s + (f.duration || 0), 0) * 1000;
+        return INTRO_DURATION_MS + sum + OUTRO_DURATION_MS;
+      }
+
+      function drawIntroCard() {
+        recCtx.fillStyle = '#000';
+        recCtx.fillRect(0, 0, dims.w, dims.h);
+        const wordmark = state.branding.wordmark || 'SAINTED WORD RECORDS';
+        const tagline = state.branding.tagline || 'Make your music visible.';
+        const accent = state.branding.accent || '#c4ff3d';
+        recCtx.textAlign = 'center';
+        recCtx.textBaseline = 'middle';
+        // Wordmark
+        recCtx.fillStyle = accent;
+        recCtx.font = `700 ${Math.round(dims.w * 0.07)}px Inter, sans-serif`;
+        recCtx.fillText(wordmark, dims.w / 2, dims.h * 0.42);
+        // Tagline
+        recCtx.fillStyle = 'rgba(255,255,255,0.7)';
+        recCtx.font = `400 ${Math.round(dims.w * 0.025)}px Inter, sans-serif`;
+        recCtx.fillText(tagline.toUpperCase(), dims.w / 2, dims.h * 0.52);
+        // BPM / Key badge
+        const meta = [];
+        if (state.bpm != null) meta.push(`${state.bpm} BPM`);
+        if (state.key != null) meta.push(`Key ${state.key}`);
+        if (meta.length) {
+          recCtx.font = `600 ${Math.round(dims.w * 0.018)}px ui-monospace, monospace`;
+          recCtx.fillStyle = 'rgba(255,255,255,0.5)';
+          recCtx.fillText(meta.join('  ·  '), dims.w / 2, dims.h * 0.62);
+        }
+      }
+
+      function drawOutroCard() {
+        recCtx.fillStyle = '#000';
+        recCtx.fillRect(0, 0, dims.w, dims.h);
+        const wordmark = state.branding.wordmark || 'SAINTED WORD RECORDS';
+        const handle = state.branding.handle || '';
+        const accent = state.branding.accent || '#c4ff3d';
+        recCtx.textAlign = 'center';
+        recCtx.textBaseline = 'middle';
+        recCtx.fillStyle = accent;
+        recCtx.font = `700 ${Math.round(dims.w * 0.07)}px Inter, sans-serif`;
+        recCtx.fillText(wordmark, dims.w / 2, dims.h * 0.46);
+        if (handle) {
+          recCtx.fillStyle = 'rgba(255,255,255,0.7)';
+          recCtx.font = `400 ${Math.round(dims.w * 0.025)}px ui-monospace, monospace`;
+          recCtx.fillText(handle, dims.w / 2, dims.h * 0.56);
+        }
+      }
+
+      // Persistent watermark in the bottom-right corner
+      function drawWatermark() {
+        const wmText = state.branding.wordmark || 'SAINTED WORD RECORDS';
+        const accent = state.branding.accent || '#c4ff3d';
+        const fontSize = Math.round(dims.w * 0.018);
+        recCtx.font = `700 ${fontSize}px Inter, sans-serif`;
+        const text = wmText;
+        const padding = Math.round(dims.w * 0.015);
+        const tw = recCtx.measureText(text).width;
+        // Backdrop pill for legibility
+        recCtx.fillStyle = 'rgba(0,0,0,0.5)';
+        recCtx.beginPath();
+        const pillW = tw + padding * 2;
+        const pillH = fontSize + padding;
+        const x = dims.w - pillW - padding;
+        const y = dims.h - pillH - padding;
+        recCtx.roundRect(x, y, pillW, pillH, padding / 2);
+        recCtx.fill();
+        recCtx.fillStyle = accent;
+        recCtx.textAlign = 'left';
+        recCtx.textBaseline = 'middle';
+        recCtx.fillText(text, x + padding, y + pillH / 2 + 1);
+        // Below: BPM / Key / hashtag
+        const meta = [];
+        if (state.bpm != null) meta.push(`${state.bpm}`);
+        if (state.key != null) meta.push(state.key);
+        if (state.branding.hashtag) meta.push('#' + state.branding.hashtag.replace(/^#/, ''));
+        if (meta.length) {
+          recCtx.font = `500 ${Math.round(fontSize * 0.85)}px ui-monospace, monospace`;
+          recCtx.fillStyle = 'rgba(255,255,255,0.8)';
+          recCtx.fillText(meta.join(' · '), x, y + pillH + fontSize + 2);
+        }
+      }
+
       function blit() {
         if (stopBlit) return;
+        const t = performance.now();
+        const elapsed = t - timelineStartTime;
+
+        // P3.1 — Music video timeline scheduler
+        if (state.export.mode === 'musicvideo') {
+          // Intro card: first 2 seconds
+          if (elapsed < INTRO_DURATION_MS) {
+            drawIntroCard();
+            requestAnimationFrame(blit);
+            return;
+          }
+          // Determine current fragment
+          const tl = state.export.timeline;
+          let acc = INTRO_DURATION_MS;
+          let idx = 0;
+          for (; idx < tl.length; idx++) {
+            const fragEnd = acc + tl[idx].duration * 1000;
+            if (elapsed < fragEnd) break;
+            acc = fragEnd;
+          }
+          // If we've gone past the last fragment, draw outro
+          if (idx >= tl.length) {
+            if (!outroActive) {
+              outroActive = true;
+              outroStartTime = t;
+            }
+            const outroElapsed = t - outroStartTime;
+            if (outroElapsed < OUTRO_DURATION_MS) {
+              drawOutroCard();
+              requestAnimationFrame(blit);
+              return;
+            }
+            // Outro done — fall through to normal blit (will be caught by finishRecording)
+          } else {
+            // Switch preset when we enter a new fragment
+            if (timelineIdx !== idx) {
+              timelineIdx = idx;
+              const frag = tl[idx];
+              if (frag && frag.preset && frag.preset !== state.preset) {
+                // Apply preset immediately (we already verified the ID exists)
+                applyPresetChange(frag.preset);
+              }
+            }
+          }
+        }
+
+        // Normal blit (single-preset recording, or current fragment of music-video)
         if (stageCanvas && stageCanvas.width > 0 && stageCanvas.height > 0) {
           recCtx.fillStyle = '#000';
           recCtx.fillRect(0, 0, dims.w, dims.h);
@@ -7497,6 +7786,12 @@
             dy = 0;
           }
           recCtx.drawImage(stageCanvas, sx, sy, sw, sh, dx, dy, dw, dh);
+          // P3.1 — watermark overlay (skip during intro/outro)
+          const inIntro = elapsed < INTRO_DURATION_MS;
+          const inOutro = outroActive;
+          if (!inIntro && !inOutro) {
+            drawWatermark();
+          }
         }
         requestAnimationFrame(blit);
       }
@@ -7544,8 +7839,11 @@
         const a = document.createElement('a');
         a.href = url;
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const presetName = (PRESETS.concat(importedPresets)).find(p => p.id === state.preset);
-        a.download = `swr-${(presetName ? presetName.name : 'session').toLowerCase().replace(/\s+/g, '-')}-${state.export.format.replace(':','x')}-${ts}.${ext}`;
+        // P3.1 — filename varies by mode. Loop mode: "neon". MV mode: "mv-3frag".
+        const filenameStem = state.export.mode === 'musicvideo'
+          ? `mv-${state.export.timeline.length}frag`
+          : ((PRESETS.concat(importedPresets)).find(p => p.id === state.preset) || {}).name;
+        a.download = `swr-${(filenameStem || 'session').toLowerCase().replace(/\s+/g, '-')}-${state.export.format.replace(':','x')}-${ts}.${ext}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -7563,6 +7861,10 @@
         recordLabel.textContent = 'Record Video';
         recOverlay.classList.remove('is-on');
         if (recordTimer) { clearTimeout(recordTimer); recordTimer = null; }
+        // P3.1 — restore the user's preset if music-video mode switched it
+        if (restorePresetAfterRecord && restorePresetAfterRecord.preset !== state.preset) {
+          applyPresetChange(restorePresetAfterRecord.preset);
+        }
         const sizeMb = (blob.size / 1024 / 1024).toFixed(2);
         showToast(`Saved ${a.download} (${sizeMb} MB)`);
       };
@@ -7575,16 +7877,31 @@
 
       state.export.recording = true;
       btnRecord.classList.add('is-recording');
-      recordLabel.textContent = 'Recording · ' + state.export.duration + 's';
+      // P3.1 — music-video mode shows total (intro + timeline + outro) duration;
+      // single-preset shows the picked duration directly
+      const totalSec = Math.round(totalRecordMs / 1000);
+      recordLabel.textContent = 'Recording · ' + totalSec + 's';
       recOverlay.classList.add('is-on');
       const fmt = recordingMime.includes('mp4') ? 'MP4' : 'WebM';
-      showToast(`Recording ${state.export.format} ${state.export.duration}s @ ${state.export.fps}fps · ${state.export.bitrate}Mbps · ${fmt}`);
+      const modeLabel = state.export.mode === 'musicvideo' ? 'Music Video' : 'Loop';
+      showToast(`${modeLabel} ${state.export.format} ${totalSec}s @ ${state.export.fps}fps · ${state.export.bitrate}Mbps · ${fmt}`);
       // Natural end after the picked duration
-      recordTimer = setTimeout(() => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-        }
-      }, state.export.duration * 1000);
+      // P3.1 — restore the user's original preset + duration after recording.
+// We snapshot both at the start of startRecording and put them back in
+// the onstop handler below.
+const restorePresetAfterRecord = (state.export.mode === 'musicvideo')
+  ? { preset: state.preset, duration: state.export.duration }
+  : null;
+
+// P3.1 — total recording duration depends on mode
+const totalRecordMs = (state.export.mode === 'musicvideo')
+  ? totalMVDurationMs()
+  : state.export.duration * 1000;
+recordTimer = setTimeout(() => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+  }
+}, totalRecordMs);
     }
 
     // Compute the recording canvas dimensions from the picked aspect ratio
