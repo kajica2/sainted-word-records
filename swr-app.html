@@ -1367,6 +1367,24 @@
       text-transform: uppercase;
       color: var(--lime);
     }
+    .lib-card__kind {
+      position: absolute;
+      top: 6px;
+      left: 28px;     /* sits next to delete button */
+      padding: 3px 6px;
+      border-radius: 5px;
+      background: var(--glass-strong);
+      backdrop-filter: blur(6px);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ultraviolet-soft);
+      pointer-events: none;
+    }
+    .lib-card--video .lib-card__art {
+      background: #000;
+    }
     .lib-card__delete {
       position: absolute;
       top: 6px;
@@ -1416,6 +1434,156 @@
       text-align: center;
       color: var(--text-mute);
       font-size: 12px;
+    }
+    .lib-source {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+    }
+    .lib-source__pill {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    .lib-source__pill.is-loaded { color: var(--lime); }
+    .field-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    /* Sub-panel toggle (Media tab → Images | Audio) */
+    [data-subpanel] {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    [data-subpanel].is-on { display: flex; }
+
+    /* Audio list */
+    .audio-source {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .audio-source .cta--ghost {
+      flex: 1;
+      justify-content: center;
+    }
+    .audio-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .audio-track {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--ink-2);
+      transition: border-color 0.2s var(--ease);
+    }
+    .audio-track:hover { border-color: rgba(255,255,255,0.2); }
+    .audio-track.is-active {
+      border-color: var(--lime);
+      background: rgba(215,255,61,0.06);
+    }
+    .audio-track__play {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--ink-3);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+    .audio-track.is-active .audio-track__play {
+      background: var(--lime);
+      color: var(--black);
+      border-color: var(--lime);
+    }
+    .audio-track__meta {
+      min-width: 0;
+    }
+    .audio-track__name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .audio-track__sub {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--text-mute);
+      text-transform: uppercase;
+      margin-top: 2px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .audio-track__badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--ink-3);
+      color: var(--ember);
+      border: 1px solid var(--ember);
+    }
+    .audio-track__badge.is-loaded {
+      color: var(--lime);
+      border-color: var(--lime);
+    }
+    .audio-track__delete {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--ink-3);
+      color: var(--text-dim);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .audio-track__delete:hover { color: var(--ember); border-color: var(--ember); }
+    .audio-empty {
+      padding: 14px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      text-align: center;
+      color: var(--text-mute);
+      font-size: 12px;
+    }
+    .audio-hint {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--text-mute);
+      text-transform: uppercase;
+      padding: 8px 10px;
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.5;
     }
 
     /* Branding */
@@ -1786,7 +1954,7 @@
               <div class="tabs" id="engineTabs" role="tablist" aria-label="Engine sidebar">
                 <button class="tab is-active" data-tab="presets" role="tab" aria-selected="true">Presets</button>
                 <button class="tab" data-tab="layers" role="tab" aria-selected="false">Layers</button>
-                <button class="tab" data-tab="library" role="tab" aria-selected="false">Library</button>
+                <button class="tab" data-tab="media" role="tab" aria-selected="false">Media</button>
                 <button class="tab" data-tab="brand" role="tab" aria-selected="false">Brand</button>
                 <button class="tab" data-tab="social" role="tab" aria-selected="false">Social</button>
               </div>
@@ -1807,34 +1975,73 @@
                 </div>
               </div>
 
-              <!-- Library tab -->
-              <div class="tabpanel" data-panel="library" role="tabpanel">
+              <!-- Media tab — replaces the old Library tab.
+                   Combines Images (library/manifest + uploads) and Audio (managed tracks). -->
+              <div class="tabpanel" data-panel="media" role="tabpanel">
                 <div class="panel" style="margin:0;">
-                  <div class="panel__title">Media Library <small id="libCount">0 assets</small></div>
-                  <div class="lib-toolbar" id="libFilter" role="toolbar" aria-label="Filter library by layer">
-                    <button class="lib-pill is-on" data-filter="all">All</button>
-                    <button class="lib-pill" data-filter="background">Background</button>
-                    <button class="lib-pill" data-filter="overlay">Overlay</button>
-                    <button class="lib-pill" data-filter="typography">Type</button>
-                    <button class="lib-pill" data-filter="effects">Effects</button>
+                  <div class="panel__title">Media Manager <small id="mediaCount">0 assets</small></div>
+
+                  <div class="lib-toolbar" id="mediaSubtabs" role="tablist" aria-label="Media type">
+                    <button class="lib-pill is-on" data-sub="images" role="tab" aria-selected="true">Images</button>
+                    <button class="lib-pill" data-sub="audio" role="tab" aria-selected="false">Audio</button>
                   </div>
-                  <div class="lib-grid" id="libGrid"></div>
-                  <div class="field" style="margin-top: 4px;">
-                    <label class="field__label" for="libNameInput">Add asset by URL <small>(image or GIF)</small></label>
-                    <div class="share-link" style="grid-template-columns: 1fr auto;">
-                      <input type="text" class="field__input" id="libUrlInput" placeholder="https://example.com/photo.jpg" />
-                      <button id="libUrlAdd">Add</button>
+
+                  <!-- IMAGES sub-tab -->
+                  <div class="tabpanel is-on" data-subpanel="images" role="tabpanel">
+                    <div class="lib-toolbar" id="libFilter" role="toolbar" aria-label="Filter library by persona set">
+                      <button class="lib-pill is-on" data-filter="all">All</button>
+                      <button class="lib-pill" data-filter="raw">Raw</button>
+                      <button class="lib-pill" data-filter="poster">Poster</button>
+                      <button class="lib-pill" data-filter="mask">Mask</button>
+                      <button class="lib-pill" data-filter="fx">FX</button>
+                      <button class="lib-pill" data-filter="filter">Filter</button>
+                      <button class="lib-pill" data-filter="neon_set">Neon</button>
+                      <button class="lib-pill" data-filter="film_set">Film</button>
+                      <button class="lib-pill" data-filter="grid_set">Grid</button>
+                      <button class="lib-pill" data-filter="smoke_set">Smoke</button>
+                      <button class="lib-pill" data-filter="hallucination_set">Halluci…</button>
+                    </div>
+
+                    <div class="lib-source" id="libSourceHint">
+                      <span class="lib-source__pill" id="libSourcePill">Library: not loaded</span>
+                      <button class="lib-pill" id="libRefetch" type="button">Fetch library</button>
+                    </div>
+
+                    <div class="lib-grid" id="libGrid"></div>
+
+                    <div class="field" style="margin-top: 4px;">
+                      <label class="field__label" for="libUrlInput">Add by URL <small>(jpg/png/gif/mp4/webm)</small></label>
+                      <div class="share-link" style="grid-template-columns: 1fr auto;">
+                        <input type="text" class="field__input" id="libUrlInput" placeholder="https://example.com/photo.jpg" />
+                        <button id="libUrlAdd">Add</button>
+                      </div>
+                    </div>
+                    <div class="field-row">
+                      <div class="field" style="flex:1;">
+                        <label class="field__label" for="libLayerAssign">Assign new uploads to</label>
+                        <select id="libLayerAssign" class="field__input" style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;">
+                          <option value="background">Background</option>
+                          <option value="overlay">Overlay</option>
+                          <option value="typography">Typography</option>
+                          <option value="effects">Effects</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div class="field">
-                    <label class="field__label" for="libLayerAssign">Assign new uploads to</label>
-                    <select id="libLayerAssign" class="field__input" style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;">
-                      <option value="background">Background</option>
-                      <option value="overlay">Overlay</option>
-                      <option value="typography">Typography</option>
-                      <option value="effects">Effects</option>
-                    </select>
+
+                  <!-- AUDIO sub-tab -->
+                  <div class="tabpanel" data-subpanel="audio" role="tabpanel">
+                    <div class="audio-source">
+                      <button class="cta cta--ghost" id="audioAddBtn" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        Add Audio File
+                      </button>
+                      <input type="file" id="audioFileInput" accept="audio/*" multiple hidden />
+                    </div>
+                    <div class="audio-list" id="audioList"></div>
+                    <div class="audio-hint" id="audioHint">Audio bytes are not persisted — adding a track saves its name, size, and duration. Re-select the file on reload to load it back into transport.</div>
                   </div>
+
                 </div>
               </div>
 
@@ -2205,10 +2412,18 @@
         { id: 'effects',    name: 'Effects',       sub: 'glitch + bloom',  visible: true, blend: 'lighten', opacity: 70 }
       ],
       library: {
-        // Each asset: { id, name, src, layer ('background'|'overlay'|'typography'|'effects'), kind ('image'|'gradient'|'solid'), added }
+        // Each asset: { id, name, src, layer ('background'|'overlay'|'typography'|'effects'), kind ('image'|'gradient'|'solid'), added, origin ('user'|'url'|'library') }
         items: [],
         filter: 'all',
-        assignLayer: 'background'
+        assignLayer: 'background',
+        libraryLoaded: false,   // whether /library/manifest.json has been fetched this session
+        librarySource: ''       // 'http://...' of the loaded manifest, or ''
+      },
+      audioTracks: {
+        // Each track: { id, name, size, type, duration, added, hasBytes }
+        // hasBytes=false means the file needs to be re-selected on reload.
+        items: [],
+        currentTrackId: null
       },
       branding: {
         wordmark: '',
@@ -2271,6 +2486,14 @@
           state.library.items = saved.library.items;
           if (saved.library.filter) state.library.filter = saved.library.filter;
           if (saved.library.assignLayer) state.library.assignLayer = saved.library.assignLayer;
+          // Note: libraryLoaded/librarySource are session-only, never restored.
+        }
+        if (saved.audioTracks && Array.isArray(saved.audioTracks.items)) {
+          // Strip bytes markers — they're session-only
+          state.audioTracks.items = saved.audioTracks.items.map(t => ({
+            ...t, hasBytes: false
+          }));
+          if (saved.audioTracks.currentTrackId) state.audioTracks.currentTrackId = saved.audioTracks.currentTrackId;
         }
         if (saved.branding) Object.assign(state.branding, saved.branding);
       } catch (e) { /* ignore corrupt */ }
@@ -2287,6 +2510,14 @@
     }
     function saveState() {
       try {
+        // Strip hasBytes from saved audio tracks (session-only)
+        const audioForSave = {
+          items: state.audioTracks.items.map(t => {
+            const { hasBytes, ...rest } = t;
+            return rest;
+          }),
+          currentTrackId: state.audioTracks.currentTrackId
+        };
         localStorage.setItem(LS_KEY, JSON.stringify({
           preset: state.preset,
           sliders: state.sliders,
@@ -2296,7 +2527,9 @@
             items: state.library.items,
             filter: state.library.filter,
             assignLayer: state.library.assignLayer
+            // libraryLoaded/librarySource are session-only
           },
+          audioTracks: audioForSave,
           branding: state.branding
         }));
       } catch (e) { /* quota */ }
@@ -2348,10 +2581,18 @@
     const engineTabs = $('#engineTabs');
     const libGrid = $('#libGrid');
     const libFilter = $('#libFilter');
-    const libCount = $('#libCount');
+    const libCount = $('#mediaCount');
     const libUrlInput = $('#libUrlInput');
     const libUrlAdd = $('#libUrlAdd');
     const libLayerAssign = $('#libLayerAssign');
+    const libSourcePill = $('#libSourcePill');
+    const libRefetch = $('#libRefetch');
+    const mediaSubtabs = $('#mediaSubtabs');
+
+    const audioAddBtn = $('#audioAddBtn');
+    const audioFileInput = $('#audioFileInput');
+    const audioList = $('#audioList');
+    const audioHint = $('#audioHint');
 
     const brandName = $('#brandName');
     const brandTag = $('#brandTag');
@@ -2510,6 +2751,15 @@
       $$('.tabpanel').forEach((p) => {
         p.classList.toggle('is-on', p.getAttribute('data-panel') === name);
       });
+      if (name === 'media') {
+        if (!state.library.libraryLoaded && state.library.items.length === 0) {
+          // Auto-fetch the curated library on first open of the Media tab
+          fetchLibraryManifest();
+        } else {
+          renderLibrary();
+        }
+        renderAudioList();
+      }
       if (name === 'social') refreshShareLink();
       if (name === 'brand') refreshStageBrand();
     }
@@ -2525,56 +2775,142 @@
     });
 
     /* ============================================================
-       LIBRARY
+       MEDIA MANAGER — Images (curated library + uploads) and Audio tracks
+       Mirrors media-sets.client.js (persona-set filtering by glob prefix)
+       and the per-asset Layer assignment from the legacy library.
        ============================================================ */
-    const SEED_LIBRARY = [
-      // Seed a small set so the tab feels alive on first visit
-      { name: 'Grid Noise',     layer: 'background', kind: 'gradient', src: 'linear-gradient(135deg, #17171c 0%, #2e2e38 100%)' },
-      { name: 'Ember Glow',     layer: 'overlay',    kind: 'gradient', src: 'radial-gradient(circle, #ff5a1f 0%, transparent 70%)' },
-      { name: 'Volcanic Bloom', layer: 'overlay',    kind: 'gradient', src: 'radial-gradient(circle, #d7ff3d 0%, transparent 65%)' },
-      { name: 'UV Mist',        layer: 'effects',    kind: 'gradient', src: 'radial-gradient(circle, #8a4cff 0%, transparent 70%)' },
-      { name: 'Type Beat',      layer: 'typography', kind: 'gradient', src: 'linear-gradient(180deg, #e6f7ff 0%, transparent 100%)' },
-      { name: 'Tape Hiss',      layer: 'overlay',    kind: 'gradient', src: 'repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.04) 3px 4px)' }
-    ];
 
-    function seedLibraryIfEmpty() {
-      if (state.library.items.length > 0) return;
-      const now = Date.now();
-      state.library.items = SEED_LIBRARY.map((s, i) => ({
-        id: 'seed-' + i,
-        name: s.name,
-        layer: s.layer,
-        kind: s.kind,
-        src: s.src,
-        added: now - (SEED_LIBRARY.length - i) * 1000
-      }));
-      saveState();
+    // Persona-set patterns, derived from media-sets.client.js in the
+    // existing engine code base. Each set maps to filter pills.
+    const PERSONA_SETS = {
+      raw:               { label: 'Raw',           patterns: ['c07-sunrise', 'c08-sunrise', 'p07', 'p08', 'p10', 'p14'] },
+      poster:            { label: 'Poster',        patterns: ['c12-abstract', 'p02', 'p03', 'p05', 'p11', 'p15'] },
+      mask:              { label: 'Mask',          patterns: ['c06-smoke', 'c09-security', 'c10-tunnel', 'c11-tunnel', 'p01', 'p04'] },
+      fx:                { label: 'FX',            patterns: ['c03-taxi', 'c04-taxi', 'c05-taxi', 'c01-rooftop', 'c02-rooftop', 'p06', 'p09'] },
+      filter:            { label: 'Filter',        patterns: ['c07-sunrise', 'c08-sunrise', 'c12-abstract', 'p02', 'p12', 'p13'] },
+      neon_set:          { label: 'Neon',          patterns: ['p26-neon', 'p27-neon', 'c01-rooftop', 'c03-taxi'] },
+      film_set:          { label: 'Film',          patterns: ['p28-film', 'p29-film', 'c07-sunrise', 'c08-sunrise', 'p12'] },
+      grid_set:          { label: 'Grid',          patterns: ['p30-grid', 'p31-grid', 'p03', 'p05', 'p11', 'c12-abstract'] },
+      smoke_set:         { label: 'Smoke',         patterns: ['p32-smoke', 'p33-smoke', 'c06-smoke', 'c10-tunnel', 'c11-tunnel', 'p01'] },
+      hallucination_set: { label: 'Hallucination', patterns: ['p34-hallucination', 'p35-hallucination', 'c03-taxi', 'c04-taxi', 'c05-taxi', 'c01-rooftop'] }
+    };
+
+    function matchPattern(filename, pattern) {
+      // Prefix match: pattern matches filename at start. '*' in pattern = any chars.
+      // 'p34-hallucination' → matches 'p34-hallucination-1.png' (prefix)
+      // 'c03-taxi' → matches 'c03-taxi.mp4' (exact) and 'c03-taxi-foo.png' (prefix)
+      const re = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*'));
+      return re.test(filename);
     }
+    function inSet(filename, setKey) {
+      const s = PERSONA_SETS[setKey];
+      if (!s || !s.patterns.length) return true;
+      return s.patterns.some(p => matchPattern(filename, p));
+    }
+
+    async function fetchLibraryManifest() {
+      const urls = ['/library/manifest.json', './library/manifest.json'];
+      libSourcePill.textContent = 'Library: loading…';
+      libSourcePill.classList.remove('is-loaded');
+      for (const u of urls) {
+        try {
+          const res = await fetch(u, { cache: 'no-cache' });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const files = Array.isArray(data) ? data : (data.files || []);
+          if (!files.length) continue;
+          populateLibraryFromManifest(files, u);
+          return;
+        } catch (e) { /* try next */ }
+      }
+      libSourcePill.textContent = 'Library: not loaded';
+      showToast('Could not fetch /library/manifest.json — using uploads only.');
+    }
+
+    function populateLibraryFromManifest(files, sourceUrl) {
+      // Convert manifest entries into library assets
+      // Each: { id, name, src, layer, kind, added, origin }
+      const existingNames = new Set(state.library.items.map(a => a.name));
+      const now = Date.now();
+      let added = 0;
+      files.forEach((f, i) => {
+        if (typeof f !== 'string') return;
+        const name = f.split('/').pop();
+        if (existingNames.has(name)) return;
+        // Auto-assign layer by file role: 'c*' = clips → overlay, 'p*' = stills → background
+        let layer = 'background';
+        if (/^c\d/i.test(name)) layer = 'overlay';
+        else if (/^p\d/i.test(name)) layer = 'background';
+        // Detect kind: mp4/webm/mov = video, others = image
+        const ext = (name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase();
+        const kind = /^(mp4|webm|mov|m4v)$/i.test(ext) ? 'video' : 'image';
+        state.library.items.push({
+          id: 'lib-' + i + '-' + name.replace(/\W+/g, '_'),
+          name: name,
+          src: f,
+          ext: ext,
+          layer: layer,
+          kind: kind,
+          added: now - (files.length - i),
+          origin: 'library'
+        });
+        added++;
+      });
+      state.library.libraryLoaded = true;
+      state.library.librarySource = sourceUrl;
+      libSourcePill.textContent = 'Library: ' + files.length + ' assets';
+      libSourcePill.classList.add('is-loaded');
+      saveState();
+      renderLibrary();
+      showToast('Loaded ' + added + ' library assets from manifest.');
+    }
+
+    libRefetch.addEventListener('click', () => {
+      fetchLibraryManifest();
+    });
 
     function renderLibrary() {
       libGrid.innerHTML = '';
-      const filtered = state.library.filter === 'all'
+      const filter = state.library.filter;
+      const filtered = filter === 'all'
         ? state.library.items
-        : state.library.items.filter(a => a.layer === state.library.filter);
+        : state.library.items.filter(a => inSet(a.name, filter));
 
       if (filtered.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'lib-empty';
         empty.style.gridColumn = '1 / -1';
-        empty.textContent = 'No assets in this layer. Drop a file or paste a URL.';
+        empty.textContent = (state.library.items.length === 0)
+          ? 'No library loaded yet. Click "Fetch library" or drop a file.'
+          : 'No assets match the current filter.';
         libGrid.appendChild(empty);
       } else {
         filtered.forEach((a) => {
           const card = document.createElement('div');
           card.className = 'lib-card';
+          if (a.kind === 'video') card.classList.add('lib-card--video');
           card.setAttribute('role', 'button');
           card.setAttribute('aria-label', `${a.name}, ${a.layer} layer`);
+          const resolvedSrc = (a.origin === 'library' && a.src && !/^https?:|^data:/.test(a.src))
+            ? (state.library.librarySource.replace(/manifest\.json$/, '') + a.src)
+            : a.src;
+          const kindBadge = a.kind === 'video'
+            ? '<span class="lib-card__kind">▶ video</span>'
+            : '';
           card.innerHTML = `
-            <div class="lib-card__art" style="background: ${a.src};"></div>
+            <div class="lib-card__art" data-bg="${escapeAttr(resolvedSrc)}" data-fallback="${escapeAttr(a.src)}"></div>
+            ${kindBadge}
             <span class="lib-card__layer">${a.layer}</span>
             <button class="lib-card__delete" data-action="delete" aria-label="Delete ${a.name}">×</button>
             <span class="lib-card__name">${a.name}</span>
           `;
+          // Resolve thumbnail
+          const art = card.querySelector('.lib-card__art');
+          if (a.kind === 'video') {
+            resolveVideoThumbnail(art, resolvedSrc);
+          } else {
+            resolveBackgroundImage(art, resolvedSrc);
+          }
           card.addEventListener('click', (e) => {
             if (e.target.closest('[data-action="delete"]')) return;
             applyAssetToLayer(a);
@@ -2587,13 +2923,13 @@
         });
       }
 
-      // Add-asset tile
+      // Upload tile
       const add = document.createElement('label');
       add.className = 'lib-card__add';
       add.innerHTML = `
         <span style="font-size: 22px; line-height: 1;">+</span>
         <span>Upload</span>
-        <input type="file" accept="image/*" data-action="upload" multiple />
+        <input type="file" accept="image/*,video/*" data-action="upload" multiple />
       `;
       add.querySelector('[data-action="upload"]').addEventListener('change', (e) => {
         const files = Array.from(e.target.files || []);
@@ -2602,11 +2938,75 @@
       });
       libGrid.appendChild(add);
 
-      libCount.textContent = state.library.items.length + (state.library.items.length === 1 ? ' asset' : ' assets');
+      const total = state.library.items.length;
+      libCount.textContent = total + (total === 1 ? ' asset' : ' assets');
+      // Refresh source pill from state in case we're rendering after a session restore
+      if (state.library.libraryLoaded) {
+        libSourcePill.textContent = 'Library: ' + total + ' assets';
+        libSourcePill.classList.add('is-loaded');
+      } else if (total > 0) {
+        libSourcePill.textContent = 'Library: ' + total + ' user assets';
+      }
+    }
+
+    function escapeAttr(s) {
+      return String(s).replace(/[&"'<>]/g, c => ({ '&':'&amp;', '"':'&quot;', "'":'&#39;', '<':'&lt;', '>':'&gt;' }[c]));
+    }
+
+    function resolveBackgroundImage(el, src) {
+      if (!src) return;
+      const test = new Image();
+      test.onload  = () => { el.style.backgroundImage = `url("${src}")`; };
+      test.onerror = () => {
+        el.style.background = 'linear-gradient(135deg, #2a2a32 0%, #1a1a20 100%)';
+        el.style.opacity = '0.5';
+      };
+      test.src = src;
+    }
+
+    // Render a video asset as a thumbnail by sampling its first usable frame.
+    // The video element is created off-DOM, attached to the card on hover
+    // (so it can play in-place), and detached on mouseleave to free memory.
+    function resolveVideoThumbnail(el, src) {
+      if (!src) return;
+      const video = document.createElement('video');
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+      video.crossOrigin = 'anonymous';
+      video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;';
+
+      let frameLoaded = false;
+      const showFallback = () => {
+        if (frameLoaded) return;
+        el.style.background = 'linear-gradient(135deg, #2a2a32 0%, #1a1a20 100%)';
+        el.style.opacity = '0.5';
+      };
+
+      video.onloadeddata = () => {
+        // Seek to a representative mid-frame so the thumbnail isn't all-black
+        try { video.currentTime = Math.min(0.5, (video.duration || 1) * 0.1); } catch (e) {}
+      };
+      video.oncanplay = () => {
+        frameLoaded = true;
+        el.appendChild(video);
+        // Don't autoplay — the thumbnail is the still frame. Hover to play.
+        const card = el.closest('.lib-card');
+        if (card) {
+          card.addEventListener('mouseenter', () => { video.play().catch(() => {}); });
+          card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = Math.min(0.5, (video.duration || 1) * 0.1); });
+        }
+      };
+      video.onerror = showFallback;
+
+      // 2s timeout — if metadata never loads, fall back
+      setTimeout(() => { if (!frameLoaded) showFallback(); }, 2000);
+
+      video.src = src;
     }
 
     function applyAssetToLayer(asset) {
-      // Reflect selection in layer visibility (toggle the asset's layer on)
       const layer = state.layers.find(l => l.id === asset.layer);
       if (layer) layer.visible = true;
       saveState();
@@ -2615,40 +3015,49 @@
     }
 
     function handleLibraryFile(file) {
-      if (!file || !file.type.startsWith('image/')) return;
+      if (!file) return;
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+      if (!isImage && !isVideo) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
+        const ext = (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase();
         const item = {
           id: 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
           name: file.name.replace(/\.[^.]+$/, ''),
           layer: state.library.assignLayer || 'background',
-          kind: 'image',
+          kind: isVideo ? 'video' : 'image',
+          ext: ext,
           src: ev.target.result,
-          added: Date.now()
+          added: Date.now(),
+          origin: 'user'
         };
         state.library.items.unshift(item);
         saveState();
         renderLibrary();
-        showToast(`Added "${item.name}" to ${item.layer}`);
+        showToast(`Added "${item.name}" (${item.kind}) to ${item.layer}`);
       };
       reader.readAsDataURL(file);
     }
 
     function addLibraryFromUrl(url) {
       if (!url) return;
-      // Heuristic: it's an image
+      const ext = (url.match(/\.([^.]?)(?:\?|$)/) || ['', ''])[1].toLowerCase();
+      const kind = /^(mp4|webm|mov|m4v)$/i.test(ext) ? 'video' : 'image';
       const item = {
         id: 'url-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
         name: url.split('/').pop().split('?')[0].replace(/\.[^.]+$/, '').slice(0, 24) || 'asset',
         layer: state.library.assignLayer || 'background',
-        kind: 'image',
+        kind: kind,
+        ext: ext,
         src: url,
-        added: Date.now()
+        added: Date.now(),
+        origin: 'url'
       };
       state.library.items.unshift(item);
       saveState();
       renderLibrary();
-      showToast(`Added "${item.name}" to ${item.layer}`);
+      showToast(`Added "${item.name}" (${kind}) to ${item.layer}`);
     }
 
     function removeLibraryAsset(id) {
@@ -2679,6 +3088,200 @@
     libUrlInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); libUrlAdd.click(); }
     });
+
+    /* ----- Sub-tab toggle: Images | Audio ----- */
+    mediaSubtabs.addEventListener('click', (e) => {
+      const pill = e.target.closest('.lib-pill');
+      if (!pill) return;
+      const sub = pill.getAttribute('data-sub');
+      $$('#mediaSubtabs .lib-pill').forEach(p => {
+        const active = p === pill;
+        p.classList.toggle('is-on', active);
+        p.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      $$('[data-subpanel]').forEach(p => {
+        p.classList.toggle('is-on', p.getAttribute('data-subpanel') === sub);
+      });
+    });
+
+    /* ============================================================
+       AUDIO LIBRARY — tracks persist by metadata; bytes are session-only
+       ============================================================ */
+
+    function probeAudioDuration(file) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(file);
+        const a = new Audio();
+        a.preload = 'metadata';
+        a.onloadedmetadata = () => {
+          const d = a.duration;
+          URL.revokeObjectURL(url);
+          resolve(isFinite(d) ? d : null);
+        };
+        a.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+        a.src = url;
+      });
+    }
+
+    function fmtBytes(n) {
+      if (!n) return '—';
+      const u = ['B', 'KB', 'MB'];
+      let i = 0;
+      while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+      return n.toFixed(i ? 1 : 0) + ' ' + u[i];
+    }
+    function fmtSec(s) {
+      if (!s || !isFinite(s)) return '—';
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return m + ':' + String(sec).padStart(2, '0');
+    }
+
+    async function handleAudioFiles(fileList) {
+      const files = Array.from(fileList || []).filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac)$/i.test(f.name));
+      if (!files.length) { showToast('No audio files selected.'); return; }
+      for (const file of files) {
+        const id = 'aud-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '-' + files.indexOf(file);
+        const duration = await probeAudioDuration(file);
+        const item = {
+          id: id,
+          name: file.name.replace(/\.[^.]+$/, ''),
+          ext: (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase(),
+          size: file.size,
+          type: file.type || 'audio/' + (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase(),
+          duration: duration,
+          added: Date.now()
+        };
+        state.audioTracks.items.unshift(item);
+        // Stash the file as a Blob URL keyed by id so we can re-load it
+        audioBlobCache[item.id] = URL.createObjectURL(file);
+        item.hasBytes = true;
+        saveState();
+      }
+      renderAudioList();
+      showToast(files.length === 1
+        ? `Added "${files[0].name}" to the audio library.`
+        : `Added ${files.length} tracks to the audio library.`);
+    }
+
+    // In-memory Blob-URL cache. Cleared on reload (Blob URLs are session-only).
+    const audioBlobCache = Object.create(null);
+
+    audioAddBtn.addEventListener('click', () => audioFileInput.click());
+    audioFileInput.addEventListener('change', (e) => {
+      handleAudioFiles(e.target.files);
+      e.target.value = '';
+    });
+
+    function renderAudioList() {
+      audioList.innerHTML = '';
+      const tracks = state.audioTracks.items;
+      if (!tracks.length) {
+        const empty = document.createElement('div');
+        empty.className = 'audio-empty';
+        empty.textContent = 'No audio tracks yet. Click "Add Audio File" to import one.';
+        audioList.appendChild(empty);
+        return;
+      }
+      tracks.forEach((t) => {
+        const row = document.createElement('div');
+        row.className = 'audio-track';
+        if (t.id === state.audioTracks.currentTrackId) row.classList.add('is-active');
+        row.setAttribute('data-track', t.id);
+        row.innerHTML = `
+          <button class="audio-track__play" data-action="play" aria-label="Play ${t.name}">▶</button>
+          <div class="audio-track__meta">
+            <div class="audio-track__name">${t.name}</div>
+            <div class="audio-track__sub">
+              <span>${(t.ext || '').toUpperCase()}</span>
+              <span>${fmtBytes(t.size)}</span>
+              <span>${fmtSec(t.duration)}</span>
+              <span class="audio-track__badge ${t.hasBytes ? 'is-loaded' : ''}">${t.hasBytes ? 'In memory' : 'Re-import'}</span>
+            </div>
+          </div>
+          <button class="audio-track__delete" data-action="delete" aria-label="Remove ${t.name}">×</button>
+        `;
+        row.querySelector('[data-action="play"]').addEventListener('click', () => loadTrackIntoTransport(t));
+        row.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeAudioTrack(t.id);
+        });
+        audioList.appendChild(row);
+      });
+    }
+
+    function loadTrackIntoTransport(track) {
+      const blobUrl = audioBlobCache[track.id];
+      if (!blobUrl) {
+        // Need to re-import the file
+        showToast(`"${track.name}" needs to be re-imported — pick the file.`);
+        audioFileInput.removeAttribute('multiple');
+        audioFileInput.setAttribute('data-pending-track-id', track.id);
+        audioFileInput.click();
+        return;
+      }
+      detachMic();
+      // Mark all tracks hasBytes = false, then this one true
+      state.audioTracks.items.forEach(t => t.hasBytes = false);
+      track.hasBytes = true;
+      audioEl.src = blobUrl;
+      state.audio.src = blobUrl;
+      state.audio.loaded = true;
+      state.audio.name = track.name;
+      state.audioTracks.currentTrackId = track.id;
+      trackLabel.textContent = track.name;
+      saveState();
+      try {
+        attachMediaElement();
+        audioEl.play().catch(() => {});
+      } catch (err) {
+        showToast('Audio decode failed in this browser.');
+      }
+      renderAudioList();
+      showToast(`Loaded "${track.name}" into transport.`);
+    }
+
+    // When the user picks a file in response to a "re-import" prompt
+    audioFileInput.addEventListener('change', async (e) => {
+      const pendingId = audioFileInput.getAttribute('data-pending-track-id');
+      if (pendingId) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) { e.target.value = ''; audioFileInput.removeAttribute('data-pending-track-id'); audioFileInput.setAttribute('multiple', ''); return; }
+        const track = state.audioTracks.items.find(t => t.id === pendingId);
+        if (track) {
+          // Update metadata from the freshly selected file
+          track.size = file.size;
+          track.type = file.type || 'audio/' + (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase();
+          track.ext = (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase();
+          track.duration = await probeAudioDuration(file);
+          audioBlobCache[track.id] = URL.createObjectURL(file);
+          track.hasBytes = true;
+          saveState();
+          loadTrackIntoTransport(track);
+        }
+        e.target.value = '';
+        audioFileInput.removeAttribute('data-pending-track-id');
+        audioFileInput.setAttribute('multiple', '');
+      }
+    });
+
+    function removeAudioTrack(id) {
+      if (audioBlobCache[id]) URL.revokeObjectURL(audioBlobCache[id]);
+      delete audioBlobCache[id];
+      state.audioTracks.items = state.audioTracks.items.filter(t => t.id !== id);
+      if (state.audioTracks.currentTrackId === id) {
+        state.audioTracks.currentTrackId = null;
+        audioEl.pause();
+        audioEl.removeAttribute('src');
+        audioEl.load();
+        state.audio.loaded = false;
+        state.audio.name = '';
+        trackLabel.textContent = '';
+      }
+      saveState();
+      renderAudioList();
+      showToast('Track removed.');
+    }
 
     /* ============================================================
        BRANDING
@@ -3454,8 +4057,8 @@
       renderLayerStack();
       renderControls();
       renderShowcase();
-      seedLibraryIfEmpty();
       renderLibrary();
+      renderAudioList();
       restoreBrandingInputs();
       refreshCaption();
       refreshShareLink();
