@@ -7931,6 +7931,11 @@
         // push history more than once per press).
         function _setLayerFocus(idx, reason) {
           state.activeLayer = state.layers[idx] && state.layers[idx].id;
+          // Phase 3 — persist layer focus so it survives a reload.
+          // (Phase 1/2 only updated state.activeLayer + transient; the
+          // change was lost on next page load because saveState()
+          // was never called.)
+          saveState();
           renderLayerStack();
           const layer = state.layers[idx];
           const assetIds = (state.layerAssets[layer.id] || []);
@@ -7982,6 +7987,27 @@
           el.classList.remove('flash-on');
           void el.offsetWidth;
           el.classList.add('flash-on');
+        }
+        // Phase 3 — preset cycle (arrow-key navigation through the
+        // preset gallery when the presets tab is active). Walks
+        // PRESETS.concat(importedPresets) in order. Wraps at the
+        // ends. Pushes to history so the user can Z back if they
+        // overshoot.
+        function _cyclePreset(dir) {
+          const all = (typeof PRESETS !== 'undefined' ? PRESETS : [])
+            .concat(typeof importedPresets !== 'undefined' ? importedPresets : []);
+          if (all.length === 0) return;
+          const curIdx = all.findIndex(p => p.id === state.preset);
+          const next = (curIdx + dir + all.length) % all.length;
+          const target = all[next];
+          if (!target || target.id === state.preset) return;
+          applyPresetChange(target.id);
+          // Push to history so Z rewinds. Use the dedicated label
+          // 'preset-N' so it's clear in the undo toast.
+          pushHistory('preset-' + target.id);
+          refreshAfterUndo();
+          showTransient('PRESET · ' + (target.name || target.id) +
+            ' · ' + (next + 1) + '/' + all.length, { durationMs: 600 });
         }
         function _bumpAmount(delta) {
           state_scope.amount = Math.max(0, Math.min(1,
@@ -8308,8 +8334,16 @@
           }
           // ← / → = layer navigation (4 layers: background, overlay,
           // typography, effects). We only navigate through visible ones.
+          // EXCEPTION: if the presets tab is active, arrow keys cycle
+          // presets instead (more natural than browsing layers when
+          // the user is looking at the preset gallery).
           if (key === 'ArrowLeft' && !shift && !alt) {
             e.preventDefault();
+            const activeTab = (document.querySelector('.tab.is-active') || {}).dataset?.tab;
+            if (activeTab === 'presets') {
+              _cyclePreset(-1);
+              return;
+            }
             const visible = state.layers.map((l, i) => l.visible ? i : -1).filter(i => i >= 0);
             if (visible.length === 0) return;
             const cur = visible.indexOf(state.layers.findIndex(l => l.id === state.activeLayer));
@@ -8319,6 +8353,11 @@
           }
           if (key === 'ArrowRight' && !shift && !alt) {
             e.preventDefault();
+            const activeTab = (document.querySelector('.tab.is-active') || {}).dataset?.tab;
+            if (activeTab === 'presets') {
+              _cyclePreset(1);
+              return;
+            }
             const visible = state.layers.map((l, i) => l.visible ? i : -1).filter(i => i >= 0);
             if (visible.length === 0) return;
             const cur = visible.indexOf(state.layers.findIndex(l => l.id === state.activeLayer));
@@ -9194,7 +9233,7 @@ recordTimer = setTimeout(() => {
         <div><kbd>Z</kbd> undo · <kbd>Shift</kbd>+<kbd>Z</kbd> redo</div>
         <div><kbd>C</kbd> commit</div>
         <div><kbd>S</kbd> new seed · <kbd>Shift</kbd>+<kbd>S</kbd> copy seed</div>
-        <div><kbd>←</kbd> <kbd>→</kbd> prev / next layer focus</div>
+        <div><kbd>←</kbd> <kbd>→</kbd> prev / next layer focus (or preset, when Presets tab is open)</div>
         <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> direct layer select</div>
         <div><kbd>?</kbd> toggle this overlay · <kbd>Esc</kbd> dismiss</div>
       </div>

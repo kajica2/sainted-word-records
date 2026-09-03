@@ -32,8 +32,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
-console.log('ROOT=' + ROOT);
-console.log('swr-app.html exists=' + fs.existsSync(path.join(ROOT, 'swr-app.html')));
 const server = http.createServer((req, res) => {
   let rel = decodeURIComponent(req.url.split('?')[0].replace(/^\/+/, '')) || 'index.html';
   // Vercel rewrites /app → /swr-app.html. Mirror that here.
@@ -202,6 +200,62 @@ try {
     return el ? el.textContent : '';
   });
   ok(amtAfterDown.includes('0.40'), '[ bumps amount down', `text="${amtAfterDown.slice(0, 60)}"`);
+
+  // Test 14: presets tab + arrow-right cycles to next preset
+  // Switch to presets tab by clicking
+  await page.evaluate(() => {
+    const tab = document.querySelector('.tab[data-tab="presets"]') ||
+                document.querySelector('button[data-tab="presets"]');
+    if (tab) tab.click();
+  });
+  await new Promise(r => setTimeout(r, 100));
+  const presetBeforeCycle = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('swr_app_state_v1'));
+    return s ? s.preset : null;
+  });
+  // Now arrow-right should cycle preset (since presets tab is active)
+  await page.keyboard.press('ArrowRight');
+  await new Promise(r => setTimeout(r, 200));
+  const presetAfterCycle = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('swr_app_state_v1'));
+    return s ? s.preset : null;
+  });
+  ok(presetBeforeCycle !== presetAfterCycle, 'arrow-right on presets tab cycles preset',
+    `before=${presetBeforeCycle} after=${presetAfterCycle}`);
+  // Verify transient shows preset info
+  const presetTrans = await page.evaluate(() => document.getElementById('swr-transient').textContent);
+  ok(presetTrans.includes('PRESET') || presetTrans.includes('/'),
+    'preset cycle transient visible', `text="${presetTrans}"`);
+
+  // Test 15: arrow-left cycles back
+  await page.keyboard.press('ArrowLeft');
+  await new Promise(r => setTimeout(r, 200));
+  const presetAfterBack = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('swr_app_state_v1'));
+    return s ? s.preset : null;
+  });
+  ok(presetAfterBack === presetBeforeCycle, 'arrow-left on presets tab returns to original preset',
+    `expected=${presetBeforeCycle} got=${presetAfterBack}`);
+
+  // Test 16: when presets tab is NOT active, arrow keys still go to layers
+  await page.evaluate(() => {
+    const tab = document.querySelector('.tab[data-tab="layers"]') ||
+                document.querySelector('button[data-tab="layers"]');
+    if (tab) tab.click();
+  });
+  await new Promise(r => setTimeout(r, 100));
+  const layerBefore = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('swr_app_state_v1'));
+    return s ? s.activeLayer : null;
+  });
+  await page.keyboard.press('ArrowRight');
+  await new Promise(r => setTimeout(r, 200));
+  const layerAfter = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('swr_app_state_v1'));
+    return s ? s.activeLayer : null;
+  });
+  ok(layerBefore !== layerAfter, 'arrow-right on layers tab changes active layer',
+    `before=${layerBefore} after=${layerAfter}`);
 } finally {
   await browser.close();
   server.close();

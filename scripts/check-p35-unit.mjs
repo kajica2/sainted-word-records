@@ -212,6 +212,45 @@ bump(-10); assert(state_scope.amount === 0, 'clamped to 0');
 // Negative-delta never goes below 0
 bump(0.4); assert(state_scope.amount === 0.4, 'bump from 0 to 0.4');
 
+console.log('\n=== preset cycling (Phase 3) ===');
+resetState();
+// Simulate cycling through presets in the simple way
+const PRESETS_TEST = [
+  { id: 'neon', name: 'Neon' },
+  { id: 'film', name: 'Film' },
+  { id: 'grid', name: 'Grid' },
+  { id: 'smoke', name: 'Smoke' }
+];
+let curIdx = 0;
+state.preset = PRESETS_TEST[curIdx].id;
+function _cyclePreset(dir, all) {
+  curIdx = (curIdx + dir + all.length) % all.length;
+  state.preset = all[curIdx].id;
+  // mirror the in-page behavior: push a history entry
+  H.stack.push(snapshotScoped('preset-' + state.preset));
+  H.cursor = H.stack.length - 1;
+}
+_cyclePreset(1, PRESETS_TEST);
+assert(state.preset === 'film', 'cycle +1 from neon → film', `got=${state.preset}`);
+assert(H.cursor === H.stack.length - 1, 'cycle +1 pushed history', `cursor=${H.cursor} stack=${H.stack.length}`);
+_cyclePreset(1, PRESETS_TEST);
+_cyclePreset(1, PRESETS_TEST);
+_cyclePreset(1, PRESETS_TEST);
+assert(state.preset === 'neon', 'cycle wraps around to neon', `got=${state.preset}`);
+_cyclePreset(-1, PRESETS_TEST);
+assert(state.preset === 'smoke', 'cycle -1 from neon → smoke (wrap backward)', `got=${state.preset}`);
+// 3 more -1: smoke → grid → film → neon
+_cyclePreset(-1, PRESETS_TEST);
+_cyclePreset(-1, PRESETS_TEST);
+_cyclePreset(-1, PRESETS_TEST);
+assert(state.preset === 'neon', 'cycle -1 3 times from smoke → neon', `got=${state.preset}`);
+
+// Cycling pushes history, so undo can rewind.
+// Undo restores the state of the snapshot taken BEFORE the most-recent
+// cycle. We just cycled -1 three times, so the previous entry is 'film'.
+assert(undo(), 'undo can rewind a preset cycle');
+assert(state.preset === 'film', 'undo restores previous preset snapshot', `got=${state.preset}`);
+
 console.log('\n=== mixed scope + preserve with snapshot ===');
 resetState();
 state_scope.scope = 'reactors'; state_scope.preserve = [];
