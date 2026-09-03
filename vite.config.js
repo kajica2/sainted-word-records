@@ -160,6 +160,7 @@ function copyStatic() {
     'versions.client.js',
     'director-mode-sainted-word.html',
     'intro.html',
+    'swr-app.html',
   ];
   // Build a curated copy of library/: only ship the files the boot manifest
   // references, plus the manifest itself. The full library/ has ~58MB of
