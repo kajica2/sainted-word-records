@@ -61,15 +61,22 @@ if (m.personaGroups && Array.isArray(m.files)) {
   }
 }
 
-// Sanity check: warn on missing files (don't fail — the curated copy
-// just skips them).
+// Sanity check: every listed file must exist on disk. The curated copy
+// silently skips missing files (which is why we used to warn here), but
+// a missing entry also breaks the SPA Media Manager tab on every load —
+// the SPA fetches /library/manifest.json, prepends each path to the base
+// URL, and tries to render a thumbnail that 404s. Promote to an error.
 if (Array.isArray(m.files)) {
-  let missing = 0;
+  const missingList = [];
   for (const f of m.files) {
-    if (!fs.existsSync(path.join('library', f))) missing++;
+    if (!fs.existsSync(path.join('library', f))) missingList.push(f);
   }
-  if (missing > 0) {
-    console.warn(`! ${missing}/${m.files.length} listed files missing from library/ (build will skip)`);
+  if (missingList.length) {
+    errors.push(
+      `${missingList.length}/${m.files.length} listed files missing from library/ (would 404 at runtime):\n` +
+      missingList.slice(0, 20).map(f => `    - ${f}`).join('\n') +
+      (missingList.length > 20 ? `\n    ...and ${missingList.length - 20} more` : '')
+    );
   }
 }
 
