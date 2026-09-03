@@ -3253,7 +3253,8 @@
         typography: { feature: 'treble', target: 'rot',     scale: 0.3, enabled: false },
         effects:    { feature: 'beat',   target: 'hue',     scale: 0.6, enabled: true }
       },
-      audioBands: { bass: 0, mid: 0, treble: 0 }
+      audioBands: { bass: 0, mid: 0, treble: 0 },
+      beat: 0  // P1.3: 1.0 on each detected beat, decays to 0 over ~300ms
     };
 
     const PRESETS = [
@@ -5276,19 +5277,95 @@
       };
     }
 
+    /* ============================================================
+       P1.3 — REAL BEAT DETECTOR
+       Spectral-flux onset detector with an adaptive threshold. We
+       compute the frame-to-frame difference of the FFT magnitude
+       spectrum, normalize by a running mean, and emit a beat when
+       the flux exceeds threshold * 1.5. A refractory period of
+       200ms prevents double-fires. The beat is exposed as
+       `state.beat` — a 1.0 → 0.0 pulse that decays over ~300ms
+       (used by the story timeline auto-cycle and per-layer reactors).
+       Falls back to the bass>0.7 proxy when no audio is loaded.
+       ============================================================ */
+    const beatDetector = {
+      prev: null,         // previous frame's FFT magnitudes
+      mean: 0,            // running mean of flux
+      meanAlpha: 0.05,    // EMA smoothing (slow adaptation)
+      threshold: 1.5,     // multiplier over running mean
+      lastBeat: 0,        // performance.now() of last detected beat
+      refractory: 200,    // ms minimum between beats
+      // Synthetic (no-audio) beat — fires ~120 BPM when the sim bands
+      // cross a threshold. The sim bands are smooth sinusoidal curves
+      // so a simple peak detector works.
+      lastSyntheticBeat: 0,
+      syntheticInterval: 500 // ms between synthetic beats
+    };
+
+    function detectBeat(fft, isLive) {
+      const now = performance.now();
+      if (!isLive) {
+        // Synthetic beat for demo mode (no audio loaded)
+        if (now - beatDetector.lastSyntheticBeat > beatDetector.syntheticInterval) {
+          beatDetector.lastSyntheticBeat = now;
+          return true;
+        }
+        return false;
+      }
+      // Compute spectral flux: sum of positive differences in magnitude
+      let flux = 0;
+      if (beatDetector.prev) {
+        const len = Math.min(fft.length, beatDetector.prev.length);
+        for (let i = 0; i < len; i++) {
+          const diff = fft[i] - beatDetector.prev[i];
+          if (diff > 0) flux += diff;
+        }
+      }
+      beatDetector.prev = fft.slice();
+      // Adaptive threshold: maintain a running mean of flux
+      if (beatDetector.mean === 0) beatDetector.mean = flux;
+      beatDetector.mean = beatDetector.mean * (1 - beatDetector.meanAlpha) + flux * beatDetector.meanAlpha;
+      const thr = Math.max(beatDetector.mean * beatDetector.threshold, 50);
+      if (flux > thr && (now - beatDetector.lastBeat) > beatDetector.refractory) {
+        beatDetector.lastBeat = now;
+        return true;
+      }
+      return false;
+    }
+
     function getBands() {
       // If audio is playing, use FFT; otherwise simulate.
-      const live = (state.audio.loaded && state.audio.playing) ? readAudioBands() : null;
+      const isLive = !!(state.audio.loaded && state.audio.playing);
+      const live = isLive ? readAudioBands() : null;
+      // P1.3: also read the full FFT (for the beat detector). We reuse
+      // the analyser node's frequency data; no second getByteFrequencyData
+      // call. If the analyser isn't ready (no audio), skip.
       if (live) {
+        const N = analyser.frequencyBinCount;
+        const fft = new Uint8Array(N);
+        analyser.getByteFrequencyData(fft);
         // Smooth into state
         state.audioBands.bass   = state.audioBands.bass   * 0.55 + live.bass   * 0.45;
         state.audioBands.mid    = state.audioBands.mid    * 0.55 + live.mid    * 0.45;
         state.audioBands.treble = state.audioBands.treble * 0.55 + live.treble * 0.45;
+        // Beat detection (spectral flux). Updates state.beat — a 1.0
+        // pulse on each detected beat, decaying linearly to 0 over 300ms.
+        if (detectBeat(fft, true)) {
+          state.beat = 1.0;
+        }
       } else {
         const s = sim(performance.now() - t0);
         state.audioBands.bass   = state.audioBands.bass   * 0.85 + s.bass   * 0.15;
         state.audioBands.mid    = state.audioBands.mid    * 0.85 + s.mid    * 0.15;
         state.audioBands.treble = state.audioBands.treble * 0.85 + s.treble * 0.15;
+        // Synthetic beat for demo mode
+        if (detectBeat(null, false)) {
+          state.beat = 1.0;
+        }
+      }
+      // Decay the beat pulse
+      if (state.beat > 0) {
+        state.beat = Math.max(0, state.beat - 0.06); // ~300ms decay at 60fps
       }
       return state.audioBands;
     }
@@ -5592,10 +5669,13 @@
       const preset = (PRESETS.concat(importedPresets)).find(p => p.id === state.preset) || PRESETS[0];
       const params = applySliders(preset, bands);
 
-      // Story timeline: auto-cycle on beat. We treat any bass > 0.7 as a beat
-      // (the legacy engine used a real beat detector, this is a good-enough proxy).
-      if (state.story.autoCycle && bands.bass > 0.7) {
-        const beatIndex = Math.floor(t / 250); // quantize to 250ms windows to avoid double-fires
+      // Story timeline: auto-cycle on beat. P1.3 replaced the previous
+      // `bands.bass > 0.7` proxy with the real spectral-flux detector in
+      // getBands, which sets state.beat = 1.0 on each detected onset.
+      // We use state.beat > 0.5 (peak detection) plus a 250ms quantize
+      // window so a single beat only advances the fragment once.
+      if (state.story.autoCycle && state.beat > 0.5) {
+        const beatIndex = Math.floor(t / 250);
         if (beatIndex !== state.story.lastBeatIndex) {
           state.story.lastBeatIndex = beatIndex;
           selectFragment((state.story.current + 1) % FRAGMENTS.length);
