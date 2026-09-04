@@ -6633,6 +6633,13 @@
       if (asset.kind === 'video') {
         el = document.createElement('video');
         el.muted = true;
+        // Loop the video so it covers the full length each cycle: a
+        // 5 s clip plays 0→end, then seamlessly wraps back to 0.
+        // Without this, ctx.drawImage(el) reads the current frame at
+        // currentTime; an unplayed video sits at frame 0 forever and
+        // the layer shows a static first frame. With loop=true + the
+        // autoplay kick below, the video continuously advances
+        // through its full duration.
         el.loop = true;
         el.playsInline = true;
         el.preload = 'auto';
@@ -6648,6 +6655,18 @@
       el.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
       (document.body || document.documentElement).appendChild(el);
       el.src = asset.src;
+      // For videos: kick off autoplay once enough data is buffered.
+      // Muted videos bypass the autoplay gesture requirement in all
+      // evergreen browsers (Chrome, Safari, Firefox, Edge). We
+      // re-attempt on each readyState transition in case the first
+      // attempt fired before the element had enough data.
+      if (asset.kind === 'video') {
+        const tryPlay = () => {
+          if (el.paused) el.play().catch(() => { /* swallow: user hasn't interacted yet */ });
+        };
+        el.addEventListener('loadeddata', tryPlay);
+        el.addEventListener('canplay',    tryPlay);
+      }
       layerAssetCache[asset.id] = { el, ready: false, asset };
       el.addEventListener('loadeddata', () => { layerAssetCache[asset.id].ready = true; });
       el.addEventListener('canplay',    () => { layerAssetCache[asset.id].ready = true; });
