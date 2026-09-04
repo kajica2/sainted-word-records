@@ -377,11 +377,17 @@
 
 
   
-  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+  <div id="swr-start" role="button" aria-label="Drop a song to begin">
     <div class="box">
       <div class="arrow">▶</div>
-      <div class="label">Drop a song</div>
-      <div class="sub" id="swr-start-sub">Gradient preset engine</div>
+      <div class="label">Drop a song to begin</div>
+      <div class="sub" id="swr-start-sub">Your uploads stay on this device</div>
+      <div class="hint" id="swr-start-hint" style="font-size:9px;letter-spacing:0.06em;color:var(--muted);margin-top:14px;text-transform:none;line-height:1.5;max-width:260px;">
+        Don't have one handy?
+        <a id="swr-request-demo" href="/library/manifest.json" target="_blank" rel="noopener"
+           style="color:var(--c);text-decoration:none;border-bottom:1px dotted var(--c);">Request demo files</a>
+        — pick anything from the list and drag it back here.
+      </div>
     </div>
   </div>
   <script>
@@ -391,13 +397,25 @@
     var sub = document.getElementById('swr-start-sub');
     var fired = false;
 
+    // === One-shot onboarding ============================================
+    // music_video.html is session-private by default. The library auto-loads
+    // NOTHING on first visit — no curated assets, no bundled demo. The
+    // user drops a song (or hits "Load song" in the header) and that
+    // song is persisted to IDB. On every subsequent visit, the saved
+    // song auto-loads via SWR_LAST_SONG and the overlay never appears
+    // again until the user clicks ↺ (Reset) or clears local state.
+    //
+    // The "Request demo files" link in the overlay opens the library
+    // manifest in a new tab. The user can drag-drop any URL from there
+    // back into the page — no auto-fetch, no coupling.
+    //
+    // This is the inverse of the other versions/*.html pages, which
+    // always auto-fetch the curated library on boot. music_video is
+    // about the user's own content, not ours.
+
     // Can we autoplay without a user gesture? Modern browsers
     // (Chrome 94+, Safari 16.4+, Firefox 121+) relax autoplay for
-    // sites the user has interacted with before. The MediaSession
-    // API surfaces a "activation hint" — non-empty activation
-    // means the user has clicked/tapped/typed since the page loaded,
-    // and we can autoplay. On pages where this is true, run start()
-    // immediately and skip the overlay.
+    // sites the user has interacted with before.
     var canAutoplay = false;
     try {
       if (navigator.userActivation && navigator.userActivation.isActive) {
@@ -410,39 +428,41 @@
       fired = true;
       var succeeded = false;
       try {
-        // Prefer the user's last-loaded song (from engine.html IDB),
-        // fall back to the per-page bundled audio.
-        var picked = window.SWR_PICK_DEFAULT_SONG
-          ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
-          : null;
-        if (!picked) throw new Error('no song source available');
+        // Always prefer the user's last-loaded song (persisted in IDB).
+        // If no saved song exists, fall back to the per-page bundled
+        // audio so the demo overlay still works on first visit if the
+        // browser allows autoplay — but only if a saved song doesn't
+        // already exist. This is the gating logic.
+        var picked = null;
+        if (window.SWR_LAST_SONG) {
+          picked = await window.SWR_LAST_SONG();
+        }
+        if (!picked) {
+          // No persisted user song. Show the overlay regardless of
+          // canAutoplay — we don't want to surprise the user with
+          // auto-playing bundled audio. The overlay's manual click
+          // is the only path that uses DEFAULT_SONG on first visit.
+          fired = false;
+          if (sub) sub.textContent = 'Drop a song or click to browse';
+          return;
+        }
         var blob = picked.blob;
         var name = picked.name;
         var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
         if (window.SWR && window.SWR.Audio) {
           window.SWR.Audio.load(file);
           await window.SWR.Audio.play();
-          if (sub) {
-            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
-            sub.textContent = tag + name;
-          }
+          if (sub) sub.textContent = 'playing · ' + name;
         }
         succeeded = true;
       } catch (e) {
         // Failure path: leave the overlay visible so the user can
         // click again. Reset the fired flag so the click handler
-        // can fire a fresh attempt. Without this, a single failed
-        // autoplay leaves the user stranded — the overlay disappears
-        // and the "tap to start" hint vanishes with it. This is the
-        // exact "media is not loading" symptom we were trying to
-        // avoid.
+        // can fire a fresh attempt.
         fired = false;
         if (sub) sub.textContent = 'tap "load song" to start';
         console.warn('swr auto-start failed:', e);
       }
-      // Only hide + remove the overlay on success. The overlay is
-      // the manual fallback for browsers that still block autoplay;
-      // removing it on failure strands the user with no retry path.
       if (succeeded) {
         overlay.classList.add('hide');
         setTimeout(function(){ overlay.remove(); }, 600);
@@ -450,54 +470,47 @@
     }
 
     // Track a one-shot user gesture anywhere on the page to arm the
-    // audio for next time. Once armed, the overlay can autoplay.
+    // audio for next time. Once armed, the overlay can autoplay on
+    // future visits (when a saved song exists).
     document.addEventListener('pointerdown', function arm() {
       try { localStorage.setItem('swr.audio.armed', '1'); } catch (_) {}
     }, { once: true, capture: true });
 
-    if (canAutoplay || (function () {
-      try { return localStorage.getItem('swr.audio.armed') === '1'; }
-      catch (_) { return false; }
-    })()) {
-      // Try to autoplay immediately — if the browser blocks, the
-      // overlay stays visible (start()'s catch path) and the user
-      // can click it manually. Either way, the engine renders
-      // visual content on enter via the normal RAF loop.
-      //
-      // Wait for window.SWR_PICK_DEFAULT_SONG to be defined —
-      // last-song.js (which defines it) loads AFTER this inline
-      // script. Poll until it's there, then fire. This avoids the
-      // race where the auto-start fires before last-song.js has
-      // registered the helper.
-      function waitForPick() {
-        if (window.SWR_PICK_DEFAULT_SONG) {
-          start();
-          return;
-        }
+    // Auto-start ONLY if a saved user song exists. The overlay stays
+    // visible on first visit (when IDB has no song) regardless of
+    // autoplay permission — the user must drop a song to begin.
+    function waitForPick() {
+      if (!window.SWR_LAST_SONG) {
         var tries = 0;
         var iv = setInterval(function() {
           tries++;
-          if (window.SWR_PICK_DEFAULT_SONG) {
+          if (window.SWR_LAST_SONG) {
             clearInterval(iv);
             start();
           } else if (tries > 50) {  // ~5s timeout
             clearInterval(iv);
-            // Don't fire — overlay stays as fallback.
           }
         }, 100);
+      } else {
+        start();
       }
-      waitForPick();
     }
+    waitForPick();
 
-    // If the autoplay attempt didn't fire the overlay (because
-    // play() resolved), keep the overlay visible until the user
-    // explicitly hides it. The overlay remains the manual fallback
-    // for browsers that still block autoplay.
-    overlay.addEventListener('click', function manualStart() {
-      if (!fired) start();
-    });
+    // The overlay's click + Enter/Space handlers ALWAYS trigger a
+    // "load song" picker, never an autoplay attempt — the user
+    // explicitly chose to engage, so we ask them to pick a file.
+    // (Neon's overlay tried to autoplay; we don't, because we don't
+    // want to surprise the user with audio on first visit.)
+    function openSongPicker() {
+      var input = document.getElementById('song-input');
+      if (input) input.click();
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', openSongPicker);
     document.addEventListener('keydown', function(ev){
-      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openSongPicker(); }
     }, { once: true });
   })();
   </script>
@@ -933,32 +946,32 @@
       else Recorder.start();
     });
 
-    // === Auto-load library ===
-    // Defer to DOMContentLoaded so the deferred `<script
-    // src="../client/library-loader.client.js">` (loaded in <head>
-    // with the defer attribute) has executed first. Without this,
-    // window.SWR_LIBLOAD is undefined when this IIFE runs and boot()
-    // silently never fires — a regression that shipped before this
-    // defer was added (see verify-library-loads.mjs for the guard).
+    // === Auto-load library ==============================================
+    // music_video.html deliberately does NOT auto-fetch the curated
+    // library/. The page is session-private — only user uploads appear.
+    // Library assets can still be added manually via the + button or
+    // drag-drop, but they originate from the user. The `swr-manifest-loaded`
+    // flag is never set on this page, so other engines that check the
+    // flag won't re-seed from our state either.
+    //
+    // We still wire up #reset-state so the user can clear their
+    // uploaded assets and IDB-persisted song in one click.
     function __swr_libboot() {
-      if (!window.SWR_LIBLOAD) return;
-      if (typeof Lib === 'undefined') {
-        console.warn('[swr-libload] inline Lib not found at boot time');
-        return;
-      }
-      window.SWR_LIBLOAD.boot({
-        manifestUrl: '../library/manifest.json',
-        filePrefix:  '../library/',
-        phase1Count: 8,
-        Lib: Lib,
-        doneFlag: 'swr-manifest-loaded',
-      }).then(() => { try { Layers.remap(); } catch (_) {} });
+      // Intentionally a no-op. The neon/film/etc pages call
+      // SWR_LIBLOAD.boot() here. We don't.
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
     } else {
       __swr_libboot();
     }
+
+    // === Reset wiring ====================================================
+    // #reset-state is wired by lib/reset-state.client.js (loaded as a
+    // <script> in the head). On this page, reset() also clears the
+    // persisted song — SWR_RESET_STATE.reset() handles the 'songs'
+    // store wipe — so the user sees the first-visit overlay again on
+    // next reload. No additional wiring needed here.
     // === RECORDER (MP4 export) ===
     const Recorder = {
       rec: null,
