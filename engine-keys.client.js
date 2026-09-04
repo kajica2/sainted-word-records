@@ -535,11 +535,53 @@
                '<span style="text-align:right;color:#ccc;">' + r.label + '</span>' +
              '</div>';
     }).join('');
+    // P3.7 agent panel: shows agent on/off, recent user keys, top
+    // frequency keys, and discovered combos (≥3 occurrences). Keeps
+    // the agent's behaviour visible without a separate settings page.
+    const ag = window.SWR_KEYS && window.SWR_KEYS.agent;
+    const agentBlock = ag ? (
+      '<div style="margin-bottom:10px;padding:8px;border:1px solid ' +
+      (ag.isActive() ? 'rgba(255,45,138,0.5)' : 'rgba(255,61,146,0.15)') +
+      ';border-radius:4px;background:rgba(255,45,138,0.06);">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+          '<strong style="font-size:11px;color:#ff2d8a;">🤖 AGENT NUDGER</strong>' +
+          '<span style="font-size:9px;color:#999;margin-left:auto;">' +
+            (ag.isActive()
+              ? 'on · idle ' + Math.round(ag.idleMs()/1000) + 's · ' + ag.stats().agentPresses + ' presses'
+              : 'off') +
+          '</span>' +
+          '<button data-agent-toggle="1" style="background:transparent;border:1px solid #ff2d8a;color:#ff2d8a;font:9px ui-monospace;padding:2px 6px;border-radius:2px;cursor:pointer;">' +
+            (ag.isActive() ? 'stop' : 'start') +
+          '</button>' +
+        '</div>' +
+        (function () {
+          const recent = ag.recent();
+          if (!recent.length) return '<div style="font-size:9px;color:#888;">No keys pressed yet.</div>';
+          return '<div style="font-size:9px;color:#aaa;margin-bottom:4px;">recent: ' +
+            recent.slice(-8).map(function (k) { return '<span style="color:#00f0ff;">' + k + '</span>'; }).join(' ') +
+            '</div>';
+        })() +
+        (function () {
+          const freq = ag.frequency().slice(0, 5);
+          if (!freq.length) return '';
+          return '<div style="font-size:9px;color:#aaa;margin-bottom:4px;">top: ' +
+            freq.map(function (f) { return '<span style="color:#fff04a;">' + f.key + '</span>×' + f.count; }).join(' ') +
+            '</div>';
+        })() +
+        (function () {
+          const combos = ag.combos().slice(0, 4);
+          if (!combos.length) return '';
+          return '<div style="font-size:9px;color:#aaa;">combos: ' +
+            combos.map(function (c) { return '<span style="color:#00ffa3;">' + c.combo + '</span>×' + c.count; }).join(' ') +
+            '</div>';
+        })() +
+      '</div>'
+    ) : '';
     helpEl.innerHTML =
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,61,146,0.4);">' +
         '<strong style="font-size:13px;letter-spacing:0.04em;">⌨ KEYBOARD</strong>' +
         '<span style="font-size:10px;color:#888;margin-left:auto;">esc to close</span>' +
-      '</div>' + rows;
+      '</div>' + agentBlock + rows;
     document.body.appendChild(helpEl);
     state.helpVisible = true;
   }
@@ -727,14 +769,14 @@
       { keys: 'Esc',            label: 'close settings / help overlay' },
 
       // ---- Generation ----
-      { keys: 'R',              label: 'remap (GENOPS — new assets)' },
-      { keys: 'N',              label: 'randomize (full re-roll)' },
-      { keys: 'Shift+N',        label: 'mutate (small perturbation)' },
-      { keys: 'A',              label: 're-randomize auto-map (this engine)' },
-      { keys: 'Shift+A',        label: 'cycle to next engine recipe' },
-      { keys: 'B',              label: 'bloom layers (stagger fade-in)' },
-      { keys: 'X',              label: 'crossfade all layers (A2 swap)' },
-      { keys: 'Shift+R',        label: 'force auto-swap now' },
+      { keys: 'R',              label: 'remap (GENOPS — new assets)',         nudger: true },
+      { keys: 'N',              label: 'randomize (full re-roll)',           nudger: true },
+      { keys: 'Shift+N',        label: 'mutate (small perturbation)',        nudger: true },
+      { keys: 'A',              label: 're-randomize auto-map (this engine)',nudger: true },
+      { keys: 'Shift+A',        label: 'cycle to next engine recipe',        nudger: true },
+      { keys: 'B',              label: 'bloom layers (stagger fade-in)',     nudger: true },
+      { keys: 'X',              label: 'crossfade all layers (A2 swap)',     nudger: true },
+      { keys: 'Shift+R',        label: 'force auto-swap now',                nudger: true },
 
       // ---- Undo / Save ----
       { keys: 'Cmd+Z',          label: 'undo (Cmd/Ctrl+Z)' },
@@ -746,28 +788,28 @@
 
       // ---- Layer selection ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
-      { keys: '1..9',           label: 'select layer by index (1-based)' },
+      { keys: '1..9',           label: 'select layer by index (1-based)',    nudger: true },
       { keys: '0',              label: 'deselect layer' },
 
       // ---- Presets ----
-      { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)' },
-      { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)' },
+      { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)', nudger: true },
+      { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)', nudger: true },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
-      { keys: '[ / ]',          label: '− / + alpha' },
-      { keys: ', / .',          label: '− / + hue (±6°)' },
-      { keys: "; / '",           label: '− / + scale' },
-      { keys: '/',              label: '− opacity' },
-      { keys: 'Shift+/',        label: '+ opacity (legacy: bump fadeIn)' },
-      { keys: 'Shift+,',        label: '− contrast  ·  Shift = ×4 nudge' },
-      { keys: 'Shift+.',        label: '+ contrast' },
-      { keys: 'Shift+;',        label: '− brightness' },
-      { keys: "Shift+'",        label: '+ brightness' },
-      { keys: 'Shift+[',        label: '− mutate jitter' },
-      { keys: 'Shift+]',        label: '+ mutate jitter' },
+      { keys: '[ / ]',          label: '− / + alpha',                        nudger: true },
+      { keys: ', / .',          label: '− / + hue (±6°)',                    nudger: true },
+      { keys: "; / '",          label: '− / + scale',                        nudger: true },
+      { keys: '/',              label: '− opacity',                           nudger: true },
+      { keys: 'Shift+/',        label: '+ opacity (legacy: bump fadeIn)',     nudger: true },
+      { keys: 'Shift+,',        label: '− contrast  ·  Shift = ×4 nudge',     nudger: true },
+      { keys: 'Shift+.',        label: '+ contrast',                          nudger: true },
+      { keys: 'Shift+;',        label: '− brightness',                        nudger: true },
+      { keys: "Shift+'",        label: '+ brightness',                       nudger: true },
+      { keys: 'Shift+[',        label: '− mutate jitter',                     nudger: true },
+      { keys: 'Shift+]',        label: '+ mutate jitter',                     nudger: true },
 
       // ---- Per-layer ops ----
-      { keys: 'C',              label: 'cycle blend mode' },
+      { keys: 'C',              label: 'cycle blend mode',                    nudger: true },
       { keys: 'Y',              label: 'duplicate selected layer' },
       { keys: 'Del / Bksp',     label: 'remove selected layer' },
       { keys: 'Shift+T',        label: 'bump fadeInMs by 100ms' },
@@ -789,11 +831,24 @@
     setEnabled: function (b) { state.enabled = !!b; },
     isEnabled:  function () { return !!state.enabled; },
     simulate: function (keyOrCode, mods) {
-      // Programmatic keypress for tests + future macros. Calls handle()
-      // directly with a synthetic event shape.
+      // Programmatic keypress for tests + agent nudging + future macros.
+      // Translates friendly keys ('R', 'Shift+R', 'Cmd+1') into a
+      // synthetic event whose .code matches what handle() expects
+      // ('KeyR', 'Digit1', etc.). The translator below mirrors the
+      // mapping in the keydown handler so any string help() returns
+      // will dispatch correctly.
+      const parts = String(keyOrCode).split('+');
+      const tail = parts[parts.length - 1];
+      let code;
+      if (/^[A-Z]$/.test(tail)) code = 'Key' + tail;
+      else if (/^[0-9]$/.test(tail)) code = 'Digit' + tail;
+      else if (tail === 'Space') code = 'Space';
+      else if (tail === 'Esc') code = 'Escape';
+      else if (tail === 'Enter') code = 'Enter';
+      else code = tail; // already a code, or unknown
       const ev = {
-        code: keyOrCode,
-        key:  keyOrCode,
+        code: code,
+        key:  tail,
         shiftKey:  !!(mods && mods.shift),
         ctrlKey:   !!(mods && mods.ctrl),
         altKey:    !!(mods && mods.alt),
@@ -805,7 +860,224 @@
     },
     showHelp: showHelp,
     hideHelp: hideHelp,
+
+    // ===================================================================
+    // Agent nudger (P3.7) — keyboard shortcut surface for human + AI
+    // ===================================================================
+    // The engine has 44 keyboard actions; ~30 of them change the
+    // visualizer state (vs. transport/UI panels). When the user is
+    // idle for `idleMs` (default 12s), the agent picks one of those
+    // visualizer-changing keys, weighted toward the user's recently
+    // pressed keys, and fires it via the same dispatch path as a real
+    // keypress. Every agent press is announced as a toast so the
+    // user can see what's happening; frequency and recency are
+    // tracked so the help overlay can surface "your most-used" and
+    // "discovered combos" over time.
+    agent: (function () {
+      const _self = {
+        _timer: null,
+        _lastUserPressAt: 0,
+        _pressCount: 0,           // total presses (user + agent)
+        _agentCount: 0,           // agent-only presses
+        _recentUser: [],          // last 8 user keys (most-recent last)
+        _frequency: {},           // { shortKey: count }
+        _combos: {},              // { 'R+N': count }
+        _lastTwo: [],             // last 2 actions for combo tracking
+        _lastAgentKey: null,
+        _idleMs: 12000,
+
+        // Pick the next action. Selection algorithm:
+        //   - All keys with `nudger: true` are candidates
+        //   - Recent-user keys get a strong weight (0.7 * recency factor
+        //     that scales with how recently they pressed it). When the
+        //     user has 8 recent keys, the bias toward them is heavy.
+        //   - All other keys still get some weight so we keep exploring
+        //   - Within each pool, weight by frequency so popular keys
+        //     fire more often
+        //   - Never repeat the previous agent press twice in a row
+        _pick: function () {
+          const all = help().filter(function (k) { return k.nudger; });
+          if (!all.length) return null;
+          const recentTail = _self._recentUser.slice(-8);
+          const recentSet = new Set(recentTail.map(function (k) {
+            return String(k).split('+').pop();
+          }));
+          // Recency factor: 0 if no recent keys, up to 1.5 when full.
+          // This makes the bias toward recent keys scale with how
+          // actively the user has been pressing.
+          const recencyFactor = Math.min(1.5, recentTail.length / 6);
+          const recentWeight = 0.5 + recencyFactor; // 0.5 .. 2.0
+          const exploreWeight = 0.3;
+          const pool = [];
+          for (let i = 0; i < all.length; i++) {
+            const key = all[i];
+            const shortKey = key.keys.split('+').pop();
+            const inRecent = recentSet.has(shortKey);
+            const weight = inRecent ? recentWeight : exploreWeight;
+            const freq = _self._frequency[shortKey] || 1;
+            for (let w = 0; w < Math.ceil(weight * freq); w++) pool.push(key);
+          }
+          // Shuffle pool
+          for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+          }
+          // Avoid repeating last agent key
+          for (let i = 0; i < pool.length; i++) {
+            if (pool[i].keys !== _self._lastAgentKey) return pool[i];
+          }
+          return pool[0];
+        },
+
+        // Internal: fire a press
+        _fire: function (action, opts) {
+          opts = opts || {};
+          if (!action) return;
+          _self._pressCount++;
+          _self._lastAgentKey = action.keys;
+          if (opts.agentDriven) _self._agentCount++;
+          const shortKey = action.keys.split('+').pop();
+          _self._frequency[shortKey] = (_self._frequency[shortKey] || 0) + 1;
+          if (_self._lastTwo.length === 2) _self._lastTwo.shift();
+          _self._lastTwo.push(shortKey);
+          if (_self._lastTwo.length === 2) {
+            const combo = _self._lastTwo.join('+');
+            _self._combos[combo] = (_self._combos[combo] || 0) + 1;
+          }
+          const mods = {};
+          if (/Cmd|Ctrl/.test(action.keys)) mods.ctrl = true;
+          if (/Shift/.test(action.keys)) mods.shift = true;
+          // simulate() is a public method on window.SWR_KEYS — call it
+          // through self-reference so we don't depend on the outer
+          // closure var being in scope at fire time.
+          window.SWR_KEYS.simulate(action.keys, mods);
+          showAgentToast(action, !!opts.agentDriven);
+          document.dispatchEvent(new CustomEvent('swr-agent-press', {
+            detail: { action: action, agentDriven: !!opts.agentDriven }
+          }));
+        },
+
+        // Programmatic single press (testing or "agent, do this now")
+        press: function (keyPattern) {
+          let m;
+          try { m = help().find(function (k) { return k.keys === keyPattern; }); }
+          catch (e) { console.error('[SWR_KEYS.agent.press] help() failed:', e); return false; }
+          if (!m) { console.warn('[SWR_KEYS.agent.press] no match for', keyPattern); return false; }
+          _self._fire(m, { agentDriven: true });
+          return true;
+        },
+
+        start: function (idleMs) {
+          if (_self._timer) { clearInterval(_self._timer); _self._timer = null; }
+          _self._idleMs = (idleMs === undefined) ? 12000 : idleMs;
+          if (!_self._idleMs) return false;
+          _self._lastUserPressAt = Date.now();
+          _self._timer = setInterval(function () {
+            if (Date.now() - _self._lastUserPressAt < _self._idleMs) return;
+            const a = _self._pick();
+            if (a) _self._fire(a, { agentDriven: true });
+          }, 1000);
+          return true;
+        },
+
+        stop: function () {
+          if (_self._timer) { clearInterval(_self._timer); _self._timer = null; }
+          return true;
+        },
+
+        isActive: function () { return !!_self._timer; },
+        idleMs: function (ms) {
+          if (ms === undefined) return _self._idleMs;
+          _self._idleMs = ms;
+          return _self._idleMs;
+        },
+
+        noteUserPress: function (keyPattern) {
+          _self._lastUserPressAt = Date.now();
+          _self._pressCount++;
+          const shortKey = String(keyPattern).split('+').pop();
+          _self._frequency[shortKey] = (_self._frequency[shortKey] || 0) + 1;
+          _self._recentUser.push(String(keyPattern));
+          if (_self._recentUser.length > 8) _self._recentUser.shift();
+          if (_self._lastTwo.length === 2) _self._lastTwo.shift();
+          _self._lastTwo.push(shortKey);
+          if (_self._lastTwo.length === 2) {
+            const combo = _self._lastTwo.join('+');
+            _self._combos[combo] = (_self._combos[combo] || 0) + 1;
+          }
+        },
+
+        recent: function () { return _self._recentUser.slice(); },
+        frequency: function () {
+          const out = [];
+          for (const k in _self._frequency) {
+            out.push({ key: k, count: _self._frequency[k] });
+          }
+          out.sort(function (a, b) { return b.count - a.count; });
+          return out;
+        },
+        combos: function () {
+          const out = [];
+          for (const k in _self._combos) {
+            // Surface combos the user has done at least twice. These
+            // usually represent a pattern worth seeing ("oh I keep
+            // doing R then N").
+            if (_self._combos[k] >= 2) out.push({ combo: k, count: _self._combos[k] });
+          }
+          out.sort(function (a, b) { return b.count - a.count; });
+          return out;
+        },
+        stats: function () {
+          return {
+            totalPresses: _self._pressCount,
+            agentPresses: _self._agentCount,
+            recentCount: _self._recentUser.length,
+            uniqueKeys: Object.keys(_self._frequency).length,
+            uniqueCombos: Object.keys(_self._combos).length,
+          };
+        },
+      };
+      return _self;
+    })(),
   };
+
+  // Wire user-keypress recording + toast for real keystrokes.
+  function agent_note(ev) {
+    if (!state.enabled) return;
+    if (!ev || !ev.key) return;
+    window.SWR_KEYS.agent.noteUserPress(ev.key);
+  }
+  document.addEventListener('keydown', agent_note, { passive: true });
+
+  // Toast renderer — small overlay bottom-right, auto-fades after 2s.
+  let agentToastEl = null, agentToastTimer = null;
+  function showAgentToast(action, agentDriven) {
+    if (agentToastTimer) { clearTimeout(agentToastTimer); }
+    if (!agentToastEl) {
+      agentToastEl = document.createElement('div');
+      agentToastEl.id = 'swr-agent-toast';
+      agentToastEl.style.cssText = [
+        'position:fixed', 'bottom:14px', 'right:14px', 'z-index:10003',
+        'padding:8px 12px', 'border-radius:4px',
+        'font:11px ui-monospace,monospace',
+        'background:rgba(20,15,30,0.92)', 'color:#fff',
+        'border:1px solid #00f0ff',
+        'box-shadow:0 0 12px rgba(0,240,255,0.3)',
+        'opacity:0', 'transition:opacity 0.2s ease',
+        'pointer-events:none', 'max-width:340px',
+      ].join(';');
+      document.body.appendChild(agentToastEl);
+    }
+    const tag = agentDriven ? '🤖 agent' : '⌨ you';
+    const color = agentDriven ? '#ff2d8a' : '#00f0ff';
+    agentToastEl.textContent = tag + ' · ' + action.keys + ' · ' + action.label;
+    agentToastEl.style.borderColor = color;
+    agentToastEl.style.boxShadow = '0 0 12px ' + (agentDriven ? 'rgba(255,45,138,0.4)' : 'rgba(0,240,255,0.3)');
+    requestAnimationFrame(function () { if (agentToastEl) agentToastEl.style.opacity = '1'; });
+    agentToastTimer = setTimeout(function () {
+      if (agentToastEl) agentToastEl.style.opacity = '0';
+    }, 2000);
+  }
 
   // ---- install --------------------------------------------------------
 
@@ -833,6 +1105,24 @@
       // a short delay, then give up.
       window.setTimeout(function () { bindHelpButton(); }, 250);
     }
+
+    // P3.7 — agent start/stop button inside the help overlay. Delegated
+    // click handler so it survives the helpEl being re-created on each
+    // showHelp(). Toggles the idle-press scheduler and refreshes the
+    // help panel so the status line + button label update immediately.
+    document.addEventListener('click', function (e) {
+      const t = e.target;
+      if (t && t.getAttribute && t.getAttribute('data-agent-toggle') === '1') {
+        e.preventDefault();
+        e.stopPropagation();
+        const ag2 = window.SWR_KEYS && window.SWR_KEYS.agent;
+        if (!ag2) return;
+        if (ag2.isActive()) ag2.stop(); else ag2.start();
+        // Re-render the help panel so the button label flips
+        if (typeof hideHelp === 'function') hideHelp();
+        if (typeof showHelp === 'function') showHelp();
+      }
+    }, true);
 
     // Master rotation toggle: a sibling icon button placed directly
     // before the "?" help button. When the page has a swr-keys-help-btn,
