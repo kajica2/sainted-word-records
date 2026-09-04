@@ -3049,6 +3049,37 @@
     #floatingEngine > .engine__workspace { display: none; }
     body.tab-output-on #floatingEngine > .engine__workspace { display: grid; }
 
+    /* Output tab — when active, the engine swaps from "stage + sidebar"
+       mode to "scrollable workspaces" mode. The Story Timeline and
+       Export workspaces become visible (they're normally clipped by
+       the engine's overflow:hidden). We hide the SIDEBAR (which
+       contains the tabs/audio panel etc. that conflict with the
+       export panel) but keep the STAGE visible so it keeps drawing
+       into stageCanvas — the recording blit captures from
+       stageCanvas, so if the stage is hidden the visualizer stops
+       rendering and the exported video is just a static dark frame.
+       With the stage visible, the export panel sits below it inside
+       the engine's scroll viewport so the user can reach Record. */
+    body.tab-output-on .floating-engine__body > .engine__sidebar { display: none; }
+    body.tab-output-on .floating-engine {
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    /* Hide the resize handles while scrollable — they fight with the
+       scrollbar at the corner. */
+    body.tab-output-on .floating-engine__resize { display: none; }
+    /* While Output tab is active, cap the stage height so it doesn't
+       push the Export workspace off-screen. ~45% of the engine
+       viewport leaves room for the Format/Duration/Codec/FPS/
+       Bitrate pickers and the Record Video button. The user can
+       scroll within the engine to reach the button if they want the
+       stage at full size — but at this height the button is reachable
+       without scrolling on most desktop viewports. */
+    body.tab-output-on .floating-engine__body > .stage {
+      flex: 0 0 auto;
+      max-height: 45%;
+    }
+
     @media (min-width: 641px) {
       /* (d) On desktop, give the stage a max-height cap so the
             sidebar always has visible room. The audio panel scrolls
@@ -9329,6 +9360,24 @@
       mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) recordedBlobs.push(e.data);
       };
+      // P3.1 — restore the user's preset if music-video mode switched it.
+      // Declared BEFORE mediaRecorder.onstop so the closure can safely
+      // read it without hitting the const TDZ. (See bug fix: line 9394
+      // used to throw `Cannot access 'restorePresetAfterRecord' before
+      // initialization` because the original code declared this const
+      // at the bottom of startRecording() — well after the closure that
+      // reads it.)
+      const restorePresetAfterRecord = (state.export.mode === 'musicvideo')
+        ? { preset: state.preset, duration: state.export.duration }
+        : null;
+      // P3.1 — total recording duration depends on mode. Declared before
+      // mediaRecorder.start() AND before the label/toast updates below
+      // that read `totalRecordMs` — otherwise the label assignment throws
+      // a TDZ ReferenceError and the recording never gets a "Recording · Ns"
+      // label.
+      const totalRecordMs = (state.export.mode === 'musicvideo')
+        ? totalMVDurationMs()
+        : state.export.duration * 1000;
       mediaRecorder.onstop = () => {
         stopBlit = true;
         const blob = new Blob(recordedBlobs, { type: recordingMime });
@@ -9384,22 +9433,11 @@
       const modeLabel = state.export.mode === 'musicvideo' ? 'Music Video' : 'Loop';
       showToast(`${modeLabel} ${state.export.format} ${totalSec}s @ ${state.export.fps}fps · ${state.export.bitrate}Mbps · ${fmt}`);
       // Natural end after the picked duration
-      // P3.1 — restore the user's original preset + duration after recording.
-// We snapshot both at the start of startRecording and put them back in
-// the onstop handler below.
-const restorePresetAfterRecord = (state.export.mode === 'musicvideo')
-  ? { preset: state.preset, duration: state.export.duration }
-  : null;
-
-// P3.1 — total recording duration depends on mode
-const totalRecordMs = (state.export.mode === 'musicvideo')
-  ? totalMVDurationMs()
-  : state.export.duration * 1000;
-recordTimer = setTimeout(() => {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    mediaRecorder.stop();
-  }
-}, totalRecordMs);
+      recordTimer = setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      }, totalRecordMs);
     }
 
     // Compute the recording canvas dimensions from the picked aspect ratio
