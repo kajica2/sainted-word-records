@@ -1,0 +1,61 @@
+{
+  "plan": "score-evolution",
+  "branch": "feat/score-evolution",
+  "baseBranch": "feat/music-video-hologram",
+  "startedAt": "2026-09-04T16:00:00Z",
+  "currentStage": 1,
+  "status": "in_progress",
+  "stages": [
+    {
+      "id": 1,
+      "title": "Narrative accumulator state (client/narrative-state.client.js)",
+      "tasks": [
+        {"id": "1.1", "title": "Create client/narrative-state.client.js with 5 state vars", "status": "pending", "worker": null, "artifacts": []},
+        {"id": "1.2", "title": "Write scripts/check-narrative-unit.mjs with 6 tests", "status": "pending", "worker": null, "artifacts": []},
+        {"id": "1.3", "title": "Wire narrative into versions/music_video.html", "status": "pending", "worker": null, "artifacts": []}
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Drift reactors (applyR rewiring)",
+      "tasks": [
+        {"id": "2.1", "title": "Patch applyR() to consume narrative.state", "status": "pending"},
+        {"id": "2.2", "title": "Add Stage 2 assertions to scripts/check-mv-smoke.mjs", "status": "pending"}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Phase narrative (continuous, time-based)",
+      "tasks": [
+        {"id": "3.1", "title": "Add phaseMultiplier() function", "status": "pending"},
+        {"id": "3.2", "title": "Apply phase multipliers in applyR", "status": "pending"}
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Beat-locked micro-evolution",
+      "tasks": [
+        {"id": "4.1", "title": "Every-4-beats weights nudge + peak floor", "status": "pending"}
+      ]
+    },
+    {
+      "id": 5,
+      "title": "End-of-song release",
+      "tasks": [
+        {"id": "5.1", "title": "Auto-detect song end + taper release", "status": "pending"}
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Integration smoke + polish",
+      "tasks": [
+        {"id": "6.1", "title": "Write scripts/check-score-evolution-smoke.mjs", "status": "pending"},
+        {"id": "6.2", "title": "Add npm run check:score-evolution", "status": "pending"},
+        {"id": "6.3", "title": "Commit + push + open PR", "status": "pending"}
+      ]
+    }
+  ],
+  "blockers": [],
+  "nextAction": "spawn worker for task 1.1",
+  "lastUpdated": "2026-09-04T16:00:00Z"
+}
