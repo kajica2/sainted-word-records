@@ -47,6 +47,10 @@ function pickHandlerPath(urlPath) {
     if (segs[2] === 'share' && segs[3]) return HANDLER_PATHS['projects/share'];
     return HANDLER_PATHS['projects/item'];
   }
+  // Auth & membership (Stage 2): /api/users/<id> → profile endpoint.
+  if (segs[1] === 'users' && segs[2] && /^[a-f0-9-]{8,40}$/i.test(segs[2])) {
+    return '../api/users/[id].js';
+  }
   if (segs[1] === 'health') return HANDLER_PATHS['health'];
   if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files too
   return null;

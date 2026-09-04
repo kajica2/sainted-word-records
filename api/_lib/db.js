@@ -136,11 +136,23 @@ export async function getUser(id) {
 export async function createUser({ email, name = null, image = null, provider = 'email' }) {
   if (!email) throw new Error('email required');
   const existing = await findUserByEmail(email);
-  if (existing) return existing;
+  if (existing) {
+    // Auth & membership (Stage 2): backfill membershipTier on legacy
+    // users that pre-date the field. Free tier is the default for any
+    // sign-up that doesn't otherwise specify a tier.
+    if (!existing.membershipTier) {
+      return updateUser(existing.id, { membershipTier: 'free' });
+    }
+    return existing;
+  }
   return withLock(async () => {
     const users = await readJson(USERS_PATH, []);
     if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
-      return users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      if (!found.membershipTier) {
+        return updateUser(found.id, { membershipTier: 'free' });
+      }
+      return found;
     }
     const user = {
       id: uuid(),
@@ -148,6 +160,8 @@ export async function createUser({ email, name = null, image = null, provider = 
       name: name || email.split('@')[0],
       image,
       provider,
+      membershipTier: 'free',
+      joinedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
     users.push(user);
@@ -165,6 +179,18 @@ export async function updateUser(id, patch) {
     await writeJson(USERS_PATH, users);
     return users[idx];
   });
+}
+
+// Auth & membership (Stage 2): set a user's membership tier. Validated
+// against a small allow-list so callers can't set arbitrary strings.
+// Only the user themselves can change their tier — the call site is
+// expected to enforce that by passing userId from requireUser().
+export const MEMBERSHIP_TIERS = ['free', 'creator'];
+export async function setMembershipTier(userId, tier) {
+  if (!MEMBERSHIP_TIERS.includes(tier)) {
+    throw new Error(`invalid tier: ${tier}`);
+  }
+  return updateUser(userId, { membershipTier: tier });
 }
 
 // =====================================================================
