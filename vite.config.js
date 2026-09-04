@@ -153,6 +153,10 @@ function copyStatic() {
     'api/storage/object.js',
     'api/projects/index.js',
     'api/projects/[id].js',
+    // Auth & membership (Stage 2): per-user profile endpoint. Vite's
+    // copyStatic will mirror the directory layout, so 'api/users/[id].js'
+    // becomes dist/api/users/[id].js — Vercel reads the [id] segment.
+    'api/users/[id].js',
     'api/_lib/db.js',
     'api/_lib/http.js',
     'api/_lib/session.js',

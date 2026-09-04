@@ -16,7 +16,18 @@ export default async function handler(req, res) {
     const { user } = await getCurrentUser(req);
     if (!user) return sendJson(res, 200, { user: null });
     return sendJson(res, 200, {
-      user: { id: user.id, email: user.email, name: user.name, image: user.image, provider: user.provider },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+        provider: user.provider,
+        // Auth & membership (Stage 2): include tier + joinedAt on the
+        // session payload so the client can render UI immediately on
+        // boot without a follow-up /api/users/[id] round-trip.
+        membershipTier: user.membershipTier || 'free',
+        joinedAt: user.joinedAt || user.createdAt || null,
+      },
     });
   }
 
