@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="../lib/library-switcher.css">
 <link rel="stylesheet" href="../lib/library-manager.css">
 <link rel="stylesheet" href="../lib/music-video-maker.css">
+<link rel="stylesheet" href="../lib/journey-state.css">
 <style>
   :root {
     --bg: #000000;
@@ -224,5 +225,26 @@
 <script src="../lib/playlist.client.js"></script>
 <script src="../lib/library-manager.client.js"></script>
 <script src="../lib/music-video-maker.client.js"></script>
+<script src="../lib/journey-state.client.js"></script>
+<script src="../lib/journey-effects.client.js"></script>
+<script src="../lib/alpha-layer.client.js"></script>
+<script>
+// Wire up the Hyper Journey runtime. Idempotent — survives re-eval.
+(function () {
+  'use strict';
+  function boot() {
+    if (!window.JourneyState || !window.JourneyEffects || !window.AlphaLayer) return;
+    window.AlphaLayer.start();
+    window.JourneyState.start();
+    window.JourneyEffects.start();
+    console.info('[journey] booted — audio-driven modulation active');
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
 </body>
 </html>

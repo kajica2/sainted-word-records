@@ -1,0 +1,52 @@
+/* lib/journey-state.css — Layer 3 effect CSS variables + alpha layer shell. */
+
+/* Apply Layer 3 effects to the preview canvas.
+   These consume the CSS custom properties that journey-effects.client.js writes. */
+#preview {
+  filter: hue-rotate(var(--journey-hue-deg, 0deg))
+          saturate(calc(1 + var(--journey-saturation, 0)))
+          brightness(calc(1 + var(--journey-brightness, 0)));
+  transform: translate(var(--journey-translate-x, 0px), var(--journey-translate-y, 0px))
+             scale(var(--journey-scale, 1));
+  transform-origin: 50% 50%;
+  transition: filter 0.1s linear, transform 0.08s linear;
+  will-change: filter, transform;
+}
+
+/* Alpha layer wrapper. The button sits inside the wrapper, top-right. */
+.journey-wrap {
+  position: relative;
+}
+.journey-wrap #journey-create-toggle:hover {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.journey-wrap #journey-create-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The alpha canvas itself; default 20% opacity, brighten in create mode. */
+.journey-wrap #journey-alpha {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.20;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transition: opacity 0.4s ease;
+}
+
+/* Reduced motion: kill all motion effects. */
+@media (prefers-reduced-motion: reduce) {
+  #preview {
+    filter: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .journey-wrap #journey-alpha {
+    opacity: 0.05 !important;
+    transition: none !important;
+  }
+}
