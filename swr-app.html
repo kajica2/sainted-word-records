@@ -3492,7 +3492,7 @@
                   </div>
 
                   <div class="field">
-                    <label class="field__label">Accent color <small id="brandAccentHint">overrides lime</small></label>
+                    <label class="field__label" for="brandAccent">Accent color <small id="brandAccentHint">overrides lime</small></label>
                     <div class="swatch-row">
                       <span class="color-swatch" id="brandSwatch" aria-hidden="true"></span>
                       <input type="text" class="field__input" id="brandAccent" placeholder="#d7ff3d" />
@@ -3524,7 +3524,7 @@
                        transport pill shows, but here it stays visible while
                        the user adjusts brand/hashtag settings. -->
                   <div class="field">
-                    <label class="field__label">Detected BPM <small id="brandBpmSource">—</small></label>
+                    <div class="field__label">Detected BPM <small id="brandBpmSource">—</small></div>
                     <div class="bpm-row">
                       <span id="brandBpmDisplay" class="bpm-display is-na">—</span>
                       <button class="btn btn--ghost" id="brandBpmTap" type="button">Tap</button>
@@ -3539,7 +3539,7 @@
                        know the key and want to set it without playing
                        audio. -->
                   <div class="field">
-                    <label class="field__label">Detected Key <small id="brandKeySource">—</small></label>
+                    <label class="field__label" for="brandKeyManual">Detected Key <small id="brandKeySource">—</small></label>
                     <div class="bpm-row">
                       <span id="brandKeyDisplay" class="bpm-display is-na">—</span>
                       <select id="brandKeyManual" class="field__input field__input--inline" aria-label="Manual key override">
@@ -3582,7 +3582,7 @@
                   <div class="panel__title">Share & Publish <small>auto-generated</small></div>
 
                   <div class="field">
-                    <label class="field__label">Shareable link <small>encodes current preset + state</small></label>
+                    <label class="field__label" for="shareLink">Shareable link <small>encodes current preset + state</small></label>
                     <div class="share-link">
                       <input type="text" class="field__input" id="shareLink" readonly />
                       <button id="shareCopy">Copy</button>
@@ -3590,7 +3590,7 @@
                   </div>
 
                   <div class="field">
-                    <label class="field__label">Caption</label>
+                    <div class="field__label">Caption</div>
                     <div class="caption-box" id="captionBox" aria-live="polite"></div>
                     <div class="caption-actions">
                       <button id="captionCopy">Copy Caption</button>
@@ -3599,7 +3599,7 @@
                   </div>
 
                   <div class="field">
-                    <label class="field__label">Publish to</label>
+                    <div class="field__label">Publish to</div>
                     <div class="social-grid">
                       <button class="social-tile" data-platform="instagram">
                         <span class="social-tile__name">Instagram</span>
