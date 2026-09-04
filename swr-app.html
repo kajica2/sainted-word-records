@@ -1849,6 +1849,27 @@
         grid-template-columns: 1fr;
       }
     }
+    /* Fullscreen: stage fills the available viewport (no aspect-ratio
+       floor). The transport row sits at the bottom of the engine body.
+       Without this rule the stage inherits its 16:9 aspect-ratio and
+       leaves a tall empty band below it on wide viewports. We use
+       flex-grow:1 + min-height:0 on the stage and pin the transport
+       to its natural height so it stays in view at the bottom. */
+    body.engine-fullscreen .floating-engine__body > .stage {
+      flex: 1 1 0;
+      min-height: 0;
+      max-height: none;
+      display: flex;
+      flex-direction: column;
+    }
+    body.engine-fullscreen .floating-engine__body .stage__viewport {
+      aspect-ratio: auto;
+      flex: 1 1 0;
+      min-height: 0;
+    }
+    body.engine-fullscreen .floating-engine__body .stage .transport {
+      flex: 0 0 auto;
+    }
 
     /* ============================================================
        FLOATING ENGINE WINDOW
@@ -2927,7 +2948,97 @@
       40%  { box-shadow: inset 0 0 0 6px var(--flash-color, rgba(255,255,255,0.7)); }
       100% { box-shadow: inset 0 0 0 0 transparent; }
     }
-  </style>
+
+    /* ============================================================
+       DESKTOP OVERFLOW FIX (fix/desktop-overflow-tabs-fit)
+       ============================================================
+       Two issues observed at ~989×740:
+         1. The marketing <footer> is a body-level sibling of the
+            app-shell, so it sits OUTSIDE the locked 100vh viewport
+            and pushes body.scrollHeight to 1115 (375 px past the
+            bottom). The footer is marketing copy — irrelevant on
+            the engine SPA — so we hide it whenever the engine view
+            is on.
+         2. The .floating-engine is `position: absolute; inset: 16px;
+            overflow: hidden` and sized to ~382 px tall on this
+            viewport. Its body (.floating-engine__body) collapses to
+            height 0 because two `.engine__workspace` siblings inside
+            the floating engine (the "Story Timeline" and "Export"
+            rows) have a combined min-content height of ~1387 px and
+            dominate the flex basis, leaving 0 for the body. Result:
+            tabs render at y=686 but the audio panel content sits at
+            y=727..2223 — fully clipped, unreachable.
+       Fix:
+         (a) Hide .footer when .view--engine.is-on (engine is the
+             SPA's home; footer is browse-view marketing).
+         (b) Force .floating-engine__body to flex-grow and shrink to
+             0 min-height so it claims the available space inside
+             the floating engine.
+         (c) Hide the two .engine__workspace rows that live INSIDE
+             the floating engine (content overflow that's clipped by
+             the engine's overflow:hidden anyway — hiding them at the
+             CSS layer lets the flex calculation finally give the body
+             space). Users reach that content via the dedicated
+             modal/expanded views, not via this locked-viewport card.
+         (d) Make stage flex appropriately and sidebar scroll its
+             long content (audio panel = 1986 px).
+       Rules (a), (b), (c) apply at ALL viewports because the bugs
+       are not viewport-dependent — the engine SPA locks its viewport
+       on mobile AND desktop. Rule (d) is split: desktop uses a
+       side-by-side flex split; mobile stacks vertically with the
+       sidebar scrolling internally (handled by the existing
+       max-width: 640px media query rules above). */
+    /* (a) Hide marketing footer in the SPA context — the engine
+          is the home page on /swr-app.html and /app. We use
+          :has() on body so the rule fires regardless of where
+          the footer sits in the DOM tree (it's currently a
+          body-level sibling, four levels away from .view--engine
+          so the ~ sibling selector won't reach it). Supported
+          in Chrome 105+ and all current evergreen browsers. */
+    body:has(.view--engine.is-on) > footer.footer { display: none; }
+
+    /* (b) Let the engine body claim all leftover space inside the
+          floating engine (after the titlebar). flex-basis: 0 +
+          min-height: 0 is the canonical "fill, don't be influenced
+          by min-content" recipe. Applies universally — the
+          locked-viewport SPA needs this on every breakpoint. */
+    .floating-engine__body {
+      flex: 1 1 0;
+      min-height: 0;
+      max-height: 100%;
+    }
+
+    /* (c) Hide the .engine__workspace rows that are siblings of
+          .floating-engine__body inside #floatingEngine. They were
+          being clipped by the engine's overflow:hidden anyway and
+          were the cause of the body's flex-basis balloon. EXCEPT
+          when the Output tab is active — then the Story Timeline
+          and Export rows become the Output panel content. We toggle
+          visibility with a body class `.tab-output-on` set by JS
+          when the Output tab is clicked. */
+    #floatingEngine > .engine__workspace { display: none; }
+    body.tab-output-on #floatingEngine > .engine__workspace { display: grid; }
+
+    @media (min-width: 641px) {
+      /* (d) On desktop, give the stage a max-height cap so the
+            sidebar always has visible room. The audio panel scrolls
+            inside the engine body's overflow:auto. Mobile rules
+            above handle stacking + scrolling at narrow widths. */
+      .floating-engine__body > .stage {
+        flex: 0 1 auto;
+        min-height: 0;
+        max-height: 60%;
+        height: auto;
+      }
+      .floating-engine__body > .engine__sidebar {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+</style>
 </head>
 <body>
 
@@ -2955,7 +3066,7 @@
         <a href="#how" class="nav__link">How It Works</a>
         <a href="#showcase" class="nav__link">Gallery</a>
         <a href="#pricing" class="nav__link">Pricing</a>
-        <button class="nav__view-toggle" id="navViewToggle" type="button" aria-pressed="true" title="Switch between the engine workspace and the marketing site">
+        <button class="nav__view-toggle" id="navViewToggle" type="button" aria-pressed="true" title="Switch to marketing site, or open the engine in a fullscreen floating window">
           <span class="nav__view-toggle__dot" aria-hidden="true"></span>
           <span class="nav__view-toggle__text">Engine</span>
         </button>
@@ -3149,8 +3260,27 @@
                 <button class="tab"            data-tab="output"  role="tab" aria-selected="false">Output</button>
               </div>
 
+              <!-- AUDIO sub-tab — initial state matches the active Audio tab so the panel
+                   a first-time visitor sees when clicking Audio is the file picker, not
+                   the Presets grid (which is a separate tab). -->
+              <div class="tabpanel is-on" data-panel="audio" role="tabpanel">
+                <div class="panel" style="margin:0;">
+                  <div class="panel__title">Audio tracks <small>load a song to drive the visual engine</small></div>
+
+                  <div class="audio-source">
+                    <button class="cta cta--ghost" id="audioAddBtn" type="button">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                      Add Audio File
+                    </button>
+                    <input type="file" id="audioFileInput" accept="audio/*" multiple hidden />
+                  </div>
+                  <div class="audio-list" id="audioList"></div>
+                  <div class="audio-hint" id="audioHint">Audio bytes are not persisted — adding a track saves its name, size, and duration. Re-select the file on reload to load it back into transport.</div>
+                </div>
+              </div>
+
               <!-- Presets tab -->
-              <div class="tabpanel is-on" data-panel="presets" role="tabpanel">
+              <div class="tabpanel" data-panel="presets" role="tabpanel">
                 <div class="panel" style="margin:0;">
                   <div class="panel__title">
                     Visual Presets
@@ -4871,15 +5001,18 @@
         document.body.classList.remove('engine-fullscreen');
         floatingEngineFullscreen.classList.remove('is-on');
         floatingEngineFullscreen.setAttribute('aria-pressed', 'false');
-        // After exiting, restore the saved rect relative to the current
-        // viewport so the window pops back to where it was.
+        // After exiting, the saved rect was captured from the VISUAL
+        // viewport position, but `position: absolute` measures from the
+        // offset parent (.engine-viewport). Clear the inline top/left
+        // so the CSS rule (`.floating-engine { inset: 16px }`) re-docks
+        // the window back to its pre-fullscreen position. Width/height
+        // are still applied so the saved size is preserved.
         if (floatingEngineState._savedRect) {
-          floatingEngineState.x = floatingEngineState._savedRect.x;
-          floatingEngineState.y = floatingEngineState._savedRect.y;
+          floatingEngineState.x = null;
+          floatingEngineState.y = null;
           floatingEngineState.w = floatingEngineState._savedRect.w;
           floatingEngineState.h = floatingEngineState._savedRect.h;
         } else {
-          // First-time exit without prior drag: go back to default dock
           floatingEngineState.x = null;
           floatingEngineState.y = null;
           floatingEngineState.w = null;
@@ -5873,6 +6006,11 @@
       $$('.tabpanel').forEach((p) => {
         p.classList.toggle('is-on', p.getAttribute('data-panel') === name);
       });
+      // Output tab has no dedicated sidebar panel — its content lives
+      // in the .engine__workspace rows (Story Timeline + Export) that
+      // sit as siblings of the floating engine body. We surface them
+      // via a body class that the CSS uses to toggle display.
+      document.body.classList.toggle('tab-output-on', name === 'output');
       if (name === 'media') {
         if (!state.library.libraryLoaded && state.library.items.length === 0) {
           // Auto-fetch the curated library on first open of the Media tab
@@ -5915,9 +6053,17 @@
     }
 
     if (navViewToggle) {
-      navViewToggle.addEventListener('click', () => {
+      navViewToggle.addEventListener('click', (e) => {
         const currentlyEngine = navViewToggle.getAttribute('aria-pressed') === 'true';
-        switchView(currentlyEngine ? 'browse' : 'engine');
+        if (currentlyEngine) {
+          // Already on the engine view — clicking the toggle opens the
+          // floating engine as a true fullscreen window. Exit fullscreen
+          // on a second click.
+          if (typeof toggleFullscreen === 'function') toggleFullscreen();
+          e.preventDefault();
+        } else {
+          switchView('engine');
+        }
       });
     }
     engineTabs.addEventListener('click', (e) => {
