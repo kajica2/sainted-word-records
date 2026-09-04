@@ -2488,7 +2488,7 @@
     }
     .audio-track {
       display: grid;
-      grid-template-columns: auto 1fr auto auto;
+      grid-template-columns: auto 1fr auto auto auto;
       gap: 10px;
       align-items: center;
       padding: 8px 10px;
@@ -2519,6 +2519,36 @@
       background: var(--lime);
       color: var(--black);
       border-color: var(--lime);
+    }
+    /* Loop toggle — shown only when the track is < 30 s, where looping
+       actually helps the user (visual engine stays driven by audio
+       across the recording window). Mirrors the play button's
+       dimensions + states. */
+    .audio-track__loop {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--ink-3);
+      color: var(--text-dim);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s var(--ease), border-color 0.15s var(--ease),
+                  background 0.15s var(--ease);
+    }
+    .audio-track__loop svg { width: 14px; height: 14px; display: block; }
+    .audio-track__loop:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+    .audio-track__loop.is-on {
+      background: var(--lime);
+      color: var(--black);
+      border-color: var(--lime);
+    }
+    .audio-track__loop[disabled] {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
     }
     .audio-track__meta {
       min-width: 0;
@@ -4324,7 +4354,13 @@
         if (saved.audioTracks && Array.isArray(saved.audioTracks.items)) {
           // Strip bytes markers — they're session-only
           state.audioTracks.items = saved.audioTracks.items.map(t => ({
-            ...t, hasBytes: false
+            // Back-compat: tracks added before the per-track loop toggle
+            // don't have a .loop key. Default loop ON for tracks that
+            // qualify as < 30 s (the same heuristic handleAudioFiles
+            // uses for new tracks), OFF otherwise.
+            ...t,
+            hasBytes: false,
+            loop: t.loop !== undefined ? t.loop : (t.duration > 0 && t.duration < 30),
           }));
           if (saved.audioTracks.currentTrackId) state.audioTracks.currentTrackId = saved.audioTracks.currentTrackId;
         }
@@ -6562,6 +6598,13 @@
           size: file.size,
           type: file.type || 'audio/' + (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase(),
           duration: duration,
+          // Loop is opt-in for tracks under 30 s — short loops are
+          // useful when the visual engine needs continuous audio
+          // (e.g. recording a long video, or letting the beat
+          // detector keep running across takes). Tracks ≥ 30 s get
+          // loop = false by default since the user is likely working
+          // with a full song. They can toggle this in the UI.
+          loop: duration > 0 && duration < 30,
           added: Date.now()
         };
         state.audioTracks.items.unshift(item);
@@ -6637,11 +6680,23 @@
         audioList.appendChild(empty);
         return;
       }
+      // Loop SVG — counter-clockwise arrow with arrowhead. Used as the
+      // icon for the per-track loop toggle. Inherits color from the
+      // button (text-dim by default, lime-on-black when .is-on).
+      const loopIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
       tracks.forEach((t) => {
         const row = document.createElement('div');
         row.className = 'audio-track';
         if (t.id === state.audioTracks.currentTrackId) row.classList.add('is-active');
         row.setAttribute('data-track', t.id);
+        // Show the loop toggle only for short tracks (< 30 s); full songs
+        // can still loop via audioEl.loop = true if the user wants, but
+        // we don't surface the toggle.
+        const showLoop = t.duration > 0 && t.duration < 30;
+        // Back-compat: tracks saved before this field existed have no
+        // .loop key. Default them to on (since they qualified as < 30s
+        // when they were added, this is the safe assumption).
+        if (showLoop && t.loop === undefined) t.loop = true;
         row.innerHTML = `
           <button class="audio-track__play" data-action="play" aria-label="Play ${t.name}">▶</button>
           <div class="audio-track__meta">
@@ -6653,9 +6708,25 @@
               <span class="audio-track__badge ${t.hasBytes ? 'is-loaded' : ''}">${t.hasBytes ? 'In memory' : 'Re-import'}</span>
             </div>
           </div>
+          ${showLoop ? `<button class="audio-track__loop ${t.loop ? 'is-on' : ''}" data-action="loop" aria-pressed="${t.loop ? 'true' : 'false'}" aria-label="${t.loop ? 'Disable loop on' : 'Enable loop on'} ${t.name}" title="${t.loop ? 'Looping on — click to disable' : 'Click to loop this track'}">${loopIcon}</button>` : ''}
           <button class="audio-track__delete" data-action="delete" aria-label="Remove ${t.name}">×</button>
         `;
         row.querySelector('[data-action="play"]').addEventListener('click', () => loadTrackIntoTransport(t));
+        const loopBtn = row.querySelector('[data-action="loop"]');
+        if (loopBtn) {
+          loopBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            t.loop = !t.loop;
+            // If this is the currently loaded track, apply to the
+            // <audio> element immediately so the next play respects it.
+            if (t.id === state.audioTracks.currentTrackId && audioEl) {
+              audioEl.loop = !!t.loop;
+            }
+            saveState();
+            renderAudioList();
+            showToast(`Loop ${t.loop ? 'on' : 'off'} — "${t.name}".`);
+          });
+        }
         row.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
           e.stopPropagation();
           removeAudioTrack(t.id);
@@ -6682,6 +6753,11 @@
       state.audio.src = blobUrl;
       state.audio.loaded = true;
       state.audio.name = track.name;
+      // Honor the per-track loop setting (auto-on for tracks < 30 s;
+      // user can toggle in the UI). The toggle handler in
+      // renderAudioList also re-applies this when the user changes
+      // it on the currently playing track.
+      audioEl.loop = !!track.loop;
       state.audioTracks.currentTrackId = track.id;
       trackLabel.textContent = track.name;
       saveState();
