@@ -1,0 +1,42 @@
+{
+  "plan": "asset-curator",
+  "branch": "feat/asset-curator",
+  "baseBranch": "feat/music-video-hologram",
+  "startedAt": "2026-09-04T16:30:00Z",
+  "currentStage": 1,
+  "status": "in_progress",
+  "stages": [
+    {
+      "id": 1,
+      "title": "Client-side background removal + folder routing (no network)",
+      "tasks": [
+        {"id": "1.1", "title": "Create client/asset-curator.client.js with corner-pixel sniff + Canvas chroma key + local tag heuristic", "status": "pending", "worker": null, "artifacts": []},
+        {"id": "1.2", "title": "Wire music_video upload handler to call SWR_ASSET_CURATOR.process() on PNG/JPEG", "status": "pending"},
+        {"id": "1.3", "title": "Render library aside grouped by folder", "status": "pending"},
+        {"id": "1.4", "title": "Write scripts/check-asset-curator-unit.mjs (5 unit tests)", "status": "pending"}
+      ]
+    },
+    {
+      "id": 2,
+      "title": "HF Space tagging with local fallback",
+      "tasks": [
+        {"id": "2.1", "title": "Verify association Space API shape via /gradio_api/info", "status": "pending"},
+        {"id": "2.2", "title": "Add tagViaHF() with 3s AbortSignal.timeout", "status": "pending"},
+        {"id": "2.3", "title": "Merge HF tags with local heuristic tags", "status": "pending"},
+        {"id": "2.4", "title": "Add 3 unit tests for HF paths (success, timeout, error)", "status": "pending"}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "UI polish + smoke + ship",
+      "tasks": [
+        {"id": "3.1", "title": "Add 'Asset curator' status pill to footer", "status": "pending"},
+        {"id": "3.2", "title": "Write scripts/check-asset-curator-smoke.mjs (5 Puppeteer tests)", "status": "pending"},
+        {"id": "3.3", "title": "Commit + push + open PR", "status": "pending"}
+      ]
+    }
+  ],
+  "blockers": [],
+  "nextAction": "Stage 1 worker: create client/asset-curator.client.js",
+  "lastUpdated": "2026-09-04T16:45:00Z"
+}

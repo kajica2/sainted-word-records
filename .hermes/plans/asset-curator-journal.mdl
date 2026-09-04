@@ -1,0 +1,34 @@
+# asset-curator-journal
+
+Append-only findings log for `feat/asset-curator`. Each entry is
+written when a worker (sub-agent or human) finishes a task. The
+parent reads this on resume to know what's been discovered.
+
+Format per entry:
+```
+## YYYY-MM-DDTHH:MM:SSZ · task-id · status · worker
+
+<one-paragraph summary>
+
+<artifacts written>
+
+<open questions / drift-tuning notes>
+```
+
+---
+
+## 2026-09-04T16:30:00Z · PLAN · created · hermes
+
+Plan written. 3 stages, ~2.5 days. Uses existing HF Spaces
+(kaidjuric/png-creator + kaidjuric/association) — the swarm
+orchestrator pattern already proven.
+
+Risk: HF free-tier Spaces sleep after 48h. First request after
+wakeup is 30-60s. Need a `⏳ agent warming up…` badge in the UI.
+
+Stage 1 ready to start.
+
+Artifacts:
+- .hermes/plans/asset-curator.md (the plan)
+- .hermes/plans/asset-curator-state.json (machine-readable)
+- .hermes/plans/asset-curator-journal.mdl (this file)
