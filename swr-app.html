@@ -3931,7 +3931,7 @@
         your media library. You can skip this and use the Media tab anytime.
       </p>
       <label class="onboard__drop" id="onboardDrop">
-        <input type="file" id="onboardFiles" accept=".mp3,.wav,.ogg,.m4a,.flac,.mp4,.webm,.mov,.m4v,.mpg,.mpeg,.png,.jpg,.jpeg,.gif,.webp,.avif,audio/*,video/*,image/*" multiple hidden />
+        <input type="file" id="onboardFiles" accept=".mp3,.wav,.ogg,.m4a,.flac,.aac,.opus,.aif,.aiff,.mp4,.webm,.mov,.m4v,.mpg,.mpeg,.png,.jpg,.jpeg,.gif,.webp,.avif,audio/*,video/*,image/*" multiple hidden />
         <div class="onboard__drop-inner">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
@@ -5673,7 +5673,7 @@
       for (const f of files) {
         const name = (f.name || '').toLowerCase();
         const mime = (f.type || '').toLowerCase();
-        if (mime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac)$/i.test(name)) audios.push(f);
+        if (mime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac|aac|opus|aif|aiff)$/i.test(name)) audios.push(f);
         else if (mime.startsWith('video/') || /\.(mp4|webm|mov|m4v|mpg|mpeg)$/i.test(name)) videos.push(f);
         else if (mime.startsWith('image/') || /\.(png|jpe?g|gif|webp|avif)$/i.test(name)) images.push(f);
       }
@@ -6586,7 +6586,7 @@
     }
 
     async function handleAudioFiles(fileList) {
-      const files = Array.from(fileList || []).filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac)$/i.test(f.name));
+      const files = Array.from(fileList || []).filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac|aac|opus|aif|aiff)$/i.test(f.name));
       if (!files.length) { showToast('No audio files selected.'); return; }
       for (const file of files) {
         const id = 'aud-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '-' + files.indexOf(file);
