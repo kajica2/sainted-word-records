@@ -3990,6 +3990,9 @@
 
   <audio id="audioEl" preload="auto" crossorigin="anonymous"></audio>
 
+  <!-- P3.6 — animated GIF playback: vendored omggif LZW codec + wrapper -->
+  <script src="lib/omggif.js"></script>
+  <script src="lib/gif-decoder.client.js"></script>
   <script>
   (function () {
     'use strict';
@@ -6404,12 +6407,51 @@
 
     function handleLibraryFile(file) {
       if (!file) return;
+      const ext = (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase();
       const isImage = file.type.startsWith('image/');
-      const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+      const isVideo = file.type.startsWith('video/') || /^(mp4|webm|mov|m4v)$/i.test(ext);
+      const isGif   = /^(gif)$/i.test(ext) || file.type === 'image/gif';
       if (!isImage && !isVideo) return;
+      // P3.6 — animated GIFs are read as ArrayBuffer so we can hand the
+      // raw bytes to the SWR_GIF LZW decoder. The data-URL path also
+      // works (SWR_GIF accepts base64 in a pinch) but ArrayBuffer is
+      // faster and avoids a base64 round-trip for files that can be
+      // tens of MB.
+      if (isGif) {
+        const bufReader = new FileReader();
+        bufReader.onload = (ev) => {
+          if (typeof window.SWR_GIF !== 'object' || typeof window.SWR_GIF.load !== 'function') {
+            showToast('GIF decoder not loaded — check lib/omggif.js');
+            return;
+          }
+          window.SWR_GIF.load(ev.target.result, (err, gif) => {
+            if (err) {
+              showToast('Failed to decode GIF: ' + err.message);
+              return;
+            }
+            const item = {
+              id: 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+              name: file.name.replace(/\.[^.]+$/, ''),
+              layer: state.library.assignLayer || 'background',
+              kind: 'gif',
+              ext: ext,
+              src: null,
+              gif: gif,
+              canvasW: gif.canvasW,
+              canvasH: gif.canvasH,
+              frameCount: gif.frames.length,
+              loopCount: gif.loopCount,
+              added: Date.now(),
+              origin: 'user'
+            };
+            ingestLibraryItem(item, file.name);
+          });
+        };
+        bufReader.readAsArrayBuffer(file);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (ev) => {
-        const ext = (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase();
         const item = {
           id: 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
           name: file.name.replace(/\.[^.]+$/, ''),
@@ -6420,39 +6462,46 @@
           added: Date.now(),
           origin: 'user'
         };
-        state.library.items.unshift(item);
-        // P1.2: auto-assign user uploads to layers in round-robin order
-        // so the first 4 uploads fill background → overlay → typography →
-        // effects, the 5th starts again at background, etc. This makes the
-        // canvas respond immediately without the user needing to drag.
-        const layerIds = ['background', 'overlay', 'typography', 'effects'];
-        // Find the first layer with < 1 user-asset to spread evenly;
-        // fall back to round-robin if all are full.
-        let target = null;
-        for (const lid of layerIds) {
-          const ids = state.layerAssets[lid] || [];
-          if (ids.length === 0) { target = lid; break; }
-        }
-        if (!target) {
-          // Count how many user assets are in each layer
-          const counts = layerIds.map(lid => (state.layerAssets[lid] || []).filter(aid => {
-            const a = state.library.items.find(it => it.id === aid);
-            return a && a.origin === 'user';
-          }).length);
-          const minCount = Math.min.apply(null, counts);
-          target = layerIds[counts.indexOf(minCount)];
-        }
-        if (state.layerAssets[target].indexOf(item.id) === -1) {
-          state.layerAssets[target].push(item.id);
-        }
-        // Auto-set the user's "Send uploads to" dropdown to the layer we just used
-        state.library.assignLayer = layerIds[(layerIds.indexOf(target) + 1) % layerIds.length];
-        if (libLayerAssign) libLayerAssign.value = state.library.assignLayer;
-        saveState();
-        renderLibrary();
-        showToast(`Added "${item.name}" (${item.kind}) to ${target} layer`);
+        ingestLibraryItem(item, file.name);
       };
       reader.readAsDataURL(file);
+    }
+
+    // P3.6 — shared post-create path for any library item (image, video,
+    // GIF). Pulled out of handleLibraryFile so the GIF decode path can
+    // call it after the async SWR_GIF.load() callback resolves.
+    function ingestLibraryItem(item, fileName) {
+      state.library.items.unshift(item);
+      // P1.2: auto-assign user uploads to layers in round-robin order
+      // so the first 4 uploads fill background → overlay → typography →
+      // effects, the 5th starts again at background, etc. This makes the
+      // canvas respond immediately without the user needing to drag.
+      const layerIds = ['background', 'overlay', 'typography', 'effects'];
+      // Find the first layer with < 1 user-asset to spread evenly;
+      // fall back to round-robin if all are full.
+      let target = null;
+      for (const lid of layerIds) {
+        const ids = state.layerAssets[lid] || [];
+        if (ids.length === 0) { target = lid; break; }
+      }
+      if (!target) {
+        // Count how many user assets are in each layer
+        const counts = layerIds.map(lid => (state.layerAssets[lid] || []).filter(aid => {
+          const a = state.library.items.find(it => it.id === aid);
+          return a && a.origin === 'user';
+        }).length);
+        const minCount = Math.min.apply(null, counts);
+        target = layerIds[counts.indexOf(minCount)];
+      }
+      if (state.layerAssets[target].indexOf(item.id) === -1) {
+        state.layerAssets[target].push(item.id);
+      }
+      // Auto-set the user's "Send uploads to" dropdown to the layer we just used
+      state.library.assignLayer = layerIds[(layerIds.indexOf(target) + 1) % layerIds.length];
+      if (libLayerAssign) libLayerAssign.value = state.library.assignLayer;
+      saveState();
+      renderLibrary();
+      showToast(`Added "${item.name}" (${item.kind}${item.kind === 'gif' ? ' · ' + item.frameCount + ' frames' : ''}) to ${target} layer`);
     }
 
     function addLibraryFromUrl(url) {
@@ -6660,6 +6709,28 @@
     const layerAssetCache = Object.create(null);
     function getLayerAssetImage(asset) {
       if (layerAssetCache[asset.id]) return layerAssetCache[asset.id];
+      // P3.6 — animated GIFs don't use an HTML element; the renderer
+      // calls asset.gif.tick() and blits the returned ImageData through
+      // a backing <canvas> in drawLayerAssets.
+      if (asset.kind === 'gif') {
+        if (!asset.gif) return { el: null, ready: false, asset, kind: 'gif' };
+        const entry = {
+          el: null,
+          ready: true,
+          asset,
+          kind: 'gif',
+          gif: asset.gif,
+          // Backing canvas sized to the GIF's intrinsic dimensions.
+          // putImageData requires 1:1 pixel mapping, so we blit to
+          // this canvas and then drawImage(canvas, dx, dy, dw, dh)
+          // handles the cover-fit scaling.
+          canvas: document.createElement('canvas')
+        };
+        entry.canvas.width = asset.gif.canvasW;
+        entry.canvas.height = asset.gif.canvasH;
+        layerAssetCache[asset.id] = entry;
+        return entry;
+      }
       let el;
       if (asset.kind === 'video') {
         el = document.createElement('video');
@@ -7611,6 +7682,38 @@
         if (!asset) return;
         const entry = getLayerAssetImage(asset);
         if (!entry || !entry.ready) return;
+        // P3.6 — GIFs: advance the frame clock and blit through the
+        // backing canvas via drawImage(canvas, …). We do this BEFORE
+        // the cover-fit math so the GIF's intrinsic aspect ratio is
+        // used instead of the Image element's naturalWidth/Height (which
+        // we don't have for a canvas blit).
+        if (entry.kind === 'gif') {
+          const img = entry.gif.tick(t);
+          if (img && entry.canvas) {
+            entry.canvas.getContext('2d').putImageData(img, 0, 0);
+            const gifAR = entry.gif.canvasW / entry.gif.canvasH;
+            const dstAR = w / h;
+            let dw, dh;
+            if (gifAR > dstAR) { dh = h; dw = h * gifAR; }
+            else               { dw = w; dh = w / gifAR; }
+            const slot = assetIds.length > 1 ? (idx / assetIds.length) : 0;
+            const dx = (w - dw) / 2 + (slot - 0.5) * w * 0.06;
+            const dy = (h - dh) / 2;
+            ctx.save();
+            const aRot = (reactMod.rot || 0) + (assetIds.length > 1 ? Math.sin(t * 0.0004 + idx) * 0.03 : 0);
+            if (aRot !== 0) {
+              ctx.translate(dx + dw / 2, dy + dh / 2);
+              ctx.rotate(aRot);
+              ctx.translate(-(dx + dw / 2), -(dy + dh / 2));
+            }
+            try {
+              ctx.drawImage(entry.canvas, dx, dy, dw, dh);
+              anyDrawn = true;
+            } catch (e) { /* backing canvas not ready */ }
+            ctx.restore();
+          }
+          return;
+        }
         const el = entry.el;
         // Cover-fit: scale to fill the canvas, crop overflow
         const elAR = (el.videoWidth || el.naturalWidth || w) /
