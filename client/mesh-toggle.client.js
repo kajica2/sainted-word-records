@@ -182,18 +182,7 @@
 
       // Pick the first reasonable asset.
       const item = pickFirstReasonableAsset();
-      let asset = null;
-      if (item && item.blob && item.blob instanceof Blob) {
-        // Library item with an in-memory blob — use it directly.
-        const buf = await item.blob.arrayBuffer();
-        asset = { bytes: new Uint8Array(buf), name: item.name || 'lib' };
-      } else {
-        try {
-          asset = await loadAssetBytes(item);
-        } catch (e) {
-          console.warn('mesh-toggle: asset fetch failed, falling back to demo mesh:', e);
-        }
-      }
+      const asset = item ? await loadAssetBytes(item) : null;
       if (asset && asset.bytes) {
         await window.SWR_MESH_SCENE.load(
           ui.canvas3d,
@@ -202,16 +191,7 @@
         );
         btn.title = `Mesh from: ${asset.name} (click to flip)`;
       } else {
-        // No usable library asset — synthesize a placeholder mesh from
-        // a unit square so the 3D viewport isn't empty. The user can
-        // load a real asset via the cycle button or the generate button.
-        const placeholder = window.SWR_MESHIFY._extrudePolygon(
-          [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]],
-          24,
-          [0.6, 0.4, 0.7, 1.0],
-        );
-        await window.SWR_MESH_SCENE.loadMesh(ui.canvas3d, placeholder);
-        btn.title = 'No library asset available — showing a placeholder mesh. Drop a PNG into the library and click ↻ to use it.';
+        btn.title = 'No asset loaded — drag a PNG into the library, then click here';
       }
 
       // Show the 3D canvas, hide the 2D.
@@ -334,13 +314,13 @@
     // Reflect 3D-on state in the cycle button too.
     const origEnable = enable3D;
     const origDisable = disable3D;
-    const enable3DWrapped = async function (ui2, btn2) {
+    enable3DWrapped = async function (ui2, btn2) {
       await origEnable(ui2, btn2);
       cycleBtn.hidden = false;
       const gb = document.getElementById('mesh-generate');
       if (gb) gb.hidden = false;
     };
-    const disable3DWrapped = function (ui2, btn2) {
+    disable3DWrapped = function (ui2, btn2) {
       origDisable(ui2, btn2);
       cycleBtn.hidden = true;
       const gb = document.getElementById('mesh-generate');
