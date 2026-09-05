@@ -4,34 +4,55 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Weddings · Sainted Word Records</title>
-  <meta name="description" content="Curated wedding-moment playlists. Pick a song, jump straight into the Music Video Maker with your playlist pre-loaded." />
+  <meta name="description" content="Curated wedding-moment playlists. Pick a song, open the Music Video Maker with your playlist pre-loaded." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" />
   <link rel="stylesheet" href="./weddings.css" />
   <style>
     /* Inline just enough so the page doesn't flash unstyled if the
        CSS file 404s during dev. The full sheet is in weddings.css. */
-    :root { --bg: #000; --ink: #fff; }
+    :root { --bg: #0e0a0a; --ink: #f4ece7; --accent: #d63d6b; }
     body { margin: 0; background: var(--bg); color: var(--ink);
-           font: 14px ui-sans-serif, system-ui, sans-serif; }
+           font: 16px/1.55 ui-sans-serif, system-ui, sans-serif; }
   </style>
 </head>
 <body>
   <header class="wed-head">
-    <a class="wed-brand" href="./landing.html">← Sainted Word Records</a>
-    <span class="wed-title">WEDDINGS</span>
-    <a class="wed-cta-secondary" href="./make-video.html">Open the Music Video Maker →</a>
+    <a class="wed-brand" href="./landing.html">Sainted Word Records</a>
+    <span class="wed-title">Weddings</span>
+    <a class="wed-cta-secondary" href="./make-video.html">Open the maker</a>
   </header>
 
   <section class="wed-hero">
-    <h1>Wedding playlists that become <em>music videos</em>.</h1>
-    <p>Five curated moment playlists — Ceremony, Reception, First Dance, Cocktail Hour, Last Dance. Pick one and we'll open the Music Video Maker with your playlist already loaded.</p>
+    <div class="wed-hero-grid">
+      <div class="wed-hero-text">
+        <span class="wed-hero-eyebrow">Weddings · Music Video Studio</span>
+        <h1 class="wed-hero-title">
+          Wedding playlists<br />
+          that become <em>music videos.</em>
+        </h1>
+        <p class="wed-hero-sub">
+          Five curated moments, from ceremony to last dance. Pick a track and the Music Video Maker opens with your playlist already loaded.
+        </p>
+      </div>
+      <div class="wed-hero-art" aria-hidden="true">
+        <img class="wed-hero-image"
+             src="https://picsum.photos/seed/swr-wedding-candle-dark-001/720/900"
+             alt=""
+             loading="eager"
+             decoding="async" />
+      </div>
+    </div>
   </section>
 
   <main id="wed-main" class="wed-main">
-    <div id="wed-loading" class="wed-empty">Loading the catalog…</div>
+    <div id="wed-loading" class="wed-loading">Loading the catalog…</div>
   </main>
 
   <footer class="wed-foot">
-    <span>© Sainted Word Records · weddings is a curated preview — playable audio ships in v2.</span>
+    <p>Sainted Word Records · Weddings</p>
+    <p>A curated preview. <a href="./changelog.html">See what is shipping</a></p>
   </footer>
 
   <script src="./lib/playlist.client.js"></script>
@@ -47,7 +68,7 @@
           .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       }
       function fmtDur(s) {
-        if (!s || !isFinite(s) || s <= 0) return '—:—';
+        if (!s || !isFinite(s) || s <= 0) return '0:00';
         const m = Math.floor(s / 60);
         const sec = Math.floor(s % 60);
         return m + ':' + String(sec).padStart(2, '0');
@@ -57,7 +78,7 @@
           <section class="wed-empty-wrap">
             <h2>${escapeHtml(title)}</h2>
             <p>${escapeHtml(body)}</p>
-            <a class="wed-link" href="./changelog.html">→ Changelog</a>
+            <a class="wed-link" href="./changelog.html">See the changelog</a>
           </section>
         `;
       }
@@ -69,32 +90,29 @@
         if (!r.ok) throw new Error('HTTP ' + r.status);
         doc = await r.json();
       } catch (e) {
-        showEmpty('Catalog unavailable', 'Try again later, or check the changelog.');
+        showEmpty('Catalog unavailable', 'Try again later, or check the changelog for the latest status.');
         return;
       }
 
       const songs = Array.isArray(doc.songs) ? doc.songs : [];
       if (!songs.length) {
         showEmpty('No curated wedding playlists yet',
-                  "We're building them. Subscribe to the changelog and we'll let you know when the first batch lands.");
+                  'We are building them. Watch the changelog and we will let you know when the first batch lands.');
         return;
       }
 
-      // Map category key -> label
-      const CATEGORY_LABELS = {};
-      (Array.isArray(doc.categories) ? doc.categories : []).forEach((c) => {
-        CATEGORY_LABELS[c.key] = c.label || c.key.toUpperCase();
-      });
-      // Fallback label map
-      const FALLBACK_LABELS = {
-        ceremony: 'CEREMONY',
-        reception: 'RECEPTION',
-        'first-dance': 'FIRST DANCE',
-        'cocktail-hour': 'COCKTAIL HOUR',
-        'last-dance': 'LAST DANCE',
+      // Category config: each layout reads from the same shape but
+      // renders into a different DOM family (Section-Layout-Repetition
+      // Ban means the same grid cannot appear twice).
+      const CATEGORY_CONFIG = {
+        'ceremony':      { label: 'Ceremony',      tag: 'The moment you say it.',          variant: 'ceremony'  },
+        'reception':     { label: 'Reception',     tag: '',                                variant: 'reception' },
+        'first-dance':   { label: 'First Dance',   tag: 'A spotlight, just for the two of you.', variant: 'spotlight' },
+        'cocktail-hour': { label: 'Cocktail Hour', tag: '',                                variant: 'cocktail'  },
+        'last-dance':    { label: 'Last Dance',    tag: 'A soft landing for the end of the night.', variant: 'last' },
       };
 
-      // Group by category
+      // Group by category, preserving the JSON category order
       const byCat = new Map();
       for (const s of songs) {
         const cat = s.category || 'uncategorized';
@@ -102,87 +120,37 @@
         byCat.get(cat).push(s);
       }
 
-      // Render one section per category (preserve JSON order)
-      const main0 = document.createElement('div');
       main.innerHTML = '';
       for (const [cat, list] of byCat) {
-        const section = document.createElement('section');
-        section.className = 'wed-section';
-        const label = CATEGORY_LABELS[cat] || FALLBACK_LABELS[cat] || cat.toUpperCase();
-        const head = document.createElement('div');
-        head.className = 'wed-section-head';
-        const h2 = document.createElement('h2');
-        h2.textContent = label;
-        const count = document.createElement('span');
-        count.className = 'wed-count';
-        count.textContent = list.length + (list.length === 1 ? ' track' : ' tracks');
-        head.appendChild(h2); head.appendChild(count);
-        const grid = document.createElement('div');
-        grid.className = 'wed-grid';
-        for (const s of list) grid.appendChild(renderCard(s));
-        section.appendChild(head);
-        section.appendChild(grid);
-        main.appendChild(section);
+        const cfg = CATEGORY_CONFIG[cat] || {
+          label: cat.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+          tag: '',
+          variant: 'reception',
+        };
+        const section = renderCategorySection(cfg, list);
+        if (section) main.appendChild(section);
       }
 
-      // ---- render one card ----
-      function renderCard(song) {
-        const card = document.createElement('article');
-        card.className = 'wed-card';
-        card.dataset.songId = song.id || '';
-
-        // Cover: prefer the catalog's coverUrl, otherwise a letter fallback
-        // tinted by the category for visual grouping.
-        const coverWrap = document.createElement('div');
-        coverWrap.className = 'wed-cover-wrap';
-        if (song.coverUrl) {
-          const img = document.createElement('img');
-          img.className = 'wed-cover';
-          img.alt = '';
-          img.loading = 'lazy';
-          img.src = song.coverUrl;
-          coverWrap.appendChild(img);
-        } else {
-          const fb = document.createElement('div');
-          fb.className = 'wed-cover-fallback';
-          fb.dataset.cat = song.category || '';
-          fb.textContent = (song.title || '?').charAt(0).toUpperCase();
-          coverWrap.appendChild(fb);
-        }
-
-        const body = document.createElement('div');
-        body.className = 'wed-card-body';
-
-        const title = document.createElement('div');
-        title.className = 'wed-card-title';
-        title.textContent = song.title || '(untitled)';
-
-        const sub = document.createElement('div');
-        sub.className = 'wed-card-sub';
-        sub.textContent = (song.artist ? song.artist : 'Unknown') + ' · ' + fmtDur(song.durationSec || 0);
-
-        const cta = document.createElement('button');
-        cta.className = 'wed-card-cta';
-        cta.dataset.action = 'use';
-        cta.dataset.songId = song.id || '';
-        cta.type = 'button';
-        cta.textContent = 'USE IN MUSIC VIDEO →';
-
-        body.appendChild(title);
-        body.appendChild(sub);
-        body.appendChild(cta);
-
-        card.appendChild(coverWrap);
-        card.appendChild(body);
-        return card;
+      // ---- last-dance closing quote lives at the bottom of the
+      //      last-dance section. Single source of truth for the quote. ----
+      const lastDanceSection = main.querySelector('[data-variant="last"]');
+      if (lastDanceSection) {
+        const quote = document.createElement('div');
+        quote.className = 'wed-last-quote';
+        quote.innerHTML = `
+          <blockquote>
+            The last song should feel like a soft landing. A place to stay
+            for a moment before everyone goes home.
+          </blockquote>
+          <cite>
+            <strong>Mara Jovanović</strong>
+            Wedding planner, Belgrade
+          </cite>
+        `;
+        lastDanceSection.querySelector('.wed-section-head').after(quote);
       }
 
       // ---- CTA click: write the handoff + navigate ----
-      // The handoff's playlist is every song in the clicked song's
-      // category, in catalog order — so the MVM landing shows the
-      // user a meaningful "you can play through this whole moment"
-      // playlist, not a single track. The first song in the handoff
-      // playlist is the clicked one (so the MVM playhead starts there).
       main.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-action="use"]');
         if (!btn) return;
@@ -191,7 +159,6 @@
         const clicked = songs.find((s) => s.id === songId);
         if (!clicked) return;
         const categoryMates = songs.filter((s) => s.category === clicked.category);
-        // Order: clicked first, then the rest of the category
         const ordered = [clicked].concat(categoryMates.filter((s) => s.id !== songId));
         const unified = ordered.map((s) => ({
           id: 'weddings:' + s.id,
@@ -206,11 +173,245 @@
           localStorage.setItem('swr.pending-playlist', JSON.stringify(unified));
           localStorage.setItem('swr.pending-song',     JSON.stringify(unified[0]));
         } catch (_) { /* private mode / quota — fall through */ }
-        // Visual feedback in case the nav takes a moment
-        btn.textContent = 'OPENING…';
         btn.disabled = true;
+        btn.textContent = 'Opening';
         setTimeout(() => { location.href = './make-video.html'; }, 80);
       });
+
+      // ---- motion: fade-in on scroll via IntersectionObserver ----
+      // Wraps each top-level section in a .wed-fade element. Single
+      // observer, throttled by the browser's own batching. Honors
+      // prefers-reduced-motion via the CSS (no JS gating needed).
+      const fadeTargets = main.querySelectorAll('.wed-section');
+      fadeTargets.forEach((el) => {
+        el.classList.add('wed-fade');
+      });
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-in');
+              io.unobserve(entry.target);
+            }
+          }
+        }, { rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+        fadeTargets.forEach((el) => io.observe(el));
+      } else {
+        // Fallback: show everything if the API is missing.
+        fadeTargets.forEach((el) => el.classList.add('is-in'));
+      }
+      // The first section is already in view on load; reveal it
+      // immediately so the user does not see an empty void.
+      if (fadeTargets[0]) {
+        requestAnimationFrame(() => fadeTargets[0].classList.add('is-in'));
+      }
+
+      // ==================================================================
+      // renderCategorySection — dispatches to one of 5 layout families
+      // ==================================================================
+      function renderCategorySection(cfg, list) {
+        const section = document.createElement('section');
+        section.className = 'wed-section';
+        if (cfg.variant === 'last') section.classList.add('wed-section-last');
+        section.id = cfg.id = (cfg.label || '').toLowerCase().replace(/\s+/g, '-');
+        section.dataset.variant = cfg.variant;
+
+        const head = document.createElement('header');
+        head.className = 'wed-section-head';
+        head.innerHTML = `
+          <h2 class="wed-section-title">${escapeHtml(cfg.label)}</h2>
+          ${cfg.tag ? `<p class="wed-section-tag">${escapeHtml(cfg.tag)}</p>` : ''}
+          <span class="wed-count">${list.length} ${list.length === 1 ? 'track' : 'tracks'}</span>
+        `;
+        section.appendChild(head);
+
+        const body = renderCategoryBody(cfg.variant, list);
+        if (body) section.appendChild(body);
+        return section;
+      }
+
+      // ---- variant dispatch ----
+      function renderCategoryBody(variant, list) {
+        switch (variant) {
+          case 'ceremony':  return renderCeremonyList(list);
+          case 'reception': return renderReceptionGrid(list);
+          case 'spotlight': return renderSpotlight(list);
+          case 'cocktail':  return renderCocktailRow(list);
+          case 'last':      return renderLastList(list);
+          default:          return renderReceptionGrid(list);
+        }
+      }
+
+      // ---- ceremony: editorial index, full-width rows ----
+      function renderCeremonyList(list) {
+        const wrap = document.createElement('div');
+        wrap.className = 'wed-ceremony-list';
+        for (const s of list) wrap.appendChild(ceremonyRow(s));
+        return wrap;
+      }
+      function ceremonyRow(song) {
+        const row = document.createElement('article');
+        row.className = 'wed-ceremony-item';
+        row.innerHTML = `
+          ${coverMarkup(song, 'wed-ceremony-cover')}
+          <div class="wed-ceremony-info">
+            <h3 class="wed-ceremony-title">${escapeHtml(song.title || '(untitled)')}</h3>
+            <p class="wed-ceremony-meta">${escapeHtml(song.artist || 'Unknown')} · ${fmtDur(song.durationSec || 0)}</p>
+          </div>
+          ${ctaButtonMarkup(song)}
+        `;
+        return row;
+      }
+
+      // ---- reception: 2-col image-led card grid ----
+      function renderReceptionGrid(list) {
+        const grid = document.createElement('div');
+        grid.className = 'wed-reception-grid';
+        for (const s of list) grid.appendChild(receptionCard(s));
+        return grid;
+      }
+      function receptionCard(song) {
+        const card = document.createElement('article');
+        card.className = 'wed-card';
+        card.innerHTML = `
+          ${coverMarkup(song)}
+          <div class="wed-card-body">
+            <h3 class="wed-card-title">${escapeHtml(song.title || '(untitled)')}</h3>
+            <p class="wed-card-sub">${escapeHtml(song.artist || 'Unknown')} · ${fmtDur(song.durationSec || 0)}</p>
+            ${ctaButtonMarkup(song)}
+          </div>
+        `;
+        return card;
+      }
+
+      // ---- first dance: featured spotlight + rest as a small list ----
+      function renderSpotlight(list) {
+        if (!list.length) return null;
+        const wrap = document.createElement('div');
+        wrap.className = 'wed-spotlight';
+
+        const featured = list[0];
+        const rest = list.slice(1);
+
+        const feature = document.createElement('article');
+        feature.className = 'wed-spotlight-feature';
+        feature.innerHTML = `
+          <div class="wed-spotlight-cover">
+            ${coverInnerMarkup(featured)}
+          </div>
+          <div class="wed-spotlight-info">
+            <h3 class="wed-spotlight-title">${escapeHtml(featured.title || '(untitled)')}</h3>
+            <p class="wed-spotlight-meta">${escapeHtml(featured.artist || 'Unknown')} · ${fmtDur(featured.durationSec || 0)}</p>
+            <p class="wed-spotlight-note">A first-dance pick. A track that holds the room for three minutes without asking anything of it.</p>
+            ${ctaButtonMarkup(featured)}
+          </div>
+        `;
+        wrap.appendChild(feature);
+
+        if (rest.length) {
+          const ol = document.createElement('ol');
+          ol.className = 'wed-spotlight-rest';
+          for (const s of rest) {
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <div>
+                <h4 class="wed-rest-title">${escapeHtml(s.title || '(untitled)')}</h4>
+                <p class="wed-rest-meta">${escapeHtml(s.artist || 'Unknown')} · ${fmtDur(s.durationSec || 0)}</p>
+              </div>
+              ${ctaButtonMarkup(s)}
+            `;
+            ol.appendChild(li);
+          }
+          wrap.appendChild(ol);
+        }
+
+        return wrap;
+      }
+
+      // ---- cocktail hour: horizontal scroll-snap row ----
+      function renderCocktailRow(list) {
+        const scroller = document.createElement('div');
+        scroller.className = 'wed-cocktail-wrap';
+        const row = document.createElement('div');
+        row.className = 'wed-cocktail-row';
+        for (const s of list) row.appendChild(cocktailCard(s));
+        scroller.appendChild(row);
+        return scroller;
+      }
+      function cocktailCard(song) {
+        const card = document.createElement('article');
+        card.className = 'wed-cocktail-card';
+        card.innerHTML = `
+          ${coverMarkup(song)}
+          <div class="wed-card-body">
+            <h3 class="wed-card-title">${escapeHtml(song.title || '(untitled)')}</h3>
+            <p class="wed-card-sub">${escapeHtml(song.artist || 'Unknown')} · ${fmtDur(song.durationSec || 0)}</p>
+            ${ctaButtonMarkup(song)}
+          </div>
+        `;
+        return card;
+      }
+
+      // ---- last dance: small horizontal cards, quiet end ----
+      function renderLastList(list) {
+        const ul = document.createElement('ul');
+        ul.className = 'wed-last-list';
+        for (const s of list) {
+          const li = document.createElement('li');
+          const card = document.createElement('article');
+          card.className = 'wed-card';
+          card.innerHTML = `
+            ${coverMarkup(s, 'wed-cover-wrap-sm')}
+            <div class="wed-card-body">
+              <h3 class="wed-card-title">${escapeHtml(s.title || '(untitled)')}</h3>
+              <p class="wed-card-sub">${escapeHtml(s.artist || 'Unknown')} · ${fmtDur(s.durationSec || 0)}</p>
+              ${ctaButtonMarkup(s)}
+            </div>
+          `;
+          li.appendChild(card);
+          ul.appendChild(li);
+        }
+        return ul;
+      }
+
+      // ==================================================================
+      // shared markup helpers
+      // ==================================================================
+      function coverMarkup(song, wrapClass) {
+        const cls = wrapClass || 'wed-cover-wrap';
+        if (song.coverUrl) {
+          return `
+            <div class="${cls}">
+              <img class="wed-cover" alt="" loading="lazy" src="${escapeHtml(song.coverUrl)}" />
+            </div>
+          `;
+        }
+        return `
+          <div class="${cls}">
+            <div class="wed-cover-fallback">
+              <span class="wed-cover-letter">${escapeHtml((song.title || '?').charAt(0).toUpperCase())}</span>
+              <span class="wed-cover-rule"></span>
+            </div>
+          </div>
+        `;
+      }
+      function coverInnerMarkup(song) {
+        if (song.coverUrl) {
+          return `<img class="wed-cover" alt="" loading="lazy" src="${escapeHtml(song.coverUrl)}" />`;
+        }
+        return `
+          <span class="wed-cover-letter">${escapeHtml((song.title || '?').charAt(0).toUpperCase())}</span>
+          <span class="wed-cover-rule"></span>
+        `;
+      }
+      function ctaButtonMarkup(song) {
+        return `
+          <button class="wed-card-cta"
+                  data-action="use"
+                  data-song-id="${escapeHtml(song.id || '')}"
+                  type="button">Use in music video</button>
+        `;
+      }
     })();
   </script>
 </body>

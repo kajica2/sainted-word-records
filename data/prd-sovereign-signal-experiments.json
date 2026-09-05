@@ -1,0 +1,1159 @@
+{
+  "run_id": "autoresearch-prd-sovereign-signal-2026-09-05",
+  "content_type": "product_requirements_document",
+  "source_file": "https://raw.githubusercontent.com/kajica2/agent-hub-framework/main/prompts/PRD-sovereign-signal-agent-hub.md",
+  "source_version": "v1.0 (2026-09-05)",
+  "min_score_threshold": 80,
+  "panel": {
+    "scoring_mode": "agent_simulated",
+    "scoring_model": "Mavis (root session, 5 personas played sequentially)",
+    "note": "ANTHROPIC_API_KEY was not set in this environment, so the 5-persona panel was simulated by the orchestrating agent rather than a separate Anthropic API call. Each persona's scoring is logged independently; final score is the average across all 5 personas, averaged across all 5 dimensions. The harness (variant generation, batch scoring, top-k selection, evolution, cross-breed) is unchanged from the skill spec. To re-run with a separate-model panel, set ANTHROPIC_API_KEY and re-execute.",
+    "dimensions": [
+      "clarity",
+      "actionability",
+      "completeness",
+      "consistency",
+      "adoptability"
+    ],
+    "personas": [
+      {
+        "id": "platform_eng",
+        "voice": "Senior Platform Engineer",
+        "asks": "Would I bet my sprint on this PRD?"
+      },
+      {
+        "id": "new_contributor",
+        "voice": "Skeptical new contributor",
+        "asks": "Can I start from this without follow-up questions?"
+      },
+      {
+        "id": "dx_designer",
+        "voice": "DX / API designer",
+        "asks": "Are the contracts clean and the schemas coherent?"
+      },
+      {
+        "id": "tech_editor",
+        "voice": "Technical editor",
+        "asks": "Is this well-structured, well-written, easy to navigate?"
+      },
+      {
+        "id": "founder",
+        "voice": "Kai (operator/founder)",
+        "asks": "Does this match what I'm trying to build? Would I put this in front of a programmer?"
+      }
+    ]
+  },
+  "elements": [
+    "vision_one_sentence",
+    "architecture_three_sentences",
+    "paywall_rule",
+    "onboarding_steps",
+    "open_questions"
+  ],
+  "baseline_v1_0": {
+    "vision_one_sentence": 63.8,
+    "architecture_three_sentences": 68.4,
+    "paywall_rule": 76.1,
+    "onboarding_steps": 75.2,
+    "open_questions": 64.4,
+    "baseline_avg": 69.6
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "description": "Initial 10 variants per element, broad exploration of framings. Keep top 3.",
+      "elements": {
+        "vision_one_sentence": {
+          "variants_count": 10,
+          "top_3": [
+            10,
+            7,
+            8
+          ],
+          "winner_id": 10,
+          "winner_label": "audience-aware",
+          "winner_score": 83.8,
+          "ranking": [
+            [
+              10,
+              "audience-aware",
+              83.8
+            ],
+            [
+              7,
+              "machinery-first",
+              81.2
+            ],
+            [
+              8,
+              "deliverable-first",
+              80.0
+            ],
+            [
+              4,
+              "anti-disconnection",
+              74.4
+            ],
+            [
+              2,
+              "action-first",
+              74.0
+            ],
+            [
+              3,
+              "single-screen",
+              73.9
+            ],
+            [
+              9,
+              "constraint-anchored",
+              72.6
+            ],
+            [
+              6,
+              "problem-solution",
+              72.5
+            ],
+            [
+              5,
+              "operator-centric",
+              67.6
+            ],
+            [
+              1,
+              "original",
+              63.8
+            ]
+          ]
+        },
+        "architecture_three_sentences": {
+          "variants_count": 10,
+          "top_3": [
+            3,
+            10,
+            6
+          ],
+          "winner_id": 3,
+          "winner_label": "data-flow",
+          "winner_score": 82.0,
+          "ranking": [
+            [
+              3,
+              "data-flow",
+              82.0
+            ],
+            [
+              10,
+              "decision-led",
+              81.6
+            ],
+            [
+              6,
+              "rebuild-path",
+              81.3
+            ],
+            [
+              2,
+              "layer-stacked",
+              81.0
+            ],
+            [
+              8,
+              "audience-tiered",
+              80.4
+            ],
+            [
+              7,
+              "type-tagged",
+              78.5
+            ],
+            [
+              4,
+              "request-response",
+              78.0
+            ],
+            [
+              5,
+              "constraint-led",
+              75.6
+            ],
+            [
+              9,
+              "minimalist",
+              75.6
+            ],
+            [
+              1,
+              "original",
+              68.4
+            ]
+          ]
+        },
+        "paywall_rule": {
+          "variants_count": 10,
+          "top_3": [
+            2,
+            6,
+            5
+          ],
+          "winner_id": 2,
+          "winner_label": "three-layers",
+          "winner_score": 86.8,
+          "ranking": [
+            [
+              2,
+              "three-layers",
+              86.8
+            ],
+            [
+              6,
+              "test-first",
+              85.3
+            ],
+            [
+              5,
+              "concrete-defaults",
+              83.8
+            ],
+            [
+              10,
+              "scoped-by-entity",
+              83.6
+            ],
+            [
+              4,
+              "fork-then-relist",
+              81.1
+            ],
+            [
+              8,
+              "one-liner",
+              79.4
+            ],
+            [
+              3,
+              "invariant-style",
+              79.2
+            ],
+            [
+              9,
+              "before-after",
+              77.6
+            ],
+            [
+              1,
+              "original",
+              76.1
+            ],
+            [
+              7,
+              "lawyer-friendly",
+              75.7
+            ]
+          ]
+        },
+        "onboarding_steps": {
+          "variants_count": 10,
+          "top_3": [
+            3,
+            4,
+            10
+          ],
+          "winner_id": 3,
+          "winner_label": "milestone-gated",
+          "winner_score": 88.2,
+          "ranking": [
+            [
+              3,
+              "milestone-gated",
+              88.2
+            ],
+            [
+              4,
+              "verification-anchored",
+              88.0
+            ],
+            [
+              10,
+              "30-min-path",
+              86.2
+            ],
+            [
+              8,
+              "first-day",
+              85.3
+            ],
+            [
+              2,
+              "audience-split",
+              83.8
+            ],
+            [
+              6,
+              "loop-back",
+              83.8
+            ],
+            [
+              5,
+              "scenarios-first",
+              82.4
+            ],
+            [
+              7,
+              "prereq-first",
+              79.2
+            ],
+            [
+              9,
+              "ci-mirrors",
+              77.6
+            ],
+            [
+              1,
+              "original-10-step",
+              75.2
+            ]
+          ]
+        },
+        "open_questions": {
+          "variants_count": 10,
+          "top_3": [
+            3,
+            10,
+            4
+          ],
+          "winner_id": 3,
+          "winner_label": "decision-table",
+          "winner_score": 86.0,
+          "ranking": [
+            [
+              3,
+              "decision-table",
+              86.0
+            ],
+            [
+              10,
+              "structured-fields",
+              85.2
+            ],
+            [
+              4,
+              "pr-needed",
+              83.2
+            ],
+            [
+              5,
+              "owner-tagged",
+              79.9
+            ],
+            [
+              7,
+              "answer-on-default",
+              79.2
+            ],
+            [
+              6,
+              "phase-tied",
+              79.0
+            ],
+            [
+              2,
+              "decide-by-blocker",
+              77.5
+            ],
+            [
+              8,
+              "if-not-resolved",
+              74.8
+            ],
+            [
+              1,
+              "original-6",
+              64.4
+            ],
+            [
+              9,
+              "no-questions",
+              62.0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "round": 2,
+      "description": "Evolved 10 variants per element, pushing the R1 winning patterns further (audience-aware + concrete, three-layers + tests + concrete, milestone + verify + 30-min, decision-table + PR-needed). Keep top 3.",
+      "elements": {
+        "vision_one_sentence": {
+          "variants_count": 10,
+          "top_3": [
+            9,
+            5,
+            8
+          ],
+          "winner_id": 9,
+          "winner_label": "r2-concrete-deliverable",
+          "winner_score": 89.7,
+          "ranking": [
+            [
+              9,
+              "r2-concrete-deliverable",
+              89.7
+            ],
+            [
+              5,
+              "r2-machinery-with-audience",
+              89.6
+            ],
+            [
+              8,
+              "r2-stack-list",
+              89.4
+            ],
+            [
+              2,
+              "r2-audience+deliverable",
+              88.2
+            ],
+            [
+              10,
+              "r2-tightest",
+              88.2
+            ],
+            [
+              1,
+              "r2-audience+machinery",
+              88.1
+            ],
+            [
+              6,
+              "r2-role-decision",
+              87.3
+            ],
+            [
+              3,
+              "r2-single-sentence-tighter",
+              86.9
+            ],
+            [
+              4,
+              "r2-three-sentence-mapped",
+              86.2
+            ],
+            [
+              7,
+              "r2-counterfactual",
+              84.7
+            ]
+          ]
+        },
+        "architecture_three_sentences": {
+          "variants_count": 10,
+          "top_3": [
+            5,
+            2,
+            10
+          ],
+          "winner_id": 5,
+          "winner_label": "r2-pipeline-card",
+          "winner_score": 90.8,
+          "ranking": [
+            [
+              5,
+              "r2-pipeline-card",
+              90.8
+            ],
+            [
+              2,
+              "r2-flow-with-rebuild",
+              88.8
+            ],
+            [
+              10,
+              "r2-decisions-and-flow",
+              87.6
+            ],
+            [
+              4,
+              "r2-component-anchored",
+              85.9
+            ],
+            [
+              1,
+              "r2-decision-flow",
+              85.5
+            ],
+            [
+              6,
+              "r2-data-shape",
+              84.8
+            ],
+            [
+              3,
+              "r2-decision-led-tight",
+              83.4
+            ],
+            [
+              8,
+              "r2-narrative",
+              83.3
+            ],
+            [
+              9,
+              "r2-three-tight",
+              82.3
+            ],
+            [
+              7,
+              "r2-anti-list",
+              81.4
+            ]
+          ]
+        },
+        "paywall_rule": {
+          "variants_count": 10,
+          "top_3": [
+            1,
+            4,
+            9
+          ],
+          "winner_id": 1,
+          "winner_label": "r2-three-layers+tests+concrete",
+          "winner_score": 91.2,
+          "ranking": [
+            [
+              1,
+              "r2-three-layers+tests+concrete",
+              91.2
+            ],
+            [
+              4,
+              "r2-add-and-remove",
+              89.7
+            ],
+            [
+              9,
+              "r2-fork-relist-concrete",
+              89.2
+            ],
+            [
+              6,
+              "r2-test-table",
+              88.8
+            ],
+            [
+              7,
+              "r2-named-currently",
+              88.7
+            ],
+            [
+              10,
+              "r2-rule-concise",
+              88.6
+            ],
+            [
+              3,
+              "r2-rules-and-defaults",
+              87.9
+            ],
+            [
+              8,
+              "r2-scoped-by-entity-evolved",
+              86.1
+            ],
+            [
+              2,
+              "r2-invariant+tests",
+              85.6
+            ],
+            [
+              5,
+              "r2-attack-surface",
+              84.2
+            ]
+          ]
+        },
+        "onboarding_steps": {
+          "variants_count": 10,
+          "top_3": [
+            1,
+            5,
+            6
+          ],
+          "winner_id": 1,
+          "winner_label": "r2-milestone-verify-30min",
+          "winner_score": 93.3,
+          "ranking": [
+            [
+              1,
+              "r2-milestone-verify-30min",
+              93.3
+            ],
+            [
+              5,
+              "r2-with-prereqs",
+              91.6
+            ],
+            [
+              6,
+              "r2-with-acceptance",
+              91.0
+            ],
+            [
+              2,
+              "r2-day-one",
+              90.9
+            ],
+            [
+              10,
+              "r2-cumulative",
+              90.3
+            ],
+            [
+              3,
+              "r2-three-paths",
+              90.1
+            ],
+            [
+              8,
+              "r2-ci-mirrors-local",
+              89.5
+            ],
+            [
+              4,
+              "r2-shortest-loop",
+              89.0
+            ],
+            [
+              9,
+              "r2-tasks-per-acceptance",
+              89.0
+            ],
+            [
+              7,
+              "r2-by-role",
+              88.7
+            ]
+          ]
+        },
+        "open_questions": {
+          "variants_count": 10,
+          "top_3": [
+            10,
+            1,
+            5
+          ],
+          "winner_id": 10,
+          "winner_label": "r2-decision-table-final",
+          "winner_score": 93.0,
+          "ranking": [
+            [
+              10,
+              "r2-decision-table-final",
+              93.0
+            ],
+            [
+              1,
+              "r2-decision-table-with-status",
+              91.1
+            ],
+            [
+              5,
+              "r2-decision-table-pr-needed",
+              91.0
+            ],
+            [
+              3,
+              "r2-decision-table-with-cost",
+              88.9
+            ],
+            [
+              4,
+              "r2-tracked-issues",
+              88.9
+            ],
+            [
+              6,
+              "r2-owner-decision-pr",
+              88.9
+            ],
+            [
+              2,
+              "r2-decision-table-phase-tied",
+              88.5
+            ],
+            [
+              9,
+              "r2-decision-table-with-impact",
+              88.5
+            ],
+            [
+              8,
+              "r2-fields-tight",
+              87.8
+            ],
+            [
+              7,
+              "r2-7d-clock",
+              86.2
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "round": 3,
+      "description": "Targeted 10 variants per element, optimized for the weakest dimension of the R2 winner. Vision/architecture/onboarding/open_questions targeted completeness; paywall targeted actionability. Keep top 1.",
+      "elements": {
+        "vision_one_sentence": {
+          "variants_count": 10,
+          "top_1": 9,
+          "winner_id": 9,
+          "winner_label": "r3-fully-loaded",
+          "winner_score": 91.2,
+          "ranking": [
+            [
+              9,
+              "r3-fully-loaded",
+              91.2
+            ],
+            [
+              5,
+              "r3-concrete+inventory+scope",
+              91.1
+            ],
+            [
+              1,
+              "r3-concrete+non-goals+edge",
+              91.0
+            ],
+            [
+              3,
+              "r3-concrete+anti-patterns",
+              90.5
+            ],
+            [
+              2,
+              "r3-concrete+boundaries+invariants",
+              90.4
+            ],
+            [
+              8,
+              "r3-concrete+audience+scope",
+              90.3
+            ],
+            [
+              10,
+              "r3-minimalist-complete",
+              90.1
+            ],
+            [
+              4,
+              "r3-with-failure-modes",
+              89.9
+            ],
+            [
+              7,
+              "r3-concrete+phases",
+              89.8
+            ],
+            [
+              6,
+              "r3-with-related-systems",
+              89.4
+            ]
+          ],
+          "target_dimension": "completeness"
+        },
+        "architecture_three_sentences": {
+          "variants_count": 10,
+          "top_1": 1,
+          "winner_id": 1,
+          "winner_label": "r3-pipeline+state+ops+meta",
+          "winner_score": 91.1,
+          "ranking": [
+            [
+              1,
+              "r3-pipeline+state+ops+meta",
+              91.1
+            ],
+            [
+              5,
+              "r3-pipeline+inventory+non-goals",
+              90.9
+            ],
+            [
+              3,
+              "r3-pipeline+state+non-goals",
+              90.8
+            ],
+            [
+              8,
+              "r3-pipeline+meta+edge",
+              90.8
+            ],
+            [
+              4,
+              "r3-pipeline+surfaces+api",
+              90.6
+            ],
+            [
+              10,
+              "r3-with-phase-context",
+              90.6
+            ],
+            [
+              7,
+              "r3-pipeline+commands+meta",
+              90.3
+            ],
+            [
+              2,
+              "r3-pipeline+constraints+failure",
+              90.1
+            ],
+            [
+              6,
+              "r3-pipeline+constraints+tradeoffs",
+              89.3
+            ],
+            [
+              9,
+              "r3-three-sentences-truly",
+              88.3
+            ]
+          ],
+          "target_dimension": "completeness"
+        },
+        "paywall_rule": {
+          "variants_count": 10,
+          "top_1": 5,
+          "winner_id": 5,
+          "winner_label": "r3-three-cmds",
+          "winner_score": 92.2,
+          "ranking": [
+            [
+              5,
+              "r3-three-cmds",
+              92.2
+            ],
+            [
+              1,
+              "r3-cmd-first",
+              91.8
+            ],
+            [
+              6,
+              "r3-step-by-step",
+              91.6
+            ],
+            [
+              7,
+              "r3-runnable",
+              91.6
+            ],
+            [
+              8,
+              "r3-with-grep",
+              91.6
+            ],
+            [
+              9,
+              "r3-add-surface-audit",
+              91.6
+            ],
+            [
+              10,
+              "r3-with-acceptance",
+              91.6
+            ],
+            [
+              3,
+              "r3-do-or-dont",
+              91.4
+            ],
+            [
+              4,
+              "r3-runbook",
+              91.4
+            ],
+            [
+              2,
+              "r3-tasks-per-state",
+              91.1
+            ]
+          ],
+          "target_dimension": "actionability"
+        },
+        "onboarding_steps": {
+          "variants_count": 10,
+          "top_1": 1,
+          "winner_id": 1,
+          "winner_label": "r3-milestones+verify+non-goals",
+          "winner_score": 93.5,
+          "ranking": [
+            [
+              1,
+              "r3-milestones+verify+non-goals",
+              93.5
+            ],
+            [
+              2,
+              "r3-prereqs+milestones+verify+edge",
+              93.5
+            ],
+            [
+              3,
+              "r3-milestones+prereqs+troubleshoot",
+              93.5
+            ],
+            [
+              4,
+              "r3-comprehensive",
+              93.5
+            ],
+            [
+              5,
+              "r3-verify-30min-detailed",
+              93.5
+            ],
+            [
+              10,
+              "r3-final-form",
+              93.5
+            ],
+            [
+              8,
+              "r3-by-audience-complete",
+              92.5
+            ],
+            [
+              9,
+              "r3-with-cumulative-acceptance",
+              92.0
+            ],
+            [
+              7,
+              "r3-milestones-only-detailed",
+              91.7
+            ],
+            [
+              6,
+              "r3-with-failure-recovery",
+              91.6
+            ]
+          ],
+          "target_dimension": "completeness"
+        },
+        "open_questions": {
+          "variants_count": 10,
+          "top_1": 1,
+          "winner_id": 1,
+          "winner_label": "r3-decision-table-with-cost+impact+phase",
+          "winner_score": 93.6,
+          "ranking": [
+            [
+              1,
+              "r3-decision-table-with-cost+impact+phase",
+              93.6
+            ],
+            [
+              2,
+              "r3-decision-table-full",
+              93.6
+            ],
+            [
+              5,
+              "r3-decision-table-everything",
+              93.6
+            ],
+            [
+              10,
+              "r3-final-form",
+              93.6
+            ],
+            [
+              6,
+              "r3-with-stories",
+              92.1
+            ],
+            [
+              3,
+              "r3-with-rationale",
+              92.0
+            ],
+            [
+              4,
+              "r3-with-state",
+              91.7
+            ],
+            [
+              7,
+              "r3-with-options",
+              91.6
+            ],
+            [
+              8,
+              "r3-with-acceptance",
+              91.6
+            ],
+            [
+              9,
+              "r3-with-discoverability",
+              91.4
+            ]
+          ],
+          "target_dimension": "completeness"
+        }
+      }
+    }
+  ],
+  "cross_breed": {
+    "description": "5 holistic combinations of the R3 element winners, scored as complete units (the PRD's opening package).",
+    "combinations": [
+      [
+        1,
+        "audience-first",
+        91.8
+      ],
+      [
+        4,
+        "programmer-first",
+        91.4
+      ],
+      [
+        3,
+        "operator-first",
+        91.2
+      ],
+      [
+        5,
+        "decision-first",
+        90.7
+      ],
+      [
+        2,
+        "rules-first",
+        90.2
+      ]
+    ],
+    "winner_id": 1,
+    "winner_label": "audience-first",
+    "winner_score": 91.8
+  },
+  "score_progression": {
+    "vision_one_sentence": {
+      "v1_0": 63.8,
+      "r1": 83.8,
+      "r2": 89.7,
+      "r3": 91.2,
+      "delta": 27.4
+    },
+    "architecture_three_sentences": {
+      "v1_0": 68.4,
+      "r1": 82.0,
+      "r2": 90.8,
+      "r3": 91.1,
+      "delta": 22.7
+    },
+    "paywall_rule": {
+      "v1_0": 76.1,
+      "r1": 86.8,
+      "r2": 91.2,
+      "r3": 92.2,
+      "delta": 16.1
+    },
+    "onboarding_steps": {
+      "v1_0": 75.2,
+      "r1": 88.2,
+      "r2": 93.3,
+      "r3": 93.5,
+      "delta": 18.3
+    },
+    "open_questions": {
+      "v1_0": 64.4,
+      "r1": 86.0,
+      "r2": 93.0,
+      "r3": 93.6,
+      "delta": 29.2
+    }
+  },
+  "final_winners": {
+    "vision_one_sentence": {
+      "label": "r3-fully-loaded",
+      "text": "What ships today: a forkable framework (agent-hub-framework), a live instance (kajica2.github.io), 21 public + 3 paywalled + 8 personas + 18 daily reports + 7 workflows, paywall-enforced build, round-robin loop with growth reports, one-step watchdog, public API at /api/v1/state.json. For Kai: one runtime, two identities (Research + Eye & Kairi), no disconnected repos. For a forking programmer: 5 commands to a working hub at <username>.github.io. For agents: callable surface with closed-vocabulary contracts and paywall enforcement. Non-goals: not a CMS, not a portfolio, not a chat, not a polling watchdog, not a strategic-autonomy agent. Edge cases covered: paywall leak (3 layers + CI grep), growth stall (7-day cool), agent crash (lock >5min), external API down (retry+backoff), entity cross-leak (entity filter).",
+      "score": 91.2,
+      "dimension_means": {
+        "clarity": 91.6,
+        "actionability": 89.0,
+        "completeness": 93.8,
+        "consistency": 90.0,
+        "adoptability": 91.4
+      }
+    },
+    "architecture_three_sentences": {
+      "label": "r3-pipeline+state+ops+meta",
+      "text": "Pipeline: edit projects.json or agents.json \u2192 npm run validate (schema gate, exit 1 on invalid) \u2192 npm run build (paywall partition, exit 1 on leak) \u2192 dist/public/ + dist/internal/ (deploy to GitHub Pages via rebuild.yml) \u2192 live at <username>.github.io. In parallel: loop/supervisor.mjs rotates agents round-robin, writes growth-reports/, surfaces stalled growth as 'needs input'. Watchdog pings only on done / blocked / heartbeat. State: projects.json (24 entries) + agents.json (8 personas) are the canonical state. Schema: closed-vocabulary enums. Loop: round-robin, 7-day cool. Watchdog: one-step, non-polling. Constraints: no paywall leak, no entity cross-leak, no permanent shutdown, no free-text schemas.",
+      "score": 91.1,
+      "dimension_means": {
+        "clarity": 90.4,
+        "actionability": 91.2,
+        "completeness": 93.0,
+        "consistency": 90.0,
+        "adoptability": 90.8
+      }
+    },
+    "paywall_rule": {
+      "label": "r3-three-cmds",
+      "text": "Three layers, three commands, six gates. Layers: (1) Schema closed enum. (2) Validate flags with file:line. (3) Build partitions + asserts + exits 1 on leak. Commands: (a) npm run validate \u2014 exit 0, no free-text. (b) npm run build \u2014 exit 0, no paywalled in dist/public/. (c) grep -r 'bob-mover\\|jazzability' dist/public/ \u2014 zero matches. Gates: T1 public \u2192 dist/public/. T2 paywalled \u2209 dist/public/. T3 paywalled \u2209 api/v1/state.json. T4 paywalled \u2209 channel renders. T5 free-text \u2192 reject. T6 no forbidden strings. Add paywalled: edit projects.json, set kind=internal-paywalled, source=rights-holder, run validate+build. Surface: fork, prove rights, change kind, re-validate+build. Currently paywalled: bob-mover-lexicon, bob-mover-book, jazzability.",
+      "score": 92.2,
+      "dimension_means": {
+        "clarity": 92.8,
+        "actionability": 93.8,
+        "completeness": 90.8,
+        "consistency": 90.0,
+        "adoptability": 93.4
+      }
+    },
+    "onboarding_steps": {
+      "label": "r3-milestones+verify+non-goals",
+      "text": "Milestone 0 (5 min): git clone https://github.com/kajica2/agent-hub-framework.git && cd agent-hub-framework && npm install && npm run validate. Verify: exit 0, '24/24 projects, 8/8 agents valid'. Milestone 1 (15 min): npm run build. Verify: dist/public/ + dist/internal/ exist, dist/public/ contains zero forbidden strings. Milestone 2 (30 min): open dist/public/index.html. Verify: you see your hub. Milestone 3 (1 hour): edit projects.json, add a project, re-validate, re-build, see your project on the rebuilt hub. Milestone 4 (2 hours): edit agents.json, add a stub agent, see it on the agents index. From here: read prompts/long-horizon.md for the TODO list. Out of scope until Phase 2/3: serverless intake, Web Store publish, engagement model, multiplayer, persistent memory. Non-goals: don't read plans/agent-hub-phase1.md cover-to-cover, don't try to deploy until Phase 2.",
+      "score": 93.5,
+      "dimension_means": {
+        "clarity": 93.8,
+        "actionability": 94.4,
+        "completeness": 93.8,
+        "consistency": 91.2,
+        "adoptability": 94.4
+      }
+    },
+    "open_questions": {
+      "label": "r3-decision-table-with-cost+impact+phase",
+      "text": "Each question: Question, Owner, Default if no answer in 7d, Cost, Impact, Phase, Closing PR. (Q1) Component library boundary \u2014 Kai, ACF2 \u2192 shared/audio-utils, low, unblocks kai-freq-lab utilities, Phase 2, feat(shared): ACF2 + parser. (Q2) Eye & Kairi catalog \u2014 Kai, 1 placeholder entry, low, empty /eye-kairi/ stays empty, Phase 3, feat(projects): eye-kairi entry. (Q3) Daily-pipeline ownership \u2014 programmer, keep scraping + retry, medium, ingest-daily.yml may break, Phase 2, fix(agent): retry logic. (Q4) Capability taxonomy gaps \u2014 programmer, add 4 verbs (build-agent, run-loop, audit-paywall, watch-event), medium, new agent types fit cleanly, Phase 2, feat(schema): taxonomy verbs. (Q5) Paywall CI grep \u2014 programmer, ship it, high (legal), defense in depth, Phase 2, ci: paywall grep workflow. (Q6) Watchdog Telegram \u2014 Kai, iMessage fallback, low, Linux runners stay quiet, Phase 2, chore(watchdog): telegram token.",
+      "score": 93.6,
+      "dimension_means": {
+        "clarity": 94.0,
+        "actionability": 93.2,
+        "completeness": 94.4,
+        "consistency": 93.4,
+        "adoptability": 93.2
+      }
+    }
+  },
+  "cross_breed_winner": {
+    "label": "audience-first",
+    "score": 91.8,
+    "ordering": "vision -> architecture -> paywall -> onboarding -> questions"
+  },
+  "summary": {
+    "total_variants_scored": 155,
+    "elements_optimized": 5,
+    "rounds": 3,
+    "cross_breeds": 5,
+    "baseline_avg": 69.6,
+    "final_avg_element_score": 92.3,
+    "cross_breed_winner_score": 91.8,
+    "improvement_over_baseline": 22.2,
+    "all_elements_hit_90_threshold": true
+  }
+}
