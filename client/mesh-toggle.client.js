@@ -99,73 +99,6 @@
   let session3d = null;
   let meshToggleState = false;
 
-  // Local-media → 3D generation
-  let lmsClient = null;
-  let generateBtn = null;
-  let lastPrompt = '';
-
-  function getLMS() {
-    if (!lmsClient && window.SWR_LOCAL_MEDIA) {
-      try { lmsClient = window.SWR_LOCAL_MEDIA.connect(); } catch (_) {}
-    }
-    return lmsClient;
-  }
-
-  async function generateAndShow(ui, btn) {
-    const lms = getLMS();
-    if (!lms) {
-      btn.title = 'SWR_LOCAL_MEDIA not available';
-      btn.textContent = '✦ missing';
-      return;
-    }
-    let prompt = (lastPrompt || '').trim();
-    if (!prompt) {
-      const entered = window.prompt('Describe the gift to generate a 3D mesh from:', 'a gift bag with a red ribbon');
-      if (!entered) return;
-      prompt = entered;
-    }
-    lastPrompt = prompt;
-
-    btn.disabled = true;
-    btn.textContent = '✦ generating…';
-    btn.title = 'Asking local-media-studio to draw this. Space may take 30-60s to wake on first use.';
-    try {
-      // Subscribe to progress for a friendlier UI.
-      lms.on('progress', () => {
-        if (btn.textContent.indexOf('…') === -1) btn.textContent = '✦ generating…';
-      });
-      const result = await lms.generateImage({
-        prompt,
-        negative_prompt: 'blurry, watermark, distorted, ugly',
-        width: 512,
-        height: 512,
-        steps: 30,
-        cfg_scale: 7.5,
-        seed: -1,
-      });
-      if (!result.bytes || !result.bytes.length) {
-        throw new Error('Space returned no PNG bytes');
-      }
-      // Auto-enable 3D if not already on.
-      if (!meshToggleState) {
-        await enable3D(ui, btn);
-      }
-      // Load the new mesh.
-      await window.SWR_MESH_SCENE.load(ui.canvas3d, result.bytes, {
-        algorithm: 'silhouette',
-        depth: 32,
-      });
-      btn.textContent = '✦ done';
-      btn.title = `Last generated from: "${prompt.slice(0, 60)}"`;
-      setTimeout(() => { btn.textContent = '✦ generate'; btn.disabled = false; }, 1400);
-    } catch (e) {
-      console.warn('generateAndShow failed:', e);
-      btn.textContent = '✦ failed';
-      btn.title = 'Generation failed: ' + (e.message || e);
-      btn.disabled = false;
-    }
-  }
-
   async function enable3D(ui, btn) {
     if (session3d) return;
     btn.textContent = '3D: starting…';
@@ -294,37 +227,16 @@
     }
     cycleBtn.addEventListener('click', () => rotateMesh(ui, btn, cycleBtn));
 
-    // Generate button: text → 2D PNG (via local-media-studio) → 3D mesh.
-    let genBtn = document.getElementById('mesh-generate');
-    if (!genBtn) {
-      genBtn = document.createElement('button');
-      genBtn.id = 'mesh-generate';
-      genBtn.className = 'tbtn';
-      genBtn.type = 'button';
-      genBtn.title = 'Generate a 3D mesh from a text prompt (uses Hugging Face local-media-studio)';
-      genBtn.textContent = '✦ generate';
-      genBtn.style.padding = '3px 6px';
-      genBtn.style.fontSize = '9px';
-      genBtn.hidden = true;
-      cycleBtn.parentNode.insertBefore(genBtn, cycleBtn.nextSibling);
-      generateBtn = genBtn;
-    }
-    genBtn.addEventListener('click', () => generateAndShow(ui, btn));
-
     // Reflect 3D-on state in the cycle button too.
     const origEnable = enable3D;
     const origDisable = disable3D;
     enable3DWrapped = async function (ui2, btn2) {
       await origEnable(ui2, btn2);
       cycleBtn.hidden = false;
-      const gb = document.getElementById('mesh-generate');
-      if (gb) gb.hidden = false;
     };
     disable3DWrapped = function (ui2, btn2) {
       origDisable(ui2, btn2);
       cycleBtn.hidden = true;
-      const gb = document.getElementById('mesh-generate');
-      if (gb) gb.hidden = true;
     };
     // Replace the original toggleMesh handlers to use the wrapped versions.
     btn.removeEventListener('click', () => toggleMesh(ui, btn));
