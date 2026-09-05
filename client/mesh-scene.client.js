@@ -32,29 +32,23 @@
   function loadThree() {
     if (window.THREE) return Promise.resolve(window.THREE);
     if (threeLoadPromise) return threeLoadPromise;
-    threeLoadPromise = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.type = 'module';
-      // Resolve absolute URL so the path works regardless of HTML location.
+    threeLoadPromise = (async () => {
+      // three.module.min.js is a real ES module. Use dynamic import() so we
+      // get the namespace back, then publish to window.THREE for callers
+      // that prefer the global. Cache the result so subsequent loads are
+      // instant.
       const base = window.location.origin;
-      s.src = `${base}/lib/three.module.min.js`;
-      s.onload = () => {
-        // three.module.min.js attaches window.THREE? It depends on build.
-        // Newer min builds set globalThis.THREE; we read it after load.
-        const T = window.THREE || (typeof globalThis !== 'undefined' && globalThis.THREE);
-        if (!T) {
-          threeLoadPromise = null;
-          reject(new Error('mesh-scene: three.js loaded but no global THREE found'));
-          return;
-        }
-        resolve(T);
-      };
-      s.onerror = (e) => {
+      const url = base + '/lib/three.module.min.js';
+      const mod = await import(/* @vite-ignore */ url);
+      const T = (mod && mod.default) || mod;
+      if (!T || !T.Scene) {
         threeLoadPromise = null;
-        reject(e);
-      };
-      document.head.appendChild(s);
-    });
+        throw new Error('mesh-scene: three.js loaded but no Scene export');
+      }
+      try { window.THREE = T; } catch (_) {}
+      threeLoadPromise = Promise.resolve(T);
+      return T;
+    })();
     return threeLoadPromise;
   }
 
