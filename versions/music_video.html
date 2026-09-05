@@ -103,6 +103,76 @@
     aside.lib, aside.layers { min-width: 0; }
     footer { flex-wrap: wrap; max-height: 24vh; overflow-y: auto; min-width: 0; row-gap: 4px; }
     footer > * { min-width: 0; }
+
+    /* Library packs toolbar (opt-in only — nothing auto-loads) */
+    .packs {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-alt, rgba(255, 255, 255, 0.02));
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .packs-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--g);
+    }
+    .packs-title { font-weight: 600; }
+    .packs-hint { font-style: italic; opacity: 0.55; font-size: 8px; }
+    .packs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .pack-btn {
+      background: var(--bg, #0a0a0a);
+      border: 1px solid var(--line, #222);
+      color: var(--c, #eee);
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-radius: 2px;
+      transition: background 120ms ease, border-color 120ms ease;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pack-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--c, #888); }
+    .pack-btn.is-loaded {
+      background: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.55);
+      color: rgba(180, 240, 200, 1);
+    }
+    .pack-btn.is-error {
+      background: rgba(200, 80, 80, 0.12);
+      border-color: rgba(200, 80, 80, 0.5);
+    }
+    .pack-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .packs-empty {
+      padding: 18px 12px;
+      text-align: center;
+      color: var(--muted, #888);
+      font-size: 10px;
+      line-height: 1.5;
+      border: 1px dashed var(--line, #333);
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+    .packs-empty div:first-child { font-size: 22px; margin-bottom: 6px; opacity: 0.7; }
+    .packs-empty-title { font-weight: 600; color: var(--c, #ccc); margin-bottom: 2px; }
+    .packs-empty-sub { font-size: 9px; opacity: 0.7; }
+
     @media (max-width: 720px) {
       #app {
         grid-template-columns: minmax(0, 1fr);
@@ -273,6 +343,7 @@
   <script src="../engine-render.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
   <script src="../client/asset-curator.client.js"></script>
+  <script src="../client/library-packs.client.js" defer></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
 <script src="../engine-lfos.client.js"></script>
@@ -327,6 +398,7 @@
     <aside class="lib">
       <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
+      <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
       <div class="body"><div id="lib"></div></div>
     </aside>
     <section class="stage">
