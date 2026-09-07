@@ -82,7 +82,8 @@ function readUsers() {
 console.log(`verify-cloud-auth against ${BASE}\n`);
 
 await step('health probe', async () => {
-  const res = await fetch(BASE + '/api/health');
+  // P3.8 — health is now /api/manifest?action=health (Hobby 12-fn cap).
+  const res = await fetch(BASE + '/api/manifest?action=health');
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.ok, true);

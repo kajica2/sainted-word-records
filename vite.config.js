@@ -144,7 +144,6 @@ function copyStatic() {
     'lib/auth.client.js',
     'lib/storage.client.js',
     'lib/migrate.client.js',
-    'api/health.js',
     'api/auth/session.js',
     'api/auth/magic.js',
     'api/auth/verify.js',

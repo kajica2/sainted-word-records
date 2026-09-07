@@ -18,6 +18,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { health } from './_lib/db.js';
 import { setCors, send, readJsonBody } from './_lib/http.js';
 
 const MANIFEST_PATH = path.join(process.cwd(), 'library', 'manifest.json');
@@ -111,16 +112,29 @@ export default async function handler(req, res) {
     // 12 serverless functions; merging buys us one slot). Behavior
     // matches the old endpoint exactly: walks library/ on disk and
     // returns { files: [...] } filtered to visual curated assets.
+    //
+    // P3.8 — `?action=health` also folds in the former /api/health
+    // probe (Hobby 12-function cap; same pattern). Same response
+    // shape as the legacy endpoint: { ok, ts, db, ... }.
     const url = req.url || '';
     const qsIdx = url.indexOf('?');
     if (qsIdx >= 0) {
       const params = new URLSearchParams(url.slice(qsIdx + 1));
-      if (params.get('action') === 'known-files') {
+      const action = params.get('action');
+      if (action === 'known-files') {
         try {
           const files = await walkDiskFiles();
           return send(res, 200, { files });
         } catch (e) {
           return send(res, 500, { error: 'walk_failed', message: e.message });
+        }
+      }
+      if (action === 'health') {
+        try {
+          const h = await health();
+          return send(res, 200, h);
+        } catch (e) {
+          return send(res, 500, { error: 'health_failed', message: e.message });
         }
       }
     }
