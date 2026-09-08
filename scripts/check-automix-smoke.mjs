@@ -721,6 +721,68 @@ if (orphanLayer.layerCountBefore === 1 && orphanLayer.layerCountAfter === 0)
   ok('Lib.removeItem drops layers referencing the removed asset');
 else bad('Lib.removeItem drops layers', JSON.stringify(orphanLayer));
 
+// 49. Layers.solo(id) pins one layer, Layers.soloOff() restores.
+const soloShape = await page.evaluate(() => {
+  if (!window.SWR || !window.SWR.Layers) return { ok: false, reason: 'no Layers' };
+  window.SWR.Layers.reset();
+  // Push three layers with known ids.
+  const mkLayer = (id) => ({
+    id, asset: { type: 'image', name: 'fake.png', url: 'data:image/png;base64,iVBORw0K…' },
+    blend: 'screen', opacity: 1, baseScale: 1, hue: 0, brightness: 1, contrast: 1,
+    alpha: 1, mutate: 0, cover: false,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 0.5, ease: 'sharp' }],
+  });
+  window.SWR.Layers.list.push(mkLayer('A'), mkLayer('B'), mkLayer('C'));
+  // Solo on B.
+  const ok1 = window.SWR.Layers.solo('B');
+  const lenAfterSolo = window.SWR.Layers.list.length;
+  const idAfterSolo = window.SWR.Layers.list[0].id;
+  // Solo off.
+  const ok2 = window.SWR.Layers.soloOff();
+  const lenAfterOff = window.SWR.Layers.list.length;
+  const idsAfterOff = window.SWR.Layers.list.map(x => x.id);
+  return {
+    ok: true,
+    soloReturned: ok1,
+    lenAfterSolo, idAfterSolo,
+    soloOffReturned: ok2,
+    lenAfterOff, idsAfterOff,
+  };
+});
+if (soloShape.ok
+    && soloShape.soloReturned === true
+    && soloShape.lenAfterSolo === 1
+    && soloShape.idAfterSolo === 'B'
+    && soloShape.soloOffReturned === true
+    && soloShape.lenAfterOff === 3
+    && JSON.stringify(soloShape.idsAfterOff) === '["A","B","C"]')
+  ok('Layers.solo(id) pins one layer; soloOff() restores all 3');
+else bad('Layers.solo', JSON.stringify(soloShape));
+
+// 50. Solo on a different id while already solo keeps the original snapshot.
+const soloSwitch = await page.evaluate(() => {
+  window.SWR.Layers.reset();
+  const mkLayer = (id) => ({
+    id, asset: { type: 'image', name: 'fake.png', url: 'data:image/png;base64,iVBORw0K…' },
+    blend: 'screen', opacity: 1, baseScale: 1, hue: 0, brightness: 1, contrast: 1,
+    alpha: 1, mutate: 0, cover: false,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 0.5, ease: 'sharp' }],
+  });
+  window.SWR.Layers.list.push(mkLayer('A'), mkLayer('B'), mkLayer('C'));
+  window.SWR.Layers.solo('A');
+  // Switch solo to B (without first leaving solo).
+  window.SWR.Layers.solo('B');
+  const pinnedId = window.SWR.Layers.list[0].id;
+  // Now leave solo and verify the original A, B, C list comes back.
+  window.SWR.Layers.soloOff();
+  const restoredIds = window.SWR.Layers.list.map(x => x.id);
+  return { pinnedId, restoredIds };
+});
+if (soloSwitch.pinnedId === 'B'
+    && JSON.stringify(soloSwitch.restoredIds) === '["A","B","C"]')
+  ok('solo switch keeps original snapshot; soloOff restores [A,B,C]');
+else bad('solo switch', JSON.stringify(soloSwitch));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
