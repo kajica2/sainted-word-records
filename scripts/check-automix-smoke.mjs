@@ -513,6 +513,82 @@ const clearWorks = await page.evaluate(() => {
 if (clearWorks) ok('SWR_PRESET_PICK.clear() removes the persisted record');
 else bad('SWR_PRESET_PICK.clear() removes the persisted record', 'load() did not return null');
 
+// 39. Layer state store exists and exposes the documented API.
+const layerStoreShape = await page.evaluate(() => {
+  const L = window.SWR_LAYER_STATE;
+  return {
+    has: !!L,
+    hasSave: L && typeof L.save === 'function',
+    hasLoad: L && typeof L.load === 'function',
+    hasClear: L && typeof L.clear === 'function',
+    hasFlush: L && typeof L.flush === 'function',
+    key: L && L.KEY,
+  };
+});
+if (layerStoreShape.has && layerStoreShape.hasSave && layerStoreShape.hasLoad && layerStoreShape.hasClear && layerStoreShape.hasFlush
+    && layerStoreShape.key === 'swr.layers.state.v1')
+  ok('SWR_LAYER_STATE loaded with save/load/clear/flush (key swr.layers.state.v1)');
+else bad('SWR_LAYER_STATE surface', JSON.stringify(layerStoreShape));
+
+// 40. Layers.reset() also clears the persisted snapshot.
+const resetClearsStore = await page.evaluate(() => {
+  if (!window.SWR_LAYER_STATE) return false;
+  // Seed a fake layer into the store and confirm it's there.
+  window.SWR_LAYER_STATE.save([{
+    id: 'L9', blend: 'screen', opacity: 1, baseScale: 1, hue: 0,
+    contrast: 1, brightness: 1, alpha: 1, mutate: 0, reactors: [],
+  }]);
+  window.SWR_LAYER_STATE.flush();
+  const before = window.SWR_LAYER_STATE.load().length;
+  // Now reset layers. The store should also clear.
+  window.SWR.Layers.reset();
+  window.SWR_LAYER_STATE.flush();  // clear() is synchronous; flush is a no-op
+  const after = window.SWR_LAYER_STATE.load().length;
+  return before === 1 && after === 0;
+});
+if (resetClearsStore) ok('Layers.reset() also clears SWR_LAYER_STATE');
+else bad('Layers.reset() also clears SWR_LAYER_STATE', 'before/after mismatch');
+
+// 41. save() strips asset; roundtripped layers have asset: undefined.
+const stripAsset = await page.evaluate(() => {
+  if (!window.SWR_LAYER_STATE) return false;
+  const layer = {
+    id: 'L1', asset: { name: 'clip.mp4', url: 'blob:abc' },
+    blend: 'screen', opacity: 0.7, baseScale: 1.2, hue: 0,
+    contrast: 1, brightness: 1, alpha: 1, mutate: 0,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 0.7, ease: 'sharp' }],
+  };
+  window.SWR_LAYER_STATE.save([layer]);
+  window.SWR_LAYER_STATE.flush();
+  const out = window.SWR_LAYER_STATE.load();
+  return out.length === 1 && out[0].asset === undefined && out[0].id === 'L1';
+});
+if (stripAsset) ok('SWR_LAYER_STATE.save strips asset field');
+else bad('SWR_LAYER_STATE.save strips asset field', 'asset still present or shape wrong');
+
+// 42. Reload-style restore: push saved layers back into Layers.list.
+const restoreFlow = await page.evaluate(() => {
+  if (!window.SWR_LAYER_STATE) return { ok: false, reason: 'no SWR_LAYER_STATE' };
+  // Clear, then seed a single saved layer.
+  window.SWR_LAYER_STATE.clear();
+  window.SWR_LAYER_STATE.save([{
+    id: 'L42', blend: 'multiply', opacity: 0.5, baseScale: 1.5, hue: 0,
+    contrast: 1, brightness: 1, alpha: 1, mutate: 0, reactors: [],
+  }]);
+  window.SWR_LAYER_STATE.flush();
+  // Read back, then simulate the boot-restore: push into Layers.list.
+  const saved = window.SWR_LAYER_STATE.load();
+  window.SWR.Layers.list.length = 0;  // clear current
+  for (let i = 0; i < saved.length; i++) window.SWR.Layers.list.push(saved[i]);
+  return {
+    ok: window.SWR.Layers.list.length === 1 && window.SWR.Layers.list[0].id === 'L42'
+         && window.SWR.Layers.list[0].blend === 'multiply'
+         && window.SWR.Layers.list[0].asset === undefined,  // asset stripped
+  };
+});
+if (restoreFlow.ok) ok('Reload-style restore: saved layer roundtrips with metadata, no asset');
+else bad('Reload-style restore', JSON.stringify(restoreFlow));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
@@ -524,6 +600,7 @@ await page.evaluate(() => {
   if (window.SWR) window.SWR._fxOverride = null;
   if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
   if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.clear();
+  if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
 });
 
 await browser.close();
