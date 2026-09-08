@@ -267,6 +267,14 @@
     #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
     #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: #00ff66; margin-top: 8px; }
     #swr-start.hide { opacity: 0; pointer-events: none; }
+    .li .rm { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px;
+      background: rgba(0,0,0,0.6); color: var(--muted); border: none; border-radius: 2px;
+      font: 11px/1 ui-monospace, monospace; cursor: pointer; padding: 0;
+      opacity: 0; transition: opacity 0.1s, color 0.1s, background 0.1s; }
+    .li:hover .rm { opacity: 1; }
+    .li .rm:hover { color: var(--m); background: rgba(0,0,0,0.85); }
+    .li .rm.rm-armed { color: #fff; background: var(--m); opacity: 1; }
+
   </style>
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
@@ -481,20 +489,75 @@
           this.render();
         }, { once: true });
       },
+      removeItem(id) {
+        const i = this.items.findIndex(x => x.id === id);
+        if (i < 0) return false;
+        const it = this.items[i];
+        // Revoke the blob URL to free the underlying file from memory.
+        try { if (it.url) URL.revokeObjectURL(it.url); } catch (_) {}
+        // Drop any layer that referenced this asset. Layers lives in
+        // the same IIFE scope below — it's defined after Lib but by
+        // the time removeItem is called (user click), the whole IIFE
+        // has run and Layers is bound. Use the closure reference so
+        // we don't depend on window.SWR.Layers being set.
+        try { if (typeof Layers.cleanupForAsset === 'function') Layers.cleanupForAsset(it); } catch (_) {}
+        this.items.splice(i, 1);
+        this.render();
+        return true;
+      },
       render() { const el = $('lib');
         if (!this.items.length) { el.innerHTML='<div style="grid-column:1/-1;color:var(--muted);font-size:10px;padding:16px;text-align:center;">drop files</div>'; return; }
         el.innerHTML = '';
         for (const it of this.items) {
           const d = document.createElement('div'); d.className='li';
-          d.innerHTML = `<span class="tag">${it.type==='video'?'V':'I'}</span><span class="nm">${it.name}</span>`;
+          d.innerHTML = `<span class="tag">${it.type==='video'?'V':'I'}</span>`
+                      + `<span class="rm" data-id="${it.id}" title="Remove">×</span>`
+                      + `<span class="nm">${it.name}</span>`;
           if (it.thumb) { const i=new Image(); i.src=it.thumb; d.appendChild(i); }
           else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;d.appendChild(v); }
           else { const i=new Image(); i.src=it.url; d.appendChild(i); }
-          d.addEventListener('click', () => Layers.add(it));
+          d.addEventListener('click', (e) => {
+            // Don't fire "add to layer" if the click was on the × button.
+            if (e.target.classList.contains('rm')) return;
+            Layers.add(it);
+          });
           el.appendChild(d);
         }
+        // Wire the × buttons. Done after innerHTML so we attach listeners
+        // to the live DOM nodes (innerHTML-replaced elements lose their
+        // listeners on each re-render).
+        const rmButtons = el.querySelectorAll('.rm');
+        rmButtons.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.getAttribute('data-id'), 10);
+            const it = this.items.find(x => x.id === id);
+            if (!it) return;
+            // Confirm-on-delete: first click arms, second click within
+            // 1.5s fires. The button itself turns red (var(--m)) to
+            // indicate the armed state. After the timeout, returns.
+            if (btn.classList.contains('rm-armed')) {
+              this.removeItem(id);
+              if (typeof setStatus === 'function') setStatus('removed · ' + it.name, 'ok');
+            } else {
+              btn.classList.add('rm-armed');
+              btn.title = 'click again to confirm';
+              if (typeof setStatus === 'function') setStatus('click × again to remove · ' + it.name, 'err');
+              setTimeout(() => {
+                // Only disarm if the button still exists in the DOM.
+                if (btn.isConnected) {
+                  btn.classList.remove('rm-armed');
+                  btn.title = 'Remove';
+                }
+              }, 1500);
+            }
+          });
+        });
       }
     };
+    // Expose Lib for smoke testing (parallels window.SWR.Layers).
+    window.SWR_LIB = Lib;
+
 
     // === LAYERS ===
     const Layers = { list: [], sel: null,
@@ -511,6 +574,14 @@
           opacity: 0.85, baseScale: [1.5, 0.8, 1.2, 0.6, 1.8, 0.4][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
         this.list.push(l); this.render(); this.sel = l; },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
+      cleanupForAsset(it) {
+        const before = this.list.length;
+        this.list = this.list.filter(l => l.asset !== it);
+        if (this.list.length !== before) {
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+      },
       render() {
         const el = $('layers'); el.innerHTML = '';
         for (let i=0;i<this.list.length;i++) {
