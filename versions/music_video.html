@@ -772,7 +772,7 @@
           [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
         ];
         const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
-          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
+          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, cover: false, reactors: presets[i%presets.length] };
         this.list.push(l); this.render(); this.sel = l; this._persist(); },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); this._persist(); },
       // Clear all layers without touching library assets, IDB song, or
@@ -789,6 +789,20 @@
         try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
         if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
         return n;
+      },
+      // Flip the layer's `cover` flag. When true, drawLayer scales the
+      // asset to fill the entire stage edge-to-edge (CSS object-fit:
+      // cover semantics) instead of fitting inside (contain). Returns
+      // true on hit, false on miss. Calls _persist() so the new value
+      // survives reload via layer-state-store. Mirrors the shape of
+      // Layers.rm / Layers.reset.
+      cover(id, value) {
+        const l = this.list.find(x => x.id === id);
+        if (!l) return false;
+        l.cover = !!value;
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(l.id); } catch (_) {}
+        this._persist();
+        return true;
       },
       // Internal: persist the current list (assets stripped, debounced).
       // Called by add/rm/reset and the slider input handlers in render().
@@ -884,7 +898,7 @@
         for (let i=0;i<this.list.length;i++) {
           const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
-          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
+          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>cover</label><input type="checkbox" data-cover="1" /></div>`;
           d.querySelector('select').value = l.blend;
           for (const inp of d.querySelectorAll('input[type=range]')) {
             const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
@@ -902,6 +916,20 @@
           ins[5].addEventListener('input', e => { l.alpha = +e.target.value; this._persist(); });
           ins[6].addEventListener('input', e => { l.mutate = +e.target.value; this._persist(); });
           d.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
+          // Per-layer cover checkbox (CSS object-fit: cover semantics in
+          // drawLayer). Init from l.cover; on flip, set the field, persist,
+          // and invalidate the offscreen render cache so the new scale
+          // takes effect on the next frame. Mirrors the Layers.cover() API
+          // path so the checkbox and the programmatic method stay in sync.
+          const coverCb = d.querySelector('input[type=checkbox][data-cover]');
+          if (coverCb) {
+            coverCb.checked = !!l.cover;
+            coverCb.addEventListener('change', e => {
+              l.cover = !!e.target.checked;
+              try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(l.id); } catch (_) {}
+              this._persist();
+            });
+          }
           el.appendChild(d);
         }
       },
@@ -1097,7 +1125,51 @@
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;
       let dw, dh;
-      if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
+      // Cover semantics (CSS object-fit: cover): when l.cover === true,
+      // the asset is scaled so BOTH dimensions are >= the corresponding
+      // stage dimensions; the overflow is cropped by the canvas. This
+      // guarantees edge-to-edge fill regardless of r.scale. The default
+      // (contain) branch preserves the original behaviour: pick the
+      // SHORTER stage dimension and match it to the asset, which overflows
+      // the LONGER stage dimension when r.scale=1 but produces letterbox /
+      // pillarbox bars when r.scale<1. Missing l.cover (old persisted
+      // snapshot) is treated as false so the rendered shape is unchanged
+      // for pre-cover users.
+      //
+      // Cover branch ignores r.scale entirely (the user opted in to
+      // "force cover" by flipping the flag — they want the layer to
+      // ALWAYS fill the stage). The audio-reactor `scale` target still
+      // writes r.scale on this branch but we don't apply it to the
+      // final dimensions; the slider for baseScale still affects the
+      // size via the uniform-cover formula (a higher baseScale zooms
+      // in further, a lower one... no, baseScale is the audio reactor
+      // accumulator output — it's r.scale in this code).
+      //
+      // Formulas:
+      //   cover:   scale = max(W/assetW, H/assetH)   // ignore r.scale
+      //            dw = assetW * scale; dh = assetH * scale
+      //   default: pick the SHORTER stage dimension to fit the asset
+      //            (overflows the longer one at r.scale=1, letterboxes at
+      //            r.scale<1) — this is the existing behaviour.
+      //
+      // Concretely for a 1x1 image on 800x600 stage:
+      //   cover (any r.scale): dw=800, dh=800 (fills both, crops top/bot)
+      //   default r.scale=1:   dw=800, dh=800 (overflows top/bot 100 each)
+      //   default r.scale=0.5: dw=400, dh=400 (heavy letterbox all sides)
+      if (l.cover) {
+        // CSS object-fit: cover — uniform scale = max(W/assetW, H/assetH).
+        // r.scale is intentionally ignored so the asset ALWAYS fills the
+        // stage regardless of audio reactor activity or low baseScale.
+        const assetW = (a.w || src.naturalWidth || src.videoWidth || 1);
+        const assetH = (a.h || src.naturalHeight || src.videoHeight || 1);
+        const s = Math.max(W / assetW, H / assetH);
+        dw = assetW * s;
+        dh = assetH * s;
+      } else {
+        // Original behaviour: fit the SHORTER stage dimension to the asset.
+        if (ar > car) { dh = H * r.scale; dw = dh * ar; }
+        else        { dw = W * r.scale; dh = dw / ar; }
+      }
       const dx = (W - dw)/2 + r.x;
       const dy = (H - dh)/2 + r.y;
       ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;

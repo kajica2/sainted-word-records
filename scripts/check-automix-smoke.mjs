@@ -934,6 +934,92 @@ if (txOverride.overrideKept === true && txOverride.masterAfter === true)
   ok('per-layer reactorsEnabled override persists across master toggle');
 else bad('per-layer override', JSON.stringify(txOverride));
 
+// 60. Layers.cover(id, true) flips the flag, persists, and returns true.
+//     Layers.cover(id, false) on a missing id returns false. The fixture
+//     uses baseScale=0.5 so the assertion 61 corner-sampling can
+//     distinguish cover:true (fills the stage via CSS object-fit: cover
+//     math) from cover:false (original contain-style formula shrinks
+//     the asset to ~400x400, leaving letterbox bars at the corners).
+const coverApi = await page.evaluate(() => {
+  if (!window.SWR || !window.SWR.Layers) return { ok: false, reason: 'no SWR.Layers' };
+  window.SWR.Layers.reset();
+  window.SWR.Layers.list.push({
+    id: 'CV1',
+    asset: { type: 'image', name: '1x1.png',
+      url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+      w: 1, h: 1 },
+    blend: 'screen', opacity: 1, baseScale: 0.5, hue: 0,
+    brightness: 1, contrast: 1, alpha: 1, mutate: 0,
+    cover: false,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 0, ease: 'sharp' }],
+  });
+  const hit1 = window.SWR.Layers.cover('CV1', true);
+  const flag1 = window.SWR.Layers.list[0].cover;
+  const listLen1 = window.SWR.Layers.list.length;
+  const hit0 = window.SWR.Layers.cover('NOPE', true);
+  return { hit1, flag1, listLen1, hit0 };
+});
+if (coverApi.hit1 === true && coverApi.flag1 === true
+    && coverApi.listLen1 === 1 && coverApi.hit0 === false)
+  ok('Layers.cover(id, value) flips flag + persists; missing id returns false');
+else bad('Layers.cover API', JSON.stringify(coverApi));
+
+// 61. cover:true fills the stage; cover:false leaves corners black.
+//     Push a 1x1 yellow 50%-alpha image with baseScale=0.5. At cover:true
+//     the engine uses the CSS object-fit: cover formula — uniform scale
+//     max(W/assetW, H/assetH) — so the tiny 1x1 image is scaled to fill
+//     both stage dimensions regardless of r.scale; all 4 corners are
+//     yellow. At cover:false the engine uses the original formula (fit the
+//     shorter stage dimension), so r.scale=0.5 shrinks the image to
+//     ~400x400 sitting inside the stage with letterbox bars; the 4
+//     corners stay black. Sample at y=1 to avoid the row-0 scanline
+//     overlay drawn by drawFx. Use the actual stage cssW/cssH + dpr
+//     so the test is robust to viewport / dpr changes.
+const coverBox = await page.evaluate(async () => {
+  function readCornerCSS(cssX, cssY) {
+    const c = document.getElementById('render');
+    if (!c) return null;
+    const dpr = (window.SWR_RENDER && window.SWR_RENDER.dpr) || 1;
+    const px = Math.min(c.width - 1, Math.round(cssX * dpr));
+    const py = Math.min(c.height - 1, Math.round(cssY * dpr));
+    const d = c.getContext('2d').getImageData(px, py, 1, 1).data;
+    return [d[0], d[1], d[2], d[3]];
+  }
+  const cssW = (window.SWR_RENDER && window.SWR_RENDER.cssW) || 640;
+  const cssH = (window.SWR_RENDER && window.SWR_RENDER.cssH) || 360;
+  // Wait a few frames so the new layer is rendered after the cache
+  // invalidation triggered by Layers.cover() / the layer push.
+  await new Promise(r => setTimeout(r, 250));
+  const yMid = Math.min(cssH - 2, 1);
+  const xMid = Math.min(cssW - 2, cssW - 2);
+  const coverTrue = {
+    tl: readCornerCSS(1, yMid),
+    tr: readCornerCSS(xMid, yMid),
+    bl: readCornerCSS(1, cssH - 1),
+    br: readCornerCSS(xMid, cssH - 1),
+  };
+  window.SWR.Layers.cover('CV1', false);
+  await new Promise(r => setTimeout(r, 250));
+  const coverFalse = {
+    tl: readCornerCSS(1, yMid),
+    tr: readCornerCSS(xMid, yMid),
+    bl: readCornerCSS(1, cssH - 1),
+    br: readCornerCSS(xMid, cssH - 1),
+  };
+  // Restore cover:true for any later tests.
+  window.SWR.Layers.cover('CV1', true);
+  return { cssW, cssH, coverTrue, coverFalse };
+});
+// "Non-black" = the pixel has visible color (red channel > 30).
+// cover:true with a 1x1 yellow image fills the stage → all 4 corners
+// have R > 30. cover:false fits inside → 3 corners are pure black.
+function isNonBlack(px) { return Array.isArray(px) && px[0] > 30; }
+const trueNonBlack = Object.values(coverBox.coverTrue).filter(isNonBlack).length;
+const falseNonBlack = Object.values(coverBox.coverFalse).filter(isNonBlack).length;
+if (trueNonBlack === 4 && (falseNonBlack === 1 || falseNonBlack === 0))
+  ok('cover:true fills all 4 stage corners; cover:false leaves 3+ corners black (1x1 image)');
+else bad('cover behaviour', JSON.stringify({ trueNonBlack, falseNonBlack, coverTrue: coverBox.coverTrue, coverFalse: coverBox.coverFalse }));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
