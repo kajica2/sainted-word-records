@@ -869,9 +869,45 @@
       const a = l.asset; if (!a) return;
       let src;
       if (a.type === 'video') {
-        if (!a._el) { a._el = document.createElement('video'); a._el.src=a.url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
+        if (!a._el) {
+          // First time we see this asset: create the element AND wire
+          // the lifecycle listeners the page actually needs. The
+          // previous code only listened for readyState >= 2 on every
+          // frame, which silently fails forever if the video errors
+          // (bad codec, CORS, blob revoked, autoplay-blocked). The
+          // error + canplay listeners below are the missing piece —
+          // they surface failures to the user via the status bar and
+          // invalidate the render cache once the video is actually
+          // playable.
+          const v = document.createElement('video');
+          v.src = a.url;
+          v.muted = true;
+          v.loop = true;
+          v.playsInline = true;
+          v.preload = 'auto';
+          v.crossOrigin = 'anonymous';  // hint for CORS-friendly CDNs
+          v.addEventListener('canplay', () => {
+            a._ready = true;
+            try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+          });
+          v.addEventListener('error', () => {
+            const code = v.error ? v.error.code : 0;
+            // 1=MEDIA_ERR_ABORTED, 2=MEDIA_ERR_NETWORK,
+            // 3=MEDIA_ERR_DECODE, 4=MEDIA_ERR_SRC_NOT_SUPPORTED.
+            // The most common is 4 (browser can't decode the source).
+            const msg = 'video load failed (' + (a.name || 'unknown') + '): ' +
+                        ({ 1: 'aborted', 2: 'network', 3: 'decode', 4: 'unsupported format' }[code] || ('code ' + code));
+            try { setStatus(msg, 'err'); } catch (_) {}
+            a._ready = false;
+            a._errored = true;
+          });
+          a._el = v;
+        }
         src = a._el;
-        if (A.playing && src.paused) src.play().catch(()=>{});
+        // Already errored — skip permanently. Drawing nothing is the
+        // correct visual; the status-bar message is the only signal.
+        if (a._errored) return;
+        if (A.playing && src.paused && a._ready) src.play().catch(()=>{});
         if (!A.playing && !src.paused) src.pause();
       } else {
         if (!a._el) { a._el = new Image(); a._el.src=a.url; }
