@@ -285,7 +285,7 @@
     <script src="../lib/recorder.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 </head>
-<body data-page="music_video">
+<body data-page="neon">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header>
       <div class="v">MUSIC VIDEO <small>v1</small></div>
@@ -434,8 +434,12 @@
         // browser allows autoplay — but only if a saved song doesn't
         // already exist. This is the gating logic.
         var picked = null;
-        if (window.SWR_LAST_SONG) {
-          picked = await window.SWR_LAST_SONG();
+        // SWR_LAST_SONG is a Promise<{blob,...}|null> exposed by
+        // versions/last-song.js — NOT a function. versions/last-song.js:128
+        // sets `window.SWR_LAST_SONG = getSavedSong()`. Awaiting the
+        // Promise directly avoids the previous TypeError.
+        if (window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function') {
+          picked = await window.SWR_LAST_SONG;
         }
         if (!picked) {
           // No persisted user song. Show the overlay regardless of
@@ -480,11 +484,11 @@
     // visible on first visit (when IDB has no song) regardless of
     // autoplay permission — the user must drop a song to begin.
     function waitForPick() {
-      if (!window.SWR_LAST_SONG) {
+      if (!window.SWR_LAST_SONG || typeof window.SWR_LAST_SONG.then !== 'function') {
         var tries = 0;
         var iv = setInterval(function() {
           tries++;
-          if (window.SWR_LAST_SONG) {
+          if (window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function') {
             clearInterval(iv);
             start();
           } else if (tries > 50) {  // ~5s timeout
