@@ -589,6 +589,39 @@ const restoreFlow = await page.evaluate(() => {
 if (restoreFlow.ok) ok('Reload-style restore: saved layer roundtrips with metadata, no asset');
 else bad('Reload-style restore', JSON.stringify(restoreFlow));
 
+// 43. Bad-blob video layer surfaces an error via the status bar.
+//     (Regression test for the silent-fail bug: a video with an
+//     undecodable source used to render as black forever. The fix
+//     attaches an 'error' listener to the <video> element and calls
+//     setStatus() with a descriptive message.)
+const badVideoResult = await page.evaluate(async () => {
+  // Reset the layers panel + the status bar so we can detect the new
+  // message cleanly.
+  if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
+  // The page's applyR() reads these fields — the layer has to be
+  // fully shaped or applyR throws and the render loop skips the
+  // layer before drawLayer is called. This is the same shape
+  // Layers.add() produces.
+  const url = URL.createObjectURL(new Blob([new Uint8Array([0,0,0,0])], { type: 'video/mp4' }));
+  const layer = {
+    id: 'V1',
+    asset: { type: 'video', name: 'bad.mp4', url, w: 0, h: 0 },
+    blend: 'screen', opacity: 1, baseScale: 1, hue: 0,
+    brightness: 1, contrast: 1, alpha: 1, mutate: 0,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 0.7, ease: 'sharp' }],
+  };
+  window.SWR.Layers.list.push(layer);
+  // Wait long enough for the <video> error event to fire.
+  await new Promise(r => setTimeout(r, 1500));
+  return {
+    errored: !!layer.asset._errored,
+    hasEl: !!layer.asset._el,
+  };
+});
+if (badVideoResult.errored && badVideoResult.hasEl)
+  ok('bad-blob video layer marks asset as _errored (no silent fail)');
+else bad('bad-blob video layer marks asset as _errored', JSON.stringify(badVideoResult));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
