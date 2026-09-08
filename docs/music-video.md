@@ -142,7 +142,7 @@ is internal and may change.
 |----------|------|-------|
 | `SWR.Audio` | `A` object | Methods: `load(file)`, `play()`, `pause()`, `stop()`, `unlock()`. **Feeds `feat = { bass, mid, treble, beat, … }` every frame.** |
 | `SWR.Library` | `Lib` object | User uploads only — does **not** auto-fetch curated library/. Methods: `addFiles(files)`, `render()`, **`removeItem(id)`** (PR #23, revokes blob URL, drops layers), **`window.SWR_LIB` global** for test access. |
-| `SWR.Layers` | `{ list, add(layer), rm(id), reset(), cleanupForAsset(it), solo(id), soloOff(), **swapAsset(direction)** }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset()` clears all layers and wipes the layer-state-store (PR #19). `solo(id)` pins one library video as the only entry in `Layers.list` while leaving the GLSL composer + audio reactivity running; `soloOff()` restores the prior list from an in-memory snapshot (PR #25). `swapAsset('next'|'prev')` cycles the topmost layer's `asset` through `Lib.items` (wraps modulo `Lib.items.length`); the layer's reactors, baseScale, hue, opacity, blend, alpha, brightness, contrast, and cover stay untouched — only the `asset` reference swaps (PR #27). |
+| `SWR.Layers` | `{ list, add(layer), rm(id), reset(), cleanupForAsset(it), solo(id), soloOff(), swapAsset(direction), cover(id, value) }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset()` clears all layers and wipes the layer-state-store (PR #19). `solo(id)` pins one library video as the only entry in `Layers.list` while leaving the GLSL composer + audio reactivity running; `soloOff()` restores the prior list from an in-memory snapshot (PR #25). `swapAsset('next'|'prev')` cycles the topmost layer's `asset` through `Lib.items` (wraps modulo `Lib.items.length`); the layer's reactors, baseScale, hue, opacity, blend, alpha, brightness, contrast, and cover stay untouched — only the `asset` reference swaps (PR #27). `cover(id, value)` flips the per-layer `cover` boolean (PR #28): when `true`, drawLayer scales the asset uniformly to fill the entire stage edge-to-edge (CSS `object-fit: cover`); when `false` (default), the existing letterbox behaviour holds. |
 | `SWR.Recorder` | recorder | MediaRecorder wrapper. |
 | `SWR.Gradient` | `{ refresh(), setTrack(coords), setBeatPulse(0/1), setNeighbours([ids]), setAutomixAnchor(0..1) }` | Gradient canvas controls. PR #10 added `setTrack` + `setBeatPulse`; PR #13 added `setNeighbours`. |
 | `SWR.HologramState` | `{ depth, neighbours }` | Reactive to sliders + footer. |
@@ -435,14 +435,17 @@ unless marked `**Deferred**`.
   in `localStorage` under `swr.txMaster.enabled` (defaults to `true`).
   3 new smoke assertions (54 total). Plan:
   `.hermes/plans/2026-09-08_182000-tx-master-toggle.md`.
+- **PR #28 — per-layer cover toggle.** `Layers.cover(id, value)`
+  + a per-layer checkbox in the layer panel. When `cover: true`,
+  the asset is uniformly scaled (`max(W/assetW, H/assetH)`) to
+  fill the entire stage edge-to-edge (CSS `object-fit: cover`).
+  Ignores `r.scale` so the layer always fills regardless of audio
+  reactor activity. Default `false` preserves the existing
+  letterbox behaviour. 2 new smoke assertions (56 total). Plan:
+  `.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`.
 
 ### Deferred
 
-- **Per-layer `cover` toggle (object-fit: cover).** Plan drafted
-  at `.hermes/plans/2026-09-08_163000-layer-cover-toggle.md` but
-  not yet implemented. Would add a `cover` boolean field to
-  `Layers.list` (default `false`) and a `Layers.cover(id, true)`
-  method. Three-line patch to drawLayer; checkbox in the layer panel.
 - **Mirror the × button to all 23 version pages.** PR #23 only
   touched `music_video.html`. The other 22 version pages have
   their own inline `Lib` definitions; same ~30-line change would
@@ -471,9 +474,10 @@ unless marked `**Deferred**`.
 - **PR #23** — library × button
 - **PR #25** — Solo layer toggle (Layers.solo / soloOff + Shift+S shortcut)
 - **PR #27** — `{` / `}` swap topmost layer's asset (Layers.swapAsset + keyboard binding)
+- **PR #28** — per-layer cover toggle (Layers.cover + per-layer checkbox + uniform-scale fill)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
-- **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the deferred `cover` toggle plan
+- **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the per-layer cover toggle plan (now shipped as PR #28)
 - **`.hermes/plans/2026-09-08_183000-self-evolving-automixer.md`** — the plan that produced PR #9
 - **`docs/CROSS-APP-BRIDGE.md`** — how music_video relates to swr-app, make-video, marketplace
 - **Related page:** `make-video.html` (the *timeline + export* music-video surface; completely separate feature)
