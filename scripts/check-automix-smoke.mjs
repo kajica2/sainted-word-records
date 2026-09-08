@@ -141,6 +141,106 @@ const magentaPixels = await page.evaluate(() => {
 if (magentaPixels > 0) ok('gradient canvas has magenta track dot (' + magentaPixels + ' px)');
 else bad('gradient canvas has magenta track dot', '0 magenta pixels');
 
+// 9. Depth slider wires to HologramState.depth (Tier-1 #1 — fixes dead UI).
+//    Drive the slider via input event and read back HologramState.depth.
+const depthAfter = await page.evaluate(() => {
+  const s = document.getElementById('depth');
+  s.value = '0.85';
+  s.dispatchEvent(new Event('input', { bubbles: true }));
+  return window.SWR && window.SWR.HologramState && window.SWR.HologramState.depth;
+});
+if (Math.abs(depthAfter - 0.85) < 1e-6) ok('depth slider → HologramState.depth (0.85)');
+else bad('depth slider → HologramState.depth', String(depthAfter));
+
+// 10. Depth blend: with _fxOverride set + depth=1, blendFxOverride returns
+//     pure override values. Direct test of the extracted helper.
+const blendAt1 = await page.evaluate(() => {
+  window.SWR._fxOverride = { temp: 0.9, mut: 0.9, sepia: 0.9, chroma: 0.9, grain: 0.9, glow: 0.9, grayscale: 0.9, posterize: 0.9 };
+  const neon = { temp: -0.3, mut: 0.55, sepia: 0, chroma: 0.85, grain: 0.4, glow: 0.4, grayscale: 0, posterize: 0.1 };
+  return window.__SWR_BLEND_FX(neon, window.SWR._fxOverride, 1);
+});
+if (blendAt1 && Math.abs(blendAt1.temp - 0.9) < 1e-6 && Math.abs(blendAt1.chroma - 0.9) < 1e-6)
+  ok('blendFxOverride at depth=1 = override');
+else bad('blendFxOverride at depth=1 = override', JSON.stringify(blendAt1));
+
+// 11. Depth blend at 0 → pure neon (override ignored).
+const blendAt0 = await page.evaluate(() => {
+  const neon = { temp: -0.3, mut: 0.55, sepia: 0, chroma: 0.85, grain: 0.4, glow: 0.4, grayscale: 0, posterize: 0.1 };
+  return window.__SWR_BLEND_FX(neon, window.SWR._fxOverride, 0);
+});
+if (blendAt0 && blendAt0.temp === -0.3 && blendAt0.chroma === 0.85)
+  ok('blendFxOverride at depth=0 = neon preset');
+else bad('blendFxOverride at depth=0 = neon preset', JSON.stringify(blendAt0));
+
+// 12. setAutomixAnchor highlights a preset and dims the track dot.
+//     Call the method directly (the page does this from automix.tick()).
+const anchorState = await page.evaluate(() => {
+  // Set up a track dot first so the dim effect has something to dim.
+  window.SWR_GRADIENT.setTrack({ bass: 0.5, mid: 0.5, treb: 0.5 });
+  window.SWR_GRADIENT.setAutomixAnchor('neon');
+  return window.SWR_GRADIENT._state();
+});
+if (anchorState && anchorState.automixAnchor === 'neon')
+  ok('setAutomixAnchor(neon) exposes state');
+else bad('setAutomixAnchor(neon) exposes state', JSON.stringify(anchorState));
+
+// 13. setAutomixAnchor(null) clears the highlight.
+const cleared = await page.evaluate(() => {
+  window.SWR_GRADIENT.setAutomixAnchor(null);
+  return window.SWR_GRADIENT._state();
+});
+if (cleared && cleared.automixAnchor === null)
+  ok('setAutomixAnchor(null) clears');
+else bad('setAutomixAnchor(null) clears', JSON.stringify(cleared));
+
+// 14. setAutomixAnchor with unknown id is silently ignored (no throw).
+const unknown = await page.evaluate(() => {
+  try {
+    window.SWR_GRADIENT.setAutomixAnchor('this-preset-does-not-exist');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, err: String(e) };
+  }
+});
+if (unknown.ok) ok('setAutomixAnchor unknown id is safe');
+else bad('setAutomixAnchor unknown id is safe', JSON.stringify(unknown));
+
+// 15. SWR_LAST_MIX persists the automix blend to localStorage.
+const lastMixState = await page.evaluate(async () => {
+  if (!window.SWR_LAST_MIX) return { ok: false, reason: 'SWR_LAST_MIX missing' };
+  window.SWR_LAST_MIX.clear();
+  window.SWR_LAST_MIX.save({
+    ts: Date.now(),
+    coords: { warmth: 0.42, intensity: 0.67 },
+    anchors: [{ id: 'neon', dist: 0.1 }],
+    preset: { temp: 0.5, mut: 0.5 },
+  });
+  window.SWR_LAST_MIX.flush();
+  const r = window.SWR_LAST_MIX.read();
+  return { ok: !!r, coords: r && r.coords };
+});
+if (lastMixState.ok && Math.abs(lastMixState.coords.warmth - 0.42) < 1e-6)
+  ok('SWR_LAST_MIX save/flush/read roundtrips coords');
+else bad('SWR_LAST_MIX save/flush/read roundtrips coords', JSON.stringify(lastMixState));
+
+// 16. Gradient.setGhostDot shows up in _state and clears with null.
+const ghostState = await page.evaluate(() => {
+  window.SWR_GRADIENT.setGhostDot({ warmth: 0.7, intensity: 0.3 });
+  const s1 = window.SWR_GRADIENT._state();
+  window.SWR_GRADIENT.setGhostDot(null);
+  const s2 = window.SWR_GRADIENT._state();
+  return { setState: s1 && s1.ghost, clearedState: s2 && s2.ghost };
+});
+if (ghostState.setState && Math.abs(ghostState.setState.warmth - 0.7) < 1e-6 && ghostState.clearedState === null)
+  ok('setGhostDot reflects in _state, null clears');
+else bad('setGhostDot reflects in _state, null clears', JSON.stringify(ghostState));
+
+// Cleanup so subsequent tests/runs start fresh.
+await page.evaluate(() => {
+  if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
+  if (window.SWR_GRADIENT) window.SWR_GRADIENT.setGhostDot(null);
+});
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));

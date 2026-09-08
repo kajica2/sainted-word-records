@@ -274,6 +274,7 @@
   <script src="../client/preset-anchor-map.client.js"></script>
 <script src="../client/anchor-embed.js"></script>
 <script src="../client/automix.client.js"></script>
+<script src="../client/last-mix-store.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
 <script src="../engine-lfos.client.js"></script>
@@ -938,7 +939,7 @@
 
     // === UI WIRING ===
     $('load-song').addEventListener('click', () => $('song-input').click());
-    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); } });
+    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setGhostDot) window.SWR.Gradient.setGhostDot(null); } });
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
@@ -1253,18 +1254,50 @@
       // (loaded via ../client/anchor-embed.js) so the gradient panel and
       // the automix blend always land at the same (warmth, intensity) for
       // the same audio features. Phase C refactor — single source of truth.
+      //
+      // _automixAnchor: when set (e.g. "neon"), the matching anchor dot
+      // gets a magenta ring around it AND the track dot dims to 0.4×
+      // alpha — visual signal that the automix is actively choosing this
+      // anchor. null clears both effects. Wired by automix.tick().
       let _track = null;
+      let _automixAnchor = null;
+      let _ghost = null;
       function drawTrackDot() {
         if (!_track) return;
         const { x, y } = toCanvas(_track.warmth, _track.intensity);
         const pulse = Math.max(0, Math.min(1, _track.beatPulse || 0));
+        // Automix dim: track dot alpha × 0.4 while automix is choosing
+        // an anchor — the anchor ring is the foreground signal.
+        const dim = _automixAnchor ? 0.4 : 1.0;
         // outer ring: scales with beat pulse (3px → 9px)
         const ringR = 3 + pulse * 6;
-        ctx2.fillStyle = 'rgba(255, 45, 138, ' + (0.10 + pulse * 0.20) + ')';
+        ctx2.fillStyle = 'rgba(255, 45, 138, ' + ((0.10 + pulse * 0.20) * dim) + ')';
         ctx2.beginPath(); ctx2.arc(x, y, ringR, 0, Math.PI * 2); ctx2.fill();
         // core dot: solid magenta
-        ctx2.fillStyle = 'rgba(255, 45, 138, 0.95)';
+        ctx2.fillStyle = 'rgba(255, 45, 138, ' + (0.95 * dim) + ')';
         ctx2.beginPath(); ctx2.arc(x, y, 2.4, 0, Math.PI * 2); ctx2.fill();
+      }
+      function drawAutomixRing() {
+        if (!_automixAnchor) return;
+        const a = map.get(_automixAnchor);
+        if (!a) return;
+        const { x, y } = toCanvas(a.warmth, a.intensity);
+        // outer faint ring
+        ctx2.strokeStyle = 'rgba(255, 45, 138, 0.35)';
+        ctx2.lineWidth = 1;
+        ctx2.beginPath(); ctx2.arc(x, y, 8, 0, Math.PI * 2); ctx2.stroke();
+        // inner solid ring
+        ctx2.strokeStyle = 'rgba(255, 45, 138, 0.85)';
+        ctx2.lineWidth = 1.5;
+        ctx2.beginPath(); ctx2.arc(x, y, 4.5, 0, Math.PI * 2); ctx2.stroke();
+      }
+      function drawGhostDot() {
+        if (!_ghost) return;
+        const { x, y } = toCanvas(_ghost.warmth, _ghost.intensity);
+        // Faded hollow ring — clearly "not the live track"
+        ctx2.strokeStyle = 'rgba(138, 122, 160, 0.55)';
+        ctx2.lineWidth = 1;
+        ctx2.beginPath(); ctx2.arc(x, y, 4, 0, Math.PI * 2); ctx2.stroke();
       }
 
       function render() {
@@ -1272,6 +1305,8 @@
         ctx2.fillRect(0, 0, W2, H2);
         drawAxes();
         drawAnchors();
+        drawAutomixRing();
+        drawGhostDot();
         drawTrackDot();
       }
 
@@ -1300,8 +1335,45 @@
           if (!_track) return;
           _track.beatPulse = Math.max(0, Math.min(1, p || 0));
         },
-        _state() { return _track ? { ..._track } : null; },
+        // Highlight a specific anchor dot with a magenta ring + dim the
+        // track dot so the user can see which preset the automix is
+        // currently using. Pass null to clear.
+        setAutomixAnchor(id) {
+          _automixAnchor = (typeof id === 'string' && map.get(id)) ? id : null;
+        },
+        // Draw a faded "last session" dot at the given coords. Used by the
+        // boot path to show the user what their previous automix blend
+        // looked like, even if no song is currently loaded. Distinct from
+        // setTrack() — does not enable beat-pulse animation, no ring.
+        setGhostDot(coords) {
+          if (!coords || typeof coords.warmth !== 'number') {
+            _ghost = null;
+          } else {
+            _ghost = {
+              warmth:    Math.max(0, Math.min(1, coords.warmth)),
+              intensity: Math.max(0, Math.min(1, coords.intensity)),
+            };
+          }
+        },
+        _state() { return _track ? { ..._track, automixAnchor: _automixAnchor, ghost: _ghost } : null; },
       };
+
+      // ---- Restore last session -------------------------------------------
+      // If the user has a persisted automix blend from a previous visit,
+      // draw a faded ghost dot on the gradient so they can find where
+      // they left off. Cleared as soon as the live track lands (setTrack
+      // resets _track but leaves _ghost — setGhostDot(null) explicitly
+      // when the user wants to dismiss).
+      try {
+        if (window.SWR_LAST_MIX && window.SWR_LAST_MIX.read) {
+          const prev = window.SWR_LAST_MIX.read();
+          if (prev && prev.coords) {
+            _ghost = { warmth: prev.coords.warmth, intensity: prev.coords.intensity };
+            render();
+          }
+        }
+      } catch (_) { /* ignore — privacy mode etc. */ }
+
       render();
       return window.SWR_GRADIENT;
     })();
@@ -1366,6 +1438,11 @@
         try { localStorage.setItem('swr.automix.enabled', '0'); } catch (_) {}
         if (this.iv) { clearInterval(this.iv); this.iv = null; }
         // Freeze the last blended state — do NOT clear _fxOverride.
+        // Also drop the gradient-panel anchor highlight so the user
+        // sees that automix is no longer choosing.
+        if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setAutomixAnchor) {
+          window.SWR.Gradient.setAutomixAnchor(null);
+        }
       },
       tick() {
         const SWR = window.SWR; if (!SWR || !SWR.Audio) return;
@@ -1384,6 +1461,21 @@
           // visibility — user sees the toggle is doing something.
           const pill = document.getElementById('synth-pill');
           if (pill && mixed.anchors[0]) pill.textContent = 'auto · ' + mixed.anchors[0].id;
+          // Phase B+: highlight the dominant anchor on the gradient canvas so
+          // the user can see which preset the automix is currently choosing.
+          if (SWR.Gradient && mixed.anchors[0]) {
+            SWR.Gradient.setAutomixAnchor(mixed.anchors[0].id);
+          }
+          // Persist the latest blend so the user can restore their last
+          // session after a reload (debounced inside last-mix-store).
+          if (window.SWR_LAST_MIX) {
+            window.SWR_LAST_MIX.save({
+              ts: Date.now(),
+              coords: mixed.coords,
+              anchors: mixed.anchors,
+              preset: mixed.preset,
+            });
+          }
         }
       },
     };
