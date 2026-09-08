@@ -10,7 +10,7 @@ additions (Layers reset, Tab cycle, library × button).
 
 **Live URL:** `https://sainted-word-records.vercel.app/versions/music_video.html`
 **Canonical path:** `versions/music_video.html`
-**Shipped in:** PR #4 (gradient foundation) · PR #8 (bug fixes) · PR #9 (automix toggle) · PRs #10–#19 (phases B/C/D + Layer reset + Tab cycle + persistence + video error handling + cache-bust) · PR #23 (library × button)
+**Shipped in:** PR #4 (gradient foundation) · PR #8 (bug fixes) · PR #9 (automix toggle) · PRs #10–#19 (phases B/C/D + Layer reset + Tab cycle + persistence + video error handling + cache-bust) · PR #23 (library × button) · PR #25 (Solo layer toggle)
 **First-merge SHA:** `c1591e3` (PR #4)
 **Current production SHA:** see `git log --oneline origin/main -1`
 
@@ -142,7 +142,7 @@ is internal and may change.
 |----------|------|-------|
 | `SWR.Audio` | `A` object | Methods: `load(file)`, `play()`, `pause()`, `stop()`, `unlock()`. **Feeds `feat = { bass, mid, treble, beat, … }` every frame.** |
 | `SWR.Library` | `Lib` object | User uploads only — does **not** auto-fetch curated library/. Methods: `addFiles(files)`, `render()`, **`removeItem(id)`** (PR #23, revokes blob URL, drops layers), **`window.SWR_LIB` global** for test access. |
-| `SWR.Layers` | `{ list, add(layer), rm(id), reset(), **cleanupForAsset(it)** (PR #23) }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset()` clears all layers and wipes the layer-state-store (PR #19). |
+| `SWR.Layers` | `{ list, add(layer), rm(id), reset(), cleanupForAsset(it), **solo(id)**, **soloOff()** }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset()` clears all layers and wipes the layer-state-store (PR #19). `solo(id)` pins one library video as the only entry in `Layers.list` while leaving the GLSL composer + audio reactivity running; `soloOff()` restores the prior list from an in-memory snapshot (PR #25). |
 | `SWR.Recorder` | recorder | MediaRecorder wrapper. |
 | `SWR.Gradient` | `{ refresh(), setTrack(coords), setBeatPulse(0/1), setNeighbours([ids]), setAutomixAnchor(0..1) }` | Gradient canvas controls. PR #10 added `setTrack` + `setBeatPulse`; PR #13 added `setNeighbours`. |
 | `SWR.HologramState` | `{ depth, neighbours }` | Reactive to sliders + footer. |
@@ -206,6 +206,7 @@ at boot (music_video.html:1243); no live callers — see Phase B/C/D (§9).
 | `A` | Toggle Automix ON/OFF | music_video.html inline IIFE |
 | `Tab` / `Shift+Tab` | Cycle presets forward / backward through `SHORTCUT_PRESETS` (9-item list). Skipped when focus is in `<input>` / `<textarea>` / `contenteditable` and when modifier keys are held. | PR #17 |
 | `Backspace` | `Layers.reset()` — clears all layers + wipes the layer-state-store. Skipped when focus is in an input / textarea / contenteditable, and when `metaKey` / `ctrlKey` / `altKey` is held (preserves browser back-nav). | PR #15 |
+| `Shift+S` | Solo toggle — pins the most-recently-added layer as the only entry in `Layers.list` (calls `Layers.solo(last.id)`); press again to restore the prior list (`Layers.soloOff()`). Skipped when focus is in an input / textarea / contenteditable. | PR #25 |
 | `M` | Mutate (engine global) | engine-keys.client.js |
 | `E` | Evolve (engine global) | engine-keys.client.js |
 | `R` | Randomize (engine global) | engine-keys.client.js |
@@ -400,6 +401,14 @@ unless marked `**Deferred**`.
   library thumbnail (visible on hover). Confirm-on-delete: first
   click arms, second click within 1.5s fires. `Lib.removeItem(id)`
   revokes the blob URL and drops any layers referencing the asset.
+- **PR #25 — Solo layer toggle.** `Layers.solo(id)` pins one library
+  video as the only entry in `Layers.list` while leaving the GLSL
+  composer + audio reactivity running; `Layers.soloOff()` restores
+  the prior list from an in-memory snapshot. Footer `Solo` button +
+  `Shift+S` shortcut pick the most-recently-added layer as the solo
+  target. Switching solo to a different layer keeps the *original*
+  snapshot intact (no layer loss on bounces). Plan:
+  `.hermes/plans/2026-09-08_181000-solo-layer-toggle.md`.
 
 ### Deferred
 
@@ -434,6 +443,7 @@ unless marked `**Deferred**`.
 - **PR #21** — render cache invalidation on `canplay` + 5s stall fallback
 - **PR #22** — `docs/ARCHITECTURE.md` (engineer-facing system map)
 - **PR #23** — library × button
+- **PR #25** — Solo layer toggle (Layers.solo / soloOff + Shift+S shortcut)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the deferred `cover` toggle plan

@@ -328,6 +328,13 @@ Notable: **`music_video.html`** is a fork with extra UI:
   corner (PR #23) for deletion: click once to arm, click again
   within 1.5 s to confirm. `Lib.removeItem(id)` revokes the blob
   URL and drops any layers referencing the asset.
+- Has a **`Solo` button** + **`Shift+S` shortcut** (PR #25) that pins
+  one library video as the only entry in `Layers.list` while leaving
+  the GLSL composer + audio reactivity running. `Layers.solo(id)` /
+  `Layers.soloOff()` round-trip the layer stack via an in-memory
+  snapshot — the prior list is restored on `soloOff`. Switching solo
+  to a different layer keeps the original snapshot intact. Plan:
+  `.hermes/plans/2026-09-08_181000-solo-layer-toggle.md`.
 - Does **not** auto-load `library/manifest.json` (session-private)
 
 ### 6.2 `swr-app.html` — the SPA

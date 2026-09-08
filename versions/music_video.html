@@ -42,6 +42,7 @@
     .tbtn:hover { border-color: var(--m); color: var(--m); }
     .tbtn.primary { background: var(--m); color: #000; border-color: var(--m); font-weight: 700; }
     .tbtn.primary:hover { background: var(--c); border-color: var(--c); }
+    #solo-btn.on { border-color: var(--m); color: var(--m); font-weight: 700; }
     .spacer { flex: 1; }
     .meter { width: 160px; height: 16px; background: #0a0612; border: 1px solid var(--line); border-radius: 3px; display: block; }
     aside.lib, aside.layers { background: var(--panel); overflow-y: auto; }
@@ -383,6 +384,7 @@
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">depth <input type="range" id="depth" min="0" max="1" step="0.05" value="0.5" /> <b id="depth-v">0.50</b></span>
       <span class="gc">N <input type="range" id="neighbour-count" min="1" max="8" step="1" value="4" /> <b id="neighbour-count-v">4</b></span>
       <span class="gc"><button class="tbtn" id="reset-layers" title="Clear all layers (Backspace)" style="padding:3px 8px;font-size:9px;">↺ Layers</button></span>
+      <span class="gc"><button class="tbtn" id="solo-btn" title="Solo one layer (Shift+S)" style="padding:3px 8px;font-size:9px;">Solo</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -800,6 +802,57 @@
           this.render();
           try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
         }
+        // If the dropped asset was referenced by the solo snapshot,
+        // discard the snapshot — restoring it later would resurrect
+        // a layer pointing at a dead asset.
+        if (this._soloSnapshot && this._soloSnapshot.some(l => l.asset === it)) {
+          this._soloSnapshot = null;
+          this._soloId = null;
+          const btn = $('solo-btn');
+          if (btn) btn.classList.remove('on');
+        }
+      },
+      solo(id) {
+        // Find the target layer. While solo is on, the current list is
+        // pinned to a single entry — to switch solo to a different layer
+        // we look up the id in the snapshot (the original list the user
+        // pinned from). This keeps "switch solo targets" working without
+        // forcing the caller to solo-off first.
+        let target = this.list.find(x => x.id === id);
+        if (!target && this._soloSnapshot) target = this._soloSnapshot.find(x => x.id === id);
+        if (!target) return false;
+        // If already solo on this layer: toggle off.
+        if (this._soloId === id) {
+          this.soloOff();
+          return true;
+        }
+        // If we're entering solo (or switching): snapshot the current list.
+        // The first time we enter solo, we snapshot from whatever's there.
+        // On subsequent switches, we keep the original snapshot — so
+        // bouncing between "solo L1" and "solo L2" doesn't lose layers.
+        // Treat both null and undefined as "no snapshot yet" — _soloSnapshot
+        // is uninitialised before the first solo call.
+        if (this._soloSnapshot == null) {
+          this._soloSnapshot = this.list.slice();
+        }
+        this.list = [target];
+        this._soloId = id;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        const btn = $('solo-btn');
+        if (btn) btn.classList.add('on');
+        return true;
+      },
+      soloOff() {
+        if (this._soloSnapshot == null) return false;
+        this.list = this._soloSnapshot.slice();
+        this._soloSnapshot = null;
+        this._soloId = null;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        const btn = $('solo-btn');
+        if (btn) btn.classList.remove('on');
+        return true;
       },
       render() {
         const el = $('layers'); el.innerHTML = '';
@@ -1716,6 +1769,40 @@
       if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') {
         const n = window.SWR.Layers.reset();
         setStatus('layers cleared · ' + n, 'ok');
+      }
+    });
+    // Solo button — pins the most recently added layer as the only entry
+    // in Layers.list, or restores the prior list if already solo'd. The
+    // matching Shift+S shortcut below calls the same logic.
+    const _soloBtn = document.getElementById('solo-btn');
+    const _soloClick = () => {
+      const L = window.SWR && window.SWR.Layers;
+      if (!L) return;
+      if (L._soloId) {
+        L.soloOff();
+        setStatus('solo off', 'ok');
+      } else {
+        const last = L.list[L.list.length - 1];
+        if (!last) { setStatus('add a layer first', 'err'); return; }
+        L.solo(last.id);
+        setStatus('solo · ' + last.id, 'ok');
+      }
+    };
+    if (_soloBtn) _soloBtn.addEventListener('click', _soloClick);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'S' && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        var t = e.target; var tag = t && t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+        const L = window.SWR && window.SWR.Layers;
+        if (!L) return;
+        if (L._soloId) {
+          L.soloOff();
+          setStatus('solo off', 'ok');
+        } else {
+          const last = L.list[L.list.length - 1];
+          if (last) { L.solo(last.id); setStatus('solo · ' + last.id, 'ok'); }
+        }
+        e.preventDefault();
       }
     });
     document.addEventListener('keydown', (e) => {
