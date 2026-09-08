@@ -142,7 +142,7 @@ is internal and may change.
 |----------|------|-------|
 | `SWR.Audio` | `A` object | Methods: `load(file)`, `play()`, `pause()`, `stop()`, `unlock()`. **Feeds `feat = { bass, mid, treble, beat, … }` every frame.** |
 | `SWR.Library` | `Lib` object | User uploads only — does **not** auto-fetch curated library/. Methods: `addFiles(files)`, `render()`, **`removeItem(id)`** (PR #23, revokes blob URL, drops layers), **`window.SWR_LIB` global** for test access. |
-| `SWR.Layers` | `{ list, add(layer), rm(id), reset(), cleanupForAsset(it), solo(id), soloOff(), swapAsset(direction), cover(id, value) }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset()` clears all layers and wipes the layer-state-store (PR #19). `solo(id)` pins one library video as the only entry in `Layers.list` while leaving the GLSL composer + audio reactivity running; `soloOff()` restores the prior list from an in-memory snapshot (PR #25). `swapAsset('next'|'prev')` cycles the topmost layer's `asset` through `Lib.items` (wraps modulo `Lib.items.length`); the layer's reactors, baseScale, hue, opacity, blend, alpha, brightness, contrast, and cover stay untouched — only the `asset` reference swaps (PR #27). `cover(id, value)` flips the per-layer `cover` boolean (PR #28): when `true`, drawLayer scales the asset uniformly to fill the entire stage edge-to-edge (CSS `object-fit: cover`); when `false` (default), the existing letterbox behaviour holds. |
+| `SWR.Layers` | `{ list, add(layer), rm(id), reset(opts), cleanupForAsset(it), solo(id), soloOff(), swapAsset(direction), cover(id, value) }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset(opts)` clears all layers and wipes the layer-state-store (PR #19); accepts `{ fadeMs }` to fade each layer to 0 before clearing (PR #32). `solo(id)` pins one library video as the only entry in `Layers.list` while leaving the GLSL composer + audio reactivity running; `soloOff()` restores the prior list from an in-memory snapshot (PR #25). `swapAsset('next'|'prev')` cycles the topmost layer's `asset` through `Lib.items` (wraps modulo `Lib.items.length`) via `SWR_TIMING.crossfade` (fadeOut → swap at midpoint → fadeIn, ~600ms total — PR #32); the layer's reactors, baseScale, hue, opacity, blend, alpha, brightness, contrast, and cover stay untouched — only the `asset` reference swaps (PR #27). `cover(id, value)` flips the per-layer `cover` boolean (PR #28): when `true`, drawLayer scales the asset uniformly to fill the entire stage edge-to-edge (CSS `object-fit: cover`); when `false` (default), the existing letterbox behaviour holds. |
 | `SWR.Recorder` | recorder | MediaRecorder wrapper. |
 | `SWR.Gradient` | `{ refresh(), setTrack(coords), setBeatPulse(0/1), setNeighbours([ids]), setAutomixAnchor(0..1) }` | Gradient canvas controls. PR #10 added `setTrack` + `setBeatPulse`; PR #13 added `setNeighbours`. |
 | `SWR.HologramState` | `{ depth, neighbours }` | Reactive to sliders + footer. |
@@ -454,9 +454,24 @@ unless marked `**Deferred**`.
   without name truncation). Pages without a thumbnail-based
   library (collage's panels, the 8 audio-only/showcase pages)
   are correctly skipped.
+- **PR #32 — smooth clip transitions + fade on layer clear.**
+  `Layers.swapAsset(direction)` now uses `SWR_TIMING.crossfade`
+  (fadeOut → swap at midpoint → fadeIn, ~600ms total) instead
+  of an instant cut. `Layers.reset(opts)` accepts `{ fadeMs }`
+  (default 0, instant); the Backspace key handler and the
+  `↺ Layers` footer button pass `{ fadeMs: 600 }` so layers
+  fade out smoothly before the list is cleared. Backward-
+  compatible — callers without options behave as before. 2 new
+  smoke assertions (58 total).
 
 ### Deferred
 
+- **Mirror the smooth-transitions fix to the other 13 version
+  pages with thumbnail libraries** (aurora, chrome, eclipse,
+  film, fractal, glitch, grid, hallucination, neon, pulse,
+  smoke, void, watercolor). Mechanical — same `swapAsset` /
+  `reset` shape on each. Punt to a follow-up via the
+  `scripts/mirror-library-remove.mjs` pattern.
 - **Undo for the layer reset.** Currently destructive — once you
   hit `Backspace`, the layers are gone (well, they're still in
   memory until reload). A 5-second undo window would be nice.
@@ -483,6 +498,7 @@ unless marked `**Deferred**`.
 - **PR #27** — `{` / `}` swap topmost layer's asset (Layers.swapAsset + keyboard binding)
 - **PR #28** — per-layer cover toggle (Layers.cover + per-layer checkbox + uniform-scale fill)
 - **PR #30** — mirror library × button to 13 version pages via `scripts/mirror-library-remove.mjs`
+- **PR #32** — smooth clip transitions + fade on layer clear (SWR_TIMING.crossfade + reset({fadeMs}))
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the per-layer cover toggle plan (now shipped as PR #28)
