@@ -8,7 +8,10 @@
 //      all 8 fx_state fields
 //   6. Pressing `A` toggles it back OFF and _fxOverride stays frozen
 //
-// Run command (after `npm run build`):
+// Self-contained: ensureDist() (from scripts/with-dist.mjs) auto-builds
+// dist/ if missing. No need to remember `npm run build` first.
+//
+// Run command:
 //   node scripts/check-automix-smoke.mjs
 //
 // Pass criteria: 6/6 assertions green, exit 0.
@@ -19,6 +22,10 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer';
+import { ensureDist } from './with-dist.mjs';
+
+// Auto-build dist/ if missing — no more "forgot to npm run build" 404s.
+ensureDist();
 
 // Static server for the built dist/
 const distDir = path.resolve(dirname(fileURLToPath(import.meta.url)), '../dist');
