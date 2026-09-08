@@ -276,6 +276,7 @@
 <script src="../client/automix.client.js"></script>
 <script src="../versions-presets.js"></script>
 <script src="../client/preset-cycle.client.js"></script>
+<script src="../client/preset-pick-store.client.js"></script>
 <script src="../client/last-mix-store.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -1399,6 +1400,11 @@
               if (window.VersionsPresets && window.VersionsPresets.setPresetOverride) {
                 window.VersionsPresets.setPresetOverride(targetId);
               }
+              // Persist manual pick + update the cycle cursor so a
+              // subsequent Tab press advances from the clicked preset
+              // (not from whatever was last cycled).
+              window.__swrCurrentPreset = targetId;
+              if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.save(targetId);
               // Clear the automix ring (user is taking manual control).
               _automixAnchor = null;
             });
@@ -1601,11 +1607,37 @@
       const ok = VP.setPresetOverride(id);
       if (ok !== false) {
         window.__swrCurrentPreset = id;
+        if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.save(id);
         if (G && G.setAutomixAnchor) G.setAutomixAnchor(id);
         setStatus('preset · ' + id, 'ok');
       }
       e.preventDefault();
     });
+    // Restore previous manual preset pick from localStorage and re-apply
+    // it. Done before the automix-state restore so the gradient anchor
+    // ring reflects the manual pick, not the (transient) automix highlight.
+    try {
+      const PICK = window.SWR_PRESET_PICK;
+      if (PICK) {
+        const id = PICK.load();
+        if (id) {
+          window.__swrCurrentPreset = id;
+          if (window.VersionsPresets && window.VersionsPresets.setPresetOverride) {
+            window.VersionsPresets.setPresetOverride(id);
+          }
+          // Apply the gradient anchor ring at boot so the user can see
+          // which preset they last picked.
+          // Defer one tick so the Gradient IIFE has time to set up
+          // setAutomixAnchor (it sits at the bottom of the page's main
+          // IIFE and may not be live yet if restore runs synchronously).
+          setTimeout(() => {
+            if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setAutomixAnchor) {
+              window.SWR.Gradient.setAutomixAnchor(id);
+            }
+          }, 0);
+        }
+      }
+    } catch (_) {}
     // Restore previous toggle state
     try {
       if (localStorage.getItem('swr.automix.enabled') === '1') automix.start();
