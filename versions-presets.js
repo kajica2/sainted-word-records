@@ -872,16 +872,32 @@
       gl.uniform1f(u.mid,       mid);
       gl.uniform1f(u.treble,    treble);
       gl.uniform1f(u.beat,      beat);
-      gl.uniform1f(u.temp,      tempOverride !== null ? tempOverride : preset.temp);
-      gl.uniform1f(u.mut,       preset.mut);
+      // Self-evolving automixer override (versions/music_video.html):
+      // when window.SWR._fxOverride is set, blend its 8 fx_state fields
+      // on top of the static page preset at 60/40 so the static `neon`
+      // look is still recognisable while the audio-reactive drift animates
+      // it. When the toggle is OFF, _fxOverride is null/undefined and this
+      // block is a no-op.
+      let _ovFx = (window.SWR && window.SWR._fxOverride) || null;
+      const _mixFx = _ovFx ? 0.4 : 0;
+      const _temp      = tempOverride !== null ? tempOverride : (_mixFx ? preset.temp      * (1 - _mixFx) + (_ovFx.temp      || 0) * _mixFx : preset.temp);
+      const _mut       = _mixFx ? preset.mut       * (1 - _mixFx) + (_ovFx.mut       || 0) * _mixFx : preset.mut;
+      const _chroma    = _mixFx ? preset.chroma    * (1 - _mixFx) + (_ovFx.chroma    || 0) * _mixFx : preset.chroma;
+      const _grain     = _mixFx ? preset.grain     * (1 - _mixFx) + (_ovFx.grain     || 0) * _mixFx : preset.grain;
+      const _sepia     = _mixFx ? preset.sepia     * (1 - _mixFx) + (_ovFx.sepia     || 0) * _mixFx : preset.sepia;
+      const _glow      = _mixFx ? preset.glow      * (1 - _mixFx) + (_ovFx.glow      || 0) * _mixFx : preset.glow;
+      const _grayscale = _mixFx ? preset.grayscale * (1 - _mixFx) + (_ovFx.grayscale || 0) * _mixFx : preset.grayscale;
+      const _posterize = _mixFx ? preset.posterize * (1 - _mixFx) + (_ovFx.posterize || 0) * _mixFx : preset.posterize;
+      gl.uniform1f(u.temp,      _temp);
+      gl.uniform1f(u.mut,       _mut);
       gl.uniform1f(u.mutAlgo,   preset.mutAlgo);
-      gl.uniform1f(u.posterize, preset.posterize);
+      gl.uniform1f(u.posterize, _posterize);
       gl.uniform1f(u.vignette,  preset.vignette);
-      gl.uniform1f(u.chroma,    preset.chroma);
-      gl.uniform1f(u.grain,     preset.grain);
-      gl.uniform1f(u.sepia,     preset.sepia);
-      gl.uniform1f(u.glow,      preset.glow);
-      gl.uniform1f(u.grayscale, preset.grayscale);
+      gl.uniform1f(u.chroma,    _chroma);
+      gl.uniform1f(u.grain,     _grain);
+      gl.uniform1f(u.sepia,     _sepia);
+      gl.uniform1f(u.glow,      _glow);
+      gl.uniform1f(u.grayscale, _grayscale);
       gl.uniform1f(u.blur,      preset.blur);
       gl.uniform1f(u.effect,    preset.effect);
       gl.uniform1i(u.page,      pageIdx);

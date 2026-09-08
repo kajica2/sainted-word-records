@@ -272,6 +272,7 @@
 <script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
+<script src="../client/automix.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
 <script src="../engine-lfos.client.js"></script>
@@ -368,6 +369,7 @@
       <span class="gc">decay <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.85" /> <b id="decay-v">0.85</b></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">depth <input type="range" id="depth" min="0" max="1" step="0.05" value="0.5" /> <b id="depth-v">0.50</b></span>
       <span class="gc">N <input type="range" id="neighbour-count" min="1" max="8" step="1" value="4" /> <b id="neighbour-count-v">4</b></span>
+      <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
     </footer>
@@ -1271,6 +1273,72 @@
     })();
 
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
+
+    // ---- Self-evolving automixer toggle ----------------------------------
+    // Listens for clicks on the footer toggle + the `A` keyboard shortcut
+    // (when the page is focused and no input has focus). When ON, every
+    // 2000ms reads the live audio features, synthesizes a blended fx_state
+    // via SWR_AUTOMIX.mix(), and writes the result to window.SWR._fxOverride.
+    // The GLSL render loop (Task 4) reads _fxOverride each frame and blends
+    // it on top of the static `neon` page preset.
+    const automix = {
+      iv: null,
+      enabled: false,
+      toggle() {
+        if (this.enabled) this.stop(); else this.start();
+      },
+      start() {
+        if (this.enabled || !window.SWR_AUTOMIX) return;
+        this.enabled = true;
+        const lab = document.getElementById('automix-state');
+        if (lab) { lab.textContent = 'ON'; lab.style.color = 'var(--g)'; }
+        try { localStorage.setItem('swr.automix.enabled', '1'); } catch (_) {}
+        this.tick();
+        this.iv = setInterval(() => this.tick(), 2000);
+      },
+      stop() {
+        if (!this.enabled) return;
+        this.enabled = false;
+        const lab = document.getElementById('automix-state');
+        if (lab) { lab.textContent = 'OFF'; lab.style.color = 'var(--m)'; }
+        try { localStorage.setItem('swr.automix.enabled', '0'); } catch (_) {}
+        if (this.iv) { clearInterval(this.iv); this.iv = null; }
+        // Freeze the last blended state — do NOT clear _fxOverride.
+      },
+      tick() {
+        const SWR = window.SWR; if (!SWR || !SWR.Audio) return;
+        // The audio engine exposes features at SWR.Audio.feat (bass, mid,
+        // treble, beat). Plan-scaffolded reader used SWR.Audio.bands;
+        // adapt to the actual schema so the tick survives without an
+        // audio track loaded (mid/treble default to 0 → anchors[n] chosen
+        // near {warmth:0.5,intensity:0.5}).
+        const feat = SWR.Audio.feat || {};
+        const bands = { bass: feat.bass || 0, mid: feat.mid || 0, treb: feat.treble || 0 };
+        const n = (window.HologramState && window.HologramState.neighbours) || 4;
+        const mixed = window.SWR_AUTOMIX.mix(bands, n);
+        if (mixed && mixed.preset) {
+          SWR._fxOverride = mixed.preset;
+          // Reflect current anchor + coords in the gradient panel header for
+          // visibility — user sees the toggle is doing something.
+          const pill = document.getElementById('synth-pill');
+          if (pill && mixed.anchors[0]) pill.textContent = 'auto · ' + mixed.anchors[0].id;
+        }
+      },
+    };
+    const _toggleBtn = document.getElementById('automix-toggle');
+    if (_toggleBtn) _toggleBtn.addEventListener('click', () => automix.toggle());
+    document.addEventListener('keydown', (e) => {
+      if (e.key && e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        var t = e.target; var tag = t && t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+        automix.toggle();
+        e.preventDefault();
+      }
+    });
+    // Restore previous toggle state
+    try {
+      if (localStorage.getItem('swr.automix.enabled') === '1') automix.start();
+    } catch (_) {}
   })();
   </script>
 <script src="../versions-presets.js"></script>
