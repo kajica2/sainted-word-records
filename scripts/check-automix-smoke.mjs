@@ -390,6 +390,66 @@ const modifierBackspace = await page.evaluate(() => {
 if (modifierBackspace === 1) ok('Cmd+Backspace is NOT intercepted (browser nav preserved)');
 else bad('Cmd+Backspace is NOT intercepted (browser nav preserved)', 'list=' + modifierBackspace);
 
+// 29. SWR_PRESET_CYCLE loads and exposes next/prev/first.
+const cycShape = await page.evaluate(() => {
+  const c = window.SWR_PRESET_CYCLE;
+  return { has: !!c, hasNext: !!(c && typeof c.next === 'function'), hasPrev: !!(c && typeof c.prev === 'function'), first: c && c.first(), last: c && c.last() };
+});
+if (cycShape.has && cycShape.hasNext && cycShape.hasPrev && cycShape.first === 'pulse' && cycShape.last === 'void') ok('SWR_PRESET_CYCLE loaded with 9 SHORTCUT_PRESETS (pulse..void)');
+else bad('SWR_PRESET_CYCLE loaded', JSON.stringify(cycShape));
+
+// 30. Tab cycles forward through SHORTCUT_PRESETS.
+const tabCycle = await page.evaluate(() => {
+  window.__swrCurrentPreset = null;
+  const seen = [];
+  for (let i = 0; i < 10; i++) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })); seen.push(window.__swrCurrentPreset); }
+  return seen;
+});
+const expected = ['pulse', 'neon', 'grid', 'eclipse', 'smoke', 'aurora', 'film', 'glitch', 'void', 'pulse'];
+if (JSON.stringify(tabCycle) === JSON.stringify(expected)) ok('Tab cycles forward through 9 presets + wraps');
+else bad('Tab cycles forward through 9 presets + wraps', JSON.stringify(tabCycle));
+
+// 31. Shift+Tab cycles backward.
+const shiftTabCycle = await page.evaluate(() => {
+  window.__swrCurrentPreset = null;
+  const seen = [];
+  for (let i = 0; i < 3; i++) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })); seen.push(window.__swrCurrentPreset); }
+  return seen;
+});
+const expectedBack = ['void', 'glitch', 'film'];
+if (JSON.stringify(shiftTabCycle) === JSON.stringify(expectedBack)) ok('Shift+Tab cycles backward + wraps');
+else bad('Shift+Tab cycles backward + wraps', JSON.stringify(shiftTabCycle));
+
+// 32. Tab in an input is ignored.
+const tabInInput = await page.evaluate(() => {
+  window.__swrCurrentPreset = null;
+  const slider = document.getElementById('depth');
+  slider.focus();
+  slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+  return window.__swrCurrentPreset;
+});
+if (tabInInput === null) ok('Tab in an input does NOT cycle (focus guard works)');
+else bad('Tab in an input does NOT cycle (focus guard works)', 'preset=' + tabInInput);
+
+// 33. Cmd+Tab is ignored.
+const cmdTab = await page.evaluate(() => {
+  window.__swrCurrentPreset = null;
+  document.activeElement.blur();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', metaKey: true, bubbles: true }));
+  return window.__swrCurrentPreset;
+});
+if (cmdTab === null) ok('Cmd+Tab is NOT intercepted (system app-switch preserved)');
+else bad('Cmd+Tab is NOT intercepted (system app-switch preserved)', 'preset=' + cmdTab);
+
+// 34. Cycling updates the gradient panel anchor ring.
+const ringUpdate = await page.evaluate(() => {
+  window.__swrCurrentPreset = null;
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+  return window.SWR_GRADIENT._state().automixAnchor;
+});
+if (ringUpdate === 'pulse') ok('Tab updates gradient anchor ring (setAutomixAnchor fires)');
+else bad('Tab updates gradient anchor ring', JSON.stringify(ringUpdate));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();

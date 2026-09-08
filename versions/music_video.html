@@ -274,6 +274,8 @@
   <script src="../client/preset-anchor-map.client.js"></script>
 <script src="../client/anchor-embed.js"></script>
 <script src="../client/automix.client.js"></script>
+<script src="../versions-presets.js"></script>
+<script src="../client/preset-cycle.client.js"></script>
 <script src="../client/last-mix-store.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -1581,6 +1583,28 @@
         setStatus('layers cleared · ' + n, 'ok');
         e.preventDefault();
       }
+    });
+    // ---- Preset cycle (Tab / Shift+Tab) -----------------------------------
+    // Plain Tab cycles forward through SHORTCUT_PRESETS; Shift+Tab cycles
+    // backward. Each press applies the preset and highlights its anchor.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      const cyc = window.SWR_PRESET_CYCLE;
+      const VP = window.VersionsPresets;
+      const G = window.SWR && window.SWR.Gradient;
+      if (!cyc || !VP || !VP.setPresetOverride) return;
+      const prev = window.__swrCurrentPreset || null;
+      const id = e.shiftKey ? cyc.prev(prev) : cyc.next(prev);
+      const ok = VP.setPresetOverride(id);
+      if (ok !== false) {
+        window.__swrCurrentPreset = id;
+        if (G && G.setAutomixAnchor) G.setAutomixAnchor(id);
+        setStatus('preset · ' + id, 'ok');
+      }
+      e.preventDefault();
     });
     // Restore previous toggle state
     try {
