@@ -142,7 +142,7 @@ is internal and may change.
 |----------|------|-------|
 | `SWR.Audio` | `A` object | Methods: `load(file)`, `play()`, `pause()`, `stop()`, `unlock()`. **Feeds `feat = { bass, mid, treble, beat, … }` every frame.** |
 | `SWR.Library` | `Lib` object | User uploads only — does **not** auto-fetch curated library/. Methods: `addFiles(files)`, `render()`, **`removeItem(id)`** (PR #23, revokes blob URL, drops layers), **`window.SWR_LIB` global** for test access. |
-| `SWR.Layers` | `{ list, add(layer), rm(id), reset(), cleanupForAsset(it), solo(id), soloOff(), **swapAsset(direction)** }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset()` clears all layers and wipes the layer-state-store (PR #19). `solo(id)` pins one library video as the only entry in `Layers.list` while leaving the GLSL composer + audio reactivity running; `soloOff()` restores the prior list from an in-memory snapshot (PR #25). `swapAsset('next'|'prev')` cycles the topmost layer's `asset` through `Lib.items` (wraps modulo `Lib.items.length`); the layer's reactors, baseScale, hue, opacity, blend, alpha, brightness, contrast, and cover stay untouched — only the `asset` reference swaps (PR #26). |
+| `SWR.Layers` | `{ list, add(layer), rm(id), reset(), cleanupForAsset(it), solo(id), soloOff(), **swapAsset(direction)** }` | Per-layer reactors (mutate, alpha, etc.). `Layers.reset()` clears all layers and wipes the layer-state-store (PR #19). `solo(id)` pins one library video as the only entry in `Layers.list` while leaving the GLSL composer + audio reactivity running; `soloOff()` restores the prior list from an in-memory snapshot (PR #25). `swapAsset('next'|'prev')` cycles the topmost layer's `asset` through `Lib.items` (wraps modulo `Lib.items.length`); the layer's reactors, baseScale, hue, opacity, blend, alpha, brightness, contrast, and cover stay untouched — only the `asset` reference swaps (PR #27). |
 | `SWR.Recorder` | recorder | MediaRecorder wrapper. |
 | `SWR.Gradient` | `{ refresh(), setTrack(coords), setBeatPulse(0/1), setNeighbours([ids]), setAutomixAnchor(0..1) }` | Gradient canvas controls. PR #10 added `setTrack` + `setBeatPulse`; PR #13 added `setNeighbours`. |
 | `SWR.HologramState` | `{ depth, neighbours }` | Reactive to sliders + footer. |
@@ -207,7 +207,7 @@ at boot (music_video.html:1243); no live callers — see Phase B/C/D (§9).
 | `Tab` / `Shift+Tab` | Cycle presets forward / backward through `SHORTCUT_PRESETS` (9-item list). Skipped when focus is in `<input>` / `<textarea>` / `contenteditable` and when modifier keys are held. | PR #17 |
 | `Backspace` | `Layers.reset()` — clears all layers + wipes the layer-state-store. Skipped when focus is in an input / textarea / contenteditable, and when `metaKey` / `ctrlKey` / `altKey` is held (preserves browser back-nav). | PR #15 |
 | `Shift+S` | Solo toggle — pins the most-recently-added layer as the only entry in `Layers.list` (calls `Layers.solo(last.id)`); press again to restore the prior list (`Layers.soloOff()`). Skipped when focus is in an input / textarea / contenteditable. | PR #25 |
-| `{` / `}` | Swap the topmost layer's asset to the previous / next `Lib.items` entry (calls `Layers.swapAsset('prev'|'next')`); wraps modulo `Lib.items.length`. The layer's reactors + sliders stay untouched — only the `asset` swaps. Skipped when focus is in an input / textarea / contenteditable, and when `metaKey` / `ctrlKey` / `altKey` is held (so `Cmd+{` doesn't collide with macOS app shortcuts). | PR #26 |
+| `{` / `}` | Swap the topmost layer's asset to the previous / next `Lib.items` entry (calls `Layers.swapAsset('prev'|'next')`); wraps modulo `Lib.items.length`. The layer's reactors + sliders stay untouched — only the `asset` swaps. Skipped when focus is in an input / textarea / contenteditable, and when `metaKey` / `ctrlKey` / `altKey` is held (so `Cmd+{` doesn't collide with macOS app shortcuts). | PR #27 |
 | `M` | Mutate (engine global) | engine-keys.client.js |
 | `E` | Evolve (engine global) | engine-keys.client.js |
 | `R` | Randomize (engine global) | engine-keys.client.js |
@@ -410,7 +410,7 @@ unless marked `**Deferred**`.
   target. Switching solo to a different layer keeps the *original*
   snapshot intact (no layer loss on bounces). Plan:
   `.hermes/plans/2026-09-08_181000-solo-layer-toggle.md`.
-- **PR #26 — `{` / `}` swap topmost layer's asset.**
+- **PR #27 — `{` / `}` swap topmost layer's asset.**
   `Layers.swapAsset('next' | 'prev')` cycles the topmost layer's
   `asset` reference through `Lib.items`, wrapping modulo
   `Lib.items.length`. The layer's reactors, baseScale, hue, opacity,
@@ -470,7 +470,7 @@ unless marked `**Deferred**`.
 - **PR #22** — `docs/ARCHITECTURE.md` (engineer-facing system map)
 - **PR #23** — library × button
 - **PR #25** — Solo layer toggle (Layers.solo / soloOff + Shift+S shortcut)
-- **PR #26** — `{` / `}` swap topmost layer's asset (Layers.swapAsset + keyboard binding)
+- **PR #27** — `{` / `}` swap topmost layer's asset (Layers.swapAsset + keyboard binding)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the deferred `cover` toggle plan
