@@ -1520,7 +1520,7 @@
         // audio track loaded (mid/treble default to 0 → anchors[n] chosen
         // near {warmth:0.5,intensity:0.5}).
         const feat = SWR.Audio.feat || {};
-        const bands = { bass: feat.bass || 0, mid: feat.mid || 0, treb: feat.treble || 0 };
+        const bands = { bass: feat.bass || 0, mid: feat.mid || 0, treb: feat.treble || 0, beat: typeof feat.beat === 'number' ? feat.beat : 0 };
         const n = (window.HologramState && window.HologramState.neighbours) || 4;
         const mixed = window.SWR_AUTOMIX.mix(bands, n);
         if (mixed && mixed.preset) {
