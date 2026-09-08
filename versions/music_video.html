@@ -277,6 +277,7 @@
 <script src="../versions-presets.js"></script>
 <script src="../client/preset-cycle.client.js"></script>
 <script src="../client/preset-pick-store.client.js"></script>
+<script src="../client/layer-state-store.client.js"></script>
 <script src="../client/last-mix-store.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -707,20 +708,27 @@
         ];
         const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
           opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
-        this.list.push(l); this.render(); this.sel = l; },
-      rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
+        this.list.push(l); this.render(); this.sel = l; this._persist(); },
+      rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); this._persist(); },
       // Clear all layers without touching library assets, IDB song, or
       // any other engine state. Cheap: replace the list, drop selection,
       // re-render, invalidate the WebGL render cache so the next frame
       // doesn't paint ghosts of the dropped layers. Returns the count
-      // cleared (useful for status-bar feedback).
+      // cleared (useful for status-bar feedback). Also clears the
+      // persisted snapshot so a reload really does start from scratch.
       reset() {
         const n = this.list.length;
         this.list.length = 0;
         this.sel = null;
         this.render();
         try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
         return n;
+      },
+      // Internal: persist the current list (assets stripped, debounced).
+      // Called by add/rm/reset and the slider input handlers in render().
+      _persist() {
+        if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.save(this.list);
       },
       render() {
         const el = $('layers'); el.innerHTML = '';
@@ -736,14 +744,14 @@
           const ins = d.querySelectorAll('input[type=range]');
           ins[0].value = l.opacity; ins[1].value = l.baseScale; ins[2].value = l.hue;
           ins[3].value = l.contrast; ins[4].value = l.brightness; ins[5].value = l.alpha; ins[6].value = l.mutate;
-          d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
-          ins[0].addEventListener('input', e => l.opacity = +e.target.value);
-          ins[1].addEventListener('input', e => l.baseScale = +e.target.value);
-          ins[2].addEventListener('input', e => l.hue = +e.target.value);
-          ins[3].addEventListener('input', e => l.contrast = +e.target.value);
-          ins[4].addEventListener('input', e => l.brightness = +e.target.value);
-          ins[5].addEventListener('input', e => l.alpha = +e.target.value);
-          ins[6].addEventListener('input', e => l.mutate = +e.target.value);
+          d.querySelector('select').addEventListener('change', e => { l.blend = e.target.value; this._persist(); });
+          ins[0].addEventListener('input', e => { l.opacity = +e.target.value; this._persist(); });
+          ins[1].addEventListener('input', e => { l.baseScale = +e.target.value; this._persist(); });
+          ins[2].addEventListener('input', e => { l.hue = +e.target.value; this._persist(); });
+          ins[3].addEventListener('input', e => { l.contrast = +e.target.value; this._persist(); });
+          ins[4].addEventListener('input', e => { l.brightness = +e.target.value; this._persist(); });
+          ins[5].addEventListener('input', e => { l.alpha = +e.target.value; this._persist(); });
+          ins[6].addEventListener('input', e => { l.mutate = +e.target.value; this._persist(); });
           d.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
           el.appendChild(d);
         }
@@ -1481,6 +1489,29 @@
     })();
 
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
+
+    // ---- Restore persisted layer state ---------------------------------
+    // Load the previous Layers.list from localStorage (asset references
+    // are stripped on save — they're Blob URLs that don't survive a
+    // reload). On restore, layers come back with their settings but
+    // asset: null; the user re-uploads via the + button to slot
+    // assets back in. Until then, the layer exists in the engine
+    // state but renders as an inert placeholder (its `reactors` are
+    // still wired so toggling automix affects it).
+    try {
+      if (window.SWR_LAYER_STATE) {
+        const saved = window.SWR_LAYER_STATE.load();
+        if (saved && saved.length) {
+          // Push saved layers into the existing list. The render()
+          // call updates the (hidden) layer panel. Invalidates the
+          // WebGL render cache so the new layers show up next frame.
+          for (let i = 0; i < saved.length; i++) Layers.list.push(saved[i]);
+          Layers.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+          setStatus('restored ' + saved.length + ' layer' + (saved.length === 1 ? '' : 's'), 'ok');
+        }
+      }
+    } catch (_) {}
 
     // ---- Self-evolving automixer toggle ----------------------------------
     // Listens for clicks on the footer toggle + the `A` keyboard shortcut
