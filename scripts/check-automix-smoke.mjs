@@ -1149,6 +1149,68 @@ if (variantShape.swrPresent && variantShape.layersPresent && variantShape.layers
   ok('variant page (neon) lacks swapAsset + reset(opts) — F-patch correctly no-ops, SWR_TIMING loaded for future use');
 else bad('variant page F-patch skip shape', JSON.stringify(variantShape));
 
+// 60. SWR_FIT.toggle() flips the canvas's object-fit between contain
+//     (off, default) and cover (on). Verifies the SWR_FIT global,
+//     the body[data-fit] attribute, and that the CSS rule is present
+//     in a stylesheet (the selector that flips object-fit).
+//     Run on music_video.html — SWR_FIT lives there, not on neon.
+await page.goto('http://localhost:5181/versions/music_video.html', { waitUntil: 'networkidle0', timeout: 30000 });
+const fitShape = await page.evaluate(() => {
+  if (!window.SWR_FIT) return { ok: false, reason: 'no SWR_FIT' };
+  const initial = window.SWR_FIT.isOn;
+  const on1 = window.SWR_FIT.toggle();
+  const attr1 = document.body.getAttribute('data-fit');
+  const on2 = window.SWR_FIT.toggle();  // toggle back off
+  const attr2 = document.body.getAttribute('data-fit');
+  // Restore to initial state.
+  if (window.SWR_FIT.enabled !== initial) window.SWR_FIT.toggle();
+  return {
+    initial,
+    on1,
+    attr1,
+    on2,
+    attr2,
+    // Verify the CSS rule exists in the document.
+    cssHasRule: Array.from(document.styleSheets).some(sheet => {
+      try {
+        return Array.from(sheet.cssRules || []).some(rule =>
+          rule.cssText && rule.cssText.includes('object-fit: cover') &&
+          rule.cssText.includes('data-fit')
+        );
+      } catch (_) { return false; }
+    }),
+  };
+});
+if (fitShape.on1 === true && fitShape.attr1 === 'on'
+    && fitShape.on2 === false && fitShape.attr2 === 'off'
+    && fitShape.cssHasRule)
+  ok('SWR_FIT.toggle() flips data-fit attribute + CSS rule is in stylesheet');
+else bad('SWR_FIT toggle', JSON.stringify(fitShape));
+
+// 61. KeyboardEvent for 'F' (no shift) triggers SWR_FIT.toggle().
+//     Dispatches a synthetic keydown on document (same target the
+//     listener is attached to). Restores state by dispatching a
+//     second F keydown to flip back.
+const fitKeyShape = await page.evaluate(async () => {
+  if (!window.SWR_FIT) return { ok: false, reason: 'no SWR_FIT' };
+  const before = window.SWR_FIT.isOn;
+  // Dispatch a synthetic F keydown.
+  document.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'F', bubbles: true, cancelable: true
+  }));
+  await new Promise(r => setTimeout(r, 50));
+  const after = window.SWR_FIT.isOn;
+  // Dispatch again to restore.
+  document.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'F', bubbles: true, cancelable: true
+  }));
+  await new Promise(r => setTimeout(r, 50));
+  return { before, after };
+});
+if (fitKeyShape.before === false && fitKeyShape.after === true)
+  ok('KeyboardEvent for F (no shift) triggers SWR_FIT.toggle');
+else bad('F key binding', JSON.stringify(fitKeyShape));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();

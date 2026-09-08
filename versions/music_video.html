@@ -43,6 +43,7 @@
     .tbtn.primary { background: var(--m); color: #000; border-color: var(--m); font-weight: 700; }
     .tbtn.primary:hover { background: var(--c); border-color: var(--c); }
     #solo-btn.on { border-color: var(--m); color: var(--m); font-weight: 700; }
+    #fit-btn.on { border-color: var(--m); color: var(--m); font-weight: 700; }
     .spacer { flex: 1; }
     .meter { width: 160px; height: 16px; background: #0a0612; border: 1px solid var(--line); border-radius: 3px; display: block; }
     aside.lib, aside.layers { background: var(--panel); overflow-y: auto; }
@@ -82,6 +83,8 @@
     .l .react { font-size: 8px; color: var(--c); letter-spacing: 0.04em; margin-top: 3px; }
     section.stage { position: relative; background: #000; }
     canvas { display: block; width: 100%; height: 100%; }
+    body[data-fit="on"] #render,
+    body[data-fit="on"] canvas { object-fit: cover; }
     #flash { position: absolute; inset: 0; pointer-events: none;
       background: radial-gradient(circle at center, rgba(255,45,138,0.5), transparent 60%);
       opacity: 0; mix-blend-mode: screen; }
@@ -385,6 +388,7 @@
       <span class="gc">N <input type="range" id="neighbour-count" min="1" max="8" step="1" value="4" /> <b id="neighbour-count-v">4</b></span>
       <span class="gc"><button class="tbtn" id="reset-layers" title="Clear all layers (Backspace)" style="padding:3px 8px;font-size:9px;">↺ Layers</button></span>
       <span class="gc"><button class="tbtn" id="solo-btn" title="Solo one layer (Shift+S)" style="padding:3px 8px;font-size:9px;">Solo</button></span>
+      <span class="gc"><button class="tbtn" id="fit-btn" title="Fit to screen (F)" style="padding:3px 8px;font-size:9px;">Fit</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -1808,6 +1812,28 @@
 
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
 
+    // ---- Canvas-level "fit to screen" toggle ----------------------------
+    // Flips the #render canvas's CSS object-fit between the browser
+    // default (fill — stretches the bitmap) and cover (fills the
+    // section edge-to-edge, crops overflow). Exposed as window.SWR_FIT
+    // for smoke testing. Default off matches today's behavior; the
+    // body[data-fit='on'] selector is the CSS hook (see <style>).
+    function refreshFitBtn() {
+      const btn = $('fit-btn');
+      if (!btn) return;
+      btn.classList.toggle('on', !!(window.SWR_FIT && window.SWR_FIT.isOn));
+    }
+    window.SWR_FIT = {
+      enabled: false,
+      toggle(value) {
+        this.enabled = (typeof value === 'boolean') ? value : !this.enabled;
+        document.body.setAttribute('data-fit', this.enabled ? 'on' : 'off');
+        refreshFitBtn();
+        return this.enabled;
+      },
+      get isOn() { return this.enabled; },
+    };
+
     // ---- Restore persisted layer state ---------------------------------
     // Load the previous Layers.list from localStorage (asset references
     // are stripped on save — they're Blob URLs that don't survive a
@@ -1931,6 +1957,17 @@
       }
     };
     if (_soloBtn) _soloBtn.addEventListener('click', _soloClick);
+    // Fit button — toggles SWR_FIT (CSS object-fit: cover on the canvas).
+    // The matching F (no-shift) keyboard shortcut lives further down in
+    // its own keydown listener so the guards stay grouped with their
+    // sibling shortcuts.
+    const _fitBtn = document.getElementById('fit-btn');
+    if (_fitBtn) _fitBtn.addEventListener('click', () => {
+      if (window.SWR_FIT) {
+        const on = window.SWR_FIT.toggle();
+        setStatus(on ? 'fit on' : 'fit off', 'ok');
+      }
+    });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'S' && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
         var t = e.target; var tag = t && t.tagName;
@@ -1970,6 +2007,23 @@
         const n = window.SWR.Layers.reset({ fadeMs: 600 });
         // Tiny status-bar confirmation so the user knows the shortcut fired.
         setStatus('layers cleared · ' + n, 'ok');
+        e.preventDefault();
+      }
+    });
+    // ---- F (no shift) fit-to-screen shortcut ----------------------------
+    // Plain `F` flips SWR_FIT (CSS object-fit: cover). `Shift+F` is
+    // already wired to browser fullscreen via engine-layout.client.js
+    // and is intentionally left alone here. Modifier + focus guards
+    // mirror the Reset / Solo handlers so typing in inputs and
+    // Cmd+F / Ctrl+F (browser find) never trigger.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'F') return;
+      if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (window.SWR_FIT) {
+        const on = window.SWR_FIT.toggle();
+        setStatus(on ? 'fit on' : 'fit off', 'ok');
         e.preventDefault();
       }
     });
