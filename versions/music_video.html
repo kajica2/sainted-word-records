@@ -888,7 +888,13 @@
           v.crossOrigin = 'anonymous';  // hint for CORS-friendly CDNs
           v.addEventListener('canplay', () => {
             a._ready = true;
-            try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+            // Invalidate the engine's render cache. Without this, the
+            // first frame's empty offscreen (cached because the video
+            // wasn't ready yet) is blitted on every subsequent frame
+            // and drawToCtx is never called again — the user sees a
+            // permanent black layer even after the video loads.
+            try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(l.id); } catch (_) {}
+            try { setStatus('video ready · ' + (a.name || ''), 'ok'); } catch (_) {}
           });
           v.addEventListener('error', () => {
             const code = v.error ? v.error.code : 0;
@@ -901,6 +907,16 @@
             a._ready = false;
             a._errored = true;
           });
+          // Stalled / indefinite-loading fallback. If the video hasn't
+          // become playable after STALL_TIMEOUT_MS with no error, the
+          // user is staring at a black canvas with zero feedback. Fire
+          // a status message so they know to investigate (or check
+          // their network).
+          const STALL_TIMEOUT_MS = 5000;
+          setTimeout(() => {
+            if (a._ready || a._errored) return;
+            try { setStatus('video still loading (' + (a.name || '') + ') — check network or codec', 'err'); } catch (_) {}
+          }, STALL_TIMEOUT_MS);
           a._el = v;
         }
         src = a._el;
