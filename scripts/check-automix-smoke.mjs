@@ -450,6 +450,69 @@ const ringUpdate = await page.evaluate(() => {
 if (ringUpdate === 'pulse') ok('Tab updates gradient anchor ring (setAutomixAnchor fires)');
 else bad('Tab updates gradient anchor ring', JSON.stringify(ringUpdate));
 
+// 35. Manual pick persists: Tab → localStorage has the id.
+const tabPersists = await page.evaluate(() => {
+  if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.clear();
+  window.__swrCurrentPreset = null;
+  const ev = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true });
+  document.dispatchEvent(ev);
+  return {
+    current: window.__swrCurrentPreset,
+    stored: window.SWR_PRESET_PICK && window.SWR_PRESET_PICK.load(),
+  };
+});
+if (tabPersists.current === 'void' && tabPersists.stored === 'void')
+  ok('Tab/Shift+Tab persists to localStorage via SWR_PRESET_PICK');
+else bad('Tab/Shift+Tab persists to localStorage', JSON.stringify(tabPersists));
+
+// 36. Reload-style restore: clear in-memory state, then load() re-applies.
+const reloadRestore = await page.evaluate(() => {
+  if (!window.SWR_PRESET_PICK) return { ok: false, reason: 'no SWR_PRESET_PICK' };
+  window.__swrCurrentPreset = null;
+  if (window.SWR_GRADIENT && window.SWR_GRADIENT.setAutomixAnchor) {
+    window.SWR_GRADIENT.setAutomixAnchor(null);
+  }
+  const id = window.SWR_PRESET_PICK.load();
+  if (!id) return { ok: false, reason: 'load returned null' };
+  if (window.VersionsPresets && window.VersionsPresets.setPresetOverride) {
+    window.VersionsPresets.setPresetOverride(id);
+  }
+  window.__swrCurrentPreset = id;
+  return { ok: true, id };
+});
+if (reloadRestore.ok && reloadRestore.id === 'void')
+  ok('Reload-style restore: load() returns the persisted id and re-applies it');
+else bad('Reload-style restore', JSON.stringify(reloadRestore));
+
+// 37. Click on a neighbour list entry also persists.
+const clickPersists = await page.evaluate(() => {
+  if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.clear();
+  window.__swrCurrentPreset = null;
+  window.SWR_GRADIENT.setNeighbours(2, { warmth: 0.5, intensity: 0.5 });
+  const btn = document.querySelector('#neighbours-list .neigh');
+  const id = btn.getAttribute('data-id');
+  btn.click();
+  return {
+    clicked: id,
+    stored: window.SWR_PRESET_PICK && window.SWR_PRESET_PICK.load(),
+    current: window.__swrCurrentPreset,
+  };
+});
+if (clickPersists.clicked && clickPersists.stored === clickPersists.clicked
+    && clickPersists.current === clickPersists.clicked)
+  ok('neighbour click persists + updates __swrCurrentPreset');
+else bad('neighbour click persists', JSON.stringify(clickPersists));
+
+// 38. clear() removes the persisted record.
+const clearWorks = await page.evaluate(() => {
+  if (!window.SWR_PRESET_PICK) return false;
+  window.SWR_PRESET_PICK.save('neon');
+  window.SWR_PRESET_PICK.clear();
+  return window.SWR_PRESET_PICK.load() === null;
+});
+if (clearWorks) ok('SWR_PRESET_PICK.clear() removes the persisted record');
+else bad('SWR_PRESET_PICK.clear() removes the persisted record', 'load() did not return null');
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
@@ -460,6 +523,7 @@ await page.evaluate(() => {
   }
   if (window.SWR) window.SWR._fxOverride = null;
   if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
+  if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.clear();
 });
 
 await browser.close();
