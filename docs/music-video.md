@@ -199,6 +199,26 @@ first-visit overlay on next reload.
 `{ refresh() }`. Forces a redraw of `#gradient` canvas. Currently called once
 at boot (music_video.html:1243); no live callers — see Phase B/C/D (§9).
 
+### `window.SWR_FIT` — `versions/music_video.html` (IIFE side-effect)
+
+Exposes a `Fit` toggle that flips the `#render` canvas's CSS
+`object-fit` between `fill` (default, browser default — backing-store
+pixels stretched to the CSS box) and `cover` (PR #36). When `cover`
+is on, the canvas content fills the section edge-to-edge and crops
+overflow. Same semantics as the per-layer `cover` flag (PR #28) but
+at the canvas level. Default off.
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `toggle(value?)` | `boolean` | Flips `enabled` (or sets to `value` if passed). Updates `body[data-fit]` and `refreshFitBtn()`. |
+| `isOn` (getter) | `boolean` | The current state. |
+| `enabled` | `boolean` | The current state (mutable directly). |
+
+Body has a `data-fit="on"` attribute when the toggle is on; CSS rules
+of the form `body[data-fit="on"] canvas { object-fit: cover; }`
+apply. Footer has a `Fit` button; keyboard `F` (no shift) toggles.
+Shift+F remains the existing browser-fullscreen shortcut.
+
 ## 4. Keyboard map
 
 | Key | Action | Source |
@@ -208,6 +228,7 @@ at boot (music_video.html:1243); no live callers — see Phase B/C/D (§9).
 | `Backspace` | `Layers.reset()` — clears all layers + wipes the layer-state-store. Skipped when focus is in an input / textarea / contenteditable, and when `metaKey` / `ctrlKey` / `altKey` is held (preserves browser back-nav). | PR #15 |
 | `Shift+S` | Solo toggle — pins the most-recently-added layer as the only entry in `Layers.list` (calls `Layers.solo(last.id)`); press again to restore the prior list (`Layers.soloOff()`). Skipped when focus is in an input / textarea / contenteditable. | PR #25 |
 | `{` / `}` | Swap the topmost layer's asset to the previous / next `Lib.items` entry (calls `Layers.swapAsset('prev'|'next')`); wraps modulo `Lib.items.length`. The layer's reactors + sliders stay untouched — only the `asset` swaps. Skipped when focus is in an input / textarea / contenteditable, and when `metaKey` / `ctrlKey` / `altKey` is held (so `Cmd+{` doesn't collide with macOS app shortcuts). | PR #27 |
+| `F` (no shift) | Fit to screen — toggles `SWR_FIT` (canvas-level `object-fit: cover`). Default `fill`; when on, the canvas content fills the section edge-to-edge and crops overflow. Skipped when focus is in an input / textarea / contenteditable, and when `shiftKey` / `metaKey` / `ctrlKey` / `altKey` is held (so `Shift+F` remains the browser-fullscreen shortcut). | PR #36 |
 | `M` | Mutate (engine global) | engine-keys.client.js |
 | `E` | Evolve (engine global) | engine-keys.client.js |
 | `R` | Randomize (engine global) | engine-keys.client.js |
@@ -473,6 +494,14 @@ unless marked `**Deferred**`.
   any page that adds those methods will get smooth transitions
   on the next mirror run. 1 new smoke assertion (59 total)
   verifies the skip shape via `page.goto('/versions/neon.html')`.
+- **PR #36 — fit-to-screen toggle.** `window.SWR_FIT` flips the
+  `#render` canvas between `object-fit: fill` (default, browser
+  default) and `object-fit: cover` (fills the section
+  edge-to-edge, crops overflow). Footer `Fit` button + `F` key
+  (no shift). `body[data-fit="on"]` is the CSS hook. Same
+  semantics as the per-layer `cover` flag (PR #28) but at the
+  canvas level. 2 new smoke assertions (61 total). `Shift+F`
+  remains the browser-fullscreen shortcut.
 
 ### Deferred
 
@@ -511,6 +540,7 @@ unless marked `**Deferred**`.
 - **PR #30** — mirror library × button to 13 version pages via `scripts/mirror-library-remove.mjs`
 - **PR #32** — smooth clip transitions + fade on layer clear (SWR_TIMING.crossfade + reset({fadeMs}))
 - **PR #34** — extend mirror script with F1/F2 patches (smooth transitions future-proofing)
+- **PR #36** — fit-to-screen toggle (SWR_FIT + F key + canvas object-fit: cover)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the per-layer cover toggle plan (now shipped as PR #28)
