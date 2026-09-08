@@ -463,15 +463,26 @@ unless marked `**Deferred**`.
   fade out smoothly before the list is cleared. Backward-
   compatible — callers without options behave as before. 2 new
   smoke assertions (58 total).
+- **PR #34 — extend mirror script with F1/F2 patches.** Adds
+  `patchSwapAsset` (rewrites hard-swap to `SWR_TIMING.crossfade`)
+  and `patchResetFade` (rewrites `Layers.reset()` to accept
+  `{ fadeMs }`) to `scripts/mirror-library-remove.mjs`. The 13
+  non-`music_video` pages don't have `swapAsset` or `reset`
+  methods (those shipped only on `music_video.html`), so the
+  patches correctly no-op on them. Future-proofs the script:
+  any page that adds those methods will get smooth transitions
+  on the next mirror run. 1 new smoke assertion (59 total)
+  verifies the skip shape via `page.goto('/versions/neon.html')`.
 
 ### Deferred
 
-- **Mirror the smooth-transitions fix to the other 13 version
+- **Add `swapAsset` + `reset` methods to the other 13 version
   pages with thumbnail libraries** (aurora, chrome, eclipse,
   film, fractal, glitch, grid, hallucination, neon, pulse,
-  smoke, void, watercolor). Mechanical — same `swapAsset` /
-  `reset` shape on each. Punt to a follow-up via the
-  `scripts/mirror-library-remove.mjs` pattern.
+  smoke, void, watercolor), then run the F1/F2 mirror patches.
+  This is a feature addition (the methods don't exist there
+  yet), not a mechanical mirror. PR #34 sets up the script;
+  the actual method addition is a separate PR.
 - **Undo for the layer reset.** Currently destructive — once you
   hit `Backspace`, the layers are gone (well, they're still in
   memory until reload). A 5-second undo window would be nice.
@@ -499,6 +510,7 @@ unless marked `**Deferred**`.
 - **PR #28** — per-layer cover toggle (Layers.cover + per-layer checkbox + uniform-scale fill)
 - **PR #30** — mirror library × button to 13 version pages via `scripts/mirror-library-remove.mjs`
 - **PR #32** — smooth clip transitions + fade on layer clear (SWR_TIMING.crossfade + reset({fadeMs}))
+- **PR #34** — extend mirror script with F1/F2 patches (smooth transitions future-proofing)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the per-layer cover toggle plan (now shipped as PR #28)
