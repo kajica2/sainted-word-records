@@ -443,13 +443,20 @@ unless marked `**Deferred**`.
   reactor activity. Default `false` preserves the existing
   letterbox behaviour. 2 new smoke assertions (56 total). Plan:
   `.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`.
+- **PR #30 — mirror × button to 13 version pages.** Mechanical
+  mirror of PR #23 (the music_video.html × button) to aurora,
+  chrome, eclipse, film, fractal, glitch, grid, hallucination,
+  neon, pulse, smoke, void, watercolor. Each gets the same five
+  patches (Lib.removeItem, Layers.cleanupForAsset, × button in
+  render(), window.SWR_LIB, CSS rules) via the
+  `scripts/mirror-library-remove.mjs` driver which handles three
+  innerHTML format variants (with/without V/I tag prefix, with/
+  without name truncation). Pages without a thumbnail-based
+  library (collage's panels, the 8 audio-only/showcase pages)
+  are correctly skipped.
 
 ### Deferred
 
-- **Mirror the × button to all 23 version pages.** PR #23 only
-  touched `music_video.html`. The other 22 version pages have
-  their own inline `Lib` definitions; same ~30-line change would
-  apply. Mechanical.
 - **Undo for the layer reset.** Currently destructive — once you
   hit `Backspace`, the layers are gone (well, they're still in
   memory until reload). A 5-second undo window would be nice.
@@ -475,6 +482,7 @@ unless marked `**Deferred**`.
 - **PR #25** — Solo layer toggle (Layers.solo / soloOff + Shift+S shortcut)
 - **PR #27** — `{` / `}` swap topmost layer's asset (Layers.swapAsset + keyboard binding)
 - **PR #28** — per-layer cover toggle (Layers.cover + per-layer checkbox + uniform-scale fill)
+- **PR #30** — mirror library × button to 13 version pages via `scripts/mirror-library-remove.mjs`
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the per-layer cover toggle plan (now shipped as PR #28)
