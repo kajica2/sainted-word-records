@@ -235,10 +235,82 @@ if (ghostState.setState && Math.abs(ghostState.setState.warmth - 0.7) < 1e-6 && 
   ok('setGhostDot reflects in _state, null clears');
 else bad('setGhostDot reflects in _state, null clears', JSON.stringify(ghostState));
 
+// 17. Phase D: setNeighbours populates #neighbours-list with N clickable
+//     entries sorted by distance. State exposes the structured list too.
+const neighState = await page.evaluate(() => {
+  // Drop a track dot at bass-heavy coords; neighbours should cluster near
+  // warm presets.
+  window.SWR_GRADIENT.setTrack({ bass: 0.8, mid: 0.2, treb: 0.1 });
+  window.SWR_GRADIENT.setNeighbours(3, { warmth: 0.8, intensity: 0.4 });
+  const list = document.querySelectorAll('#neighbours-list .neigh');
+  const state = window.SWR_GRADIENT._state();
+  return {
+    buttonCount: list.length,
+    stateCount: state.neighbours && state.neighbours.length,
+    firstId: list[0] && list[0].getAttribute('data-id'),
+    ascending: state.neighbours && state.neighbours.every((n, i, a) => i === 0 || a[i-1].dist <= n.dist),
+  };
+});
+if (neighState.buttonCount === 3 && neighState.stateCount === 3 && neighState.ascending)
+  ok('setNeighbours(3) populates 3 clickable buttons, sorted by dist');
+else bad('setNeighbours(3) populates 3 clickable buttons, sorted by dist', JSON.stringify(neighState));
+
+// 18. Phase D: clicking a neighbour entry writes that preset's fx_state
+//     into window.SWR._fxOverride. Direct test of the click handler.
+const clickResult = await page.evaluate(() => {
+  // Reset to a known coord, populate the list, then click the first entry.
+  window.SWR_GRADIENT.setNeighbours(2, { warmth: 0.5, intensity: 0.5 });
+  const btn = document.querySelector('#neighbours-list .neigh');
+  const id = btn && btn.getAttribute('data-id');
+  btn.click();
+  const ov = window.SWR._fxOverride;
+  return { id, hasOverride: !!ov, presetId: id };
+});
+if (clickResult.hasOverride && clickResult.id === clickResult.presetId)
+  ok('clicking neighbour writes _fxOverride from preset');
+else bad('clicking neighbour writes _fxOverride from preset', JSON.stringify(clickResult));
+
+// 19. Phase D: setPresetOverride (new VersionsPresets API) writes the
+//     fx_state straight from the preset id, returns true on success /
+//     false on unknown id.
+const setPresetOverrideResult = await page.evaluate(() => {
+  const ok1 = window.VersionsPresets && window.VersionsPresets.setPresetOverride('neon');
+  const ok2 = window.VersionsPresets && window.VersionsPresets.setPresetOverride('this-does-not-exist');
+  const ov = window.SWR && window.SWR._fxOverride;
+  return { knownId: ok1, unknownId: ok2, hasOverride: !!ov, temp: ov && ov.temp };
+});
+if (setPresetOverrideResult.knownId === true && setPresetOverrideResult.unknownId === false
+    && Math.abs(setPresetOverrideResult.temp - (-0.3)) < 1e-6)
+  ok('VersionsPresets.setPresetOverride returns true for known, false for unknown');
+else bad('VersionsPresets.setPresetOverride returns true for known, false for unknown', JSON.stringify(setPresetOverrideResult));
+
+// 20. setNeighbours(0) clears the list.
+const clearedList = await page.evaluate(() => {
+  window.SWR_GRADIENT.setNeighbours(0);
+  return { count: document.querySelectorAll('#neighbours-list .neigh').length };
+});
+if (clearedList.count === 0) ok('setNeighbours(0) clears the list');
+else bad('setNeighbours(0) clears the list', JSON.stringify(clearedList));
+
+// 21. neighbours slider re-renders the list (Tier-2 #2 — slider wiring).
+const sliderRe = await page.evaluate(() => {
+  const s = document.getElementById('neighbour-count');
+  s.value = '6';
+  s.dispatchEvent(new Event('input', { bubbles: true }));
+  return document.querySelectorAll('#neighbours-list .neigh').length;
+});
+if (sliderRe === 6) ok('neighbours slider → setNeighbours(6) renders 6 entries');
+else bad('neighbours slider → setNeighbours(6) renders 6 entries', 'got ' + sliderRe);
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
-  if (window.SWR_GRADIENT) window.SWR_GRADIENT.setGhostDot(null);
+  if (window.SWR_GRADIENT) {
+    window.SWR_GRADIENT.setGhostDot(null);
+    window.SWR_GRADIENT.setAutomixAnchor(null);
+    window.SWR_GRADIENT.setNeighbours(0);
+  }
+  if (window.SWR) window.SWR._fxOverride = null;
 });
 
 await browser.close();

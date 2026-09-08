@@ -1262,6 +1262,7 @@
       let _track = null;
       let _automixAnchor = null;
       let _ghost = null;
+      let _neighboursList = [];
       function drawTrackDot() {
         if (!_track) return;
         const { x, y } = toCanvas(_track.warmth, _track.intensity);
@@ -1330,6 +1331,12 @@
           }
           if (!_track) _track = { warmth: c.warmth, intensity: c.intensity, beatPulse: 0 };
           else { _track.warmth = c.warmth; _track.intensity = c.intensity; }
+          // Phase D: refresh the neighbours list to reflect new coords.
+          // Defer to next tick so callers can set HologramState.neighbours
+          // first if they're about to. setNeighbours reads HologramState at
+          // call time.
+          const n = (window.SWR && window.SWR.HologramState && window.SWR.HologramState.neighbours) || 4;
+          this.setNeighbours(n, c);
         },
         setBeatPulse(p) {
           if (!_track) return;
@@ -1340,6 +1347,47 @@
         // currently using. Pass null to clear.
         setAutomixAnchor(id) {
           _automixAnchor = (typeof id === 'string' && map.get(id)) ? id : null;
+        },
+        // Populate the #neighbours-list div with the N nearest anchors
+        // to the current track coords (or a passed-in coords). Each entry
+        // is clickable: clicking calls window.VersionsPresets.setPresetOverride(id)
+        // to jump the engine to that preset. Pass n <= 0 to clear the list.
+        // Re-runs cheaply on every Gradient.setTrack() call.
+        setNeighbours(n, coords) {
+          const el = document.getElementById('neighbours-list');
+          if (!el) return;
+          const useN = Math.max(0, Math.min(8, n || 0));
+          const useCoords = coords || (_track ? { warmth: _track.warmth, intensity: _track.intensity } : null);
+          if (!useCoords || !useN) { el.innerHTML = ''; _neighboursList = []; return; }
+          const items = map.neighbours
+            ? map.neighbours(useCoords, useN)
+            : [];
+          // Render: bold id, dim distance. Each line is a button.
+          let html = '';
+          for (let i = 0; i < items.length; i++) {
+            const a = items[i];
+            const id = a.id;
+            const d = a.dist;
+            const safeId = String(id).replace(/[<>"'&]/g, c => ({ '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;', '&':'&amp;' }[c]));
+            html += '<button class="neigh" data-id="' + safeId + '" style="display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--m);font:8px ui-monospace,monospace;letter-spacing:0.04em;padding:2px 0;cursor:pointer;">' +
+                    safeId + ' <span style="color:var(--muted);">' + d.toFixed(2) + '</span></button>';
+          }
+          el.innerHTML = html;
+          // Wire click handlers (one per id).
+          const buttons = el.querySelectorAll('.neigh');
+          for (let i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', (e) => {
+              const targetId = e.currentTarget.getAttribute('data-id');
+              // Jump: write the preset's fx_state straight into _fxOverride.
+              // Bypasses window.FX (which music_video doesn't wire).
+              if (window.VersionsPresets && window.VersionsPresets.setPresetOverride) {
+                window.VersionsPresets.setPresetOverride(targetId);
+              }
+              // Clear the automix ring (user is taking manual control).
+              _automixAnchor = null;
+            });
+          }
+          _neighboursList = items.map(a => ({ id: a.id, dist: a.dist }));
         },
         // Draw a faded "last session" dot at the given coords. Used by the
         // boot path to show the user what their previous automix blend
@@ -1355,7 +1403,7 @@
             };
           }
         },
-        _state() { return _track ? { ..._track, automixAnchor: _automixAnchor, ghost: _ghost } : null; },
+        _state() { return _track ? { ..._track, automixAnchor: _automixAnchor, ghost: _ghost, neighbours: _neighboursList } : null; },
       };
 
       // ---- Restore last session -------------------------------------------
@@ -1402,6 +1450,10 @@
         nIn.addEventListener('input', () => {
           HologramState.neighbours = parseInt(nIn.value, 10);
           if (nOut) nOut.textContent = String(HologramState.neighbours);
+          // Phase D: re-render the neighbours list with the new N.
+          if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setNeighbours) {
+            window.SWR.Gradient.setNeighbours(HologramState.neighbours);
+          }
         });
       }
     })();

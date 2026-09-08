@@ -69,6 +69,27 @@ function blendFxOverride(preset, ovFx, depth) {
 }
 window.__SWR_BLEND_FX = blendFxOverride;
 
+// Pure helper for the music_video "jump to preset" flow. Reads a named
+// preset from the table and returns a normalised fx_state object that
+// can be written straight to window.SWR._fxOverride — bypassing
+// window.FX.setPersona, which music_video doesn't wire. Returns null
+// when the id is unknown. Exposed for unit tests.
+function getPresetAsOverride(pageKey) {
+  var preset = PRESETS[pageKey];
+  if (!preset) return null;
+  return {
+    temp:      preset.temp,
+    mut:       preset.mut,
+    sepia:     preset.sepia,
+    chroma:    preset.chroma,
+    grain:     preset.grain,
+    glow:      preset.glow,
+    grayscale: preset.grayscale,
+    posterize: preset.posterize,
+  };
+}
+window.__SWR_GET_PRESET = getPresetAsOverride;
+
 const PRESETS = {
     film: {
       label: 'FILM',
@@ -987,6 +1008,17 @@ const PRESETS = {
         return s.tempOverride;
       }
       return PRESETS[pageKey] ? PRESETS[pageKey].temp : 0;
+    },
+    // music_video.html: apply a named preset's fx_state as the override.
+    // Writes to window.SWR._fxOverride so the existing GLSL blend path
+    // picks it up. No-op (returns false) if the id is unknown or SWR
+    // isn't ready. Returns true on success.
+    setPresetOverride(pageKey) {
+      var preset = getPresetAsOverride(pageKey);
+      if (!preset) return false;
+      if (typeof window === 'undefined' || !window.SWR) return false;
+      window.SWR._fxOverride = preset;
+      return true;
     },
     // Apply a named preset's FX configuration to the running engine.
     // Updates the in-page FX uniforms via window.FX.setPersona(...) so
