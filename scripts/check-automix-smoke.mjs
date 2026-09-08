@@ -337,10 +337,12 @@ if (layersResetClears.before === 2 && layersResetClears.cleared === 2 && layersR
 else bad('Layers.reset() empties the list and returns the prior count', JSON.stringify(layersResetClears));
 
 // 24. Reset button click also fires the reset path (mirror of #23).
-const buttonClick = await page.evaluate(() => {
+const buttonClick = await page.evaluate(async () => {
   const L = window.SWR.Layers;
   L.list.push({ id: 'L9', asset: null });
   document.getElementById('reset-layers').click();
+  // Layers.reset({fadeMs: 600}) defers the clear — wait past the fade.
+  await new Promise(r => setTimeout(r, 750));
   return L.list.length;
 });
 if (buttonClick === 0) ok('reset-layers button click empties Layers.list');
@@ -349,26 +351,32 @@ else bad('reset-layers button click empties Layers.list', 'after=' + buttonClick
 // 25. Backspace keydown resets layers (Tier-4 #22 — keyboard shortcut).
 //     Simulate by dispatching a keydown directly. Need to blur any
 //     focus first so the input-focus guard doesn't bail out.
-const backspaceReset = await page.evaluate(() => {
+const backspaceReset = await page.evaluate(async () => {
   const L = window.SWR.Layers;
   L.list.push({ id: 'L8', asset: null });
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   document.body.focus();
   const ev = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true });
   document.dispatchEvent(ev);
+  // Layers.reset({fadeMs: 600}) defers the clear — wait past the fade.
+  await new Promise(r => setTimeout(r, 750));
   return L.list.length;
 });
 if (backspaceReset === 0) ok('Backspace keydown resets Layers.list');
 else bad('Backspace keydown resets Layers.list', 'after=' + backspaceReset);
 
 // 26. Backspace in an input is ignored (typing-friendly).
-const backspaceInInput = await page.evaluate(() => {
+const backspaceInInput = await page.evaluate(async () => {
   const L = window.SWR.Layers;
   L.list.push({ id: 'L7', asset: null });
   const slider = document.getElementById('depth');
   slider.focus();
   const ev = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true });
   slider.dispatchEvent(ev);
+  // Wait past the fade window so we know the list survived (the input
+  // focus guard prevents reset from firing at all here, so length stays
+  // 1 throughout).
+  await new Promise(r => setTimeout(r, 750));
   return L.list.length;
 });
 if (backspaceInInput === 1) ok('Backspace in an input does NOT reset (focus guard works)');
@@ -1019,6 +1027,99 @@ const falseNonBlack = Object.values(coverBox.coverFalse).filter(isNonBlack).leng
 if (trueNonBlack === 4 && (falseNonBlack === 1 || falseNonBlack === 0))
   ok('cover:true fills all 4 stage corners; cover:false leaves 3+ corners black (1x1 image)');
 else bad('cover behaviour', JSON.stringify({ trueNonBlack, falseNonBlack, coverTrue: coverBox.coverTrue, coverFalse: coverBox.coverFalse }));
+
+// 57. Layers.swapAsset now uses SWR_TIMING.crossfade (not instant).
+const swapFadeShape = await page.evaluate(() => {
+  if (!window.SWR || !window.SWR.Layers) return { ok: false, reason: 'no Layers' };
+  if (!window.SWR_TIMING || typeof window.SWR_TIMING.crossfade !== 'function') {
+    return { ok: false, reason: 'no SWR_TIMING.crossfade' };
+  }
+  // Start clean.
+  window.SWR.Layers.reset();
+  window.SWR_LIB.items.length = 0;
+  const blob = new Blob([new Uint8Array([0, 0, 0, 0])], { type: 'image/png' });
+  const mk = (id) => ({
+    id: id, name: id + '.png', type: 'image', blob: blob,
+    url: URL.createObjectURL(blob), motion: 0, luma: 0.5, hue: 0,
+    w: 0, h: 0, added: Date.now(), thumb: null,
+  });
+  window.SWR_LIB.items.push(mk('700'), mk('701'));
+  window.SWR.Layers.add(window.SWR_LIB.items[0]);
+  // Wrap SWR_TIMING.crossfade to capture the call.
+  const origCrossfade = window.SWR_TIMING.crossfade;
+  let captured = null;
+  window.SWR_TIMING.crossfade = function (layer, newAsset, opts) {
+    captured = { layerId: layer.id, newAssetId: newAsset.id, opts: opts || null };
+    return origCrossfade.call(this, layer, newAsset, opts);
+  };
+  const r = window.SWR.Layers.swapAsset('next');
+  // Restore.
+  window.SWR_TIMING.crossfade = origCrossfade;
+  return {
+    swapOk: r && r.ok,
+    swapTo: r && r.to,
+    captured: captured,
+    layerStillPresent: window.SWR.Layers.list.length === 1,
+    crossfadeCalled: !!captured,
+    crossfadeTarget: captured && captured.newAssetId,
+  };
+});
+if (swapFadeShape.swapOk && swapFadeShape.swapTo === 1
+    && swapFadeShape.crossfadeCalled && swapFadeShape.crossfadeTarget === '701'
+    && swapFadeShape.layerStillPresent)
+  ok('Layers.swapAsset uses SWR_TIMING.crossfade (not instant)');
+else bad('swapAsset crossfade', JSON.stringify(swapFadeShape));
+
+// 58. Layers.reset({ fadeMs: 200 }) defers the clear and uses
+//     SWR_TIMING.fadeOut on each layer.
+const resetFadeShape = await page.evaluate(async () => {
+  if (!window.SWR || !window.SWR.Layers) return { ok: false, reason: 'no Layers' };
+  if (!window.SWR_TIMING || typeof window.SWR_TIMING.fadeOut !== 'function') {
+    return { ok: false, reason: 'no SWR_TIMING.fadeOut' };
+  }
+  // Start clean.
+  window.SWR.Layers.reset();
+  const mkL = (id) => ({
+    id: id,
+    asset: { type: 'image', name: 'x.png', url: 'data:image/png;base64,xxx' },
+    blend: 'screen', opacity: 1, baseScale: 1, hue: 0, brightness: 1, contrast: 1,
+    alpha: 1, mutate: 0, cover: false,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 0.5, ease: 'sharp' }],
+  });
+  window.SWR.Layers.list.push(mkL('F1'), mkL('F2'));
+  // Wrap fadeOut.
+  const orig = window.SWR_TIMING.fadeOut;
+  const fadeCalls = [];
+  window.SWR_TIMING.fadeOut = function (layer, ms) {
+    fadeCalls.push({ layerId: layer.id, ms: ms });
+    return orig.call(this, layer, ms);
+  };
+  const before = window.SWR.Layers.list.length;
+  const ret = window.SWR.Layers.reset({ fadeMs: 200 });
+  // Immediately after reset({fadeMs: 200}), the list should still
+  // be populated (the clear is deferred 250ms).
+  const immediateCount = window.SWR.Layers.list.length;
+  // Wait for the deferred clear.
+  await new Promise(r => setTimeout(r, 300));
+  const afterCount = window.SWR.Layers.list.length;
+  // Restore.
+  window.SWR_TIMING.fadeOut = orig;
+  return {
+    ret: ret,
+    before: before,
+    immediateCount: immediateCount,
+    afterCount: afterCount,
+    fadeCalls: fadeCalls,
+  };
+});
+if (resetFadeShape.before === 2
+    && resetFadeShape.ret === 2
+    && resetFadeShape.immediateCount === 2
+    && resetFadeShape.afterCount === 0
+    && resetFadeShape.fadeCalls.length === 2
+    && resetFadeShape.fadeCalls.every(c => c.ms === 200))
+  ok('Layers.reset({fadeMs}) defers clear + calls SWR_TIMING.fadeOut per layer');
+else bad('reset fade-out', JSON.stringify(resetFadeShape));
 
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
