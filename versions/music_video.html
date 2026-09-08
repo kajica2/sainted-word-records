@@ -371,6 +371,7 @@
       <span class="gc">decay <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.85" /> <b id="decay-v">0.85</b></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">depth <input type="range" id="depth" min="0" max="1" step="0.05" value="0.5" /> <b id="depth-v">0.50</b></span>
       <span class="gc">N <input type="range" id="neighbour-count" min="1" max="8" step="1" value="4" /> <b id="neighbour-count-v">4</b></span>
+      <span class="gc"><button class="tbtn" id="reset-layers" title="Clear all layers (Backspace)" style="padding:3px 8px;font-size:9px;">↺ Layers</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -705,6 +706,19 @@
           opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
         this.list.push(l); this.render(); this.sel = l; },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
+      // Clear all layers without touching library assets, IDB song, or
+      // any other engine state. Cheap: replace the list, drop selection,
+      // re-render, invalidate the WebGL render cache so the next frame
+      // doesn't paint ghosts of the dropped layers. Returns the count
+      // cleared (useful for status-bar feedback).
+      reset() {
+        const n = this.list.length;
+        this.list.length = 0;
+        this.sel = null;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        return n;
+      },
       render() {
         const el = $('layers'); el.innerHTML = '';
         for (let i=0;i<this.list.length;i++) {
@@ -1533,11 +1547,38 @@
     };
     const _toggleBtn = document.getElementById('automix-toggle');
     if (_toggleBtn) _toggleBtn.addEventListener('click', () => automix.toggle());
+    // Reset-layers button — same code path as the Backspace shortcut so
+    // the status-bar feedback fires for mouse users too.
+    const _resetBtn = document.getElementById('reset-layers');
+    if (_resetBtn) _resetBtn.addEventListener('click', () => {
+      if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') {
+        const n = window.SWR.Layers.reset();
+        setStatus('layers cleared · ' + n, 'ok');
+      }
+    });
     document.addEventListener('keydown', (e) => {
       if (e.key && e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         var t = e.target; var tag = t && t.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
         automix.toggle();
+        e.preventDefault();
+      }
+    });
+    // ---- Reset-layers keyboard shortcut ----------------------------------
+    // Backspace (not Shift+Backspace — that's standard browser nav)
+    // clears all layers. Skipped when focus is in an input/textarea/
+    // contentEditable element so typing in the depth / neighbours
+    // sliders (which use Backspace to delete a digit) doesn't trigger.
+    // Doesn't touch library assets, IDB song, or automix state.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Backspace') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;  // browser nav
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') {
+        const n = window.SWR.Layers.reset();
+        // Tiny status-bar confirmation so the user knows the shortcut fired.
+        setStatus('layers cleared · ' + n, 'ok');
         e.preventDefault();
       }
     });

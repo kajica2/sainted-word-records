@@ -309,6 +309,87 @@ const sliderRe = await page.evaluate(() => {
 if (sliderRe === 6) ok('neighbours slider → setNeighbours(6) renders 6 entries');
 else bad('neighbours slider → setNeighbours(6) renders 6 entries', 'got ' + sliderRe);
 
+// 22. Layers.reset() exists on window.SWR.Layers and clears the list.
+const layersResetShape = await page.evaluate(() => {
+  return {
+    hasReset: !!(window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function'),
+    listLength: window.SWR && window.SWR.Layers ? window.SWR.Layers.list.length : -1,
+  };
+});
+if (layersResetShape.hasReset && layersResetShape.listLength === 0)
+  ok('SWR.Layers.reset exists; list starts empty');
+else bad('SWR.Layers.reset exists; list starts empty', JSON.stringify(layersResetShape));
+
+// 23. Pushing a fake layer, calling reset() → list goes back to empty.
+const layersResetClears = await page.evaluate(() => {
+  // Simulate an uploaded layer by pushing directly. Lib.add requires a
+  // real asset; the reset behaviour we want to verify only touches
+  // .list, so direct manipulation suffices.
+  const L = window.SWR.Layers;
+  L.list.push({ id: 'L1', asset: null, opacity: 1, blend: 'screen' });
+  L.list.push({ id: 'L2', asset: null, opacity: 0.5, blend: 'multiply' });
+  const before = L.list.length;
+  const cleared = L.reset();
+  return { before, cleared, after: L.list.length };
+});
+if (layersResetClears.before === 2 && layersResetClears.cleared === 2 && layersResetClears.after === 0)
+  ok('Layers.reset() empties the list and returns the prior count');
+else bad('Layers.reset() empties the list and returns the prior count', JSON.stringify(layersResetClears));
+
+// 24. Reset button click also fires the reset path (mirror of #23).
+const buttonClick = await page.evaluate(() => {
+  const L = window.SWR.Layers;
+  L.list.push({ id: 'L9', asset: null });
+  document.getElementById('reset-layers').click();
+  return L.list.length;
+});
+if (buttonClick === 0) ok('reset-layers button click empties Layers.list');
+else bad('reset-layers button click empties Layers.list', 'after=' + buttonClick);
+
+// 25. Backspace keydown resets layers (Tier-4 #22 — keyboard shortcut).
+//     Simulate by dispatching a keydown directly. Need to blur any
+//     focus first so the input-focus guard doesn't bail out.
+const backspaceReset = await page.evaluate(() => {
+  const L = window.SWR.Layers;
+  L.list.push({ id: 'L8', asset: null });
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  document.body.focus();
+  const ev = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true });
+  document.dispatchEvent(ev);
+  return L.list.length;
+});
+if (backspaceReset === 0) ok('Backspace keydown resets Layers.list');
+else bad('Backspace keydown resets Layers.list', 'after=' + backspaceReset);
+
+// 26. Backspace in an input is ignored (typing-friendly).
+const backspaceInInput = await page.evaluate(() => {
+  const L = window.SWR.Layers;
+  L.list.push({ id: 'L7', asset: null });
+  const slider = document.getElementById('depth');
+  slider.focus();
+  const ev = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true });
+  slider.dispatchEvent(ev);
+  return L.list.length;
+});
+if (backspaceInInput === 1) ok('Backspace in an input does NOT reset (focus guard works)');
+else bad('Backspace in an input does NOT reset (focus guard works)', 'list=' + backspaceInInput);
+
+// 27. Modifier-key Backspace (Cmd+Backspace) is ignored — that's browser nav.
+//     Push an item, dispatch Cmd+Backspace, the item should survive
+//     (handler bails on metaKey).
+const modifierBackspace = await page.evaluate(() => {
+  const L = window.SWR.Layers;
+  L.reset();                       // baseline
+  L.list.push({ id: 'L6', asset: null });
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  document.body.focus();
+  const ev = new KeyboardEvent('keydown', { key: 'Backspace', metaKey: true, bubbles: true });
+  document.dispatchEvent(ev);
+  return L.list.length;             // expect 1 — handler should bail
+});
+if (modifierBackspace === 1) ok('Cmd+Backspace is NOT intercepted (browser nav preserved)');
+else bad('Cmd+Backspace is NOT intercepted (browser nav preserved)', 'list=' + modifierBackspace);
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
@@ -318,6 +399,7 @@ await page.evaluate(() => {
     window.SWR_GRADIENT.setNeighbours(0);
   }
   if (window.SWR) window.SWR._fxOverride = null;
+  if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
 });
 
 await browser.close();
