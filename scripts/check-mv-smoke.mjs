@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // scripts/check-mv-smoke.mjs — Phase A smoke for the music_video gradient page.
 //
+// Self-contained: ensureDist() auto-builds dist/ if missing. No need
+// to remember `npm run build` first.
+//
 // Boots a static server on dist/, opens versions/music_video.html in
 // Puppeteer, and verifies:
 //   - the page loads with the MUSIC VIDEO header + no outbound nav links
@@ -15,6 +18,10 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ensureDist } from './with-dist.mjs';
+
+// Auto-build dist/ if missing — no more "forgot to npm run build" 404s.
+ensureDist();
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const MIME = {
