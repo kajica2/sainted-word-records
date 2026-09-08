@@ -868,6 +868,16 @@
       // Defensive: legacy persisted state may not include `reactors`.
       // Skip the reactor loop rather than crash every frame.
       const reactors = Array.isArray(l.reactors) ? l.reactors : [];
+
+      // Master transformations toggle (swr-tx-master, ⏸): when the user has
+      // muted all audio reactors globally, skip the entire reactor loop and
+      // return the static baseScale/opacity/hue/etc. shape. Per-layer
+      // override: l.reactorsEnabled = true re-enables reactors for that
+      // layer even when the master is OFF (checked first, so the layer
+      // opt-out survives the global mute).
+      const _txOn = (l.reactorsEnabled !== false)
+                 && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
+      if (!_txOn) return out;
       for (const r of reactors) {
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;

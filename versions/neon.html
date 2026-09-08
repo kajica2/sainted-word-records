@@ -751,6 +751,16 @@
     function applyR(l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
+
+      // Master transformations toggle (swr-tx-master, ⏸): when the user has
+      // muted all audio reactors globally, skip the entire reactor loop and
+      // return the static baseScale/opacity/hue/etc. shape. Per-layer
+      // override: l.reactorsEnabled = true re-enables reactors for that
+      // layer even when the master is OFF (checked first, so the layer
+      // opt-out survives the global mute).
+      const _txOn = (l.reactorsEnabled !== false)
+                 && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
+      if (!_txOn) return out;
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
