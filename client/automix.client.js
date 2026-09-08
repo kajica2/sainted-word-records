@@ -31,15 +31,21 @@
   // Maps the live audio bands into (warmth, intensity). Bass-heavy
   // tracks feel "warm" + "low-intensity" (sepia-ish), treble-heavy
   // tracks feel "cool" + "high-intensity" (chroma/grain).
+  //
+  // Delegates to client/anchor-embed.js (Phase C single source of truth)
+  // so the gradient panel and the automix blend always land at the same
+  // coordinates for the same features. If anchor-embed.js failed to
+  // load (load-order bug), fall back to the previous local implementation
+  // so automix still works.
   function featuresToCoords(features) {
+    if (window.SWR_ANCHOR_EMBED && window.SWR_ANCHOR_EMBED.featuresToCoords) {
+      return window.SWR_ANCHOR_EMBED.featuresToCoords(features);
+    }
     if (!features) return { warmth: 0.5, intensity: 0.5 };
     var bass = (features.bass || 0);
     var mid  = (features.mid  || 0);
     var treb = (features.treb || 0);
-    // Warmth 0..1: bass-dominant → 0.8+, treb-dominant → 0.2-, balanced → 0.5
-    var warmth = 0.5 + (bass - treb) * 0.5;
-    warmth = Math.max(0, Math.min(1, warmth));
-    // Intensity 0..1: mid+treb energy sum, clipped
+    var warmth = Math.max(0, Math.min(1, 0.5 + (bass - treb) * 0.5));
     var intensity = Math.min(1, (mid + treb) * 0.9 + bass * 0.1);
     return { warmth: warmth, intensity: intensity };
   }

@@ -272,6 +272,7 @@
 <script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
+<script src="../client/anchor-embed.js"></script>
 <script src="../client/automix.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -1248,20 +1249,11 @@
       // the beat detector via Gradient.setBeatPulse(). When null, no dot
       // is drawn (Phase A behaviour).
       //
-      // coordsFromFeatures() MUST stay in sync with
-      // client/automix.client.js:featuresToCoords — parity is enforced by
-      // scripts/check-gradient-dot-unit.mjs. If you change the math here,
-      // re-run the unit test first.
+      // coordinates come from window.SWR_ANCHOR_EMBED.featuresToCoords
+      // (loaded via ../client/anchor-embed.js) so the gradient panel and
+      // the automix blend always land at the same (warmth, intensity) for
+      // the same audio features. Phase C refactor — single source of truth.
       let _track = null;
-      function coordsFromFeatures(features) {
-        if (!features) return { warmth: 0.5, intensity: 0.5 };
-        const bass = (features.bass || 0);
-        const mid  = (features.mid  || 0);
-        const treb = (features.treb || 0);
-        const warmth = Math.max(0, Math.min(1, 0.5 + (bass - treb) * 0.5));
-        const intensity = Math.min(1, (mid + treb) * 0.9 + bass * 0.1);
-        return { warmth, intensity };
-      }
       function drawTrackDot() {
         if (!_track) return;
         const { x, y } = toCanvas(_track.warmth, _track.intensity);
@@ -1292,7 +1284,15 @@
       window.SWR_GRADIENT = {
         refresh: render,
         setTrack(features) {
-          const c = coordsFromFeatures(features);
+          // Delegate to the shared embedder. If anchor-embed.js failed to
+          // load, fall back to the midpoint so the dot sits safely at
+          // (0.5, 0.5) instead of crashing the gradient panel.
+          let c;
+          if (window.SWR_ANCHOR_EMBED && window.SWR_ANCHOR_EMBED.featuresToCoords) {
+            c = window.SWR_ANCHOR_EMBED.featuresToCoords(features);
+          } else {
+            c = { warmth: 0.5, intensity: 0.5 };
+          }
           if (!_track) _track = { warmth: c.warmth, intensity: c.intensity, beatPulse: 0 };
           else { _track.warmth = c.warmth; _track.intensity = c.intensity; }
         },

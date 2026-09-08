@@ -103,6 +103,26 @@ if (gradState && gradState.warmth > 0.5 && gradState.beatPulse === 0.5)
   ok('Gradient.setTrack + setBeatPulse expose state');
 else bad('Gradient.setTrack + setBeatPulse expose state', JSON.stringify(gradState));
 
+// 7b. Phase C: SWR_ANCHOR_EMBED loaded and Gradient uses it (single source of truth)
+const embedCheck = await page.evaluate(() => {
+  const embed = window.SWR_ANCHOR_EMBED;
+  const grad  = window.SWR_GRADIENT;
+  const embedCoords = embed && embed.featuresToCoords({ bass: 0.8, mid: 0.2, treb: 0.1 });
+  // Drive Gradient.setTrack and read back via _state — same features.
+  grad.setTrack({ bass: 0.8, mid: 0.2, treb: 0.1 });
+  const gradState = grad._state();
+  return {
+    hasEmbed: !!embed,
+    embedCoords,
+    gradCoords: { warmth: gradState.warmth, intensity: gradState.intensity },
+    sameImpl: embed && Math.abs(embedCoords.warmth - gradState.warmth) < 1e-9
+                 && Math.abs(embedCoords.intensity - gradState.intensity) < 1e-9,
+  };
+});
+if (embedCheck.hasEmbed && embedCheck.sameImpl)
+  ok('Gradient uses SWR_ANCHOR_EMBED (shared impl)');
+else bad('Gradient uses SWR_ANCHOR_EMBED (shared impl)', JSON.stringify(embedCheck));
+
 // 8. Phase B: dot is actually drawn on the canvas (magenta pixels > 0).
 //    Wait one redraw tick (100ms) before sampling.
 await new Promise(r => setTimeout(r, 150));
