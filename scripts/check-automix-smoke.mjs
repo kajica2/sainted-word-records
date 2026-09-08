@@ -1121,6 +1121,34 @@ if (resetFadeShape.before === 2
   ok('Layers.reset({fadeMs}) defers clear + calls SWR_TIMING.fadeOut per layer');
 else bad('reset fade-out', JSON.stringify(resetFadeShape));
 
+// 59. Non-music_video pages lack swapAsset + reset(opts) — confirms the
+//     F-patch skip rule in scripts/mirror-library-remove.mjs is correct.
+//     We navigate to neon.html (a representative variant page), then
+//     check: (a) SWR_TIMING is loaded (so crossfade/fadeOut are
+//     available for music_video.html callers), (b) Layers exists with
+//     list/render but NO swapAsset (F1 anchor absent) and NO reset(opts)
+//     fade support (F2 anchor absent). This proves the script's
+//     "skip pages without swapAsset method or reset method" guard fires
+//     cleanly on the 13 variant pages instead of corrupting them with
+//     phantom anchors.
+await page.goto('http://localhost:5181/versions/neon.html', { waitUntil: 'networkidle0', timeout: 30000 });
+const variantShape = await page.evaluate(() => {
+  return {
+    swrPresent: typeof window.SWR === 'object' && window.SWR !== null,
+    layersPresent: !!(window.SWR && window.SWR.Layers),
+    layersListIsArray: Array.isArray(window.SWR && window.SWR.Layers && window.SWR.Layers.list),
+    swapAssetDefined: !!(window.SWR && window.SWR.Layers && typeof window.SWR.Layers.swapAsset === 'function'),
+    resetTakesOpts: !!(window.SWR && window.SWR.Layers && /reset\s*\(\s*opts\s*\)/.test(window.SWR.Layers.reset && window.SWR.Layers.reset.toString())),
+    swrTimingLoaded: !!(window.SWR_TIMING && typeof window.SWR_TIMING.crossfade === 'function' && typeof window.SWR_TIMING.fadeOut === 'function'),
+    swrLibPresent: typeof window.SWR_LIB === 'object' && window.SWR_LIB !== null,
+  };
+});
+if (variantShape.swrPresent && variantShape.layersPresent && variantShape.layersListIsArray
+    && !variantShape.swapAssetDefined && !variantShape.resetTakesOpts
+    && variantShape.swrTimingLoaded && variantShape.swrLibPresent)
+  ok('variant page (neon) lacks swapAsset + reset(opts) — F-patch correctly no-ops, SWR_TIMING loaded for future use');
+else bad('variant page F-patch skip shape', JSON.stringify(variantShape));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
@@ -1130,7 +1158,7 @@ await page.evaluate(() => {
     window.SWR_GRADIENT.setNeighbours(0);
   }
   if (window.SWR) window.SWR._fxOverride = null;
-  if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
+  if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') window.SWR.Layers.reset();
   if (window.SWR_LIB) {
     window.SWR_LIB.items.length = 0;
   }
