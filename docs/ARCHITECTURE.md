@@ -290,7 +290,7 @@ Other key state:
 | `Audio` (`feat`, `gain`, `el`, `beats[]`) | inline IIFE per page | no | Rebuilt from file on load |
 | `HologramState = { depth, neighbours }` | inline IIFE (music_video) | no | Per-session; restored via gradient anchor ring on reload |
 | `Layers.list` | inline IIFE per page | **yes** (PR #19) | Metadata only, debounced 1s |
-| `lib.items` (uploaded library) | inline IIFE per page | no (IDB) | `lib/persist.client.js` |
+| `lib.items` (uploaded library) | inline IIFE per page | no (IDB) | `lib/persist.client.js`. `Lib.removeItem(id)` (PR #23) revokes the blob URL, calls `Layers.cleanupForAsset(it)`, and re-renders. |
 | `SWR_AUTOMIX` state | inline IIFE (music_video) | partial | Last mix snapshot persists (`last-mix-store`); current cycle state doesn't |
 | `SWR_PRESET_PICK` | `preset-pick-store.client.js` | **yes** (PR #18) | Last manual Tab/Shift+Tab pick |
 | `SWR_LAST_MIX` | `last-mix-store.client.js` | **yes** (PR #12) | Last automix blend snapshot |
@@ -324,6 +324,10 @@ Notable: **`music_video.html`** is a fork with extra UI:
   layers (PR #15)
 - Auto-restores the last manual preset pick (PR #18) and the last
   layer state (PR #19)
+- Each library thumbnail has a **small `×` button** in the top-right
+  corner (PR #23) for deletion: click once to arm, click again
+  within 1.5 s to confirm. `Lib.removeItem(id)` revokes the blob
+  URL and drops any layers referencing the asset.
 - Does **not** auto-load `library/manifest.json` (session-private)
 
 ### 6.2 `swr-app.html` — the SPA
@@ -398,7 +402,7 @@ remember to run `npm run build` first.
 | Script | Coverage | Assertions |
 |---|---|---|
 | `check-mv-smoke.mjs` | `versions/music_video.html` boot, gradient panel, anchor map, sliders | 18 |
-| `check-automix-smoke.mjs` | Music_video + automix + layer state + preset cycle + video error handling | 44 |
+| `check-automix-smoke.mjs` | Music_video + automix + layer state + preset cycle + video error handling + library remove (PR #23) | 46 |
 
 `check-automix-smoke.mjs` is the comprehensive regression test for
 the post-2026 work — it exercises every public API the music_video
