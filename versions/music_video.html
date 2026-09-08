@@ -781,13 +781,36 @@
       // doesn't paint ghosts of the dropped layers. Returns the count
       // cleared (useful for status-bar feedback). Also clears the
       // persisted snapshot so a reload really does start from scratch.
-      reset() {
+      // Optional opts.fadeMs triggers a parallel fadeOut on each layer
+      // before clearing the list (defers the actual clear by fadeMs+50ms).
+      // Default opts.fadeMs=0 preserves the original instant-clear behavior.
+      // SWR_TIMING.fadeOut + step() handle the per-frame easing.
+      reset(opts) {
+        const o = opts || {};
+        const fadeMs = typeof o.fadeMs === 'number' ? o.fadeMs : 0;
         const n = this.list.length;
-        this.list.length = 0;
-        this.sel = null;
-        this.render();
-        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
-        if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
+        const fading = this.list.slice();
+        if (fadeMs > 0 && window.SWR_TIMING && typeof window.SWR_TIMING.fadeOut === 'function') {
+          for (const l of fading) {
+            try { window.SWR_TIMING.fadeOut(l, fadeMs); } catch (_) {}
+          }
+          setTimeout(() => {
+            // Idempotent: only clear if list is still the same shape.
+            if (this.list.length === fading.length) {
+              this.list.length = 0;
+              this.sel = null;
+              this.render();
+              try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+              if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
+            }
+          }, fadeMs + 50);
+        } else {
+          this.list.length = 0;
+          this.sel = null;
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+          if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
+        }
         return n;
       },
       // Flip the layer's `cover` flag. When true, drawLayer scales the
@@ -888,9 +911,21 @@
         // Wrap modulo n (handles negatives correctly).
         next = ((next % n) + n) % n;
         const newIt = lib[next];
+        // Always update the asset reference synchronously so callers see
+        // the swap immediately (consistent with the {from, to, item}
+        // return shape and the original instant-swap behaviour). The
+        // visual fade is handled by SWR_TIMING.crossfade — it eases the
+        // current opacity to 0 and back up while the asset is swapped,
+        // so the user never sees a hard cut. Falls back to a plain
+        // render() call when SWR_TIMING isn't loaded (older build /
+        // test env without engine-timing.client.js).
         top.asset = newIt;
-        this.render();
-        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        if (window.SWR_TIMING && typeof window.SWR_TIMING.crossfade === 'function') {
+          window.SWR_TIMING.crossfade(top, newIt);
+        } else {
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
         return { ok: true, from: idx, to: next, item: newIt };
       },
       render() {
@@ -1874,7 +1909,7 @@
     const _resetBtn = document.getElementById('reset-layers');
     if (_resetBtn) _resetBtn.addEventListener('click', () => {
       if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') {
-        const n = window.SWR.Layers.reset();
+        const n = window.SWR.Layers.reset({ fadeMs: 600 });
         setStatus('layers cleared · ' + n, 'ok');
       }
     });
@@ -1932,7 +1967,7 @@
       var t = e.target; var tag = t && t.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
       if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') {
-        const n = window.SWR.Layers.reset();
+        const n = window.SWR.Layers.reset({ fadeMs: 600 });
         // Tiny status-bar confirmation so the user knows the shortcut fired.
         setStatus('layers cleared · ' + n, 'ok');
         e.preventDefault();
