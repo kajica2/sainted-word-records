@@ -43,7 +43,33 @@
   // FX uniforms use the same shape as fx-postprocess.js state.
   // `effect` is a 0..1 amount for the page-specific GLSL effect.
   // `tint` adds an additional color tint not covered by temp.
-  const PRESETS = {
+  // ---- Self-evolving automixer override (versions/music_video.html) ----
+// Pure helper for the math. Exposed on window.__SWR_BLEND_FX so
+// scripts/check-depth-blend-unit.mjs can exercise it directly under Node.
+// Called from the render loop inside init().
+//
+// Blend amount is driven by HologramState.depth (the footer slider):
+//   depth=0 → pure static page preset (override ignored)
+//   depth=1 → pure override (static preset ignored)
+//   depth=0.5 → 50/50 (matches the original PR #9 default)
+// Default 0.4 is the fallback when HologramState isn't set (other version
+// pages that don't ship the slider).
+function blendFxOverride(preset, ovFx, depth) {
+  var mixFx = ovFx ? Math.max(0, Math.min(1, depth)) : 0;
+  return {
+    temp:      preset.temp      * (1 - mixFx) + (ovFx ? (ovFx.temp      || 0) : 0) * mixFx,
+    mut:       preset.mut       * (1 - mixFx) + (ovFx ? (ovFx.mut       || 0) : 0) * mixFx,
+    sepia:     preset.sepia     * (1 - mixFx) + (ovFx ? (ovFx.sepia     || 0) : 0) * mixFx,
+    chroma:    preset.chroma    * (1 - mixFx) + (ovFx ? (ovFx.chroma    || 0) : 0) * mixFx,
+    grain:     preset.grain     * (1 - mixFx) + (ovFx ? (ovFx.grain     || 0) : 0) * mixFx,
+    glow:      preset.glow      * (1 - mixFx) + (ovFx ? (ovFx.glow      || 0) : 0) * mixFx,
+    grayscale: preset.grayscale * (1 - mixFx) + (ovFx ? (ovFx.grayscale || 0) : 0) * mixFx,
+    posterize: preset.posterize * (1 - mixFx) + (ovFx ? (ovFx.posterize || 0) : 0) * mixFx,
+  };
+}
+window.__SWR_BLEND_FX = blendFxOverride;
+
+const PRESETS = {
     film: {
       label: 'FILM',
       desc:  '16mm grain + sepia + warm temperature',
@@ -874,20 +900,29 @@
       gl.uniform1f(u.beat,      beat);
       // Self-evolving automixer override (versions/music_video.html):
       // when window.SWR._fxOverride is set, blend its 8 fx_state fields
-      // on top of the static page preset at 60/40 so the static `neon`
-      // look is still recognisable while the audio-reactive drift animates
-      // it. When the toggle is OFF, _fxOverride is null/undefined and this
-      // block is a no-op.
-      let _ovFx = (window.SWR && window.SWR._fxOverride) || null;
-      const _mixFx = _ovFx ? 0.4 : 0;
-      const _temp      = tempOverride !== null ? tempOverride : (_mixFx ? preset.temp      * (1 - _mixFx) + (_ovFx.temp      || 0) * _mixFx : preset.temp);
-      const _mut       = _mixFx ? preset.mut       * (1 - _mixFx) + (_ovFx.mut       || 0) * _mixFx : preset.mut;
-      const _chroma    = _mixFx ? preset.chroma    * (1 - _mixFx) + (_ovFx.chroma    || 0) * _mixFx : preset.chroma;
-      const _grain     = _mixFx ? preset.grain     * (1 - _mixFx) + (_ovFx.grain     || 0) * _mixFx : preset.grain;
-      const _sepia     = _mixFx ? preset.sepia     * (1 - _mixFx) + (_ovFx.sepia     || 0) * _mixFx : preset.sepia;
-      const _glow      = _mixFx ? preset.glow      * (1 - _mixFx) + (_ovFx.glow      || 0) * _mixFx : preset.glow;
-      const _grayscale = _mixFx ? preset.grayscale * (1 - _mixFx) + (_ovFx.grayscale || 0) * _mixFx : preset.grayscale;
-      const _posterize = _mixFx ? preset.posterize * (1 - _mixFx) + (_ovFx.posterize || 0) * _mixFx : preset.posterize;
+      // on top of the static page preset. The blend amount is driven by
+      // HologramState.depth (the footer slider on music_video.html):
+      //   depth=0 → pure static page preset (override ignored)
+      //   depth=1 → pure override (static preset ignored)
+      //   depth=0.5 → 50/50 (matches the original PR #9 default)
+      // Default 0.4 is kept as a fallback when the page hasn't set
+      // HologramState (other version pages that don't ship the slider).
+      // The math itself lives at module scope as blendFxOverride() so it can be
+      // unit-tested under Node without a browser (check-depth-blend-unit.mjs).
+      const _ovFx = (window.SWR && window.SWR._fxOverride) || null;
+      const _depth = (window.SWR && window.SWR.HologramState && typeof window.SWR.HologramState.depth === 'number')
+        ? window.SWR.HologramState.depth
+        : 0.4;
+      const _blend = _ovFx ? blendFxOverride(preset, _ovFx, _depth) : preset;
+      const _hasOv = !!_ovFx;
+      const _temp      = tempOverride !== null ? tempOverride : (_hasOv ? _blend.temp : preset.temp);
+      const _mut       = _hasOv ? _blend.mut       : preset.mut;
+      const _chroma    = _hasOv ? _blend.chroma    : preset.chroma;
+      const _grain     = _hasOv ? _blend.grain     : preset.grain;
+      const _sepia     = _hasOv ? _blend.sepia     : preset.sepia;
+      const _glow      = _hasOv ? _blend.glow      : preset.glow;
+      const _grayscale = _hasOv ? _blend.grayscale : preset.grayscale;
+      const _posterize = _hasOv ? _blend.posterize : preset.posterize;
       gl.uniform1f(u.temp,      _temp);
       gl.uniform1f(u.mut,       _mut);
       gl.uniform1f(u.mutAlgo,   preset.mutAlgo);
