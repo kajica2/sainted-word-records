@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MUSIC VIDEO · SWR engine v1</title>
+  <meta name="description" content="Gradient preset engine — drop a track, the engine synthesizes a preset and blends related anchors as reactive depth" />
+  <meta name="theme-color" content="#0a0d12" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta property="og:title" content="MUSIC VIDEO · SWR engine" />
+  <meta property="og:description" content="Gradient preset engine — drop a track, the engine synthesizes a preset and blends related anchors as reactive depth" />
+  <meta property="og:image" content="/keyart/music_video.png" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/versions/music_video.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MUSIC VIDEO · SWR engine" />
+  <meta name="twitter:description" content="Gradient preset engine — drop a track, the engine synthesizes a preset and blends related anchors as reactive depth" />
+  <meta name="twitter:image" content="/keyart/music_video.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #05030a; --bg-2: #0a0612; --panel: #0e0818; --panel-2: #150b22;
+      --ink: #f5e9ff; --muted: #8a7aa0; --line: #2a1d3e;
+      --m: #ff2d8a; --c: #00f0ff; --y: #fff04a; --g: #00ffa3;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
+    header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 14px;
+      background: var(--bg-2); border-bottom: 1px solid var(--line); }
+    .v { font-weight: 700; letter-spacing: 0.16em; color: var(--m); text-shadow: 0 0 8px var(--m); }
+    .v small { color: var(--c); margin-left: 6px; text-shadow: 0 0 6px var(--c); font-weight: 400; }
+    .pill { font-size: 9px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+    .pill.ok { color: var(--g); border-color: var(--g); }
+    .pill.live { color: var(--y); border-color: var(--y); animation: blink 0.4s infinite alternate; }
+    @keyframes blink { from { opacity: 0.4; } to { opacity: 1; } }
+    .tbtn { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); font: 10px/1 ui-monospace;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 12px; border-radius: 4px; cursor: pointer; }
+    .tbtn:hover { border-color: var(--m); color: var(--m); }
+    .tbtn.primary { background: var(--m); color: #000; border-color: var(--m); font-weight: 700; }
+    .tbtn.primary:hover { background: var(--c); border-color: var(--c); }
+    .spacer { flex: 1; }
+    .meter { width: 160px; height: 16px; background: #0a0612; border: 1px solid var(--line); border-radius: 3px; display: block; }
+    aside.lib, aside.layers { background: var(--panel); overflow-y: auto; }
+    aside.lib { border-right: 1px solid var(--line); }
+    aside.layers { border-left: 1px solid var(--line); }
+    .head { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+    .head h2 { margin: 0; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); flex: 1; }
+    .body { padding: 6px; }
+    #lib { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .li { aspect-ratio: 1; background: var(--bg-2); border: 1px solid var(--line); border-radius: 3px;
+      overflow: hidden; position: relative; cursor: pointer; transition: border-color 0.1s; }
+    .li:hover { border-color: var(--c); }
+    .li img, .li video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--m);
+      color: #000; border-radius: 1px; letter-spacing: 0.08em; }
+    .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #layers { display: flex; flex-direction: column; gap: 4px; }
+    .l { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
+    .l.sel { border-color: var(--m); box-shadow: 0 0 0 1px var(--m); }
+    .l .lh { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .l .lh .n { font-size: 9px; color: var(--muted); width: 14px; }
+    .l .lh .nm { flex: 1; font-size: 10px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .l .lh .x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 2px; }
+    .l .lh .x:hover { color: var(--m); }
+    .l .r { display: grid; grid-template-columns: 36px 1fr; gap: 4px; align-items: center; margin-top: 2px; }
+    .l .r label { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .l .r select, .l .r input { background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+      font: 9px ui-monospace; padding: 2px 3px; border-radius: 2px; width: 100%; }
+    .l .react { font-size: 8px; color: var(--c); letter-spacing: 0.04em; margin-top: 3px; }
+    section.stage { position: relative; background: #000; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #flash { position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(circle at center, rgba(255,45,138,0.5), transparent 60%);
+      opacity: 0; mix-blend-mode: screen; }
+    footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 14px;
+      background: var(--bg-2); border-top: 1px solid var(--line); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+    .gc { display: flex; align-items: center; gap: 6px; }
+    .gc input { width: 80px; }
+    .gc b { color: var(--c); min-width: 26px; text-align: right; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
+    .led.on { background: var(--m); box-shadow: 0 0 8px var(--m); }
+    a.nav { color: var(--c); text-decoration: none; border: none; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+    a.nav:hover { color: var(--m); }
+    input[type=file] { display: none; }
+
+    /* SWR watermark overlay */
+    /* ---------- Responsive layout (mobile-first additions) ----------
+       SWR-RESPONSIVE-MARKER
+       Original desktop layout (grid-template-columns: 220px 1fr 240px,
+       header in one row) is preserved. Below 720px viewport we collapse
+       the 3-column grid to a single column, stack the canvas on top of
+       the library + layers panels (each scrollable with a bounded
+       height), and let the header wrap + scroll vertically. */
+    #app { min-width: 0; }
+    header { flex-wrap: wrap; max-height: 30vh; overflow-y: auto; min-width: 0; }
+    header > * { min-width: 0; }
+    header input, header select, header button { max-width: 100%; }
+    aside.lib, aside.layers { min-width: 0; }
+    footer { flex-wrap: wrap; max-height: 24vh; overflow-y: auto; min-width: 0; row-gap: 4px; }
+    footer > * { min-width: 0; }
+    @media (max-width: 720px) {
+      #app {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto 1fr auto auto;
+      }
+      header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
+      .meter { width: 100px; }
+      aside.lib, aside.layers { max-height: 30vh; }
+      aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
+      aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
+      section.stage { grid-row: 2; min-height: 320px; }
+    }
+
+    /* ---------- Mobile icons-only header ----------
+       SWR-MOBILE-HEADER-MARKER
+       At <= 480px the header text labels collapse to glyphs to keep all
+       14 controls reachable in one row (~41px tall, was 75-109px when
+       wrapped to multiple rows). At > 480px the labels show normally —
+       the desktop/tablet layout is unchanged.
+       The data-icon attributes are inserted by the codemod's HTML
+       pass; see the HEADER_ICON_INJECTIONS list for the per-control
+       glyph mapping. */
+    /* Stop the header from wrapping to multiple rows at phone widths —
+       let it stay one tall row and use the icons. */
+    @media (max-width: 480px) {
+      header {
+        flex-wrap: nowrap;
+        max-height: 64px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 4px 8px;
+        gap: 2px;
+      }
+      header > * { flex-shrink: 0; }
+      header .spacer { display: none; }
+      /* Hide the textual label of every data-icon control. The ::before
+         pseudo carries the glyph. text-indent:-9999px is the standard
+         "icon-only button" pattern and keeps the text in the DOM for
+         screen readers + the .tbtn:hover color-state rules. */
+      [data-icon] {
+        text-indent: -9999px;
+        position: relative;
+        padding-left: 6px;
+        padding-right: 6px;
+        min-width: 0;
+        font-size: 14px;
+      }
+      [data-icon]::before {
+        content: attr(data-icon);
+        text-indent: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1;
+        pointer-events: none;
+      }
+      /* Auto-cycle's checkbox input is hidden by the original CSS; the
+         label carries the text. We need to keep the checkbox + label
+         behavior but the text label needs to swap to the icon. The
+         label wraps a checkbox AND has data-icon set; the rule above
+         handles the ::before, and we keep the checkbox visual via the
+         existing :checked styles. */
+      #meter { width: 60px !important; height: 18px; }
+      /* rec-dur select: keep visible 3-char "30s" text */
+      #rec-dur { text-indent: 0; padding: 4px 6px; min-width: 50px; }
+      #rec-dur::before { display: none; }
+      /* #time: keep as compact timestamp — the engine writes
+         "0:00 / 0:00" into #time. At icons mode we hide the second
+         half (after the slash) so only the elapsed time shows.
+         "0:00 / 0:00" contains a literal " / " (space-slash-space)
+         that we mask with a zero-width spacer and clip the rest. */
+      #time {
+        text-indent: 0;
+        font-size: 11px;
+        max-width: 50px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      #time::before { display: none; }
+      /* .v title: keep the engine name visible */
+      .v { text-indent: 0; font-size: 14px; }
+      .v::before { display: none; }
+      /* .pill status: keep small text */
+      .pill { text-indent: 0; padding: 2px 6px; }
+      .pill::before { display: none; }
+      /* The auto-cycle label carries text "auto-cycle" but it's a
+         <label> wrapping a checkbox. We need its data-icon glyph to
+         show while the checkbox stays usable. */
+      label[data-icon] {
+        padding: 4px 6px;
+        text-indent: -9999px;
+        position: relative;
+      }
+      label[data-icon]::before {
+        content: attr(data-icon);
+        text-indent: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1;
+        pointer-events: none;
+      }
+      /* Beat/onset indicators are <span class="gc">beat <span class="led">.
+         At icons mode the .gc text "beat"/"onset" is hidden (the LED
+         dot already has its own data-icon glyph). The two header .gc
+         elements have an inline style="font-size:10px" (from the
+         engine's source markup) which would otherwise override our
+         class rule, so we use !important here. */
+      .gc { font-size: 0 !important; gap: 0; }
+      .gc::before { display: none; }
+      .gc .led { font-size: 0; }
+      /* The select inside .gc (rec-dur) keeps its visible text — see
+         the #rec-dur rules above. */
+      /* Tighten the meter canvas — it eats 60px and we need the room
+         for the actual primary controls. */
+      /* At very narrow widths (≤ 380px) hide the meter entirely. It's
+         a nice-to-have spectrum display; the play button + status
+         are the primary signal. */
+      @media (max-width: 380px) {
+        #meter { display: none; }
+      }
+    }
+
+    .swr-watermark {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 100px;
+      opacity: 0.45;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: screen;
+    }
+    .swr-watermark img {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+    }
+  
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--ink);
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid var(--r);
+      background: rgba(0,0,0,0.65);
+      box-shadow: 0 0 32px var(--r);
+    }
+    #swr-start .arrow { font-size: 56px; color: var(--r); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--g); margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+  <script src="../client/library-loader.client.js" defer></script>
+<script src="../client/visualizer-controller.js"></script>
+  <script src="../engine-render.client.js"></script>
+  <script src="../client/preset-anchor-map.client.js"></script>
+<script src="../engine-timing.client.js"></script>
+<script src="../engine-timing-panel.client.js"></script>
+<script src="../engine-lfos.client.js"></script>
+<script src="../engine-lfo-panel.client.js"></script>
+<script src="../engine-automap.client.js"></script>
+<script src="../engine-settings.client.js"></script>
+<script src="../engine-keys.client.js"></script>
+<script src="../project.client.js"></script>
+<script src="../layer-scheduler.client.js"></script>
+<script src="../lib/reset-state.client.js"></script>
+    <script src="../lib/recorder.client.js"></script>
+<link rel="stylesheet" href="../engine-genops.css" />
+</head>
+<body data-page="music_video">
+  <div id="app">
+    <!-- SWR-HEADER-DATA-ICONS --><header>
+      <div class="v">MUSIC VIDEO <small>v1</small></div>
+      <span class="pill" id="status">idle</span>
+      <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
+      <input type="file" id="song-input" accept="audio/*" />
+      <button class="tbtn primary" id="play" disabled data-icon="▶">▶</button>
+      <span id="time" style="font-size:10px;color:var(--muted);">0:00 / 0:00</span>
+      <canvas class="meter" id="meter" width="320" height="32"></canvas>
+      <span class="spacer"></span><button class="tbtn" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="font-family:ui-monospace,monospace;font-weight:700;min-width:24px;padding:5px 8px;line-height:1;position:relative;z-index:10001;">?</button>
+      <span class="gc">beat <span class="led" id="beat-led" data-icon="●"></span></span>
+      <span class="gc">onset <span class="led" id="onset-led" data-icon="●"></span></span>
+            <select id="rec-format" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording format">
+        <option value="auto" selected>MP4 auto</option>
+        <option value="mp4">MP4 (H.264)</option>
+        <option value="webm">WebM (VP9)</option>
+      </select>
+      <select id="rec-fps" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording frame rate">
+        <option value="24">24fps</option>
+        <option value="30" selected>30fps</option>
+        <option value="60">60fps</option>
+      </select>
+      <select id="rec-quality" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording quality (video bitrate)">
+        <option value="low">3 Mbps</option>
+        <option value="med">6 Mbps</option>
+        <option value="high" selected>12 Mbps</option>
+      </select>
+      <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
+        <option value="0">manual</option>
+        <option value="10">10s</option>
+        <option value="15">15s</option>
+        <option value="30" selected>30s</option>
+        <option value="60">60s</option>
+        <option value="song">song</option>
+      </select>
+      <button class="tbtn danger" id="rec" disabled data-icon="⏺">● REC</button>
+    </header>
+    <aside class="lib">
+      <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
+      <div class="body"><div id="lib"></div></div>
+    </aside>
+    <section class="stage">
+      <canvas id="render"></canvas>
+      <div id="flash"></div>
+      <div class="swr-watermark">
+        <img src="../watermark-monogram.svg" alt="SWR" />
+      </div>
+    </section>
+    <aside class="layers">
+      <div class="head"><h2>Gradient</h2><span class="pill" id="synth-pill" style="font-size:8px;padding:2px 6px;color:var(--c);border-color:var(--c);">— no track</span></div>
+      <div class="body" style="padding:8px;display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:8px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;">
+          <span style="flex:1;">warmth</span>
+          <span style="color:var(--c);">cool</span>
+          <span style="opacity:0.4;">→</span>
+          <span style="color:var(--m);">warm</span>
+        </div>
+        <canvas id="gradient" width="216" height="216" style="width:100%;aspect-ratio:1;background:var(--bg-2);border:1px solid var(--line);border-radius:3px;display:block;"></canvas>
+        <div style="display:flex;align-items:center;gap:6px;font-size:8px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;">
+          <span style="flex:1;">intensity</span>
+          <span style="color:var(--c);">calm</span>
+          <span style="opacity:0.4;">→</span>
+          <span style="color:var(--m);">chaotic</span>
+        </div>
+        <div id="neighbours-list" style="font-size:8px;letter-spacing:0.04em;color:var(--muted);line-height:1.4;min-height:32px;"></div>
+        <!-- Stubs for the neon Layers panel — these IDs are still
+             referenced by the inherited inline IIFE (Layers.render,
+             Layers.remap, $('remap').addEventListener). Hidden in
+             the gradient view; the gradient panel replaces the visible
+             Layers UI. The stubs let the legacy code paths no-op
+             without throwing a null-reference error. -->
+        <div id="layers" style="display:none;"></div>
+        <button id="remap" style="display:none;"></button>
+      </div>
+    </aside>
+    <footer>
+      <span class="gc">sens <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1.2" /> <b id="sens-v">1.20</b></span>
+      <span class="gc">gate <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.4" /> <b id="gate-v">1.40</b></span>
+      <span class="gc">decay <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.85" /> <b id="decay-v">0.85</b></span>
+      <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">depth <input type="range" id="depth" min="0" max="1" step="0.05" value="0.5" /> <b id="depth-v">0.50</b></span>
+      <span class="gc">N <input type="range" id="neighbour-count" min="1" max="8" step="1" value="4" /> <b id="neighbour-count-v">4</b></span>
+      <span class="spacer" style="flex:1"></span>
+      <span id="fps" style="color:var(--m);">— fps</span>
+    </footer>
+  </div>
+
+  
+
+
+  
+  <div id="swr-start" role="button" aria-label="Drop a song to begin">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song to begin</div>
+      <div class="sub" id="swr-start-sub">Your uploads stay on this device</div>
+      <div class="hint" id="swr-start-hint" style="font-size:9px;letter-spacing:0.06em;color:var(--muted);margin-top:14px;text-transform:none;line-height:1.5;max-width:260px;">
+        Don't have one handy?
+        <a id="swr-request-demo" href="/library/manifest.json" target="_blank" rel="noopener"
+           style="color:var(--c);text-decoration:none;border-bottom:1px dotted var(--c);">Request demo files</a>
+        — pick anything from the list and drag it back here.
+      </div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '../audios/film.mp3';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+
+    // === One-shot onboarding ============================================
+    // music_video.html is session-private by default. The library auto-loads
+    // NOTHING on first visit — no curated assets, no bundled demo. The
+    // user drops a song (or hits "Load song" in the header) and that
+    // song is persisted to IDB. On every subsequent visit, the saved
+    // song auto-loads via SWR_LAST_SONG and the overlay never appears
+    // again until the user clicks ↺ (Reset) or clears local state.
+    //
+    // The "Request demo files" link in the overlay opens the library
+    // manifest in a new tab. The user can drag-drop any URL from there
+    // back into the page — no auto-fetch, no coupling.
+    //
+    // This is the inverse of the other versions/*.html pages, which
+    // always auto-fetch the curated library on boot. music_video is
+    // about the user's own content, not ours.
+
+    // Can we autoplay without a user gesture? Modern browsers
+    // (Chrome 94+, Safari 16.4+, Firefox 121+) relax autoplay for
+    // sites the user has interacted with before.
+    var canAutoplay = false;
+    try {
+      if (navigator.userActivation && navigator.userActivation.isActive) {
+        canAutoplay = true;
+      }
+    } catch (_) {}
+
+    async function start() {
+      if (fired) return;
+      fired = true;
+      var succeeded = false;
+      try {
+        // Always prefer the user's last-loaded song (persisted in IDB).
+        // If no saved song exists, fall back to the per-page bundled
+        // audio so the demo overlay still works on first visit if the
+        // browser allows autoplay — but only if a saved song doesn't
+        // already exist. This is the gating logic.
+        var picked = null;
+        if (window.SWR_LAST_SONG) {
+          picked = await window.SWR_LAST_SONG();
+        }
+        if (!picked) {
+          // No persisted user song. Show the overlay regardless of
+          // canAutoplay — we don't want to surprise the user with
+          // auto-playing bundled audio. The overlay's manual click
+          // is the only path that uses DEFAULT_SONG on first visit.
+          fired = false;
+          if (sub) sub.textContent = 'Drop a song or click to browse';
+          return;
+        }
+        var blob = picked.blob;
+        var name = picked.name;
+        var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          window.SWR.Audio.load(file);
+          await window.SWR.Audio.play();
+          if (sub) sub.textContent = 'playing · ' + name;
+        }
+        succeeded = true;
+      } catch (e) {
+        // Failure path: leave the overlay visible so the user can
+        // click again. Reset the fired flag so the click handler
+        // can fire a fresh attempt.
+        fired = false;
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      if (succeeded) {
+        overlay.classList.add('hide');
+        setTimeout(function(){ overlay.remove(); }, 600);
+      }
+    }
+
+    // Track a one-shot user gesture anywhere on the page to arm the
+    // audio for next time. Once armed, the overlay can autoplay on
+    // future visits (when a saved song exists).
+    document.addEventListener('pointerdown', function arm() {
+      try { localStorage.setItem('swr.audio.armed', '1'); } catch (_) {}
+    }, { once: true, capture: true });
+
+    // Auto-start ONLY if a saved user song exists. The overlay stays
+    // visible on first visit (when IDB has no song) regardless of
+    // autoplay permission — the user must drop a song to begin.
+    function waitForPick() {
+      if (!window.SWR_LAST_SONG) {
+        var tries = 0;
+        var iv = setInterval(function() {
+          tries++;
+          if (window.SWR_LAST_SONG) {
+            clearInterval(iv);
+            start();
+          } else if (tries > 50) {  // ~5s timeout
+            clearInterval(iv);
+          }
+        }, 100);
+      } else {
+        start();
+      }
+    }
+    waitForPick();
+
+    // The overlay's click + Enter/Space handlers ALWAYS trigger a
+    // "load song" picker, never an autoplay attempt — the user
+    // explicitly chose to engage, so we ask them to pick a file.
+    // (Neon's overlay tried to autoplay; we don't, because we don't
+    // want to surprise the user with audio on first visit.)
+    function openSongPicker() {
+      var input = document.getElementById('song-input');
+      if (input) input.click();
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', openSongPicker);
+    document.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openSongPicker(); }
+    }, { once: true });
+  })();
+  </script>
+
+
+
+
+
+  <script src="./last-song.js"></script>
+  <script src="../lib/persist.client.js"></script>
+  <script src="../lib/persist-wire.client.js"></script>
+  <script>
+    // Seeded randomness: routed through SWR_GENOPS so deterministic mode
+    // reproduces asset selection as well as parameters. Falls back when absent.
+    const _rnd = () => (window.SWR_GENOPS ? window.SWR_GENOPS.rand() : Math.random());
+    function __shuffle_once(key, arr) {
+      if (!__shuffle_once._cache || __shuffle_once._key !== key) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(_rnd() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        __shuffle_once._cache = a;
+        __shuffle_once._key = key;
+      }
+      __shuffle_once._cache.push(__shuffle_once._cache.shift());
+      return __shuffle_once._cache;
+    }
+
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const stage = $('render');
+    const ctx = stage.getContext('2d', { alpha: false, willReadFrequently: true });
+    const meter = $('meter').getContext('2d');
+    let W, H;
+
+    // === AUDIO ===
+    const A = { ctx: null, an: null, src: null, el: null, gain: null,
+      fft: null, time: null,
+      feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
+      // Cached slider values — read once per slider input, not once
+      // per audio frame. Avoids forcing layout every audio sample.
+      params: { sens: 1.5, gate: 1.2, decay: 0.7 },
+      hist: { prev:null, bassAvg:0, fluxAvg:0 }, beats: [], playing: false,
+      unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+        this.an = this.ctx.createAnalyser(); this.an.fftSize = 2048; this.an.smoothingTimeConstant = 0.6;
+        this.fft = new Uint8Array(this.an.frequencyBinCount);
+        this.time = new Uint8Array(this.an.fftSize);
+        this.gain = this.ctx.createGain(); this.gain.gain.value = 1;
+        this.an.connect(this.gain); this.gain.connect(this.ctx.destination);
+        
+      setStatus('ready', 'ok'); },
+      load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
+        if (this.el) { this.el.pause(); this.el.src=''; }
+        // Free the previous Blob URL before allocating a new one.
+        if (this.el && this.el.__swr_blob_url) {
+          try { URL.revokeObjectURL(this.el.__swr_blob_url); } catch (_) {}
+        }
+        this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
+        this.el.__swr_blob_url = URL.createObjectURL(file);
+        this.el.src = this.el.__swr_blob_url; this.el.preload='auto';
+        this.el.addEventListener('ended', ()=>{A.playing=false;$('play').textContent='▶';});
+        this.el.addEventListener('timeupdate', ()=>{
+          const t=this.el.currentTime,d=this.el.duration||0;
+          $('time').textContent = fmt(t)+' / '+fmt(d); });
+        this.src = this.ctx.createMediaElementSource(this.el);
+        this.src.connect(this.an);
+        this.hist = { prev:null, bassAvg:0, fluxAvg:0 }; this.beats=[]; this.feat.bpm=0;
+        $('play').disabled=false; $('rec').disabled=false; },
+      play() { this.unlock(); if (this.ctx.state==='suspended') this.ctx.resume();
+        this.el.play(); this.playing=true; $('play').textContent='❚❚'; },
+      pause() { if (this.el) this.el.pause(); this.playing=false; $('play').textContent='▶'; },
+      sample() { if (!this.an) return;
+        this.an.getByteFrequencyData(this.fft);
+        this.an.getByteTimeDomainData(this.time);
+        const N=this.fft.length, sr=this.ctx.sampleRate, hz=sr/this.an.fftSize;
+        const r = { sub:[1,Math.floor(60/hz)], bass:[Math.floor(60/hz),Math.floor(250/hz)],
+          mid:[Math.floor(250/hz),Math.floor(2000/hz)], treble:[Math.floor(2000/hz),Math.floor(6000/hz)],
+          air:[Math.floor(6000/hz),N-1] };
+        const mean = (lo,hi) => { let s=0,c=0; for (let i=lo;i<=hi&&i<N;i++){s+=this.fft[i];c++;} return s/c/255; };
+        this.feat.sub=mean(r.sub[0],r.sub[1]); this.feat.bass=mean(r.bass[0],r.bass[1]);
+        this.feat.mid=mean(r.mid[0],r.mid[1]); this.feat.treble=mean(r.treble[0],r.treble[1]);
+        this.feat.air=mean(r.air[0],r.air[1]);
+        let rms=0; for (let i=0;i<this.time.length;i++){const v=(this.time[i]-128)/128;rms+=v*v;}
+        this.feat.rms = Math.sqrt(rms/this.time.length);
+        let num=0,den=0; for (let i=1;i<N;i++){num+=i*this.fft[i];den+=this.fft[i];}
+        this.feat.centroid = den>0?num/den/N:0;
+        let flux=0; if (this.hist.prev) for (let i=1;i<N;i++){const d=this.fft[i]-this.hist.prev[i]; if (d>0) flux+=d;}
+        flux /= 255*N;
+        this.hist.fluxAvg = lerp(this.hist.fluxAvg, flux, 0.08);
+        const onsetHit = flux > this.hist.fluxAvg * this.params.gate && flux > 0.02;
+        this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.06);
+        const beatHit = this.feat.bass > this.hist.bassAvg * this.params.gate && this.feat.bass > 0.18;
+        const now = this.ctx.currentTime;
+        if (beatHit) { this.beats.push(now); while (this.beats.length&&this.beats[0]<now-8) this.beats.shift();
+          if (this.beats.length>=4) { let t=0; for (let i=1;i<this.beats.length;i++) t+=this.beats[i]-this.beats[i-1];
+            const a=t/(this.beats.length-1); if (a>0) this.feat.bpm=Math.round(60/a); } }
+        const dec = this.params.decay;
+        this.feat.beat = beatHit ? 1 : this.feat.beat*dec;
+        this.feat.onset = onsetHit ? 1 : this.feat.onset*dec;
+        this.feat.beatPulse = beatHit; this.feat.onsetPulse = onsetHit;
+        this.hist.prev = Uint8Array.from(this.fft);
+        $('beat-led').classList.toggle('on', beatHit);
+        $('onset-led').classList.toggle('on', onsetHit);
+      }
+    };
+    const lerp = (a,b,t) => a+(b-a)*t;
+    const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+    const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
+    function setStatus(t, cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
+
+    // === LIBRARY ===
+    const Lib = { items: [], nextId: 1,
+      async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
+        for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
+          const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
+            blob: f, url: URL.createObjectURL(f), motion: 0, luma: 0.5, hue: 0, w:0, h:0, added: Date.now(), thumb: null };
+          this.items.push(it); this._classify(it); }
+        this.render(); },
+      _classify(it) {
+        const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
+        const src = it.type==='video' ? Object.assign(document.createElement('video'),{src:it.url,muted:true,playsInline:true,preload:'metadata'}) : Object.assign(new Image(),{src:it.url});
+        src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', () => {
+          if (it.type==='video') it.duration = src.duration;
+          cx.drawImage(src, 0,0,32,32);
+          const d = cx.getImageData(0,0,32,32).data;
+          let luma=0,hue=0; for (let i=0;i<d.length;i+=4) luma += 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+          it.luma = (luma/(d.length/4))/255;
+          let sx=0,sy=0; for (let i=0;i<d.length;i+=4){
+            const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]);
+            if (mx===mn) continue; const df=mx-mn; let h=0;
+            if (mx===d[i]) h=((d[i+1]-d[i+2])/df)%6;
+            else if (mx===d[i+1]) h=(d[i+2]-d[i])/df+2;
+            else h=(d[i]-d[i+1])/df+4;
+            h/=6; sx+=Math.cos(h*Math.PI*2); sy+=Math.sin(h*Math.PI*2);
+          }
+          it.hue = (Math.atan2(sy/(d.length/4), sx/(d.length/4))/(Math.PI*2)+1)%1;
+          it.w = src.videoWidth||src.naturalWidth; it.h = src.videoHeight||src.naturalHeight;
+          // thumb
+          const tw=120,th=120; const tcv=document.createElement('canvas'); tcv.width=tw;tcv.height=th;
+          const tcx=tcv.getContext('2d'); tcx.drawImage(src,0,0,tw,th);
+          it.thumb = tcv.toDataURL('image/jpeg',0.7);
+          this.render();
+        }, { once: true });
+      },
+      render() { const el = $('lib');
+        if (!this.items.length) { el.innerHTML='<div style="grid-column:1/-1;color:var(--muted);font-size:10px;padding:16px;text-align:center;">drop files</div>'; return; }
+        el.innerHTML = '';
+        for (const it of this.items) {
+          const d = document.createElement('div'); d.className='li';
+          d.innerHTML = `<span class="tag">${it.type==='video'?'V':'I'}</span><span class="nm">${it.name}</span>`;
+          if (it.thumb) { const i=new Image(); i.src=it.thumb; d.appendChild(i); }
+          else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;d.appendChild(v); }
+          else { const i=new Image(); i.src=it.url; d.appendChild(i); }
+          d.addEventListener('click', () => Layers.add(it));
+          el.appendChild(d);
+        }
+      }
+    };
+
+    // === LAYERS ===
+    const Layers = { list: [], sel: null,
+      add(it) { const i=this.list.length;
+        const presets = [
+          [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
+          [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
+          [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
+          [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
+          [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
+          [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
+        ];
+        const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
+          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
+        this.list.push(l); this.render(); this.sel = l; },
+      rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
+      render() {
+        const el = $('layers'); el.innerHTML = '';
+        for (let i=0;i<this.list.length;i++) {
+          const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
+          const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
+          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
+          d.querySelector('select').value = l.blend;
+          for (const inp of d.querySelectorAll('input[type=range]')) {
+            const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
+            // simpler: by order
+          }
+          const ins = d.querySelectorAll('input[type=range]');
+          ins[0].value = l.opacity; ins[1].value = l.baseScale; ins[2].value = l.hue;
+          ins[3].value = l.contrast; ins[4].value = l.brightness; ins[5].value = l.alpha; ins[6].value = l.mutate;
+          d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
+          ins[0].addEventListener('input', e => l.opacity = +e.target.value);
+          ins[1].addEventListener('input', e => l.baseScale = +e.target.value);
+          ins[2].addEventListener('input', e => l.hue = +e.target.value);
+          ins[3].addEventListener('input', e => l.contrast = +e.target.value);
+          ins[4].addEventListener('input', e => l.brightness = +e.target.value);
+          ins[5].addEventListener('input', e => l.alpha = +e.target.value);
+          ins[6].addEventListener('input', e => l.mutate = +e.target.value);
+          d.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
+          el.appendChild(d);
+        }
+      },
+      remap() {
+        if (!Lib.items.length) return;
+        const f = A.feat; const sens = A.params.sens;
+        const roles = [
+          { want:'motion', weight: 0.6 + f.bass * sens },
+          { want:'mid',    weight: 0.4 + f.mid * sens },
+          { want:'luma',   weight: 0.3 + f.treble * sens },
+          { want:'hue',    weight: 0.2 + f.air * sens },
+          { want:'motion', weight: 0.5 + f.rms * sens * 2 },
+          { want:'motion', weight: 0.7 + f.onset * sens * 3 },
+        ];
+        const scored = Lib.items.map(it => {
+          const sc = {};
+          sc.motion = (it.motion)*0.7 + (1 - Math.abs(it.luma-0.5)*2)*0.3;
+          sc.mid = (it.luma)*0.5 + (1-it.motion)*0.5;
+          sc.luma = (1-it.motion)*0.4 + (it.luma)*0.6;
+          sc.hue = (it.hue)*0.5 + (1-it.motion)*0.5;
+          return { it, sc };
+        });
+        // Pick from top-N candidates randomly so each remap = fresh look
+        const topN = 2 + (Math.floor(_rnd()*2)); // 2 or 3
+        const used = new Set();
+        const assignments = roles.map(r => {
+          const cands = [];
+          for (const s of scored) { if (used.has(s.it.id)) continue;
+            cands.push({ it: s.it, v: s.sc[r.want] * r.weight }); }
+          if (!cands.length) return null;
+          cands.sort((a,b) => b.v - a.v);
+          const pool = cands.slice(0, Math.min(topN, cands.length));
+          const total = pool.reduce((s,c) => s + Math.max(c.v, 0.01), 0);
+          let r2 = _rnd() * total;
+          let pick = pool[0];
+          for (const c of pool) { r2 -= Math.max(c.v, 0.01); if (r2 <= 0) { pick = c; break; } }
+          used.add(pick.it.id);
+          return pick.it;
+        });
+        this.list = [];
+        for (let i=0;i<assignments.length;i++) {
+          if (!assignments[i]) continue;
+          const it = assignments[i];
+          const presets = [
+            [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
+            [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
+            [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
+            [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
+            [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
+            [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
+          ];
+          this.list.push({
+            id:'L'+(i+1), asset: it, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
+            opacity:1, baseScale:[1.2,0.8,1.5,0.6,2.0,0.5][i%6], hue:0, brightness:1, contrast:1,
+          alpha:1, mutate:0,
+            reactors: presets[i%presets.length]
+          });
+        }
+        this.render();
+      }
+    };
+
+    // === RENDERER (NEON style) ===
+    let fps=0, lastT=performance.now();
+        function fit() {
+      const m = SWR_RENDER.fit(stage);
+      W = m.cssW; H = m.cssH;
+      ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+    }
+    fit();
+    const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
+    const pcx = proc.getContext('2d');
+    function ease(name, t) {
+      if (name === 'sharp') return Math.pow(t, 0.4);
+      if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
+      return t;
+    }
+    function applyR(l) {
+      const a = l.asset, sens = A.params.sens;
+      const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
+      for (const r of l.reactors) {
+        let v = A.feat[r.feature] ?? 0;
+        if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
+        v = ease(r.ease, clamp(v,0,1)) * sens;
+        if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
+        // Master rotation toggle gate: when the user has turned rotation
+        // OFF globally (swr-rot-master button), skip rot reactor writes so
+        // audio doesn't compound the canvas into 180-degree flips.
+        const _rotOn = l.rotationEnabled !== false;
+        // `r.scale` is now the per-reactor *target gain* in its target's natural
+        // units (px, deg, scale-factor, hue-deg). The previous `v * r.scale * 30`
+        // form coupled reactor sensitivity to a magic 30× multiplier, which made
+        // any scale > 1 accumulate hundreds of degrees per audio frame and snapped
+        // through (-180, 180] multiple times a second. Read it straight now.
+        if (r.target==='scale') out.scale += v * r.scale;
+        else if (r.target==='x') out.x += v * r.scale;
+        else if (r.target==='y') out.y += v * r.scale;
+        else if (r.target==='rot') { if (_rotOn) out.rot += v * r.scale; }
+        else if (r.target==='opacity') out.opacity = clamp(out.opacity + v*0.5, 0, 1);
+        else if (r.target==='hue') out.hue += v * r.scale;
+        else if (r.target==='brightness') out.brightness = clamp(out.brightness + v*0.5, 0.1, 2.5);
+        else if (r.target==='contrast') out.contrast = clamp(out.contrast + v*0.5, 0.1, 2.5);
+      }
+      // Wrap accumulated rot into (-180, 180] so it stays continuous across many audio frames.
+      // The previous asin(sin(x)) clamp produced sign flips every ~180° of accumulation,
+      // which read as the layer "tumbling" / facing the wrong direction. The new formula
+      // ((x + 540) % 360) - 180 preserves the angle sign and only wraps at the +/-180° boundary
+      // so rotation stays continuous.
+      if (out.rot) out.rot = ((out.rot + 540) % 360) - 180;
+      out._v = "0";
+      return out;
+    }
+    function drawLayer(l) {
+      const a = l.asset; if (!a) return;
+      let src;
+      if (a.type === 'video') {
+        if (!a._el) { a._el = document.createElement('video'); a._el.src=a.url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
+        src = a._el;
+        if (A.playing && src.paused) src.play().catch(()=>{});
+        if (!A.playing && !src.paused) src.pause();
+      } else {
+        if (!a._el) { a._el = new Image(); a._el.src=a.url; }
+        src = a._el;
+      }
+      if (a.type==='video' && src.readyState<2) return;
+      if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
+      const r = applyR(l);
+      ctx.save();
+      ctx.globalCompositeOperation = l.blend || 'screen';
+      ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
+      const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
+      const car = W/H;
+      let dw, dh;
+      if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
+      const dx = (W - dw)/2 + r.x;
+      const dy = (H - dh)/2 + r.y;
+      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;
+      if (Math.abs(r.rot) > 0.5) {
+        ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+      } else {
+        ctx.drawImage(src, dx, dy, dw, dh);
+      }
+      ctx.filter = 'none';
+      ctx.restore();
+    }
+    function drawFx() {
+      // scanline
+      ctx.save();
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#ff2d8a';
+      for (let y=0; y<H; y+=3) ctx.fillRect(0, y, W, 1);
+      ctx.restore();
+      // beat flash
+      if (A.feat.beat > 0.05) {
+        ctx.save(); ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = `rgba(255,45,138,${A.feat.beat*0.25})`;
+        ctx.fillRect(0,0,W,H); ctx.restore();
+      }
+      // Vignette glow pulse — radial gradient from the stage center
+      // that breathes with the beat. Damped to avoid strobing on noisy
+      // onset detection (smoothed via SWR_AUDIO_DAMP at 0.4s half-life).
+      const pulse = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp(A.feat.beat, 0.4)
+        : A.feat.beat;
+      if (pulse > 0.05) {
+        const cx = W * 0.5, cy = H * 0.5;
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.6);
+        g.addColorStop(0,   `rgba(255,240,74,${0.18 * pulse})`);
+        g.addColorStop(0.5, `rgba(0,240,255,${0.10 * pulse})`);
+        g.addColorStop(1,   'rgba(0,0,0,0)');
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+    }
+    function drawMeter() {
+      const m = meter; const w = m.canvas.width, h = m.canvas.height;
+      m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
+      const sens = A.params.sens;
+      const vals = [A.feat.bass*sens, A.feat.mid*sens, A.feat.treble*sens, A.feat.air*sens, A.feat.rms*sens];
+      const bw = w / vals.length;
+      for (let i=0;i<vals.length;i++) {
+        const v = clamp(vals[i], 0, 1);
+        const bh = v * h;
+        const x = i*bw + 2;
+        const y = h - bh;
+        const g = m.createLinearGradient(0, y, 0, h);
+        if (i<2) { g.addColorStop(0,'#ff2d8a'); g.addColorStop(1,'#fff04a'); }
+        else { g.addColorStop(0,'#00f0ff'); g.addColorStop(1,'#00ffa3'); }
+        m.fillStyle = g;
+        m.fillRect(x, y, bw-4, bh);
+      }
+    }
+    function loop(t) {
+      const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
+      $('fps').textContent = Math.round(fps)+' fps';
+      if (A.playing) A.sample();
+      SWR_RENDER.setBackground('#000');
+      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
+      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // === UI WIRING ===
+    $('load-song').addEventListener('click', () => $('song-input').click());
+    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); } });
+    $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
+    $('add').addEventListener('click', () => $('asset-input').click());
+    $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
+    $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
+    for (const id of ['sens','gate','decay']) {
+      const inp = $(id); const out = $(id+'-v');
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (out) out.textContent = v.toFixed(2);
+        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
+          A.params[id] = v;
+        }
+      });
+    }
+    window.addEventListener('dragover', e => { e.preventDefault(); });
+    window.addEventListener('drop', async e => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files.length) await Lib.addFiles(e.dataTransfer.files);
+    });
+    window.addEventListener('resize', fit);
+    $('rec').addEventListener('click', () => {
+      if (Recorder.recording) Recorder.stop();
+      else Recorder.start();
+    });
+
+    // === Auto-load library ==============================================
+    // music_video.html deliberately does NOT auto-fetch the curated
+    // library/. The page is session-private — only user uploads appear.
+    // Library assets can still be added manually via the + button or
+    // drag-drop, but they originate from the user. The `swr-manifest-loaded`
+    // flag is never set on this page, so other engines that check the
+    // flag won't re-seed from our state either.
+    //
+    // We still wire up #reset-state so the user can clear their
+    // uploaded assets and IDB-persisted song in one click.
+    function __swr_libboot() {
+      // Intentionally a no-op. The neon/film/etc pages call
+      // SWR_LIBLOAD.boot() here. We don't.
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
+    } else {
+      __swr_libboot();
+    }
+
+    // === Reset wiring ====================================================
+    // #reset-state is wired by lib/reset-state.client.js (loaded as a
+    // <script> in the head). On this page, reset() also clears the
+    // persisted song — SWR_RESET_STATE.reset() handles the 'songs'
+    // store wipe — so the user sees the first-visit overlay again on
+    // next reload. No additional wiring needed here.
+    // === RECORDER (MP4 export) ===
+    const Recorder = {
+      rec: null,
+      chunks: [],
+      recording: false,
+      mime: 'video/webm',
+      mediaDest: null,
+      autoStopAt: 0,
+      autoStopTimer: null,
+      autoStopAt: 0,
+      autoStopTimer: null,
+    // SWR_REC_MP4_INTEGRATION
+      start() {
+        if (!A.el) { setStatus('load a song first', ''); return; }
+        const fpsSel = $('rec-fps') ? $('rec-fps').value : '30';
+        const fps = parseInt(fpsSel, 10) || 30;
+        const qualSel = $('rec-quality') ? $('rec-quality').value : 'high';
+        const BITRATE = { high: 12_000_000, med: 6_000_000, low: 3_000_000 }[qualSel] || 12_000_000;
+        const formatSel = $('rec-format') ? $('rec-format').value : 'auto';
+        const wantMp4 = formatSel === 'mp4' || (formatSel === 'auto' && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs());
+        if (wantMp4 && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs()) {
+          this._wcActive = true;
+          this._wcPending = window.SWR_RECORDER.start({
+            canvas: stage,
+            audioSource: A.an,
+            audioSampleRate: A.ctx ? A.ctx.sampleRate : 0,
+            audioNumberOfChannels: 2,
+            width: stage.width,
+            height: stage.height,
+            fps: fps,
+            videoBitsPerSecond: BITRATE,
+          }).then(() => {
+            this.recording = true;
+            this.startedAt = Date.now();
+            const durSel = $('rec-dur') ? $('rec-dur').value : '0';
+            let durMs = 0;
+            if (durSel === 'song' && A.el && A.el.duration) {
+              durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
+            } else if (durSel !== '0' && durSel !== 'manual') {
+              durMs = parseInt(durSel) * 1000;
+            }
+            this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
+            $('rec').classList.add('live');
+            $('rec').textContent = '■ STOP';
+            const formatDur = (ms) => {
+              const s = Math.max(0, Math.round(ms / 1000));
+              return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0');
+            };
+            if (this.autoStopAt > 0) {
+              const durLabel = durSel === 'song' ? 'song' : (durSel + 's');
+              setStatus('rec · MP4 · ' + formatDur(this.autoStopAt - Date.now()) + ' / ' + durLabel, 'live');
+              this.autoStopTimer = setTimeout(() => { if (this.recording) Recorder.stop(); }, this.autoStopAt - Date.now());
+            } else {
+              setStatus('rec · MP4', 'live');
+            }
+            this.tickTimer = setInterval(() => {
+              if (!this.recording) { clearInterval(this.tickTimer); this.tickTimer = null; return; }
+              const el = formatDur(Date.now() - this.startedAt);
+              if (this.autoStopAt > 0) {
+                const rem = formatDur(this.autoStopAt - Date.now());
+                const durSel2 = $('rec-dur') ? $('rec-dur').value : '0';
+                const durLabel = durSel2 === 'song' ? 'song' : (durSel2 + 's');
+                setStatus('rec · MP4 · ' + el + ' / ' + durLabel, 'live');
+              } else {
+                setStatus('rec · MP4 · ' + el, 'live');
+              }
+            }, 500);
+          }).catch((err) => {
+            this._wcActive = false;
+            if (err && err.unsupported) {
+              setStatus('WebCodecs unsupported · falling back to WebM', 'warn');
+              const prev = $('rec-format') ? $('rec-format').value : formatSel;
+              if ($('rec-format')) $('rec-format').value = 'webm';
+              this.start();
+              if ($('rec-format')) $('rec-format').value = prev;
+            } else {
+              setStatus('recorder start failed: ' + (err && err.message || err), 'err');
+            }
+          });
+          return;
+        }
+        // === MEDIA-RECORDER (WEBM) PATH — same as before ===
+        const vstream = stage.captureStream(fps);
+        const dest = A.ctx.createMediaStreamDestination();
+        this.mediaDest = dest;
+        try { A.an.disconnect(dest); } catch {}
+        A.an.connect(dest);
+        const tracks = [...vstream.getVideoTracks(), ...dest.stream.getAudioTracks()];
+        const stream = new MediaStream(tracks);
+        const mime = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4;codecs=avc1,mp4a.40.2',
+          'video/mp4;codecs=avc1',
+          'video/mp4',
+          'video/webm',
+        ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+        this.mime = mime;
+        this.rec = new MediaRecorder(stream, {
+          mimeType: mime,
+          videoBitsPerSecond: BITRATE,
+          audioBitsPerSecond: 192_000,
+        });
+        this.chunks = [];
+        this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
+        this.rec.onstop = () => this._save();
+        this.rec.start(250);
+        this.recording = true;
+        this.startedAt = Date.now();
+        const durSel = $('rec-dur') ? $('rec-dur').value : '0';
+        let durMs = 0;
+        if (durSel === 'song' && A.el && A.el.duration) {
+          durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
+        } else if (durSel !== '0' && durSel !== 'manual') {
+          durMs = parseInt(durSel) * 1000;
+        }
+        this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
+        $('rec').classList.add('live');
+        $('rec').textContent = '■ STOP';
+        const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        const formatDur = (ms) => {
+          const s = Math.max(0, Math.round(ms / 1000));
+          return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0');
+        };
+        if (this.autoStopAt > 0) {
+          const durLabel = durSel === 'song' ? 'song' : (durSel + 's');
+          setStatus('rec · ' + ext.toUpperCase() + ' · ' + formatDur(this.autoStopAt - Date.now()) + ' / ' + durLabel, 'live');
+          this.autoStopTimer = setTimeout(() => { if (this.recording) Recorder.stop(); }, this.autoStopAt - Date.now());
+        } else {
+          setStatus('rec · ' + ext.toUpperCase(), 'live');
+        }
+        this.tickTimer = setInterval(() => {
+          if (!this.recording) { clearInterval(this.tickTimer); this.tickTimer = null; return; }
+          const el = formatDur(Date.now() - this.startedAt);
+          if (this.autoStopAt > 0) {
+            const rem = formatDur(this.autoStopAt - Date.now());
+            const durSel2 = $('rec-dur') ? $('rec-dur').value : '0';
+            const durLabel = durSel2 === 'song' ? 'song' : (durSel2 + 's');
+            setStatus('rec · ' + ext.toUpperCase() + ' · ' + el + ' / ' + durLabel, 'live');
+          } else {
+            setStatus('rec · ' + ext.toUpperCase() + ' · ' + el, 'live');
+          }
+        }, 500);
+        // SWR_REC_IMPROVED_v2
+      },
+      stop() {
+        if (this._wcActive) {
+          if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+          if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
+          this._wcActive = false;
+          this.recording = false;
+          $('rec').classList.remove('live');
+          $('rec').textContent = '● REC';
+          setStatus('finalizing MP4…', '');
+          window.SWR_RECORDER.stop().then((res) => {
+            this.chunks = [res.blob];
+            this.mime = res.mime;
+            this._save();
+          }).catch((err) => {
+            setStatus('recorder stop failed: ' + (err && err.message || err), 'err');
+          });
+          return;
+        }
+        if (!this.rec) return;
+        if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+        if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
+        this.rec.stop();
+        this.recording = false;
+        $('rec').classList.remove('live');
+        $('rec').textContent = '● REC';
+        setStatus('rendering…', '');
+        if (this.mediaDest) {
+          try { A.an.disconnect(this.mediaDest); } catch {}
+          this.mediaDest = null;
+        }
+      },
+      _save() {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        const a = document.createElement('a');
+        const recUrl = URL.createObjectURL(blob);
+        a.href = recUrl;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        a.download = 'sainted-word-' + ts + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Free the download URL once the click has been dispatched.
+        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
+        setStatus('exported · ' + ext.toUpperCase(), 'ok');
+      },
+    };
+        // Invalidate the per-layer cache whenever the page rebuilds.
+    if (Layers && typeof Layers.render === 'function') {
+      const __r = Layers.render.bind(Layers);
+      Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
+    }
+
+    // === GRADIENT PANEL ================================================
+    // Renders the 19 anchor presets on a 2D (warmth × intensity) canvas.
+    // This is Phase A: it only renders the anchor dots. Phase D adds
+    // the synthesized current-song dot + neighbour lines on top.
+    // The renderer is idempotent — it draws once on boot and updates
+    // only when window.SWR_GRADIENT.refresh() is called.
+    const Gradient = (function () {
+      const canvas = $('gradient');
+      if (!canvas) return { refresh: () => {} };
+      const ctx2 = canvas.getContext('2d');
+      const W2 = canvas.width, H2 = canvas.height;
+      const PAD = 8;
+      const map = window.SWR_ANCHOR_MAP;
+      if (!map) return { refresh: () => {} };
+
+      function toCanvas(w, i) {
+        return {
+          x: PAD + w * (W2 - 2 * PAD),
+          y: H2 - PAD - i * (H2 - 2 * PAD),
+        };
+      }
+
+      function drawAxes() {
+        ctx2.strokeStyle = 'rgba(138, 122, 160, 0.18)';
+        ctx2.lineWidth = 1;
+        // crosshair at center
+        const cx = PAD + 0.5 * (W2 - 2 * PAD);
+        const cy = H2 - PAD - 0.5 * (H2 - 2 * PAD);
+        ctx2.beginPath();
+        ctx2.moveTo(cx, PAD); ctx2.lineTo(cx, H2 - PAD);
+        ctx2.moveTo(PAD, cy); ctx2.lineTo(W2 - PAD, cy);
+        ctx2.stroke();
+      }
+
+      function drawAnchors() {
+        const ids = map.list();
+        for (let i = 0; i < ids.length; i++) {
+          const a = map.get(ids[i]);
+          if (!a) continue;
+          const { x, y } = toCanvas(a.warmth, a.intensity);
+          // outer glow
+          ctx2.fillStyle = 'rgba(0, 240, 255, 0.10)';
+          ctx2.beginPath(); ctx2.arc(x, y, 6, 0, Math.PI * 2); ctx2.fill();
+          // dot
+          ctx2.fillStyle = 'rgba(0, 240, 255, 0.55)';
+          ctx2.beginPath(); ctx2.arc(x, y, 2.2, 0, Math.PI * 2); ctx2.fill();
+          // label
+          ctx2.fillStyle = 'rgba(245, 233, 255, 0.55)';
+          ctx2.font = '7px ui-monospace, monospace';
+          ctx2.textAlign = 'left';
+          ctx2.fillText(ids[i], x + 5, y + 2);
+        }
+      }
+
+      function render() {
+        ctx2.fillStyle = '#0a0612';
+        ctx2.fillRect(0, 0, W2, H2);
+        drawAxes();
+        drawAnchors();
+      }
+
+      // Expose so other modules can ask for a redraw after a track lands.
+      window.SWR_GRADIENT = { refresh: render };
+      render();
+      return { refresh: render };
+    })();
+
+    // Wire the depth + N sliders so they actually move things (Phase A
+    // just keeps the values in a window-scope state object so later
+    // phases can read them from applyR).
+    const HologramState = {
+      depth: 0.5,
+      neighbours: 4,
+    };
+    (function wireSliders() {
+      const dIn = $('depth'), dOut = $('depth-v');
+      const nIn = $('neighbour-count'), nOut = $('neighbour-count-v');
+      if (dIn) {
+        dIn.value = String(HologramState.depth);
+        if (dOut) dOut.textContent = HologramState.depth.toFixed(2);
+        dIn.addEventListener('input', () => {
+          HologramState.depth = parseFloat(dIn.value);
+          if (dOut) dOut.textContent = HologramState.depth.toFixed(2);
+        });
+      }
+      if (nIn) {
+        nIn.value = String(HologramState.neighbours);
+        if (nOut) nOut.textContent = String(HologramState.neighbours);
+        nIn.addEventListener('input', () => {
+          HologramState.neighbours = parseInt(nIn.value, 10);
+          if (nOut) nOut.textContent = String(HologramState.neighbours);
+        });
+      }
+    })();
+
+    window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
+  })();
+  </script>
+<script src="../versions-presets.js"></script>
+<script src="./temp-slider.js"></script>
+<script src="../engine-genops.client.js"></script></body>
+</html>
