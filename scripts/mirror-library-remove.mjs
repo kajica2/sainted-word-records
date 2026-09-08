@@ -1,17 +1,25 @@
 #!/usr/bin/env node
 // Mirror PR #23's library × button to all non-music_video version pages.
+// Also mirrors PR #32's smooth clip transitions (Layers.swapAsset +
+// Layers.reset) where those methods exist.
 //
 // For each versions/<page>.html (except music_video.html, which already has it),
-// apply five patches in order, all idempotent:
+// apply six patches in order, all idempotent:
 //   A. Layers.cleanupForAsset  — drop layers whose asset was removed
 //   B. Lib.removeItem          — splice item, revoke URL, call cleanupForAsset
 //   C. Lib.render() updates   — × button, confirm-on-delete, click-guard
 //   D. window.SWR_LIB = Lib   — expose for smoke testing
 //   E. CSS rules              — .li .rm, hover, armed
+//   F. Smooth clip transitions (PR #32):
+//        F1. Layers.swapAsset → SWR_TIMING.crossfade() guard
+//        F2. Layers.reset(opts) → accepts { fadeMs } + SWR_TIMING.fadeOut
 //
 // Pages without a Lib IIFE (audio-only / showcase pages) are reported as
 // "skipped: no Lib". Pages with Lib but no Layers (e.g. collage) get B/C/D/E
-// but not A. Pages already patched are reported as "skipped: already patched".
+// but not A/F1/F2. Pages already patched are reported as "skipped: already
+// patched". Pages without Layers.swapAsset / Layers.reset (the 13 variant
+// pages) are reported as "skipped: no <method>" for F1/F2 — they were
+// added only to music_video.html in PR #32.
 //
 // All patch strings embed the correct indentation (matching the existing
 // 2-space-indent repo style). Anchor strings include the same leading
@@ -156,6 +164,78 @@ const SWR_LIB_INSERT = [
   '    // Expose Lib for smoke testing (parallels window.SWR.Layers).',
   '    window.SWR_LIB = Lib;',
   '',
+].join('\n');
+
+// Patch F: smooth clip transitions (PR #32 mirror). Two sub-patches
+// applied independently — each is a no-op when its anchor is absent
+// (the 13 non-music_video variant pages don't have swapAsset or
+// Layers.reset yet; only music_video.html does). Each sub-patch is
+// idempotent.
+//
+//   F1. Layers.swapAsset: replace hard-swap `top.asset = newIt;
+//       this.render(); this.invalidate()` with the SWR_TIMING.crossfade
+//       guard (same shape as versions/music_video.html 922-928).
+//   F2. Layers.reset: accept { fadeMs } opts; when fadeMs > 0 and
+//       SWR_TIMING.fadeOut exists, fade each layer in parallel and
+//       defer the actual list-clear by fadeMs + 50ms (PR #32 diff at
+//       versions/music_video.html 781-808).
+
+// F1 anchor (3 lines, 6-space indent) and replacement.
+const SWAP_BEFORE = [
+  '        top.asset = newIt;',
+  '        this.render();',
+  '        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}',
+].join('\n');
+const SWAP_AFTER = [
+  '        top.asset = newIt;',
+  '        if (window.SWR_TIMING && typeof window.SWR_TIMING.crossfade === \'function\') {',
+  '          window.SWR_TIMING.crossfade(top, newIt);',
+  '        } else {',
+  '          this.render();',
+  '          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}',
+  '        }',
+].join('\n');
+
+// F2 anchor — exact 6-space-indented `reset() {` method, followed by
+// its original body. We don't anchor on the body because pages might
+// diverge slightly; we match `reset() {` at the correct indent inside
+// the Layers block, then depth-track to its closing `}` to rewrite the
+// whole method body. Pages without `reset() {` at Layers indent are
+// skipped.
+const RESET_METHOD_HEADER = '      reset() {';
+const RESET_METHOD_REPLACEMENT = [
+  '      // Optional opts.fadeMs triggers a parallel fadeOut on each layer',
+  '      // before clearing the list (defers the actual clear by fadeMs+50ms).',
+  '      // Default opts.fadeMs=0 preserves the original instant-clear behavior.',
+  '      // SWR_TIMING.fadeOut + step() handle the per-frame easing.',
+  '      reset(opts) {',
+  '        const o = opts || {};',
+  '        const fadeMs = typeof o.fadeMs === \'number\' ? o.fadeMs : 0;',
+  '        const n = this.list.length;',
+  '        const fading = this.list.slice();',
+  '        if (fadeMs > 0 && window.SWR_TIMING && typeof window.SWR_TIMING.fadeOut === \'function\') {',
+  '          for (const l of fading) {',
+  '            try { window.SWR_TIMING.fadeOut(l, fadeMs); } catch (_) {}',
+  '          }',
+  '          setTimeout(() => {',
+  '            // Idempotent: only clear if list is still the same shape.',
+  '            if (this.list.length === fading.length) {',
+  '              this.list.length = 0;',
+  '              this.sel = null;',
+  '              this.render();',
+  '              try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}',
+  '              if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();',
+  '            }',
+  '          }, fadeMs + 50);',
+  '        } else {',
+  '          this.list.length = 0;',
+  '          this.sel = null;',
+  '          this.render();',
+  '          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}',
+  '          if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();',
+  '        }',
+  '        return n;',
+  '      },',
 ].join('\n');
 
 // Patch E: CSS rules at 4-space indent. Inserted immediately before
@@ -338,6 +418,67 @@ function patchSWR_LIB(html) {
   return { html, changed: true };
 }
 
+// Patch F1: rewrite the swapAsset hard-swap to call SWR_TIMING.crossfade.
+// Idempotent (anchors on the original 3-line shape; the new shape has
+// `SWR_TIMING.crossfade(top, newIt)` so re-running finds nothing to do).
+function patchSwapAsset(html) {
+  if (/SWR_TIMING\.crossfade\(top, newIt\)/.test(html)) {
+    return { html, changed: false, reason: 'already patched (crossfade guard present)' };
+  }
+  if (!html.includes('swapAsset(')) {
+    return { html, changed: false, reason: 'no swapAsset method' };
+  }
+  if (!html.includes(SWAP_BEFORE)) {
+    return { html, changed: false, reason: 'swapAsset present but no hard-swap anchor (already patched or shape mismatch)' };
+  }
+  html = html.replace(SWAP_BEFORE, SWAP_AFTER);
+  return { html, changed: true };
+}
+
+// Patch F2: rewrite Layers.reset() to accept { fadeMs } opts. We
+// depth-track from `      reset() {` (6-space indent, Layers-method
+// shape) to its closing `},` and replace the whole method body.
+// Idempotent: when reset already takes `opts`, the anchor regex
+// doesn't match and we report already-patched.
+function patchResetFade(html) {
+  if (/reset\(opts\)/.test(html)) {
+    return { html, changed: false, reason: 'already patched (reset(opts))' };
+  }
+  const headerIdx = html.indexOf(RESET_METHOD_HEADER);
+  if (headerIdx < 0) {
+    return { html, changed: false, reason: 'no Layers.reset() method' };
+  }
+  // Confirm we're inside the Layers block: the previous non-whitespace
+  // character must be `,` or whitespace following `const Layers = {`
+  // (the Layers object literal). A simple sanity check — count that
+  // there's a `const Layers = {` before headerIdx and that we're
+  // within the same brace scope. Skip this check in practice: the
+  // 6-space indent + `reset() {` shape is unique to Layers methods
+  // across the repo.
+  // Depth-track from `reset() {`'s opening `{` to its matching `}`.
+  let depth = 0;
+  let closeIdx = -1;
+  for (let i = headerIdx + RESET_METHOD_HEADER.length - 1; i < html.length; i++) {
+    if (html[i] === '{') depth++;
+    else if (html[i] === '}') {
+      depth--;
+      if (depth === 0) { closeIdx = i; break; }
+    }
+  }
+  if (closeIdx < 0) {
+    throw new Error('patch F2: cannot find reset() closing brace');
+  }
+  // Require the next char to be `,` (method-separator) so we don't
+  // accidentally rewrite the last method before `};`.
+  if (html[closeIdx + 1] !== ',') {
+    throw new Error('patch F2: reset() closing brace not followed by `,`');
+  }
+  const replaceStart = headerIdx;
+  const replaceEnd = closeIdx + 2; // past `},`
+  html = html.slice(0, replaceStart) + RESET_METHOD_REPLACEMENT + html.slice(replaceEnd);
+  return { html, changed: true };
+}
+
 // Patch E: append CSS rules right before `</style>`. Anchor on the exact
 // `  </style>` (2-space indent) so the inserted CSS lines sit at 4-space
 // indent (matching the rest of the <style> block).
@@ -413,6 +554,23 @@ function applyAll(html) {
     out.steps.push({ id: 'A: cleanupForAsset', changed: false, reason: 'no Layers (collage-style page)' });
   }
 
+  // Patch F (smooth clip transitions, PR #32 mirror) — only if Layers
+  // is present. F1 targets Layers.swapAsset; F2 targets Layers.reset().
+  // Both sub-patches are no-ops when their anchor methods are absent
+  // (the 13 non-music_video variant pages lack swapAsset + reset; only
+  // music_video.html has them).
+  if (hasLayers) {
+    try {
+      const r1 = patchSwapAsset(html); html = r1.html; out.steps.push({ id: 'F1: swapAsset crossfade', changed: r1.changed, reason: r1.reason });
+    } catch (e) { out.ok = false; out.error = 'F1: ' + e.message; return out; }
+    try {
+      const r2 = patchResetFade(html); html = r2.html; out.steps.push({ id: 'F2: reset(fadeMs)', changed: r2.changed, reason: r2.reason });
+    } catch (e) { out.ok = false; out.error = 'F2: ' + e.message; return out; }
+  } else {
+    out.steps.push({ id: 'F1: swapAsset crossfade', changed: false, reason: 'no Layers (collage-style page)' });
+    out.steps.push({ id: 'F2: reset(fadeMs)', changed: false, reason: 'no Layers (collage-style page)' });
+  }
+
   return { ...out, html };
 }
 
@@ -431,10 +589,22 @@ async function processFile(path) {
   const changed = result.steps.some((s) => s.changed);
   if (changed) {
     await writeFile(path, result.html, 'utf8');
+    return { path, status: 'patched', steps: result.steps };
   }
+  // No step changed. Distinguish two cases:
+  //   1. Every step's reason starts with 'already patched' — this file
+  //      has been fully mirrored before (A-E landed in PR #30, F1/F2
+  //      don't apply because the anchors are absent on this page).
+  //   2. At least one step reports 'no <method>' — that step's anchor
+  //      was never present, so the file is correctly skipped, not
+  //      "already patched". Use status 'noop' so the summary reports it
+  //      distinctly.
+  const allAlreadyPatched = result.steps.every(
+    (s) => typeof s.reason === 'string' && s.reason.startsWith('already patched'),
+  );
   return {
     path,
-    status: changed ? 'patched' : 'already-patched',
+    status: allAlreadyPatched ? 'already-patched' : 'noop',
     steps: result.steps,
   };
 }
@@ -449,7 +619,7 @@ async function main() {
     process.exit(1);
   }
   console.log(`Mirroring library × button across ${targets.length} file(s):\n`);
-  const summary = { patched: [], skipped: [], errored: [], alreadyPatched: [] };
+  const summary = { patched: [], skipped: [], errored: [], alreadyPatched: [], noop: [] };
   for (const t of targets) {
     const r = await processFile(t);
     const sp = shortPath(r.path);
@@ -457,14 +627,24 @@ async function main() {
     console.log(`${r.status.padEnd(14)} ${sp}${tail ? '  ' + tail : '  ' + (r.reason || '')}`);
     if (r.status === 'patched') summary.patched.push(sp);
     else if (r.status === 'already-patched') summary.alreadyPatched.push(sp);
+    else if (r.status === 'noop') summary.noop.push({ file: sp, steps: r.steps });
     else if (r.status === 'skipped') summary.skipped.push({ file: sp, reason: r.reason });
     else if (r.status === 'error') summary.errored.push({ file: sp, reason: r.reason });
   }
   console.log('\n=== Summary ===');
   console.log(`patched:         ${summary.patched.length}`);
   console.log(`already patched: ${summary.alreadyPatched.length}`);
+  console.log(`noop (no anchor):${summary.noop.length}`);
   console.log(`skipped:         ${summary.skipped.length}`);
   console.log(`errors:          ${summary.errored.length}`);
+  if (summary.noop.length) {
+    console.log('\nNo-op (anchor method absent — expected for pages without swapAsset/reset):');
+    for (const n of summary.noop) {
+      const why = (n.steps || []).filter((s) => s.reason && s.reason !== 'already patched')
+        .map((s) => `${s.id}: ${s.reason}`).join('; ');
+      console.log(`  ${n.file} — ${why || '(no specific reason)'}`);
+    }
+  }
   if (summary.skipped.length) {
     console.log('\nSkipped:');
     for (const s of summary.skipped) console.log(`  ${s.file} — ${s.reason}`);
