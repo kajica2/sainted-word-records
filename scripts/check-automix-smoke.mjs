@@ -91,6 +91,36 @@ const fxFrozen = await page.evaluate(() => !!window.SWR._fxOverride);
 if (state2 === 'OFF' && fxFrozen) ok('A key toggles OFF + freezes _fxOverride');
 else bad('A key toggles OFF + freezes _fxOverride', 'state=' + state2 + ' frozen=' + fxFrozen);
 
+// 7. Phase B: Gradient.setTrack + setBeatPulse expose state, dot lands at
+//    expected (warmth, intensity) coordinates from the embedding formula.
+const gradState = await page.evaluate(() => {
+  const g = window.SWR_GRADIENT;
+  g.setTrack({ bass: 0.8, mid: 0.2, treb: 0.1 });  // bass-heavy -> warm
+  g.setBeatPulse(0.5);
+  return g._state();
+});
+if (gradState && gradState.warmth > 0.5 && gradState.beatPulse === 0.5)
+  ok('Gradient.setTrack + setBeatPulse expose state');
+else bad('Gradient.setTrack + setBeatPulse expose state', JSON.stringify(gradState));
+
+// 8. Phase B: dot is actually drawn on the canvas (magenta pixels > 0).
+//    Wait one redraw tick (100ms) before sampling.
+await new Promise(r => setTimeout(r, 150));
+const magentaPixels = await page.evaluate(() => {
+  const c = document.getElementById('gradient');
+  const ctx = c.getContext('2d');
+  const d = ctx.getImageData(0, 0, c.width, c.height).data;
+  let n = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    // magenta core: high R, low-mid G, mid-high B
+    if (r > 200 && g < 100 && b > 80 && b < 200) n++;
+  }
+  return n;
+});
+if (magentaPixels > 0) ok('gradient canvas has magenta track dot (' + magentaPixels + ' px)');
+else bad('gradient canvas has magenta track dot', '0 magenta pixels');
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));

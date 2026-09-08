@@ -618,6 +618,17 @@
         this.feat.beat = beatHit ? 1 : this.feat.beat*dec;
         this.feat.onset = onsetHit ? 1 : this.feat.onset*dec;
         this.feat.beatPulse = beatHit; this.feat.onsetPulse = onsetHit;
+        // Phase B: push the current audio features into the gradient panel
+        // so the track dot lands at the right (warmth, intensity). Throttled
+        // to ~10 Hz because Gradient.setTrack mutates canvas state.
+        const __grad = window.SWR_GRADIENT;
+        if (__grad) {
+          if (!__grad._lastSetTrack || (now - __grad._lastSetTrack) > 0.1) {
+            __grad.setTrack({ bass: this.feat.bass, mid: this.feat.mid, treb: this.feat.treble });
+            __grad._lastSetTrack = now;
+          }
+          __grad.setBeatPulse(this.feat.beat);
+        }
         this.hist.prev = Uint8Array.from(this.fft);
         $('beat-led').classList.toggle('on', beatHit);
         $('onset-led').classList.toggle('on', onsetHit);
@@ -1231,17 +1242,68 @@
         }
       }
 
+      // ---- Phase B: current-song dot -------------------------------------
+      // _track = { warmth, intensity, beatPulse: 0..1 }. Updated by the
+      // audio frame loop (10 Hz throttled) via Gradient.setTrack() and by
+      // the beat detector via Gradient.setBeatPulse(). When null, no dot
+      // is drawn (Phase A behaviour).
+      //
+      // coordsFromFeatures() MUST stay in sync with
+      // client/automix.client.js:featuresToCoords — parity is enforced by
+      // scripts/check-gradient-dot-unit.mjs. If you change the math here,
+      // re-run the unit test first.
+      let _track = null;
+      function coordsFromFeatures(features) {
+        if (!features) return { warmth: 0.5, intensity: 0.5 };
+        const bass = (features.bass || 0);
+        const mid  = (features.mid  || 0);
+        const treb = (features.treb || 0);
+        const warmth = Math.max(0, Math.min(1, 0.5 + (bass - treb) * 0.5));
+        const intensity = Math.min(1, (mid + treb) * 0.9 + bass * 0.1);
+        return { warmth, intensity };
+      }
+      function drawTrackDot() {
+        if (!_track) return;
+        const { x, y } = toCanvas(_track.warmth, _track.intensity);
+        const pulse = Math.max(0, Math.min(1, _track.beatPulse || 0));
+        // outer ring: scales with beat pulse (3px → 9px)
+        const ringR = 3 + pulse * 6;
+        ctx2.fillStyle = 'rgba(255, 45, 138, ' + (0.10 + pulse * 0.20) + ')';
+        ctx2.beginPath(); ctx2.arc(x, y, ringR, 0, Math.PI * 2); ctx2.fill();
+        // core dot: solid magenta
+        ctx2.fillStyle = 'rgba(255, 45, 138, 0.95)';
+        ctx2.beginPath(); ctx2.arc(x, y, 2.4, 0, Math.PI * 2); ctx2.fill();
+      }
+
       function render() {
         ctx2.fillStyle = '#0a0612';
         ctx2.fillRect(0, 0, W2, H2);
         drawAxes();
         drawAnchors();
+        drawTrackDot();
       }
 
-      // Expose so other modules can ask for a redraw after a track lands.
-      window.SWR_GRADIENT = { refresh: render };
+      // Throttled redraw loop for Phase B. Reads from _track each tick so
+      // audio-frame updates are coalesced. ~10 Hz keeps the canvas work
+      // negligible while still feeling live.
+      let _redrawIv = setInterval(() => { if (_track) render(); }, 100);
+
+      // Public API
+      window.SWR_GRADIENT = {
+        refresh: render,
+        setTrack(features) {
+          const c = coordsFromFeatures(features);
+          if (!_track) _track = { warmth: c.warmth, intensity: c.intensity, beatPulse: 0 };
+          else { _track.warmth = c.warmth; _track.intensity = c.intensity; }
+        },
+        setBeatPulse(p) {
+          if (!_track) return;
+          _track.beatPulse = Math.max(0, Math.min(1, p || 0));
+        },
+        _state() { return _track ? { ..._track } : null; },
+      };
       render();
-      return { refresh: render };
+      return window.SWR_GRADIENT;
     })();
 
     // Wire the depth + N sliders so they actually move things (Phase A
