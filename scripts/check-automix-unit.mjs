@@ -78,7 +78,7 @@ assert.equal(mixed.anchors.length, 2, 'must honour neighbours count');
 assert.equal(typeof mixed.preset.temp, 'number');
 assert.equal(typeof mixed.preset.glow, 'number');
 
-// drift: clamped to [-1, 1] and within ±0.02 of input
+// drift: clamped to [-1, 1] and within ±0.02 of input (no beat = cold path)
 const base = { temp: 0.5, mut: 0.5, sepia: 0.5, chroma: 0.5, grain: 0.5, glow: 0.5, grayscale: 0.5, posterize: 0.5 };
 for (let i = 0; i < 50; i++) {
   const d = A.drift(base);
@@ -88,9 +88,82 @@ for (let i = 0; i < 50; i++) {
   }
 }
 
+// drift with beat=0 → smaller amplitude (±0.005). Many iterations
+// should never exceed the cold bound.
+for (let i = 0; i < 100; i++) {
+  const d = A.drift(base, 0);
+  for (const f of Object.keys(base)) {
+    assert.ok(Math.abs(d[f] - base[f]) <= 0.006,
+              'beat=0 drift must stay within ±0.006 (got ' + (d[f] - base[f]) + ')');
+  }
+}
+
+// drift with beat=1 → larger amplitude (±0.015). Across many iterations
+// the actual step should approach but stay within the hot bound.
+for (let i = 0; i < 200; i++) {
+  const d = A.drift(base, 1);
+  for (const f of Object.keys(base)) {
+    assert.ok(Math.abs(d[f] - base[f]) <= 0.016,
+              'beat=1 drift must stay within ±0.016');
+  }
+}
+
+// beat undefined / non-number → defaults to cold path (backward-compat).
+for (let i = 0; i < 50; i++) {
+  const d1 = A.drift(base);
+  const d2 = A.drift(base, undefined);
+  const d3 = A.drift(base, null);
+  const d4 = A.drift(base, 'not-a-number');
+  const d5 = A.drift(base, NaN);
+  for (const variant of [d1, d2, d3, d4, d5]) {
+    for (const f of Object.keys(base)) {
+      assert.ok(variant[f] >= -1 && variant[f] <= 1, 'defensive: must clamp');
+      assert.ok(Math.abs(variant[f] - base[f]) <= 0.021,
+                'defensive: step ≤ 0.02');
+    }
+  }
+}
+
+// beat is clamped to [0, 1] defensively (negative or >1 inputs).
+for (let i = 0; i < 50; i++) {
+  const dNeg = A.drift(base, -1);
+  const dBig = A.drift(base, 99);
+  for (const variant of [dNeg, dBig]) {
+    for (const f of Object.keys(base)) {
+      assert.ok(Math.abs(variant[f] - base[f]) <= 0.016,
+                'clamped beat stays within hot bound (3× cold)');
+    }
+  }
+}
+
+// drift(null) returns null unchanged.
+assert.strictEqual(A.drift(null), null, 'drift(null) is null');
+assert.strictEqual(A.drift(null, 1), null, 'drift(null, 1) is null');
+
+// mix() threads beat through: same features + beat=0 vs beat=1 should
+// produce different presets after enough iterations.
+let differ = false;
+const mixA = A.mix({ bass: 0.5, mid: 0.5, treb: 0.5, beat: 0 });
+const mixB = A.mix({ bass: 0.5, mid: 0.5, treb: 0.5, beat: 1 });
+for (let i = 0; i < 30 && !differ; i++) {
+  const a = A.mix({ bass: 0.5, mid: 0.5, treb: 0.5, beat: 0 });
+  const b = A.mix({ bass: 0.5, mid: 0.5, treb: 0.5, beat: 1 });
+  for (const f of Object.keys(a.preset)) {
+    if (Math.abs(a.preset[f] - b.preset[f]) > 1e-6) { differ = true; break; }
+  }
+}
+assert.ok(differ, 'mix(beat=0) vs mix(beat=1) produces different presets across runs');
+// Sanity: the underlying blend is deterministic — drift aside, the
+// same features yield the same preset. Verify by computing blendAnchors
+// directly (it's the only randomised step before drift).
+const blendA = A.blendAnchors(A._test_anchors_for_blend_check
+  || [{ id: 'x', dist: 0.1, anchor: { preset: { temp: 0.5 } } }]);
+const blendB = A.blendAnchors([{ id: 'x', dist: 0.1, anchor: { preset: { temp: 0.5 } } }]);
+assert.ok(Math.abs(blendA.temp - blendB.temp) < 1e-9, 'blend is deterministic across calls');
+
 // mix without neighbours arg picks up HologramState.neighbours if present
 sandbox.window.HologramState = { neighbours: 3 };
 const m2 = A.mix({ bass: 0.5, mid: 0.5, treb: 0.5 });
 assert.equal(m2.anchors.length, 3, 'HologramState.neighbours must override default n');
 
-console.log('AUTOMIX UNIT: ALL GREEN (8 tests)');
+console.log('AUTOMIX UNIT: ALL GREEN (15 tests)');

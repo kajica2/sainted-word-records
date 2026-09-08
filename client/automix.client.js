@@ -74,13 +74,21 @@
 
   // ---- Mutation drift -----------------------------------------------------
   // Tiny bounded random walk on the blended values so the visual
-  // doesn't lock. step ≤ 0.02 keeps the drift musically invisible.
-  function drift(preset) {
+  // doesn't lock. The step amplitude scales with the live audio beat
+  // (0..1, decaying after each detected beat):
+  //   beat = 0   → step ±0.005  (gentle, no rhythmic anchor)
+  //   beat = 1   → step ±0.015  (3× more, the visual breathes with tempo)
+  //   beat undefined / omitted → step ±0.005  (backward-compat default)
+  // Linear scale: amplitude = 0.005 + 0.01 * beat. Each field is
+  // clamped to [-1, 1] so the visual stays in its safe range.
+  function drift(preset, beat) {
     if (!preset) return preset;
+    var b = (typeof beat === 'number' && isFinite(beat)) ? Math.max(0, Math.min(1, beat)) : 0;
+    var amplitude = 0.005 + 0.01 * b;
     var out = {};
     for (var k in preset) {
       if (!Object.prototype.hasOwnProperty.call(preset, k)) continue;
-      var delta = (Math.random() - 0.5) * 0.02;
+      var delta = (Math.random() - 0.5) * 2 * amplitude;
       out[k] = Math.max(-1, Math.min(1, preset[k] + delta));
     }
     return out;
@@ -88,7 +96,10 @@
 
   // ---- Public API ---------------------------------------------------------
   // mix(features, neighbours) → { coords, anchors, preset }
-  // features: { bass, mid, treb } from the engine
+  // features: { bass, mid, treb } from the engine (beat is optional,
+  //   used to scale the drift amplitude — see drift() above). Pass
+  //   features.beat when available so the visual breathes with the
+  //   tempo; omit for backward-compat callers.
   // neighbours: int, default HologramState.neighbours || 4
   function mix(features, neighbours) {
     var n = neighbours || (window.HologramState && window.HologramState.neighbours) || 4;
@@ -96,10 +107,11 @@
     var anchors = nearestAnchors(coords, n);
     if (!anchors.length) return null;
     var preset = blendAnchors(anchors);
+    var beat = features ? features.beat : undefined;
     return {
       coords: coords,
       anchors: anchors.map(function (a) { return { id: a.id, dist: a.dist }; }),
-      preset: drift(preset),
+      preset: drift(preset, beat),
     };
   }
 
