@@ -659,6 +659,68 @@ if (cacheBustResult.beforeInvalidate > 0 && cacheBustResult.afterInvalidate === 
   ok('SWR_RENDER.invalidate(id) clears cache entry; next frame re-renders');
 else bad('SWR_RENDER.invalidate(id) cache bust', JSON.stringify(cacheBustResult));
 
+// 45. Lib.removeItem(id) returns true and removes the item.
+const libRemoveShape = await page.evaluate(() => {
+  if (!window.SWR_LIB) return { ok: false, reason: 'no SWR_LIB' };
+  // Reset to a clean state and inject a synthetic item.
+  window.SWR_LIB.items.length = 0;
+  if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
+  const blob = new Blob([new Uint8Array([0,0,0,0])], { type: 'image/png' });
+  const fakeAsset = {
+    id: 999, name: 'fake.png', type: 'image',
+    blob, url: URL.createObjectURL(blob),
+    motion: 0, luma: 0.5, hue: 0, w: 0, h: 0, added: Date.now(), thumb: null,
+  };
+  // Push directly into Lib.items and render.
+  window.SWR_LIB.items.push(fakeAsset);
+  window.SWR_LIB.render();
+  // Verify the thumbnail is in the DOM.
+  const thumb = document.querySelector('#lib .li');
+  if (!thumb) return { ok: false, reason: 'no thumbnail' };
+  // Find the × button.
+  const rmBtn = thumb.querySelector('.rm');
+  if (!rmBtn) return { ok: false, reason: 'no rm button' };
+  // Click once to arm, then again to fire.
+  rmBtn.click();
+  const armed = rmBtn.classList.contains('rm-armed');
+  rmBtn.click();
+  // The item should be gone.
+  const stillThere = window.SWR_LIB.items.find(x => x.id === 999);
+  return { ok: true, armed, itemRemoved: !stillThere };
+});
+if (libRemoveShape.ok && libRemoveShape.armed && libRemoveShape.itemRemoved)
+  ok('Lib.removeItem: first click arms, second click removes');
+else bad('Lib.removeItem confirm flow', JSON.stringify(libRemoveShape));
+
+// 46. Layers using a removed asset are also dropped.
+const orphanLayer = await page.evaluate(() => {
+  if (!window.SWR_LIB) return { ok: false, reason: 'no SWR_LIB' };
+  window.SWR_LIB.items.length = 0;
+  if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
+  const blob = new Blob([new Uint8Array([0,0,0,0])], { type: 'image/png' });
+  const fakeAsset = { id: 1000, name: 'orphan.png', type: 'image', blob,
+    url: URL.createObjectURL(blob), motion: 0, luma: 0.5, hue: 0,
+    w: 0, h: 0, added: Date.now(), thumb: null };
+  window.SWR_LIB.items.push(fakeAsset);
+  window.SWR_LIB.render();
+  // Add a fully-shaped layer that references this asset.
+  const layer = {
+    id: 'L-orphan', asset: fakeAsset, blend: 'screen', opacity: 1,
+    baseScale: 1, hue: 0, brightness: 1, contrast: 1, alpha: 1,
+    mutate: 0, cover: false,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 0.7, ease: 'sharp' }],
+  };
+  window.SWR.Layers.list.push(layer);
+  const layerCountBefore = window.SWR.Layers.list.length;
+  // Remove the asset.
+  window.SWR_LIB.removeItem(1000);
+  const layerCountAfter = window.SWR.Layers.list.length;
+  return { layerCountBefore, layerCountAfter };
+});
+if (orphanLayer.layerCountBefore === 1 && orphanLayer.layerCountAfter === 0)
+  ok('Lib.removeItem drops layers referencing the removed asset');
+else bad('Lib.removeItem drops layers', JSON.stringify(orphanLayer));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
@@ -669,6 +731,9 @@ await page.evaluate(() => {
   }
   if (window.SWR) window.SWR._fxOverride = null;
   if (window.SWR && window.SWR.Layers) window.SWR.Layers.reset();
+  if (window.SWR_LIB) {
+    window.SWR_LIB.items.length = 0;
+  }
   if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.clear();
   if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
 });
