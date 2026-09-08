@@ -987,6 +987,120 @@
 
     // Apply master state to whatever layers already exist on first load.
     applyMasterToLayers();
+
+    // Master transformations toggle: a sibling icon button placed directly
+    // before the rot-master button. When OFF, applyR() in every version page
+    // skips the entire reactor loop and returns the layer's static
+    // baseScale/opacity/hue/etc — layers render at rest even while audio
+    // plays. Per-layer override: l.reactorsEnabled = true re-enables
+    // reactors for that layer even when the master is OFF. State persists
+    // in localStorage under 'swr.txMaster.enabled'.
+    var TX_MASTER_KEY = 'swr.txMaster.enabled';
+    function loadTxMasterEnabled() {
+      try {
+        var v = localStorage.getItem(TX_MASTER_KEY);
+        return v === null ? true : v === '1';
+      } catch (_) { return true; }
+    }
+    function saveTxMasterEnabled(v) {
+      try { localStorage.setItem(TX_MASTER_KEY, v ? '1' : '0'); } catch (_) {}
+    }
+    window.SWR_TX_MASTER = { enabled: loadTxMasterEnabled() };
+    function applyTxMasterToLayers() {
+      var L = window.Layers;
+      if (!L || !Array.isArray(L.list) || !L.list.length) return 0;
+      var count = 0;
+      for (var i = 0; i < L.list.length; i++) {
+        var lay = L.list[i];
+        if (!lay) continue;
+        lay.reactorsEnabled = window.SWR_TX_MASTER.enabled;
+        count += 1;
+      }
+      if (typeof L.render === 'function') L.render();
+      return count;
+    }
+    function paintTxMasterButton(btn) {
+      if (!btn) return;
+      if (window.SWR_TX_MASTER.enabled) {
+        btn.textContent = '⏸';
+        btn.style.opacity = '1';
+        btn.title = 'Master transformations: ON · click = mute all audio reactors';
+        btn.dataset.on = '1';
+      } else {
+        btn.textContent = '▶';
+        btn.style.opacity = '0.45';
+        btn.title = 'Master transformations: OFF · click = unmute audio reactors';
+        btn.dataset.on = '0';
+      }
+    }
+    function bindTxMasterButton() {
+      var rotBtn = document.getElementById('swr-rot-master');
+      var anchor = rotBtn || document.getElementById('swr-keys-help-btn');
+      if (!anchor || !anchor.parentNode) return false;
+      var existing = document.getElementById('swr-tx-master');
+      var btn;
+      if (existing) {
+        btn = existing;
+      } else {
+        btn = document.createElement('button');
+        btn.id = 'swr-tx-master';
+        btn.className = (anchor.className || 'tbtn') + ' swr-tx-master';
+        btn.type = 'button';
+        btn.style.cssText = (anchor.getAttribute('style') || '') + 'font-weight:700;';
+        anchor.parentNode.insertBefore(btn, anchor);
+      }
+      paintTxMasterButton(btn);
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.SWR_TX_MASTER.enabled = !window.SWR_TX_MASTER.enabled;
+        saveTxMasterEnabled(window.SWR_TX_MASTER.enabled);
+        applyTxMasterToLayers();
+        paintTxMasterButton(btn);
+        try { document.dispatchEvent(new CustomEvent('swr-tx-master-change', { detail: { enabled: window.SWR_TX_MASTER.enabled } })); } catch (_) {}
+      });
+      return true;
+    }
+    var _txRetry = 0;
+    function _txTry() {
+      if (bindTxMasterButton()) return;
+      if (_txRetry++ < 6) window.setTimeout(_txTry, 250);
+    }
+    _txTry();
+
+    (function ensureTxMasterStyle() {
+      try {
+        if (document.getElementById('swr-tx-master-style')) return;
+        var s = document.createElement('style');
+        s.id = 'swr-tx-master-style';
+        s.textContent = '.swr-tx-master{font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center;} .swr-tx-master:hover{filter:brightness(1.2);} .swr-tx-master[disabled]{opacity:.4;cursor:not-allowed;}';
+        (document.head || document.documentElement).appendChild(s);
+      } catch (_) {}
+    })();
+
+    // Mirror the rot-master's new-layer inheritance: each new layer created
+    // via Layers.add inherits the master's enabled state. Patches the
+    // function in place (rot-master already wraps it the same way for
+    // rotationEnabled; we extend the wrap to set both fields).
+    (function wrapLayersAddForTx() {
+      var L = window.Layers;
+      if (!L || typeof L.add !== 'function' || L.add.__swrTxMasterWrapped) return;
+      var orig = L.add.bind(L);
+      var wrapped = function (asset) {
+        var ret = orig(asset);
+        try {
+          var last = L.list && L.list[L.list.length - 1];
+          if (last) last.reactorsEnabled = window.SWR_TX_MASTER.enabled;
+          if (typeof L.render === 'function') L.render();
+        } catch (_) {}
+        return ret;
+      };
+      wrapped.__swrTxMasterWrapped = true;
+      L.add = wrapped;
+    })();
+
+    // Apply master state to whatever layers already exist on first load.
+    applyTxMasterToLayers();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', install);

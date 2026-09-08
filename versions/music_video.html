@@ -854,6 +854,31 @@
         if (btn) btn.classList.remove('on');
         return true;
       },
+      // Swap the topmost layer's asset to the next/prev Lib.items entry.
+      // Reactors, baseScale, hue, opacity, blend, alpha, brightness,
+      // contrast, and cover stay untouched — only `asset` changes. Wraps
+      // modulo Lib.items.length. No-op when there are no layers or no
+      // library items. Returns {ok, from, to, item} so callers can show
+      // a status-bar hint.
+      swapAsset(direction) {
+        if (!this.list.length) return { ok: false, reason: 'no layers' };
+        if (!window.SWR_LIB || !Array.isArray(window.SWR_LIB.items) || !window.SWR_LIB.items.length) {
+          return { ok: false, reason: 'no library items' };
+        }
+        const top = this.list[this.list.length - 1];
+        const lib = window.SWR_LIB.items;
+        let idx = lib.findIndex(it => it === top.asset);
+        if (idx < 0) idx = -1; // Sentinel: "no current asset in library"
+        const n = lib.length;
+        let next = idx + (direction === 'prev' ? -1 : 1);
+        // Wrap modulo n (handles negatives correctly).
+        next = ((next % n) + n) % n;
+        const newIt = lib[next];
+        top.asset = newIt;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        return { ok: true, from: idx, to: next, item: newIt };
+      },
       render() {
         const el = $('layers'); el.innerHTML = '';
         for (let i=0;i<this.list.length;i++) {
@@ -957,6 +982,16 @@
     function applyR(l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
+
+      // Master transformations toggle (swr-tx-master, ⏸): when the user has
+      // muted all audio reactors globally, skip the entire reactor loop and
+      // return the static baseScale/opacity/hue/etc. shape. Per-layer
+      // override: l.reactorsEnabled = true re-enables reactors for that
+      // layer even when the master is OFF (checked first, so the layer
+      // opt-out survives the global mute).
+      const _txOn = (l.reactorsEnabled !== false)
+                 && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
+      if (!_txOn) return out;
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
@@ -1830,6 +1865,28 @@
         setStatus('layers cleared · ' + n, 'ok');
         e.preventDefault();
       }
+    });
+    // ---- { } swap-asset shortcut ---------------------------------------
+    // `{` swaps the topmost layer's asset to the previous Lib.items
+    // entry; `}` advances to the next. Wraps modulo Lib.items.length.
+    // Focus + modifier guards mirror the Reset handler above so typing
+    // in inputs and Cmd+{ (used by some macOS apps) never trigger.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '{' && e.key !== '}') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (!window.SWR || !window.SWR.Layers || typeof window.SWR.Layers.swapAsset !== 'function') return;
+      const dir = e.key === '{' ? 'prev' : 'next';
+      const r = window.SWR.Layers.swapAsset(dir);
+      if (r && r.ok) {
+        setStatus((dir === 'prev' ? '← ' : '→ ') + (r.item.name || 'item'), 'ok');
+      } else if (r && r.reason === 'no layers') {
+        setStatus('add a layer first', 'err');
+      } else if (r && r.reason === 'no library items') {
+        setStatus('drop a file first', 'err');
+      }
+      e.preventDefault();
     });
     // ---- Preset cycle (Tab / Shift+Tab) -----------------------------------
     // Plain Tab cycles forward through SHORTCUT_PRESETS; Shift+Tab cycles

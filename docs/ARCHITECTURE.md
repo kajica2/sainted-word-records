@@ -221,7 +221,7 @@ engine-layout.client.js    ← dock/fullscreen
 | `engine-lfos` | `window.SWR_LFOS` | Per-layer LFO modulators on top of `applyR` |
 | `engine-automap` | `window.SWR_AUTOMAP` | "Auto-map audio features to layer params" recipes |
 | `engine-genops` | `window.SWR_GENOPS` | Generative operators (mutate, evolve, randomize) + seeded RNG |
-| `engine-keys` | `window.SWR_KEYS` | Keyboard shortcuts (M/E/R/Z/?/A + Cmd+1..9 preset map + brackets/comma/period/semicolon/quote nudges) |
+| `engine-keys` | `window.SWR_KEYS` | Keyboard shortcuts (M/E/R/Z/?/A + Cmd+1..9 preset map + brackets/comma/period/semicolon/quote nudges) + master toggles: rotation (`↻`), transformations (`⏸`), preset map |
 | `engine-settings` | (panel UI) | User-facing settings drawer |
 | `engine-layout` | `window.SWR_LAYOUT` | Floating engine window: drag, resize, fullscreen, dock, minimize |
 | `engine-timing-panel` | (panel UI) | Timing curve editor |

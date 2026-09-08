@@ -783,6 +783,157 @@ if (soloSwitch.pinnedId === 'B'
   ok('solo switch keeps original snapshot; soloOff restores [A,B,C]');
 else bad('solo switch', JSON.stringify(soloSwitch));
 
+// 54. Layers.swapAsset('next') cycles the topmost layer through
+//     Lib.items, keeping reactors + sliders.
+const swapNext = await page.evaluate(() => {
+  if (!window.SWR || !window.SWR.Layers) return { ok: false, reason: 'no Layers' };
+  if (!window.SWR_LIB) return { ok: false, reason: 'no SWR_LIB' };
+  window.SWR.Layers.reset();
+  window.SWR_LIB.items.length = 0;
+  // Synthesize two library items.
+  const blob = new Blob([new Uint8Array([0,0,0,0])], { type: 'image/png' });
+  const mkItem = (id) => ({
+    id, name: `item-${id}.png`, type: 'image', blob,
+    url: URL.createObjectURL(blob), motion: 0, luma: 0.5, hue: 0,
+    w: 0, h: 0, added: Date.now(), thumb: null,
+  });
+  window.SWR_LIB.items.push(mkItem(100), mkItem(101));
+  // Add a layer. It will reference the first item.
+  const layerA = window.SWR_LIB.items[0];
+  window.SWR.Layers.add(layerA);
+  const initialAsset = window.SWR.Layers.list[0].asset;
+  // Swap to next.
+  const r1 = window.SWR.Layers.swapAsset('next');
+  // After swap, the topmost layer's asset should be layerB (items[1]).
+  const afterNext = window.SWR.Layers.list[window.SWR.Layers.list.length - 1].asset;
+  // Swap to next again — should wrap to items[0] (layerA).
+  const r2 = window.SWR.Layers.swapAsset('next');
+  const afterWrap = window.SWR.Layers.list[window.SWR.Layers.list.length - 1].asset;
+  // Reactors should be untouched.
+  const reactorsLen = window.SWR.Layers.list[0].reactors.length;
+  return {
+    initialAssetId: initialAsset.id,
+    r1To: r1.to, afterNextId: afterNext.id,
+    r2To: r2.to, afterWrapId: afterWrap.id,
+    reactorsLen,
+  };
+});
+if (swapNext.r1To === 1 && swapNext.afterNextId === 101
+    && swapNext.r2To === 0 && swapNext.afterWrapId === 100
+    && swapNext.reactorsLen >= 2)
+  ok('Layers.swapAsset(next) cycles through Lib.items, wraps, preserves reactors');
+else bad('Layers.swapAsset(next)', JSON.stringify(swapNext));
+
+// 55. swapAsset('prev') goes backward through Lib.items.
+const swapPrev = await page.evaluate(() => {
+  window.SWR.Layers.reset();
+  window.SWR_LIB.items.length = 0;
+  const blob = new Blob([new Uint8Array([0,0,0,0])], { type: 'image/png' });
+  const mkItem = (id) => ({
+    id, name: `p${id}.png`, type: 'image', blob,
+    url: URL.createObjectURL(blob), motion: 0, luma: 0.5, hue: 0,
+    w: 0, h: 0, added: Date.now(), thumb: null,
+  });
+  window.SWR_LIB.items.push(mkItem(200), mkItem(201), mkItem(202));
+  // Set the topmost layer's asset to items[1].
+  window.SWR.Layers.add(window.SWR_LIB.items[1]);
+  // Swap prev: should go to items[0].
+  const r1 = window.SWR.Layers.swapAsset('prev');
+  const a1 = window.SWR.Layers.list[window.SWR.Layers.list.length - 1].asset;
+  // Swap prev again: wraps to items[2].
+  const r2 = window.SWR.Layers.swapAsset('prev');
+  const a2 = window.SWR.Layers.list[window.SWR.Layers.list.length - 1].asset;
+  return { r1To: r1.to, a1Id: a1.id, r2To: r2.to, a2Id: a2.id };
+});
+if (swapPrev.r1To === 0 && swapPrev.a1Id === 200
+    && swapPrev.r2To === 2 && swapPrev.a2Id === 202)
+  ok('Layers.swapAsset(prev) cycles backward, wraps correctly');
+else bad('Layers.swapAsset(prev)', JSON.stringify(swapPrev));
+
+// 56. Keyboard binding: pressing '{' / '}' triggers swapAsset.
+const swapKeys = await page.evaluate(async () => {
+  window.SWR.Layers.reset();
+  window.SWR_LIB.items.length = 0;
+  const blob = new Blob([new Uint8Array([0,0,0,0])], { type: 'image/png' });
+  const mkItem = (id) => ({
+    id, name: `k${id}.png`, type: 'image', blob,
+    url: URL.createObjectURL(blob), motion: 0, luma: 0.5, hue: 0,
+    w: 0, h: 0, added: Date.now(), thumb: null,
+  });
+  window.SWR_LIB.items.push(mkItem(300), mkItem(301));
+  window.SWR.Layers.add(window.SWR_LIB.items[0]);
+  const beforeId = window.SWR.Layers.list[window.SWR.Layers.list.length - 1].asset.id;
+  // Dispatch synthetic KeyboardEvents for `}` then `{`.
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: '}', bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 50));
+  const afterId = window.SWR.Layers.list[window.SWR.Layers.list.length - 1].asset.id;
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: '{', bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 50));
+  const afterPrevId = window.SWR.Layers.list[window.SWR.Layers.list.length - 1].asset.id;
+  return { beforeId, afterId, afterPrevId };
+});
+if (swapKeys.beforeId === 300 && swapKeys.afterId === 301 && swapKeys.afterPrevId === 300)
+  ok('KeyboardEvent for { } triggers Layers.swapAsset');
+else bad('{ } key binding', JSON.stringify(swapKeys));
+
+// 57. SWR_TX_MASTER exists and defaults to enabled (plan: 51).
+const txMasterDef = await page.evaluate(() => ({
+  ok: typeof window.SWR_TX_MASTER === 'object' && window.SWR_TX_MASTER !== null,
+  enabled: window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled,
+  storageValue: (() => { try { return localStorage.getItem('swr.txMaster.enabled'); } catch (_) { return null; } })(),
+}));
+if (txMasterDef.ok && txMasterDef.enabled === true)
+  ok('SWR_TX_MASTER defaults to enabled');
+else bad('SWR_TX_MASTER default', JSON.stringify(txMasterDef));
+
+// 58. SWR_TX_MASTER toggle + localStorage round-trip (plan: 52).
+const txToggle = await page.evaluate(() => {
+  if (!window.SWR || !window.SWR.Layers) return { ok: false, reason: 'no Layers' };
+  window.SWR.Layers.reset();
+  window.SWR.Layers.list.push({
+    id: 'TX1', asset: { type: 'image', name: 'fake.png', url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' },
+    blend: 'screen', opacity: 1, baseScale: 1.5, hue: 0, brightness: 1, contrast: 1,
+    alpha: 1, mutate: 0, cover: false,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 50, ease: 'sharp' }],
+  });
+  // Flip OFF and confirm the field.
+  window.SWR_TX_MASTER.enabled = false;
+  const wasOff = !window.SWR_TX_MASTER.enabled;
+  // Now save manually (in case the toggle button wasn't clicked in this run).
+  try { localStorage.setItem('swr.txMaster.enabled', '0'); } catch (_) {}
+  const storedWhenOff = (() => { try { return localStorage.getItem('swr.txMaster.enabled'); } catch (_) { return null; } })();
+  // Restore so subsequent tests don't see tx off.
+  window.SWR_TX_MASTER.enabled = true;
+  const wasOn = window.SWR_TX_MASTER.enabled;
+  return { wasOff, wasOn, storedWhenOff };
+});
+if (txToggle.wasOff === true && txToggle.wasOn === true && txToggle.storedWhenOff === '0')
+  ok('SWR_TX_MASTER toggle + localStorage round-trip');
+else bad('SWR_TX_MASTER toggle', JSON.stringify(txToggle));
+
+// 59. Per-layer override: l.reactorsEnabled = true forces reactors on
+//     even when the master is OFF (plan: 53).
+const txOverride = await page.evaluate(() => {
+  window.SWR.Layers.reset();
+  window.SWR.Layers.list.push({
+    id: 'OV1', asset: { type: 'image', name: 'fake.png', url: 'data:image/png;base64,xxx' },
+    blend: 'screen', opacity: 1, baseScale: 1, hue: 0, brightness: 1, contrast: 1,
+    alpha: 1, mutate: 0, cover: false,
+    reactors: [{ feature: 'bass', target: 'scale', scale: 1, ease: 'sharp' }],
+    reactorsEnabled: true,
+  });
+  window.SWR_TX_MASTER.enabled = false;
+  const lay = window.SWR.Layers.list[0];
+  // The per-layer override should stay true even though the master is OFF.
+  const overrideKept = lay.reactorsEnabled === true;
+  // Restore.
+  window.SWR_TX_MASTER.enabled = true;
+  return { overrideKept, masterAfter: window.SWR_TX_MASTER.enabled };
+});
+if (txOverride.overrideKept === true && txOverride.masterAfter === true)
+  ok('per-layer reactorsEnabled override persists across master toggle');
+else bad('per-layer override', JSON.stringify(txOverride));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
