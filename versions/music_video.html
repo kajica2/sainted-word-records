@@ -425,6 +425,7 @@
       <span class="gc"><button class="tbtn" id="hook-btn" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)" style="padding:3px 8px;font-size:9px;">Hooks</button></span>
       <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
       <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
+      <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -2848,6 +2849,141 @@
       }
     })();
 
+    // ---- SWR_SCENES -------------------------------------------------------
+    // Scene-pad snapshot system (PRD-008 partial). Captures the current
+    // engine state (5 footer sliders + preset override + automix on/off)
+    // into localStorage under 'swr.scenes.v1'. A pad in the modal is
+    // clicked to recall the snapshot, or held 1s to save the current
+    // state to that pad. Capped at 4 scenes (2×2 grid). All local — no
+    // backend. (Plan: .hermes/plans/2026-09-09_029000-scene-pads.md.)
+    window.SWR_SCENES = {
+      STORAGE_KEY: 'swr.scenes.v1',
+      MAX_SCENES: 4,
+      _captureTimer: null,
+
+      _load() {
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return Array.from({ length: this.MAX_SCENES }, (_, i) => ({
+            id: i, label: 'Scene ' + (i + 1), snapshot: null, createdAt: null,
+          }));
+          const arr = JSON.parse(raw);
+          // Pad to MAX_SCENES.
+          while (arr.length < this.MAX_SCENES) {
+            arr.push({ id: arr.length, label: 'Scene ' + (arr.length + 1), snapshot: null, createdAt: null });
+          }
+          return arr;
+        } catch (_) {
+          return Array.from({ length: this.MAX_SCENES }, (_, i) => ({
+            id: i, label: 'Scene ' + (i + 1), snapshot: null, createdAt: null,
+          }));
+        }
+      },
+
+      _save(arr) {
+        try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(arr)); } catch (_) {}
+      },
+
+      // Read current engine state.
+      _currentSnapshot() {
+        const get = (id) => {
+          const el = document.getElementById(id);
+          return el ? parseFloat(el.value) : null;
+        };
+        // Preset id: the live cycle cursor (set by gradient neighbours +
+        // keyboard Tab + boot restore). Falls back to 'neon' (the static
+        // page preset on music_video.html) if nothing has been picked.
+        const presetOverride = (typeof window.__swrCurrentPreset === 'string' && window.__swrCurrentPreset)
+          ? window.__swrCurrentPreset
+          : 'neon';
+        return {
+          depth: get('depth'),
+          gate: get('gate'),
+          decay: get('decay'),
+          sens: get('sens'),
+          neighbourCount: get('neighbour-count'),
+          presetOverride,
+          automixOn: !!(document.getElementById('automix-toggle') && /ON/i.test(document.getElementById('automix-toggle').textContent || '')),
+        };
+      },
+
+      // Apply a snapshot to the live engine.
+      _applySnapshot(s) {
+        const set = (id, val) => {
+          const el = document.getElementById(id);
+          if (!el || val == null) return;
+          el.value = String(val);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        set('depth', s.depth);
+        set('gate', s.gate);
+        set('decay', s.decay);
+        set('sens', s.sens);
+        set('neighbour-count', s.neighbourCount);
+        if (s.presetOverride && window.VersionsPresets && typeof window.VersionsPresets.setPresetOverride === 'function') {
+          if (window.VersionsPresets.setPresetOverride(s.presetOverride) !== false) {
+            window.__swrCurrentPreset = s.presetOverride;
+            if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.save(s.presetOverride);
+          }
+        }
+        // Automix on/off. `automix` is the local IIFE-scoped automixer
+        // toggle defined just below — same scope, so direct call.
+        const toggleBtn = document.getElementById('automix-toggle');
+        const currentlyOn = !!(toggleBtn && /ON/i.test(toggleBtn.textContent || ''));
+        if (typeof automix !== 'undefined' && automix && typeof automix.toggle === 'function') {
+          if (s.automixOn && !currentlyOn) automix.toggle();
+          else if (!s.automixOn && currentlyOn) automix.toggle();
+        }
+      },
+
+      list() { return this._load(); },
+
+      save(index, label) {
+        const arr = this._load();
+        if (index < 0 || index >= this.MAX_SCENES) return false;
+        arr[index] = {
+          id: index,
+          label: label || arr[index].label || 'Scene ' + (index + 1),
+          snapshot: this._currentSnapshot(),
+          createdAt: Date.now(),
+        };
+        this._save(arr);
+        return true;
+      },
+
+      recall(index) {
+        const arr = this._load();
+        if (index < 0 || index >= this.MAX_SCENES) return false;
+        const s = arr[index];
+        if (!s || !s.snapshot) return false;
+        this._applySnapshot(s.snapshot);
+        return true;
+      },
+
+      // Long-press tracking. The pad's mousedown calls startCapture(index)
+      // which sets a 1s timer; on timeout, save(index, 'Scene N'). On
+      // mouseup, if the timer is still pending, cancel it and recall.
+      startCapture(index) {
+        if (this._captureTimer) clearTimeout(this._captureTimer);
+        this._captureTimer = setTimeout(() => {
+          this._captureTimer = null;
+          this.save(index, 'Scene ' + (index + 1));
+          if (typeof setStatus === 'function') setStatus('saved scene ' + (index + 1), 'ok');
+          // Refresh the UI.
+          if (typeof refreshScenesPanel === 'function') refreshScenesPanel();
+        }, 1000);
+      },
+
+      cancelCapture() {
+        if (this._captureTimer) {
+          clearTimeout(this._captureTimer);
+          this._captureTimer = null;
+          return true;
+        }
+        return false;
+      },
+    };
+
     // ---- Self-evolving automixer toggle ----------------------------------
     // Listens for clicks on the footer toggle + the `A` keyboard shortcut
     // (when the page is focused and no input has focus). When ON, every
@@ -3288,6 +3424,81 @@
         m.querySelector('#mood-result').style.display = 'none';
         m.querySelector('#mood-file').value = '';
       });
+      const onKey = (e) => { if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); } };
+      document.addEventListener('keydown', onKey);
+    });
+    // Footer "Scenes" → SWR_SCENES modal. 2×2 grid of pads: click to
+    // recall a snapshot, hold 1s to save the current engine state to
+    // that pad. ESC closes. (Plan: .hermes/plans/2026-09-09_029000-scene-pads.md.)
+    function refreshScenesPanel(modal) {
+      const m = modal || document.querySelector('.mvm-modal-bg.scenes-modal');
+      if (!m || !window.SWR_SCENES) return;
+      const scenes = window.SWR_SCENES.list();
+      let html = '<div style="background:var(--panel);border:1px solid var(--line);padding:24px 28px;min-width:480px;color:var(--ink);font:11px ui-monospace;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
+        + '<span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">SCENE PADS</span>'
+        + '<button class="tbtn" id="scenes-close">CLOSE</button>'
+        + '</div>'
+        + '<div style="color:var(--muted);font-size:9px;margin-bottom:12px;letter-spacing:0.06em;">click=recall · hold 1s=save</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">';
+      scenes.forEach((s, i) => {
+        const has = !!s.snapshot;
+        const label = s.label + (has ? '' : ' (empty)');
+        html += '<button class="scene-pad" data-idx="' + i + '" style="padding:18px;background:' + (has ? 'var(--panel-2)' : 'transparent') + ';border:1px solid var(--line);color:var(--ink);cursor:pointer;font:11px ui-monospace;text-align:left;">'
+          + '<div style="color:' + (has ? 'var(--m)' : 'var(--muted)') + ';font-size:9px;letter-spacing:0.1em;">SCENE ' + (i + 1) + '</div>'
+          + '<div style="margin-top:4px;">' + label + '</div>'
+          + (has ? '<div style="margin-top:6px;color:var(--muted);font-size:9px;">d=' + s.snapshot.depth.toFixed(2) + ' g=' + s.snapshot.gate.toFixed(2) + ' s=' + s.snapshot.sens.toFixed(2) + '</div>' : '')
+          + '</button>';
+      });
+      html += '</div>'
+        + '<div style="margin-top:14px;color:var(--muted);font-size:9px;letter-spacing:0.06em;text-align:center;">'
+        + 'Hold any pad 1 second to save current engine state.'
+        + '</div>'
+        + '</div>';
+      m.innerHTML = html;
+      // Wire close.
+      const closeBtn = m.querySelector('#scenes-close');
+      if (closeBtn) closeBtn.addEventListener('click', () => m.remove());
+      // Wire pads.
+      m.querySelectorAll('.scene-pad').forEach(pad => {
+        const idx = parseInt(pad.getAttribute('data-idx'), 10);
+        pad.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          if (window.SWR_SCENES) window.SWR_SCENES.startCapture(idx);
+          pad.style.background = 'var(--m)';
+          pad.style.color = '#fff';
+        });
+        pad.addEventListener('mouseup', () => {
+          if (window.SWR_SCENES && window.SWR_SCENES.cancelCapture()) {
+            // Timer was still pending → click → recall.
+            if (window.SWR_SCENES.recall(idx)) {
+              setStatus('recalled scene ' + (idx + 1), 'ok');
+              m.remove();
+            } else {
+              setStatus('scene ' + (idx + 1) + ' is empty — hold to save', 'err');
+              refreshScenesPanel(m);
+            }
+          }
+          // restore style
+          pad.style.background = '';
+          pad.style.color = '';
+        });
+        pad.addEventListener('mouseleave', () => {
+          // Mouse left the pad \u2014 cancel any pending save.
+          if (window.SWR_SCENES) window.SWR_SCENES.cancelCapture();
+          pad.style.background = '';
+          pad.style.color = '';
+        });
+      });
+    }
+    const _scenesBtn = document.getElementById('scenes-btn');
+    if (_scenesBtn) _scenesBtn.addEventListener('click', () => {
+      if (!window.SWR_SCENES) return;
+      const m = document.createElement('div');
+      m.className = 'mvm-modal-bg scenes-modal';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      refreshScenesPanel(m);
+      document.body.appendChild(m);
       const onKey = (e) => { if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); } };
       document.addEventListener('keydown', onKey);
     });
