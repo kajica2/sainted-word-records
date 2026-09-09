@@ -372,6 +372,34 @@ preset" is shown as "last preset" because we don't have a
 per-preset counter (would need a `SWR_PRESET_USE` event from
 the engine).
 
+### `window.SWR_SCENES` — `versions/music_video.html` (IIFE side-effect)
+
+Scene pads (PR #63, partial implementation of PRD-008). Stores
+up to 4 scene snapshots in `localStorage["swr.scenes.v1"]`. Each
+snapshot captures: `depth`, `gate`, `decay`, `sens`, `neighbourCount`
+(the 5 footer sliders), the active preset override (from
+`VersionsPresets._fxOverride`), and the automix on/off state.
+Footer `Scenes` button opens a modal with a 2×2 grid of pads.
+Click = recall (restores all 5 sliders + preset + automix). Hold
+1 second = save current engine state to that pad. The recall path
+dispatches `input` events on each slider so existing handlers
+run.
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `list()` | `Scene[]` | Read the 4 scenes. |
+| `save(index, label?)` | `boolean` | Capture current state to pad at `index`. |
+| `recall(index)` | `boolean` | Apply scene at `index` to live sliders. |
+| `startCapture(index)` | `void` | Arm the 1s save timer. |
+| `cancelCapture()` | `boolean` | Cancel pending save (returns true if there was a pending save). |
+| `STORAGE_KEY` | `'swr.scenes.v1'` | Read-only constant. |
+| `_currentSnapshot()` | `object` | Internal — exposed for smoke tests. |
+
+PRD-008 §8.2.1 full Edit/Perform toggle, §8.2.3 manual beat tap
+(Spacebar), §8.2.4 emergency controls, and the 8-pad grid
+(§8.2.2 — we ship 4) are explicitly **out of scope** — punted
+to follow-ups.
+
 ### `window.SWR_MOOD` — `versions/music_video.html` (IIFE side-effect)
 
 Mood board + reference overlay (PR #59, partial implementation
@@ -768,6 +796,19 @@ unless marked `**Deferred**`.
   (§11.2.2), URL input (§11.2.1), and motion/FX mapping
   (§11.2.3) are explicitly **out of scope**. 1 new smoke
   assertion (72 total).
+- **PR #63 — scene pads (PRD-008 partial).** `SWR_SCENES` stores
+  up to 4 scene snapshots in `localStorage["swr.scenes.v1"]`,
+  each capturing the 5 footer sliders (depth/gate/decay/sens/
+  neighbourCount) + the active preset override (from
+  `VersionsPresets._fxOverride`) + the automix on/off state.
+  Footer `Scenes` button opens a modal with a 2×2 grid of
+  pads. Click = recall (restores all 5 sliders + preset +
+  automix). Hold 1 second = save current state to that pad.
+  Recall dispatches `input` events on each slider to trigger
+  existing handlers. PRD-008 §8.2.1 full Edit/Perform toggle,
+  §8.2.3 manual beat tap (Spacebar), §8.2.4 emergency controls,
+  and the 8-pad grid (§8.2.2 — we ship 4) are explicitly
+  **out of scope**. 1 new smoke assertion (73 total).
 
 ### Deferred
 
@@ -813,6 +854,7 @@ unless marked `**Deferred**`.
 - **PR #52** — hook generator (SWR_HOOK_DETECTOR + drop detection + 3 hook presets)
 - **PR #55** — local stats widget (SWR_STATS + Recorder._save() instrumentation + stats modal)
 - **PR #59** — mood board (SWR_MOOD + k-means palette + feature extraction + slider mapping)
+- **PR #63** — scene pads (SWR_SCENES + 4 scene snapshots + click/hold pad UI)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-09_005000-hero-frame-capture.md`** — the hero frame plan (now shipped as PR #42, partial — print export at 300 DPI punted to a follow-up)

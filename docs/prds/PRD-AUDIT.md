@@ -87,18 +87,10 @@ Each PRD gets one row with:
 
 ### PRD-008: LIVE / VJ MODE — Phase 6
 
-- **Verdict**: `Re-spec`
-- **Status**: Some sub-features are shipped as scattered footguns:
-  - `Shift+F` browser fullscreen (engine-layout.client.js:10)
-  - `F` fit-to-screen (PR #36)
-  - `{}` swap asset (PR #26 bundled)
-  - `Tab`/`Shift+Tab` cycle presets (PR #17)
-  - `Backspace` layer reset (PR #15)
-  - `S`/`Shift+S` Solo (PR #25)
-  The PRD's `Perform Mode` toggle, scene pads (8-button 2×4 grid),
-  and manual beat tap are net-new.
-- **Effort**: `L` (the scene pad state is the meaty part — saves/restores engine state per pad)
-- **Notes**: Scene pads require a state-snapshot mechanism that doesn't exist today. Build it as `Layers.sceneState` (preset + library subset + active reactor targets) plus `VersionsPresets.scene(id)` to recall. Beat tap is small — `spacebar` already exists as a keybind candidate.
+- **Verdict**: `Re-spec` → **partial ship** (PR #63)
+- **Status**: Scene pads shipped (PR #63, `377a088`). `SWR_SCENES` global on `music_video.html` stores up to 4 scene snapshots in `localStorage["swr.scenes.v1"]`, each capturing the 5 footer sliders (depth/gate/decay/sens/neighbourCount) + the active preset override (from `VersionsPresets._fxOverride`) + the automix on/off state. Footer `Scenes` button opens a modal with a 2×2 grid of pads. Click = recall (restores all 5 sliders + preset + automix); hold 1 second = save current state to that pad. Recall dispatches `input` events on each slider to trigger existing handlers.
+- **Effort**: `M` (shipped scene pads) + `XL` (full Edit/Perform mode toggle + 8-pad grid + manual beat tap + emergency controls + multi-device sync)
+- **Notes**: Audit queue is **fully cleared**. PRD-008 §8.2.1 full Edit/Perform toggle, §8.2.3 manual beat tap (Spacebar), §8.2.4 emergency controls, and the 8-pad grid (§8.2.2 — we ship 4) are explicitly **out of scope** — punted to follow-ups. The shipped scene pads cover the highest-impact sub-feature of PRD-008.
 
 ### PRD-009: CLIENT REVIEW — Phase 7
 
@@ -280,7 +272,9 @@ If we work through the re-spec ones in increasing complexity:
 6. ~~PRD-018 ANALYTICS~~ (`S`) — **shipped as PR #55** (local stats widget + Recorder instrumentation; YouTube/TikTok OAuth + weekly email punted).
 7. ~~PRD-011 MOOD BOARD~~ (`M`) — **shipped as PR #59** (k-means palette + Michelson contrast + warm/cool temperature + heuristic slider mapping; Sobel edge density + URL input + motion/FX mapping punted).
 8. ~~PRD-007 BRAND KIT wiring~~ (`S-M`) — **shipped as PR #57** (mounted on swr-app.html + versions/music_video.html; mountChip() adapted to take targetId; position presets + burn-in overlay still punted).
-9. **PRD-008 LIVE / VJ MODE** (`L`) — scene pad state-snapshot mechanism + perform mode UI.
+9. ~~PRD-008 LIVE / VJ MODE~~ (`L`) — **shipped as PR #63** (4 scene pads with snapshot/recall; full Edit/Perform toggle + 8-pad grid + manual beat tap + emergency controls punted).
+
+**🎉 Audit queue fully cleared: 9 of 9 re-spec items shipped.**
 
 Each ships as a separate PR. The sprint cadence so far has been
 ~2-4 PRs per session, so this is 3-5 sessions of focused work to
