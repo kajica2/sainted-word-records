@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Photo Studio · Sainted Word Records</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Photo Studio — drop in a still image, get a Ken Burns + audio-reactive animated MP4. Browser-native, local-first." />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#ff0066" />
+<meta name="author" content="Kai Djuric" />
+<meta name="robots" content="index,follow" />
+<meta property="og:title" content="Photo Studio · Sainted Word Records" />
+<meta property="og:description" content="Drop in a still image, get a Ken Burns + audio-reactive animated MP4." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://sainted-word-records.vercel.app/photo.html" />
+<meta property="og:image" content="https://sainted-word-records.vercel.app/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:site_name" content="Sainted Word Records" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Photo Studio · Sainted Word Records" />
+<meta name="twitter:description" content="Drop in a still image, get a Ken Burns + audio-reactive animated MP4." />
+<meta name="twitter:image" content="https://sainted-word-records.vercel.app/og.png" />
+<link rel="canonical" href="https://sainted-word-records.vercel.app/photo.html" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23140010'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff0066' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff0066'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #000000;
+    --bg-2: #0a0008;
+    --panel: #14000a;
+    --panel-2: #1f0010;
+    --ink: #ffffff;
+    --muted: #ff44aa;
+    --line: #330022;
+    --accent: #ff0066;
+    --accent-2: #00ccff;
+    --green: #00ff66;
+    --yellow: #ffff00;
+  }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 11px ui-monospace, "SF Mono", Menlo, monospace;
+    overflow: hidden;
+  }
+  #app {
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    grid-template-columns: 280px 1fr;
+    grid-template-areas:
+      "head head"
+      "side stage";
+    height: 100vh;
+    width: 100vw;
+  }
+  header.ps-head {
+    grid-area: head;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+  }
+  .side-col {
+    grid-area: side;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 12px;
+  }
+  .stage-col {
+    grid-area: stage;
+    background: #000;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .stage-col canvas {
+    display: block;
+    object-fit: contain;
+    max-width: 100%;
+    max-height: 100%;
+  }
+  .stage-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .stage-hint.hidden { display: none; }
+
+  .panel { margin-bottom: 16px; }
+  .panel h2 {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel label {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    align-items: center;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .panel label .v {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+    text-align: right;
+  }
+  .panel input[type="range"] {
+    grid-column: 1 / -1;
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .panel input[type="file"],
+  .panel select {
+    width: 100%;
+    background: var(--bg-2);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    font: 10px ui-monospace, monospace;
+    padding: 5px 6px;
+    margin-bottom: 6px;
+    box-sizing: border-box;
+  }
+
+  /* Buttons */
+  .tbtn {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    font: 10px ui-monospace, monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  .tbtn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+  .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tbtn.accent { border-color: var(--accent); color: var(--accent); }
+  .tbtn.accent:hover { background: var(--accent); color: #000; }
+  .actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .actions .tbtn { flex: 1; min-width: 60px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="ps-head">
+    <span style="color:var(--accent);font-weight:700;letter-spacing:0.16em;">PS</span>
+    <span style="color:var(--muted);font-size:9px;">v1 · photo studio</span>
+    <span style="flex:1"></span>
+    <span id="status" style="color:var(--green);font-size:10px;letter-spacing:0.06em;">READY</span>
+  </header>
+
+  <aside class="side-col">
+    <div class="panel">
+      <h2>Source</h2>
+      <input type="file" id="image-input" accept="image/*" />
+      <input type="file" id="audio-input" accept="audio/*" />
+      <select id="format-select">
+        <option value="1080x1080">1:1 · 1080²</option>
+        <option value="1920x1080">16:9 · 1080p</option>
+      </select>
+    </div>
+
+    <div class="panel">
+      <h2>Ken Burns</h2>
+      <label>Start X <span class="v" id="kb-start-x-v">0.30</span>
+        <input type="range" id="kb-start-x" min="0" max="1" step="0.01" value="0.3" /></label>
+      <label>Start Y <span class="v" id="kb-start-y-v">0.30</span>
+        <input type="range" id="kb-start-y" min="0" max="1" step="0.01" value="0.3" /></label>
+      <label>End X <span class="v" id="kb-end-x-v">0.70</span>
+        <input type="range" id="kb-end-x" min="0" max="1" step="0.01" value="0.7" /></label>
+      <label>End Y <span class="v" id="kb-end-y-v">0.70</span>
+        <input type="range" id="kb-end-y" min="0" max="1" step="0.01" value="0.7" /></label>
+      <label>Zoom <span class="v" id="kb-zoom-v">1.00</span>
+        <input type="range" id="kb-zoom" min="0.5" max="2" step="0.05" value="1.0" /></label>
+      <label>Duration (s) <span class="v" id="kb-duration-v">5</span>
+        <input type="range" id="kb-duration" min="2" max="15" step="1" value="5" /></label>
+    </div>
+
+    <div class="panel">
+      <h2>Audio Reactivity</h2>
+      <label>Bass pulse <span class="v" id="ar-bass-v">0.05</span>
+        <input type="range" id="ar-bass" min="0" max="0.2" step="0.005" value="0.05" /></label>
+      <label>Beat flash <span class="v" id="ar-beat-v">0.05</span>
+        <input type="range" id="ar-beat" min="0" max="0.3" step="0.005" value="0.05" /></label>
+    </div>
+
+    <div class="panel actions">
+      <button class="tbtn" id="play-btn" disabled>▶ PLAY</button>
+      <button class="tbtn" id="loop-btn">LOOP OFF</button>
+      <button class="tbtn accent" id="export-btn" disabled>⤓ EXPORT MP4</button>
+    </div>
+  </aside>
+
+  <section class="stage-col">
+    <canvas id="stage" width="1080" height="1080" style="background:#0a0008;"></canvas>
+    <div class="stage-hint" id="stage-hint">Drop an image to start</div>
+  </section>
+</div>
+
+<!-- Engine-agnostic WebCodecs recorder (no engine-* scripts on this page). -->
+<script src="../lib/recorder.client.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ---- helpers --------------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // ---- DOM refs -------------------------------------------------------
+  const stage = $('stage');
+  const ctx = stage.getContext('2d');
+  const statusEl = $('status');
+  const hintEl = $('stage-hint');
+  const playBtn = $('play-btn');
+  const loopBtn = $('loop-btn');
+  const exportBtn = $('export-btn');
+
+  // ---- audio state ----------------------------------------------------
+  const A = {
+    el: null,
+    audioCtx: null,
+    analyser: null,
+    src: null,
+    feat: { bass: 0, mid: 0, treble: 0, rms: 0, beat: 0 },
+    lastBeatAt: 0,
+  };
+
+  // ---- image + playback state ----------------------------------------
+  let img = null;
+  let elapsed = 0;
+  let lastT = 0;
+  let playing = false;
+  let looping = false;
+
+  // ---- format (default 1080×1080) ------------------------------------
+  function setFormat(w, h) {
+    stage.width = w;
+    stage.height = h;
+    stage.style.width = 'auto';
+    stage.style.height = 'auto';
+    stage.style.maxWidth = '100%';
+    stage.style.maxHeight = '100%';
+    stage.style.objectFit = 'contain';
+  }
+  setFormat(1080, 1080);
+
+  // ---- audio setup ----------------------------------------------------
+  function setupAudio(file) {
+    if (A.el) { try { A.el.pause(); } catch (_) {} }
+    const url = URL.createObjectURL(file);
+    A.el = new Audio();
+    A.el.src = url;
+    A.el.loop = true;
+    A.el.crossOrigin = 'anonymous';
+    if (!A.audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      A.audioCtx = new AC();
+      A.analyser = A.audioCtx.createAnalyser();
+      A.analyser.fftSize = 2048;
+      A.analyser.smoothingTimeConstant = 0.6;
+    }
+    try {
+      // Re-tap: createMediaElementSource can only be called once per element
+      // so guard with a flag and skip on subsequent calls.
+      if (!A.el._swrTapped) {
+        A.src = A.audioCtx.createMediaElementSource(A.el);
+        A.src.connect(A.analyser);
+        A.analyser.connect(A.audioCtx.destination);
+        A.el._swrTapped = true;
+      }
+    } catch (_) {}
+    runFeatLoop();
+    if (!playBtn.disabled) {
+      // already enabled once an image is loaded; just refresh label
+    }
+    statusEl.textContent = 'AUDIO LOADED';
+  }
+
+  function runFeatLoop() {
+    const data = new Uint8Array(A.analyser.frequencyBinCount);
+    const N = data.length;
+    const avg = (lo, hi) => {
+      let s = 0;
+      const top = Math.min(hi, N);
+      for (let i = lo; i < top; i++) s += data[i];
+      return s / (top - lo || 1) / 255;
+    };
+    let prevBass = 0;
+    const tick = () => {
+      if (!A.analyser) return;
+      A.analyser.getByteFrequencyData(data);
+      A.feat.bass = avg(0, Math.floor(N * 0.05));
+      A.feat.mid = avg(Math.floor(N * 0.05), Math.floor(N * 0.3));
+      A.feat.treble = avg(Math.floor(N * 0.3), N);
+      A.feat.rms = (A.feat.bass + A.feat.mid + A.feat.treble) / 3;
+      // Crude beat detector: spike in bass energy above recent baseline.
+      const now = performance.now();
+      if (A.feat.bass > prevBass + 0.08 && A.feat.bass > 0.25 && now - A.lastBeatAt > 200) {
+        A.feat.beat = 1;
+        A.lastBeatAt = now;
+      } else if (now - A.lastBeatAt > 120) {
+        A.feat.beat = 0;
+      }
+      prevBass = A.feat.bass * 0.7 + prevBass * 0.3;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  // ---- image setup ----------------------------------------------------
+  function setupImage(file) {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => {
+      img = im;
+      hintEl.classList.add('hidden');
+      playBtn.disabled = false;
+      exportBtn.disabled = false;
+      statusEl.textContent = 'IMAGE LOADED';
+    };
+    im.onerror = () => {
+      statusEl.textContent = 'IMAGE FAILED';
+    };
+    im.src = url;
+  }
+
+  // ---- draw frame -----------------------------------------------------
+  function drawFrame(t) {
+    const dt = (t - lastT) / 1000;
+    lastT = t;
+    if (playing) elapsed += dt;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, stage.width, stage.height);
+
+    if (!img) return;
+
+    const dur = parseFloat($('kb-duration').value) || 5;
+    const tt = looping ? (elapsed % dur) / dur : Math.min(elapsed / dur, 1);
+    const sx = parseFloat($('kb-start-x').value);
+    const sy = parseFloat($('kb-start-y').value);
+    const ex = parseFloat($('kb-end-x').value);
+    const ey = parseFloat($('kb-end-y').value);
+    const zoom = parseFloat($('kb-zoom').value);
+
+    const cx = lerp(sx, ex, tt);
+    const cy = lerp(sy, ey, tt);
+    const bassPulse = 1 + A.feat.bass * parseFloat($('ar-bass').value);
+    const beatFlash = A.feat.beat ? parseFloat($('ar-beat').value) : 0;
+    const scale = zoom * bassPulse + beatFlash;
+
+    // Cover-mode render: scale image to cover the stage, then offset by
+    // (cx, cy) which are 0..1 in stage-normalized coords.
+    const iar = img.width / img.height;
+    const sar = stage.width / stage.height;
+    let dw, dh;
+    if (iar > sar) {
+      dh = stage.height * scale;
+      dw = dh * iar;
+    } else {
+      dw = stage.width * scale;
+      dh = dw / iar;
+    }
+    const dx = (stage.width - dw) / 2 + (cx - 0.5) * stage.width;
+    const dy = (stage.height - dh) / 2 + (cy - 0.5) * stage.height;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function loop(t) {
+    drawFrame(t);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---- slider live labels --------------------------------------------
+  function bindRange(id) {
+    const input = $(id);
+    const out = $(id + '-v');
+    if (!input || !out) return;
+    const fmt = (v) => {
+      const n = parseFloat(v);
+      if (id === 'kb-duration') return String(Math.round(n));
+      return n.toFixed(2);
+    };
+    const update = () => { out.textContent = fmt(input.value); };
+    input.addEventListener('input', update);
+    update();
+  }
+  ['kb-start-x', 'kb-start-y', 'kb-end-x', 'kb-end-y',
+   'kb-zoom', 'kb-duration', 'ar-bass', 'ar-beat'].forEach(bindRange);
+
+  // ---- UI wiring ------------------------------------------------------
+  $('image-input').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) setupImage(f);
+  });
+  $('audio-input').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) setupAudio(f);
+  });
+  $('format-select').addEventListener('change', (e) => {
+    const [w, h] = e.target.value.split('x').map(Number);
+    if (w && h) setFormat(w, h);
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (!img) return;
+    playing = !playing;
+    playBtn.textContent = playing ? '⏸ PAUSE' : '▶ PLAY';
+    if (A.el && A.audioCtx && A.audioCtx.state === 'suspended') A.audioCtx.resume();
+    if (A.el && playing) A.el.play().catch(() => {});
+    if (A.el && !playing) A.el.pause();
+    statusEl.textContent = playing ? 'PLAYING' : 'PAUSED';
+  });
+
+  loopBtn.addEventListener('click', () => {
+    looping = !looping;
+    loopBtn.textContent = looping ? 'LOOP ON' : 'LOOP OFF';
+    loopBtn.style.color = looping ? 'var(--accent)' : '';
+  });
+
+  exportBtn.addEventListener('click', async () => {
+    if (!img) return;
+    if (!window.SWR_RECORDER || !window.SWR_RECORDER.canUseWebCodecs()) {
+      exportBtn.textContent = 'WebCodecs unsupported';
+      setTimeout(() => { exportBtn.textContent = '⤓ EXPORT MP4'; }, 2000);
+      return;
+    }
+    exportBtn.disabled = true;
+    exportBtn.textContent = 'PREPARING…';
+    statusEl.textContent = 'RECORDING';
+    try {
+      // Reset transport to t=0 so the export starts at the Ken Burns origin.
+      elapsed = 0;
+      playing = true;
+      if (A.el) {
+        try { A.el.currentTime = 0; } catch (_) {}
+        if (A.audioCtx && A.audioCtx.state === 'suspended') await A.audioCtx.resume();
+        await A.el.play().catch(() => {});
+      }
+      const dur = parseFloat($('kb-duration').value) || 5;
+      const recOpts = {
+        canvas: stage,
+        width: stage.width,
+        height: stage.height,
+        fps: 30,
+        videoBitsPerSecond: 4_000_000,
+      };
+      if (A.el && A.audioCtx) {
+        recOpts.audioSource = A.src || A.el;
+        recOpts.audioSampleRate = A.audioCtx.sampleRate || 44100;
+        recOpts.audioNumberOfChannels = 2;
+      }
+      const pending = window.SWR_RECORDER.start(recOpts);
+      // Wait for the configured duration + a small tail buffer.
+      await new Promise((r) => setTimeout(r, dur * 1000 + 250));
+      window.SWR_RECORDER.stop();
+      const result = await pending;
+      if (!result || !result.blob) {
+        exportBtn.textContent = 'no recording';
+        setTimeout(() => { exportBtn.textContent = '⤓ EXPORT MP4'; exportBtn.disabled = false; }, 2000);
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(result.blob);
+      a.download = 'photo-' + Date.now() + '.mp4';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      exportBtn.textContent = '✓ EXPORTED';
+      statusEl.textContent = 'EXPORTED';
+      setTimeout(() => { exportBtn.textContent = '⤓ EXPORT MP4'; exportBtn.disabled = false; }, 2000);
+    } catch (e) {
+      exportBtn.textContent = 'recorder error';
+      statusEl.textContent = 'ERROR';
+      setTimeout(() => { exportBtn.textContent = '⤓ EXPORT MP4'; exportBtn.disabled = false; }, 2000);
+    } finally {
+      playing = false;
+      playBtn.textContent = '▶ PLAY';
+      if (A.el) try { A.el.pause(); } catch (_) {}
+    }
+  });
+})();
+</script>
+</body>
+</html>
