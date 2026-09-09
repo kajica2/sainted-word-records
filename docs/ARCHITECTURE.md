@@ -371,6 +371,42 @@ the overlay out over 600ms. The page remembers the last-loaded
 audio file in IDB (`SWR_LAST_SONG`) and auto-plays it on next
 visit (until the user clicks ↺ to reset).
 
+### 6.5 Standalone creation pages
+
+These are top-level creation surfaces that ship **alongside** the
+engine rather than as `versions/*` variants. Each one is its own
+self-contained `<name>.html` at the repo root, served via a
+Vercel rewrite, and uses a smaller subset of the engine's
+subsystems (or none at all).
+
+- **`make-video.html`** — the gradient-panel + automix surface
+  that powers the marketing-grade "make a video in 30 seconds"
+  flow. Loads the full engine subsystems + the `client/`
+  modules described in §4.2 (gradient panel, automix, last mix,
+  layer state). Served at `/make-video` via Vercel rewrite. See
+  `docs/music-video.md` for the canonical reference.
+- **`photo.html`** — the Photo Studio MVP (PR #61). A
+  self-contained single-page app for animating still images with
+  Ken Burns pan/zoom + audio-reactive bass pulse. Imports an
+  image + optional audio, exposes start/end position + zoom
+  controls, and exports a 5s MP4 at 1080×1080 or 1920×1080 via
+  `lib/recorder.client.js` (`SWR_RECORDER`). No `engine-*`
+  subsystems are loaded — the page **is** the engine (inline CSS
+  + JS IIFE, ~512 lines). Served at `/photo` via Vercel rewrite.
+  See `docs/prds/photo-studio.md` for the PRD; this is a
+  **partial ship** — §4.1 Gallery, §4.2 Parallax, §4.4
+  atmosphere layers, §4.5 GIF/Cinemagraph/Live Photo, and §4.6
+  batch are explicitly out of scope (see PRD-AUDIT.md).
+
+These pages intentionally don't reuse the `versions/<x>.html`
+template because their interaction model is fundamentally
+different — `make-video.html` is the public "make a video"
+surface (no project save/load, no layers panel), and
+`photo.html` is an even narrower creator for a single still.
+Adding a new standalone creation page means: a new top-level
+`<name>.html`, a Vercel rewrite, and (if it has build-time
+copies) a `rootFiles` entry in `vite.config.js`.
+
 ---
 
 ## 7. Testing
