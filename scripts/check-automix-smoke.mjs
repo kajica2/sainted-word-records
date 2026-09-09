@@ -1487,6 +1487,32 @@ if (statsShape.ok
   ok('SWR_STATS API: record/summary/reset/setPreset + 30s/1MB record works');
 else bad('SWR_STATS', JSON.stringify(statsShape));
 
+// 70. Brandkit module loads on swr-app.html.
+await page.goto('http://localhost:5181/swr-app.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await new Promise(r => setTimeout(r, 200));
+const brandkitApp = await page.evaluate(() => ({
+  ok: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
+  hasReadProfile: window.SWR_Brandkit && typeof window.SWR_Brandkit.readProfile === 'function',
+  hasMountChip: window.SWR_Brandkit && typeof window.SWR_Brandkit.mountChip === 'function',
+  hasApply: window.SWR_Brandkit && typeof window.SWR_Brandkit.applyBrandkit === 'function',
+  chipMounted: !!document.getElementById('brandkit-chip'),
+}));
+if (brandkitApp.ok && brandkitApp.hasReadProfile && brandkitApp.hasMountChip && brandkitApp.hasApply && brandkitApp.chipMounted)
+  ok('swr-app.html loads brandkit: SWR_Brandkit global + readProfile + mountChip + applyBrandkit + chip mounted');
+else bad('swr-app brandkit', JSON.stringify(brandkitApp));
+
+// 71. Brandkit module loads on music_video.html (we're already here from boot).
+const brandkitMV = await page.evaluate(() => ({
+  ok: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
+  hasReadProfile: window.SWR_Brandkit && typeof window.SWR_Brandkit.readProfile === 'function',
+  hasMountChip: window.SWR_Brandkit && typeof window.SWR_Brandkit.mountChip === 'function',
+  hasApply: window.SWR_Brandkit && typeof window.SWR_Brandkit.applyBrandkit === 'function',
+  chipMounted: !!document.getElementById('brandkit-chip'),
+}));
+if (brandkitMV.ok && brandkitMV.hasReadProfile && brandkitMV.hasMountChip && brandkitMV.hasApply && brandkitMV.chipMounted)
+  ok('versions/music_video.html loads brandkit: SWR_Brandkit global + readProfile + mountChip + applyBrandkit + chip mounted');
+else bad('music_video brandkit', JSON.stringify(brandkitMV));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));

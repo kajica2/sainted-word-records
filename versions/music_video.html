@@ -303,10 +303,12 @@
     <script src="../lib/recorder.client.js"></script>
 <script src="../audio-analysis-v2.js" defer></script>
 <link rel="stylesheet" href="../engine-genops.css" />
+<!-- Brand Kit (PRD-007 partial) — chip + 4-card editor. See engine.html for the canonical wiring. -->
+<link rel="stylesheet" href="../brandkit.css" />
 </head>
 <body data-page="neon">
   <div id="app">
-    <!-- SWR-HEADER-DATA-ICONS --><header>
+    <!-- SWR-HEADER-DATA-ICONS --><header id="hdr">
       <div class="v">MUSIC VIDEO <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -3107,5 +3109,31 @@
   </script>
 <script src="../versions-presets.js"></script>
 <script src="./temp-slider.js"></script>
-<script src="../engine-genops.client.js"></script></body>
+<script src="../engine-genops.client.js"></script>
+<!-- Brand Kit (PRD-007 partial) — module + boot. Mirrors engine.html:5438-5459. -->
+<script type="module" src="../brandkit.client.js"></script>
+<script>
+  // Apply brandkit on studio boot — public launch: no auth wall.
+  // Brandkit is opt-in: if a profile exists, apply it; otherwise render with default theme.
+  (function () {
+    function go() {
+      if (!window.SWR_Brandkit) { setTimeout(go, 30); return; }
+      try {
+        const profile = window.SWR_Brandkit.readProfile();
+        if (profile && profile.brandkit) {
+          window.SWR_Brandkit.applyBrandkit(profile.brandkit);
+          window.SWR_Brandkit.mountChip('hdr');
+        }
+      } catch (e) {
+        console.warn('[brandkit] boot failed:', e);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', go);
+    } else {
+      go();
+    }
+  })();
+</script>
+</body>
 </html>
