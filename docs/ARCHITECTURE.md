@@ -362,6 +362,30 @@ The pre-SPA engine. Still served at `/engine` via Vercel rewrite
 and at `/engine.html` directly. No auth, no sidebar, no SPA shell.
 Maintained for compatibility with existing deep links.
 
+**Engine page parity (PR #68)**: `engine.html` ships the same 8
+post-2026 features as `versions/music_video.html` via the same
+`SWR_*` IIFE-side-effect pattern:
+
+- `SWR_HERO_FRAMES` (PR #42) — ring buffer + hero frame capture
+- `SWR_STATS` (PR #55) — Recorder instrumentation + stats modal
+- `SWR_EDIT_DATA` (PR #46) — `swr-edl/1` JSON export
+- `SWR_REVIEW` (PR #49) — watermarked preview + standalone HTML
+- `SWR_HOOK_DETECTOR` (PR #52) — drop detection + 3 hook presets
+- `SWR_MOOD` (PR #59) — k-means palette + reference overlay
+- `SWR_SCENES` (PR #63) — 4 scene snapshots
+- `SWR_FIT` (PR #36) — canvas object-fit cover toggle
+
+Plus `SWR_Brandkit` (PR #57) which loads `brandkit.client.js`.
+Plus `SWR_RECORDER` (from `lib/recorder.client.js`) for the
+WebCodecs recording pipeline. 8 new footer buttons
+(Hero/Stats/Edit Data/Review/Hooks/Mood/Scenes/Fit) join the
+existing REC + Export + nav buttons.
+
+`SWR_STATS.record()` is hooked into `Recorder._save()` at line
+~4792. The other 7 globals gracefully no-op if their
+prerequisites (audio loaded, song uploaded, slider present)
+are missing.
+
 ### 6.4 Onboarding
 
 Every page that needs audio shows an auto-start overlay
