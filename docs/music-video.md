@@ -314,6 +314,40 @@ Footer `Review` button triggers the export. A/B version compare
 (PRD-009 §9.2.3) and revision log CSV export (§9.2.4) are
 explicitly **out of scope** — punted to follow-ups.
 
+### `window.SWR_HOOK_DETECTOR` — `versions/music_video.html` (IIFE side-effect)
+
+Hook generator (PR #52, partial implementation of PRD-006).
+Runs an inline energy-envelope drop finder (RMS over 20ms
+windows, 10ms hop — same math as `audio-analysis-v2.js:225-267`)
+on the loaded song's decoded PCM. Finds the longest sustained
+low-energy intro, then the first frame where energy > 2× intro
+mean, snaps to the nearest onset within 200ms (via
+`AudioAnalysisV2.analyzeBuffer().onsets`). `exportHook(preset)`
+seeks the audio element to the hook start time and records via
+`SWR_RECORDER` at 2 Mbps.
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `detect()` | `Promise<{ok, result?, reason?}>` | Async. Decodes blob → runs drop detector → sets `lastResult`. |
+| `exportHook(preset)` | `Promise<{ok, filename?, reason?}>` | Async. Seeks audio → starts recorder → records for `preset.duration` → stops + downloads. |
+| `lastResult` | `{time, confidence, energy, label, introMean}` | Read-only. The most recent detection. |
+
+Hook presets:
+
+| Preset | Start | Duration |
+|---------|-------|-----------|
+| `teaser` | drop - 3s | 3s |
+| `hook` | drop - 5s | 5s |
+| `clip` | 0 (intro) | 15s |
+
+Footer `Hooks` button triggers detection + shows the hook panel
+(Teaser / Hook / Clip buttons). Detection is heuristic — energy
+> 2× intro mean — works for typical EDM/pop, misses ambient
+tracks with no clear drop. Confidence is hard-coded to 0.85.
+Auto-Caption (PRD-006 §6.2.3), End-Card Builder (§6.2.4),
+Thumbnail Picker (§6.2.5), and "Full Vertical 60s" preset
+(§6.2.2) are explicitly **out of scope** — punted to follow-ups.
+
 ## 4. Keyboard map
 
 | Key | Action | Source |
@@ -639,6 +673,21 @@ unless marked `**Deferred**`.
   (SWR._fxOverride) that pre-date this PR; both are
   stale-smoke issues from earlier `music_video.html`
   refactors.
+- **PR #52 — hook generator (PRD-006 partial).** `SWR_HOOK_DETECTOR`
+  detects the song's drop via inline energy-envelope analysis
+  (RMS over 20ms windows, 10ms hop — same math as
+  `audio-analysis-v2.js:225-267`), snaps to the nearest onset
+  within 200ms via `analyzeBuffer().onsets`. `exportHook(preset)`
+  seeks the audio to the start time and records via
+  `SWR_RECORDER` at 2 Mbps. 3 presets: Teaser (3s before
+  drop), Hook (5s before drop), Clip (15s from intro).
+  Footer `Hooks` button triggers detection + shows the
+  panel. Detection is heuristic (energy > 2× intro mean);
+  confidence is hard-coded to 0.85. Auto-Caption
+  (§6.2.3), End-Card Builder (§6.2.4), Thumbnail Picker
+  (§6.2.5), and "Full Vertical 60s" preset (§6.2.2) are
+  explicitly **out of scope**. 2 new smoke assertions
+  (68 total).
 
 ### Deferred
 
@@ -681,6 +730,7 @@ unless marked `**Deferred**`.
 - **PR #42** — hero frame capture (SWR_HERO_FRAMES + ring buffer + best(3) ranking)
 - **PR #46** — download edit data (SWR_EDIT_DATA + audio-analysis-v2.js + swr-edl/1 JSON)
 - **PR #49** — client review export (SWR_REVIEW + watermark + self-contained HTML review page)
+- **PR #52** — hook generator (SWR_HOOK_DETECTOR + drop detection + 3 hook presets)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-09_005000-hero-frame-capture.md`** — the hero frame plan (now shipped as PR #42, partial — print export at 300 DPI punted to a follow-up)

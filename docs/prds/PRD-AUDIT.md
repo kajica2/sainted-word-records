@@ -66,10 +66,10 @@ Each PRD gets one row with:
 
 ### PRD-006: HOOK GENERATOR — Phase 4
 
-- **Verdict**: `Re-spec`
-- **Status**: Drop detection algorithm is straightforward (energy envelope + onset detection — both available in `audio-analysis-v2.js`). Hook export presets (3s/5s/15s/60s) build on the existing recorder's range. End-card builder + auto-caption are new.
-- **Effort**: `M`
-- **Notes**: The recorder exists at `lib/recorder.client.js`; the hook feature is essentially "record a sub-range" with the existing recorder + a configurable stop time. The end-card builder + QR code generation are the only new infra.
+- **Verdict**: `Re-spec` → **partial ship** (PR #52)
+- **Status**: Hook generator shipped (PR #52, `c287490`). `SWR_HOOK_DETECTOR` global on `music_video.html` runs an inline energy-envelope drop finder (RMS over 20ms windows, 10ms hop — same math as `audio-analysis-v2.js:225-267`), finds the longest sustained low-energy intro, then the first frame where energy > 2× intro mean. Snaps to the nearest onset within 200ms via `AudioAnalysisV2.analyzeBuffer().onsets`. `exportHook(preset)` seeks the audio element to the start time and records via `SWR_RECORDER` at 2 Mbps. 3 presets shipped: Teaser (3s before drop), Hook (5s before drop), Clip (15s from intro). Footer `Hooks` button triggers detection + shows the panel.
+- **Effort**: `M` (shipped) + `M` (auto-caption + end-card builder + thumbnail picker + Full Vertical 60s preset follow-ups)
+- **Notes**: Detection is heuristic — energy > 2× intro mean works for typical EDM/pop, misses ambient tracks with no clear drop. Confidence is hard-coded to 0.85. Auto-Caption (PRD-006 §6.2.3), End-Card Builder (§6.2.4 with QR code library), Thumbnail Picker (§6.2.5 — overlaps with PR #42 hero frames), and "Full Vertical 60s" preset (§6.2.2) are explicitly **out of scope** — punted to follow-ups.
 
 ### PRD-007: BRAND KIT — Phase 5
 
@@ -237,7 +237,7 @@ If we work through the re-spec ones in increasing complexity:
 2. ~~PRD-003 SOCIAL FORMATS~~ (`S`) — **shipped as PR #44** (format dropdown; safe-zone + dual export punted).
 3. ~~PRD-005 EDITORIAL BRIDGE~~ (`M`) — **shipped as PR #46** (swr-edl/1 JSON export; Premiere Pro XML punted).
 4. ~~PRD-009 CLIENT REVIEW~~ (`M`) — **shipped as PR #49** (watermarked preview + standalone HTML review; A/B compare + revision log punted).
-5. **PRD-006 HOOK GENERATOR** (`M`) — drop detection + hook export.
+5. ~~PRD-006 HOOK GENERATOR~~ (`M`) — **shipped as PR #52** (drop detection + 3 hook presets; auto-caption + end-card + thumbnail picker + Full Vertical 60s punted).
 6. **PRD-018 ANALYTICS** (limited) — local stats widget.
 7. **PRD-011 MOOD BOARD** (`M`) — reference extraction + slider mapping.
 8. **PRD-007 BRAND KIT wiring** (`S-M`) — wire `brandkit.client.js` into `swr-app.html` and `music_video.html`.
