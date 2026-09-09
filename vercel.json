@@ -81,6 +81,14 @@
       "destination": "/personas.html"
     },
     {
+      "source": "/personas/:id",
+      "destination": "/personas.html?id=:id"
+    },
+    {
+      "source": "/personas/:id/",
+      "destination": "/personas.html?id=:id"
+    },
+    {
       "source": "/thanks",
       "destination": "/thanks.html"
     },
@@ -135,14 +143,6 @@
     {
       "source": "/intro/",
       "destination": "/intro.html"
-    },
-    {
-      "source": "/weddings",
-      "destination": "/weddings.html"
-    },
-    {
-      "source": "/weddings/",
-      "destination": "/weddings.html"
     },
     {
       "source": "/make-video",

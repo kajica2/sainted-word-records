@@ -608,7 +608,64 @@
 
     /* GitHub icon */
     .icon-gh { width: 16px; height: 16px; fill: currentColor; }
+
+    /* ===== TRANSITIONS GRID ===== */
+    .transition-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    }
+    @media (max-width: 980px) { .transition-grid { grid-template-columns: 1fr; } }
+    .tx-card {
+      position: relative;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 24px 20px;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .tx-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .tx-num {
+      position: absolute; top: 14px; right: 18px;
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+    .tx-card h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; letter-spacing: -0.01em;
+      margin: 0 0 6px; color: var(--ink);
+    }
+    .tx-tag {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--accent); margin: 0 0 10px;
+    }
+    .tx-body {
+      font-size: 13px; line-height: 1.55;
+      color: var(--ink-2); margin: 0;
+    }
+    .tx-cta {
+      margin-top: 32px;
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 12px;
+    }
+    .tx-cta .tx-note {
+      flex: 1 1 100%;
+      margin: 8px 0 0;
+      font-size: 12px; line-height: 1.55;
+      color: var(--muted);
+    }
+    .tx-cta .tx-note code {
+      font-family: var(--font-mono);
+      background: rgba(255, 210, 74, 0.1);
+      color: var(--accent-3);
+      padding: 1px 5px; border-radius: 3px;
+    }
   </style>
+  <script src="/nav.client.js" defer></script>
+  <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
   <!-- ============ NAV ============ -->
@@ -621,7 +678,6 @@
       <div class="nav__links">
         <a href="#features">Engine</a>
         <a href="/versions">Versions</a>
-        <a href="/weddings">Weddings</a>
         <a href="/intro">Intro</a>
         <a href="#quickstart">Quick start</a>
         <a href="#stack">Stack</a>
@@ -664,6 +720,9 @@
           </a>
           <a class="btn btn--ghost" href="/engine">
             Open the engine
+          </a>
+          <a class="btn btn--ghost" href="/video_single">
+            Transition stage
           </a>
         </div>
       </div>
@@ -983,6 +1042,105 @@
     </div>
   </section>
 
+  <!-- ============ TRANSITIONS ============ -->
+  <section class="section" id="transitions">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">10 CSS transitions</span>
+        <h2 class="section__title">
+          The cuts between the <em>shots</em>.
+        </h2>
+        <p class="section__lede">
+          Ten music-video transition techniques, built as pure-CSS keyframes
+          on top of a single full-bleed canvas. Whip-pan cover, glitch block,
+          zoom-through, strobe flash, paint-stroke, chromatic split, swivel
+          clone, circle wipe, warp dissolve, lens-flare sweep. Beat-synced or
+          manual — drive the whole reel from a JSON timeline or fire one
+          transition per click.
+        </p>
+      </div>
+
+      <div class="transition-grid reveal">
+        <div class="tx-card">
+          <span class="tx-num">01</span>
+          <h3>Whip Pan Cover</h3>
+          <p class="tx-tag">Cover · 0.45s · 90–130 BPM</p>
+          <p class="tx-body">Directional motion-blurred pan. Match direction and shutter speed on both ends to sell the cover.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">02</span>
+          <h3>Glitch Block</h3>
+          <p class="tx-tag">Distortion · 0.5s · 70–160 BPM</p>
+          <p class="tx-body">Stair-stepped clip-path displacement. Pair with RGB split on the sub-bass drop.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">03</span>
+          <h3>Zoom Through Object</h3>
+          <p class="tx-tag">Spatial · 0.5s · 80–120 BPM</p>
+          <p class="tx-body">Scale through a foreground mask — pretending the camera passes through a subject.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">04</span>
+          <h3>Strobe Flash</h3>
+          <p class="tx-tag">Brightness · 0.5s · Any</p>
+          <p class="tx-body">Multi-frame white strobe, then cut. Cheap, loud, effective on beat drops.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">05</span>
+          <h3>Paint Stroke</h3>
+          <p class="tx-tag">Mask · 0.55s · 60–90 BPM</p>
+          <p class="tx-body">SVG stroke-dasharray reveals the next frame through a hand-drawn mask path.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">06</span>
+          <h3>Chromatic Split</h3>
+          <p class="tx-tag">Distortion · 0.5s · 80–140 BPM</p>
+          <p class="tx-body">RGB channels offset on transition, then snap back. Reads as analog distortion.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">07</span>
+          <h3>Swivel Clone</h3>
+          <p class="tx-tag">Cover · 0.6s · 70–110 BPM</p>
+          <p class="tx-body">3D rotateY 180° on the cut point. The subject becomes the next subject.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">08</span>
+          <h3>Circle Wipe</h3>
+          <p class="tx-tag">Mask · 0.6s · 80–120 BPM</p>
+          <p class="tx-body">Expanding clip-path circle from the center. Classic for a reason.</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">09</span>
+          <h3>Warp + Dissolve</h3>
+          <p class="tx-tag">Hybrid · 0.6s · 90–130 BPM</p>
+          <p class="tx-body">Scale, skew, blur, and cross-dissolve. Reads as a "stretch through time".</p>
+        </div>
+        <div class="tx-card">
+          <span class="tx-num">10</span>
+          <h3>Lens Flare Sweep</h3>
+          <p class="tx-tag">Brightness · 0.8s · 60–100 BPM</p>
+          <p class="tx-body">Radial flare blooms from center and washes the cut. Cinematic, a music-video workhorse.</p>
+        </div>
+      </div>
+
+      <div class="tx-cta reveal">
+        <a class="btn btn--primary" href="/video_single">
+          ▶ Open the transition stage
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+        <a class="btn btn--ghost" href="/engine">
+          Use them in the engine
+        </a>
+        <p class="tx-note">
+          Single-canvas stage. Web Audio FFT. Beat-led. Keyboard 1–0 fires each transition,
+          Shift+1–0 sets auto-fire. The rooftop-opening reel plays on a JSON timeline
+          mapped to <code>audios/kraft.mp3</code> — every panel boundary lands on a real
+          audio energy gap, not a hardcoded cue.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ QUICK START ============ -->
   <section class="section section--dark" id="quickstart">
     <div class="wrap">
@@ -1064,7 +1222,8 @@
           <ul>
             <li><a href="/engine">Main engine</a></li>
             <li><a href="/versions">All versions</a></li>
-            <li><a href="./versions.html">5 visual versions</a></li>
+            <li><a href="/video_single">Transition stage</a></li>
+            <li><a href="./versions.html">23 visual versions</a></li>
             <li><a href="./HOWTO-30s-VIDEO.md">How to · 30s</a></li>
             <li><a href="./library/manifest.json">Library manifest</a></li>
           </ul>
