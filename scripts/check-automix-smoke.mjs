@@ -1270,6 +1270,57 @@ await page.evaluate(() => {
   if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
 });
 
+// 63. SWR_EDIT_DATA exposes the API (PRD-005 partial §5.2.1).
+const edlShape = await page.evaluate(() => {
+  if (!window.SWR_EDIT_DATA) return { ok: false, reason: 'no SWR_EDIT_DATA' };
+  const has = {
+    downloadEditData: typeof window.SWR_EDIT_DATA.downloadEditData === 'function',
+    lastAnalysis: 'lastAnalysis' in window.SWR_EDIT_DATA,
+  };
+  // Synthetic lastAnalysis so the smoke doesn't actually decode audio.
+  window.SWR_EDIT_DATA.lastAnalysis = {
+    bpm: 124.0, key: 'A', scale: 'minor', confidence: 0.85,
+    chromagram: new Float32Array(12),
+    onsets: [0.484, 1.452, 2.42, 3.39],
+    duration: 187.5,
+  };
+  return { ok: true, has };
+});
+if (edlShape.ok && edlShape.has.downloadEditData && edlShape.has.lastAnalysis)
+  ok('SWR_EDIT_DATA API exists with downloadEditData + lastAnalysis');
+else bad('SWR_EDIT_DATA', JSON.stringify(edlShape));
+
+// 64. Click the Edit Data button — verify the click handler runs
+//     without throwing. Stub SWR_LAST_SONG with a tiny invalid blob so
+//     decodeAudioData rejects inside the await; the handler still
+//     records an error status (acceptable). Restore the original
+//     SWR_LAST_SONG + setStatus afterwards.
+const edlClick = await page.evaluate(async () => {
+  const origSWR_LAST_SONG = window.SWR_LAST_SONG;
+  let statusText = '';
+  const origSetStatus = window.setStatus;
+  window.setStatus = (t) => { statusText = t; };
+  try {
+    window.SWR_LAST_SONG = Promise.resolve({
+      blob: new Blob([new Uint8Array([0, 0, 0, 0])], { type: 'audio/wav' }),
+      name: 'smoke-test.wav',
+    });
+    const btn = document.getElementById('edit-data-btn');
+    if (!btn) return { ok: false, reason: 'no button' };
+    let threw = false;
+    try { btn.click(); } catch (e) { threw = true; }
+    // Wait for the async handler to settle (fetch + decode + analyze).
+    await new Promise(r => setTimeout(r, 1500));
+    return { ok: true, threw, statusText };
+  } finally {
+    window.setStatus = origSetStatus;
+    window.SWR_LAST_SONG = origSWR_LAST_SONG;
+  }
+});
+if (edlClick.ok && !edlClick.threw && typeof edlClick.statusText === 'string')
+  ok('Edit Data button click handler runs without throwing');
+else bad('Edit Data button click', JSON.stringify(edlClick));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));
