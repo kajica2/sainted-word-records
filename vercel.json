@@ -17,6 +17,14 @@
       "destination": "/engine.html"
     },
     {
+      "source": "/ar-loop",
+      "destination": "/engine-ar-loop.html"
+    },
+    {
+      "source": "/ar-loop/",
+      "destination": "/engine-ar-loop.html"
+    },
+    {
       "source": "/versions",
       "destination": "/versions.html"
     },
@@ -175,6 +183,22 @@
     {
       "source": "/s/:id",
       "destination": "/share-view.html"
+    },
+    {
+      "source": "/video_single",
+      "destination": "/video_single.html"
+    },
+    {
+      "source": "/video_single/",
+      "destination": "/video_single.html"
+    },
+    {
+      "source": "/enhance",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/enhance/",
+      "destination": "/enhance.html"
     }
   ]
 }
