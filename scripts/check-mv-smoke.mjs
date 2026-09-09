@@ -142,6 +142,48 @@ function assert(cond, msg) {
   assert(afterDepth.label === '1.00', `depth label updates to 1.00 after slider input (got: ${afterDepth.label})`);
   assert(afterDepth.state === 1, `HologramState.depth reflects 1.0 (got: ${afterDepth.state})`);
 
+  // Verify the make-video.html format selector.
+  await page.goto(`http://localhost:${PORT}/make-video.html`, {
+    waitUntil: 'domcontentloaded',
+  });
+  const fmtShape = await page.evaluate(async () => {
+    const sel = document.getElementById('format-select');
+    if (!sel) return { ok: false, reason: 'no #format-select' };
+    const initial = {
+      sel: sel.value,
+      mvm: window.MVM_FORMAT,
+      canvasW: document.getElementById('preview').width,
+      canvasH: document.getElementById('preview').height,
+    };
+    sel.value = '9:16';
+    sel.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 50));
+    const after9x16 = {
+      sel: sel.value,
+      mvm: window.MVM_FORMAT,
+      canvasW: document.getElementById('preview').width,
+      canvasH: document.getElementById('preview').height,
+    };
+    sel.value = '1:1';
+    sel.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 50));
+    const after1x1 = {
+      mvm: window.MVM_FORMAT,
+      canvasW: document.getElementById('preview').width,
+      canvasH: document.getElementById('preview').height,
+    };
+    return { ok: true, initial, after9x16, after1x1 };
+  });
+  assert(fmtShape.ok
+      && fmtShape.initial.mvm === '16:9'
+      && fmtShape.initial.canvasW === 640 && fmtShape.initial.canvasH === 360
+      && fmtShape.after9x16.mvm === '9:16'
+      && fmtShape.after9x16.canvasW === 360 && fmtShape.after9x16.canvasH === 640
+      && fmtShape.after1x1.mvm === '1:1'
+      && fmtShape.after1x1.canvasW === 720 && fmtShape.after1x1.canvasH === 720,
+    'make-video format selector: 16:9, 9:16, 1:1 sizes match FORMATS table '
+      + JSON.stringify(fmtShape));
+
   await browser.close();
   server.close();
 
