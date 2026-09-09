@@ -286,6 +286,34 @@ export (PRD-005 §5.2.2) is out of scope — punted to a follow-up.
 Onset classification (downbeat / kick / snare) uses inter-onset
 interval heuristics; real onset classification is a follow-up.
 
+### `window.SWR_REVIEW` — `versions/music_video.html` (IIFE side-effect)
+
+Client review export (PR #49, partial implementation of PRD-009).
+Records at 1 Mbps with a "PREVIEW — NOT FOR DISTRIBUTION"
+watermark burned into the canvas via `window.__SWR_REVIEW_WATERMARK`
+(the frame function checks it each tick). Generates a self-contained
+HTML review page with click-to-comment pins (persisted via
+localStorage per browser) and downloads both files. Pure export
+feature — fits zero-backend (no comment server, the HTML file
+contains the video as a `data:` URL).
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `exportReview(filename?)` | `Promise<boolean>` | Async. Sets watermark → records → generates review HTML → downloads both. |
+
+The review HTML (PRD-009 §9.2.2) has:
+
+- Embedded `<video>` of the watermarked MP4
+- Click anywhere on the video to drop a comment pin
+- Pins positioned at `% x/y` of the video's bounding box
+- Pins persisted via `localStorage["swr.review.pins." + filename]`
+- Each pin stores `{id, x, y, note, t}` where `t` is the
+  video's `currentTime` in ms at the time of the click
+
+Footer `Review` button triggers the export. A/B version compare
+(PRD-009 §9.2.3) and revision log CSV export (§9.2.4) are
+explicitly **out of scope** — punted to follow-ups.
+
 ## 4. Keyboard map
 
 | Key | Action | Source |
@@ -595,6 +623,22 @@ unless marked `**Deferred**`.
   2 new smoke assertions (64 total). Premiere Pro XML export
   (PRD-005 §5.2.2) is explicitly **out of scope** — punted
   to a follow-up.
+- **PR #49 — client review export (PRD-009 partial) + hero
+  auto-hide.** Adds `SWR_REVIEW.exportReview()` that records at
+  1 Mbps with a "PREVIEW — NOT FOR DISTRIBUTION" watermark
+  burned into the canvas (via the new
+  `window.__SWR_REVIEW_WATERMARK` global) and generates a
+  self-contained HTML review page with click-to-comment pins
+  (persisted via localStorage per browser). Footer `Review`
+  button triggers the export. Also adds a 1.2s auto-hide to
+  the hero panel after a download so it doesn't linger. A/B
+  version compare (PRD-009 §9.2.3) and revision log CSV
+  export (§9.2.4) are explicitly **out of scope**. Note:
+  `check-mv-smoke.mjs` has 4 pre-existing failures and
+  `check-automix-smoke.mjs` has 1 pre-existing failure
+  (SWR._fxOverride) that pre-date this PR; both are
+  stale-smoke issues from earlier `music_video.html`
+  refactors.
 
 ### Deferred
 
@@ -636,6 +680,7 @@ unless marked `**Deferred**`.
 - **PR #36** — fit-to-screen toggle (SWR_FIT + F key + canvas object-fit: cover)
 - **PR #42** — hero frame capture (SWR_HERO_FRAMES + ring buffer + best(3) ranking)
 - **PR #46** — download edit data (SWR_EDIT_DATA + audio-analysis-v2.js + swr-edl/1 JSON)
+- **PR #49** — client review export (SWR_REVIEW + watermark + self-contained HTML review page)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-09_005000-hero-frame-capture.md`** — the hero frame plan (now shipped as PR #42, partial — print export at 300 DPI punted to a follow-up)

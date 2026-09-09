@@ -103,10 +103,10 @@ Each PRD gets one row with:
 
 ### PRD-009: CLIENT REVIEW — Phase 7
 
-- **Verdict**: `Re-spec`
-- **Status**: No client-review UI. The PRD's "Self-Contained Review Page" (generate a standalone HTML with embedded watermarked MP4) is a clever zero-backend approach — generate the HTML on render, download as `.html`, email the link. The watermarking is a `Recorder` config change (lower bitrate + burn "PREVIEW" text).
-- **Effort**: `M` (Recorder config + HTML generator)
-- **Notes**: Genuinely zero-backend (no comments server, just an `.html` file with `<video>` + comment pins in JS). Aligns with PRD-001 §1.3.
+- **Verdict**: `Re-spec` → **partial ship** (PR #49)
+- **Status**: Client review export shipped (PR #49, `3b50451`). `SWR_REVIEW` global on `music_video.html` records at 1 Mbps with a "PREVIEW — NOT FOR DISTRIBUTION" watermark burned into the canvas (via `window.__SWR_REVIEW_WATERMARK` global, checked by the frame function each tick), generates a self-contained HTML review page with click-to-comment pins (persisted via `localStorage["swr.review.pins." + filename]` per browser), and downloads both files. Footer `Review` button triggers the export. The 1.2s auto-hide on hero-frame download was added in this PR.
+- **Effort**: `M` (shipped) + `M` (A/B compare + revision log follow-ups)
+- **Notes**: A/B version compare (PRD-009 §9.2.3) and revision log CSV export (§9.2.4) are **explicitly out of scope** — punted to a follow-up. The watermark is burnt into the canvas (not a CSS overlay) so it survives the recorder's stream capture. Recording duration is hard-coded to `A.duration` (not user-configurable per-call).
 
 ### PRD-010: PRINT & STILL FRAME — Phase 8
 
@@ -236,7 +236,7 @@ If we work through the re-spec ones in increasing complexity:
 1. ~~PRD-010 PRINT & STILL FRAME~~ (`S`) — **shipped as PR #42** (hero frame capture; print export at 300 DPI punted).
 2. ~~PRD-003 SOCIAL FORMATS~~ (`S`) — **shipped as PR #44** (format dropdown; safe-zone + dual export punted).
 3. ~~PRD-005 EDITORIAL BRIDGE~~ (`M`) — **shipped as PR #46** (swr-edl/1 JSON export; Premiere Pro XML punted).
-4. **PRD-009 CLIENT REVIEW** (`M`) — watermarked preview + standalone HTML generator.
+4. ~~PRD-009 CLIENT REVIEW~~ (`M`) — **shipped as PR #49** (watermarked preview + standalone HTML review; A/B compare + revision log punted).
 5. **PRD-006 HOOK GENERATOR** (`M`) — drop detection + hook export.
 6. **PRD-018 ANALYTICS** (limited) — local stats widget.
 7. **PRD-011 MOOD BOARD** (`M`) — reference extraction + slider mapping.
