@@ -1513,6 +1513,51 @@ if (brandkitMV.ok && brandkitMV.hasReadProfile && brandkitMV.hasMountChip && bra
   ok('versions/music_video.html loads brandkit: SWR_Brandkit global + readProfile + mountChip + applyBrandkit + chip mounted');
 else bad('music_video brandkit', JSON.stringify(brandkitMV));
 
+// 72. SWR_MOOD API shape + k-means returns k centroids on synthetic input.
+// (Re-navigate to music_video.html — the assertion above #70/#71 moved
+// the page to swr-app.html, which doesn't load SWR_MOOD.)
+await page.goto('http://localhost:5181/versions/music_video.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await new Promise(r => setTimeout(r, 200));
+const moodShape = await page.evaluate(() => {
+  if (!window.SWR_MOOD) return { ok: false, reason: 'no SWR_MOOD' };
+  const has = {
+    analyze: typeof window.SWR_MOOD.analyze === 'function',
+    applySuggestion: typeof window.SWR_MOOD.applySuggestion === 'function',
+    setOverlayVisible: typeof window.SWR_MOOD.setOverlayVisible === 'function',
+    _kmeans: typeof window.SWR_MOOD._kmeans === 'function',
+    _features: typeof window.SWR_MOOD._features === 'function',
+    _suggest: typeof window.SWR_MOOD._suggest === 'function',
+  };
+  // Test k-means on synthetic pixels: 3 distinct colors.
+  const pixels = [];
+  for (let i = 0; i < 100; i++) pixels.push([255, 0, 0]);
+  for (let i = 0; i < 100; i++) pixels.push([0, 255, 0]);
+  for (let i = 0; i < 100; i++) pixels.push([0, 0, 255]);
+  const r = window.SWR_MOOD._kmeans(pixels, 3, 5);
+  // Test features on high-contrast B/W + warm pixels.
+  const f = window.SWR_MOOD._features([
+    [255, 255, 255], [0, 0, 0], [255, 255, 255], [0, 0, 0], [255, 255, 255], [0, 0, 0],
+    [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0],
+  ]);
+  return {
+    ok: true,
+    has,
+    kmeansLen: r.centroids.length,
+    kmeansCentroidsDiverse: Math.abs(r.centroids[0][0] - r.centroids[1][0]) > 100,
+    featuresContrast: Math.abs(f.contrast - 1.0) < 0.01,
+    featuresTempWarm: f.temperature > 0,
+  };
+});
+if (moodShape.ok
+    && moodShape.has.analyze && moodShape.has.applySuggestion && moodShape.has.setOverlayVisible
+    && moodShape.has._kmeans && moodShape.has._features && moodShape.has._suggest
+    && moodShape.kmeansLen === 3
+    && moodShape.kmeansCentroidsDiverse
+    && moodShape.featuresContrast
+    && moodShape.featuresTempWarm)
+  ok('SWR_MOOD API: k-means returns 3 diverse centroids, features detect B/W + warm');
+else bad('SWR_MOOD', JSON.stringify(moodShape));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));

@@ -351,6 +351,7 @@
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
+      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <div id="flash"></div>
       <div class="swr-watermark">
         <img src="../watermark-monogram.svg" alt="SWR" />
@@ -423,6 +424,7 @@
       <span class="gc"><button class="tbtn" id="review-btn" title="Export watermarked preview + client review page" style="padding:3px 8px;font-size:9px;">Review</button></span>
       <span class="gc"><button class="tbtn" id="hook-btn" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)" style="padding:3px 8px;font-size:9px;">Hooks</button></span>
       <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
+      <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -2626,6 +2628,226 @@
       },
     };
 
+    // ---- SWR_MOOD ---------------------------------------------------------
+    // Mood-board reference analyzer (PRD-011 partial). Drops in a
+    // reference image (or hex color), runs k-means (k=5) on a 64x64
+    // downsample to extract a palette + brightness/saturation/Michelson
+    // contrast + warm/cool temperature, maps those features onto the 4
+    // footer sliders (depth/gate/decay/sens), and shows the reference
+    // as a draggable overlay that persists per-session. All local —
+    // no backend.
+    window.SWR_MOOD = {
+      STORAGE_KEY: 'swr.mood.overlay.v1',
+
+      _kmeans(pixels, k, maxIter) {
+        if (pixels.length < k) return { centroids: pixels.slice(0, k), sizes: pixels.map(() => 1) };
+        // k-means++ init.
+        const centroids = [];
+        centroids.push(pixels[Math.floor(Math.random() * pixels.length)].slice());
+        while (centroids.length < k) {
+          const dists = pixels.map(p => {
+            let minD = Infinity;
+            for (const c of centroids) {
+              const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+              if (d < minD) minD = d;
+            }
+            return minD;
+          });
+          const total = dists.reduce((a, b) => a + b, 0);
+          let r = Math.random() * total;
+          for (let i = 0; i < dists.length; i++) {
+            r -= dists[i];
+            if (r <= 0) { centroids.push(pixels[i].slice()); break; }
+          }
+        }
+        // Iterate.
+        for (let it = 0; it < maxIter; it++) {
+          const sums = centroids.map(() => [0, 0, 0, 0]);
+          for (const p of pixels) {
+            let bestI = 0, bestD = Infinity;
+            for (let i = 0; i < centroids.length; i++) {
+              const c = centroids[i];
+              const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+              if (d < bestD) { bestD = d; bestI = i; }
+            }
+            const s = sums[bestI];
+            s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++;
+          }
+          let moved = false;
+          for (let i = 0; i < centroids.length; i++) {
+            if (sums[i][3] > 0) {
+              const newC = [sums[i][0]/sums[i][3], sums[i][1]/sums[i][3], sums[i][2]/sums[i][3]];
+              if (Math.abs(newC[0]-centroids[i][0]) + Math.abs(newC[1]-centroids[i][1]) + Math.abs(newC[2]-centroids[i][2]) > 1) {
+                centroids[i] = newC;
+                moved = true;
+              }
+            }
+          }
+          if (!moved) break;
+        }
+        // Final cluster sizes.
+        const sizes = new Array(centroids.length).fill(0);
+        for (const p of pixels) {
+          let bestI = 0, bestD = Infinity;
+          for (let i = 0; i < centroids.length; i++) {
+            const c = centroids[i];
+            const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+            if (d < bestD) { bestD = d; bestI = i; }
+          }
+          sizes[bestI]++;
+        }
+        return { centroids, sizes };
+      },
+
+      _sampleImage(img, sampleSize) {
+        sampleSize = sampleSize || 64;
+        const c = document.createElement('canvas');
+        c.width = sampleSize; c.height = sampleSize;
+        const cx = c.getContext('2d');
+        cx.drawImage(img, 0, 0, sampleSize, sampleSize);
+        const data = cx.getImageData(0, 0, sampleSize, sampleSize).data;
+        const pixels = [];
+        for (let i = 0; i < data.length; i += 4) {
+          pixels.push([data[i], data[i+1], data[i+2]]);
+        }
+        return { pixels, raw: data, width: sampleSize, height: sampleSize };
+      },
+
+      _features(pixels) {
+        let sumL = 0, sumS = 0;
+        let minL = 255, maxL = 0;
+        let warm = 0, cool = 0;
+        for (const [r, g, b] of pixels) {
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const L = (max + min) / 2;
+          const S = max === min ? 0 : (max - min) / (255 - Math.abs(2*L - 255));
+          sumL += L;
+          sumS += S;
+          if (L < minL) minL = L;
+          if (L > maxL) maxL = L;
+          warm += (r - b);
+          cool += (b - r);
+        }
+        const n = pixels.length;
+        const meanBright = sumL / n / 255;
+        const meanSat = sumS / n;
+        const contrast = (maxL - minL) / (maxL + minL + 1e-6);
+        const tempSum = warm - cool;
+        const tempNorm = Math.max(-1, Math.min(1, tempSum / (n * 255)));
+        return { meanBright, meanSat, contrast, temperature: tempNorm };
+      },
+
+      _suggest(f) {
+        const warmth = f.temperature > 0;
+        const highContrast = f.contrast > 0.5;
+        const highSat = f.meanSat > 0.4;
+        const bright = f.meanBright > 0.5;
+        let depth = warmth ? 1.0 : 0.0;
+        let gate = highContrast ? 2.5 : 1.4;
+        let decay = highSat ? 0.65 : 0.85;
+        let sens = bright ? 1.5 : 1.0;
+        return { depth, gate, decay, sens, warmth: warmth ? 'warm' : 'cool',
+                 contrast: highContrast ? 'high' : 'low',
+                 saturation: highSat ? 'high' : 'low' };
+      },
+
+      async analyze(img) {
+        const { pixels } = this._sampleImage(img, 64);
+        const palette = this._kmeans(pixels, 5, 10);
+        const features = this._features(pixels);
+        const suggestion = this._suggest(features);
+        this.lastAnalysis = { palette, features, suggestion, ts: Date.now() };
+        return this.lastAnalysis;
+      },
+
+      applySuggestion() {
+        if (!this.lastAnalysis) return false;
+        const s = this.lastAnalysis.suggestion;
+        const sliders = [
+          ['depth', s.depth],
+          ['gate', s.gate],
+          ['decay', s.decay],
+          ['sens', s.sens],
+        ];
+        for (const [id, val] of sliders) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          el.value = String(val);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return true;
+      },
+
+      saveOverlayPos(x, y) {
+        try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ x, y, visible: this.overlayVisible })); } catch (_) {}
+      },
+
+      loadOverlayPos() {
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return { x: 16, y: 16, visible: false };
+          return JSON.parse(raw);
+        } catch (_) { return { x: 16, y: 16, visible: false }; }
+      },
+
+      setOverlayVisible(v) {
+        this.overlayVisible = !!v;
+        const img = $('mood-overlay');
+        if (img) img.style.display = v ? 'block' : 'none';
+        this.saveOverlayPos(this.overlayPos ? this.overlayPos.x : 16, this.overlayPos ? this.overlayPos.y : 16);
+      },
+
+      setOverlayImage(dataUrl) {
+        const img = $('mood-overlay');
+        if (img) img.src = dataUrl;
+      },
+
+      overlayPos: { x: 16, y: 16 },
+      overlayVisible: false,
+      lastAnalysis: null,
+    };
+
+    // Wire the mood-overlay drag handlers + restore persisted position.
+    // Lives in the main IIFE so we have access to $(); runs at boot
+    // after SWR_MOOD is defined and the overlay <img> is in the DOM.
+    (function () {
+      const overlay = $('mood-overlay');
+      if (!overlay) return;
+      let dragging = false, dx = 0, dy = 0;
+      overlay.addEventListener('mousedown', (e) => {
+        dragging = true;
+        dx = e.clientX - overlay.offsetLeft;
+        dy = e.clientY - overlay.offsetTop;
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const x = Math.max(0, Math.min(window.innerWidth - 160, e.clientX - dx));
+        const y = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dy));
+        overlay.style.left = x + 'px';
+        overlay.style.top = y + 'px';
+        overlay.style.right = 'auto';
+        if (window.SWR_MOOD) {
+          window.SWR_MOOD.overlayPos = { x, y };
+        }
+      });
+      document.addEventListener('mouseup', () => {
+        if (dragging && window.SWR_MOOD) {
+          window.SWR_MOOD.saveOverlayPos(window.SWR_MOOD.overlayPos.x, window.SWR_MOOD.overlayPos.y);
+          dragging = false;
+        }
+      });
+      const saved = window.SWR_MOOD ? window.SWR_MOOD.loadOverlayPos() : { x: 16, y: 16, visible: false };
+      overlay.style.left = saved.x + 'px';
+      overlay.style.top = saved.y + 'px';
+      overlay.style.right = 'auto';
+      overlay.style.display = saved.visible ? 'block' : 'none';
+      if (window.SWR_MOOD) {
+        window.SWR_MOOD.overlayPos = { x: saved.x, y: saved.y };
+        window.SWR_MOOD.overlayVisible = saved.visible;
+      }
+    })();
+
     // ---- Self-evolving automixer toggle ----------------------------------
     // Listens for clicks on the footer toggle + the `A` keyboard shortcut
     // (when the page is focused and no input has focus). When ON, every
@@ -2947,6 +3169,126 @@
       const onKey = (e) => {
         if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); }
       };
+      document.addEventListener('keydown', onKey);
+    });
+    // Footer "Mood" → SWR_MOOD modal. Lets the user upload a reference
+    // image (or paste a #rrggbb hex), see the extracted palette +
+    // heuristic engine mapping, and one-click apply the suggestion to
+    // the 4 footer sliders. Closes on CLOSE, ESC, or Apply. Persists
+    // overlay visibility + position via localStorage.
+    function showMoodResult(modal, result) {
+      if (!result) return;
+      const pal = modal.querySelector('#mood-palette');
+      pal.innerHTML = '';
+      for (const [r, g, b] of result.palette.centroids) {
+        const hex = '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+        const sw = document.createElement('div');
+        sw.style.cssText = 'width:60px;height:40px;background:' + hex + ';border:1px solid var(--line);border-radius:2px;display:flex;align-items:flex-end;justify-content:center;font-size:8px;color:#fff;text-shadow:0 0 2px #000;';
+        sw.title = hex;
+        sw.textContent = hex;
+        pal.appendChild(sw);
+      }
+      const s = result.suggestion;
+      const sg = modal.querySelector('#mood-suggestion');
+      sg.innerHTML = '<span style="color:var(--muted);">temperature:</span> ' + s.warmth
+        + ' · <span style="color:var(--muted);">contrast:</span> ' + s.contrast
+        + ' · <span style="color:var(--muted);">saturation:</span> ' + s.saturation
+        + '<br><span style="color:var(--muted);">→</span> depth=' + s.depth.toFixed(2)
+        + ' gate=' + s.gate.toFixed(2)
+        + ' decay=' + s.decay.toFixed(2)
+        + ' sens=' + s.sens.toFixed(2);
+      modal.querySelector('#mood-result').style.display = 'block';
+    }
+    const _moodBtn = document.getElementById('mood-btn');
+    if (_moodBtn) _moodBtn.addEventListener('click', () => {
+      if (!window.SWR_MOOD) return;
+      const m = document.createElement('div');
+      m.className = 'mvm-modal-bg';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      const overlayOn = window.SWR_MOOD.overlayVisible;
+      m.innerHTML = '<div style="background:var(--panel);border:1px solid var(--line);padding:24px 28px;min-width:480px;max-width:560px;color:var(--ink);font:11px ui-monospace;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
+        + '<span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">MOOD BOARD</span>'
+        + '<button class="tbtn" id="mood-close">CLOSE</button>'
+        + '</div>'
+        + '<div style="margin-bottom:14px;">'
+        + '<input type="file" id="mood-file" accept="image/png,image/jpeg,image/webp" style="font-size:10px;width:100%;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:9px;color:var(--muted);">'
+        + '<span>or</span>'
+        + '<input type="text" id="mood-hex" placeholder="#ff00aa" style="width:90px;background:var(--bg-2);border:1px solid var(--line);color:var(--ink);padding:2px 4px;font-family:inherit;font-size:10px;">'
+        + '<button class="tbtn" id="mood-hex-btn">use hex</button>'
+        + '</div>'
+        + '</div>'
+        + '<div id="mood-result" style="display:none;">'
+        + '<div style="color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Palette</div>'
+        + '<div id="mood-palette" style="display:flex;gap:4px;margin-bottom:14px;"></div>'
+        + '<div style="color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Suggestion</div>'
+        + '<div id="mood-suggestion" style="font-size:10px;line-height:1.6;margin-bottom:14px;"></div>'
+        + '<div style="display:flex;gap:6px;justify-content:space-between;">'
+        + '<button class="tbtn" id="mood-apply">Apply suggestion</button>'
+        + '<label style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:4px;">'
+        + '<input type="checkbox" id="mood-overlay-toggle"' + (overlayOn ? ' checked' : '') + '>'
+        + 'reference overlay</label>'
+        + '<button class="tbtn" id="mood-clear" style="color:var(--muted);">Clear</button>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+      document.body.appendChild(m);
+      m.querySelector('#mood-close').addEventListener('click', () => m.remove());
+      m.querySelector('#mood-file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = async () => {
+          try {
+            const result = await window.SWR_MOOD.analyze(img);
+            showMoodResult(m, result);
+          } catch (err) {
+            setStatus('analyze failed: ' + err.message, 'err');
+          }
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+        window.SWR_MOOD.setOverlayImage(url);
+      });
+      m.querySelector('#mood-hex-btn').addEventListener('click', () => {
+        const hex = m.querySelector('#mood-hex').value.trim();
+        if (!/^#[0-9a-f]{6}$/i.test(hex)) {
+          setStatus('hex must be #rrggbb', 'err');
+          return;
+        }
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const cx = c.getContext('2d');
+        cx.fillStyle = hex; cx.fillRect(0, 0, 64, 64);
+        cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, 32, 64);
+        cx.fillStyle = '#000000'; cx.fillRect(32, 0, 32, 64);
+        const dataUrl = c.toDataURL('image/png');
+        window.SWR_MOOD.setOverlayImage(dataUrl);
+        const img = new Image();
+        img.onload = async () => {
+          const result = await window.SWR_MOOD.analyze(img);
+          showMoodResult(m, result);
+        };
+        img.src = dataUrl;
+      });
+      m.querySelector('#mood-apply').addEventListener('click', () => {
+        if (window.SWR_MOOD.applySuggestion()) {
+          setStatus('applied mood suggestion to sliders', 'ok');
+          m.remove();
+        }
+      });
+      m.querySelector('#mood-overlay-toggle').addEventListener('change', (e) => {
+        window.SWR_MOOD.setOverlayVisible(e.target.checked);
+      });
+      m.querySelector('#mood-clear').addEventListener('click', () => {
+        window.SWR_MOOD.lastAnalysis = null;
+        window.SWR_MOOD.setOverlayImage('');
+        window.SWR_MOOD.setOverlayVisible(false);
+        m.querySelector('#mood-result').style.display = 'none';
+        m.querySelector('#mood-file').value = '';
+      });
+      const onKey = (e) => { if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); } };
       document.addEventListener('keydown', onKey);
     });
     // Auto-start/stop hooks on the existing audio play / pause methods.
