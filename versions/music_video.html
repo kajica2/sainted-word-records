@@ -355,6 +355,18 @@
     </section>
     <aside class="layers">
       <div class="head"><h2>Gradient</h2><span class="pill" id="synth-pill" style="font-size:8px;padding:2px 6px;color:var(--c);border-color:var(--c);">— no track</span></div>
+      <div id="hero-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">
+          <span style="flex:1;">Hero Frames</span>
+          <span id="hero-count" style="color:var(--c);">0</span>
+          <button id="hero-clear" class="tbtn" title="Clear captured frames" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+        </div>
+        <div id="hero-thumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;min-height:48px;"></div>
+        <div style="display:flex;gap:4px;padding-top:4px;">
+          <button id="hero-grab" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Grab now</button>
+          <button id="hero-suggest" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Suggest 3</button>
+        </div>
+      </div>
       <div class="body" style="padding:8px;display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:8px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;">
           <span style="flex:1;">warmth</span>
@@ -389,6 +401,7 @@
       <span class="gc"><button class="tbtn" id="reset-layers" title="Clear all layers (Backspace)" style="padding:3px 8px;font-size:9px;">↺ Layers</button></span>
       <span class="gc"><button class="tbtn" id="solo-btn" title="Solo one layer (Shift+S)" style="padding:3px 8px;font-size:9px;">Solo</button></span>
       <span class="gc"><button class="tbtn" id="fit-btn" title="Fit to screen (F)" style="padding:3px 8px;font-size:9px;">Fit</button></span>
+      <span class="gc"><button class="tbtn" id="hero-btn" title="Hero frame capture (last 3s buffer, suggests 3 best frames)" style="padding:3px 8px;font-size:9px;">Hero</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -1834,6 +1847,109 @@
       get isOn() { return this.enabled; },
     };
 
+    // ---- Hero frame capture (PRD-010 partial) ----------------------------
+    // Captures the #render canvas into a small ring buffer (last 3s at
+    // 4fps = 12 entries), scores each frame by energy + contrast +
+    // composition, and exposes `best(n)` for selecting the top-N to
+    // surface as clickable thumbnails in the Hero panel. Clicking a
+    // thumbnail re-emits its stored PNG as a download. The sampler
+    // auto-starts when audio plays and stops on pause; the footer
+    // "Hero" button is a manual toggle.
+    window.SWR_HERO_FRAMES = {
+      buffer: [],
+      maxFrames: 12,
+      samplerHandle: null,
+      start() {
+        if (this.samplerHandle) return;
+        const capture = () => {
+          try {
+            const stage = document.getElementById('render');
+            if (!stage) return;
+            // 32x32 downsample for analysis (cheap; avoids the
+            // ~50-150ms main-thread cost of a full-res PNG encode).
+            const w = 32, h = 32;
+            const off = document.createElement('canvas');
+            off.width = w; off.height = h;
+            const offCtx = off.getContext('2d');
+            offCtx.drawImage(stage, 0, 0, w, h);
+            const img = offCtx.getImageData(0, 0, w, h).data;
+            let sum = 0, sumX = 0, sumY = 0, brightCount = 0;
+            const lum = new Array(w * h);
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                const L = 0.299 * img[i] + 0.587 * img[i + 1] + 0.114 * img[i + 2];
+                lum[y * w + x] = L;
+                sum += L;
+                if (L > 128) { sumX += x; sumY += y; brightCount++; }
+              }
+            }
+            const mean = sum / (w * h);
+            let variance = 0;
+            for (let i = 0; i < lum.length; i++) variance += (lum[i] - mean) ** 2;
+            variance /= lum.length;
+            const contrast = Math.sqrt(variance) / 255;
+            const cx = brightCount > 0 ? sumX / brightCount : w / 2;
+            const cy = brightCount > 0 ? sumY / brightCount : h / 2;
+            const compDist = Math.sqrt(((cx - w / 2) / w) ** 2 + ((cy - h / 2) / h) ** 2);
+            const compScore = 1 - Math.min(1, compDist);
+            // Energy from audio features (cheap proxy for reactor writes).
+            const f = (window.A && window.A.feat) || {};
+            const energy = (f.bass || 0) + (f.rms || 0) + (f.beat || 0);
+            // Store the 32x32 thumbnail PNG (small) instead of a full-
+            // resolution PNG. downloadFrame() re-captures at full
+            // resolution when the user actually clicks a thumbnail.
+            const dataURL = off.toDataURL('image/png');
+            const entry = { dataURL, energy, contrast, comp: compScore, t: Date.now() };
+            this.buffer.push(entry);
+            if (this.buffer.length > this.maxFrames) this.buffer.shift();
+            if (typeof refreshHeroPanel === 'function') refreshHeroPanel();
+          } catch (_) {}
+        };
+        this.samplerHandle = setInterval(capture, 250);
+      },
+      stop() {
+        if (this.samplerHandle) {
+          clearInterval(this.samplerHandle);
+          this.samplerHandle = null;
+        }
+      },
+      best(n = 3) {
+        if (this.buffer.length < 2) return this.buffer.slice();
+        const scored = this.buffer.map((e) => ({
+          ...e,
+          score: e.energy * 0.4 + e.contrast * 0.4 + e.comp * 0.2,
+        }));
+        scored.sort((a, b) => (b.score - a.score) || (a.t - b.t));
+        return scored.slice(0, n).sort((a, b) => a.t - b.t);
+      },
+      captureNow() {
+        const stage = document.getElementById('render');
+        if (!stage) return false;
+        const link = document.createElement('a');
+        link.download = `swr-frame-${Date.now()}.png`;
+        link.href = stage.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return true;
+      },
+      downloadFrame(entry) {
+        if (!entry || !entry.dataURL) return this.captureNow();
+        // Re-capture at full resolution so the user gets a high-quality
+        // PNG. The stored 32x32 thumbnail is for ranking/display only.
+        const stage = document.getElementById('render');
+        const dataURL = stage ? stage.toDataURL('image/png') : entry.dataURL;
+        const link = document.createElement('a');
+        link.download = `swr-hero-${entry.t}.png`;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return true;
+      },
+    };
+
     // ---- Restore persisted layer state ---------------------------------
     // Load the previous Layers.list from localStorage (asset references
     // are stripped on save — they're Blob URLs that don't survive a
@@ -1968,6 +2084,102 @@
         setStatus(on ? 'fit on' : 'fit off', 'ok');
       }
     });
+
+    // ---- Hero frame UI wiring --------------------------------------------
+    // The Hero button toggles the sampler manually. The panel helpers
+    // (showHeroPanel / refreshHeroPanel / refreshHeroBtn) live here so
+    // they're in scope when SWR_HERO_FRAMES.start()'s setInterval tick
+    // calls refreshHeroPanel(). Auto-start/stop is hooked into A.play
+    // and A.pause so the user doesn't have to click anything.
+    function refreshHeroBtn() {
+      const btn = $('hero-btn');
+      if (!btn) return;
+      const on = !!(window.SWR_HERO_FRAMES && window.SWR_HERO_FRAMES.samplerHandle);
+      btn.classList.toggle('on', on);
+      btn.textContent = on ? 'Hero ●' : 'Hero';
+    }
+    function refreshHeroPanel() {
+      const el = $('hero-thumbs');
+      const countEl = $('hero-count');
+      if (!el || !window.SWR_HERO_FRAMES) return;
+      if (countEl) countEl.textContent = window.SWR_HERO_FRAMES.buffer.length;
+      const best = window.SWR_HERO_FRAMES.best(3);
+      el.innerHTML = '';
+      for (const e of best) {
+        const img = document.createElement('img');
+        img.src = e.dataURL;
+        img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;border:1px solid var(--line);background:#000;';
+        const score = (e.energy * 0.4 + e.contrast * 0.4 + e.comp * 0.2).toFixed(2);
+        img.title = `score=${score} | E=${e.energy.toFixed(2)} C=${e.contrast.toFixed(2)} cmp=${e.comp.toFixed(2)}`;
+        img.addEventListener('click', () => {
+          if (window.SWR_HERO_FRAMES.downloadFrame(e)) setStatus('downloaded hero frame', 'ok');
+        });
+        el.appendChild(img);
+      }
+    }
+    function showHeroPanel() {
+      const p = $('hero-panel');
+      if (!p) return;
+      p.style.display = 'block';
+      refreshHeroPanel();
+    }
+    function hideHeroPanel() {
+      const p = $('hero-panel');
+      if (p) p.style.display = 'none';
+    }
+    const _heroBtn = document.getElementById('hero-btn');
+    if (_heroBtn) _heroBtn.addEventListener('click', () => {
+      if (!window.SWR_HERO_FRAMES) return;
+      if (window.SWR_HERO_FRAMES.samplerHandle) {
+        window.SWR_HERO_FRAMES.stop();
+        showHeroPanel();
+        setStatus('hero frames: ' + window.SWR_HERO_FRAMES.buffer.length + ' captured', 'ok');
+      } else {
+        window.SWR_HERO_FRAMES.start();
+        showHeroPanel();
+        setStatus('capturing hero frames…', 'ok');
+      }
+      refreshHeroBtn();
+    });
+    const _heroClear = document.getElementById('hero-clear');
+    if (_heroClear) _heroClear.addEventListener('click', () => {
+      if (window.SWR_HERO_FRAMES) window.SWR_HERO_FRAMES.buffer.length = 0;
+      refreshHeroPanel();
+      setStatus('hero frames cleared', 'ok');
+    });
+    const _heroGrab = document.getElementById('hero-grab');
+    if (_heroGrab) _heroGrab.addEventListener('click', () => {
+      if (window.SWR_HERO_FRAMES && window.SWR_HERO_FRAMES.captureNow()) setStatus('frame grabbed', 'ok');
+    });
+    const _heroSuggest = document.getElementById('hero-suggest');
+    if (_heroSuggest) _heroSuggest.addEventListener('click', () => {
+      showHeroPanel();
+      refreshHeroPanel();
+      setStatus('showing best 3 frames', 'ok');
+    });
+    // Auto-start/stop hooks on the existing audio play / pause methods.
+    // Wrapping instead of duplicating keeps the original A.play / A.pause
+    // bodies intact — every existing caller (the play button click,
+    // autoplay resume, etc.) still flows through the originals.
+    if (typeof A.play === 'function') {
+      const _origPlay = A.play.bind(A);
+      A.play = function() {
+        _origPlay();
+        if (window.SWR_HERO_FRAMES && !window.SWR_HERO_FRAMES.samplerHandle) window.SWR_HERO_FRAMES.start();
+        refreshHeroBtn();
+      };
+    }
+    if (typeof A.pause === 'function') {
+      const _origPause = A.pause.bind(A);
+      A.pause = function() {
+        _origPause();
+        if (window.SWR_HERO_FRAMES && window.SWR_HERO_FRAMES.samplerHandle) {
+          window.SWR_HERO_FRAMES.stop();
+          showHeroPanel();
+        }
+        refreshHeroBtn();
+      };
+    }
     document.addEventListener('keydown', (e) => {
       if (e.key === 'S' && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
         var t = e.target; var tag = t && t.tagName;
