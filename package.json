@@ -48,6 +48,7 @@
     "verify:mvm-phase9": "node verify-mvm-phase9.mjs",
     "verify:mvm-phase10": "node verify-mvm-phase10.mjs",
     "verify:weddings": "node verify-weddings.mjs",
+    "verify:ar-loop": "node verify-ar-loop.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {
