@@ -116,10 +116,10 @@ Each PRD gets one row with:
 
 ### PRD-011: MOOD BOARD & REFERENCE — Phase 9
 
-- **Verdict**: `Re-spec` (medium)
-- **Status**: Reference image upload + k-means color extraction is feasible client-side (5 colors from a thumbnail). Engine mapping (warm temp → warmth slider, etc.) requires new sliders on `music_video.html`. The "feature extraction" stats (Michelson contrast, edge density via Sobel) are computable on a 32×32 thumbnail.
-- **Effort**: `M`
-- **Notes**: Adds new sliders to `music_video.html`. Could be opt-in via a "Mood Match" button next to the gradient panel.
+- **Verdict**: `Re-spec` → **partial ship** (PR #59)
+- **Status**: Mood board + reference overlay shipped (PR #59, `cb0a266`). `SWR_MOOD` global on `music_video.html` runs k-means++ (k=5, 10 iterations) on a 64×64 downsample of the uploaded reference image, plus Michelson contrast + mean saturation + warm/cool temperature features. Produces a heuristic engine mapping to the 4 visible footer sliders (depth, gate, decay, sens). `applySuggestion()` sets sliders via dispatched `input` events. Footer `Mood` button opens a modal with file upload + hex color paste + Apply + Clear. A draggable `<img id="mood-overlay">` shows the reference at 30% opacity; position persists per session via `localStorage["swr.mood.overlay.v1"]`.
+- **Effort**: `M` (shipped) + `M` (Sobel edge density + URL input + motion/FX mapping follow-ups)
+- **Notes**: Sobel edge density (PRD-011 §11.2.2 — would distinguish "complex photo" from "flat graphic"), URL input for reference images (§11.2.1 — CORS complications), and the full motion/FX slider mapping table (§11.2.3 — "warmth/intensity/motion/FX sliders" don't exist as user-facing controls on `music_video.html`) are **explicitly out of scope** — punted to follow-ups. The shipped mapping uses the 5 actual footer sliders (sens, gate, decay, depth, N) instead.
 
 ---
 
@@ -239,7 +239,7 @@ If we work through the re-spec ones in increasing complexity:
 4. ~~PRD-009 CLIENT REVIEW~~ (`M`) — **shipped as PR #49** (watermarked preview + standalone HTML review; A/B compare + revision log punted).
 5. ~~PRD-006 HOOK GENERATOR~~ (`M`) — **shipped as PR #52** (drop detection + 3 hook presets; auto-caption + end-card + thumbnail picker + Full Vertical 60s punted).
 6. ~~PRD-018 ANALYTICS~~ (`S`) — **shipped as PR #55** (local stats widget + Recorder instrumentation; YouTube/TikTok OAuth + weekly email punted).
-7. **PRD-011 MOOD BOARD** (`M`) — reference extraction + slider mapping.
+7. ~~PRD-011 MOOD BOARD~~ (`M`) — **shipped as PR #59** (k-means palette + Michelson contrast + warm/cool temperature + heuristic slider mapping; Sobel edge density + URL input + motion/FX mapping punted).
 8. ~~PRD-007 BRAND KIT wiring~~ (`S-M`) — **shipped as PR #57** (mounted on swr-app.html + versions/music_video.html; mountChip() adapted to take targetId; position presets + burn-in overlay still punted).
 9. **PRD-008 LIVE / VJ MODE** (`L`) — scene pad state-snapshot mechanism + perform mode UI.
 

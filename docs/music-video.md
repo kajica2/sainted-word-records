@@ -372,6 +372,38 @@ preset" is shown as "last preset" because we don't have a
 per-preset counter (would need a `SWR_PRESET_USE` event from
 the engine).
 
+### `window.SWR_MOOD` — `versions/music_video.html` (IIFE side-effect)
+
+Mood board + reference overlay (PR #59, partial implementation
+of PRD-011). `analyze(img)` runs k-means++ (k=5, 10 iterations)
+on a 64×64 downsample of the reference image, plus Michelson
+contrast + mean saturation + warm/cool temperature features,
+then produces a heuristic engine mapping to the 4 visible
+footer sliders (depth, gate, decay, sens). `applySuggestion()`
+sets the sliders to the suggested values via dispatched `input`
+events (so existing slider handlers run).
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `analyze(img)` | `Promise<{palette, features, suggestion}>` | Async. Sample + k-means + features + suggestion. |
+| `applySuggestion()` | `boolean` | Sets depth/gate/decay/sens to the last suggestion. |
+| `setOverlayVisible(v)` | `void` | Toggle the corner reference overlay. |
+| `setOverlayImage(dataUrl)` | `void` | Update the overlay image. |
+| `saveOverlayPos(x, y)` | `void` | Persist overlay position to localStorage. |
+| `loadOverlayPos()` | `{x, y, visible}` | Read the persisted position. |
+| `_kmeans(pixels, k, maxIter)` | `{centroids, sizes}` | Internal — exposed for smoke tests. |
+| `_features(pixels)` | `{meanBright, meanSat, contrast, temperature}` | Internal — exposed for smoke tests. |
+| `_suggest(features)` | `{depth, gate, decay, sens, warmth, contrast, saturation}` | Internal — heuristic mapping. |
+
+Footer `Mood` button opens a modal with file upload + hex color
+paste + Apply suggestion + overlay toggle + Clear. A draggable
+`<img id="mood-overlay">` shows the reference image in the
+corner at 30% opacity; position persists per session via
+`localStorage["swr.mood.overlay.v1"]`. Sobel edge density
+(PRD-011 §11.2.2), URL input (§11.2.1), and motion/FX
+mapping (§11.2.3) are explicitly **out of scope** — punted to
+follow-ups.
+
 ## 4. Keyboard map
 
 | Key | Action | Source |
@@ -722,6 +754,20 @@ unless marked `**Deferred**`.
   §18.2.1-3 (YouTube OAuth, TikTok API, weekly email) are
   explicitly **out of scope** — punted to follow-ups. 1 new
   smoke assertion (69 total).
+- **PR #59 — mood board (PRD-011 partial).** `SWR_MOOD.analyze()`
+  runs k-means++ (k=5, 10 iterations) on a 64×64 downsample
+  of a reference image, plus Michelson contrast + mean
+  saturation + warm/cool temperature features, then produces
+  a heuristic engine mapping to the 4 visible footer sliders
+  (depth, gate, decay, sens). `applySuggestion()` sets the
+  sliders via dispatched `input` events. Footer `Mood` button
+  opens a modal with file upload + hex paste + Apply + Clear.
+  A draggable `<img id="mood-overlay">` shows the reference
+  at 30% opacity; position persists per session via
+  `localStorage["swr.mood.overlay.v1"]`. Sobel edge density
+  (§11.2.2), URL input (§11.2.1), and motion/FX mapping
+  (§11.2.3) are explicitly **out of scope**. 1 new smoke
+  assertion (72 total).
 
 ### Deferred
 
@@ -766,6 +812,7 @@ unless marked `**Deferred**`.
 - **PR #49** — client review export (SWR_REVIEW + watermark + self-contained HTML review page)
 - **PR #52** — hook generator (SWR_HOOK_DETECTOR + drop detection + 3 hook presets)
 - **PR #55** — local stats widget (SWR_STATS + Recorder._save() instrumentation + stats modal)
+- **PR #59** — mood board (SWR_MOOD + k-means palette + feature extraction + slider mapping)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-09_005000-hero-frame-capture.md`** — the hero frame plan (now shipped as PR #42, partial — print export at 300 DPI punted to a follow-up)
