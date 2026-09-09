@@ -199,6 +199,14 @@
     {
       "source": "/enhance/",
       "destination": "/enhance.html"
+    },
+    {
+      "source": "/echo-manifold",
+      "destination": "/versions/echo-manifold.html"
+    },
+    {
+      "source": "/echo-manifold/",
+      "destination": "/versions/echo-manifold.html"
     }
   ]
 }

@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECHO · Harmonic Manifold 5.0</title>
+    <meta name="description" content="ECHO · Aetheric Manifold. Quantum Resonance Engine v5.0 — 30 generative formulas across 9 sections, 5 generative modes (Eno/Euclid/Chaos/Phi/Cellular). Standalone audio-reactive engine, no library required.">
+    <meta name="theme-color" content="#020205">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta property="og:title" content="ECHO · Harmonic Manifold 5.0" />
+    <meta property="og:description" content="Generative audio engine · 30 formulas · 5 modes" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sainted-word-records.vercel.app/versions/echo-manifold.html" />
+    <style>
+        /* ---- Fonts (system-only, per AGENTS.md no-CDN rule) ---- */
+        :root {
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            --accent-cyan: #00d9ff;
+            --accent-purple: #a855f7;
+            --bg-deep: #020205;
+        }
+        html, body { margin: 0; padding: 0; height: 100%; }
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-deep);
+            color: #f1f5f9;
+            overflow: hidden;
+        }
+        .mono { font-family: var(--font-mono); }
+
+        /* ---- Tailwind utility stand-ins (hand-rolled, no CDN) ---- */
+        .flex { display: flex; }
+        .flex-col { display: flex; flex-direction: column; }
+        .flex-1 { flex: 1 1 0%; }
+        .items-center { align-items: center; }
+        .items-end { align-items: flex-end; }
+        .items-start { align-items: flex-start; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; } .gap-8 { gap: 32px; }
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+        .sm\:grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .xl\:grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+        .lg\:grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .lg\:flex-row { flex-direction: row; }
+        .lg\:flex-col { flex-direction: column; }
+        .lg\:fixed { position: fixed; }
+        .lg\:top-14 { top: 56px; }
+        .lg\:bottom-0 { bottom: 0; }
+        .lg\:ml-60 { margin-left: 240px; }
+        .lg\:w-60 { width: 240px; }
+        .lg\:h-\[550px\] { height: 550px; }
+        .lg\:col-span-2 { grid-column: span 2 / span 2; }
+        .hidden { display: none; }
+        .md\:flex { display: flex; }
+        .xl\:flex { display: flex; }
+        .p-2 { padding: 8px; } .p-3 { padding: 12px; } .p-4 { padding: 16px; } .p-5 { padding: 20px; } .p-6 { padding: 24px; } .p-8 { padding: 32px; } .p-10 { padding: 40px; }
+        .px-2 { padding-left: 8px; padding-right: 8px; } .px-3 { padding-left: 12px; padding-right: 12px; } .px-4 { padding-left: 16px; padding-right: 16px; } .px-6 { padding-left: 24px; padding-right: 24px; }
+        .py-0\.5 { padding-top: 2px; padding-bottom: 2px; } .py-1\.5 { padding-top: 6px; padding-bottom: 6px; } .py-2 { padding-top: 8px; padding-bottom: 8px; } .py-4 { padding-top: 16px; padding-bottom: 16px; }
+        .pb-1\.5 { padding-bottom: 6px; } .pb-10 { padding-bottom: 40px; }
+        .m-0 { margin: 0; }
+        .mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mb-4 { margin-bottom: 16px; } .mb-8 { margin-bottom: 32px; }
+        .mt-2 { margin-top: 8px; } .mt-4 { margin-top: 16px; }
+        .-mt-1 { margin-top: -4px; }
+        .mr-2 { margin-right: 8px; }
+        .w-1 { width: 4px; } .w-4 { width: 16px; } .w-7 { width: 28px; } .w-8 { width: 32px; } .w-16 { width: 64px; } .w-20 { width: 80px; } .w-24 { width: 96px; } .w-32 { width: 128px; } .w-64 { width: 256px; } .w-full { width: 100%; }
+        .h-1 { height: 4px; } .h-4 { height: 16px; } .h-7 { height: 28px; } .h-8 { height: 32px; } .h-14 { height: 56px; } .h-20 { height: 80px; } .h-32 { height: 128px; } .h-full { height: 100%; } .h-screen { height: 100vh; } .h-\[1px\] { height: 1px; }
+        .min-w-0 { min-width: 0; }
+        .pt-14 { padding-top: 56px; }
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .top-0 { top: 0; } .left-0 { left: 0; } .right-0 { right: 0; } .-top-4 { top: -16px; }
+        .-translate-x-1\/2 { --tw-translate-x: -50%; transform: translateX(-50%); }
+        .-translate-y-1\/2 { --tw-translate-y: -50%; transform: translateY(-50%); }
+        .top-1\/2 { top: 50%; } .left-1\/2 { left: 50%; }
+        .z-40 { z-index: 40; } .z-50 { z-index: 50; } .z-\[1900\] { z-index: 1900; } .z-\[2000\] { z-index: 2000; } .z-\[3000\] { z-index: 3000; }
+        .overflow-hidden { overflow: hidden; }
+        .overflow-y-auto { overflow-y: auto; }
+        .rounded { border-radius: 4px; } .rounded-2xl { border-radius: 16px; } .rounded-full { border-radius: 9999px; } .rounded-lg { border-radius: 8px; }
+        .border { border: 1px solid; }
+        .border-r { border-right: 1px solid; } .border-b { border-bottom: 1px solid; }
+        .border-white\/5 { border-color: rgba(255, 255, 255, 0.05); }
+        .border-white\/10 { border-color: rgba(255, 255, 255, 0.1); }
+        .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05); }
+        .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1); }
+        .bg-black\/20 { background-color: rgba(0, 0, 0, 0.2); }
+        .bg-black\/40 { background-color: rgba(0, 0, 0, 0.4); }
+        .bg-black\/80 { background-color: rgba(0, 0, 0, 0.8); }
+        .bg-slate-800 { background-color: #1e293b; }
+        .bg-cyan-500\/5 { background-color: rgba(0, 217, 255, 0.05); }
+        .bg-cyan-500\/10 { background-color: rgba(0, 217, 255, 0.1); }
+        .bg-cyan-500\/20 { background-color: rgba(0, 217, 255, 0.2); }
+        .bg-cyan-600 { background-color: #0891b2; }
+        .bg-cyan-500 { background-color: #00d9ff; }
+        .bg-black { background-color: #000; }
+        .bg-transparent { background-color: transparent; }
+        .bg-\[\#020205\] { background-color: #020205; }
+        .text-white { color: #fff; } .text-black { color: #000; }
+        .text-cyan-400 { color: #22d3ee; } .text-cyan-500 { color: #00d9ff; }
+        .text-yellow-400 { color: #facc15; } .text-yellow-500 { color: #eab308; }
+        .text-purple-400 { color: #c084fc; } .text-purple-500 { color: #a855f7; }
+        .text-red-400 { color: #f87171; } .text-red-500 { color: #ef4444; }
+        .text-green-400 { color: #4ade80; } .text-green-500 { color: #22c55e; }
+        .text-slate-300 { color: #cbd5e1; } .text-slate-400 { color: #94a3b8; } .text-slate-500 { color: #64748b; } .text-slate-600 { color: #475569; }
+        .text-cyan-500\/50 { color: rgba(0, 217, 255, 0.5); } .text-cyan-500\/80 { color: rgba(0, 217, 255, 0.8); }
+        .text-slate-500\/60 { color: rgba(100, 116, 139, 0.6); }
+        .text-cyan-500\/30 { color: rgba(0, 217, 255, 0.3); }
+        .uppercase { text-transform: uppercase; }
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        .font-thin { font-weight: 100; } .font-light { font-weight: 300; } .font-bold { font-weight: 700; } .font-extralight { font-weight: 200; } .font-black { font-weight: 900; }
+        .leading-none { line-height: 1; } .leading-relaxed { line-height: 1.625; }
+        .tracking-tighter { letter-spacing: -0.05em; } .tracking-widest { letter-spacing: 0.1em; } .tracking-\[0\.2em\] { letter-spacing: 0.2em; } .tracking-\[0\.3em\] { letter-spacing: 0.3em; } .tracking-\[0\.4em\] { letter-spacing: 0.4em; } .tracking-\[0\.5em\] { letter-spacing: 0.5em; } .tracking-\[0\.6em\] { letter-spacing: 0.6em; }
+        .opacity-50 { opacity: 0.5; } .opacity-60 { opacity: 0.6; } .opacity-0 { opacity: 0; } .opacity-40 { opacity: 0.4; }
+        .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .backdrop-blur-md { backdrop-filter: blur(12px); }
+        .aspect-video { aspect-ratio: 16 / 9; }
+        .group:hover .group-hover\:opacity-40 { opacity: 0.4; }
+        .group:hover .group-hover\:text-cyan-400 { color: #22d3ee; }
+        .group:hover .group-hover\:text-red-400 { color: #f87171; }
+        .group:hover .group-hover\:text-yellow-400 { color: #facc15; }
+        .group:hover .group-hover\:text-purple-400 { color: #c084fc; }
+        .pointer-events-none { pointer-events: none; }
+        .pointer-events-auto { pointer-events: auto; }
+        .cursor-pointer { cursor: pointer; }
+        .whitespace-nowrap { white-space: nowrap; }
+        .ml-1 { margin-left: 4px; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .max-w-2xl { max-width: 672px; } .max-w-3xl { max-width: 768px; } .max-w-md { max-width: 448px; } .max-sm { max-width: 24rem; }
+        .transition-all { transition: all 0.2s ease; }
+        .transition-opacity { transition: opacity 0.3s ease; }
+        .transition-colors { transition: color 0.2s, background-color 0.2s, border-color 0.2s; }
+        .duration-300 { transition-duration: 300ms; }
+        .duration-500 { transition-duration: 500ms; }
+        .duration-1000 { transition-duration: 1000ms; }
+        .hover\:scale-105:hover { transform: scale(1.05); }
+        .hover\:bg-cyan-500\/20:hover { background-color: rgba(0, 217, 255, 0.2); }
+        .hover\:bg-white\/10:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .hover\:bg-cyan-500:hover { background-color: #00d9ff; }
+        .hover\:bg-cyan-500:hover { color: #000; }
+        .hover\:border-cyan-400:hover { border-color: #22d3ee; }
+        .hover\:text-white:hover { color: #fff; }
+        .hover\:text-cyan-400:hover { color: #22d3ee; }
+        .active\:scale-90:active { transform: scale(0.9); }
+        .animate-spin { animation: spin 1s linear infinite; }
+        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+        .animate-ping { animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        .animate-\[spin_60s_linear_infinite\] { animation: spin 60s linear infinite; }
+        .animate-\[spin_40s_linear_infinite_reverse\] { animation: spin 40s linear infinite reverse; }
+        @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+        .selection\:bg-cyan-500\/30::selection { background-color: rgba(0, 217, 255, 0.3); }
+
+        /* Glass, text glow, scrollbar, drift */
+        .glass {
+            background: rgba(4, 4, 10, 0.85);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .text-glow { text-shadow: 0 0 15px rgba(0, 217, 255, 0.4); }
+        .custom-scrollbar::-webkit-scrollbar { width: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+        @keyframes drift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .bg-drift {
+            background: linear-gradient(-45deg, #020205, #0a0a1a, #020205, #050510);
+            background-size: 400% 400%;
+            animation: drift 15s ease infinite;
+        }
+        .formula-pulse { transition: transform 0.1s ease-out; }
+        .node-active {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 217, 255, 0.05);
+            box-shadow: inset 0 0 20px rgba(0, 217, 255, 0.05);
+        }
+        canvas { image-rendering: pixelated; display: block; }
+        .nav-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .nav-btn:active {
+            transform: scale(0.9);
+            background: rgba(0, 217, 255, 0.2);
+        }
+        #info-modal { transition: opacity 0.3s ease, visibility 0.3s ease; opacity: 1; visibility: visible; }
+        #info-modal.modal-closed { opacity: 0; pointer-events: none; visibility: hidden; }
+        #intro-overlay { transition: opacity 1s ease; }
+        #intro-overlay.hidden { display: none; }
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 4px;
+            border-radius: 2px;
+            background: currentColor;
+            cursor: pointer;
+            margin-top: -5px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 2px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1px;
+        }
+        /* Generative mode pill states */
+        .gen-eno { color: #facc15; background: rgba(250, 204, 21, 0.1); border-color: rgba(250, 204, 21, 0.3); box-shadow: 0 0 15px rgba(250, 204, 21, 0.1); }
+        .gen-euclid { color: #00d9ff; background: rgba(0, 217, 255, 0.1); border-color: rgba(0, 217, 255, 0.3); box-shadow: 0 0 15px rgba(0, 217, 255, 0.1); }
+        .gen-chaos { color: #ff0066; background: rgba(255, 0, 102, 0.1); border-color: rgba(255, 0, 102, 0.3); box-shadow: 0 0 15px rgba(255, 0, 102, 0.1); }
+        .gen-phi { color: #fb923c; background: rgba(251, 146, 60, 0.1); border-color: rgba(251, 146, 60, 0.3); box-shadow: 0 0 15px rgba(251, 146, 60, 0.1); }
+        .gen-cell { color: #4ade80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.3); box-shadow: 0 0 15px rgba(74, 222, 128, 0.1); }
+        .back-link {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #475569;
+            text-decoration: none;
+            padding: 4px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 9999px;
+            transition: all 0.2s;
+        }
+        .back-link:hover { color: #00d9ff; border-color: rgba(0, 217, 255, 0.3); }
+    </style>
+</head>
+<body class="bg-drift selection:bg-cyan-500/30">
+
+    <!-- Loading -->
+    <div id="loading" class="fixed inset-0 z-[2000] bg-[#020205] flex flex-col items-center justify-center transition-opacity duration-1000">
+        <div class="relative w-32 h-32 mb-8 flex items-center justify-center">
+            <div class="absolute inset-0 border-[1px] border-slate-900 rounded-full"></div>
+            <div class="absolute inset-0 border-t-[1px] border-cyan-500 rounded-full animate-spin"></div>
+            <div class="text-[8px] mono text-cyan-500/50 uppercase tracking-[0.4em]">Cosmic Sound // 5.0</div>
+        </div>
+        <div class="mono text-white text-[10px] tracking-[0.6em] uppercase animate-pulse">Initializing Definitive Field</div>
+    </div>
+
+    <!-- INTRO ONBOARDING -->
+    <div id="intro-overlay" class="fixed inset-0 z-[1900] bg-[#020205] flex flex-col items-center justify-center transition-opacity duration-1000 hidden">
+        <div class="text-center space-y-6 p-6 relative w-full max-w-2xl">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-cyan-500/5 rounded-full animate-[spin_60s_linear_infinite] pointer-events-none"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] border border-purple-500/5 rounded-full animate-[spin_40s_linear_infinite_reverse] pointer-events-none"></div>
+
+            <div class="flex flex-col gap-1 relative z-10 mb-8">
+                <h1 class="text-5xl md:text-7xl font-black tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-purple-500 drop-shadow-[0_0_25px_rgba(0,217,255,0.3)]">ECHO</h1>
+                <div class="flex flex-col gap-1">
+                    <p class="text-xs md:text-sm mono text-cyan-500/80 tracking-[0.6em] uppercase">Aetheric Manifold</p>
+                    <p class="text-[9px] mono text-slate-600 tracking-[0.4em] uppercase">Quantum Resonance Engine v5.0</p>
+                </div>
+            </div>
+
+            <div class="relative z-10 max-w-md mx-auto glass p-6 rounded-2xl border border-white/10 text-left space-y-4 mb-8 shadow-2xl">
+                <p class="text-[11px] text-slate-300 leading-relaxed font-light text-center">
+                    This system synthesizes generative audio and visual data by mathematically translating physical formulas, fundamental constants, and sacred frequencies.
+                </p>
+                <div class="text-[10px] mono flex flex-col gap-2 bg-black/40 p-4 rounded-lg border border-white/5">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-1.5">
+                        <span class="text-cyan-400 font-bold px-2 py-0.5 bg-white/5 rounded border border-white/10">[ ← / → ]</span>
+                        <span class="text-slate-400 uppercase tracking-widest text-[8px]">Alter Formula</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-white/5 pb-1.5">
+                        <span class="text-cyan-400 font-bold px-2 py-0.5 bg-white/5 rounded border border-white/10">[ ↑ / ↓ ]</span>
+                        <span class="text-slate-400 uppercase tracking-widest text-[8px]">Global Tune (Semitones)</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-cyan-400 font-bold px-2 py-0.5 bg-white/5 rounded border border-white/10">[ SPACE ]</span>
+                        <span class="text-slate-400 uppercase tracking-widest text-[8px]">Engage / Null</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative z-10 py-4">
+                <button id="enter-btn" class="group relative flex items-center justify-center w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full bg-white/5 border border-white/10 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all duration-500 hover:scale-105">
+                    <div class="absolute inset-0 rounded-full border border-cyan-500/30 animate-ping opacity-0 group-hover:opacity-40 duration-1000"></div>
+                    <div class="absolute inset-0 rounded-full border border-purple-500/20 animate-pulse"></div>
+                    <svg class="w-10 h-10 text-slate-300 group-hover:text-cyan-400 transition-colors ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <div class="mt-4 text-[9px] mono text-slate-500 group-hover:text-cyan-400 transition-colors uppercase tracking-widest animate-pulse">Initialize System</div>
+            </div>
+
+            <div class="relative z-10 text-[9px] text-slate-600 mono max-w-md mx-auto leading-relaxed pt-2">
+                <p>Headphones Highly Recommended</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 modal-closed">
+        <div class="glass max-w-3xl w-full max-h-[80vh] flex flex-col rounded-2xl border border-white/10 shadow-2xl relative overflow-hidden">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <h2 class="text-xl font-bold text-white tracking-widest uppercase mono"><span class="text-cyan-500">ECHO</span> // FIELD GUIDE</h2>
+                <button id="close-modal" class="text-slate-400 hover:text-white transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-8 overflow-y-auto custom-scrollbar space-y-8">
+                <div class="text-sm text-slate-300 leading-relaxed font-light">
+                    <p class="mb-4">Welcome to the APTFS Universe. This engine uses real-time math to generate audio and visuals. It's basically a synthesizer for the laws of physics.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div><h3 class="text-cyan-400 mono text-xs uppercase tracking-widest mb-2 border-b border-cyan-500/20 pb-1">Generative Modes</h3>
+                        <p class="text-[11px] text-slate-400">
+                            <strong>Ambient (∞):</strong> Asynchronous, drifting cloud layers.<br>
+                            <strong>Euclidean (◴):</strong> Geometric polyrhythms (Bjorklund algorithm).<br>
+                            <strong>Chaos (@):</strong> Fluid melodies driven by Lorenz Attractor.<br>
+                            <strong>Phi (Φ):</strong> Recursive timing based on the Golden Ratio.<br>
+                            <strong>Cellular (▦):</strong> Evolving arpeggios using Rule 30 Automata.
+                        </p>
+                    </div>
+                    <div><h3 class="text-yellow-400 mono text-xs uppercase tracking-widest mb-2 border-b border-yellow-500/20 pb-1">The Tesla Manifold</h3><p class="text-[11px] text-slate-400">3-6-9 Vortex, Resonance, Radiant Energy.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass h-14 flex items-center justify-between px-4 lg:px-8 border-b border-white/5">
+        <div class="flex items-center gap-4 xl:gap-8">
+            <a class="back-link" href="/" title="Back to SWR home">← SWR</a>
+            <div class="flex flex-col">
+                <span class="text-[10px] font-black tracking-[0.4em] bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent uppercase">COSMIC TUNE</span>
+                <span class="text-[7px] text-slate-500 mono -mt-1 tracking-widest">QUANTUM RESONANCE ENGINE</span>
+            </div>
+            <div id="status-tag" class="hidden xl:flex items-center gap-2 px-3 py-0.5 rounded-full bg-cyan-500/5 border border-cyan-500/20 text-[8px] text-cyan-400 mono">
+                <span class="w-1 h-1 rounded-full bg-cyan-500 animate-pulse"></span>
+                432HZ ALIGNED
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 xl:gap-6">
+            <div class="hidden md:flex items-center gap-4 mr-2 border-r border-white/10 pr-4">
+                <div class="flex flex-col items-end group" title="Chaos &amp; Jitter">
+                    <span class="text-[7px] text-slate-600 mono uppercase tracking-tighter group-hover:text-red-400 transition-colors">Thermal</span>
+                    <input type="range" id="temp-slider" min="0" max="100" value="50" class="w-16 text-red-500">
+                </div>
+                <div class="flex flex-col items-end group" title="Stereo Width &amp; Hue">
+                    <span class="text-[7px] text-slate-600 mono uppercase tracking-tighter group-hover:text-cyan-400 transition-colors">Polarity</span>
+                    <input type="range" id="polar-slider" min="0" max="100" value="50" class="w-16 text-cyan-500">
+                </div>
+                <div class="flex flex-col items-end group" title="Filter Q &amp; Bloom">
+                    <span class="text-[7px] text-slate-600 mono uppercase tracking-tighter group-hover:text-yellow-400 transition-colors">Resonance</span>
+                    <input type="range" id="res-slider" min="0" max="100" value="50" class="w-16 text-yellow-500">
+                </div>
+                <div class="flex flex-col items-end group" title="Harmonics &amp; Particles">
+                    <span class="text-[7px] text-slate-600 mono uppercase tracking-tighter group-hover:text-purple-400 transition-colors">Density</span>
+                    <input type="range" id="den-slider" min="0" max="100" value="50" class="w-16 text-purple-500">
+                </div>
+            </div>
+
+            <div class="flex flex-col items-end">
+                <span class="text-[7px] text-slate-600 mono uppercase tracking-tighter">Global Tune</span>
+                <div class="flex items-center gap-1">
+                    <button id="tune-down" class="w-4 h-4 flex items-center justify-center rounded bg-slate-800 text-cyan-500 hover:bg-cyan-500 hover:text-black text-[9px] transition-colors">-</button>
+                    <span id="tune-display" class="text-[9px] text-cyan-500 mono w-8 text-center bg-black/20 rounded">0</span>
+                    <button id="tune-up" class="w-4 h-4 flex items-center justify-center rounded bg-slate-800 text-cyan-500 hover:bg-cyan-500 hover:text-black text-[9px] transition-colors">+</button>
+                </div>
+            </div>
+
+            <div class="hidden xl:flex flex-col items-end">
+                <span class="text-[7px] text-slate-600 mono uppercase tracking-tighter">Gain Stage</span>
+                <div class="flex items-center gap-3">
+                    <input type="range" id="master-vol" min="0" max="100" value="70" class="w-20 text-slate-400">
+                    <span id="vol-label" class="text-[9px] text-cyan-500 mono w-8">70%</span>
+                </div>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button id="gen-mode-btn" class="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5 transition-all" title="Generative Mode: Off -> Ambient (Eno) -> Rhythmic (Euclidean) -> Chaos">
+                    <span class="mono font-bold text-[12px]">○</span>
+                </button>
+                <button id="info-btn" class="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 border border-white/5 transition-all mr-2" title="System Info">
+                    <span class="mono font-bold text-[10px]">?</span>
+                </button>
+                <button id="start-btn" class="px-4 xl:px-6 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] rounded uppercase tracking-widest transition-all">Engage</button>
+                <button id="stop-btn" class="px-4 xl:px-6 py-1.5 bg-transparent border border-white/10 text-slate-500 hover:text-white text-[9px] rounded uppercase tracking-widest transition-all">Null</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-14 h-screen flex flex-col lg:flex-row">
+        <nav class="lg:w-60 glass border-r border-white/5 p-6 lg:fixed lg:top-14 lg:bottom-0 overflow-y-auto custom-scrollbar flex lg:flex-col gap-2 z-40">
+            <div class="text-[8px] text-slate-600 mono mb-4 uppercase tracking-[0.3em]">Manifold Coordinates</div>
+            <div id="nav-container" class="flex lg:flex-col gap-2 w-full"></div>
+        </nav>
+
+        <div class="flex-1 lg:ml-60 p-6 space-y-6 overflow-y-auto custom-scrollbar h-full">
+
+            <div id="viz-container" class="relative w-full aspect-video lg:h-[550px] rounded-3xl overflow-hidden glass border border-white/5 group bg-black transition-all duration-500">
+                <canvas id="main-canvas" class="w-full h-full"></canvas>
+
+                <div class="absolute inset-0 p-10 flex flex-col justify-between pointer-events-none">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-4">
+                            <button id="prev-btn" class="nav-btn p-2 rounded bg-white/5 hover:bg-cyan-500/20 border border-white/5 text-slate-400 hover:text-cyan-400 pointer-events-auto">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                            <div class="glass px-4 py-2 rounded-lg border border-white/5">
+                                <div class="text-[8px] text-slate-500 mono uppercase mb-1">Active Formula</div>
+                                <div id="viz-formula" class="mono text-cyan-400 text-sm formula-pulse">λ = select_node</div>
+                            </div>
+                            <button id="next-btn" class="nav-btn p-2 rounded bg-white/5 hover:bg-cyan-500/20 border border-white/5 text-slate-400 hover:text-cyan-400 pointer-events-auto">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                        <div class="text-right">
+                            <div id="time-display" class="text-5xl font-thin mono text-white leading-none tracking-tighter">00:00</div>
+                            <div class="text-[8px] text-slate-500 mono uppercase tracking-[0.5em] mt-2">Epoch Timer</div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row justify-between items-end gap-8">
+                        <div class="flex-1">
+                            <h2 id="viz-title" class="text-4xl font-extralight text-white tracking-tighter mb-2">Void Field</h2>
+                            <p id="viz-desc" class="text-slate-500 text-[10px] mono max-sm leading-relaxed uppercase tracking-widest opacity-60">Standing by for harmonic initialization.</p>
+                        </div>
+
+                        <div class="flex flex-col items-end gap-4 pointer-events-auto">
+                            <div class="w-64 h-[1px] bg-slate-800 relative">
+                                <div id="progress-bar" class="h-full bg-cyan-500 w-0 transition-all duration-1000 shadow-[0_0_15px_rgba(0,217,255,0.8)]"></div>
+                                <div id="crossfade-alert" class="absolute -top-4 right-0 text-[7px] mono text-cyan-400 font-bold uppercase tracking-widest opacity-0 transition-opacity">
+                                    Resonant Crossfade Active
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="fullscreen-btn" class="p-3 rounded-full bg-white/5 hover:bg-white/10 text-slate-500 transition-all">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 h-20 rounded-2xl glass border border-white/5 overflow-hidden">
+                    <canvas id="wave-canvas" class="w-full h-full"></canvas>
+                </div>
+                <div class="h-20 rounded-2xl glass border border-white/5 p-4 flex flex-col justify-center">
+                    <div class="flex justify-between text-[8px] mono text-slate-500 mb-2 uppercase tracking-widest">
+                        <span>Spectral Density</span>
+                        <span id="displacement-val">0.00%</span>
+                    </div>
+                    <div class="w-full h-[1px] bg-slate-800 relative overflow-hidden">
+                        <div id="disp-bar" class="h-full bg-purple-500 w-0 transition-all"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="formula-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 pb-10"></div>
+        </div>
+    </main>
+
+    <script>
+        // ECHO Manifold 5.0 — Harmonic / Quantum Resonance Engine
+        // Ported verbatim from the Gemini Canvas artifact. Standalone:
+        // no media library, no audio file, no microphone. WebAudio only.
+        // See docs/echo-manifold-plan.md.
+
+        const SECTIONS = {
+            spacetime: { title: "Spacetime", icon: "⌬", color: "#00d9ff", formulas: [
+                { id: 'd0', name: "Singularity", latex: "D0 ≡ {∅}", desc: "Zero point energy fluctuations.", freq: 216, type: "singularity", fm: 0.5 },
+                { id: 'd1', name: "Vector Path", latex: "D1 = ℝ¹", desc: "Linear extension into the dark.", freq: 288, type: "vector", fm: 1.5 },
+                { id: 'd2', name: "Fractal Plane", latex: "D2 = ℝ²", desc: "Complex geometric resonance.", freq: 324, type: "fractal", fm: 2.0 },
+                { id: 'd3', name: "Mass Construct", latex: "D3 = ℝ³", desc: "Volumetric spatial locking.", freq: 341, type: "mass", fm: 0.8 },
+                { id: 'tn', name: "The Present", latex: "T = ∂S", desc: "The boundary of now.", freq: 384, type: "present", fm: 1.2 },
+                { id: 'd4', name: "Chronos", latex: "D4 = T ⊗ D3", desc: "Motion through the 4th axis.", freq: 432, type: "chronos", fm: 1.0 },
+                { id: 'd5', name: "Probability", latex: "D5 = ∫Ψ²", desc: "Cloud of potential states.", freq: 480, type: "quantum", fm: 4.5 },
+                { id: 'd6', name: "Unified Field", latex: "D6 = ΣDi", desc: "The sum of all dimensions.", freq: 512, type: "unified", fm: 0.7 }
+            ]},
+            cosmos: { title: "Cosmic Scale", icon: "🌌", color: "#6600cc", formulas: [
+                { id: 'bh', name: "Event Horizon", latex: "R_s = 2GM/c^2", desc: "The point of no return.", freq: 60, type: "blackhole", fm: 0.1 },
+                { id: 'pul', name: "Pulsar Beacon", latex: "P ≈ 1.4ms", desc: "Rotating neutron star emissions.", freq: 432, type: "pulsar", fm: 12.0 },
+                { id: 'neb', name: "Stellar Nursery", latex: "M_J ∝ T^{3/2} ρ^{-1/2}", desc: "The Jeans Mass. Birthplace of stars.", freq: 55, type: "nebula", fm: 0.8 },
+                { id: 'dm', name: "Dark Matter", latex: "\\Omega_c", desc: "The invisible web of the cosmos.", freq: 110, type: "darkmatter", fm: 4.0 }
+            ]},
+            genesis: { title: "Genesis", icon: "🧬", color: "#ff0066", formulas: [
+                { id: 'dna', name: "Double Helix", latex: "\\nabla^2 u", desc: "The spiral of biological life.", freq: 528, type: "dna", fm: 1.618 },
+                { id: 'mit', name: "Cellular Mitosis", latex: "N(t) = N_0 2^{t/T}", desc: "Biological exponential division.", freq: 192, type: "mitosis", fm: 4.0 },
+                { id: 'neu', name: "Neural Web", latex: "V = IR", desc: "Synaptic firing patterns.", freq: 360, type: "neural", fm: 8.0 },
+                { id: 'turing', name: "Morphogenesis", latex: "\\partial u/\\partial t", desc: "Self-organizing chemical patterns.", freq: 256, type: "turing", fm: 2.0 }
+            ]},
+            quantum: { title: "Quantum Field", icon: "⚛", color: "#66ff66", formulas: [
+                { id: 'ent', name: "Entanglement", latex: "\\psi_{EPR} = 1/\\sqrt{2}", desc: "Non-local mirror symmetry across the void.", freq: 432, type: "entanglement", fm: 1.0 },
+                { id: 'mor', name: "MOR Resonance", latex: "f_{rife} = MOR", desc: "Mortal Oscillatory Rate. Structural disintegration.", freq: 528, type: "rife", fm: 5.0 },
+                { id: 'maxw', name: "Maxwell Light", latex: "\\nabla \\times B = \\mu_0 J", desc: "The propagation of electromagnetic light.", freq: 432, type: "light", fm: 2.0 },
+                { id: 'cas', name: "Casimir Effect", latex: "F/A ∝ \\hbar c / a^4", desc: "Zero-point vacuum energy pressure.", freq: 111, type: "casimir", fm: 8.0 }
+            ]},
+            tesla: { title: "Tesla Manifold", icon: "⭍", color: "#ffcc00", formulas: [
+                { id: 'v369', name: "Vortex 3-6-9", latex: "V = \\{3,6,9\\}", desc: "The keys to the universe.", freq: 369, type: "vortex", fm: 3.0 },
+                { id: 'lcr', name: "LC Resonance", latex: "f = 1/2\\pi\\sqrt{LC}", desc: "Focused resonant oscillations.", freq: 432, type: "resonance", fm: 0.5 },
+                { id: 'rad', name: "Radiant Energy", latex: "E = h \\nu", desc: "Longitudinal pulse transmission.", freq: 528, type: "radiant", fm: 2.5 },
+                { id: 'rmi', name: "Rotating Induction", latex: "\\vec{B}(t)", desc: "The birth of polyphase AC.", freq: 60, type: "magnetic", fm: 1.0 }
+            ]},
+            ecology: { title: "Vortex Ecology", icon: "🌀", color: "#00ff99", formulas: [
+                { id: 'impl', name: "Implosion", latex: "V \\rightarrow \\infty", desc: "Centripetal suction and the life force.", freq: 110, type: "implosion", fm: 0.6 },
+                { id: 'lwat', name: "Living Water", latex: "H_2O_{bio}", desc: "Meandering spiral flow of natural vitality.", freq: 220, type: "meander", fm: 1.8 },
+                { id: 'hyp', name: "Hyperbolic Spiral", latex: "r\\theta = a", desc: "The golden curve of non-destructive growth.", freq: 330, type: "hyperbolic", fm: 2.2 },
+                { id: 'sch', name: "Schumann Resonance", latex: "f ≈ 7.83 Hz", desc: "The electromagnetic heartbeat of Earth.", freq: 7.83, type: "schumann", fm: 1.0 }
+            ]},
+            flux: { title: "Fundamental Flux", icon: "⚡", color: "#ff4d4d", formulas: [
+                { id: 'en', name: "Entropy", latex: "S = k \\ln W", desc: "Universal move towards disorder.", freq: 144, type: "entropy", fm: 6.0 },
+                { id: 'ch', name: "Butterfly Effect", latex: "x_{n+1} = rx_n(1-x_n)", desc: "Sensitivity to initial conditions.", freq: 256, type: "chaos", fm: 2.2 },
+                { id: 'gr', name: "Relativity", latex: "G_{\\mu\\nu} = 8\\pi G T_{\\mu\\nu}", desc: "The warping of spacetime by mass.", freq: 108, type: "relativity", fm: 0.4 },
+                { id: 'inf', name: "Information", latex: "H = -\\sum p \\log p", desc: "Shannon entropy of data bits.", freq: 640, type: "information", fm: 8.0 }
+            ]},
+            harmonics: { title: "Harmonic Laws", icon: "∿", color: "#a855f7", formulas: [
+                { id: 'fr', name: "Fourier Epicycle", latex: "F(ω) = ∫f(t)e", desc: "Circular decomposition of reality.", freq: 256, type: "fourier", fm: 2.5 },
+                { id: 'phi', name: "Golden Ratio", latex: "\\Phi = 1.618", desc: "The signature of organic growth.", freq: 432, type: "fibonacci", fm: 1.618 },
+                { id: 'cym', name: "Cymatics", latex: "u(x,y) = \\cos(nx)...", desc: "Visible geometry of sound (Chladni).", freq: 320, type: "cymatics", fm: 2.0 },
+                { id: 'dy', name: "Duality", latex: "1 = 0", desc: "Everything is nothing.", freq: 432, type: "duality", fm: 1.1 }
+            ]},
+            omega: { title: "The Omega", icon: "✧", color: "#facc15", formulas: [
+                { id: 'cs', name: "Consciousness", latex: "C = Φ", desc: "Integrated information awareness.", freq: 528, type: "mind", fm: 3.2 },
+                { id: 'tor', name: "The Torus", latex: "(c-\\sqrt{x^2+y^2})^2", desc: "The self-sustaining energy flow.", freq: 432, type: "torus", fm: 1.5 },
+                { id: 'ms', name: "Universal Key", latex: "U = ∮", desc: "The master harmonic key.", freq: 432, type: "master", fm: 0.4 }
+            ]}
+        };
+
+        const state = {
+            active: null,
+            isPlaying: false,
+            currentSec: 'spacetime',
+            startTime: 0,
+            volume: 0.7,
+            temperature: 0.5,
+            polarity: 0.5,
+            resonance: 0.5,
+            density: 0.5,
+            tuning: 0,
+            genMode: 'eno',
+            fftData: new Uint8Array(256),
+            duration: 180,
+            isCF: false
+        };
+
+        const allFormulas = Object.entries(SECTIONS).reduce((acc, [secKey, sec]) => {
+            return [...acc, ...sec.formulas.map(f => ({ ...f, section: secKey }))];
+        }, []);
+
+        class ManifoldAudio {
+            constructor() {
+                this.ctx = null;
+                this.master = null;
+                this.analyser = null;
+                this.filter = null;
+                this.layers = {
+                    A: { gain: null, nodes: [], modGains: [], panners: [], harmonics: [], tuners: [] },
+                    B: { gain: null, nodes: [], modGains: [], panners: [], harmonics: [], tuners: [] }
+                };
+                this.genGain = null;
+                this.genNodes = [];
+                this.genTimer = null;
+                this.euclidStep = 0;
+                this.chaos = { x: 0.1, y: 0, z: 0, sigma: 10, rho: 28, beta: 8/3 };
+                this.phiDelay = 500;
+                this.cells = [0, 0, 0, 1, 0, 0, 0, 0];
+                this.cur = 'A';
+                this.init = false;
+            }
+
+            async setup() {
+                if (this.init) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.master = this.ctx.createGain();
+                this.master.gain.value = state.volume;
+
+                const comp = this.ctx.createDynamicsCompressor();
+                comp.threshold.value = -10;
+                comp.ratio.value = 12;
+
+                this.filter = this.ctx.createBiquadFilter();
+                this.filter.type = "lowpass";
+                this.filter.frequency.value = 8000;
+                this.filter.Q.value = 1;
+
+                this.genGain = this.ctx.createGain();
+                this.genGain.gain.value = 0.6;
+                this.genGain.connect(this.filter);
+
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 512;
+
+                this.layers.A.gain = this.ctx.createGain();
+                this.layers.B.gain = this.ctx.createGain();
+                this.layers.A.gain.connect(this.filter);
+                this.layers.B.gain.connect(this.filter);
+
+                this.filter.connect(comp);
+                comp.connect(this.master);
+                this.master.connect(this.analyser);
+                this.analyser.connect(this.ctx.destination);
+
+                this.init = true;
+                if (this.ctx.state === 'suspended') await this.ctx.resume();
+            }
+
+            setGenMode(mode) {
+                if (this.genTimer) clearTimeout(this.genTimer);
+
+                this.genNodes.forEach(n => {
+                    try {
+                        const now = this.ctx.currentTime;
+                        n.gain.gain.cancelScheduledValues(now);
+                        n.gain.gain.setTargetAtTime(0, now, 0.5);
+                        setTimeout(() => { try { n.osc.stop(); n.osc.disconnect(); } catch(e){} }, 600);
+                    } catch(e){}
+                });
+                this.genNodes = [];
+
+                if (mode !== 'off') {
+                    if (mode === 'eno') this.tickEno();
+                    else if (mode === 'euclid') this.tickEuclid();
+                    else if (mode === 'chaos') this.tickChaos();
+                    else if (mode === 'phi') this.tickPhi();
+                    else if (mode === 'cell') this.tickCellular();
+                }
+            }
+
+            tickEno() {
+                if (state.genMode !== 'eno' || !state.isPlaying) return;
+                this.spawnEnoNote();
+                const densityFactor = 1.5 - state.density;
+                const delay = (2000 + Math.random() * 6000) * densityFactor;
+                this.genTimer = setTimeout(() => this.tickEno(), delay);
+            }
+
+            spawnEnoNote() {
+                if (!this.ctx) return;
+                const rootBase = state.active ? state.active.freq : 432;
+                const tMult = Math.pow(2, state.tuning / 12);
+                const root = rootBase * tMult;
+                const ratios = [1, 9/8, 5/4, 3/2, 5/3, 15/8, 2];
+                const ratio = ratios[Math.floor(Math.random() * ratios.length)];
+                const octave = Math.pow(2, Math.floor(Math.random() * 3) - 1);
+                const freq = root * ratio * octave;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const pan = this.ctx.createStereoPanner();
+
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                const maxPan = state.polarity;
+                pan.pan.value = (Math.random() * 2 - 1) * maxPan;
+
+                const now = this.ctx.currentTime;
+                const atk = 3 + Math.random() * 5;
+                const rel = 8 + Math.random() * 7;
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.3 * state.density, now + atk);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + atk + rel);
+
+                osc.connect(gain); gain.connect(pan); pan.connect(this.genGain);
+                osc.start(); osc.stop(now + atk + rel + 1);
+
+                const nodeRef = { osc, gain };
+                this.genNodes.push(nodeRef);
+                setTimeout(() => {
+                    const idx = this.genNodes.indexOf(nodeRef);
+                    if (idx > -1) this.genNodes.splice(idx, 1);
+                }, (atk + rel + 1) * 1000);
+            }
+
+            getEuclidPattern(steps, pulses) {
+                const pattern = [];
+                let bucket = 0;
+                for (let i=0; i<steps; i++) {
+                    bucket += pulses;
+                    if (bucket >= steps) { bucket -= steps; pattern.push(1); }
+                    else { pattern.push(0); }
+                }
+                return pattern;
+            }
+
+            tickEuclid() {
+                if (state.genMode !== 'euclid' || !state.isPlaying) return;
+
+                const bpm = 90 + (state.temperature * 100);
+                const stepTime = (60 / bpm) * 1000 / 4;
+
+                const rootBase = state.active ? state.active.freq : 432;
+                const tMult = Math.pow(2, state.tuning / 12);
+                const root = rootBase * tMult;
+
+                const p1 = this.getEuclidPattern(8, 3);
+                if (p1[this.euclidStep % 8] === 1) this.spawnEuclidHit(root / 2, 'bass');
+
+                const p2 = this.getEuclidPattern(12, 5);
+                if (p2[this.euclidStep % 12] === 1) this.spawnEuclidHit(root, 'mid');
+
+                const p3 = this.getEuclidPattern(16, 7);
+                if (p3[this.euclidStep % 16] === 1) this.spawnEuclidHit(root * 2, 'high');
+
+                this.euclidStep++;
+                this.genTimer = setTimeout(() => this.tickEuclid(), stepTime);
+            }
+
+            spawnEuclidHit(freq, type) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const pan = this.ctx.createStereoPanner();
+                const now = this.ctx.currentTime;
+
+                osc.frequency.value = freq;
+                pan.pan.value = (Math.random() * 2 - 1) * state.polarity * 0.5;
+
+                osc.connect(gain); gain.connect(pan); pan.connect(this.genGain);
+                osc.start(now);
+
+                if (type === 'bass') {
+                    osc.type = 'triangle';
+                    gain.gain.setValueAtTime(0.4 * state.density, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.frequency.exponentialRampToValueAtTime(freq / 2, now + 0.1);
+                    try { osc.stop(now + 0.4); } catch(e){}
+                } else if (type === 'mid') {
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.2 * state.density, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    try { osc.stop(now + 0.2); } catch(e){}
+                } else {
+                    osc.type = 'square';
+                    osc.frequency.value = freq * 4;
+                    gain.gain.setValueAtTime(0.05 * state.density, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    try { osc.stop(now + 0.1); } catch(e){}
+                }
+
+                setTimeout(() => { try { osc.disconnect(); } catch(e){} }, 500);
+            }
+
+            tickChaos() {
+                if (state.genMode !== 'chaos' || !state.isPlaying) return;
+
+                const dt = 0.01 * (0.5 + state.temperature);
+
+                let dx = this.chaos.sigma * (this.chaos.y - this.chaos.x) * dt;
+                let dy = (this.chaos.x * (this.chaos.rho - this.chaos.z) - this.chaos.y) * dt;
+                let dz = (this.chaos.x * this.chaos.y - this.chaos.beta * this.chaos.z) * dt;
+
+                this.chaos.x += dx;
+                this.chaos.y += dy;
+                this.chaos.z += dz;
+
+                const rootBase = state.active ? state.active.freq : 432;
+                const tMult = Math.pow(2, state.tuning / 12);
+                const root = rootBase * tMult;
+
+                const scaleIndex = Math.abs(Math.floor(this.chaos.x)) % 7;
+                const ratios = [1, 9/8, 6/5, 3/2, 8/5, 5/3, 15/8];
+                const octave = Math.floor(Math.abs(this.chaos.z) / 20);
+
+                const freq = root * ratios[scaleIndex] * Math.pow(2, octave - 1);
+
+                this.spawnChaosNote(freq);
+
+                const delay = 100 + (Math.abs(this.chaos.y) * 20);
+                this.genTimer = setTimeout(() => this.tickChaos(), delay);
+            }
+
+            spawnChaosNote(freq) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const pan = this.ctx.createStereoPanner();
+                const now = this.ctx.currentTime;
+
+                osc.type = 'sawtooth';
+                osc.frequency.value = freq;
+
+                pan.pan.value = Math.max(-1, Math.min(1, this.chaos.x / 10)) * state.polarity;
+
+                osc.connect(gain); gain.connect(pan); pan.connect(this.genGain);
+
+                const dur = 0.1 + (state.density * 0.2);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.05 * state.density, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+                osc.start(now);
+                try { osc.stop(now + dur + 0.1); } catch(e){}
+
+                setTimeout(() => { try { osc.disconnect(); } catch(e){} }, (dur+0.2)*1000);
+            }
+
+            tickPhi() {
+                if (state.genMode !== 'phi' || !state.isPlaying) return;
+
+                const rootBase = state.active ? state.active.freq : 432;
+                const tMult = Math.pow(2, state.tuning / 12);
+                const root = rootBase * tMult;
+
+                this.spawnPhiNote(root);
+
+                if (this.phiDelay < 100 || this.phiDelay > 1000) {
+                    this.phiDelay = 500;
+                }
+
+                if (Math.random() > 0.5) this.phiDelay *= 1.618;
+                else this.phiDelay *= 0.618;
+
+                this.phiDelay = Math.max(80, Math.min(2000, this.phiDelay));
+
+                this.genTimer = setTimeout(() => this.tickPhi(), this.phiDelay);
+            }
+
+            spawnPhiNote(freq) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const pan = this.ctx.createStereoPanner();
+                const now = this.ctx.currentTime;
+
+                osc.type = 'triangle';
+                const h = 1 + (Math.floor(Math.random()*4));
+                osc.frequency.value = freq * h * (1.618);
+
+                pan.pan.value = (Math.random() * 2 - 1) * state.polarity;
+
+                osc.connect(gain); gain.connect(pan); pan.connect(this.genGain);
+
+                osc.start(now);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.15 * state.density, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                try { osc.stop(now + 0.7); } catch(e){}
+                setTimeout(() => { try { osc.disconnect(); } catch(e){} }, 700);
+            }
+
+            tickCellular() {
+                if (state.genMode !== 'cell' || !state.isPlaying) return;
+
+                const bpm = 120 + (state.temperature * 50);
+                const stepTime = (60 / bpm) * 1000;
+
+                const rootBase = state.active ? state.active.freq : 432;
+                const tMult = Math.pow(2, state.tuning / 12);
+                const root = rootBase * tMult;
+
+                const nextCells = [];
+                for (let i=0; i<this.cells.length; i++) {
+                    const l = this.cells[(i - 1 + this.cells.length) % this.cells.length];
+                    const c = this.cells[i];
+                    const r = this.cells[(i + 1) % this.cells.length];
+                    if ( (l===1 && c===0 && r===0) || (l===0 && c===1 && r===1) || (l===0 && c===1 && r===0) || (l===0 && c===0 && r===1) ) {
+                        nextCells.push(1);
+                        const ratios = [1, 9/8, 5/4, 4/3, 3/2, 5/3, 15/8, 2];
+                        const noteFreq = root * ratios[i % 8];
+                        this.spawnCellularNote(noteFreq, i);
+                    } else {
+                        nextCells.push(0);
+                    }
+                }
+                this.cells = nextCells;
+
+                if (this.cells.every(c => c === 0)) {
+                    this.cells[Math.floor(this.cells.length/2)] = 1;
+                }
+
+                this.genTimer = setTimeout(() => this.tickCellular(), stepTime);
+            }
+
+            spawnCellularNote(freq, panIdx) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const pan = this.ctx.createStereoPanner();
+                const now = this.ctx.currentTime;
+
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+
+                const pVal = ((panIdx / 7) * 2 - 1) * state.polarity;
+                pan.pan.value = pVal;
+
+                osc.connect(gain); gain.connect(pan); pan.connect(this.genGain);
+
+                osc.start(now);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.1 * state.density, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                try { osc.stop(now + 0.5); } catch(e){}
+                setTimeout(() => { try { osc.disconnect(); } catch(e){} }, 500);
+            }
+
+            build(formula, layerKey) {
+                const layer = this.layers[layerKey];
+                const now = this.ctx.currentTime;
+                const base = formula.freq;
+                const fm = formula.fm || 1;
+
+                const tMult = Math.pow(2, state.tuning / 12);
+
+                const createOsc = (freq, panVal) => {
+                    const car = this.ctx.createOscillator();
+                    const mod = this.ctx.createOscillator();
+                    const mG = this.ctx.createGain();
+                    const panner = this.ctx.createStereoPanner();
+                    const g = this.ctx.createGain();
+
+                    car.type = (formula.type === 'entropy' || formula.type === 'information' || formula.type === 'radiant' || formula.type === 'rife' || formula.type === 'pulsar' || formula.type === 'neural') ? 'square' : 'sine';
+                    mod.type = (formula.type === 'pulsar') ? 'square' : 'sine';
+
+                    const effFreq = freq * tMult;
+                    car.frequency.value = effFreq;
+                    layer.tuners.push({ node: car, base: freq });
+
+                    const modBase = (formula.type === 'pulsar') ? 12 : freq * fm;
+                    const modFreq = (formula.type === 'pulsar') ? 12 : modBase * tMult;
+                    mod.frequency.value = modFreq;
+
+                    if (formula.type !== 'pulsar') {
+                        layer.tuners.push({ node: mod, base: modBase });
+                    }
+
+                    if(formula.type === 'entropy' || formula.type === 'radiant' || formula.type === 'implosion' || formula.type === 'rife' || formula.type === 'casimir' || formula.type === 'neural' || formula.type === 'nebula') {
+                        const jitter = this.ctx.createOscillator();
+                        jitter.frequency.value = (formula.type === 'radiant' || formula.type === 'rife') ? 50 : (formula.type === 'neural' ? 500 : (formula.type === 'nebula' ? 0.2 : 10));
+                        const jitterG = this.ctx.createGain();
+                        jitterG.gain.value = (formula.type === 'radiant' || formula.type === 'neural') ? 500 : (formula.type === 'nebula' ? 30 : 50);
+                        jitter.connect(jitterG);
+                        jitterG.connect(car.frequency);
+                        jitter.start();
+                        layer.nodes.push(jitter, jitterG);
+                    }
+
+                    const mGBase = (formula.type === 'pulsar') ? 1000 : freq * 1.2;
+                    mG.gain.value = mGBase;
+                    layer.modGains.push({ node: mG, base: mGBase });
+
+                    panner.pan.value = panVal;
+                    layer.panners.push({ node: panner, base: panVal });
+
+                    g.gain.value = (formula.type === 'information' || formula.type === 'radiant' || formula.type === 'neural') ? 0.02 : 0.06;
+
+                    if (formula.type === 'pulsar') {
+                        mod.connect(g.gain);
+                    } else {
+                        mod.connect(mG);
+                        mG.connect(car.frequency);
+                    }
+
+                    car.connect(panner);
+                    panner.connect(g);
+                    g.connect(layer.gain);
+
+                    car.start(); mod.start();
+                    layer.nodes.push(car, mod, mG, panner, g);
+                };
+
+                if (formula.type === 'schumann') {
+                    createOsc(120, -1);
+                    createOsc(120 + 7.83, 1);
+                } else if (formula.type === 'blackhole') {
+                    createOsc(40, 0);
+                } else if (formula.type === 'nebula') {
+                    createOsc(base, -0.5);
+                    createOsc(base * 1.01, 0.5);
+                } else if (formula.type === 'mitosis') {
+                    createOsc(base, -0.3);
+                    createOsc(base * 2, 0.3);
+                } else if (formula.type === 'dna') {
+                    createOsc(base, -0.8);
+                    createOsc(base * 1.5, 0.8);
+                } else {
+                    createOsc(base, -0.6);
+                    createOsc(base + 1.2, 0.6);
+                }
+
+                [1.618, 2.618].forEach(h => {
+                    const s = this.ctx.createOscillator();
+                    const sg = this.ctx.createGain();
+                    s.frequency.value = base * h * tMult;
+                    sg.gain.value = 0.005;
+                    s.connect(sg); sg.connect(layer.gain);
+                    s.start();
+                    layer.nodes.push(s, sg);
+                    layer.harmonics.push({ node: sg, base: 0.005 });
+                    layer.tuners.push({ node: s, base: base * h });
+                });
+
+                this.sync();
+            }
+
+            sync() {
+                if (this.filter) {
+                    this.filter.Q.setTargetAtTime(state.resonance * 20, this.ctx.currentTime, 0.1);
+                }
+
+                ['A', 'B'].forEach(key => {
+                    const layer = this.layers[key];
+                    const fmMult = 0.2 + state.temperature * 2.0;
+                    const tMult = Math.pow(2, state.tuning / 12);
+
+                    layer.modGains.forEach(item => {
+                        try { item.node.gain.setTargetAtTime(item.base * fmMult, this.ctx.currentTime, 0.1); } catch(e) {}
+                    });
+
+                    const width = state.polarity;
+                    layer.panners.forEach(item => {
+                        try { item.node.pan.setTargetAtTime(item.base * width, this.ctx.currentTime, 0.1); } catch(e) {}
+                    });
+
+                    const dens = state.density * 3.0;
+                    layer.harmonics.forEach(item => {
+                        try { item.node.gain.setTargetAtTime(item.base * dens, this.ctx.currentTime, 0.1); } catch(e) {}
+                    });
+
+                    layer.tuners.forEach(item => {
+                        try { item.node.frequency.setTargetAtTime(item.base * tMult, this.ctx.currentTime, 0.1); } catch(e) {}
+                    });
+                });
+            }
+
+            play(f) {
+                const now = this.ctx.currentTime;
+                this.kill(this.layers.A); this.kill(this.layers.B);
+                this.cur = 'A';
+                this.layers.A.gain.gain.setValueAtTime(0, now);
+                this.layers.A.gain.gain.linearRampToValueAtTime(1, now + 5);
+                this.build(f, 'A');
+
+                audio.setGenMode(state.genMode);
+            }
+
+            crossfade(f) {
+                state.isCF = true;
+                const now = this.ctx.currentTime;
+                const nxt = this.cur === 'A' ? 'B' : 'A';
+                const prv = this.cur;
+                this.build(f, nxt);
+                this.layers[nxt].gain.gain.setValueAtTime(0, now);
+                this.layers[nxt].gain.gain.linearRampToValueAtTime(1, now + 15);
+                this.layers[prv].gain.gain.setValueAtTime(1, now);
+                this.layers[prv].gain.gain.linearRampToValueAtTime(0, now + 15);
+                document.getElementById('crossfade-alert').style.opacity = '1';
+                setTimeout(() => {
+                    this.kill(this.layers[prv]);
+                    this.cur = nxt;
+                    state.isCF = false;
+                    document.getElementById('crossfade-alert').style.opacity = '0';
+                }, 15000);
+            }
+
+            kill(layer) {
+                layer.nodes.forEach(n => { try { n.stop(); n.disconnect(); } catch(e){} });
+                layer.nodes = [];
+                layer.modGains = [];
+                layer.panners = [];
+                layer.harmonics = [];
+                layer.tuners = [];
+                if(layer.gain) layer.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+            }
+
+            setVol(v) { if(this.master) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1); }
+        }
+
+        const audio = new ManifoldAudio();
+
+        const mainCanvas = document.getElementById('main-canvas');
+        const mainCtx = mainCanvas.getContext('2d');
+        const waveCanvas = document.getElementById('wave-canvas');
+        const waveCtx = waveCanvas.getContext('2d');
+
+        function resize() {
+            mainCanvas.width = mainCanvas.clientWidth * window.devicePixelRatio;
+            mainCanvas.height = mainCanvas.clientHeight * window.devicePixelRatio;
+            waveCanvas.width = waveCanvas.clientWidth * window.devicePixelRatio;
+            waveCanvas.height = waveCanvas.clientHeight * window.devicePixelRatio;
+        }
+        window.onresize = resize;
+        resize();
+
+        function draw() {
+            const w = mainCanvas.width, h = mainCanvas.height, cx = w/2, cy = h/2;
+
+            const speedMult = 0.5 + state.temperature * 1.5;
+            const time = (performance.now() / 1000) * speedMult;
+            const hueShift = (state.polarity - 0.5) * 180;
+            document.getElementById('viz-container').style.filter = `hue-rotate(${hueShift}deg)`;
+
+            mainCtx.shadowBlur = state.resonance * 30;
+            mainCtx.shadowColor = SECTIONS[state.active?.section]?.color || '#00d9ff';
+
+            if (audio.analyser) audio.analyser.getByteFrequencyData(state.fftData);
+            const level = Array.from(state.fftData.slice(0, 30)).reduce((a,b)=>a+b,0)/(30*255);
+
+            mainCtx.fillStyle = 'rgba(2, 2, 5, 0.15)';
+            mainCtx.fillRect(0, 0, w, h);
+            mainCtx.globalCompositeOperation = 'lighter';
+
+            if (state.active) {
+                mainCtx.strokeStyle = SECTIONS[state.active.section]?.color || '#00d9ff';
+                mainCtx.lineWidth = (1 + level * 5) * (0.5 + state.resonance);
+                const type = state.active.type;
+
+                const jit = state.temperature * 2;
+                mainCtx.save();
+                mainCtx.translate((Math.random() - 0.5) * jit, (Math.random() - 0.5) * jit);
+
+                const dMult = 0.2 + state.density * 1.5;
+
+                if (type === 'blackhole') {
+                    mainCtx.save();
+                    mainCtx.translate(cx, cy);
+                    mainCtx.rotate(time * 0.5);
+                    const count = 100 * dMult;
+                    for(let i=0; i<count; i++) {
+                        const r = 100 + i * 2;
+                        mainCtx.beginPath();
+                        mainCtx.arc(0, 0, r, 0 + (i*0.1), Math.PI + (i*0.1));
+                        mainCtx.stroke();
+                    }
+                    mainCtx.beginPath(); mainCtx.arc(0,0,98,0,Math.PI*2); mainCtx.fillStyle = "black"; mainCtx.fill();
+                    mainCtx.beginPath(); mainCtx.arc(0,0,100,0,Math.PI*2); mainCtx.strokeStyle = "white"; mainCtx.stroke();
+                    mainCtx.restore();
+
+                } else if (type === 'pulsar') {
+                    mainCtx.beginPath(); mainCtx.arc(cx, cy, 20, 0, Math.PI*2); mainCtx.fillStyle = "white"; mainCtx.fill();
+                    mainCtx.save(); mainCtx.translate(cx, cy); mainCtx.rotate(time * 20);
+                    const grad = mainCtx.createLinearGradient(0,0,0, -400); grad.addColorStop(0, "rgba(255,255,255,0.8)"); grad.addColorStop(1, "rgba(0,255,255,0)");
+                    mainCtx.fillStyle = grad;
+                    mainCtx.beginPath(); mainCtx.moveTo(-5,0); mainCtx.lineTo(5,0); mainCtx.lineTo(30, -400); mainCtx.lineTo(-30, -400); mainCtx.fill();
+                    mainCtx.beginPath(); mainCtx.moveTo(-5,0); mainCtx.lineTo(5,0); mainCtx.lineTo(30, 400); mainCtx.lineTo(-30, 400); mainCtx.fill();
+                    mainCtx.restore();
+
+                } else if (type === 'nebula') {
+                    for(let i=0; i<30*dMult; i++) {
+                        const r = 100 + Math.sin(time*0.5 + i)*50 + (level * 100);
+                        const x = cx + Math.cos(i*0.5 + time*0.1) * r;
+                        const y = cy + Math.sin(i*0.5 + time*0.1) * r;
+                        mainCtx.beginPath();
+                        mainCtx.arc(x, y, 60, 0, Math.PI*2);
+                        mainCtx.fillStyle = `rgba(${100+i*5}, 0, ${200-i*5}, 0.1)`;
+                        mainCtx.fill();
+                    }
+
+                } else if (type === 'mitosis') {
+                    const split = Math.abs(Math.sin(time)) * 100;
+                    mainCtx.beginPath(); mainCtx.arc(cx - split, cy, 60 + level*40, 0, Math.PI*2);
+                    mainCtx.strokeStyle = "#ff0066"; mainCtx.stroke();
+                    mainCtx.beginPath(); mainCtx.arc(cx + split, cy, 60 + level*40, 0, Math.PI*2);
+                    mainCtx.strokeStyle = "#ff0066"; mainCtx.stroke();
+                    if (split < 60) {
+                        mainCtx.beginPath();
+                        mainCtx.moveTo(cx - split, cy - 40);
+                        mainCtx.bezierCurveTo(cx, cy-20, cx, cy-20, cx + split, cy - 40);
+                        mainCtx.moveTo(cx - split, cy + 40);
+                        mainCtx.bezierCurveTo(cx, cy+20, cx, cy+20, cx + split, cy + 40);
+                        mainCtx.stroke();
+                    }
+
+                } else if (type === 'dna') {
+                    const scale = 40;
+                    const speed = time * 2;
+                    for(let x = -200; x < 200; x+=5/dMult) {
+                        const y1 = Math.sin((x/50) + speed) * scale;
+                        const y2 = Math.sin((x/50) + speed + Math.PI) * scale;
+                        mainCtx.fillStyle = "#ff0066"; mainCtx.beginPath(); mainCtx.arc(cx + x, cy + y1, 3, 0, Math.PI*2); mainCtx.fill();
+                        mainCtx.fillStyle = "#00d9ff"; mainCtx.beginPath(); mainCtx.arc(cx + x, cy + y2, 3, 0, Math.PI*2); mainCtx.fill();
+                        if (x % 20 === 0) {
+                            mainCtx.strokeStyle = "rgba(255,255,255,0.2)"; mainCtx.lineWidth = 1;
+                            mainCtx.beginPath(); mainCtx.moveTo(cx+x, cy+y1); mainCtx.lineTo(cx+x, cy+y2); mainCtx.stroke();
+                        }
+                    }
+
+                } else if (type === 'neural') {
+                    if (Math.random() > 0.9 - (state.temperature*0.1)) {
+                        const x = Math.random() * w; const y = Math.random() * h;
+                        mainCtx.fillStyle = "white"; mainCtx.beginPath(); mainCtx.arc(x,y, 4, 0, Math.PI*2); mainCtx.fill();
+                        mainCtx.beginPath(); mainCtx.moveTo(cx, cy); mainCtx.lineTo(x, y);
+                        mainCtx.strokeStyle = `rgba(255,0,100, ${Math.random()})`; mainCtx.stroke();
+                    }
+                } else if (type === 'vortex') {
+                    for(let i=1; i<=3; i++) {
+                        const sides = i * 3; const r = 100 * i * (1 + level);
+                        mainCtx.beginPath();
+                        for(let s=0; s<=sides; s++) {
+                            const a = (s/sides) * Math.PI * 2 + time * 0.2;
+                            const px = cx + Math.cos(a) * r; const py = cy + Math.sin(a) * r;
+                            if(s===0) mainCtx.moveTo(px, py); else mainCtx.lineTo(px, py);
+                        }
+                        mainCtx.stroke();
+                    }
+                } else if (type === 'entanglement') {
+                    const r = 100 * (1 + level); const d = 150 + Math.sin(time) * 50;
+                    mainCtx.beginPath(); mainCtx.arc(cx - d, cy, r, 0, Math.PI * 2); mainCtx.stroke();
+                    mainCtx.beginPath(); mainCtx.arc(cx + d, cy, r, 0, Math.PI * 2); mainCtx.stroke();
+                    mainCtx.beginPath(); mainCtx.moveTo(cx - d + r, cy); mainCtx.lineTo(cx + d - r, cy); mainCtx.stroke();
+                } else if (type === 'cymatics') {
+                    const m = 3, n = 5; mainCtx.beginPath();
+                    const step = 5 / dMult;
+                    for(let x=cx-200; x<=cx+200; x+=step) {
+                        for(let y=cy-200; y<=cy+200; y+=step) {
+                            const nx = (x-cx)*0.05, ny = (y-cy)*0.05;
+                            const val = Math.cos(nx*m)*Math.cos(ny*n) - Math.cos(nx*n)*Math.cos(ny*m);
+                            if(Math.abs(val) < 0.2 + level * 0.5) { mainCtx.rect(x,y,2,2); }
+                        }
+                    }
+                    mainCtx.fill();
+                } else if (type === 'torus') {
+                    const R = 150, r = 60 * (1+level * 0.5);
+                    const stepI = 0.2 / dMult;
+                    for(let i=0; i<Math.PI*2; i+=stepI) {
+                        for(let j=0; j<Math.PI*2; j+=0.5) {
+                            const x = (R + r * Math.cos(j)) * Math.cos(i + time);
+                            const y = (R + r * Math.cos(j)) * Math.sin(i + time);
+                            const z = r * Math.sin(j);
+                            const scale = 500 / (500 + z);
+                            const px = cx + x * scale; const py = cy + y * scale;
+                            mainCtx.fillRect(px, py, 1.5, 1.5);
+                        }
+                    }
+                } else if (type === 'schumann') {
+                    mainCtx.beginPath(); mainCtx.arc(cx, cy, 120, 0, Math.PI*2); mainCtx.fillStyle = '#00ff99'; mainCtx.fill();
+                    mainCtx.beginPath(); mainCtx.arc(cx, cy, 140 + Math.sin(time*7.83)*20, 0, Math.PI*2); mainCtx.strokeStyle = 'rgba(0,255,153,0.5)'; mainCtx.stroke();
+                    for(let i=0; i<10*dMult; i++) {
+                        const r = 160 + i * 20 + (level * 50);
+                        mainCtx.beginPath(); mainCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                        mainCtx.strokeStyle = `rgba(0, 255, 153, ${0.1 - i*0.01})`; mainCtx.stroke();
+                    }
+                } else if (type === 'casimir') {
+                    mainCtx.fillRect(cx - 100, cy - 150, 5, 300); mainCtx.fillRect(cx + 100, cy - 150, 5, 300);
+                    const count = 50 * dMult;
+                    for(let i=0; i<count; i++) {
+                        const x = cx + (Math.random() - 0.5) * 190; const y = cy + (Math.random() - 0.5) * 300;
+                        mainCtx.fillStyle = `rgba(0, 217, 255, ${Math.random()})`; mainCtx.fillRect(x, y, 2, 2);
+                    }
+                } else if (type === 'rife') {
+                    const sides = 6; const r = 150 * (1 + level);
+                    mainCtx.save(); mainCtx.translate(cx + (Math.random() - 0.5) * level * 50, cy + (Math.random() - 0.5) * level * 50);
+                    mainCtx.beginPath();
+                    for(let i=0; i<=sides; i++) {
+                        const a = (i/sides) * Math.PI * 2 + time;
+                        const px = Math.cos(a) * r; const py = Math.sin(a) * r;
+                        if(i===0) mainCtx.moveTo(px, py); else mainCtx.lineTo(px, py);
+                    }
+                    mainCtx.stroke();
+                    if(level > 0.5) {
+                        mainCtx.beginPath(); mainCtx.moveTo(-r, -r); mainCtx.lineTo(r, r); mainCtx.moveTo(r, -r); mainCtx.lineTo(-r, r); mainCtx.stroke();
+                    }
+                    mainCtx.restore();
+                } else if (type === 'light') {
+                    mainCtx.beginPath();
+                    for(let i=-w/2; i<w/2; i+=5) {
+                        const y = Math.sin(i * 0.01 + time * 5) * 100 * (1+level);
+                        const x = Math.cos(i * 0.01 + time * 5) * 50 * (1+level);
+                        if(i===-w/2) mainCtx.moveTo(cx + i, cy + y); else mainCtx.lineTo(cx + i, cy + y);
+                        mainCtx.lineTo(cx + i, cy + x);
+                    }
+                    mainCtx.stroke();
+                } else if (type === 'fibonacci') {
+                    let r = 5;
+                    mainCtx.beginPath(); mainCtx.moveTo(cx, cy);
+                    const count = 50 * dMult;
+                    for(let i=0; i<count; i++) {
+                        const a = i * 0.5 + time; r *= 1.05;
+                        const px = cx + Math.cos(a) * r * (1 + level); const py = cy + Math.sin(a) * r * (1 + level);
+                        mainCtx.lineTo(px, py); if(r > w) break;
+                    }
+                    mainCtx.stroke();
+                } else if (type === 'implosion') {
+                    for(let i=0; i<6*dMult; i++) {
+                        const r = (500 - (time * 150 + i * (80/dMult)) % 500) * (1 + level);
+                        mainCtx.beginPath(); mainCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                        mainCtx.globalAlpha = (r/500); mainCtx.stroke(); mainCtx.globalAlpha = 1;
+                    }
+                } else if (type === 'meander') {
+                    mainCtx.beginPath();
+                    for(let i=0; i<w; i+=5) {
+                        const y = cy + Math.sin(i * 0.005 + time) * 100 + Math.cos(i * 0.01 + time * 0.5) * 50;
+                        if(i===0) mainCtx.moveTo(i, y); else mainCtx.lineTo(i, y);
+                    }
+                    mainCtx.stroke();
+                } else if (type === 'hyperbolic') {
+                    mainCtx.beginPath();
+                    for(let i=0; i<Math.PI*20; i+=0.1) {
+                        const r = (200 / (i + 1)) * (1 + level * 2);
+                        const px = cx + Math.cos(i + time) * (200 - r); const py = cy + Math.sin(i + time) * (200 - r);
+                        if(i===0) mainCtx.moveTo(px, py); else mainCtx.lineTo(px, py);
+                    }
+                    mainCtx.stroke();
+                } else if (type === 'egg') {
+                    mainCtx.beginPath();
+                    for(let i=0; i<=Math.PI*2; i+=0.1) {
+                        const r = 150 * (1 + level * 0.3); const k = 0.7 + Math.sin(i) * 0.2;
+                        const px = cx + Math.cos(i) * r * k; const py = cy + Math.sin(i) * r;
+                        if(i===0) mainCtx.moveTo(px, py); else mainCtx.lineTo(px, py);
+                    }
+                    mainCtx.stroke();
+                } else if (type === 'resonance') {
+                    for(let i=0; i<8*dMult; i++) {
+                        const r = (i * 40 + time * 100) % 320; const pulse = Math.sin(time * 5) * 0.5 + 0.5;
+                        mainCtx.beginPath(); mainCtx.arc(cx, cy, r * (1 + level), 0, Math.PI * 2);
+                        mainCtx.globalAlpha = (1 - (r/320)) * pulse; mainCtx.stroke(); mainCtx.globalAlpha = 1;
+                    }
+                } else if (type === 'radiant') {
+                    for(let i=0; i<5*dMult; i++) {
+                        mainCtx.beginPath(); mainCtx.moveTo(cx, cy);
+                        let lx = cx, ly = cy;
+                        for(let j=0; j<10; j++) {
+                            lx += (Math.random() - 0.5) * 100; ly += (Math.random() - 0.5) * 100;
+                            mainCtx.lineTo(lx, ly);
+                        }
+                        mainCtx.stroke();
+                    }
+                } else if (type === 'magnetic') {
+                    mainCtx.save(); mainCtx.translate(cx, cy); mainCtx.rotate(time);
+                    mainCtx.beginPath(); mainCtx.moveTo(-200, 0); mainCtx.lineTo(200, 0); mainCtx.stroke();
+                    mainCtx.rotate(Math.PI/2 + level);
+                    mainCtx.beginPath(); mainCtx.moveTo(-200, 0); mainCtx.lineTo(200, 0); mainCtx.stroke();
+                    mainCtx.restore();
+                } else if (type === 'entropy') {
+                    for(let i=0; i<100*dMult; i++) {
+                        const r = Math.random() * 300 * (1 + level); const a = Math.random() * Math.PI * 2;
+                        mainCtx.fillStyle = '#ff4d4d'; mainCtx.fillRect(cx + Math.cos(a)*r, cy + Math.sin(a)*r, 2, 2);
+                    }
+                } else if (type === 'relativity') {
+                    for(let i=0; i<12*dMult; i++) {
+                        const r = (i * 30) * (1 - level * 0.5);
+                        mainCtx.beginPath(); mainCtx.ellipse(cx, cy, r*2, r, time*0.1, 0, Math.PI*2); mainCtx.stroke();
+                    }
+                } else if (type === 'information') {
+                    for(let i=0; i<5*dMult; i++) {
+                        const x = (time * 500 + i * 200) % w;
+                        mainCtx.font = "10px monospace"; mainCtx.fillStyle = "#00d9ff";
+                        mainCtx.fillText(Math.random() > 0.5 ? "1" : "0", x, cy + (Math.sin(time+i)*100));
+                    }
+                } else if (type === 'chaos') {
+                    let lx = 0.1, ly = 0, lz = 0; mainCtx.beginPath();
+                    for(let i=0; i<200*dMult; i++) {
+                        let dx = 10 * (ly - lx); let dy = lx * (28 - lz) - ly; let dz = lx * ly - (8/3) * lz;
+                        lx += dx * 0.01; ly += dy * 0.01; lz += dz * 0.01;
+                        mainCtx.lineTo(cx + lx * 10, cy + ly * 10);
+                    }
+                    mainCtx.stroke();
+                } else if (type === 'fourier') {
+                    let x = cx, y = cy;
+                    for (let i = 1; i < 6*dMult; i++) {
+                        let prevX = x, prevY = y;
+                        let r = (80 / i) * (1 + level);
+                        x += Math.cos(time * i * 2) * r; y += Math.sin(time * i * 2) * r;
+                        mainCtx.beginPath(); mainCtx.arc(prevX, prevY, r, 0, Math.PI*2);
+                        mainCtx.strokeStyle = `rgba(0, 217, 255, ${0.1 / i})`; mainCtx.stroke();
+                        mainCtx.beginPath(); mainCtx.moveTo(prevX, prevY); mainCtx.lineTo(x, y); mainCtx.stroke();
+                    }
+                } else if (type === 'mind') {
+                    for (let i = 0; i < 6; i++) {
+                        const ang = (i / 6) * Math.PI * 2 + time * 0.2;
+                        const r = 100 * (1 + level);
+                        mainCtx.beginPath(); mainCtx.arc(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r, r, 0, Math.PI * 2); mainCtx.stroke();
+                    }
+                } else {
+                    const points = 8;
+                    for (let i = 0; i < points; i++) {
+                        const ang = (i / points) * Math.PI * 2 + time * 0.1;
+                        const dist = 150 + level * 200;
+                        mainCtx.beginPath(); mainCtx.moveTo(cx, cy); mainCtx.lineTo(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist); mainCtx.stroke();
+                    }
+                }
+
+                mainCtx.restore();
+                mainCtx.shadowBlur = 0;
+            }
+
+            mainCtx.globalCompositeOperation = 'source-over';
+
+            waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+            const slice = waveCanvas.width / 128;
+            for(let i=0; i<128; i++) {
+                const val = (state.fftData[i] / 255) * waveCanvas.height;
+                waveCtx.fillStyle = `rgba(0, 217, 255, ${0.2 + (val/waveCanvas.height)})`;
+                waveCtx.fillRect(i * slice, waveCanvas.height - val, slice - 1, val);
+            }
+
+            if (state.isPlaying && !state.isCF) {
+                const el = Math.floor((Date.now() - state.startTime) / 1000);
+                const rem = Math.max(0, state.duration - el);
+
+                document.getElementById('time-display').textContent = `${Math.floor(rem/60)}:${(rem%60).toString().padStart(2,'0')}`;
+
+                document.getElementById('progress-bar').style.width = `${(el / state.duration) * 100}%`;
+                document.getElementById('displacement-val').textContent = (level * 100).toFixed(2) + "%";
+                document.getElementById('disp-bar').style.width = (level * 100) + "%";
+
+                if (el >= state.duration - 15) {
+                    const curIdx = allFormulas.findIndex(f => f.id === state.active.id);
+                    const nextIdx = (curIdx + 1) % allFormulas.length;
+                    const nextF = allFormulas[nextIdx];
+
+                    audio.crossfade(nextF);
+
+                    state.active = nextF;
+                    state.startTime = Date.now();
+                    state.currentSec = nextF.section;
+
+                    const secColor = SECTIONS[state.currentSec].color;
+                    const vizFormula = document.getElementById('viz-formula');
+
+                    document.getElementById('viz-title').textContent = nextF.name;
+                    vizFormula.textContent = nextF.latex;
+                    vizFormula.style.color = secColor;
+                    vizFormula.style.textShadow = `0 0 10px ${secColor}40`;
+                    document.getElementById('viz-desc').textContent = nextF.desc;
+
+                    buildUI();
+                }
+            }
+            requestAnimationFrame(draw);
+        }
+
+        function buildUI() {
+            const nav = document.getElementById('nav-container');
+            const grid = document.getElementById('formula-grid');
+            nav.innerHTML = '';
+
+            Object.entries(SECTIONS).forEach(([key, sec]) => {
+                const b = document.createElement('button');
+                const isActive = state.currentSec === key;
+
+                b.className = `px-4 py-2 rounded text-[10px] mono text-left transition-all border`;
+
+                if (isActive) {
+                    b.style.backgroundColor = sec.color + '15';
+                    b.style.borderColor = sec.color + '30';
+                    b.style.color = sec.color;
+                    b.style.boxShadow = `0 0 10px ${sec.color}10`;
+                } else {
+                    b.classList.add('text-slate-500', 'hover:text-white', 'border-transparent');
+                    b.style.backgroundColor = 'transparent';
+                    b.style.borderColor = 'transparent';
+                    b.style.color = '';
+                    b.style.boxShadow = 'none';
+                }
+
+                b.innerHTML = `<span class="opacity-50 mr-2">${sec.icon}</span> ${sec.title}`;
+                b.onclick = () => { state.currentSec = key; buildUI(); };
+                nav.appendChild(b);
+            });
+
+            grid.innerHTML = '';
+            const currentSection = SECTIONS[state.currentSec];
+
+            currentSection.formulas.forEach(f => {
+                const active = state.active?.id === f.id;
+                const card = document.createElement('div');
+                const secColor = currentSection.color;
+
+                let classes = "glass p-5 rounded-2xl border transition-all cursor-pointer group hover:scale-[1.01] ";
+
+                if (active) {
+                    card.style.borderColor = secColor;
+                    card.style.backgroundColor = secColor + '08';
+                    card.style.boxShadow = `inset 0 0 20px ${secColor}0A`;
+                } else {
+                    classes += "border-white/5";
+                    card.style.borderColor = '';
+                    card.style.backgroundColor = '';
+                    card.style.boxShadow = '';
+                }
+
+                card.className = classes;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-[8px] mono px-2 py-0.5 rounded border"
+                             style="color: ${active ? secColor : 'rgb(6, 182, 212)'};
+                                    border-color: ${active ? secColor + '40' : 'rgba(255,255,255,0.1)'};
+                                    background: ${active ? secColor + '10' : 'transparent'}">
+                            ${f.freq}Hz
+                        </div>
+                        <div class="text-[7px] mono text-slate-500 uppercase tracking-widest">${active ? 'Linked' : 'Ready'}</div>
+                    </div>
+                    <h4 class="text-xs font-bold text-white mb-1">${f.name}</h4>
+                    <div class="mono text-[10px] mb-4" style="color: ${active ? secColor : 'rgba(253, 224, 71, 0.5)'}">${f.latex}</div>
+                    <p class="text-[9px] text-slate-500 leading-relaxed">${f.desc}</p>
+                `;
+                card.onclick = () => activate(f);
+                grid.appendChild(card);
+            });
+        }
+
+        async function activate(f) {
+            if (!audio.init) await audio.setup();
+
+            if (!f.section) {
+                for (const [key, sec] of Object.entries(SECTIONS)) {
+                    if (sec.formulas.find(form => form.id === f.id)) {
+                        f.section = key;
+                        break;
+                    }
+                }
+            }
+
+            state.active = f;
+            state.isPlaying = true;
+            state.startTime = Date.now();
+            state.currentSec = f.section || state.currentSec;
+
+            const secColor = SECTIONS[state.currentSec].color;
+            const vizFormula = document.getElementById('viz-formula');
+
+            document.getElementById('viz-title').textContent = f.name;
+            vizFormula.textContent = f.latex;
+            vizFormula.style.color = secColor;
+            vizFormula.style.textShadow = `0 0 10px ${secColor}40`;
+
+            document.getElementById('viz-desc').textContent = f.desc;
+
+            audio.play(f);
+            buildUI();
+        }
+
+        function cycleFormula(dir) {
+            if (!state.active) {
+                activate(allFormulas[0]);
+                return;
+            }
+            const curIdx = allFormulas.findIndex(f => f.id === state.active.id);
+            const nextIdx = (curIdx + dir + allFormulas.length) % allFormulas.length;
+            activate(allFormulas[nextIdx]);
+        }
+
+        document.getElementById('start-btn').onclick = async () => {
+            await audio.setup();
+            if (state.active) audio.play(state.active);
+            else activate(SECTIONS.spacetime.formulas[0]);
+        };
+
+        document.getElementById('stop-btn').onclick = () => {
+            state.isPlaying = false;
+            state.active = null;
+            audio.kill(audio.layers.A); audio.kill(audio.layers.B);
+            audio.setGenMode('off');
+            document.getElementById('viz-title').textContent = "Field Nullified";
+            document.getElementById('viz-formula').textContent = "λ = select_node";
+            buildUI();
+        };
+
+        document.getElementById('prev-btn').onclick = (e) => {
+            e.stopPropagation();
+            cycleFormula(-1);
+        };
+
+        document.getElementById('next-btn').onclick = (e) => {
+            e.stopPropagation();
+            cycleFormula(1);
+        };
+
+        document.getElementById('master-vol').oninput = function() {
+            state.volume = this.value / 100;
+            audio.setVol(state.volume);
+            document.getElementById('vol-label').textContent = this.value + "%";
+        };
+
+        document.getElementById('temp-slider').oninput = function() {
+            state.temperature = this.value / 100;
+            audio.sync();
+        };
+
+        document.getElementById('polar-slider').oninput = function() {
+            state.polarity = this.value / 100;
+            audio.sync();
+        };
+
+        document.getElementById('res-slider').oninput = function() {
+            state.resonance = this.value / 100;
+            audio.sync();
+        };
+
+        document.getElementById('den-slider').oninput = function() {
+            state.density = this.value / 100;
+            audio.sync();
+        };
+
+        const tuneDisplay = document.getElementById('tune-display');
+        document.getElementById('tune-up').onclick = () => {
+            state.tuning += 1;
+            tuneDisplay.textContent = (state.tuning > 0 ? '+' : '') + state.tuning;
+            audio.sync();
+        };
+        document.getElementById('tune-down').onclick = () => {
+            state.tuning -= 1;
+            tuneDisplay.textContent = (state.tuning > 0 ? '+' : '') + state.tuning;
+            audio.sync();
+        };
+
+        const genBtn = document.getElementById('gen-mode-btn');
+        const genModes = ['off', 'eno', 'euclid', 'chaos', 'phi', 'cell'];
+        const genIcons = ['○', '∞', '◴', '@', 'Φ', '▦'];
+
+        function updateGenBtnUI() {
+            const currentIdx = genModes.indexOf(state.genMode);
+            genBtn.querySelector('span').textContent = genIcons[currentIdx];
+            genBtn.className = "w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-slate-400";
+
+            if (state.genMode === 'eno') genBtn.classList.add('gen-eno');
+            else if (state.genMode === 'euclid') genBtn.classList.add('gen-euclid');
+            else if (state.genMode === 'chaos') genBtn.classList.add('gen-chaos');
+            else if (state.genMode === 'phi') genBtn.classList.add('gen-phi');
+            else if (state.genMode === 'cell') genBtn.classList.add('gen-cell');
+        }
+
+        updateGenBtnUI();
+
+        genBtn.onclick = function() {
+            const currentIdx = genModes.indexOf(state.genMode);
+            const nextIdx = (currentIdx + 1) % genModes.length;
+
+            state.genMode = genModes[nextIdx];
+            updateGenBtnUI();
+
+            if (state.isPlaying) {
+                audio.setGenMode(state.genMode);
+            }
+        };
+
+        document.getElementById('fullscreen-btn').onclick = () => {
+            const el = mainCanvas.parentElement;
+            if (!document.fullscreenElement) {
+                el.requestFullscreen().catch(e => console.warn("Fullscreen blocked:", e));
+            } else {
+                document.exitFullscreen().catch(e => console.warn("Exit Fullscreen blocked:", e));
+            }
+        };
+
+        const modal = document.getElementById('info-modal');
+        const infoBtn = document.getElementById('info-btn');
+        const closeBtn = document.getElementById('close-modal');
+
+        infoBtn.onclick = () => modal.classList.remove('modal-closed');
+        closeBtn.onclick = () => modal.classList.add('modal-closed');
+        modal.onclick = (e) => {
+            if(e.target === modal) modal.classList.add('modal-closed');
+        }
+
+        document.getElementById('enter-btn').onclick = async () => {
+            await audio.setup();
+            activate(SECTIONS.spacetime.formulas[0]);
+
+            const intro = document.getElementById('intro-overlay');
+            intro.style.opacity = '0';
+            setTimeout(() => intro.remove(), 1000);
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) > -1) {
+                e.preventDefault();
+            }
+
+            switch(e.key) {
+                case 'ArrowLeft':
+                    cycleFormula(-1);
+                    break;
+                case 'ArrowRight':
+                    cycleFormula(1);
+                    break;
+                case 'ArrowUp':
+                    document.getElementById('tune-up').click();
+                    break;
+                case 'ArrowDown':
+                    document.getElementById('tune-down').click();
+                    break;
+                case ' ':
+                case 'Enter':
+                    if(document.getElementById('intro-overlay') && document.getElementById('intro-overlay').offsetParent !== null) {
+                        document.getElementById('enter-btn').click();
+                    } else {
+                        if(state.isPlaying) document.getElementById('stop-btn').click();
+                        else document.getElementById('start-btn').click();
+                    }
+                    break;
+                case 'Escape':
+                    modal.classList.add('modal-closed');
+                    break;
+            }
+        });
+
+        setTimeout(() => {
+            const loading = document.getElementById('loading');
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.remove();
+                document.getElementById('intro-overlay').classList.remove('hidden');
+            }, 1000);
+            resize();
+            buildUI();
+            draw();
+        }, 2000);
+
+        // Expose minimal handles for the verify script (Puppeteer smoke).
+        // No-op if the verifier is absent. Mounted AFTER the bootstrap setTimeout
+        // would normally fire, but the verifier waits for `state.isPlaying`,
+        // so the timing doesn't matter.
+        window.SWR_ECHO = {
+            get isPlaying() { return state.isPlaying; },
+            get activeId() { return state.active && state.active.id; },
+            get activeName() { return state.active && state.active.name; },
+            get genMode() { return state.genMode; },
+            get audioState() { return audio.ctx && audio.ctx.state; },
+            get hasCanvas() { return !!mainCanvas; },
+            get fftBinMax() {
+                let m = 0;
+                for (let i = 0; i < state.fftData.length; i++) if (state.fftData[i] > m) m = state.fftData[i];
+                return m;
+            },
+        };
+    </script>
+</body>
+</html>
