@@ -175,9 +175,10 @@ feature that could ship without breaking zero-backend.
 
 ### PRD-018: ANALYTICS — Platform Page 7
 
-- **Verdict**: `Re-spec` (limited — local analytics only)
-- **Status**: "Renders this month: 47, Export minutes: 89" is computable from IndexedDB. Multi-user analytics (per-org, per-team) requires a backend.
-- **Notes**: A local-only "Stats" widget on the engine page would satisfy the user-facing piece. Track render count + duration via `Recorder` instrumentation.
+- **Verdict**: `Re-spec` → **partial ship** (PR #55)
+- **Status**: Local stats widget shipped (PR #55, `ea6cca0`). `SWR_STATS` global on `music_video.html` records `(ts, durationMs, ext, size)` on every successful `Recorder._save()` to `localStorage["swr.stats.v1"]` (capped at 100 most recent). Footer `Stats` button opens a modal showing total renders, last-30-day renders, total minutes exported, storage usage, last preset, and the last 5 renders as a table.
+- **Effort**: `S` (shipped) + `M` (YouTube/TikTok OAuth + weekly email follow-ups)
+- **Notes**: YouTube Analytics API, TikTok Analytics, Instagram Insights, weekly email (PRD-018 §18.2.1-3) are explicitly **out of scope** — punted to follow-ups. "Most-used preset" is shown as "last preset" because we don't track per-preset usage historically (would need a `SWR_PRESET_USE` event from the engine).
 
 ### PRD-019: BILLING & CREDITS — Platform Page 8
 
@@ -238,7 +239,7 @@ If we work through the re-spec ones in increasing complexity:
 3. ~~PRD-005 EDITORIAL BRIDGE~~ (`M`) — **shipped as PR #46** (swr-edl/1 JSON export; Premiere Pro XML punted).
 4. ~~PRD-009 CLIENT REVIEW~~ (`M`) — **shipped as PR #49** (watermarked preview + standalone HTML review; A/B compare + revision log punted).
 5. ~~PRD-006 HOOK GENERATOR~~ (`M`) — **shipped as PR #52** (drop detection + 3 hook presets; auto-caption + end-card + thumbnail picker + Full Vertical 60s punted).
-6. **PRD-018 ANALYTICS** (limited) — local stats widget.
+6. ~~PRD-018 ANALYTICS~~ (`S`) — **shipped as PR #55** (local stats widget + Recorder instrumentation; YouTube/TikTok OAuth + weekly email punted).
 7. **PRD-011 MOOD BOARD** (`M`) — reference extraction + slider mapping.
 8. **PRD-007 BRAND KIT wiring** (`S-M`) — wire `brandkit.client.js` into `swr-app.html` and `music_video.html`.
 9. **PRD-008 LIVE / VJ MODE** (`L`) — scene pad state-snapshot mechanism + perform mode UI.
