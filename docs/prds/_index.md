@@ -34,6 +34,10 @@
 
 Each PRD is self-contained and may be implemented independently. The numbering reflects rough priority order (engine features in PRDs 002-011, platform UI in PRDs 012-021).
 
+## Standalone specs
+
+- **[tiktok-studio.md](./tiktok-studio.md)** — single-page TikTok Studio landing page spec (1,753 lines, with full HTML/CSS mockup for hero / trending sounds / vibe picker / preview / export / batch creator / pricing). Single-file HTML deliverable per the closing Hermes prompt. Most capabilities overlap with already-shipped or already-planned features (9:16 format — PR #44; hook detection — PRD-006).
+
 ## Audits
 
 PRDs are written without codebase context. Before implementing, check whether the PRD's premise matches reality:
