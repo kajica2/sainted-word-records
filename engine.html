@@ -1200,6 +1200,14 @@
         <option value="b">Sainted Word wordmark</option>
         <option value="c">icon + SWR</option>
       </select>
+      <button class="tbtn ghost" id="hero-btn" title="Hero frame capture" style="padding:4px 8px;font-size:9px;">Hero</button>
+      <button class="tbtn ghost" id="stats-btn" title="Local stats" style="padding:4px 8px;font-size:9px;">Stats</button>
+      <button class="tbtn ghost" id="edit-data-btn" title="Edit data export" style="padding:4px 8px;font-size:9px;">Edit Data</button>
+      <button class="tbtn ghost" id="review-btn" title="Client review export" style="padding:4px 8px;font-size:9px;">Review</button>
+      <button class="tbtn ghost" id="hook-btn" title="Hook generator" style="padding:4px 8px;font-size:9px;">Hooks</button>
+      <button class="tbtn ghost" id="mood-btn" title="Mood board" style="padding:4px 8px;font-size:9px;">Mood</button>
+      <button class="tbtn ghost" id="scenes-btn" title="Scene pads" style="padding:4px 8px;font-size:9px;">Scenes</button>
+      <button class="tbtn ghost" id="fit-btn" title="Fit to screen" style="padding:4px 8px;font-size:9px;">Fit</button>
       <button class="tbtn danger" id="rec" disabled title="Start / stop recording (export to MP4 or WebM depending on browser). Loads a song for audio-reactive capture, or records video-only. Uses the size preset chosen in the dropdown next to REC.">● REC</button>
       <button class="tbtn primary" id="export-video" disabled title="Start a 30s recording and download the file. Uses the size preset chosen in the dropdown next to REC. Records video-only if no song is loaded." style="background:var(--accent-2);border-color:var(--accent-2);color:#000;">🎬 Export video</button>
       <a class="tbtn ghost" id="last-video" hidden style="text-decoration:none;padding:4px 10px;font-size:9px;">↓ last video</a>
@@ -4795,6 +4803,14 @@
           setStatus('export failed: 0 bytes captured', 'err');
           return;
         }
+        // SWR_STATS instrumentation (engine parity with music_video.html).
+        try {
+          if (window.SWR_STATS && this.startedAt) {
+            const durationMs = Date.now() - this.startedAt;
+            const size = (this.chunks || []).reduce((a, c) => a + c.size, 0);
+            window.SWR_STATS.record(durationMs, this.mime || 'video/webm', size);
+          }
+        } catch (_) {}
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -5464,6 +5480,1243 @@
         go();
       }
     })();
+  </script>
+  <script type="module">
+    // ======================================================================
+    // SWR_* post-2026 features mirrored from versions/music_video.html
+    // (PRs #42, #44, #46, #49, #52, #55, #57, #59, #63 — see
+    // .hermes/plans/2026-09-09_065000-engine-page-parity.md).
+    //
+    // 8 globals: SWR_HERO_FRAMES, SWR_STATS, SWR_EDIT_DATA, SWR_REVIEW,
+    // SWR_HOOK_DETECTOR, SWR_MOOD, SWR_SCENES, SWR_FIT.
+    //
+    // Self-contained — depends only on window.AudioAnalysisV2,
+    // window.SWR_RECORDER, and the DOM. Engine.html-specific
+    // adaptations: Audio.audioEl → A.el compatibility shim; local
+    // $(); SWR_LAST_SONG absent (graceful "no song loaded" error);
+    // scene slider IDs that don't exist return null (graceful skip).
+    // ======================================================================
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const setStatus = (t, cls) => {
+        if (typeof window.setStatus === 'function') window.setStatus(t, cls);
+      };
+      // Engine.html uses Audio.audioEl; the SWR_* blocks expect window.A.el
+      // (the music_video.html convention). Provide a thin compatibility shim.
+      if (typeof window.A === 'undefined' && typeof window.Audio !== 'undefined') {
+        try { window.A = window.Audio; } catch (_) {}
+      }
+
+      // ---- SWR_FIT --------------------------------------------------------
+      // CSS object-fit: cover toggle on the #render canvas. Pure DOM.
+      function refreshFitBtn() {
+        const btn = $('fit-btn');
+        if (!btn) return;
+        btn.classList.toggle('on', !!(window.SWR_FIT && window.SWR_FIT.isOn));
+      }
+      window.SWR_FIT = {
+        enabled: false,
+        toggle(value) {
+          this.enabled = (typeof value === 'boolean') ? value : !this.enabled;
+          document.body.setAttribute('data-fit', this.enabled ? 'on' : 'off');
+          refreshFitBtn();
+          return this.enabled;
+        },
+        get isOn() { return this.enabled; },
+      };
+
+      // ---- SWR_HERO_FRAMES -----------------------------------------------
+      // Ring buffer + best(3) ranking for the #render canvas. Identical
+      // to music_video.html — engine.html's Renderer draws the same
+      // <canvas id="render">.
+      window.SWR_HERO_FRAMES = {
+        buffer: [],
+        maxFrames: 12,
+        samplerHandle: null,
+        start() {
+          if (this.samplerHandle) return;
+          const capture = () => {
+            try {
+              const stage = document.getElementById('render');
+              if (!stage) return;
+              const w = 32, h = 32;
+              const off = document.createElement('canvas');
+              off.width = w; off.height = h;
+              const offCtx = off.getContext('2d');
+              offCtx.drawImage(stage, 0, 0, w, h);
+              const img = offCtx.getImageData(0, 0, w, h).data;
+              let sum = 0, sumX = 0, sumY = 0, brightCount = 0;
+              const lum = new Array(w * h);
+              for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                  const i = (y * w + x) * 4;
+                  const L = 0.299 * img[i] + 0.587 * img[i + 1] + 0.114 * img[i + 2];
+                  lum[y * w + x] = L;
+                  sum += L;
+                  if (L > 128) { sumX += x; sumY += y; brightCount++; }
+                }
+              }
+              const mean = sum / (w * h);
+              let variance = 0;
+              for (let i = 0; i < lum.length; i++) variance += (lum[i] - mean) ** 2;
+              variance /= lum.length;
+              const contrast = Math.sqrt(variance) / 255;
+              const cx = brightCount > 0 ? sumX / brightCount : w / 2;
+              const cy = brightCount > 0 ? sumY / brightCount : h / 2;
+              const compDist = Math.sqrt(((cx - w / 2) / w) ** 2 + ((cy - h / 2) / h) ** 2);
+              const compScore = 1 - Math.min(1, compDist);
+              // Energy from audio features — engine.html exposes Audio.feat
+              // and the shim above aliases Audio→A. Fallback to a flat 0
+              // when no audio is loaded so the panel still updates.
+              const f = (window.A && window.A.feat) || (window.Audio && window.Audio.feat) || {};
+              const energy = (f.bass || 0) + (f.rms || 0) + (f.beat || 0);
+              const dataURL = off.toDataURL('image/png');
+              const entry = { dataURL, energy, contrast, comp: compScore, t: Date.now() };
+              this.buffer.push(entry);
+              if (this.buffer.length > this.maxFrames) this.buffer.shift();
+            } catch (_) {}
+          };
+          this.samplerHandle = setInterval(capture, 250);
+        },
+        stop() {
+          if (this.samplerHandle) {
+            clearInterval(this.samplerHandle);
+            this.samplerHandle = null;
+          }
+        },
+        best(n = 3) {
+          if (this.buffer.length < 2) return this.buffer.slice();
+          const scored = this.buffer.map((e) => ({
+            ...e,
+            score: e.energy * 0.4 + e.contrast * 0.4 + e.comp * 0.2,
+          }));
+          scored.sort((a, b) => (b.score - a.score) || (a.t - b.t));
+          return scored.slice(0, n).sort((a, b) => a.t - b.t);
+        },
+        captureNow() {
+          const stage = document.getElementById('render');
+          if (!stage) return false;
+          const link = document.createElement('a');
+          link.download = `swr-frame-${Date.now()}.png`;
+          link.href = stage.toDataURL('image/png');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return true;
+        },
+        downloadFrame(entry) {
+          if (!entry || !entry.dataURL) return this.captureNow();
+          const stage = document.getElementById('render');
+          const dataURL = stage ? stage.toDataURL('image/png') : entry.dataURL;
+          const link = document.createElement('a');
+          link.download = `swr-hero-${entry.t}.png`;
+          link.href = dataURL;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return true;
+        },
+      };
+
+      // ---- SWR_EDIT_DATA -------------------------------------------------
+      // "Download Edit Data" — analyzeBuffer → swr-edl/1 JSON. Gracefully
+      // no-ops if no song is loaded (no SWR_LAST_SONG, no A.el.src).
+      function formatEDL(analysis, blob) {
+        const songName = blob && blob.name ? blob.name : 'untitled.mp3';
+        const duration = (analysis && analysis.duration) || 0;
+        const bpm = Math.round((analysis && analysis.bpm) || 0);
+        const key = (analysis && analysis.key) || 'C';
+        const scale = (analysis && analysis.scale) || 'major';
+        const onsets = (analysis && analysis.onsets) || [];
+        const confidence = (analysis && analysis.confidence) || 0.5;
+
+        const markers = [];
+        if (onsets.length > 0) {
+          markers.push({ time: 0.0, type: 'downbeat', label: '1.1', confidence: 1.0 });
+          const beatSec = bpm > 0 ? 60 / bpm : 0.5;
+          for (let i = 0; i < onsets.length; i++) {
+            const t = onsets[i];
+            const prev = i > 0 ? onsets[i - 1] : 0;
+            const interval = t - prev;
+            const c = Math.max(0, Math.min(1, confidence * (1 - interval / 2)));
+            let type = 'onset';
+            if (interval < beatSec * 1.5 && c > 0.6) type = 'kick';
+            else if (interval < beatSec * 1.0 && c > 0.5) type = 'snare';
+            markers.push({
+              time: Math.round(t * 1000) / 1000,
+              type,
+              label: '',
+              confidence: Math.round(c * 100) / 100,
+            });
+          }
+        }
+
+        const phrases = [];
+        if (duration > 0) {
+          const i16 = Math.min(16, duration / 4);
+          const i32 = Math.min(32, duration / 3);
+          phrases.push({ start: 0, end: i16, type: 'intro' });
+          if (duration > 32) {
+            phrases.push({ start: i16, end: i16 + i32, type: 'build' });
+            phrases.push({ start: i16 + i32, end: i16 + i32 + i32, type: 'drop' });
+            if (i16 + i32 + i32 < duration) {
+              phrases.push({ start: i16 + i32 + i32, end: duration, type: 'post-drop' });
+            }
+          } else if (duration > i16) {
+            phrases.push({ start: i16, end: duration, type: 'post-intro' });
+          }
+        }
+
+        return {
+          version: 'swr-edl/1',
+          song: songName,
+          duration: Math.round(duration * 100) / 100,
+          bpm: bpm,
+          key: key + ' ' + scale,
+          timecode: '00:00:00:00',
+          markers: markers,
+          drops: [],
+          phrases: phrases,
+        };
+      }
+      window.SWR_EDIT_DATA = {
+        lastAnalysis: null,
+
+        async downloadEditData(filename) {
+          // 1. Get the audio blob.
+          let blob = null;
+          try {
+            const song = window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function'
+              ? await window.SWR_LAST_SONG
+              : window.SWR_LAST_SONG;
+            if (song && song.blob) blob = song.blob;
+          } catch (_) {}
+          if (!blob && window.A && window.A.el && window.A.el.src) {
+            try {
+              const r = await fetch(window.A.el.src);
+              blob = await r.blob();
+            } catch (_) {}
+          }
+          if (!blob) {
+            setStatus('no song loaded — drop a file first', 'err');
+            return false;
+          }
+
+          // 2. Decode to AudioBuffer.
+          let audioBuffer = null;
+          try {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) {
+              setStatus('AudioContext unavailable', 'err');
+              return false;
+            }
+            const audioCtx = new Ctx();
+            const arrayBuffer = await blob.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+          } catch (e) {
+            setStatus('decode failed: ' + (e && e.message || e), 'err');
+            return false;
+          }
+
+          // 3. Analyze.
+          if (!window.AudioAnalysisV2 || typeof window.AudioAnalysisV2.analyzeBuffer !== 'function') {
+            setStatus('audio-analysis-v2.js not loaded', 'err');
+            return false;
+          }
+          const analysis = window.AudioAnalysisV2.analyzeBuffer(audioBuffer);
+          this.lastAnalysis = analysis;
+
+          // 4. Format + download.
+          const edl = formatEDL(analysis, blob);
+          const json = JSON.stringify(edl, null, 2);
+          const fileBlob = new Blob([json], { type: 'application/json' });
+          const url = URL.createObjectURL(fileBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename || (edl.song ? edl.song.replace(/\.[^.]+$/, '') + '.swr-edl.json' : 'swr-edl.json');
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          setStatus('downloaded edit data · ' + a.download, 'ok');
+          return true;
+        },
+      };
+
+      // ---- SWR_REVIEW ----------------------------------------------------
+      // Watermarked preview + standalone HTML review. Requires a song.
+      function reviewDownloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      function reviewFilenameForSong(songName) {
+        const base = (songName || 'review').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_\-]+/g, '_');
+        return base || 'review';
+      }
+
+      function reviewGeneratePage(videoBlob, metadata) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const songName = String(metadata.song || 'untitled').replace(/[<>&\"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '\"':'&quot;' }[c]));
+            const date = String(metadata.date || '');
+            const preset = String(metadata.preset || '');
+            const watermark = String(metadata.watermark || 'PREVIEW — NOT FOR DISTRIBUTION').replace(/[<>&\"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '\"':'&quot;' }[c]));
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SWR Review — ${songName}</title>
+  <style>
+    body { margin:0; background:#0a0d12; color:#fff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding:20px; }
+    .header { text-align:center; margin-bottom:20px; }
+    .header h1 { font-size:18px; margin:0 0 8px; font-weight:600; }
+    .header .meta { color:#888; font-size:12px; }
+    .watermark-notice { background:#ff0050; color:#fff; padding:6px 12px; border-radius:4px; font-size:11px; display:inline-block; margin-top:8px; letter-spacing:0.04em; text-transform:uppercase; }
+    .stage { position:relative; max-width:960px; margin:0 auto; }
+    video { width:100%; max-width:960px; display:block; border-radius:8px; background:#000; }
+    .pin { position:absolute; width:18px; height:18px; background:#6366f1; border-radius:50%; cursor:pointer; transform:translate(-50%,-50%); box-shadow:0 0 0 2px rgba(0,0,0,0.5); }
+    .pin:hover, .pin:focus { background:#818cf8; outline:none; }
+    .comment { display:none; position:absolute; left:24px; top:-8px; background:#1a1e28; color:#fff; padding:10px; border-radius:8px; width:240px; font-size:13px; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.5); }
+    .pin:hover .comment, .pin:focus .comment { display:block; }
+    .comment .ts { color:#888; font-size:11px; margin-bottom:4px; }
+    .footer { text-align:center; color:#666; font-size:11px; margin-top:24px; line-height:1.5; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${songName}</h1>
+    <div class="meta">${date}${preset ? ' · ' + preset : ''}</div>
+    <div class="watermark-notice">${watermark}</div>
+  </div>
+  <div class="stage" id="stage">
+    <video src="${reader.result}" controls id="video" preload="metadata"></video>
+  </div>
+  <div class="footer">Click anywhere on the video to drop a comment pin. Comments are saved to this browser only.</div>
+  <script>
+    var pins = [];
+    var pinId = 0;
+    var STORAGE_KEY = 'swr.review.pins.' + (location.pathname.split('/').pop() || 'review');
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) { pins = JSON.parse(saved); pins.forEach(addPinToDom); }
+    } catch (_) {}
+
+    var video = document.getElementById('video');
+    var stage = document.getElementById('stage');
+    video.addEventListener('click', function (e) {
+      if (e.target.classList && (e.target.classList.contains('pin') || e.target.closest('.pin'))) return;
+      var rect = video.getBoundingClientRect();
+      var x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+      var y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+      var note = prompt('Comment (this browser only):');
+      if (note && note.trim()) {
+        var pin = { id: ++pinId, x: x, y: y, note: note.trim(), t: Math.floor(video.currentTime * 1000) };
+        pins.push(pin);
+        savePins();
+        addPinToDom(pin);
+      }
+    });
+
+    function addPinToDom(pin) {
+      var div = document.createElement('div');
+      div.className = 'pin';
+      div.style.left = pin.x + '%';
+      div.style.top = pin.y + '%';
+      div.tabIndex = 0;
+      var comment = document.createElement('div');
+      comment.className = 'comment';
+      var at = formatTime(pin.t || 0);
+      comment.innerHTML = '<div class="ts"><b>' + at + '</b></div><div>' + escapeHtml(pin.note) + '</div>';
+      div.appendChild(comment);
+      stage.appendChild(div);
+    }
+
+    function savePins() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pins)); } catch (_) {}
+    }
+
+    function formatTime(ms) {
+      var s = Math.floor(ms / 1000);
+      var m = Math.floor(s / 60);
+      return m + ':' + ('00' + (s % 60)).slice(-2);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
+    }
+  <\/script>
+</body>
+</html>`;
+            resolve(html);
+          };
+          reader.onerror = () => reject(new Error('FileReader failed'));
+          reader.readAsDataURL(videoBlob);
+        });
+      }
+
+      function reviewReadSongName() {
+        try {
+          const song = window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function'
+            ? null
+            : window.SWR_LAST_SONG;
+          if (song && song.name) return song.name;
+        } catch (_) {}
+        try {
+          const el = (window.A && window.A.el) || (window.Audio && window.Audio.audioEl);
+          if (el && el.src) {
+            const parts = el.src.split('/').pop().split('?')[0];
+            if (parts && parts.length) return decodeURIComponent(parts) || 'review';
+          }
+        } catch (_) {}
+        return 'review';
+      }
+
+      window.SWR_REVIEW = {
+        async exportReview(filename) {
+          if (!window.SWR_RECORDER || typeof window.SWR_RECORDER.start !== 'function') {
+            setStatus('recorder not loaded', 'err');
+            return false;
+          }
+          const stage = document.getElementById('render');
+          if (!stage) { setStatus('no render canvas', 'err'); return false; }
+          const el = (window.A && window.A.el) || (window.Audio && window.Audio.audioEl);
+          if (!el || !isFinite(el.duration) || el.duration <= 0) {
+            setStatus('load a song first', 'err');
+            return false;
+          }
+
+          const songName = reviewReadSongName();
+          const baseName = filename || reviewFilenameForSong(songName);
+
+          // 1. Set the watermark flag — engine.html's draw loop reads
+          // window.__SWR_REVIEW_WATERMARK each frame (analogous to
+          // music_video.html). If engine.html doesn't have a drawWatermark
+          // hook this is a no-op.
+          window.__SWR_REVIEW_WATERMARK = 'PREVIEW — NOT FOR DISTRIBUTION';
+
+          // 2. Start the recorder at 1 Mbps.
+          setStatus('recording preview at 1 Mbps…', 'ok');
+          const audioSrc = window.A && window.A.src ? window.A.src : el.src;
+          const sampleRate = (window.A && window.A.ctx && window.A.ctx.sampleRate) || 44100;
+          const pending = window.SWR_RECORDER.start({
+            canvas: stage,
+            audioSource: audioSrc,
+            audioSampleRate: sampleRate,
+            audioNumberOfChannels: 2,
+            width: stage.width,
+            height: stage.height,
+            fps: 30,
+            videoBitsPerSecond: 1_000_000,
+          });
+
+          // 3. Record for the remainder of the song.
+          const remainingMs = Math.max(0, (el.duration - (el.currentTime || 0)) * 1000);
+          await new Promise(r => setTimeout(r, remainingMs));
+          const result = await window.SWR_RECORDER.stop();
+          window.__SWR_REVIEW_WATERMARK = null;
+          if (!result || !result.blob) {
+            setStatus('no recording produced', 'err');
+            return false;
+          }
+          setStatus('recorded ' + Math.round(result.blob.size / 1024) + ' KB', 'ok');
+
+          // 4. Generate the review HTML.
+          const metadata = {
+            song: songName,
+            date: new Date().toISOString().slice(0, 10),
+            preset: '',
+            watermark: 'PREVIEW — NOT FOR DISTRIBUTION',
+          };
+          let reviewHTML = '';
+          try {
+            reviewHTML = await reviewGeneratePage(result.blob, metadata);
+          } catch (e) {
+            setStatus('review page generation failed: ' + (e && e.message || e), 'err');
+            return false;
+          }
+
+          // 5. Download both files.
+          reviewDownloadBlob(result.blob, baseName + '.mp4');
+          setTimeout(() => reviewDownloadBlob(new Blob([reviewHTML], { type: 'text/html' }), baseName + '-review.html'), 500);
+          setStatus('downloaded ' + baseName + '.mp4 + review page', 'ok');
+
+          try { await pending; } catch (_) {}
+          return true;
+        },
+      };
+
+      // ---- SWR_HOOK_DETECTOR --------------------------------------------
+      // Drop detection + 3 hook presets. Requires a song.
+      function hookDownloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      window.SWR_HOOK_DETECTOR = {
+        lastResult: null,
+
+        async detect() {
+          // Fetch the audio blob from SWR_LAST_SONG.
+          let blob;
+          try {
+            const song = await window.SWR_LAST_SONG;
+            if (song && song.blob) blob = song.blob;
+          } catch (_) {}
+          if (!blob) return { ok: false, reason: 'no song loaded' };
+
+          // Decode.
+          let audioBuffer;
+          try {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new Ctx();
+            audioBuffer = await audioCtx.decodeAudioData(await blob.arrayBuffer());
+          } catch (e) {
+            return { ok: false, reason: 'decode failed: ' + e.message };
+          }
+
+          // Run analyzeBuffer for onsets (used for snapping).
+          let onsets = [];
+          if (window.AudioAnalysisV2 && window.AudioAnalysisV2.analyzeBuffer) {
+            try {
+              const analysis = window.AudioAnalysisV2.analyzeBuffer(audioBuffer);
+              onsets = (analysis && analysis.onsets) || [];
+            } catch (_) {}
+          }
+
+          // Energy envelope: 20ms RMS window, 10ms hop.
+          const sampleRate = audioBuffer.sampleRate;
+          const samples = audioBuffer.getChannelData(0);
+          const win = Math.floor(sampleRate * 0.02);
+          const hop = Math.floor(sampleRate * 0.01);
+          const nFrames = Math.max(1, Math.floor(samples.length / hop));
+          const energies = new Float32Array(nFrames);
+          for (let f = 0; f < nFrames; f++) {
+            const start = f * hop;
+            let sum = 0;
+            for (let j = 0; j < win && start + j < samples.length; j++) {
+              const s = samples[start + j];
+              sum += s * s;
+            }
+            energies[f] = Math.sqrt(sum / win);
+          }
+
+          // Intro mean: first 8 seconds.
+          const introFrames = Math.min(nFrames, Math.floor(8 * sampleRate / hop));
+          let introMean = 0;
+          for (let i = 0; i < introFrames; i++) introMean += energies[i];
+          introMean /= introFrames;
+
+          // First spike > 2× intro mean.
+          let dropFrame = -1;
+          for (let i = introFrames; i < nFrames; i++) {
+            if (energies[i] > 2 * introMean) { dropFrame = i; break; }
+          }
+          if (dropFrame < 0) {
+            this.lastResult = null;
+            return { ok: false, reason: 'no drop detected (no spike > 2× intro)' };
+          }
+
+          let dropTime = (dropFrame * hop) / sampleRate;
+          const energyRatio = energies[dropFrame] / Math.max(introMean, 1e-6);
+
+          // Snap to nearest onset within 200ms.
+          let snapped = dropTime;
+          if (onsets.length > 0) {
+            let bestDelta = Infinity;
+            for (const o of onsets) {
+              const delta = o - dropTime;
+              if (Math.abs(delta) < Math.abs(bestDelta)) bestDelta = delta;
+            }
+            if (Math.abs(bestDelta) < 0.2) snapped = dropTime + bestDelta;
+          }
+
+          const result = {
+            time: Math.round(snapped * 100) / 100,
+            confidence: 0.85,
+            energy: Math.round(energyRatio * 100) / 100,
+            label: 'Drop 1',
+            introMean: Math.round(introMean * 1000) / 1000,
+          };
+          this.lastResult = result;
+          return { ok: true, result };
+        },
+
+        async exportHook(preset) {
+          if (!this.lastResult) return { ok: false, reason: 'no drop detected; run detect() first' };
+          const el = (window.A && window.A.el) || (window.Audio && window.Audio.audioEl);
+          if (!el) return { ok: false, reason: 'no audio element' };
+          const r = this.lastResult;
+          let startTime, duration;
+          if (preset === 'teaser') { startTime = Math.max(0, r.time - 3); duration = 3; }
+          else if (preset === 'hook') { startTime = Math.max(0, r.time - 5); duration = 5; }
+          else if (preset === 'clip') { startTime = 0; duration = 15; }
+          else { return { ok: false, reason: 'unknown preset: ' + preset }; }
+
+          if (!window.SWR_RECORDER || !window.SWR_RECORDER.start) {
+            return { ok: false, reason: 'SWR_RECORDER not loaded' };
+          }
+          const stage = document.getElementById('render');
+          if (!stage) return { ok: false, reason: 'no render canvas' };
+
+          try { el.currentTime = startTime; } catch (_) {}
+
+          let rec;
+          try {
+            rec = window.SWR_RECORDER.start({
+              canvas: stage,
+              audioSource: el,
+              audioSampleRate: 44100,
+              audioNumberOfChannels: 2,
+              width: stage.width,
+              height: stage.height,
+              fps: 30,
+              videoBitsPerSecond: 2_000_000,
+            });
+          } catch (e) {
+            return { ok: false, reason: 'record failed: ' + e.message };
+          }
+
+          setStatus('recording ' + preset + ' (' + duration + 's)…', 'ok');
+          await new Promise(res => setTimeout(res, duration * 1000 + 200));
+          const result = await window.SWR_RECORDER.stop();
+          if (!result || !result.blob) {
+            return { ok: false, reason: 'no recording produced' };
+          }
+
+          const ext = (result.mime || 'video/mp4').includes('webm') ? 'webm' : 'mp4';
+          const filename = preset + '-' + Math.round(r.time * 100) / 100 + 's.' + ext;
+          hookDownloadBlob(result.blob, filename);
+          setStatus('downloaded ' + filename + ' (' + Math.round(result.blob.size / 1024) + ' KB)', 'ok');
+          return { ok: true, filename };
+        },
+      };
+
+      // ---- SWR_STATS -----------------------------------------------------
+      // Local render stats — feed by Recorder._save() (see the hook
+      // inserted into _save() above).
+      window.SWR_STATS = {
+        STORAGE_KEY: 'swr.stats.v1',
+
+        _load() {
+          try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            if (!raw) return { renders: [], lastPreset: null };
+            return JSON.parse(raw);
+          } catch (_) {
+            return { renders: [], lastPreset: null };
+          }
+        },
+
+        _save(data) {
+          try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+          } catch (_) {}
+        },
+
+        record(durationMs, ext, size) {
+          const data = this._load();
+          const now = Date.now();
+          const render = {
+            ts: now,
+            durationMs: Math.round(durationMs || 0),
+            ext: ext || 'mp4',
+            size: Math.round(size || 0),
+          };
+          data.renders.push(render);
+          if (data.renders.length > 100) data.renders.shift();
+          this._save(data);
+          return render;
+        },
+
+        summary() {
+          const data = this._load();
+          const renders = data.renders || [];
+          const last30 = renders.filter(r => r.ts > Date.now() - 30 * 86400000);
+          const totalDurationMs = renders.reduce((a, r) => a + (r.durationMs || 0), 0);
+          const totalSize = renders.reduce((a, r) => a + (r.size || 0), 0);
+          return {
+            totalRenders: renders.length,
+            last30Count: last30.length,
+            totalMinutes: Math.round(totalDurationMs / 60000 * 100) / 100,
+            last30Minutes: Math.round(last30.reduce((a, r) => a + (r.durationMs || 0), 0) / 60000 * 100) / 100,
+            totalSizeMB: Math.round(totalSize / 1048576 * 100) / 100,
+            lastPreset: data.lastPreset,
+            recent: renders.slice(-5).reverse(),
+          };
+        },
+
+        setPreset(presetId) {
+          const data = this._load();
+          data.lastPreset = presetId;
+          this._save(data);
+        },
+
+        reset() {
+          this._save({ renders: [], lastPreset: null });
+        },
+      };
+
+      // ---- SWR_MOOD -------------------------------------------------------
+      // Reference image → k-means palette + slider suggestion + draggable
+      // overlay. The overlay <img id="mood-overlay"> may not exist on
+      // engine.html — guarded.
+      window.SWR_MOOD = {
+        STORAGE_KEY: 'swr.mood.overlay.v1',
+
+        _kmeans(pixels, k, maxIter) {
+          if (pixels.length < k) return { centroids: pixels.slice(0, k), sizes: pixels.map(() => 1) };
+          const centroids = [];
+          centroids.push(pixels[Math.floor(Math.random() * pixels.length)].slice());
+          while (centroids.length < k) {
+            const dists = pixels.map(p => {
+              let minD = Infinity;
+              for (const c of centroids) {
+                const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+                if (d < minD) minD = d;
+              }
+              return minD;
+            });
+            const total = dists.reduce((a, b) => a + b, 0);
+            let r = Math.random() * total;
+            for (let i = 0; i < dists.length; i++) {
+              r -= dists[i];
+              if (r <= 0) { centroids.push(pixels[i].slice()); break; }
+            }
+          }
+          for (let it = 0; it < maxIter; it++) {
+            const sums = centroids.map(() => [0, 0, 0, 0]);
+            for (const p of pixels) {
+              let bestI = 0, bestD = Infinity;
+              for (let i = 0; i < centroids.length; i++) {
+                const c = centroids[i];
+                const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+                if (d < bestD) { bestD = d; bestI = i; }
+              }
+              const s = sums[bestI];
+              s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++;
+            }
+            let moved = false;
+            for (let i = 0; i < centroids.length; i++) {
+              if (sums[i][3] > 0) {
+                const newC = [sums[i][0]/sums[i][3], sums[i][1]/sums[i][3], sums[i][2]/sums[i][3]];
+                if (Math.abs(newC[0]-centroids[i][0]) + Math.abs(newC[1]-centroids[i][1]) + Math.abs(newC[2]-centroids[i][2]) > 1) {
+                  centroids[i] = newC;
+                  moved = true;
+                }
+              }
+            }
+            if (!moved) break;
+          }
+          const sizes = new Array(centroids.length).fill(0);
+          for (const p of pixels) {
+            let bestI = 0, bestD = Infinity;
+            for (let i = 0; i < centroids.length; i++) {
+              const c = centroids[i];
+              const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+              if (d < bestD) { bestD = d; bestI = i; }
+            }
+            sizes[bestI]++;
+          }
+          return { centroids, sizes };
+        },
+
+        _sampleImage(img, sampleSize) {
+          sampleSize = sampleSize || 64;
+          const c = document.createElement('canvas');
+          c.width = sampleSize; c.height = sampleSize;
+          const cx = c.getContext('2d');
+          cx.drawImage(img, 0, 0, sampleSize, sampleSize);
+          const data = cx.getImageData(0, 0, sampleSize, sampleSize).data;
+          const pixels = [];
+          for (let i = 0; i < data.length; i += 4) {
+            pixels.push([data[i], data[i+1], data[i+2]]);
+          }
+          return { pixels, raw: data, width: sampleSize, height: sampleSize };
+        },
+
+        _features(pixels) {
+          let sumL = 0, sumS = 0;
+          let minL = 255, maxL = 0;
+          let warm = 0, cool = 0;
+          for (const [r, g, b] of pixels) {
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            const L = (max + min) / 2;
+            const S = max === min ? 0 : (max - min) / (255 - Math.abs(2*L - 255));
+            sumL += L;
+            sumS += S;
+            if (L < minL) minL = L;
+            if (L > maxL) maxL = L;
+            warm += (r - b);
+            cool += (b - r);
+          }
+          const n = pixels.length;
+          const meanBright = sumL / n / 255;
+          const meanSat = sumS / n;
+          const contrast = (maxL - minL) / (maxL + minL + 1e-6);
+          const tempSum = warm - cool;
+          const tempNorm = Math.max(-1, Math.min(1, tempSum / (n * 255)));
+          return { meanBright, meanSat, contrast, temperature: tempNorm };
+        },
+
+        _suggest(f) {
+          const warmth = f.temperature > 0;
+          const highContrast = f.contrast > 0.5;
+          const highSat = f.meanSat > 0.4;
+          const bright = f.meanBright > 0.5;
+          let depth = warmth ? 1.0 : 0.0;
+          let gate = highContrast ? 2.5 : 1.4;
+          let decay = highSat ? 0.65 : 0.85;
+          let sens = bright ? 1.5 : 1.0;
+          return { depth, gate, decay, sens, warmth: warmth ? 'warm' : 'cool',
+                   contrast: highContrast ? 'high' : 'low',
+                   saturation: highSat ? 'high' : 'low' };
+        },
+
+        async analyze(img) {
+          const { pixels } = this._sampleImage(img, 64);
+          const palette = this._kmeans(pixels, 5, 10);
+          const features = this._features(pixels);
+          const suggestion = this._suggest(features);
+          this.lastAnalysis = { palette, features, suggestion, ts: Date.now() };
+          return this.lastAnalysis;
+        },
+
+        applySuggestion() {
+          if (!this.lastAnalysis) return false;
+          const s = this.lastAnalysis.suggestion;
+          const sliders = [
+            ['depth', s.depth],
+            ['gate', s.gate],
+            ['decay', s.decay],
+            ['sens', s.sens],
+          ];
+          for (const [id, val] of sliders) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            el.value = String(val);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          return true;
+        },
+
+        saveOverlayPos(x, y) {
+          try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ x, y, visible: this.overlayVisible })); } catch (_) {}
+        },
+
+        loadOverlayPos() {
+          try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            if (!raw) return { x: 16, y: 16, visible: false };
+            return JSON.parse(raw);
+          } catch (_) { return { x: 16, y: 16, visible: false }; }
+        },
+
+        setOverlayVisible(v) {
+          this.overlayVisible = !!v;
+          const img = $('mood-overlay');
+          if (img) img.style.display = v ? 'block' : 'none';
+          this.saveOverlayPos(this.overlayPos ? this.overlayPos.x : 16, this.overlayPos ? this.overlayPos.y : 16);
+        },
+
+        setOverlayImage(dataUrl) {
+          const img = $('mood-overlay');
+          if (img) img.src = dataUrl;
+        },
+
+        overlayPos: { x: 16, y: 16 },
+        overlayVisible: false,
+        lastAnalysis: null,
+      };
+
+      // Wire mood-overlay drag handlers + restore persisted position.
+      // Guarded — engine.html doesn't ship <img id="mood-overlay"> yet,
+      // so this is a no-op. If the engine later adds the element, the
+      // IIFE will pick it up automatically (deferred execution + early
+      // return when the element is absent).
+      (function () {
+        const overlay = $('mood-overlay');
+        if (!overlay) return;
+        let dragging = false, dx = 0, dy = 0;
+        overlay.addEventListener('mousedown', (e) => {
+          dragging = true;
+          dx = e.clientX - overlay.offsetLeft;
+          dy = e.clientY - overlay.offsetTop;
+          e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+          if (!dragging) return;
+          const x = Math.max(0, Math.min(window.innerWidth - 160, e.clientX - dx));
+          const y = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dy));
+          overlay.style.left = x + 'px';
+          overlay.style.top = y + 'px';
+          overlay.style.right = 'auto';
+          if (window.SWR_MOOD) {
+            window.SWR_MOOD.overlayPos = { x, y };
+          }
+        });
+        document.addEventListener('mouseup', () => {
+          if (dragging && window.SWR_MOOD) {
+            window.SWR_MOOD.saveOverlayPos(window.SWR_MOOD.overlayPos.x, window.SWR_MOOD.overlayPos.y);
+            dragging = false;
+          }
+        });
+        const saved = window.SWR_MOOD ? window.SWR_MOOD.loadOverlayPos() : { x: 16, y: 16, visible: false };
+        overlay.style.left = saved.x + 'px';
+        overlay.style.top = saved.y + 'px';
+        overlay.style.right = 'auto';
+        overlay.style.display = saved.visible ? 'block' : 'none';
+        if (window.SWR_MOOD) {
+          window.SWR_MOOD.overlayPos = { x: saved.x, y: saved.y };
+          window.SWR_MOOD.overlayVisible = saved.visible;
+        }
+      })();
+
+      // ---- SWR_SCENES -----------------------------------------------------
+      // 4 scene pads; reads 5 footer sliders. Engine.html only has
+      // #decay — depth/gate/sens/neighbour-count return null (graceful
+      // skip). Save/recall still works; the null fields are preserved.
+      window.SWR_SCENES = {
+        STORAGE_KEY: 'swr.scenes.v1',
+        MAX_SCENES: 4,
+        _captureTimer: null,
+
+        _load() {
+          try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            if (!raw) return Array.from({ length: this.MAX_SCENES }, (_, i) => ({
+              id: i, label: 'Scene ' + (i + 1), snapshot: null, createdAt: null,
+            }));
+            const arr = JSON.parse(raw);
+            while (arr.length < this.MAX_SCENES) {
+              arr.push({ id: arr.length, label: 'Scene ' + (arr.length + 1), snapshot: null, createdAt: null });
+            }
+            return arr;
+          } catch (_) {
+            return Array.from({ length: this.MAX_SCENES }, (_, i) => ({
+              id: i, label: 'Scene ' + (i + 1), snapshot: null, createdAt: null,
+            }));
+          }
+        },
+
+        _save(arr) {
+          try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(arr)); } catch (_) {}
+        },
+
+        _currentSnapshot() {
+          const get = (id) => {
+            const el = document.getElementById(id);
+            return el ? parseFloat(el.value) : null;
+          };
+          const presetOverride = (typeof window.__swrCurrentPreset === 'string' && window.__swrCurrentPreset)
+            ? window.__swrCurrentPreset
+            : 'neon';
+          return {
+            depth: get('depth'),
+            gate: get('gate'),
+            decay: get('decay'),
+            sens: get('sens'),
+            neighbourCount: get('neighbour-count'),
+            presetOverride,
+            automixOn: !!(document.getElementById('automix-toggle') && /ON/i.test(document.getElementById('automix-toggle').textContent || '')),
+          };
+        },
+
+        _applySnapshot(s) {
+          const set = (id, val) => {
+            const el = document.getElementById(id);
+            if (!el || val == null) return;
+            el.value = String(val);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          };
+          set('depth', s.depth);
+          set('gate', s.gate);
+          set('decay', s.decay);
+          set('sens', s.sens);
+          set('neighbour-count', s.neighbourCount);
+          if (s.presetOverride && window.VersionsPresets && typeof window.VersionsPresets.setPresetOverride === 'function') {
+            if (window.VersionsPresets.setPresetOverride(s.presetOverride) !== false) {
+              window.__swrCurrentPreset = s.presetOverride;
+              if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.save(s.presetOverride);
+            }
+          }
+        },
+
+        list() { return this._load(); },
+
+        save(index, label) {
+          const arr = this._load();
+          if (index < 0 || index >= this.MAX_SCENES) return false;
+          arr[index] = {
+            id: index,
+            label: label || arr[index].label || 'Scene ' + (index + 1),
+            snapshot: this._currentSnapshot(),
+            createdAt: Date.now(),
+          };
+          this._save(arr);
+          return true;
+        },
+
+        recall(index) {
+          const arr = this._load();
+          if (index < 0 || index >= this.MAX_SCENES) return false;
+          const s = arr[index];
+          if (!s || !s.snapshot) return false;
+          this._applySnapshot(s.snapshot);
+          return true;
+        },
+
+        startCapture(index) {
+          if (this._captureTimer) clearTimeout(this._captureTimer);
+          this._captureTimer = setTimeout(() => {
+            this._captureTimer = null;
+            this.save(index, 'Scene ' + (index + 1));
+            if (typeof setStatus === 'function') setStatus('saved scene ' + (index + 1), 'ok');
+          }, 1000);
+        },
+
+        cancelCapture() {
+          if (this._captureTimer) {
+            clearTimeout(this._captureTimer);
+            this._captureTimer = null;
+            return true;
+          }
+          return false;
+        },
+      };
+
+      // ======================================================================
+      // FOOTER BUTTON WIRING — Task 3
+      // ======================================================================
+      function refreshHeroPanel() {
+        const el = $('hero-panel');
+        if (!el) return;
+        const countEl = $('hero-count');
+        if (countEl) countEl.textContent = window.SWR_HERO_FRAMES.buffer.length;
+        const best = window.SWR_HERO_FRAMES.best(3);
+        const listEl = $('hero-list');
+        if (listEl) {
+          listEl.innerHTML = '';
+          for (const e of best) {
+            const img = document.createElement('img');
+            img.src = e.dataURL;
+            img.style.cssText = 'width:80px;height:45px;cursor:pointer;border:1px solid var(--accent);margin:2px;';
+            img.onclick = () => window.SWR_HERO_FRAMES.downloadFrame(e);
+            listEl.appendChild(img);
+          }
+        }
+      }
+
+      function refreshScenesPanel() {
+        const el = $('scenes-panel');
+        if (!el) return;
+        const listEl = $('scenes-list');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        const scenes = window.SWR_SCENES.list();
+        for (let i = 0; i < scenes.length; i++) {
+          const pad = document.createElement('button');
+          pad.className = 'tbtn ghost';
+          pad.textContent = scenes[i].label || ('Scene ' + (i + 1));
+          pad.style.cssText = 'padding:8px;margin:2px;font-size:10px;';
+          if (scenes[i].snapshot) {
+            pad.style.borderColor = 'var(--accent-2)';
+          }
+          pad.addEventListener('mousedown', () => window.SWR_SCENES.startCapture(i));
+          pad.addEventListener('mouseup', () => {
+            if (window.SWR_SCENES.cancelCapture()) {
+              if (window.SWR_SCENES.recall(i)) {
+                setStatus('recalled scene ' + (i + 1), 'ok');
+              }
+            }
+          });
+          pad.addEventListener('mouseleave', () => window.SWR_SCENES.cancelCapture());
+          listEl.appendChild(pad);
+        }
+      }
+
+      // Wire all 8 footer buttons after the DOM is ready.
+      function wireButtons() {
+        // Hero — start/stop sampler + show thumbnails.
+        const heroBtn = $('hero-btn');
+        if (heroBtn) {
+          heroBtn.addEventListener('click', () => {
+            if (!window.SWR_HERO_FRAMES) return;
+            if (window.SWR_HERO_FRAMES.samplerHandle) {
+              window.SWR_HERO_FRAMES.stop();
+              setStatus('hero frames stopped · ' + window.SWR_HERO_FRAMES.buffer.length + ' captured', 'ok');
+            } else {
+              window.SWR_HERO_FRAMES.start();
+              setStatus('hero frames capturing…', 'ok');
+            }
+          });
+        }
+
+        // Stats — local-only stats modal (DOM-built).
+        const statsBtn = $('stats-btn');
+        if (statsBtn) {
+          statsBtn.addEventListener('click', () => {
+            if (!window.SWR_STATS) return;
+            const s = window.SWR_STATS.summary();
+            let modal = $('stats-modal');
+            if (modal) modal.remove();
+            modal = document.createElement('div');
+            modal.id = 'stats-modal';
+            modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;min-width:320px;';
+            modal.innerHTML = `
+              <h3 style="margin:0 0 12px;color:var(--accent);font-size:14px;">Local Stats</h3>
+              <div>Total renders: <b>${s.totalRenders}</b></div>
+              <div>Last 30 days: <b>${s.last30Count}</b></div>
+              <div>Total minutes: <b>${s.totalMinutes}</b></div>
+              <div>Last 30d minutes: <b>${s.last30Minutes}</b></div>
+              <div>Total size: <b>${s.totalSizeMB} MB</b></div>
+              <h4 style="margin:12px 0 6px;color:var(--muted);font-size:11px;text-transform:uppercase;">Recent</h4>
+              <div style="font-size:10px;color:var(--muted);max-height:120px;overflow:auto;">
+                ${(s.recent || []).map(r => new Date(r.ts).toLocaleString() + ' · ' + Math.round(r.durationMs/1000) + 's · ' + Math.round(r.size/1024) + ' KB').join('<br>') || '<i>none yet</i>'}
+              </div>
+              <div style="margin-top:12px;display:flex;gap:6px;">
+                <button class="tbtn ghost" id="stats-clear" style="padding:4px 10px;font-size:10px;">Clear</button>
+                <button class="tbtn ghost" id="stats-close" style="padding:4px 10px;font-size:10px;">Close</button>
+              </div>`;
+            document.body.appendChild(modal);
+            $('stats-close').addEventListener('click', () => modal.remove());
+            $('stats-clear').addEventListener('click', () => {
+              window.SWR_STATS.reset();
+              modal.remove();
+              setStatus('stats cleared', 'ok');
+            });
+          });
+        }
+
+        // Edit Data — swr-edl/1 JSON download.
+        const editDataBtn = $('edit-data-btn');
+        if (editDataBtn) {
+          editDataBtn.addEventListener('click', async () => {
+            if (!window.SWR_EDIT_DATA) return;
+            await window.SWR_EDIT_DATA.downloadEditData();
+          });
+        }
+
+        // Review — watermarked MP4 + standalone HTML.
+        const reviewBtn = $('review-btn');
+        if (reviewBtn) {
+          reviewBtn.addEventListener('click', async () => {
+            if (!window.SWR_REVIEW) return;
+            await window.SWR_REVIEW.exportReview();
+          });
+        }
+
+        // Hooks — detect drop + show hook panel.
+        const hookBtn = $('hook-btn');
+        if (hookBtn) {
+          hookBtn.addEventListener('click', async () => {
+            if (!window.SWR_HOOK_DETECTOR) return;
+            const r = await window.SWR_HOOK_DETECTOR.detect();
+            if (!r.ok) { setStatus('hook detect: ' + r.reason, 'err'); return; }
+            setStatus('drop at ' + r.result.time + 's (' + r.result.energy + '× intro)', 'ok');
+          });
+        }
+
+        // Mood — open a small panel for upload (reference image).
+        const moodBtn = $('mood-btn');
+        if (moodBtn) {
+          moodBtn.addEventListener('click', () => {
+            if (!window.SWR_MOOD) return;
+            let modal = $('mood-modal');
+            if (modal) { modal.remove(); return; }
+            modal = document.createElement('div');
+            modal.id = 'mood-modal';
+            modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;min-width:320px;';
+            modal.innerHTML = `
+              <h3 style="margin:0 0 12px;color:var(--accent);font-size:14px;">Mood Board</h3>
+              <input type="file" id="mood-file" accept="image/*" style="font-size:10px;">
+              <div style="margin-top:8px;font-size:10px;color:var(--muted);">Drop a reference image — extracts a k-means palette + brightness/saturation/contrast/warmth, and (when sliders exist) suggests values for depth/gate/decay/sens.</div>
+              <div style="margin-top:12px;display:flex;gap:6px;">
+                <button class="tbtn ghost" id="mood-apply" style="padding:4px 10px;font-size:10px;">Apply suggestion</button>
+                <button class="tbtn ghost" id="mood-close" style="padding:4px 10px;font-size:10px;">Close</button>
+              </div>
+              <div id="mood-result" style="margin-top:10px;font-size:10px;"></div>`;
+            document.body.appendChild(modal);
+            const fileInput = $('mood-file');
+            fileInput.addEventListener('change', (e) => {
+              const f = e.target.files && e.target.files[0];
+              if (!f) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                const img = new Image();
+                img.onload = async () => {
+                  const result = await window.SWR_MOOD.analyze(img);
+                  const resEl = $('mood-result');
+                  if (resEl) {
+                    resEl.innerHTML = 'meanBright ' + result.features.meanBright.toFixed(2) + ' · sat ' + result.features.meanSat.toFixed(2) + ' · contrast ' + result.features.contrast.toFixed(2) + ' · warm ' + result.suggestion.warmth + '<br>palette: ' + result.palette.centroids.map(c => 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')').join(' ');
+                  }
+                };
+                img.src = reader.result;
+              };
+              reader.readAsDataURL(f);
+            });
+            $('mood-apply').addEventListener('click', () => {
+              if (window.SWR_MOOD.applySuggestion()) setStatus('mood suggestion applied', 'ok');
+            });
+            $('mood-close').addEventListener('click', () => modal.remove());
+          });
+        }
+
+        // Scenes — 2×2 grid of pads.
+        const scenesBtn = $('scenes-btn');
+        if (scenesBtn) {
+          scenesBtn.addEventListener('click', () => {
+            if (!window.SWR_SCENES) return;
+            let modal = $('scenes-modal');
+            if (modal) { modal.remove(); return; }
+            modal = document.createElement('div');
+            modal.id = 'scenes-modal';
+            modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;';
+            modal.innerHTML = `
+              <h3 style="margin:0 0 12px;color:var(--accent);font-size:14px;">Scenes</h3>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">Click to recall · long-press (1s) to save</div>
+              <div id="scenes-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div>
+              <div style="margin-top:12px;display:flex;gap:6px;">
+                <button class="tbtn ghost" id="scenes-close" style="padding:4px 10px;font-size:10px;">Close</button>
+              </div>`;
+            document.body.appendChild(modal);
+            refreshScenesPanel();
+            $('scenes-close').addEventListener('click', () => modal.remove());
+          });
+        }
+
+        // Fit — toggle CSS object-fit: cover.
+        const fitBtn = $('fit-btn');
+        if (fitBtn) {
+          fitBtn.addEventListener('click', () => {
+            if (!window.SWR_FIT) return;
+            const on = window.SWR_FIT.toggle();
+            setStatus('fit: ' + (on ? 'cover' : 'fill'), 'ok');
+          });
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', wireButtons);
+      } else {
+        wireButtons();
+      }
+    })();
+
   </script>
   <script type="module" src="/engine-panel-visibility.client.js"></script>
   <script type="module" src="/layer-scheduler.client.js"></script>

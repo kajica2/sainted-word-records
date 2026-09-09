@@ -1629,6 +1629,38 @@ if (scenesShape.ok
   ok('SWR_SCENES API: save captures state, recall applies it (sliders restored exactly)');
 else bad('SWR_SCENES', JSON.stringify(scenesShape));
 
+// 74. engine.html has all 8 post-2026 SWR_* globals + brandkit + recorder
+// (parity with versions/music_video.html — see
+// .hermes/plans/2026-09-09_065000-engine-page-parity.md).
+await page.goto('http://localhost:5181/engine.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await new Promise(r => setTimeout(r, 400));
+const engineParity = await page.evaluate(() => ({
+  hero: typeof window.SWR_HERO_FRAMES === 'object' && window.SWR_HERO_FRAMES !== null,
+  stats: typeof window.SWR_STATS === 'object' && window.SWR_STATS !== null,
+  editData: typeof window.SWR_EDIT_DATA === 'object' && window.SWR_EDIT_DATA !== null,
+  review: typeof window.SWR_REVIEW === 'object' && window.SWR_REVIEW !== null,
+  hook: typeof window.SWR_HOOK_DETECTOR === 'object' && window.SWR_HOOK_DETECTOR !== null,
+  mood: typeof window.SWR_MOOD === 'object' && window.SWR_MOOD !== null,
+  scenes: typeof window.SWR_SCENES === 'object' && window.SWR_SCENES !== null,
+  fit: typeof window.SWR_FIT === 'object' && window.SWR_FIT !== null,
+  // Plus the pre-existing globals
+  brandkit: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
+  recorder: typeof window.SWR_RECORDER === 'object' && window.SWR_RECORDER !== null,
+  // Footer buttons wired into the DOM
+  heroBtn: !!document.getElementById('hero-btn'),
+  statsBtn: !!document.getElementById('stats-btn'),
+  editDataBtn: !!document.getElementById('edit-data-btn'),
+  reviewBtn: !!document.getElementById('review-btn'),
+  hookBtn: !!document.getElementById('hook-btn'),
+  moodBtn: !!document.getElementById('mood-btn'),
+  scenesBtn: !!document.getElementById('scenes-btn'),
+  fitBtn: !!document.getElementById('fit-btn'),
+}));
+const allGreen = Object.values(engineParity).every(v => v === true);
+if (allGreen)
+  ok('engine.html ships all 8 post-2026 SWR_* globals + brandkit + recorder + 8 footer buttons (parity with music_video.html)');
+else bad('engine.html parity', JSON.stringify(engineParity));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));
