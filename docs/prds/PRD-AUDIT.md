@@ -45,10 +45,10 @@ Each PRD gets one row with:
 
 ### PRD-003: SOCIAL FORMATS — Phase 1
 
-- **Verdict**: `Re-spec`
-- **Status**: Wrong premise ("Replace current 3-button layout with dropdown" — `make-video.html` has neither a 3-button layout nor a format selector; it's just a single canvas + timeline). The 8-format dropdown spec is real and would be a useful addition. No part is shipped today.
-- **Effort**: `S` (small UI add to `make-video.html`)
-- **Notes**: Page also needs the export pipeline (`make-video.html:303` `<canvas id="preview">`) to honour the selected format. Audio-reactive engine (`music_video.html`) doesn't apply — it's not for export at specific aspect ratios.
+- **Verdict**: `Re-spec` → **partial ship** (PR #44)
+- **Status**: Format dropdown shipped on `make-video.html` (PR #44, `ddb556a`). `#format-select` in the footer with 4 ratios: 16:9 (640×360, default), 1:1 (720×720), 9:16 (360×640), 2.39:1 (956×400). CSS uses `object-fit: contain` so non-16:9 formats letterbox without distortion. `window.MVM_FORMAT` exposes the current selection for smoke testing.
+- **Effort**: `S` (shipped) + `M` (safe-zone overlay + dual export follow-ups)
+- **Notes**: Safe-zone overlay (PRD-003 §3.2.2) and dual export (PRD-003 §3.2.3) are explicitly out of scope — punted to a follow-up. The 8-format table from PRD-003 §3.2.1 is reduced to 4 (Stories and Twitter are 9:16 + 16:9 variants; Custom not needed at MVP).
 
 ### PRD-004: TYPOGRAPHY LAYER — Phase 2
 
@@ -233,8 +233,8 @@ feature that could ship without breaking zero-backend.
 
 If we work through the re-spec ones in increasing complexity:
 
-1. **PRD-010 PRINT & STILL FRAME** (`S`) — frame-grab button + hero frame suggestion. Small, standalone, ships fast.
-2. **PRD-003 SOCIAL FORMATS** (`S`) — dropdown for `make-video.html`. Small, scope-limited to one page.
+1. ~~PRD-010 PRINT & STILL FRAME~~ (`S`) — **shipped as PR #42** (hero frame capture; print export at 300 DPI punted).
+2. ~~PRD-003 SOCIAL FORMATS~~ (`S`) — **shipped as PR #44** (format dropdown; safe-zone + dual export punted).
 3. **PRD-005 EDITORIAL BRIDGE** (`M`) — "Download Edit Data" button + JSON export. Builds on `audio-analysis-v2.js`.
 4. **PRD-009 CLIENT REVIEW** (`M`) — watermarked preview + standalone HTML generator.
 5. **PRD-006 HOOK GENERATOR** (`M`) — drop detection + hook export.
