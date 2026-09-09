@@ -71,6 +71,11 @@
   }
   .left-col { grid-area: left; background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; }
   .center-col { grid-area: center; background: #000; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .center-col canvas {
+    display: block;
+    /* Keep every output format's backing-store aspect ratio without distortion. */
+    object-fit: contain;
+  }
   .right-col { grid-area: right; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
   footer.mvm-foot {
     grid-area: foot;
@@ -182,6 +187,12 @@
     <button class="tbtn" id="play-pause" disabled>▶ PLAY</button>
     <button class="tbtn" id="stop" disabled>■ STOP</button>
     <button class="tbtn" id="rec" disabled>● REC</button>
+    <select id="format-select" title="Output format / aspect ratio" style="background:var(--bg-2);color:var(--ink);border:1px solid var(--line);font:9px ui-monospace;padding:3px 4px;letter-spacing:0.04em;">
+      <option value="16:9">16:9 · YouTube</option>
+      <option value="1:1">1:1 · Instagram</option>
+      <option value="9:16">9:16 · TikTok/Reels</option>
+      <option value="2.39:1">2.39:1 · Cinema</option>
+    </select>
     <select id="rec-dur" style="background:var(--bg-2);color:var(--ink);border:1px solid var(--line);font:9px ui-monospace;padding:3px 4px;letter-spacing:0.04em;" title="Auto-stop recording after N seconds (0 = manual)">
       <option value="0">manual</option>
       <option value="5">5s</option>
@@ -229,6 +240,43 @@
 <script src="../lib/journey-effects.client.js"></script>
 <script src="../lib/alpha-layer.client.js"></script>
 <script>
+const FORMATS = {
+  '16:9': { w: 640, h: 360, label: '16:9 (YouTube)' },
+  '1:1': { w: 720, h: 720, label: '1:1 (Instagram)' },
+  '9:16': { w: 360, h: 640, label: '9:16 (TikTok/Reels)' },
+  '2.39:1': { w: 956, h: 400, label: '2.39:1 (Cinema)' },
+};
+const DEFAULT_FORMAT = '16:9';
+window.MVM_FORMAT = DEFAULT_FORMAT;
+function applyFormat(key) {
+  const f = FORMATS[key];
+  if (!f) return false;
+  const c = document.getElementById('preview');
+  if (!c) return false;
+  c.width = f.w;
+  c.height = f.h;
+  c.style.width = 'auto';
+  c.style.height = 'auto';
+  c.style.maxWidth = '100%';
+  c.style.maxHeight = '100%';
+  c.style.objectFit = 'contain';
+  window.MVM_FORMAT = key;
+  return true;
+}
+
+// Wire the output format selector after the page controls exist.
+(function () {
+  const sel = document.getElementById('format-select');
+  if (!sel) return;
+  sel.value = window.MVM_FORMAT;
+  sel.addEventListener('change', (e) => {
+    if (applyFormat(e.target.value)) {
+      console.info('[make-video] format →', e.target.value);
+    }
+  });
+  applyFormat(window.MVM_FORMAT);
+})();
+
 // Wire up the Hyper Journey runtime. Idempotent — survives re-eval.
 (function () {
   'use strict';
