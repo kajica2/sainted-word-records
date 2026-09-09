@@ -244,6 +244,48 @@ Clicking a thumbnail downloads it as PNG. Print export at 300 DPI
 (PRD-010 §10.2.3) is out of scope — would require OffscreenCanvas +
 WebCodecs streaming to render at ~7200×10800 without OOM.
 
+### `window.SWR_EDIT_DATA` — `versions/music_video.html` (IIFE side-effect)
+
+Editorial bridge (PR #46, partial implementation of PRD-005). Runs
+`AudioAnalysisV2.analyzeBuffer()` on the currently loaded song
+(via `SWR_LAST_SONG` blob or `A.el.src` fallback), formats the
+result as the `swr-edl/1` JSON shape (PRD-005 §5.2.1), and downloads
+it. The script tag for `audio-analysis-v2.js` is now loaded on
+`music_video.html` (was missing — only `engine.html` had it).
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `downloadEditData(filename?)` | `Promise<boolean>` | Async. Fetches blob → decodeAudioData → analyzeBuffer → formatEDL → download. |
+| `lastAnalysis` | `object \| null` | The most recent `analyzeBuffer` result. Read-only. |
+
+The downloaded JSON has this shape (PRD-005 §5.2.1):
+
+```json
+{
+  "version": "swr-edl/1",
+  "song": "filename.mp3",
+  "duration": 187.5,
+  "bpm": 124,
+  "key": "A minor",
+  "timecode": "00:00:00:00",
+  "markers": [
+    {"time": 0.0, "type": "downbeat", "label": "1.1", "confidence": 1.0},
+    {"time": 0.484, "type": "kick", "label": "", "confidence": 0.95}
+  ],
+  "drops": [],
+  "phrases": [
+    {"start": 0, "end": 16, "type": "intro"},
+    {"start": 16, "end": 48, "type": "build"},
+    {"start": 48, "end": 80, "type": "drop"}
+  ]
+}
+```
+
+Footer `Edit Data` button triggers the analysis. Premiere Pro XML
+export (PRD-005 §5.2.2) is out of scope — punted to a follow-up.
+Onset classification (downbeat / kick / snare) uses inter-onset
+interval heuristics; real onset classification is a follow-up.
+
 ## 4. Keyboard map
 
 | Key | Action | Source |
@@ -541,6 +583,18 @@ unless marked `**Deferred**`.
   (PRD-010 §10.2.3) is explicitly **out of scope** — would
   require OffscreenCanvas + WebCodecs streaming to render at
   ~7200×10800 without OOM.
+- **PR #46 — download edit data (PRD-005 partial).** Adds the
+  `<script>` tag for `audio-analysis-v2.js` to `music_video.html`
+  (was missing — only `engine.html` had it) and `SWR_EDIT_DATA`
+  global that runs `analyzeBuffer()` on the loaded song and
+  downloads a `swr-edl/1` JSON file with BPM + key/scale +
+  duration + classified onsets + phrase segments. Footer
+  `Edit Data` button triggers the analysis. JSON shape matches
+  PRD-005 §5.2.1. Onset classification uses inter-onset interval
+  heuristics; phrase segmentation is naive (16s/32s/32s splits).
+  2 new smoke assertions (64 total). Premiere Pro XML export
+  (PRD-005 §5.2.2) is explicitly **out of scope** — punted
+  to a follow-up.
 
 ### Deferred
 
@@ -581,9 +635,11 @@ unless marked `**Deferred**`.
 - **PR #34** — extend mirror script with F1/F2 patches (smooth transitions future-proofing)
 - **PR #36** — fit-to-screen toggle (SWR_FIT + F key + canvas object-fit: cover)
 - **PR #42** — hero frame capture (SWR_HERO_FRAMES + ring buffer + best(3) ranking)
+- **PR #46** — download edit data (SWR_EDIT_DATA + audio-analysis-v2.js + swr-edl/1 JSON)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-09_005000-hero-frame-capture.md`** — the hero frame plan (now shipped as PR #42, partial — print export at 300 DPI punted to a follow-up)
+- **`.hermes/plans/2026-09-09_013000-edit-data-export.md`** — the edit data plan (now shipped as PR #46, partial — Premiere Pro XML punted to a follow-up)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the per-layer cover toggle plan (now shipped as PR #28)
 - **`.hermes/plans/2026-09-08_183000-self-evolving-automixer.md`** — the plan that produced PR #9
 - **`docs/CROSS-APP-BRIDGE.md`** — how music_video relates to swr-app, make-video, marketplace
