@@ -2,7 +2,7 @@
 
 **Slug:** version-hopper
 **Surfaces touched (3+ minimum):** versions, presets, transitions, recorder
-**One-line:** A creative coder who treats the 26 visual styles as a palette of moods and A/B tests them against a single track.
+**One-line:** A creative coder who treats the 20+ visual variants as a palette of moods and A/B tests them against a single track.
 
 ## Who they are
 You are a creative coder in your mid-twenties working at a small studio that does generative branding work for indie musicians. You write shaders in your day job, you have a passing knowledge of After Effects but you ship in the browser. Your toolbelt is GLSL, a notebook of shader recipes, and a habit of opening a dozen browser tabs at once when you are picking a look.
@@ -11,7 +11,7 @@ You are a creative coder in your mid-twenties working at a small studio that doe
 You want to drop the same 30-second loop into /versions/neon.html, /versions/film.html, /versions/grid.html, /versions/smoke.html, /versions/hallucination.html, /versions/aurora.html, /versions/chrome.html, /versions/fractal.html, /versions/gallery.html, /versions/glitch.html, /versions/pulse.html, /versions/void.html, /versions/watercolor.html, /versions/baroque.html, /versions/kraft.html, /versions/mosaic.html, /versions/phosphor.html, /versions/spectrum.html, /versions/tape.html, /versions/typography.html, /versions/music_video.html, /versions/collage.html, /versions/eclipse.html, and /versions/music_video_mtv.html in sequence, record 8 seconds of each, and pick the one that looks right for a friend's EP cover. You are not making a music video — you are choosing a mood.
 
 ## Which surfaces they actually use, and why
-1. **/versions/* (26 visual styles)** — the surface you spend the most time on; you treat each variant as a different take on the same song and cycle through them quickly.
+1. **/versions/* (20+ visual variants)** — the surface you spend the most time on; you treat each variant as a different take on the same song and cycle through them quickly.
 2. **Presets (anchor map)** — you use the anchor map to understand why each variant looks the way it does: `neon` sits at warmth=0.2 intensity=0.9, `kraft` at warmth=0.7 intensity=0.3, and the position explains the feel.
 3. **Transitions** — when you are recording you sometimes trigger a `chromatic-split` between variants to see how two looks behave against each other.
 4. **Recorder** — you record 8-second WebMs of each variant via the MediaRecorder export so you can scrub them back at half speed and pick.

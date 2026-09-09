@@ -10,5 +10,5 @@ These 8 files are preserved as a record of the abandoned track, not as
 deliverables. Do not link to them from anywhere. They may be deleted at
 any time without notice.
 
-The strategic collaborators library (11 files in ../, ~7k words) is the
+The strategic collaborators library (11 files in ../, ~6,100 words) is the
 deliverable.

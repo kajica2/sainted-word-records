@@ -6,7 +6,7 @@
 > library into an editor-shaped storyboard. The storyboard engine
 > ships as library code only; the mount page is the next phase.
 
-## AR Animation Loop (5 commits, ~480 LOC)
+## AR Animation Loop (6 commits, ~480 LOC + 436 LOC HTML)
 
 A new `/ar-loop` page lets a visitor drop a GIF or static image,
 see it loop in markerless AR via the device camera, record a 5s
@@ -18,8 +18,9 @@ Commits:
 
 - `chore(ar-loop): add /ar-loop route + version card` — 2 rewrites in
   `vercel.json`, 1 `style-card` in `versions.html`.
-- `feat(ar-loop): HTML page shell` — `engine-ar-loop.html` (95 LOC),
-  no-camera fallback, CDN scripts pinned.
+- `feat(ar-loop): HTML page shell` — `engine-ar-loop.html` (436 LOC,
+  including brand-token alignment from the later commit), no-camera
+  fallback, CDN scripts pinned.
 - `feat(ar-loop): upload + record + reset controller` —
   `client/ar-loop-app.client.js` (270 LOC), IIFE global-script
   pattern, `window.SWR_AR_LOOP = { state, reset, share,
@@ -33,6 +34,11 @@ Commits:
   `docs/AR-LOOP.md` (now comprehensive: overview, user flow,
   architecture diagram, state machine, file map, configuration,
   browser support, limitations, dev commands, future work).
+- `feat(ar-loop): align page with brand kit` — retokenised `:root`
+  to match `engine.html`'s brandkit, replaced ad-hoc button styles
+  with a `.btn` system (`.primary` / `.ghost` / `.danger`), aliased
+  pill classes to the engine's `.pill` shape, added focus + hover
+  states, replaced CSS `::before` fallback with proper DOM.
 
 See `docs/AR-LOOP.md` for the full reference.
 

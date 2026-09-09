@@ -8,7 +8,7 @@
 //   idle → uploading → ready → recording → exporting → done
 //                    ↘ error
 //
-// Public surface (read-only): window.SWR_AR_LOOP = { state, reset, share }
+// Public surface (read-only): window.SWR_AR_LOOP = { state, reset, share, pickMimeType }
 // `state` is a live reference — callers can read .phase, .file, .objectUrl.
 //
 // Manual test checklist (verify-ar-loop.mjs covers the first three):

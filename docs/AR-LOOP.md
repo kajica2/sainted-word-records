@@ -59,7 +59,7 @@ backend, no auth, and no AI call — the GIF *is* the animation.
 
 ```
                   ┌──────────────────────────────┐
-                  │   engine-ar-loop.html (95 L) │
+                  │   engine-ar-loop.html (436 L) │
                   │   <a-scene> + <a-plane>      │
                   │   <file input> + buttons     │
                   └──────────────┬───────────────┘
@@ -127,7 +127,7 @@ header pill. Allowed button states per phase:
 
 | File | LOC | Role |
 |---|---|---|
-| `engine-ar-loop.html` | 95 | Page shell. CDN scripts (A-Frame, AR.js, gif-shader), footer buttons, status + state pill, no-camera fallback. |
+| `engine-ar-loop.html` | 436 | Page shell. Brand tokens (root palette matching engine.html), CDN scripts (A-Frame, AR.js, gif-shader with graceful-degrade), footer buttons, status + state pill, no-camera fallback. Includes ~340 LOC of brand tokens + style block plus ~95 LOC of structural markup. |
 | `client/ar-loop-app.client.js` | 270 | Controller. IIFE global-script pattern, registers `window.SWR_AR_LOOP`. Owns the state machine, MIME pick, MediaRecorder wiring, and share-link copy. |
 | `verify-ar-loop.mjs` | 111 | Puppeteer smoke test. Spins up `npm run preview`, grants fake camera + mic via CDP, uploads a 1×1 PNG, asserts `idle → ready → idle` round-trip, fails on any console error that isn't an A-Frame/AR.js headless warning. |
 | `docs/AR-LOOP.md` | this file | Reference doc (you are here). |
@@ -141,13 +141,13 @@ header pill. Allowed button states per phase:
 | Knob | Default | Where to change |
 |---|---|---|
 | Max upload size | `10 * 1024 * 1024` (10 MB) | `MAX_BYTES` constant at `client/ar-loop-app.client.js:77`. Files above the cap are rejected with a status message and the pill moves to `error`. |
-| Recording duration | `5000` ms | The `setTimeout(..., 5000)` in `startRecording()` at line 201 — and the same value in the cancel path inside `reset()`. The button label reads "Record 5s"; if you change the value, update the button label too. |
+| Recording duration | `5000` ms | The `setTimeout(..., 5000)` at the end of `startRecording()` at `client/ar-loop-app.client.js:201-205` stops the recorder after 5s. The button label reads "Record 5s"; if you change the value, update the button label too. `reset()` calls `STATE.mediaRecorder.stop()` directly without a timeout — stopping is immediate when the user clicks Reset. |
 | Recording bitrate | `4_000_000` bps | `videoBitsPerSecond` argument to `new MediaRecorder(...)` at line 158. |
 | Capture framerate | `30` fps | `scene.captureStream(30)` at line 148. |
 | Plane rotation speed | `4000` ms / full revolution | `animation="...dur: 4000..."` attribute on `<a-plane>` in `engine-ar-loop.html`. |
 | Plane distance | `-2` m on Z | `position="0 0 -2"` on `<a-plane>`. |
 | Plane size | `1.5` m base height | `baseHeight = 1.5` in the controller's `img.onload`. Width auto-fits to the image aspect ratio. |
-| MIME fallback chain | VP9 → VP8 → WebM → MP4 → default | `pickMimeType()` at lines 121-132 — add your preferred codec here. |
+| MIME fallback chain | VP9 → VP8 → WebM → MP4 → default | `pickMimeType()` at lines 121-133 — add your preferred codec here. |
 | Accepted file types | gif, png, jpeg, webp | The `accept` attribute on `<input id="fileInput">`. |
 
 ## 7. Browser support matrix
