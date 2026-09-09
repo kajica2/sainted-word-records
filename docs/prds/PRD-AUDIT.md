@@ -110,10 +110,10 @@ Each PRD gets one row with:
 
 ### PRD-010: PRINT & STILL FRAME — Phase 8
 
-- **Verdict**: `Re-spec` (very small)
-- **Status**: Frame-grab function is a one-liner: `canvas.toDataURL('image/png')` → download anchor click. Hero frame suggestion (energy + contrast + composition) is novel but small. Print export at 300 DPI is `canvas.toBlob(...)` with 4× pixel ratio scaling.
-- **Effort**: `S`
-- **Notes**: Could ship as a single button on `versions/music_video.html` + a tiny utility script.
+- **Verdict**: `Re-spec` → **partial ship** (PR #42)
+- **Status**: Hero frame capture shipped (PR #42, `c8e14c4`). `SWR_HERO_FRAMES` global on `music_video.html` samples at 4 fps into a 12-frame ring buffer (last 3 s), analyzes for energy + contrast + composition, and surfaces the 3 best via `best(3)`. Footer `Hero` button toggles; auto-starts on play, auto-stops on pause. Hero panel shows 3 clickable thumbnails; click downloads full-resolution PNG.
+- **Effort**: `S` (shipped) + `L` (print export follow-up)
+- **Notes**: Print export at 300 DPI (PRD-010 §10.2.3) is **explicitly out of scope** — would require OffscreenCanvas + WebCodecs streaming to render at ~7200×10800 without OOM. Print-safe adjustments (§10.2.4 saturation/bleed/trim lines) also out of scope. Both punt to a future PR.
 
 ### PRD-011: MOOD BOARD & REFERENCE — Phase 9
 

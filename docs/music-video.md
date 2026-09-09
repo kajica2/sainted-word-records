@@ -219,6 +219,31 @@ of the form `body[data-fit="on"] canvas { object-fit: cover; }`
 apply. Footer has a `Fit` button; keyboard `F` (no shift) toggles.
 Shift+F remains the existing browser-fullscreen shortcut.
 
+### `window.SWR_HERO_FRAMES` — `versions/music_video.html` (IIFE side-effect)
+
+Hero frame capture (PR #42, partial implementation of PRD-010).
+While audio plays, samples the `#render` canvas at 4 fps into a
+12-frame ring buffer (last 3 seconds). Each frame is analyzed for
+energy (sum of audio features), contrast (luminance variance on a
+32×32 downsample), and composition (centroid of bright pixels vs.
+canvas center). `best(3)` ranks frames by `score = energy*0.4 +
+contrast*0.4 + comp*0.2` and returns the top 3 by timestamp.
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `start()` | `void` | Starts the 4-fps sampler (auto-called on `A.play`). |
+| `stop()` | `void` | Stops the sampler (auto-called on `A.pause`). |
+| `best(n=3)` | `Frame[]` | Top-n frames sorted by timestamp. |
+| `captureNow()` | `boolean` | Immediate single-frame capture, downloads as PNG. |
+| `downloadFrame(entry)` | `boolean` | Re-captures at full resolution (not the buffer thumbnail) and downloads. |
+| `buffer` | `Frame[]` | Read-only ring of `{dataURL, energy, contrast, comp, t}`. |
+
+Footer `Hero` button toggles the sampler manually. The hero panel
+opens automatically on pause, showing 3 clickable thumbnails.
+Clicking a thumbnail downloads it as PNG. Print export at 300 DPI
+(PRD-010 §10.2.3) is out of scope — would require OffscreenCanvas +
+WebCodecs streaming to render at ~7200×10800 without OOM.
+
 ## 4. Keyboard map
 
 | Key | Action | Source |
@@ -502,6 +527,20 @@ unless marked `**Deferred**`.
   semantics as the per-layer `cover` flag (PR #28) but at the
   canvas level. 2 new smoke assertions (61 total). `Shift+F`
   remains the browser-fullscreen shortcut.
+- **PR #42 — hero frame capture (PRD-010 partial).** `window
+  .SWR_HERO_FRAMES` samples the `#render` canvas at 4 fps into a
+  12-frame ring buffer (last 3 s), analyzes each frame for
+  energy + contrast + composition, and surfaces the 3 best
+  via `best(3)`. Footer `Hero` button toggles the sampler
+  manually; auto-start/stop hooks into `A.play` / `A.pause`.
+  Hero panel shows 3 clickable thumbnails; click downloads
+  full-resolution PNG. Sampler captures at 32×32 downsample
+  (small thumbnail PNG) and `downloadFrame()` re-captures at
+  full resolution on click to avoid ~60 MB memory pressure.
+  1 new smoke assertion (62 total). Print export at 300 DPI
+  (PRD-010 §10.2.3) is explicitly **out of scope** — would
+  require OffscreenCanvas + WebCodecs streaming to render at
+  ~7200×10800 without OOM.
 
 ### Deferred
 
@@ -541,8 +580,10 @@ unless marked `**Deferred**`.
 - **PR #32** — smooth clip transitions + fade on layer clear (SWR_TIMING.crossfade + reset({fadeMs}))
 - **PR #34** — extend mirror script with F1/F2 patches (smooth transitions future-proofing)
 - **PR #36** — fit-to-screen toggle (SWR_FIT + F key + canvas object-fit: cover)
+- **PR #42** — hero frame capture (SWR_HERO_FRAMES + ring buffer + best(3) ranking)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
+- **`.hermes/plans/2026-09-09_005000-hero-frame-capture.md`** — the hero frame plan (now shipped as PR #42, partial — print export at 300 DPI punted to a follow-up)
 - **`.hermes/plans/2026-09-08_163000-layer-cover-toggle.md`** — the per-layer cover toggle plan (now shipped as PR #28)
 - **`.hermes/plans/2026-09-08_183000-self-evolving-automixer.md`** — the plan that produced PR #9
 - **`docs/CROSS-APP-BRIDGE.md`** — how music_video relates to swr-app, make-video, marketplace
