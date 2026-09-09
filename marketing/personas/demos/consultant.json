@@ -1,0 +1,24 @@
+{
+  "id": "consultant",
+  "label": "The Consultant",
+  "mode": "broker",
+  "tagline": "A shareable artifact safe to forward in a high-stakes room.",
+  "cluster_explainer": "The Broker cluster positions the engine for other people — the deliverable is a forwarded URL, not a pitch.",
+  "preset": "style-broadcast",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "smooth",
+    "smooth_factor": 0.7
+  },
+  "primitive": "cube",
+  "color": "#2F4858",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Broadcast preset reads as 'serious' — no flashy shader noise that could embarrass a screen-share in front of a CFO.",
+    "Cube primitive signals stability and professionalism; it holds its geometry under reactive load.",
+    "Mid-band dominance + smooth envelope keeps the artifact legible while a client track plays — nothing strobes for attention.",
+    "Muted slate-blue palette refuses to look like a SaaS pitch, matching the brief: 'impossible to misread as a sales pitch.'",
+    "90s loop is long enough to let a meeting breathe without requiring a presenter to keep narrating."
+  ],
+  "cluster": "broker"
+}

@@ -1,0 +1,24 @@
+{
+  "id": "storyteller",
+  "label": "The Storyteller",
+  "mode": "cross",
+  "tagline": "An engine that lets a storyteller hear their own pacing without a mirror.",
+  "cluster_explainer": "The Storyteller spans auditor and practitioner — they read the engine as a diagnostic breath under a telling and refuse any tool that would impose a story-shaped template.",
+  "preset": "style-hallucination",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "smooth",
+    "smooth_factor": 0.7
+  },
+  "primitive": "icosahedron",
+  "color": "#c2185b",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Icosahedron's 20 faces read as nested beats — a visible top-of-arc and a visible resolution, all in one object the eye can hold.",
+    "Mid-band coupling tracks the vocal chest where story tension lives, not the kick drum or the cymbal wash.",
+    "Hallucination preset holds a narrative palette: dramatic without becoming illustration — the listener still hears the teller.",
+    "Smooth envelope (0.7) makes the engine follow a storyteller's breath-in / breath-out pacing rather than snapping to transient hits.",
+    "Long loop (90s) lets one telling breathe end-to-end; the engine waits for the arc instead of resetting the room every chorus."
+  ],
+  "cluster": "cross"
+}

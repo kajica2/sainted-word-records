@@ -73,6 +73,8 @@ function copyStatic() {
     'engine-automap.client.js',
     'engine-settings.client.js',
     'persona-onboarding.js',
+    'persona-runtime.client.js',
+    'persona-demo.html',
     'engine-keys.client.js',
     'engine-layout.client.js',
     'project.client.js',
@@ -200,6 +202,10 @@ function copyStatic() {
     // marketplace.html page fetches them by relative path, so they must
     // be at marketplace/curated/<file>.swr-set.json in dist.
     { src: 'marketplace', dst: 'marketplace' },
+    // marketing/personas/demos/<id>.json — per-persona engine config the
+    // persona-runtime.client.js fetches at /personas/:id. See persona-demo.html
+    // for the schema; cluster/mode + preset/primitive/color/reactor.
+    { src: 'marketing', dst: 'marketing' },
     // audios/ ships per-engine demo MP3s (one ~250KB file per engine,
     // ~4 MB total). Each engine auto-loads ../audios/<engine>.mp3 as the
     // default audio source so the reactivity has something to drive.

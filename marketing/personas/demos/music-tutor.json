@@ -1,0 +1,23 @@
+{
+  "id": "music-tutor",
+  "label": "The Music Tutor",
+  "mode": "practitioner",
+  "tagline": "Visuals as a second voice in a lesson, not a second screen",
+  "cluster_explainer": "Practitioners read the engine for what it does to attention over time, with zero tolerance for popups or nudges.",
+  "preset": "style-film",
+  "reactor": {
+    "dominant_band": "bass",
+    "envelope": "hold",
+    "smooth_factor": 0.6
+  },
+  "primitive": "sphere",
+  "color": "#c9a96a",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Mirrors the student's playing back as motion so phrasing becomes visible, not just audible",
+    "Bass-band reactance keeps the engine locked to pulse and accent — the rhythmic skeleton a tutor teaches from",
+    "Hold envelope sustains each gesture so a phrase reads as one breath, matching how a tutor counts in measures",
+    "Film preset gives cinematic weight to a single instrument without scoring or gimmicks"
+  ],
+  "cluster": "practitioner"
+}

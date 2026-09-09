@@ -73,6 +73,14 @@
       "destination": "/personas.html"
     },
     {
+      "source": "/personas/:id",
+      "destination": "/persona-demo.html?id=:id"
+    },
+    {
+      "source": "/personas/:id/",
+      "destination": "/persona-demo.html?id=:id"
+    },
+    {
       "source": "/thanks",
       "destination": "/thanks.html"
     },

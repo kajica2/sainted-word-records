@@ -1,0 +1,24 @@
+{
+  "id": "designer",
+  "label": "The Designer",
+  "mode": "auditor",
+  "tagline": "A wireframe that lets you read the seams between intent and artifact.",
+  "cluster_explainer": "The Auditor cluster wants the engine to remain unfinished and legible — it leaves forever the moment the seams are hidden.",
+  "preset": "style-grid",
+  "reactor": {
+    "dominant_band": "treble",
+    "envelope": "step",
+    "smooth_factor": 0.4
+  },
+  "primitive": "icosahedron",
+  "color": "#ff3d92",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Grid preset lays bare the underlying coordinate system — every line is a token a designer can point at and audit",
+    "Icosahedron exposes its facets: edges read like type cuts, so a designer can critique geometry the way they would a typeface",
+    "Treble-dominant reactor highlights the fine edges and transient hits where design decisions are most legible",
+    "Step envelope forces clear ON/OFF state transitions — the seams between idle and reactive states are visible, not smoothed away",
+    "No shader blur, no bloom: the demo is a wireframe of the engine itself, exactly the rough-edge tolerance the designer typology demands"
+  ],
+  "cluster": "auditor"
+}

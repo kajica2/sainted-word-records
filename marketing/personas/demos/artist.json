@@ -1,0 +1,24 @@
+{
+  "id": "artist",
+  "label": "The Artist",
+  "mode": "cross",
+  "tagline": "A loop that allows the artifact to be wrong, for a while.",
+  "cluster_explainer": "The Artist uses the engine as a place where the work is allowed to be unfinished — the loop is the room where the next attempt is tried without committing it to a viewer.",
+  "preset": "style-smoke",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "smooth",
+    "smooth_factor": 0.6
+  },
+  "primitive": "torus",
+  "color": "#e76f51",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Torus reads as continuous flow — the artifact is allowed to return to itself, revised, before it ever has to be final",
+    "Smoke preset favors the unresolved — every frame is allowed to look like a draft the artist hasn't signed yet",
+    "Mid-band reactance tracks the body of the take where the artistic center lives, not the transient hits that would turn the demo into a music video",
+    "Smooth envelope (0.6) lets a fragment of the work sit unfinished for a while — the engine waits for the next attempt rather than committing the previous one",
+    "No 'final' preset, no 'mastered' frame: the loop is a workshop, not a stage"
+  ],
+  "cluster": "cross"
+}

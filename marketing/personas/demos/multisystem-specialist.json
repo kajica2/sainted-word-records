@@ -1,0 +1,24 @@
+{
+  "id": "multisystem-specialist",
+  "label": "The Multisystem Specialist",
+  "mode": "auditor",
+  "tagline": "A stable cube on a visible grid — the engine as small instance of a pattern.",
+  "cluster_explainer": "The Auditor cluster wants the engine to remain unfinished and legible — it leaves forever the moment the seams are hidden.",
+  "preset": "style-grid",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "hold",
+    "smooth_factor": 0.4
+  },
+  "primitive": "cube",
+  "color": "#3a7d8c",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Cube is the most general primitive — no domain-specific curves, legible as 'shape' rather than as 'music' or 'video'",
+    "Grid preset keeps the coordinate system visible so the architecture can be mapped onto any other cross-domain pattern",
+    "Mid-band reactance tracks the body of the signal where cross-domain translation actually happens — not the extremes",
+    "Hold envelope preserves state across reconfigurations: switching versions shows what changes and what does not, the seams between modules stay visible",
+    "Muted teal refuses to look like a music tool — the demo reads as a small instance of a larger pattern, which is exactly what the typology wants to map"
+  ],
+  "cluster": "auditor"
+}

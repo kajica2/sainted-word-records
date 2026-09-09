@@ -1,0 +1,24 @@
+{
+  "id": "human-spirit",
+  "label": "The Human Spirit",
+  "mode": "cross",
+  "tagline": "A small room where the inexpressible can sit, undisturbed.",
+  "cluster_explainer": "The Human-Spirit is the engine at its most restrained — a practitioner-as-quiet-room, judged entirely by what the engine does not do.",
+  "preset": "style-film",
+  "reactor": {
+    "dominant_band": "bass",
+    "envelope": "smooth",
+    "smooth_factor": 0.95
+  },
+  "primitive": "sphere",
+  "color": "#4a4339",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Sphere is the lowest-detail primitive available — the engine offers nothing for the eye to do except be present.",
+    "Bass-band coupling reads the body register, the chest, the room tone — the part of a recording that survives transcription.",
+    "Film preset honors grain and patience; it does not smooth the silence between two notes, it lets the silence keep its shape.",
+    "smooth_factor 0.95 absorbs transients before they become movement — the visual breathes, it never twitches.",
+    "Long idle is itself part of the demo: pauses must read as silence, and the engine must not add anything to the room."
+  ],
+  "cluster": "cross"
+}
