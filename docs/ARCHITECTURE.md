@@ -344,6 +344,18 @@ plus the persistence and recorder modules. Has the
 `/versions/music_video.html` route mounted inline as a PWA
 deep-link. 5-tab sidebar (Presets / Layers / Media / Brand / Social).
 
+**Brand Kit wiring** (PR #57): the SPA loads `brandkit.client.js`
++ `brandkit.css` and exposes the `SWR_Brandkit` API on the global.
+Header shows the brandkit chip; clicking opens the 4-card editor
+(Cover / Logo / Colors / Typography). Profile persists to
+`localStorage["swr.profile"]`. The Brand tab in the sidebar
+exposes the same `SWR_Brandkit.openBrandkitPanel()` for a
+full-screen editor. Brand CSS variables (palette + Google Font
+`<link>`) are injected on `:root` via `applyBrandkit()` and
+cascade through every brandkit-aware component. Same wiring
+ships on `engine.html` (legacy) and `versions/music_video.html`
+(PR #57).
+
 ### 6.3 `engine.html` — the legacy page
 
 The pre-SPA engine. Still served at `/engine` via Vercel rewrite
