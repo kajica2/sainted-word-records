@@ -64,6 +64,7 @@ function copyStatic() {
     'versions-presets.js',
     'engine-genops.client.js',
     'engine-render.client.js',
+    'engine-core.client.js',
     'engine-timing.client.js',
     'engine-timing-panel.client.js',
     'engine-lfos.client.js',
@@ -101,6 +102,11 @@ function copyStatic() {
     'brandkit.client.js',
     'camera.client.js',
     'fx-postprocess.js',
+    'engine-transitions.client.js',
+    'reel-player.client.js',
+    'nav.client.js',
+    'fx-background.client.js',
+    'engine-3d.client.js',
     'media-sets.client.js',
     'mic-input.client.js',
     'personas.js',
@@ -109,6 +115,8 @@ function copyStatic() {
     'timeline.client.js',
     'trim.client.js',
     'wizard.js',
+    'engine-ar-loop.html',
+    'client/ar-loop-app.client.js',
     'icons/apple-touch-icon-180.png',
     'manifest.webmanifest',
     'sw.js',
@@ -163,6 +171,8 @@ function copyStatic() {
     'intro.html',
     'swr-app.html',
     'share-view.html',
+    'video_single.html',
+    'enhance.html',
   ];
   // Build a curated copy of library/: only ship the files the boot manifest
   // references, plus the manifest itself. The full library/ has ~58MB of
@@ -214,6 +224,10 @@ function copyStatic() {
     // Engine pages reference /client/visualizer-controller.js (and possibly
     // other shared client scripts added later). Ship the whole directory.
     { src: 'client', dst: 'client' },
+    // Reel timelines — JSON scripts the engine + video_single.html can
+    // autoplay to demo storyboard sequences. Loaded via fetch at runtime
+    // (no build step). Pair with the timeline player in video_single.html.
+    { src: 'reels', dst: 'reels' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',
