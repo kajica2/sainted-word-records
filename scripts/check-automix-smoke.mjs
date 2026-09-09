@@ -1321,6 +1321,69 @@ if (edlClick.ok && !edlClick.threw && typeof edlClick.statusText === 'string')
   ok('Edit Data button click handler runs without throwing');
 else bad('Edit Data button click', JSON.stringify(edlClick));
 
+// 65. SWR_REVIEW exists and exportReview is a function. The watermark
+//     global starts unset (live preview is unwatermarked) — confirmed
+//     here so the click-assertion below can observe the transition.
+const reviewShape = await page.evaluate(() => ({
+  ok: typeof window.SWR_REVIEW === 'object' && window.SWR_REVIEW !== null,
+  hasExport: window.SWR_REVIEW && typeof window.SWR_REVIEW.exportReview === 'function',
+  watermarkUnset: typeof window.__SWR_REVIEW_WATERMARK === 'undefined' || window.__SWR_REVIEW_WATERMARK === null,
+}));
+if (reviewShape.ok && reviewShape.hasExport && reviewShape.watermarkUnset)
+  ok('SWR_REVIEW API exists with exportReview; watermark starts unset');
+else bad('SWR_REVIEW', JSON.stringify(reviewShape));
+
+// 66. Click the Review button — verify it kicks off a recording. We
+//     can't run a full recording in the smoke (no real audio, no
+//     MediaRecorder), so we stub SWR_RECORDER.start to immediately
+//     resolve with a minimal state shape and observe that the click
+//     handler set the watermark global before calling start.
+const reviewClick = await page.evaluate(async () => {
+  const orig = window.SWR_RECORDER && window.SWR_RECORDER.start;
+  if (!orig) return { ok: false, reason: 'no SWR_RECORDER' };
+  let started = false;
+  let watermarkAtStart = undefined;
+  window.SWR_RECORDER.start = function () {
+    watermarkAtStart = window.__SWR_REVIEW_WATERMARK;
+    started = true;
+    return { promise: Promise.resolve(), videoFrames: 0, errored: false, mime: 'video/mp4' };
+  };
+  // Stub SWR_RECORDER.stop to immediately resolve with a tiny blob.
+  const origStop = window.SWR_RECORDER.stop;
+  window.SWR_RECORDER.stop = function () { return Promise.resolve({ blob: new Blob([new Uint8Array([0,1,2,3])], { type: 'video/mp4' }), videoFrames: 1, mime: 'video/mp4' }); };
+  // Stub SWR_REVIEW.exportReview's song/audio guards by faking window.A.
+  // The real click handler invokes SWR_REVIEW.exportReview() which checks
+  // window.A and bails if no song. Pre-set a stub so the click reaches the
+  // recorder call.
+  const origA = window.A;
+  window.A = {
+    ctx: { sampleRate: 44100 },
+    src: { context: { createAnalyser: () => ({ connect: () => {} }), sampleRate: 44100 } },
+    el: { src: 'blob:test', duration: 1, currentTime: 0 },
+  };
+  // Stub SWR_LAST_SONG so reviewReadSongName() returns a stable name.
+  const origSLS = window.SWR_LAST_SONG;
+  window.SWR_LAST_SONG = { name: 'smoke-song.mp3' };
+  const btn = document.getElementById('review-btn');
+  if (!btn) return { ok: false, reason: 'no review-btn' };
+  let threw = false;
+  try { btn.click(); } catch (e) { threw = true; }
+  // Wait for the async click handler to reach the recorder stub + clear
+  // the watermark at the end (it clears in the .finally path).
+  await new Promise(r => setTimeout(r, 250));
+  // Restore.
+  window.SWR_RECORDER.start = orig;
+  if (origStop) window.SWR_RECORDER.stop = origStop;
+  window.A = origA;
+  window.SWR_LAST_SONG = origSLS;
+  // Best-effort: clear watermark in case the export path is still pending.
+  try { window.__SWR_REVIEW_WATERMARK = null; } catch (_) {}
+  return { ok: true, threw, started, watermarkAtStart };
+});
+if (reviewClick.ok && !reviewClick.threw && reviewClick.started && typeof reviewClick.watermarkAtStart === 'string')
+  ok('Review button click sets the watermark before recording');
+else bad('Review click', JSON.stringify(reviewClick));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));

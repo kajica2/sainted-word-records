@@ -404,6 +404,7 @@
       <span class="gc"><button class="tbtn" id="fit-btn" title="Fit to screen (F)" style="padding:3px 8px;font-size:9px;">Fit</button></span>
       <span class="gc"><button class="tbtn" id="hero-btn" title="Hero frame capture (last 3s buffer, suggests 3 best frames)" style="padding:3px 8px;font-size:9px;">Hero</button></span>
       <span class="gc"><button class="tbtn" id="edit-data-btn" title="Download edit data (BPM/key/onsets JSON)" style="padding:3px 8px;font-size:9px;">Edit Data</button></span>
+      <span class="gc"><button class="tbtn" id="review-btn" title="Export watermarked preview + client review page" style="padding:3px 8px;font-size:9px;">Review</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -673,6 +674,12 @@
     const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t, cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
+
+    // Expose the audio context wrapper so SWR_REVIEW can read A.el.duration
+    // for the recording window and tap A.src (MediaElementAudioSourceNode) as
+    // the recorder's audioSource. Keeps the rest of the audio pipeline local
+    // to this IIFE — only the surface needed by cross-module exports.
+    window.A = A;
 
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
@@ -1268,6 +1275,30 @@
         ctx.restore();
       }
     }
+    // Burn-in watermark for client-review exports. Reads
+    // window.__SWR_REVIEW_WATERMARK each frame; the SWR_REVIEW
+    // export sets it before calling SWR_RECORDER.start() and
+    // clears it after the recording finishes. When set, paints
+    // the text at the canvas center with a contrasting stroke
+    // so it survives any underlying composition. Cheap enough
+    // to run every frame (~1-2ms of font rasterization).
+    function drawWatermark() {
+      const text = window.__SWR_REVIEW_WATERMARK;
+      if (!text) return;
+      const opacity = (typeof window.__SWR_REVIEW_WATERMARK_OPACITY === 'number')
+        ? window.__SWR_REVIEW_WATERMARK_OPACITY : 0.25;
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = Math.max(2, W / 400);
+      ctx.font = `bold ${Math.round(H / 24)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeText(text, W / 2, H / 2);
+      ctx.fillText(text, W / 2, H / 2);
+      ctx.restore();
+    }
     function drawMeter() {
       const m = meter; const w = m.canvas.width, h = m.canvas.height;
       m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
@@ -1293,7 +1324,7 @@
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
-      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawWatermark, drawMeter] });
       $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
       requestAnimationFrame(loop);
     }
@@ -2089,6 +2120,226 @@
       },
     };
 
+    // ---- SWR_REVIEW ----------------------------------------------------
+    // Client-review export (PRD-009 §9.2). Records a watermarked preview
+    // MP4 at 1 Mbps and pairs it with a self-contained HTML review page
+    // that has click-to-comment pins (persisted to localStorage per
+    // browser). The artist sends both files to the client; the client
+    // opens the HTML, watches the watermarked video, drops comment pins,
+    // and the artist reads the pins locally.
+    //
+    // Watermark is burned into the canvas via window.__SWR_REVIEW_WATERMARK
+    // — the drawWatermark() hook in the render loop paints it each frame
+    // while the recorder's captureStream() snapshots the canvas. Cleared
+    // after recording so the live preview is unaffected.
+
+    function reviewDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function reviewFilenameForSong(songName) {
+      const base = (songName || 'review').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_\-]+/g, '_');
+      return base || 'review';
+    }
+
+    function reviewGeneratePage(videoBlob, metadata) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const songName = String(metadata.song || 'untitled').replace(/[<>&"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
+          const date = String(metadata.date || '');
+          const preset = String(metadata.preset || '');
+          const watermark = String(metadata.watermark || 'PREVIEW — NOT FOR DISTRIBUTION').replace(/[<>&"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
+          const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SWR Review — ${songName}</title>
+  <style>
+    body { margin:0; background:#0a0d12; color:#fff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding:20px; }
+    .header { text-align:center; margin-bottom:20px; }
+    .header h1 { font-size:18px; margin:0 0 8px; font-weight:600; }
+    .header .meta { color:#888; font-size:12px; }
+    .watermark-notice { background:#ff0050; color:#fff; padding:6px 12px; border-radius:4px; font-size:11px; display:inline-block; margin-top:8px; letter-spacing:0.04em; text-transform:uppercase; }
+    .stage { position:relative; max-width:960px; margin:0 auto; }
+    video { width:100%; max-width:960px; display:block; border-radius:8px; background:#000; }
+    .pin { position:absolute; width:18px; height:18px; background:#6366f1; border-radius:50%; cursor:pointer; transform:translate(-50%,-50%); box-shadow:0 0 0 2px rgba(0,0,0,0.5); }
+    .pin:hover, .pin:focus { background:#818cf8; outline:none; }
+    .comment { display:none; position:absolute; left:24px; top:-8px; background:#1a1e28; color:#fff; padding:10px; border-radius:8px; width:240px; font-size:13px; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.5); }
+    .pin:hover .comment, .pin:focus .comment { display:block; }
+    .comment .ts { color:#888; font-size:11px; margin-bottom:4px; }
+    .footer { text-align:center; color:#666; font-size:11px; margin-top:24px; line-height:1.5; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${songName}</h1>
+    <div class="meta">${date}${preset ? ' · ' + preset : ''}</div>
+    <div class="watermark-notice">${watermark}</div>
+  </div>
+  <div class="stage" id="stage">
+    <video src="${reader.result}" controls id="video" preload="metadata"></video>
+  </div>
+  <div class="footer">Click anywhere on the video to drop a comment pin. Comments are saved to this browser only.</div>
+  <script>
+    var pins = [];
+    var pinId = 0;
+    var STORAGE_KEY = 'swr.review.pins.' + (location.pathname.split('/').pop() || 'review');
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) { pins = JSON.parse(saved); pins.forEach(addPinToDom); }
+    } catch (_) {}
+
+    var video = document.getElementById('video');
+    var stage = document.getElementById('stage');
+    video.addEventListener('click', function (e) {
+      // Don't add a pin if the click landed on an existing pin.
+      if (e.target.classList && (e.target.classList.contains('pin') || e.target.closest('.pin'))) return;
+      var rect = video.getBoundingClientRect();
+      var x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+      var y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+      var note = prompt('Comment (this browser only):');
+      if (note && note.trim()) {
+        var pin = { id: ++pinId, x: x, y: y, note: note.trim(), t: Math.floor(video.currentTime * 1000) };
+        pins.push(pin);
+        savePins();
+        addPinToDom(pin);
+      }
+    });
+
+    function addPinToDom(pin) {
+      var div = document.createElement('div');
+      div.className = 'pin';
+      div.style.left = pin.x + '%';
+      div.style.top = pin.y + '%';
+      div.tabIndex = 0;
+      var comment = document.createElement('div');
+      comment.className = 'comment';
+      var at = formatTime(pin.t || 0);
+      comment.innerHTML = '<div class="ts"><b>' + at + '</b></div><div>' + escapeHtml(pin.note) + '</div>';
+      div.appendChild(comment);
+      stage.appendChild(div);
+    }
+
+    function savePins() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pins)); } catch (_) {}
+    }
+
+    function formatTime(ms) {
+      var s = Math.floor(ms / 1000);
+      var m = Math.floor(s / 60);
+      return m + ':' + ('00' + (s % 60)).slice(-2);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>`;
+          resolve(html);
+        };
+        reader.onerror = () => reject(new Error('FileReader failed'));
+        reader.readAsDataURL(videoBlob);
+      });
+    }
+
+    function reviewReadSongName() {
+      // Prefer the IDB-persisted last song name (human-readable); fall
+      // back to the live <audio> element's blob: URL basename; finally
+      // to 'review'.
+      try {
+        const song = window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function'
+          ? null
+          : window.SWR_LAST_SONG;
+        if (song && song.name) return song.name;
+      } catch (_) {}
+      try {
+        if (window.A && window.A.el && window.A.el.src) {
+          const parts = window.A.el.src.split('/').pop().split('?')[0];
+          if (parts && parts.length) return decodeURIComponent(parts) || 'review';
+        }
+      } catch (_) {}
+      return 'review';
+    }
+
+    window.SWR_REVIEW = {
+      async exportReview(filename) {
+        if (!window.SWR_RECORDER || typeof window.SWR_RECORDER.start !== 'function') {
+          setStatus('recorder not loaded', 'err');
+          return false;
+        }
+        const stage = document.getElementById('render');
+        if (!stage) { setStatus('no render canvas', 'err'); return false; }
+        if (!window.A || !window.A.src || !window.A.el || !isFinite(window.A.el.duration) || window.A.el.duration <= 0) {
+          setStatus('load a song first', 'err');
+          return false;
+        }
+
+        const songName = reviewReadSongName();
+        const baseName = filename || reviewFilenameForSong(songName);
+
+        // 1. Set the watermark.
+        window.__SWR_REVIEW_WATERMARK = 'PREVIEW — NOT FOR DISTRIBUTION';
+
+        // 2. Start the recorder at 1 Mbps (PRD-009 §9.2.1).
+        setStatus('recording preview at 1 Mbps…', 'ok');
+        const pending = window.SWR_RECORDER.start({
+          canvas: stage,
+          audioSource: window.A.src,
+          audioSampleRate: window.A.ctx ? window.A.ctx.sampleRate : 44100,
+          audioNumberOfChannels: 2,
+          width: stage.width,
+          height: stage.height,
+          fps: 30,
+          videoBitsPerSecond: 1_000_000,
+        });
+
+        // 3. Record for the remainder of the song.
+        const remainingMs = Math.max(0, (window.A.el.duration - (window.A.el.currentTime || 0)) * 1000);
+        await new Promise(r => setTimeout(r, remainingMs));
+        const result = await window.SWR_RECORDER.stop();
+        window.__SWR_REVIEW_WATERMARK = null;
+        if (!result || !result.blob) {
+          setStatus('no recording produced', 'err');
+          return false;
+        }
+        setStatus('recorded ' + Math.round(result.blob.size / 1024) + ' KB', 'ok');
+
+        // 4. Generate the review HTML.
+        const metadata = {
+          song: songName,
+          date: new Date().toISOString().slice(0, 10),
+          preset: (window.MVM_PRESET && window.MVM_PRESET.name) || '',
+          watermark: 'PREVIEW — NOT FOR DISTRIBUTION',
+        };
+        let reviewHTML = '';
+        try {
+          reviewHTML = await reviewGeneratePage(result.blob, metadata);
+        } catch (e) {
+          setStatus('review page generation failed: ' + (e && e.message || e), 'err');
+          return false;
+        }
+
+        // 5. Download both files.
+        reviewDownloadBlob(result.blob, baseName + '.mp4');
+        setTimeout(() => reviewDownloadBlob(new Blob([reviewHTML], { type: 'text/html' }), baseName + '-review.html'), 500);
+        setStatus('downloaded ' + baseName + '.mp4 + review page', 'ok');
+
+        // Touch the pending so we don't lose it (recorder API contract).
+        try { await pending; } catch (_) {}
+        return true;
+      },
+    };
+
     // ---- Restore persisted layer state ---------------------------------
     // Load the previous Layers.list from localStorage (asset references
     // are stripped on save — they're Blob URLs that don't survive a
@@ -2251,7 +2502,17 @@
         const score = (e.energy * 0.4 + e.contrast * 0.4 + e.comp * 0.2).toFixed(2);
         img.title = `score=${score} | E=${e.energy.toFixed(2)} C=${e.contrast.toFixed(2)} cmp=${e.comp.toFixed(2)}`;
         img.addEventListener('click', () => {
-          if (window.SWR_HERO_FRAMES.downloadFrame(e)) setStatus('downloaded hero frame', 'ok');
+          if (window.SWR_HERO_FRAMES.downloadFrame(e)) {
+            setStatus('downloaded hero frame', 'ok');
+            // Auto-hide the hero panel 1.2s after a successful
+            // download so the user sees the status feedback but
+            // the panel doesn't linger. The Hero footer button
+            // re-shows it on next toggle.
+            setTimeout(() => {
+              const p = $('hero-panel');
+              if (p && p.style.display !== 'none') p.style.display = 'none';
+            }, 1200);
+          }
         });
         el.appendChild(img);
       }
@@ -2302,6 +2563,21 @@
       setStatus('analyzing audio…', 'ok');
       const ok = await window.SWR_EDIT_DATA.downloadEditData();
       if (!ok) setStatus('analysis failed', 'err');
+    });
+    // Footer "Review" → SWR_REVIEW.exportReview(). The recording runs for
+    // the remainder of the loaded song at 1 Mbps with the watermark
+    // burned in; the review HTML is generated and downloaded alongside
+    // the MP4. SWR_REVIEW guards against missing recorder / no song, so
+    // here we just hand off and surface the result in the status pill.
+    const _reviewBtn = document.getElementById('review-btn');
+    if (_reviewBtn) _reviewBtn.addEventListener('click', async () => {
+      if (!window.SWR_REVIEW || typeof window.SWR_REVIEW.exportReview !== 'function') {
+        setStatus('review module not loaded', 'err');
+        return;
+      }
+      setStatus('starting preview export…', 'ok');
+      const ok = await window.SWR_REVIEW.exportReview();
+      if (!ok) setStatus('review export failed', 'err');
     });
     // Auto-start/stop hooks on the existing audio play / pause methods.
     // Wrapping instead of duplicating keeps the original A.play / A.pause
