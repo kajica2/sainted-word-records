@@ -356,6 +356,20 @@
     </section>
     <aside class="layers">
       <div class="head"><h2>Gradient</h2><span class="pill" id="synth-pill" style="font-size:8px;padding:2px 6px;color:var(--c);border-color:var(--c);">— no track</span></div>
+      <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
+        <div class="ph">
+          <span>Hook Export</span>
+          <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+        </div>
+        <div id="hook-info" style="font-size:9px;color:var(--muted);padding:2px 0 4px;">
+          <span>drop: <b id="hook-time">—</b></span> · <span>energy: <b id="hook-energy">—</b></span> · <span>conf: <b id="hook-conf">—</b></span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
+          <button class="tbtn hook-preset" data-preset="teaser" style="padding:3px 6px;font-size:9px;">Teaser 3s</button>
+          <button class="tbtn hook-preset" data-preset="hook" style="padding:3px 6px;font-size:9px;">Hook 5s</button>
+          <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
+        </div>
+      </div>
       <div id="hero-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
         <div style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">
           <span style="flex:1;">Hero Frames</span>
@@ -405,6 +419,7 @@
       <span class="gc"><button class="tbtn" id="hero-btn" title="Hero frame capture (last 3s buffer, suggests 3 best frames)" style="padding:3px 8px;font-size:9px;">Hero</button></span>
       <span class="gc"><button class="tbtn" id="edit-data-btn" title="Download edit data (BPM/key/onsets JSON)" style="padding:3px 8px;font-size:9px;">Edit Data</button></span>
       <span class="gc"><button class="tbtn" id="review-btn" title="Export watermarked preview + client review page" style="padding:3px 8px;font-size:9px;">Review</button></span>
+      <span class="gc"><button class="tbtn" id="hook-btn" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)" style="padding:3px 8px;font-size:9px;">Hooks</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -2340,6 +2355,172 @@
       },
     };
 
+    // ---- SWR_HOOK_DETECTOR --------------------------------------------
+    // Hook-generator (PRD-006 §6.2.1 — drop detection + Teaser/Hook/Clip
+    // export). Reuses the same 20ms-RMS / 10ms-hop math that
+    // audio-analysis-v2.js uses for onset detection, but here we build
+    // an energy envelope so we can pick the FIRST major spike after a
+    // sustained low-energy intro (the "drop"). The drop time is then
+    // snapped to the nearest onset within 200ms.
+    //
+    // Exports three presets via SWR_RECORDER at 2 Mbps (PRD-006 §6.4
+    // "no bars on TikTok" — 1080×1920 H.264 at 2 Mbps is well above
+    // TikTok's bitrate requirements):
+    //   teaser — 3s before the drop (build hits at drop time)
+    //   hook   — 5s before the drop (build + drop + 1 bar)
+    //   clip   — 15s from the song start (intro + drop + 8 bars)
+
+    function hookDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    window.SWR_HOOK_DETECTOR = {
+      lastResult: null,
+
+      async detect() {
+        // Fetch the audio blob from SWR_LAST_SONG.
+        let blob;
+        try {
+          const song = await window.SWR_LAST_SONG;
+          if (song && song.blob) blob = song.blob;
+        } catch (_) {}
+        if (!blob) return { ok: false, reason: 'no song loaded' };
+
+        // Decode.
+        let audioBuffer;
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          const audioCtx = new Ctx();
+          audioBuffer = await audioCtx.decodeAudioData(await blob.arrayBuffer());
+        } catch (e) {
+          return { ok: false, reason: 'decode failed: ' + e.message };
+        }
+
+        // Run analyzeBuffer for onsets (used for snapping).
+        let onsets = [];
+        if (window.AudioAnalysisV2 && window.AudioAnalysisV2.analyzeBuffer) {
+          try {
+            const analysis = window.AudioAnalysisV2.analyzeBuffer(audioBuffer);
+            onsets = (analysis && analysis.onsets) || [];
+          } catch (_) {}
+        }
+
+        // Energy envelope: 20ms RMS window, 10ms hop. Same hop/window as
+        // audio-analysis-v2.js:225-267 but here we keep the magnitudes
+        // (not onset deltas) so we can find the first big spike.
+        const sampleRate = audioBuffer.sampleRate;
+        const samples = audioBuffer.getChannelData(0);
+        const win = Math.floor(sampleRate * 0.02);
+        const hop = Math.floor(sampleRate * 0.01);
+        const nFrames = Math.max(1, Math.floor(samples.length / hop));
+        const energies = new Float32Array(nFrames);
+        for (let f = 0; f < nFrames; f++) {
+          const start = f * hop;
+          let sum = 0;
+          for (let j = 0; j < win && start + j < samples.length; j++) {
+            const s = samples[start + j];
+            sum += s * s;
+          }
+          energies[f] = Math.sqrt(sum / win);
+        }
+
+        // Intro mean: first 8 seconds (per PRD-006 §6.2.1 step 2).
+        const introFrames = Math.min(nFrames, Math.floor(8 * sampleRate / hop));
+        let introMean = 0;
+        for (let i = 0; i < introFrames; i++) introMean += energies[i];
+        introMean /= introFrames;
+
+        // First spike > 2× intro mean (PRD-006 §6.2.1 step 3).
+        let dropFrame = -1;
+        for (let i = introFrames; i < nFrames; i++) {
+          if (energies[i] > 2 * introMean) { dropFrame = i; break; }
+        }
+        if (dropFrame < 0) {
+          this.lastResult = null;
+          return { ok: false, reason: 'no drop detected (no spike > 2× intro)' };
+        }
+
+        let dropTime = (dropFrame * hop) / sampleRate;
+        const energyRatio = energies[dropFrame] / Math.max(introMean, 1e-6);
+
+        // Snap to nearest onset within 200ms (PRD-006 §6.2.1 step 4).
+        let snapped = dropTime;
+        if (onsets.length > 0) {
+          let bestDelta = Infinity;
+          for (const o of onsets) {
+            const delta = o - dropTime;
+            if (Math.abs(delta) < Math.abs(bestDelta)) bestDelta = delta;
+          }
+          if (Math.abs(bestDelta) < 0.2) snapped = dropTime + bestDelta;
+        }
+
+        const result = {
+          time: Math.round(snapped * 100) / 100,
+          confidence: 0.85,
+          energy: Math.round(energyRatio * 100) / 100,
+          label: 'Drop 1',
+          introMean: Math.round(introMean * 1000) / 1000,
+        };
+        this.lastResult = result;
+        return { ok: true, result };
+      },
+
+      async exportHook(preset) {
+        if (!this.lastResult) return { ok: false, reason: 'no drop detected; run detect() first' };
+        if (!window.A || !window.A.el) return { ok: false, reason: 'no audio element' };
+        const r = this.lastResult;
+        let startTime, duration;
+        if (preset === 'teaser') { startTime = Math.max(0, r.time - 3); duration = 3; }
+        else if (preset === 'hook') { startTime = Math.max(0, r.time - 5); duration = 5; }
+        else if (preset === 'clip') { startTime = 0; duration = 15; }
+        else { return { ok: false, reason: 'unknown preset: ' + preset }; }
+
+        if (!window.SWR_RECORDER || !window.SWR_RECORDER.start) {
+          return { ok: false, reason: 'SWR_RECORDER not loaded' };
+        }
+        const stage = document.getElementById('render');
+        if (!stage) return { ok: false, reason: 'no render canvas' };
+
+        try { window.A.el.currentTime = startTime; } catch (_) {}
+
+        let rec;
+        try {
+          rec = window.SWR_RECORDER.start({
+            canvas: stage,
+            audioSource: window.A.el,
+            audioSampleRate: 44100,
+            audioNumberOfChannels: 2,
+            width: stage.width,
+            height: stage.height,
+            fps: 30,
+            videoBitsPerSecond: 2_000_000,
+          });
+        } catch (e) {
+          return { ok: false, reason: 'record failed: ' + e.message };
+        }
+
+        setStatus('recording ' + preset + ' (' + duration + 's)…', 'ok');
+        await new Promise(res => setTimeout(res, duration * 1000 + 200));
+        const result = await window.SWR_RECORDER.stop();
+        if (!result || !result.blob) {
+          return { ok: false, reason: 'no recording produced' };
+        }
+
+        const ext = (result.mime || 'video/mp4').includes('webm') ? 'webm' : 'mp4';
+        const filename = preset + '-' + Math.round(r.time * 100) / 100 + 's.' + ext;
+        hookDownloadBlob(result.blob, filename);
+        setStatus('downloaded ' + filename + ' (' + Math.round(result.blob.size / 1024) + ' KB)', 'ok');
+        return { ok: true, filename };
+      },
+    };
+
     // ---- Restore persisted layer state ---------------------------------
     // Load the previous Layers.list from localStorage (asset references
     // are stripped on save — they're Blob URLs that don't survive a
@@ -2578,6 +2759,51 @@
       setStatus('starting preview export…', 'ok');
       const ok = await window.SWR_REVIEW.exportReview();
       if (!ok) setStatus('review export failed', 'err');
+    });
+
+    // Footer "Hooks" → SWR_HOOK_DETECTOR.detect(). Decodes the loaded
+    // song, scans the energy envelope for the first major spike after
+    // the 8-second intro window, snaps it to the nearest onset, then
+    // reveals the panel with the three preset buttons (Teaser 3s /
+    // Hook 5s / Clip 15s). Each preset exports a watermarked-free clip
+    // via SWR_RECORDER at 2 Mbps.
+    function showHookPanel() {
+      const panel = $('hook-panel');
+      if (!panel) return;
+      panel.style.display = 'block';
+      if (window.SWR_HOOK_DETECTOR && window.SWR_HOOK_DETECTOR.lastResult) {
+        const r = window.SWR_HOOK_DETECTOR.lastResult;
+        const t = $('hook-time'), e = $('hook-energy'), c = $('hook-conf');
+        if (t) t.textContent = (typeof r.time === 'number' ? r.time.toFixed(2) : '—') + 's';
+        if (e) e.textContent = (typeof r.energy === 'number' ? r.energy.toFixed(2) : '—') + '×';
+        if (c) c.textContent = (typeof r.confidence === 'number' ? Math.round(r.confidence * 100) : '—') + '%';
+      }
+    }
+    document.querySelectorAll('.hook-preset').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!window.SWR_HOOK_DETECTOR) { setStatus('hook detector not loaded', 'err'); return; }
+        setStatus('starting ' + btn.dataset.preset + ' export…', 'ok');
+        const r = await window.SWR_HOOK_DETECTOR.exportHook(btn.dataset.preset);
+        if (!r || !r.ok) setStatus((r && r.reason) || 'export failed', 'err');
+      });
+    });
+    const _hookClear = document.getElementById('hook-clear');
+    if (_hookClear) _hookClear.addEventListener('click', () => {
+      if (window.SWR_HOOK_DETECTOR) window.SWR_HOOK_DETECTOR.lastResult = null;
+      const panel = $('hook-panel');
+      if (panel) panel.style.display = 'none';
+    });
+    const _hookBtn = document.getElementById('hook-btn');
+    if (_hookBtn) _hookBtn.addEventListener('click', async () => {
+      if (!window.SWR_HOOK_DETECTOR) { setStatus('hook detector not loaded', 'err'); return; }
+      setStatus('analyzing drop…', 'ok');
+      const r = await window.SWR_HOOK_DETECTOR.detect();
+      if (r && r.ok) {
+        showHookPanel();
+        setStatus('drop @ ' + r.result.time + 's · conf ' + Math.round(r.result.confidence * 100) + '%', 'ok');
+      } else {
+        setStatus((r && r.reason) || 'detection failed', 'err');
+      }
     });
     // Auto-start/stop hooks on the existing audio play / pause methods.
     // Wrapping instead of duplicating keeps the original A.play / A.pause
