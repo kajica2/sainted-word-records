@@ -33,3 +33,11 @@
 - **PRD-021** — see [PRD-021.md](./PRD-021.md)
 
 Each PRD is self-contained and may be implemented independently. The numbering reflects rough priority order (engine features in PRDs 002-011, platform UI in PRDs 012-021).
+
+## Audits
+
+PRDs are written without codebase context. Before implementing, check whether the PRD's premise matches reality:
+
+- **[PRD-002-AUDIT.md](./PRD-002-AUDIT.md)** — PRD-002 ("fix the stylesheet") is based on a wrong assumption. The actual stylesheets load fine; the proposed `setCanvasFormat` would conflict with `SWR_RENDER.fit()`; the proposed dark theme variables duplicate what's already in `swr-app.html`. **No work needed.**
+
+More audits pending as PRDs are reviewed.
