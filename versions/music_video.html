@@ -301,6 +301,7 @@
 <script src="../layer-scheduler.client.js"></script>
 <script src="../lib/reset-state.client.js"></script>
     <script src="../lib/recorder.client.js"></script>
+<script src="../audio-analysis-v2.js" defer></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 </head>
 <body data-page="neon">
@@ -402,6 +403,7 @@
       <span class="gc"><button class="tbtn" id="solo-btn" title="Solo one layer (Shift+S)" style="padding:3px 8px;font-size:9px;">Solo</button></span>
       <span class="gc"><button class="tbtn" id="fit-btn" title="Fit to screen (F)" style="padding:3px 8px;font-size:9px;">Fit</button></span>
       <span class="gc"><button class="tbtn" id="hero-btn" title="Hero frame capture (last 3s buffer, suggests 3 best frames)" style="padding:3px 8px;font-size:9px;">Hero</button></span>
+      <span class="gc"><button class="tbtn" id="edit-data-btn" title="Download edit data (BPM/key/onsets JSON)" style="padding:3px 8px;font-size:9px;">Edit Data</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -1950,6 +1952,143 @@
       },
     };
 
+    // ---- SWR_EDIT_DATA ----------------------------------------------------
+    // "Download Edit Data" button (PRD-005 partial). Runs
+    // AudioAnalysisV2.analyzeBuffer() on the currently loaded song and
+    // downloads the result as a swr-edl/1 JSON. Premiere Pro XML export
+    // (§5.2.2) is out of scope — see plan §5.2.2.
+    //
+    // Audio source priority: SWR_LAST_SONG (IDB-persisted blob) first,
+    // then A.el.src (the live <audio> element's blob URL). Both routes
+    // point at the same user-uploaded file in normal use.
+    function formatEDL(analysis, blob) {
+      const songName = blob && blob.name ? blob.name : 'untitled.mp3';
+      const duration = (analysis && analysis.duration) || 0;
+      const bpm = Math.round((analysis && analysis.bpm) || 0);
+      const key = (analysis && analysis.key) || 'C';
+      const scale = (analysis && analysis.scale) || 'major';
+      const onsets = (analysis && analysis.onsets) || [];
+      const confidence = (analysis && analysis.confidence) || 0.5;
+
+      // Classify onsets: first marker is a downbeat at t=0; subsequent
+      // onsets are labelled kick/snare/onset by inter-onset interval
+      // (short intervals at the beat grid are likely kick/snare hits).
+      const markers = [];
+      if (onsets.length > 0) {
+        markers.push({ time: 0.0, type: 'downbeat', label: '1.1', confidence: 1.0 });
+        const beatSec = bpm > 0 ? 60 / bpm : 0.5;
+        for (let i = 0; i < onsets.length; i++) {
+          const t = onsets[i];
+          const prev = i > 0 ? onsets[i - 1] : 0;
+          const interval = t - prev;
+          const c = Math.max(0, Math.min(1, confidence * (1 - interval / 2)));
+          let type = 'onset';
+          if (interval < beatSec * 1.5 && c > 0.6) type = 'kick';
+          else if (interval < beatSec * 1.0 && c > 0.5) type = 'snare';
+          markers.push({
+            time: Math.round(t * 1000) / 1000,
+            type,
+            label: '',
+            confidence: Math.round(c * 100) / 100,
+          });
+        }
+      }
+
+      // Phrase segmentation: simple heuristic — 16s intro, 32s build,
+      // 32s drop, rest is post-drop. Real phrase detection is out of
+      // scope (audio-analysis-v2 doesn't expose structural segmentation).
+      const phrases = [];
+      if (duration > 0) {
+        const i16 = Math.min(16, duration / 4);
+        const i32 = Math.min(32, duration / 3);
+        phrases.push({ start: 0, end: i16, type: 'intro' });
+        if (duration > 32) {
+          phrases.push({ start: i16, end: i16 + i32, type: 'build' });
+          phrases.push({ start: i16 + i32, end: i16 + i32 + i32, type: 'drop' });
+          if (i16 + i32 + i32 < duration) {
+            phrases.push({ start: i16 + i32 + i32, end: duration, type: 'post-drop' });
+          }
+        } else if (duration > i16) {
+          phrases.push({ start: i16, end: duration, type: 'post-intro' });
+        }
+      }
+
+      return {
+        version: 'swr-edl/1',
+        song: songName,
+        duration: Math.round(duration * 100) / 100,
+        bpm: bpm,
+        key: key + ' ' + scale,
+        timecode: '00:00:00:00',
+        markers: markers,
+        drops: [],
+        phrases: phrases,
+      };
+    }
+    window.SWR_EDIT_DATA = {
+      lastAnalysis: null,
+
+      async downloadEditData(filename) {
+        // 1. Get the audio blob.
+        let blob = null;
+        try {
+          const song = window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function'
+            ? await window.SWR_LAST_SONG
+            : window.SWR_LAST_SONG;
+          if (song && song.blob) blob = song.blob;
+        } catch (_) {}
+        if (!blob && window.A && window.A.el && window.A.el.src) {
+          try {
+            const r = await fetch(window.A.el.src);
+            blob = await r.blob();
+          } catch (_) {}
+        }
+        if (!blob) {
+          setStatus('no song loaded — drop a file first', 'err');
+          return false;
+        }
+
+        // 2. Decode to AudioBuffer.
+        let audioBuffer = null;
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) {
+            setStatus('AudioContext unavailable', 'err');
+            return false;
+          }
+          const audioCtx = new Ctx();
+          const arrayBuffer = await blob.arrayBuffer();
+          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        } catch (e) {
+          setStatus('decode failed: ' + (e && e.message || e), 'err');
+          return false;
+        }
+
+        // 3. Analyze.
+        if (!window.AudioAnalysisV2 || typeof window.AudioAnalysisV2.analyzeBuffer !== 'function') {
+          setStatus('audio-analysis-v2.js not loaded', 'err');
+          return false;
+        }
+        const analysis = window.AudioAnalysisV2.analyzeBuffer(audioBuffer);
+        this.lastAnalysis = analysis;
+
+        // 4. Format + download.
+        const edl = formatEDL(analysis, blob);
+        const json = JSON.stringify(edl, null, 2);
+        const fileBlob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(fileBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || (edl.song ? edl.song.replace(/\.[^.]+$/, '') + '.swr-edl.json' : 'swr-edl.json');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('downloaded edit data · ' + a.download, 'ok');
+        return true;
+      },
+    };
+
     // ---- Restore persisted layer state ---------------------------------
     // Load the previous Layers.list from localStorage (asset references
     // are stripped on save — they're Blob URLs that don't survive a
@@ -2156,6 +2295,13 @@
       showHeroPanel();
       refreshHeroPanel();
       setStatus('showing best 3 frames', 'ok');
+    });
+    const _editDataBtn = document.getElementById('edit-data-btn');
+    if (_editDataBtn) _editDataBtn.addEventListener('click', async () => {
+      if (!window.SWR_EDIT_DATA) return;
+      setStatus('analyzing audio…', 'ok');
+      const ok = await window.SWR_EDIT_DATA.downloadEditData();
+      if (!ok) setStatus('analysis failed', 'err');
     });
     // Auto-start/stop hooks on the existing audio play / pause methods.
     // Wrapping instead of duplicating keeps the original A.play / A.pause
