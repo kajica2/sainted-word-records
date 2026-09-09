@@ -348,6 +348,30 @@ Auto-Caption (PRD-006 §6.2.3), End-Card Builder (§6.2.4),
 Thumbnail Picker (§6.2.5), and "Full Vertical 60s" preset
 (§6.2.2) are explicitly **out of scope** — punted to follow-ups.
 
+### `window.SWR_STATS` — `versions/music_video.html` (IIFE side-effect)
+
+Local stats widget (PR #55, partial implementation of PRD-018).
+Records `(ts, durationMs, ext, size)` on every successful
+`Recorder._save()` to `localStorage["swr.stats.v1"]` (capped at
+100 most recent renders). Footer `Stats` button opens a modal
+showing total renders, last-30-day renders, total minutes
+exported, storage usage, last preset, and the last 5 renders
+as a table. All data is local-only — no backend.
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `record(durationMs, ext, size)` | `object` | Called from `Recorder._save()`. Pushes a render entry + caps buffer at 100. |
+| `summary()` | `{totalRenders, last30Count, totalMinutes, last30Minutes, totalSizeMB, lastPreset, recent[]}` | Aggregates stats for the modal. |
+| `setPreset(presetId)` | `void` | Tracks the most-recent preset for display. |
+| `reset()` | `void` | Wipes stats. Wired to the modal's "Clear stats" button. |
+| `STORAGE_KEY` | `'swr.stats.v1'` | Read-only constant. |
+
+PRD-018 §18.2.1-3 (YouTube OAuth, TikTok API, weekly email) are
+explicitly **out of scope** — punted to follow-ups. "Most-used
+preset" is shown as "last preset" because we don't have a
+per-preset counter (would need a `SWR_PRESET_USE` event from
+the engine).
+
 ## 4. Keyboard map
 
 | Key | Action | Source |
@@ -688,6 +712,16 @@ unless marked `**Deferred**`.
   (§6.2.5), and "Full Vertical 60s" preset (§6.2.2) are
   explicitly **out of scope**. 2 new smoke assertions
   (68 total).
+- **PR #55 — local stats widget (PRD-018 partial).** `SWR_STATS`
+  records `(ts, durationMs, ext, size)` on every successful
+  `Recorder._save()` to `localStorage["swr.stats.v1"]` (capped
+  at 100 most recent). Footer `Stats` button opens a modal
+  showing total renders, last-30-day renders, total minutes
+  exported, storage usage, last preset, and the last 5
+  renders as a table. All data is local-only. PRD-018
+  §18.2.1-3 (YouTube OAuth, TikTok API, weekly email) are
+  explicitly **out of scope** — punted to follow-ups. 1 new
+  smoke assertion (69 total).
 
 ### Deferred
 
@@ -731,6 +765,7 @@ unless marked `**Deferred**`.
 - **PR #46** — download edit data (SWR_EDIT_DATA + audio-analysis-v2.js + swr-edl/1 JSON)
 - **PR #49** — client review export (SWR_REVIEW + watermark + self-contained HTML review page)
 - **PR #52** — hook generator (SWR_HOOK_DETECTOR + drop detection + 3 hook presets)
+- **PR #55** — local stats widget (SWR_STATS + Recorder._save() instrumentation + stats modal)
 - **PR #2** — `7d8f91a` — P3.5 performance-control layer (M/E/R/Z/? shortcuts)
 - **AGENTS.md** — repo conventions (2-space indent, conventional commits, no TS)
 - **`.hermes/plans/2026-09-09_005000-hero-frame-capture.md`** — the hero frame plan (now shipped as PR #42, partial — print export at 300 DPI punted to a follow-up)
