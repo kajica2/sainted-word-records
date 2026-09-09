@@ -197,6 +197,45 @@ feature that could ship without breaking zero-backend.
 
 ---
 
+## Standalone specs (outside the 21-PRD suite)
+
+These are PRDs that ship their own spec file under `docs/prds/`
+but aren't part of the numbered 21-PRD suite. They follow the
+same partial-ship / audit pattern as the rows above.
+
+### `photo-studio.md` — Photo Studio ("Still Motion")
+
+- **Verdict**: `Re-spec` → **partial ship** (PR #61)
+- **Status**: Photo Studio MVP shipped (PR #61, `31921fe`).
+  `photo.html` is a self-contained single-page app (inline CSS +
+  JS IIFE, ~512 lines) that imports an image + optional audio,
+  animates it with Ken Burns pan/zoom + audio-reactive bass
+  pulse, and exports a 5s MP4 at 1080×1080 or 1920×1080 via
+  `lib/recorder.client.js` (`SWR_RECORDER`). No `engine-*`
+  subsystems are loaded — the page **is** the engine. Served at
+  `/photo` and `/photo/` via Vercel rewrite (`vercel.json:148-153`);
+  build-time copy wired via `vite.config.js` `rootFiles`. One new
+  smoke assertion added to `scripts/check-mv-smoke.mjs` (stage +
+  inputs + export + play buttons present, 1080×1080 default,
+  `SWR_RECORDER` loaded). See `docs/ARCHITECTURE.md` §6.5 for
+  the page architecture.
+- **Effort**: `M` (shipped) + `M-L` (out-of-scope follow-ups
+  per the PRD)
+- **Notes**: The following PRD sections are **explicitly out of
+  scope** (punted to follow-ups) — PRD §4.1 Gallery (multi-image
+  management), §4.2 Parallax (multi-layer depth composition),
+  §4.4 atmosphere layers (particles / fog / light leaks), §4.5
+  GIF / Cinemagraph / Live Photo (input formats beyond still
+  image + audio), and §4.6 batch (queue multiple photos for
+  sequential export). The shipped MVP is a single-still creator
+  — load one image, pick a Ken Burns path, export one MP4. The
+  PRD's philosophy ("the photograph is the hero", "motion
+  serves the image") is preserved by the audio-reactive bass
+  pulse being subtle and the start/end position being
+  user-controlled.
+
+---
+
 ## Summary table
 
 | PRD | Verdict | Effort | Status |
