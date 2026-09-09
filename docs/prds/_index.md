@@ -43,6 +43,6 @@ Each PRD is self-contained and may be implemented independently. The numbering r
 PRDs are written without codebase context. Before implementing, check whether the PRD's premise matches reality:
 
 - **[PRD-002-AUDIT.md](./PRD-002-AUDIT.md)** — PRD-002 ("fix the stylesheet") is based on a wrong assumption. The actual stylesheets load fine; the proposed `setCanvasFormat` would conflict with `SWR_RENDER.fit()`; the proposed dark theme variables duplicate what's already in `swr-app.html`. **No work needed.**
-- **[PRD-AUDIT.md](./PRD-AUDIT.md)** — comprehensive audit of all 21 PRDs in tabular form. Per-PRD verdict (Done / Re-spec / Skip / Conflict) with status notes and effort estimates. Suggested execution order: 003 → 010 → 005 → 009 → 006 → 011 → 008 (the re-spec queue).
+- **[PRD-AUDIT.md](./PRD-AUDIT.md)** — comprehensive audit of all 21 PRDs in tabular form. Per-PRD verdict (Done / Re-spec / Skip / Conflict) with status notes and effort estimates. **🎉 As of 2026-09-09, all 9 re-spec items have shipped as partial implementations (PRs #42, #44, #46, #49, #52, #55, #57, #59, #63). Audit queue is fully cleared.** See [`../../SPRINT-SUMMARY.md`](../../SPRINT-SUMMARY.md) for the sprint arc.
 
 More audits pending as PRDs are reviewed.
