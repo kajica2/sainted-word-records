@@ -89,6 +89,7 @@ function copyStatic() {
     'marketplace.html',
     'thanks.html',
     'make-video.html',
+    'photo.html',
     'weddings.html',
     'weddings.css',
     'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',

@@ -145,6 +145,14 @@
       "destination": "/make-video.html"
     },
     {
+      "source": "/photo",
+      "destination": "/photo.html"
+    },
+    {
+      "source": "/photo/",
+      "destination": "/photo.html"
+    },
+    {
       "source": "/tools/hf-publish",
       "destination": "/tools/hf-publish.html"
     },

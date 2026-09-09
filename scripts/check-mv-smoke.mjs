@@ -184,6 +184,41 @@ function assert(cond, msg) {
     'make-video format selector: 16:9, 9:16, 1:1 sizes match FORMATS table '
       + JSON.stringify(fmtShape));
 
+  // Verify /photo.html — Photo Studio MVP: stage canvas + inputs + export
+  // button + 1080×1080 default format.
+  await page.goto(`http://localhost:${PORT}/photo.html`, {
+    waitUntil: 'domcontentloaded',
+  });
+  const photoShape = await page.evaluate(() => ({
+    title: document.title,
+    hasStage: !!document.getElementById('stage'),
+    hasImageInput: !!document.getElementById('image-input'),
+    hasAudioInput: !!document.getElementById('audio-input'),
+    hasFormat: !!document.getElementById('format-select'),
+    hasExportBtn: !!document.getElementById('export-btn'),
+    hasPlayBtn: !!document.getElementById('play-btn'),
+    formatValue: document.getElementById('format-select')
+      ? document.getElementById('format-select').value : null,
+    stageSize: document.getElementById('stage')
+      ? [document.getElementById('stage').width, document.getElementById('stage').height]
+      : null,
+    hasRecorder: !!window.SWR_RECORDER,
+  }));
+  assert(
+    photoShape.title === 'Photo Studio · Sainted Word Records'
+      && photoShape.hasStage
+      && photoShape.hasImageInput
+      && photoShape.hasAudioInput
+      && photoShape.hasFormat
+      && photoShape.hasExportBtn
+      && photoShape.hasPlayBtn
+      && photoShape.formatValue === '1080x1080'
+      && photoShape.stageSize
+      && photoShape.stageSize[0] === 1080
+      && photoShape.stageSize[1] === 1080
+      && photoShape.hasRecorder,
+    `/photo loads with stage canvas + image/audio/format inputs + export button + 1080×1080 default (got: ${JSON.stringify(photoShape)})`);
+
   await browser.close();
   server.close();
 
