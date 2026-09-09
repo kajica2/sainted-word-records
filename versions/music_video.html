@@ -420,6 +420,7 @@
       <span class="gc"><button class="tbtn" id="edit-data-btn" title="Download edit data (BPM/key/onsets JSON)" style="padding:3px 8px;font-size:9px;">Edit Data</button></span>
       <span class="gc"><button class="tbtn" id="review-btn" title="Export watermarked preview + client review page" style="padding:3px 8px;font-size:9px;">Review</button></span>
       <span class="gc"><button class="tbtn" id="hook-btn" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)" style="padding:3px 8px;font-size:9px;">Hooks</button></span>
+      <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
@@ -1590,6 +1591,13 @@
         // Free the download URL once the click has been dispatched.
         setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
         setStatus('exported · ' + ext.toUpperCase(), 'ok');
+        // SWR_STATS instrumentation (PRD-018 partial). Captures
+        // durationMs + total blob size for the local stats widget.
+        try {
+          const durationMs = Date.now() - (this.startedAt || Date.now());
+          const size = this.chunks.reduce((a, c) => a + c.size, 0);
+          if (window.SWR_STATS) window.SWR_STATS.record(durationMs, ext, size);
+        } catch (_) {}
       },
     };
         // Invalidate the per-layer cache whenever the page rebuilds.
@@ -2544,6 +2552,78 @@
       }
     } catch (_) {}
 
+    // ---- SWR_STATS --------------------------------------------------------
+    // Local-only render statistics (PRD-018 partial — backend integrations
+    // §18.2.1-3 are explicitly out of scope). Records (ts, durationMs,
+    // ext, size) on every successful Recorder._save() to localStorage.
+    // All data is per-device; clearing browser storage zeroes the stats.
+    window.SWR_STATS = {
+      STORAGE_KEY: 'swr.stats.v1',
+
+      _load() {
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return { renders: [], lastPreset: null };
+          return JSON.parse(raw);
+        } catch (_) {
+          return { renders: [], lastPreset: null };
+        }
+      },
+
+      _save(data) {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+        } catch (_) {}
+      },
+
+      // Called from Recorder._save() after a successful recording.
+      record(durationMs, ext, size) {
+        const data = this._load();
+        const now = Date.now();
+        const render = {
+          ts: now,
+          durationMs: Math.round(durationMs || 0),
+          ext: ext || 'mp4',
+          size: Math.round(size || 0),
+        };
+        data.renders.push(render);
+        // Cap at 100 most recent renders to keep localStorage lean.
+        if (data.renders.length > 100) data.renders.shift();
+        this._save(data);
+        return render;
+      },
+
+      // Returns summary stats for the widget.
+      summary() {
+        const data = this._load();
+        const renders = data.renders || [];
+        const last30 = renders.filter(r => r.ts > Date.now() - 30 * 86400000);
+        const totalDurationMs = renders.reduce((a, r) => a + (r.durationMs || 0), 0);
+        const totalSize = renders.reduce((a, r) => a + (r.size || 0), 0);
+        return {
+          totalRenders: renders.length,
+          last30Count: last30.length,
+          totalMinutes: Math.round(totalDurationMs / 60000 * 100) / 100,
+          last30Minutes: Math.round(last30.reduce((a, r) => a + (r.durationMs || 0), 0) / 60000 * 100) / 100,
+          totalSizeMB: Math.round(totalSize / 1048576 * 100) / 100,
+          lastPreset: data.lastPreset,
+          recent: renders.slice(-5).reverse(),
+        };
+      },
+
+      // Track the most recent preset used.
+      setPreset(presetId) {
+        const data = this._load();
+        data.lastPreset = presetId;
+        this._save(data);
+      },
+
+      // Reset all stats (used by the "Clear" button).
+      reset() {
+        this._save({ renders: [], lastPreset: null });
+      },
+    };
+
     // ---- Self-evolving automixer toggle ----------------------------------
     // Listens for clicks on the footer toggle + the `A` keyboard shortcut
     // (when the page is focused and no input has focus). When ON, every
@@ -2804,6 +2884,68 @@
       } else {
         setStatus((r && r.reason) || 'detection failed', 'err');
       }
+    });
+    // Footer "Stats" → SWR_STATS modal. Pure local data; no backend.
+    // Renders a small overlay with totals + last 5 renders. Closes on
+    // CLOSE button, ESC, or Clear (which also wipes localStorage).
+    const _statsBtn = document.getElementById('stats-btn');
+    if (_statsBtn) _statsBtn.addEventListener('click', () => {
+      if (!window.SWR_STATS) return;
+      const s = window.SWR_STATS.summary();
+      const m = document.createElement('div');
+      m.className = 'mvm-modal-bg';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      const rows = s.recent.length === 0
+        ? '<div style="color:var(--text-mute);font-size:10px;padding:8px 0;">no renders yet</div>'
+        : '<table style="width:100%;border-collapse:collapse;font-size:10px;">'
+          + '<tr style="color:var(--muted);text-align:left;">'
+          + '<th style="padding:2px 4px;font-weight:400;">when</th>'
+          + '<th style="padding:2px 4px;font-weight:400;">dur</th>'
+          + '<th style="padding:2px 4px;font-weight:400;">ext</th>'
+          + '<th style="padding:2px 4px;font-weight:400;">size</th>'
+          + '</tr>'
+          + s.recent.map(r => '<tr style="border-top:1px solid var(--line);">'
+              + '<td style="padding:2px 4px;">' + new Date(r.ts).toLocaleString() + '</td>'
+              + '<td style="padding:2px 4px;">' + (r.durationMs / 1000).toFixed(1) + 's</td>'
+              + '<td style="padding:2px 4px;">' + (r.ext || 'mp4') + '</td>'
+              + '<td style="padding:2px 4px;">' + Math.round(r.size / 1024) + ' KB</td>'
+              + '</tr>').join('')
+          + '</table>';
+      m.innerHTML = [
+        '<div style="background:var(--panel);border:1px solid var(--line);padding:24px 28px;min-width:380px;max-width:520px;color:var(--ink);font:11px ui-monospace;">',
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">',
+        '<span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">LOCAL STATS</span>',
+        '<button class="tbtn" id="stats-close">CLOSE</button>',
+        '</div>',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:16px;">',
+        '<div><span style="color:var(--muted);">renders:</span> <b>' + s.totalRenders + '</b></div>',
+        '<div><span style="color:var(--muted);">last 30d:</span> <b>' + s.last30Count + '</b></div>',
+        '<div><span style="color:var(--muted);">minutes:</span> <b>' + s.totalMinutes + '</b></div>',
+        '<div><span style="color:var(--muted);">last 30d:</span> <b>' + s.last30Minutes + '</b></div>',
+        '<div><span style="color:var(--muted);">storage:</span> <b>' + s.totalSizeMB + ' MB</b></div>',
+        '<div><span style="color:var(--muted);">last preset:</span> <b>' + (s.lastPreset || '\u2014') + '</b></div>',
+        '</div>',
+        '<div style="color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Recent renders</div>',
+        rows,
+        '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">',
+        '<button class="tbtn" id="stats-clear" style="color:var(--muted);">Clear stats</button>',
+        '</div>',
+        '</div>',
+      ].join('');
+      document.body.appendChild(m);
+      m.querySelector('#stats-close').addEventListener('click', () => {
+        m.remove();
+        document.removeEventListener('keydown', onKey);
+      });
+      m.querySelector('#stats-clear').addEventListener('click', () => {
+        window.SWR_STATS.reset();
+        m.remove();
+        document.removeEventListener('keydown', onKey);
+      });
+      const onKey = (e) => {
+        if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); }
+      };
+      document.addEventListener('keydown', onKey);
     });
     // Auto-start/stop hooks on the existing audio play / pause methods.
     // Wrapping instead of duplicating keeps the original A.play / A.pause

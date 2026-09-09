@@ -1455,6 +1455,38 @@ if (hookClick.ok)
      (Math.round(hookClick.confidence * 100)) + '%)');
 else bad('Hooks button click', JSON.stringify(hookClick));
 
+// 69. SWR_STATS API exists with record() + summary() + reset() + setPreset().
+// Round-trips a synthetic 30s / 1 MB render so the widget plumbing is
+// exercised end-to-end against the live page.
+const statsShape = await page.evaluate(() => {
+  if (!window.SWR_STATS) return { ok: false, reason: 'no SWR_STATS' };
+  const has = {
+    record: typeof window.SWR_STATS.record === 'function',
+    summary: typeof window.SWR_STATS.summary === 'function',
+    reset: typeof window.SWR_STATS.reset === 'function',
+    setPreset: typeof window.SWR_STATS.setPreset === 'function',
+    STORAGE_KEY: window.SWR_STATS.STORAGE_KEY === 'swr.stats.v1',
+  };
+  window.SWR_STATS.reset();
+  window.SWR_STATS.record(30000, 'mp4', 1048576);
+  const s = window.SWR_STATS.summary();
+  return {
+    ok: true,
+    has,
+    totalRenders: s.totalRenders,
+    totalMinutes: s.totalMinutes,
+    totalSizeMB: s.totalSizeMB,
+  };
+});
+if (statsShape.ok
+    && statsShape.has.record && statsShape.has.summary && statsShape.has.reset
+    && statsShape.has.setPreset && statsShape.has.STORAGE_KEY
+    && statsShape.totalRenders === 1
+    && statsShape.totalMinutes === 0.5
+    && statsShape.totalSizeMB === 1)
+  ok('SWR_STATS API: record/summary/reset/setPreset + 30s/1MB record works');
+else bad('SWR_STATS', JSON.stringify(statsShape));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));
