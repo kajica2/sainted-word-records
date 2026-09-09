@@ -73,7 +73,7 @@ Each PRD gets one row with:
 
 ### PRD-007: BRAND KIT — Phase 5
 
-- **Verdict**: `Done` (largely — `brandkit.client.js` ships most of it)
+- **Verdict**: `Done` (largely — `brandkit.client.js` ships most of it) → **wiring complete** (PR #57)
 - **Status**: `brandkit.client.js` (5.5 KB) + `brandkit.css` (2 KB) ship:
   - Logo upload (data URL, kept small)
   - 9-font curated catalog (Google Fonts + system fonts)
@@ -81,8 +81,7 @@ Each PRD gets one row with:
   - 4-card editor panel (Cover/Logo/Colors/Typography)
   - `window.SWR_Brandkit` API
   - `localStorage["swr.profile"]` persistence (with an "auth seam" comment for future Clerk/Supabase swap)
-  - Loaded on `engine.html:5438` and applied at boot (line 5440)
-  - **Not** loaded on `swr-app.html` or `versions/music_video.html` — only the legacy `engine.html`
+  - Loaded on `engine.html` (legacy), `swr-app.html` (SPA), and `versions/music_video.html` (PR #57). `mountChip()` was adapted to accept an optional `targetId` parameter so each page can mount to its own header element.
 - **Effort**: `S` to wire into `swr-app.html` and `versions/music_video.html`; `M` for the "position presets" (top-left-bug / center-reveal / watermark-tile / etc.) and the per-render "burn logo on render" pipeline.
 - **Notes**: PRD-007 §7.2.1's "position presets" (top-left-bug, center-reveal, end-card, watermark-tile) are not in the current brandkit — they're a render-overlay feature, not a brand config feature.
 
@@ -241,7 +240,7 @@ If we work through the re-spec ones in increasing complexity:
 5. ~~PRD-006 HOOK GENERATOR~~ (`M`) — **shipped as PR #52** (drop detection + 3 hook presets; auto-caption + end-card + thumbnail picker + Full Vertical 60s punted).
 6. ~~PRD-018 ANALYTICS~~ (`S`) — **shipped as PR #55** (local stats widget + Recorder instrumentation; YouTube/TikTok OAuth + weekly email punted).
 7. **PRD-011 MOOD BOARD** (`M`) — reference extraction + slider mapping.
-8. **PRD-007 BRAND KIT wiring** (`S-M`) — wire `brandkit.client.js` into `swr-app.html` and `music_video.html`.
+8. ~~PRD-007 BRAND KIT wiring~~ (`S-M`) — **shipped as PR #57** (mounted on swr-app.html + versions/music_video.html; mountChip() adapted to take targetId; position presets + burn-in overlay still punted).
 9. **PRD-008 LIVE / VJ MODE** (`L`) — scene pad state-snapshot mechanism + perform mode UI.
 
 Each ships as a separate PR. The sprint cadence so far has been
