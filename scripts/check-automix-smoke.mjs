@@ -1384,6 +1384,77 @@ if (reviewClick.ok && !reviewClick.threw && reviewClick.started && typeof review
   ok('Review button click sets the watermark before recording');
 else bad('Review click', JSON.stringify(reviewClick));
 
+// 67. SWR_HOOK_DETECTOR API exists with detect() and exportHook(). The
+//     lastResult field starts null — that's its pre-detection state and
+//     we don't fail the smoke on it.
+const hookShape = await page.evaluate(() => {
+  if (!window.SWR_HOOK_DETECTOR) return { ok: false, reason: 'no SWR_HOOK_DETECTOR' };
+  const has = {
+    lastResult: 'lastResult' in window.SWR_HOOK_DETECTOR,
+    detect: typeof window.SWR_HOOK_DETECTOR.detect === 'function',
+    exportHook: typeof window.SWR_HOOK_DETECTOR.exportHook === 'function',
+  };
+  return { ok: true, has };
+});
+if (hookShape.ok && hookShape.has.lastResult && hookShape.has.detect && hookShape.has.exportHook)
+  ok('SWR_HOOK_DETECTOR API exists with lastResult + detect + exportHook');
+else bad('SWR_HOOK_DETECTOR', JSON.stringify(hookShape));
+
+// 68. Hooks button click kicks off detection. We stub
+//     AudioContext.decodeAudioData so the synthetic 10s buffer
+//     (low-energy intro for the first 8s, then a high-energy spike)
+//     is decoded without real audio. The buffer is long enough that
+//     the detector's 8-second intro window leaves the spike in
+//     view; the full detection pass completes in <400ms.
+const hookClick = await page.evaluate(async () => {
+  const btn = document.getElementById('hook-btn');
+  if (!btn) return { ok: false, reason: 'no hook-btn' };
+  const origDecode = window.AudioContext && window.AudioContext.prototype.decodeAudioData;
+  if (!origDecode) return { ok: false, reason: 'no AudioContext' };
+  const sr = 44100;
+  const totalSec = 10;
+  const totalSamples = sr * totalSec;
+  const fakeBuffer = {
+    length: totalSamples,
+    sampleRate: sr,
+    duration: totalSec,
+    getChannelData: () => {
+      const data = new Float32Array(totalSamples);
+      // Low-energy intro for the first 8s, high-energy spike for 8-10s.
+      const introEnd = sr * 8;
+      for (let i = 0; i < totalSamples; i++) {
+        if (i < introEnd) data[i] = 0.005 * Math.sin(i * 0.01);
+        else data[i] = 0.2 * Math.sin(i * 0.05);
+      }
+      return data;
+    },
+  };
+  window.AudioContext.prototype.decodeAudioData = function () {
+    return Promise.resolve(fakeBuffer);
+  };
+  // Stub SWR_LAST_SONG so detect() finds a blob to decode.
+  const origSLS = window.SWR_LAST_SONG;
+  window.SWR_LAST_SONG = Promise.resolve({
+    blob: new Blob([new Uint8Array([0, 0, 0, 0])], { type: 'audio/wav' }),
+    name: 'smoke-hook.wav',
+  });
+  let threw = false;
+  try { btn.click(); } catch (e) { threw = true; }
+  await new Promise(r => setTimeout(r, 400));
+  const detected = window.SWR_HOOK_DETECTOR && window.SWR_HOOK_DETECTOR.lastResult;
+  // Restore.
+  window.AudioContext.prototype.decodeAudioData = origDecode;
+  window.SWR_LAST_SONG = origSLS;
+  if (detected) {
+    return { ok: true, threw, time: detected.time, confidence: detected.confidence };
+  }
+  return { ok: false, threw, reason: 'detection did not run within 400ms' };
+});
+if (hookClick.ok)
+  ok('Hooks button click runs detection (time=' + hookClick.time + 's, conf=' +
+     (Math.round(hookClick.confidence * 100)) + '%)');
+else bad('Hooks button click', JSON.stringify(hookClick));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));
