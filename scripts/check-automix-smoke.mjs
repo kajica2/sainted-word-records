@@ -1211,6 +1211,48 @@ if (fitKeyShape.before === false && fitKeyShape.after === true)
   ok('KeyboardEvent for F (no shift) triggers SWR_FIT.toggle');
 else bad('F key binding', JSON.stringify(fitKeyShape));
 
+// 62. SWR_HERO_FRAMES exists, exposes the expected API shape, and
+//     best() ranks synthetic frames correctly. We avoid calling
+//     captureNow() / downloadFrame() because they trigger browser
+//     download dialogs — instead we synthesize a 1×1 PNG entry and
+//     verify the scoring math (energy*0.4 + contrast*0.4 + comp*0.2
+//     === 1.0 for a frame with all-1s).
+const heroShape = await page.evaluate(() => {
+  if (!window.SWR_HERO_FRAMES) return { ok: false, reason: 'no SWR_HERO_FRAMES' };
+  const has = {
+    buffer: Array.isArray(window.SWR_HERO_FRAMES.buffer),
+    maxFrames: typeof window.SWR_HERO_FRAMES.maxFrames === 'number',
+    startStop: typeof window.SWR_HERO_FRAMES.start === 'function' &&
+               typeof window.SWR_HERO_FRAMES.stop === 'function',
+    best: typeof window.SWR_HERO_FRAMES.best === 'function',
+    captureNow: typeof window.SWR_HERO_FRAMES.captureNow === 'function',
+    downloadFrame: typeof window.SWR_HERO_FRAMES.downloadFrame === 'function',
+  };
+  window.SWR_HERO_FRAMES.buffer.length = 0;
+  const empty = window.SWR_HERO_FRAMES.best(3);
+  window.SWR_HERO_FRAMES.buffer.push({
+    dataURL: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+    energy: 1.0, contrast: 1.0, comp: 1.0, t: Date.now(),
+  });
+  const oneFrame = window.SWR_HERO_FRAMES.best(3);
+  return {
+    ok: true,
+    has,
+    emptyLen: empty.length,
+    oneLen: oneFrame.length,
+    oneScore: oneFrame[0] && (oneFrame[0].energy * 0.4 + oneFrame[0].contrast * 0.4 + oneFrame[0].comp * 0.2),
+  };
+});
+if (heroShape.ok
+    && heroShape.has.buffer && heroShape.has.maxFrames
+    && heroShape.has.startStop && heroShape.has.best
+    && heroShape.has.captureNow && heroShape.has.downloadFrame
+    && heroShape.emptyLen === 0
+    && heroShape.oneLen === 1
+    && heroShape.oneScore === 1.0)
+  ok('SWR_HERO_FRAMES API + best() ranking works on synthetic frames');
+else bad('SWR_HERO_FRAMES', JSON.stringify(heroShape));
+
 // Cleanup so subsequent tests/runs start fresh.
 await page.evaluate(() => {
   if (window.SWR_LAST_MIX) window.SWR_LAST_MIX.clear();
