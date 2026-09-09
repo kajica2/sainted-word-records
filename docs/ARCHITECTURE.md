@@ -596,7 +596,7 @@ See `docs/VERCEL-DEPLOY.md` for the deploy pipeline and
 | Add a new audio feature | §3.1 + `audio-analysis-v2.js` | `audio-analysis-v2.js`, then the `feat` consumers (`anchor-embed.js`, `automix.client.js`) |
 | Add a new GLSL preset | `versions-presets.js:PRESETS` | Add to the table; if it should be in the shortcut cycle, append to `SHORTCUT_PRESETS` too |
 | Add a new engine subsystem | §4.1 — pick the closest existing one, copy its shape | New `engine-foo.client.js` + new `window.SWR_FOO` global + script tag in all the page templates |
-| Add a new page | `versions/neon.html` is the canonical one (or `versions/music_video.html` for the gradient panel variant) | Copy + edit `data-page` + inline IIFE |
+| Add a new page | `versions/neon.html` is the canonical engine variant (or `versions/music_video.html` for the gradient panel variant); `photo.html` is the canonical standalone-creation template (self-contained IIFE, no engine-* subsystems); `make-video.html` is the canonical timeline+export template | Copy + edit `data-page` + inline IIFE (engine variant); or copy photo.html / make-video.html for a standalone creation surface |
 | Add a server endpoint | §8 | New `api/foo.js` exporting a default handler; helpers in `api/_lib/` |
 | Add a new store (persisted state) | `client/last-mix-store.client.js` or `client/layer-state-store.client.js` are the templates | New `client/foo-store.client.js`; use a versioned localStorage key (`swr.foo.v1`) |
 | Improve the smoke tests | `scripts/check-automix-smoke.mjs` (most comprehensive) | Add assertion at the bottom, before the `await browser.close()` |
