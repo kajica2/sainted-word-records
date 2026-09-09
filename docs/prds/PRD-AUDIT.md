@@ -59,10 +59,10 @@ Each PRD gets one row with:
 
 ### PRD-005: EDITORIAL BRIDGE — Phase 3
 
-- **Verdict**: `Re-spec`
-- **Status**: The data exists (`audio-analysis-v2.js` provides BPM, key, scale, chromagram, onsets, duration). The "Download Edit Data" UI doesn't exist. The Premiere XML export is new work. Pure export feature — fits zero-backend.
-- **Effort**: `M`
-- **Notes**: Add a "Download Edit Data" button next to the existing recorder (`versions/music_video.html:303`). JSON shape is well-specified in PRD-005 §5.2.1.
+- **Verdict**: `Re-spec` → **partial ship** (PR #46)
+- **Status**: Edit Data export shipped (PR #46, `3497090`). `SWR_EDIT_DATA` global on `music_video.html` runs `AudioAnalysisV2.analyzeBuffer()` on the loaded song (via `SWR_LAST_SONG` blob or `A.el.src` fallback), formats the result as `swr-edl/1` JSON, and downloads it. JSON shape matches PRD-005 §5.2.1: BPM + key/scale + duration + classified onsets (downbeat / kick / snare via interval heuristics) + phrase segments (intro / build / drop via naive 16s/32s/32s splits). The `<script>` tag for `audio-analysis-v2.js` was missing on `music_video.html` — added in this PR.
+- **Effort**: `M` (shipped) + `M` (Premiere Pro XML export follow-up)
+- **Notes**: Premiere Pro XML export (PRD-005 §5.2.2) is **explicitly out of scope** — ~80 lines of edge-case-prone timecode/marker conversion code. Real onset classification (kicks vs snares vs transient) and structural phrase segmentation are also out of scope — would require either a trained model or beat-aware segment detection. The current heuristic works for typical 4-minute pop songs.
 
 ### PRD-006: HOOK GENERATOR — Phase 4
 
@@ -235,7 +235,7 @@ If we work through the re-spec ones in increasing complexity:
 
 1. ~~PRD-010 PRINT & STILL FRAME~~ (`S`) — **shipped as PR #42** (hero frame capture; print export at 300 DPI punted).
 2. ~~PRD-003 SOCIAL FORMATS~~ (`S`) — **shipped as PR #44** (format dropdown; safe-zone + dual export punted).
-3. **PRD-005 EDITORIAL BRIDGE** (`M`) — "Download Edit Data" button + JSON export. Builds on `audio-analysis-v2.js`.
+3. ~~PRD-005 EDITORIAL BRIDGE~~ (`M`) — **shipped as PR #46** (swr-edl/1 JSON export; Premiere Pro XML punted).
 4. **PRD-009 CLIENT REVIEW** (`M`) — watermarked preview + standalone HTML generator.
 5. **PRD-006 HOOK GENERATOR** (`M`) — drop detection + hook export.
 6. **PRD-018 ANALYTICS** (limited) — local stats widget.
