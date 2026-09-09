@@ -2928,6 +2928,9 @@
       100% { box-shadow: inset 0 0 0 0 transparent; }
     }
   </style>
+
+  <!-- Brand Kit (PRD-007 partial) — chip + 4-card editor. See engine.html for the canonical wiring. -->
+  <link rel="stylesheet" href="/brandkit.css" />
 </head>
 <body>
 
@@ -2944,7 +2947,7 @@
        NAVIGATION
        ============================================================ -->
   <header class="nav" role="banner">
-    <div class="wrap nav__inner">
+    <div class="wrap nav__inner" id="transport">
       <a href="#top" class="brand" aria-label="Sainted Word Records home">
         <span class="brand__mark" aria-hidden="true"></span>
         <span>Sainted Word Records</span>
@@ -9371,5 +9374,30 @@ recordTimer = setTimeout(() => {
     </div>
   </div>
 
+  <!-- Brand Kit (PRD-007 partial) — module + boot. Mirrors engine.html:5438-5459. -->
+  <script type="module" src="/brandkit.client.js"></script>
+  <script>
+    // Apply brandkit on studio boot — public launch: no auth wall.
+    // Brandkit is opt-in: if a profile exists, apply it; otherwise render with default theme.
+    (function () {
+      function go() {
+        if (!window.SWR_Brandkit) { setTimeout(go, 30); return; }
+        try {
+          const profile = window.SWR_Brandkit.readProfile();
+          if (profile && profile.brandkit) {
+            window.SWR_Brandkit.applyBrandkit(profile.brandkit);
+            window.SWR_Brandkit.mountChip('transport');
+          }
+        } catch (e) {
+          console.warn('[brandkit] boot failed:', e);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', go);
+      } else {
+        go();
+      }
+    })();
+  </script>
 </body>
 </html>
