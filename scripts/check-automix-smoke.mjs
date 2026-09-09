@@ -1558,6 +1558,77 @@ if (moodShape.ok
   ok('SWR_MOOD API: k-means returns 3 diverse centroids, features detect B/W + warm');
 else bad('SWR_MOOD', JSON.stringify(moodShape));
 
+// 73. SWR_SCENES API: save() captures current state, recall() applies it
+// (sliders restored exactly). Verifies the scene-pad snapshot system on
+// music_video.html: STORAGE_KEY, all 5 methods, round-trip on 3 sliders.
+const scenesShape = await page.evaluate(() => {
+  if (!window.SWR_SCENES) return { ok: false, reason: 'no SWR_SCENES' };
+  const has = {
+    list: typeof window.SWR_SCENES.list === 'function',
+    save: typeof window.SWR_SCENES.save === 'function',
+    recall: typeof window.SWR_SCENES.recall === 'function',
+    startCapture: typeof window.SWR_SCENES.startCapture === 'function',
+    cancelCapture: typeof window.SWR_SCENES.cancelCapture === 'function',
+    STORAGE_KEY: window.SWR_SCENES.STORAGE_KEY === 'swr.scenes.v1',
+    MAX_SCENES: window.SWR_SCENES.MAX_SCENES === 4,
+  };
+  // Clear to a known baseline.
+  window.SWR_SCENES._save(Array.from({ length: 4 }, (_, i) => ({ id: i, label: 'Scene ' + (i + 1), snapshot: null, createdAt: null })));
+  // Set 3 sliders to known values for the test.
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = String(v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  set('depth', 0.7);
+  set('gate', 2.1);
+  set('sens', 1.6);
+  // Save scene 0 with a custom label.
+  const saveOk = window.SWR_SCENES.save(0, 'TestScene');
+  // Read back the snapshot.
+  const list = window.SWR_SCENES.list();
+  const scene0 = list[0];
+  const snap = scene0 ? scene0.snapshot : null;
+  // Mutate sliders to different values.
+  set('depth', 0.1);
+  set('gate', 1.05);
+  set('sens', 0.2);
+  // Recall scene 0 — should restore the saved values.
+  const recallOk = window.SWR_SCENES.recall(0);
+  // Read the slider values after recall.
+  const after = {
+    depth: parseFloat(document.getElementById('depth').value),
+    gate: parseFloat(document.getElementById('gate').value),
+    sens: parseFloat(document.getElementById('sens').value),
+  };
+  return {
+    ok: true,
+    has,
+    saveOk,
+    sceneLabel: scene0 && scene0.label,
+    snapDepth: snap && snap.depth,
+    snapGate: snap && snap.gate,
+    snapSens: snap && snap.sens,
+    snapPresetOverride: snap && snap.presetOverride,
+    snapAutomixOn: snap && typeof snap.automixOn === 'boolean',
+    recallOk,
+    after,
+  };
+});
+if (scenesShape.ok
+    && scenesShape.has.list && scenesShape.has.save && scenesShape.has.recall
+    && scenesShape.has.startCapture && scenesShape.has.cancelCapture
+    && scenesShape.has.STORAGE_KEY && scenesShape.has.MAX_SCENES
+    && scenesShape.saveOk
+    && scenesShape.sceneLabel === 'TestScene'
+    && scenesShape.snapDepth === 0.7 && scenesShape.snapGate === 2.1 && scenesShape.snapSens === 1.6
+    && scenesShape.snapAutomixOn
+    && scenesShape.recallOk
+    && scenesShape.after.depth === 0.7 && scenesShape.after.gate === 2.1 && scenesShape.after.sens === 1.6)
+  ok('SWR_SCENES API: save captures state, recall applies it (sliders restored exactly)');
+else bad('SWR_SCENES', JSON.stringify(scenesShape));
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));
