@@ -62,6 +62,14 @@
     .signoff { margin-top: 56px; padding: 24px; background: var(--bg-1);
       border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0;
       font-style: italic; color: var(--muted); }
+    .hero-banner { width: 100%; max-width: 760px; aspect-ratio: 16/9;
+      border-radius: 6px; overflow: hidden; margin: 0 0 24px;
+      background: var(--bg-1); border: 1px solid var(--line); }
+    .hero-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .section-banner { width: 100%; aspect-ratio: 16/9; border-radius: 6px;
+      overflow: hidden; margin: 32px 0 16px; background: var(--bg-1);
+      border: 1px solid var(--line); }
+    .section-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
   </style>
 </head>
 <body>
@@ -77,6 +85,13 @@
   </nav>
 
   <main>
+    <div class="hero-banner">
+      <img src="/docs/atlas-assets/11-final-insight.webp"
+           srcset="/docs/atlas-assets/11-final-insight.webp 1600w"
+           sizes="(max-width: 760px) 100vw, 760px"
+           alt="Atlas of the Awakened Life — illustration" loading="eager" />
+    </div>
+
     <h1>The Atlas of the Awakened Life</h1>
     <p class="sub">A Multi-Generational Manual for Integrating Wisdom, Psychology, and Presence</p>
 
