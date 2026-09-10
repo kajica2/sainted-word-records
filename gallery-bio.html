@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Biological / Neuro — SWR Gallery</title>
+  <meta name="description" content="A bio / neuro gallery of microscopic visuals — cortical layers, action potentials, dendritic arbors, and the neural firing patterns that look like music." />
+  <meta property="og:title" content="Biological / Neuro — SWR Gallery" />
+  <meta property="og:description" content="Cells, synapses, neural oscillations, and the firing patterns that look a lot like music." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1080px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
+
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5vw, 52px); line-height: 1.05;
+      letter-spacing: -0.025em; margin: 0 0 16px;
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-size: 18px; color: var(--ink-2); max-width: 640px;
+      margin: 0 auto 24px; line-height: 1.6;
+    }
+    .hero__desc {
+      font-size: 15px; color: var(--muted); max-width: 640px;
+      margin: 0 auto 32px; line-height: 1.65;
+    }
+
+    .grid {
+      display: grid; gap: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 32px 0 80px;
+    }
+    @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      position: relative; border: 1px solid var(--line);
+      border-radius: 12px; overflow: hidden;
+      background: var(--panel); transition: transform .2s ease;
+      display: flex; flex-direction: column;
+    }
+    .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .card__art {
+      aspect-ratio: 4/3; position: relative;
+      overflow: hidden;
+    }
+    .card__art::after {
+      content: ""; position: absolute; inset: 0;
+      background:
+          radial-gradient(120% 80% at 30% 20%, rgba(255,255,255,0.18), transparent 60%),
+          radial-gradient(80% 60% at 80% 90%, rgba(0,0,0,0.35), transparent 70%);
+      mix-blend-mode: overlay; pointer-events: none;
+    }
+    .card__tag {
+      position: absolute; top: 10px; left: 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--bg); background: rgba(0,0,0,0.7);
+      padding: 5px 10px; border-radius: 4px;
+      backdrop-filter: blur(4px); z-index: 2;
+    }
+    .card__featured {
+      position: absolute; top: 10px; right: 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--ink); background: rgba(245,234,216,0.92);
+      padding: 5px 10px; border-radius: 4px;
+      backdrop-filter: blur(4px); z-index: 2;
+    }
+    .card__body { padding: 16px 18px 18px; }
+    .card__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 19px; letter-spacing: -0.015em;
+      margin: 0 0 4px;
+    }
+    .card__sub {
+      font-size: 13px; color: var(--ink-2); margin: 0 0 12px;
+      line-height: 1.5;
+    }
+    .card__meta {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.02em;
+    }
+
+    .card--featured {
+      grid-column: span 2; grid-row: span 2;
+    }
+    .card--featured .card__art { aspect-ratio: 1/1; }
+    .card--featured .card__title { font-size: 26px; }
+    @media (max-width: 980px) {
+      .card--featured { grid-column: span 2; grid-row: auto; }
+    }
+    @media (max-width: 520px) {
+      .card--featured { grid-column: span 1; }
+    }
+
+    .footer {
+      padding: 32px 0 48px; border-top: 1px solid var(--line);
+      text-align: center;
+    }
+    .footer__line {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .footer__line span { color: var(--accent); }
+
+    /* Card gradients — bone/coral/ink, gold/violet, forest/mint, lavender/bone,
+       deep blue/magenta, ochre/indigo, ink/lime, charcoal/copper */
+    .art-cortical-column {
+      background:
+          radial-gradient(60% 40% at 30% 25%, rgba(255,255,255,0.55), transparent 60%),
+          linear-gradient(135deg, #f5ead8 0%, #f5ead8 22%, #ff8a7a 55%, #2a1f1a 100%);
+      background-blend-mode: screen, normal;
+    }
+    .art-action-potential {
+      background:
+          radial-gradient(70% 50% at 50% 55%, rgba(255,255,255,0.6), transparent 65%),
+          linear-gradient(135deg, #ffaa3a 0%, #d68a2e 50%, #6b3aa0 100%);
+      background-blend-mode: screen, normal;
+    }
+    .art-dendritic-arbor {
+      background:
+          radial-gradient(60% 60% at 70% 30%, rgba(255,255,255,0.45), transparent 65%),
+          linear-gradient(135deg, #1f4d2e 0%, #2f6a3d 45%, #7fcfa3 100%);
+      background-blend-mode: screen, normal;
+    }
+    .art-synaptic-vesicles {
+      background:
+          radial-gradient(60% 50% at 35% 40%, rgba(255,255,255,0.55), transparent 65%),
+          linear-gradient(135deg, #c9b6e0 0%, #d8c8e8 50%, #f5ead8 100%);
+      background-blend-mode: screen, normal;
+    }
+    .art-eeg-bands {
+      background:
+          radial-gradient(80% 50% at 50% 50%, rgba(255,255,255,0.45), transparent 70%),
+          linear-gradient(135deg, #0b1a4a 0%, #2c2a8a 45%, #c83a8a 100%);
+      background-blend-mode: screen, normal;
+    }
+    .art-cellular-mitosis {
+      background:
+          radial-gradient(60% 55% at 50% 50%, rgba(255,255,255,0.5), transparent 70%),
+          linear-gradient(135deg, #c8862a 0%, #a86820 50%, #2c1a6a 100%);
+      background-blend-mode: screen, normal;
+    }
+    .art-neural-mass-field {
+      background:
+          radial-gradient(70% 60% at 60% 45%, rgba(255,255,255,0.45), transparent 70%),
+          linear-gradient(135deg, #161310 0%, #1a2620 45%, #a8e85a 100%);
+      background-blend-mode: screen, normal;
+    }
+    .art-glial-network {
+      background:
+          radial-gradient(60% 50% at 35% 50%, rgba(255,255,255,0.4), transparent 70%),
+          linear-gradient(135deg, #2a2520 0%, #3a302a 50%, #b06a3a 100%);
+      background-blend-mode: screen, normal;
+    }
+
+    /* Subtle organic motifs per card — evoke neurons / dendrites / bands */
+    .art-cortical-column::before,
+    .art-action-potential::before,
+    .art-dendritic-arbor::before,
+    .art-synaptic-vesicles::before,
+    .art-eeg-bands::before,
+    .art-cellular-mitosis::before,
+    .art-neural-mass-field::before,
+    .art-glial-network::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .art-cortical-column::before {
+      background-image:
+          repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 28px),
+          repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 1px, transparent 1px 28px);
+      mix-blend-mode: multiply; opacity: 0.7;
+    }
+    .art-action-potential::before {
+      background-image:
+          radial-gradient(circle at 20% 80%, rgba(255,255,255,0.7) 0 3px, transparent 4px),
+          radial-gradient(circle at 50% 60%, rgba(255,255,255,0.5) 0 2px, transparent 3px),
+          radial-gradient(circle at 78% 35%, rgba(255,255,255,0.7) 0 3px, transparent 4px);
+    }
+    .art-dendritic-arbor::before {
+      background-image:
+          linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.25) 49%, rgba(0,0,0,0.25) 51%, transparent 52%),
+          linear-gradient(135deg, transparent 48%, rgba(0,0,0,0.2) 49%, rgba(0,0,0,0.2) 51%, transparent 52%),
+          linear-gradient(60deg, transparent 48%, rgba(0,0,0,0.15) 49%, rgba(0,0,0,0.15) 51%, transparent 52%);
+      opacity: 0.7;
+    }
+    .art-synaptic-vesicles::before {
+      background-image:
+          radial-gradient(circle at 30% 40%, rgba(120,80,160,0.45) 0 8px, transparent 10px),
+          radial-gradient(circle at 65% 55%, rgba(120,80,160,0.4) 0 6px, transparent 8px),
+          radial-gradient(circle at 50% 65%, rgba(120,80,160,0.5) 0 7px, transparent 9px),
+          radial-gradient(circle at 80% 30%, rgba(120,80,160,0.35) 0 5px, transparent 7px);
+    }
+    .art-eeg-bands::before {
+      background-image:
+          repeating-linear-gradient(0deg,
+            transparent 0 14px,
+            rgba(255,255,255,0.18) 14px 16px,
+            transparent 16px 30px,
+            rgba(255,255,255,0.12) 30px 31px,
+            transparent 31px 48px);
+    }
+    .art-cellular-mitosis::before {
+      background-image:
+          linear-gradient(45deg, transparent 49%, rgba(255,255,255,0.35) 49.5%, rgba(255,255,255,0.35) 50.5%, transparent 51%),
+          linear-gradient(135deg, transparent 49%, rgba(255,255,255,0.25) 49.5%, rgba(255,255,255,0.25) 50.5%, transparent 51%);
+      opacity: 0.85;
+    }
+    .art-neural-mass-field::before {
+      background-image:
+          radial-gradient(circle at 25% 30%, rgba(255,255,255,0.4) 0 2px, transparent 3px),
+          radial-gradient(circle at 60% 50%, rgba(255,255,255,0.3) 0 2px, transparent 3px),
+          radial-gradient(circle at 80% 70%, rgba(255,255,255,0.4) 0 2px, transparent 3px),
+          radial-gradient(circle at 40% 75%, rgba(255,255,255,0.35) 0 2px, transparent 3px),
+          radial-gradient(circle at 70% 25%, rgba(255,255,255,0.35) 0 2px, transparent 3px);
+    }
+    .art-glial-network::before {
+      background-image:
+          linear-gradient(30deg, transparent 48%, rgba(255,255,255,0.18) 49%, rgba(255,255,255,0.18) 51%, transparent 52%),
+          linear-gradient(120deg, transparent 48%, rgba(255,255,255,0.15) 49%, rgba(255,255,255,0.15) 51%, transparent 52%),
+          linear-gradient(75deg, transparent 48%, rgba(255,255,255,0.12) 49%, rgba(255,255,255,0.12) 51%, transparent 52%);
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <div class="nav__brand">SWR</div>
+      <div class="nav__links">
+        <a href="./landing.html">Engine</a>
+        <a href="./campaign.html">Pricing</a>
+        <a href="./thanks.html">Order</a>
+      </div>
+      <a class="nav__cta" href="./campaign.html">Get a visualizer →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__kicker">MICROSCOPY · CONNECTOME</div>
+      <h1 class="hero__title">Biological / <em>Neuro</em></h1>
+      <p class="hero__lede">Cells, synapses, neural oscillations, and the firing patterns that look a lot like music.</p>
+      <p class="hero__desc">
+        A microscopy-driven aesthetic pulled from stained slices, electrode arrays, and computational neuro models. Every frame is a chamber of the brain — cortical columns, calcium waves, dendrites that branch like trees in winter. Built for producers who want their visuals to feel like they were made by a lab, not a designer.
+      </p>
+    </div>
+  </header>
+
+  <section class="grid wrap">
+    <article class="card card--featured">
+      <div class="card__art art-cortical-column">
+        <span class="card__tag">Cortical Column</span>
+        <span class="card__featured">Featured</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">Cortical Column</h3>
+        <p class="card__sub">The repeating unit of the neocortex — six stacked sheets and the minicolumns that braid them into a single thinking tissue.</p>
+        <div class="card__meta">6 layers · minicolumns</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__art art-action-potential">
+        <span class="card__tag">Action Potential</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">Action Potential</h3>
+        <p class="card__sub">A voltage-gated cascade — sodium floods in, potassium floods out, and the membrane rings like a struck bell.</p>
+        <div class="card__meta">Voltage-gated cascade</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__art art-dendritic-arbor">
+        <span class="card__tag">Dendritic Arbor</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">Dendritic Arbor</h3>
+        <p class="card__sub">The branching input zone of a hippocampal CA1 pyramidal cell — thousands of listening tendrils.</p>
+        <div class="card__meta">Hippocampal CA1</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__art art-synaptic-vesicles">
+        <span class="card__tag">Synaptic Vesicles</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">Synaptic Vesicles</h3>
+        <p class="card__sub">Lipid bubbles docked at the presynaptic terminal, ready to dump neurotransmitter into the cleft.</p>
+        <div class="card__meta">Neurotransmitter release</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__art art-eeg-bands">
+        <span class="card__tag">EEG Bands</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">EEG Bands</h3>
+        <p class="card__sub">Five rhythms in one scalp reading — from the slow tide of delta to the bright flicker of focused thought.</p>
+        <div class="card__meta">Delta · theta · alpha · beta · gamma</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__art art-cellular-mitosis">
+        <span class="card__tag">Cellular Mitosis</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">Cellular Mitosis</h3>
+        <p class="card__sub">Anaphase — chromatids pulled poleward along microtubule spindles, one cell becoming two.</p>
+        <div class="card__meta">Anaphase spindles</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__art art-neural-mass-field">
+        <span class="card__tag">Neural Mass Field</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">Neural Mass Field</h3>
+        <p class="card__sub">A Jansen-Rit cortical field — three coupled populations producing the emergent rhythms of a column.</p>
+        <div class="card__meta">Jansen-Rit model</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__art art-glial-network">
+        <span class="card__tag">Glial Network</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">Glial Network</h3>
+        <p class="card__sub">Astrocytes whispering to each other in calcium — the brain's slow, supporting conversation.</p>
+        <div class="card__meta">Astrocyte calcium waves</div>
+      </div>
+    </article>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer__line"><span>Biological / Neuro</span> · SWR Galleries</div>
+    </div>
+  </footer>
+</body>
+</html>

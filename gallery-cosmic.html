@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cosmic — SWR Gallery</title>
+  <meta name="description" content="Nebulae, galaxies, accretion disks, and the dark between — visual systems that breathe on timescales longer than songs." />
+  <meta property="og:title" content="Cosmic — SWR Gallery" />
+  <meta property="og:description" content="Nebulae, galaxies, accretion disks, and the dark between — visual systems that breathe on timescales longer than songs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1080px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
+
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5vw, 52px); line-height: 1.05;
+      letter-spacing: -0.025em; margin: 0 0 16px;
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-size: 18px; color: var(--ink-2); max-width: 560px;
+      margin: 0 auto 32px; line-height: 1.6;
+    }
+    .hero__desc {
+      font-size: 15px; color: var(--ink-2); max-width: 620px;
+      margin: 0 auto 32px; line-height: 1.65;
+    }
+
+    .grid {
+      display: grid; gap: 24px; padding: 32px 0 80px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+    .gallery-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .gallery-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .gallery-card__art {
+      aspect-ratio: 16/10;
+      position: relative;
+      overflow: hidden;
+    }
+    .gallery-card__art::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 60%);
+      pointer-events: none;
+    }
+    .gallery-card__body { padding: 18px 18px 20px; }
+    .gallery-card__name {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 20px; letter-spacing: -0.015em;
+      margin: 0 0 6px;
+    }
+    .gallery-card__sub {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 10px;
+    }
+    .gallery-card__meta {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--muted);
+    }
+    .gallery-card__meta span {
+      background: var(--panel-2); padding: 3px 8px;
+      border-radius: 3px; border: 1px solid var(--line);
+    }
+
+    .gallery-card--featured {
+      grid-column: span 2;
+    }
+    .gallery-card--featured .gallery-card__art {
+      aspect-ratio: 16/9;
+    }
+    .gallery-card--featured .gallery-card__name {
+      font-size: 26px;
+    }
+    @media (max-width: 720px) {
+      .gallery-card--featured { grid-column: span 1; }
+    }
+
+    /* Card gradients — pure CSS placeholder shapes */
+    .g-stellar-nursery {
+      background:
+        radial-gradient(ellipse at 25% 60%, #c8008a 0%, transparent 45%),
+        radial-gradient(ellipse at 75% 40%, #00d9b8 0%, transparent 50%),
+        linear-gradient(180deg, #000000 0%, #1a0030 50%, #003a3a 100%);
+    }
+    .g-accretion-disk {
+      background:
+        radial-gradient(circle at 50% 50%, transparent 18%, #ff6a1f 19%, #ff8a3a 30%, #6a3a8a 55%, #0a0a14 80%),
+        linear-gradient(180deg, #ff8a3a 0%, #2a1a3a 60%, #0a0a14 100%);
+    }
+    .g-supernova-remnant {
+      background:
+        radial-gradient(circle at 55% 50%, #f5ead8 0%, #d4628a 18%, #4a6ab8 45%, #b8482a 75%, #1a1428 100%),
+        linear-gradient(180deg, #4a6ab8 0%, #f5ead8 45%, #b8482a 100%);
+    }
+    .g-galaxy-arms {
+      background:
+        conic-gradient(from 220deg at 50% 50%, transparent 0deg, #c0b29c 25deg, transparent 50deg, #5a4a8a 100deg, transparent 130deg, #c0b29c 180deg, transparent 220deg, #5a4a8a 280deg, transparent 320deg),
+        linear-gradient(180deg, #1a1030 0%, #2a1f4a 50%, #0a0518 100%);
+    }
+    .g-solar-flare {
+      background:
+        radial-gradient(ellipse at 50% 80%, #c82814 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, #ffaa3a 0%, transparent 55%),
+        linear-gradient(180deg, #ffdd44 0%, #d83820 60%, #0a0610 100%);
+    }
+    .g-cosmic-microwave {
+      background:
+        radial-gradient(ellipse at 30% 40%, #f5ead8 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 70%, #c8788c 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 30%, #7a4a9a 0%, transparent 45%),
+        linear-gradient(180deg, #f5ead8 0%, #d4a0b0 50%, #6a3a8a 100%);
+    }
+    .g-planetary-ring {
+      background:
+        radial-gradient(ellipse at 50% 50%, transparent 38%, #c89060 39%, #b87838 44%, transparent 45%, transparent 50%, #8a6850 51%, #a07848 56%, transparent 57%),
+        radial-gradient(circle at 50% 50%, #d8a878 0%, #6a5848 60%, #2a1f18 100%);
+    }
+    .g-interstellar-dust {
+      background:
+        radial-gradient(ellipse at 35% 35%, #b8482a 0%, transparent 35%),
+        radial-gradient(ellipse at 65% 65%, #5a4a8a 0%, transparent 40%),
+        linear-gradient(180deg, #1a1030 0%, #2a1f3a 40%, #3a1f1a 80%, #0a0510 100%);
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 28px 0;
+      text-align: center;
+    }
+    .footer__line {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .footer__line strong { color: var(--ink-2); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <div class="nav__brand">SWR</div>
+      <div class="nav__links">
+        <a href="./landing.html">Engine</a>
+        <a href="./campaign.html">Pricing</a>
+        <a href="./portfolio.html">Portfolio</a>
+      </div>
+      <a class="nav__cta" href="./campaign.html">Get a visualizer →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__kicker">Deep Field · Star-forming regions</div>
+      <h1 class="hero__title">Cosmic <em>gallery.</em></h1>
+      <p class="hero__lede">
+        Nebulae, galaxies, accretion disks, and the dark between — visual systems
+        that breathe on timescales longer than songs.
+      </p>
+      <p class="hero__desc">
+        The cosmic aesthetic trades rhythm for gravity — color fields you could fall into,
+        slow particle drifts, and gradients that resolve over minutes instead of beats.
+        Built for ambient, post-rock, drone, and any track that wants to feel infinite.
+      </p>
+    </div>
+  </header>
+
+  <section class="grid wrap">
+    <article class="gallery-card gallery-card--featured">
+      <div class="gallery-card__art g-stellar-nursery"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Stellar Nursery</h2>
+        <div class="gallery-card__sub">featured · star formation</div>
+        <div class="gallery-card__meta"><span>Pillars of Creation</span></div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art g-accretion-disk"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Accretion Disk</h2>
+        <div class="gallery-card__sub">gravity · rotational</div>
+        <div class="gallery-card__meta"><span>Black hole horizon</span></div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art g-supernova-remnant"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Supernova Remnant</h2>
+        <div class="gallery-card__sub">explosion · cooling shock</div>
+        <div class="gallery-card__meta"><span>Crab Nebula</span></div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art g-galaxy-arms"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Galaxy Arms</h2>
+        <div class="gallery-card__sub">spiral · morphology</div>
+        <div class="gallery-card__meta"><span>Spiral morphology</span></div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art g-solar-flare"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Solar Flare</h2>
+        <div class="gallery-card__sub">plasma · coronal</div>
+        <div class="gallery-card__meta"><span>Coronal mass ejection</span></div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art g-cosmic-microwave"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Cosmic Microwave</h2>
+        <div class="gallery-card__sub">background · relic radiation</div>
+        <div class="gallery-card__meta"><span>Background radiation</span></div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art g-planetary-ring"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Planetary Ring</h2>
+        <div class="gallery-card__sub">orbital · geometric</div>
+        <div class="gallery-card__meta"><span>Saturnian geometry</span></div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art g-interstellar-dust"></div>
+      <div class="gallery-card__body">
+        <h2 class="gallery-card__name">Interstellar Dust</h2>
+        <div class="gallery-card__sub">dark cloud · opaque</div>
+        <div class="gallery-card__meta"><span>Bok globules</span></div>
+      </div>
+    </article>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer__line">Cosmic · <strong>SWR Galleries</strong></div>
+    </div>
+  </footer>
+</body>
+</html>

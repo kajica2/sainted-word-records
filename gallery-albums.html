@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Album Covers — SWR Gallery</title>
+  <meta name="description" content="Sleeve compositions — typography as image, single strong gesture, readable at thumbnail. 8 album-cover treatments in the SWR Gallery." />
+  <meta property="og:title" content="Album Covers — SWR Gallery" />
+  <meta property="og:description" content="Sleeve compositions — typography as image, single strong gesture, readable at thumbnail." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1080px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
+
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5vw, 52px); line-height: 1.05;
+      letter-spacing: -0.025em; margin: 0 0 16px;
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-size: 18px; color: var(--ink-2); max-width: 620px;
+      margin: 0 auto 24px; line-height: 1.6;
+    }
+    .hero__desc {
+      font-size: 14px; color: var(--muted); max-width: 560px;
+      margin: 0 auto 32px; line-height: 1.7;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      padding: 32px 0 64px;
+    }
+    @media (max-width: 980px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
+
+    .gallery-card {
+      display: flex; flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform .25s ease, border-color .25s ease;
+    }
+    .gallery-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .gallery-card--featured {
+      grid-column: span 2;
+      grid-row: span 2;
+    }
+    .gallery-card__art {
+      aspect-ratio: 1 / 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .gallery-card--featured .gallery-card__art { aspect-ratio: 1 / 1; }
+    .gallery-card__art::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.06) 0%, rgba(0,0,0,.18) 100%);
+      pointer-events: none;
+    }
+    .gallery-card__body {
+      padding: 16px 18px 18px;
+      display: flex; flex-direction: column; gap: 6px;
+      flex: 1;
+    }
+    .gallery-card__index {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .gallery-card__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 18px; letter-spacing: -0.015em;
+      color: var(--ink); margin: 0;
+      line-height: 1.2;
+    }
+    .gallery-card--featured .gallery-card__title { font-size: 26px; }
+    .gallery-card__sub {
+      font-size: 13px; color: var(--ink-2);
+      margin: 0; line-height: 1.45;
+    }
+    .gallery-card__meta {
+      display: inline-flex;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--accent);
+      padding: 5px 9px; border-radius: 4px;
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      margin-top: 4px; align-self: flex-start;
+    }
+
+    /* Album-cover gradient seeds (one per card). 1:1 square aspect. */
+    .grad-1 { background: linear-gradient(135deg, #f5ead8 0%, #1a1612 100%); }
+    .grad-2 { background: linear-gradient(135deg, #d29432 0%, #6a3aa8 100%); }
+    .grad-3 { background: linear-gradient(135deg, #c8ff3a 0%, #ff2dd6 100%); }
+    .grad-4 { background: linear-gradient(135deg, #b86a3a 0%, #1f3aa8 100%); }
+    .grad-5 { background: linear-gradient(135deg, #f5ead8 0%, #2d4a32 100%); }
+    .grad-6 { background: linear-gradient(135deg, #3a3a3a 0%, #ff7a5a 100%); }
+    .grad-7 { background: linear-gradient(135deg, #8a8378 0%, #d29432 100%); }
+    .grad-8 { background: linear-gradient(135deg, #2a1f6a 0%, #f5ead8 100%); }
+
+    footer.site-foot {
+      border-top: 1px solid var(--line);
+      padding: 24px 0 40px;
+    }
+    .site-foot__line {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <div class="nav__brand">SWR</div>
+      <div class="nav__links">
+        <a href="./landing.html">Engine</a>
+        <a href="./campaign.html">Pricing</a>
+        <a href="./thanks.html">Order</a>
+      </div>
+      <a class="nav__cta" href="./campaign.html">Get a visualizer →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__kicker">12x12 · 3000x3000 · SQUARE CROP</div>
+      <h1 class="hero__title">Album <em>Covers.</em></h1>
+      <p class="hero__lede">Sleeve compositions — typography as image, single strong gesture, readable at thumbnail.</p>
+      <p class="hero__desc">
+        Eight approaches to the same square frame: type-only lockups, single-photo portraits, abstract marks, and split compositions.
+        Every sleeve must survive a 64-pixel thumbnail — one strong gesture, no clutter, the title legible at a glance.
+      </p>
+    </div>
+  </header>
+
+  <section class="grid wrap">
+    <article class="gallery-card gallery-card--featured">
+      <div class="gallery-card__art grad-1" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">01 · Featured</div>
+        <h2 class="gallery-card__title">Type-Only Sleeve</h2>
+        <p class="gallery-card__sub">The wordmark does all the work. One typeface, one tracking decision, one color move.</p>
+        <span class="gallery-card__meta">Wordmark lockup</span>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art grad-2" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">02</div>
+        <h2 class="gallery-card__title">Single Photo</h2>
+        <p class="gallery-card__sub">One portrait carries the sleeve. No type at all — the face is the title.</p>
+        <span class="gallery-card__meta">One portrait, no type</span>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art grad-3" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">03</div>
+        <h2 class="gallery-card__title">Abstract Mark</h2>
+        <p class="gallery-card__sub">Pure shape and color. No photo, no type — the geometry is the band.</p>
+        <span class="gallery-card__meta">No photo, no type</span>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art grad-4" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">04</div>
+        <h2 class="gallery-card__title">Half-Half Collage</h2>
+        <p class="gallery-card__sub">Two frames split down the middle. The seam is the composition.</p>
+        <span class="gallery-card__meta">Two frames split</span>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art grad-5" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">05</div>
+        <h2 class="gallery-card__title">Gatefold Spread</h2>
+        <p class="gallery-card__sub">Designed as a 2-page spread. Outside and inside have to read together.</p>
+        <span class="gallery-card__meta">Inside · outside</span>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art grad-6" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">06</div>
+        <h2 class="gallery-card__title">Series Sleeve</h2>
+        <p class="gallery-card__sub">One system, four covers. Volume numbers + consistent frame.</p>
+        <span class="gallery-card__meta">Volume 1 of 4</span>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art grad-7" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">07</div>
+        <h2 class="gallery-card__title">Stained Sleeve</h2>
+        <p class="gallery-card__sub">Washed color, paper grain, watercolor bleed. Texture does the talking.</p>
+        <span class="gallery-card__meta">Texture wash</span>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art grad-8" aria-hidden="true"></div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__index">08</div>
+        <h2 class="gallery-card__title">Lyric Sleeve</h2>
+        <p class="gallery-card__sub">A fragment of lyrics typeset as the only image. The song is the cover.</p>
+        <span class="gallery-card__meta">Verse fragment</span>
+      </div>
+    </article>
+  </section>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      <div class="site-foot__line">albums · SWR Galleries</div>
+    </div>
+  </footer>
+</body>
+</html>

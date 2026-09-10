@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dark Futuristic Surrealism — SWR Gallery</title>
+  <meta name="description" content="Tomorrow that already feels like today — chrome, ash, electric magenta, monoliths rising from concrete." />
+  <meta property="og:title" content="Dark Futuristic Surrealism — SWR Gallery" />
+  <meta property="og:description" content="Tomorrow that already feels like today — chrome, ash, electric magenta, monoliths rising from concrete." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1080px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
+
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5vw, 52px); line-height: 1.05;
+      letter-spacing: -0.025em; margin: 0 0 16px;
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-size: 18px; color: var(--ink-2); max-width: 620px;
+      margin: 0 auto 24px; line-height: 1.6;
+    }
+    .hero__desc {
+      font-size: 15px; color: var(--muted); max-width: 620px;
+      margin: 0 auto 32px; line-height: 1.7;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 24px;
+      padding: 32px 0 80px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .gallery-card {
+      grid-column: span 2;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .gallery-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .gallery-card--featured {
+      grid-column: span 4;
+      grid-row: span 2;
+    }
+    @media (max-width: 960px) {
+      .gallery-card--featured { grid-column: span 4; grid-row: auto; }
+    }
+    @media (max-width: 640px) {
+      .gallery-card, .gallery-card--featured { grid-column: span 2; }
+    }
+
+    .gallery-card__art {
+      aspect-ratio: 4/3;
+      position: relative;
+      overflow: hidden;
+    }
+    .gallery-card--featured .gallery-card__art {
+      aspect-ratio: 16/10;
+    }
+    .gallery-card__art::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 55%),
+        radial-gradient(circle at 70% 80%, rgba(0,0,0,0.35), transparent 60%);
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+    .gallery-card__chip {
+      position: absolute; top: 12px; left: 12px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--bg); background: rgba(0,0,0,0.55);
+      padding: 5px 10px; border-radius: 4px;
+      backdrop-filter: blur(6px);
+    }
+    .gallery-card__body {
+      padding: 18px 20px 22px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .gallery-card__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; letter-spacing: -0.02em;
+      margin: 0; color: var(--ink);
+    }
+    .gallery-card--featured .gallery-card__title { font-size: 30px; }
+    .gallery-card__sub {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 4px;
+    }
+    .gallery-card__meta {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); margin-top: 6px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 24px 32px;
+      max-width: 1080px; margin: 0 auto;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+      display: flex; justify-content: space-between; gap: 16px;
+    }
+    @media (max-width: 640px) {
+      .footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <div class="nav__brand">SWR</div>
+      <div class="nav__links">
+        <a href="./landing.html">Engine</a>
+        <a href="./portfolio.html">Portfolio</a>
+        <a href="./campaign.html">Pricing</a>
+      </div>
+      <a class="nav__cta" href="./engine.html">Open engine →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__kicker">Neon · Dystopia · Inversion</div>
+      <h1 class="hero__title">Dark Futuristic Surrealism — <em>SWR Gallery</em></h1>
+      <p class="hero__lede">
+        Tomorrow that already feels like today — chrome, ash, electric magenta, monoliths rising from concrete.
+      </p>
+      <p class="hero__desc">
+        High contrast, low light, hard edges — the engine pushes black into violet, magenta into chrome, dust into fog. Every surface is wet, every shadow is alive, every reflection catches a screen we haven't built yet.
+      </p>
+    </div>
+  </header>
+
+  <section class="grid wrap">
+    <article class="gallery-card gallery-card--featured">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #0a0a14 0%, #ff1a8a 50%, #ece4d0 100%);">
+        <span class="gallery-card__chip">Featured · Inversion</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">City Inversion</div>
+        <h2 class="gallery-card__title">City Inversion</h2>
+        <div class="gallery-card__meta">Skyscrapers down</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #c0c0c0 0%, #6a6a6a 50%, #2a2a2a 100%);">
+        <span class="gallery-card__chip">Chrome</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Chrome Stalker</div>
+        <h2 class="gallery-card__title">Chrome Stalker</h2>
+        <div class="gallery-card__meta">Reflective figure</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #2a0a4a 0%, #0a0a14 50%, #000000 100%);">
+        <span class="gallery-card__chip">Monolith</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Monolith Row</div>
+        <h2 class="gallery-card__title">Monolith Row</h2>
+        <div class="gallery-card__meta">2001 sentinels</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #0a1a4a 0%, #c41a8a 50%, #1a1a4a 100%);">
+        <span class="gallery-card__chip">Neon</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Neon Rain</div>
+        <h2 class="gallery-card__title">Neon Rain</h2>
+        <div class="gallery-card__meta">Wet asphalt</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #ece4d0 0%, #c4a878 50%, #c8902a 100%);">
+        <span class="gallery-card__chip">Salt</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Salt Flats After</div>
+        <h2 class="gallery-card__title">Salt Flats After</h2>
+        <div class="gallery-card__meta">Endless horizon</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a1a4a 0%, #4a4a8a 50%, #b87333 100%);">
+        <span class="gallery-card__chip">Cathedral</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Console Cathedral</div>
+        <h2 class="gallery-card__title">Console Cathedral</h2>
+        <div class="gallery-card__meta">Tech as worship</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #5a5a5a 0%, #8a8a8a 50%, #80ff60 100%);">
+        <span class="gallery-card__chip">Fog</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Fog Over Spires</div>
+        <h2 class="gallery-card__title">Fog Over Spires</h2>
+        <div class="gallery-card__meta">Low-visibility ruin</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #000000 0%, #2a0a4a 50%, #ece4d0 100%);">
+        <span class="gallery-card__chip">Code</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Code Inversion</div>
+        <h2 class="gallery-card__title">Code Inversion</h2>
+        <div class="gallery-card__meta">Source as image</div>
+      </div>
+    </article>
+  </section>
+
+  <footer class="footer">
+    <span>Dark Futuristic Surrealism</span>
+    <span>SWR Galleries</span>
+  </footer>
+</body>
+</html>
