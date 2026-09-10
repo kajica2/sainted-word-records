@@ -93,6 +93,14 @@
       "destination": "/thanks.html"
     },
     {
+      "source": "/atlas",
+      "destination": "/atlas.html"
+    },
+    {
+      "source": "/atlas/",
+      "destination": "/atlas.html"
+    },
+    {
       "source": "/thanks/",
       "destination": "/thanks.html"
     },

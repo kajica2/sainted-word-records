@@ -42,7 +42,7 @@ function copyStatic() {
   let outDir = 'dist';
   const rootFiles = [
     'landing.html', 'interactive-howto.html', 'market-study.html',
-    'profit-plan.html', 'campaign.html', 'personas.html',
+    'profit-plan.html', 'campaign.html', 'personas.html', 'atlas.html',
     'landing-personas-v1-editorial.html',
     'landing-personas-v2-dark.html',
     'landing-personas-v3-friendly.html',
