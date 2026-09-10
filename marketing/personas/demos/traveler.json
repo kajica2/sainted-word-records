@@ -1,0 +1,24 @@
+{
+  "id": "traveler",
+  "label": "The Traveler",
+  "mode": "cross",
+  "tagline": "Universal in, universal out — no country in the chrome.",
+  "cluster_explainer": "The Traveler treats the engine as a portable, borderless artifact — universal audio in, universal image out, and nothing in the UI that would translate the user into a customer.",
+  "preset": "style-cassette",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "smooth",
+    "smooth_factor": 0.7
+  },
+  "primitive": "sphere",
+  "color": "#6b8e9b",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Sphere is the geometry of no nation — same curve in every language, no local accent for the eye to read.",
+    "Cassette preset evokes lo-fi portability: the artifact you can carry across a border without it changing flavor.",
+    "Mid-band dominance matches the band where speech and street audio live — the universal layer of human sound.",
+    "Smooth envelope (0.7) lets a fragment from one city and a fragment from another compose without seams between them.",
+    "No chrome, no flag, no language picker in the demo itself: the artifact travels without translation or caption."
+  ],
+  "cluster": "cross"
+}

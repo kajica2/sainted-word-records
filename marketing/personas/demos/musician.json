@@ -1,0 +1,24 @@
+{
+  "id": "musician",
+  "label": "The Musician",
+  "mode": "practitioner",
+  "tagline": "A reactive breath that earns its place by withholding itself",
+  "cluster_explainer": "Practitioners read the engine for what it does to attention over time, with zero tolerance for popups or nudges.",
+  "preset": "style-smoke",
+  "reactor": {
+    "dominant_band": "bass",
+    "envelope": "smooth",
+    "smooth_factor": 0.85
+  },
+  "primitive": "sphere",
+  "color": "#5b8a72",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Bass-band reactance locks to pulse and breath so the engine feels like room temperature, not a screen",
+    "Smooth envelope with high smoothing keeps motion continuous — no jumps, no attention-grabbing transients",
+    "Sphere primitive has no edges to read, so the engine registers as presence rather than object",
+    "Smoke preset is the most withholding of the styles — the engine earns its place by withholding itself",
+    "Deep green palette carries no UI connotation, so the visual blends into the practice room instead of foregrounding itself"
+  ],
+  "cluster": "practitioner"
+}

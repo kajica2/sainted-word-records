@@ -1,0 +1,24 @@
+{
+  "id": "author",
+  "label": "The Author",
+  "mode": "practitioner",
+  "tagline": "A page that breathes around a single paragraph",
+  "cluster_explainer": "Practitioners read the engine for what it does to attention over time, with zero tolerance for popups or nudges.",
+  "preset": "style-neon",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "smooth",
+    "smooth_factor": 0.7
+  },
+  "primitive": "torus",
+  "color": "#d9a441",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Torus reads as a cycle — a sentence that returns, like a chapter that revises itself",
+    "Mid-band reactance tracks the vocal and harmonic body where the emotional center of a paragraph lives",
+    "Neon preset warms the frame like late-afternoon reading light without ever becoming illustration",
+    "Smooth envelope (0.7) keeps transitions between moods quiet — the same paragraph in two moods reads as two objects, not two clips",
+    "One photograph in, one tone out: the demo is a still image made to breathe, not a video editor"
+  ],
+  "cluster": "practitioner"
+}

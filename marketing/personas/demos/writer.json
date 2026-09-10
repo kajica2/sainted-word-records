@@ -1,0 +1,24 @@
+{
+  "id": "writer",
+  "label": "The Writer",
+  "mode": "practitioner",
+  "tagline": "A room that breathes with the cadence of the current paragraph",
+  "cluster_explainer": "Practitioners read the engine for what it does to attention over time, with zero tolerance for popups or nudges.",
+  "preset": "style-neon",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "smooth",
+    "smooth_factor": 0.6
+  },
+  "primitive": "torus",
+  "color": "#9c89b8",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Torus reads as cycles within cycles — paragraph cadence, not chapter arc",
+    "Mid-band tracks the breath body where the sentence's emotional weight actually lands",
+    "Muted purple (#9c89b8) reads as typography-coded, not as illustration",
+    "Smooth envelope at 0.6 moves with the draft — gradual build and release, never a beat drop",
+    "No export, no analytics, no memory — the page is a room that doesn't watch you write"
+  ],
+  "cluster": "practitioner"
+}

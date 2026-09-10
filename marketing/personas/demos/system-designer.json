@@ -1,0 +1,24 @@
+{
+  "id": "system-designer",
+  "label": "The High-Level System Designer",
+  "mode": "broker",
+  "tagline": "One node in a larger system — legible, not a destination.",
+  "cluster_explainer": "The Broker cluster positions the engine for other people — the deliverable is a forwarded URL, not a pitch.",
+  "preset": "style-neon",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "step",
+    "smooth_factor": 0.6
+  },
+  "primitive": "icosahedron",
+  "color": "#00B4D8",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Icosahedron primitive (20 faces, geodesic) reads as a system node — topology visible at a glance, not a polished consumer shape.",
+    "Step envelope makes state transitions explicit, mirroring how system designers talk about discrete signal edges, not continuous waves.",
+    "Neon preset evokes network/system-mapping aesthetics without committing to a platform brand — fits 'node, not destination.'",
+    "Mid-band dominance matches architectural thinking: not sub-bass rumble, not treble shimmer, but the connective tissue of a system.",
+    "Deep cyan against neon signal renders the engine as something to read, not to consume — a single visit, like inspecting a building."
+  ],
+  "cluster": "broker"
+}

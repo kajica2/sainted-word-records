@@ -1,0 +1,24 @@
+{
+  "id": "meditator",
+  "label": "The Meditator",
+  "mode": "practitioner",
+  "tagline": "A reactive surface that treats silence as silence",
+  "cluster_explainer": "Practitioners read the engine for what it does to attention over time, with zero tolerance for popups or nudges.",
+  "preset": "style-smoke",
+  "reactor": {
+    "dominant_band": "bass",
+    "envelope": "smooth",
+    "smooth_factor": 0.9
+  },
+  "primitive": "icosahedron",
+  "color": "#7a8a7e",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "High smooth_factor (0.9) absorbs transients so the visual breathes instead of twitches",
+    "Bass-band coupling reads the slow chest-and-belly register that grounds a sitting",
+    "Smoke preset is the quietest available style — minimal color push, no gimmicks, no scores",
+    "Icosahedron at low rotation holds a perceptual object that the eye can release without losing its place",
+    "Engine idle state is itself part of the demo: long pauses between events must read as silence, not a glitch"
+  ],
+  "cluster": "practitioner"
+}

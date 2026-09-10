@@ -1,0 +1,24 @@
+{
+  "id": "philosopher",
+  "label": "The Philosopher",
+  "mode": "auditor",
+  "tagline": "A slow torus that asks whether listening is the same as counting.",
+  "cluster_explainer": "The Auditor cluster wants the engine to remain unfinished and legible — it leaves forever the moment the seams are hidden.",
+  "preset": "style-smoke",
+  "reactor": {
+    "dominant_band": "bass",
+    "envelope": "smooth",
+    "smooth_factor": 0.95
+  },
+  "primitive": "torus",
+  "color": "#7c6b9c",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Torus is a perpetual cycle with no closed endpoint — a small model of attention returning to a sound",
+    "Smoke preset refuses the bright-cut look of 'product' frames, letting the engine be read as a thought experiment, not a launch",
+    "Bass-dominant reactor tracks the drone underneath, the ever-present that philosophers argue about when they ask what listening is",
+    "Smooth envelope at 0.95 erases the seam between input and response — overclaiming would be louder here than anywhere, and the engine does not overclaim",
+    "Long 90s loop mirrors essay-length attention: nothing strobes for a conclusion, the argument has room to hold or not hold"
+  ],
+  "cluster": "auditor"
+}

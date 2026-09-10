@@ -1,0 +1,24 @@
+{
+  "id": "artist",
+  "label": "The Artist",
+  "mode": "auditor",
+  "tagline": "A material that stays material — surface reads as touched, not rendered.",
+  "cluster_explainer": "The Auditor cluster wants the engine to remain unfinished and legible — it leaves forever the moment the seams are hidden.",
+  "preset": "style-film",
+  "reactor": {
+    "dominant_band": "treble",
+    "envelope": "step",
+    "smooth_factor": 0.4
+  },
+  "primitive": "icosahedron",
+  "color": "#d97757",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Film preset shows grain and texture instead of polish — the surface reads as material under hand, not as a render pretending to be one",
+    "Icosahedron exposes its facets like cut planes on stone: light falls on each face unevenly, the way pigment catches on a real surface",
+    "Treble-dominant reactor maps to the fine temporal edges where a brushstroke or a strike lands, so the artist's hand-input remains audible in the result",
+    "Step envelope refuses to smooth between idle and reactive states — the seam between 'nothing happened' and 'something happened' stays visible like a join in welded metal",
+    "Terracotta pigment preserves the artist's chosen hue without desaturating it toward safety, and at 90 seconds the rotation reveals the accidental asymmetry real material carries instead of demo-reel symmetry"
+  ],
+  "cluster": "auditor"
+}
