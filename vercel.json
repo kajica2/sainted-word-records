@@ -101,6 +101,46 @@
       "destination": "/atlas.html"
     },
     {
+      "source": "/atlas/crisis",
+      "destination": "/atlas-crisis.html"
+    },
+    {
+      "source": "/atlas/crisis/",
+      "destination": "/atlas-crisis.html"
+    },
+    {
+      "source": "/atlas/life-stages",
+      "destination": "/atlas-life-stages.html"
+    },
+    {
+      "source": "/atlas/life-stages/",
+      "destination": "/atlas-life-stages.html"
+    },
+    {
+      "source": "/atlas/200-steps",
+      "destination": "/atlas-200-steps.html"
+    },
+    {
+      "source": "/atlas/200-steps/",
+      "destination": "/atlas-200-steps.html"
+    },
+    {
+      "source": "/atlas/checklist",
+      "destination": "/atlas-checklist.html"
+    },
+    {
+      "source": "/atlas/checklist/",
+      "destination": "/atlas-checklist.html"
+    },
+    {
+      "source": "/atlas/final-insight",
+      "destination": "/atlas-final-insight.html"
+    },
+    {
+      "source": "/atlas/final-insight/",
+      "destination": "/atlas-final-insight.html"
+    },
+    {
       "source": "/thanks/",
       "destination": "/thanks.html"
     },
