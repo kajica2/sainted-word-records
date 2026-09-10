@@ -313,6 +313,14 @@
       "destination": "/gallery-darkfuture.html"
     },
     {
+      "source": "/shop",
+      "destination": "/shop.html"
+    },
+    {
+      "source": "/shop/",
+      "destination": "/shop.html"
+    },
+    {
       "source": "/gallery",
       "destination": "/gallery-music.html"
     },

@@ -148,6 +148,7 @@ function copyStatic() {
     'gallery-point4brand.html',
     'gallery-artist.html',
     'gallery-darkfuture.html',
+    'shop.html',
     'engine-demos.html',
     'swr-campaign-launch-plan.html',
     'swr-dm-templates.html',
