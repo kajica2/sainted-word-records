@@ -1560,11 +1560,24 @@
         function readStageBg() {
           try { return localStorage.getItem(BG_STORAGE_KEY) || ''; } catch (_) { return ''; }
         }
-        // Apply persisted bg immediately (this script runs before the
-        // engine's inline <script> for the stage element). If a stored
-        // value exists, use it; otherwise stick with the CSS default.
+        // Apply persisted bg as soon as the stage element exists. The
+        // onboarding script lives in <aside> after the library panel,
+        // which is AFTER the <section id="stage"> in the source — but
+        // because the stage element sits inside the page body together
+        // with several other panels, this script can run before the
+        // parser has reached the stage tag. Wait for DOMContentLoaded
+        // (or run immediately if already past it) so getElementById
+        // finds the element.
         var storedBg = readStageBg();
-        if (storedBg) applyStageBg(storedBg);
+        var applyStoredBg = function () {
+          var s = readStageBg();
+          if (s) applyStageBg(s);
+        };
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', applyStoredBg, { once: true });
+        } else {
+          applyStoredBg();
+        }
 
         function setActiveSwatch(color) {
           var swatches = root.querySelectorAll('.swr-bg__swatch');
