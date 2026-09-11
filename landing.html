@@ -818,6 +818,35 @@
     </div>
   </section>
 
+  <!-- ============ BATCH DROPZONE ============ -->
+  <section class="section section--alt" id="drop">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">Batch ingest</span>
+        <h2 class="section__title">
+          Drag a <em>folder</em>. Get a cleaned, tagged library.
+        </h2>
+        <p class="section__lede">
+          Drop any number of PNG, JPEG, MP4, MP3, or WAV files onto the box.
+          Each one is auto-processed: PNGs and JPEGs go through the asset
+          curator (chroma-key on a uniform background, then local tag heuristic),
+          audio and video pass through untouched. Folder drops are flattened
+          recursively. A live chip per file shows the curator's verdict.
+        </p>
+      </div>
+      <div class="swr-dropzone swr-dropzone--idle reveal"
+           data-accept="image/png,image/jpeg,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,.mp3,.wav"
+           data-mode="preview"
+           aria-label="Drag files anywhere on this box to batch-upload">
+        Drop files anywhere on this box — or click to browse
+      </div>
+      <p class="section__lede" style="margin-top:14px;font-size:13px;opacity:0.7;">
+        Listens for <code>swr:drop</code> on <code>document</code> — fires once per drop with
+        <code>{results, files}</code> so any consumer can wire it in.
+      </p>
+    </div>
+  </section>
+
   <!-- ============ VERSIONS ============ -->
   <section class="section section--alt" id="versions">
     <div class="wrap">
@@ -1538,5 +1567,6 @@
   <!-- ============ PERSONA ONBOARDING ============ -->
   <script src="/persona-onboarding.js" defer></script>
   <script src="/swr-mascot-camera.client.js" defer></script>
+  <script src="/client/dropzone.client.js" defer></script>
 </body>
 </html>

@@ -80,6 +80,7 @@ function copyStatic() {
     'swr-mascot-camera.svg',
     'swr-mascot-camera.client.js',
     'gallery-audio.client.js',
+    'dropzone.client.js',
     'engine-keys.client.js',
     'engine-layout.client.js',
     'project.client.js',
