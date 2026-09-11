@@ -241,6 +241,41 @@ function fetchStatus(url) {
       if (galleryDom.shopDecorator) pass('shop-decorator wired (Buy-on-tee-or-cup enabled)');
       else fail('shop-decorator missing — gallery cards won\'t get Buy CTAs');
 
+      // Per-card audio (gallery-audio.client.js) wired + sources resolve.
+      const audioDom = await gpage.evaluate(() => ({
+        audioScript: Array.from(document.scripts).some((s) => s.src.includes('gallery-audio')),
+        audioCards: document.querySelectorAll('.gallery-card[data-audio]').length,
+        featuredDataAudio: document.querySelector('.gallery-card--featured')?.getAttribute('data-audio') || '',
+        surfaceLoaded: !!(window.SWR && window.SWR.GalleryAudio),
+        playButtons: document.querySelectorAll('.gallery-card__play').length,
+      }));
+      if (audioDom.audioScript) pass('gallery-audio.client.js script tag present');
+      else fail('gallery-audio.client.js script tag missing');
+      if (audioDom.audioCards === 8) pass('all 8 cards have data-audio wired');
+      else fail(`only ${audioDom.audioCards}/8 cards have data-audio (want 8)`);
+      if (audioDom.featuredDataAudio.endsWith('bachdrop.mp3')) {
+        pass('featured card plays bachdrop.mp3');
+      } else {
+        fail(`featured card plays ${audioDom.featuredDataAudio} (want bachdrop.mp3)`);
+      }
+      if (audioDom.surfaceLoaded) pass('window.SWR.GalleryAudio exposed');
+      else fail('window.SWR.GalleryAudio not attached (script error?)');
+      if (audioDom.playButtons === 8) pass('8 play buttons injected into cards');
+      else fail(`${audioDom.playButtons} play buttons (want 8)`);
+
+      // All 8 audio sources must serve 200.
+      const audioSrcs = await gpage.evaluate(() =>
+        Array.from(document.querySelectorAll('.gallery-card[data-audio]')).map((c) => c.getAttribute('data-audio'))
+      );
+      let audioOk = 0;
+      for (const src of audioSrcs) {
+        const status = await fetchStatus(BASE + src.replace(/^\.\//, '/'));
+        if (status === 200) audioOk++;
+        else fail(`audio source ${src} returned ${status}`);
+      }
+      if (audioOk === 8) pass(`all 8 audio sources resolve (${audioOk}/8)`);
+      else fail(`only ${audioOk}/8 audio sources resolve`);
+
       // Hero copy is Bachdrop + BWV-themed.
       const heroTitle = await gpage.$eval('.hero__title', (el) => el.textContent.trim());
       if (/Bachdrop/i.test(heroTitle) && /BWV|Counterpoint|Bach/i.test(heroTitle)) {

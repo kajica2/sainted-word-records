@@ -159,6 +159,37 @@
       backdrop-filter: blur(6px);
       font-weight: 600;
     }
+
+    /* Per-card audio: play glyph + playing state */
+    .gallery-card__play {
+      position: absolute; bottom: 12px; right: 12px;
+      width: 38px; height: 38px; border-radius: 999px;
+      background: rgba(10, 6, 4, 0.7);
+      color: var(--accent);
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      display: inline-flex; align-items: center; justify-content: center;
+      opacity: 0; transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s ease;
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      padding: 0;
+    }
+    .gallery-card:hover .gallery-card__play,
+    .gallery-card:focus-within .gallery-card__play {
+      opacity: 1; transform: translateY(0);
+    }
+    .gallery-card__play--featured { opacity: 1; transform: translateY(0); }
+    .gallery-card__play:hover { background: rgba(212, 175, 55, 0.18); }
+    .gallery-card__play--on {
+      background: var(--accent); color: var(--bg);
+      border-color: var(--accent);
+    }
+    .gallery-card--playing .gallery-card__art::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(212,175,55,0.18), transparent 70%);
+      pointer-events: none; z-index: 1;
+    }
+    .gallery-card--playing { border-color: var(--accent); }
     .gallery-card__body {
       padding: 18px 20px 22px;
       display: flex; flex-direction: column; gap: 6px;
@@ -223,7 +254,7 @@
   </header>
 
   <section class="grid wrap">
-    <article class="gallery-card gallery-card--featured">
+    <article class="gallery-card gallery-card--featured" data-audio="./audios/bachdrop.mp3" data-label="Contrapunctus I">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a0a04 0%, #6a4a1f 35%, #d4af37 70%, #ffd968 100%);">
         <span class="gallery-card__chip">Featured · Contrapunctus</span>
       </div>
@@ -234,7 +265,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/baroque.mp3" data-label="Aria da capo">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #2a1408 0%, #8a5a1f 50%, #d4af37 100%);">
         <span class="gallery-card__chip">Goldberg</span>
       </div>
@@ -245,7 +276,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/eclipse.mp3" data-label="Toccata in D minor">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #0a0604 0%, #3a2a18 40%, #b87333 100%);">
         <span class="gallery-card__chip">Toccata</span>
       </div>
@@ -256,7 +287,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/kraft.mp3" data-label="Brandenburg Allegro">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #3a1f0a 0%, #d4af37 45%, #fff5d0 100%);">
         <span class="gallery-card__chip">Brandenburg</span>
       </div>
@@ -267,7 +298,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/watercolor.mp3" data-label="Cello Suite Prelude in G">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a1208 0%, #6a4a1f 50%, #b87333 100%);">
         <span class="gallery-card__chip">Cello Suite</span>
       </div>
@@ -278,7 +309,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/void.mp3" data-label="Chaconne in D minor">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #0a0604 0%, #4a2a08 40%, #ffd968 100%);">
         <span class="gallery-card__chip">Chaconne</span>
       </div>
@@ -289,7 +320,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/phosphor.mp3" data-label="Well-Tempered Prelude in C">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #2a1a0a 0%, #8a5a1f 50%, #d4af37 100%);">
         <span class="gallery-card__chip">Well-Tempered</span>
       </div>
@@ -300,7 +331,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/aurora.mp3" data-label="Sanctus from Mass in B minor">
       <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a0a04 0%, #6a4a1f 35%, #d4af37 75%, #ffd968 100%);">
         <span class="gallery-card__chip">Mass in B minor</span>
       </div>
@@ -316,6 +347,7 @@
     <span>Bachdrop · SWR Gallery</span>
     <span>SWR Galleries</span>
   </footer>
+  <script src="./client/gallery-audio.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
 </body>
 </html>
