@@ -1154,6 +1154,198 @@
     .pt-btn.primary:hover { background: #ffb740; }
     .pt-foot { padding: 10px 18px; border-top: 1px solid rgba(255,255,255,0.06); }
     .pt-foot-note { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+    /* ---- First-time onboarding / shortcuts panel ---- */
+    #swr-onboard {
+      position: fixed; inset: 0; z-index: 9000;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 240ms ease;
+    }
+    #swr-onboard.is-open { opacity: 1; pointer-events: auto; }
+    #swr-onboard[hidden] { display: none; }
+    .swr-onboard__backdrop {
+      position: absolute; inset: 0;
+      background: rgba(8, 10, 14, 0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      cursor: pointer;
+    }
+    .swr-onboard__panel {
+      position: relative;
+      width: min(900px, 92vw);
+      max-height: 86vh;
+      overflow: auto;
+      background: linear-gradient(180deg, #161a22, #0d1016);
+      color: var(--ink, #f5ead8);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+      padding: 22px 26px 18px;
+      transform: translateY(8px) scale(0.98);
+      transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    #swr-onboard.is-open .swr-onboard__panel {
+      transform: translateY(0) scale(1);
+    }
+    .swr-onboard__head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+    .swr-onboard__head h2 {
+      margin: 0;
+      font-family: var(--font-display, system-ui, sans-serif);
+      font-weight: 300; font-size: clamp(22px, 3.2vw, 30px);
+      line-height: 1.05; letter-spacing: -0.02em;
+    }
+    .swr-onboard__sub {
+      margin: 6px 0 0; color: rgba(245,234,216,0.6); font-size: 13px;
+    }
+    .swr-onboard__close {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; line-height: 1;
+      padding: 0; border-radius: 999px;
+    }
+    .swr-onboard__body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 26px;
+    }
+    @media (max-width: 720px) {
+      .swr-onboard__body { grid-template-columns: 1fr; }
+    }
+    .swr-onboard__col h3 {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(245,234,216,0.5);
+      margin: 0 0 10px;
+    }
+    .swr-onboard__hint {
+      margin: -4px 0 12px;
+      font-size: 12px;
+      color: rgba(245,234,216,0.55);
+      line-height: 1.45;
+    }
+    .swr-bg {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin-bottom: 8px;
+    }
+    .swr-bg__swatch {
+      width: 30px; height: 30px;
+      padding: 0;
+      border-radius: 6px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+    }
+    .swr-bg__swatch:hover {
+      transform: scale(1.08);
+      border-color: rgba(255,255,255,0.4);
+    }
+    .swr-bg__swatch[aria-checked="true"] {
+      border-color: var(--accent, #e6306b);
+      box-shadow: 0 0 0 2px rgba(230, 48, 107, 0.35), inset 0 0 0 1px rgba(0,0,0,0.2);
+    }
+    .swr-bg__custom {
+      position: relative;
+      display: inline-flex; align-items: center;
+      gap: 6px;
+      padding: 4px 10px 4px 4px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      cursor: pointer;
+      font-size: 11px;
+      color: rgba(245,234,216,0.7);
+      transition: border-color 0.15s ease;
+    }
+    .swr-bg__custom:hover { border-color: rgba(255,255,255,0.4); }
+    .swr-bg__custom input[type="color"] {
+      width: 22px; height: 22px;
+      border: none; padding: 0;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .swr-bg__custom input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .swr-bg__custom input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+    .swr-keys {
+      margin: 0;
+      display: flex; flex-direction: column;
+      gap: 8px;
+    }
+    .swr-keys > div {
+      display: grid;
+      grid-template-columns: minmax(110px, max-content) 1fr;
+      gap: 12px;
+      align-items: baseline;
+      font-size: 13px; line-height: 1.45;
+    }
+    .swr-keys dt { margin: 0; }
+    .swr-keys dd { margin: 0; color: rgba(245,234,216,0.78); }
+    kbd {
+      display: inline-block;
+      padding: 2px 7px;
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #f5ead8;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .swr-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #0e0c0a;
+      background: var(--accent, #e6306b);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .swr-steps {
+      margin: 0; padding: 0; list-style: none;
+      counter-reset: stepc;
+      display: flex; flex-direction: column; gap: 8px;
+      font-size: 13px;
+      color: rgba(245,234,216,0.82);
+    }
+    .swr-steps li {
+      position: relative; padding-left: 28px;
+      counter-increment: stepc;
+    }
+    .swr-steps li::before {
+      content: counter(stepc);
+      position: absolute; left: 0; top: 1px;
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 11px;
+      color: rgba(245,234,216,0.85);
+    }
+    .swr-onboard__foot {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .swr-onboard__checkbox {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; color: rgba(245,234,216,0.7);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -1205,6 +1397,79 @@
       <a class="tbtn ghost" id="last-video" hidden style="text-decoration:none;padding:4px 10px;font-size:9px;">↓ last video</a>
     </header>
 
+    <!-- ================================================================
+         FIRST-TIME ONBOARDING + SHORTCUTS PANEL
+         --------------------------------------------------------------
+         Shows the first time a user lands on /engine/ (gated by
+         localStorage "swr.onboarded.v1"). Re-openable anytime via
+         the "?" button in the toolbar (same handler).
+         ================================================================ -->
+    <div id="swr-onboard" hidden role="dialog" aria-modal="true" aria-labelledby="swr-onboard-title">
+      <div class="swr-onboard__backdrop" data-onboard-close></div>
+      <div class="swr-onboard__panel" role="document">
+        <header class="swr-onboard__head">
+          <div>
+            <h2 id="swr-onboard-title">Welcome to the engine</h2>
+            <p class="swr-onboard__sub">Five seconds on the controls, then you're off.</p>
+          </div>
+          <button class="tbtn ghost swr-onboard__close" data-onboard-close aria-label="Dismiss">×</button>
+        </header>
+        <div class="swr-onboard__body">
+          <section class="swr-onboard__col">
+            <h3>Background color</h3>
+            <p class="swr-onboard__hint">Pick the canvas mood. The stage background fills the gaps between your clips.</p>
+            <div class="swr-bg" role="radiogroup" aria-label="Stage background color">
+              <button type="button" class="swr-bg__swatch" role="radio" aria-checked="true" data-bg="#000000" style="background:#000000" title="Pure black"></button>
+              <button type="button" class="swr-bg__swatch" role="radio" aria-checked="false" data-bg="#0e0c0a" style="background:#0e0c0a" title="Warm black (default)"></button>
+              <button type="button" class="swr-bg__swatch" role="radio" aria-checked="false" data-bg="#f5ead8" style="background:#f5ead8" title="Cream"></button>
+              <button type="button" class="swr-bg__swatch" role="radio" aria-checked="false" data-bg="#161a22" style="background:#161a22" title="Slate"></button>
+              <button type="button" class="swr-bg__swatch" role="radio" aria-checked="false" data-bg="#1a0e14" style="background:#1a0e14" title="Mulled wine"></button>
+              <button type="button" class="swr-bg__swatch" role="radio" aria-checked="false" data-bg="#0a1814" style="background:#0a1814" title="Deep teal"></button>
+              <label class="swr-bg__custom" title="Pick a custom color">
+                <input type="color" id="swr-bg-custom" value="#0e0c0a" />
+                <span>custom</span>
+              </label>
+            </div>
+          </section>
+          <section class="swr-onboard__col">
+            <h3>Keyboard shortcuts</h3>
+            <dl class="swr-keys">
+              <div><dt><kbd>Space</kbd></dt><dd>Play / pause the song</dd></div>
+              <div><dt><kbd>R</kbd></dt><dd>Rotate selected clip +90° (<kbd>Shift</kbd>+<kbd>R</kbd> for -90°)</dd></div>
+              <div><dt><kbd>L</kbd></dt><dd>Add a new visual layer</dd></div>
+              <div><dt><kbd>D</kbd></dt><dd>Toggle auto-drift &harr; manual drag</dd></div>
+              <div><dt><kbd>?</kbd></dt><dd>Open this panel</dd></div>
+              <div><dt><kbd>Esc</kbd></dt><dd>Close this panel (and any open dialog)</dd></div>
+              <div><dt><kbd>Shift</kbd>+<kbd>←</kbd> / <kbd>Shift</kbd>+<kbd>→</kbd></dt><dd>Previous / next visual version (12 styles)</dd></div>
+              <div><dt><kbd>←</kbd> / <kbd>→</kbd></dt><dd>Previous / next preset</dd></div>
+            </dl>
+          </section>
+          <section class="swr-onboard__col">
+            <h3>The four buttons that matter</h3>
+            <dl class="swr-keys">
+              <div><dt><span class="swr-chip">● REC</span></dt><dd>Start / stop recording (uses the size preset next to it).</dd></div>
+              <div><dt><span class="swr-chip">🎬 Export video</span></dt><dd>Auto-record 30 s and download the MP4 / WebM.</dd></div>
+              <div><dt><span class="swr-chip">+ Add</span></dt><dd>Open the file picker for songs, videos, images. Or just drop files anywhere on the page.</dd></div>
+              <div><dt><span class="swr-chip">RE-MAP</span></dt><dd>Re-derive the clip-to-layer assignments. Hit it until you like the composition.</dd></div>
+            </dl>
+            <h3 style="margin-top:18px;">Quick start</h3>
+            <ol class="swr-steps">
+              <li>Drop a song file anywhere &mdash; the audio becomes the score.</li>
+              <li>Drop a library of clips / GIFs / images &mdash; the visualizer reads them.</li>
+              <li>Hit <span class="swr-chip">Play</span> &mdash; bass, mids, treble, beats drive the composition.</li>
+              <li>Hit <span class="swr-chip">🎬 Export</span> &mdash; the whole song renders to a video file.</li>
+            </ol>
+          </section>
+        </div>
+        <footer class="swr-onboard__foot">
+          <label class="swr-onboard__checkbox">
+            <input type="checkbox" id="swr-onboard-hide" /> Don't show this again on this browser
+          </label>
+          <button class="tbtn primary" data-onboard-close>Got it &mdash; take me to the engine</button>
+        </footer>
+      </div>
+    </div>
+
     <aside id="library">
       <div class="panel-head">
         <h2>Library</h2>
@@ -1242,6 +1507,171 @@
         </div>
       </div>
     </aside>
+
+    <!-- ===========================================================
+         Onboarding / shortcuts panel — controller
+         -----------------------------------------------------------
+         localStorage key: swr.onboarded.v1
+         Stored value:    { dismissedAt: ISO-8601, version: 1 }
+         Show conditions:
+           - key missing  → show once on first visit
+           - key present  → never auto-show (user can re-open via ?)
+         Re-open path:   click #swr-keys-help-btn OR press ?
+         Close paths:    backdrop click, × button, Got-it button, Esc.
+         =========================================================== -->
+    <script>
+      (function () {
+        'use strict';
+        var STORAGE_KEY = 'swr.onboarded.v1';
+        var BG_STORAGE_KEY = 'swr.stage-bg.v1';
+        var AUTO_OPEN_DELAY_MS = 600;
+        var root = document.getElementById('swr-onboard');
+        var hideCheckbox = document.getElementById('swr-onboard-hide');
+        var helpBtn = document.getElementById('swr-keys-help-btn');
+        if (!root) return;
+
+        function readStored() {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            var v = JSON.parse(raw);
+            return v && typeof v === 'object' ? v : null;
+          } catch (_) { return null; }
+        }
+        function writeStored(obj) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
+          catch (_) { /* private mode — fine, we just won't remember */ }
+        }
+        function isDismissed() { return !!readStored(); }
+
+        // ---- Stage background color ----------------------------------
+        // Persisted in localStorage so the user's choice survives reload.
+        // Default = #000 (the engine's CSS default). Apply on boot BEFORE
+        // the engine's main render loop starts so the user never sees a
+        // flash of the wrong color.
+        function applyStageBg(color) {
+          if (!color) return;
+          var stage = document.getElementById('stage');
+          if (stage) stage.style.background = color;
+          // Also reflect on the empty-state hint so when there are no
+          // assets the stage still shows the chosen background.
+          try { localStorage.setItem(BG_STORAGE_KEY, color); } catch (_) {}
+        }
+        function readStageBg() {
+          try { return localStorage.getItem(BG_STORAGE_KEY) || ''; } catch (_) { return ''; }
+        }
+        // Apply persisted bg immediately (this script runs before the
+        // engine's inline <script> for the stage element). If a stored
+        // value exists, use it; otherwise stick with the CSS default.
+        var storedBg = readStageBg();
+        if (storedBg) applyStageBg(storedBg);
+
+        function setActiveSwatch(color) {
+          var swatches = root.querySelectorAll('.swr-bg__swatch');
+          swatches.forEach(function (sw) {
+            var isMatch = (sw.getAttribute('data-bg') || '').toLowerCase() === (color || '').toLowerCase();
+            sw.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+          });
+          var custom = document.getElementById('swr-bg-custom');
+          if (custom && /^#([0-9a-f]{6})$/i.test(color || '')) {
+            custom.value = color;
+          }
+        }
+
+        // Click on any preset swatch
+        root.addEventListener('click', function (e) {
+          var t = e.target;
+          if (t && t.classList && t.classList.contains('swr-bg__swatch')) {
+            var c = t.getAttribute('data-bg');
+            applyStageBg(c);
+            setActiveSwatch(c);
+          }
+        });
+        // Custom color picker
+        var customBg = document.getElementById('swr-bg-custom');
+        if (customBg) {
+          customBg.addEventListener('input', function (e) {
+            var c = e.target.value;
+            applyStageBg(c);
+            setActiveSwatch(c); // none of the presets match a custom color → all aria-checked=false
+          });
+        }
+        // Reflect persisted bg in the swatch UI on first open
+        if (storedBg) setActiveSwatch(storedBg);
+
+        function open() {
+          if (!root.hidden) return;
+          root.hidden = false;
+          // Defer the .is-open toggle one frame so the transition runs.
+          // Without this, browsers coalesce hidden=false + is-open=true
+          // and skip the fade-in.
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () { root.classList.add('is-open'); });
+          });
+        }
+        function close() {
+          if (root.hidden) return;
+          root.classList.remove('is-open');
+          var persist = !!(hideCheckbox && hideCheckbox.checked);
+          if (persist) writeStored({ dismissedAt: new Date().toISOString(), version: 1 });
+          // Wait for the fade-out before hiding so the transition is visible.
+          setTimeout(function () { root.hidden = true; }, 240);
+        }
+        function toggle() { root.hidden ? open() : close(); }
+
+        // ---- Wire close handlers ----
+        root.addEventListener('click', function (e) {
+          var t = e.target;
+          if (t && t.dataset && t.dataset.onboardClose !== undefined) {
+            close();
+          }
+        });
+        // Esc closes the panel
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !root.hidden) close();
+        });
+
+        // ---- Wire the existing ? button ----
+        if (helpBtn) {
+          helpBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            toggle();
+          });
+        }
+
+        // ---- "?" key opens the panel ----
+        // The engine itself listens to keydown for shortcuts; ours is
+        // an OR — any keydown whose shift state matches the ? key
+        // gets caught. We don't preventDefault because the engine uses
+        // other keys; if the user wants to type "?" in an input the
+        // engine already filters those out via its own target check.
+        document.addEventListener('keydown', function (e) {
+          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+          if (e.key === '?' || (e.shiftKey && e.code === 'Slash')) {
+            e.preventDefault();
+            toggle();
+          }
+        });
+
+        // ---- Auto-open on first visit ----
+        // Skip if localStorage says dismissed. Delay so the engine's
+        // own boot animations land first and the panel feels like
+        // an intentional intro, not a popup.
+        if (!isDismissed()) {
+          setTimeout(open, AUTO_OPEN_DELAY_MS);
+        }
+
+        // Expose for the verifier + power users who want to
+        // re-trigger the intro from the console.
+        window.SWR_ONBOARD = { open: open, close: close, toggle: toggle, reset: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (_) {} } };
+      })();
+    </script>
+
+    <!-- HyperFrames-driven cinematic onboarding tour (basic mode, first visit).
+         Skips on subsequent visits (mode = advanced); "?" button still opens
+         the shortcuts modal above. See swr-onboarding-hf.client.js + .hermes/
+         plans/swr-onboarding-hf.md for the choreography. -->
+    <script src="/swr-onboarding-hf.client.js" defer></script>
 
     <script>
       // ---- SWR_MEDIA wire-up (engine.html) ----

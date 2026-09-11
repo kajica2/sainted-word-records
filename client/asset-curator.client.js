@@ -259,7 +259,30 @@
     const imageData = ctx.getImageData(0, 0, w, h);
 
     // ── Detect + remove uniform background ──
-    const bg = await detectBackgroundColor(imageData, w, h);
+    // The opt-in force mode (set by client/bg-removal-confirm) bypasses
+    // the corner-sample check and chroma-keys against the average corner
+    // color anyway. Useful when the bg isn't strictly uniform but the
+    // user explicitly wants it removed anyway. The threshold stays the
+    // same — pixel-accurate only against the sampled color.
+    const forceMode = !!window.__SWR_FORCE_BG_REMOVAL;
+    let bg = await detectBackgroundColor(imageData, w, h);
+    if (!bg && forceMode) {
+      // Sample the center of each edge (4 points) for a fallback bg.
+      const pts = [
+        { x: Math.floor(w / 2), y: 0 },
+        { x: Math.floor(w / 2), y: h - 1 },
+        { x: 0, y: Math.floor(h / 2) },
+        { x: w - 1, y: Math.floor(h / 2) },
+      ];
+      let r = 0, g = 0, b = 0;
+      pts.forEach((p) => {
+        const i = (p.y * w + p.x) * 4;
+        r += imageData.data[i];
+        g += imageData.data[i + 1];
+        b += imageData.data[i + 2];
+      });
+      bg = { r: Math.round(r / 4), g: Math.round(g / 4), b: Math.round(b / 4) };
+    }
     let cleaned = false;
     let status = 'passthrough';
     if (bg) {

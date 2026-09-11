@@ -165,6 +165,7 @@ function copyStatic() {
     'gallery-loops.html',
     'gallery-vintage.html',
     'swr-build-id.client.js',
+    'swr-onboarding-hf.client.js',
     'shop.html',
     'engine-demos.html',
     'swr-campaign-launch-plan.html',

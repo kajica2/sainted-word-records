@@ -236,7 +236,7 @@
       }
 
       document.dispatchEvent(new CustomEvent('swr:drop', {
-        detail: { results, files: results.map((r) => r.file) },
+        detail: { results, files: results.map((r) => r.file), source: el },
         bubbles: true,
       }));
     });
@@ -262,7 +262,7 @@
         if (mode === 'forward') forwardToInput(results, opts.target);
         else if (mode === 'preview') renderChips(el, results);
         document.dispatchEvent(new CustomEvent('swr:drop', {
-          detail: { results, files: results.map((r) => r.file) },
+          detail: { results, files: results.map((r) => r.file), source: el },
           bubbles: true,
         }));
       });
