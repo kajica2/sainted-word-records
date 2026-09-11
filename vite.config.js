@@ -43,6 +43,8 @@ function copyStatic() {
   const rootFiles = [
     'landing.html', 'interactive-howto.html', 'market-study.html',
     'profit-plan.html', 'campaign.html', 'personas.html',
+    'gif-to-svg.html',
+    'gif-to-svg.client.js',
     'landing-personas-v1-editorial.html',
     'landing-personas-v2-dark.html',
     'landing-personas-v3-friendly.html',
@@ -75,6 +77,8 @@ function copyStatic() {
     'persona-onboarding.js',
     'persona-runtime.client.js',
     'persona-demo.html',
+    'swr-mascot-camera.svg',
+    'swr-mascot-camera.client.js',
     'engine-keys.client.js',
     'engine-layout.client.js',
     'project.client.js',
@@ -148,6 +152,7 @@ function copyStatic() {
     'gallery-point4brand.html',
     'gallery-artist.html',
     'gallery-darkfuture.html',
+    'gallery-bachdrop.html',
     'shop.html',
     'engine-demos.html',
     'swr-campaign-launch-plan.html',
@@ -238,6 +243,8 @@ function copyStatic() {
     // Engine pages reference /client/visualizer-controller.js (and possibly
     // other shared client scripts added later). Ship the whole directory.
     { src: 'client', dst: 'client' },
+    // Vendored browser-side libraries (no CDN at runtime)
+    { src: 'client/vendor', dst: 'client/vendor' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',

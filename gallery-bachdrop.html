@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bachdrop — SWR Gallery</title>
+  <meta name="description" content="Counterpoint-reactive baroque visual engine — 4-voice spectrum split, figured-bass pulse, ornament corona. Drop a Bach piece, get a gold-on-velvet reactive composition." />
+  <meta property="og:title" content="Bachdrop — SWR Gallery" />
+  <meta property="og:description" content="Counterpoint-reactive baroque visual engine — 4-voice spectrum split, figured-bass pulse, ornament corona." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #0a0604; --bg-2: #160e08; --panel: #1d1408; --panel-2: #261a0c;
+      --ink: #f5e9c8; --ink-2: #d4c08a; --muted: #8a7a5a; --line: #3a2a18;
+      --accent: #d4af37; --accent-2: #ffd968; --accent-3: #b87333;
+      --font-display: 'DM Serif Display', 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Cormorant Garamond', 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf6ec; --bg-2: #f1ead9; --panel: #ffffff; --panel-2: #f5efe0;
+      --ink: #2a1f0a; --ink-2: #5a4a2a; --muted: #8a7a5a; --line: #ddd2b0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1080px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 22px;
+      letter-spacing: -0.005em; color: var(--accent);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); text-decoration: none; }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font: 11px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase;
+      font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--accent-2); color: var(--bg); text-decoration: none; }
+
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-style: italic; font-weight: 400;
+      font-size: clamp(38px, 5.4vw, 58px); line-height: 1.05;
+      letter-spacing: -0.018em; margin: 0 0 18px;
+      color: var(--ink);
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-family: var(--font-body); font-size: 20px;
+      color: var(--ink-2); max-width: 640px;
+      margin: 0 auto 22px; line-height: 1.5;
+      font-style: italic;
+    }
+    .hero__desc {
+      font-family: var(--font-body); font-size: 16px;
+      color: var(--muted); max-width: 640px;
+      margin: 0 auto 32px; line-height: 1.7;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 24px;
+      padding: 32px 0 80px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .gallery-card {
+      grid-column: span 2;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      position: relative;
+    }
+    .gallery-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .gallery-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 30% 20%, rgba(212,175,55,0.06), transparent 60%);
+      pointer-events: none;
+    }
+    .gallery-card--featured {
+      grid-column: span 4;
+      grid-row: span 2;
+    }
+    @media (max-width: 960px) {
+      .gallery-card--featured { grid-column: span 4; grid-row: auto; }
+    }
+    @media (max-width: 640px) {
+      .gallery-card, .gallery-card--featured { grid-column: span 2; }
+    }
+
+    .gallery-card__art {
+      aspect-ratio: 4/3;
+      position: relative;
+      overflow: hidden;
+    }
+    .gallery-card--featured .gallery-card__art {
+      aspect-ratio: 16/10;
+    }
+    .gallery-card__art::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,217,104,0.18), transparent 55%),
+        radial-gradient(circle at 70% 80%, rgba(0,0,0,0.45), transparent 60%);
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+    .gallery-card__chip {
+      position: absolute; top: 12px; left: 12px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--bg); background: rgba(212,175,55,0.92);
+      padding: 5px 10px; border-radius: 4px;
+      backdrop-filter: blur(6px);
+      font-weight: 600;
+    }
+    .gallery-card__body {
+      padding: 18px 20px 22px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .gallery-card__title {
+      font-family: var(--font-display); font-style: italic; font-weight: 400;
+      font-size: 22px; letter-spacing: -0.012em;
+      margin: 0; color: var(--ink);
+    }
+    .gallery-card--featured .gallery-card__title { font-size: 30px; }
+    .gallery-card__sub {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .gallery-card__meta {
+      font-family: var(--font-body); font-size: 14px;
+      font-style: italic;
+      color: var(--muted); margin-top: 6px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 28px 32px;
+      max-width: 1080px; margin: 0 auto;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted);
+      display: flex; justify-content: space-between; gap: 16px;
+    }
+    @media (max-width: 640px) {
+      .footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <div class="nav__brand">Bachdrop</div>
+      <div class="nav__links">
+        <a href="./versions/bachdrop.html">Open engine</a>
+        <a href="./portfolio.html">Portfolio</a>
+        <a href="./gallery.html">Galleries</a>
+      </div>
+      <a class="nav__cta" href="./versions/bachdrop.html">▶ Play</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__kicker">Counterpoint · Reactive · Baroque</div>
+      <h1 class="hero__title">Bachdrop — <em>BWV 1 in C major</em></h1>
+      <p class="hero__lede">
+        Drop a Bach piece, get a gold-on-velvet reactive composition —
+        four voices, one figured bass.
+      </p>
+      <p class="hero__desc">
+        The engine splits the spectrum into SATB bands — Soprano in the air, Alt in the upper mid, Tenor in the lower mid, Bass in the sub. Each voice becomes a flowing scroll of ornament stems. The bass voice triggers a figured-bass pulse on every kick. The whole composition breathes on the beat envelope. Built for counterpoint, lit by candlelight, recorded to MP4.
+      </p>
+    </div>
+  </header>
+
+  <section class="grid wrap">
+    <article class="gallery-card gallery-card--featured">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a0a04 0%, #6a4a1f 35%, #d4af37 70%, #ffd968 100%);">
+        <span class="gallery-card__chip">Featured · Contrapunctus</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">The Art of Fugue</div>
+        <h2 class="gallery-card__title">Contrapunctus I</h2>
+        <div class="gallery-card__meta">Four voices, one subject — D minor, 4/4, ♩ = 80</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #2a1408 0%, #8a5a1f 50%, #d4af37 100%);">
+        <span class="gallery-card__chip">Goldberg</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Goldberg Variations</div>
+        <h2 class="gallery-card__title">Aria da capo</h2>
+        <div class="gallery-card__meta">G major, 3/4, sarabande pulse</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #0a0604 0%, #3a2a18 40%, #b87333 100%);">
+        <span class="gallery-card__chip">Toccata</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Toccata &amp; Fugue</div>
+        <h2 class="gallery-card__title">Toccata in D minor</h2>
+        <div class="gallery-card__meta">BWV 565 — pedal-point bass</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #3a1f0a 0%, #d4af37 45%, #fff5d0 100%);">
+        <span class="gallery-card__chip">Brandenburg</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Brandenburg Concerto No. 3</div>
+        <h2 class="gallery-card__title">Allegro</h2>
+        <div class="gallery-card__meta">Three violins, three cellos, continuo</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a1208 0%, #6a4a1f 50%, #b87333 100%);">
+        <span class="gallery-card__chip">Cello Suite</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Cello Suite No. 1</div>
+        <h2 class="gallery-card__title">Prelude in G</h2>
+        <div class="gallery-card__meta">Single-line arpeggio, all harmonics</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #0a0604 0%, #4a2a08 40%, #ffd968 100%);">
+        <span class="gallery-card__chip">Chaconne</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Partita No. 2</div>
+        <h2 class="gallery-card__title">Chaconne in D minor</h2>
+        <div class="gallery-card__meta">64 variations on a bass line</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #2a1a0a 0%, #8a5a1f 50%, #d4af37 100%);">
+        <span class="gallery-card__chip">Well-Tempered</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Well-Tempered Clavier</div>
+        <h2 class="gallery-card__title">Prelude in C</h2>
+        <div class="gallery-card__meta">Broken-chord arpeggio, perpetual motion</div>
+      </div>
+    </article>
+
+    <article class="gallery-card">
+      <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a0a04 0%, #6a4a1f 35%, #d4af37 75%, #ffd968 100%);">
+        <span class="gallery-card__chip">Mass in B minor</span>
+      </div>
+      <div class="gallery-card__body">
+        <div class="gallery-card__sub">Mass in B minor</div>
+        <h2 class="gallery-card__title">Sanctus</h2>
+        <div class="gallery-card__meta">Six-voice double chorus</div>
+      </div>
+    </article>
+  </section>
+
+  <footer class="footer">
+    <span>Bachdrop · SWR Gallery</span>
+    <span>SWR Galleries</span>
+  </footer>
+  <script src="./client/shop-decorator.client.js" defer></script>
+</body>
+</html>

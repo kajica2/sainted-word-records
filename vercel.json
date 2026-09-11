@@ -145,8 +145,52 @@
       "destination": "/portfolio.html"
     },
     {
+      "source": "/artists",
+      "destination": "/artists/index.html"
+    },
+    {
+      "source": "/artists/",
+      "destination": "/artists/index.html"
+    },
+    {
+      "source": "/artists/:id",
+      "destination": "/artists/:id.html"
+    },
+    {
+      "source": "/artists/:id/",
+      "destination": "/artists/:id.html"
+    },
+    {
+      "source": "/artists/vodolija",
+      "destination": "/artists/vodolija/index.html"
+    },
+    {
+      "source": "/artists/vodolija/",
+      "destination": "/artists/vodolija/index.html"
+    },
+    {
+      "source": "/shotlist",
+      "destination": "/shotlist/index.html"
+    },
+    {
+      "source": "/shotlist/",
+      "destination": "/shotlist/index.html"
+    },
+    {
       "source": "/intro",
       "destination": "/intro.html"
+    },
+    {
+      "source": "/gif-to-svg",
+      "destination": "/gif-to-svg.html"
+    },
+    {
+      "source": "/gif-to-svg/",
+      "destination": "/gif-to-svg.html"
+    },
+    {
+      "source": "/gif-to-svg.client.js",
+      "destination": "/gif-to-svg.client.js"
     },
     {
       "source": "/intro/",
@@ -311,6 +355,22 @@
     {
       "source": "/gallery/darkfuture/",
       "destination": "/gallery-darkfuture.html"
+    },
+    {
+      "source": "/gallery/bachdrop",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
+      "source": "/gallery/bachdrop/",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
+      "source": "/versions/bachdrop",
+      "destination": "/versions/bachdrop.html"
+    },
+    {
+      "source": "/versions/bachdrop/",
+      "destination": "/versions/bachdrop.html"
     },
     {
       "source": "/shop",
