@@ -182,6 +182,65 @@ console.log('suite: isAvailable');
 }
 
 // ---------------------------------------------------------------------------
+// Suite 5: engine's loadFile() signature is supported (engine.html uses
+// loadFile; MVM bus uses load — the module auto-detects either).
+// ---------------------------------------------------------------------------
+console.log('suite: engine loadFile signature');
+{
+  function loadWithAudioShape(shape) {
+    const ctx = {
+        window: {},
+        globalThis: {},
+        URL: { createObjectURL: () => '', revokeObjectURL: () => {} },
+        File: globalThis.File,
+        Blob: globalThis.File,
+        console,
+        setTimeout,
+        Promise,
+        fetch: () => Promise.reject(new Error('not stubbed')),
+      };
+    ctx.globalThis.window = ctx.window;
+    ctx.window.SWR = { Audio: shape };
+    ctx.globalThis.SWR = ctx.window.SWR;
+    ctx.globalThis.Blob = ctx.Blob;
+    ctx.globalThis.File = ctx.File;
+    ctx.globalThis.URL = ctx.URL;
+    ctx.globalThis.fetch = ctx.fetch;
+    const src = readFileSync(resolve(ROOT, 'lib/generated-audio.client.js'), 'utf8');
+    vm.createContext(ctx);
+    vm.runInContext(src, ctx);
+    return ctx.window;
+  }
+
+  const engineCalls = { loadFile: [], play: [] };
+  const w_engine = loadWithAudioShape({
+    loadFile: (f) => { engineCalls.loadFile.push(f); },
+    play: () => { engineCalls.play.push(true); },
+  });
+  assert(w_engine.SWR_GENERATED_AUDIO.isAvailable() === true, 'isAvailable true when only loadFile exists');
+  const fakeFile = new (globalThis.File || class { constructor(p, n, o={}) { this.parts=p; this.name=n; this.type=o.type||''; } })([new Uint8Array([1])], 'x.mp3', { type: 'audio/mpeg' });
+  await w_engine.SWR_GENERATED_AUDIO.fromFile(fakeFile);
+  assert(engineCalls.loadFile.length === 1, 'engine loadFile called once');
+  // fromFile() does NOT autoplay — only fromBlob()/importMp3() does. By design.
+  assert(engineCalls.play.length === 0, 'fromFile does not auto-play');
+  // ...but importMp3() (alias of fromBlob) DOES trigger play
+  const BlobCtor = globalThis.Blob || class { constructor(p, o={}) { this.parts=p; this.type=o.type||''; } };
+  await w_engine.SWR_GENERATED_AUDIO.importMp3(new BlobCtor([new Uint8Array([1, 2, 3])], { type: 'audio/mpeg' }));
+  assert(engineCalls.play.length === 1, 'importMp3 autoplay invoked engine play()');
+
+  const oldCalls = { load: [], play: [] };
+  const w_old = loadWithAudioShape({
+    load: (f) => { oldCalls.load.push(f); },
+    play: () => { oldCalls.play.push(true); },
+  });
+  assert(w_old.SWR_GENERATED_AUDIO.isAvailable() === true, 'isAvailable true when only load exists (legacy)');
+  const fakeFile2 = new (globalThis.File || class { constructor(p, n, o={}) { this.parts=p; this.name=n; this.type=o.type||''; } })([new Uint8Array([1])], 'x.mp3', { type: 'audio/mpeg' });
+  await w_old.SWR_GENERATED_AUDIO.fromFile(fakeFile2);
+  assert(oldCalls.load.length === 1, 'legacy load called once');
+  assert(oldCalls.play.length === 0, 'fromFile does not auto-play (legacy)');
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 console.log('');
