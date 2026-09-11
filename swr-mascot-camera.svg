@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  swr-mascot-camera.svg
+  Brush-stroke hand-drawn mascot for SWR. Three layered states toggled
+  by class on the root <svg>:
+    .idle      — default, slow breathing pulse
+    .wave      — hand is raised, slight tilt toward detected face
+    .look-up   — eyes raised, head tilted up
+  Two CSS custom properties drive continuous animation:
+    --motion   — 0..1, pulse magnitude from camera motion detection
+    --tilt     — -1..+1, horizontal face centroid (negative=left, positive=right)
+  The mascot never animates when neither class is set and --motion is 0,
+  so it's safe to drop in anywhere with no JS as a static brand mark.
+
+  Rendered as paths, not perfect circles — every outline uses cubic curves
+  with intentional wobble (varying control points) so it reads as brush,
+  not vector geometry.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240"
+     role="img" aria-label="SWR mascot — a hand-drawn ink creature that reacts to your camera">
+
+  <defs>
+    <!-- Brush ink fill: warm cream-to-blush gradient, mimics wet ink on paper -->
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#1a1612" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#2a1f1a" stop-opacity="0.96"/>
+    </linearGradient>
+
+    <!-- Blush cheek wash -->
+    <radialGradient id="blush" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#ff6b6b" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#ff6b6b" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ff6b6b" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Magenta/cyan accent (matches project palette) -->
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff2d8a"/>
+      <stop offset="100%" stop-color="#00f0ff"/>
+    </linearGradient>
+
+    <!-- Hand-drawn ink filter: roughens edges with fractal noise AND a
+         second high-frequency pass that fakes pen-tip bleed. The result
+         reads as ink on paper, not vector geometry. -->
+    <filter id="brush" x="-8%" y="-8%" width="116%" height="116%">
+      <!-- Coarse wobble: distorts the overall silhouette like an unsteady hand -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="11" result="wobble"/>
+      <feDisplacementMap in="SourceGraphic" in2="wobble" scale="3.2" xChannelSelector="R" yChannelSelector="G" result="wobbled"/>
+      <!-- Fine pen-tip grain: subtle per-pixel jitter so the outline is never smooth -->
+      <feTurbulence type="fractalNoise" baseFrequency="2.6" numOctaves="2" seed="3" result="grain"/>
+      <feDisplacementMap in="wobbled" in2="grain" scale="0.9" xChannelSelector="R" yChannelSelector="G" result="inked"/>
+      <!-- Ink-bleed: slight blur outward, like wet ink soaking into paper -->
+      <feGaussianBlur in="inked" stdDeviation="0.35" result="bled"/>
+      <feComposite in="bled" in2="inked" operator="over"/>
+    </filter>
+
+    <!-- A reusable brush splatter dot for sparkle/highlight -->
+    <symbol id="splat" overflow="visible">
+      <circle cx="0" cy="0" r="1.2" fill="#1a1612"/>
+      <circle cx="2.5" cy="-1" r="0.6" fill="#1a1612" opacity="0.7"/>
+      <circle cx="-1.8" cy="1.6" r="0.5" fill="#1a1612" opacity="0.6"/>
+      <circle cx="1.2" cy="2" r="0.4" fill="#1a1612" opacity="0.5"/>
+    </symbol>
+  </defs>
+
+  <!-- ============ Background paper-cream circle (faint) ============ -->
+  <circle cx="120" cy="120" r="112" fill="#faf7f2" stroke="#1a1612" stroke-width="1.4" stroke-dasharray="2 4" opacity="0.6"/>
+
+  <!-- ============ Body (round-shouldered blob) ============ -->
+  <g class="mascot-body" filter="url(#brush)">
+    <path d="M60,180
+             C58,150 64,118 86,98
+             C108,78 138,76 160,90
+             C184,104 192,134 188,166
+             C186,184 178,196 162,202
+             C140,210 96,210 76,200
+             C66,196 62,190 60,180 Z"
+          fill="url(#ink)" />
+    <!-- Body highlight stroke (lighter ink, suggests wet brush edge) -->
+    <path d="M70,178
+             C72,162 80,138 96,124"
+          fill="none" stroke="#f5ead8" stroke-width="2.2" stroke-linecap="round" opacity="0.35"/>
+  </g>
+
+  <!-- ============ Head (the brush-drawn "SWR" creature) ============ -->
+  <g class="mascot-head" filter="url(#brush)">
+    <!-- Head silhouette: hand-drawn with intentional wobble in the curves -->
+    <path d="M82,98
+             C82,72 100,54 122,54
+             C146,54 162,76 160,102
+             C158,120 144,132 122,132
+             C100,132 82,118 82,98 Z"
+          fill="#1a1612" />
+
+    <!-- Inner cream "face plate" — the area where eyes/mouth sit -->
+    <path d="M92,98
+             C92,80 104,66 122,66
+             C140,66 152,82 150,100
+             C148,114 138,122 122,122
+             C106,122 92,114 92,98 Z"
+          fill="#f5ead8" />
+
+    <!-- Cheek blush -->
+    <ellipse cx="100" cy="108" rx="9" ry="6" fill="url(#blush)"/>
+    <ellipse cx="144" cy="108" rx="9" ry="6" fill="url(#blush)"/>
+  </g>
+
+  <!-- ============ Eyes ============ -->
+  <g class="mascot-eyes">
+    <!-- Left eye — brushstroke dot, slightly irregular -->
+    <ellipse cx="108" cy="94" rx="4.2" ry="5" fill="#1a1612"/>
+    <!-- Right eye -->
+    <ellipse cx="136" cy="94" rx="4.2" ry="5" fill="#1a1612"/>
+
+    <!-- Eye sparkles (tiny white highlights, brush-tip dabs) -->
+    <circle cx="109.5" cy="92" r="1.1" fill="#f5ead8"/>
+    <circle cx="137.5" cy="92" r="1.1" fill="#f5ead8"/>
+
+    <!-- The "look-up" eye state: shift both eyes +3px up via class on <svg> -->
+  </g>
+
+  <!-- ============ Mouth — changes per state ============ -->
+  <g class="mascot-mouth">
+    <!-- Default gentle curve -->
+    <path class="mouth-idle" d="M110,114 Q122,120 134,114"
+          fill="none" stroke="#1a1612" stroke-width="2.4" stroke-linecap="round"/>
+
+    <!-- Wave: open smile (hidden by default, shown when .wave on root) -->
+    <path class="mouth-wave" d="M108,112 Q122,124 136,112"
+          fill="#ff2d8a" stroke="#1a1612" stroke-width="2.2" stroke-linecap="round" opacity="0"/>
+    <path class="mouth-wave-tongue" d="M116,118 Q122,124 128,118 Q122,121 116,118 Z"
+          fill="#00f0ff" opacity="0"/>
+
+    <!-- Look-up: small "oh" circle -->
+    <ellipse class="mouth-up" cx="122" cy="116" rx="4" ry="5"
+             fill="#1a1612" opacity="0"/>
+  </g>
+
+  <!-- ============ Antenna / spark — accent gradient ============ -->
+  <g class="mascot-spark">
+    <line x1="122" y1="54" x2="122" y2="38" stroke="#1a1612" stroke-width="2.2" stroke-linecap="round"/>
+    <circle class="spark-bulb" cx="122" cy="34" r="5" fill="url(#accent)"/>
+    <!-- Star burst lines around the spark -->
+    <g stroke="url(#accent)" stroke-width="1.6" stroke-linecap="round">
+      <line x1="122" y1="22" x2="122" y2="14"/>
+      <line x1="108" y1="34" x2="100" y2="34"/>
+      <line x1="136" y1="34" x2="144" y2="34"/>
+      <line x1="112" y1="24" x2="106" y2="18"/>
+      <line x1="132" y1="24" x2="138" y2="18"/>
+    </g>
+  </g>
+
+  <!-- ============ Hand (wave state) ============ -->
+  <g class="mascot-hand" opacity="0">
+    <!-- Arm -->
+    <path d="M178,150 Q200,128 206,108"
+          fill="none" stroke="#1a1612" stroke-width="6" stroke-linecap="round"/>
+    <!-- Palm: rough 4-finger brushstroke -->
+    <g fill="#1a1612" filter="url(#brush)">
+      <path d="M204,108 C212,98 218,98 218,104 C218,108 214,114 208,116 Z"/>
+      <ellipse cx="212" cy="100" rx="3" ry="5"/>
+      <ellipse cx="206" cy="96"  rx="3" ry="6"/>
+      <ellipse cx="200" cy="98"  rx="3" ry="5"/>
+    </g>
+    <!-- Motion arcs above the hand -->
+    <g fill="none" stroke="#ff2d8a" stroke-width="1.8" stroke-linecap="round" opacity="0.7">
+      <path d="M218,90 Q226,82 220,72"/>
+      <path d="M222,96 Q232,90 226,78"/>
+    </g>
+  </g>
+
+  <!-- ============ Brush splatters around the mascot ============ -->
+  <g class="mascot-splats">
+    <use href="#splat" x="46"  y="84"/>
+    <use href="#splat" x="194" y="200" transform="rotate(15 194 200)"/>
+    <use href="#splat" x="40"  y="170" transform="rotate(-20 40 170)"/>
+    <use href="#splat" x="200" y="60"  transform="rotate(45 200 60)"/>
+  </g>
+
+  <!-- ============ Style & animation ============ -->
+  <style>
+    /* Default: idle — gentle breathing pulse driven by --motion.
+       When --motion is 0 (no camera, no JS), it stays perfectly still. */
+    .mascot-body {
+      transform-origin: 120px 200px;
+      animation: breathe 4.2s ease-in-out infinite;
+    }
+    .mascot-head {
+      transform-origin: 122px 90px;
+      animation: bob 4.2s ease-in-out infinite;
+    }
+    .mascot-spark {
+      transform-origin: 122px 34px;
+      animation: glow 3.4s ease-in-out infinite;
+    }
+    .spark-bulb {
+      animation: pulse 1.6s ease-in-out infinite;
+      transform-origin: 122px 34px;
+    }
+
+    /* Motion-magnitude pulse, scaled by JS-set --motion (0..1) */
+    @keyframes breathe {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50%      { transform: translateY(calc(-3px * (1 + var(--motion, 0)))) scale(calc(1 + 0.02 * var(--motion, 0))); }
+    }
+    @keyframes bob {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      50%      { transform: translateY(calc(-2px * (1 + var(--motion, 0)))) rotate(calc(2deg * var(--tilt, 0))); }
+    }
+    @keyframes glow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: calc(0.7 + 0.3 * var(--motion, 0)); transform: scale(calc(1 + 0.1 * var(--motion, 0))); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.6; }
+    }
+
+    /* ---- WAVE state: hand visible, mouth swaps to open smile ---- */
+    svg.wave .mascot-hand { opacity: 1; animation: wave 0.9s ease-in-out infinite; }
+    svg.wave .mouth-idle  { opacity: 0; }
+    svg.wave .mouth-wave  { opacity: 1; }
+    svg.wave .mouth-wave-tongue { opacity: 0.85; }
+    @keyframes wave {
+      0%, 100% { transform: translateY(0) rotate(-8deg); }
+      50%      { transform: translateY(-4px) rotate(8deg); }
+    }
+
+    /* ---- LOOK-UP state: eyes shift up, mouth becomes small circle ---- */
+    svg.look-up .mascot-eyes { transform: translateY(-3px); transition: transform 0.3s; }
+    svg.look-up .mouth-idle  { opacity: 0; }
+    svg.look-up .mouth-up    { opacity: 1; }
+
+    /* Body tilt toward the detected face (driven by --tilt -1..+1) */
+    svg { transform: rotate(calc(6deg * var(--tilt, 0))); transition: transform 0.4s; }
+  </style>
+</svg>
