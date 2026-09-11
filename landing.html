@@ -616,6 +616,109 @@
       color: var(--muted); letter-spacing: 0.05em;
     }
 
+    /* ===== DIRECTORY (every page) ===== */
+    .dir {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+    .dir__group {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px 26px 26px;
+    }
+    .dir__group-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .dir__group-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0;
+    }
+    .dir__group-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .dir__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .tile {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px 16px 14px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      text-decoration: none;
+      transition: border-color var(--transition), transform var(--transition), background var(--transition);
+      min-height: 140px;
+    }
+    .tile:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      background: var(--bg-3);
+    }
+    .tile__title {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 17px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .tile:hover .tile__title { color: var(--accent); }
+    .tile__desc {
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--ink-2);
+      margin: 0;
+      flex: 1;
+    }
+    .tile__meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .pill--date {
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      color: var(--accent);
+    }
+    .pill--size {
+      background: var(--bg-2);
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
     /* ===== UTILITIES ===== */
     .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s, transform 0.6s; }
     .reveal.visible { opacity: 1; transform: translateY(0); }
@@ -639,6 +742,7 @@
         <a href="/intro">Intro</a>
         <a href="#quickstart">Quick start</a>
         <a href="#stack">Stack</a>
+        <a href="#pages">All pages</a>
       </div>
       <theme-toggle></theme-toggle>
       <a class="nav__cta" href="./campaign.html">
@@ -1098,6 +1202,401 @@
     </div>
   </section>
 
+  <!-- ============ ALL PAGES (directory) ============ -->
+  <section class="section section--alt" id="pages">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">Directory</span>
+        <h2 class="section__title">
+          Every page on <em>sainted-word-records</em>.
+        </h2>
+        <p class="section__lede">
+          Public routes from this domain, grouped by what they're for. Each
+          one is a real, hand-tuned surface — no template fills. Last-updated
+          dates come from each page's file mtime.
+        </p>
+      </div>
+
+      <div class="dir reveal">
+        <!-- Engine -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">Engine</h4>
+            <span class="dir__group-count">6 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="/engine">
+              <h5 class="tile__title">Main engine</h5>
+              <p class="tile__desc">Drop a song, drop a library, get a video. The browser-native audio-reactive video engine.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">273 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./swr-app.html">
+              <h5 class="tile__title">App shell</h5>
+              <p class="tile__desc">The SWR app surface — PWA shell with engine, presets, projects, and cloud sync.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-04</span>
+                <span class="pill pill--size">377 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/versions">
+              <h5 class="tile__title">All 5 versions</h5>
+              <p class="tile__desc">Neon, Film, Grid, Smoke, Hallucination — same engine, five visual languages.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-04</span>
+                <span class="pill pill--size">49 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/engine-demos">
+              <h5 class="tile__title">Engine demos</h5>
+              <p class="tile__desc">Every engine preset with a real-time thumb. Click to open and record.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">13 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/gif-to-svg">
+              <h5 class="tile__title">GIF → SVG</h5>
+              <p class="tile__desc">Drop a GIF, get a hand-traced animated SVG. No server, no Wasm, no install.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/make-video">
+              <h5 class="tile__title">Make a video</h5>
+              <p class="tile__desc">Step-by-step music video maker. Pick a song, drop in clips, MP4 export.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-07</span>
+                <span class="pill pill--size">10 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Gallery -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">Gallery</h4>
+            <span class="dir__group-count">18 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="./gallery-music.html">
+              <h5 class="tile__title">All galleries</h5>
+              <p class="tile__desc">The gallery index — every curated visual collection in one place.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-music.html">
+              <h5 class="tile__title">Music</h5>
+              <p class="tile__desc">Music-driven visual sets curated for the audio-reactive engine.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-generative.html">
+              <h5 class="tile__title">Generative</h5>
+              <p class="tile__desc">Procedural and generative compositions.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">13 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-cosmic.html">
+              <h5 class="tile__title">Cosmic</h5>
+              <p class="tile__desc">Cosmic-scale motion and color.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-bio.html">
+              <h5 class="tile__title">Bio</h5>
+              <p class="tile__desc">Bio / organic textures and growth forms.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">17 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-ai.html">
+              <h5 class="tile__title">AI</h5>
+              <p class="tile__desc">AI-augmented visual studies.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">13 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-glyphs.html">
+              <h5 class="tile__title">Glyphs</h5>
+              <p class="tile__desc">Glyph-driven typography in motion.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-vr.html">
+              <h5 class="tile__title">VR</h5>
+              <p class="tile__desc">Stereoscopic / VR-ready compositions.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-photoexp.html">
+              <h5 class="tile__title">Photo experiments</h5>
+              <p class="tile__desc">Photo experiments and image treatments.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">15 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-darkfuture.html">
+              <h5 class="tile__title">Dark future</h5>
+              <p class="tile__desc">Dark-future palette: noir, neon, decay.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-brutalist.html">
+              <h5 class="tile__title">Brutalist</h5>
+              <p class="tile__desc">Brutalist layouts, hard rules, raw type.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">23 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-bachdrop.html">
+              <h5 class="tile__title">Bachdrop</h5>
+              <p class="tile__desc">Counterpoint-reactive baroque engine and gallery.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">15 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-loops.html">
+              <h5 class="tile__title">Loops</h5>
+              <p class="tile__desc">Loop-first compositions for social.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">21 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-posters.html">
+              <h5 class="tile__title">Posters</h5>
+              <p class="tile__desc">Poster-format static compositions.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">14 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-albums.html">
+              <h5 class="tile__title">Albums</h5>
+              <p class="tile__desc">Album-art covers and variants.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-videofx.html">
+              <h5 class="tile__title">Video FX</h5>
+              <p class="tile__desc">Heavy FX treatments for video output.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-tshirts.html">
+              <h5 class="tile__title">T-shirts</h5>
+              <p class="tile__desc">T-shirt design variants from every gallery.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">14 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-artist.html">
+              <h5 class="tile__title">Artist</h5>
+              <p class="tile__desc">Artist-page treatments.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">14 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-point4brand.html">
+              <h5 class="tile__title">Point4 brand</h5>
+              <p class="tile__desc">Point4brand visual system applied across the engine.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- For creators -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">For creators</h4>
+            <span class="dir__group-count">6 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="/personas">
+              <h5 class="tile__title">Personas</h5>
+              <p class="tile__desc">Who this is built for — 8 personas with concrete starting points.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">26 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/campaign">
+              <h5 class="tile__title">Campaign</h5>
+              <p class="tile__desc">Get a visualizer. €25–€40, 48-hour turnaround, browser-based.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">123 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/weddings">
+              <h5 class="tile__title">Weddings</h5>
+              <p class="tile__desc">Curated wedding-moment playlists. Open the Music Video Maker pre-loaded.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-07</span>
+                <span class="pill pill--size">17 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/marketplace">
+              <h5 class="tile__title">Marketplace</h5>
+              <p class="tile__desc">Curated .swr-set templates. Install to your engine, open in one click.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">17 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/shop">
+              <h5 class="tile__title">Shop</h5>
+              <p class="tile__desc">Logo tees, graphic tees, and mugs from every SWR gallery.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">36 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/portfolio">
+              <h5 class="tile__title">Portfolio</h5>
+              <p class="tile__desc">Five curated visual sets for music videos. See each set in action.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Learn & docs -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">Learn &amp; docs</h4>
+            <span class="dir__group-count">11 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="/intro">
+              <h5 class="tile__title">Intro</h5>
+              <p class="tile__desc">Sainted Word Records in 90 seconds.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">20 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./tutorial-30s.html">
+              <h5 class="tile__title">30-second tutorial</h5>
+              <p class="tile__desc">Make a 30-second music video in three steps. No install, no signup.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">21 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./interactive-howto.html">
+              <h5 class="tile__title">Interactive how-to</h5>
+              <p class="tile__desc">Interactive walkthrough. Drop a song, drop a library, get an MP4.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">45 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/about">
+              <h5 class="tile__title">About</h5>
+              <p class="tile__desc">A one-person audio-reactive video studio. Built in Belgrade. MIT.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">6 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/changelog">
+              <h5 class="tile__title">Changelog</h5>
+              <p class="tile__desc">Public release history for the engine, the variants, and the app shell.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">7 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/press">
+              <h5 class="tile__title">Press kit</h5>
+              <p class="tile__desc">Logos, screenshots, hero images, and a one-line bio for press and media.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">9 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/status">
+              <h5 class="tile__title">Status</h5>
+              <p class="tile__desc">Live system status for the engine and the daily preset-pipeline.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">9 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/thanks">
+              <h5 class="tile__title">Thanks</h5>
+              <p class="tile__desc">Order received. Here's what happens next.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">9 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./market-study.html">
+              <h5 class="tile__title">Market study</h5>
+              <p class="tile__desc">Audio-reactive music video software market study. Free with watermark.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">56 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./profit-plan.html">
+              <h5 class="tile__title">Profit plan</h5>
+              <p class="tile__desc">90-day launch playbook, financial model, and execution calendar.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">72 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/login">
+              <h5 class="tile__title">Sign in</h5>
+              <p class="tile__desc">Magic-link sign in for SWR projects, presets, and cloud library.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">0 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ FOOTER ============ -->
   <footer class="footer">
     <div class="wrap">
@@ -1119,6 +1618,7 @@
             <li><a href="./versions.html">5 visual versions</a></li>
             <li><a href="./HOWTO-30s-VIDEO.md">How to · 30s</a></li>
             <li><a href="./library/manifest.json">Library manifest</a></li>
+            <li><a href="#pages">All pages</a></li>
           </ul>
         </div>
         <div class="footer__col">
