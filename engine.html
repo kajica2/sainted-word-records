@@ -4992,9 +4992,22 @@
           document.body.classList.remove('drag-files');
           if (!e.dataTransfer.files || !e.dataTransfer.files.length) return;
           const files = Array.from(e.dataTransfer.files);
-          // Smart routing: if exactly one video file is dropped and there's no
-          // song loaded yet, show a chooser banner. Otherwise route to library.
+          // Smart routing:
+          //  • Exactly one audio file, no song loaded → load as song, then
+          //    auto-batch-render the whole song (the user just dropped a song,
+          //    they want a video out of it).
+          //  • Exactly one audio file, song already loaded → replace the song
+          //    but don't auto-export (user is mid-flow; they'd lose their WIP
+          //    render). They can press EXPORT when ready.
+          //  • Exactly one video file, no song loaded → chooser banner
+          //    (song / library / both) — unchanged.
+          //  • Everything else → route to library as visual assets.
           const isVideo = (f) => (f.type || '').startsWith('video/') || /\.(mp4|m4v|webm|mov|mkv|ogv)$/i.test(f.name || '');
+          const isAudio = (f) => (f.type || '').startsWith('audio/') || /\.(mp3|m4a|wav|ogg|flac|aac)$/i.test(f.name || '');
+          if (files.length === 1 && isAudio(files[0])) {
+            await UI.handleAudioDrop(files[0]);
+            return;
+          }
           if (files.length === 1 && isVideo(files[0]) && !Audio.audioEl) {
             UI.showMp4Chooser(files[0]);
             return;
@@ -5080,6 +5093,62 @@
         const t = Audio.audioEl.currentTime || 0;
         const d = Audio.audioEl.duration || 0;
         $('time').innerHTML = `${fmt(t)} <b>/ ${fmt(d)}</b>`;
+      },
+      // Audio drop handler: load the dropped audio as the current song.
+      // If a song wasn't loaded before this drop, the user clearly wants a
+      // video — kick off a batch render of the whole song automatically
+      // (uses #rec-dur='song' which the Recorder already supports — it
+      // auto-stops at the song's natural end). If a song WAS already
+      // loaded, just swap songs; don't auto-export (the user might be
+      // mid-render or have other intent). They can press EXPORT when ready.
+      async handleAudioDrop(file) {
+        if (!file) return;
+        const wasEmpty = !Audio.audioEl;
+        Audio.loadFile(file);
+        // Surface what just happened before any async work
+        if (typeof setStatus === 'function') {
+          setStatus(`♪ ${file.name} · loaded as song`, 'ok');
+        }
+        if (!wasEmpty) return; // mid-flow: don't hijack with an auto-export
+        // Wait until the audio element has a known duration before we
+        // commit to an auto-export. Without this the recording can start
+        // before metadata is parsed and end up with a 0-duration render.
+        const el = Audio.audioEl;
+        if (!el) return;
+        await new Promise((resolve) => {
+          if (el.readyState >= 1 && isFinite(el.duration) && el.duration > 0) return resolve();
+          const onMeta = () => { cleanup(); resolve(); };
+          const onErr  = () => { cleanup(); resolve(); };
+          const cleanup = () => {
+            el.removeEventListener('loadedmetadata', onMeta);
+            el.removeEventListener('error', onErr);
+          };
+          el.addEventListener('loadedmetadata', onMeta, { once: true });
+          el.addEventListener('error', onErr, { once: true });
+          // Safety timeout so a stalled decode doesn't lock the UI
+          setTimeout(() => { cleanup(); resolve(); }, 8000);
+        });
+        const dur = (Audio.audioEl && Audio.audioEl.duration) || 0;
+        if (!(dur > 0)) {
+          if (typeof setStatus === 'function') {
+            setStatus('song loaded · press 🎬 Export video to render', 'warn');
+          }
+          return;
+        }
+        // Force the recorder to auto-stop at the song's end
+        const durSel = $('rec-dur');
+        if (durSel) durSel.value = 'song';
+        // Start playback so the recorder has live audio (the same pattern
+        // the EXPORT button uses). Recorder.start() wires Audio.analyser
+        // into a MediaStreamDestination, so the recording captures what
+        // the listener hears.
+        try { Audio.play(); } catch (e) { /* ignore autoplay issues */ }
+        const ms = Math.max(1000, Math.floor(dur * 1000));
+        Recorder.start(ms);
+        if (typeof setStatus === 'function') {
+          const sec = Math.round(ms / 1000);
+          setStatus(`batch render · ${sec}s · drop another file to cancel`, 'live');
+        }
       },
       // MP4 drop chooser: a small banner with 2 buttons (use as song / use as
       // library) shown when a single video file is dropped and no song is loaded.
