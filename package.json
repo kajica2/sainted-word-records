@@ -42,6 +42,7 @@
     "verify:mvm-phase10": "node verify-mvm-phase10.mjs",
     "verify:weddings": "node verify-weddings.mjs",
     "verify:bachdrop": "node verify-bachdrop.mjs",
+    "verify:brutalist": "node verify-brutalist.mjs",
     "verify:persona-engine": "node verify-persona-engine.mjs",
     "verify:persona-v": "node verify-persona-v.mjs",
     "verify:artists": "node verify-artists.mjs",

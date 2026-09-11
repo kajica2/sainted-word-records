@@ -365,6 +365,14 @@
       "destination": "/gallery-bachdrop.html"
     },
     {
+      "source": "/gallery/brutalist",
+      "destination": "/gallery-brutalist.html"
+    },
+    {
+      "source": "/gallery/brutalist/",
+      "destination": "/gallery-brutalist.html"
+    },
+    {
       "source": "/versions/bachdrop",
       "destination": "/versions/bachdrop.html"
     },

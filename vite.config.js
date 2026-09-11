@@ -155,6 +155,7 @@ function copyStatic() {
     'gallery-artist.html',
     'gallery-darkfuture.html',
     'gallery-bachdrop.html',
+    'gallery-brutalist.html',
     'shop.html',
     'engine-demos.html',
     'swr-campaign-launch-plan.html',
