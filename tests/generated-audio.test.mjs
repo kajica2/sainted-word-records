@@ -63,12 +63,16 @@ function makeContext() {
     globalThis: win,
     URL: win.URL,
     File: win.File,
+    Blob: win.File,  // vm sandbox lacks a Blob global; File extends Blob in modern Node
     console,
     setTimeout,
     Promise,
+    fetch: () => Promise.reject(new Error('fetch not stubbed')),
   };
   ctx.globalThis.window = win;
   ctx.globalThis.SWR = win.SWR;
+  ctx.globalThis.Blob = ctx.Blob;
+  ctx.globalThis.fetch = ctx.fetch;
   return { ctx, calls, win };
 }
 
