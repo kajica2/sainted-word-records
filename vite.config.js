@@ -277,6 +277,10 @@ function copyStatic() {
     // PNGs (~728 MB) — gitignored AND excluded from the build by the
     // _candidates* skip rule in copyDirRecursive.
     { src: 'gallery-vintage', dst: 'gallery-vintage' },
+    // Shop design assets: 24 Midjourney Session 5 compositions (2.7 MB)
+    // — Vodolajusta logo + character references, rendered as
+    // card.images[] in shop.html's designs gallery.
+    { src: 'shop-designs', dst: 'shop-designs' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',

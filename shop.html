@@ -4,6 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shop · SWR Galleries</title>
+
+  <!-- No-flash theme bootstrap. Reads the persisted choice (or falls
+       back to prefers-color-scheme) and applies it before the CSS
+       loads so there's no white flash on a dark-mode visitor. -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('swr-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
   <meta name="description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
   <meta property="og:title" content="Shop · SWR Galleries" />
   <meta property="og:description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
@@ -64,6 +81,21 @@
     }
     .nav__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
 
+    /* ===== THEME TOGGLE ===== */
+    .theme-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 999px;
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--ink-2);
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+    .theme-toggle__label { font-weight: 600; }
+
     .page { padding: 56px 0 80px; }
     .page__kicker {
       font-family: var(--font-mono); font-size: 11px;
@@ -110,6 +142,24 @@
         radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 55%),
         radial-gradient(circle at 70% 80%, rgba(0,0,0,0.35), transparent 60%);
       mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+    .shop__art-img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      background: var(--bg-2);
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .shop__art-img:hover { transform: scale(1.02); }
+    .shop__art-variant {
+      position: absolute; top: 14px; right: 14px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--bg); background: rgba(0,0,0,0.6);
+      padding: 4px 9px; border-radius: 999px;
+      backdrop-filter: blur(4px);
       pointer-events: none;
     }
     .shop__art-meta {
@@ -204,6 +254,10 @@
         <a href="./campaign.html">Pricing</a>
         <a href="./engine.html">Engine</a>
       </div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <span class="theme-toggle__label" id="theme-label">Auto</span>
+      </button>
       <a class="nav__cta" href="./gallery-music.html">Browse galleries →</a>
     </div>
   </nav>
@@ -601,6 +655,24 @@
               gradient: 'linear-gradient(135deg, #000000 0%, #2a0a4a 50%, #ece4d0 100%)' },
           ],
         },
+        designs: {
+          name: 'New designs',
+          kicker: 'Midjourney Session 5 — band logo + character refs',
+          cards: [
+            { title: 'Vodolajusta logo', sub: 'Band logo', meta: 'Modern abstract mark',
+              images: ['vodolajusta-logo__0.webp','vodolajusta-logo__1.webp','vodolajusta-logo__2.webp','vodolajusta-logo__3.webp'] },
+            { title: 'Athena turnaround', sub: 'Character sheet', meta: 'Three-quarter view reference',
+              images: ['athena-turnaround__0.webp','athena-turnaround__1.webp','athena-turnaround__2.webp','athena-turnaround__3.webp'] },
+            { title: 'Character reference A', sub: 'Character ref', meta: 'Turnaround set A',
+              images: ['character-ref-a__0.webp','character-ref-a__1.webp','character-ref-a__2.webp','character-ref-a__3.webp'] },
+            { title: 'Character reference B', sub: 'Character ref', meta: 'Turnaround set B',
+              images: ['character-ref-b__0.webp','character-ref-b__1.webp','character-ref-b__2.webp','character-ref-b__3.webp'] },
+            { title: 'Character reference C', sub: 'Character ref', meta: 'Turnaround set C',
+              images: ['character-ref-c__0.webp','character-ref-c__1.webp','character-ref-c__2.webp','character-ref-c__3.webp'] },
+            { title: 'Character reference D', sub: 'Character ref', meta: 'Turnaround set D',
+              images: ['character-ref-d__0.webp','character-ref-d__1.webp','character-ref-d__2.webp','character-ref-d__3.webp'] },
+          ],
+        },
       };
 
       var gallery = GALLERY_INDEX[slug];
@@ -623,7 +695,30 @@
 
       // Big artwork
       var art = document.getElementById('art');
-      art.style.background = card.gradient;
+      // Strip any existing <img> from a previous render so cards don't
+      // bleed state when switching between gradient- and image-backed
+      // designs.
+      while (art.firstChild) art.removeChild(art.firstChild);
+      // Reset inline background to the gallery's CSS default (--bg-2)
+      art.style.background = card.gradient || 'var(--bg-2)';
+      if (card.images && card.images.length) {
+        var img = document.createElement('img');
+        img.className = 'shop__art-img';
+        img.alt = card.title;
+        // Cycle variant on click. Default = first image.
+        var variantIdx = 0;
+        function setVariant(i) {
+          variantIdx = (i + card.images.length) % card.images.length;
+          img.src = './shop-designs/' + card.images[variantIdx];
+          variantLabel.textContent = 'Variant ' + (variantIdx + 1) + ' / ' + card.images.length;
+        }
+        var variantLabel = document.createElement('div');
+        variantLabel.className = 'shop__art-variant';
+        setVariant(0);
+        art.appendChild(img);
+        art.appendChild(variantLabel);
+        img.addEventListener('click', function () { setVariant(variantIdx + 1); });
+      }
       document.getElementById('art-meta').textContent =
         gallery.name + ' · ' + card.title;
 
@@ -661,6 +756,41 @@
           '" ' + (isPlaceholder ? 'onclick="document.getElementById(\'notice\').scrollIntoView({behavior:\'smooths\'}); return false;"' : 'target="_blank" rel="noopener"') +
           '>Buy →</a>';
         productsEl.appendChild(row);
+      });
+    })();
+  </script>
+
+  <!-- Theme toggle handler. Cycles auto → light → dark → auto and
+       persists the choice. Re-runs after the no-flash bootstrap so the
+       toggle label matches the actually-applied theme. -->
+  <script>
+    (function () {
+      var btn = document.getElementById('theme-toggle');
+      var label = document.getElementById('theme-label');
+      if (!btn || !label) return;
+      function syncLabel() {
+        var pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+        label.textContent = pref.charAt(0).toUpperCase() + pref.slice(1);
+      }
+      btn.addEventListener('click', function () {
+        var pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+        var next = pref === 'light' ? 'dark' : pref === 'dark' ? 'system' : 'light';
+        try { localStorage.setItem('swr-theme', next); } catch (_) {}
+        var resolved = next === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : next;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', next);
+        syncLabel();
+      });
+      syncLabel();
+      // React to OS-level theme changes when the user is in 'auto'
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+        var pref = document.documentElement.getAttribute('data-theme-pref');
+        if (pref === 'system' || !pref) {
+          var r = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', r);
+        }
       });
     })();
   </script>
