@@ -12,6 +12,12 @@ function copyDirRecursive(src, dst) {
     // including directories like api/_lib/ (the underscore-prefix skip
     // would have silently dropped our shared helpers).
     if (f.startsWith('.') || f.endsWith('.bak')) continue;
+    // Skip large unreviewed candidate asset directories — they're gitignored
+    // locally, but copyDirRecursive doesn't know about .gitignore. The
+    // underscore prefix is a strong project-wide convention for "not part
+    // of the deploy" (see .gitignore comments). Mirroring it here keeps
+    // artists/_candidates/, shotlist/_candidates/, etc. off Vercel.
+    if (f.startsWith('_candidates')) continue;
     const sp = join(src, f);
     const dp = join(dst, f);
     const st = statSync(sp);
@@ -254,6 +260,16 @@ function copyStatic() {
     { src: 'client', dst: 'client' },
     // Vendored browser-side libraries (no CDN at runtime)
     { src: 'client/vendor', dst: 'client/vendor' },
+    // Artist pages (artists/<slug>.html + artists/index.html +
+    // artists/vodolija/index.html). Vodolija's _candidates/ dirs are
+    // .gitignored so only the curated pages ship. Total tracked: ~0.1 MB.
+    { src: 'artists', dst: 'artists' },
+    // Shotlist page (shotlist/index.html). _candidates/ gitignored,
+    // only the curated page ships. Total tracked: ~0.1 MB.
+    { src: 'shotlist', dst: 'shotlist' },
+    // Persona variants (personas/v/<name>.html + index). Total
+    // tracked: ~0.3 MB.
+    { src: 'personas', dst: 'personas' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',
