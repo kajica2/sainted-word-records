@@ -95,6 +95,10 @@ artists/vodolija/_candidates/
 # Shot-list reference frames (Midjourney candidates, large; reviewed locally)
 shotlist/_candidates_web/
 shotlist/_candidates/
+# Vintage gallery unreviewed Midjourney candidates (728 MB of source PNGs;
+# only the curated WebPs in gallery-vintage/*.webp ship to deploy)
+gallery-vintage/_candidates_web/
+gallery-vintage/_candidates/
 
 # Expo / React Native sub-project lives in this repo for local dev only.
 # It is a separate app (its own package.json, node_modules, app.json) and

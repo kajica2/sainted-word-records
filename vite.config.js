@@ -163,6 +163,7 @@ function copyStatic() {
     'gallery-bachdrop.html',
     'gallery-brutalist.html',
     'gallery-loops.html',
+    'gallery-vintage.html',
     'swr-build-id.client.js',
     'shop.html',
     'engine-demos.html',
@@ -271,6 +272,11 @@ function copyStatic() {
     // Persona variants (personas/v/<name>.html + index). Total
     // tracked: ~0.3 MB.
     { src: 'personas', dst: 'personas' },
+    // Vintage gallery: 57 curated WebP compositions (8.1 MB) across 4
+    // themes. _candidates_web/ holds 404 unreviewed Midjourney Session 4
+    // PNGs (~728 MB) — gitignored AND excluded from the build by the
+    // _candidates* skip rule in copyDirRecursive.
+    { src: 'gallery-vintage', dst: 'gallery-vintage' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',
