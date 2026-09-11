@@ -156,6 +156,7 @@ function copyStatic() {
     'gallery-darkfuture.html',
     'gallery-bachdrop.html',
     'gallery-brutalist.html',
+    'gallery-loops.html',
     'shop.html',
     'engine-demos.html',
     'swr-campaign-launch-plan.html',
@@ -203,7 +204,12 @@ function copyStatic() {
     if (LIB_FILES) return LIB_FILES;
     try {
       const m = JSON.parse(readFileSync(resolve('library', 'manifest.json'), 'utf8'));
-      LIB_FILES = Array.isArray(m.files) ? m.files : [];
+      // Concatenate curated image/video files with the loop pack so the
+      // gallery-loops.html MP4s ship alongside the engine's library.
+      const all = [];
+      if (Array.isArray(m.files)) all.push(...m.files);
+      if (Array.isArray(m.loopFiles)) all.push(...m.loopFiles);
+      LIB_FILES = all;
     } catch (e) { LIB_FILES = []; }
     return LIB_FILES;
   }
