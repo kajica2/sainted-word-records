@@ -1,0 +1,19 @@
+{
+  "phase": "plan-locked",
+  "version": 1,
+  "files_added": ["swr-onboarding-hf.client.js", "verify-onboarding-hf.mjs"],
+  "files_modified": ["engine.html", "vite.config.js", "package.json"],
+  "files_unchanged": ["#swr-onboard (advanced mode modal)", "swr-build-id.client.js"],
+  "blueprint": "cursor-ui-demo (static-stage state tour variant)",
+  "beats": 7,
+  "duration_s": 13.0,
+  "modes": {
+    "trigger": "localStorage['swr.onboarded.v1']",
+    "basic": "first visit (no key) → cinematic tour",
+    "advanced": "key present → no tour; ?-button opens shortcuts modal"
+  },
+  "verifier": "verify-onboarding-hf.mjs",
+  "checks": 10,
+  "branch": "feat/asset-curator",
+  "next_action": "ship stage 1: controller + 5-beat timeline"
+}
