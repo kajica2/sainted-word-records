@@ -59,9 +59,11 @@
     .li .tag { position: absolute; top: 0; right: 0; font: 9px/1 ui-monospace; padding: 2px 4px; background: var(--ink); color: var(--bg); z-index: 2; }
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 2px 4px; font: 9px/1 ui-monospace; color: #fff; background: var(--ink); }
     #layers { display: flex; flex-direction: column; gap: 0; }
-    .l { background: var(--panel-2); border-bottom: 1px solid var(--ink); padding: 8px 10px; }
+    .l { background: var(--panel-2); border-bottom: 1px solid var(--ink); padding: 8px 10px 8px 14px; position: relative; }
     .l:first-child { border-top: 2px solid var(--ink); }
+    .l::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: transparent; }
     .l.sel { background: var(--ink); color: var(--bg); }
+    .l.sel::before { background: var(--accent); }
     .l.sel .nm, .l.sel .react { color: var(--bg); }
     .l .lh { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
     .l .lh .n { font: 700 10px/1 ui-monospace; width: 18px; }
