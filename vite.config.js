@@ -163,6 +163,7 @@ function copyStatic() {
     'gallery-bachdrop.html',
     'gallery-brutalist.html',
     'gallery-loops.html',
+    'swr-build-id.client.js',
     'shop.html',
     'engine-demos.html',
     'swr-campaign-launch-plan.html',
