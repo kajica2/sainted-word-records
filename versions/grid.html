@@ -31,8 +31,10 @@
     #app { display: grid; grid-template-columns: 200px minmax(0, 1fr) 220px; grid-template-rows: 48px 1fr 40px; height: 100vh; }
     header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 16px;
       background: var(--bg-2); border-bottom: 1px solid var(--line); }
-    .v { font-weight: 900; font-size: 16px; color: var(--ink); letter-spacing: 0.04em; text-transform: uppercase; }
-    .v small { color: var(--accent); margin-left: 4px; font-weight: 700; }
+    .v { font-weight: 900; font-size: 17px; color: var(--ink); letter-spacing: 0.18em; text-transform: uppercase;
+      padding: 2px 4px; border: 1px solid var(--ink); background: var(--bg); line-height: 1; }
+    .v small { color: var(--accent); margin-left: 6px; font-weight: 900; font-size: 9px;
+      letter-spacing: 0.08em; padding: 1px 3px; border: 1px solid var(--accent); background: var(--accent); color: #fff; vertical-align: 1px; }
     .pill { font: 9px/1 ui-monospace; padding: 4px 8px; border: 1px solid var(--ink); color: var(--ink); letter-spacing: 0.1em; text-transform: uppercase; }
     .pill.ok { background: var(--ink); color: var(--bg); }
     .tbtn { background: var(--bg-2); color: var(--ink); border: 1px solid var(--ink); font: 10px/1 ui-monospace;
