@@ -5104,7 +5104,15 @@
       async handleAudioDrop(file) {
         if (!file) return;
         const wasEmpty = !Audio.audioEl;
-        Audio.loadFile(file);
+        // Route through the generated-audio seam so external callers (Suno
+        // harvests, programmatic imports, fetch() downloads) go through the
+        // same code path as a manual drop. Fall back to direct loadFile()
+        // if the seam isn't loaded (graceful degradation).
+        if (window.SWR_GENERATED_AUDIO && typeof window.SWR_GENERATED_AUDIO.fromFile === 'function') {
+          window.SWR_GENERATED_AUDIO.fromFile(file);
+        } else {
+          Audio.loadFile(file);
+        }
         // Surface what just happened before any async work
         if (typeof setStatus === 'function') {
           setStatus(`♪ ${file.name} · loaded as song`, 'ok');
