@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vintage — SWR Gallery</title>
+  <meta name="description" content="57 Midjourney compositions of vintage architecture, Soviet-era civic buildings, Belgrade cityscapes, and old photographs — Midjourney Session 4, curated to four themes." />
+  <meta property="og:title" content="Vintage — SWR Gallery" />
+  <meta property="og:description" content="57 Midjourney compositions of vintage architecture, Soviet-era civic buildings, Belgrade cityscapes, and old photographs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+      --accent: #e6306b; --accent-2: #ff8a3a; --accent-3: #1c8c64;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1180px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--ink); color: var(--bg);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+      transition: transform 0.18s, background 0.18s;
+    }
+    .nav__cta:hover { background: var(--accent); color: white; text-decoration: none; transform: translateY(-1px); }
+    @media (max-width: 720px) { .nav__links { display: none; } }
+
+    .hero { padding: 80px 0 50px; }
+    .hero__eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--bg-2);
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-2); margin-bottom: 18px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(40px, 6vw, 64px); line-height: 1.02;
+      letter-spacing: -0.025em; margin: 0 0 18px; color: var(--ink);
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-size: 17px; color: var(--ink-2);
+      max-width: 720px; margin: 0 0 14px; line-height: 1.55;
+    }
+    .hero__meta {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.04em;
+      display: flex; gap: 18px; flex-wrap: wrap;
+    }
+    .hero__meta span strong { color: var(--ink); font-weight: 600; }
+
+    .toc {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 14px 0; border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line); margin: 16px 0 56px;
+    }
+    .toc a {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-2);
+      padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+    }
+    .toc a:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+
+    section { padding: 56px 0; border-top: 1px solid var(--line); }
+    section:first-of-type { border-top: 0; padding-top: 0; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px; margin-top: 8px;
+    }
+    .cell {
+      position: relative;
+      border: 1px solid var(--line); border-radius: 6px;
+      overflow: hidden; background: var(--panel);
+      transition: border-color 0.18s, transform 0.18s;
+    }
+    .cell:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .cell__num {
+      position: absolute; top: 8px; left: 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--bg); background: rgba(26,22,18,0.78);
+      padding: 3px 7px; border-radius: 3px; letter-spacing: 0.1em;
+      backdrop-filter: blur(4px); z-index: 2;
+    }
+    .cell__art {
+      aspect-ratio: 3/2; background: var(--bg-2);
+      overflow: hidden;
+    }
+    .cell__art img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .cell:hover .cell__art img { transform: scale(1.03); }
+    .cell__meta {
+      padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      border-top: 1px solid var(--line);
+    }
+    .cell__name {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 0.02em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cell__family {
+      display: inline-block;
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 2px;
+      border: 1px solid; align-self: flex-start;
+    }
+
+    .cell__family--nyc-vintage { color: #0085b3; border-color: #0085b3; }
+    .cell__family--soviet { color: #d8232a; border-color: #d8232a; }
+    .cell__family--belgrade { color: #ff8a3a; border-color: #ff8a3a; }
+    .cell__family--historical-photo { color: #1c8c64; border-color: #1c8c64; }
+
+    .footer {
+      padding: 40px 0; margin-top: 40px;
+      border-top: 1px solid var(--line);
+      background: var(--bg-2);
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.05em;
+      padding-left: 32px; padding-right: 32px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="./landing.html">SWR</a>
+      <div class="nav__links">
+        <a href="./landing.html">Engine</a>
+        <a href="./portfolio.html">Portfolio</a>
+        <a href="./campaign.html">Pricing</a>
+      </div>
+      <a class="nav__cta" href="./engine.html">Open engine →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <span class="hero__eyebrow">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>
+        Gallery · Vintage
+      </span>
+      <h1 class="hero__title">Photographs of a <em>memory</em>.<br />Vintage architecture, 57 frames.</h1>
+      <p class="hero__lede">
+        Curated from Midjourney Session 4 — vintage New York colleges, Soviet-era
+        civic buildings across Baku, Minsk, Tashkent, Kars, and Yerevan, the
+        Moholy-Nagy geometric distortions of Belgrade, and old photographs of
+        European hospitals, costumes, and city squares. 15 prompts × ~4 grid
+        variations. Original 1344×896 PNGs converted to WebP at quality 80.
+      </p>
+      <div class="hero__meta">
+        <span><strong>57</strong> images</span>
+        <span><strong>15</strong> prompts</span>
+        <span><strong>4</strong> themes</span>
+        <span><strong>8.1 MB</strong> total</span>
+      </div>
+      <nav class="toc">
+        <a href="#nyc_vintage">New York vintage ×12</a>
+        <a href="#soviet">Soviet & Eastern bloc ×16</a>
+        <a href="#belgrade">Belgrade & Serbia ×15</a>
+        <a href="#historical_photo">Old photographs ×14</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <section id="nyc_vintage" aria-labelledby="nyc_vintage-heading">
+      <h2 id="nyc_vintage-heading" style="font-family:var(--font-display);font-size:clamp(28px,4vw,40px);margin:0 0 8px;letter-spacing:-0.02em;">
+        New York vintage <span style="color:var(--accent);">×12</span>
+      </h2>
+      <p style="margin:0 0 24px;font-size:14px;color:var(--ink-2);max-width:780px;line-height:1.5;">
+        Old photographs of New York college, school, and business buildings — vintage texture, deep focus, hand-sketched composition.
+      </p>
+      <div class="grid">
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__0.webp">
+          <span class="cell__num">01</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__0.webp" alt="An_old_photograph_of_the_New_York_Vintage_college_building_i, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__0.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_Y…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/tape.mp3" data-label="an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__1.webp">
+          <span class="cell__num">02</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__1.webp" alt="An_old_photograph_of_the_New_York_Vintage_college_building_i, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__1.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_Y…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/watercolor.mp3" data-label="an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__2.webp">
+          <span class="cell__num">03</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__2.webp" alt="An_old_photograph_of_the_New_York_Vintage_college_building_i, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__2.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_Y…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/film.mp3" data-label="an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__3.webp">
+          <span class="cell__num">04</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__3.webp" alt="An_old_photograph_of_the_New_York_Vintage_college_building_i, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_york_vintage_college___An_old_photograph_of_the_New_Y__3.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_Y…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/phosphor.mp3" data-label="an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__0.webp">
+          <span class="cell__num">05</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__0.webp" alt="An_old_photograph_of_the_new_school_building_in_New_York_Cit, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__0.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_S…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/aurora.mp3" data-label="an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__1.webp">
+          <span class="cell__num">06</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__1.webp" alt="An_old_photograph_of_the_new_school_building_in_New_York_Cit, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__1.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_S…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/kraft.mp3" data-label="an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__2.webp">
+          <span class="cell__num">07</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__2.webp" alt="An_old_photograph_of_the_new_school_building_in_New_York_Cit, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__2.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_S…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/eclipse.mp3" data-label="an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__3.webp">
+          <span class="cell__num">08</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__3.webp" alt="An_old_photograph_of_the_new_school_building_in_New_York_Cit, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_new_school_building_in_ne__An_old_photograph_of_the_new_s__3.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · AN_OLD_PHOTOGRAPH_OF_THE_NEW_S…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___0.webp">
+          <span class="cell__num">09</span>
+          <div class="cell__art"><img src="./gallery-vintage/vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___0.webp" alt="Vintage_photo_of_the_New_York_business_school_building_with_, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___0.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · VINTAGE_PHOTO_OF_THE_NEW_YORK_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/tape.mp3" data-label="vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___1.webp">
+          <span class="cell__num">10</span>
+          <div class="cell__art"><img src="./gallery-vintage/vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___1.webp" alt="Vintage_photo_of_the_New_York_business_school_building_with_, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___1.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · VINTAGE_PHOTO_OF_THE_NEW_YORK_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/watercolor.mp3" data-label="vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___2.webp">
+          <span class="cell__num">11</span>
+          <div class="cell__art"><img src="./gallery-vintage/vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___2.webp" alt="Vintage_photo_of_the_New_York_business_school_building_with_, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___2.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · VINTAGE_PHOTO_OF_THE_NEW_YORK_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/film.mp3" data-label="vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___3.webp">
+          <span class="cell__num">12</span>
+          <div class="cell__art"><img src="./gallery-vintage/vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___3.webp" alt="Vintage_photo_of_the_New_York_business_school_building_with_, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">vintage_photo_of_the_new_york_business_school_buil__Vintage_photo_of_the_New_York___3.webp</div>
+            <span class="cell__family cell__family--nyc-vintage">NYC VINTAGE · VINTAGE_PHOTO_OF_THE_NEW_YORK_…</span>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section id="soviet" aria-labelledby="soviet-heading">
+      <h2 id="soviet-heading" style="font-family:var(--font-display);font-size:clamp(28px,4vw,40px);margin:0 0 8px;letter-spacing:-0.02em;">
+        Soviet & Eastern bloc <span style="color:var(--accent);">×16</span>
+      </h2>
+      <p style="margin:0 0 24px;font-size:14px;color:var(--ink-2);max-width:780px;line-height:1.5;">
+        Black-and-white photographs of central squares, civic buildings, and historical monuments across the Soviet bloc — Baku, Minsk, Tashkent, Kars, Yerevan, the Filmography Center.
+      </p>
+      <div class="grid">
+        <article class="cell" data-audio="./audios/phosphor.mp3" data-label="a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__0.webp">
+          <span class="cell__num">13</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__0.webp" alt="A_black_and_white_photo_of_the_central_square_in_Baku_Azerba, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__0.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTO_OF_THE…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/aurora.mp3" data-label="a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__1.webp">
+          <span class="cell__num">14</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__1.webp" alt="A_black_and_white_photo_of_the_central_square_in_Baku_Azerba, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__1.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTO_OF_THE…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/kraft.mp3" data-label="a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__2.webp">
+          <span class="cell__num">15</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__2.webp" alt="A_black_and_white_photo_of_the_central_square_in_Baku_Azerba, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__2.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTO_OF_THE…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/eclipse.mp3" data-label="a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__3.webp">
+          <span class="cell__num">16</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__3.webp" alt="A_black_and_white_photo_of_the_central_square_in_Baku_Azerba, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photo_of_the_central_square_in_b__A_black_and_white_photo_of_the__3.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTO_OF_THE…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__0.webp">
+          <span class="cell__num">17</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__0.webp" alt="A_black_and_white_photograph_of_the_city_center_in_Minsk_wit, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__0.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTOGRAPH_O…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/tape.mp3" data-label="a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__1.webp">
+          <span class="cell__num">18</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__1.webp" alt="A_black_and_white_photograph_of_the_city_center_in_Minsk_wit, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__1.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTOGRAPH_O…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/watercolor.mp3" data-label="a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__2.webp">
+          <span class="cell__num">19</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__2.webp" alt="A_black_and_white_photograph_of_the_city_center_in_Minsk_wit, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__2.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTOGRAPH_O…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/film.mp3" data-label="a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__3.webp">
+          <span class="cell__num">20</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__3.webp" alt="A_black_and_white_photograph_of_the_city_center_in_Minsk_wit, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_black_and_white_photograph_of_the_city_center_in__A_black_and_white_photograph_o__3.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_BLACK_AND_WHITE_PHOTOGRAPH_O…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/phosphor.mp3" data-label="a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__0.webp">
+          <span class="cell__num">21</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__0.webp" alt="A_photograph_of_the_building_where_Tashkents_Alesha_Art_Scho, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__0.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_PHOTOGRAPH_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/aurora.mp3" data-label="a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__1.webp">
+          <span class="cell__num">22</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__1.webp" alt="A_photograph_of_the_building_where_Tashkents_Alesha_Art_Scho, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__1.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_PHOTOGRAPH_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/kraft.mp3" data-label="a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__2.webp">
+          <span class="cell__num">23</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__2.webp" alt="A_photograph_of_the_building_where_Tashkents_Alesha_Art_Scho, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__2.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_PHOTOGRAPH_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/eclipse.mp3" data-label="a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__3.webp">
+          <span class="cell__num">24</span>
+          <div class="cell__art"><img src="./gallery-vintage/a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__3.webp" alt="A_photograph_of_the_building_where_Tashkents_Alesha_Art_Scho, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">a_photograph_of_the_building_where_tashkents_alesh__A_photograph_of_the_building_w__3.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · A_PHOTOGRAPH_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__0.webp">
+          <span class="cell__num">25</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__0.webp" alt="An_old_photo_of_the_building_which_is_located_in_Kars_and_ha, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__0.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/tape.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__1.webp">
+          <span class="cell__num">26</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__1.webp" alt="An_old_photo_of_the_building_which_is_located_in_Kars_and_ha, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__1.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/watercolor.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__2.webp">
+          <span class="cell__num">27</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__2.webp" alt="An_old_photo_of_the_building_which_is_located_in_Kars_and_ha, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__2.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/film.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__3.webp">
+          <span class="cell__num">28</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__3.webp" alt="An_old_photo_of_the_building_which_is_located_in_Kars_and_ha, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_k__An_old_photo_of_the_building_w__3.webp</div>
+            <span class="cell__family cell__family--soviet">SOVIET · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section id="belgrade" aria-labelledby="belgrade-heading">
+      <h2 id="belgrade-heading" style="font-family:var(--font-display);font-size:clamp(28px,4vw,40px);margin:0 0 8px;letter-spacing:-0.02em;">
+        Belgrade & Serbia <span style="color:var(--accent);">×15</span>
+      </h2>
+      <p style="margin:0 0 24px;font-size:14px;color:var(--ink-2);max-width:780px;line-height:1.5;">
+        Old photographs of Belgrade buildings, Moholy-Nagy geometric distortions of Serbian poster art, hand-sketch city maps.
+      </p>
+      <div class="grid">
+        <article class="cell" data-audio="./audios/phosphor.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__0.webp">
+          <span class="cell__num">29</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__0.webp" alt="An_old_photo_of_the_building_which_is_located_in_belgrade_an, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__0.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/aurora.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__1.webp">
+          <span class="cell__num">30</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__1.webp" alt="An_old_photo_of_the_building_which_is_located_in_belgrade_an, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__1.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/kraft.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__2.webp">
+          <span class="cell__num">31</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__2.webp" alt="An_old_photo_of_the_building_which_is_located_in_belgrade_an, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__2.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/eclipse.mp3" data-label="an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__3.webp">
+          <span class="cell__num">32</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__3.webp" alt="An_old_photo_of_the_building_which_is_located_in_belgrade_an, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_building_which_is_located_in_b__An_old_photo_of_the_building_w__3.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · AN_OLD_PHOTO_OF_THE_BUILDING_W…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__0.webp">
+          <span class="cell__num">33</span>
+          <div class="cell__art"><img src="./gallery-vintage/moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__0.webp" alt="Moholy-Nagy_Minimal_belgrade_geometric_distortion_serbian_po, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__0.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · MOHOLY-NAGY_MINIMAL_BELGRADE_G…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/tape.mp3" data-label="moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__1.webp">
+          <span class="cell__num">34</span>
+          <div class="cell__art"><img src="./gallery-vintage/moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__1.webp" alt="Moholy-Nagy_Minimal_belgrade_geometric_distortion_serbian_po, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__1.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · MOHOLY-NAGY_MINIMAL_BELGRADE_G…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/watercolor.mp3" data-label="moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__2.webp">
+          <span class="cell__num">35</span>
+          <div class="cell__art"><img src="./gallery-vintage/moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__2.webp" alt="Moholy-Nagy_Minimal_belgrade_geometric_distortion_serbian_po, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">moholy_nagy_minimal_belgrade_geometric_distortion___Moholy-Nagy_Minimal_belgrade_g__2.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · MOHOLY-NAGY_MINIMAL_BELGRADE_G…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/film.mp3" data-label="form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___0.webp">
+          <span class="cell__num">36</span>
+          <div class="cell__art"><img src="./gallery-vintage/form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___0.webp" alt="form_follows_function_Minimal_belgrade_geometric_distortion_, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___0.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · FORM_FOLLOWS_FUNCTION_MINIMAL_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/phosphor.mp3" data-label="form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___1.webp">
+          <span class="cell__num">37</span>
+          <div class="cell__art"><img src="./gallery-vintage/form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___1.webp" alt="form_follows_function_Minimal_belgrade_geometric_distortion_, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___1.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · FORM_FOLLOWS_FUNCTION_MINIMAL_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/aurora.mp3" data-label="form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___2.webp">
+          <span class="cell__num">38</span>
+          <div class="cell__art"><img src="./gallery-vintage/form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___2.webp" alt="form_follows_function_Minimal_belgrade_geometric_distortion_, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___2.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · FORM_FOLLOWS_FUNCTION_MINIMAL_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/kraft.mp3" data-label="form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___3.webp">
+          <span class="cell__num">39</span>
+          <div class="cell__art"><img src="./gallery-vintage/form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___3.webp" alt="form_follows_function_Minimal_belgrade_geometric_distortion_, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">form_follows_function_minimal_belgrade_geometric_d__form_follows_function_Minimal___3.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · FORM_FOLLOWS_FUNCTION_MINIMAL_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/eclipse.mp3" data-label="hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__0.webp">
+          <span class="cell__num">40</span>
+          <div class="cell__art"><img src="./gallery-vintage/hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__0.webp" alt="hand_sketch_city_map_of_belgrade_city_by_ed_fairburn_Kodak_E, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__0.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · HAND_SKETCH_CITY_MAP_OF_BELGRA…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__1.webp">
+          <span class="cell__num">41</span>
+          <div class="cell__art"><img src="./gallery-vintage/hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__1.webp" alt="hand_sketch_city_map_of_belgrade_city_by_ed_fairburn_Kodak_E, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__1.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · HAND_SKETCH_CITY_MAP_OF_BELGRA…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/tape.mp3" data-label="hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__2.webp">
+          <span class="cell__num">42</span>
+          <div class="cell__art"><img src="./gallery-vintage/hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__2.webp" alt="hand_sketch_city_map_of_belgrade_city_by_ed_fairburn_Kodak_E, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__2.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · HAND_SKETCH_CITY_MAP_OF_BELGRA…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/watercolor.mp3" data-label="hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__3.webp">
+          <span class="cell__num">43</span>
+          <div class="cell__art"><img src="./gallery-vintage/hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__3.webp" alt="hand_sketch_city_map_of_belgrade_city_by_ed_fairburn_Kodak_E, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">hand_sketch_city_map_of_belgrade_city_by_ed_fairbu__hand_sketch_city_map_of_belgra__3.webp</div>
+            <span class="cell__family cell__family--belgrade">BELGRADE · HAND_SKETCH_CITY_MAP_OF_BELGRA…</span>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section id="historical_photo" aria-labelledby="historical_photo-heading">
+      <h2 id="historical_photo-heading" style="font-family:var(--font-display);font-size:clamp(28px,4vw,40px);margin:0 0 8px;letter-spacing:-0.02em;">
+        Old photographs <span style="color:var(--accent);">×14</span>
+      </h2>
+      <p style="margin:0 0 24px;font-size:14px;color:var(--ink-2);max-width:780px;line-height:1.5;">
+        Vintage photographs of hospital buildings, traditional costumes, the pasta factory, and other historical European scenes.
+      </p>
+      <div class="grid">
+        <article class="cell" data-audio="./audios/film.mp3" data-label="an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__0.webp">
+          <span class="cell__num">44</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__0.webp" alt="An_old_photo_of_the_hospital_building_in_buildings_Kvel_Squa, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__0.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTO_OF_THE_HOSPITAL_B…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/phosphor.mp3" data-label="an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__1.webp">
+          <span class="cell__num">45</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__1.webp" alt="An_old_photo_of_the_hospital_building_in_buildings_Kvel_Squa, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__1.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTO_OF_THE_HOSPITAL_B…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/aurora.mp3" data-label="an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__2.webp">
+          <span class="cell__num">46</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__2.webp" alt="An_old_photo_of_the_hospital_building_in_buildings_Kvel_Squa, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__2.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTO_OF_THE_HOSPITAL_B…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/kraft.mp3" data-label="an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__3.webp">
+          <span class="cell__num">47</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__3.webp" alt="An_old_photo_of_the_hospital_building_in_buildings_Kvel_Squa, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_of_the_hospital_building_in_buildings__An_old_photo_of_the_hospital_b__3.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTO_OF_THE_HOSPITAL_B…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/eclipse.mp3" data-label="an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__0.webp">
+          <span class="cell__num">48</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__0.webp" alt="An_old_photo_shows_people_in_traditional_costumes_on_the_str, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__0.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTO_SHOWS_PEOPLE_IN_T…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__1.webp">
+          <span class="cell__num">49</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__1.webp" alt="An_old_photo_shows_people_in_traditional_costumes_on_the_str, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__1.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTO_SHOWS_PEOPLE_IN_T…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/tape.mp3" data-label="an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__2.webp">
+          <span class="cell__num">50</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__2.webp" alt="An_old_photo_shows_people_in_traditional_costumes_on_the_str, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photo_shows_people_in_traditional_costumes___An_old_photo_shows_people_in_t__2.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTO_SHOWS_PEOPLE_IN_T…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/watercolor.mp3" data-label="an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__0.webp">
+          <span class="cell__num">51</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__0.webp" alt="An_old_photograph_of_the_building_that_houses_The_pasta_fact, variant 0" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__0.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTOGRAPH_OF_THE_BUILD…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/film.mp3" data-label="an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__1.webp">
+          <span class="cell__num">52</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__1.webp" alt="An_old_photograph_of_the_building_that_houses_The_pasta_fact, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__1.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTOGRAPH_OF_THE_BUILD…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/phosphor.mp3" data-label="an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__2.webp">
+          <span class="cell__num">53</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__2.webp" alt="An_old_photograph_of_the_building_that_houses_The_pasta_fact, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__2.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTOGRAPH_OF_THE_BUILD…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/aurora.mp3" data-label="an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__3.webp">
+          <span class="cell__num">54</span>
+          <div class="cell__art"><img src="./gallery-vintage/an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__3.webp" alt="An_old_photograph_of_the_building_that_houses_The_pasta_fact, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">an_old_photograph_of_the_building_that_houses_the___An_old_photograph_of_the_build__3.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · AN_OLD_PHOTOGRAPH_OF_THE_BUILD…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/kraft.mp3" data-label="vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___1.webp">
+          <span class="cell__num">55</span>
+          <div class="cell__art"><img src="./gallery-vintage/vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___1.webp" alt="Vintage_photo_of_an_elegantly_dressed_man_with_his_head_cove, variant 1" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___1.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · VINTAGE_PHOTO_OF_AN_ELEGANTLY_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/eclipse.mp3" data-label="vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___2.webp">
+          <span class="cell__num">56</span>
+          <div class="cell__art"><img src="./gallery-vintage/vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___2.webp" alt="Vintage_photo_of_an_elegantly_dressed_man_with_his_head_cove, variant 2" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___2.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · VINTAGE_PHOTO_OF_AN_ELEGANTLY_…</span>
+          </div>
+        </article>
+        <article class="cell" data-audio="./audios/baroque.mp3" data-label="vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___3.webp">
+          <span class="cell__num">57</span>
+          <div class="cell__art"><img src="./gallery-vintage/vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___3.webp" alt="Vintage_photo_of_an_elegantly_dressed_man_with_his_head_cove, variant 3" loading="lazy" /></div>
+          <div class="cell__meta">
+            <div class="cell__name">vintage_photo_of_an_elegantly_dressed_man_with_his__Vintage_photo_of_an_elegantly___3.webp</div>
+            <span class="cell__family cell__family--historical-photo">HISTORICAL PHOTO · VINTAGE_PHOTO_OF_AN_ELEGANTLY_…</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Vintage — 57 images, 4 themes</span>
+    <a href="./gallery.html" style="color:var(--accent,#dc2626);text-decoration:none;font-weight:700;">◀ ALL GALLERIES</a>
+  </footer>
+<script src="./client/gallery-audio.client.js" defer></script>
+  <script src="./client/dropzone.client.js" defer></script>
+  <script src="./client/shop-decorator.client.js" defer></script>
+</body>
+</html>

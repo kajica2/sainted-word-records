@@ -3,7 +3,7 @@
   "label": "The Musician",
   "mode": "practitioner",
   "tagline": "An engine that hears the gap between the click and the take.",
-  "cluster_explainer": "Practitioners read the engine for what it does to attention over time, with zero tolerance for popups or nudges.",
+  "cluster_explainer": "The Musician uses the engine as a take listener — a reactive surface that holds the last gesture instead of snapping back to idle, the way a tape machine does between takes.",
   "preset": "style-grid",
   "reactor": {
     "dominant_band": "bass",
@@ -14,11 +14,11 @@
   "color": "#7209b7",
   "loop_seconds": 90,
   "demo_highlights": [
-    "Cube reads as a metronomic skeleton — the geometry that does not pretend to be expressive, only accurate",
-    "Bass-band reactance couples the engine to the body of the playing, not the surface — what the player feels in the chest",
-    "Hold envelope sustains each gesture across its full length, so a phrase reads as one breath rather than one hit",
-    "Grid preset is the least decorated of the available styles — the visuals are scaffolding, not a show",
-    "No streak counter, no session length, no progress bar in the demo: the playing is not translated into a user metric"
+    "Cube reads as rhythm block — the same shape a drummer would call a quarter note, returned across the loop",
+    "Grid preset lays the count bare: every line is a beat the musician can point at and decide whether to keep or quantize",
+    "Bass-dominant reactor tracks the kick and sub where the groove lives, not the vocal where the song might want to be",
+    "Hold envelope preserves feel across a take: when the musician stops playing, the engine doesn't snap back to idle — it holds the last gesture, the way a tape machine does",
+    "Deep violet refuses to look like a stage show — the demo is a session, not a performance"
   ],
   "cluster": "practitioner"
 }

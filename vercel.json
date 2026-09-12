@@ -3,6 +3,92 @@
   "buildCommand": "npm run build",
   "cleanUrls": false,
   "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/:path*",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/:path*.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "source": "/:path*.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/:path*.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/audios/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/library/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/:path*.(png|jpg|jpeg|webp|avif|gif|svg|ico)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/:path*.(woff2|woff|ttf|otf)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, must-revalidate"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/",
@@ -81,13 +167,28 @@
       "destination": "/personas.html"
     },
     {
+      "source": "/personas/v/:id",
+      "destination": "/personas/v/:id.html"
+    },
+    {
+      "source": "/personas/v/:id/",
+      "destination": "/personas/v/:id.html"
+    },
+    {
+      "source": "/personas/v/index",
+      "destination": "/personas/v/index.html"
+    },
+    {
+      "source": "/personas/v/index/",
+      "destination": "/personas/v/index.html"
+    },
+    {
       "source": "/personas/:id",
-      "destination": "/personas.html?id=:id"
+      "destination": "/persona-demo.html?id=:id"
     },
     {
       "source": "/personas/:id/",
-      "destination": "/personas.html?id=:id"
-    },
+      "destination": "/persona-demo.html?id=:id"    },
     {
       "source": "/thanks",
       "destination": "/thanks.html"
@@ -217,8 +318,52 @@
       "destination": "/portfolio.html"
     },
     {
+      "source": "/artists",
+      "destination": "/artists/index.html"
+    },
+    {
+      "source": "/artists/",
+      "destination": "/artists/index.html"
+    },
+    {
+      "source": "/artists/:id",
+      "destination": "/artists/:id.html"
+    },
+    {
+      "source": "/artists/:id/",
+      "destination": "/artists/:id.html"
+    },
+    {
+      "source": "/artists/vodolija",
+      "destination": "/artists/vodolija/index.html"
+    },
+    {
+      "source": "/artists/vodolija/",
+      "destination": "/artists/vodolija/index.html"
+    },
+    {
+      "source": "/shotlist",
+      "destination": "/shotlist/index.html"
+    },
+    {
+      "source": "/shotlist/",
+      "destination": "/shotlist/index.html"
+    },
+    {
       "source": "/intro",
       "destination": "/intro.html"
+    },
+    {
+      "source": "/gif-to-svg",
+      "destination": "/gif-to-svg.html"
+    },
+    {
+      "source": "/gif-to-svg/",
+      "destination": "/gif-to-svg.html"
+    },
+    {
+      "source": "/gif-to-svg.client.js",
+      "destination": "/gif-to-svg.client.js"
     },
     {
       "source": "/intro/",
@@ -266,27 +411,152 @@
     },
     {
       "source": "/video_single",
-      "destination": "/video_single.html"
-    },
+      "destination": "/video_single.html"    },
     {
       "source": "/video_single/",
-      "destination": "/video_single.html"
-    },
+      "destination": "/video_single.html"    },
     {
       "source": "/enhance",
-      "destination": "/enhance.html"
-    },
+      "destination": "/enhance.html"    },
     {
       "source": "/enhance/",
-      "destination": "/enhance.html"
-    },
+      "destination": "/enhance.html"    },
     {
       "source": "/echo-manifold",
-      "destination": "/versions/echo-manifold.html"
-    },
+      "destination": "/versions/echo-manifold.html"    },
     {
       "source": "/echo-manifold/",
-      "destination": "/versions/echo-manifold.html"
-    }
+      "destination": "/versions/echo-manifold.html"    },
+    {
+      "source": "/gallery/music",
+      "destination": "/gallery-music.html"    },
+    {
+      "source": "/gallery/music/",
+      "destination": "/gallery-music.html"    },
+    {
+      "source": "/gallery/generative",
+      "destination": "/gallery-generative.html"    },
+    {
+      "source": "/gallery/generative/",
+      "destination": "/gallery-generative.html"    },
+    {
+      "source": "/gallery/cosmic",
+      "destination": "/gallery-cosmic.html"    },
+    {
+      "source": "/gallery/cosmic/",
+      "destination": "/gallery-cosmic.html"    },
+    {
+      "source": "/gallery/bio",
+      "destination": "/gallery-bio.html"    },
+    {
+      "source": "/gallery/bio/",
+      "destination": "/gallery-bio.html"    },
+    {
+      "source": "/gallery/ai",
+      "destination": "/gallery-ai.html"    },
+    {
+      "source": "/gallery/ai/",
+      "destination": "/gallery-ai.html"    },
+    {
+      "source": "/gallery/glyphs",
+      "destination": "/gallery-glyphs.html"    },
+    {
+      "source": "/gallery/glyphs/",
+      "destination": "/gallery-glyphs.html"    },
+    {
+      "source": "/gallery/vr",
+      "destination": "/gallery-vr.html"    },
+    {
+      "source": "/gallery/vr/",
+      "destination": "/gallery-vr.html"    },
+    {
+      "source": "/gallery/tshirts",
+      "destination": "/gallery-tshirts.html"    },
+    {
+      "source": "/gallery/tshirts/",
+      "destination": "/gallery-tshirts.html"    },
+    {
+      "source": "/gallery/posters",
+      "destination": "/gallery-posters.html"    },
+    {
+      "source": "/gallery/posters/",
+      "destination": "/gallery-posters.html"    },
+    {
+      "source": "/gallery/albums",
+      "destination": "/gallery-albums.html"    },
+    {
+      "source": "/gallery/albums/",
+      "destination": "/gallery-albums.html"    },
+    {
+      "source": "/gallery/videofx",
+      "destination": "/gallery-videofx.html"    },
+    {
+      "source": "/gallery/videofx/",
+      "destination": "/gallery-videofx.html"    },
+    {
+      "source": "/gallery/photoexp",
+      "destination": "/gallery-photoexp.html"    },
+    {
+      "source": "/gallery/photoexp/",
+      "destination": "/gallery-photoexp.html"    },
+    {
+      "source": "/gallery/point4brand",
+      "destination": "/gallery-point4brand.html"    },
+    {
+      "source": "/gallery/point4brand/",
+      "destination": "/gallery-point4brand.html"    },
+    {
+      "source": "/gallery/artist",
+      "destination": "/gallery-artist.html"    },
+    {
+      "source": "/gallery/artist/",
+      "destination": "/gallery-artist.html"    },
+    {
+      "source": "/gallery/darkfuture",
+      "destination": "/gallery-darkfuture.html"    },
+    {
+      "source": "/gallery/darkfuture/",
+      "destination": "/gallery-darkfuture.html"    },
+    {
+      "source": "/gallery/bachdrop",
+      "destination": "/gallery-bachdrop.html"    },
+    {
+      "source": "/gallery/brutalist",
+      "destination": "/gallery-brutalist.html"    },
+    {
+      "source": "/gallery/brutalist/",
+      "destination": "/gallery-brutalist.html"    },
+    {
+      "source": "/gallery/loops",
+      "destination": "/gallery-loops.html"    },
+    {
+      "source": "/gallery/loops/",
+      "destination": "/gallery-loops.html"    },
+    {
+      "source": "/versions/bachdrop",
+      "destination": "/versions/bachdrop.html"    },
+    {
+      "source": "/versions/bachdrop/",
+      "destination": "/versions/bachdrop.html"    },
+    {
+      "source": "/shop",
+      "destination": "/shop.html"    },
+    {
+      "source": "/shop/",
+      "destination": "/shop.html"    },
+    {
+      "source": "/gallery",
+      "destination": "/gallery.html"    },
+    {
+      "source": "/gallery/",
+      "destination": "/gallery.html"    },
+    {
+      "source": "/_curator-runner.html",
+      "destination": "/_curator-runner.html",
+      "statusCode": 404    },
+    {
+      "source": "/curator-runner.html",
+      "destination": "/curator-runner.html",
+      "statusCode": 404    }
   ]
 }

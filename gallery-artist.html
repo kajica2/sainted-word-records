@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Artist Identity — SWR Gallery</title>
+  <meta name="description" content="Monogram, wordmark, press photo, EPK, social handles, album wrap, tour-press kit, signature series — artist-facing identity systems at every resolution." />
+  <meta property="og:title" content="Artist Identity — SWR Gallery" />
+  <meta property="og:description" content="Monogram, wordmark, press photo, EPK, social handles, album wrap, tour-press kit, signature series — artist-facing identity systems at every resolution." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1080px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
+
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5vw, 52px); line-height: 1.05;
+      letter-spacing: -0.025em; margin: 0 0 16px;
+    }
+    .hero__title em { font-style: italic; color: var(--accent); }
+    .hero__lede {
+      font-size: 18px; color: var(--ink-2); max-width: 560px;
+      margin: 0 auto 32px; line-height: 1.6;
+    }
+    .hero__cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 14px; font-weight: 600;
+    }
+    .hero__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
+
+    .grid {
+      display: grid; gap: 24px; padding: 48px 0 80px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+    .gallery-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform 200ms ease, border-color 200ms ease;
+    }
+    .gallery-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+
+    .gallery-card.is-featured {
+      grid-column: span 2;
+      grid-row: span 2;
+    }
+    @media (max-width: 900px) {
+      .gallery-card.is-featured { grid-column: span 2; grid-row: auto; }
+    }
+    @media (max-width: 560px) {
+      .gallery-card.is-featured { grid-column: span 1; }
+    }
+
+    .gallery-card__art {
+      position: relative;
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+    }
+    .gallery-card.is-featured .gallery-card__art {
+      aspect-ratio: 16/10;
+    }
+
+    .gallery-card__art::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: var(--art-bg, linear-gradient(135deg, #1a1612, #2c2419));
+    }
+
+    .gallery-card__art::after {
+      content: var(--art-glyph, "");
+      position: absolute;
+      font-family: var(--font-display);
+      font-weight: 300;
+      letter-spacing: -0.04em;
+      line-height: 0.85;
+      color: rgba(245, 234, 216, 0.92);
+      text-shadow: 0 4px 24px rgba(0,0,0,0.35);
+      pointer-events: none;
+    }
+
+    .gallery-card.is-featured .gallery-card__art::after {
+      font-size: clamp(64px, 11vw, 140px);
+      top: 18px; left: 24px; right: 24px;
+    }
+    .gallery-card:not(.is-featured) .gallery-card__art::after {
+      font-size: clamp(44px, 8vw, 80px);
+      top: 14px; left: 16px; right: 16px;
+    }
+
+    .gallery-card__meta {
+      position: absolute;
+      bottom: 12px; left: 14px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(245, 234, 216, 0.85);
+      background: rgba(14, 12, 10, 0.55);
+      padding: 5px 9px; border-radius: 4px;
+      backdrop-filter: blur(6px);
+    }
+
+    .gallery-card__body { padding: 18px 20px 22px; }
+    .gallery-card__title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+    .gallery-card.is-featured .gallery-card__title {
+      font-size: 28px;
+    }
+    .gallery-card__sub {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--accent); margin: 0 0 10px;
+    }
+    .gallery-card__desc {
+      font-size: 14px; color: var(--ink-2); line-height: 1.55;
+      margin: 0;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 28px 0 40px;
+      text-align: center;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .cta-bar {
+      text-align: center; padding: 48px 0 24px;
+      border-top: 1px solid var(--line);
+    }
+    .cta-bar h2 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: 32px; margin: 0 0 12px;
+    }
+    .cta-bar p { font-size: 16px; color: var(--ink-2); margin: 0 0 24px; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="./landing.html">SWR</a>
+      <div class="nav__links">
+        <a href="./landing.html">Engine</a>
+        <a href="./portfolio.html">Portfolio</a>
+        <a href="./campaign.html">Pricing</a>
+      </div>
+      <a class="nav__cta" href="./campaign.html">Get a visualizer →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero__kicker">MONOGRAM · LOGO · PRESS PHOTO</div>
+      <h1 class="hero__title">Artist <em>Identity</em></h1>
+      <p class="hero__lede">
+        Artist-facing systems — press kits, EPK, social handles, monogram, single-photo lockup at every resolution.
+        Every asset renders from one source: a single letter, a single portrait, a single line of type.
+      </p>
+      <a class="hero__cta" href="./campaign.html">Build an identity system →</a>
+    </div>
+  </header>
+
+  <section class="wrap">
+    <div class="grid">
+
+      <article class="gallery-card is-featured" data-audio="./audios/aurora.mp3" data-label="Monogram">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #ede4d0 0%, #ff2d8a 55%, #0e0c0a 100%); --art-glyph: 'S';">
+          <span class="gallery-card__meta">Single letter lockup</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">Featured · Lockup</div>
+          <h2 class="gallery-card__title">Monogram</h2>
+          <p class="gallery-card__desc">
+            One initial, set bone-to-magenta-to-ink. The single-letter mark that
+            carries the whole identity — favicon, embossed sleeve, stage cap.
+          </p>
+        </div>
+      </article>
+
+      <article class="gallery-card" data-audio="./audios/baroque.mp3" data-label="Wordmark">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #3a3530 0%, #8a7050 55%, #ffaa3a 100%); --art-glyph: 'Swr';">
+          <span class="gallery-card__meta">Artist name type</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">Wordmark · Type</div>
+          <h2 class="gallery-card__title">Wordmark</h2>
+          <p class="gallery-card__desc">
+            Graphite-to-amber artist name set in Fraunces. One line of type,
+            three weights, tuned for sleeve credits and channel banners.
+          </p>
+        </div>
+      </article>
+
+      <article class="gallery-card" data-audio="./audios/kraft.mp3" data-label="Press Photo">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #c89248 0%, #7a4e9a 100%); --art-glyph: 'B/W';">
+          <span class="gallery-card__meta">Black/white + color</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">Portrait · Print</div>
+          <h2 class="gallery-card__title">Press Photo</h2>
+          <p class="gallery-card__desc">
+            Ochre-to-violet portrait pair — one high-contrast monochrome, one
+            color frame. Cropped at three ratios for any outlet.
+          </p>
+        </div>
+      </article>
+
+      <article class="gallery-card" data-audio="./audios/phosphor.mp3" data-label="EPK One-Pager">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #2a4eaa 0%, #6a7ea8 55%, #ede4d0 100%); --art-glyph: 'EPK';">
+          <span class="gallery-card__meta">Bio + photo + links</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">One-pager · PDF</div>
+          <h2 class="gallery-card__title">EPK One-Pager</h2>
+          <p class="gallery-card__desc">
+            Cobalt-to-bone digital press kit — bio, photo, four marquee links,
+            one page. The packet you send when a venue or blog asks.
+          </p>
+        </div>
+      </article>
+
+      <article class="gallery-card" data-audio="./audios/watercolor.mp3" data-label="Social Handle Pack">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #8a7a66 0%, #b2745a 55%, #ff7a6b 100%); --art-glyph: '@';">
+          <span class="gallery-card__meta">IG/TT/X/Bandcamp</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">Avatars · Banners</div>
+          <h2 class="gallery-card__title">Social Handle Pack</h2>
+          <p class="gallery-card__desc">
+            Ash-to-coral avatar, banner, and highlight pack — sized for Instagram,
+            TikTok, X, and Bandcamp. One file set, every platform.
+          </p>
+        </div>
+      </article>
+
+      <article class="gallery-card" data-audio="./audios/fractal.mp3" data-label="Album-Cycle Wrap">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #b8d44a 0%, #4a6a3a 55%, #0e0c0a 100%); --art-glyph: 'LP';">
+          <span class="gallery-card__meta">Single campaign</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">Album Cycle · 12-week</div>
+          <h2 class="gallery-card__title">Album-Cycle Wrap</h2>
+          <p class="gallery-card__desc">
+            Lime-to-ink twelve-week rollout — announcement, single, video,
+            vinyl release, tour tease. One palette, one lockup, every touch.
+          </p>
+        </div>
+      </article>
+
+      <article class="gallery-card" data-audio="./audios/chrome.mp3" data-label="Tour-Press Kit">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #a48bc4 0%, #c89248 100%); --art-glyph: 'TECH';">
+          <span class="gallery-card__meta">Stage plot + rider</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">Tour · Tech Pack</div>
+          <h2 class="gallery-card__title">Tour-Press Kit</h2>
+          <p class="gallery-card__desc">
+            Lavender-to-ochre stage plot, input list, hospitality rider, and
+            advance contact. Everything a venue needs before load-in.
+          </p>
+        </div>
+      </article>
+
+      <article class="gallery-card" data-audio="./audios/gallery.mp3" data-label="Signature Series">
+        <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #b56a3a 0%, #c89248 55%, #ede4d0 100%); --art-glyph: 'No. 047';">
+          <span class="gallery-card__meta">Hand-signed variants</span>
+        </div>
+        <div class="gallery-card__body">
+          <div class="gallery-card__sub">Edition · Signed</div>
+          <h2 class="gallery-card__title">Signature Series</h2>
+          <p class="gallery-card__desc">
+            Copper-to-bone limited variants — 100 numbered, hand-signed at the
+            corner. Each piece is one of one, stamped on press day.
+          </p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="cta-bar">
+    <div class="wrap">
+      <h2>One artist. One lockup. Every surface.</h2>
+      <p>From a single monogram to a full tour-tech kit — the same identity, everywhere it shows up.</p>
+      <a class="hero__cta" href="./campaign.html">Start an identity →</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Artist Identity · SWR Galleries
+  </footer>
+  <script src="./client/gallery-audio.client.js" defer></script>
+  <script src="./client/dropzone.client.js" defer></script>
+  <script src="./client/shop-decorator.client.js" defer></script>
+</body>
+</html>

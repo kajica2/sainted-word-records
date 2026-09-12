@@ -98,3 +98,37 @@ want the engine to drive the visuals from the audio.
 | Fresh remap each click | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 27-item library | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `window.SWR` exposed | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+## Importing a generated song
+
+If you've generated an MP3/M4A outside the engine (Suno, HeartMuLa, a
+distributor download, or a `fetch()` from a CDN), pipe it straight in via
+the generated-audio seam — no manual download/re-upload:
+
+```js
+// From a Blob you already have (e.g. MediaRecorder output, fetch().blob()):
+const file = await SWR_GENERATED_AUDIO.importMp3(blob);
+
+// From a URL:
+await SWR_GENERATED_AUDIO.fromUrl('https://cdn.example.com/song.mp3');
+
+// From a <input type="file"> change event:
+await SWR_GENERATED_AUDIO.fromFile(input.files[0]);
+```
+
+All three call `SWR.Audio.load()` (or `SWR.Audio.loadFile()` on the engine
+page) internally, so the engine's analyser and BPM detection work on the
+imported track the same as on a manually-dropped file.
+
+**Programmatic import from the same tab (devtools):**
+
+```js
+// Fetch a track and load it without leaving the engine
+const blob = await fetch('/audios/demo.mp3').then(r => r.blob());
+await SWR_GENERATED_AUDIO.importMp3(blob);
+```
+
+CORS-protected URLs that aren't CORS-friendly will reject with `{ cors: true }`
+instead of a confusing TypeError. Non-MP3 mime types are auto-renamed
+(`.m4a`, `.wav`, `.ogg`, `.webm`) so the engine's `audio/mpeg` default
+doesn't surprise you.

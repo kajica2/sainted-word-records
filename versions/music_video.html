@@ -44,6 +44,7 @@
     .tbtn.primary:hover { background: var(--c); border-color: var(--c); }
     #solo-btn.on { border-color: var(--m); color: var(--m); font-weight: 700; }
     #fit-btn.on { border-color: var(--m); color: var(--m); font-weight: 700; }
+
     .spacer { flex: 1; }
     .meter { width: 160px; height: 16px; background: #0a0612; border: 1px solid var(--line); border-radius: 3px; display: block; }
     aside.lib, aside.layers { background: var(--panel); overflow-y: auto; }
@@ -66,6 +67,7 @@
     .li:hover .rm { opacity: 1; }
     .li .rm:hover { color: var(--m); background: rgba(0,0,0,0.85); }
     .li .rm.rm-armed { color: #fff; background: var(--m); opacity: 1; }
+
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
       background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #layers { display: flex; flex-direction: column; gap: 4px; }
@@ -85,6 +87,7 @@
     canvas { display: block; width: 100%; height: 100%; }
     body[data-fit="on"] #render,
     body[data-fit="on"] canvas { object-fit: cover; }
+
     #flash { position: absolute; inset: 0; pointer-events: none;
       background: radial-gradient(circle at center, rgba(255,45,138,0.5), transparent 60%);
       opacity: 0; mix-blend-mode: screen; }
@@ -114,6 +117,77 @@
     aside.lib, aside.layers { min-width: 0; }
     footer { flex-wrap: wrap; max-height: 24vh; overflow-y: auto; min-width: 0; row-gap: 4px; }
     footer > * { min-width: 0; }
+
+    /* Library packs toolbar (opt-in only — nothing auto-loads) */
+    .packs {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-alt, rgba(255, 255, 255, 0.02));
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .packs-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--g);
+    }
+    .packs-title { font-weight: 600; }
+    .packs-hint { font-style: italic; opacity: 0.55; font-size: 8px; }
+    .packs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .pack-btn {
+      background: var(--bg, #0a0a0a);
+      border: 1px solid var(--line, #222);
+      color: var(--c, #eee);
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-radius: 2px;
+      transition: background 120ms ease, border-color 120ms ease;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pack-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--c, #888); }
+    .pack-btn.is-loaded {
+      background: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.55);
+      color: rgba(180, 240, 200, 1);
+    }
+    .pack-btn.is-error {
+      background: rgba(200, 80, 80, 0.12);
+      border-color: rgba(200, 80, 80, 0.5);
+    }
+    .pack-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .packs-empty {
+      padding: 18px 12px;
+      text-align: center;
+      color: var(--muted, #888);
+      font-size: 10px;
+      line-height: 1.5;
+      border: 1px dashed var(--line, #333);
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+    .packs-empty div:first-child { font-size: 22px; margin-bottom: 6px; opacity: 0.7; }
+    .packs-empty-title { font-weight: 600; color: var(--c, #ccc); margin-bottom: 2px; }
+    .packs-empty-sub { font-size: 9px; opacity: 0.7; }
+
+
     @media (max-width: 720px) {
       #app {
         grid-template-columns: minmax(0, 1fr);
@@ -290,6 +364,9 @@
 <script src="../client/preset-pick-store.client.js"></script>
 <script src="../client/layer-state-store.client.js"></script>
 <script src="../client/last-mix-store.client.js"></script>
+  <script src="../client/asset-curator.client.js"></script>
+  <script src="../client/library-packs.client.js" defer></script>
+
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
 <script src="../engine-lfos.client.js"></script>
@@ -306,9 +383,10 @@
 <!-- Brand Kit (PRD-007 partial) — chip + 4-card editor. See engine.html for the canonical wiring. -->
 <link rel="stylesheet" href="../brandkit.css" />
 </head>
-<body data-page="neon">
+<body data-page="music_video">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header id="hdr">
+
       <div class="v">MUSIC VIDEO <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -347,11 +425,14 @@
     <aside class="lib">
       <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
+      <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
+
       <div class="body"><div id="lib"></div></div>
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
       <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
+
       <div id="flash"></div>
       <div class="swr-watermark">
         <img src="../watermark-monogram.svg" alt="SWR" />
@@ -385,6 +466,7 @@
           <button id="hero-suggest" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Suggest 3</button>
         </div>
       </div>
+
       <div class="body" style="padding:8px;display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:8px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;">
           <span style="flex:1;">warmth</span>
@@ -427,6 +509,7 @@
       <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
       <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
+
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
     </footer>
@@ -499,6 +582,7 @@
         // Promise directly avoids the previous TypeError.
         if (window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function') {
           picked = await window.SWR_LAST_SONG;
+
         }
         if (!picked) {
           // No persisted user song. Show the overlay regardless of
@@ -548,6 +632,7 @@
         var iv = setInterval(function() {
           tries++;
           if (window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function') {
+
             clearInterval(iv);
             start();
           } else if (tries > 50) {  // ~5s timeout
@@ -686,6 +771,7 @@
           }
           __grad.setBeatPulse(this.feat.beat);
         }
+
         this.hist.prev = Uint8Array.from(this.fft);
         $('beat-led').classList.toggle('on', beatHit);
         $('onset-led').classList.toggle('on', onsetHit);
@@ -696,18 +782,43 @@
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t, cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
 
-    // Expose the audio context wrapper so SWR_REVIEW can read A.el.duration
-    // for the recording window and tap A.src (MediaElementAudioSourceNode) as
-    // the recorder's audioSource. Keeps the rest of the audio pipeline local
-    // to this IIFE — only the surface needed by cross-module exports.
-    window.A = A;
 
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
       async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
         for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
-          const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
-            blob: f, url: URL.createObjectURL(f), motion: 0, luma: 0.5, hue: 0, w:0, h:0, added: Date.now(), thumb: null };
+          // Asset-curator (P3.8): for PNG/JPEG, route through the local
+          // background-removal + tag heuristic. The curator replaces
+          // the blob with the cleaned version (when a uniform bg is
+          // detected) and adds folder + tags to the item so the
+          // library aside can group by folder.
+          let blob = f;
+          let curatorMeta = null;
+          if (window.SWR_ASSET_CURATOR) {
+            const type = (f.type || '').toLowerCase();
+            if (type === 'image/png' || type === 'image/jpeg') {
+              try {
+                const result = await window.SWR_ASSET_CURATOR.process(f);
+                if (result && result.file) blob = result.file;
+                curatorMeta = {
+                  folder: result.folder,
+                  tags: result.tags,
+                  status: result.status,
+                  backgroundColor: result.backgroundColor,
+                  tookMs: result.tookMs,
+                };
+              } catch (_) { /* curator unavailable — keep original */ }
+            }
+          }
+          const it = { id: this.nextId++, name: f.name.replace(/\.[^.]+$/, '') + (blob !== f ? '.png' : ''),
+            type: f.type.startsWith('video/')?'video':'image',
+            blob: blob, url: URL.createObjectURL(blob), motion: 0, luma: 0.5, hue: 0, w:0, h:0,
+            added: Date.now(), thumb: null,
+            // Asset-curator fields (Phase P3.8)
+            folder: (curatorMeta && curatorMeta.folder) || 'uncategorized',
+            tags: (curatorMeta && curatorMeta.tags) || [],
+            curator: curatorMeta };
+
           this.items.push(it); this._classify(it); }
         this.render(); },
       _classify(it) {
@@ -736,76 +847,46 @@
           this.render();
         }, { once: true });
       },
-      removeItem(id) {
-        const i = this.items.findIndex(x => x.id === id);
-        if (i < 0) return false;
-        const it = this.items[i];
-        // Revoke the blob URL to free the underlying file from memory.
-        try { if (it.url) URL.revokeObjectURL(it.url); } catch (_) {}
-        // Drop any layer that referenced this asset. Layers lives in
-        // the same IIFE scope below — it's defined after Lib but by
-        // the time removeItem is called (user click), the whole IIFE
-        // has run and Layers is bound. Use the closure reference so
-        // we don't depend on window.SWR.Layers being set.
-        try { if (typeof Layers.cleanupForAsset === 'function') Layers.cleanupForAsset(it); } catch (_) {}
-        this.items.splice(i, 1);
-        this.render();
-        return true;
-      },
       render() { const el = $('lib');
         if (!this.items.length) { el.innerHTML='<div style="grid-column:1/-1;color:var(--muted);font-size:10px;padding:16px;text-align:center;">drop files</div>'; return; }
         el.innerHTML = '';
+        // P3.8: group assets by folder. Ungrouped items still render at
+        // the end. Sort folders alphabetically; preserve first-seen order
+        // within each folder (so the most recent upload is on top).
+        const grouped = new Map();
         for (const it of this.items) {
-          const d = document.createElement('div'); d.className='li';
-          d.innerHTML = `<span class="tag">${it.type==='video'?'V':'I'}</span>`
-                      + `<span class="rm" data-id="${it.id}" title="Remove">×</span>`
-                      + `<span class="nm">${it.name}</span>`;
-          if (it.thumb) { const i=new Image(); i.src=it.thumb; d.appendChild(i); }
-          else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;d.appendChild(v); }
-          else { const i=new Image(); i.src=it.url; d.appendChild(i); }
-          d.addEventListener('click', (e) => {
-            // Don't fire "add to layer" if the click was on the × button.
-            if (e.target.classList.contains('rm')) return;
-            Layers.add(it);
-          });
-          el.appendChild(d);
+          const f = it.folder || 'uncategorized';
+          if (!grouped.has(f)) grouped.set(f, []);
+          grouped.get(f).push(it);
         }
-        // Wire the × buttons. Done after innerHTML so we attach listeners
-        // to the live DOM nodes (innerHTML-replaced elements lose their
-        // listeners on each re-render).
-        const rmButtons = el.querySelectorAll('.rm');
-        rmButtons.forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = parseInt(btn.getAttribute('data-id'), 10);
-            const it = this.items.find(x => x.id === id);
-            if (!it) return;
-            // Confirm-on-delete: first click arms, second click within
-            // 1.5s fires. The button itself turns red to indicate the
-            // armed state. After the timeout, it returns to default.
-            if (btn.classList.contains('rm-armed')) {
-              this.removeItem(id);
-              setStatus('removed · ' + it.name, 'ok');
-            } else {
-              btn.classList.add('rm-armed');
-              btn.title = 'click again to confirm';
-              setStatus('click × again to remove · ' + it.name, 'err');
-              setTimeout(() => {
-                // Only disarm if the button still exists in the DOM (the
-                // user might have removed the item by other means first).
-                if (btn.isConnected) {
-                  btn.classList.remove('rm-armed');
-                  btn.title = 'Remove';
-                }
-              }, 1500);
+        const folderKeys = Array.from(grouped.keys()).sort();
+        for (const fk of folderKeys) {
+          const header = document.createElement('div');
+          header.className = 'lib-folder-header';
+          header.style.cssText = 'grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:6px 4px 2px;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--c);border-top:1px solid rgba(0,240,255,0.18);margin-top:4px;';
+          header.innerHTML = '<span>📁</span><span>' + fk + '</span><span style="margin-left:auto;color:var(--muted);">' + grouped.get(fk).length + '</span>';
+          el.appendChild(header);
+          for (const it of grouped.get(fk)) {
+            const d = document.createElement('div'); d.className='li';
+            d.innerHTML = `<span class="tag">${it.type==='video'?'V':'I'}</span><span class="nm">${it.name}</span>`;
+            if (it.curator && it.curator.status === 'cleaned') {
+              const badge = document.createElement('span');
+              badge.className = 'curator-badge';
+              badge.textContent = '✓';
+              badge.title = 'Asset curator: background removed';
+              badge.style.cssText = 'position:absolute;top:2px;right:14px;font-size:8px;color:#00ffa3;background:rgba(0,255,163,0.1);padding:0 3px;border-radius:2px;';
+              d.appendChild(badge);
             }
-          });
-        });
+            if (it.thumb) { const i=new Image(); i.src=it.thumb; d.appendChild(i); }
+            else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;d.appendChild(v); }
+            else { const i=new Image(); i.src=it.url; d.appendChild(i); }
+            d.addEventListener('click', () => Layers.add(it));
+            el.appendChild(d);
+          }
+        }
       }
     };
 
-    // Expose Lib for smoke testing (parallels window.SWR.Layers).
-    window.SWR_LIB = Lib;
 
     // === LAYERS ===
     const Layers = { list: [], sel: null,
@@ -975,12 +1056,14 @@
         }
         return { ok: true, from: idx, to: next, item: newIt };
       },
+
       render() {
         const el = $('layers'); el.innerHTML = '';
         for (let i=0;i<this.list.length;i++) {
           const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
           d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>cover</label><input type="checkbox" data-cover="1" /></div>`;
+
           d.querySelector('select').value = l.blend;
           for (const inp of d.querySelectorAll('input[type=range]')) {
             const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
@@ -1012,6 +1095,7 @@
               this._persist();
             });
           }
+
           el.appendChild(d);
         }
       },
@@ -1102,6 +1186,7 @@
       const _txOn = (l.reactorsEnabled !== false)
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
       if (!_txOn) return out;
+
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
@@ -1193,6 +1278,7 @@
         // correct visual; the status-bar message is the only signal.
         if (a._errored) return;
         if (A.playing && src.paused && a._ready) src.play().catch(()=>{});
+
         if (!A.playing && !src.paused) src.pause();
       } else {
         if (!a._el) { a._el = new Image(); a._el.src=a.url; }
@@ -1252,6 +1338,7 @@
         if (ar > car) { dh = H * r.scale; dw = dh * ar; }
         else        { dw = W * r.scale; dh = dw / ar; }
       }
+
       const dx = (W - dw)/2 + r.x;
       const dy = (H - dh)/2 + r.y;
       ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;
@@ -1320,6 +1407,7 @@
       ctx.fillText(text, W / 2, H / 2);
       ctx.restore();
     }
+
     function drawMeter() {
       const m = meter; const w = m.canvas.width, h = m.canvas.height;
       m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
@@ -1346,6 +1434,7 @@
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
       SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawWatermark, drawMeter] });
+
       $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
       requestAnimationFrame(loop);
     }
@@ -1354,6 +1443,7 @@
     // === UI WIRING ===
     $('load-song').addEventListener('click', () => $('song-input').click());
     $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setGhostDot) window.SWR.Gradient.setGhostDot(null); } });
+
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
@@ -1603,6 +1693,7 @@
           const size = this.chunks.reduce((a, c) => a + c.size, 0);
           if (window.SWR_STATS) window.SWR_STATS.record(durationMs, ext, size);
         } catch (_) {}
+
       },
     };
         // Invalidate the per-layer cache whenever the page rebuilds.
@@ -1721,6 +1812,7 @@
         ctx2.lineWidth = 1;
         ctx2.beginPath(); ctx2.arc(x, y, 4, 0, Math.PI * 2); ctx2.stroke();
       }
+
 
       function render() {
         ctx2.fillStyle = '#0a0612';
@@ -1850,6 +1942,7 @@
 
       render();
       return window.SWR_GRADIENT;
+
     })();
 
     // Wire the depth + N sliders so they actually move things (Phase A
@@ -1880,6 +1973,7 @@
           if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setNeighbours) {
             window.SWR.Gradient.setNeighbours(HologramState.neighbours);
           }
+
         });
       }
     })();
@@ -3658,6 +3752,7 @@
     try {
       if (localStorage.getItem('swr.automix.enabled') === '1') automix.start();
     } catch (_) {}
+
   })();
   </script>
 <script src="../versions-presets.js"></script>
@@ -3690,4 +3785,5 @@
 </script>
   <script src="../engine-transitions.client.js" defer></script>
 </body>
+
 </html>

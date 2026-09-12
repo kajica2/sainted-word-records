@@ -3,7 +3,7 @@
   "label": "The Writer",
   "mode": "broker",
   "tagline": "A page that returns to the same sentence from a different angle.",
-  "cluster_explainer": "The Writer brokers drafts to a small readership, not books to a wide one — they read the engine as a way to feel whether a paragraph has a cadence before they share it.",
+  "cluster_explainer": "The Broker cluster positions the engine for other people — the deliverable is a forwarded URL, not a pitch. The Writer's broker move is to hand a draft across the room, not to publish it.",
   "preset": "style-cassette",
   "reactor": {
     "dominant_band": "mid",
@@ -14,11 +14,11 @@
   "color": "#bc6c25",
   "loop_seconds": 90,
   "demo_highlights": [
-    "Sphere is the geometry of an unfinished sentence — no edges to lock the meaning, every return starts a different arc",
-    "Mid-band reactance tracks the vocal cadence where a paragraph's rhythm lives, not the kick or the cymbal wash",
-    "Cassette preset evokes the lo-fi intimacy of a draft — the artifact that has not yet earned hi-fi",
-    "Smooth envelope (0.7) lets the engine follow a sentence's breath-in and breath-out rather than snapping to hits",
-    "No 'send to readers' button, no engagement telemetry in the demo: the writer is the only audience while the work is mid-stream"
+    "Sphere reads as continuous prose — the same curve across a paragraph, no corners the eye has to negotiate",
+    "Cassette preset evokes the written draft: a recording of the work as it sounded the first time, not as it sounds once it's been read aloud by a stranger",
+    "Mid-band dominance matches the body of a voice reading prose — where the meaning of a sentence lives, not where the click track would",
+    "Smooth envelope (0.7) lets a draft and its revision sit next to each other without one strobing the other out of the page",
+    "90s loop is long enough for the writer to leave the room and come back; the demo is the desk, not the published page"
   ],
   "cluster": "broker"
 }

@@ -1,0 +1,313 @@
+{
+  "files": [
+    "c01-rooftop.mp4",
+    "c03-taxi.mp4",
+    "c06-smoke.mp4",
+    "c07-sunrise.mp4",
+    "c09-security.mp4",
+    "p01.jpg",
+    "p02.png",
+    "p03.jpg",
+    "p04.jpg",
+    "p05.jpg",
+    "p06.jpg",
+    "p07.jpg",
+    "p08.jpg",
+    "p09.jpg",
+    "p10.jpg",
+    "p11.jpg",
+    "p12.jpg",
+    "p13.jpg",
+    "p14.jpg",
+    "p15.jpg",
+    "p_01.jpg",
+    "p_02.jpg",
+    "p_03.jpg",
+    "p_04.jpg",
+    "p_05.jpg",
+    "persona/p16-raw-1.png",
+    "persona/p17-raw-2.png",
+    "persona/p18-poster-1.png",
+    "persona/p19-poster-2.png",
+    "persona/p20-mask-1.png",
+    "persona/p21-mask-2.png",
+    "persona/p22-fx-1.png",
+    "persona/p23-fx-2.png",
+    "persona/p24-filter-1.png",
+    "persona/p25-filter-2.png",
+    "persona/p26-neon-1.png",
+    "persona/p27-neon-2.png",
+    "persona/p28-film-1.png",
+    "persona/p29-film-2.png",
+    "persona/p30-grid-1.png",
+    "persona/p31-grid-2.png",
+    "persona/p32-smoke-1.png",
+    "persona/p33-smoke-2.png",
+    "persona/p34-hallucination-1.png",
+    "persona/p35-hallucination-2.png",
+    "persona/p36-raw-1.png",
+    "persona/p36-raw-2.png",
+    "persona/p37-poster-1.png",
+    "persona/p37-poster-2.png",
+    "persona/p38-mask-1.png",
+    "persona/p38-mask-2.png",
+    "persona/p39-fx-1.png",
+    "persona/p39-fx-2.png",
+    "persona/p40-filter-1.png",
+    "persona/p40-filter-2.png",
+    "persona/p41-neon-1.png",
+    "persona/p41-neon-2.png",
+    "persona/p42-film-1.png",
+    "persona/p42-film-2.png",
+    "persona/p43-grid-1.png",
+    "persona/p43-grid-2.png",
+    "persona/p44-smoke-1.png",
+    "persona/p44-smoke-2.png",
+    "persona/p45-hallucination-1.png",
+    "persona/p45-hallucination-2.png",
+    "animated-gifts/imgi_3_original_10a2171799dc90e3120b099f21fdeab3.gif",
+    "animated-gifts/imgi_8_original_8e82c811f2ca71ec2e0c3d51c37db5fc.gif",
+    "animated-gifts/imgi_10_original_0fc48222a4b48646364a174afd0e9d21.gif"
+  ],
+  "personaGroups": {
+    "raw": [
+      "persona/p16-raw-1.png",
+      "persona/p17-raw-2.png",
+      "persona/p36-raw-1.png",
+      "persona/p36-raw-2.png"
+    ],
+    "poster": [
+      "persona/p18-poster-1.png",
+      "persona/p19-poster-2.png",
+      "persona/p37-poster-1.png",
+      "persona/p37-poster-2.png"
+    ],
+    "mask": [
+      "persona/p20-mask-1.png",
+      "persona/p21-mask-2.png",
+      "persona/p38-mask-1.png",
+      "persona/p38-mask-2.png"
+    ],
+    "fx": [
+      "persona/p22-fx-1.png",
+      "persona/p23-fx-2.png",
+      "persona/p39-fx-1.png",
+      "persona/p39-fx-2.png"
+    ],
+    "filter": [
+      "persona/p24-filter-1.png",
+      "persona/p25-filter-2.png",
+      "persona/p40-filter-1.png",
+      "persona/p40-filter-2.png"
+    ],
+    "neon": [
+      "persona/p26-neon-1.png",
+      "persona/p27-neon-2.png",
+      "persona/p41-neon-1.png",
+      "persona/p41-neon-2.png"
+    ],
+    "film": [
+      "persona/p28-film-1.png",
+      "persona/p29-film-2.png",
+      "persona/p42-film-1.png",
+      "persona/p42-film-2.png"
+    ],
+    "grid": [
+      "persona/p30-grid-1.png",
+      "persona/p31-grid-2.png",
+      "persona/p43-grid-1.png",
+      "persona/p43-grid-2.png"
+    ],
+    "smoke": [
+      "persona/p32-smoke-1.png",
+      "persona/p33-smoke-2.png",
+      "persona/p44-smoke-1.png",
+      "persona/p44-smoke-2.png"
+    ],
+    "hallucination": [
+      "persona/p34-hallucination-1.png",
+      "persona/p35-hallucination-2.png",
+      "persona/p45-hallucination-1.png",
+      "persona/p45-hallucination-2.png"
+    ]
+  },
+  "audioFiles": [
+    "audio/coltrane-like-sonny.mp3",
+    "audio/loop-bass.wav",
+    "audio/loop-demo.wav",
+    "audio/loop-drone.wav",
+    "audio/loop-grain.wav",
+    "audio/loop-pulse.wav",
+    "audio/loop-shimmer.wav"
+  ],
+  "packs": {
+    "photos": [
+      "c01-rooftop.mp4",
+      "c03-taxi.mp4",
+      "c06-smoke.mp4",
+      "c07-sunrise.mp4",
+      "c09-security.mp4",
+      "p01.jpg",
+      "p03.jpg",
+      "p04.jpg",
+      "p05.jpg",
+      "p06.jpg",
+      "p07.jpg",
+      "p08.jpg",
+      "p09.jpg",
+      "p10.jpg",
+      "p11.jpg",
+      "p12.jpg",
+      "p13.jpg",
+      "p14.jpg",
+      "p15.jpg",
+      "p_01.jpg",
+      "p_02.jpg",
+      "p_03.jpg",
+      "p_04.jpg",
+      "p_05.jpg"
+    ],
+    "transparent-pngs": [
+      "p02.png",
+      "persona/p16-raw-1.png",
+      "persona/p17-raw-2.png",
+      "persona/p18-poster-1.png",
+      "persona/p19-poster-2.png",
+      "persona/p20-mask-1.png",
+      "persona/p21-mask-2.png",
+      "persona/p22-fx-1.png",
+      "persona/p23-fx-2.png",
+      "persona/p24-filter-1.png",
+      "persona/p25-filter-2.png",
+      "persona/p26-neon-1.png",
+      "persona/p27-neon-2.png",
+      "persona/p28-film-1.png",
+      "persona/p29-film-2.png",
+      "persona/p30-grid-1.png",
+      "persona/p31-grid-2.png",
+      "persona/p32-smoke-1.png",
+      "persona/p33-smoke-2.png",
+      "persona/p34-hallucination-1.png",
+      "persona/p35-hallucination-2.png",
+      "persona/p36-raw-1.png",
+      "persona/p36-raw-2.png",
+      "persona/p37-poster-1.png",
+      "persona/p37-poster-2.png",
+      "persona/p38-mask-1.png",
+      "persona/p38-mask-2.png",
+      "persona/p39-fx-1.png",
+      "persona/p39-fx-2.png",
+      "persona/p40-filter-1.png",
+      "persona/p40-filter-2.png",
+      "persona/p41-neon-1.png",
+      "persona/p41-neon-2.png",
+      "persona/p42-film-1.png",
+      "persona/p42-film-2.png",
+      "persona/p43-grid-1.png",
+      "persona/p43-grid-2.png",
+      "persona/p44-smoke-1.png",
+      "persona/p44-smoke-2.png",
+      "persona/p45-hallucination-1.png",
+      "persona/p45-hallucination-2.png"
+    ],
+    "audio-loops": [
+      "audio/coltrane-like-sonny.mp3",
+      "audio/loop-bass.wav",
+      "audio/loop-demo.wav",
+      "audio/loop-drone.wav",
+      "audio/loop-grain.wav",
+      "audio/loop-pulse.wav",
+      "audio/loop-shimmer.wav"
+    ],
+    "animated-gifts": [
+      "animated-gifts/imgi_10_original_0fc48222a4b48646364a174afd0e9d21.gif",
+      "animated-gifts/imgi_3_original_10a2171799dc90e3120b099f21fdeab3.gif",
+      "animated-gifts/imgi_8_original_8e82c811f2ca71ec2e0c3d51c37db5fc.gif"
+    ]
+  },
+  "loopFiles": [
+    "loops/belgrade-mug_0.mp4",
+    "loops/belgrade-mug_1.mp4",
+    "loops/belgrade-tram_0.mp4",
+    "loops/breakdancing-poster_0.mp4",
+    "loops/breakdancing-poster_1.mp4",
+    "loops/flying-through-cars_0.mp4",
+    "loops/flying-through-cars_1.mp4",
+    "loops/heartbroken_0.mp4",
+    "loops/kinetic-light_0.mp4",
+    "loops/molecule-cube_0.mp4",
+    "loops/salvage-punk_0.mp4",
+    "loops/serbian-icons_0.mp4",
+    "loops/serbian-shop_0.mp4",
+    "loops/synth-moroder_0.mp4",
+    "loops/synth-moroder_1.mp4",
+    "loops/talking-head_0.mp4",
+    "loops/tshirt-mockup_0.mp4",
+    "loops/tshirt-mockup_1.mp4",
+    "loops/tshirt-monopop_0.mp4",
+    "loops/tshirt-monopop_1.mp4",
+    "loops/white-dots_0.mp4"
+  ],
+  "loopMeta": {
+    "belgrade-mug": {
+      "prompt": "30cl coffee mug \u00b7 stil modernan \u00b7 belgrade city scapes",
+      "category": "cityscape"
+    },
+    "synth-moroder": {
+      "prompt": "A. 30 Giorgio Moroder-Inspired Synth Music Prompts",
+      "category": "music-prompt"
+    },
+    "breakdancing-poster": {
+      "prompt": "A minimal editorial poster of a tattooed breakdancing crew",
+      "category": "editorial"
+    },
+    "flying-through-cars": {
+      "prompt": "Flying through cars \u00b7 Sometimes the moments alone in the universe",
+      "category": "cinematic"
+    },
+    "belgrade-tram": {
+      "prompt": "Happy Belgrade tram filled with smiling animal friends",
+      "category": "character"
+    },
+    "talking-head": {
+      "prompt": "Instagram talking head with natural blinking and little head motion",
+      "category": "character"
+    },
+    "kinetic-light": {
+      "prompt": "Kinetic light sculptures that cast shadows revealing complex shapes",
+      "category": "kinetic"
+    },
+    "heartbroken": {
+      "prompt": "Music video still \u00b7 solo figure with a heartbroken expression",
+      "category": "cinematic"
+    },
+    "salvage-punk": {
+      "prompt": "Pixel art of computer code with the words salvage punk",
+      "category": "typography"
+    },
+    "molecule-cube": {
+      "prompt": "Rubrics cube molecule \u00b7 single color design \u00b7 Modern Typography",
+      "category": "typography"
+    },
+    "serbian-icons": {
+      "prompt": "Serbian \u00b7 Creative process icons and illustrations",
+      "category": "illustration"
+    },
+    "serbian-shop": {
+      "prompt": "Serbian e-commerce shop \u00b7 creative process icons",
+      "category": "illustration"
+    },
+    "tshirt-mockup": {
+      "prompt": "T-shirt design mockup \u00b7 Instagram ad",
+      "category": "product"
+    },
+    "tshirt-monopop": {
+      "prompt": "T-shirt mockup A4 DTG \u00b7 MonoPop comic book style",
+      "category": "product"
+    },
+    "white-dots": {
+      "prompt": "White dots on a black background forming two flowers",
+      "category": "abstract"
+    }
+  }
+}

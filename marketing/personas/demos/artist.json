@@ -3,7 +3,7 @@
   "label": "The Artist",
   "mode": "cross",
   "tagline": "A loop that allows the artifact to be wrong, for a while.",
-  "cluster_explainer": "The Artist sits in the cross cluster — they generate where the auditor only reads, and they read their own process while they make, not after.",
+  "cluster_explainer": "The Artist uses the engine as a place where the work is allowed to be unfinished — the loop is the room where the next attempt is tried without committing it to a viewer.",
   "preset": "style-smoke",
   "reactor": {
     "dominant_band": "mid",
@@ -14,11 +14,11 @@
   "color": "#e76f51",
   "loop_seconds": 90,
   "demo_highlights": [
-    "Torus reads as an open seam — a loop that does not close, the way a work-in-progress refuses to finish itself",
-    "Mid-band reactance tracks the harmonic body of a room, where an artist feels whether the piece is breathing",
-    "Smoke preset is the most forgiving of the available styles — it lets the artifact stay illegible without flattening it",
-    "Smooth envelope (0.7) absorbs transients so the visual does not impose a 'now you've made something' punctuation",
-    "No completionist affordance in the demo: the loop continues without auto-export, so the artifact can stay wrong"
+    "Torus reads as continuous flow — the artifact is allowed to return to itself, revised, before it ever has to be final",
+    "Smoke preset favors the unresolved — every frame is allowed to look like a draft the artist hasn't signed yet",
+    "Mid-band reactance tracks the body of the take where the artistic center lives, not the transient hits that would turn the demo into a music video",
+    "Smooth envelope (0.6) lets a fragment of the work sit unfinished for a while — the engine waits for the next attempt rather than committing the previous one",
+    "No 'final' preset, no 'mastered' frame: the loop is a workshop, not a stage"
   ],
   "cluster": "cross"
 }

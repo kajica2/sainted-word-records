@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MORPHA · ECHO · SWR persona</title>
+  <meta name="description" content="Echo — memory, reflection, longing. Delayed repetition, persistence. From morpha-protocol." />
+  <meta name="theme-color" content="#0a0612" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      --bg: #0a0612; --bg-2: #150b22; --panel: #1a0f30; --panel-2: #221540;
+      --ink: #f5e9ff; --ink-2: #c8b5e0; --muted: #8a7aa0; --line: #2a1d3e;
+      --c: #00f0ff; --m: #ff2d8a; --y: #fff04a; --g: #00ffa3;
+      --c-cool: #00bfff; --c-warm: #ff6b3a;
+      --accent: var(--m);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      -webkit-font-smoothing: antialiased; }
+    a { color: var(--c); text-decoration: none; }
+    a:hover { color: var(--m); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 18px 80px; }
+    header.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    header.top .badge { display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 12px; border: 1px solid var(--accent); border-radius: 999px;
+      color: var(--accent); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; }
+    header.top .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    header.top .cluster { font-size: 9px; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+    header.top .cluster.broker { color: var(--accent); border-color: var(--accent); }
+    header.top .spacer { flex: 1; }
+    header.top a.back { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 6px 12px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); }
+    header.top a.back:hover { color: var(--accent); border-color: var(--accent); }
+
+    h1 { font-size: 28px; font-weight: 700; margin: 16px 0 4px; letter-spacing: 0.04em; }
+    .tagline { color: var(--ink-2); font-size: 14px; font-style: italic; max-width: 720px; }
+
+    .layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; margin-top: 24px; }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 16px; }
+    .panel h2 { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 12px; font-weight: 500; }
+
+    /* ---- Preview stage ---- */
+    .stage { position: relative; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
+      background: linear-gradient(135deg, #ff8a3a 0%, #e6306b 50%, #4a1a2a 100%); filter: sepia(0.55); filter: blur(3.2px) sepia(0.55); }
+    .stage > div { position: absolute; inset: 0; pointer-events: none; }
+    .ov-grain { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      background-size: 160px 160px; mix-blend-mode: overlay; }
+    .ov-chroma-r, .ov-chroma-g, .ov-chroma-b { background: linear-gradient(135deg, #ff8a3a 0%, #e6306b 50%, #4a1a2a 100%); filter: sepia(0.55); filter: blur(3.2px) sepia(0.55); mix-blend-mode: screen; }
+    .ov-glitch-slice { position: absolute; left: -10%; right: -10%;
+      background: linear-gradient(90deg, rgba(255,0,128,0.4), rgba(0,255,255,0.4));
+      mix-blend-mode: screen; }
+    .ov-vignette { background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%); }
+    .ov-posterize { background: inherit; mix-blend-mode: overlay; }
+    .ov-glow { background: radial-gradient(circle at 30% 40%, rgba(255,80,180,0.5), transparent 60%),
+                            radial-gradient(circle at 70% 60%, rgba(80,200,255,0.5), transparent 60%);
+      mix-blend-mode: screen; }
+    .ov-liquid { background: conic-gradient(from 0deg, #ff2d8a, #00f0ff, #fff04a, #ff2d8a);
+      filter: blur(30px); mix-blend-mode: screen; animation: spin 12s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ov-pearl { background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.6) 0%, transparent 8%),
+                                       radial-gradient(circle at 70% 60%, rgba(255,200,255,0.5) 0%, transparent 10%),
+                                       radial-gradient(circle at 40% 80%, rgba(200,255,255,0.5) 0%, transparent 9%),
+                                       radial-gradient(circle at 80% 20%, rgba(255,255,200,0.5) 0%, transparent 7%);
+      mix-blend-mode: screen; }
+
+    .stage-caption { position: absolute; bottom: 8px; left: 12px; right: 12px;
+      display: flex; justify-content: space-between; font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6); z-index: 5; }
+
+    /* ---- Gauges ---- */
+    .gauges { display: flex; flex-direction: column; gap: 4px; }
+    .gauge-row { display: grid; grid-template-columns: 110px 1fr 50px;
+      align-items: center; gap: 8px; padding: 4px 0; }
+    .gauge-label { font-size: 10px; color: var(--ink-2); letter-spacing: 0.06em;
+      text-transform: uppercase; }
+    .gauge-value { font-size: 11px; color: var(--accent); text-align: right;
+      font-variant-numeric: tabular-nums; }
+    .gauge-bar { position: relative; height: 8px; background: var(--panel-2);
+      border-radius: 2px; overflow: hidden; }
+    .gauge-bar.signed .gauge-zero { position: absolute; top: -2px; bottom: -2px;
+      width: 1px; background: var(--muted); opacity: 0.5; }
+    .gauge-track { position: absolute; inset: 0; }
+    .gauge-fill { position: absolute; top: 0; bottom: 0; left: 0;
+      background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+
+    /* ---- Actions ---- */
+    .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border: 1px solid var(--line); border-radius: 4px;
+      font: 11px/1 ui-monospace; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-2); cursor: pointer; }
+    .btn:hover { color: var(--accent); border-color: var(--accent); }
+    .btn.primary { background: var(--accent); color: #000; border-color: var(--accent);
+      font-weight: 700; }
+    .btn.primary:hover { background: var(--c); border-color: var(--c); }
+
+    footer.foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
+      font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <span class="badge">PERSONA · MORPHA · ECHO</span>
+      <span class="cluster broker">BROKER</span>
+      <span class="spacer"></span>
+      <a class="back" href="/personas">← ALL</a>
+    </header>
+
+    <h1>MORPHA · ECHO</h1>
+    <p class="tagline">Echo — memory, reflection, longing. Delayed repetition, persistence. From morpha-protocol.</p>
+
+    <div class="layout">
+      <div class="panel">
+        <h2>Visual preview (static)</h2>
+        <div class="stage" aria-label="Persona preview">
+          <div class="ov-grain" style="opacity:0.33"></div>
+      <div class="ov-chroma-r" style="transform:translate(-2.6999999999999997px,0);opacity:0.07"></div>
+      <div class="ov-chroma-g" style="transform:translate(0,1.3499999999999999px);opacity:0.06"></div>
+      <div class="ov-chroma-b" style="transform:translate(2.6999999999999997px,0);opacity:0.07"></div>
+      <div class="ov-vignette" style="opacity:0.47"></div>
+      <div class="ov-glow" style="opacity:0.18"></div>
+      <div class="ov-pearl" style="opacity:0.28"></div>
+          <div class="stage-caption">
+            <span>preset · MORPHA · ECHO</span>
+            <span>mut algo · 4</span>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="/engine">OPEN IN ENGINE →</a>
+          <a class="btn" href="/personas">← ALL PERSONAS</a>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>FX uniforms (15)</h2>
+        <div class="gauges">
+          
+    <div class="gauge-row">
+      <div class="gauge-label">Temperature</div>
+      <div class="gauge-cell">
+      <div class="gauge-bar signed" aria-label="Temperature 0.30">
+        <div class="gauge-track"></div>
+        <div class="gauge-zero" style="left:50%"></div>
+        <div class="gauge-fill" style="left:50%;width:15%;background:var(--c-warm)"></div>
+      </div></div>
+      <div class="gauge-value">0.30</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Mutations</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Mutations 0.20">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:20%"></div>
+    </div></div>
+      <div class="gauge-value">0.20</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Mutation algo</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Mutation algo 4.00">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:80%"></div>
+    </div></div>
+      <div class="gauge-value">4</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Posterize</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Posterize 0.00">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:0%"></div>
+    </div></div>
+      <div class="gauge-value">0.00</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Vignette</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Vignette 0.50">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:50%"></div>
+    </div></div>
+      <div class="gauge-value">0.50</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Chroma split</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Chroma split 0.15">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:15%"></div>
+    </div></div>
+      <div class="gauge-value">0.15</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Grain</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Grain 0.55">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:55.00000000000001%"></div>
+    </div></div>
+      <div class="gauge-value">0.55</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Sepia</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Sepia 0.55">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:55.00000000000001%"></div>
+    </div></div>
+      <div class="gauge-value">0.55</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Glow</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Glow 0.30">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:30%"></div>
+    </div></div>
+      <div class="gauge-value">0.30</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Grayscale</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Grayscale 0.10">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:10%"></div>
+    </div></div>
+      <div class="gauge-value">0.10</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Blur</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Blur 0.40">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:40%"></div>
+    </div></div>
+      <div class="gauge-value">0.40</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Liquid</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Liquid 0.10">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:10%"></div>
+    </div></div>
+      <div class="gauge-value">0.10</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Pearl</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Pearl 0.40">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:40%"></div>
+    </div></div>
+      <div class="gauge-value">0.40</div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="gauge-label">Glitch</div>
+      <div class="gauge-cell">
+    <div class="gauge-bar" aria-label="Glitch 0.00">
+      <div class="gauge-track"></div>
+      <div class="gauge-fill" style="width:0%"></div>
+    </div></div>
+      <div class="gauge-value">0.00</div>
+    </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="foot">
+      Persona · MORPHA · ECHO · key: <code>morphaecho</code> · values 0..1 except temp (-1..1) and mutAlgo (0..5)
+    </footer>
+  </div>
+</body>
+</html>

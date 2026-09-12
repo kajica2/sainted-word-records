@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LOOPS.GALLERY — SWR</title>
+  <meta name="description" content="21 looping video compositions from midjourney session 2 — cinematic frames, character, cityscapes, product mockups, editorial posters, illustration, typography, kinetic light, abstract motion." />
+  <meta property="og:title" content="LOOPS.GALLERY — SWR" />
+  <meta property="og:description" content="21 midjourney loops · 22MB · 118s total playback" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700;800&display=swap" />
+
+  <style>
+    :root {
+      --bg:        #f4f4f0;
+      --ink:       #000000;
+      --ink-2:     #1a1a1a;
+      --muted:     #555555;
+      --line:      #000000;
+      --accent:    #dc2626;
+      --accent-2:  #b91c1c;
+      --highlight: #facc15;
+      --highlight-2: #eab308;
+      --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; border-radius: 0 !important; box-shadow: none !important; background-image: none !important; }
+    *:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-mono);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        repeating-linear-gradient(0deg, transparent 0 23px, rgba(0,0,0,0.025) 23px 24px);
+    }
+    a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    a:hover { background: var(--highlight); color: var(--ink); text-decoration: none; }
+    img, video { display: block; max-width: 100%; height: auto; }
+    ::selection { background: var(--highlight); color: var(--ink); }
+
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+    @media (max-width: 720px) { .wrap { padding: 0 14px; } }
+
+    .statusbar {
+      background: var(--ink); color: var(--bg);
+      border-bottom: 2px solid var(--ink);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+      padding: 8px 0;
+    }
+    .statusbar__inner {
+      max-width: 1240px; margin: 0 auto; padding: 0 24px;
+      display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+    }
+    .statusbar .ok   { color: #4ade80; }
+    .statusbar .warn { color: var(--highlight); }
+
+    .header {
+      border-bottom: 4px solid var(--ink);
+      padding: 28px 0 24px;
+    }
+    .header__brand {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 6vw, 72px);
+      letter-spacing: -0.02em; line-height: 0.95;
+      margin: 0;
+      text-transform: uppercase;
+    }
+    .header__brand .red { color: var(--accent); }
+    .header__sub {
+      font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-2); margin: 8px 0 0;
+    }
+    .header__nav {
+      display: flex; flex-wrap: wrap; gap: 14px;
+      margin-top: 18px;
+    }
+    .header__nav a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border: 2px solid var(--ink);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--ink); text-decoration: none; background: var(--bg);
+    }
+    .header__nav a:hover { background: var(--highlight); }
+    .header__nav a.is-cta { background: var(--ink); color: var(--bg); }
+    .header__nav a.is-cta:hover { background: var(--accent); color: var(--bg); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 0 0 48px;
+    }
+    @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 720px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .cell {
+      border: 2px solid var(--ink);
+      background: var(--ink);  /* black bg so video controls look right */
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .cell:hover { background: var(--highlight); }
+    .cell__num {
+      position: absolute; top: 0; left: 0;
+      padding: 4px 8px;
+      background: var(--ink); color: var(--highlight);
+      font-family: var(--font-mono); font-weight: 800; font-size: 12px;
+      letter-spacing: 0.06em; z-index: 2;
+    }
+    .cell__art {
+      aspect-ratio: 16/10;
+      background: #1a1a1a;
+      overflow: hidden;
+    }
+    .cell__video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      filter: contrast(1.05) saturate(1.1);
+    }
+    .cell__meta {
+      padding: 8px 10px 10px;
+      border-top: 2px solid var(--ink);
+      background: var(--bg);
+      font-size: 11px; line-height: 1.4;
+    }
+    .cell__name {
+      font-family: var(--font-mono); font-weight: 700;
+      word-break: break-all;
+      color: var(--ink);
+    }
+    .cell__sub {
+      font-family: var(--font-body, var(--font-mono));
+      font-style: italic;
+      color: var(--ink-2);
+      margin-top: 2px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cell__chip {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 6px;
+      font-family: var(--font-display);
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--ink); color: var(--highlight);
+    }
+
+    section { margin-top: 32px; }
+
+    .stamp {
+      border-top: 4px solid var(--ink);
+      padding: 24px 0 36px;
+      display: flex; flex-wrap: wrap; gap: 18px;
+      align-items: center; justify-content: space-between;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .stamp__seal {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px;
+      border: 2px solid var(--accent);
+      color: var(--accent); background: var(--bg);
+      font-family: var(--font-display);
+      transform: rotate(-2deg);
+    }
+    .stamp__seal::before { content: '▶'; color: var(--accent); }
+
+    .totals { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--font-mono); }
+    .totals__b {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--ink); color: var(--highlight);
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="statusbar" role="status" aria-label="page status">
+    <div class="statusbar__inner">
+      <span>STATUS:</span>
+      <span class="ok">● ONLINE</span>
+      <span>FILE: gallery-loops.html</span>
+      <span>BUILD: 2026-09-11</span>
+      <span class="warn">⚠ 21 LOOPS · AUTOPLAY · NO CHROME</span>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="wrap">
+      <h1 class="header__brand">
+        LOOPS.<br />
+        <span class="red">GALLERY</span>
+      </h1>
+      <p class="header__sub">
+        21 looping compositions · midjourney session 2 · h.264 CRF 28 · audio stripped
+      </p>
+      <nav class="header__nav" aria-label="Gallery navigation">
+        <a href="#cinematic">▸ CINEMATIC (3)</a>
+        <a href="#character">▸ CHARACTER (2)</a>
+        <a href="#cityscape">▸ BELGRADE (2)</a>
+        <a href="#product">▸ PRODUCT (4)</a>
+        <a href="#editorial">▸ EDITORIAL (2)</a>
+        <a href="#illustration">▸ SERBIAN (2)</a>
+        <a href="#typography">▸ TYPOGRAPHY (2)</a>
+        <a href="#music-prompt">▸ MORODER (2)</a>
+        <a href="#kinetic">▸ KINETIC (1)</a>
+        <a href="#abstract">▸ ABSTRACT (1)</a>
+        <a class="is-cta" href="./gallery-brutalist.html">◀ BRUTALIST GALLERY</a>
+        <a href="./portfolio.html">PORTFOLIO →</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+<section id="cinematic" aria-labelledby="cinematic-heading">
+  <h2 id="cinematic-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · CINEMATIC FRAMES <span style="color:var(--accent);">×3</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/flying-through-cars_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">flying-through-cars_0.mp4</div>
+        <div class="cell__sub">flying through car</div>
+        <span class="cell__chip">5.0s · 1403KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">14</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/flying-through-cars_1.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">flying-through-cars_1.mp4</div>
+        <div class="cell__sub">flying through car</div>
+        <span class="cell__chip">5.0s · 1332KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/heartbroken_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">heartbroken_0.mp4</div>
+        <div class="cell__sub">heartbroke</div>
+        <span class="cell__chip">5.0s · 234KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="character" aria-labelledby="character-heading">
+  <h2 id="character-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · CHARACTER <span style="color:var(--accent);">×2</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/belgrade-tram_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">belgrade-tram_0.mp4</div>
+        <div class="cell__sub">belgrade tra</div>
+        <span class="cell__chip">5.0s · 1655KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/talking-head_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">talking-head_0.mp4</div>
+        <div class="cell__sub">talking hea</div>
+        <span class="cell__chip">5.0s · 1248KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="cityscape" aria-labelledby="cityscape-heading">
+  <h2 id="cityscape-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · CITYSCAPES · BELGRADE <span style="color:var(--accent);">×2</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/belgrade-mug_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">belgrade-mug_0.mp4</div>
+        <div class="cell__sub">belgrade mu</div>
+        <span class="cell__chip">8.7s · 546KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">14</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/belgrade-mug_1.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">belgrade-mug_1.mp4</div>
+        <div class="cell__sub">belgrade mu</div>
+        <span class="cell__chip">8.7s · 550KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="product" aria-labelledby="product-heading">
+  <h2 id="product-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · PRODUCT MOCKUPS <span style="color:var(--accent);">×4</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/tshirt-mockup_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">tshirt-mockup_0.mp4</div>
+        <div class="cell__sub">tshirt mocku</div>
+        <span class="cell__chip">5.2s · 1287KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">14</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/tshirt-mockup_1.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">tshirt-mockup_1.mp4</div>
+        <div class="cell__sub">tshirt mocku</div>
+        <span class="cell__chip">5.2s · 758KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/tshirt-monopop_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">tshirt-monopop_0.mp4</div>
+        <div class="cell__sub">tshirt monopo</div>
+        <span class="cell__chip">5.0s · 631KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">14</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/tshirt-monopop_1.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">tshirt-monopop_1.mp4</div>
+        <div class="cell__sub">tshirt monopo</div>
+        <span class="cell__chip">5.0s · 559KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="editorial" aria-labelledby="editorial-heading">
+  <h2 id="editorial-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · EDITORIAL POSTERS <span style="color:var(--accent);">×2</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/breakdancing-poster_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">breakdancing-poster_0.mp4</div>
+        <div class="cell__sub">breakdancing poste</div>
+        <span class="cell__chip">5.0s · 442KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">14</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/breakdancing-poster_1.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">breakdancing-poster_1.mp4</div>
+        <div class="cell__sub">breakdancing poste</div>
+        <span class="cell__chip">5.0s · 494KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="illustration" aria-labelledby="illustration-heading">
+  <h2 id="illustration-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · ILLUSTRATION · SERBIAN <span style="color:var(--accent);">×2</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/serbian-icons_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">serbian-icons_0.mp4</div>
+        <div class="cell__sub">serbian icon</div>
+        <span class="cell__chip">5.2s · 1272KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/serbian-shop_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">serbian-shop_0.mp4</div>
+        <div class="cell__sub">serbian sho</div>
+        <span class="cell__chip">5.0s · 745KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="typography" aria-labelledby="typography-heading">
+  <h2 id="typography-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · TYPOGRAPHY · MINIMAL <span style="color:var(--accent);">×2</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/salvage-punk_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">salvage-punk_0.mp4</div>
+        <div class="cell__sub">salvage pun</div>
+        <span class="cell__chip">5.0s · 1563KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/molecule-cube_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">molecule-cube_0.mp4</div>
+        <div class="cell__sub">molecule cub</div>
+        <span class="cell__chip">5.0s · 313KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="music-prompt" aria-labelledby="music-prompt-heading">
+  <h2 id="music-prompt-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · MUSIC PROMPTS · MORODER <span style="color:var(--accent);">×2</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/synth-moroder_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">synth-moroder_0.mp4</div>
+        <div class="cell__sub">synth morode</div>
+        <span class="cell__chip">5.0s · 1446KB</span>
+      </div></article>
+    <article class="cell"><span class="cell__num">14</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/synth-moroder_1.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">synth-moroder_1.mp4</div>
+        <div class="cell__sub">synth morode</div>
+        <span class="cell__chip">5.0s · 1272KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="kinetic" aria-labelledby="kinetic-heading">
+  <h2 id="kinetic-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · KINETIC LIGHT <span style="color:var(--accent);">×1</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/kinetic-light_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">kinetic-light_0.mp4</div>
+        <div class="cell__sub">kinetic ligh</div>
+        <span class="cell__chip">5.2s · 1821KB</span>
+      </div></article>
+  </div>
+</section>
+<section id="abstract" aria-labelledby="abstract-heading">
+  <h2 id="abstract-heading" style="font-family:var(--font-display);font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;border-bottom:4px solid var(--ink);padding-bottom:8px;margin:0 0 16px;">
+    § · ABSTRACT MOTION <span style="color:var(--accent);">×1</span>
+  </h2>
+  <div class="grid">
+    <article class="cell"><span class="cell__num">04</span>
+      <div class="cell__art"><video class="cell__video" muted autoplay loop playsinline preload="metadata" src="./library/loops/white-dots_0.mp4"></video></div>
+      <div class="cell__meta"><div class="cell__name">white-dots_0.mp4</div>
+        <div class="cell__sub">white dot</div>
+        <span class="cell__chip">8.9s · 3596KB</span>
+      </div></article>
+  </div>
+</section>
+  </main>
+
+  <footer class="stamp" role="contentinfo">
+    <div class="totals">
+      <span><span class="totals__b">21</span> loops</span>
+      <span><span class="totals__b">10</span> sections</span>
+      <span><span class="totals__b">22MB</span> total</span>
+      <span><span class="totals__b">118s</span> playback</span>
+      <span><span class="totals__b">2026-09-11</span> build</span>
+    </div>
+    <div class="stamp__seal">LOOP · MUTED · AUTOPLAY</div>
+  </footer>
+
+  <script src="./client/shop-decorator.client.js" defer></script>
+</body>
+</html>

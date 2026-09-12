@@ -35,6 +35,16 @@ export default async function handler(req, res) {
 
   return sendJson(res, 200, {
     ok: true,
-    user: { id: user.id, email: user.email, name: user.name, image: user.image, provider: user.provider },
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
+      provider: user.provider,
+      // Auth & membership (Stage 2): include the tier so the client
+      // can render tier-aware UI without a second round-trip.
+      membershipTier: user.membershipTier || 'free',
+      joinedAt: user.joinedAt || user.createdAt || null,
+    },
   });
 }

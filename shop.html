@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shop · SWR Galleries</title>
+
+  <!-- No-flash theme bootstrap. Reads the persisted choice (or falls
+       back to prefers-color-scheme) and applies it before the CSS
+       loads so there's no white flash on a dark-mode visitor. -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('swr-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+  <meta name="description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
+  <meta property="og:title" content="Shop · SWR Galleries" />
+  <meta property="og:description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 32px; max-width: 1080px; margin: 0 auto;
+    }
+    .nav__brand {
+      font-family: var(--font-display); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .nav__links { display: flex; gap: 22px; margin-left: auto; }
+    .nav__links a { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+    .nav__links a:hover { color: var(--accent); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+    }
+    .nav__cta:hover { background: var(--ink); color: var(--bg); text-decoration: none; }
+
+    /* ===== THEME TOGGLE ===== */
+    .theme-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 999px;
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--ink-2);
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+    .theme-toggle__label { font-weight: 600; }
+
+    .page { padding: 56px 0 80px; }
+    .page__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 12px;
+    }
+    .page__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(32px, 4.5vw, 48px); line-height: 1.05;
+      letter-spacing: -0.025em; margin: 0 0 8px;
+    }
+    .page__title em { font-style: italic; color: var(--accent); }
+    .page__sub {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--muted); margin-bottom: 32px;
+    }
+    .page__sub .pill {
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      background: var(--panel); border: 1px solid var(--line);
+      color: var(--ink-2); margin-right: 8px;
+    }
+
+    .shop {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+    @media (max-width: 880px) {
+      .shop { grid-template-columns: 1fr; }
+    }
+
+    .shop__art {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      position: relative;
+    }
+    .shop__art::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 55%),
+        radial-gradient(circle at 70% 80%, rgba(0,0,0,0.35), transparent 60%);
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+    .shop__art-img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      background: var(--bg-2);
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .shop__art-img:hover { transform: scale(1.02); }
+    .shop__art-variant {
+      position: absolute; top: 14px; right: 14px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--bg); background: rgba(0,0,0,0.6);
+      padding: 4px 9px; border-radius: 999px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+    .shop__art-meta {
+      position: absolute; bottom: 16px; left: 16px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--bg); background: rgba(0,0,0,0.55);
+      padding: 6px 10px; border-radius: 4px;
+      backdrop-filter: blur(6px);
+      letter-spacing: 0.08em;
+    }
+    .shop__picker { display: flex; flex-direction: column; gap: 14px; }
+
+    .product {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; padding: 18px 20px;
+      transition: border-color 0.2s ease, transform 0.15s ease;
+    }
+    .product:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .product__name {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 0; letter-spacing: -0.02em;
+    }
+    .product__blurb {
+      font-size: 13px; color: var(--ink-2); margin: 4px 0 0;
+    }
+    .product__price {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--accent); margin-left: auto;
+      letter-spacing: 0.04em;
+    }
+    .product__buy {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 999px;
+      background: var(--accent); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+      border: none; cursor: pointer; text-decoration: none;
+    }
+    .product__buy:hover { background: var(--ink); text-decoration: none; }
+
+    .product.is-disabled { opacity: 0.55; }
+    .product.is-disabled .product__buy {
+      background: var(--panel-2); color: var(--muted); cursor: not-allowed;
+    }
+
+    .picker {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 18px;
+    }
+    .picker__chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 12px; border-radius: 999px;
+      background: var(--panel); border: 1px solid var(--line);
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--ink-2); text-decoration: none;
+      letter-spacing: 0.06em;
+    }
+    .picker__chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .picker__chip.is-active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 24px 32px;
+      max-width: 1080px; margin: 0 auto;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+      display: flex; justify-content: space-between; gap: 16px;
+    }
+    @media (max-width: 640px) { .footer { flex-direction: column; } }
+
+    .notice {
+      background: var(--panel); border: 1px solid var(--accent-2);
+      border-radius: 12px; padding: 18px 20px;
+      font-size: 14px; color: var(--ink-2);
+      margin: 0 0 32px;
+    }
+    .notice b { color: var(--accent-2); }
+    .notice code {
+      font-family: var(--font-mono); font-size: 12px;
+      background: var(--bg-2); padding: 1px 6px; border-radius: 3px;
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="./gallery-music.html">SWR</a>
+      <div class="nav__links">
+        <a href="./gallery-music.html">Galleries</a>
+        <a href="./campaign.html">Pricing</a>
+        <a href="./engine.html">Engine</a>
+      </div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <span class="theme-toggle__label" id="theme-label">Auto</span>
+      </button>
+      <a class="nav__cta" href="./gallery-music.html">Browse galleries →</a>
+    </div>
+  </nav>
+
+  <main class="page wrap">
+    <div class="page__kicker" id="kicker">SWR · Shop</div>
+    <h1 class="page__title" id="title">Pick a design. <em>Pick a product.</em></h1>
+    <div class="page__sub" id="sub">
+      <span class="pill" id="pill-gallery">—</span>
+      <span class="pill" id="pill-card">Card —</span>
+    </div>
+
+    <div class="notice" id="notice">
+      <b>Stripe Payment Links not wired yet.</b>
+      To go live, create 3 products in your Stripe dashboard per <code>swr-stripe-setup.html</code> Step 1
+      (Logo Tee €25 / Graphic Tee €25 / Mug €15), generate payment links with redirect to
+      <code>/thanks.html</code>, then paste the <code>buy.stripe.com</code> URLs into
+      <code>client/shop-decorator.client.js</code> at <code>PRODUCTS[*].stripeUrl</code>. The Buy
+      buttons below currently open Stripe's homepage — replace the URLs and they go straight to
+      checkout with the artwork pre-attached via <code>client_reference_id</code>.
+    </div>
+
+    <div class="shop">
+      <div class="shop__art" id="art">
+        <div class="shop__art-meta" id="art-meta">—</div>
+      </div>
+
+      <div class="shop__picker">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 4px;">
+          Switch card
+        </div>
+        <div class="picker" id="picker"></div>
+
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin: 12px 0 4px;">
+          Pick a product
+        </div>
+        <div id="products"></div>
+
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin: 18px 0 4px;">
+          How it works
+        </div>
+        <p style="font-size: 14px; color: var(--ink-2); margin: 0;">
+          You buy via Stripe. We hand-print each piece on demand — fulfillment is manual because
+          you're buying from a small studio, not a warehouse. Expect 5–10 business days for
+          shipping inside the EU. Shipping calculated at checkout.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span>SWR Shop</span>
+    <span>Hand-printed on demand</span>
+  </footer>
+
+  <script src="./client/shop-decorator.client.js" defer></script>
+  <script>
+    // shop.html page logic: read ?g=&c=, load card data, render the page.
+    (function () {
+      'use strict';
+      var params = new URLSearchParams(location.search);
+      var slug = params.get('g') || 'music';
+      var cardIdx = parseInt(params.get('c') || '0', 10);
+
+      // 8 cards per gallery — pull from a shared per-gallery palette + title index.
+      // This matches the cards on each gallery-<slug>.html page.
+      var GALLERY_INDEX = {
+        music: {
+          name: 'Music / Jazz',
+          kicker: 'Audio-Reactive · Improvisation',
+          cards: [
+            { title: 'Bebop Lines', sub: 'Bebop', meta: 'Trane / Woody Shaw energy',
+              gradient: 'linear-gradient(135deg, #ff2d8a 0%, #ffaa3a 50%, #4a1d6b 100%)' },
+            { title: 'Modal Vamps', sub: 'Modal', meta: 'So What / Impressions',
+              gradient: 'linear-gradient(135deg, #0f4c5c 0%, #1a3a6e 50%, #2a1a6b 100%)' },
+            { title: 'Ballad Rooms', sub: 'Ballad', meta: 'Body & Soul',
+              gradient: 'linear-gradient(135deg, #f5ead8 0%, #d4b8c8 50%, #8c6b8a 100%)' },
+            { title: 'Afro-Cuban 6/8', sub: 'Afro-Cuban 6/8', meta: 'Manteca / Tin Tin Deo',
+              gradient: 'linear-gradient(135deg, #c0202a 0%, #d4a017 50%, #1f4d2a 100%)' },
+            { title: 'Free Jazz Sketches', sub: 'Free Jazz', meta: 'Coltrane Ascension',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #a85a3a 50%, #1a1a2a 100%)' },
+            { title: 'Hard Bop Frames', sub: 'Hard Bop', meta: 'MJQ / Blakey',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #5a4030 50%, #2a2a2a 100%)' },
+            { title: 'Solo Transcription Studies', sub: 'Transcription', meta: 'Bob Mover / Cannonball',
+              gradient: 'linear-gradient(135deg, #f4e8d0 0%, #c4a878 50%, #704a2a 100%)' },
+            { title: 'Vocal Standards', sub: 'Vocal', meta: 'Billie / Chet',
+              gradient: 'linear-gradient(135deg, #f5c4c8 0%, #c47a7a 50%, #8c4a5a 100%)' },
+          ],
+        },
+        generative: {
+          name: 'Generative / Abstract',
+          kicker: 'Algorithm · No Two Frames Alike',
+          cards: [
+            { title: 'Reaction-Diffusion', sub: 'Reaction-Diffusion', meta: 'Gray-Scott / Turing patterns',
+              gradient: 'linear-gradient(135deg, #c8b8e0 0%, #80e0e8 50%, #b8e8c0 100%)' },
+            { title: 'Flow Fields', sub: 'Flow Fields', meta: 'Perlin · curl noise',
+              gradient: 'linear-gradient(135deg, #1a1a6a 0%, #d87060 50%, #2a1a4a 100%)' },
+            { title: 'Particle Genealogies', sub: 'Particles', meta: 'Spawn · drift · death',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #8a8a8a 50%, #c8a020 100%)' },
+            { title: 'Voronoi Cells', sub: 'Voronoi', meta: 'Worley noise',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #80e060 50%, #1a1a1a 100%)' },
+            { title: 'Strange Attractors', sub: 'Attractors', meta: 'Lorenz · Rossler',
+              gradient: 'linear-gradient(135deg, #4a1a8a 0%, #c41a8a 50%, #1a1a4a 100%)' },
+            { title: 'Tessellations', sub: 'Tessellations', meta: 'Penrose · Truchet',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #4a8a8a 50%, #1a1a2a 100%)' },
+            { title: 'Conways', sub: 'Conways', meta: 'Life · vote rules',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #4a8ac4 50%, #ece4d0 100%)' },
+            { title: 'Recursive Subdivisions', sub: 'Subdivisions', meta: 'L-systems · fractals',
+              gradient: 'linear-gradient(135deg, #1f4d2a 0%, #6a8a6a 50%, #ece4d0 100%)' },
+          ],
+        },
+        cosmic: {
+          name: 'Cosmic',
+          kicker: 'Deep Field · Star-Forming Regions',
+          cards: [
+            { title: 'Stellar Nursery', sub: 'Stellar Nursery', meta: 'Pillars of Creation',
+              gradient: 'linear-gradient(135deg, #000000 0%, #c41a8a 50%, #4a8a8a 100%)' },
+            { title: 'Accretion Disk', sub: 'Accretion Disk', meta: 'Black hole horizon',
+              gradient: 'linear-gradient(135deg, #d4a017 0%, #0a0a14 50%, #c4a8d4 100%)' },
+            { title: 'Supernova Remnant', sub: 'Supernova Remnant', meta: 'Crab Nebula',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #ece4d0 50%, #a85a3a 100%)' },
+            { title: 'Galaxy Arms', sub: 'Galaxy Arms', meta: 'Spiral morphology',
+              gradient: 'linear-gradient(135deg, #1a1a4a 0%, #4a4a8a 50%, #ece4d0 100%)' },
+            { title: 'Solar Flare', sub: 'Solar Flare', meta: 'Coronal mass ejection',
+              gradient: 'linear-gradient(135deg, #d4a017 0%, #c0202a 50%, #0a0a14 100%)' },
+            { title: 'Cosmic Microwave', sub: 'Cosmic Microwave', meta: 'Background radiation',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #d8a0a8 50%, #6a4a8a 100%)' },
+            { title: 'Planetary Ring', sub: 'Planetary Ring', meta: 'Saturnian geometry',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #8a8a8a 50%, #4a4a4a 100%)' },
+            { title: 'Interstellar Dust', sub: 'Interstellar Dust', meta: 'Bok globules',
+              gradient: 'linear-gradient(135deg, #1a1a4a 0%, #a85a3a 50%, #4a2a4a 100%)' },
+          ],
+        },
+        bio: {
+          name: 'Biological / Neuro',
+          kicker: 'Microscopy · Connectome',
+          cards: [
+            { title: 'Cortical Column', sub: 'Cortical Column', meta: '6 layers · minicolumns',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #d87060 50%, #0a0a14 100%)' },
+            { title: 'Action Potential', sub: 'Action Potential', meta: 'Voltage-gated cascade',
+              gradient: 'linear-gradient(135deg, #d4a017 0%, #c41a8a 50%, #6a4a8a 100%)' },
+            { title: 'Dendritic Arbor', sub: 'Dendritic Arbor', meta: 'Hippocampal CA1',
+              gradient: 'linear-gradient(135deg, #1f4d2a 0%, #80e8c0 50%, #4a8a6a 100%)' },
+            { title: 'Synaptic Vesicles', sub: 'Synaptic Vesicles', meta: 'Neurotransmitter release',
+              gradient: 'linear-gradient(135deg, #c4b8d8 0%, #d8c4d8 50%, #ece4d0 100%)' },
+            { title: 'EEG Bands', sub: 'EEG Bands', meta: 'Delta · theta · alpha · beta · gamma',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #4a6ac4 50%, #c41a8a 100%)' },
+            { title: 'Cellular Mitosis', sub: 'Cellular Mitosis', meta: 'Anaphase spindles',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #b8a070 50%, #1a1a6a 100%)' },
+            { title: 'Neural Mass Field', sub: 'Neural Mass Field', meta: 'Jansen-Rit model',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #4a4a4a 50%, #80e060 100%)' },
+            { title: 'Glial Network', sub: 'Glial Network', meta: 'Astrocyte calcium waves',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #b87333 50%, #6a4a3a 100%)' },
+          ],
+        },
+        ai: {
+          name: 'AI / Machine',
+          kicker: 'Latent Space · Activation Atlas',
+          cards: [
+            { title: 'Attention Head', sub: 'Attention Head', meta: 'Multi-head self-attention',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #d4a017 50%, #c41a8a 100%)' },
+            { title: 'Loss Landscape', sub: 'Loss Landscape', meta: 'Saddle points · basins',
+              gradient: 'linear-gradient(135deg, #1a1a6a 0%, #6a4a8a 50%, #c0202a 100%)' },
+            { title: 'Feature Visualization', sub: 'Feature Viz', meta: 'Activation maximization',
+              gradient: 'linear-gradient(135deg, #80e060 0%, #c41a8a 50%, #6a4a8a 100%)' },
+            { title: 'Embedding Space', sub: 'Embedding', meta: 'UMAP · t-SNE',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #c4b8d8 50%, #6a4a8a 100%)' },
+            { title: 'Saliency Map', sub: 'Saliency', meta: 'Grad-CAM · SHAP',
+              gradient: 'linear-gradient(135deg, #4a8a8a 0%, #d4a017 50%, #c87060 100%)' },
+            { title: 'Weight Matrix', sub: 'Weights', meta: 'Layer-wise sparsity',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #4a6a8a 50%, #1a1a4a 100%)' },
+            { title: 'Diffusion Steps', sub: 'Diffusion', meta: 'Denoising trajectory',
+              gradient: 'linear-gradient(135deg, #5a5a5a 0%, #80e060 50%, #ece4d0 100%)' },
+            { title: 'Token Grid', sub: 'Tokens', meta: 'Transformer attention flow',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #6a6a8a 50%, #d4a017 100%)' },
+          ],
+        },
+        glyphs: {
+          name: 'Glyphs / Sigils',
+          kicker: 'Mark · Symbol · Tattoo',
+          cards: [
+            { title: 'Sigil Series', sub: 'Sigil Series', meta: 'Personal iconography',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #d4a017 50%, #8a1a1a 100%)' },
+            { title: 'Alchemical Marks', sub: 'Alchemy', meta: 'Prima materia',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #c8902a 50%, #1a1a2a 100%)' },
+            { title: 'Runebot Staves', sub: 'Rune', meta: 'Elder Futhark',
+              gradient: 'linear-gradient(135deg, #1a1a4a 0%, #4a4a8a 50%, #e8e4d4 100%)' },
+            { title: 'Planetary Seals', sub: 'Planetary', meta: 'Classical decans',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #b8a070 50%, #5a2a6a 100%)' },
+            { title: 'Tally Marks', sub: 'Tally', meta: 'Counting + memory',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #a8a89a 50%, #d87060 100%)' },
+            { title: 'Mandala Grids', sub: 'Mandala', meta: 'Concentric focus',
+              gradient: 'linear-gradient(135deg, #b8a8d4 0%, #c8a8c0 50%, #5a504a 100%)' },
+            { title: 'Cryptographic Marks', sub: 'Crypto', meta: 'One-time-pad glyphs',
+              gradient: 'linear-gradient(135deg, #0a0a0a 0%, #1a2a1a 50%, #80ff60 100%)' },
+            { title: 'Heraldic Charges', sub: 'Heraldry', meta: 'Field + bearing',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #c4a878 50%, #ece4d0 100%)' },
+          ],
+        },
+        vr: {
+          name: 'VR / Immersive',
+          kicker: 'Volumetric · 360 · Spatial',
+          cards: [
+            { title: 'Equirectangular Frame', sub: '360', meta: '360 stereo · 4K',
+              gradient: 'linear-gradient(135deg, #2a0a4a 0%, #c41a8a 50%, #0a0a14 100%)' },
+            { title: 'Volumetric Capture', sub: 'Volumetric', meta: 'Photogrammetry',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #6aa8a8 50%, #1a3a3a 100%)' },
+            { title: 'Spatial Audio Field', sub: 'Spatial Audio', meta: 'HRTF binaural',
+              gradient: 'linear-gradient(135deg, #1a1a4a 0%, #4a4a8a 50%, #80ff60 100%)' },
+            { title: 'Haptic-Visual Sync', sub: 'Haptic', meta: 'Bass-driven rumble',
+              gradient: 'linear-gradient(135deg, #d4a017 0%, #8a4a1a 50%, #0a0a14 100%)' },
+            { title: 'Spatial Mirror', sub: 'Mirror', meta: 'Pan-reactive parallax',
+              gradient: 'linear-gradient(135deg, #d8708a 0%, #6a4a5a 50%, #2a2a2a 100%)' },
+            { title: 'Room-Scale Mapping', sub: 'Mapping', meta: 'LiDAR point cloud',
+              gradient: 'linear-gradient(135deg, #1f4d2a 0%, #6a8a6a 50%, #c4b8d8 100%)' },
+            { title: 'Portal Compositing', sub: 'Portal', meta: 'Passthrough blend',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #6a8ac8 50%, #ece4d0 100%)' },
+            { title: 'Depth-Of-Field Stage', sub: 'DOF', meta: 'Focal stack',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #5a4030 50%, #5a5a5a 100%)' },
+          ],
+        },
+        tshirts: {
+          name: 'T-Shirt Graphics',
+          kicker: 'Ink on Cotton · One-Color Front',
+          cards: [
+            { title: 'Tour Shirt', sub: 'Tour', meta: 'Large back print',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #c41a8a 50%, #0a0a14 100%)' },
+            { title: 'Logo Tee', sub: 'Logo', meta: 'Left chest 3 inch',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #d4a017 50%, #1a1a1a 100%)' },
+            { title: 'Type Specimen', sub: 'Type', meta: 'Wordmark lockup',
+              gradient: 'linear-gradient(135deg, #8a8a8a 0%, #d87060 50%, #4a4a4a 100%)' },
+            { title: 'One-Line Series', sub: 'One-Line', meta: 'Continuous stroke',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #1a3a1a 50%, #80e060 100%)' },
+            { title: 'Merch Drop Caps', sub: 'Drop Caps', meta: 'Big initial',
+              gradient: 'linear-gradient(135deg, #c4b8d8 0%, #c8902a 50%, #6a4a2a 100%)' },
+            { title: 'Album Cover Repro', sub: 'Album Repro', meta: 'Square crop',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #c4a878 50%, #ece4d0 100%)' },
+            { title: 'Protest Poster Cut', sub: 'Poster Cut', meta: 'Single-color stencil',
+              gradient: 'linear-gradient(135deg, #c0202a 0%, #4a2a2a 50%, #0a0a14 100%)' },
+            { title: 'Conductor Mark', sub: 'Conductor', meta: 'Batons + glyphs',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #4a6ac4 50%, #ece4d0 100%)' },
+          ],
+        },
+        posters: {
+          name: 'Posters / Canvas',
+          kicker: '18x24 · 24x36 · Large Format',
+          cards: [
+            { title: 'Type Poster', sub: 'Type', meta: 'Single-weight type',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #d4a017 50%, #c8902a 100%)' },
+            { title: 'Photographic Collage', sub: 'Collage', meta: 'Image stacking',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #8a8a8a 50%, #6a4a8a 100%)' },
+            { title: 'Show Print', sub: 'Show', meta: 'Tour date stack',
+              gradient: 'linear-gradient(135deg, #c0202a 0%, #4a2a2a 50%, #0a0a14 100%)' },
+            { title: 'Edition Print', sub: 'Edition', meta: '100 signed + numbered',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #c4b8d8 50%, #6a4a8a 100%)' },
+            { title: 'Protest Billboard', sub: 'Billboard', meta: 'Single-color stencil',
+              gradient: 'linear-gradient(135deg, #000000 0%, #4a4a4a 50%, #ece4d0 100%)' },
+            { title: 'Album Drop', sub: 'Album Drop', meta: 'Square + sleeve',
+              gradient: 'linear-gradient(135deg, #d87060 0%, #1a1a4a 50%, #4a4a8a 100%)' },
+            { title: 'Festival Stack', sub: 'Festival', meta: 'Lineup grid',
+              gradient: 'linear-gradient(135deg, #80e060 0%, #4a4a4a 50%, #0a0a14 100%)' },
+            { title: 'Map Print', sub: 'Map', meta: 'City texture',
+              gradient: 'linear-gradient(135deg, #1f4d2a 0%, #6a8a6a 50%, #ece4d0 100%)' },
+          ],
+        },
+        albums: {
+          name: 'Album Covers',
+          kicker: '12x12 · 3000x3000 · Square Crop',
+          cards: [
+            { title: 'Type-Only Sleeve', sub: 'Type-Only', meta: 'Wordmark lockup',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #4a4a4a 50%, #0a0a14 100%)' },
+            { title: 'Single Photo', sub: 'Single Photo', meta: 'One portrait, no type',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #b8a070 50%, #6a4a8a 100%)' },
+            { title: 'Abstract Mark', sub: 'Abstract', meta: 'No photo, no type',
+              gradient: 'linear-gradient(135deg, #80e060 0%, #c41a8a 50%, #6a4a8a 100%)' },
+            { title: 'Half-Half Collage', sub: 'Half-Half', meta: 'Two frames split',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #c4a878 50%, #1a3a6e 50%, #4a6ac4 100%)' },
+            { title: 'Gatefold Spread', sub: 'Gatefold', meta: 'Inside · outside',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #c4a878 50%, #1f4d2a 100%)' },
+            { title: 'Series Sleeve', sub: 'Series', meta: 'Volume 1 of 4',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #6a6a8a 50%, #d87060 100%)' },
+            { title: 'Stained Sleeve', sub: 'Stained', meta: 'Texture wash',
+              gradient: 'linear-gradient(135deg, #8a8a8a 0%, #c4a878 50%, #c8902a 100%)' },
+            { title: 'Lyric Sleeve', sub: 'Lyric', meta: 'Verse fragment',
+              gradient: 'linear-gradient(135deg, #1a1a4a 0%, #4a4a8a 50%, #ece4d0 100%)' },
+          ],
+        },
+        videofx: {
+          name: 'Music-Video Frames',
+          kicker: 'Per-Frame · Time-Coded · Storyboard',
+          cards: [
+            { title: 'Hero Shot', sub: 'Hero', meta: 'Chorus 1:00',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #c41a8a 50%, #ffaa3a 100%)' },
+            { title: 'Verse Frame', sub: 'Verse', meta: 'Verse 0:24',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #b8a8c8 50%, #1a1a4a 100%)' },
+            { title: 'Breakdown Still', sub: 'Breakdown', meta: 'Drop 1:18',
+              gradient: 'linear-gradient(135deg, #5a504a 0%, #8a4a2a 50%, #b87333 100%)' },
+            { title: 'Outro Resolve', sub: 'Outro', meta: 'Outro 2:54',
+              gradient: 'linear-gradient(135deg, #1f4d2a 0%, #6a8a8a 50%, #c4b8d8 100%)' },
+            { title: 'Prechorus Build', sub: 'Prechorus', meta: 'Pre 0:42',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #b8a070 50%, #5a2a6a 100%)' },
+            { title: 'Title Card', sub: 'Title Card', meta: 'Intro 0:00',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #4a6ac4 50%, #ece4d0 100%)' },
+            { title: 'Lyric Over Still', sub: 'Lyric Over', meta: 'Title type overlay',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #6a6a8a 50%, #d4a017 100%)' },
+            { title: 'End Credit Still', sub: 'End Credit', meta: 'Black hold + wordmark',
+              gradient: 'linear-gradient(135deg, #000000 0%, #2a2a2a 50%, #ece4d0 100%)' },
+          ],
+        },
+        photoexp: {
+          name: 'Experimental Photography',
+          kicker: 'Chemical · Lens · Darkroom',
+          cards: [
+            { title: 'Long Exposure', sub: 'Long Exposure', meta: '15 second shutter',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #c0c0c0 50%, #c41a8a 100%)' },
+            { title: 'Multiple Exposure', sub: 'Multiple Exposure', meta: 'In-camera stack',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #4a8a8a 50%, #6a4a8a 100%)' },
+            { title: 'Cyanotype', sub: 'Cyanotype', meta: 'Iron + UV',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #4a8ac4 50%, #ece4d0 100%)' },
+            { title: 'Wet Plate Collodion', sub: 'Wet Plate', meta: 'Tintype process',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #b87333 50%, #1a1a1a 100%)' },
+            { title: 'Solargraphy', sub: 'Solargraphy', meta: 'Pinhole months',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #d4a017 50%, #4a4a4a 100%)' },
+            { title: 'Chemigram', sub: 'Chemigram', meta: 'Resist + developer',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #c4b8d8 50%, #6a4a8a 100%)' },
+            { title: 'Slit-Scan', sub: 'Slit-Scan', meta: 'Time-sliced capture',
+              gradient: 'linear-gradient(135deg, #5a5a5a 0%, #c4a878 50%, #d87060 100%)' },
+            { title: 'Photogram', sub: 'Photogram', meta: 'Lumen print',
+              gradient: 'linear-gradient(135deg, #c4b8d8 0%, #b8a8c8 50%, #0a0a14 100%)' },
+          ],
+        },
+        point4brand: {
+          name: 'Point4Brand',
+          kicker: 'Commercial · On-Brief · On-Deadline',
+          cards: [
+            { title: 'Campaign Hero', sub: 'Campaign Hero', meta: 'Single hero frame',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #8a7a66 50%, #b87333 100%)' },
+            { title: 'Product Cut-Down', sub: 'Product', meta: 'Hero in 9 crops',
+              gradient: 'linear-gradient(135deg, #c4b8d8 0%, #d4b8a8 50%, #c8902a 100%)' },
+            { title: 'Retail Display', sub: 'Retail', meta: 'Window + fixture',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #4a8ac4 50%, #80ff60 100%)' },
+            { title: 'Editorial Spread', sub: 'Editorial', meta: 'Magazine 2-page',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #2a2a2a 50%, #d87060 100%)' },
+            { title: 'Brand Lift', sub: 'Identity', meta: 'Identity refresh',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #c4a878 50%, #5a5a5a 100%)' },
+            { title: 'Social Asset Pack', sub: 'Social', meta: '9 IG posts',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #b8a070 50%, #5a2a6a 100%)' },
+            { title: 'OOH Adaptation', sub: 'OOH', meta: 'Bus wrap',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #6a6a8a 50%, #d4a017 100%)' },
+            { title: 'Trade-Show Wall', sub: 'Booth', meta: '10-foot booth',
+              gradient: 'linear-gradient(135deg, #1f4d2a 0%, #6a8a6a 50%, #ece4d0 100%)' },
+          ],
+        },
+        artist: {
+          name: 'Artist Identity',
+          kicker: 'Monogram · Logo · Press Photo',
+          cards: [
+            { title: 'Monogram', sub: 'Monogram', meta: 'Single letter lockup',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #c41a8a 50%, #0a0a14 100%)' },
+            { title: 'Wordmark', sub: 'Wordmark', meta: 'Artist name type',
+              gradient: 'linear-gradient(135deg, #4a4a4a 0%, #d4a017 50%, #1a1a1a 100%)' },
+            { title: 'Press Photo', sub: 'Press Photo', meta: 'Black/white + color',
+              gradient: 'linear-gradient(135deg, #c8902a 0%, #b8a070 50%, #5a2a6a 100%)' },
+            { title: 'EPK One-Pager', sub: 'EPK', meta: 'Bio + photo + links',
+              gradient: 'linear-gradient(135deg, #1a3a6e 0%, #4a6ac4 50%, #ece4d0 100%)' },
+            { title: 'Social Handle Pack', sub: 'Handles', meta: 'IG/TT/X/Bandcamp',
+              gradient: 'linear-gradient(135deg, #8a8a8a 0%, #d87060 50%, #4a4a4a 100%)' },
+            { title: 'Album-Cycle Wrap', sub: 'Cycle Wrap', meta: 'Single campaign',
+              gradient: 'linear-gradient(135deg, #80e060 0%, #4a4a4a 50%, #0a0a14 100%)' },
+            { title: 'Tour-Press Kit', sub: 'Tour Kit', meta: 'Stage plot + rider',
+              gradient: 'linear-gradient(135deg, #c4b8d8 0%, #c8902a 50%, #6a4a2a 100%)' },
+            { title: 'Signature Series', sub: 'Signature', meta: 'Hand-signed variants',
+              gradient: 'linear-gradient(135deg, #b87333 0%, #c4a878 50%, #ece4d0 100%)' },
+          ],
+        },
+        darkfuture: {
+          name: 'Dark Futuristic Surrealism',
+          kicker: 'Neon · Dystopia · Inversion',
+          cards: [
+            { title: 'City Inversion', sub: 'City Inversion', meta: 'Skyscrapers down',
+              gradient: 'linear-gradient(135deg, #0a0a14 0%, #ff1a8a 50%, #ece4d0 100%)' },
+            { title: 'Chrome Stalker', sub: 'Chrome', meta: 'Reflective figure',
+              gradient: 'linear-gradient(135deg, #c0c0c0 0%, #6a6a6a 50%, #2a2a2a 100%)' },
+            { title: 'Monolith Row', sub: 'Monolith', meta: '2001 sentinels',
+              gradient: 'linear-gradient(135deg, #2a0a4a 0%, #0a0a14 50%, #000000 100%)' },
+            { title: 'Neon Rain', sub: 'Neon', meta: 'Wet asphalt',
+              gradient: 'linear-gradient(135deg, #0a1a4a 0%, #c41a8a 50%, #1a1a4a 100%)' },
+            { title: 'Salt Flats After', sub: 'Salt', meta: 'Endless horizon',
+              gradient: 'linear-gradient(135deg, #ece4d0 0%, #c4a878 50%, #c8902a 100%)' },
+            { title: 'Console Cathedral', sub: 'Cathedral', meta: 'Tech as worship',
+              gradient: 'linear-gradient(135deg, #1a1a4a 0%, #4a4a8a 50%, #b87333 100%)' },
+            { title: 'Fog Over Spires', sub: 'Fog', meta: 'Low-visibility ruin',
+              gradient: 'linear-gradient(135deg, #5a5a5a 0%, #8a8a8a 50%, #80ff60 100%)' },
+            { title: 'Code Inversion', sub: 'Code', meta: 'Source as image',
+              gradient: 'linear-gradient(135deg, #000000 0%, #2a0a4a 50%, #ece4d0 100%)' },
+          ],
+        },
+        designs: {
+          name: 'New designs',
+          kicker: 'Midjourney Session 5 — band logo + character refs',
+          cards: [
+            { title: 'Vodolajusta logo', sub: 'Band logo', meta: 'Modern abstract mark',
+              images: ['vodolajusta-logo__0.webp','vodolajusta-logo__1.webp','vodolajusta-logo__2.webp','vodolajusta-logo__3.webp'] },
+            { title: 'Athena turnaround', sub: 'Character sheet', meta: 'Three-quarter view reference',
+              images: ['athena-turnaround__0.webp','athena-turnaround__1.webp','athena-turnaround__2.webp','athena-turnaround__3.webp'] },
+            { title: 'Character reference A', sub: 'Character ref', meta: 'Turnaround set A',
+              images: ['character-ref-a__0.webp','character-ref-a__1.webp','character-ref-a__2.webp','character-ref-a__3.webp'] },
+            { title: 'Character reference B', sub: 'Character ref', meta: 'Turnaround set B',
+              images: ['character-ref-b__0.webp','character-ref-b__1.webp','character-ref-b__2.webp','character-ref-b__3.webp'] },
+            { title: 'Character reference C', sub: 'Character ref', meta: 'Turnaround set C',
+              images: ['character-ref-c__0.webp','character-ref-c__1.webp','character-ref-c__2.webp','character-ref-c__3.webp'] },
+            { title: 'Character reference D', sub: 'Character ref', meta: 'Turnaround set D',
+              images: ['character-ref-d__0.webp','character-ref-d__1.webp','character-ref-d__2.webp','character-ref-d__3.webp'] },
+          ],
+        },
+      };
+
+      var gallery = GALLERY_INDEX[slug];
+      if (!gallery) {
+        document.getElementById('title').innerHTML =
+          'Gallery not found: <em>' + (slug || 'none') + '</em>';
+        return;
+      }
+
+      // Clamp card index
+      if (isNaN(cardIdx) || cardIdx < 0) cardIdx = 0;
+      if (cardIdx >= gallery.cards.length) cardIdx = gallery.cards.length - 1;
+
+      var card = gallery.cards[cardIdx];
+
+      // Header
+      document.getElementById('kicker').textContent = 'SWR · Shop · ' + gallery.kicker;
+      document.getElementById('pill-gallery').textContent = 'Gallery: ' + gallery.name;
+      document.getElementById('pill-card').textContent = 'Card ' + (cardIdx + 1) + ' · ' + card.title;
+
+      // Big artwork
+      var art = document.getElementById('art');
+      // Strip any existing <img> from a previous render so cards don't
+      // bleed state when switching between gradient- and image-backed
+      // designs.
+      while (art.firstChild) art.removeChild(art.firstChild);
+      // Reset inline background to the gallery's CSS default (--bg-2)
+      art.style.background = card.gradient || 'var(--bg-2)';
+      if (card.images && card.images.length) {
+        var img = document.createElement('img');
+        img.className = 'shop__art-img';
+        img.alt = card.title;
+        // Cycle variant on click. Default = first image.
+        var variantIdx = 0;
+        function setVariant(i) {
+          variantIdx = (i + card.images.length) % card.images.length;
+          img.src = './shop-designs/' + card.images[variantIdx];
+          variantLabel.textContent = 'Variant ' + (variantIdx + 1) + ' / ' + card.images.length;
+        }
+        var variantLabel = document.createElement('div');
+        variantLabel.className = 'shop__art-variant';
+        setVariant(0);
+        art.appendChild(img);
+        art.appendChild(variantLabel);
+        img.addEventListener('click', function () { setVariant(variantIdx + 1); });
+      }
+      document.getElementById('art-meta').textContent =
+        gallery.name + ' · ' + card.title;
+
+      // Card picker — quick switch between the 8 cards in this gallery
+      var picker = document.getElementById('picker');
+      gallery.cards.forEach(function (c, idx) {
+        var chip = document.createElement('a');
+        chip.className = 'picker__chip' + (idx === cardIdx ? ' is-active' : '');
+        chip.href = '/shop.html?g=' + slug + '&c=' + idx;
+        chip.textContent = (idx + 1) + '. ' + c.title;
+        picker.appendChild(chip);
+      });
+
+      // Product picker — 3 buttons
+      var productsEl = document.getElementById('products');
+      var products = (window.SWR_SHOP && window.SWR_SHOP.products) || [
+        { id: 'logo-tee', name: 'Logo Tee', blurb: 'Front-pocket print, single color on cotton.', price: 25, currency: 'EUR', stripeUrl: 'https://buy.stripe.com/REPLACE_LOGO_TEE_25' },
+        { id: 'graphic-tee', name: 'Graphic Tee', blurb: 'Full back print, large format on cotton.', price: 25, currency: 'EUR', stripeUrl: 'https://buy.stripe.com/REPLACE_GRAPHIC_TEE_25' },
+        { id: 'mug', name: 'Mug', blurb: '11oz ceramic, both-sides print.', price: 15, currency: 'EUR', stripeUrl: 'https://buy.stripe.com/REPLACE_MUG_15' },
+      ];
+
+      products.forEach(function (p) {
+        var row = document.createElement('div');
+        row.className = 'product';
+        var isPlaceholder = /REPLACE_/.test(p.stripeUrl);
+        if (isPlaceholder) row.classList.add('is-disabled');
+        row.innerHTML =
+          '<div style="flex:1; min-width:0;">' +
+            '<h3 class="product__name">' + p.name + '</h3>' +
+            '<p class="product__blurb">' + p.blurb + '</p>' +
+          '</div>' +
+          '<span class="product__price">€' + p.price + '</span>' +
+          '<a class="product__buy" href="' +
+            (isPlaceholder ? '#shop-notice' : (p.stripeUrl + '?client_reference_id=g%3D' + slug + '%26c%3D' + cardIdx + '%26p%3D' + p.id)) +
+          '" ' + (isPlaceholder ? 'onclick="document.getElementById(\'notice\').scrollIntoView({behavior:\'smooths\'}); return false;"' : 'target="_blank" rel="noopener"') +
+          '>Buy →</a>';
+        productsEl.appendChild(row);
+      });
+    })();
+  </script>
+
+  <!-- Theme toggle handler. Cycles auto → light → dark → auto and
+       persists the choice. Re-runs after the no-flash bootstrap so the
+       toggle label matches the actually-applied theme. -->
+  <script>
+    (function () {
+      var btn = document.getElementById('theme-toggle');
+      var label = document.getElementById('theme-label');
+      if (!btn || !label) return;
+      function syncLabel() {
+        var pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+        label.textContent = pref.charAt(0).toUpperCase() + pref.slice(1);
+      }
+      btn.addEventListener('click', function () {
+        var pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+        var next = pref === 'light' ? 'dark' : pref === 'dark' ? 'system' : 'light';
+        try { localStorage.setItem('swr-theme', next); } catch (_) {}
+        var resolved = next === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : next;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', next);
+        syncLabel();
+      });
+      syncLabel();
+      // React to OS-level theme changes when the user is in 'auto'
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+        var pref = document.documentElement.getAttribute('data-theme-pref');
+        if (pref === 'system' || !pref) {
+          var r = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', r);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

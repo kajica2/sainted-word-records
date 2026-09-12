@@ -12,6 +12,12 @@ function copyDirRecursive(src, dst) {
     // including directories like api/_lib/ (the underscore-prefix skip
     // would have silently dropped our shared helpers).
     if (f.startsWith('.') || f.endsWith('.bak')) continue;
+    // Skip large unreviewed candidate asset directories — they're gitignored
+    // locally, but copyDirRecursive doesn't know about .gitignore. The
+    // underscore prefix is a strong project-wide convention for "not part
+    // of the deploy" (see .gitignore comments). Mirroring it here keeps
+    // artists/_candidates/, shotlist/_candidates/, etc. off Vercel.
+    if (f.startsWith('_candidates')) continue;
     const sp = join(src, f);
     const dp = join(dst, f);
     const st = statSync(sp);
@@ -42,7 +48,10 @@ function copyStatic() {
   let outDir = 'dist';
   const rootFiles = [
     'landing.html', 'interactive-howto.html', 'market-study.html',
-    'profit-plan.html', 'campaign.html', 'personas.html', 'atlas.html', 'atlas-crisis.html', 'atlas-life-stages.html', 'atlas-200-steps.html', 'atlas-checklist.html', 'atlas-final-insight.html', 'atlas-architect.html', 'atlas-forge.html', 'atlas-integration.html', 'atlas-legacy.html',
+    'profit-plan.html', 'campaign.html', 'personas.html',
+    'gif-to-svg.html',
+    'gif-to-svg.client.js',
+    'atlas.html', 'atlas-crisis.html', 'atlas-life-stages.html', 'atlas-200-steps.html', 'atlas-checklist.html', 'atlas-final-insight.html', 'atlas-architect.html', 'atlas-forge.html', 'atlas-integration.html', 'atlas-legacy.html',
     'landing-personas-v1-editorial.html',
     'landing-personas-v2-dark.html',
     'landing-personas-v3-friendly.html',
@@ -74,6 +83,12 @@ function copyStatic() {
     'engine-automap.client.js',
     'engine-settings.client.js',
     'persona-onboarding.js',
+    'persona-runtime.client.js',
+    'persona-demo.html',
+    'swr-mascot-camera.svg',
+    'swr-mascot-camera.client.js',
+    'gallery-audio.client.js',
+    'dropzone.client.js',
     'engine-keys.client.js',
     'engine-layout.client.js',
     'project.client.js',
@@ -140,6 +155,29 @@ function copyStatic() {
     'status.html',
     'versions.html',
     'portfolio.html',
+    'gallery-music.html',
+    'gallery-generative.html',
+    'gallery-cosmic.html',
+    'gallery-bio.html',
+    'gallery-ai.html',
+    'gallery-glyphs.html',
+    'gallery-vr.html',
+    'gallery-tshirts.html',
+    'gallery-posters.html',
+    'gallery-albums.html',
+    'gallery-videofx.html',
+    'gallery-photoexp.html',
+    'gallery-point4brand.html',
+    'gallery-artist.html',
+    'gallery-darkfuture.html',
+    'gallery-bachdrop.html',
+    'gallery-brutalist.html',
+    'gallery-loops.html',
+    'gallery.html',
+    'gallery-vintage.html',
+    'swr-build-id.client.js',
+    'swr-onboarding-hf.client.js',
+    'shop.html',
     'engine-demos.html',
     'swr-campaign-launch-plan.html',
     'swr-dm-templates.html',
@@ -153,7 +191,6 @@ function copyStatic() {
     'lib/auth.client.js',
     'lib/storage.client.js',
     'lib/migrate.client.js',
-    'api/health.js',
     'api/auth/session.js',
     'api/auth/magic.js',
     'api/auth/verify.js',
@@ -162,6 +199,10 @@ function copyStatic() {
     'api/storage/object.js',
     'api/projects/index.js',
     'api/projects/[id].js',
+    // Auth & membership (Stage 2): per-user profile endpoint. Vite's
+    // copyStatic will mirror the directory layout, so 'api/users/[id].js'
+    // becomes dist/api/users/[id].js — Vercel reads the [id] segment.
+    'api/users/[id].js',
     'api/_lib/db.js',
     'api/_lib/http.js',
     'api/_lib/session.js',
@@ -185,7 +226,12 @@ function copyStatic() {
     if (LIB_FILES) return LIB_FILES;
     try {
       const m = JSON.parse(readFileSync(resolve('library', 'manifest.json'), 'utf8'));
-      LIB_FILES = Array.isArray(m.files) ? m.files : [];
+      // Concatenate curated image/video files with the loop pack so the
+      // gallery-loops.html MP4s ship alongside the engine's library.
+      const all = [];
+      if (Array.isArray(m.files)) all.push(...m.files);
+      if (Array.isArray(m.loopFiles)) all.push(...m.loopFiles);
+      LIB_FILES = all;
     } catch (e) { LIB_FILES = []; }
     return LIB_FILES;
   }
@@ -215,6 +261,10 @@ function copyStatic() {
     // marketplace.html page fetches them by relative path, so they must
     // be at marketplace/curated/<file>.swr-set.json in dist.
     { src: 'marketplace', dst: 'marketplace' },
+    // marketing/personas/demos/<id>.json — per-persona engine config the
+    // persona-runtime.client.js fetches at /personas/:id. See persona-demo.html
+    // for the schema; cluster/mode + preset/primitive/color/reactor.
+    { src: 'marketing', dst: 'marketing' },
     // audios/ ships per-engine demo MP3s (one ~250KB file per engine,
     // ~4 MB total). Each engine auto-loads ../audios/<engine>.mp3 as the
     // default audio source so the reactivity has something to drive.
@@ -235,6 +285,27 @@ function copyStatic() {
     // autoplay to demo storyboard sequences. Loaded via fetch at runtime
     // (no build step). Pair with the timeline player in video_single.html.
     { src: 'reels', dst: 'reels' },
+    // Vendored browser-side libraries (no CDN at runtime)
+    { src: 'client/vendor', dst: 'client/vendor' },
+    // Artist pages (artists/<slug>.html + artists/index.html +
+    // artists/vodolija/index.html). Vodolija's _candidates/ dirs are
+    // .gitignored so only the curated pages ship. Total tracked: ~0.1 MB.
+    { src: 'artists', dst: 'artists' },
+    // Shotlist page (shotlist/index.html). _candidates/ gitignored,
+    // only the curated page ships. Total tracked: ~0.1 MB.
+    { src: 'shotlist', dst: 'shotlist' },
+    // Persona variants (personas/v/<name>.html + index). Total
+    // tracked: ~0.3 MB.
+    { src: 'personas', dst: 'personas' },
+    // Vintage gallery: 57 curated WebP compositions (8.1 MB) across 4
+    // themes. _candidates_web/ holds 404 unreviewed Midjourney Session 4
+    // PNGs (~728 MB) — gitignored AND excluded from the build by the
+    // _candidates* skip rule in copyDirRecursive.
+    { src: 'gallery-vintage', dst: 'gallery-vintage' },
+    // Shop design assets: 24 Midjourney Session 5 compositions (2.7 MB)
+    // — Vodolajusta logo + character references, rendered as
+    // card.images[] in shop.html's designs gallery.
+    { src: 'shop-designs', dst: 'shop-designs' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',

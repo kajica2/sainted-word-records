@@ -88,3 +88,33 @@ _smoke_*.mjs
 # Throwaway Puppeteer-driven Vercel debug sessions (manual Chrome
 # inspection via CDP :9222). One-off helpers; not part of the app.
 _vercel-debug.mjs
+
+# Vodolija logo candidate PNGs (large; reviewed locally, not committed)
+artists/vodolija/_candidates_web/
+artists/vodolija/_candidates/
+# Shot-list reference frames (Midjourney candidates, large; reviewed locally)
+shotlist/_candidates_web/
+shotlist/_candidates/
+# Vintage gallery unreviewed Midjourney candidates (728 MB of source PNGs;
+# only the curated WebPs in gallery-vintage/*.webp ship to deploy)
+gallery-vintage/_candidates_web/
+gallery-vintage/_candidates/
+
+# Expo / React Native sub-project lives in this repo for local dev only.
+# It is a separate app (its own package.json, node_modules, app.json) and
+# must NOT be part of the Vite+Vercel static deploy. node_modules inside
+# score-app/ would otherwise push the deploy well past Vercel's size cap.
+score-app/
+score-app/**/node_modules/
+
+# Work artifacts (loop prompts, wiggum config, TODOs, runtime data)
+.wiggum.toml
+LOOP-PROMPT.md
+TODO.md
+personas_extracted.json
+artists.json
+
+# Throwaway debug/audit scripts at repo root (no underscore prefix).
+# The _probe-*.mjs rules above already cover underscored names; these
+# cover the bare-prefixed probes.
+probe-*.mjs

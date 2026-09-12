@@ -1,0 +1,30 @@
+# score-evolution-journal
+
+Long-horizon work journal for `feat/score-evolution`. Each entry is
+written by a worker (sub-agent or human) when it finishes a task. The
+parent reads this on resume to know what's been discovered.
+
+Append-only. Format per entry:
+
+```
+## YYYY-MM-DDTHH:MM:SSZ · task-id · status · worker
+
+<one-paragraph summary>
+
+<artifacts written>
+
+<open questions / drift-tuning notes>
+```
+
+---
+
+## 2026-09-04T16:00:00Z · PLAN · created · hermes
+
+Plan written. Stage 1 (accumulator state) ready to start. 6 stages
+total, ~4 days of focused work. Drift tuning flagged as the one
+place that needs human eyes; everything else is mechanical.
+
+Artifacts:
+- .hermes/plans/score-evolution.md (the plan)
+- .hermes/plans/score-evolution-state.json (machine-readable)
+- .hermes/plans/score-evolution-journal.mdl (this file)

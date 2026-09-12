@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marko Ilić · SWR artist showcase</title>
+  <meta name="description" content="Techno · industrial · rhythm research — Marko treats the engine as a percussion instrument. He runs his tracks through 14-FX with chroma at 0.85 and treats the resulting distortion" />
+  <meta property="og:title" content="Marko Ilić · SWR" />
+  <meta property="og:description" content="Marko treats the engine as a percussion instrument. He runs his tracks through 14-FX with chroma at 0.85 and treats the resulting distortion as the second voice in the mix. Releases on three labels." />
+  <meta name="theme-color" content="#ff6b3a" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      --bg: #0a0612; --bg-2: #150b22; --panel: #1a0f30; --panel-2: #221540;
+      --ink: #f5e9ff; --ink-2: #c8b5e0; --muted: #8a7aa0; --line: #2a1d3e;
+      --accent: #ff6b3a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { opacity: 0.8; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 24px 18px 80px; }
+    header.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+    header.top .badge { display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 12px; border: 1px solid var(--accent); border-radius: 999px;
+      color: var(--accent); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; }
+    header.top .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    header.top .spacer { flex: 1; }
+    header.top a.back { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 6px 12px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); }
+
+    h1 { font-size: 36px; font-weight: 700; margin: 0 0 4px; letter-spacing: 0.04em; }
+    .loc { font-size: 11px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+    .tagline { font-size: 14px; color: var(--accent); letter-spacing: 0.04em; margin-bottom: 18px; font-style: italic; }
+    .bio { font-size: 14px; color: var(--ink-2); line-height: 1.65; max-width: 720px; }
+
+    /* ---- player ---- */
+    .player { margin: 24px 0 32px; padding: 16px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .play-gate { display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 18px; border: 1px solid var(--accent); border-radius: 4px;
+      background: transparent; color: var(--accent); cursor: pointer;
+      font: 11px/1 ui-monospace; letter-spacing: 0.16em; text-transform: uppercase; }
+    .play-gate:hover { background: var(--accent); color: #000; }
+    .play-gate.playing { background: var(--accent); color: #000; }
+    .play-gate .play-icon { font-size: 14px; }
+    .play-gate.playing .play-icon::before { content: '⏸'; }
+    .play-gate.playing .play-icon { font-size: 0; }
+    .play-gate.playing .play-icon::before { font-size: 14px; }
+    .play-gate .play-icon::before { content: '▶'; }
+    .now-playing { display: inline-flex; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--ink-2); letter-spacing: 0.08em; }
+    .track-label { color: var(--ink); }
+    .player[data-missing="1"] .play-gate { opacity: 0.4; pointer-events: none; }
+    .player[data-missing="1"]::after { content: 'audio asset missing — track will play once added to /audios/';
+      flex-basis: 100%; color: var(--muted); font-size: 10px; letter-spacing: 0.08em; }
+
+    /* ---- works ---- */
+    .section h2 { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 14px; font-weight: 500; }
+    .works { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .work { display: block; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 6px; padding: 14px; transition: border-color 0.18s, transform 0.18s; }
+    .work:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .work.disabled { opacity: 0.55; cursor: not-allowed; }
+    .work.disabled:hover { transform: none; }
+    .work-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .work-kind { font-size: 9px; letter-spacing: 0.18em; padding: 2px 6px;
+      border-radius: 2px; background: var(--accent); color: #000; font-weight: 700; }
+    .work-year { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; }
+    .work-title { font-size: 14px; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
+    .work-note { font-size: 11px; color: var(--ink-2); line-height: 1.4; min-height: 28px; }
+    .work-foot { font-size: 10px; color: var(--accent); letter-spacing: 0.14em;
+      text-transform: uppercase; margin-top: 10px; }
+    .works-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+
+    .links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .link { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      padding: 7px 12px; border: 1px solid var(--line); border-radius: 3px;
+      color: var(--ink-2); }
+    .link:hover { color: var(--accent); border-color: var(--accent); }
+
+    footer.foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
+      font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  
+    <audio id="track" loop preload="auto" crossorigin="anonymous">
+      <source src="/audios/glitch.mp3" type="audio/mpeg" />
+    </audio>
+    <button id="playGate" class="play-gate" type="button" aria-label="Play loop">
+      <span class="play-icon" aria-hidden="true">▶</span>
+      <span class="play-label">PLAY LOOP</span>
+    </button>
+    <div class="now-playing" hidden>
+      <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="track-label">Loop from &#39;Kvar&#39;</span>
+    </div>
+    <style>
+      /* tiny equaliser animation when audio is running */
+      .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+      .eq i { width: 3px; background: var(--accent); display: block; animation: eq 0.9s infinite ease-in-out; }
+      .eq i:nth-child(1) { animation-delay: -0.3s; }
+      .eq i:nth-child(2) { animation-delay: -0.1s; }
+      .eq i:nth-child(3) { animation-delay: -0.5s; }
+      @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 12px; } }
+      .now-playing.playing .eq i { animation-play-state: running; }
+      .now-playing.paused .eq i { animation-play-state: paused; }
+    </style>
+  <div class="wrap">
+    <header class="top">
+      <span class="badge">ARTIST · MARKO ILIĆ</span>
+      <span class="spacer"></span>
+      <a class="back" href="/artists">← ALL ARTISTS</a>
+    </header>
+
+    <h1>Marko Ilić</h1>
+    <div class="loc">Belgrade, RS</div>
+    <div class="tagline">Techno · industrial · rhythm research</div>
+    <p class="bio">Marko treats the engine as a percussion instrument. He runs his tracks through 14-FX with chroma at 0.85 and treats the resulting distortion as the second voice in the mix. Releases on three labels.</p>
+
+    <div class="player">
+      <button id="playGate" class="play-gate" type="button" aria-label="Play loop">
+        <span class="play-icon" aria-hidden="true">▶</span>
+        <span class="play-label">PLAY LOOP</span>
+      </button>
+      <div class="now-playing" id="nowPlaying" hidden>
+        <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="track-label">Loop from &#39;Kvar&#39;</span>
+      </div>
+    </div>
+
+    <section class="section">
+      <h2>Works</h2>
+      <div class="works">
+        <a class="work" href="/share-view.html">
+      <div class="work-meta">
+        <span class="work-kind">VIDEO</span>
+        <span class="work-year">2026</span>
+      </div>
+      <div class="work-title">Kvar</div>
+      
+      <div class="work-foot">open →</div></a>
+        <a class="work" href="/share-view.html">
+      <div class="work-meta">
+        <span class="work-kind">VIDEO</span>
+        <span class="work-year">2025</span>
+      </div>
+      <div class="work-title">Gumeni</div>
+      
+      <div class="work-foot">open →</div></a>
+        <a class="work" href="/share-view.html">
+      <div class="work-meta">
+        <span class="work-kind">VIDEO</span>
+        <span class="work-year">2025</span>
+      </div>
+      <div class="work-title">Pogon</div>
+      
+      <div class="work-foot">open →</div></a>
+      </div>
+    </section>
+
+    
+    <div class="links">
+      <a class="link" href="https://bandcamp.com/" rel="noopener noreferrer" target="_blank">Bandcamp ↗</a><a class="link" href="https://boilerroom.tv/" rel="noopener noreferrer" target="_blank">Boiler Room ↗</a>
+    </div>
+
+    <footer class="foot">
+      marko-ilic · <a href="/artists">see all artists →</a>
+    </footer>
+  </div>
+
+  <script>
+    // Play-gate logic: most browsers block autoplay-with-sound. The first
+    // user click on the play button resumes the audio context, then we
+    // toggle play/pause. The button text and equaliser animate to reflect
+    // state.
+    (function () {
+      const audio = document.getElementById('track');
+      const btn = document.getElementById('playGate');
+      const np = document.getElementById('nowPlaying');
+      if (!audio || !btn) return;
+      if (audio.dataset.missing === '1') {
+        btn.disabled = true;
+        btn.querySelector('.play-label').textContent = 'AUDIO MISSING';
+        return;
+      }
+      audio.volume = 0.7;
+      let playing = false;
+      function render() {
+        btn.classList.toggle('playing', playing);
+        btn.querySelector('.play-label').textContent = playing ? 'PAUSE' : 'PLAY LOOP';
+        if (np) {
+          np.hidden = !playing;
+          np.classList.toggle('playing', playing);
+          np.classList.toggle('paused', !playing);
+        }
+      }
+      btn.addEventListener('click', function () {
+        if (playing) { audio.pause(); playing = false; }
+        else {
+          audio.play().then(function () { playing = true; render(); })
+            .catch(function (e) { console.warn('audio play failed', e); });
+          return;
+        }
+        render();
+      });
+      audio.addEventListener('ended', function () { playing = false; render(); });
+      audio.addEventListener('pause', function () { playing = false; render(); });
+      audio.addEventListener('play',  function () { playing = true;  render(); });
+    })();
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 // Self-contained: ensureDist() auto-builds dist/ if missing. No need
 // to remember `npm run build` first.
 //
+
 // Boots a static server on dist/, opens versions/music_video.html in
 // Puppeteer, and verifies:
 //   - the page loads with the MUSIC VIDEO header + no outbound nav links
@@ -22,6 +23,7 @@ import { ensureDist } from './with-dist.mjs';
 
 // Auto-build dist/ if missing — no more "forgot to npm run build" 404s.
 ensureDist();
+
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const MIME = {
@@ -218,6 +220,7 @@ function assert(cond, msg) {
       && photoShape.stageSize[1] === 1080
       && photoShape.hasRecorder,
     `/photo loads with stage canvas + image/audio/format inputs + export button + 1080×1080 default (got: ${JSON.stringify(photoShape)})`);
+
 
   await browser.close();
   server.close();

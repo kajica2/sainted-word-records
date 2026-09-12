@@ -26,7 +26,8 @@ const HANDLER_PATHS = {
   'projects/item': '../api/projects/[id].js',
   // P3.4 — public share endpoint. No auth required.
   'projects/share': '../api/projects/share/[shareId].js',
-  'health': '../api/health.js',
+  // P3.8 — health probe merged into /api/manifest?action=health
+  // (Vercel Hobby 12-function cap). Routed below via 'manifest'.
   'manifest': '../api/manifest.js',
 };
 
@@ -47,8 +48,12 @@ function pickHandlerPath(urlPath) {
     if (segs[2] === 'share' && segs[3]) return HANDLER_PATHS['projects/share'];
     return HANDLER_PATHS['projects/item'];
   }
-  if (segs[1] === 'health') return HANDLER_PATHS['health'];
-  if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files too
+  // Auth & membership (Stage 2): /api/users/<id> → profile endpoint.
+  if (segs[1] === 'users' && segs[2] && /^[a-f0-9-]{8,40}$/i.test(segs[2])) {
+    return '../api/users/[id].js';
+  }
+  if (segs[1] === 'health') return HANDLER_PATHS['manifest'];
+  if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files + ?action=health
   return null;
 }
 
@@ -75,6 +80,13 @@ export async function handleApi(req, res, next) {
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ error: 'no_handler', url }));
     return;
+  }
+
+  // P3.8 — /api/health is served by /api/manifest with ?action=health.
+  // Rewrite the URL so the merged handler routes to the right branch
+  // and reports the canonical query string in any error responses.
+  if (url.startsWith('/api/health')) {
+    req.url = '/api/manifest?action=health';
   }
 
   let handler;

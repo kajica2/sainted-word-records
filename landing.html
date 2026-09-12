@@ -228,6 +228,20 @@
       position: absolute; inset: 0; pointer-events: none;
       background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.2) 100%);
     }
+
+    .engine-mini__svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: 0.92;
+      transition: opacity 0.4s ease;
+      will-change: transform, opacity;
+    }
+    .engine-mini__svg:empty { opacity: 0; }
+    /* Cursor feedback so the demo reads as clickable */
+    engine-mini { cursor: pointer; }
+    engine-mini:active { transform: scale(0.995); transition: transform 0.12s ease; }
     .engine-mini__label {
       position: absolute; top: 12px; left: 12px;
       font-family: var(--font-mono); font-size: 10px;
@@ -487,6 +501,16 @@
       font-family: var(--font-mono); font-size: 10px;
     }
 
+    /* Mascot card needs to escape the 28x28 icon container default so the
+       240x240 SVG isn't clipped or overflowing the card. */
+    .persona__icon--mascot {
+      width: auto; height: auto;
+      padding: 0 !important; background: transparent !important;
+      display: flex; align-items: center; justify-content: center;
+      margin: -8px 0 16px;  /* tighten the gap above the title */
+    }
+    .persona__icon--mascot swr-mascot-camera { display: block; }
+
     /* ===== QUICK START (TERMINAL) ===== */
     .quick {
       display: grid; grid-template-columns: 1fr 1.4fr; gap: 48px; align-items: center;
@@ -602,6 +626,109 @@
       color: var(--muted); letter-spacing: 0.05em;
     }
 
+    /* ===== DIRECTORY (every page) ===== */
+    .dir {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+    .dir__group {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px 26px 26px;
+    }
+    .dir__group-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .dir__group-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0;
+    }
+    .dir__group-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .dir__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .tile {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px 16px 14px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      text-decoration: none;
+      transition: border-color var(--transition), transform var(--transition), background var(--transition);
+      min-height: 140px;
+    }
+    .tile:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      background: var(--bg-3);
+    }
+    .tile__title {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 17px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .tile:hover .tile__title { color: var(--accent); }
+    .tile__desc {
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--ink-2);
+      margin: 0;
+      flex: 1;
+    }
+    .tile__meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .pill--date {
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      color: var(--accent);
+    }
+    .pill--size {
+      background: var(--bg-2);
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
     /* ===== UTILITIES ===== */
     .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s, transform 0.6s; }
     .reveal.visible { opacity: 1; transform: translateY(0); }
@@ -681,6 +808,7 @@
         <a href="/intro">Intro</a>
         <a href="#quickstart">Quick start</a>
         <a href="#stack">Stack</a>
+        <a href="#pages">All pages</a>
       </div>
       <theme-toggle></theme-toggle>
       <a class="nav__cta" href="./campaign.html">
@@ -863,6 +991,36 @@
     </div>
   </section>
 
+  <!-- ============ BATCH DROPZONE ============ -->
+  <section class="section section--alt" id="drop">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">Batch ingest</span>
+        <h2 class="section__title">
+          Drag a <em>folder</em>. Get a cleaned, tagged library.
+        </h2>
+        <p class="section__lede">
+          Drop any number of PNG, JPEG, MP4, MP3, or WAV files onto the box.
+          Each one is auto-processed: PNGs and JPEGs go through the asset
+          curator (chroma-key on a uniform background, then local tag heuristic),
+          audio and video pass through untouched. Folder drops are flattened
+          recursively. A live chip per file shows the curator's verdict.
+        </p>
+      </div>
+      <div class="swr-dropzone swr-dropzone--idle reveal"
+           data-accept="image/png,image/jpeg,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,.mp3,.wav"
+           data-mode="preview"
+           data-bg-removal-confirm="true"
+           aria-label="Drag files anywhere on this box to batch-upload">
+        Drop files anywhere on this box — or click to browse
+      </div>
+      <p class="section__lede" style="margin-top:14px;font-size:13px;opacity:0.7;">
+        Listens for <code>swr:drop</code> on <code>document</code> — fires once per drop with
+        <code>{results, files}</code> so any consumer can wire it in.
+      </p>
+    </div>
+  </section>
+
   <!-- ============ VERSIONS ============ -->
   <section class="section section--alt" id="versions">
     <div class="wrap">
@@ -988,6 +1146,15 @@
         </p>
       </div>
       <div class="personas">
+        <div class="persona persona--mascot">
+          <span class="persona__best">New</span>
+          <div class="persona__icon persona__icon--mascot">
+            <swr-mascot-camera src="/swr-mascot-camera.svg" label="SWR mascot reacts to your camera"></swr-mascot-camera>
+          </div>
+          <h4 class="persona__name">Hand-drawn mascot</h4>
+          <p class="persona__body">Click the mascot — it requests your camera, samples frames at 8 fps, and reacts in real time. A hand-wave makes it wave back. A face held high makes it look up. Sustained motion (you're close) makes it lean in. Long quiet after activity makes it ease back. Head tilts toward your face. No model, no CDN.</p>
+          <span class="persona__tool">→ <code>swr-mascot-camera.client.js</code></span>
+        </div>
         <div class="persona">
           <span class="persona__best">Best fit</span>
           <div class="persona__icon">♪</div>
@@ -1204,6 +1371,409 @@
     </div>
   </section>
 
+  <!-- ============ ALL PAGES (directory) ============ -->
+  <section class="section section--alt" id="pages">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">Directory</span>
+        <h2 class="section__title">
+          Every page on <em>sainted-word-records</em>.
+        </h2>
+        <p class="section__lede">
+          Public routes from this domain, grouped by what they're for. Each
+          one is a real, hand-tuned surface — no template fills. Last-updated
+          dates come from each page's file mtime.
+        </p>
+      </div>
+
+      <div class="dir reveal">
+        <!-- Engine -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">Engine</h4>
+            <span class="dir__group-count">6 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="/engine">
+              <h5 class="tile__title">Main engine</h5>
+              <p class="tile__desc">Drop a song, drop a library, get a video. The browser-native audio-reactive video engine.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">273 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./swr-app.html">
+              <h5 class="tile__title">App shell</h5>
+              <p class="tile__desc">The SWR app surface — PWA shell with engine, presets, projects, and cloud sync.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-04</span>
+                <span class="pill pill--size">377 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/versions">
+              <h5 class="tile__title">All 5 versions</h5>
+              <p class="tile__desc">Neon, Film, Grid, Smoke, Hallucination — same engine, five visual languages.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-04</span>
+                <span class="pill pill--size">49 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/engine-demos">
+              <h5 class="tile__title">Engine demos</h5>
+              <p class="tile__desc">Every engine preset with a real-time thumb. Click to open and record.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">13 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/gif-to-svg">
+              <h5 class="tile__title">GIF → SVG</h5>
+              <p class="tile__desc">Drop a GIF, get a hand-traced animated SVG. No server, no Wasm, no install.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/make-video">
+              <h5 class="tile__title">Make a video</h5>
+              <p class="tile__desc">Step-by-step music video maker. Pick a song, drop in clips, MP4 export.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-07</span>
+                <span class="pill pill--size">10 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Gallery -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">Gallery</h4>
+            <span class="dir__group-count">19 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="./gallery-music.html">
+              <h5 class="tile__title">All galleries</h5>
+              <p class="tile__desc">The gallery index — every curated visual collection in one place.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-music.html">
+              <h5 class="tile__title">Music</h5>
+              <p class="tile__desc">Music-driven visual sets curated for the audio-reactive engine.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-generative.html">
+              <h5 class="tile__title">Generative</h5>
+              <p class="tile__desc">Procedural and generative compositions.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">13 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-cosmic.html">
+              <h5 class="tile__title">Cosmic</h5>
+              <p class="tile__desc">Cosmic-scale motion and color.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-bio.html">
+              <h5 class="tile__title">Bio</h5>
+              <p class="tile__desc">Bio / organic textures and growth forms.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">17 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-ai.html">
+              <h5 class="tile__title">AI</h5>
+              <p class="tile__desc">AI-augmented visual studies.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">13 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-glyphs.html">
+              <h5 class="tile__title">Glyphs</h5>
+              <p class="tile__desc">Glyph-driven typography in motion.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-vr.html">
+              <h5 class="tile__title">VR</h5>
+              <p class="tile__desc">Stereoscopic / VR-ready compositions.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-photoexp.html">
+              <h5 class="tile__title">Photo experiments</h5>
+              <p class="tile__desc">Photo experiments and image treatments.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">15 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-darkfuture.html">
+              <h5 class="tile__title">Dark future</h5>
+              <p class="tile__desc">Dark-future palette: noir, neon, decay.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-brutalist.html">
+              <h5 class="tile__title">Brutalist</h5>
+              <p class="tile__desc">Brutalist layouts, hard rules, raw type.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">23 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-bachdrop.html">
+              <h5 class="tile__title">Bachdrop</h5>
+              <p class="tile__desc">Counterpoint-reactive baroque engine and gallery.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">15 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-loops.html">
+              <h5 class="tile__title">Loops</h5>
+              <p class="tile__desc">Loop-first compositions for social.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">21 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-vintage.html">
+              <h5 class="tile__title">Vintage</h5>
+              <p class="tile__desc">57 Midjourney compositions of vintage architecture, Soviet-era civic buildings, and old photographs.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-11</span>
+                <span class="pill pill--size">49 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-posters.html">
+              <h5 class="tile__title">Posters</h5>
+              <p class="tile__desc">Poster-format static compositions.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">14 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-albums.html">
+              <h5 class="tile__title">Albums</h5>
+              <p class="tile__desc">Album-art covers and variants.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-videofx.html">
+              <h5 class="tile__title">Video FX</h5>
+              <p class="tile__desc">Heavy FX treatments for video output.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-tshirts.html">
+              <h5 class="tile__title">T-shirts</h5>
+              <p class="tile__desc">T-shirt design variants from every gallery.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">14 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-artist.html">
+              <h5 class="tile__title">Artist</h5>
+              <p class="tile__desc">Artist-page treatments.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">14 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./gallery-point4brand.html">
+              <h5 class="tile__title">Point4 brand</h5>
+              <p class="tile__desc">Point4brand visual system applied across the engine.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- For creators -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">For creators</h4>
+            <span class="dir__group-count">6 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="/personas">
+              <h5 class="tile__title">Personas</h5>
+              <p class="tile__desc">Who this is built for — 8 personas with concrete starting points.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">26 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/campaign">
+              <h5 class="tile__title">Campaign</h5>
+              <p class="tile__desc">Get a visualizer. €25–€40, 48-hour turnaround, browser-based.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">123 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/weddings">
+              <h5 class="tile__title">Weddings</h5>
+              <p class="tile__desc">Curated wedding-moment playlists. Open the Music Video Maker pre-loaded.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-07</span>
+                <span class="pill pill--size">17 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./marketplace.html">
+              <h5 class="tile__title">Marketplace</h5>
+              <p class="tile__desc">Curated .swr-set templates. Install to your engine, open in one click.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">17 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/shop">
+              <h5 class="tile__title">Shop</h5>
+              <p class="tile__desc">Logo tees, graphic tees, and mugs from every SWR gallery.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-09-10</span>
+                <span class="pill pill--size">36 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/portfolio">
+              <h5 class="tile__title">Portfolio</h5>
+              <p class="tile__desc">Five curated visual sets for music videos. See each set in action.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">12 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Learn & docs -->
+        <section class="dir__group">
+          <header class="dir__group-head">
+            <h4 class="dir__group-title">Learn &amp; docs</h4>
+            <span class="dir__group-count">11 pages</span>
+          </header>
+          <div class="dir__grid">
+            <a class="tile" href="/intro">
+              <h5 class="tile__title">Intro</h5>
+              <p class="tile__desc">Sainted Word Records in 90 seconds.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">20 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./tutorial-30s.html">
+              <h5 class="tile__title">30-second tutorial</h5>
+              <p class="tile__desc">Make a 30-second music video in three steps. No install, no signup.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">21 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./interactive-howto.html">
+              <h5 class="tile__title">Interactive how-to</h5>
+              <p class="tile__desc">Interactive walkthrough. Drop a song, drop a library, get an MP4.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">45 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/about">
+              <h5 class="tile__title">About</h5>
+              <p class="tile__desc">A one-person audio-reactive video studio. Built in Belgrade. MIT.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">6 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/changelog">
+              <h5 class="tile__title">Changelog</h5>
+              <p class="tile__desc">Public release history for the engine, the variants, and the app shell.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">7 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/press">
+              <h5 class="tile__title">Press kit</h5>
+              <p class="tile__desc">Logos, screenshots, hero images, and a one-line bio for press and media.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">9 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/status">
+              <h5 class="tile__title">Status</h5>
+              <p class="tile__desc">Live system status for the engine and the daily preset-pipeline.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">9 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/thanks">
+              <h5 class="tile__title">Thanks</h5>
+              <p class="tile__desc">Order received. Here's what happens next.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">9 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./market-study.html">
+              <h5 class="tile__title">Market study</h5>
+              <p class="tile__desc">Audio-reactive music video software market study. Free with watermark.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">56 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="./profit-plan.html">
+              <h5 class="tile__title">Profit plan</h5>
+              <p class="tile__desc">90-day launch playbook, financial model, and execution calendar.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">72 KB</span>
+              </div>
+            </a>
+            <a class="tile" href="/login">
+              <h5 class="tile__title">Sign in</h5>
+              <p class="tile__desc">Magic-link sign in for SWR projects, presets, and cloud library.</p>
+              <div class="tile__meta">
+                <span class="pill pill--date">Updated 2026-08-31</span>
+                <span class="pill pill--size">0 KB</span>
+              </div>
+            </a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ FOOTER ============ -->
   <footer class="footer">
     <div class="wrap">
@@ -1226,6 +1796,7 @@
             <li><a href="./versions.html">23 visual versions</a></li>
             <li><a href="./HOWTO-30s-VIDEO.md">How to · 30s</a></li>
             <li><a href="./library/manifest.json">Library manifest</a></li>
+            <li><a href="#pages">All pages</a></li>
           </ul>
         </div>
         <div class="footer__col">
@@ -1247,6 +1818,100 @@
 
   <!-- ============ ENGINE-MINI WEB COMPONENT ============ -->
   <script>
+    // ---- SVG primitive acquisition ----------------------------------
+    // Auto-discover primitive SVG elements from real SVGs in the
+    // project. We fetch them, parse the markup, and pull every
+    // <circle>/<rect>/<path>/<ellipse>/<polygon>/<polyline> out with
+    // its style intact. Those primitives become the building blocks
+    // for the click-reactive gyromorph/converge animations.
+    // Sets are formed by chunking the primitive list — N per set, the
+    // spare tail becomes the final set. Sets are *acquired* (not
+    // authored): which primitives end up in which set is purely a
+    // function of acquisition order. The CSS / motion rules treat
+    // each set as interchangeable.
+    const SVG_PRIM_SOURCES = [
+      './swr-watermark-a.svg',
+      './swr-watermark-b.svg',
+      './swr-watermark-c.svg',
+      './swr-mascot-camera.svg',
+      './watermark-monogram.svg',
+      './watermark-icon.svg',
+      './watermark-wordmark.svg',
+      './press/logo.svg',
+      './press/logo-light.svg',
+      './favicon.svg',
+    ];
+    const PRIM_TAGS = new Set(['circle','rect','path','ellipse','polygon','polyline','line']);
+    const SET_SIZE = 8;
+
+    async function acquireSvgPrimitives() {
+      const all = [];
+      await Promise.all(SVG_PRIM_SOURCES.map(async (url) => {
+        try {
+          const txt = await fetch(url, { cache: 'no-cache' }).then(r => r.ok ? r.text() : '');
+          if (!txt) return;
+          const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
+          // Use a fragment so we can capture the style context (gradients
+          // don't transfer, but inline fill/stroke do — and that's enough
+          // for the gyromorph overlay).
+          const host = document.createElement('div');
+          host.style.display = 'none';
+          host.appendChild(document.importNode(doc.documentElement, true));
+          document.body.appendChild(host);
+          const nodes = host.querySelectorAll(Array.from(PRIM_TAGS).join(','));
+          nodes.forEach((n) => {
+            // Strip transform attributes from source so the overlay can
+            // apply its own; otherwise primitives land wherever the
+            // source placed them and they don't fit the demo canvas.
+            const clone = n.cloneNode(true);
+            clone.removeAttribute('transform');
+            clone.removeAttribute('x'); clone.removeAttribute('y');
+            clone.removeAttribute('cx'); clone.removeAttribute('cy');
+            clone.removeAttribute('width'); clone.removeAttribute('height');
+            clone.removeAttribute('points');
+            clone.removeAttribute('d');
+            // Replace d with a tiny inline fallback so the clone renders
+            // sensibly without the source's coordinate system.
+            if (clone.tagName === 'path') clone.setAttribute('d', 'M0 0');
+            if (clone.tagName === 'polygon' || clone.tagName === 'polyline') {
+              clone.setAttribute('points','0,0 10,0 10,10');
+            }
+            clone.setAttribute('vector-effect','non-scaling-stroke');
+            all.push(clone);
+          });
+          document.body.removeChild(host);
+        } catch (_) { /* skip unreadable source */ }
+      }));
+      // Chunk into sets of SET_SIZE primitives. Trailing partial set is
+      // included as-is so every acquired primitive ships.
+      const sets = [];
+      for (let i = 0; i < all.length; i += SET_SIZE) {
+        sets.push(all.slice(i, i + SET_SIZE));
+      }
+      return { primitives: all, sets };
+    }
+
+    // ---- Scene definitions ------------------------------------------
+    // Each scene pairs a palette + blend stack for the canvas with the
+    // SVG primitive set that drives the SVG overlay. Clicking the
+    // element cycles the index and animates the transition.
+    const PALETTES = [
+      ['#e6306b', '#ff8a3a', '#1c8c64', '#0085b3', '#7c4dff', '#fbbc05', '#1a1612', '#f5ead8'],
+      ['#00f5d4', '#00bbf9', '#9b5de5', '#f15bb5', '#fee440', '#f49f1c', '#0b090a', '#fdf0d5'],
+      ['#06d6a0', '#118ab2', '#073b4c', '#ffd166', '#ef476f', '#9a031e', '#fef9ef', '#1d1d1d'],
+      ['#ff006e', '#fb5607', '#ffbe0b', '#8338ec', '#3a86ff', '#06ffa5', '#000000', '#ffffff'],
+      ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51', '#e63946', '#f1faee', '#1d3557'],
+      ['#ff5e5b', '#d8f1a0', '#fbb13c', '#9ac4f5', '#c4558f', '#1a2c5b', '#ffffff', '#0c0c0c'],
+    ];
+    const BLEND_STACKS = [
+      ['screen','lighter','multiply','overlay','soft-light','screen'],
+      ['lighter','screen','color-dodge','overlay','hard-light','lighter'],
+      ['multiply','screen','difference','overlay','soft-light','screen'],
+      ['screen','overlay','lighter','multiply','color-burn','screen'],
+      ['lighten','screen','overlay','difference','lighter','screen'],
+      ['hard-light','screen','multiply','overlay','soft-light','screen'],
+    ];
+
     class EngineMini extends HTMLElement {
       connectedCallback() {
         if (this._init) return; this._init = true;
@@ -1254,12 +1919,14 @@
           <div class="engine-mini__label">live · 80 bpm</div>
           <canvas></canvas>
           <div class="engine-mini__overlay"></div>
+          <svg class="engine-mini__svg" viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid meet"></svg>
           <div class="engine-mini__meters">
             <span></span><span></span><span></span><span></span><span></span>
           </div>
         `;
         const c = this.querySelector('canvas');
         const cx = c.getContext('2d');
+        const svgEl = this.querySelector('.engine-mini__svg');
         const meters = this.querySelectorAll('.engine-mini__meters span');
         const W = c.width, H = c.height;
         const fit = () => {
@@ -1277,8 +1944,21 @@
         requestAnimationFrame(fit);
         // ResizeObserver for responsive sizing
         if (window.ResizeObserver) new ResizeObserver(fit).observe(this);
-        // Seeded "library" — abstract colored shapes
-        const palette = ['#e6306b', '#ff8a3a', '#1c8c64', '#0085b3', '#7c4dff', '#fbbc05', '#1a1612', '#f5ead8'];
+        // ---- Scene state (mutable; cycled by click) ----
+        // Three parallel reactions on click:
+        //   1. palette + blendStack on the canvas (visible as the dominant
+        //      color shift and the way the layers composite)
+        //   2. SVG primitive set swap (gyromorph — different shapes take
+        //      the stage, with a rotate+scale tween between old and new)
+        //   3. converge burst (every primitive snaps toward the center,
+        //      then explodes back to its orbit)
+        let sceneIndex = 0;
+        let palette = PALETTES[0].slice();
+        let blendStack = BLEND_STACKS[0].slice();
+        // ---- Canvas "library" items — abstract colored shapes ----
+        // Colors are mutated by cycleScene() so the canvas tracks the
+        // palette on click; positions/phases are stable so the morph
+        // reads as a color + blend shift, not a chaos reshuffle.
         const items = Array.from({ length: 12 }, (_, i) => ({
           x: Math.random() * W_, y: Math.random() * H_,
           r: 60 + Math.random() * 90,
@@ -1287,6 +1967,133 @@
           phase: Math.random() * Math.PI * 2,
           speed: 0.5 + Math.random() * 1.2,
         }));
+        let acquired = { primitives: [], sets: [[]] };
+        let activeSet = [];
+        // Gyromorph animation state
+        let morphFrom = null, morphTo = null, morphStart = 0, morphDur = 700;
+        // Converge animation state
+        let convergeStart = 0, convergeDur = 900;
+        const acquireAndWire = async () => {
+          acquired = await acquireSvgPrimitives();
+          // Pick a starting primitive set (round-robin so each instance on
+          // the page gets a different opening composition)
+          const startSetIdx = Math.floor(Math.random() * Math.max(1, acquired.sets.length));
+          renderSvgSet(acquired.sets[startSetIdx] || []);
+        };
+        const renderSvgSet = (set) => {
+          activeSet = set;
+          // Clear previous
+          while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+          // Each primitive gets its own <g> wrapper so we can animate
+          // it independently (gyromorph pose interpolation, converge
+          // snap-to-center). Color comes from the active palette so the
+          // SVG tracks the canvas's mood.
+          set.forEach((primSrc, i) => {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            // Initial pose: spread primitives around an inner ring,
+            // rotated by index so they form a starburst. The morph
+            // animation will interpolate from this to the next pose.
+            const angle = (i / set.length) * Math.PI * 2;
+            const orbit = 50 + (i % 3) * 14;
+            const color = palette[i % palette.length];
+            const node = primSrc.cloneNode(true);
+            node.setAttribute('fill', color);
+            node.setAttribute('stroke', color);
+            // Scale primitives to fit the 200x200 viewBox
+            const scale = 4 + (i % 3) * 1.5;
+            // Format numbers to 2 decimal places so we never ship
+            // scientific notation (e-15 from sin/cos near zero) into
+            // the transform attribute — SVG's parser rejects it.
+            const fmt = (n) => (Math.abs(n) < 1e-6 ? 0 : parseFloat(n.toFixed(2)));
+            const tx = fmt(Math.cos(angle) * orbit);
+            const ty = fmt(Math.sin(angle) * orbit);
+            const rz = fmt(angle * 180 / Math.PI);
+            const xform = `translate(${tx}, ${ty}) rotate(${rz}) scale(${scale})`;
+            g.setAttribute('transform', xform);
+            g.setAttribute('data-base-transform', xform); // converge uses this to avoid string growth
+            g.setAttribute('opacity', '0.85');
+            g.appendChild(node);
+            svgEl.appendChild(g);
+          });
+        };
+        const cycleScene = () => {
+          sceneIndex = (sceneIndex + 1) % Math.max(1, Math.min(PALETTES.length, BLEND_STACKS.length));
+          palette = PALETTES[sceneIndex].slice();
+          blendStack = BLEND_STACKS[sceneIndex].slice();
+          // Update item colors in place so the canvas picks up the new
+          // palette on the next frame
+          items.forEach((it, i) => { it.color = palette[i % palette.length]; });
+          // Capture the current pose, pick the next set, tween between
+          morphFrom = snapshotSvgPose();
+          const nextSet = acquired.sets.length
+            ? acquired.sets[(sceneIndex + Math.floor(Math.random() * acquired.sets.length)) % acquired.sets.length]
+            : [];
+          renderSvgSet(nextSet);
+          morphTo = snapshotSvgPose();
+          morphStart = performance.now();
+          // Converge burst — starts ~50ms after morph so the eye sees
+          // morph land, then the snap-to-center happens
+          convergeStart = performance.now() + 60;
+        };
+        const snapshotSvgPose = () => {
+          const poses = [];
+          svgEl.querySelectorAll('g').forEach((g) => {
+            poses.push(g.getAttribute('transform') || '');
+          });
+          return poses;
+        };
+        // ---- Click handler — the demo reacts to clicks ----
+        const onClick = (e) => {
+          // Prevent the click from bubbling to the parent .hero__grid
+          // (which could trigger hover/navigation surprises on touch)
+          e.stopPropagation();
+          cycleScene();
+        };
+        this.addEventListener('click', onClick);
+        // Start acquisition (sets up the SVG overlay) — non-blocking
+        acquireAndWire();
+        // ---- Gyromorph + converge animation driver ----
+        const lerp = (a, b, t) => a + (b - a) * t;
+        // Linear-interpolate between two transform strings by pulling
+        // out the numeric parts in document order. Both source strings
+        // have the same structure (same number of numeric params) so a
+        // position-by-position lerp is valid.
+        //
+        // IMPORTANT: the strings contain very small floats in
+        // scientific notation (e.g. "4.78e-15" from a sin/cos result
+        // that happens to be near zero). The digit regex matches
+        // "-15" as a separate number and produces garbage like
+        // "-64.00, 7.84e-15.00". We coerce every numeric token
+        // through toFixed first to lock the format, then lerp the
+        // resulting finite numbers. NaN/Infinity collapse to 0.
+        const lerpTransform = (from, to, t) => {
+          const fmt = (v) => {
+            const n = parseFloat(v);
+            if (!isFinite(n)) return '0.00';
+            // Clamp tiny values to exactly 0 so we never produce
+            // scientific notation in the output.
+            if (Math.abs(n) < 1e-6) return '0.00';
+            return n.toFixed(2);
+          };
+          const out = [];
+          let idx = 0;
+          const numRe = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/;
+          const pieces = (to || '').split(numRe);
+          for (const piece of pieces) {
+            if (numRe.test(piece)) {
+              const a = parseFloat((from || '').match(/(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/g)?.[idx] || '0');
+              const b = parseFloat(piece);
+              const v = isFinite(a) && isFinite(b) ? lerp(a, b, t) : 0;
+              out.push(fmt(v));
+              idx++;
+            } else {
+              out.push(piece);
+            }
+          }
+          return out.join('');
+        };
+        // The draw loop is the natural place to drive pose interpolation
+        // (one rAF shared with the canvas).
         const features = { bass: 0, mid: 0, treble: 0, beat: 0, onset: 0 };
         let t = 0, lastBeat = 0;
         // Procedural "song" — kick at 80 BPM, slow pad
@@ -1305,15 +2112,13 @@
           // Clear
           cx.fillStyle = '#0e0c0a';
           cx.fillRect(0, 0, W_, H_);
-          // 6 layers in different blend modes
-          const layers = [
-            { blend: 'screen', weight: 0.8 + features.bass },
-            { blend: 'lighter', weight: 0.5 + features.mid },
-            { blend: 'multiply', weight: 0.7 + features.treble },
-            { blend: 'overlay', weight: 0.6 + features.bass * 0.5 },
-            { blend: 'soft-light', weight: 0.4 + features.mid * 0.7 },
-            { blend: 'screen', weight: 0.9 + features.onset * 2 },
-          ];
+          // 6 layers in different blend modes — pulled from the
+          // active blend stack so a click changes how the layers
+          // composite (the visible "feel" of the demo shifts)
+          const layers = blendStack.map((b, li) => ({
+            blend: b,
+            weight: 0.8 - li * 0.05 + features.bass * (li === 0 ? 1 : 0.3) + features.mid * (li === 1 ? 1 : 0) + features.treble * (li === 2 ? 0.6 : 0),
+          }));
           cx.save();
           layers.forEach((l, li) => {
             cx.globalCompositeOperation = l.blend;
@@ -1346,6 +2151,51 @@
             const v = [features.bass, features.mid, features.treble, features.onset, features.bass + features.mid][i] || 0;
             m.style.height = `${Math.max(3, v * 26)}px`;
           });
+          // ---- SVG overlay: drive gyromorph + converge ----
+          // Morph interpolates each <g>'s transform string from morphFrom
+          // (captured pre-click) to morphTo (the next pose). When the
+          // tween completes, refresh data-base-transform so the converge
+          // animation that follows uses the new pose as its anchor.
+          if (morphFrom && morphTo && now - morphStart < morphDur) {
+            const tMorph = Math.min(1, (now - morphStart) / morphDur);
+            // cubic ease-out so the morph decelerates into the new pose
+            const eased = 1 - Math.pow(1 - tMorph, 3);
+            svgEl.querySelectorAll('g').forEach((g, i) => {
+              const from = morphFrom[i] || '';
+              const to   = morphTo[i]   || '';
+              const xform = lerpTransform(from, to, eased);
+              g.setAttribute('transform', xform);
+            });
+          } else if (morphFrom && morphTo && now - morphStart >= morphDur) {
+            // Commit the final pose to data-base-transform so converge
+            // doesn't snap back to the pre-morph pose.
+            svgEl.querySelectorAll('g').forEach((g, i) => {
+              const t = morphTo[i] || g.getAttribute('transform') || '';
+              g.setAttribute('transform', t);
+              g.setAttribute('data-base-transform', t);
+            });
+            morphFrom = null; morphTo = null;
+          }
+          // Converge burst — scales each <g> toward 0 then back to 1,
+          // with a sine envelope so it feels like inhale/exhale. Each
+          // frame we REPLACE the entire transform with a fresh string
+          // built from the morph-final pose + the current converge
+          // scale, instead of appending — appending accumulates scales
+          // across frames and explodes the string length.
+          if (now >= convergeStart && now < convergeStart + convergeDur) {
+            const tC = (now - convergeStart) / convergeDur;
+            // Two half-cycles: 0..0.5 pulls toward 0, 0.5..1 returns
+            const scale = tC < 0.5
+              ? 1 - Math.sin(tC * Math.PI) * 0.85
+              : 0.15 + (1 - Math.cos((tC - 0.5) * Math.PI)) * 0.85;
+            svgEl.querySelectorAll('g').forEach((g) => {
+              const base = g.getAttribute('data-base-transform') || g.getAttribute('transform') || '';
+              // Strip any trailing scale(...) tokens that the previous
+              // converge frame appended — keeps the string bounded.
+              const stripped = base.replace(/(\s+scale\([^)]*\))+$/g, '').trim();
+              g.setAttribute('transform', `${stripped} scale(${scale.toFixed(3)})`);
+            });
+          }
           requestAnimationFrame(draw);
         };
         requestAnimationFrame(draw);
@@ -1394,5 +2244,9 @@
 
   <!-- ============ PERSONA ONBOARDING ============ -->
   <script src="/persona-onboarding.js" defer></script>
+  <script src="/swr-mascot-camera.client.js" defer></script>
+  <script src="/client/dropzone.client.js" defer></script>
+<script src="/client/asset-curator.client.js" defer></script>
+<script src="/client/bg-removal-confirm.client.js" defer></script>
 </body>
 </html>

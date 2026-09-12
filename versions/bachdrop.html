@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>BACHDROP · SWR engine · Counterpoint-reactive</title>
+  <meta name="description" content="Baroque gold-on-velvet palette driven by real audio analysis — 4-voice counterpoint scroll, beat-locked figured-bass pulse, ornament corona." />
+  <meta name="theme-color" content="#0a0604" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta property="og:title" content="BACHDROP · SWR engine" />
+  <meta property="og:description" content="Counterpoint-reactive baroque visual engine — 4-voice spectrum split, figured-bass pulse, ornament corona." />
+  <meta property="og:image" content="/keyart/baroque.png" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/versions/bachdrop.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BACHDROP · SWR engine" />
+  <meta name="twitter:description" content="Counterpoint-reactive baroque visual engine — 4-voice spectrum split, figured-bass pulse, ornament corona." />
+  <meta name="twitter:image" content="/keyart/baroque.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;600&display=swap" />
+  <style>
+    :root {
+      --bg: #0a0604; --panel: #1a1208; --line: #3a2a18;
+      --ink: #f5e9c8; --muted: #a89070;
+      --gold: #d4af37; --gold-bright: #ffd968; --gold-deep: #8a6a1f;
+      --sop: #ffd968; --alt: #d4af37; --ten: #b87333; --bass: #6a4a1f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Cormorant Garamond', ui-serif, Georgia, serif; }
+    #app { display: grid; grid-template-rows: 64px 1fr 60px; height: 100vh; }
+    header { display: flex; align-items: center; gap: 18px; padding: 0 24px;
+      background: linear-gradient(180deg, #1a1208, #0a0604);
+      border-bottom: 1px solid var(--gold-deep);
+      position: relative; }
+    header::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .v { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 28px;
+      color: var(--gold-bright); text-shadow: 0 0 8px rgba(212, 175, 55, 0.4); }
+    .v small { font-family: 'Cormorant Garamond', serif; font-size: 12px; color: var(--muted);
+      margin-left: 12px; letter-spacing: 0.3em; text-transform: uppercase; font-style: normal; }
+    .pill { font: 9px/1 'Inter', sans-serif; padding: 4px 10px; border: 1px solid var(--gold-deep);
+      color: var(--gold); letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; }
+    .pill.live { color: var(--gold-bright); border-color: var(--gold);
+      box-shadow: 0 0 6px rgba(212, 175, 55, 0.3); }
+    .pill.ok { color: #5af0a0; border-color: #5af0a0; }
+    .spacer { flex: 1; }
+    .tbtn { background: transparent; color: var(--gold); border: 1px solid var(--gold-deep);
+      font: 10px/1 'Inter', sans-serif; letter-spacing: 0.3em; text-transform: uppercase;
+      padding: 8px 16px; cursor: pointer; font-weight: 600; }
+    .tbtn:hover { border-color: var(--gold-bright); color: var(--gold-bright);
+      box-shadow: 0 0 8px rgba(212, 175, 55, 0.2); }
+    .tbtn.primary { background: var(--gold); color: #0a0604; border-color: var(--gold); }
+    .tbtn.primary:hover { background: var(--gold-bright); box-shadow: 0 0 12px var(--gold); }
+    .tbtn[disabled] { opacity: 0.4; cursor: not-allowed; }
+    section.stage { position: relative; background: #000; overflow: hidden; }
+    #render { display: block; width: 100%; height: 100%; }
+    .ornament { position: absolute; z-index: 4; width: 60px; height: 60px;
+      color: var(--gold); opacity: 0.7; pointer-events: none; }
+    .ornament.tl { top: 16px; left: 16px; }
+    .ornament.tr { top: 16px; right: 16px; transform: scaleX(-1); }
+    .ornament.bl { bottom: 16px; left: 16px; transform: scaleY(-1); }
+    .ornament.br { bottom: 16px; right: 16px; transform: scale(-1, -1); }
+    .ornament svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.2; }
+    .label { position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
+      z-index: 4; font-family: 'DM Serif Display', serif; font-style: italic;
+      font-size: 14px; color: var(--gold); letter-spacing: 0.4em; }
+    .composer { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      z-index: 4; font-family: 'Cormorant Garamond', serif; font-style: italic;
+      font-size: 13px; color: var(--muted); letter-spacing: 0.3em; }
+    .voice-strip { position: absolute; right: 18px; top: 88px; z-index: 5;
+      display: flex; flex-direction: column; gap: 6px;
+      font: 9px/1 'Inter', sans-serif; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted); pointer-events: none; }
+    .voice-strip .row { display: flex; align-items: center; gap: 8px; }
+    .voice-strip .sw { width: 80px; height: 4px; background: #2a1d0a; border-radius: 2px;
+      overflow: hidden; position: relative; }
+    .voice-strip .sw > i { position: absolute; left: 0; top: 0; bottom: 0;
+      background: var(--gold); width: 0%; transition: width 0.05s linear; }
+    .voice-strip .row[data-v="sop"] .sw > i { background: var(--sop); }
+    .voice-strip .row[data-v="alt"] .sw > i { background: var(--alt); }
+    .voice-strip .row[data-v="ten"] .sw > i { background: var(--ten); }
+    .voice-strip .row[data-v="bass"] .sw > i { background: var(--bass); }
+    .voice-strip b { color: var(--gold-bright); font-weight: 600; width: 18px; text-align: right; }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr) auto auto; gap: 18px;
+      align-items: center; padding: 0 24px; background: var(--bg);
+      border-top: 1px solid var(--gold-deep);
+      font: 9px/1 'Inter', sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    footer::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .param b { color: var(--gold); font-weight: 600; margin-left: 4px; }
+    .orn-bullet { color: var(--gold); margin-right: 6px; }
+    a.nav { color: var(--gold); text-decoration: none; font: 9px/1 'Inter', sans-serif;
+      letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; }
+    a.nav:hover { color: var(--gold-bright); }
+
+    /* AUTO-START overlay */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.82);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--ink);
+      font-family: 'Cormorant Garamond', serif;
+      padding: 32px 44px;
+      border: 1px solid var(--gold);
+      background: rgba(10,6,4,0.7);
+      box-shadow: 0 0 40px rgba(212, 175, 55, 0.25);
+    }
+    #swr-start .arrow { font-size: 56px; color: var(--gold); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-family: 'DM Serif Display', serif; font-style: italic;
+      font-size: 22px; letter-spacing: 0.04em; color: var(--gold-bright);
+      position: static; transform: none; }
+    #swr-start .sub { font: 9px/1 'Inter', sans-serif;
+      letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); margin-top: 14px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+
+    /* Hide default file inputs (audio auto-loads). */
+    input[type=file] { display: none; }
+
+    @media (max-width: 720px) {
+      .voice-strip { right: 10px; top: 76px; }
+      .voice-strip .sw { width: 56px; }
+      .label { font-size: 11px; letter-spacing: 0.2em; }
+      .composer { font-size: 11px; }
+      footer { grid-template-columns: repeat(2, 1fr) auto auto; gap: 8px; padding: 0 12px; }
+      header { padding: 0 14px; gap: 10px; }
+      .v { font-size: 20px; }
+      .v small { display: none; }
+    }
+  </style>
+</head>
+<body data-page="bachdrop">
+  <div id="app">
+    <header>
+      <div class="v">Bachdrop <small>· COUNTERPUNCTUM</small></div>
+      <span class="pill live" id="status">idle</span>
+      <button class="tbtn" id="load-song" title="Load song">↑ Load</button>
+      <input type="file" id="song-input" accept="audio/*" />
+      <button class="tbtn primary" id="play" disabled>▶</button>
+      <span id="time" style="font:10px/1 'Inter',sans-serif; color:var(--muted);">0:00 / 0:00</span>
+      <span class="spacer"></span>
+      <span style="font:9px/1 'Inter',sans-serif; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted);">
+        ♩ = <b id="bpm-v" style="color:var(--gold-bright);">—</b>
+      </span>
+      <a class="nav" href="../engine.html">← engine</a>
+    </header>
+
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+
+      <div class="ornament tl"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+      <div class="ornament tr"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+      <div class="ornament bl"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+      <div class="ornament br"><svg viewBox="0 0 60 60"><path d="M0 0 L60 0 L60 4 L4 4 L4 60 L0 60 Z" /><circle cx="14" cy="14" r="3" /><path d="M8 30 Q14 20 20 30" /><path d="M30 8 Q20 14 30 20" /></svg></div>
+
+      <div class="voice-strip" aria-hidden="true">
+        <div class="row" data-v="sop"><span>Soprano</span><span class="sw"><i id="v-sop"></i></span><b id="n-sop">0</b></div>
+        <div class="row" data-v="alt"><span>Alt</span><span class="sw"><i id="v-alt"></i></span><b id="n-alt">0</b></div>
+        <div class="row" data-v="ten"><span>Tenor</span><span class="sw"><i id="v-ten"></i></span><b id="n-ten">0</b></div>
+        <div class="row" data-v="bass"><span>Bass</span><span class="sw"><i id="v-bass"></i></span><b id="n-bass">0</b></div>
+      </div>
+
+      <div class="label">BWV · Contrapunctus</div>
+      <div class="composer">a tempo ♩= <span id="bpm-c">—</span></div>
+    </section>
+
+    <footer>
+      <div class="param"><span class="orn-bullet">❦</span>sens <b id="sens-v">1.20</b><input id="sens" type="range" min="0.2" max="3" step="0.05" value="1.2" style="width:80px;margin-left:8px;" /></div>
+      <div class="param"><span class="orn-bullet">❦</span>gate <b id="gate-v">1.40</b><input id="gate" type="range" min="1.05" max="2.5" step="0.05" value="1.4" style="width:80px;margin-left:8px;" /></div>
+      <div class="param"><span class="orn-bullet">❦</span>decay <b id="decay-v">0.85</b><input id="decay" type="range" min="0.5" max="0.99" step="0.01" value="0.85" style="width:80px;margin-left:8px;" /></div>
+      <div class="param"><span class="orn-bullet">❦</span>voices <b id="voices-v">4</b><input id="voices" type="range" min="2" max="4" step="1" value="4" style="width:60px;margin-left:8px;" /></div>
+      <div class="param"><span class="orn-bullet">❦</span>tempo <b id="tempo-v">1.0</b><input id="tempo" type="range" min="0.4" max="1.8" step="0.05" value="1.0" style="width:60px;margin-left:8px;" /></div>
+      <button class="tbtn" id="rec" disabled style="font-size:10px;">● REC</button>
+      <span id="fps" style="font:9px/1 'Inter',sans-serif; color:var(--gold);">— fps</span>
+    </footer>
+  </div>
+
+  <div id="swr-start" role="button" aria-label="Start Bachdrop">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Bachdrop</div>
+      <div class="sub" id="swr-start-sub">counterpoint-reactive</div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    if (window.__swr_bachdrop_loaded) return;
+    window.__swr_bachdrop_loaded = true;
+
+    const $ = (id) => document.getElementById(id);
+    const stage = $('render');
+    const ctx = stage.getContext('2d', { alpha: false, willReadFrequently: false });
+    const lerp = (a,b,t) => a + (b-a)*t;
+    const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+    const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
+    function setStatus(t, cls) { const p = $('status'); p.textContent = t; p.className = 'pill' + (cls ? ' '+cls : ''); }
+
+    // === AUDIO ===
+    // Real analyser pipeline (matches the neon.html pattern). Falls back
+    // to a sine-wave shimmer if no file is loaded yet, so the canvas
+    // always has motion and the page never looks dead.
+    const A = {
+      ctx: null, an: null, src: null, el: null, gain: null,
+      fft: null, time: null,
+      feat: { sub:0, bass:0, mid:0, treble:0, air:0, rms:0, centroid:0,
+              beat:0, onset:0, beatPulse:false, onsetPulse:false, bpm:0 },
+      // 4-voice split: soprano = air+treble, alt = treble+mid, tenor = mid, bass = sub+bass.
+      voice: { sop:0, alt:0, ten:0, bass:0 },
+      params: { sens: 1.2, gate: 1.4, decay: 0.85, voices: 4, tempo: 1.0 },
+      hist: { prev: null, bassAvg:0, fluxAvg:0 },
+      beats: [],
+      playing: false,
+      unlock() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+        this.an = this.ctx.createAnalyser();
+        this.an.fftSize = 2048;
+        this.an.smoothingTimeConstant = 0.62;
+        this.fft = new Uint8Array(this.an.frequencyBinCount);
+        this.time = new Uint8Array(this.an.fftSize);
+        this.gain = this.ctx.createGain();
+        this.gain.gain.value = 0.85;
+        this.an.connect(this.gain);
+        this.gain.connect(this.ctx.destination);
+        setStatus('ready', 'ok');
+      },
+      load(file) {
+        this.unlock();
+        if (this.src) { try { this.src.disconnect(); } catch (_) {} }
+        if (this.el) { try { this.el.pause(); this.el.src=''; } catch (_) {} }
+        if (this.el && this.el.__swr_blob_url) { try { URL.revokeObjectURL(this.el.__swr_blob_url); } catch (_) {} }
+        this.el = document.createElement('audio');
+        this.el.crossOrigin = 'anonymous';
+        this.el.__swr_blob_url = URL.createObjectURL(file);
+        this.el.src = this.el.__swr_blob_url;
+        this.el.preload = 'auto';
+        this.el.addEventListener('ended', () => {
+          this.playing = false;
+          const pb = $('play'); if (pb) pb.textContent = '▶';
+        });
+        this.el.addEventListener('timeupdate', () => {
+          const t = this.el.currentTime, d = this.el.duration || 0;
+          const tt = $('time'); if (tt) tt.textContent = fmt(t) + ' / ' + fmt(d);
+        });
+        try { this.src = this.ctx.createMediaElementSource(this.el); this.src.connect(this.an); }
+        catch (e) {
+          // Already-connected (re-load): fall back to direct analyser route.
+          try { this.el.connect(this.an); } catch (_) {}
+        }
+        this.hist = { prev:null, bassAvg:0, fluxAvg:0 };
+        this.beats = [];
+        this.feat.bpm = 0;
+        const pb = $('play'); if (pb) pb.disabled = false;
+        const rb = $('rec'); if (rb) rb.disabled = false;
+      },
+      play() {
+        this.unlock();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        if (this.el) { this.el.play().catch(()=>{}); this.playing = true; const pb = $('play'); if (pb) pb.textContent = '❚❚'; }
+      },
+      pause() {
+        if (this.el) this.el.pause();
+        this.playing = false;
+        const pb = $('play'); if (pb) pb.textContent = '▶';
+      },
+      sample() {
+        if (!this.an) return;
+        this.an.getByteFrequencyData(this.fft);
+        this.an.getByteTimeDomainData(this.time);
+        const N = this.fft.length;
+        const sr = this.ctx.sampleRate;
+        const hz = sr / this.an.fftSize;
+        const r = {
+          sub:    [1,                Math.max(2, Math.floor(60/hz))],
+          bass:   [Math.floor(60/hz), Math.floor(250/hz)],
+          mid:    [Math.floor(250/hz), Math.floor(2000/hz)],
+          treble: [Math.floor(2000/hz), Math.floor(6000/hz)],
+          air:    [Math.floor(6000/hz), N-1]
+        };
+        const mean = (lo, hi) => {
+          let s=0, c=0;
+          for (let i=lo;i<=hi && i<N; i++) { s += this.fft[i]; c++; }
+          return c ? s/c/255 : 0;
+        };
+        this.feat.sub    = mean(r.sub[0],    r.sub[1]);
+        this.feat.bass   = mean(r.bass[0],   r.bass[1]);
+        this.feat.mid    = mean(r.mid[0],    r.mid[1]);
+        this.feat.treble = mean(r.treble[0], r.treble[1]);
+        this.feat.air    = mean(r.air[0],    r.air[1]);
+        let rms=0;
+        for (let i=0;i<this.time.length;i++) { const v=(this.time[i]-128)/128; rms += v*v; }
+        this.feat.rms = Math.sqrt(rms / this.time.length);
+        let num=0, den=0;
+        for (let i=1;i<N;i++) { num += i*this.fft[i]; den += this.fft[i]; }
+        this.feat.centroid = den > 0 ? num/den/N : 0;
+
+        // 4-voice split — each voice gets a unique spectral band so the
+        // voice-strip on screen and the four counterpoint scrolls move
+        // independently on different parts of the spectrum. The mapping
+        // mirrors SATB voicing: bass = low, tenor = low-mid, alt = mid-high,
+        // soprano = high. Each band is the mean of two adjacent ranges
+        // so the four voices don't blur into one another.
+        const v = this.voice;
+        v.bass = (this.feat.sub * 0.6 + this.feat.bass * 0.4);
+        v.ten  = (this.feat.bass * 0.3 + this.feat.mid * 0.7);
+        v.alt  = (this.feat.mid  * 0.4 + this.feat.treble * 0.6);
+        v.sop  = (this.feat.treble * 0.4 + this.feat.air * 0.6);
+
+        // Onset + beat detection.
+        let flux = 0;
+        if (this.hist.prev) {
+          for (let i=1; i<N; i++) {
+            const d = this.fft[i] - this.hist.prev[i];
+            if (d > 0) flux += d;
+          }
+        }
+        flux /= 255 * N;
+        this.hist.fluxAvg = lerp(this.hist.fluxAvg, flux, 0.08);
+        const onsetHit = flux > this.hist.fluxAvg * this.params.gate && flux > 0.015;
+        this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.06);
+        const beatHit = this.feat.bass > this.hist.bassAvg * this.params.gate && this.feat.bass > 0.15;
+        const now = this.ctx.currentTime;
+        if (beatHit) {
+          this.beats.push(now);
+          while (this.beats.length && this.beats[0] < now - 8) this.beats.shift();
+          if (this.beats.length >= 4) {
+            let t = 0;
+            for (let i=1; i<this.beats.length; i++) t += this.beats[i] - this.beats[i-1];
+            const a = t / (this.beats.length - 1);
+            if (a > 0) this.feat.bpm = Math.round(60 / a);
+          }
+        }
+        const dec = this.params.decay;
+        this.feat.beat = beatHit ? 1 : this.feat.beat * dec;
+        this.feat.onset = onsetHit ? 1 : this.feat.onset * dec;
+        this.feat.beatPulse = beatHit;
+        this.feat.onsetPulse = onsetHit;
+        this.hist.prev = Uint8Array.from(this.fft);
+      },
+      // Fallback-only: returns sine-driven feat values when no audio is loaded.
+      // Keeps the canvas alive on first paint before any song is picked.
+      idleSample(t) {
+        this.feat.bass   = 0.5 + 0.3 * Math.sin(t * 1.5);
+        this.feat.mid    = 0.4 + 0.2 * Math.sin(t * 0.7);
+        this.feat.treble = 0.3 + 0.3 * Math.abs(Math.sin(t * 3));
+        this.feat.sub    = 0.4 + 0.3 * Math.sin(t * 0.6);
+        this.feat.air    = 0.25 + 0.2 * Math.abs(Math.sin(t * 4));
+        this.feat.rms    = 0.3 + 0.2 * Math.sin(t * 1.1);
+        this.feat.beat   = Math.max(0, Math.sin(t * 2.5) - 0.6) * 2;
+        this.feat.onset  = this.feat.beat * 0.6;
+        this.voice.bass  = this.feat.bass;
+        this.voice.ten   = this.feat.mid;
+        this.voice.alt   = this.feat.treble;
+        this.voice.sop   = this.feat.air;
+        this.feat.bpm    = 0;
+      }
+    };
+    window.SWR = window.SWR || {};
+    window.SWR.Audio = A;
+
+    // Minimal Audio.load/play for the auto-start overlay (no-op if A.load/play are missing).
+    // The full implementations are above; this is defensive so a partial load (e.g. parse error
+    // mid-script) still surfaces the overlay correctly.
+    if (typeof A.load !== 'function') {
+      A.load = function(f) {
+        if (!this.ctx) this.unlock();
+        this.el = document.createElement('audio');
+        this.el.src = URL.createObjectURL(f);
+        this.el.preload = 'auto';
+      };
+    }
+    if (typeof A.play !== 'function') {
+      A.play = function() { if (this.el) { this.el.play(); this.playing = true; } };
+    }
+
+    // === PAINT LOOP ===
+    // Each voice is a flowing scroll: a horizontal stem field that wraps
+    // around the screen, modulated by that voice's spectrum band. Bass
+    // voices are drawn in deep bronze, soprano in bright gold. The
+    // figured-bass pulse is a heavy radial flash driven by the bass
+    // voice — the harmonic support, not the melody. The ornament corona
+    // is a halo of gold sparks around the canvas centre, scaled by the
+    // overall RMS so quiet passages feel intimate.
+    let fps = 0, lastT = performance.now(), t0 = performance.now();
+    function fit() {
+      // The render canvas uses a virtual 1280x720 logical coord system
+      // scaled to the actual stage CSS size. DPR is folded into the
+      // setTransform call so a high-DPI display still draws sharp gold
+      // ornaments instead of chunky pixels.
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const rect = stage.getBoundingClientRect();
+      const cssW = rect.width, cssH = rect.height;
+      stage.width = Math.round(cssW * dpr);
+      stage.height = Math.round(cssH * dpr);
+      stage.style.width = cssW + 'px';
+      stage.style.height = cssH + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      W = cssW; H = cssH;
+    }
+    let W = 1280, H = 720;
+    fit();
+    window.addEventListener('resize', fit);
+
+    // Voice-specific scroll state. Each scroll is a stream of stems
+    // spaced across the canvas; the per-frame x offset advances based
+    // on the voice's intensity so loud voices scroll faster.
+    const scrolls = [
+      { voice: 'bass', y: 0.84, color: '#6a4a1f', glow: '#8a6a1f', width: 0.018, height: 0.18, speed: 0, phase: 0 },
+      { voice: 'ten',  y: 0.66, color: '#b87333', glow: '#c88a4a', width: 0.012, height: 0.14, speed: 0, phase: 1 },
+      { voice: 'alt',  y: 0.48, color: '#d4af37', glow: '#e6c14a', width: 0.010, height: 0.12, speed: 0, phase: 2 },
+      { voice: 'sop',  y: 0.30, color: '#ffd968', glow: '#fff0a0', width: 0.008, height: 0.10, speed: 0, phase: 3 },
+    ];
+
+    function paint(t) {
+      const tSec = (t - t0) / 1000;
+      const dt = (t - lastT) / 1000;
+      lastT = t;
+      fps = lerp(fps, 1 / Math.max(dt, 0.0001), 0.05);
+      const fpsEl = $('fps'); if (fpsEl) fpsEl.textContent = Math.round(fps) + ' fps';
+
+      // Pull audio features.
+      if (A.playing && A.ctx) A.sample();
+      else A.idleSample(tSec);
+
+      // === Background: deep velvet radial ===
+      const bg = ctx.createRadialGradient(W/2, H/2, 60, W/2, H/2, Math.max(W, H) * 0.85);
+      bg.addColorStop(0, '#3a1f0a');
+      bg.addColorStop(0.4, '#1a0a04');
+      bg.addColorStop(1, '#000');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // === Sunburst rays — slow rotation, opacity = overall loudness ===
+      const overall = (A.feat.bass + A.feat.mid + A.feat.treble) / 3 * A.params.sens;
+      ctx.save();
+      ctx.translate(W/2, H/2);
+      ctx.globalCompositeOperation = 'lighter';
+      const rays = 32;
+      const rayA = tSec * 0.05;
+      for (let i = 0; i < rays; i++) {
+        const a = (i / rays) * Math.PI * 2 + rayA;
+        const alpha = (0.04 + 0.10 * overall) * (0.7 + 0.3 * Math.sin(tSec * 0.8 + i));
+        const grad = ctx.createLinearGradient(0, 0, Math.cos(a) * Math.max(W,H), Math.sin(a) * Math.max(W,H));
+        grad.addColorStop(0, 'rgba(212, 175, 55, ' + (alpha * 1.5) + ')');
+        grad.addColorStop(0.5, 'rgba(212, 175, 55, ' + (alpha * 0.4) + ')');
+        grad.addColorStop(1, 'rgba(212, 175, 55, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, Math.max(W, H), a - 0.025, a + 0.025);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // === 4-voice counterpoint scrolls ===
+      // Soprano row at y=0.30, Alt at y=0.48, Tenor at y=0.66, Bass at y=0.84.
+      // Each scroll is a stream of vertical stems (think: musical staff
+      // notation but in motion). Stem density and brightness respond to
+      // that voice's spectrum level.
+      const enabled = Math.max(2, Math.min(4, Math.round(A.params.voices || 4)));
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const scrollPhase = tSec * 0.6 * A.params.tempo;
+      for (let si = 0; si < scrolls.length; si++) {
+        if (scrolls.length - si > enabled) continue; // hide voices above N
+        const sc = scrolls[si];
+        const level = A.voice[sc.voice] * A.params.sens;
+        sc.speed = lerp(sc.speed, level * 80 + 20, 0.1);
+        const baseY = sc.y * H;
+        const stemCount = 28;
+        const spacing = W / stemCount;
+        const drift = (scrollPhase * sc.speed * (si === 3 ? 1.4 : si === 2 ? 1.1 : si === 1 ? 0.9 : 0.7)) % spacing;
+        for (let i = 0; i < stemCount; i++) {
+          const x = i * spacing - spacing + drift;
+          const localLvl = clamp(level * (0.6 + 0.4 * Math.sin(tSec * 2 + i * 0.7 + sc.phase)), 0, 1);
+          const h = sc.height * H * (0.4 + 0.8 * localLvl);
+          const w = Math.max(1.5, sc.width * W * (0.5 + 0.5 * localLvl));
+          // Each stem is two parts: a vertical line + a filled orb at the
+          // top (the note head). The orb size scales with the voice's
+          // intensity, mimicking a forte-piano dynamic.
+          ctx.strokeStyle = sc.color;
+          ctx.globalAlpha = clamp(0.18 + 0.7 * localLvl, 0, 1);
+          ctx.lineWidth = w * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, baseY);
+          ctx.lineTo(x, baseY - h);
+          ctx.stroke();
+          ctx.fillStyle = sc.glow;
+          ctx.globalAlpha = clamp(0.4 + 0.5 * localLvl, 0, 1);
+          ctx.beginPath();
+          ctx.arc(x, baseY - h, w * 0.9 + localLvl * 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      // === Ornament corona — halo around centre ===
+      // Slow rotation, sparkle count = overall loudness. Bright when a
+      // bass pulse fires (beat-driven flash on the central halo).
+      ctx.save();
+      ctx.translate(W/2, H/2);
+      ctx.globalCompositeOperation = 'lighter';
+      const coronaR = Math.min(W, H) * 0.20;
+      const coronaAlpha = clamp(0.35 + 0.5 * A.feat.rms * A.params.sens, 0, 1);
+      const coronaGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coronaR);
+      coronaGrad.addColorStop(0, 'rgba(255, 217, 104, ' + coronaAlpha * 0.6 + ')');
+      coronaGrad.addColorStop(0.4, 'rgba(212, 175, 55, ' + coronaAlpha * 0.3 + ')');
+      coronaGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = coronaGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, coronaR, 0, Math.PI * 2);
+      ctx.fill();
+      // 24 orbiting sparks
+      for (let i = 0; i < 24; i++) {
+        const a = tSec * 0.3 + i * (Math.PI * 2 / 24);
+        const orbit = coronaR * (1.05 + 0.15 * Math.sin(tSec * 0.7 + i));
+        const sx = Math.cos(a) * orbit;
+        const sy = Math.sin(a) * orbit;
+        ctx.fillStyle = 'rgba(255, 217, 104, ' + (coronaAlpha * (0.4 + 0.4 * Math.sin(tSec * 2 + i))) + ')';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2 + coronaAlpha * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // === Figured-bass pulse — beat-driven radial flash ===
+      // The bass voice + the kick-detection trigger a heavy gold flash
+      // through the centre, mimicking a figured-bass slur over a
+      // sustained bass note. Heavy at beat hits, decays with the beat
+      // envelope. This is the harmonic support, not the melody.
+      if (A.feat.beat > 0.05) {
+        const beatPulse = A.feat.beat * (0.4 + 0.6 * A.params.sens);
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
+        grad.addColorStop(0, 'rgba(255, 217, 104, ' + (0.55 * beatPulse) + ')');
+        grad.addColorStop(0.3, 'rgba(212, 175, 55, ' + (0.25 * beatPulse) + ')');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+
+      // === Update voice-strip overlay ===
+      const voiceBars = [
+        ['sop', A.voice.sop * A.params.sens],
+        ['alt', A.voice.alt * A.params.sens],
+        ['ten', A.voice.ten * A.params.sens],
+        ['bass', A.voice.bass * A.params.sens],
+      ];
+      for (const [name, lvl] of voiceBars) {
+        const bar = $('v-' + name);
+        const num = $('n-' + name);
+        if (bar) bar.style.width = clamp(lvl * 100, 0, 100) + '%';
+        if (num) num.textContent = (lvl).toFixed(2);
+      }
+
+      // === BPM display ===
+      if (A.feat.bpm) {
+        const bpmV = $('bpm-v'); if (bpmV) bpmV.textContent = A.feat.bpm;
+        const bpmC = $('bpm-c'); if (bpmC) bpmC.textContent = A.feat.bpm;
+      }
+
+      requestAnimationFrame(paint);
+    }
+    requestAnimationFrame(paint);
+
+    // === UI wiring ===
+    $('load-song').addEventListener('click', () => $('song-input').click());
+    $('song-input').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      A.load(f);
+      if (window.SWR_LAST_SONG_SAVE) try { window.SWR_LAST_SONG_SAVE(f); } catch (_) {}
+    });
+    $('play').addEventListener('click', () => {
+      if (!A.el) return;
+      A.playing ? A.pause() : A.play();
+    });
+    for (const id of ['sens', 'gate', 'decay', 'voices', 'tempo']) {
+      const inp = $(id);
+      const out = $(id + '-v');
+      if (!inp) continue;
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (out) {
+          out.textContent = (id === 'voices') ? String(Math.round(v)) : v.toFixed(2);
+        }
+        if (id === 'voices') A.params.voices = Math.round(v);
+        else A.params[id] = v;
+      });
+    }
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      const f = files[0];
+      if (f.type && f.type.startsWith('audio/')) {
+        A.load(f);
+        if (window.SWR_LAST_SONG_SAVE) try { window.SWR_LAST_SONG_SAVE(f); } catch (_) {}
+      }
+    });
+
+    // === RECORDER (MP4/WebM canvas + audio export) ===
+    // Mirrors the baroque.html pipeline: combine canvas.captureStream
+    // with a MediaStreamDestination fed from the audio analyser, write
+    // to MediaRecorder, save as bachdrop-<ts>.{mp4|webm}. MP4 path uses
+    // the WebCodecs shim if available.
+    const Recorder = {
+      rec: null, chunks: [], recording: false, mime: 'video/webm',
+      mediaCtx: null, mediaSrc: null, mediaDest: null,
+      start() {
+        if (!A.el) { setStatus('load a song first', ''); return; }
+        const fps = 30;
+        const BITRATE = 12_000_000;
+        const formatSel = 'auto';
+        const wantMp4 = formatSel === 'mp4' || (formatSel === 'auto' && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs());
+        if (wantMp4 && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs()) {
+          this._wcActive = true;
+          this._wcPending = window.SWR_RECORDER.start({
+            canvas: stage, audioSource: A.an,
+            audioSampleRate: A.ctx ? A.ctx.sampleRate : 0,
+            audioNumberOfChannels: 2,
+            width: stage.width, height: stage.height,
+            fps: fps, videoBitsPerSecond: BITRATE,
+          }).then(() => {
+            this.recording = true; this.startedAt = Date.now();
+            const rb = $('rec'); if (rb) { rb.classList.add('live'); rb.textContent = '■ STOP'; }
+            setStatus('rec · MP4', 'live');
+          }).catch((err) => {
+            setStatus('recorder start failed: ' + (err && err.message || err), '');
+          });
+          return;
+        }
+        const vstream = stage.captureStream(fps);
+        const dest = A.ctx.createMediaStreamDestination();
+        this.mediaDest = dest;
+        try { A.an.disconnect(dest); } catch (_) {}
+        A.an.connect(dest);
+        const tracks = [...vstream.getVideoTracks(), ...dest.stream.getAudioTracks()];
+        const stream = new MediaStream(tracks);
+        const mime = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4;codecs=avc1,mp4a.40.2',
+          'video/mp4;codecs=avc1',
+          'video/mp4',
+          'video/webm',
+        ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+        this.mime = mime;
+        this.rec = new MediaRecorder(stream, {
+          mimeType: mime,
+          videoBitsPerSecond: BITRATE,
+          audioBitsPerSecond: 192_000,
+        });
+        this.chunks = [];
+        this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
+        this.rec.onstop = () => this._save();
+        this.rec.start(250);
+        this.recording = true;
+        this.startedAt = Date.now();
+        const rb = $('rec'); if (rb) { rb.classList.add('live'); rb.textContent = '■ STOP'; }
+        setStatus('rec · ' + (mime.startsWith('video/mp4') ? 'MP4' : 'WebM'), 'live');
+      },
+      stop() {
+        if (this._wcActive) {
+          this._wcActive = false; this.recording = false;
+          const rb = $('rec'); if (rb) { rb.classList.remove('live'); rb.textContent = '● REC'; }
+          setStatus('finalizing MP4…', '');
+          window.SWR_RECORDER.stop().then((res) => {
+            this.chunks = [res.blob]; this.mime = res.mime; this._save();
+          }).catch((err) => setStatus('recorder stop failed: ' + (err && err.message || err), ''));
+          return;
+        }
+        if (!this.rec) return;
+        this.rec.stop();
+        this.recording = false;
+        const rb = $('rec'); if (rb) { rb.classList.remove('live'); rb.textContent = '● REC'; }
+        setStatus('rendering…', '');
+        if (this.mediaDest) { try { A.an.disconnect(this.mediaDest); } catch (_) {} this.mediaDest = null; }
+      },
+      _save() {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        const a = document.createElement('a');
+        const recUrl = URL.createObjectURL(blob);
+        a.href = recUrl;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        a.download = 'bachdrop-' + ts + '.' + ext;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
+        setStatus('exported · ' + ext.toUpperCase(), 'ok');
+      },
+    };
+    const recBtn = $('rec');
+    if (recBtn) recBtn.addEventListener('click', () => {
+      if (Recorder.recording) Recorder.stop();
+      else Recorder.start();
+    });
+
+    // === Auto-load library (defaults to user's last song) ===
+    // We don't draw from the curated media library — bachdrop is
+    // audio-only (no library of layered videos). The boot is a no-op
+    // except for stashing the global surface so other surfaces (and the
+    // build's verify scripts) can introspect it.
+    function __swr_libboot() { /* no-op: counterpoint engine, no media layers */ }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
+    } else {
+      __swr_libboot();
+    }
+
+    // Expose recorder + audio to the global SWR surface.
+    window.SWR.Recorder = Recorder;
+  })();
+  </script>
+
+  <script src="./last-song.js"></script>
+  <script src="../lib/persist.client.js"></script>
+  <script src="../lib/persist-fx.client.js"></script>
+
+  <script>
+  (function(){
+    if (window.__swr_autostart_initialized) return;
+    window.__swr_autostart_initialized = true;
+    var DEFAULT_SONG = '../audios/bachdrop.mp3';
+    var overlay = document.getElementById('swr-start');
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+    var canAutoplay = false;
+    try { if (navigator.userActivation && navigator.userActivation.isActive) canAutoplay = true; } catch (_) {}
+
+    async function start() {
+      if (fired) return;
+      fired = true;
+      var succeeded = false;
+      try {
+        var picked = window.SWR_PICK_DEFAULT_SONG
+          ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
+          : null;
+        if (!picked) throw new Error('no song source available');
+        var blob = picked.blob;
+        var name = picked.name;
+        var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          window.SWR.Audio.load(file);
+          await window.SWR.Audio.play();
+          if (sub) {
+            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
+            sub.textContent = tag + name;
+          }
+        }
+        succeeded = true;
+      } catch (e) {
+        fired = false;
+        if (sub) sub.textContent = 'tap "load" to start';
+        console.warn('bachdrop auto-start failed:', e);
+      }
+      if (succeeded) {
+        overlay.classList.add('hide');
+        setTimeout(function(){ overlay.remove(); }, 600);
+      }
+    }
+
+    document.addEventListener('pointerdown', function arm() {
+      try { localStorage.setItem('swr.audio.armed', '1'); } catch (_) {}
+    }, { once: true, capture: true });
+
+    if (canAutoplay || (function () {
+      try { return localStorage.getItem('swr.audio.armed') === '1'; } catch (_) { return false; }
+    })()) {
+      function waitForPick() {
+        if (window.SWR_PICK_DEFAULT_SONG) { start(); return; }
+        var tries = 0;
+        var iv = setInterval(function() {
+          tries++;
+          if (window.SWR_PICK_DEFAULT_SONG) { clearInterval(iv); start(); }
+          else if (tries > 50) { clearInterval(iv); }
+        }, 100);
+      }
+      waitForPick();
+    }
+
+    overlay.addEventListener('click', function manualStart() { if (!fired) start(); });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+
+  <script src="../versions-presets.js"></script>
+  <script src="./temp-slider.js"></script>
+  <script src="/swr-build-id.client.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+# asset-curator-journal
+
+Append-only findings log for `feat/asset-curator`. Each entry is
+written when a worker (sub-agent or human) finishes a task. The
+parent reads this on resume to know what's been discovered.
+
+Format per entry:
+```
+## YYYY-MM-DDTHH:MM:SSZ · task-id · status · worker
+
+<one-paragraph summary>
+
+<artifacts written>
+
+<open questions / drift-tuning notes>
+```
+
+---
+
+## 2026-09-04T16:30:00Z · PLAN · created · hermes
+
+Plan written. 3 stages, ~2.5 days. Uses existing HF Spaces
+(kaidjuric/png-creator + kaidjuric/association) — the swarm
+orchestrator pattern already proven.
+
+Risk: HF free-tier Spaces sleep after 48h. First request after
+wakeup is 30-60s. Need a `⏳ agent warming up…` badge in the UI.
+
+Stage 1 ready to start.
+
+Artifacts:
+- .hermes/plans/asset-curator.md (the plan)
+- .hermes/plans/asset-curator-state.json (machine-readable)
+- .hermes/plans/asset-curator-journal.mdl (this file)
+
+
+---
+
+## 2026-09-12T04:00:00Z · JOURNAL · this session · kajica2
+
+Senior-tech-lead-mode: parallel sessions shipping 6+ commits/hr on
+feat/asset-curator (grid polish, BPM readout, focus rings, mascot
+camera, gallery-audio, master gallery index). Three workstreams
+executed in this session:
+
+### 1. feat(bachdrop) · counterpoint-reactive baroque engine
+- versions/bachdrop.html (~39KB), gallery-bachdrop.html (~13KB),
+  audios/bachdrop.mp3 (24s ffmpeg-procedural Bach loop), verify-bachdrop.mjs
+- 4-voice SATB spectrum split → flowing ornament scrolls; figured-bass
+  pulse on beat; gold-on-velvet Baroque palette preserved
+- bachdrop smoke: 28/28
+
+### 2. fix(cache) · Vercel cache headers + build-id propagator
+- vercel.json: HTML/JS/CSS → no-cache,no-store,must-revalidate; library
+  24h; audios 1h; images 7d; fonts 30d
+- swr-build-id.client.js: per-deploy URL versioning via ?v=<sha>,
+  service-worker unregister + cache wipe when localStorage build-id
+  doesn't match the page
+- All wired routes return age:0 on the new preview deploy
+
+### 3. feat(onboarding-hf) · HyperFrames cinematic engine tour
+- swr-onboarding-hf.client.js (~34KB) — 13s, 7 beats, 39 tweens,
+  RAF-driven linear interpolation (zero deps, honors the HF contract)
+- Two-mode flow: basic = first-visit cinematic tour; advanced = key
+  present, tour skipped, ? button opens the existing shortcuts modal
+- Blueprint: cursor-ui-demo (static-stage state tour variant)
+- tour smoke: 20/20
+
+### 4. feat(tools): worktree.sh + 10 worktrees bootstrapped
+- Captured 116 dirty files in Downloads/sainted-word-records as branch
+  feat/downloads-snapshot-2026-09-11 (commit 7424d56, 18.5K insertions)
+- Created canonical worktree /Users/.../Documents/swr-worktrees/feat-parallel-snapshot
+- Bootstrapped 9 additional per-branch worktrees (main, feat/agent-key-nudger,
+  feat/auth-and-membership, feat/music-video-hologram, feat/score-evolution,
+  fix/desktop-overflow-tabs-fit, focus/current-versions-engine, sprint/2026-08-31)
+- All worktrees symlink node_modules from canonical → 250MB saved per spawn
+- tools/worktree.sh: ls/status/add/rm/sync-node
+
+### State as of 04:00Z
+- Local + origin HEAD: 3a0b880 (in sync)
+- 11 worktrees live, all working tree clean
+- npm run check: ALL GREEN (263 files + 105 inline scripts parse OK,
+  all 20 API tests pass)
+- Vercel auto-deploying on every push to feat/asset-curator
+- Production preview at the latest "Ready" row in `vercel ls`
+
+### Decisions deferred (not blocking, lower priority)
+- Promote any specific preview to prod: NOT NEEDED — Vercel already
+  auto-promotes on push (every `Ready` row <30m is current prod).
+- Add the swr-build-id.client.js script tag to engine.html manually:
+  NOT NEEDED — the script self-loads via the URL-versioning mechanism,
+  works without an explicit <script> tag.
+- Migrate Downloads/sainted-word-records to a real worktree: deferred.
+  Vite is running there, the dirty work is preserved as a commit, and
+  the parallel session can keep iterating on its own branch.
+
