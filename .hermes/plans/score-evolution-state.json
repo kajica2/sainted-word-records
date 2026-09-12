@@ -42,7 +42,7 @@
       "id": 5,
       "title": "End-of-song release",
       "tasks": [
-        {"id": "5.1", "title": "Auto-detect song end + taper release", "status": "pending"}
+        {"id": "5.1", "title": "Auto-detect song end + taper release", "status": "done", "worker": "hermes", "artifacts": ["client/narrative-state.client.js", "versions/music_video.html"], "completedAt": "2026-09-12"}
       ]
     },
     {
