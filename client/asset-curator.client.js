@@ -138,6 +138,9 @@
   // Hits kaidjuric/association's /gradio_api/call/tag endpoint with a
   // 3s timeout. Returns [{tag, score}] or null on failure.
   async function tagViaHF(imageBlob) {
+    // Batch-runner opt-out (e.g. verify-curator-batch.mjs sets
+    // window.__SWR_HF_DISABLED = true to keep runs deterministic + offline).
+    if (typeof window !== 'undefined' && window.__SWR_HF_DISABLED) return null;
     if (typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') {
       return null;
     }
