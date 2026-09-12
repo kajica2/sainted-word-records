@@ -42,6 +42,7 @@
     "verify:overlay-failure": "node verify-overlay-failure.mjs",
     "verify:library-switcher": "node verify-library-switcher.mjs",
     "verify:music-video-maker": "node verify-music-video-maker.mjs",
+    "verify:batch-video": "node verify-batch-video.mjs",
     "verify:mvm-review-fixes": "node verify-mvm-review-fixes.mjs",
     "verify:mvm-phase8": "node verify-mvm-phase8.mjs",
     "verify:mvm-phase9": "node verify-mvm-phase9.mjs",
