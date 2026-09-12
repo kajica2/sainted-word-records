@@ -57,6 +57,7 @@
     "verify:persona-v": "node verify-persona-v.mjs",
     "verify:artists": "node verify-artists.mjs",
     "verify:shotlist": "node verify-shotlist.mjs",
+    "verify:clear-song": "node verify-clear-song.mjs",
     "verify:smtp": "node --test verify-smtp-transport.mjs",
     "verify:curator-batch": "node verify-curator-batch.mjs",
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
