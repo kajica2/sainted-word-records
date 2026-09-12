@@ -15,7 +15,7 @@
     "build:vercel": "node scripts/fetch-library.mjs && vite build",
     "preview": "vite preview --port 4173",
     "upload:library": "node scripts/upload-library.mjs",
-    "check": "npm run check:syntax && npm run check:manifest && npm run check:bundle && npm run check:auth-unit && npm run test:smtp && node scripts/test-api.mjs",
+    "check": "npm run check:syntax && npm run check:manifest && npm run check:bundle && npm run check:auth-unit && npm run check:unit && npm run test:smtp && node scripts/test-api.mjs",
     "check:full": "npm run check && npm run check:verify",
     "check:syntax": "node scripts/check-syntax.mjs",
     "check:manifest": "node scripts/check-manifest.mjs",
