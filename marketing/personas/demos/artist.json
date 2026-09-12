@@ -1,0 +1,24 @@
+{
+  "id": "artist",
+  "label": "The Artist",
+  "mode": "cross",
+  "tagline": "A loop that allows the artifact to be wrong, for a while.",
+  "cluster_explainer": "The Artist sits in the cross cluster — they generate where the auditor only reads, and they read their own process while they make, not after.",
+  "preset": "style-smoke",
+  "reactor": {
+    "dominant_band": "mid",
+    "envelope": "smooth",
+    "smooth_factor": 0.6
+  },
+  "primitive": "torus",
+  "color": "#e76f51",
+  "loop_seconds": 90,
+  "demo_highlights": [
+    "Torus reads as an open seam — a loop that does not close, the way a work-in-progress refuses to finish itself",
+    "Mid-band reactance tracks the harmonic body of a room, where an artist feels whether the piece is breathing",
+    "Smoke preset is the most forgiving of the available styles — it lets the artifact stay illegible without flattening it",
+    "Smooth envelope (0.7) absorbs transients so the visual does not impose a 'now you've made something' punctuation",
+    "No completionist affordance in the demo: the loop continues without auto-export, so the artifact can stay wrong"
+  ],
+  "cluster": "cross"
+}
