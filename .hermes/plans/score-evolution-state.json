@@ -49,7 +49,7 @@
       "id": 6,
       "title": "Integration smoke + polish",
       "tasks": [
-        {"id": "6.1", "title": "Write scripts/check-score-evolution-smoke.mjs", "status": "pending"},
+        {"id": "6.1", "title": "Write scripts/check-score-evolution-smoke.mjs", "status": "done", "worker": "hermes", "artifacts": ["scripts/check-score-evolution-smoke.mjs"], "completedAt": "2026-09-12"},
         {"id": "6.2", "title": "Add npm run check:score-evolution", "status": "pending"},
         {"id": "6.3", "title": "Commit + push + open PR", "status": "pending"}
       ]
