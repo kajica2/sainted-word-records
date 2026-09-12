@@ -31,6 +31,7 @@
     //   16 = mosaic
     //   17 = phosphor
     //   18 = tape
+    //   19 = mtv (music_video_mtv — 90s retro MTV/CRT/scanlines)
 
 (function () {
   if (window.VersionsPresets) return;  // idempotent
