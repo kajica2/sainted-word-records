@@ -1,11 +1,10 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Stripe payment links setup · Sainted Word Records</title>
   <meta name="description" content="10-minute walkthrough: create products, generate payment links, plug them into campaign.html." />
-  <meta name="color-scheme" content="dark" />
   <meta name="author" content="Kai Djuric" />
   <link rel="icon" href="/favicon.ico" />
   <link rel="canonical" href="https://sainted-word-records.vercel.app/swr-stripe-setup.html" />
@@ -15,72 +14,166 @@
   <meta property="og:url" content="https://sainted-word-records.vercel.app/swr-stripe-setup.html" />
   <meta property="og:image" content="https://sainted-word-records.vercel.app/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
   <style>
     :root {
-      --bg-0:#0a0d12; --bg-1:#111114; --bg-2:#16161b;
-      --ink:#e8e6e0; --muted:#7a7a82; --muted-2:#4a4a52;
-      --line:#1f1f25; --line-2:#2a2a32;
-      --gold:#d4a24c; --amber:#f5a524; --cyan:#00e5ff;
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --hot: #e6306b;
+      --cool: #0085b3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "Inter", ui-sans-serif, system-ui, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --radius: 2px;
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;background:var(--bg-0);color:var(--ink);font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Inter",sans-serif;-webkit-font-smoothing:antialiased}
-    body{padding:0 24px 80px}
-    nav.top{max-width:1080px;margin:0 auto;padding:20px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:13px;border-bottom:1px solid var(--line);margin-bottom:48px}
-    nav.top a{color:var(--muted);text-decoration:none;margin:0 8px}
-    nav.top a:hover{color:var(--ink)}
-    nav.top .brand{color:var(--gold);font-weight:700;letter-spacing:.06em;margin-right:24px}
-    nav.top .primary a, nav.top .siblings a{font-size:12px}
-    nav.top .siblings{border-left:1px solid var(--line-2);padding-left:14px;margin-left:6px}
-    main{max-width:680px;margin:0 auto}
-    h1{font:36px/1.15 ui-sans-serif,system-ui,sans-serif;margin:0 0 16px;font-weight:700;letter-spacing:-.01em}
-    h2{font:18px/1.3 ui-sans-serif,system-ui,sans-serif;margin:48px 0 12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em}
-    h3{font:15px/1.3 ui-sans-serif,system-ui,sans-serif;margin:32px 0 8px;font-weight:600;color:var(--ink)}
-    p{color:#c5c3bd;margin:0 0 16px}
-    p.lede{font-size:18px;color:var(--ink);line-height:1.55}
-    a{color:var(--amber);text-decoration:none;border-bottom:1px solid transparent}
-    a:hover{border-bottom-color:var(--amber)}
-    ul,ol{padding-left:20px;color:#c5c3bd}
-    li{margin:6px 0}
-    li>ul,li>ol{margin:8px 0 4px}
-    blockquote{margin:24px 0;padding:20px 24px;border-left:3px solid var(--gold);background:var(--bg-1);color:var(--ink);font-style:italic;border-radius:0 6px 6px 0}
-    code{font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--bg-2);color:var(--cyan);padding:1px 6px;border-radius:3px}
-    pre{background:var(--bg-1);border:1px solid var(--line);border-radius:6px;padding:16px;overflow-x:auto;margin:16px 0}
-    pre code{background:transparent;padding:0;color:var(--ink)}
-    table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
-    th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-    th{color:var(--gold);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
-    tr:hover td{background:var(--bg-1)}
-    hr{border:0;border-top:1px solid var(--line);margin:48px 0}
-    .meta{margin-top:48px;padding:16px 20px;background:var(--bg-1);border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted)}
-    .meta b{color:var(--ink)}
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --hot: #ff2d8a;
+      --cool: #00e5ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 16px; line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.2s, color 0.2s;
+    }
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 300; font-size: clamp(34px, 5vw, 48px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    p.lede {
+      font-family: var(--font-display);
+      font-weight: 300; font-size: 19px;
+      color: var(--ink-2); line-height: 1.5;
+      margin: 0 0 48px;
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 500; font-size: 22px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      margin: 56px 0 12px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    h3 {
+      font-family: var(--font-body);
+      font-weight: 600; font-size: 15px;
+      color: var(--ink);
+      margin: 28px 0 8px;
+    }
+    p { color: var(--ink-2); margin: 0 0 16px; }
+    strong { color: var(--ink); font-weight: 600; }
+    em { color: var(--accent); font-style: italic; }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover { color: var(--ink); }
+    ul, ol { padding-left: 22px; color: var(--ink-2); }
+    li { margin: 6px 0; }
+    li::marker { color: var(--accent); }
+    li > ul, li > ol { margin: 8px 0 4px; }
+    blockquote {
+      margin: 24px 0;
+      padding: 4px 0 4px 16px;
+      border-left: 2px solid var(--accent);
+      color: var(--ink-2);
+      font-style: normal;
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: var(--bg-2);
+      color: var(--ink);
+      padding: 1px 6px;
+      border-radius: 2px;
+    }
+    pre {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: var(--ink-2);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line-2);
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 48px 0;
+    }
+    .meta {
+      margin-top: 56px;
+      padding: 14px 18px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .meta b { color: var(--ink); }
     @media (max-width: 720px) {
-      nav.top{flex-direction:column;align-items:flex-start}
-      nav.top .siblings{border-left:none;padding-left:0;margin-left:0}
+      main { padding: 40px 20px 60px; }
+      table { font-size: 13px; }
+      th, td { padding: 8px 6px; }
     }
   </style>
   <script src="/nav.client.js" defer></script>
-  <script src="/fx-background.client.js" defer></script>
 </head>
-<body>
-    <nav class="top">
-      <a class="brand" href="/">SWR</a>
-      <div class="primary">
-        <a href="/engine">Engine</a>
-        <a href="/campaign.html">Pricing</a>
-        <a href="/personas.html">Personas</a>
-        <a href="/press.html">Press</a>
-        <a href="/intro.html">Intro</a>
-        <a href="/about.html">About</a>
-      </div>
-      <div class="siblings">
-        <a href="/swr-campaign-launch-plan.html">Launch plan</a>
-        <a href="/swr-dm-templates.html">Outreach</a>
-        <a href="/swr-social-content.html">Social</a>
-        <a href="/swr-stripe-setup.html">Stripe</a>
-        <a href="/swr-watermark-plan.html">Watermark</a>
-      </div>
-    </nav>
-  <main>
+<body data-page="">
     <h1>Stripe payment links setup</h1>
     <p class="lede">10-minute walkthrough: create products, generate payment links, plug them into campaign.html.</p>
 <h2 id="what-you-need">What You Need</h2>
