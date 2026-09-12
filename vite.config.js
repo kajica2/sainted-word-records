@@ -207,6 +207,10 @@ function copyStatic() {
     { src: 'presets', dst: 'presets' },
     { src: 'press', dst: 'press' },
     { src: 'legal', dst: 'legal' },
+    // marketing/personas/demos/<slug>.json are fetched by persona-runtime.client.js
+    // at /personas/:id → /marketing/personas/demos/<id>.json. Without this
+    // entry the persona runtime 404s on every /personas/:id page.
+    { src: 'marketing', dst: 'marketing' },
     // marketplace/curated/ ships the starter .swr-set files. The
     // marketplace.html page fetches them by relative path, so they must
     // be at marketplace/curated/<file>.swr-set.json in dist.
