@@ -807,11 +807,22 @@
       // pages that don't ship narrative-state.client.js).
       if (window.SWR_NARRATIVE) {
         const n = SWR_NARRATIVE.state;
-        out.x += n.drift.x * sens * 80;          // ±80px at sens=1
-        out.y += n.drift.y * sens * 60;          // ±60px (asymmetric axes)
-        out.hue += (n.warmth - 0.5) * 200 * sens; // slow color-temp drift
-        out.scale += n.tension * 0.4 * sens;     // louder = bigger
+        // Phase multiplier (Stage 3) — read once per applyR call. Cheap.
+        // expectedDuration comes from the loaded audio element; falls back
+        // to cfg.dur which is set at song load.
+        const dur = (A.el && A.el.duration) || 0;
+        const phase = SWR_NARRATIVE.phaseMultiplier(dur);
+        out.x += n.drift.x * phase.driftAmp * sens * 80;  // ±80px at sens=1
+        out.y += n.drift.y * phase.driftAmp * sens * 60;  // ±60px (asymmetric axes)
+        out.hue += (n.warmth - 0.5) * 200 * sens * phase.openness; // opening dampens
+        out.scale += n.tension * 0.4 * sens * phase.openness;     // louder = bigger
         out.brightness = clamp(out.brightness + n.peak * 0.6, 0.1, 2.5);
+        // Climax pullback: gently drag drift-based x/y toward center as
+        // pullback ramps from 0 (t<0.75) to 1 (t=1). Multiplied by driftAmp
+        // so quiet climax passages don't tug as hard.
+        const tug = phase.pullback * phase.driftAmp;
+        out.x -= n.drift.x * tug * sens * 40;
+        out.y -= n.drift.y * tug * sens * 40;
       }
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
