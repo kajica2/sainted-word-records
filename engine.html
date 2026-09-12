@@ -2552,6 +2552,12 @@
         $('beat-led').classList.toggle('on', beatHit);
         $('onset-led').classList.toggle('on', onsetHit);
         if (this.feat.bpm) $('bpm-pill').textContent = this.feat.bpm + ' bpm';
+        // Hook for engine-transitions: feed live beat + BPM into the auto-fire
+        // subsystem. Idempotent — SWRTransitions may not be loaded yet (e.g.
+        // on persona-preview pages without the transitions script).
+        if (window.SWRTransitions && typeof window.SWRTransitions.onBeat === 'function') {
+          window.SWRTransitions.onBeat(this.feat.bpm || 0, !!beatHit);
+        }
         // v2: enhanced analysis
         if (window.AudioAnalysisV2 && this.audioEl) {
           // Track recent onsets for BPM autocorrelation
@@ -5605,6 +5611,13 @@
             const bpm = parseInt(bpmInp.value, 10);
             if (window.SWRTransitions && bpm > 0) window.SWRTransitions.setBPM(bpm);
           });
+          // Live-reflect the audio-driven BPM into the panel input so the user
+          // sees the real tempo when audio is loaded. Module calls this hook
+          // (no-op if missing).
+          window.SWRTransitionsUI = window.SWRTransitionsUI || {};
+          window.SWRTransitionsUI.onBpmUpdate = (bpm) => {
+            if (bpmInp && bpm > 0) bpmInp.value = String(bpm);
+          };
 
           // Auto-fire toggle.
           let autoLive = false;

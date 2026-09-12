@@ -408,14 +408,26 @@
     return transitions.reduce((p, c) => p.then(() => c), Promise.resolve());
   }
 
-  // ---- Beat emitter (synthesized; replace with real audio hook later) ──────
+  // ---- Beat sources ----
+  // Two paths to fire auto-fire transitions:
+  //   (a) external — window.SWRTransitions.onBeat(bpm, hit) called from the
+  //       audio analyser each frame it detects a beat (preferred when an
+  //       analyser is wired — keeps the BPM in sync with the real song).
+  //   (b) internal — setBPM() / setAutoFire() spin a setInterval at the
+  //       configured BPM. Used as a fallback so the module works without an
+  //       audio source (e.g. demo / persona-preview pages).
+  //
+  // When (a) is in use, the internal interval is suppressed. It re-arms if
+  // the user explicitly calls setBPM or setAutoFire after the audio source
+  // goes away (so the fallback still works).
   let _bpm = BEAT_DEFAULT_BPM;
   let _beatHandler = null;
   let _beatTickHandle = null;
+  let _externalBeatMode = false;
 
   function startBeatEmitter() {
-    if (_beatTickHandle) return;
-    const intervalMs = 60000 / _bpm;
+    if (_beatTickHandle || _externalBeatMode) return;
+    const intervalMs = 60000 / Math.max(1, _bpm);
     _beatTickHandle = setInterval(() => {
       if (_beatHandler) _beatHandler();
     }, intervalMs);
@@ -427,7 +439,29 @@
 
   function setBPM(bpm) {
     _bpm = Math.max(30, Math.min(240, bpm));
+    // Explicit setBPM from the UI re-enables internal mode (fallback).
+    _externalBeatMode = false;
     if (_beatTickHandle) { stopBeatEmitter(); startBeatEmitter(); }
+  }
+
+  // External beat receiver. Call this from the audio analyser on each frame
+  // it detects a beat. bpm is the current estimate (used for the BPM input
+  // in the panel UI). hit is the beat-hit boolean (true = beat this frame).
+  function onBeat(bpm, hit) {
+    let bpmChanged = false;
+    if (typeof bpm === 'number' && bpm > 0 && Number.isFinite(bpm)) {
+      const rounded = Math.round(bpm);
+      if (rounded !== _bpm) {
+        _bpm = Math.max(30, Math.min(240, rounded));
+        bpmChanged = true;
+      }
+    }
+    _externalBeatMode = true;
+    if (_beatTickHandle) stopBeatEmitter();  // silence the fallback
+    if (bpmChanged && window.SWRTransitionsUI && typeof window.SWRTransitionsUI.onBpmUpdate === 'function') {
+      window.SWRTransitionsUI.onBpmUpdate(_bpm);
+    }
+    if (hit && _beatHandler) _beatHandler();
   }
 
   // ---- Auto-fire ───────────────────────────────────────────────────────────
@@ -484,6 +518,7 @@
     list,
     setAutoFire,
     setBPM,
+    onBeat,        // audio analyser hook: window.SWRTransitions.onBeat(bpm, hit)
     // Escape hatch for debug / advanced users.
     _TRANSITIONS: TRANSITIONS
   };
