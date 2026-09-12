@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>audio analysis stub</title></head>
+<body>
+<script src="../audio-analysis-v2.js"></script>
+<script>
+  // Decode an audio file (or array buffer) and return the analysis JSON.
+  // AudioAnalysisV2.analyzeBuffer needs an AudioBuffer, so we decode via Web Audio.
+  async function analyzeBlob(arrayBuffer) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      const result = window.AudioAnalysisV2.analyzeBuffer(audioBuffer);
+      // JSON-serialize-friendly: chromagram is Float32Array
+      return {
+        bpm: result.bpm,
+        key: result.key,
+        scale: result.scale,
+        confidence: result.confidence,
+        chromagram: Array.from(result.chromagram),
+        onsetCount: result.onsets.length,
+        onsets: result.onsets,
+        duration: result.duration,
+      };
+    } finally {
+      try { ctx.close(); } catch (_) {}
+    }
+  }
+  window.__analyzeBlob = analyzeBlob;
+</script>
+</body>
+</html>
