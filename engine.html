@@ -3502,6 +3502,7 @@
               return;
             }
             if (e.target.classList.contains('x-rand')) {
+              if (!l.pos) l.pos = { x: 0, y: 0, rot: 0 };
               l.pos.x = (Math.random() - 0.5) * 200;
               l.pos.y = (Math.random() - 0.5) * 200;
               l.pos.rot = Math.random() * 360;
@@ -4945,6 +4946,10 @@
         if (this.dragMode === 'auto') {
           for (let i = 0; i < Layers.list.length; i++) {
             const l = Layers.list[i];
+            // Defensive: legacy snapshots (or hand-edited localStorage) may omit
+            // `pos`. The audio loop crashes on l.pos.x if so — quietly init
+            // instead so the engine keeps running instead of blank-screening.
+            if (!l.pos || !Number.isFinite(l.pos.x)) l.pos = { x: 0, y: 0, rot: 0 };
             const ph = i * 1.37;  // per-layer phase
             const t = this._t;
             // Smooth slow drift, scaled by audio energy (mid → x, treble → y, beat → rot kick)
