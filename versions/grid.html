@@ -79,6 +79,10 @@
     .l .r label { font: 8px/1 ui-monospace; text-transform: uppercase; letter-spacing: 0.08em; }
     .l .r select, .l .r input { background: transparent; border: 0; border-bottom: 1px solid currentColor; color: inherit;
       font: 9px/1 ui-monospace; padding: 2px 0; width: 100%; outline: none; }
+    /* Focus rings — brutalist accent outline for keyboard nav */
+    .tbtn:focus-visible, .pill:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 2px; }
+    .l.sel select:focus-visible, .l.sel input:focus-visible { outline-color: var(--bg); }
     .l .react { font: 8px/1 ui-monospace; color: var(--accent); margin-top: 3px; letter-spacing: 0.04em; }
     section.stage { position: relative; background: #fff; }
     /* Hard grid overlay — declared cells, doubled major axes, junction markers */
