@@ -35,7 +35,7 @@
       "id": 4,
       "title": "Beat-locked micro-evolution",
       "tasks": [
-        {"id": "4.1", "title": "Every-4-beats weights nudge + peak floor", "status": "pending"}
+        {"id": "4.1", "title": "Every-4-beats weights nudge + peak floor", "status": "done", "worker": "hermes", "artifacts": ["client/narrative-state.client.js"], "completedAt": "2026-09-12"}
       ]
     },
     {
