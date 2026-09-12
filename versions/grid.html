@@ -107,6 +107,12 @@
     .preset-chip .preset-vals { color: var(--muted); letter-spacing: 0.06em; }
     footer > .gc:not(:last-of-type) { padding-right: 16px; border-right: 1px solid #2a2a2a; }
     footer > .preset-chip { padding-right: 16px; }
+    .bpm-readout { display: flex; align-items: center; gap: 6px; }
+    .bpm-label { color: var(--accent); font-weight: 900; }
+    .bpm-readout b { color: #fff; font-weight: 900; font-size: 10px; }
+    .bpm-bar { position: relative; width: 60px; height: 6px; background: #2a2a2a; border: 1px solid #000; }
+    .bpm-bar-ref { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--accent); }
+    .bpm-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #fff; width: 0; transition: width 80ms linear; }
     .gc input { width: 80px; accent-color: var(--accent); }
     .gc b { color: var(--accent); }
     .led { width: 8px; height: 8px; background: #333; border: 1px solid #000; }
@@ -380,6 +386,7 @@
       <span class="gc">GATE <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.2" /> <b id="gate-v">1.20</b></span>
       <span class="gc">SNAP <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.7" /> <b id="decay-v">0.70</b></span>
       <span class="spacer" style="flex:1"></span>
+      <span class="gc bpm-readout"><span class="bpm-label">BPM</span> <b id="bpm-v">—</b><span class="bpm-bar"><span class="bpm-bar-fill" id="bpm-bar-fill"></span><span class="bpm-bar-ref"></span></span></span>
       <span id="fps" style="color:var(--accent);">— FPS</span>
     </footer>
   </div>
@@ -787,6 +794,7 @@
     let _shakeAmount = 0;
     let _lastRotateAt = 0;
     let _autoCycle = true;     // toggled by the UI checkbox; on by default
+    let _lastBpm = -1;          // sentinel: forces initial write
         function fit() {
       const m = SWR_RENDER.fit(stage);
       W = m.cssW; H = m.cssH;
@@ -913,6 +921,13 @@
       const dt=(t-lastT)/1000; lastT=t; fps=lerp(fps,1/Math.max(dt,0.0001),0.05);
       $('fps').textContent = Math.round(fps)+' FPS';
       if (A.playing) A.sample();
+      // === BPM readout (footer) — only writes when value changes, avoids per-frame DOM churn ===
+      const _bpm = A.feat.bpm;
+      if (_bpm !== _lastBpm) {
+        _lastBpm = _bpm;
+        const _bpmEl = $('bpm-v'); if (_bpmEl) _bpmEl.textContent = _bpm ? String(_bpm) : '—';
+        const _fill = $('bpm-bar-fill'); if (_fill) _fill.style.width = _bpm ? Math.min(100, (_bpm / 200) * 100) + '%' : '0%';
+      }
       // === Audio-reactive grid rotation ===
       // When a beat fires, count it. On every 2nd beat (≈ half-bar at common
       // tempos), rotate the cell assignments so the grid layout physically
