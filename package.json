@@ -51,6 +51,7 @@
     "verify:artists": "node verify-artists.mjs",
     "verify:shotlist": "node verify-shotlist.mjs",
     "verify:smtp": "node --test verify-smtp-transport.mjs",
+    "verify:curator-batch": "node verify-curator-batch.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {
