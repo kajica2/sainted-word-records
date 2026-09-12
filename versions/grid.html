@@ -630,8 +630,14 @@
         // library-loader; skip IDB persistence for them.
         const curated = !!(opts && opts.curated);
         for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
+          let blobUrl = '';
+          try { blobUrl = URL.createObjectURL(f); } catch (e) { console.warn('[swr-lib] createObjectURL failed', f.name, e); }
+          if (typeof blobUrl !== 'string' || !blobUrl.startsWith('blob:')) {
+            console.error('[swr-lib] non-blob URL for', f.name, 'skipping (got', JSON.stringify(blobUrl) + ')');
+            continue;
+          }
           const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
-            blob: f, url: URL.createObjectURL(f), motion:0, luma:0.5, hue:0, w:0, h:0, added: Date.now(), thumb: null, curated };
+            blob: f, url: blobUrl, motion:0, luma:0.5, hue:0, w:0, h:0, added: Date.now(), thumb: null, curated };
           this.items.push(it); this._classify(it);
           // Persist user uploads to IDB so they survive reloads. Fire-and-forget
           // so the UI doesn't block — render() is already kicking.
@@ -899,15 +905,23 @@
       const _ctx = c || ctx;
       const _W = (cssW != null) ? cssW : W;
       const _H = (cssH != null) ? cssH : H;
-      const a = l.asset; if (!a) return;
+      
+const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a (legacy URL.createObjectURL quirk
+      // returned the literal string "null"); fall back to the data:URL thumb
+      // that _classify() built so the asset still draws.
+      let url = a.url;
+      if (typeof url !== 'string' || !url.startsWith('blob:')) {
+        if (a.thumb && a.thumb.startsWith('data:')) url = a.thumb;
+        else return;
+      }
       let src;
       if (a.type === 'video') {
-        if (!a._el) { a._el = document.createElement('video'); a._el.src = a.url; a._el.muted = true; a._el.loop = true; a._el.playsInline = true; a._el.preload = 'auto'; }
+        if (!a._el) { a._el = document.createElement('video'); a._el.src = url; a._el.muted = true; a._el.loop = true; a._el.playsInline = true; a._el.preload = 'auto'; }
         src = a._el;
         if (A.playing && src.paused) src.play().catch(()=>{});
         if (!A.playing && !src.paused) src.pause();
       } else {
-        if (!a._el) { a._el = new Image(); a._el.src = a.url; }
+        if (!a._el) { a._el = new Image(); a._el.src = url; }
         src = a._el;
       }
       if (a.type === 'video' && src.readyState < 2) return;

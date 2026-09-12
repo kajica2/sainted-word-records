@@ -107,7 +107,7 @@ function copyStatic() {
     'weddings.css',
     'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
     'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
-    'watermark-monogram.svg',
+    'watermark-monogram.svg', 'watermark-icon.svg', 'watermark-wordmark.svg',
     'video-fx.css',
     'login.html',
     'brandkit.css',
