@@ -57,6 +57,32 @@
     .toc { background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px; padding: 24px 28px; margin: 32px 0; }
     .toc h2 { margin-top: 0; }
     .toc ul { margin: 12px 0 0; }
+    /* Navigation hub — pure-link cards pointing at the standalone sections. */
+    .atlas-toc { display: grid; gap: 14px; margin: 28px 0 16px; }
+    .atlas-card { display: grid; grid-template-columns: 56px 1fr auto; gap: 18px;
+      align-items: center; padding: 20px 22px;
+      background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px;
+      color: var(--ink); text-decoration: none;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease; }
+    .atlas-card:hover { border-color: var(--gold-soft); background: var(--bg-2);
+      transform: translateX(2px); }
+    .atlas-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .atlas-card__roman { font: 28px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--gold); text-align: center; letter-spacing: -.02em; }
+    .atlas-card__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .atlas-card__title { font: 600 16px/1.3 ui-sans-serif, system-ui, sans-serif;
+      color: var(--ink); }
+    .atlas-card__sub { font-size: 13px; line-height: 1.5; color: var(--muted); }
+    .atlas-card__cta { font: 600 12px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--amber); letter-spacing: .06em; text-transform: uppercase;
+      white-space: nowrap; }
+    .atlas-card:hover .atlas-card__cta { color: var(--gold); }
+    @media (max-width: 600px) {
+      .atlas-card { grid-template-columns: 36px 1fr; gap: 12px; padding: 16px; }
+      .atlas-card__cta { grid-column: 2; justify-self: start; margin-top: 4px; }
+      .atlas-card__roman { font-size: 22px; }
+      .atlas-card__title { font-size: 15px; }
+    }
     code { font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
       background: var(--bg-1); padding: 2px 6px; border-radius: 3px; color: var(--cyan); }
     .signoff { margin-top: 56px; padding: 24px; background: var(--bg-1);
@@ -112,56 +138,50 @@
 
     <h2>How to read this book</h2>
     <p>You don't read it cover-to-cover. You read the section that meets where you are.</p>
-    <ul>
-      <li><strong>In crisis?</strong> → <a href="#section-i">Section I</a>. Stop reading, start the protocol.</li>
-      <li><strong>Building a stage of life?</strong> → <a href="#section-ii">Section II</a>. Find your operating system.</li>
-      <li><strong>Doing the daily work?</strong> → <a href="#section-iii">Section III</a>. Pick one step out of 200 and live it.</li>
-      <li><strong>Maintaining?</strong> → <a href="#section-iv">Section IV</a>. The morning checklist.</li>
-    </ul>
     <p><em>The book is a map. The walking is the work.</em></p>
 
-    <hr>
-
-    <div class="toc">
-      <h2>Table of contents</h2>
-
-      <h3 id="section-i">Section I — The Crisis Protocol</h3>
-      <p><em>The Emergency Anchor — when the floor falls out, forget the steps and focus on survival.</em></p>
-      <ul>
-        <li>1. The Immediate Stabilization (0–24 Hours)</li>
-        <li>2. The Sustainment (Days 2–14)</li>
-      </ul>
-
-      <h3 id="section-ii">Section II — Life-Stage Operating Systems</h3>
-      <p><em>Four age-windows, each with its own focus.</em></p>
-      <ul>
-        <li>🎓 The Architect (Age 15) — Foundation and Neural Pruning</li>
-        <li>⚔️ The Forge (Age 25) — Competence and Real-World Testing</li>
-        <li>🍷 The Integration (Age 50) — Refinement and Second-Half Strategy</li>
-        <li>🕊️ The Legacy (Age 75+) — Grace and Non-Duality</li>
-      </ul>
-
-      <h3 id="section-iii">Section III — The 200 Steps (Core Curriculum)</h3>
-      <p><em>Four phases of 50 steps each.</em></p>
-      <ul>
-        <li>Phase 1: Cultivating the Soil (Steps 1–50)</li>
-        <li>Phase 2: Training the Mind (Steps 51–100)</li>
-        <li>Phase 3: Unraveling the Illusion (Steps 101–150)</li>
-        <li>Phase 4: Radiating Awareness (Steps 151–200)</li>
-      </ul>
-
-      <h3 id="section-iv">Section IV — The Daily Maintenance Checklist</h3>
-      <p><em>A simplified version of the Atlas for every morning.</em></p>
-      <ul>
-        <li>Check Hardware</li>
-        <li>Check Software</li>
-        <li>Check Connectivity</li>
-        <li>Check Presence</li>
-      </ul>
-
-      <h3 id="final">The Final Insight</h3>
-      <p><em>"Before enlightenment, chop wood, carry water. After enlightenment, chop wood, carry water."</em></p>
-    </div>
+    <nav class="atlas-toc" aria-label="Atlas sections">
+      <a class="atlas-card" href="/atlas/crisis">
+        <span class="atlas-card__roman">I</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The Crisis Protocol</span>
+          <span class="atlas-card__sub">The Emergency Anchor — when the floor falls out, forget the steps and focus on survival.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <a class="atlas-card" href="/atlas/life-stages">
+        <span class="atlas-card__roman">II</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">Life-Stage Operating Systems</span>
+          <span class="atlas-card__sub">Four age-windows, each with its own focus. The principles don't change. The application does.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <a class="atlas-card" href="/atlas/200-steps">
+        <span class="atlas-card__roman">III</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The 200 Steps</span>
+          <span class="atlas-card__sub">The Core Curriculum. Four phases of 50 steps each. Pick one and live it for 24 hours.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <a class="atlas-card" href="/atlas/checklist">
+        <span class="atlas-card__roman">IV</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The Daily Maintenance Checklist</span>
+          <span class="atlas-card__sub">A simplified version of the Atlas, used every morning. Hardware, software, connectivity, presence.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <a class="atlas-card" href="/atlas/final-insight">
+        <span class="atlas-card__roman">★</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The Final Insight</span>
+          <span class="atlas-card__sub">Before enlightenment, chop wood, carry water. After enlightenment, chop wood, carry water.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+    </nav>
 
     <hr>
 
