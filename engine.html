@@ -784,6 +784,89 @@
       border-radius: 3px;
     }
     .separator { width: 1px; height: 24px; background: var(--line); }
+    /* === TRANSITIONS PANEL (engine-transitions.client.js) === */
+    .swr-tx-panel {
+      position: fixed;
+      left: 50%;
+      bottom: 60px;
+      transform: translateX(-50%);
+      background: var(--panel);
+      border: 1px solid var(--line-2);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 420px;
+      max-width: 560px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+      z-index: 9998;
+    }
+    .swr-tx-panel.open { display: flex; }
+    .swr-tx-panel__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--accent-2);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .swr-tx-panel__row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .swr-tx-panel__row label {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .swr-tx-panel select,
+    .swr-tx-panel input[type="number"] {
+      background: var(--bg-1);
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+    .swr-tx-panel input[type="range"] { width: 110px; }
+    .swr-tx-panel b { color: var(--accent-2); font-weight: 500; min-width: 30px; text-align: right; }
+    .swr-tx-optgroup { color: var(--accent-2); font-weight: 600; }
+    .swr-tx-fire {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      font-weight: 700;
+      padding: 6px 14px;
+    }
+    .swr-tx-fire:hover { background: #ff5fa3; }
+    .swr-tx-auto {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border: 1px solid var(--line-2);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .swr-tx-auto.live {
+      background: var(--warn);
+      color: #000;
+      border-color: var(--warn);
+    }
     .beat-led {
       width: 10px; height: 10px;
       border-radius: 50%;
@@ -2000,9 +2083,37 @@
       <button class="tbtn" id="mg-agi-toggle" style="padding:4px 10px; font-size:9px;" title="Embed: kaidjuric/motion-graphic-designer-agi-system (HF Space)">MG AGI</button>
       <span class="separator"></span>
       <button class="tbtn" id="panels-toggle" style="padding:4px 10px; font-size:9px;" title="Show/hide the LFO, TIMING, and AUTO-SWAP floating panels">PANELS: <b id="panels-toggle-state">hidden</b></button>
+      <span class="separator"></span>
+      <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions)">TRANSITIONS</button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
+
+    <!-- Transitions popover (engine-transitions.client.js) -->
+    <div id="swr-tx-panel" class="swr-tx-panel" role="dialog" aria-label="Transitions">
+      <div class="swr-tx-panel__head">
+        <span>Transitions <b id="swr-tx-count" style="color:var(--accent-2);">—</b></span>
+        <button class="tbtn ghost" id="swr-tx-close" style="padding:2px 8px; font-size:10px;">×</button>
+      </div>
+      <div class="swr-tx-panel__row">
+        <label for="swr-tx-pick">Transition</label>
+        <select id="swr-tx-pick" style="flex:1; min-width:200px;"></select>
+      </div>
+      <div class="swr-tx-panel__row">
+        <label for="swr-tx-peak">peak</label>
+        <input type="range" id="swr-tx-peak" min="0" max="1" step="0.05" value="1" />
+        <b id="swr-tx-peak-v">1.00</b>
+        <button class="swr-tx-fire" id="swr-tx-fire">FIRE</button>
+      </div>
+      <div class="swr-tx-panel__row" style="border-top:1px solid var(--line); padding-top:8px;">
+        <label for="swr-tx-every">auto every</label>
+        <input type="number" id="swr-tx-every" min="1" max="32" step="1" value="4" style="width:60px;" />
+        <span style="color:var(--muted);">beats</span>
+        <label for="swr-tx-bpm">bpm</label>
+        <input type="number" id="swr-tx-bpm" min="30" max="240" step="1" value="120" style="width:60px;" />
+        <button class="swr-tx-auto" id="swr-tx-auto-toggle">AUTO-FIRE OFF</button>
+      </div>
+    </div>
   </div>
 
   <!-- Daily Practice modal -->
@@ -5414,6 +5525,115 @@
         const blurInp = $('blur');
         if (grayInp) grayInp.addEventListener('input', () => window.FX && window.FX.setGrayscale(parseFloat(grayInp.value)));
         if (blurInp) blurInp.addEventListener('input',  () => window.FX && window.FX.setBlur(parseFloat(blurInp.value)));
+        // Transitions panel wiring (engine-transitions.client.js)
+        (function wireTransitionsPanel() {
+          const $ = (id) => document.getElementById(id);
+          const toggleBtn = $('swr-tx-toggle');
+          const panel = $('swr-tx-panel');
+          const closeBtn = $('swr-tx-close');
+          const pick = $('swr-tx-pick');
+          const peakInp = $('swr-tx-peak');
+          const peakV = $('swr-tx-peak-v');
+          const fireBtn = $('swr-tx-fire');
+          const everyInp = $('swr-tx-every');
+          const bpmInp = $('swr-tx-bpm');
+          const autoBtn = $('swr-tx-auto-toggle');
+          const countV = $('swr-tx-count');
+          if (!toggleBtn || !panel || !pick) return;
+
+          // Populate dropdown once module is ready (poll briefly, then give up).
+          let attempts = 0;
+          const populate = () => {
+            if (!window.SWRTransitions || !window.SWRTransitions.list) {
+              if (++attempts > 40) { console.warn('[swr-tx] SWRTransitions not loaded after 4s'); return; }
+              return setTimeout(populate, 100);
+            }
+            const list = window.SWRTransitions.list();
+            countV.textContent = String(list.length);
+            // Group by family with <optgroup>.
+            const byFamily = new Map();
+            list.forEach(t => {
+              if (!byFamily.has(t.family)) byFamily.set(t.family, []);
+              byFamily.get(t.family).push(t);
+            });
+            const familyOrder = ['cover', 'distortion', 'spatial', 'brightness', 'mask', 'hybrid', 'fade', 'wipe'];
+            familyOrder.forEach(fam => {
+              if (!byFamily.has(fam)) return;
+              const grp = document.createElement('optgroup');
+              grp.label = fam;
+              grp.className = 'swr-tx-optgroup';
+              byFamily.get(fam).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.name;
+                opt.textContent = `${t.name} (${t.kind === 'fx' ? 'FX' : 'CSS'}, ${t.duration}ms)`;
+                grp.appendChild(opt);
+              });
+              pick.appendChild(grp);
+            });
+          };
+          populate();
+
+          // Show / hide.
+          const setOpen = (open) => {
+            panel.classList.toggle('open', !!open);
+            toggleBtn.classList.toggle('primary', !!open);
+          };
+          toggleBtn.addEventListener('click', () => setOpen(!panel.classList.contains('open')));
+          if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
+          // Esc to close.
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && panel.classList.contains('open')) setOpen(false);
+          });
+
+          // Peak slider live display.
+          if (peakInp && peakV) {
+            peakInp.addEventListener('input', () => { peakV.textContent = parseFloat(peakInp.value).toFixed(2); });
+          }
+
+          // Fire button.
+          if (fireBtn) {
+            fireBtn.addEventListener('click', () => {
+              if (!window.SWRTransitions) return;
+              const name = pick.value;
+              const peak = parseFloat(peakInp.value);
+              window.SWRTransitions.fire(name, { peak });
+            });
+          }
+
+          // BPM live updates the emitter; 'every' is read at toggle time.
+          if (bpmInp) bpmInp.addEventListener('change', () => {
+            const bpm = parseInt(bpmInp.value, 10);
+            if (window.SWRTransitions && bpm > 0) window.SWRTransitions.setBPM(bpm);
+          });
+
+          // Auto-fire toggle.
+          let autoLive = false;
+          if (autoBtn) {
+            autoBtn.addEventListener('click', () => {
+              if (!window.SWRTransitions) return;
+              if (autoLive) {
+                window.SWRTransitions.setAutoFire(null);
+                autoLive = false;
+                autoBtn.classList.remove('live');
+                autoBtn.textContent = 'AUTO-FIRE OFF';
+              } else {
+                const every = Math.max(1, parseInt(everyInp.value, 10) || 4);
+                const bpm = parseInt(bpmInp.value, 10) || 120;
+                window.SWRTransitions.setAutoFire({
+                  everyNBeats: every,
+                  transition: pick.value,
+                  bpm
+                });
+                autoLive = true;
+                autoBtn.classList.add('live');
+                autoBtn.textContent = `AUTO-FIRE ON · ${pick.value} / ${every}b`;
+              }
+            });
+          }
+
+          // Expose minimal API for keyboard / persona integration later.
+          window.SWRTransitionsUI = { setOpen, pick, fireBtn };
+        })();
         // Distortion sliders (from flexible-smart-videomaker preset system)
         const liquidInp = $('liquid');
         const pearlInp  = $('pearl');
@@ -6200,6 +6420,7 @@
 
   <script type="module" src="/timeline.client.js"></script>
   <script type="module" src="/fx-postprocess.js"></script>
+  <script type="module" src="/engine-transitions.client.js"></script>
   <script type="module" src="/wizard.js"></script>
   <script type="module" src="/personas.js"></script>
   <script type="module" src="/project.js"></script>
