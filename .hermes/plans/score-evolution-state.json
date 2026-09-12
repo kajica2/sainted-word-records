@@ -27,8 +27,8 @@
       "id": 3,
       "title": "Phase narrative (continuous, time-based)",
       "tasks": [
-        {"id": "3.1", "title": "Add phaseMultiplier() function", "status": "pending"},
-        {"id": "3.2", "title": "Apply phase multipliers in applyR", "status": "pending"}
+        {"id": "3.1", "title": "Add phaseMultiplier() function", "status": "done", "worker": "hermes", "artifacts": ["client/narrative-state.client.js"], "completedAt": "2026-09-12"},
+        {"id": "3.2", "title": "Apply phase multipliers in applyR", "status": "done", "worker": "hermes", "artifacts": ["versions/music_video.html"], "completedAt": "2026-09-12"}
       ]
     },
     {
