@@ -501,6 +501,16 @@
       font-family: var(--font-mono); font-size: 10px;
     }
 
+    /* Mascot card needs to escape the 28x28 icon container default so the
+       240x240 SVG isn't clipped or overflowing the card. */
+    .persona__icon--mascot {
+      width: auto; height: auto;
+      padding: 0 !important; background: transparent !important;
+      display: flex; align-items: center; justify-content: center;
+      margin: -8px 0 16px;  /* tighten the gap above the title */
+    }
+    .persona__icon--mascot swr-mascot-camera { display: block; }
+
     /* ===== QUICK START (TERMINAL) ===== */
     .quick {
       display: grid; grid-template-columns: 1fr 1.4fr; gap: 48px; align-items: center;
@@ -1077,13 +1087,13 @@
         </p>
       </div>
       <div class="personas">
-        <div class="persona">
+        <div class="persona persona--mascot">
           <span class="persona__best">New</span>
-          <div class="persona__icon" style="padding:0;background:transparent;">
+          <div class="persona__icon persona__icon--mascot">
             <swr-mascot-camera src="/swr-mascot-camera.svg" label="SWR mascot reacts to your camera"></swr-mascot-camera>
           </div>
           <h4 class="persona__name">Hand-drawn mascot</h4>
-          <p class="persona__body">Click the mascot — it requests your camera, samples frames at 8 fps, and reacts in real time. Motion &gt; 0.35 makes it wave. Centroid high in frame makes it look up. Head tilts toward your face. No model, no CDN.</p>
+          <p class="persona__body">Click the mascot — it requests your camera, samples frames at 8 fps, and reacts in real time. A hand-wave makes it wave back. A face held high makes it look up. Sustained motion (you're close) makes it lean in. Long quiet after activity makes it ease back. Head tilts toward your face. No model, no CDN.</p>
           <span class="persona__tool">→ <code>swr-mascot-camera.client.js</code></span>
         </div>
         <div class="persona">

@@ -58,9 +58,15 @@
       this._currentFrame = null;    // Uint8ClampedArray of current luma frame
       this._sampleTimer = null;
       this._motion = 0;             // smoothed 0..1
+      this._depth = 0;              // smoothed 0..1, slow-moving EMA of motion (proximity proxy)
+      this._motionPeak = 0;         // max motionScale over the last 3 frames — wave trigger
       this._centroid = { x: 0.5, y: 0.5 }; // 0..1 each
       this._stateClearTimer = null;
       this._armed = false;          // user has clicked → camera requested
+      this._stateHistory = [];      // last few states for debouncing transitions
+      this._currentState = null;    // 'idle' | 'wave' | 'look-up' | 'lean-in' | 'back-away'
+      this._hasBeenActive = false;  // latched true the first time motion > 0.1 is seen
+      this._motionScaleHistory = []; // last 3 raw motionScale values for peak detection
     }
 
     static get observedAttributes() {
@@ -287,10 +293,28 @@
 
       // Normalize motion to 0..1 (luma diff per pixel can go up to ~255)
       const motionRaw = weightSum > 0 ? motionSum / (w * h * 255) : 0;
-      const motionScale = Math.min(1, motionRaw * 8); // empirical gain
+      // Higher gain: a 1960-px face circle jumping across the frame should
+      // produce motionScale > 0.5 (which we need to clear the wave threshold).
+      const motionScale = Math.min(1, motionRaw * 40);
 
-      // Exponential smoothing so the mascot doesn't jitter every frame
-      this._motion = this._motion * 0.7 + motionScale * 0.3;
+      // Exponential smoothing so the mascot doesn't jitter every frame.
+      // Slower decay (0.5 / 0.5) than depth, so a hand-wave registers across
+      // 2-3 frames (~250-375ms at 8fps) instead of decaying in one tick.
+      this._motion = this._motion * 0.5 + motionScale * 0.5;
+      // Peak tracker: max raw motionScale over the last 3 frames. A single-
+      // frame burst (e.g. a hand wave) registers as a wave even if the EMA
+      // smoothed it away — the peak outlasts the EMA's decay.
+      this._motionScaleHistory.push(motionScale);
+      if (this._motionScaleHistory.length > 3) this._motionScaleHistory.shift();
+      this._motionPeak = this._motionScaleHistory.reduce((m, v) => Math.max(m, v), 0);
+      // Depth = much slower EMA of motion. A short burst of motion reads as
+      // a gesture; sustained motion reads as "the camera is close / person
+      // is large in frame." This is a cheap proxy for actual depth sensing.
+      this._depth = this._depth * 0.97 + motionScale * 0.03;
+      // Latch: once we've seen any meaningful activity, we know someone was
+      // here, so back-away becomes a valid transition. Without activity, we
+      // stay in idle even after long quiet periods (a still camera scene).
+      if (motionScale > 0.1 || this._motion > 0.15) this._hasBeenActive = true;
 
       if (weightSum > 0) {
         this._centroid.x = weightedX / weightSum / w; // 0..1
@@ -300,35 +324,68 @@
       // Map centroid.x (0..1) → --tilt (-1..+1)
       const tilt = Math.max(-1, Math.min(1, (this._centroid.x - 0.5) * 2));
 
-      this._setMotionVars(this._motion, tilt);
+      this._setMotionVars(this._motion, tilt, this._depth);
       this._updateState();
     }
 
-    _setMotionVars(motion, tilt) {
+    _setMotionVars(motion, tilt, depth) {
       const svg = this.querySelector('svg.mascot-svg');
       if (!svg) return;
       svg.style.setProperty('--motion', motion.toFixed(3));
-      svg.style.setProperty('--tilt', tilt.toFixed(3));
+      svg.style.setProperty('--tilt',   tilt.toFixed(3));
+      svg.style.setProperty('--depth',  depth.toFixed(3));
     }
 
     _updateState() {
       const svg = this.querySelector('svg.mascot-svg');
       if (!svg) return;
       let next;
-      if (this._motion > 0.35) {
+      // State hierarchy (most-emphatic first):
+      //   lean-in   — sustained large motion → "you're close"
+      //   wave      — peak burst of motion → "hello!"
+      //   look-up   — face region in upper third → "looking up"
+      //   back-away — long quiet period AFTER activity → "stepped back / left"
+      //   idle      — default, gentle pulse (also a still-camera scene)
+      if (this._depth > 0.30 && this._motion > 0.10) {
+        next = 'lean-in';
+      } else if (this._motionPeak > 0.40) {
+        // Use the raw peak (max of last 3 frames) so a single-frame hand
+        // wave registers even after the EMA smooths it away.
         next = 'wave';
-      } else if (this._centroid.y < 0.38) {
+      } else if (this._centroid.y < 0.36) {
+        // Look-up wins purely on centroid position (no motion threshold)
+        // so a stable "looking up" pose registers even after motion decays.
         next = 'look-up';
+      } else if (this._hasBeenActive && this._depth < 0.08 && this._motion < 0.05) {
+        next = 'back-away';
       } else {
-        next = null; // idle
+        next = 'idle';
       }
-      this._setSvgState(next);
+      this._setSvgStateDebounced(next);
+    }
+
+    // Debounce state transitions over ~3 frames so brief blips don't snap
+    // the mascot between poses. Holds the existing state unless the new
+    // candidate wins a majority vote across the last 3 samples.
+    _setSvgStateDebounced(next) {
+      this._stateHistory.push(next);
+      if (this._stateHistory.length > 3) this._stateHistory.shift();
+      // Majority vote
+      const counts = {};
+      for (const s of this._stateHistory) counts[s] = (counts[s] || 0) + 1;
+      let winner = next, max = 0;
+      for (const [s, n] of Object.entries(counts)) {
+        if (n > max) { max = n; winner = s; }
+      }
+      if (winner === this._currentState) return;
+      this._currentState = winner;
+      this._setSvgState(winner === 'idle' ? null : winner);
     }
 
     _setSvgState(state) {
       const svg = this.querySelector('svg.mascot-svg');
       if (!svg) return;
-      svg.classList.remove('wave', 'look-up');
+      svg.classList.remove('wave', 'look-up', 'lean-in', 'back-away');
       if (state) svg.classList.add(state);
     }
   }
