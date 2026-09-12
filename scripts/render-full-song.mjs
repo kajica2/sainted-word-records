@@ -239,24 +239,32 @@ export async function renderVariant(opts) {
 
 // === CLI shim =============================================================
 // Default behavior preserved: node scripts/render-full-song.mjs <in.wav> <out.mp4> [lib.mp4 ...]
-// New: --variant <name> selects a versions/*.html page (default: hallucination)
+// Recognized flags: --variant <name>, --fps N, --width N, --height N, --quiet
 if (import.meta.url === `file://${process.argv[1]}`) {
   const argv = process.argv.slice(2);
   let inPath, outPath, variant = 'hallucination';
+  let fps = 24, width = 640, height = 360, quiet = false;
   const libPaths = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--variant') { variant = argv[++i]; continue; }
-    if (a.startsWith('--')) continue;
+    if (a === '--fps')      { fps = parseInt(argv[++i], 10); continue; }
+    if (a === '--width')    { width = parseInt(argv[++i], 10); continue; }
+    if (a === '--height')   { height = parseInt(argv[++i], 10); continue; }
+    if (a === '--quiet')    { quiet = true; continue; }
+    if (a.startsWith('--')) {
+      console.error(`unknown flag: ${a}`);
+      process.exit(2);
+    }
     if (!inPath) { inPath = path.resolve(a); continue; }
     if (!outPath) { outPath = path.resolve(a); continue; }
     libPaths.push(path.resolve(a));
   }
   if (!inPath || !fs.existsSync(inPath)) {
-    console.error('usage: node scripts/render-full-song.mjs <input.wav> <output.mp4> [--variant <name>] [library.mp4 ...]');
+    console.error('usage: node scripts/render-full-song.mjs <input.wav> <output.mp4> [--variant <name>] [--fps N] [--width N] [--height N] [--quiet] [library.mp4 ...]');
     process.exit(2);
   }
-  renderVariant({ inputPath: inPath, outPath, variant, libraryPaths: libPaths })
+  renderVariant({ inputPath: inPath, outPath, variant, libraryPaths: libPaths, fps, width, height, quiet })
     .then((r) => { console.log(`done: ${outPath} (${r.framesWritten} frames, ${r.fpsActual.toFixed(1)}fps, ${(r.durationMs/1000).toFixed(0)}s wall)`); })
-    .catch((e) => { console.error(e); process.exit(1); });
+    .catch((e) => { console.error(e.message); process.exit(1); });
 }
