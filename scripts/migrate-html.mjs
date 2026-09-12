@@ -73,6 +73,13 @@ if (fileArgs.length > 0) {
   }
   collectPaths(siteMap.legal);
   collectPaths(siteMap.tools);
+
+  // Also process discovered pages
+  if (Array.isArray(siteMap.discovered)) {
+    for (const p of siteMap.discovered) {
+      if (!pagesToMigrate.includes(p)) pagesToMigrate.push(p);
+    }
+  }
 }
 
 // Filter out app pages unless --include-apps

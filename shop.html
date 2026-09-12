@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shop · SWR Galleries</title>
@@ -8,19 +10,6 @@
   <!-- No-flash theme bootstrap. Reads the persisted choice (or falls
        back to prefers-color-scheme) and applies it before the CSS
        loads so there's no white flash on a dark-mode visitor. -->
-  <script>
-    (function() {
-      try {
-        var saved = localStorage.getItem('swr-theme');
-        var theme = saved || 'system';
-        var resolved = theme === 'system'
-          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : theme;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-pref', theme);
-      } catch (e) {}
-    })();
-  </script>
   <meta name="description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
   <meta property="og:title" content="Shop · SWR Galleries" />
   <meta property="og:description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
@@ -794,5 +783,6 @@
       });
     })();
   </script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

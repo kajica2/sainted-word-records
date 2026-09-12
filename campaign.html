@@ -1,26 +1,14 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SWR Visualizers · The launch plan that turns songs into video revenue</title>
   <meta name="description" content="SWR Visualizers — audio-reactive music videos for independent artists. From €25, 48-hour turnaround. Service-first, browser-based, no software to learn." />
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
-
-  <script>
-    (function() {
-      try {
-        var saved = localStorage.getItem('ms-theme');
-        var theme = saved || 'system';
-        var resolved = theme === 'system'
-          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : theme;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-pref', theme);
-      } catch (e) {}
-    })();
-  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -2564,5 +2552,6 @@
   })();
 </script>
 
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>
