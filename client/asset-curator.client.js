@@ -69,9 +69,39 @@
     if (hasUniformBg && !out.find(t => t.tag === 'transparent')) {
       out.push({ tag: 'transparent', score: 0.75, folder: 'transparent-pngs' });
     }
+    // Fallback for filename-opaque assets (UUIDs, hashes, "download (1)").
+    // Extract a stable short token so the engine library can de-dupe them
+    // and the manifest has something to group by. Boring, deterministic,
+    // offline-only — no semantic claim.
+    if (!out.length) {
+      const tok = tokenFromFilename(file.name || '');
+      if (tok) {
+        out.push({ tag: 'asset-' + tok, score: 0.30, folder: 'uncategorized' });
+      }
+    }
     // Sort by score desc
     out.sort((a, b) => b.score - a.score);
     return out;
+  }
+
+  // Extract a stable 8-char identifier from a filename.
+  // Priority: first long hex/alphanum run → otherwise first word stripped of
+  // common prefixes (download, image, img, screenshot, scan).
+  function tokenFromFilename(name) {
+    const base = String(name || '').replace(/\.[^.]+$/, '').toLowerCase();
+    // Long hex/alphanum run (UUID-style, hashes, content-addressed names)
+    const m = base.match(/[a-z0-9]{6,}/g);
+    if (m) {
+      // Prefer the longest run, then the first
+      m.sort((a, b) => b.length - a.length);
+      return m[0].slice(0, 8);
+    }
+    // Fall back to a sanitized first word
+    const w = base.split(/[^a-z0-9]+/).filter(Boolean);
+    if (w.length && !/^(download|image|img|screenshot|scan|photo|pic|file)$/i.test(w[0])) {
+      return w[0].slice(0, 8);
+    }
+    return null;
   }
 
   function pickFolder(tags) {
