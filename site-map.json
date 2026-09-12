@@ -180,11 +180,6 @@
       "description": "6 character presets"
     },
     {
-      "label": "Weddings",
-      "href": "/weddings",
-      "description": "Wedding visualizers"
-    },
-    {
       "label": "Shop",
       "href": "/shop",
       "description": "SWR merchandise"
@@ -272,6 +267,11 @@
     }
   ],
   "tools": [
+    {
+      "label": "Sitemap",
+      "href": "/sitemap",
+      "description": "Every page on the site, with search and filters"
+    },
     {
       "label": "AR GIF",
       "href": "/ar-gif",

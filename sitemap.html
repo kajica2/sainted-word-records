@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sitemap · Sainted Word Records</title>
+  <meta name="description" content="Every page on sainted-word-records.vercel.app. 150+ routes, grouped by category, with live status and search." />
+  <meta property="og:title" content="Sitemap · SWR" />
+  <meta property="og:description" content="Every page on the site, with live status and search." />
+  <link rel="icon" href="/favicon.ico" />
+
+  <!-- No-flash theme bootstrap -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('swr-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/design-base.css">
+  <link rel="stylesheet" href="/lib/components.css">
+  <style>
+    /* === SITEMAP-SPECIFIC === */
+    .sitemap-hero { padding: 56px 0 32px; border-bottom: 1px solid var(--line); }
+    .sitemap-hero h1 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(36px, 5vw, 52px); line-height: 1.05;
+      letter-spacing: -0.02em; margin: 0 0 12px;
+    }
+    .sitemap-hero h1 em { font-style: italic; color: var(--accent); }
+    .sitemap-hero .lede {
+      font-size: 16px; color: var(--ink-2); max-width: 680px; line-height: 1.5; margin: 0 0 24px;
+    }
+
+    .stats-strip {
+      display: flex; gap: 32px; flex-wrap: wrap;
+      padding: 16px 0;
+      font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    .stats-strip .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stats-strip .stat-num {
+      font-family: var(--font-display); font-size: 22px; font-weight: 400;
+      color: var(--accent); font-variant-numeric: tabular-nums;
+    }
+    .stats-strip .stat-label { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: 0.12em; }
+
+    .toolbar {
+      display: flex; gap: 12px; align-items: center;
+      padding: 16px 0;
+      flex-wrap: wrap;
+    }
+    .toolbar input[type="search"] {
+      flex: 1; min-width: 240px;
+      padding: 10px 14px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      color: var(--ink); font-family: var(--font-mono); font-size: 13px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .toolbar input[type="search"]:focus { border-color: var(--accent); }
+    .toolbar input[type="search"]::placeholder { color: var(--muted); }
+    .toolbar .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .toolbar .filter-btns button {
+      padding: 8px 12px;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      color: var(--ink-2);
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.04em; cursor: pointer;
+      transition: border-color var(--transition), color var(--transition), background var(--transition);
+    }
+    .toolbar .filter-btns button:hover { border-color: var(--accent); color: var(--accent); }
+    .toolbar .filter-btns button.active {
+      background: var(--ink); color: var(--bg); border-color: var(--ink);
+    }
+
+    .sitemap-list { display: flex; flex-direction: column; gap: 48px; padding: 32px 0 80px; }
+    .sitemap-group {}
+    .sitemap-group-head {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--line);
+      margin-bottom: 16px;
+    }
+    .sitemap-group-title {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin: 0;
+    }
+    .sitemap-group-count {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .entry-list { display: flex; flex-direction: column; gap: 2px; }
+    .entry {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+      gap: 16px; align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-decoration: none; color: inherit;
+      transition: background var(--transition);
+    }
+    .entry:hover { background: var(--bg-2); }
+    .entry:last-child { border-bottom: none; }
+
+    .entry-label { font-weight: 500; color: var(--ink); }
+    .entry-desc { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .entry-meta { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    .entry-href {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--ink-2);
+    }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: var(--radius-pill);
+      white-space: nowrap;
+    }
+    .status-badge.active { background: color-mix(in srgb, var(--accent-3) 18%, transparent); color: var(--accent-3); }
+    .status-badge.archived { background: color-mix(in srgb, var(--hot) 18%, transparent); color: var(--hot); }
+    .status-badge.disc { background: var(--bg-2); color: var(--muted); border: 1px solid var(--line); }
+
+    .empty-state {
+      padding: 48px 24px; text-align: center;
+      color: var(--muted);
+      font-family: var(--font-mono); font-size: 13px;
+      border: 1px dashed var(--line); border-radius: var(--radius);
+    }
+
+    .children-list { margin-left: 20px; border-left: 1px solid var(--line); padding-left: 16px; }
+    .children-list .entry { padding-left: 12px; }
+
+    .loading {
+      padding: 64px 24px; text-align: center;
+      font-family: var(--font-mono); font-size: 12px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    @media (max-width: 720px) {
+      .entry { grid-template-columns: 1fr; gap: 4px; }
+      .entry-meta { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <main>
+    <section class="sitemap-hero">
+      <div class="wrap">
+        <h1>Every <em>page</em> on the site.</h1>
+        <p class="lede">
+          A live index of every route shipped from
+          <code>site-map.json</code>. Filter by category, search by label or
+          description, copy URLs. Generated on every deploy — what you see is
+          what's deployed.
+        </p>
+      </div>
+      <div class="wrap stats-strip" id="stats-strip">
+        <div class="stat"><span class="stat-num" id="stat-total">—</span><span class="stat-label">Total routes</span></div>
+        <div class="stat"><span class="stat-num" id="stat-nav">—</span><span class="stat-label">In nav</span></div>
+        <div class="stat"><span class="stat-num" id="stat-footer">—</span><span class="stat-label">Footer</span></div>
+        <div class="stat"><span class="stat-num" id="stat-tools">—</span><span class="stat-label">Tools</span></div>
+        <div class="stat"><span class="stat-num" id="stat-legal">—</span><span class="stat-label">Legal</span></div>
+        <div class="stat"><span class="stat-num" id="stat-archived">—</span><span class="stat-label">Archived</span></div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Search labels, descriptions, URLs…" autocomplete="off" />
+        <div class="filter-btns" id="filter-btns">
+          <button data-filter="all" class="active">ALL</button>
+          <button data-filter="nav">NAV</button>
+          <button data-filter="footer">FOOTER</button>
+          <button data-filter="tools">TOOLS</button>
+          <button data-filter="legal">LEGAL</button>
+          <button data-filter="discovered">DISCOVERED</button>
+          <button data-filter="archived">ARCHIVED</button>
+        </div>
+      </div>
+
+      <div id="sitemap-content">
+        <div class="loading">Loading sitemap…</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (async function() {
+      'use strict';
+
+      let siteMap = null;
+      let allEntries = [];
+
+      async function loadSiteMap() {
+        try {
+          const r = await fetch('/site-map.json', { cache: 'no-store' });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          siteMap = await r.json();
+          return siteMap;
+        } catch (e) {
+          document.getElementById('sitemap-content').innerHTML =
+            '<div class="empty-state">Failed to load /site-map.json: ' + e.message + '</div>';
+          return null;
+        }
+      }
+
+      function normalizeHref(href) {
+        if (!href) return '';
+        if (href.startsWith('http')) return href;
+        return href.replace(/\/$/, '') || '/';
+      }
+
+      function pathToFile(href) {
+        const clean = (href || '').replace(/^\//, '').replace(/\/$/, '');
+        if (!clean) return 'landing.html';
+        if (clean === 's/:id') return 'share-view.html';
+        if (clean.endsWith('.html')) return clean;
+        if (clean === 'artists') return 'artists/index.html';
+        if (clean.startsWith('artists/')) return clean + '.html';
+        if (clean.startsWith('gallery/')) return 'gallery-' + clean.replace('gallery/', '') + '.html';
+        return clean + '.html';
+      }
+
+      function entriesFromSection(items, category) {
+        const out = [];
+        if (!Array.isArray(items)) return out;
+        for (const item of items) {
+          out.push({
+            label: item.label,
+            href: normalizeHref(item.href),
+            file: pathToFile(item.href),
+            description: item.description || '',
+            category,
+            status: 'active',
+          });
+          if (item.children) {
+            for (const child of item.children) {
+              out.push({
+                label: '↳ ' + child.label,
+                href: normalizeHref(child.href),
+                file: pathToFile(child.href),
+                description: child.description || '',
+                category,
+                status: 'active',
+                isChild: true,
+              });
+            }
+          }
+        }
+        return out;
+      }
+
+      function buildEntries(m) {
+        const entries = [];
+        entries.push(...entriesFromSection(m.nav, 'nav'));
+        entries.push(...entriesFromSection(m.footer, 'footer'));
+        entries.push(...entriesFromSection(m.legal, 'legal'));
+        entries.push(...entriesFromSection(m.tools, 'tools'));
+        if (m.auth) {
+          entries.push({
+            label: m.auth.label || 'Auth',
+            href: normalizeHref(m.auth.href),
+            file: pathToFile(m.auth.href),
+            description: m.auth.description || '',
+            category: 'nav',
+            status: 'active',
+          });
+        }
+
+        const knownHrefs = new Set(entries.map(e => e.href));
+        if (Array.isArray(m.discovered)) {
+          for (const file of m.discovered) {
+            const href = '/' + file.replace(/\.html$/, '');
+            if (knownHrefs.has(href)) continue;
+            const basename = file.split('/').pop().replace(/\.html$/, '');
+            entries.push({
+              label: basename.replace(/[-_]/g, ' '),
+              href: href,
+              file: file,
+              description: '(discovered, not in main nav)',
+              category: 'discovered',
+              status: 'disc',
+            });
+          }
+        }
+        if (Array.isArray(m.archived)) {
+          for (const file of m.archived) {
+            const href = '/' + file.replace(/\.html$/, '');
+            entries.push({
+              label: file.replace(/\.html$/, ''),
+              href: href,
+              file: file,
+              description: '(archived — returns 404)',
+              category: 'archived',
+              status: 'archived',
+            });
+          }
+        }
+        return entries;
+      }
+
+      function renderStats(m) {
+        const navCount = (m.nav || []).reduce((acc, n) => acc + 1 + (n.children ? n.children.length : 0), 0);
+        document.getElementById('stat-total').textContent = allEntries.length;
+        document.getElementById('stat-nav').textContent = navCount + (m.auth ? 1 : 0);
+        document.getElementById('stat-footer').textContent = (m.footer || []).length;
+        document.getElementById('stat-tools').textContent = (m.tools || []).length;
+        document.getElementById('stat-legal').textContent = (m.legal || []).length;
+        document.getElementById('stat-archived').textContent = (m.archived || []).length;
+      }
+
+      function renderGroup(title, count, entries) {
+        if (entries.length === 0) return '';
+        const rows = entries.map(e => `
+          <a class="entry${e.isChild ? ' child' : ''}" href="${e.href}" data-href="${e.href}">
+            <span class="entry-label">${escapeHtml(e.label)}</span>
+            <span class="entry-desc">
+              ${escapeHtml(e.description)}
+              <span class="entry-href"> · ${escapeHtml(e.href)}</span>
+            </span>
+            <span class="entry-meta">
+              <span class="status-badge ${e.status}">${e.status === 'archived' ? '404' : e.status === 'disc' ? 'MISC' : 'LIVE'}</span>
+            </span>
+          </a>
+        `).join('');
+        return `
+          <section class="sitemap-group" data-category="${title.toLowerCase()}">
+            <header class="sitemap-group-head">
+              <h2 class="sitemap-group-title">${title}</h2>
+              <span class="sitemap-group-count">${count} ${count === 1 ? 'page' : 'pages'}</span>
+            </header>
+            <div class="entry-list">${rows}</div>
+          </section>
+        `;
+      }
+
+      function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, c => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[c]);
+      }
+
+      function render() {
+        const groups = {
+          nav: allEntries.filter(e => e.category === 'nav'),
+          footer: allEntries.filter(e => e.category === 'footer'),
+          tools: allEntries.filter(e => e.category === 'tools'),
+          legal: allEntries.filter(e => e.category === 'legal'),
+          discovered: allEntries.filter(e => e.category === 'discovered'),
+          archived: allEntries.filter(e => e.category === 'archived'),
+        };
+        const html = [
+          renderGroup('Navigation', groups.nav.length, groups.nav),
+          renderGroup('Footer', groups.footer.length, groups.footer),
+          renderGroup('Tools', groups.tools.length, groups.tools),
+          renderGroup('Legal', groups.legal.length, groups.legal),
+          renderGroup('Discovered', groups.discovered.length, groups.discovered),
+          renderGroup('Archived', groups.archived.length, groups.archived),
+        ].join('');
+        document.getElementById('sitemap-content').innerHTML =
+          html || '<div class="empty-state">No entries match your filter.</div>';
+      }
+
+      function applyFilter() {
+        const q = (document.getElementById('search').value || '').toLowerCase().trim();
+        const filter = document.querySelector('.filter-btns button.active')?.dataset.filter || 'all';
+
+        const groups = document.querySelectorAll('.sitemap-group');
+        groups.forEach(g => {
+          const cat = g.dataset.category;
+          let showGroup = filter === 'all' || cat === filter;
+          g.style.display = showGroup ? '' : 'none';
+
+          if (q) {
+            const entries = g.querySelectorAll('.entry');
+            let visible = 0;
+            entries.forEach(e => {
+              const text = (e.textContent || '').toLowerCase();
+              const match = text.includes(q);
+              e.style.display = match ? '' : 'none';
+              if (match) visible++;
+            });
+            g.style.display = visible > 0 ? '' : 'none';
+          }
+        });
+      }
+
+      // Init
+      const m = await loadSiteMap();
+      if (!m) return;
+
+      allEntries = buildEntries(m);
+      renderStats(m);
+      render();
+
+      document.getElementById('search').addEventListener('input', applyFilter);
+      document.querySelectorAll('.filter-btns button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btns button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilter();
+        });
+      });
+    })();
+  </script>
+
+  <script src="/lib/nav.client.js" defer></script>
+</body>
+</html>

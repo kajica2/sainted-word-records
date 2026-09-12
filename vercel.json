@@ -327,14 +327,6 @@
       "destination": "/personas.html"
     },
     {
-      "source": "/weddings",
-      "destination": "/weddings.html"
-    },
-    {
-      "source": "/weddings/",
-      "destination": "/weddings.html"
-    },
-    {
       "source": "/shop",
       "destination": "/shop.html"
     },
@@ -453,6 +445,14 @@
     {
       "source": "/legal/terms.html/",
       "destination": "/legal/terms.html"
+    },
+    {
+      "source": "/sitemap",
+      "destination": "/sitemap.html"
+    },
+    {
+      "source": "/sitemap/",
+      "destination": "/sitemap.html"
     },
     {
       "source": "/ar-gif",

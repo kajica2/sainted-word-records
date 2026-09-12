@@ -238,6 +238,7 @@ function copyStatic() {
     'share-view.html',
     'ar-gif.html',
     'ar-gif.client.js',
+    'sitemap.html',
     'site-map.json',
   ];
   // Build a curated copy of library/: only ship the files the boot manifest
