@@ -36,6 +36,7 @@
     "verify:autoplay": "node verify-autoplay.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
     "verify:library-loads": "node verify-library-loads.mjs",
+    "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
     "verify:collage-loads": "node verify-collage-loads.mjs",
     "verify:overlay-failure": "node verify-overlay-failure.mjs",
     "verify:library-switcher": "node verify-library-switcher.mjs",
@@ -57,6 +58,7 @@
     "verify:shotlist": "node verify-shotlist.mjs",
     "verify:smtp": "node --test verify-smtp-transport.mjs",
     "verify:curator-batch": "node verify-curator-batch.mjs",
+    "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

@@ -64,6 +64,11 @@
       letter-spacing: 0.04em; z-index: 2; }
     .li .tag { position: absolute; top: 0; right: 0; font: 9px/1 ui-monospace; padding: 2px 4px; background: var(--ink); color: var(--bg); z-index: 2; }
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 2px 4px; font: 9px/1 ui-monospace; color: #fff; background: var(--ink); }
+    .li .li-x { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; padding: 0;
+      background: var(--accent); color: #fff; border: 0; border-top: 1px solid var(--ink); border-left: 1px solid var(--ink);
+      font: 700 12px/14px ui-monospace; cursor: pointer; z-index: 3; display: flex; align-items: center; justify-content: center; }
+    .li .li-x:hover { background: var(--ink); color: var(--accent); }
+    .li.li-user { outline: 2px solid var(--accent); outline-offset: -2px; }
     #layers { display: flex; flex-direction: column; gap: 0; }
     .l { background: var(--panel-2); border-bottom: 1px solid var(--ink); padding: 8px 10px 8px 14px; position: relative; }
     .l:first-child { border-top: 2px solid var(--ink); }
@@ -314,6 +319,7 @@
     #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
   <script src="../client/library-loader.client.js" defer></script>
+  <script src="../lib/media-store.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
 <script src="../engine-timing.client.js"></script>
@@ -619,12 +625,51 @@
       }
     };
     const Lib = { items: [], nextId: 1,
-      async addFiles(files) { const seen=new Set(this.items.map(i=>i.name+':'+i.blob?.size));
+      async addFiles(files, opts) { const seen=new Set(this.items.map(i=>i.name+':'+i.blob?.size));
+        // opts.curated === true → caller marks these as demo content from
+        // library-loader; skip IDB persistence for them.
+        const curated = !!(opts && opts.curated);
         for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
           const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
-            blob: f, url: URL.createObjectURL(f), motion:0, luma:0.5, hue:0, w:0, h:0, added: Date.now(), thumb: null };
-          this.items.push(it); this._classify(it); }
+            blob: f, url: URL.createObjectURL(f), motion:0, luma:0.5, hue:0, w:0, h:0, added: Date.now(), thumb: null, curated };
+          this.items.push(it); this._classify(it);
+          // Persist user uploads to IDB so they survive reloads. Fire-and-forget
+          // so the UI doesn't block — render() is already kicking.
+          if (!curated && window.SWR_MEDIA && window.SWR_MEDIA.addMedia) {
+            window.SWR_MEDIA.addMedia([f]).then(function (inserted) {
+              if (inserted && inserted[0] && inserted[0].id) it.persistId = inserted[0].id;
+            }, function (err) { console.warn('[grid Lib] persist failed', err); });
+          }
+        }
         this.render(); },
+      rm(id) {
+        // id may be the runtime nextId or the IDB persistId (UUID). Try both.
+        const it = this.items.find(i => i.id === id || i.persistId === id);
+        this.items = this.items.filter(i => i.id !== id && i.persistId !== id);
+        if (it && !it.curated && it.persistId && window.SWR_MEDIA && window.SWR_MEDIA.deleteMedia) {
+          window.SWR_MEDIA.deleteMedia(it.persistId).catch(function (err) {
+            console.warn('[grid Lib] delete persist failed', err);
+          });
+        }
+        try { if (it && it.url) URL.revokeObjectURL(it.url); } catch (_) {}
+        this.render();
+      },
+      async hydrate() {
+        // Pull user uploads from IDB on boot. Curated items come from
+        // library-loader.client.js after this resolves.
+        if (!window.SWR_MEDIA || !window.SWR_MEDIA.getUserMedia) return;
+        try {
+          const records = await window.SWR_MEDIA.getUserMedia();
+          for (const rec of records) {
+            if (!rec || !rec.blob) continue;
+            const f = rec.blob instanceof File ? rec.blob : new File([rec.blob], rec.name || 'media', { type: rec.mime || 'application/octet-stream' });
+            this.items.push({ id: this.nextId++, name: rec.name || f.name, type: (rec.mime || '').startsWith('video/') ? 'video' : 'image',
+              blob: f, url: URL.createObjectURL(f), motion:0, luma:0.5, hue:0, w:0, h:0, added: rec.createdAt || Date.now(), thumb: null, curated: false, persistId: rec.id });
+            this._classify(this.items[this.items.length - 1]);
+          }
+          if (this.items.length) this.render();
+        } catch (err) { console.warn('[grid Lib] hydrate failed', err); }
+      },
       _classify(it) {
         const c=document.createElement('canvas'); c.width=32;c.height=32; const cx=c.getContext('2d');
         const src = it.type==='video' ? Object.assign(document.createElement('video'),{src:it.url,muted:true,playsInline:true,preload:'metadata'}) : Object.assign(new Image(),{src:it.url});
@@ -654,11 +699,22 @@
         el.innerHTML='';
         for (let _i = 0; _i < this.items.length; _i++) {
           const it = this.items[_i];
-          const d=document.createElement('div'); d.className='li';
+          const d=document.createElement('div'); d.className='li' + (it.curated ? ' li-curated' : ' li-user');
+          d.dataset.id = it.id;
           d.innerHTML=`<span class="idx">${String(_i+1).padStart(2,'0')}</span><span class="tag">${it.type==='video'?'V':'I'}</span><span class="nm">${it.name.slice(0,18)}</span>`;
           if (it.thumb) { const i=new Image(); i.src=it.thumb; d.appendChild(i); }
           else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;d.appendChild(v); }
           else { const i=new Image(); i.src=it.url; d.appendChild(i); }
+          // Delete × button — only for user uploads. Curated demo items can't be
+          // removed (they re-load from manifest on every boot anyway).
+          if (!it.curated) {
+            const x = document.createElement('button');
+            x.className = 'li-x'; x.type = 'button'; x.textContent = '×';
+            x.title = 'Remove from your library';
+            x.setAttribute('aria-label', 'Remove ' + it.name);
+            x.addEventListener('click', (ev) => { ev.stopPropagation(); Lib.rm(it.id); });
+            d.appendChild(x);
+          }
           d.addEventListener('click', () => Layers.add(it));
           el.appendChild(d);
         }
@@ -1022,12 +1078,19 @@
         console.warn('[swr-libload] inline Lib not found at boot time');
         return;
       }
-      window.SWR_LIBLOAD.boot({
-        manifestUrl: '../library/manifest.json',
-        filePrefix:  '../library/',
-        phase1Count: 8,
-        Lib: Lib,
-        doneFlag: 'swr-manifest-loaded',
+      // Pull user uploads from IDB before loading the curated manifest so the
+      // user items take their natural slot in the library (curated items layer
+      // on top). hydrate() is a no-op if SWR_MEDIA isn't ready.
+      Promise.resolve(Lib.hydrate ? Lib.hydrate() : null).catch(function (err) {
+        console.warn('[swr-libload] hydrate failed', err);
+      }).then(function () {
+        return window.SWR_LIBLOAD.boot({
+          manifestUrl: '../library/manifest.json',
+          filePrefix:  '../library/',
+          phase1Count: 8,
+          Lib: Lib,
+          doneFlag: 'swr-manifest-loaded',
+        });
       }).then(() => { try { Layers.remap(); } catch (_) {} });
     }
     if (document.readyState === 'loading') {
