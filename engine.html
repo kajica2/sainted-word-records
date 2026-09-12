@@ -2451,6 +2451,28 @@
         this.audioEl = el;
         this.audioEl.addEventListener('ended', () => UI.onSongEnd());
         this.audioEl.addEventListener('timeupdate', () => UI.updateTime());
+        // Decode-error feedback: a corrupt / unsupported / unsupported-codec
+        // file silently fails otherwise (no console error visible to the
+        // user, just a "loaded" status with no playback). Surface it.
+        this.audioEl.addEventListener('error', () => {
+          const err = this.audioEl.error;
+          const code = err ? err.code : 0;
+          // 1 = MEDIA_ERR_ABORTED, 2 = MEDIA_ERR_NETWORK, 3 = MEDIA_ERR_DECODE,
+          // 4 = MEDIA_ERR_SRC_NOT_SUPPORTED
+          const reason = code === 3 ? 'decode failed (corrupt or unsupported codec)'
+                          : code === 4 ? 'format not supported by this browser'
+                          : code === 2 ? 'network error'
+                          : 'audio element error';
+          if (typeof setStatus === 'function') {
+            setStatus(`✕ can't play ${file.name}: ${reason}`, 'err');
+          }
+          // Disable the play button so the user doesn't repeatedly click
+          // into silence.
+          const playBtn = $('play');
+          if (playBtn) playBtn.disabled = true;
+          const recBtn = $('rec');
+          if (recBtn) recBtn.disabled = true;
+        });
         // Mark element type so the recorder knows what to display
         this.audioEl.dataset.kind = isVideo ? 'video' : 'audio';
         this.source = this.ctx.createMediaElementSource(this.audioEl);
