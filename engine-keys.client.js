@@ -33,6 +33,11 @@
 //   Esc                close settings menu    (SWR_SETTINGS.close)
 //   ↑ / ↓              select prev / next layer
 //   1..9               select layer by index  (1-based; 0 = layer 0)
+//   Alt+1..6           per-layer remap (Phase 3 / H4) — re-maps just the
+//                        selected layer slot, fades old asset out + new
+//                        in. The other 5 layers stay put. Useful for
+//                        keeping a composition mostly intact and only
+//                        swapping one element.
 //   0                  deselect               (L.sel = null)
 //   Shift+1..9         advance story chapters (FRAGMENTS / SIGNAL / …)
 //   Cmd+1..9 / Ctrl+1..9  legacy FX palette preset (PULSE / NEON / …)
@@ -634,11 +639,11 @@
         }
       }
       // Shift+1..9 to advance the STORY runtime through its 9 chapters
-      // (Fragments, Signal, Pursuit, Fracture, Revelation, Overload,
-      // Afterimage, Memory, Loop). This is the performer's "director
-      // override" — always wins regardless of mode (manual / guided /
-      // auto / generative). The legacy FX-palette shortcut map moved
-      // to Cmd/Ctrl+1..9 below.
+      // (Fragments, Signal, Pursuit, Fracture, Overload, Afterimage,
+      // Memory, Loop). This is the performer's "director override" —
+      // always wins regardless of mode (manual / guided / auto /
+      // generative). The legacy FX-palette shortcut map moved to
+      // Cmd/Ctrl+1..9 below.
       //
       // Digits via `code` (layout-independent): on US keyboards, Shift+Digit2
       // produces key='@' which would fail a regex test. We check `code` for
@@ -659,6 +664,29 @@
             if (ev.preventDefault) ev.preventDefault();
             return;
           }
+        }
+      }
+      // Alt+1..6 — per-layer remap (Phase 3 / H4). Re-maps just the
+      // selected layer slot, leaving the other 5 layers alone. The
+      // cross-fade swap machinery (set up in Phase 2) handles the visual
+      // transition: the old asset at that slot fades out, the new
+      // selection fades in. Shift+1..9 is taken for story chapters,
+      // Cmd/Ctrl+1..9 is taken for FX palette presets; Alt+1..6 was
+      // the cleanest unallocated key. Restricted to 1..6 because the
+      // engine has 6 layers (rarely 0..5 in user-facing terms).
+      if (!action && ev.altKey && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && /^Digit[1-6]$/.test(code || '')) {
+        const slot = parseInt(code.replace('Digit', ''), 10) - 1;
+        const L = window.Layers;
+        if (L && typeof L.autoMapLayer === 'function') {
+          L.autoMapLayer(slot);
+          if (typeof window.setStatus === 'function') {
+            window.setStatus('remap layer ' + (slot + 1), 'ok');
+          }
+          try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+            detail: { key, code, mods: { alt: true }, action: 'remap-layer-' + (slot + 1) }
+          })); } catch (_) {}
+          if (ev.preventDefault) ev.preventDefault();
+          return;
         }
       }
       // Cmd/Ctrl+1..9 — legacy FX palette preset shortcuts (preserved
@@ -748,6 +776,7 @@
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '1..9',           label: 'select layer by index (1-based)' },
       { keys: '0',              label: 'deselect layer' },
+      { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)' },
 
       // ---- Presets ----
       { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)' },
@@ -983,6 +1012,58 @@
       };
       wrapped.__swrRotMasterWrapped = true;
       L.add = wrapped;
+    })();
+
+    // === 3D layer wiring (engine-3d.client.js) ===
+    // Click "+ 3D" in the layer panel → opens a 4-button primitive picker.
+    // Each picker click calls SWR_3D.createLayer(primitiveId) to mint a 3D
+    // asset, then Layers.add(asset) to push it into the layer stack with
+    // the same fadeIn / select / stageEmpty behavior as a regular library
+    // asset. The renderer picks up the 3D layer next frame (SWR_3D.tickAll
+    // runs in the render loop and writeImage's the WebGL canvas into the
+    // engine's stage via the existing 2D drawImage path).
+    (function wire3DLayer() {
+      function add3DLayer(primitiveId) {
+        if (!window.SWR_3D || typeof window.SWR_3D.createLayer !== 'function') {
+          if (typeof window.setStatus === 'function') {
+            window.setStatus('engine-3d.client.js not loaded', 'err');
+          }
+          return;
+        }
+        var L = window.Layers;
+        if (!L || typeof L.add !== 'function') return;
+        var asset = window.SWR_3D.createLayer(primitiveId);
+        // The 3D asset is shaped exactly like a regular image asset
+        // (type, name, w, h, get _el) so Layers.add's existing logic
+        // works without modification.
+        L.add(asset);
+        if (typeof window.setStatus === 'function') {
+          window.setStatus('3D layer: ' + primitiveId + ' (3D primitive, ' + asset.w + '\u00d7' + asset.h + ')', 'ok');
+        }
+      }
+      // Toggle the picker when "+ 3D" is clicked.
+      var add3dBtn = document.getElementById('add-3d');
+      var picker = document.getElementById('3d-picker');
+      if (add3dBtn && picker) {
+        add3dBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          picker.classList.toggle('hidden');
+        });
+        // Each primitive button: add a layer + close the picker.
+        picker.querySelectorAll('[data-3d]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            add3DLayer(btn.getAttribute('data-3d'));
+            picker.classList.add('hidden');
+          });
+        });
+        // Click outside the picker to close it.
+        document.addEventListener('click', function (e) {
+          if (picker.classList.contains('hidden')) return;
+          if (e.target === add3dBtn) return;
+          if (picker.contains(e.target)) return;
+          picker.classList.add('hidden');
+        });
+      }
     })();
 
     // Apply master state to whatever layers already exist on first load.
