@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Galleries — Sainted Word Records</title>
+  <meta name="description" content="19 galleries · 226 pieces · audio-reactive visual systems, midjourney compositions, looping videos, baroque engines, jazz palettes. Each gallery page plays per-card preview audio on hover; this index is a silent directory." />
+  <meta property="og:title" content="Galleries — SWR" />
+  <meta property="og:description" content="19 galleries · 226 pieces · audio-reactive." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700;800&display=swap" />
+
+  <style>
+    :root {
+      --bg:        #f4f4f0;
+      --ink:       #000000;
+      --ink-2:     #1a1a1a;
+      --muted:     #555555;
+      --line:      #000000;
+      --accent:    #dc2626;
+      --highlight: #facc15;
+      --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; border-radius: 0 !important; box-shadow: none !important; background-image: none !important; }
+    *:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-mono);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        repeating-linear-gradient(0deg, transparent 0 23px, rgba(0,0,0,0.025) 23px 24px);
+    }
+    a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    a:hover { background: var(--highlight); color: var(--ink); text-decoration: none; }
+    img, video { display: block; max-width: 100%; height: auto; }
+    ::selection { background: var(--highlight); color: var(--ink); }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+    @media (max-width: 720px) { .wrap { padding: 0 14px; } }
+
+    /* ===== STATUS BAR ===== */
+    .statusbar {
+      background: var(--ink); color: var(--bg);
+      border-bottom: 2px solid var(--ink);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+      padding: 8px 0;
+    }
+    .statusbar__inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 24px;
+      display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+    }
+    .statusbar .ok   { color: #4ade80; }
+    .statusbar .warn { color: var(--highlight); }
+
+    /* ===== HEADER ===== */
+    .header {
+      border-bottom: 4px solid var(--ink);
+      padding: 28px 0 24px;
+    }
+    .header__brand {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 7vw, 84px);
+      letter-spacing: -0.025em; line-height: 0.92;
+      margin: 0;
+      text-transform: uppercase;
+    }
+    .header__brand .red { color: var(--accent); }
+    .header__sub {
+      font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-2); margin: 10px 0 0;
+    }
+    .header__stats {
+      display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px;
+      font-family: var(--font-mono); font-size: 12px;
+    }
+    .header__stats > span {
+      padding: 6px 12px;
+      border: 2px solid var(--ink);
+      background: var(--bg);
+    }
+    .header__stats > span b {
+      display: inline-block;
+      padding: 1px 6px; margin-right: 6px;
+      background: var(--ink); color: var(--highlight);
+      font-weight: 800; font-family: var(--font-display);
+    }
+
+    /* ===== FILTER BAR ===== */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 18px 0;
+      border-bottom: 2px solid var(--ink);
+    }
+    .filter-bar button {
+      padding: 6px 12px;
+      border: 2px solid var(--ink);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-bar button:hover { background: var(--highlight); }
+    .filter-bar button.is-on { background: var(--ink); color: var(--highlight); }
+
+    /* ===== GRID ===== */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 24px 0 64px;
+    }
+    @media (max-width: 1100px) { .gallery-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 720px)  { .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .g-card {
+      display: flex; flex-direction: column;
+      border: 2px solid var(--ink);
+      background: var(--bg);
+      text-decoration: none;
+      color: var(--ink);
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.15s ease;
+    }
+    .g-card:hover {
+      transform: translateY(-3px);
+      background: var(--highlight);
+    }
+    .g-card__head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--ink);
+      color: var(--highlight);
+      font-family: var(--font-mono);
+      font-size: 11px; letter-spacing: 0.06em;
+    }
+    .g-card__head .num {
+      font-family: var(--font-display);
+      font-size: 13px;
+    }
+    .g-card__body {
+      padding: 14px 14px 12px;
+      display: flex; flex-direction: column; gap: 8px;
+      flex: 1;
+    }
+    .g-card__chip {
+      display: inline-block;
+      padding: 2px 6px;
+      font-family: var(--font-display);
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--ink); color: var(--bg);
+      align-self: flex-start;
+    }
+    .g-card__name {
+      font-family: var(--font-display);
+      font-size: 18px; line-height: 1.1;
+      letter-spacing: -0.01em;
+      margin: 0;
+      text-transform: uppercase;
+    }
+    .g-card__desc {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-2);
+      line-height: 1.45;
+      margin: 0;
+    }
+    .g-card__meta {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    .g-card__meta > span {
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 6px;
+      border: 1.5px solid var(--ink);
+      color: var(--ink);
+    }
+    .g-card__meta > span.is-clip {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+    .g-card__meta > span.is-video {
+      background: var(--highlight);
+      color: var(--ink);
+      border-color: var(--highlight);
+    }
+
+    /* ===== STAMP FOOTER ===== */
+    .stamp {
+      border-top: 4px solid var(--ink);
+      padding: 24px 0 36px;
+      display: flex; flex-wrap: wrap; gap: 18px;
+      align-items: center; justify-content: space-between;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .stamp__seal {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px;
+      border: 2px solid var(--accent);
+      color: var(--accent); background: var(--bg);
+      font-family: var(--font-display);
+      transform: rotate(-2deg);
+    }
+    .stamp__seal::before { content: '★'; color: var(--accent); }
+    .stamp__links {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      font-family: var(--font-mono);
+    }
+    .stamp__links a {
+      padding: 6px 10px;
+      border: 1.5px solid var(--ink);
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .stamp__links a:hover { background: var(--highlight); }
+  </style>
+</head>
+<body>
+
+  <!-- ===== STATUS BAR ===== -->
+  <div class="statusbar" role="status" aria-label="page status">
+    <div class="statusbar__inner">
+      <span>STATUS:</span>
+      <span class="ok">● ONLINE</span>
+      <span>FILE: gallery.html</span>
+      <span>BUILD: 2026-09-11</span>
+      <span class="warn">⚠ 19 GALLERIES · 226 CARDS · INDEX</span>
+    </div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="wrap">
+      <h1 class="header__brand">
+        GALLERIES.<br />
+        <span class="red">ONE INDEX.</span>
+      </h1>
+      <p class="header__sub">
+        Every Sainted Word gallery · audio-reactive, video, still, brutalist
+      </p>
+      <div class="header__stats">
+        <span><b>19</b>galleries</span>
+        <span><b>226</b>cards total</span>
+        <span><b>21</b>loops (video)</span>
+        <span><b>17</b>audio-themed</span>
+        <span><b>14</b>with hover-preview audio</span>
+        <span><b>2026-09-11</b>build</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== FILTER BAR ===== -->
+  <div class="wrap">
+    <div class="filter-bar" role="toolbar" aria-label="Filter galleries by medium">
+      <button data-filter="all" class="is-on">▸ ALL (19)</button>
+      <button data-filter="audio">AUDIO-REACTIVE (14)</button>
+      <button data-filter="video">VIDEO (2)</button>
+      <button data-filter="still">STILL (3)</button>
+      <button data-filter="baroque">BAROQUE (1)</button>
+      <button data-filter="jazz">JAZZ (1)</button>
+      <button data-filter="abstract">ABSTRACT (2)</button>
+      <button data-filter="character">CHARACTER (2)</button>
+      <button data-filter="cityscape">CITYSCAPE (2)</button>
+      <button data-filter="product">PRODUCT (1)</button>
+      <button data-filter="editorial">EDITORIAL (2)</button>
+    </div>
+  </div>
+
+  <!-- ===== GRID ===== -->
+  <main class="wrap">
+    <div class="gallery-grid" id="grid">
+      <!-- Each card: data-tags are space-separated filter slugs -->
+      <a class="g-card" href="./gallery-bachdrop.html" data-tags="audio baroque">
+        <div class="g-card__head"><span class="num">01</span><span>BAROQUE</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Bachdrop · BWV 1 in C major</h2>
+          <p class="g-card__desc">Bachdrop engine + 7 baroque variants (Goldberg, Toccata, Brandenburg, Cello Suite, Chaconne, WTC, Sanctus).</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">bachdrop.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-brutalist.html" data-tags="still abstract">
+        <div class="g-card__head"><span class="num">02</span><span>BRUTALIST · STILL</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">STILL</span>
+          <h2 class="g-card__name">Brutalist Gallery</h2>
+          <p class="g-card__desc">20 Midjourney compositions · sheet-music atop architectural drawing × sunrise signaling end of night.</p>
+          <div class="g-card__meta">
+            <span>20 cards</span>
+            <span class="is-clip">no audio</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-loops.html" data-tags="video abstract">
+        <div class="g-card__head"><span class="num">03</span><span>LOOPS · VIDEO</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">VIDEO</span>
+          <h2 class="g-card__name">Loops Gallery</h2>
+          <p class="g-card__desc">21 looping MP4s from midjourney session 2 · autoplay + muted + seamless · 10 sections.</p>
+          <div class="g-card__meta">
+            <span>21 cards</span>
+            <span class="is-video">VIDEO</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-music.html" data-tags="audio jazz">
+        <div class="g-card__head"><span class="num">04</span><span>MUSIC · JAZZ</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Music / Jazz</h2>
+          <p class="g-card__desc">Bebop · modal · ballad · vocal standards · jazz palette · Trane / Woody Shaw energy.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">hallucination.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-bio.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">05</span><span>BIOLOGICAL</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Biological / Neuro</h2>
+          <p class="g-card__desc">Cortical columns, action potentials, dendritic arbors, EEG bands, glial networks.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">film.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-cosmic.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">06</span><span>COSMIC</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Cosmic / Void</h2>
+          <p class="g-card__desc">Void-pulse · aurora · eclipse · fractal. For when the song is bigger than the room.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">void.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-darkfuture.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">07</span><span>DARK FUTURE</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Dark Future</h2>
+          <p class="g-card__desc">Glitch + chrome + void + smoke. 8 dark-future pieces, late-capitalist dusk palette.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">glitch.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-ai.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">08</span><span>AI · MACHINE</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">AI / Machine</h2>
+          <p class="g-card__desc">Transformer internals — attention heads, loss landscapes, latent walks, feature maps.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">fractal.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-generative.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">09</span><span>GENERATIVE</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Generative Systems</h2>
+          <p class="g-card__desc">Generative-system output · fractal · mosaic · grid · tape. Algorithm meets composition.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">fractal.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-glyphs.html" data-tags="audio character">
+        <div class="g-card__head"><span class="num">10</span><span>GLYPHS</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Glyphs / Type</h2>
+          <p class="g-card__desc">Chrome + glitch glyph sets · 8 type systems · typographic registers as visual music.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">chrome.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-vintage.html" data-tags="still character">
+        <div class="g-card__head"><span class="num">11</span><span>VINTAGE</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">STILL</span>
+          <h2 class="g-card__name">Vintage · 57 Frames</h2>
+          <p class="g-card__desc">Photographic memory · NYC + Soviet + 57 frames · baroque tape loops accompany each card.</p>
+          <div class="g-card__meta">
+            <span>57 cards</span>
+            <span class="is-clip">baroque.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-vr.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">12</span><span>VR</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">VR · Immersive</h2>
+          <p class="g-card__desc">VR-scoped compositions · 8 eclipse variants · first-person framing.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">eclipse.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-videofx.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">13</span><span>VIDEO FX</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Video FX Tests</h2>
+          <p class="g-card__desc">8 video FX test patterns · smoke · glitch · pulse · for engine compatibility checks.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">smoke.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-photoexp.html" data-tags="still character">
+        <div class="g-card__head"><span class="num">14</span><span>PHOTO EXP.</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">STILL</span>
+          <h2 class="g-card__name">Photo Experimental</h2>
+          <p class="g-card__desc">Long exposure · cyanotype · wet plate · chemigram · slit-scan · photogram. Pre-algorithm.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">watercolor.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-artist.html" data-tags="audio abstract">
+        <div class="g-card__head"><span class="num">15</span><span>ARTIST</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Artist · Editorial</h2>
+          <p class="g-card__desc">Painterly · poster-ish · editorial register. 8 cover art directions for musicians.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">aurora.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-albums.html" data-tags="audio character">
+        <div class="g-card__head"><span class="num">16</span><span>ALBUM ART</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Album Art Directions</h2>
+          <p class="g-card__desc">Per-release cover art directions · 8 styles for any genre.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">gallery.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-posters.html" data-tags="audio editorial">
+        <div class="g-card__head"><span class="num">17</span><span>POSTERS</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Posters · Editorial</h2>
+          <p class="g-card__desc">Editorial poster directions · 8 mosaic compositions · show announcements + zine covers.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">mosaic.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-tshirts.html" data-tags="audio product">
+        <div class="g-card__head"><span class="num">18</span><span>T-SHIRTS</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">T-Shirt Mockups</h2>
+          <p class="g-card__desc">8 T-shirt design mockups · kraft compositions · ready for tee-and-cup fulfilment.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">kraft.mp3</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="g-card" href="./gallery-point4brand.html" data-tags="audio editorial">
+        <div class="g-card__head"><span class="num">19</span><span>BRAND</span></div>
+        <div class="g-card__body">
+          <span class="g-card__chip">AUDIO</span>
+          <h2 class="g-card__name">Point 4 Brand</h2>
+          <p class="g-card__desc">Brand mark explorations · 8 phosphor compositions · for when the logo needs a soundtrack.</p>
+          <div class="g-card__meta">
+            <span>8 cards</span>
+            <span class="is-clip">phosphor.mp3</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <!-- ===== STAMP FOOTER ===== -->
+  <footer class="stamp" role="contentinfo">
+    <div class="stamp__links">
+      <a href="./landing.html">▸ LANDING</a>
+      <a href="./portfolio.html">▸ PORTFOLIO</a>
+      <a href="./engine.html">▸ ENGINE</a>
+      <a href="./artists/">▸ ARTISTS</a>
+      <a href="./personas.html">▸ PERSONAS</a>
+    </div>
+    <div class="stamp__seal">19 GALLERIES · ONE INDEX · 2026</div>
+  </footer>
+
+  <script>
+    // Filter bar — pure DOM, no dependencies
+    const buttons = document.querySelectorAll('.filter-bar button');
+    const cards = document.querySelectorAll('.g-card');
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const filter = btn.getAttribute('data-filter');
+        buttons.forEach((b) => b.classList.toggle('is-on', b === btn));
+        cards.forEach((c) => {
+          const tags = c.getAttribute('data-tags') || '';
+          if (filter === 'all' || tags.split(' ').includes(filter)) {
+            c.style.display = '';
+          } else {
+            c.style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

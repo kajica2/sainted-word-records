@@ -480,11 +480,11 @@
     },
     {
       "source": "/gallery",
-      "destination": "/gallery-music.html"
+      "destination": "/gallery.html"
     },
     {
       "source": "/gallery/",
-      "destination": "/gallery-music.html"
+      "destination": "/gallery.html"
     },
     {
       "source": "/_curator-runner.html",

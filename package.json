@@ -48,6 +48,7 @@
     "verify:brutalist": "node verify-brutalist.mjs",
     "verify:loops": "node verify-loops.mjs",
     "verify:gallery-audio": "node verify-gallery-audio.mjs",
+    "verify:gallery-index": "node verify-gallery-index.mjs",
     "verify:persona-engine": "node verify-persona-engine.mjs",
     "verify:persona-v": "node verify-persona-v.mjs",
     "verify:artists": "node verify-artists.mjs",
