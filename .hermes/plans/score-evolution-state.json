@@ -19,8 +19,8 @@
       "id": 2,
       "title": "Drift reactors (applyR rewiring)",
       "tasks": [
-        {"id": "2.1", "title": "Patch applyR() to consume narrative.state", "status": "pending"},
-        {"id": "2.2", "title": "Add Stage 2 assertions to scripts/check-mv-smoke.mjs", "status": "pending"}
+        {"id": "2.1", "title": "Patch applyR() to consume narrative.state", "status": "done", "worker": "hermes", "artifacts": ["versions/music_video.html"], "completedAt": "2026-09-12"},
+        {"id": "2.2", "title": "Add Stage 2 assertions to scripts/check-mv-smoke.mjs", "status": "in_progress", "worker": "hermes", "artifacts": []}
       ]
     },
     {
