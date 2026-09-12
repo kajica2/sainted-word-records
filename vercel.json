@@ -485,6 +485,16 @@
     {
       "source": "/gallery/",
       "destination": "/gallery-music.html"
+    },
+    {
+      "source": "/_curator-runner.html",
+      "destination": "/_curator-runner.html",
+      "statusCode": 404
+    },
+    {
+      "source": "/curator-runner.html",
+      "destination": "/curator-runner.html",
+      "statusCode": 404
     }
   ]
 }

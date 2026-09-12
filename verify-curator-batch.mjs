@@ -45,7 +45,7 @@ function parseArgs(argv) {
     outDir: path.join(os.homedir(), 'Downloads', 'curated-output'),
     noHf: true,         // default OFF (matches user's standing preference)
     pattern: '*.png,*.jpg,*.jpeg',
-    engine: 'curator-runner.html',
+    engine: '_curator-runner.html',
     port: DEFAULT_PORT,
   };
   // Positional: first non-flag arg is input dir
@@ -72,7 +72,7 @@ function printUsage() {
                 [--out <out-dir>]
                 [--no-hf | --hf]
                 [--pattern <comma-globs>]    default: *.png,*.jpg,*.jpeg
-                [--engine <relpath>]         default: engine.html
+                [--engine <relpath>]         default: _curator-runner.html
                 [--port <n>]                 default: ${DEFAULT_PORT}`);
 }
 
