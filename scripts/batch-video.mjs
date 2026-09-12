@@ -76,36 +76,44 @@ if (parallel <= 1) {
   // loads render-full-song.mjs as if invoked standalone for one song.
   // This sidesteps CDP-browser contention between concurrent browsers.
   const queue = inputs.map((inPath, i) => ({ inPath, a: analyses[i], pick_: args.variant ? { variant: args.variant, score: 999, rationale: 'cli-override' } : pick(analyses[i]) }));
-  const workers = [];
-  const slot = (q) => new Promise((resolve) => {
-    const job = q.shift();
-    if (!job) return resolve(null);
-    const outPath = path.join(outDir, path.basename(job.inPath, path.extname(job.inPath)) + '.' + job.pick_.variant + '.mp4');
-    const t0 = Date.now();
-    const child = spawn(process.execPath, [
-      path.resolve('scripts/render-full-song.mjs'),
-      job.inPath, outPath,
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stderr = '';
-    child.stderr.on('data', (d) => { stderr += d.toString(); process.stderr.write(d); });
-    child.stdout.on('data', (d) => { process.stdout.write(d); });
-    child.on('exit', (code) => {
-      const ok = code === 0 && fs.existsSync(outPath);
-      const entry = {
-        input: job.inPath, ok, output: ok ? outPath : null,
-        analysis: trimAnalysis(job.a),
-        pick: job.pick_,
-        wallMs: Date.now() - t0,
-        ...(ok ? {} : { error: stderr.split('\n').slice(-3).join('\n') || `exit ${code}` }),
+  const slots = Array.from({ length: Math.min(parallel, queue.length) }, () => ({ busy: false }));
+  // Spawn a worker pool. Each slot processes one job at a time, taking
+  // the next job from the queue when the previous one finishes. This
+  // guarantees `parallel` jobs run concurrently — no recursive chain.
+  function runSlot(slot) {
+    return new Promise((resolveAll) => {
+      const next = () => {
+        const job = queue.shift();
+        if (!job) return resolveAll();
+        slot.busy = true;
+        const outPath = path.join(outDir, path.basename(job.inPath, path.extname(job.inPath)) + '.' + job.pick_.variant + '.mp4');
+        const t0 = Date.now();
+        const child = spawn(process.execPath, [
+          path.resolve('scripts/render-full-song.mjs'),
+          job.inPath, outPath,
+          '--variant', job.pick_.variant,
+        ], { stdio: ['ignore', 'pipe', 'pipe'] });
+        let stderr = '';
+        child.stderr.on('data', (d) => { stderr += d.toString(); if (!args.quiet) process.stderr.write(d); });
+        child.stdout.on('data', (d) => { if (!args.quiet) process.stdout.write(d); });
+        child.on('exit', (code) => {
+          const ok = code === 0 && fs.existsSync(outPath);
+          summary.push({
+            input: job.inPath, ok, output: ok ? outPath : null,
+            analysis: trimAnalysis(job.a),
+            pick: job.pick_,
+            wallMs: Date.now() - t0,
+            ...(ok ? {} : { error: stderr.split('\n').slice(-3).join('\n') || `exit ${code}` }),
+          });
+          if (!ok && !args.quiet) console.error(`FAIL ${path.basename(job.inPath)}: ${code !== 0 ? `exit ${code}` : 'output missing'}`);
+          slot.busy = false;
+          next();
+        });
       };
-      if (!ok) console.error(`FAIL ${path.basename(job.inPath)}: ${entry.error}`);
-      summary.push(entry);
-      resolve(slot(q).then(() => workers.push(null)));
+      next();
     });
-    workers.push(child);
-  });
-  // Spawn `parallel` workers, each draining the queue.
-  await Promise.all(Array.from({ length: Math.min(parallel, queue.length) }, () => slot(queue)));
+  }
+  await Promise.all(slots.map(runSlot));
 }
 
 const summaryPath = path.join(outDir, 'summary.json');

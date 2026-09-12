@@ -239,15 +239,24 @@ export async function renderVariant(opts) {
 
 // === CLI shim =============================================================
 // Default behavior preserved: node scripts/render-full-song.mjs <in.wav> <out.mp4> [lib.mp4 ...]
+// New: --variant <name> selects a versions/*.html page (default: hallucination)
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const inPath   = path.resolve(process.argv[2]);
-  const outPath  = path.resolve(process.argv[3] || './output/song.mp4');
-  const libPaths = process.argv.slice(4).map((p) => path.resolve(p));
+  const argv = process.argv.slice(2);
+  let inPath, outPath, variant = 'hallucination';
+  const libPaths = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--variant') { variant = argv[++i]; continue; }
+    if (a.startsWith('--')) continue;
+    if (!inPath) { inPath = path.resolve(a); continue; }
+    if (!outPath) { outPath = path.resolve(a); continue; }
+    libPaths.push(path.resolve(a));
+  }
   if (!inPath || !fs.existsSync(inPath)) {
-    console.error('usage: node scripts/render-full-song.mjs <input.wav> <output.mp4> [library.mp4 ...]');
+    console.error('usage: node scripts/render-full-song.mjs <input.wav> <output.mp4> [--variant <name>] [library.mp4 ...]');
     process.exit(2);
   }
-  renderVariant({ inputPath: inPath, outPath, variant: 'hallucination', libraryPaths: libPaths })
+  renderVariant({ inputPath: inPath, outPath, variant, libraryPaths: libPaths })
     .then((r) => { console.log(`done: ${outPath} (${r.framesWritten} frames, ${r.fpsActual.toFixed(1)}fps, ${(r.durationMs/1000).toFixed(0)}s wall)`); })
     .catch((e) => { console.error(e); process.exit(1); });
 }
