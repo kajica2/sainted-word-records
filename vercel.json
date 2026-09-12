@@ -455,6 +455,14 @@
       "destination": "/legal/terms.html"
     },
     {
+      "source": "/ar-gif",
+      "destination": "/ar-gif.html"
+    },
+    {
+      "source": "/ar-gif/",
+      "destination": "/ar-gif.html"
+    },
+    {
       "source": "/s/:id",
       "destination": "/s/:id.html"
     },

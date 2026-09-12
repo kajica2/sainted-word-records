@@ -273,6 +273,11 @@
   ],
   "tools": [
     {
+      "label": "AR GIF",
+      "href": "/ar-gif",
+      "description": "Drop a GIF, see it in AR"
+    },
+    {
       "label": "Share View",
       "href": "/s/:id",
       "description": "View shared composition"
