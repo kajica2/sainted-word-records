@@ -10,7 +10,7 @@
 // The GLSL is a single shader with a switch on u_page; the JS side
 // sets both the persona-style FX uniforms and the u_effect value.
 //
-// 19 presets in total (indices 0..18).
+// 20 presets in total (indices 0..19).
     // u_page index mapping (must match Object.keys(PRESETS) order):
     //   0 = film
     //   1 = grid
@@ -414,6 +414,23 @@ const PRESETS = {
       effect:    0.0,
       tint:      [0.9, 0.78, 0.7],
     },
+    mtv: {
+      label: 'MTV',
+      desc:  '90s retro — heavy scanlines, RGB shift, vignette warmth',
+      temp:      0.15,
+      mut:       0.25,
+      mutAlgo:   0,
+      posterize: 0.35,
+      vignette:  0.6,
+      chroma:    0.55,
+      grain:     0.45,
+      sepia:     0.2,
+      glow:      0.2,
+      grayscale: 0,
+      blur:      0,
+      effect:    1.0,
+      tint:      [1.05, 0.92, 0.78],
+    },
   };
 
   // ---- Fragment shader: same base as fx-postprocess + per-page effect ----
@@ -666,6 +683,20 @@ const PRESETS = {
       return c;
     }
 
+    // MTV: 90s retro CRT — scanlines + RGB chromatic shift + slight curvature tint
+    vec3 mtvEffect(vec3 c, vec2 uv, float t) {
+      // Scanlines (denser than filmEffect to read as CRT)
+      float scan = 1.0 - 0.45 * step(0.5, fract(uv.y * 320.0));
+      // RGB chromatic split — shift red and blue channels horizontally
+      float shift = 0.004 * sin(uv.y * 80.0 + t * 0.5);
+      vec3 chromaR = c * vec3(1.08, 0.96, 0.92);
+      vec3 chromaB = c * vec3(0.92, 0.96, 1.08);
+      vec3 base = mix(chromaR, chromaB, 0.5 + shift);
+      // Faint horizontal rolling band (60Hz hum)
+      float band = 0.04 * sin(uv.y * 3.14159 * 0.5 - t * 2.0);
+      return base * scan + band;
+    }
+
     vec3 applyPageEffect(vec3 c, vec2 uv, float t) {
       if (u_effect < 0.01) return c;
       vec3 e;
@@ -688,6 +719,7 @@ const PRESETS = {
       else if (u_page == 16) e = mosaicEffect(c, uv, t);
       else if (u_page == 17) e = phosphorEffect(c, uv, t);
       else if (u_page == 18) e = tapeEffect(c, uv, t);
+      else if (u_page == 19) e = mtvEffect(c, uv, t);
       return mix(c, e, u_effect);
     }
 

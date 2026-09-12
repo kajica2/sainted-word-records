@@ -24,6 +24,7 @@
     { key: 'photo',        label: 'Photo',          href: '/photo.html' },
     { key: 'video-single', label: 'Transitions',    href: '/video_single.html' },
     { key: 'marketplace',  label: 'Market',         href: '/marketplace.html' },
+    { key: 'atlas',        label: 'Atlas',          href: '/atlas' },
     { key: 'about',        label: 'About',          href: '/about.html' },
   ];
 
