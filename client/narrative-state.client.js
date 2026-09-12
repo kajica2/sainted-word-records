@@ -67,6 +67,9 @@
       tension: 0, peak: 0,
       drift: { x: 0, y: 0 },
       warmth: 0.5, age: 0,
+      releasing: false,
+      releaseStartedAt: 0,
+      releaseProgress: 0,
     };
   }
 
@@ -124,6 +127,8 @@
     // Age: monotonic. Caller passes dt in seconds via A.dt (optional).
     var dt = (typeof A.dt === 'number' && A.dt >= 0) ? A.dt : (1 / 60);
     state.age += dt;
+    // Stage 5: advance release progress on every step (cheap).
+    tickRelease();
   }
 
   // ---- Stage 4: beat-locked micro-evolution ----
@@ -166,7 +171,37 @@
     var openness = t < 0.25 ? 0.4 : (t < 0.75 ? 1.0 : 0.7);
     var driftAmp = t < 0.25 ? 0.3 : (t < 0.75 ? 1.0 : 1.4);
     var pullback = t < 0.75 ? 0.0 : (t - 0.75) * 4; // 0..1 in last 25%
+    // Stage 5: when releasing, taper everything to 0 over RELEASE_SECS.
+    if (state.releasing) {
+      var r = clamp(state.releaseProgress, 0, 1);
+      var taper = 1 - r;
+      driftAmp = driftAmp * taper;
+      openness = openness * taper;
+      pullback = pullback * (1 - taper * 0.5);
+    }
     return { openness: openness, driftAmp: driftAmp, pullback: pullback };
+  }
+
+  // Stage 5: begin the end-of-song release. Drift/warmth/peak taper to
+  // baseline over RELEASE_SECS seconds. Idempotent — calling while
+  // already releasing is a no-op.
+  function beginRelease() {
+    if (state.releasing) return;
+    state.releasing = true;
+    state.releaseStartedAt = state.age;
+  }
+
+  // Internal: advance the release progress on each step().
+  var RELEASE_SECS = 4.0;
+  function tickRelease() {
+    if (!state.releasing) return;
+    var dt = state.age - state.releaseStartedAt;
+    state.releaseProgress = clamp(dt / RELEASE_SECS, 0, 1);
+    if (state.releaseProgress >= 1) {
+      // Snap to baseline at the end of release.
+      state.drift.x = 0; state.drift.y = 0;
+      state.tension = 0; state.peak = 0;
+    }
   }
 
   // ---- Public API ----
@@ -176,6 +211,7 @@
     step: step,
     reset: reset,
     phaseMultiplier: phaseMultiplier,
+    beginRelease: beginRelease,    // Stage 5 — call when song ends
     onBeat: onBeat,        // Stage 4 — call once per RAF with beatPulse flag
     getMicroAmp: getMicroAmp, // Stage 4 — current drift-amp boost (1.0 baseline)
     // Exposed for tests/debug; do not mutate from outside.

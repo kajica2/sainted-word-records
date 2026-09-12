@@ -216,7 +216,52 @@ console.log('=== score-evolution Stage 1 — narrative-state unit tests ===\n');
     `microAmp decays back toward 1.0`, `got ${N.getMicroAmp().toFixed(3)}`);
 }
 
-// Stage 4 reset() also clears beat counter.
+// Stage 5: end-of-song release taper.
+// Plan success criterion: "after song-end signal, drift.x decreases to 0
+// within 4s."
+{
+  const N = loadModule();
+  N.init(120, 180);
+  // Build up state so drift is non-zero.
+  for (let i = 0; i < 200; i++) {
+    N.step({ rms: 0.7, beat: 0, centroid: 0.5, dt: 1 / 60 });
+  }
+  assert(Math.abs(N.state.drift.x) > 0 || Math.abs(N.state.drift.y) > 0,
+    `release precondition: drift is non-zero before release`,
+    `drift=(${N.state.drift.x.toFixed(3)},${N.state.drift.y.toFixed(3)})`);
+  // Trigger release.
+  N.beginRelease();
+  assert(N.state.releasing === true, `release flag set after beginRelease()`);
+  // Run another 5 seconds (300 frames at 60fps) — release completes in 4s.
+  for (let i = 0; i < 300; i++) {
+    N.step({ rms: 0.3, beat: 0, centroid: 0.5, dt: 1 / 60 });
+  }
+  assert(N.state.drift.x === 0 && N.state.drift.y === 0,
+    `release snaps drift to 0 at completion`, `drift=(${N.state.drift.x},${N.state.drift.y})`);
+  assert(N.state.tension === 0 && N.state.peak === 0,
+    `release snaps tension + peak to 0 at completion`);
+  assert(N.state.releaseProgress >= 1, `releaseProgress reaches 1.0`,
+    `got ${N.state.releaseProgress.toFixed(3)}`);
+}
+
+// Stage 5: phaseMultiplier taper mid-release.
+{
+  const N = loadModule();
+  N.init(120, 100);
+  N.state.age = 50; // middle of song
+  const before = N.phaseMultiplier(100);
+  assert(before.driftAmp === 1.0 && before.openness === 1.0,
+    `precondition: middle phase has full strength`, JSON.stringify(before));
+  N.beginRelease();
+  // Mid-release: 50% through the 4s taper.
+  N.state.age = 52;
+  N.state.releaseProgress = 0.5;
+  const mid = N.phaseMultiplier(100);
+  assert(Math.abs(mid.driftAmp - 0.5) < 0.05,
+    `release tapers driftAmp from 1.0 to 0.5 at 50%`, `got ${mid.driftAmp.toFixed(3)}`);
+  assert(Math.abs(mid.openness - 0.5) < 0.05,
+    `release tapers openness from 1.0 to 0.5 at 50%`, `got ${mid.openness.toFixed(3)}`);
+}
 {
   const N = loadModule();
   N.init(120, 180);

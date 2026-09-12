@@ -573,7 +573,10 @@
         this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
         this.el.__swr_blob_url = URL.createObjectURL(file);
         this.el.src = this.el.__swr_blob_url; this.el.preload='auto';
-        this.el.addEventListener('ended', ()=>{A.playing=false;$('play').textContent='▶';});
+        this.el.addEventListener('ended', ()=>{A.playing=false;$('play').textContent='▶';
+          // Stage 5: kick off the narrative release taper.
+          if (window.SWR_NARRATIVE) SWR_NARRATIVE.beginRelease();
+        });
         this.el.addEventListener('timeupdate', ()=>{
           const t=this.el.currentTime,d=this.el.duration||0;
           $('time').textContent = fmt(t)+' / '+fmt(d); });
