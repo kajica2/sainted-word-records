@@ -269,6 +269,7 @@
     #swr-start.hide { opacity: 0; pointer-events: none; }
   </style>
   <script src="../client/library-loader.client.js" defer></script>
+  <script src="../client/narrative-state.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
@@ -579,6 +580,16 @@
         this.src = this.ctx.createMediaElementSource(this.el);
         this.src.connect(this.an);
         this.hist = { prev:null, bassAvg:0, fluxAvg:0 }; this.beats=[]; this.feat.bpm=0;
+        // Seed the narrative accumulator once metadata is available;
+        // bpm stays 120 until A.feat.bpm updates from beat intervals, then
+        // the per-frame tick will re-seed (see RAF loop).
+        const seedNarrative = () => {
+          if (!window.SWR_NARRATIVE) return;
+          const dur = (this.el && this.el.duration) || 0;
+          SWR_NARRATIVE.init(120, dur); // init() already resets state in-place
+        };
+        if (this.el.readyState >= 1 /* HAVE_METADATA */) seedNarrative();
+        this.el.addEventListener('loadedmetadata', seedNarrative);
         $('play').disabled=false; $('rec').disabled=false; },
       play() { this.unlock(); if (this.ctx.state==='suspended') this.ctx.resume();
         this.el.play(); this.playing=true; $('play').textContent='❚❚'; },
@@ -789,6 +800,19 @@
     function applyR(l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
+      // Narrative drift bias — added on top of the existing reactor loop.
+      // Reads from the accumulator (long-window averages) so the visual
+      // carries memory of the song instead of just frame-by-frame features.
+      // Disabled when the module isn't loaded (e.g. other versions/*.html
+      // pages that don't ship narrative-state.client.js).
+      if (window.SWR_NARRATIVE) {
+        const n = SWR_NARRATIVE.state;
+        out.x += n.drift.x * sens * 80;          // ±80px at sens=1
+        out.y += n.drift.y * sens * 60;          // ±60px (asymmetric axes)
+        out.hue += (n.warmth - 0.5) * 200 * sens; // slow color-temp drift
+        out.scale += n.tension * 0.4 * sens;     // louder = bigger
+        out.brightness = clamp(out.brightness + n.peak * 0.6, 0.1, 2.5);
+      }
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
@@ -909,6 +933,25 @@
       const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
+      // Re-seed narrative bpm once the beat detector has locked on. Cheap
+      // (no-op when bpm unchanged); keeps drift-step proportional to the
+      // actual song tempo instead of the 120-bpm default at load.
+      if (window.SWR_NARRATIVE && A.feat.bpm > 0) {
+        const cfg = SWR_NARRATIVE._config();
+        if (cfg.bpm !== A.feat.bpm) {
+          SWR_NARRATIVE.init(A.feat.bpm, (A.el && A.el.duration) || cfg.dur);
+        }
+      }
+      // Step the narrative accumulator once per RAF. Reads from A.feat
+      // (post-sample) so drift / tension / warmth track the latest audio.
+      if (window.SWR_NARRATIVE) {
+        SWR_NARRATIVE.step({
+          rms:      A.feat.rms      || 0,
+          beat:     A.feat.beat     || 0,
+          centroid: A.feat.centroid || 0,
+          dt:       dt,
+        });
+      }
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
