@@ -45,7 +45,7 @@ function parseArgs(argv) {
     outDir: path.join(os.homedir(), 'Downloads', 'curated-output'),
     noHf: true,         // default OFF (matches user's standing preference)
     pattern: '*.png,*.jpg,*.jpeg',
-    engine: 'engine.html',
+    engine: 'curator-runner.html',
     port: DEFAULT_PORT,
   };
   // Positional: first non-flag arg is input dir
@@ -77,7 +77,7 @@ function printUsage() {
 }
 
 // ─── local static server ──────────────────────────────────────────────
-function bootServer(rootDir, port) {
+function bootServer(rootDir, port, engine) {
   return new Promise((resolve) => {
     const MIME = {
       '.html':'text/html','.js':'text/javascript','.mjs':'text/javascript',
@@ -87,7 +87,7 @@ function bootServer(rootDir, port) {
       '.wav':'audio/wav','.mp3':'audio/mpeg','.mp4':'video/mp4','.webm':'video/webm',
     };
     const server = http.createServer((req, res) => {
-      const rel = decodeURIComponent((req.url || '/').split('?')[0].replace(/^\/+/, '')) || opts.engine;
+      const rel = decodeURIComponent((req.url || '/').split('?')[0].replace(/^\/+/, '')) || engine;
       const file = path.join(rootDir, rel);
       if (!file.startsWith(rootDir) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
         res.writeHead(404); res.end('nf'); return;
@@ -195,7 +195,7 @@ async function main() {
   console.log(`[curator-batch] output dir: ${opts.outDir}`);
   console.log(`[curator-batch] HF: ${opts.noHf ? 'disabled' : 'enabled'}`);
 
-  const server = await bootServer(ROOT, opts.port);
+  const server = await bootServer(ROOT, opts.port, opts.engine);
   const browser = await puppeteer.launch({
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
