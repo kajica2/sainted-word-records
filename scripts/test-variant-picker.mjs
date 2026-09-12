@@ -103,6 +103,22 @@ test('pick: random unknown falls back to music_video', () => {
   assert.equal(r.variant, 'music_video');
 });
 
+test('pick: vocal track with no BPM falls back to music_video', () => {
+  // Simulates a vocal-led song where BPM detection fails (onsetRate
+  // is mid/high but the analyzer's onset-based tempo detection can't
+  // converge). music_video + spectrum have bpmBucket_unknown weights
+  // for exactly this case — they beat the "scale-only" matches that
+  // would otherwise leak through (film for minor, aurora for major).
+  const vocalMinor = { bpm: 0, scale: 'minor', duration: 120, confidence: 0.6,
+                       onsets: new Array(480).fill(0).map((_, i) => i), // 4/s = hi energy
+                       chromagram: chroma({ F: 1, E: 0.5 }) };
+  assert.equal(pick(vocalMinor).variant, 'music_video');
+  const vocalMajor = { bpm: 0, scale: 'major', duration: 90, confidence: 0.5,
+                       onsets: new Array(360).fill(0).map((_, i) => i),
+                       chromagram: chroma({ E: 1, C: 0.5 }) };
+  assert.equal(pick(vocalMajor).variant, 'music_video');
+});
+
 test('pick: ambiguous track returns a variant with rationale', () => {
   const r = pick({ bpm: 100, scale: 'major', duration: 100, confidence: 0.5,
                     onsets: new Array(50).fill(0).map((_, i) => i),
