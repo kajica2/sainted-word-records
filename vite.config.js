@@ -4,6 +4,41 @@ import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, rea
 import { resolve, join, dirname } from 'node:path';
 import { handleApi } from './scripts/dev-api.mjs';
 
+// Load site-map.json to generate rootFiles dynamically. This avoids
+// maintaining a brittle manual list of ~150 files. Falls back to empty
+// array if site-map.json is missing (e.g., fresh clone).
+let SITE_MAP_ROOT_FILES = [];
+try {
+  const siteMap = JSON.parse(readFileSync(resolve('site-map.json'), 'utf8'));
+  const paths = new Set();
+  function collect(items) {
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+      if (item.href && item.href.startsWith('/')) {
+        const clean = item.href.replace(/^\//, '').replace(/\/$/, '');
+        if (clean && clean !== 's/:id') {
+          // s/:id is a dynamic route, skip from rootFiles
+          // Don't add .html if already present (e.g., /legal/privacy.html)
+          const final = clean.endsWith('.html') ? clean : clean + '.html';
+          paths.add(final);
+        }
+      }
+      if (item.children) collect(item.children);
+    }
+  }
+  collect(siteMap.nav);
+  collect(siteMap.footer);
+  collect(siteMap.legal);
+  collect(siteMap.tools);
+  if (siteMap.auth && siteMap.auth.href) {
+    const clean = siteMap.auth.href.replace(/^\//, '').replace(/\/$/, '');
+    if (clean) paths.add(clean + '.html');
+  }
+  SITE_MAP_ROOT_FILES = Array.from(paths);
+} catch (e) {
+  // site-map.json missing or invalid — rootFiles will be empty
+}
+
 function copyDirRecursive(src, dst) {
   if (!existsSync(src)) return;
   mkdirSync(dst, { recursive: true });
@@ -18,6 +53,9 @@ function copyDirRecursive(src, dst) {
     // of the deploy" (see .gitignore comments). Mirroring it here keeps
     // artists/_candidates/, shotlist/_candidates/, etc. off Vercel.
     if (f.startsWith('_candidates')) continue;
+    // Skip _archive/ directory — gitignored experimental pages (see
+    // scripts/archive-pages.mjs).
+    if (f === '_archive') continue;
     const sp = join(src, f);
     const dp = join(dst, f);
     const st = statSync(sp);
@@ -47,21 +85,10 @@ function copyDirRecursive(src, dst) {
 function copyStatic() {
   let outDir = 'dist';
   const rootFiles = [
-    'landing.html', 'interactive-howto.html', 'market-study.html',
-    'profit-plan.html', 'campaign.html', 'personas.html',
-    'gif-to-svg.html',
-    'gif-to-svg.client.js',
-    'landing-personas-v1-editorial.html',
-    'landing-personas-v2-dark.html',
-    'landing-personas-v3-friendly.html',
-    'landing-personas-v4-dashboard.html',
-    'landing-personas-v5-brutalist.html',
-    'landing-personas-v6-wireframe.html',
-    'landing-personas-v7-riso.html',
-    'landing-personas-v8-broadcast.html',
-    'landing-personas-v9-cassette.html',
-    'landing-personas-v10-neon.html',
-    'landing-personas-v11-zine.html',
+    // Pages from site-map.json (auto-generated, single source of truth)
+    ...SITE_MAP_ROOT_FILES,
+    // Landing page (served via root rewrite in vercel.json)
+    'landing.html',
     'personas.json',
     'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png',
     'tutorial-30s.html',
@@ -184,6 +211,9 @@ function copyStatic() {
     'lib/auth.client.js',
     'lib/storage.client.js',
     'lib/migrate.client.js',
+    'lib/design-tokens.css',
+    'lib/components.css',
+    'lib/nav.client.js',
     'api/auth/session.js',
     'api/auth/magic.js',
     'api/auth/verify.js',
@@ -205,6 +235,7 @@ function copyStatic() {
     'intro.html',
     'swr-app.html',
     'share-view.html',
+    'site-map.json',
   ];
   // Build a curated copy of library/: only ship the files the boot manifest
   // references, plus the manifest itself. The full library/ has ~58MB of

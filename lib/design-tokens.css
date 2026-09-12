@@ -1,0 +1,112 @@
+/*
+ * Sainted Word Records — Design Tokens
+ * Single source of truth for colors, typography, spacing, shadows.
+ * Loaded by every page via <link rel="stylesheet" href="/lib/design-tokens.css">
+ * Pages can override tokens in their own <style> blocks for app-specific themes
+ * (e.g., engine.html's dark theme, gallery.html's brutalist theme).
+ */
+
+:root {
+  /* === COLORS — light theme (default) === */
+  --bg: #faf7f2;
+  --bg-2: #f1ebe1;
+  --bg-3: #ffffff;
+  --ink: #1a1612;
+  --ink-2: #4a4035;
+  --muted: #8a7a66;
+  --line: #ddd3c2;
+  --line-2: #c9beaa;
+
+  /* Accent palette — warm magenta/orange/green */
+  --accent: #e6306b;
+  --accent-2: #ff8a3a;
+  --accent-3: #1c8c64;
+  --hot: #e6306b;
+  --cool: #0085b3;
+
+  /* Code/terminal palette */
+  --code-bg: #1a1612;
+  --code-ink: #f5ead8;
+  --code-line: #2c2419;
+  --code-comment: #6a5d4a;
+  --code-key: #ff8a3a;
+  --code-str: #1c8c64;
+  --code-fn: #e6306b;
+
+  /* === TYPOGRAPHY === */
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* === SPACING === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  /* === RADIUS === */
+  --radius: 12px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+
+  /* === SHADOWS === */
+  --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+  --shadow-2: 0 2px 8px rgba(26, 22, 18, 0.06), 0 16px 48px rgba(26, 22, 18, 0.08);
+  --shadow-3: 0 4px 16px rgba(26, 22, 18, 0.08), 0 24px 64px rgba(26, 22, 18, 0.12);
+
+  /* === TRANSITIONS === */
+  --transition: 0.18s ease;
+  --transition-slow: 0.3s ease;
+}
+
+/* === DARK THEME === */
+[data-theme="dark"] {
+  --bg: #0e0c0a;
+  --bg-2: #161310;
+  --bg-3: #1d1815;
+  --ink: #f5ead8;
+  --ink-2: #d4c7b3;
+  --muted: #8a7a66;
+  --line: #2c2419;
+  --line-2: #3a3022;
+  --accent: #ff2d8a;
+  --accent-2: #ffaa3a;
+  --accent-3: #00ffa3;
+  --hot: #ff2d8a;
+  --cool: #00e5ff;
+  --code-bg: #0a0805;
+  --code-ink: #f5ead8;
+  --code-line: #1d1815;
+  --code-comment: #6a5d4a;
+  --code-key: #ffaa3a;
+  --code-str: #00ffa3;
+  --code-fn: #ff2d8a;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
+  --shadow-3: 0 4px 16px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+/* === RESET === */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--transition-slow), color var(--transition-slow);
+}
+
+a { color: var(--accent); text-decoration: none; transition: color var(--transition); }
+a:hover { color: var(--ink); }
+code, pre, kbd { font-family: var(--font-mono); }
+img { max-width: 100%; display: block; }
+button { font-family: inherit; cursor: pointer; }
+::selection { background: var(--accent); color: white; }

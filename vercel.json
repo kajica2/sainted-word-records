@@ -103,192 +103,20 @@
       "destination": "/engine.html"
     },
     {
+      "source": "/engine",
+      "destination": "/engine.html"
+    },
+    {
+      "source": "/engine/",
+      "destination": "/engine.html"
+    },
+    {
       "source": "/versions",
       "destination": "/versions.html"
     },
     {
       "source": "/versions/",
       "destination": "/versions.html"
-    },
-    {
-      "source": "/about",
-      "destination": "/about.html"
-    },
-    {
-      "source": "/about/",
-      "destination": "/about.html"
-    },
-    {
-      "source": "/changelog",
-      "destination": "/changelog.html"
-    },
-    {
-      "source": "/changelog/",
-      "destination": "/changelog.html"
-    },
-    {
-      "source": "/engine-demos",
-      "destination": "/engine-demos.html"
-    },
-    {
-      "source": "/engine-demos/",
-      "destination": "/engine-demos.html"
-    },
-    {
-      "source": "/press",
-      "destination": "/press.html"
-    },
-    {
-      "source": "/press/",
-      "destination": "/press.html"
-    },
-    {
-      "source": "/status",
-      "destination": "/status.html"
-    },
-    {
-      "source": "/status/",
-      "destination": "/status.html"
-    },
-    {
-      "source": "/personas",
-      "destination": "/personas.html"
-    },
-    {
-      "source": "/personas/",
-      "destination": "/personas.html"
-    },
-    {
-      "source": "/personas/v/:id",
-      "destination": "/personas/v/:id.html"
-    },
-    {
-      "source": "/personas/v/:id/",
-      "destination": "/personas/v/:id.html"
-    },
-    {
-      "source": "/personas/v/index",
-      "destination": "/personas/v/index.html"
-    },
-    {
-      "source": "/personas/v/index/",
-      "destination": "/personas/v/index.html"
-    },
-    {
-      "source": "/personas/:id",
-      "destination": "/persona-demo.html?id=:id"
-    },
-    {
-      "source": "/personas/:id/",
-      "destination": "/persona-demo.html?id=:id"
-    },
-    {
-      "source": "/thanks",
-      "destination": "/thanks.html"
-    },
-    {
-      "source": "/thanks/",
-      "destination": "/thanks.html"
-    },
-    {
-      "source": "/login",
-      "destination": "/auth/login.html"
-    },
-    {
-      "source": "/login/",
-      "destination": "/auth/login.html"
-    },
-    {
-      "source": "/auth/verify",
-      "destination": "/auth/verify.html"
-    },
-    {
-      "source": "/auth/verify/",
-      "destination": "/auth/verify.html"
-    },
-    {
-      "source": "/auth/login",
-      "destination": "/auth/login.html"
-    },
-    {
-      "source": "/auth/login/",
-      "destination": "/auth/login.html"
-    },
-    {
-      "source": "/campaign",
-      "destination": "/campaign.html"
-    },
-    {
-      "source": "/campaign/",
-      "destination": "/campaign.html"
-    },
-    {
-      "source": "/portfolio",
-      "destination": "/portfolio.html"
-    },
-    {
-      "source": "/portfolio/",
-      "destination": "/portfolio.html"
-    },
-    {
-      "source": "/artists",
-      "destination": "/artists/index.html"
-    },
-    {
-      "source": "/artists/",
-      "destination": "/artists/index.html"
-    },
-    {
-      "source": "/artists/:id",
-      "destination": "/artists/:id.html"
-    },
-    {
-      "source": "/artists/:id/",
-      "destination": "/artists/:id.html"
-    },
-    {
-      "source": "/artists/vodolija",
-      "destination": "/artists/vodolija/index.html"
-    },
-    {
-      "source": "/artists/vodolija/",
-      "destination": "/artists/vodolija/index.html"
-    },
-    {
-      "source": "/shotlist",
-      "destination": "/shotlist/index.html"
-    },
-    {
-      "source": "/shotlist/",
-      "destination": "/shotlist/index.html"
-    },
-    {
-      "source": "/intro",
-      "destination": "/intro.html"
-    },
-    {
-      "source": "/gif-to-svg",
-      "destination": "/gif-to-svg.html"
-    },
-    {
-      "source": "/gif-to-svg/",
-      "destination": "/gif-to-svg.html"
-    },
-    {
-      "source": "/gif-to-svg.client.js",
-      "destination": "/gif-to-svg.client.js"
-    },
-    {
-      "source": "/intro/",
-      "destination": "/intro.html"
-    },
-    {
-      "source": "/weddings",
-      "destination": "/weddings.html"
-    },
-    {
-      "source": "/weddings/",
-      "destination": "/weddings.html"
     },
     {
       "source": "/make-video",
@@ -299,28 +127,44 @@
       "destination": "/make-video.html"
     },
     {
-      "source": "/tools/hf-publish",
-      "destination": "/tools/hf-publish.html"
+      "source": "/marketplace",
+      "destination": "/marketplace.html"
     },
     {
-      "source": "/tools/hf-publish/",
-      "destination": "/tools/hf-publish.html"
+      "source": "/marketplace/",
+      "destination": "/marketplace.html"
     },
     {
-      "source": "/tools/lib/hf-publish.client.js",
-      "destination": "/tools/lib/hf-publish.client.js"
+      "source": "/engine-demos",
+      "destination": "/engine-demos.html"
     },
     {
-      "source": "/app",
-      "destination": "/swr-app.html"
+      "source": "/engine-demos/",
+      "destination": "/engine-demos.html"
     },
     {
-      "source": "/app/",
-      "destination": "/swr-app.html"
+      "source": "/gallery",
+      "destination": "/gallery.html"
     },
     {
-      "source": "/s/:id",
-      "destination": "/share-view.html"
+      "source": "/gallery/",
+      "destination": "/gallery.html"
+    },
+    {
+      "source": "/gallery",
+      "destination": "/gallery.html"
+    },
+    {
+      "source": "/gallery/",
+      "destination": "/gallery.html"
+    },
+    {
+      "source": "/artists",
+      "destination": "/artists.html"
+    },
+    {
+      "source": "/artists/",
+      "destination": "/artists.html"
     },
     {
       "source": "/gallery/music",
@@ -447,6 +291,10 @@
       "destination": "/gallery-bachdrop.html"
     },
     {
+      "source": "/gallery/bachdrop/",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
       "source": "/gallery/brutalist",
       "destination": "/gallery-brutalist.html"
     },
@@ -463,12 +311,28 @@
       "destination": "/gallery-loops.html"
     },
     {
-      "source": "/versions/bachdrop",
-      "destination": "/versions/bachdrop.html"
+      "source": "/gallery/vintage",
+      "destination": "/gallery-vintage.html"
     },
     {
-      "source": "/versions/bachdrop/",
-      "destination": "/versions/bachdrop.html"
+      "source": "/gallery/vintage/",
+      "destination": "/gallery-vintage.html"
+    },
+    {
+      "source": "/personas",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/weddings",
+      "destination": "/weddings.html"
+    },
+    {
+      "source": "/weddings/",
+      "destination": "/weddings.html"
     },
     {
       "source": "/shop",
@@ -479,12 +343,210 @@
       "destination": "/shop.html"
     },
     {
-      "source": "/gallery",
-      "destination": "/gallery.html"
+      "source": "/intro",
+      "destination": "/intro.html"
     },
     {
-      "source": "/gallery/",
-      "destination": "/gallery.html"
+      "source": "/intro/",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/intro",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/intro/",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/tutorial-30s",
+      "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/tutorial-30s/",
+      "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/interactive-howto",
+      "destination": "/interactive-howto.html"
+    },
+    {
+      "source": "/interactive-howto/",
+      "destination": "/interactive-howto.html"
+    },
+    {
+      "source": "/changelog",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/changelog/",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/about/",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/press",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/press/",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/portfolio/",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/status/",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/campaign",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/campaign/",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/marketplace",
+      "destination": "/marketplace.html"
+    },
+    {
+      "source": "/marketplace/",
+      "destination": "/marketplace.html"
+    },
+    {
+      "source": "/share-view",
+      "destination": "/share-view.html"
+    },
+    {
+      "source": "/share-view/",
+      "destination": "/share-view.html"
+    },
+    {
+      "source": "/legal/privacy.html",
+      "destination": "/legal/privacy.html"
+    },
+    {
+      "source": "/legal/privacy.html/",
+      "destination": "/legal/privacy.html"
+    },
+    {
+      "source": "/legal/terms.html",
+      "destination": "/legal/terms.html"
+    },
+    {
+      "source": "/legal/terms.html/",
+      "destination": "/legal/terms.html"
+    },
+    {
+      "source": "/s/:id",
+      "destination": "/s/:id.html"
+    },
+    {
+      "source": "/s/:id/",
+      "destination": "/s/:id.html"
+    },
+    {
+      "source": "/swr-app",
+      "destination": "/swr-app.html"
+    },
+    {
+      "source": "/swr-app/",
+      "destination": "/swr-app.html"
+    },
+    {
+      "source": "/thanks",
+      "destination": "/thanks.html"
+    },
+    {
+      "source": "/thanks/",
+      "destination": "/thanks.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/login/",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/auth/login",
+      "destination": "/auth/login.html"
+    },
+    {
+      "source": "/auth/login/",
+      "destination": "/auth/login.html"
+    },
+    {
+      "source": "/auth/verify",
+      "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/auth/verify/",
+      "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/personas/v/:id",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/v/:id/",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/v/index",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/v/index/",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/:id",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/:id/",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/style-guide",
+      "destination": "/style-guide.html",
+      "statusCode": 404
+    },
+    {
+      "source": "/persona-demo.html",
+      "destination": "/personas.html",
+      "statusCode": 301
+    },
+    {
+      "source": "/tools/hf-publish",
+      "destination": "/tools/hf-publish.html"
+    },
+    {
+      "source": "/tools/hf-publish/",
+      "destination": "/tools/hf-publish.html"
+    },
+    {
+      "source": "/tools/lib/hf-publish.client.js",
+      "destination": "/tools/lib/hf-publish.client.js"
     },
     {
       "source": "/_curator-runner.html",

@@ -1,0 +1,301 @@
+{
+  "$schema": "./site-map.schema.json",
+  "_comment": "Canonical site IA. Source of truth for navigation, vercel.json rewrites, and vite.config.js rootFiles. Edit this file, then run scripts/generate-vercel-rewrites.mjs to regenerate vercel.json. Categories: engine, gallery, persona, learn, tool, page, legal.",
+  "_maintenance": {
+    "addPage": [
+      "1. Add page to appropriate section (nav, footer, auth, legal, or tools)",
+      "2. Run: node scripts/generate-vercel-rewrites.mjs",
+      "3. Run: node scripts/migrate-html.mjs <page.html> (adds shared CSS/JS)",
+      "4. Run: npm run verify:site-nav (smoke test)"
+    ],
+    "archivePage": [
+      "1. Add filename to 'archived' array below",
+      "2. Run: node scripts/archive-pages.mjs --dry-run (preview)",
+      "3. Run: node scripts/archive-pages.mjs (moves files to _archive/)",
+      "4. Run: node scripts/generate-vercel-rewrites.mjs"
+    ],
+    "removePage": [
+      "1. Remove entry from site-map.json (nav, footer, auth, legal, or tools)",
+      "2. Delete the .html file",
+      "3. Run: node scripts/generate-vercel-rewrites.mjs"
+    ],
+    "discoverPages": "Run: node scripts/generate-site-manifest.mjs --dry-run (auto-adds untracked HTML files)"
+  },
+  "_pathConventions": {
+    "root": "/page-name → /page-name.html",
+    "subdirectory": "/artists/foo → /artists/foo.html",
+    "gallery": "/gallery/music → /gallery-music.html (hyphenated)",
+    "withDotHtml": "/legal/privacy.html → /legal/privacy.html (as-is)",
+    "artistsIndex": "/artists → /artists/index.html",
+    "dynamic": "/s/:id → handled by share-view.html client-side"
+  },
+  "nav": [
+    {
+      "label": "Engine",
+      "href": "/engine",
+      "description": "Audio-reactive video engine",
+      "children": [
+        {
+          "label": "Launch",
+          "href": "/engine",
+          "description": "Open the engine"
+        },
+        {
+          "label": "Versions",
+          "href": "/versions",
+          "description": "5+ visual variants"
+        },
+        {
+          "label": "Make Video",
+          "href": "/make-video",
+          "description": "Music video maker"
+        },
+        {
+          "label": "Marketplace",
+          "href": "/marketplace",
+          "description": "Curated .swr-set templates"
+        },
+        {
+          "label": "Demos",
+          "href": "/engine-demos",
+          "description": "Live engine demos"
+        }
+      ]
+    },
+    {
+      "label": "Galleries",
+      "href": "/gallery",
+      "description": "19 curated galleries",
+      "children": [
+        {
+          "label": "All Galleries",
+          "href": "/gallery",
+          "description": "Gallery directory"
+        },
+        {
+          "label": "Artists",
+          "href": "/artists",
+          "description": "Featured artists"
+        },
+        {
+          "label": "Music",
+          "href": "/gallery/music",
+          "description": "Music gallery"
+        },
+        {
+          "label": "Generative",
+          "href": "/gallery/generative",
+          "description": "Generative gallery"
+        },
+        {
+          "label": "Cosmic",
+          "href": "/gallery/cosmic",
+          "description": "Cosmic gallery"
+        },
+        {
+          "label": "Bio",
+          "href": "/gallery/bio",
+          "description": "Bio gallery"
+        },
+        {
+          "label": "AI",
+          "href": "/gallery/ai",
+          "description": "AI gallery"
+        },
+        {
+          "label": "Glyphs",
+          "href": "/gallery/glyphs",
+          "description": "Glyphs gallery"
+        },
+        {
+          "label": "VR",
+          "href": "/gallery/vr",
+          "description": "VR gallery"
+        },
+        {
+          "label": "T-Shirts",
+          "href": "/gallery/tshirts",
+          "description": "T-shirt designs"
+        },
+        {
+          "label": "Posters",
+          "href": "/gallery/posters",
+          "description": "Poster designs"
+        },
+        {
+          "label": "Albums",
+          "href": "/gallery/albums",
+          "description": "Album art"
+        },
+        {
+          "label": "Video FX",
+          "href": "/gallery/videofx",
+          "description": "Video FX showcase"
+        },
+        {
+          "label": "Photo Exp",
+          "href": "/gallery/photoexp",
+          "description": "Photo experiments"
+        },
+        {
+          "label": "Point4Brand",
+          "href": "/gallery/point4brand",
+          "description": "Point4Brand gallery"
+        },
+        {
+          "label": "Artist",
+          "href": "/gallery/artist",
+          "description": "Artist gallery"
+        },
+        {
+          "label": "Dark Future",
+          "href": "/gallery/darkfuture",
+          "description": "Dark future gallery"
+        },
+        {
+          "label": "Bachdrop",
+          "href": "/gallery/bachdrop",
+          "description": "Bachdrop gallery"
+        },
+        {
+          "label": "Brutalist",
+          "href": "/gallery/brutalist",
+          "description": "Brutalist gallery"
+        },
+        {
+          "label": "Loops",
+          "href": "/gallery/loops",
+          "description": "Looping videos"
+        },
+        {
+          "label": "Vintage",
+          "href": "/gallery/vintage",
+          "description": "Vintage compositions"
+        }
+      ]
+    },
+    {
+      "label": "Personas",
+      "href": "/personas",
+      "description": "6 character presets"
+    },
+    {
+      "label": "Weddings",
+      "href": "/weddings",
+      "description": "Wedding visualizers"
+    },
+    {
+      "label": "Shop",
+      "href": "/shop",
+      "description": "SWR merchandise"
+    },
+    {
+      "label": "Learn",
+      "href": "/intro",
+      "description": "Tutorials and docs",
+      "children": [
+        {
+          "label": "Intro",
+          "href": "/intro",
+          "description": "30-second intro"
+        },
+        {
+          "label": "30s Tutorial",
+          "href": "/tutorial-30s",
+          "description": "Quick tutorial"
+        },
+        {
+          "label": "Interactive How-to",
+          "href": "/interactive-howto",
+          "description": "Interactive tutorial"
+        },
+        {
+          "label": "Changelog",
+          "href": "/changelog",
+          "description": "What's new"
+        },
+        {
+          "label": "About",
+          "href": "/about",
+          "description": "About SWR"
+        },
+        {
+          "label": "Press",
+          "href": "/press",
+          "description": "Press kit"
+        },
+        {
+          "label": "Portfolio",
+          "href": "/portfolio",
+          "description": "Portfolio"
+        },
+        {
+          "label": "Status",
+          "href": "/status",
+          "description": "System status"
+        }
+      ]
+    }
+  ],
+  "footer": [
+    {
+      "label": "Get a visualizer",
+      "href": "/campaign",
+      "description": "Hire us for a custom visualizer"
+    },
+    {
+      "label": "Marketplace",
+      "href": "/marketplace",
+      "description": "Browse templates"
+    },
+    {
+      "label": "Share",
+      "href": "/share-view",
+      "description": "View shared compositions"
+    }
+  ],
+  "auth": {
+    "label": "Login",
+    "href": "/login",
+    "description": "Sign in to your account"
+  },
+  "legal": [
+    {
+      "label": "Privacy",
+      "href": "/legal/privacy.html",
+      "description": "Privacy policy"
+    },
+    {
+      "label": "Terms",
+      "href": "/legal/terms.html",
+      "description": "Terms of service"
+    }
+  ],
+  "tools": [
+    {
+      "label": "Share View",
+      "href": "/s/:id",
+      "description": "View shared composition"
+    },
+    {
+      "label": "App",
+      "href": "/swr-app",
+      "description": "SWR app"
+    },
+    {
+      "label": "Thanks",
+      "href": "/thanks",
+      "description": "Thank you page"
+    }
+  ],
+  "archived": [
+    "style-guide.html"
+  ],
+  "meta": {
+    "version": "1.0.0",
+    "lastUpdated": "2026-09-12",
+    "totalPages": 87,
+    "corePages": 62,
+    "archivedPages": 1
+  }
+}

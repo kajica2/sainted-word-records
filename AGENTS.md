@@ -16,17 +16,47 @@ Node 20+ required (see `.nvmrc`). npm only — `package-lock.json` is the source
 ## Project layout
 
 - `engine.html` — main engine, served at `/engine/` (the PWA entrypoint)
-- `landing.html`, `campaign.html`, `personas.html`, `weddings.html`, `marketplace.html`, `make-video.html`, `intro.html`, `about.html`, `changelog.html`, `press.html`, `status.html`, `thanks.html`, `portfolio.html`, `tutorial-30s.html`, `interactive-howto.html`, `market-study.html`, `profit-plan.html` — marketing + educational surfaces
+- `landing.html`, `campaign.html`, `personas.html`, `weddings.html`, `marketplace.html`, `make-video.html`, `intro.html`, `about.html`, `changelog.html`, `press.html`, `status.html`, `thanks.html`, `portfolio.html`, `tutorial-30s.html`, `interactive-howto.html` — marketing + educational surfaces
 - `engine-*.client.js`, `presets*.client.js`, `pt*.client.js`, `persona-*.js`, `project.js`, `wizard.js`, `*.client.js` — browser subsystems; each `<name>.client.js` is global-script design (attaches to `window`), loaded via `defer`
 - `audio-analysis-v2.js` — zero-deps BPM (autocorrelation) + key (Krumhansl-Schmuckler) + chromagram
 - `fx-postprocess.js`, `video-fx.css` — 14-FX WebGL fullscreen-quad pipeline
 - `pwa-bootstrap.js`, `sw.js`, `manifest.webmanifest`, `offline.html` — PWA shell
 - `api/` — Vercel serverless handlers (auth, storage, projects, health) + `_lib/` shared helpers
 - `auth/` — magic-link login + verify pages and their client scripts
-- `client/`, `lib/` — shared browser client modules (visualizer-controller, auth, media-store, library-manager, library-switcher, migrate)
+- `client/`, `lib/` — shared browser client modules (visualizer-controller, auth, media-store, library-manager, library-switcher, migrate, design-tokens, components, nav)
 - `audios/` — per-engine demo MP3s (auto-loaded by each variant)
 - `library/` — curated demo media (27 assets + `manifest.json`); populated at prebuild via `scripts/fetch-library.mjs` from `LIBRARY_BLOB_URL`
 - `versions/` — 5 audio-reactive engine variants (neon, film, grid, smoke, hallucination) + injected scripts
+- `site-map.json` — canonical IA: nav, footer, auth, legal, tools, archived. Source of truth for `vercel.json` rewrites and Vite `rootFiles`. Edit this, then run `scripts/generate-vercel-rewrites.mjs` to regenerate vercel.json
+- `_archive/` — gitignored experimental pages (landing-personas variants, internal docs, dev tools). Excluded from deploy
+
+## Site-map & shared design system
+
+The project uses a single-source-of-truth IA in `site-map.json` and shared design tokens/components loaded by every page:
+
+- **`lib/design-tokens.css`** — CSS custom properties (colors, fonts, spacing, shadows) for light + dark themes. Loaded via `<link rel="stylesheet" href="/lib/design-tokens.css">`
+- **`lib/components.css`** — shared component classes (`.btn`, `.card`, `.tile`, `.nav`, `.footer`, etc.) extracted from `landing.html`. Loaded via `<link rel="stylesheet" href="/lib/components.css">`
+- **`lib/nav.client.js`** — `<swr-nav>` Web Component + `window.SWR_NAV` API. Fetches `/site-map.json` and renders a sticky top nav with theme toggle, dropdowns, and active state. Loaded via `<script src="/lib/nav.client.js" defer></script>`
+
+### Build automation scripts
+
+- `scripts/generate-site-manifest.mjs` — auto-discover HTML pages, populate `site-map.json`. Run with `--dry-run` to preview
+- `scripts/generate-vercel-rewrites.mjs` — generate `vercel.json` rewrites from `site-map.json`. Run after editing `site-map.json`
+- `scripts/archive-pages.mjs` — move pages marked `"archived": true` in `site-map.json` to `_archive/`. Run with `--dry-run` first
+- `scripts/migrate-html.mjs` — add shared CSS/JS links to HTML pages, remove duplicate theme bootstrap scripts. Run on new pages or to refresh existing ones
+
+### Maintaining site-map.json
+
+To add a new page:
+1. Add the page to the appropriate section in `site-map.json` (nav, footer, auth, legal, or tools)
+2. Run `node scripts/generate-vercel-rewrites.mjs` to update vercel.json
+3. Run `node scripts/migrate-html.mjs <page.html>` to add shared CSS/JS
+
+To archive a page:
+1. Add the filename to the `"archived"` array in `site-map.json`
+2. Run `node scripts/archive-pages.mjs --dry-run` to preview
+3. Run `node scripts/archive-pages.mjs` to move files to `_archive/`
+4. Run `node scripts/generate-vercel-rewrites.mjs` to update vercel.json
 - `preset-pipeline/` — Python daily generator (`generate.py`) + Node schema verifier (`verify.mjs`); CI calls `./cron.sh`
 - `presets/` — JSON preset specs (one per file, append-only, daily-generated)
 - `marketplace/curated/`, `portfolio/`, `press/`, `promo/`, `keyart/`, `icons/`, `legal/` — content
@@ -50,7 +80,8 @@ Node 20+ required (see `.nvmrc`). npm only — `package-lock.json` is the source
 
 - Quick gate: `npm run check` → runs `check:syntax` + `check:manifest` + `check:bundle` + `scripts/test-api.mjs`
 - Full pre-PR gate: `npm run check:full` → all of the above + `check:verify` (verify smoke)
-- E2E: `npm run verify:<name>` (e.g. `verify:cloud-auth`, `verify:story-graph`, `verify:hallucination-story`, `verify:autoplay`, `verify:e2e-media-record`, `verify:music-video-maker`, `verify:weddings`); Puppeteer auto-logs-in via stored cookies when needed
+- E2E: `npm run verify:<name>` (e.g. `verify:cloud-auth`, `verify:story-graph`, `verify:hallucination-story`, `verify:autoplay`, `verify:e2e-media-record`, `verify:music-video-maker`, `verify:weddings`, `verify:site-nav`); Puppeteer auto-logs-in via stored cookies when needed
+- `verify:site-nav` — smoke test for the unified navigation system. Crawls every nav URL from `site-map.json`, verifies shared CSS/JS loads, checks archived pages return 404
 - Each `verify-*.mjs` is standalone (no shared harness); they're discovered and run individually. Add a new `verify-<feature>.mjs` at repo root and wire it as `npm run verify:<feature>` in `package.json`
 - After every sprint / non-trivial change, run the relevant E2E scripts before claiming done — typecheck + build do not catch runtime bugs (Canvas/WebGL/PWA/audio permission flows, infinite re-render loops, IndexedDB persistence, Vercel deploy quirks)
 - `preset-pipeline/cron.sh` is the canonical daily-preset entry point; it generates then verifies

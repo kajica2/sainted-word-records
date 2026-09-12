@@ -605,6 +605,35 @@
   </div>
 </footer>
 
+
+<script>
+// personas.html ?id= detection: when a persona ID is provided, dynamically
+// load persona-runtime.client.js and show that persona's demo. This replaces
+// the separate persona-demo.html page (merged 2026-09-12).
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const personaId = params.get('id');
+  if (!personaId) return;
+
+  // Show a banner indicating demo mode
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--accent);color:white;padding:12px 20px;font-family:var(--font-mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;z-index:9999;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+  banner.innerHTML = 'Persona demo: <strong>' + personaId + '</strong> · <a href="/personas" style="color:white;text-decoration:underline;">← back to all personas</a>';
+  document.body.appendChild(banner);
+
+  // Load persona-runtime.client.js
+  const script = document.createElement('script');
+  script.src = '/persona-runtime.client.js';
+  script.defer = true;
+  script.onload = () => {
+    if (window.SWR_PERSONA && window.SWR_PERSONA.apply) {
+      window.SWR_PERSONA.apply(personaId);
+    }
+  };
+  document.head.appendChild(script);
+})();
+</script>
+
 <script>
 class ThemeToggle extends HTMLElement {
   connectedCallback() {

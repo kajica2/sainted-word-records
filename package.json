@@ -60,6 +60,7 @@
     "verify:shotlist": "node verify-shotlist.mjs",
     "verify:clear-song": "node verify-clear-song.mjs",
     "verify:smtp": "node --test verify-smtp-transport.mjs",
+    "verify:site-nav": "node verify-site-nav.mjs",
     "verify:curator-batch": "node verify-curator-batch.mjs",
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
     "clean": "rm -rf dist dist-dev .vite"

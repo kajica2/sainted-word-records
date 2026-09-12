@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Intro · Sainted Word Records</title>
@@ -20,20 +22,6 @@
   <meta name="twitter:card" content="summary_large_image" />
 
   <!-- No-flash theme bootstrap (matches the rest of the site) -->
-  <script>
-    (function() {
-      try {
-        var saved = localStorage.getItem('swr-theme');
-        var theme = saved || 'system';
-        var resolved = theme === 'system'
-          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : theme;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-pref', theme);
-      } catch (e) {}
-    })();
-  </script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
@@ -444,5 +432,6 @@
       } catch (e) {}
     })();
   </script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>
