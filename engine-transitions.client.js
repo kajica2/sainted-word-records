@@ -27,7 +27,10 @@
   const BEAT_DEFAULT_BPM = 120;        // fallback when no audio wired
 
   // ---- Transition catalog ----
-  // Family tags drive picker UIs and future preset<->transition pairing (PRD-019).
+  // Family tags drive picker UIs and preset↔transition pairing. The
+  // data/preset-transitions.json manifest (consumed by
+  // lib/preset-transitions.client.js) uses these families + kinds to
+  // recommend transitions per version-presets preset (PRD-019).
   // kind: 'css' = full-screen CSS keyframe on overlay; 'fx' = uniform ramp on window.FX
   const TRANSITIONS = {
     // ─── Original 10 — CSS-native cover/distortion/spatial/brightness/mask/hybrid ───

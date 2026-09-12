@@ -218,6 +218,11 @@
       <button id="btn-fire-all" class="primary">FIRE ALL</button>
       <button id="btn-fire-random">FIRE RANDOM</button>
       <span class="separator"></span>
+      <label for="preset-select">preset</label>
+      <select id="preset-select" title="Pick a version-presets preset to see recommended transitions">
+        <option value="">— none —</option>
+      </select>
+      <span class="separator"></span>
       <label for="auto-bpm">bpm</label>
       <input type="number" id="auto-bpm" min="30" max="240" step="1" value="120" />
       <label for="auto-every">every</label>
@@ -237,6 +242,7 @@
   </div>
 
   <script type="module" src="/engine-transitions.client.js"></script>
+  <script src="/lib/preset-transitions.client.js"></script>
   <script type="module">
     // ---- Harness wiring ----
     // Loads the transitions module, renders a grid card for each transition,
@@ -285,6 +291,65 @@
     await waitFor(() => window.SWRTransitions && window.SWRTransitions.list, 'SWRTransitions');
     const list = window.SWRTransitions.list();
     document.getElementById('harness-count').textContent = `(${list.length} transitions)`;
+
+    // ---- Preset selector + recommendations (PRD-019) ----
+    // Populate the preset dropdown from the manifest + paint a small
+    // recommendation section that updates when the user picks a preset.
+    const presetSelect = document.getElementById('preset-select');
+    if (presetSelect && window.SWRPresetTransitions) {
+      const populatePresetSelect = () => {
+        const m = window.SWRPresetTransitions.manifest && window.SWRPresetTransitions.manifest();
+        if (!m) return;
+        presetSelect.innerHTML = '<option value="">— none —</option>';
+        Object.keys(m).forEach((key) => {
+          if (key.startsWith('_')) return;
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = key + (m[key].label ? ' · ' + m[key].label : '');
+          presetSelect.appendChild(opt);
+        });
+      };
+      if (window.SWRPresetTransitions.whenReady) {
+        window.SWRPresetTransitions.whenReady(populatePresetSelect);
+      }
+      // Inline recommendation strip below the controls
+      const recsBox = document.createElement('div');
+      recsBox.id = 'harness-recs';
+      recsBox.style.cssText = 'margin:12px 0; padding:10px 12px; background:var(--panel); border:1px solid var(--line-2); border-radius:6px; font-family:var(--font-mono); font-size:11px;';
+      recsBox.innerHTML = '<div style="color:var(--muted); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;">recommendations · <span id="harness-rec-preset" style="color:var(--accent-2);">— none —</span></div>';
+      const recsList = document.createElement('div');
+      recsList.id = 'harness-rec-list';
+      recsList.style.cssText = 'margin-top:6px; display:flex; flex-wrap:wrap; gap:4px;';
+      recsBox.appendChild(recsList);
+      const controlsEl = document.querySelector('.controls');
+      if (controlsEl && controlsEl.parentNode) {
+        controlsEl.parentNode.insertBefore(recsBox, controlsEl.nextSibling);
+      }
+      const recPresetEl = recsBox.querySelector('#harness-rec-preset');
+      const renderRecs = () => {
+        const key = presetSelect.value;
+        recPresetEl.textContent = key || '— none —';
+        recsList.innerHTML = '';
+        if (!key || !window.SWRPresetTransitions) return;
+        const rec = window.SWRPresetTransitions.recommended(key);
+        const mkChip = (name, secondary) => {
+          const cfg = window.SWRTransitions._TRANSITIONS
+            ? window.SWRTransitions._TRANSITIONS[name] : null;
+          const chip = document.createElement('button');
+          chip.className = 'harness-rec-chip' + (secondary ? ' secondary' : '');
+          chip.textContent = name + (cfg ? ' (' + cfg.family + ')' : '');
+          chip.style.cssText = 'background:transparent; border:1px solid var(--line-2); color:var(--fg); padding:3px 8px; border-radius:3px; cursor:pointer; font-size:10px; opacity:' + (secondary ? 0.55 : 1) + ';';
+          chip.addEventListener('click', () => window.SWRTransitions.fire(name));
+          return chip;
+        };
+        (rec.primary || []).forEach((n) => recsList.appendChild(mkChip(n, false)));
+        (rec.secondary || []).forEach((n) => recsList.appendChild(mkChip(n, true)));
+      };
+      presetSelect.addEventListener('change', renderRecs);
+      if (window.SWRPresetTransitions.whenReady) {
+        window.SWRPresetTransitions.whenReady(renderRecs);
+      }
+    }
 
     // ---- Grid ----
     const grid = document.getElementById('grid');

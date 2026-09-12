@@ -928,6 +928,27 @@
     .swr-tx-log-entry .what { color: var(--fg); flex: 1; }
     .swr-tx-log-entry .src  { color: var(--muted); font-size: 9px; opacity: 0.8; }
     .swr-tx-log-entry.src-auto .what { color: var(--accent); }
+    .swr-tx-rec-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .swr-tx-rec-chip {
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      padding: 3px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .swr-tx-rec-chip:hover { background: var(--bg-2); border-color: var(--accent-2); }
+    .swr-tx-rec-chip.secondary { opacity: 0.6; }
+    .swr-tx-rec-chip.kind-css { border-color: var(--accent-2); }
+    .swr-tx-rec-chip.kind-fx  { border-color: var(--accent-3); }
     .beat-led {
       width: 10px; height: 10px;
       border-radius: 50%;
@@ -2166,6 +2187,13 @@
       <div class="swr-tx-panel__row">
         <label for="swr-tx-pick">Transition</label>
         <select id="swr-tx-pick" style="flex:1; min-width:200px;"></select>
+      </div>
+      <div class="swr-tx-panel__row" style="border-top:1px solid var(--line); padding-top:6px; flex-direction:column; align-items:stretch; gap:4px;">
+        <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;">
+          <span>recommended · <span id="swr-tx-rec-preset" style="color:var(--accent-2);">—</span></span>
+          <span id="swr-tx-rec-rationale" style="opacity:0.7; text-transform:none; letter-spacing:0; font-size:9px;"></span>
+        </div>
+        <div id="swr-tx-rec-list" class="swr-tx-rec-list" aria-label="Recommended transitions for current preset"></div>
       </div>
       <div class="swr-tx-panel__row">
         <label for="swr-tx-peak">peak</label>
@@ -3961,6 +3989,19 @@
         if (Layers.render) Layers.render();
       }
       if (typeof setStatus === 'function') setStatus('preset: ' + preset.name, 'ok');
+
+      // PRD-019: auto-arm the recommended primary transition for this
+      // preset if the transitions module + manifest are loaded. The
+      // transitions popover re-renders its recommendation chips via
+      // its own listener on the #preset/#persona dropdowns, so we
+      // don't need to touch the panel here.
+      if (window.SWRPresetTransitions && typeof window.SWRPresetTransitions.applyPresetAutoFire === 'function') {
+        window.SWRPresetTransitions.applyPresetAutoFire(key, {
+          every: 4,
+          bpm: 120,
+          peak: 0.85
+        });
+      }
     }
     // Expose for debugging from devtools / puppeteer
     window.VISUAL_PRESETS = VISUAL_PRESETS;
@@ -5828,6 +5869,9 @@
               });
               pick.appendChild(grp);
             });
+            // Now that the catalog is loaded, paint recommendations for the
+            // active preset (if any).
+            renderRecs();
           };
           populate();
 
@@ -5898,6 +5942,80 @@
 
           // Expose minimal API for keyboard / persona integration later.
           window.SWRTransitionsUI = Object.assign(window.SWRTransitionsUI || {}, { setOpen, pick, fireBtn });
+
+          // ---- Preset-aware recommendations (PRD-019) ----
+          // When the user picks a preset (or a persona whose underlying
+          // key matches one in data/preset-transitions.json), paint the
+          // recommended transitions as clickable chips above the picker.
+          // Click a chip = select in the dropdown + fire immediately.
+          const recPresetEl = $('swr-tx-rec-preset');
+          const recListEl = $('swr-tx-rec-list');
+          const recRationaleEl = $('swr-tx-rec-rationale');
+          function getActivePresetKey() {
+            // window._activePreset is set by applyPreset() in the engine
+            // body — it carries the full preset object, not the key.
+            // We read the key off the #preset dropdown (canonical) and
+            // fall back to the persona dropdown (the engine maps persona
+            // names to preset names internally).
+            const presetSel = document.getElementById('preset');
+            if (presetSel && presetSel.value && presetSel.value !== 'off') return presetSel.value;
+            const personaSel = document.getElementById('persona');
+            if (personaSel && personaSel.value && personaSel.value !== 'off') return personaSel.value;
+            return null;
+          }
+          function renderRecs() {
+            if (!recListEl) return;
+            if (!window.SWRPresetTransitions || !window.SWRPresetTransitions.recommended) {
+              // Manifest not loaded yet — schedule a retry.
+              if (window.SWRPresetTransitions && window.SWRPresetTransitions.whenReady) {
+                window.SWRPresetTransitions.whenReady(renderRecs);
+              }
+              return;
+            }
+            const key = getActivePresetKey();
+            if (recPresetEl) recPresetEl.textContent = key || 'no preset';
+            if (!key) {
+              recListEl.innerHTML = '<span style="color:var(--muted); font-size:9px;">pick a preset to see recommendations</span>';
+              if (recRationaleEl) recRationaleEl.textContent = '';
+              return;
+            }
+            const rec = window.SWRPresetTransitions.recommended(key);
+            if (recRationaleEl) recRationaleEl.textContent = rec.rationale || '';
+            recListEl.innerHTML = '';
+            // Render primary chips first, then secondary (faded).
+            const renderChip = (name, secondary) => {
+              const cfg = window.SWRTransitions && window.SWRTransitions._TRANSITIONS
+                ? window.SWRTransitions._TRANSITIONS[name]
+                : null;
+              const chip = document.createElement('button');
+              chip.type = 'button';
+              chip.className = 'swr-tx-rec-chip' +
+                (secondary ? ' secondary' : '') +
+                (cfg ? ' kind-' + cfg.kind : '');
+              chip.textContent = name;
+              chip.title = (cfg ? cfg.family + ' · ' + cfg.duration + 'ms · ' + cfg.kind : name);
+              chip.addEventListener('click', () => {
+                if (pick) pick.value = name;
+                window.SWRTransitions.fire(name);
+              });
+              return chip;
+            };
+            (rec.primary || []).forEach((n) => recListEl.appendChild(renderChip(n, false)));
+            (rec.secondary || []).forEach((n) => recListEl.appendChild(renderChip(n, true)));
+            if (recListEl.children.length === 0) {
+              recListEl.innerHTML = '<span style="color:var(--muted); font-size:9px;">no recommendations for this preset yet</span>';
+            }
+          }
+          // Re-render when the persona or preset dropdown changes.
+          ['preset', 'persona'].forEach((id) => {
+            const sel = document.getElementById(id);
+            if (sel) sel.addEventListener('change', () => renderRecs());
+          });
+          // Also re-render when the popover opens (catches preset changes
+          // made while the panel was closed).
+          toggleBtn.addEventListener('click', () => setTimeout(renderRecs, 50));
+          // Expose for the harness page + manual API users.
+          window.SWRTransitionsUI.renderRecs = renderRecs;
 
           // ---- Visual flash + history log ----
           // Listen for the module's CustomEvent and flash a badge next to the
@@ -6752,6 +6870,7 @@
   <script src="/lib/persist-wire.client.js"></script>
   <script src="/lib/persist-fx.client.js"></script>
   <script src="/lib/library-hygiene.client.js"></script>
+  <script src="/lib/preset-transitions.client.js"></script>
   <script src="/lib/reset-state.client.js"></script>
   <script src="/lib/recorder.client.js"></script>
   <script type="module" src="/share.client.js"></script>

@@ -221,17 +221,23 @@ try {
         obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
         // Try to call fire() directly first to confirm the chain works.
         const directFireOk = await tx.fire('circle-wipe');
-        await new Promise(r => setTimeout(r, 80));
+        // Wait for the queue to drain fully (circle-wipe is 520ms; the
+        // module resolves fire() after duration+120=640ms). 800ms gives
+        // some slack.
+        await new Promise(r => setTimeout(r, 800));
         const directFired = firedKind;
         // Reset and try auto-fire via onBeat.
         overlay.className = '';
         firedKind = null;
         tx.setAutoFire({ everyNBeats: 1, transition: 'circle-wipe', bpm: 120 });
-        await new Promise(r => setTimeout(r, 60));
+        await new Promise(r => setTimeout(r, 30));
         tx.onBeat(120, false);
         await new Promise(r => setTimeout(r, 30));
         tx.onBeat(120, true);
-        await new Promise(r => setTimeout(r, 200));
+        // Wait for the queue to dispatch (fire sets className on first
+        // animation tick). 800ms gives the queue plenty of time — the
+        // queue can be busy with a previous transition's tail.
+        await new Promise(r => setTimeout(r, 800));
         obs.disconnect();
         tx.setAutoFire(null);
         return { directFired, autoFired: firedKind, overlayClassAfter: overlay.className };
@@ -254,11 +260,21 @@ try {
       overlay.className = '';
       // Wrap fire indirectly by checking if the overlay receives a fresh
       // swr-tx-N class after a no-hit beat.
+      //
+      // Snapshot the class BEFORE setting up the observer so we only
+      // detect a change to a NEW class. (A no-op classList.remove()
+      // can still fire a class-list mutation, so naive MutationObserver
+      // watching reports changes when there aren't any.)
+      const beforeClass = overlay.className;
       let changed = false;
-      const obs = new MutationObserver(() => { changed = true; });
+      const obs = new MutationObserver(() => {
+        const cls = overlay.className;
+        // Only flag if class actually became a non-empty transition class.
+        if (cls && cls !== beforeClass && /swr-tx-\d+/.test(cls)) changed = true;
+      });
       obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
       tx.onBeat(120, false);
-      await new Promise(r => setTimeout(r, 80));
+      await new Promise(r => setTimeout(r, 200));
       obs.disconnect();
       tx.setAutoFire(null);
       return changed;
@@ -338,7 +354,73 @@ try {
     if (real.length) throw new Error(`console errors:\n  ${real.join('\n  ')}`);
   });
 
-  // --- 7. Audio error handler ---
+  // --- 7. PRD-019 preset↔transition pairing ---
+  // The data/preset-transitions.json manifest exposes
+  // window.SWRPresetTransitions.recommended(presetKey). Verify the
+  // module loads + the manifest resolves + each of the 19 version-presets
+  // has at least one primary recommendation.
+  await step('PRD-019 preset↔transition manifest loads', async () => {
+    const ready = await page.evaluate(async () => {
+      if (!window.SWRPresetTransitions) return { ok: false, reason: 'module missing' };
+      // Wait for the manifest fetch to resolve.
+      const start = Date.now();
+      while (Date.now() - start < 4000) {
+        const m = window.SWRPresetTransitions.manifest && window.SWRPresetTransitions.manifest();
+        if (m && Object.keys(m).filter(k => !k.startsWith('_')).length >= 15) break;
+        await new Promise(r => setTimeout(r, 100));
+      }
+      const m = window.SWRPresetTransitions.manifest && window.SWRPresetTransitions.manifest();
+      if (!m) return { ok: false, reason: 'manifest not loaded after 4s' };
+      const keys = Object.keys(m).filter(k => !k.startsWith('_'));
+      return {
+        ok: true,
+        presetCount: keys.length,
+        sampleKey: keys[0],
+        sampleRec: window.SWRPresetTransitions.recommended(keys[0])
+      };
+    });
+    if (!ready.ok) throw new Error(ready.reason);
+    if (ready.presetCount < 15) throw new Error(`manifest only has ${ready.presetCount} presets (expected ≥15)`);
+    if (!ready.sampleRec.primary || ready.sampleRec.primary.length === 0) {
+      throw new Error(`sample preset "${ready.sampleKey}" has no primary recommendations`);
+    }
+  });
+
+  await step('PRD-019 family filter (CSS vs FX) narrows the list', async () => {
+    const result = await page.evaluate(async () => {
+      // 'neon' has chroma-burst in primary (FX) + chromatic-split (CSS).
+      // Filter to CSS only — chroma-burst should drop out.
+      const rec = window.SWRPresetTransitions.recommended('neon', { includeFamily: 'css' });
+      return { all: rec.all, primary: rec.primary };
+    });
+    // All entries should be either special transitions (no family)
+    // or known-CSS transitions like chromatic-split, lens-flare.
+    const cssNames = [
+      // CSS (all kinds)
+      'chromatic-split', 'lens-flare', 'fade-to-black', 'iris-in',
+      'circle-wipe', 'paint-stroke', 'warp-dissolve', 'whip-blur',
+      'swivel', 'object-pass-through',
+      // specials (no family in _TRANSITIONS, so pass through filter)
+      'frame-freeze-zoom', 'light-leak-pop'
+    ];
+    for (const n of result.all) {
+      if (cssNames.indexOf(n) === -1) {
+        throw new Error(`unexpected FX/burst in CSS-filtered list: ${n}`);
+      }
+    }
+  });
+
+  await step('PRD-019 universal fallback for unknown preset', async () => {
+    const rec = await page.evaluate(() => window.SWRPresetTransitions.recommended('totally-unknown-preset'));
+    if (!rec.primary || rec.primary.length === 0) {
+      throw new Error('no fallback for unknown preset');
+    }
+    if (rec.rationale.indexOf('universal') === -1) {
+      throw new Error(`fallback rationale should mention "universal", got: ${rec.rationale}`);
+    }
+  });
+
+  // --- 8. Audio error handler ---
   // When the audio element fires an 'error' event (corrupt file, unsupported
   // codec), the engine should surface a status message + disable the play
   // button so the user doesn't repeatedly click into silence. Verified by
