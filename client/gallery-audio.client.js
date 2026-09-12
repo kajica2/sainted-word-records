@@ -26,6 +26,44 @@
 
   if (window.SWR && window.SWR.GalleryAudio) return;
 
+  const STYLE_ID = 'swr-gallery-audio-styles';
+  function injectStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    const s = document.createElement('style');
+    s.id = STYLE_ID;
+    s.textContent = [
+      // Play/pause glyph anchored to bottom-right of every card.
+      '.gallery-card__play {',
+      '  position: absolute; bottom: 12px; right: 12px;',
+      '  width: 38px; height: 38px; border-radius: 999px;',
+      '  background: rgba(10, 6, 4, 0.7);',
+      '  color: #d4af37;',
+      '  border: 1px solid rgba(212, 175, 55, 0.45);',
+      '  display: inline-flex; align-items: center; justify-content: center;',
+      '  opacity: 0; transform: translateY(6px);',
+      '  transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s ease;',
+      '  backdrop-filter: blur(8px);',
+      '  cursor: pointer;',
+      '  padding: 0;',
+      '  z-index: 2;',
+      '}',
+      '.gallery-card:hover .gallery-card__play,',
+      '.gallery-card:focus-within .gallery-card__play {',
+      '  opacity: 1; transform: translateY(0);',
+      '}',
+      '.gallery-card__play--featured { opacity: 1; transform: translateY(0); }',
+      '.gallery-card__play:hover { background: rgba(212, 175, 55, 0.18); }',
+      '.gallery-card__play--on { background: #d4af37; color: #0a0604; border-color: #d4af37; }',
+      '.gallery-card--playing { border-color: #d4af37; }',
+      '.gallery-card--playing .gallery-card__art::before {',
+      '  content: ""; position: absolute; inset: 0;',
+      '  background: radial-gradient(circle at 50% 50%, rgba(212,175,55,0.18), transparent 70%);',
+      '  pointer-events: none; z-index: 1;',
+      '}',
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+
   const audio = new Audio();
   audio.preload = 'none';
   audio.loop = true;
@@ -37,6 +75,7 @@
   let isPlaying = false;
 
   function attach() {
+    injectStyles();
     const cards = Array.from(document.querySelectorAll('.gallery-card[data-audio]'));
     if (!cards.length) return;
 

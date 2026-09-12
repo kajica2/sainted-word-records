@@ -206,7 +206,7 @@
     <div class="wrap">
       <section class="grid" aria-label="Generative gallery">
 
-        <article class="gallery-card is-featured">
+        <article class="gallery-card is-featured" data-audio="./audios/fractal.mp3" data-label="Reaction-Diffusion">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #c8b6ff 0%, #6ad8e0 55%, #b8f5d8 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__badge">Featured</span>
@@ -219,7 +219,7 @@
           </div>
         </article>
 
-        <article class="gallery-card">
+        <article class="gallery-card" data-audio="./audios/chrome.mp3" data-label="Flow Fields">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #3b1d8a 0%, #7a3dff 50%, #ff6f6f 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__glyph">v = curl(noise(p))</span>
@@ -231,7 +231,7 @@
           </div>
         </article>
 
-        <article class="gallery-card">
+        <article class="gallery-card" data-audio="./audios/mosaic.mp3" data-label="Particle Genealogies">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #efe9d8 0%, #8a8478 55%, #d4a849 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__glyph">birth · drift · death</span>
@@ -243,7 +243,7 @@
           </div>
         </article>
 
-        <article class="gallery-card">
+        <article class="gallery-card" data-audio="./audios/glitch.mp3" data-label="Voronoi Cells">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #2a2a30 0%, #4a4a55 55%, #c8ff5a 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__glyph">min |p − xᵢ|</span>
@@ -255,7 +255,7 @@
           </div>
         </article>
 
-        <article class="gallery-card">
+        <article class="gallery-card" data-audio="./audios/tape.mp3" data-label="Strange Attractors">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #2a0d4a 0%, #6a1a8a 55%, #ff2da8 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__glyph">σ=10 · ρ=28 · β=8/3</span>
@@ -267,7 +267,7 @@
           </div>
         </article>
 
-        <article class="gallery-card">
+        <article class="gallery-card" data-audio="./audios/grid.mp3" data-label="Tessellations">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #c47a1a 0%, #8a5a2a 55%, #2a9a8a 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__glyph">P3 · Truchet(θ)</span>
@@ -279,7 +279,7 @@
           </div>
         </article>
 
-        <article class="gallery-card">
+        <article class="gallery-card" data-audio="./audios/smoke.mp3" data-label="Conways">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a3a8a 0%, #4a6ab0 55%, #efe9d8 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__glyph">B3/S23 · vote(n)</span>
@@ -291,7 +291,7 @@
           </div>
         </article>
 
-        <article class="gallery-card">
+        <article class="gallery-card" data-audio="./audios/hallucination.mp3" data-label="Recursive Subdivisions">
           <div class="gallery-card__art" style="background: linear-gradient(135deg, #1a4a2a 0%, #6a8a5a 55%, #f5ead8 100%);">
             <div class="gallery-card__noise"></div>
             <span class="gallery-card__glyph">F → F[+F]F[−F]F</span>
@@ -310,6 +310,8 @@
   <footer>
     Generative / Abstract · SWR Galleries
   </footer>
+  <script src="./client/gallery-audio.client.js" defer></script>
+  <script src="./client/dropzone.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
 </body>
 </html>

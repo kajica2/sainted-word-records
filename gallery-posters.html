@@ -235,7 +235,7 @@
   <section class="wrap">
     <div class="grid">
 
-      <article class="gallery-card is-featured">
+      <article class="gallery-card is-featured" data-audio="./audios/mosaic.mp3" data-label="Type Poster">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #0e0c0a 0%, #1a1612 45%, #c8973a 100%); --art-glyph: 'Aa';">
           <span class="gallery-card__meta">Single-weight type</span>
         </div>
@@ -249,7 +249,7 @@
         </div>
       </article>
 
-      <article class="gallery-card">
+      <article class="gallery-card" data-audio="./audios/chrome.mp3" data-label="Photographic Collage">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(160deg, #ede4d0 0%, #6a6058 55%, #5a3d8a 100%); --art-glyph: '02';">
           <span class="gallery-card__meta">Image stacking</span>
         </div>
@@ -263,7 +263,7 @@
         </div>
       </article>
 
-      <article class="gallery-card">
+      <article class="gallery-card" data-audio="./audios/glitch.mp3" data-label="Show Print">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(180deg, #c2362f 0%, #6a1f1f 55%, #0e0c0a 100%); --art-glyph: 'LIVE';">
           <span class="gallery-card__meta">Tour date stack</span>
         </div>
@@ -277,7 +277,7 @@
         </div>
       </article>
 
-      <article class="gallery-card">
+      <article class="gallery-card" data-audio="./audios/phosphor.mp3" data-label="Edition Print">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #c89248 0%, #a07a4a 50%, #a48bc4 100%); --art-glyph: '100';">
           <span class="gallery-card__meta">100 signed + numbered</span>
         </div>
@@ -291,7 +291,7 @@
         </div>
       </article>
 
-      <article class="gallery-card">
+      <article class="gallery-card" data-audio="./audios/grid.mp3" data-label="Protest Billboard">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(180deg, #000000 0%, #1a1612 50%, #ede4d0 100%); --art-glyph: 'NO!';">
           <span class="gallery-card__meta">Single-color stencil</span>
         </div>
@@ -305,7 +305,7 @@
         </div>
       </article>
 
-      <article class="gallery-card">
+      <article class="gallery-card" data-audio="./audios/tape.mp3" data-label="Album Drop">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #ff7a6b 0%, #b25b8a 50%, #3b3a8a 100%); --art-glyph: 'LP';">
           <span class="gallery-card__meta">Square + sleeve</span>
         </div>
@@ -319,7 +319,7 @@
         </div>
       </article>
 
-      <article class="gallery-card">
+      <article class="gallery-card" data-audio="./audios/fractal.mp3" data-label="Festival Stack">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(135deg, #b8d44a 0%, #4a6a3a 50%, #0e0c0a 100%); --art-glyph: 'FEST';">
           <span class="gallery-card__meta">Lineup grid</span>
         </div>
@@ -333,7 +333,7 @@
         </div>
       </article>
 
-      <article class="gallery-card">
+      <article class="gallery-card" data-audio="./audios/hallucination.mp3" data-label="Map Print">
         <div class="gallery-card__art" style="--art-bg: linear-gradient(160deg, #2a4a3a 0%, #6a7a5a 50%, #ede4d0 100%); --art-glyph: 'MAP';">
           <span class="gallery-card__meta">City texture</span>
         </div>
@@ -361,6 +361,8 @@
   <footer class="footer">
     Posters / Canvas · SWR Galleries
   </footer>
+  <script src="./client/gallery-audio.client.js" defer></script>
+  <script src="./client/dropzone.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
 </body>
 </html>

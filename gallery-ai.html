@@ -273,7 +273,7 @@
   </header>
 
   <section class="grid wrap">
-    <article class="gallery-card is-featured">
+    <article class="gallery-card is-featured" data-audio="./audios/fractal.mp3" data-label="Attention Head">
       <div class="gallery-card__art art-attention"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">Featured · #01</div>
@@ -282,7 +282,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/chrome.mp3" data-label="Loss Landscape">
       <div class="gallery-card__art art-loss"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">#02</div>
@@ -291,7 +291,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/mosaic.mp3" data-label="Feature Visualization">
       <div class="gallery-card__art art-feature"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">#03</div>
@@ -300,7 +300,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/glitch.mp3" data-label="Embedding Space">
       <div class="gallery-card__art art-embed"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">#04</div>
@@ -309,7 +309,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/tape.mp3" data-label="Saliency Map">
       <div class="gallery-card__art art-saliency"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">#05</div>
@@ -318,7 +318,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/hallucination.mp3" data-label="Weight Matrix">
       <div class="gallery-card__art art-weights"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">#06</div>
@@ -327,7 +327,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/grid.mp3" data-label="Diffusion Steps">
       <div class="gallery-card__art art-diffusion"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">#07</div>
@@ -336,7 +336,7 @@
       </div>
     </article>
 
-    <article class="gallery-card">
+    <article class="gallery-card" data-audio="./audios/smoke.mp3" data-label="Token Grid">
       <div class="gallery-card__art art-tokens"></div>
       <div class="gallery-card__body">
         <div class="gallery-card__sub">#08</div>
@@ -349,6 +349,8 @@
   <footer class="site-foot">
     AI / Machine · SWR Galleries
   </footer>
+  <script src="./client/gallery-audio.client.js" defer></script>
+  <script src="./client/dropzone.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
 </body>
 </html>
