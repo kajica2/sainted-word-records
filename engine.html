@@ -784,6 +784,27 @@
       border-radius: 3px;
     }
     .separator { width: 1px; height: 24px; background: var(--line); }
+    /* === IMPORT PROGRESS (engine.html) === */
+    .import-progress {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 6px;
+      margin-left: auto;
+      background: var(--accent-2);
+      color: #000;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 700;
+      animation: importPulse 1.6s ease-in-out infinite;
+    }
+    .import-progress[hidden] { display: none; }
+    .import-progress.error { background: var(--warn); color: #000; }
+    .import-progress.done  { background: var(--ok); color: #000; animation: none; }
+    @keyframes importPulse { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
     /* === TRANSITIONS PANEL (engine-transitions.client.js) === */
     .swr-tx-panel {
       position: fixed;
@@ -1601,6 +1622,12 @@
         <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
+        <button class="tbtn ghost" id="add-folder" title="Pick a folder — engine pulls every image/video recursively" style="padding:4px 8px; font-size:9px;">+ Folder</button>
+        <input type="file" id="folder-input" webkitdirectory multiple style="display:none;" />
+        <div id="import-progress" class="import-progress" hidden>
+          <span id="import-progress-text">—</span>
+          <button class="tbtn ghost" id="import-progress-cancel" style="padding:2px 6px; font-size:8px;">×</button>
+        </div>
       </div>
       <div class="panel-body">
         <div class="sets-bar" style="display:flex; gap:6px; padding:6px 8px; border-bottom:1px solid var(--line);">
@@ -2840,22 +2867,85 @@
         if (typeof setStatus === 'function') setStatus('cleared', 'ok');
       },
       async addFiles(files) {
-        setStatus('importing…', '');
         const arr = Array.from(files);
+        // ---- Progress UI bootstrap ----
+        // Show an inline progress badge in the library panel-head. Cleared
+        // when the import finishes (success or cancel). The same UI is
+        // shared with the folder-picker and any future batch flow.
+        const progressEl = document.getElementById('import-progress');
+        const progressText = document.getElementById('import-progress-text');
+        const progressCancel = document.getElementById('import-progress-cancel');
+        const cancelled = { v: false };
+        const onCancel = () => { cancelled.v = true; };
+        if (progressCancel) progressCancel.onclick = onCancel;
+        const updateProgress = (state) => {
+          if (!progressEl || !progressText) return;
+          progressEl.hidden = false;
+          progressEl.classList.remove('done', 'error');
+          progressText.textContent = `importing ${state.done}/${state.total}`
+            + (state.skipped ? ` · ${state.skipped} dup` : '')
+            + (state.errors ? ` · ${state.errors} err` : '');
+        };
+        const finishProgress = (kind) => {
+          if (!progressEl || !progressText) return;
+          progressEl.classList.add(kind);
+          if (progressCancel) progressCancel.onclick = null;
+          if (kind === 'done') {
+            progressText.textContent = `+${state.imported}`;
+          } else if (kind === 'error') {
+            progressText.textContent = `import error`;
+          } else { // cancelled
+            progressText.textContent = `cancelled`;
+          }
+          setTimeout(() => { progressEl.hidden = true; }, 1600);
+        };
+
+        const state = { total: arr.length, done: 0, imported: 0, skipped: 0, errors: 0 };
+        if (state.total > 1) updateProgress(state);
+
         const knownKeys = new Set(this.items.map(i => i.name + ':' + (i.blob ? i.blob.size : 0)));
+        // ---- Concurrency-throttled classify pipeline ----
+        // _buildThumb/_classify are background tasks per item. With 50+ files
+        // they pile up (50 video metadata loads = browser stall). A simple
+        // promise-pool caps in-flight work at 4.
+        const THUMB_POOL = 4;
+        let inflight = 0;
+        const waiters = [];
+        const acquire = () => new Promise(res => {
+          if (inflight < THUMB_POOL) { inflight++; res(); }
+          else waiters.push(() => { inflight++; res(); });
+        });
+        const release = () => {
+          inflight--;
+          const next = waiters.shift();
+          if (next) next();
+        };
+        const runClassify = (item) => acquire().then(() => {
+          try {
+            this._buildThumb(item);
+            return this._classify(item)
+              .then(() => { if (item.id) return this._save(item); })
+              .then(() => this.render())
+              .catch(err => { console.warn('classify', item.name, err); state.errors++; });
+          } finally { release(); }
+        });
+
         for (const f of arr) {
-          if (!f.type) continue;
+          if (cancelled.v) break;
+          if (!f.type) { state.skipped++; continue; }
           const isVid = f.type.startsWith('video/');
           const isImg = f.type.startsWith('image/');
-          if (!isVid && !isImg) continue;
-          // Dedupe by name+size
-          const key = f.name + ':' + f.size;
-          if (knownKeys.has(key)) continue;
-          knownKeys.add(key);
+          if (!isVid && !isImg) { state.skipped++; state.done++; if (state.total > 1) updateProgress(state); continue; }
+          // Dedupe by name+size (relativePath for folder picks so two folders
+          // with same-name files don't collide)
+          const relKey = (f.webkitRelativePath || f.name) + ':' + f.size;
+          if (knownKeys.has(relKey)) { state.skipped++; state.done++; if (state.total > 1) updateProgress(state); continue; }
+          knownKeys.add(relKey);
           const id = this.nextId++;
           const item = {
             id,
             name: f.name,
+            relPath: f.webkitRelativePath || null,
             type: isVid ? 'video' : 'image',
             blob: f,
             url: URL.createObjectURL(f),
@@ -2865,15 +2955,23 @@
             rotation: 0,   // overridden by _detectRotation() once metadata loads
           };
           this.items.push(item);
+          state.imported++;
+          state.done++;
           this.render();
-          // Build thumb + classify in background
-          this._buildThumb(item);
-          this._classify(item).then(() => {
-            this._save(item);
-            this.render();
-          }).catch(err => console.warn('classify', item.name, err));
+          // Build thumb + classify in background (throttled).
+          runClassify(item);
+          if (state.total > 1) updateProgress(state);
+          // Tiny pause between items keeps the UI thread from stalling on
+          // 100-file drops. The await isn't necessary for correctness but
+          // gives the browser a frame to paint the progress badge.
+          if (state.done % 8 === 0) await new Promise(r => setTimeout(r, 0));
         }
-        setStatus('lib ' + this.items.length, 'ok');
+        if (state.total > 1) {
+          finishProgress(cancelled.v ? 'cancelled' : (state.errors > 0 ? 'error' : 'done'));
+        } else {
+          setStatus('lib ' + this.items.length, 'ok');
+        }
+        return state;
       },
       async _save(item) {
         if (!this.db) return;
@@ -5549,6 +5647,85 @@
           Library.addFiles(e.target.files);
           e.target.value = '';
         });
+        // Folder picker: webkitdirectory input lets the user select a whole
+        // directory tree at once. The browser flattens every file into the
+        // FileList with webkitRelativePath set to the relative path under
+        // the chosen root.
+        const folderInput = $('folder-input');
+        const folderBtn = $('add-folder');
+        if (folderBtn && folderInput) {
+          folderBtn.addEventListener('click', () => folderInput.click());
+          folderInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+            // Filter to image/video MIME types up front so the import
+            // progress badge reports accurate totals (skip text files,
+            // .DS_Store, etc. that webkitdirectory drags along).
+            const wanted = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+            if (wanted.length === 0) {
+              console.warn('[folder-import] no image/video files in selected folder');
+              setStatus('no media in folder', 'warn');
+              e.target.value = '';
+              return;
+            }
+            if (wanted.length < files.length) {
+              console.info(`[folder-import] ${files.length - wanted.length} non-media files skipped`);
+            }
+            Library.addFiles(wanted);
+            e.target.value = '';
+          });
+        }
+        // Folder drag-drop: if a dropped item has webkitGetAsEntry that
+        // returns a directory, walk it recursively and feed every file into
+        // addFiles. Standalone drop handler in engine.html routes simple
+        // drops; this supplements with directory traversal.
+        async function walkDataTransferItem(entry, prefix) {
+          if (!entry) return [];
+          if (entry.isFile) {
+            return new Promise(resolve => entry.file(f => {
+              // Reconstruct webkitRelativePath so the library dedupes correctly.
+              try { Object.defineProperty(f, 'webkitRelativePath', { value: prefix + entry.name }); } catch (_) {}
+              resolve([f]);
+            }, () => resolve([])));
+          }
+          if (entry.isDirectory) {
+            const reader = entry.createReader();
+            const all = [];
+            // readEntries returns batches; loop until empty.
+            while (true) {
+              const batch = await new Promise(res => reader.readEntries(res, () => res([])));
+              if (!batch.length) break;
+              for (const sub of batch) {
+                const files = await walkDataTransferItem(sub, prefix + entry.name + '/');
+                for (const f of files) all.push(f);
+              }
+            }
+            return all;
+          }
+          return [];
+        }
+        window.addEventListener('drop', async (e) => {
+          if (!e.dataTransfer || !e.dataTransfer.items) return;
+          const items = Array.from(e.dataTransfer.items);
+          const folders = items.filter(it => it.webkitGetAsEntry && it.webkitGetAsEntry()?.isDirectory);
+          if (!folders.length) return;  // let the existing drop handler do its thing
+          e.preventDefault();
+          const all = [];
+          for (const it of items) {
+            const entry = it.webkitGetAsEntry && it.webkitGetAsEntry();
+            if (entry) {
+              const files = await walkDataTransferItem(entry, '');
+              for (const f of files) all.push(f);
+            }
+          }
+          if (all.length === 0) return;
+          const wanted = all.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+          if (wanted.length === 0) {
+            console.warn('[folder-drop] no image/video files in dropped folder');
+            return;
+          }
+          await Library.addFiles(wanted);
+        }, true);  // capture phase so we get the drop before the existing window-level handler
         // Layers
         $('add-layer').addEventListener('click', () => {
           if (Library.items.length) Layers.add(Library.items[0]);
