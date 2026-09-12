@@ -1,9 +1,8 @@
 /*
  * Sainted Word Records — Design Tokens
- * Single source of truth for colors, typography, spacing, shadows.
+ * CSS custom properties only. No resets, no element selectors.
+ * Pages can safely override tokens in their own <style> blocks.
  * Loaded by every page via <link rel="stylesheet" href="/lib/design-tokens.css">
- * Pages can override tokens in their own <style> blocks for app-specific themes
- * (e.g., engine.html's dark theme, gallery.html's brutalist theme).
  */
 
 :root {
@@ -90,23 +89,3 @@
   --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
   --shadow-3: 0 4px 16px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.6);
 }
-
-/* === RESET === */
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-html, body { margin: 0; padding: 0; }
-body {
-  font-family: var(--font-body);
-  background: var(--bg);
-  color: var(--ink);
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-  transition: background var(--transition-slow), color var(--transition-slow);
-}
-
-a { color: var(--accent); text-decoration: none; transition: color var(--transition); }
-a:hover { color: var(--ink); }
-code, pre, kbd { font-family: var(--font-mono); }
-img { max-width: 100%; display: block; }
-button { font-family: inherit; cursor: pointer; }
-::selection { background: var(--accent); color: white; }

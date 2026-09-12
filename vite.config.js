@@ -212,6 +212,7 @@ function copyStatic() {
     'lib/storage.client.js',
     'lib/migrate.client.js',
     'lib/design-tokens.css',
+    'lib/design-base.css',
     'lib/components.css',
     'lib/nav.client.js',
     'api/auth/session.js',
