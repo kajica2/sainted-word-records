@@ -567,7 +567,7 @@
     // selection
     keep: keep, breed: breed, discard: discard,
     // history
-    undo: undo, redo: redo,
+    undo: undo, redo: redo, withHistory: withHistory,
     // config
     setSeed: setSeed, reroll: reroll, setScope: setScope, setAmount: setAmount,
     setPreserve: setPreserve, setDeterministic: setDeterministic, toggleLock: toggleLock,

@@ -1,0 +1,84 @@
+{
+  "id": "swr-preset-2026-09-09-style-film",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-09-09T10:00:00.000000+00:00",
+  "name": "Film",
+  "family": "GENERATIVE",
+  "description": "Film · cinematic / warm / vintage. Letterbox bars, slow drifting orbs, vignette, warm color cast. Mids → sweep intensity, treble → highlight pulse. Best for: ballads, ambient, music-video cuts.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "vignette-letterbox",
+      "weight": 0.3
+    },
+    {
+      "kind": "shader_ref",
+      "name": "warm-sepia-cast",
+      "weight": 0.25
+    },
+    {
+      "kind": "shader_ref",
+      "name": "soft-grain",
+      "weight": 0.2
+    },
+    {
+      "kind": "palette_ref",
+      "name": "cinema-warm-vintage",
+      "weight": 0.15
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.0,
+    "grain": 0.4,
+    "chroma": 0.0,
+    "bloom": 0.25,
+    "vignette": 0.6,
+    "sepia": 0.55,
+    "glow": 0.0,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.65,
+    "posterize": 8
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.05,
+    "pan_y": 0.05
+  },
+  "palette": {
+    "primary": "#d4a574",
+    "secondary": "#8b5a3c",
+    "accent": "#f5d4a8",
+    "bg": "#1a1612"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "vignette"
+    ],
+    "mid": [
+      "bloom",
+      "pan_x"
+    ],
+    "treble": [
+      "grain"
+    ],
+    "onset": [
+      "sepia"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><defs><radialGradient id=\"fg\" cx=\"0.5\" cy=\"0.5\" r=\"0.7\"><stop offset=\"0\" stop-color=\"#3a2a1a\"/><stop offset=\"1\" stop-color=\"#0a0806\"/></radialGradient></defs><rect width=\"80\" height=\"80\" fill=\"url(#fg)\"/><rect x=\"0\" y=\"0\" width=\"80\" height=\"14\" fill=\"#000\"/><rect x=\"0\" y=\"66\" width=\"80\" height=\"14\" fill=\"#000\"/><circle cx=\"28\" cy=\"40\" r=\"9\" fill=\"#d4a574\" opacity=\"0.7\"/><circle cx=\"52\" cy=\"44\" r=\"7\" fill=\"#8b5a3c\" opacity=\"0.55\"/><circle cx=\"40\" cy=\"36\" r=\"4\" fill=\"#f5d4a8\" opacity=\"0.85\"/></svg>",
+    "tags": [
+      "film",
+      "cinematic",
+      "warm",
+      "vintage",
+      "ballad"
+    ]
+  }
+}

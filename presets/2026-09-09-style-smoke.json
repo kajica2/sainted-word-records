@@ -1,0 +1,84 @@
+{
+  "id": "swr-preset-2026-09-09-style-smoke",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-09-09T10:00:00.000000+00:00",
+  "name": "Smoke",
+  "family": "GENERATIVE",
+  "description": "Smoke · ambient / soft / breath. Soft particle system, upward flow, color bleed, shockwave on bass. Best for: pads, drone, lofi hip-hop, breath work.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "soft-particles",
+      "weight": 0.3
+    },
+    {
+      "kind": "shader_ref",
+      "name": "upward-flow",
+      "weight": 0.2
+    },
+    {
+      "kind": "shader_ref",
+      "name": "color-bleed",
+      "weight": 0.2
+    },
+    {
+      "kind": "palette_ref",
+      "name": "soft-cream-warm",
+      "weight": 0.2
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.4,
+    "pearl": 0.0,
+    "glitch": 0.0,
+    "grain": 0.0,
+    "chroma": 0.0,
+    "bloom": 0.4,
+    "vignette": 0.3,
+    "sepia": 0.15,
+    "glow": 0.3,
+    "grayscale": 0.0,
+    "blur": 0.45,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.55,
+    "posterize": 12
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.0,
+    "pan_y": 0.2
+  },
+  "palette": {
+    "primary": "#f5ead8",
+    "secondary": "#d4b89a",
+    "accent": "#a8b8d4",
+    "bg": "#1a1614"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "blur",
+      "bloom"
+    ],
+    "mid": [
+      "pan_y"
+    ],
+    "treble": [
+      "glow"
+    ],
+    "onset": [
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a1614\"/><ellipse cx=\"40\" cy=\"58\" rx=\"32\" ry=\"14\" fill=\"#f5ead8\" opacity=\"0.25\"/><ellipse cx=\"40\" cy=\"48\" rx=\"28\" ry=\"12\" fill=\"#d4b89a\" opacity=\"0.3\"/><ellipse cx=\"40\" cy=\"38\" rx=\"22\" ry=\"10\" fill=\"#f5ead8\" opacity=\"0.35\"/><ellipse cx=\"40\" cy=\"28\" rx=\"16\" ry=\"8\" fill=\"#a8b8d4\" opacity=\"0.4\"/><ellipse cx=\"40\" cy=\"20\" rx=\"10\" ry=\"6\" fill=\"#f5ead8\" opacity=\"0.5\"/></svg>",
+    "tags": [
+      "smoke",
+      "ambient",
+      "soft",
+      "breath",
+      "lofi"
+    ]
+  }
+}

@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VIDEO SINGLE · SWR transition stage</title>
+  <meta name="description" content="Single-canvas transition showcase for the SWR engine — 10 CSS transitions driven by a live Web Audio FFT, no layers, no library." />
+  <meta name="theme-color" content="#0a0414" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta property="og:title" content="Video Single · SWR transition stage" />
+  <meta property="og:description" content="Single-canvas transition showcase — 10 CSS transitions driven by Web Audio FFT." />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/video_single.html" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Video Single · SWR transition stage" />
+  <meta name="twitter:description" content="Single-canvas transition showcase — 10 CSS transitions driven by Web Audio FFT." />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg-0: #050308;
+      --bg-1: #0d0918;
+      --bg-2: #1a1226;
+      --panel: #11091a;
+      --panel-2: #1a1028;
+      --line: #2a1d3a;
+      --line-2: #3a2a4a;
+      --fg: #f5e9ff;
+      --muted: #9a8aaa;
+      --dim: #5a4a6a;
+      --accent: #ff3d92;
+      --accent-2: #00e5ff;
+      --accent-3: #ffd24a;
+      --ok: #00ffa3;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: var(--bg-0);
+      color: var(--fg);
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px; line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+    #app {
+      display: grid;
+      grid-template-rows: 56px 1fr 96px;
+      height: 100vh;
+      width: 100vw;
+    }
+    /* === HEADER === */
+    header {
+      background: linear-gradient(180deg, var(--bg-2), var(--panel));
+      display: flex; align-items: center;
+      padding: 0 16px; gap: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      font-weight: 700; letter-spacing: 0.1em;
+      font-size: 14px; color: var(--accent);
+      text-shadow: 0 0 12px rgba(255, 61, 146, 0.5);
+    }
+    .brand small {
+      color: var(--muted); font-weight: 400;
+      letter-spacing: 0.04em; margin-left: 6px;
+    }
+    .pill {
+      font-family: inherit;
+      font-size: 10px; letter-spacing: 0.12em;
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--bg-1); border: 1px solid var(--line);
+      color: var(--muted); text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pill.ok   { color: var(--ok);    border-color: rgba(0, 255, 163, 0.3); }
+    .pill.live { color: var(--accent); border-color: rgba(255, 61, 146, 0.4); }
+    .pill.warn { color: var(--accent-3); border-color: rgba(255, 210, 74, 0.3); }
+    .spacer { flex: 1; }
+    .tbtn {
+      background: var(--panel-2);
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 7px 12px; border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .tbtn:hover  { background: var(--bg-2); border-color: var(--accent); }
+    .tbtn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+    .tbtn.primary:hover { background: #ff5fa3; }
+    .tbtn.ghost   { background: transparent; border-color: var(--line); color: var(--muted); }
+    .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* Beat LED — pulses when beatPulse fires */
+    .beat-led {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #000; border: 1px solid var(--accent-2);
+      box-shadow: inset 0 0 4px rgba(0, 229, 255, 0.3);
+      transition: background 0.06s, box-shadow 0.06s;
+    }
+    .beat-led.on {
+      background: var(--accent-2);
+      box-shadow: 0 0 16px var(--accent-2), 0 0 32px rgba(0, 229, 255, 0.4);
+    }
+    /* === STAGE === */
+    section.stage {
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #render {
+      width: 100%; height: 100%;
+      display: block;
+      background: #000;
+    }
+    /* Centered title shown until audio starts */
+    #stage-hint {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; color: var(--muted);
+      pointer-events: none;
+      text-align: center;
+      font-size: 12px;
+    }
+    #stage-hint h2 {
+      font-size: 16px; color: var(--fg);
+      margin: 0; letter-spacing: 0.04em;
+      font-weight: 500;
+    }
+    #stage-hint p { max-width: 420px; margin: 0; line-height: 1.6; }
+    #stage-hint kbd {
+      background: var(--panel-2); border: 1px solid var(--line-2);
+      padding: 2px 6px; border-radius: 3px;
+      color: var(--accent-2);
+      font-family: inherit; font-size: 10px;
+    }
+    #stage-hint.hidden { display: none; }
+    /* === FOOTER (transition panel) === */
+    footer {
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      padding: 10px 16px;
+      display: flex; flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    .panel-row {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap;
+    }
+    .panel-label {
+      font-size: 10px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--accent);
+      min-width: 70px;
+    }
+    .tx-btn {
+      background: var(--panel-2);
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 10px; letter-spacing: 0.04em;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .tx-btn:hover { background: var(--bg-2); border-color: var(--accent-2); color: var(--accent-2); }
+    .tx-btn kbd {
+      background: rgba(0,0,0,0.4);
+      color: var(--muted);
+      font-family: inherit; font-size: 9px;
+      padding: 1px 4px; border-radius: 2px;
+      border: 1px solid var(--line-2);
+      min-width: 14px; text-align: center;
+    }
+    .tx-btn:hover kbd { color: var(--accent-2); border-color: var(--accent-2); }
+    /* AUTO-START overlay */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--fg);
+      padding: 28px 36px;
+      border: 1px solid var(--accent);
+      background: rgba(20,0,14,0.65);
+      box-shadow: 0 0 32px rgba(255, 61, 146, 0.25);
+    }
+    #swr-start .arrow { font-size: 48px; color: var(--accent); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 12px; letter-spacing: 0.32em; text-transform: uppercase; }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent-2); margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+  </style>
+  <script src="/nav.client.js" defer></script>
+  <script src="/fx-background.client.js" defer></script>
+</head>
+<body data-page="video-single">
+  <div id="app">
+    <header>
+      <div class="brand">VIDEO SINGLE <small>transition stage · no layers</small></div>
+      <span class="pill live" id="status-pill">READY</span>
+      <span class="pill" id="bpm-pill">— bpm</span>
+      <span class="beat-led" id="beat-led" title="beat indicator"></span>
+      <span class="spacer"></span>
+      <button class="tbtn ghost" id="load-song">load song</button>
+      <button class="tbtn primary" id="play">▶ play</button>
+      <a class="tbtn ghost" href="./engine.html">← engine</a>
+      <button class="tbtn primary" id="reel-play">▶ reel</button>
+    </header>
+
+    <section class="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <div id="stage-hint">
+        <h2>video_single · transition stage</h2>
+        <p>One canvas, no layers, ten transitions. Load a song and click a transition button — or press <kbd>1</kbd>–<kbd>9</kbd>, <kbd>0</kbd> for the tenth. Hold <kbd>Shift</kbd> to enable auto-fire on every beat.</p>
+        <p style="color: var(--dim); font-size: 11px;">Keyboard: 1=whip-blur, 2=glitch-block, 3=zoom-through, 4=flash-cover, 5=paint-stroke, 6=chromatic-split, 7=swivel, 8=circle-wipe, 9=warp-dissolve, 0=lens-flare</p>
+      </div>
+    </section>
+
+    <footer id="global">
+      <div class="panel-row">
+        <span class="panel-label">FX</span>
+        <!-- transition buttons injected here by init() -->
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===== audio start overlay ===== -->
+  <div id="swr-start">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">tap to start</div>
+      <div class="sub">loads a song from your library or uses a fallback</div>
+    </div>
+  </div>
+
+  <!-- ===== audio context + analyser + transport =====
+       Real Web Audio FFT, same shape as engine.html Audio.sample() so the
+       transitions pack (engine-transitions.client.js) can read window.Audio.feat
+       and trigger auto-fire on beatPulse.
+  -->
+  <script>
+  (function () {
+    'use strict';
+    window.SWR = window.SWR || {};
+    window.SWR.Audio = window.SWR.Audio || {};
+    const Audio = window.SWR.Audio;
+
+    Audio.feat = { bass: 0, mid: 0, treble: 0, onset: 0, beat: 0,
+                   beatPulse: 0, bpm: 0, beatPhase: 0 };
+    Audio.playing = false;
+    Audio.el = null;
+
+    let analyser = null, ctx = null, fft = null;
+    let prevFft = null, bassAvg = 0, beatGate = 1.4, beatTimes = [];
+
+    function ensureCtx() {
+      if (ctx) return ctx;
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.6;
+      fft = new Uint8Array(analyser.frequencyBinCount);
+      prevFft = new Uint8Array(analyser.frequencyBinCount);
+      return ctx;
+    }
+
+    function sample() {
+      if (!analyser || !fft) return;
+      analyser.getByteFrequencyData(fft);
+      const N = fft.length;
+      const sr = ctx.sampleRate;
+      const hzPerBin = sr / analyser.fftSize;
+      const r = (lo, hi) => {
+        if (hi <= lo) return 0;
+        let s = 0, c = 0;
+        for (let i = lo; i <= hi; i++) { s += fft[i]; c++; }
+        return s / c / 255;
+      };
+      Audio.feat.bass   = r(Math.floor(60/hzPerBin),   Math.floor(250/hzPerBin));
+      Audio.feat.mid    = r(Math.floor(250/hzPerBin),  Math.floor(2000/hzPerBin));
+      Audio.feat.treble = r(Math.floor(2000/hzPerBin), Math.min(N-1, Math.floor(6000/hzPerBin)));
+      // Onset (spectral flux)
+      let flux = 0;
+      for (let i = 1; i < N; i++) {
+        const d = fft[i] - prevFft[i];
+        if (d > 0) flux += d;
+      }
+      flux /= (255 * N);
+      // Beat (adaptive bass threshold)
+      bassAvg = bassAvg * 0.94 + Audio.feat.bass * 0.06;
+      const beatHit = Audio.feat.bass > bassAvg * beatGate && Audio.feat.bass > 0.18;
+      // BPM lock
+      if (beatHit) {
+        const now = ctx.currentTime;
+        beatTimes.push(now);
+        while (beatTimes.length > 0 && beatTimes[0] < now - 8) beatTimes.shift();
+        if (beatTimes.length >= 4) {
+          let total = 0;
+          for (let i = 1; i < beatTimes.length; i++) total += beatTimes[i] - beatTimes[i-1];
+          const avg = total / (beatTimes.length - 1);
+          if (avg > 0) Audio.feat.bpm = Math.round(60 / avg);
+        }
+      }
+      Audio.feat.beat = beatHit ? 1 : Audio.feat.beat * 0.85;
+      Audio.feat.onset = Math.min(1, flux * 30);
+      Audio.feat.beatPulse = beatHit ? 1 : 0;
+      prevFft = Uint8Array.from(fft);
+      // UI hooks
+      const led = document.getElementById('beat-led');
+      if (led) led.classList.toggle('on', beatHit);
+      const bpmPill = document.getElementById('bpm-pill');
+      if (bpmPill && Audio.feat.bpm) bpmPill.textContent = Audio.feat.bpm + ' bpm';
+    }
+
+    function tick() { sample(); requestAnimationFrame(tick); }
+    requestAnimationFrame(tick);
+
+    // ---- transport ----
+    Audio.load = function (file) {
+      ensureCtx();
+      if (Audio.el) { try { Audio.el.pause(); } catch (_) {} }
+      const url = URL.createObjectURL(file);
+      Audio.el = new Audio();
+      Audio.el.src = url;
+      Audio.el.preload = 'auto';
+      Audio.el.crossOrigin = 'anonymous';
+      try {
+        const src = ctx.createMediaElementSource(Audio.el);
+        src.connect(analyser);
+        analyser.connect(ctx.destination);
+      } catch (e) { console.warn('audio route:', e); }
+    };
+    Audio.play = function () {
+      ensureCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+      if (Audio.el) { Audio.el.play(); Audio.playing = true; }
+    };
+    Audio.pause = function () {
+      if (Audio.el) { Audio.el.pause(); Audio.playing = false; }
+    };
+
+    // ---- file picker ----
+    document.getElementById('load-song').addEventListener('click', function () {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'audio/*';
+      inp.addEventListener('change', function () {
+        const f = inp.files && inp.files[0];
+        if (!f) return;
+        Audio.load(f);
+        Audio.play();
+        document.getElementById('stage-hint').classList.add('hidden');
+        document.getElementById('status-pill').textContent = 'PLAYING';
+        document.getElementById('status-pill').classList.remove('live');
+        document.getElementById('status-pill').classList.add('ok');
+      });
+      inp.click();
+    });
+
+    document.getElementById('play').addEventListener('click', function () {
+      if (!Audio.el) {
+        document.getElementById('load-song').click();
+        return;
+      }
+      if (Audio.playing) {
+        Audio.pause();
+        this.textContent = '▶ play';
+        this.classList.remove('primary');
+      } else {
+        Audio.play();
+        this.textContent = '⏸ pause';
+        this.classList.add('primary');
+      }
+    });
+
+    // ---- auto-start: try last-song fallback so the canvas has something ----
+    const overlay = document.getElementById('swr-start');
+    async function start() {
+      try {
+        // Try a known-good default. If 404, the canvas still runs (the audio
+        // shim just won't have a real source — feat stays at 0, transitions
+        // can still be fired by clicking buttons).
+        const res = await fetch('../audios/kraft.mp3').catch(() => null);
+        if (res && res.ok) {
+          const blob = await res.blob();
+          const file = new File([blob], 'kraft.mp3', { type: 'audio/mpeg' });
+          Audio.load(file);
+          Audio.play();
+          document.getElementById('stage-hint').classList.add('hidden');
+          document.getElementById('status-pill').textContent = 'PLAYING';
+          document.getElementById('status-pill').classList.remove('live');
+          document.getElementById('status-pill').classList.add('ok');
+          const btn = document.getElementById('play');
+          btn.textContent = '⏸ pause';
+          btn.classList.add('primary');
+        } else {
+          document.getElementById('status-pill').textContent = 'NO SONG';
+          document.getElementById('status-pill').classList.remove('live');
+          document.getElementById('status-pill').classList.add('warn');
+        }
+      } catch (e) {
+        console.warn('auto-start:', e);
+      }
+      overlay.classList.add('hide');
+      setTimeout(function () { overlay.remove(); }, 600);
+    }
+    overlay.addEventListener('click', start, { once: true });
+    document.addEventListener('keydown', function (ev) {
+      if (overlay.parentNode && (ev.key === 'Enter' || ev.key === ' ')) {
+        ev.preventDefault(); start();
+      }
+    }, { once: true });
+  })();
+  </script>
+
+  <!-- ===== canvas paint loop — single full-bleed composition =====
+       No layers. Audio-reactive painter that draws directly to canvas#render
+       using Audio.feat.{bass,mid,treble,beat,onset}. Designed to read as
+       "music video single shot" — one camera, one composition, transitions
+       spliced between.
+
+       The painter reads window.SWR_MOOD (string) and switches palette +
+       composition per panel. The timeline player (see reel-player.client.js)
+       sets this between panels. Default mood is 'default' if no timeline
+       is playing.
+  -->
+  <script>
+  (function () {
+    const cv = document.getElementById('render');
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    const t0 = performance.now();
+
+    // Mood presets — each describes a composition shape (positions + sizes
+    // for the orbs + bg gradient stops). The timeline player flips between
+    // these via window.SWR_MOOD = <key>.
+    const MOODS = {
+      'default': {
+        // Audio-reactive painter — orbs drift, bg hue rotates.
+        bg:    { hueBase: 0,   hueDrift: 12, sat: 60, light: 18, rim: 30 },
+        orbs:  { count: 9,  drift: 0.18, base: 60, beatMul: 80,  bassMul: 200 },
+        ribbon:{ y: 64, cols: 96, baseHue: 0, baseLight: 60 },
+        pulseRing: true,
+      },
+      'wide-rooftop': {
+        // Deep blues + purple bg. city lights = many tiny warm-orange
+        // orbs along the bottom rim. moon = one big silver-white orb
+        // near top.
+        bg:    { hueBase: 240, hueDrift: 4,  sat: 55, light: 8,  rim: 260 },
+        orbs:  { count: 36, drift: 0.06, base: 14, beatMul: 0, bassMul: 18,
+                 layout: 'city-lights' },
+        moon:  { x: 0.62, y: 0.18, r: 70, color: 'rgba(240,245,255,0.95)' },
+        pulseRing: false,
+      },
+      'close-up-face': {
+        // Warm orange rim from one side, cool blue rim from the other,
+        // single dominant orb (the subject) centered.
+        bg:    { hueBase: 220, hueDrift: 6, sat: 45, light: 6, rim: 30 },
+        orbs:  { count: 5, drift: 0.04, base: 90, beatMul: 50, bassMul: 80,
+                 layout: 'dual-rim' },
+        pulseRing: true,
+      },
+    };
+
+    function paint() {
+      const t = (performance.now() - t0) / 1000;
+      const feat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+      const bass = feat.bass || 0, mid = feat.mid || 0, tre = feat.treble || 0;
+      const beat = feat.beat || 0;
+      const moodKey = (window.SWR_MOOD && MOODS[window.SWR_MOOD]) ? window.SWR_MOOD : 'default';
+      const mood = MOODS[moodKey];
+
+      // Background — radial that breathes with bass
+      const hue = (mood.bg.hueBase + t * mood.bg.hueDrift) % 360;
+      const bg = ctx.createRadialGradient(W/2, H/2, 50, W/2, H/2, Math.max(W, H) * 0.7);
+      bg.addColorStop(0, `hsl(${hue}, ${mood.bg.sat}%, ${mood.bg.light + bass * 30}%)`);
+      bg.addColorStop(0.6, `hsl(${(hue + mood.bg.rim) % 360}, ${mood.bg.sat - 10}%, ${(mood.bg.light + bass * 30) * 0.4}%)`);
+      bg.addColorStop(1, '#000');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Mood-specific layout
+      if (moodKey === 'wide-rooftop') {
+        // City lights — many small warm orbs along the bottom rim.
+        const layout = mood.orbs.layout;
+        for (let i = 0; i < mood.orbs.count; i++) {
+          // Bottom rim band, jittered along width.
+          const x = (i / mood.orbs.count + (Math.sin(i * 12.9) * 0.02)) * W;
+          const y = H * 0.78 + Math.sin(i * 1.7 + t * 0.3) * 14;
+          const sz = 2 + Math.sin(i * 0.7 + t) * 1.2 + bass * 8;
+          const orbHue = 18 + (i % 5) * 4; // warm orange range
+          const g = ctx.createRadialGradient(x, y, 0, x, y, sz * 6);
+          g.addColorStop(0, `hsla(${orbHue}, 80%, 65%, 0.95)`);
+          g.addColorStop(0.4, `hsla(${orbHue}, 70%, 50%, 0.4)`);
+          g.addColorStop(1, 'transparent');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(x, y, sz * 6, 0, Math.PI * 2); ctx.fill();
+          // Sharp core
+          ctx.fillStyle = `hsla(${orbHue}, 100%, 80%, 0.9)`;
+          ctx.beginPath(); ctx.arc(x, y, sz * 0.6, 0, Math.PI * 2); ctx.fill();
+        }
+        // Moon — single large silver-white orb top-right
+        const mx = mood.moon.x * W, my = mood.moon.y * H;
+        const moonR = mood.moon.r + bass * 30;
+        const mg = ctx.createRadialGradient(mx, my, 0, mx, my, moonR * 6);
+        mg.addColorStop(0, mood.moon.color);
+        mg.addColorStop(0.3, 'rgba(200,215,255,0.4)');
+        mg.addColorStop(1, 'transparent');
+        ctx.fillStyle = mg;
+        ctx.beginPath(); ctx.arc(mx, my, moonR * 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = mood.moon.color;
+        ctx.beginPath(); ctx.arc(mx, my, moonR * 0.6, 0, Math.PI * 2); ctx.fill();
+      } else if (moodKey === 'close-up-face') {
+        // Dual rim — warm orange from the right, cool blue from the left.
+        // Single dominant orb in the center is the subject.
+        const cx = W / 2, cy = H / 2;
+        const subject = mood.orbs.base + bass * mood.orbs.bassMul + beat * mood.orbs.beatMul;
+        // Warm rim (right)
+        const wr = ctx.createRadialGradient(W * 0.85, cy, 0, W * 0.85, cy, W * 0.5);
+        wr.addColorStop(0, `hsla(28, 85%, 60%, ${0.35 + bass * 0.4})`);
+        wr.addColorStop(1, 'transparent');
+        ctx.fillStyle = wr;
+        ctx.fillRect(0, 0, W, H);
+        // Cool rim (left)
+        const cr = ctx.createRadialGradient(W * 0.15, cy, 0, W * 0.15, cy, W * 0.5);
+        cr.addColorStop(0, `hsla(210, 70%, 55%, ${0.3 + bass * 0.3})`);
+        cr.addColorStop(1, 'transparent');
+        ctx.fillStyle = cr;
+        ctx.fillRect(0, 0, W, H);
+        // Subject orb (center)
+        const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, subject);
+        sg.addColorStop(0, `hsla(${hue}, 70%, 55%, 0.6)`);
+        sg.addColorStop(0.5, `hsla(${(hue + 30) % 360}, 50%, 30%, 0.3)`);
+        sg.addColorStop(1, 'transparent');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.arc(cx, cy, subject, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // Default mood — drifting orbs + ribbon
+        for (let i = 0; i < mood.orbs.count; i++) {
+          const a = (i / mood.orbs.count) * Math.PI * 2 + t * mood.orbs.drift * (i % 2 ? 1 : -1);
+          const r = 0.28 + 0.06 * Math.sin(t * 0.6 + i);
+          const x = W/2 + Math.cos(a) * W * r;
+          const y = H/2 + Math.sin(a * 0.7) * H * r * 0.7;
+          const sz = mood.orbs.base + bass * mood.orbs.bassMul + (i === 0 ? beat * mood.orbs.beatMul : 0);
+          const g = ctx.createRadialGradient(x, y, 0, x, y, sz);
+          const orbHue = (hue + i * 32) % 360;
+          g.addColorStop(0, `hsla(${orbHue}, 80%, 65%, 0.85)`);
+          g.addColorStop(0.4, `hsla(${(orbHue + 20) % 360}, 70%, 50%, 0.45)`);
+          g.addColorStop(1, 'transparent');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // Spectrogram ribbon — drawn for all moods (matches the music-video
+      // "single shot" feel). Anchored bottom regardless of mood.
+      const ribbonY = H - mood.ribbon.y;
+      const colW = W / mood.ribbon.cols;
+      for (let i = 0; i < mood.ribbon.cols; i++) {
+        const ph = (i / mood.ribbon.cols) * Math.PI * 2;
+        const h = (8 + mid * 30) + Math.sin(t * 3 + ph) * (4 + tre * 12);
+        const ribbonHue = (hue + i * 4) % 360;
+        ctx.fillStyle = `hsla(${ribbonHue}, 80%, 60%, ${0.4 + tre * 0.3})`;
+        ctx.fillRect(i * colW, ribbonY - h, colW - 1, h);
+      }
+
+      // Center pulse ring on beat (skip for some moods)
+      if (mood.pulseRing && beat > 0.05) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const ringR = 80 + (1 - beat) * 220;
+        ctx.strokeStyle = `hsla(${hue}, 90%, 75%, ${beat * 0.6})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(W/2, H/2, ringR, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+
+      requestAnimationFrame(paint);
+    }
+    requestAnimationFrame(paint);
+
+    // Resize canvas to match CSS box while preserving the 16:9 bitmap size
+    // (we don't shrink the bitmap to avoid re-rasterizing on every layout
+    // change; the CSS letterboxing handles aspect ratio).
+    function fit() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // We keep the bitmap at 1280x720 (16:9); CSS scales to fit. This is
+      // intentional — the transitions pack snapshots canvas#render and
+      // expects a stable bitmap size.
+    }
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(cv);
+    window.addEventListener('resize', fit);
+  })();
+  </script>
+
+  <!-- ===== transition control panel =====
+       Builds one button per transition name + keyboard shortcut.
+       Click → fire transition. Click "auto" → toggle beat-driven auto-fire.
+       Keys 1-9, 0 fire the corresponding transition.
+       Shift+1..0 sets auto-fire to that transition.
+  -->
+  <script>
+  (function () {
+    const NAMES = [
+      'whip-blur', 'glitch-block', 'zoom-through', 'flash-cover', 'paint-stroke',
+      'chromatic-split', 'swivel', 'circle-wipe', 'warp-dissolve', 'lens-flare'
+    ];
+    const SHORTCUTS = ['1','2','3','4','5','6','7','8','9','0'];
+    const row = document.querySelector('footer .panel-row');
+
+    function flash(btn) {
+      const bg = btn.style.background;
+      const fg = btn.style.color;
+      btn.style.background = 'var(--accent)';
+      btn.style.color = '#000';
+      setTimeout(function () { btn.style.background = bg; btn.style.color = fg; }, 180);
+    }
+
+    function fire(name) {
+      if (!window.SWRTransitions) return;
+      window.SWRTransitions.fire(name).catch(function (e) { console.warn('[tx]', e); });
+    }
+
+    function setAuto(name) {
+      if (!window.SWRTransitions) return;
+      window.SWRTransitions.setAutoFire({ onBeat: true, everyNBeats: 1, transition: name });
+    }
+
+    NAMES.forEach(function (name, i) {
+      const btn = document.createElement('button');
+      btn.className = 'tx-btn';
+      btn.dataset.tx = name;
+      btn.innerHTML = name + ' <kbd>' + SHORTCUTS[i] + '</kbd>';
+      btn.addEventListener('click', function () { fire(name); flash(btn); });
+      row.appendChild(btn);
+    });
+
+    // Auto-fire toggle button
+    const autoBtn = document.createElement('button');
+    autoBtn.className = 'tx-btn';
+    autoBtn.style.borderColor = 'var(--accent-2)';
+    autoBtn.style.color = 'var(--accent-2)';
+    autoBtn.innerHTML = 'auto: off <kbd>⇧</kbd>';
+    autoBtn.dataset.txAuto = '1';
+    row.appendChild(autoBtn);
+
+    let autoOn = false;
+    autoBtn.addEventListener('click', function () {
+      autoOn = !autoOn;
+      if (autoOn) {
+        if (window.SWRTransitions) window.SWRTransitions.setAutoFire({
+          onBeat: true, everyNBeats: 1, transition: 'flash-cover'
+        });
+        autoBtn.innerHTML = 'auto: ON (flash-cover) <kbd>⇧</kbd>';
+        flash(autoBtn);
+      } else {
+        if (window.SWRTransitions) window.SWRTransitions.setAutoFire(null);
+        autoBtn.innerHTML = 'auto: off <kbd>⇧</kbd>';
+        flash(autoBtn);
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function (ev) {
+      // Ignore when typing in form fields
+      if (ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA')) return;
+      const idx = SHORTCUTS.indexOf(ev.key);
+      if (idx < 0) return;
+      ev.preventDefault();
+      const name = NAMES[idx];
+      if (ev.shiftKey) {
+        // Shift + key → set auto-fire to that transition
+        setAuto(name);
+        autoOn = true;
+        autoBtn.innerHTML = 'auto: ON (' + name + ') <kbd>⇧</kbd>';
+        flash(autoBtn);
+        const btn = row.querySelector('[data-tx="' + name + '"]');
+        if (btn) flash(btn);
+      } else {
+        fire(name);
+        const btn = row.querySelector('[data-tx="' + name + '"]');
+        if (btn) flash(btn);
+      }
+    });
+  })();
+  </script>
+
+  <!-- ===== transitions pack (last — runs the panel auto-injection too) ===== -->
+  <script src="../engine-transitions.client.js" defer></script>
+
+  <!-- ===== reel timeline player (depends on engine-transitions for fire) ===== -->
+  <script src="../reel-player.client.js" defer></script>
+
+  <!-- ===== reel UI bridge =====
+       Wires the header #reel-play button to SWRReels.play() / .stop() and
+       shows the current panel index + storyboard label. Listens for the
+       swr-reel-state CustomEvent that reel-player.client.js dispatches.
+  -->
+  <script>
+  (function () {
+    const btn = document.getElementById('reel-play');
+    const status = document.getElementById('status-pill');
+    let labelEl = null; // injected panel indicator
+
+    function ensureLabel() {
+      if (labelEl || !status || !status.parentNode) return;
+      labelEl = document.createElement('span');
+      labelEl.className = 'pill';
+      labelEl.id = 'reel-label';
+      labelEl.style.cssText =
+        'background: rgba(255, 210, 74, 0.12); color: var(--accent-3); border-color: rgba(255, 210, 74, 0.4);';
+      labelEl.textContent = '';
+      labelEl.hidden = true;
+      // Place immediately after the status pill.
+      status.parentNode.insertBefore(labelEl, status.nextSibling);
+    }
+
+    async function toggle() {
+      if (!window.SWRReels) return;
+      ensureLabel();
+      const cur = window.SWRReels.current;
+      if (cur.status === 'playing') {
+        window.SWRReels.stop();
+        btn.textContent = '▶ reel';
+        btn.classList.add('primary');
+        btn.classList.remove('danger');
+        if (labelEl) labelEl.hidden = true;
+        return;
+      }
+      btn.textContent = '⏹ stop';
+      btn.classList.remove('primary');
+      btn.classList.add('danger');
+      try {
+        await window.SWRReels.play('rooftop-opening');
+      } catch (e) {
+        console.warn('[reel-ui]', e);
+        btn.textContent = '▶ reel';
+        btn.classList.add('primary');
+        btn.classList.remove('danger');
+      }
+    }
+
+    btn.addEventListener('click', toggle);
+
+    window.addEventListener('swr-reel-state', function (ev) {
+      const s = ev.detail || {};
+      ensureLabel();
+      if (!labelEl) return;
+      if (s.status === 'playing') {
+        labelEl.hidden = false;
+        labelEl.textContent = 'REEL · panel ' + ((s.panelIndex || 0) + 1);
+      } else if (s.status === 'done') {
+        labelEl.textContent = 'REEL · done';
+        btn.textContent = '▶ reel';
+        btn.classList.add('primary');
+        btn.classList.remove('danger');
+      } else {
+        labelEl.hidden = true;
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+{
+  "id": "swr-preset-2026-09-09-shrine-flash-longlens",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-09-09T09:30:00.000000+00:00",
+  "name": "Shrine Flash Longlens",
+  "family": "GENERATIVE",
+  "description": "Chat Pile 'Shrine' (David Fitt, 2026-09-04, album 'Who Loves the Sun'): long-lens environmental scenes, hard cuts on impact, single over-exposed flash cut for the build. Noise-rock on post-rock/art-noise axis. Earth tones, slow drift, low FX overall so the flash-cut reads as the singular punctuation.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "film-grain",
+      "weight": 0.45
+    },
+    {
+      "kind": "shader_ref",
+      "name": "soft-vignette",
+      "weight": 0.2
+    },
+    {
+      "kind": "palette_ref",
+      "name": "longlens-desaturated-earth",
+      "weight": 0.25
+    },
+    {
+      "kind": "motion_ref",
+      "name": "flash-cover-on-snare",
+      "weight": 0.1
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.0,
+    "grain": 0.55,
+    "chroma": 0.0,
+    "bloom": 0.05,
+    "vignette": 0.45,
+    "sepia": 0.0,
+    "glow": 0.0,
+    "grayscale": 0.18,
+    "blur": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.4,
+    "posterize": 8
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.0,
+    "pan_y": 0.05
+  },
+  "palette": {
+    "primary": "#6b5d4a",
+    "secondary": "#3d4a3a",
+    "accent": "#d4a574",
+    "bg": "#1a1612"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "grain"
+    ],
+    "mid": [
+      "pan_y"
+    ],
+    "treble": [
+      "grain"
+    ],
+    "onset": [
+      "vignette"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><defs><radialGradient id=\"vg\" cx=\"0.5\" cy=\"0.5\" r=\"0.7\"><stop offset=\"0\" stop-color=\"#1a1612\"/><stop offset=\"1\" stop-color=\"#0a0806\"/></radialGradient></defs><rect width=\"80\" height=\"80\" fill=\"url(#vg)\"/><circle cx=\"40\" cy=\"40\" r=\"20\" fill=\"#3d4a3a\" opacity=\"0.5\"/><circle cx=\"40\" cy=\"40\" r=\"6\" fill=\"#d4a574\" opacity=\"0.85\"/><rect x=\"0\" y=\"0\" width=\"80\" height=\"80\" fill=\"#6b5d4a\" opacity=\"0.06\"/></svg>",
+    "tags": [
+      "chat-pile",
+      "flash-cover",
+      "noise-rock",
+      "longlens",
+      "earth"
+    ]
+  }
+}
