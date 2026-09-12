@@ -47,7 +47,7 @@ The M1 backend adds:
 6. **Rate limits** — per-IP on `/api/auth/magic` (10/min), per-user on `/api/storage/sign-upload` (60/min) and `sign-download` (120/min), per-user on `/api/projects` writes (30/min). All return 429 with `Retry-After`.
 7. **Project ownership** — `getProject(userId, id)` returns null unless the project belongs to that user. Tested in `scripts/test-api.mjs`.
 8. **Local-fs backing (dev only)** — `SWRC_DATA_DIR` defaults to `./data`. On Vercel prod, this is read-only; the M1 local-fs store is replaced by Postgres + R2 in M2 (per `.hermes/decisions/001-auth-provider.md`).
-9. **Email** — magic-link emails are sent via Resend if `RESEND_API_KEY` is set. Otherwise links are printed to stdout (dev only). Never logged in production with the key present.
+9. **Email** — magic-link emails are sent via SMTP (any provider) if `SMTP_HOST` is set, or via Resend's HTTPS API if `RESEND_API_KEY` is set. SMTP takes precedence when both are configured. Otherwise links are printed to stdout (dev only). Never logged in production with credentials present. SMTP credentials should be app-specific (e.g. Mailgun SMTP relay key), not the provider account password.
 10. **Cookies** — `Secure` flag added when `NODE_ENV=production`. The dev server runs with HTTP, so `Secure` is omitted locally.
 
 ### What M1 does NOT defend against
