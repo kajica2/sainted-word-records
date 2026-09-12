@@ -471,7 +471,7 @@
   let _autoCounter = 0;
 
   function setAutoFire(cfg) {
-    if (!cfg) { _autoConfig = null; stopBeatEmitter(); return; }
+    if (!cfg) { _autoConfig = null; _beatHandler = null; stopBeatEmitter(); return; }
     _autoConfig = {
       onBeat: cfg.onBeat || 0,
       everyNBeats: cfg.everyNBeats || 4,

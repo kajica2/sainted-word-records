@@ -5645,7 +5645,7 @@
           }
 
           // Expose minimal API for keyboard / persona integration later.
-          window.SWRTransitionsUI = { setOpen, pick, fireBtn };
+          window.SWRTransitionsUI = Object.assign(window.SWRTransitionsUI || {}, { setOpen, pick, fireBtn });
         })();
         // Distortion sliders (from flexible-smart-videomaker preset system)
         const liquidInp = $('liquid');

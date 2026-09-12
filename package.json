@@ -34,6 +34,7 @@
     "verify:story-graph": "node verify-story-graph.mjs",
     "verify:hallucination-story": "node verify-hallucination-story.mjs",
     "verify:autoplay": "node verify-autoplay.mjs",
+    "verify:transitions": "node verify-transitions.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
     "verify:library-loads": "node verify-library-loads.mjs",
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
