@@ -49,6 +49,10 @@
   // reassign fields.
   var state = blankState();
   var cfg = { bpm: 120, dur: 0, rngSeed: 1 };
+  // Stage 4 — beat counter and transient drift-amp boost. Reset on
+  // init/reset. Beat counter increments only when beatPulse is true.
+  var beatCount = 0;
+  var microAmp = 1.0;
   // Seeded RNG (mulberry32) so drift is reproducible per song.
   function rng() {
     cfg.rngSeed |= 0; cfg.rngSeed = (cfg.rngSeed + 0x6D2B79F5) | 0;
@@ -76,6 +80,8 @@
     s.tension = 0; s.peak = 0;
     s.drift.x = 0; s.drift.y = 0;
     s.warmth = 0.5; s.age = 0;
+    // Stage 4 reset.
+    beatCount = 0; microAmp = 1.0;
   }
 
   function reset() {
@@ -120,6 +126,33 @@
     state.age += dt;
   }
 
+  // ---- Stage 4: beat-locked micro-evolution ----
+  // Tracks the number of beat-pulses seen since init/reset. Returns
+  // { count, firedThisStep } where firedThisStep is true on every 4th
+  // beat (count % 4 === 0 and count > 0). Call once per RAF, passing
+  // the audio engine's beatPulse flag.
+  function onBeat(beatPulse) {
+    if (beatPulse) {
+      beatCount += 1;
+      var fired = (beatCount > 0 && beatCount % 4 === 0);
+      if (fired) {
+        // Bump peak so the visual flashes even without a hard beat.
+        state.peak = Math.max(state.peak, 0.6);
+        // Bump drift amplitudes briefly — recorded as a transient in
+        // microAmp that decays back to 1.0 over the next ~2 beats.
+        microAmp = 1.5;
+      }
+    }
+    // Decay microAmp toward 1.0 at a rate that completes in ~2 beats
+    // at 120 BPM (~1s). Per-frame factor at 60fps: ~0.94.
+    microAmp = microAmp + (1.0 - microAmp) * 0.06;
+    return { count: beatCount, microAmp: microAmp };
+  }
+
+  function getMicroAmp() {
+    return microAmp;
+  }
+
   // Stage 3 hook — exposed here so callers that import the module in
   // Stage 2 wiring don't need to upgrade their import path.
   // Continuous phases as a function of state.age / expectedDurationSec:
@@ -143,6 +176,8 @@
     step: step,
     reset: reset,
     phaseMultiplier: phaseMultiplier,
+    onBeat: onBeat,        // Stage 4 — call once per RAF with beatPulse flag
+    getMicroAmp: getMicroAmp, // Stage 4 — current drift-amp boost (1.0 baseline)
     // Exposed for tests/debug; do not mutate from outside.
     _config: function () { return { bpm: cfg.bpm, dur: cfg.dur }; },
   };

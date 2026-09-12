@@ -184,5 +184,53 @@ console.log('=== score-evolution Stage 1 — narrative-state unit tests ===\n');
   assert(match, `same init args → identical drift sequence (deterministic)`);
 }
 
+// Stage 4: beat-locked micro-evolution.
+// Plan success criterion: "with a synthetic 120 BPM beat stream, after
+// 8 beats the beat counter is 8, every 4th beat fires microAmp=1.5,
+// and peak is bumped to >=0.6 on those beats."
+{
+  const N = loadModule();
+  N.init(120, 180);
+  // 8 beats at 60fps = 8 beat-pulses with intervening no-beat frames.
+  // 120 BPM = 2 beats/sec = 1 beat every 30 frames.
+  let fireCount = 0;
+  let lastPeakBeforeFire = 0;
+  for (let i = 0; i < 240; i++) {
+    const isBeat = (i % 30 === 0);
+    const r = N.onBeat(isBeat);
+    if (isBeat && r.count > 0 && r.count % 4 === 0) {
+      fireCount += 1;
+      lastPeakBeforeFire = N.state.peak;
+    }
+  }
+  assert(fireCount === 2,
+    `every-4th-beat fires exactly twice over 8 beats`, `got ${fireCount}`);
+  assert(N.state.peak >= 0.6,
+    `peak is bumped to >=0.6 on a fired beat`, `got ${N.state.peak.toFixed(3)}`);
+  // microAmp should be close to 1.0 after many decay frames.
+// Decay rate 0.06 per frame; asymptote is 1.0, never exact. After 240
+// frames from 1.5, microAmp ≈ 1.08 (the decay is geometric). Allow a
+// loose tolerance — the test asserts microAmp is *heading back* to 1.0,
+// not that it has converged.
+  assert(N.getMicroAmp() < 1.1,
+    `microAmp decays back toward 1.0`, `got ${N.getMicroAmp().toFixed(3)}`);
+}
+
+// Stage 4 reset() also clears beat counter.
+{
+  const N = loadModule();
+  N.init(120, 180);
+  N.onBeat(true);
+  N.onBeat(true);
+  N.reset();
+  // After reset, fire count starts over.
+  let fired = false;
+  for (let i = 0; i < 120; i++) {
+    const r = N.onBeat(i % 30 === 0);
+    if (r.count === 4) fired = true;
+  }
+  assert(fired, `reset() zeros beat counter (4 beats after reset fires microAmp)`);
+}
+
 console.log(`\nNARRATIVE UNIT: ${failures === 0 ? 'ALL GREEN' : `${failures} FAILURES`}`);
 process.exit(failures === 0 ? 0 : 1);

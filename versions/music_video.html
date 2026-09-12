@@ -812,8 +812,8 @@
         // to cfg.dur which is set at song load.
         const dur = (A.el && A.el.duration) || 0;
         const phase = SWR_NARRATIVE.phaseMultiplier(dur);
-        out.x += n.drift.x * phase.driftAmp * sens * 80;  // ±80px at sens=1
-        out.y += n.drift.y * phase.driftAmp * sens * 60;  // ±60px (asymmetric axes)
+        out.x += n.drift.x * phase.driftAmp * sens * 80 * SWR_NARRATIVE.getMicroAmp();
+        out.y += n.drift.y * phase.driftAmp * sens * 60 * SWR_NARRATIVE.getMicroAmp();
         out.hue += (n.warmth - 0.5) * 200 * sens * phase.openness; // opening dampens
         out.scale += n.tension * 0.4 * sens * phase.openness;     // louder = bigger
         out.brightness = clamp(out.brightness + n.peak * 0.6, 0.1, 2.5);
@@ -962,6 +962,8 @@
           centroid: A.feat.centroid || 0,
           dt:       dt,
         });
+        // Stage 4 — beat-locked micro-evolution. fire=true on every 4th beat.
+        SWR_NARRATIVE.onBeat(!!A.feat.beatPulse);
       }
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
