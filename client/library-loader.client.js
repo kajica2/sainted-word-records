@@ -80,7 +80,7 @@
         }));
         await Lib.addFiles(phase1Blobs.map(function ({ name, blob }) {
           return new File([blob], name, { type: blob.type });
-        }));
+        }), { curated: true });
         if (onPhase1Done) {
           try { onPhase1Done(); } catch (_) {}
         }
@@ -94,7 +94,7 @@
             }));
             await Lib.addFiles(blobs.map(function ({ name, blob }) {
               return new File([blob], name, { type: blob.type });
-            }));
+            }), { curated: true });
             try { localStorage.setItem(doneFlag, '1'); } catch (_) {}
             phase2Resolve();
           };
