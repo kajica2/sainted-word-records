@@ -1,0 +1,66 @@
+name: CI
+
+# On every push to a non-main branch and every PR against main:
+#   1. install deps with npm ci
+#   2. run npm run check:full — check (syntax + manifest + bundle + api
+#      smoke) + check:verify (the 5 curated Puppeteer smokes — see
+#      docs/CI-VERIFY-STRATEGY.md)
+#   3. run npm run verify:transitions (38 Puppeteer checks for the
+#      music-video transitions module — added 2026-09-12 after the
+#      verifier found two regressions that shipped to main:
+#        a) setAutoFire(null) left _beatHandler wired to a closure that
+#           threw 'Cannot read properties of null (reading onBeat)' on
+#           the next beat
+#        b) wireTransitionsPanel() overwrote window.SWRTransitionsUI.
+#           onBpmUpdate on the last line, clobbering the hook assigned
+#           earlier in the same IIFE
+#      Both would have been caught here.)
+#
+# A passing CI run is the contract: 'the engine boot path + the
+# transitions module + the curated 5-smoke still work end-to-end'.
+# Don't merge without it green.
+# 'on' is quoted to dodge YAML 1.1's yes/no/on/off-as-boolean parsing
+# (GitHub Actions uses YAML 1.2 and parses 'on:' correctly unquoted).
+'on':
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Cancel in-flight runs for the same branch when a new push lands.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: check + verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: check + check:verify (the 5 curated Puppeteer smokes)
+        # check:full = check + check:verify (the 5 curated smokes)
+        # see docs/CI-VERIFY-STRATEGY.md for the verifier list + rationale
+        run: npm run check:full
+
+      - name: verify:transitions
+        # Net-new as of 2026-09-12 — the transitions module didn't have a
+        # CI gate before, which is why two regressions shipped to main.
+        # 38 checks: module shape, every transition fires cleanly, UI
+        # popover, auto-fire wiring, BPM hook, console clean.
+        run: npm run verify:transitions
