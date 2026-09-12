@@ -105,6 +105,7 @@ function copyStatic() {
     'make-video.html',
     'weddings.html',
     'weddings.css',
+    'transition-harness.html',
     'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
     'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
     'watermark-monogram.svg', 'watermark-icon.svg', 'watermark-wordmark.svg',

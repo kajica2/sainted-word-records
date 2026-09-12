@@ -483,19 +483,31 @@
       _autoCounter++;
       if (_autoCounter >= _autoConfig.onBeat &&
           ((_autoCounter - _autoConfig.onBeat) % _autoConfig.everyNBeats) === 0) {
-        fire(_autoConfig.transition);
+        fire(_autoConfig.transition, { _src: 'auto' });
       }
     };
     startBeatEmitter();
   }
 
   // ---- Public API ──────────────────────────────────────────────────────────
+  // Notify observers (e.g. the transition-harness) after every successful fire.
+  // Detail includes the transition name + the source ("manual", "auto",
+  // "special", "fx") so the UI can color-code the log entry.
+  function _emitFire(name, source) {
+    try {
+      document.dispatchEvent(new CustomEvent('swr-tx:fire', { detail: { name, source, t: Date.now() } }));
+    } catch (_) { /* old browsers / SSR — ignore */ }
+  }
+
   function fire(name, opts) {
     if (SPECIAL.has(name)) {
       const job = () => {
-        if (name === 'frame-freeze-zoom') return fireFrameFreezeZoom();
-        if (name === 'light-leak-pop') return fireLightLeakPop();
-        if (name === 'aspect-ratio-swap') return fireAspectRatioSwap(opts);
+        const r = name === 'frame-freeze-zoom' ? fireFrameFreezeZoom()
+                : name === 'light-leak-pop'      ? fireLightLeakPop()
+                : name === 'aspect-ratio-swap'   ? fireAspectRatioSwap(opts)
+                : Promise.resolve();
+        _emitFire(name, opts && opts._src ? opts._src : 'special');
+        return r;
       };
       queue.push(job); drain();
       return Promise.resolve();
@@ -504,7 +516,11 @@
       return Promise.reject(new Error(`unknown transition: ${name}`));
     }
     const cfg = TRANSITIONS[name];
-    const job = () => cfg.kind === 'css' ? fireKeyframe(name, opts) : fireFXBurst(name, opts);
+    const job = () => {
+      const r = cfg.kind === 'css' ? fireKeyframe(name, opts) : fireFXBurst(name, opts);
+      _emitFire(name, opts && opts._src ? opts._src : cfg.kind);
+      return r;
+    };
     queue.push(job); drain();
     return Promise.resolve();
   }
