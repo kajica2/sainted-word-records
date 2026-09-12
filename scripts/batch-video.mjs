@@ -27,16 +27,48 @@ import puppeteer from 'puppeteer';
 import { pick } from '../lib/variant-picker.mjs';
 
 const args = parseArgs(process.argv.slice(2));
-if (!args.input || !args.output) {
-  console.error('usage: node scripts/batch-video.mjs --input <dir|file> --output <dir> [--variant <name>] [--parallel N] [--fps N]');
+if (!args.input && !args.manifest) {
+  console.error('usage: node scripts/batch-video.mjs --input <dir|file> --output <dir> [options]\n       or: node scripts/batch-video.mjs --manifest <jobs.json> --output <dir> [options]');
   process.exit(2);
 }
-const inputArg = path.resolve(args.input);
 const outDir = path.resolve(args.output);
 fs.mkdirSync(outDir, { recursive: true });
 
-const inputs = discoverInputs(inputArg);
-if (inputs.length === 0) { console.error('no mp3/wav inputs found at', inputArg); process.exit(2); }
+// --manifest <file.json> lets the caller specify an explicit job list
+// instead of an --input directory glob. Format:
+//   [
+//     { "input": "/abs/path/song.mp3", "variant": "film", "library": ["/abs/clip.mp4"] },
+//     { "input": "/abs/path/other.mp3" }   // variant omitted -> picker decides
+//   ]
+// Useful for reproducible demos: capture the picks for a folder, save
+// as a manifest, then re-run with --manifest to render the same set.
+let inputs, customVariantForInput = null;
+if (args.manifest) {
+  const manifestPath = path.resolve(args.manifest);
+  if (!fs.existsSync(manifestPath)) {
+    console.error(`manifest not found: ${manifestPath}`);
+    process.exit(2);
+  }
+  const jobs = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  if (!Array.isArray(jobs) || jobs.length === 0) {
+    console.error('manifest must be a non-empty JSON array');
+    process.exit(2);
+  }
+  inputs = [];
+  customVariantForInput = new Map();
+  for (const job of jobs) {
+    if (!job.input || !fs.existsSync(job.input)) {
+      console.error(`manifest job has missing or invalid input: ${JSON.stringify(job)}`);
+      process.exit(2);
+    }
+    inputs.push(path.resolve(job.input));
+    if (job.variant) customVariantForInput.set(inputs[inputs.length - 1], job.variant);
+  }
+} else {
+  const inputArg = path.resolve(args.input);
+  inputs = discoverInputs(inputArg);
+  if (inputs.length === 0) { console.error('no mp3/wav inputs found at', inputArg); process.exit(2); }
+}
 console.log(`batch: ${inputs.length} input(s), output -> ${outDir}, parallel=${args.parallel}, fps=${args.fps}`);
 
 const parallel = args.parallel;
@@ -54,9 +86,7 @@ if (analyzeOnly) {
   for (let i = 0; i < inputs.length; i++) {
     const inPath = inputs[i];
     const a = analyses[i];
-    const pick_ = args.variant
-      ? { variant: args.variant, score: 999, rationale: 'cli-override' }
-      : pick(a);
+    const pick_ = pickVariantFor(inPath, a);
     console.log(`${path.basename(inPath).padEnd(50)}  -> ${pick_.variant.padEnd(14)} (score ${pick_.score.toFixed(2)})  ${pick_.rationale}`);
     summary.push({ input: inPath, pick: pick_, analysis: trimAnalysis(a), render: null, wallMs: 0 });
   }
@@ -67,13 +97,21 @@ if (analyzeOnly) {
 }
 
 // === Step 2: render each ================================================
+function pickVariantFor(inPath, analysis) {
+  // Per-input override from --manifest beats CLI --variant; CLI beats picker.
+  const perInput = customVariantForInput && customVariantForInput.get(inPath);
+  if (perInput) return { variant: perInput, score: 999, rationale: 'manifest-override', allScores: {}, features: analysis.features || {} };
+  if (args.variant) return { variant: args.variant, score: 999, rationale: 'cli-override', allScores: {}, features: analysis.features || {} };
+  return pick(analysis);
+}
+
 if (parallel <= 1) {
   // Sequential in this process — import renderVariant and call directly.
   const { renderVariant } = await import('./render-full-song.mjs');
   for (let i = 0; i < inputs.length; i++) {
     const inPath = inputs[i];
     const a = analyses[i];
-    const pick_ = args.variant ? { variant: args.variant, score: 999, rationale: 'cli-override', allScores: {}, features: a.features || {} } : pick(a);
+    const pick_ = pickVariantFor(inPath, a);
     const outPath = path.join(outDir, path.basename(inPath, path.extname(inPath)) + '.' + pick_.variant + '.mp4');
     const t0 = Date.now();
     if (skipExisting && shouldSkip(outPath)) {
@@ -112,7 +150,7 @@ if (parallel <= 1) {
   // Parallel: each render is its own Node child process. Each child
   // loads render-full-song.mjs as if invoked standalone for one song.
   // This sidesteps CDP-browser contention between concurrent browsers.
-  const queue = inputs.map((inPath, i) => ({ inPath, a: analyses[i], pick_: args.variant ? { variant: args.variant, score: 999, rationale: 'cli-override' } : pick(analyses[i]) }));
+  const queue = inputs.map((inPath, i) => ({ inPath, a: analyses[i], pick_: pickVariantFor(inPath, analyses[i]) }));
   const slots = Array.from({ length: Math.min(parallel, queue.length) }, () => ({ busy: false }));
   // Spawn a worker pool. Each slot processes one job at a time, taking
   // the next job from the queue when the previous one finishes. This
@@ -190,7 +228,7 @@ console.log(`summary -> ${summaryPath}`);
 // === helpers ==============================================================
 function parseArgs(argv) {
   const out = { parallel: 1, fps: 24, width: 640, height: 360, quiet: false,
-                analyzeOnly: false, skipExisting: false, retry: 0 };
+                analyzeOnly: false, skipExisting: false, retry: 0, manifest: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--input') out.input = argv[++i];
@@ -204,9 +242,11 @@ function parseArgs(argv) {
     else if (a === '--analyze-only') out.analyzeOnly = true;
     else if (a === '--skip-existing') out.skipExisting = true;
     else if (a === '--retry') out.retry = parseInt(argv[++i], 10);
+    else if (a === '--manifest') out.manifest = argv[++i];
     else if (a === '--help' || a === '-h') {
       console.log(`batch-video.mjs — analyze audio + render MP4 per song
 Usage: node scripts/batch-video.mjs --input <dir|file> --output <dir> [options]
+       node scripts/batch-video.mjs --manifest <jobs.json> --output <dir> [options]
 
 Options:
   --variant <name>     override picker; force this variant for every song
@@ -214,8 +254,9 @@ Options:
   --fps N              capture fps (default 24; 12 = draft mode)
   --width N --height N viewport + capture dimensions (default 640x360)
   --analyze-only       run analyzer + picker, print picks, exit before rendering
-  --skip-existing      skip a song if <out>/<song>.<variant>.mp4 already exists
+  --skip-existing      skip a song if <out>/<song>.<variant>.mp4 already exists (>=100KB)
   --retry N            retry a failed render up to N times before giving up
+  --manifest <file>    JSON array of {input, variant?, library?} jobs (instead of --input glob)
   --quiet              suppress per-render progress logs
 
 Output: writes <song>.<variant>.mp4 + summary.json to --output.
