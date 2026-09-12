@@ -4,6 +4,41 @@ import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, rea
 import { resolve, join, dirname } from 'node:path';
 import { handleApi } from './scripts/dev-api.mjs';
 
+// Load site-map.json to generate rootFiles dynamically. This avoids
+// maintaining a brittle manual list of ~150 files. Falls back to empty
+// array if site-map.json is missing (e.g., fresh clone).
+let SITE_MAP_ROOT_FILES = [];
+try {
+  const siteMap = JSON.parse(readFileSync(resolve('site-map.json'), 'utf8'));
+  const paths = new Set();
+  function collect(items) {
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+      if (item.href && item.href.startsWith('/')) {
+        const clean = item.href.replace(/^\//, '').replace(/\/$/, '');
+        if (clean && clean !== 's/:id') {
+          // s/:id is a dynamic route, skip from rootFiles
+          // Don't add .html if already present (e.g., /legal/privacy.html)
+          const final = clean.endsWith('.html') ? clean : clean + '.html';
+          paths.add(final);
+        }
+      }
+      if (item.children) collect(item.children);
+    }
+  }
+  collect(siteMap.nav);
+  collect(siteMap.footer);
+  collect(siteMap.legal);
+  collect(siteMap.tools);
+  if (siteMap.auth && siteMap.auth.href) {
+    const clean = siteMap.auth.href.replace(/^\//, '').replace(/\/$/, '');
+    if (clean) paths.add(clean + '.html');
+  }
+  SITE_MAP_ROOT_FILES = Array.from(paths);
+} catch (e) {
+  // site-map.json missing or invalid — rootFiles will be empty
+}
+
 function copyDirRecursive(src, dst) {
   if (!existsSync(src)) return;
   mkdirSync(dst, { recursive: true });
@@ -18,6 +53,9 @@ function copyDirRecursive(src, dst) {
     // of the deploy" (see .gitignore comments). Mirroring it here keeps
     // artists/_candidates/, shotlist/_candidates/, etc. off Vercel.
     if (f.startsWith('_candidates')) continue;
+    // Skip _archive/ directory — gitignored experimental pages (see
+    // scripts/archive-pages.mjs).
+    if (f === '_archive') continue;
     const sp = join(src, f);
     const dp = join(dst, f);
     const st = statSync(sp);
@@ -47,22 +85,10 @@ function copyDirRecursive(src, dst) {
 function copyStatic() {
   let outDir = 'dist';
   const rootFiles = [
-    'landing.html', 'interactive-howto.html', 'market-study.html',
-    'profit-plan.html', 'campaign.html', 'personas.html',
-    'gif-to-svg.html',
-    'gif-to-svg.client.js',
-    'atlas.html', 'atlas-crisis.html', 'atlas-life-stages.html', 'atlas-200-steps.html', 'atlas-checklist.html', 'atlas-final-insight.html', 'atlas-architect.html', 'atlas-forge.html', 'atlas-integration.html', 'atlas-legacy.html',
-    'landing-personas-v1-editorial.html',
-    'landing-personas-v2-dark.html',
-    'landing-personas-v3-friendly.html',
-    'landing-personas-v4-dashboard.html',
-    'landing-personas-v5-brutalist.html',
-    'landing-personas-v6-wireframe.html',
-    'landing-personas-v7-riso.html',
-    'landing-personas-v8-broadcast.html',
-    'landing-personas-v9-cassette.html',
-    'landing-personas-v10-neon.html',
-    'landing-personas-v11-zine.html',
+    // Pages from site-map.json (auto-generated, single source of truth)
+    ...SITE_MAP_ROOT_FILES,
+    // Landing page (served via root rewrite in vercel.json)
+    'landing.html',
     'personas.json',
     'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png',
     'tutorial-30s.html',
@@ -73,7 +99,6 @@ function copyStatic() {
     'versions-presets.js',
     'engine-genops.client.js',
     'engine-render.client.js',
-    'engine-core.client.js',
     'engine-timing.client.js',
     'engine-timing-panel.client.js',
     'engine-lfos.client.js',
@@ -105,7 +130,9 @@ function copyStatic() {
     'marketplace.html',
     'thanks.html',
     'make-video.html',
-    'photo.html',
+    'weddings.html',
+    'weddings.css',
+    'transition-harness.html',
     'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
     'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
     'watermark-monogram.svg', 'watermark-icon.svg', 'watermark-wordmark.svg',
@@ -116,12 +143,6 @@ function copyStatic() {
     'camera.client.js',
     'fx-postprocess.js',
     'engine-transitions.client.js',
-    'reel-player.client.js',
-    'nav.client.js',
-    'fx-background.client.js',
-    'engine-3d.client.js',
-    'persona-runtime.client.js',
-    'persona-demo.html',
     'media-sets.client.js',
     'mic-input.client.js',
     'personas.js',
@@ -130,8 +151,6 @@ function copyStatic() {
     'timeline.client.js',
     'trim.client.js',
     'wizard.js',
-    'engine-ar-loop.html',
-    'client/ar-loop-app.client.js',
     'icons/apple-touch-icon-180.png',
     'manifest.webmanifest',
     'sw.js',
@@ -152,6 +171,7 @@ function copyStatic() {
     'changelog.html',
     'press.html',
     'about.html',
+    'style-guide.html',
     'status.html',
     'versions.html',
     'portfolio.html',
@@ -191,6 +211,10 @@ function copyStatic() {
     'lib/auth.client.js',
     'lib/storage.client.js',
     'lib/migrate.client.js',
+    'lib/design-tokens.css',
+    'lib/design-base.css',
+    'lib/components.css',
+    'lib/nav.client.js',
     'api/auth/session.js',
     'api/auth/magic.js',
     'api/auth/verify.js',
@@ -212,8 +236,9 @@ function copyStatic() {
     'intro.html',
     'swr-app.html',
     'share-view.html',
-    'video_single.html',
-    'enhance.html',
+    'ar-gif.html',
+    'ar-gif.client.js',
+    'site-map.json',
   ];
   // Build a curated copy of library/: only ship the files the boot manifest
   // references, plus the manifest itself. The full library/ has ~58MB of
@@ -239,9 +264,6 @@ function copyStatic() {
   const dirs = [
     { src: 'versions', dst: 'versions' },
     { src: 'data', dst: 'data' },
-    // Atlas illustrations + section banners live in docs/atlas-assets.
-    // Ship as /docs/atlas-assets/* so atlas.html can reference them.
-    { src: 'docs/atlas-assets', dst: 'docs/atlas-assets' },
     // The layer scheduler worker is fetched from /versions/<file>
     // (not /<file>) because the engine's worker init resolves the URL
     // relative to the engine page's directory. Ship a copy in both
@@ -253,10 +275,6 @@ function copyStatic() {
     { src: 'presets', dst: 'presets' },
     { src: 'press', dst: 'press' },
     { src: 'legal', dst: 'legal' },
-    // marketing/personas/demos/<slug>.json are fetched by persona-runtime.client.js
-    // at /personas/:id → /marketing/personas/demos/<id>.json. Without this
-    // entry the persona runtime 404s on every /personas/:id page.
-    { src: 'marketing', dst: 'marketing' },
     // marketplace/curated/ ships the starter .swr-set files. The
     // marketplace.html page fetches them by relative path, so they must
     // be at marketplace/curated/<file>.swr-set.json in dist.
@@ -281,10 +299,6 @@ function copyStatic() {
     // Engine pages reference /client/visualizer-controller.js (and possibly
     // other shared client scripts added later). Ship the whole directory.
     { src: 'client', dst: 'client' },
-    // Reel timelines — JSON scripts the engine + video_single.html can
-    // autoplay to demo storyboard sequences. Loaded via fetch at runtime
-    // (no build step). Pair with the timeline player in video_single.html.
-    { src: 'reels', dst: 'reels' },
     // Vendored browser-side libraries (no CDN at runtime)
     { src: 'client/vendor', dst: 'client/vendor' },
     // Artist pages (artists/<slug>.html + artists/index.html +

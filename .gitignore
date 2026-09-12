@@ -118,3 +118,4 @@ artists.json
 # The _probe-*.mjs rules above already cover underscored names; these
 # cover the bare-prefixed probes.
 probe-*.mjs
+_archive/

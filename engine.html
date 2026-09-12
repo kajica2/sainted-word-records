@@ -784,6 +784,171 @@
       border-radius: 3px;
     }
     .separator { width: 1px; height: 24px; background: var(--line); }
+    /* === IMPORT PROGRESS (engine.html) === */
+    .import-progress {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 6px;
+      margin-left: auto;
+      background: var(--accent-2);
+      color: #000;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 700;
+      animation: importPulse 1.6s ease-in-out infinite;
+    }
+    .import-progress[hidden] { display: none; }
+    .import-progress.error { background: var(--warn); color: #000; }
+    .import-progress.done  { background: var(--ok); color: #000; animation: none; }
+    @keyframes importPulse { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+    /* === TRANSITIONS PANEL (engine-transitions.client.js) === */
+    .swr-tx-panel {
+      position: fixed;
+      left: 50%;
+      bottom: 60px;
+      transform: translateX(-50%);
+      background: var(--panel);
+      border: 1px solid var(--line-2);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 420px;
+      max-width: 560px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+      z-index: 9998;
+    }
+    .swr-tx-panel.open { display: flex; }
+    .swr-tx-panel__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--accent-2);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .swr-tx-panel__row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .swr-tx-panel__row label {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .swr-tx-panel select,
+    .swr-tx-panel input[type="number"] {
+      background: var(--bg-1);
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+    .swr-tx-panel input[type="range"] { width: 110px; }
+    .swr-tx-panel b { color: var(--accent-2); font-weight: 500; min-width: 30px; text-align: right; }
+    .swr-tx-optgroup { color: var(--accent-2); font-weight: 600; }
+    .swr-tx-fire {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      font-weight: 700;
+      padding: 6px 14px;
+    }
+    .swr-tx-fire:hover { background: #ff5fa3; }
+    .swr-tx-auto {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border: 1px solid var(--line-2);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .swr-tx-auto.live {
+      background: var(--warn);
+      color: #000;
+      border-color: var(--warn);
+    }
+    .swr-tx-flash {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--accent);
+      color: #000;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+    .swr-tx-flash.on {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .swr-tx-log {
+      max-height: 96px;
+      overflow-y: auto;
+      background: var(--bg-0);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
+    }
+    .swr-tx-log-entry {
+      display: flex;
+      gap: 6px;
+      padding: 1px 0;
+      color: var(--muted);
+      border-bottom: 1px dashed var(--line);
+    }
+    .swr-tx-log-entry:last-child { border-bottom: none; }
+    .swr-tx-log-entry .when { color: var(--accent-3); flex-shrink: 0; }
+    .swr-tx-log-entry .what { color: var(--fg); flex: 1; }
+    .swr-tx-log-entry .src  { color: var(--muted); font-size: 9px; opacity: 0.8; }
+    .swr-tx-log-entry.src-auto .what { color: var(--accent); }
+    .swr-tx-rec-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .swr-tx-rec-chip {
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      padding: 3px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .swr-tx-rec-chip:hover { background: var(--bg-2); border-color: var(--accent-2); }
+    .swr-tx-rec-chip.secondary { opacity: 0.6; }
+    .swr-tx-rec-chip.kind-css { border-color: var(--accent-2); }
+    .swr-tx-rec-chip.kind-fx  { border-color: var(--accent-3); }
     .beat-led {
       width: 10px; height: 10px;
       border-radius: 50%;
@@ -1485,8 +1650,15 @@
         <h2>Library</h2>
         <button class="tbtn ghost" id="clear-all" title="Erase all uploaded assets + the saved song" style="padding:4px 8px; font-size:9px; color:#f55;">Clear</button>
         <button class="tbtn ghost" data-clear="songs" title="Clear only the saved song — keeps your library assets and bundled songs" style="padding:4px 8px; font-size:9px;">Clear song</button>
+        <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
+        <button class="tbtn ghost" id="add-folder" title="Pick a folder — engine pulls every image/video recursively" style="padding:4px 8px; font-size:9px;">+ Folder</button>
+        <input type="file" id="folder-input" webkitdirectory multiple style="display:none;" />
+        <div id="import-progress" class="import-progress" hidden>
+          <span id="import-progress-text">—</span>
+          <button class="tbtn ghost" id="import-progress-cancel" style="padding:2px 6px; font-size:8px;">×</button>
+        </div>
       </div>
       <div class="panel-body">
         <div class="sets-bar" style="display:flex; gap:6px; padding:6px 8px; border-bottom:1px solid var(--line);">
@@ -2023,9 +2195,51 @@
       <button class="tbtn" id="mg-agi-toggle" style="padding:4px 10px; font-size:9px;" title="Embed: kaidjuric/motion-graphic-designer-agi-system (HF Space)">MG AGI</button>
       <span class="separator"></span>
       <button class="tbtn" id="panels-toggle" style="padding:4px 10px; font-size:9px;" title="Show/hide the LFO, TIMING, and AUTO-SWAP floating panels">PANELS: <b id="panels-toggle-state">hidden</b></button>
+      <span class="separator"></span>
+      <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions; 1-9 to fire from dropdown)">TRANSITIONS<span id="swr-tx-flash" class="swr-tx-flash" aria-hidden="true"></span></button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
+
+    <!-- Transitions popover (engine-transitions.client.js) -->
+    <div id="swr-tx-panel" class="swr-tx-panel" role="dialog" aria-label="Transitions">
+      <div class="swr-tx-panel__head">
+        <span>Transitions <b id="swr-tx-count" style="color:var(--accent-2);">—</b></span>
+        <button class="tbtn ghost" id="swr-tx-close" style="padding:2px 8px; font-size:10px;">×</button>
+      </div>
+      <div class="swr-tx-panel__row">
+        <label for="swr-tx-pick">Transition</label>
+        <select id="swr-tx-pick" style="flex:1; min-width:200px;"></select>
+      </div>
+      <div class="swr-tx-panel__row" style="border-top:1px solid var(--line); padding-top:6px; flex-direction:column; align-items:stretch; gap:4px;">
+        <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;">
+          <span>recommended · <span id="swr-tx-rec-preset" style="color:var(--accent-2);">—</span></span>
+          <span id="swr-tx-rec-rationale" style="opacity:0.7; text-transform:none; letter-spacing:0; font-size:9px;"></span>
+        </div>
+        <div id="swr-tx-rec-list" class="swr-tx-rec-list" aria-label="Recommended transitions for current preset"></div>
+      </div>
+      <div class="swr-tx-panel__row">
+        <label for="swr-tx-peak">peak</label>
+        <input type="range" id="swr-tx-peak" min="0" max="1" step="0.05" value="1" />
+        <b id="swr-tx-peak-v">1.00</b>
+        <button class="swr-tx-fire" id="swr-tx-fire">FIRE</button>
+      </div>
+      <div class="swr-tx-panel__row" style="border-top:1px solid var(--line); padding-top:8px;">
+        <label for="swr-tx-every">auto every</label>
+        <input type="number" id="swr-tx-every" min="1" max="32" step="1" value="4" style="width:60px;" />
+        <span style="color:var(--muted);">beats</span>
+        <label for="swr-tx-bpm">bpm</label>
+        <input type="number" id="swr-tx-bpm" min="30" max="240" step="1" value="120" style="width:60px;" />
+        <button class="swr-tx-auto" id="swr-tx-auto-toggle">AUTO-FIRE OFF</button>
+      </div>
+      <div class="swr-tx-panel__row" style="border-top:1px solid var(--line); padding-top:8px; flex-direction:column; align-items:stretch; gap:4px;">
+        <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;">
+          <span>Recent fires</span>
+          <span id="swr-tx-log-count">0</span>
+        </div>
+        <div id="swr-tx-log" class="swr-tx-log" aria-live="polite"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Daily Practice modal -->
@@ -2288,6 +2502,28 @@
         this.audioEl = el;
         this.audioEl.addEventListener('ended', () => UI.onSongEnd());
         this.audioEl.addEventListener('timeupdate', () => UI.updateTime());
+        // Decode-error feedback: a corrupt / unsupported / unsupported-codec
+        // file silently fails otherwise (no console error visible to the
+        // user, just a "loaded" status with no playback). Surface it.
+        this.audioEl.addEventListener('error', () => {
+          const err = this.audioEl.error;
+          const code = err ? err.code : 0;
+          // 1 = MEDIA_ERR_ABORTED, 2 = MEDIA_ERR_NETWORK, 3 = MEDIA_ERR_DECODE,
+          // 4 = MEDIA_ERR_SRC_NOT_SUPPORTED
+          const reason = code === 3 ? 'decode failed (corrupt or unsupported codec)'
+                          : code === 4 ? 'format not supported by this browser'
+                          : code === 2 ? 'network error'
+                          : 'audio element error';
+          if (typeof setStatus === 'function') {
+            setStatus(`✕ can't play ${file.name}: ${reason}`, 'err');
+          }
+          // Disable the play button so the user doesn't repeatedly click
+          // into silence.
+          const playBtn = $('play');
+          if (playBtn) playBtn.disabled = true;
+          const recBtn = $('rec');
+          if (recBtn) recBtn.disabled = true;
+        });
         // Mark element type so the recorder knows what to display
         this.audioEl.dataset.kind = isVideo ? 'video' : 'audio';
         this.source = this.ctx.createMediaElementSource(this.audioEl);
@@ -2464,6 +2700,12 @@
         $('beat-led').classList.toggle('on', beatHit);
         $('onset-led').classList.toggle('on', onsetHit);
         if (this.feat.bpm) $('bpm-pill').textContent = this.feat.bpm + ' bpm';
+        // Hook for engine-transitions: feed live beat + BPM into the auto-fire
+        // subsystem. Idempotent — SWRTransitions may not be loaded yet (e.g.
+        // on persona-preview pages without the transitions script).
+        if (window.SWRTransitions && typeof window.SWRTransitions.onBeat === 'function') {
+          window.SWRTransitions.onBeat(this.feat.bpm || 0, !!beatHit);
+        }
         // v2: enhanced analysis
         if (window.AudioAnalysisV2 && this.audioEl) {
           // Track recent onsets for BPM autocorrelation
@@ -2698,22 +2940,85 @@
         if (typeof setStatus === 'function') setStatus('cleared', 'ok');
       },
       async addFiles(files) {
-        setStatus('importing…', '');
         const arr = Array.from(files);
+        // ---- Progress UI bootstrap ----
+        // Show an inline progress badge in the library panel-head. Cleared
+        // when the import finishes (success or cancel). The same UI is
+        // shared with the folder-picker and any future batch flow.
+        const progressEl = document.getElementById('import-progress');
+        const progressText = document.getElementById('import-progress-text');
+        const progressCancel = document.getElementById('import-progress-cancel');
+        const cancelled = { v: false };
+        const onCancel = () => { cancelled.v = true; };
+        if (progressCancel) progressCancel.onclick = onCancel;
+        const updateProgress = (state) => {
+          if (!progressEl || !progressText) return;
+          progressEl.hidden = false;
+          progressEl.classList.remove('done', 'error');
+          progressText.textContent = `importing ${state.done}/${state.total}`
+            + (state.skipped ? ` · ${state.skipped} dup` : '')
+            + (state.errors ? ` · ${state.errors} err` : '');
+        };
+        const finishProgress = (kind) => {
+          if (!progressEl || !progressText) return;
+          progressEl.classList.add(kind);
+          if (progressCancel) progressCancel.onclick = null;
+          if (kind === 'done') {
+            progressText.textContent = `+${state.imported}`;
+          } else if (kind === 'error') {
+            progressText.textContent = `import error`;
+          } else { // cancelled
+            progressText.textContent = `cancelled`;
+          }
+          setTimeout(() => { progressEl.hidden = true; }, 1600);
+        };
+
+        const state = { total: arr.length, done: 0, imported: 0, skipped: 0, errors: 0 };
+        if (state.total > 1) updateProgress(state);
+
         const knownKeys = new Set(this.items.map(i => i.name + ':' + (i.blob ? i.blob.size : 0)));
+        // ---- Concurrency-throttled classify pipeline ----
+        // _buildThumb/_classify are background tasks per item. With 50+ files
+        // they pile up (50 video metadata loads = browser stall). A simple
+        // promise-pool caps in-flight work at 4.
+        const THUMB_POOL = 4;
+        let inflight = 0;
+        const waiters = [];
+        const acquire = () => new Promise(res => {
+          if (inflight < THUMB_POOL) { inflight++; res(); }
+          else waiters.push(() => { inflight++; res(); });
+        });
+        const release = () => {
+          inflight--;
+          const next = waiters.shift();
+          if (next) next();
+        };
+        const runClassify = (item) => acquire().then(() => {
+          try {
+            this._buildThumb(item);
+            return this._classify(item)
+              .then(() => { if (item.id) return this._save(item); })
+              .then(() => this.render())
+              .catch(err => { console.warn('classify', item.name, err); state.errors++; });
+          } finally { release(); }
+        });
+
         for (const f of arr) {
-          if (!f.type) continue;
+          if (cancelled.v) break;
+          if (!f.type) { state.skipped++; continue; }
           const isVid = f.type.startsWith('video/');
           const isImg = f.type.startsWith('image/');
-          if (!isVid && !isImg) continue;
-          // Dedupe by name+size
-          const key = f.name + ':' + f.size;
-          if (knownKeys.has(key)) continue;
-          knownKeys.add(key);
+          if (!isVid && !isImg) { state.skipped++; state.done++; if (state.total > 1) updateProgress(state); continue; }
+          // Dedupe by name+size (relativePath for folder picks so two folders
+          // with same-name files don't collide)
+          const relKey = (f.webkitRelativePath || f.name) + ':' + f.size;
+          if (knownKeys.has(relKey)) { state.skipped++; state.done++; if (state.total > 1) updateProgress(state); continue; }
+          knownKeys.add(relKey);
           const id = this.nextId++;
           const item = {
             id,
             name: f.name,
+            relPath: f.webkitRelativePath || null,
             type: isVid ? 'video' : 'image',
             blob: f,
             url: URL.createObjectURL(f),
@@ -2723,15 +3028,23 @@
             rotation: 0,   // overridden by _detectRotation() once metadata loads
           };
           this.items.push(item);
+          state.imported++;
+          state.done++;
           this.render();
-          // Build thumb + classify in background
-          this._buildThumb(item);
-          this._classify(item).then(() => {
-            this._save(item);
-            this.render();
-          }).catch(err => console.warn('classify', item.name, err));
+          // Build thumb + classify in background (throttled).
+          runClassify(item);
+          if (state.total > 1) updateProgress(state);
+          // Tiny pause between items keeps the UI thread from stalling on
+          // 100-file drops. The await isn't necessary for correctness but
+          // gives the browser a frame to paint the progress badge.
+          if (state.done % 8 === 0) await new Promise(r => setTimeout(r, 0));
         }
-        setStatus('lib ' + this.items.length, 'ok');
+        if (state.total > 1) {
+          finishProgress(cancelled.v ? 'cancelled' : (state.errors > 0 ? 'error' : 'done'));
+        } else {
+          setStatus('lib ' + this.items.length, 'ok');
+        }
+        return state;
       },
       async _save(item) {
         if (!this.db) return;
@@ -3361,6 +3674,7 @@
               return;
             }
             if (e.target.classList.contains('x-rand')) {
+              if (!l.pos) l.pos = { x: 0, y: 0, rot: 0 };
               l.pos.x = (Math.random() - 0.5) * 200;
               l.pos.y = (Math.random() - 0.5) * 200;
               l.pos.rot = Math.random() * 360;
@@ -3698,6 +4012,19 @@
         if (Layers.render) Layers.render();
       }
       if (typeof setStatus === 'function') setStatus('preset: ' + preset.name, 'ok');
+
+      // PRD-019: auto-arm the recommended primary transition for this
+      // preset if the transitions module + manifest are loaded. The
+      // transitions popover re-renders its recommendation chips via
+      // its own listener on the #preset/#persona dropdowns, so we
+      // don't need to touch the panel here.
+      if (window.SWRPresetTransitions && typeof window.SWRPresetTransitions.applyPresetAutoFire === 'function') {
+        window.SWRPresetTransitions.applyPresetAutoFire(key, {
+          every: 4,
+          bpm: 120,
+          peak: 0.85
+        });
+      }
     }
     // Expose for debugging from devtools / puppeteer
     window.VISUAL_PRESETS = VISUAL_PRESETS;
@@ -4804,6 +5131,10 @@
         if (this.dragMode === 'auto') {
           for (let i = 0; i < Layers.list.length; i++) {
             const l = Layers.list[i];
+            // Defensive: legacy snapshots (or hand-edited localStorage) may omit
+            // `pos`. The audio loop crashes on l.pos.x if so — quietly init
+            // instead so the engine keeps running instead of blank-screening.
+            if (!l.pos || !Number.isFinite(l.pos.x)) l.pos = { x: 0, y: 0, rot: 0 };
             const ph = i * 1.37;  // per-layer phase
             const t = this._t;
             // Smooth slow drift, scaled by audio energy (mid → x, treble → y, beat → rot kick)
@@ -5402,6 +5733,85 @@
           Library.addFiles(e.target.files);
           e.target.value = '';
         });
+        // Folder picker: webkitdirectory input lets the user select a whole
+        // directory tree at once. The browser flattens every file into the
+        // FileList with webkitRelativePath set to the relative path under
+        // the chosen root.
+        const folderInput = $('folder-input');
+        const folderBtn = $('add-folder');
+        if (folderBtn && folderInput) {
+          folderBtn.addEventListener('click', () => folderInput.click());
+          folderInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+            // Filter to image/video MIME types up front so the import
+            // progress badge reports accurate totals (skip text files,
+            // .DS_Store, etc. that webkitdirectory drags along).
+            const wanted = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+            if (wanted.length === 0) {
+              console.warn('[folder-import] no image/video files in selected folder');
+              setStatus('no media in folder', 'warn');
+              e.target.value = '';
+              return;
+            }
+            if (wanted.length < files.length) {
+              console.info(`[folder-import] ${files.length - wanted.length} non-media files skipped`);
+            }
+            Library.addFiles(wanted);
+            e.target.value = '';
+          });
+        }
+        // Folder drag-drop: if a dropped item has webkitGetAsEntry that
+        // returns a directory, walk it recursively and feed every file into
+        // addFiles. Standalone drop handler in engine.html routes simple
+        // drops; this supplements with directory traversal.
+        async function walkDataTransferItem(entry, prefix) {
+          if (!entry) return [];
+          if (entry.isFile) {
+            return new Promise(resolve => entry.file(f => {
+              // Reconstruct webkitRelativePath so the library dedupes correctly.
+              try { Object.defineProperty(f, 'webkitRelativePath', { value: prefix + entry.name }); } catch (_) {}
+              resolve([f]);
+            }, () => resolve([])));
+          }
+          if (entry.isDirectory) {
+            const reader = entry.createReader();
+            const all = [];
+            // readEntries returns batches; loop until empty.
+            while (true) {
+              const batch = await new Promise(res => reader.readEntries(res, () => res([])));
+              if (!batch.length) break;
+              for (const sub of batch) {
+                const files = await walkDataTransferItem(sub, prefix + entry.name + '/');
+                for (const f of files) all.push(f);
+              }
+            }
+            return all;
+          }
+          return [];
+        }
+        window.addEventListener('drop', async (e) => {
+          if (!e.dataTransfer || !e.dataTransfer.items) return;
+          const items = Array.from(e.dataTransfer.items);
+          const folders = items.filter(it => it.webkitGetAsEntry && it.webkitGetAsEntry()?.isDirectory);
+          if (!folders.length) return;  // let the existing drop handler do its thing
+          e.preventDefault();
+          const all = [];
+          for (const it of items) {
+            const entry = it.webkitGetAsEntry && it.webkitGetAsEntry();
+            if (entry) {
+              const files = await walkDataTransferItem(entry, '');
+              for (const f of files) all.push(f);
+            }
+          }
+          if (all.length === 0) return;
+          const wanted = all.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+          if (wanted.length === 0) {
+            console.warn('[folder-drop] no image/video files in dropped folder');
+            return;
+          }
+          await Library.addFiles(wanted);
+        }, true);  // capture phase so we get the drop before the existing window-level handler
         // Layers
         $('add-layer').addEventListener('click', () => {
           if (Library.items.length) Layers.add(Library.items[0]);
@@ -5437,6 +5847,252 @@
         const blurInp = $('blur');
         if (grayInp) grayInp.addEventListener('input', () => window.FX && window.FX.setGrayscale(parseFloat(grayInp.value)));
         if (blurInp) blurInp.addEventListener('input',  () => window.FX && window.FX.setBlur(parseFloat(blurInp.value)));
+        // Transitions panel wiring (engine-transitions.client.js)
+        (function wireTransitionsPanel() {
+          const $ = (id) => document.getElementById(id);
+          const toggleBtn = $('swr-tx-toggle');
+          const panel = $('swr-tx-panel');
+          const closeBtn = $('swr-tx-close');
+          const pick = $('swr-tx-pick');
+          const peakInp = $('swr-tx-peak');
+          const peakV = $('swr-tx-peak-v');
+          const fireBtn = $('swr-tx-fire');
+          const everyInp = $('swr-tx-every');
+          const bpmInp = $('swr-tx-bpm');
+          const autoBtn = $('swr-tx-auto-toggle');
+          const countV = $('swr-tx-count');
+          if (!toggleBtn || !panel || !pick) return;
+
+          // Populate dropdown once module is ready (poll briefly, then give up).
+          let attempts = 0;
+          const populate = () => {
+            if (!window.SWRTransitions || !window.SWRTransitions.list) {
+              if (++attempts > 40) { console.warn('[swr-tx] SWRTransitions not loaded after 4s'); return; }
+              return setTimeout(populate, 100);
+            }
+            const list = window.SWRTransitions.list();
+            countV.textContent = String(list.length);
+            // Group by family with <optgroup>.
+            const byFamily = new Map();
+            list.forEach(t => {
+              if (!byFamily.has(t.family)) byFamily.set(t.family, []);
+              byFamily.get(t.family).push(t);
+            });
+            const familyOrder = ['cover', 'distortion', 'spatial', 'brightness', 'mask', 'hybrid', 'fade', 'wipe'];
+            familyOrder.forEach(fam => {
+              if (!byFamily.has(fam)) return;
+              const grp = document.createElement('optgroup');
+              grp.label = fam;
+              grp.className = 'swr-tx-optgroup';
+              byFamily.get(fam).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.name;
+                opt.textContent = `${t.name} (${t.kind === 'fx' ? 'FX' : 'CSS'}, ${t.duration}ms)`;
+                grp.appendChild(opt);
+              });
+              pick.appendChild(grp);
+            });
+            // Now that the catalog is loaded, paint recommendations for the
+            // active preset (if any).
+            renderRecs();
+          };
+          populate();
+
+          // Show / hide.
+          const setOpen = (open) => {
+            panel.classList.toggle('open', !!open);
+            toggleBtn.classList.toggle('primary', !!open);
+          };
+          toggleBtn.addEventListener('click', () => setOpen(!panel.classList.contains('open')));
+          if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
+          // Esc to close.
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && panel.classList.contains('open')) setOpen(false);
+          });
+
+          // Peak slider live display.
+          if (peakInp && peakV) {
+            peakInp.addEventListener('input', () => { peakV.textContent = parseFloat(peakInp.value).toFixed(2); });
+          }
+
+          // Fire button.
+          if (fireBtn) {
+            fireBtn.addEventListener('click', () => {
+              if (!window.SWRTransitions) return;
+              const name = pick.value;
+              const peak = parseFloat(peakInp.value);
+              window.SWRTransitions.fire(name, { peak });
+            });
+          }
+
+          // BPM live updates the emitter; 'every' is read at toggle time.
+          if (bpmInp) bpmInp.addEventListener('change', () => {
+            const bpm = parseInt(bpmInp.value, 10);
+            if (window.SWRTransitions && bpm > 0) window.SWRTransitions.setBPM(bpm);
+          });
+          // Live-reflect the audio-driven BPM into the panel input so the user
+          // sees the real tempo when audio is loaded. Module calls this hook
+          // (no-op if missing).
+          window.SWRTransitionsUI = window.SWRTransitionsUI || {};
+          window.SWRTransitionsUI.onBpmUpdate = (bpm) => {
+            if (bpmInp && bpm > 0) bpmInp.value = String(bpm);
+          };
+
+          // Auto-fire toggle.
+          let autoLive = false;
+          if (autoBtn) {
+            autoBtn.addEventListener('click', () => {
+              if (!window.SWRTransitions) return;
+              if (autoLive) {
+                window.SWRTransitions.setAutoFire(null);
+                autoLive = false;
+                autoBtn.classList.remove('live');
+                autoBtn.textContent = 'AUTO-FIRE OFF';
+              } else {
+                const every = Math.max(1, parseInt(everyInp.value, 10) || 4);
+                const bpm = parseInt(bpmInp.value, 10) || 120;
+                window.SWRTransitions.setAutoFire({
+                  everyNBeats: every,
+                  transition: pick.value,
+                  bpm
+                });
+                autoLive = true;
+                autoBtn.classList.add('live');
+                autoBtn.textContent = `AUTO-FIRE ON · ${pick.value} / ${every}b`;
+              }
+            });
+          }
+
+          // Expose minimal API for keyboard / persona integration later.
+          window.SWRTransitionsUI = Object.assign(window.SWRTransitionsUI || {}, { setOpen, pick, fireBtn });
+
+          // ---- Preset-aware recommendations (PRD-019) ----
+          // When the user picks a preset (or a persona whose underlying
+          // key matches one in data/preset-transitions.json), paint the
+          // recommended transitions as clickable chips above the picker.
+          // Click a chip = select in the dropdown + fire immediately.
+          const recPresetEl = $('swr-tx-rec-preset');
+          const recListEl = $('swr-tx-rec-list');
+          const recRationaleEl = $('swr-tx-rec-rationale');
+          function getActivePresetKey() {
+            // window._activePreset is set by applyPreset() in the engine
+            // body — it carries the full preset object, not the key.
+            // We read the key off the #preset dropdown (canonical) and
+            // fall back to the persona dropdown (the engine maps persona
+            // names to preset names internally).
+            const presetSel = document.getElementById('preset');
+            if (presetSel && presetSel.value && presetSel.value !== 'off') return presetSel.value;
+            const personaSel = document.getElementById('persona');
+            if (personaSel && personaSel.value && personaSel.value !== 'off') return personaSel.value;
+            return null;
+          }
+          function renderRecs() {
+            if (!recListEl) return;
+            if (!window.SWRPresetTransitions || !window.SWRPresetTransitions.recommended) {
+              // Manifest not loaded yet — schedule a retry.
+              if (window.SWRPresetTransitions && window.SWRPresetTransitions.whenReady) {
+                window.SWRPresetTransitions.whenReady(renderRecs);
+              }
+              return;
+            }
+            const key = getActivePresetKey();
+            if (recPresetEl) recPresetEl.textContent = key || 'no preset';
+            if (!key) {
+              recListEl.innerHTML = '<span style="color:var(--muted); font-size:9px;">pick a preset to see recommendations</span>';
+              if (recRationaleEl) recRationaleEl.textContent = '';
+              return;
+            }
+            const rec = window.SWRPresetTransitions.recommended(key);
+            if (recRationaleEl) recRationaleEl.textContent = rec.rationale || '';
+            recListEl.innerHTML = '';
+            // Render primary chips first, then secondary (faded).
+            const renderChip = (name, secondary) => {
+              const cfg = window.SWRTransitions && window.SWRTransitions._TRANSITIONS
+                ? window.SWRTransitions._TRANSITIONS[name]
+                : null;
+              const chip = document.createElement('button');
+              chip.type = 'button';
+              chip.className = 'swr-tx-rec-chip' +
+                (secondary ? ' secondary' : '') +
+                (cfg ? ' kind-' + cfg.kind : '');
+              chip.textContent = name;
+              chip.title = (cfg ? cfg.family + ' · ' + cfg.duration + 'ms · ' + cfg.kind : name);
+              chip.addEventListener('click', () => {
+                if (pick) pick.value = name;
+                window.SWRTransitions.fire(name);
+              });
+              return chip;
+            };
+            (rec.primary || []).forEach((n) => recListEl.appendChild(renderChip(n, false)));
+            (rec.secondary || []).forEach((n) => recListEl.appendChild(renderChip(n, true)));
+            if (recListEl.children.length === 0) {
+              recListEl.innerHTML = '<span style="color:var(--muted); font-size:9px;">no recommendations for this preset yet</span>';
+            }
+          }
+          // Re-render when the persona or preset dropdown changes.
+          ['preset', 'persona'].forEach((id) => {
+            const sel = document.getElementById(id);
+            if (sel) sel.addEventListener('change', () => renderRecs());
+          });
+          // Also re-render when the popover opens (catches preset changes
+          // made while the panel was closed).
+          toggleBtn.addEventListener('click', () => setTimeout(renderRecs, 50));
+          // Expose for the harness page + manual API users.
+          window.SWRTransitionsUI.renderRecs = renderRecs;
+
+          // ---- Visual flash + history log ----
+          // Listen for the module's CustomEvent and flash a badge next to the
+          // TRANSITIONS button + append to the in-popover log.
+          const flashEl = $('swr-tx-flash');
+          const logEl = $('swr-tx-log');
+          const logCountEl = $('swr-tx-log-count');
+          let logCount = 0;
+          const flashTimer = { id: null };
+          function flashBadge(name, source) {
+            if (!flashEl) return;
+            flashEl.textContent = source === 'auto' ? 'AUTO' : name.toUpperCase().slice(0, 8);
+            flashEl.classList.add('on');
+            if (flashTimer.id) clearTimeout(flashTimer.id);
+            flashTimer.id = setTimeout(() => flashEl.classList.remove('on'), 700);
+          }
+          function appendLog(name, source) {
+            if (!logEl) return;
+            const entry = document.createElement('div');
+            entry.className = `swr-tx-log-entry src-${source || 'manual'}`;
+            const when = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            entry.innerHTML =
+              `<span class="when">${pad(when.getHours())}:${pad(when.getMinutes())}:${pad(when.getSeconds())}</span>` +
+              `<span class="what">${name}</span>` +
+              `<span class="src">${source || ''}</span>`;
+            logEl.insertBefore(entry, logEl.firstChild);
+            logCount++;
+            if (logCountEl) logCountEl.textContent = String(logCount);
+            while (logEl.children.length > 20) logEl.removeChild(logEl.lastChild);
+          }
+          document.addEventListener('swr-tx:fire', (ev) => {
+            const { name, source } = ev.detail || {};
+            flashBadge(name, source);
+            appendLog(name, source);
+          });
+
+          // ---- Keyboard shortcuts: 1-9 fires the dropdown option at that index ----
+          // Modifier-free so it's fast; ignored when typing in an input/textarea.
+          document.addEventListener('keydown', (e) => {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            const t = e.target;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+            const k = e.key;
+            if (k < '1' || k > '9') return;
+            const idx = parseInt(k, 10) - 1;
+            const opts = pick.options;
+            if (idx >= opts.length) return;
+            const opt = opts[idx];
+            if (!opt) return;
+            e.preventDefault();
+            window.SWRTransitions.fire(opt.value);
+          });
+        })();
         // Distortion sliders (from flexible-smart-videomaker preset system)
         const liquidInp = $('liquid');
         const pearlInp  = $('pearl');
@@ -7460,6 +8116,7 @@
 
   <script type="module" src="/timeline.client.js"></script>
   <script type="module" src="/fx-postprocess.js"></script>
+  <script type="module" src="/engine-transitions.client.js"></script>
   <script type="module" src="/wizard.js"></script>
   <script type="module" src="/personas.js"></script>
   <script type="module" src="/engine-transitions.client.js"></script>
@@ -7473,6 +8130,8 @@
   <script src="/lib/persist.client.js"></script>
   <script src="/lib/persist-wire.client.js"></script>
   <script src="/lib/persist-fx.client.js"></script>
+  <script src="/lib/library-hygiene.client.js"></script>
+  <script src="/lib/preset-transitions.client.js"></script>
   <script src="/lib/reset-state.client.js"></script>
   <script src="/lib/recorder.client.js"></script>
   <script type="module" src="/share.client.js"></script>

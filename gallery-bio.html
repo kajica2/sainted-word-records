@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Biological / Neuro — SWR Gallery</title>
@@ -318,17 +320,7 @@
 
 </head>
 <body>
-  <nav class="nav">
-    <div class="nav__inner">
-      <div class="nav__brand">SWR</div>
-      <div class="nav__links">
-        <a href="./landing.html">Engine</a>
-        <a href="./campaign.html">Pricing</a>
-        <a href="./thanks.html">Order</a>
-      </div>
-      <a class="nav__cta" href="./campaign.html">Get a visualizer →</a>
-    </div>
-  </nav>
+  <swr-nav></swr-nav>
 
   <header class="hero">
     <div class="wrap">
@@ -455,5 +447,6 @@
   <script src="./client/gallery-audio.client.js" defer></script>
   <script src="./client/dropzone.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

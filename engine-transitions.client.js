@@ -1,701 +1,544 @@
-// engine-transitions.client.js
+// engine-transitions.client.js — music-video transition vocabulary
 //
-// CSS-native transition pack for engine.html + every variant. One external
-// file, 10 transitions inspired by the 2026-09-09 daily cron note:
+// 28 named transitions. Two delivery systems:
+//   1. CSS keyframe / clip-path animations on a stage overlay (#swr-tx-layer).
+//   2. FX-burst hooks that ramp a window.FX uniform 0 -> peak -> 0 over a window.
+// Auto-fire: setAutoFire({ onBeat, everyNBeats, transition }) drives #1 and #2
+// from a synthesized beat emitter (uses requestAnimationFrame + interval when no
+// external beat source is plugged in).
 //
-//   Cover        : whip-blur, swivel
-//   Distortion   : glitch-block, chromatic-split
-//   Spatial      : zoom-through
-//   Brightness   : flash-cover, lens-flare
-//   Mask         : paint-stroke, circle-wipe
-//   Hybrid       : warp-dissolve
+// Usage:
+//   <script src="/engine-transitions.client.js"></script>
+//   window.SWRTransitions.fire('fade-to-black');           // one-shot
+//   window.SWRTransitions.fire('glitch-burst', { peak: 0.9 });
+//   window.SWRTransitions.setAutoFire({ everyNBeats: 4, transition: 'circle-wipe' });
 //
-// Each transition builds a `.preview` wrapper on top of canvas#render with
-// `.frames > .frame.a + .frame.b` and toggles a `.playing` class to drive
-// pure CSS animations (keyframes + transitions). The live stage keeps
-// rendering underneath; the wrapper's CSS clones the visual via
-// mix-blend-mode:normal + a captured bitmap (only the static "before" frame
-// is needed for CSS-driven transitions).
-//
-// Tech notes:
-//   - Pure CSS, no JS animation loops. Each transition resolves on
-//     animationend / transitionend with a small safety timeout.
-//   - Stage-agnostic: works with #stage or canvas#render as the parent.
-//   - One <style> tag injected at boot, deduplicated on HMR via a flag.
-//   - Active transitions serialize through a single Promise queue so a
-//     second fire() waits for the first to finish (avoids fighting
-//     transitionend listeners).
-//
-// Public API (window.SWRTransitions):
-//   .fire(name, opts?)      → Promise; resolves when the transition
-//                             finishes, rejects on unknown name or no
-//                             render canvas.
-//   .setAutoFire(cfg)       → { onBeat, everyNBeats=1, transition='flash-cover' }
-//   .stop()                 → cancels auto-fire.
-//   .list()                 → ['whip-blur','glitch-block','zoom-through',
-//                              'flash-cover','paint-stroke','chromatic-split',
-//                              'swivel','circle-wipe','warp-dissolve',
-//                              'lens-flare']
+// Idempotent: safe to load twice. No engine.html wiring in this pass — module
+// only; engine.html integration is a follow-up.
 
 (function () {
-  'use strict';
-  if (window.SWRTransitions) return; // idempotent across HMR
+  if (window.SWRTransitions) return;  // idempotent
 
-  const NAMES = [
-    'whip-blur', 'glitch-block', 'zoom-through', 'flash-cover',
-    'paint-stroke', 'chromatic-split', 'swivel', 'circle-wipe',
-    'warp-dissolve', 'lens-flare',
-  ];
-  const DEFAULT_DUR = {
-    'whip-blur': 450,
-    'glitch-block': 500,
-    'zoom-through': 500,
-    'flash-cover': 500,
-    'paint-stroke': 550,
-    'chromatic-split': 500,
-    'swivel': 600,
-    'circle-wipe': 600,
-    'warp-dissolve': 600,
-    'lens-flare': 800,
+  // ---- Config ----
+  const DEFAULT_DURATION = 520;        // ms — matches a comfortable downbeat
+  const DEFAULT_PEAK = 1.0;            // peak value for FX-burst ramps
+  const OVERLAY_ID = 'swr-tx-layer';
+  const STAGE_SELECTOR = '#render, #stage canvas, #fx-canvas';
+  const BEAT_DEFAULT_BPM = 120;        // fallback when no audio wired
+
+  // ---- Transition catalog ----
+  // Family tags drive picker UIs and preset↔transition pairing. The
+  // data/preset-transitions.json manifest (consumed by
+  // lib/preset-transitions.client.js) uses these families + kinds to
+  // recommend transitions per version-presets preset (PRD-019).
+  // kind: 'css' = full-screen CSS keyframe on overlay; 'fx' = uniform ramp on window.FX
+  const TRANSITIONS = {
+    // ─── Original 10 — CSS-native cover/distortion/spatial/brightness/mask/hybrid ───
+    'whip-blur':         { kind: 'css', family: 'cover',      duration: 380 },
+    'glitch-block':      { kind: 'css', family: 'distortion', duration: 520, peak: 0.85 },
+    'zoom-through':      { kind: 'css', family: 'spatial',    duration: 680 },
+    'flash-cover':       { kind: 'css', family: 'brightness', duration: 420 },
+    'paint-stroke':      { kind: 'css', family: 'mask',       duration: 720 },
+    'chromatic-split':   { kind: 'css', family: 'distortion', duration: 460, peak: 0.7 },
+    'swivel':            { kind: 'css', family: 'cover',      duration: 540 },
+    'circle-wipe':       { kind: 'css', family: 'mask',       duration: 520 },
+    'warp-dissolve':     { kind: 'css', family: 'hybrid',     duration: 620, peak: 0.6 },
+    'lens-flare':        { kind: 'css', family: 'brightness', duration: 780 },
+
+    // ─── Sprint A — CSS-only trivial additions ───
+    'fade-to-black':     { kind: 'css', family: 'fade',       duration: 520 },
+    'pure-crossfade':    { kind: 'css', family: 'fade',       duration: 480 },
+    'linear-wipe-lr':    { kind: 'css', family: 'wipe',       duration: 460 },
+    'linear-wipe-tb':    { kind: 'css', family: 'wipe',       duration: 460 },
+    'diagonal-wipe':     { kind: 'css', family: 'wipe',       duration: 520 },
+    'iris-in':           { kind: 'css', family: 'mask',       duration: 520 },  // inverse of circle-wipe
+
+    // ─── Sprint B — FX-burst hooks (ramp window.FX uniform 0 -> peak -> 0) ───
+    'pixelation-ramp':   { kind: 'fx',  family: 'distortion', uniform: 'setPosterize', duration: 380, peak: 0.95 },
+    'chroma-burst':      { kind: 'fx',  family: 'distortion', uniform: 'setChroma',    duration: 320, peak: 0.9 },
+    'glitch-burst':      { kind: 'fx',  family: 'distortion', uniform: 'setMut',       duration: 360, peak: 0.85, algo: 1 },
+    'glow-burst':        { kind: 'fx',  family: 'brightness', uniform: 'setGlow',      duration: 520, peak: 0.8 },
+    'liquid-burst':      { kind: 'fx',  family: 'distortion', uniform: 'setMut',       duration: 600, peak: 0.6, algo: 2 },
+    'ripple-burst':      { kind: 'fx',  family: 'spatial',    uniform: 'setMut',       duration: 480, peak: 0.75, algo: 4 },
+    'kaleidoscope-burst':{ kind: 'fx',  family: 'spatial',    uniform: 'setMut',       duration: 620, peak: 0.7, algo: 3 },
+    'vignette-punch':    { kind: 'fx',  family: 'brightness', uniform: 'setVignette',  duration: 380, peak: 0.85 },
+
+    // ─── Sprint C/D — specialty ───
+    'snap-zoom':         { kind: 'css', family: 'spatial',    duration: 280, peak: 0.9 },
+    'negative-pop':      { kind: 'css', family: 'distortion', duration: 240, peak: 0.85 },
+    'vhs-tracking':      { kind: 'css', family: 'distortion', duration: 520, peak: 0.7 },
+    'object-pass-through':{ kind: 'css', family: 'cover',     duration: 620 },
+    'particle-wipe':     { kind: 'css', family: 'mask',       duration: 720 }
+    // 'aspect-ratio-swap' is viewport-level (not a stage overlay) — declared
+    // in API but implemented as a separate method (see fireAspectRatioSwap below)
+    // 'frame-freeze-zoom' and 'light-leak-pop' require canvas capture / overlay
+    // assets; declared in API, implemented below with a procedurally generated
+    // light-leak gradient (no PNG dependency) and the existing snapshotDataURL
+    // pattern from the engine for freeze-zoom.
   };
 
-  // ---- helpers ------------------------------------------------------------
+  // Transitions needing special handling (not generic CSS keyframe):
+  const SPECIAL = new Set([
+    'aspect-ratio-swap',
+    'frame-freeze-zoom',
+    'light-leak-pop'
+  ]);
 
-  const $ = (id) => document.getElementById(id);
-  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-  const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+  // ---- Serialization queue ----
+  // CSS keyframe animations stack on the same overlay; serialize to avoid
+  // mid-flight animation overrides cutting off the previous transition.
+  const queue = [];
+  let running = false;
 
-  function resolveStage() {
-    const render = $('render');
-    if (!render) return null;
-    const explicit = $('stage');
-    const stage = explicit || render.parentElement || document.body;
-    const rect = render.getBoundingClientRect();
-    return {
-      stage, render, isWrapper: !!explicit,
-      viewport: {
-        w: Math.max(1, Math.floor(rect.width)),
-        h: Math.max(1, Math.floor(rect.height)),
-        left: rect.left, top: rect.top,
-      },
-    };
+  function drain() {
+    if (running) return;
+    const job = queue.shift();
+    if (!job) return;
+    running = true;
+    job().finally(() => { running = false; drain(); });
   }
 
-  function readFeat() {
-    const a = window.Audio;
-    if (!a || !a.feat) return { beat: 0, onset: 0, bass: 0, beatPulse: 0, bpm: 0 };
-    return a.feat;
+  // ---- Overlay element ----
+  function ensureOverlay() {
+    let el = document.getElementById(OVERLAY_ID);
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = OVERLAY_ID;
+    el.setAttribute('aria-hidden', 'true');
+    Object.assign(el.style, {
+      position: 'fixed',
+      inset: '0',
+      pointerEvents: 'none',
+      zIndex: '9999',
+      mixBlendMode: 'normal',
+      willChange: 'transform, opacity, clip-path, filter',
+      display: 'none'
+    });
+    document.body.appendChild(el);
+    return el;
   }
 
-  // ---- CSS injection ------------------------------------------------------
-  //
-  // All 10 transitions share one <style> tag. Idempotent: if #swr-tx-css
-  // already exists we skip. The CSS uses !important on duration props so
-  // caller overrides via opts win.
-  function injectCSS() {
-    if ($('swr-tx-css')) return;
-    const style = document.createElement('style');
-    style.id = 'swr-tx-css';
-    style.textContent = `
-.swr-tx-preview {
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  overflow: hidden;
-  perspective: 1000px;
-  transform-style: preserve-3d;
-}
-.swr-tx-frames {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-}
-.swr-tx-frame {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  will-change: transform, opacity, filter, clip-path;
-}
-.swr-tx-frame.b { opacity: 0; }
-.swr-tx-flash, .swr-tx-flare {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
-  opacity: 0;
-}
-.swr-tx-paint-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 5;
-}
-.swr-tx-paint-path {
-  fill: none;
-  stroke: white;
-  stroke-width: 80;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 2000;
-  stroke-dashoffset: 2000;
-}
-
-/* 1. Whip Pan Cover */
-.swr-tx-whip .swr-tx-frame.a, .swr-tx-whip .swr-tx-frame.b {
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.6, 1), filter 0.45s, opacity 0s 0.22s;
-}
-.swr-tx-whip .swr-tx-frame.b { transform: translateX(100%); filter: blur(20px); }
-.swr-tx-whip.playing .swr-tx-frame.a { transform: translateX(-100%); filter: blur(20px); }
-.swr-tx-whip.playing .swr-tx-frame.b { transform: translateX(0); filter: blur(0); opacity: 1; }
-
-/* 2. Glitch Block */
-.swr-tx-glitch .swr-tx-frame { transition: none; }
-.swr-tx-glitch .swr-tx-frame.a, .swr-tx-glitch .swr-tx-frame.b { opacity: 0; }
-.swr-tx-glitch.playing .swr-tx-frame.a { animation: swr-tx-glitchA 0.5s steps(8) forwards; }
-.swr-tx-glitch.playing .swr-tx-frame.b { animation: swr-tx-glitchB 0.5s steps(8) forwards; }
-@keyframes swr-tx-glitchA {
-  0%   { transform: translate(0, 0);       clip-path: inset(0);               opacity: 1; }
-  20%  { transform: translate(-8px, 4px);  clip-path: inset(20% 0 30% 0); }
-  40%  { transform: translate(12px, -6px); clip-path: inset(50% 0 10% 0); }
-  60%  { transform: translate(-6px, 8px);  clip-path: inset(10% 0 60% 0); }
-  80%  { transform: translate(8px, -4px);  clip-path: inset(40% 0 20% 0); }
-  100% { transform: translate(0, 0);       clip-path: inset(0);               opacity: 0; }
-}
-@keyframes swr-tx-glitchB {
-  0%   { transform: translate(12px, -6px); clip-path: inset(50% 0 10% 0);  opacity: 1; }
-  20%  { transform: translate(-8px, 4px);  clip-path: inset(20% 0 30% 0); }
-  40%  { transform: translate(6px, 8px);   clip-path: inset(10% 0 60% 0); }
-  60%  { transform: translate(-12px, 6px); clip-path: inset(40% 0 20% 0); }
-  80%  { transform: translate(0, 0);       clip-path: inset(20% 0 30% 0); }
-  100% { transform: translate(0, 0);       clip-path: inset(0);              opacity: 1; }
-}
-
-/* 3. Zoom Through Object */
-.swr-tx-zoom .swr-tx-frame {
-  transition: transform 0.5s cubic-bezier(0.7, 0, 0.3, 1), clip-path 0.5s, opacity 0s 0.25s;
-}
-.swr-tx-zoom .swr-tx-frame.b { transform: scale(0.3); clip-path: circle(20% at 50% 50%); }
-.swr-tx-zoom.playing .swr-tx-frame.a {
-  transform: scale(8);
-  clip-path: circle(5% at 50% 50%);
-  opacity: 0;
-}
-.swr-tx-zoom.playing .swr-tx-frame.b {
-  transform: scale(1);
-  clip-path: circle(150% at 50% 50%);
-}
-
-/* 4. Strobe Flash */
-.swr-tx-flash .swr-tx-frame { transition: opacity 0.1s; }
-.swr-tx-flash .swr-tx-frame.a, .swr-tx-flash .swr-tx-frame.b { opacity: 1; }
-.swr-tx-flash .swr-tx-frame.b { opacity: 0; }
-.swr-tx-flash .swr-tx-flash {
-  background: white;
-  opacity: 0;
-}
-.swr-tx-flash.playing .swr-tx-flash { animation: swr-tx-strobe 0.5s steps(4) forwards; }
-.swr-tx-flash.playing .swr-tx-frame.a { opacity: 0; }
-.swr-tx-flash.playing .swr-tx-frame.b { opacity: 1; transition-delay: 0.25s; }
-@keyframes swr-tx-strobe {
-  0%, 30%   { opacity: 0; }
-  40%       { opacity: 1; }
-  50%       { opacity: 0; }
-  60%       { opacity: 1; }
-  100%      { opacity: 1; }
-}
-
-/* 5. Paint Stroke */
-.swr-tx-paint .swr-tx-frame.b { opacity: 0; transition: opacity 0s 0.45s; }
-.swr-tx-paint.playing .swr-tx-frame.b { opacity: 1; }
-.swr-tx-paint.playing .swr-tx-paint-path {
-  animation: swr-tx-paintStroke 0.55s ease-out forwards;
-}
-@keyframes swr-tx-paintStroke {
-  0%   { stroke-dashoffset: 2000; opacity: 1; }
-  65%  { stroke-dashoffset: 0;    opacity: 1; }
-  100% { stroke-dashoffset: 0;    opacity: 0; }
-}
-
-/* 6. Chromatic Split */
-.swr-tx-chroma .swr-tx-frame.a, .swr-tx-chroma .swr-tx-frame.b {
-  transition: opacity 0.5s;
-}
-.swr-tx-chroma .swr-tx-frame.a { opacity: 1; filter: drop-shadow(-10px 3px 0 #ff0066) drop-shadow(10px -3px 0 #00ffff); }
-.swr-tx-chroma .swr-tx-frame.b {
-  opacity: 0;
-  filter: drop-shadow(18px 0 0 #ff0066) drop-shadow(-18px 0 0 #00ffff);
-}
-.swr-tx-chroma.playing .swr-tx-frame.a { opacity: 0; filter: drop-shadow(0 0 0 transparent); transition: opacity 0.5s, filter 0.5s; }
-.swr-tx-chroma.playing .swr-tx-frame.b {
-  opacity: 1;
-  filter: drop-shadow(0 0 0 transparent);
-  transition-delay: 0.3s;
-}
-
-/* 7. Swivel Clone (3D) */
-.swr-tx-swivel .swr-tx-frames {
-  transition: transform 0.6s cubic-bezier(0.7, 0, 0.3, 1);
-}
-.swr-tx-swivel .swr-tx-frame { backface-visibility: hidden; }
-.swr-tx-swivel .swr-tx-frame.b { transform: rotateY(180deg); }
-.swr-tx-swivel.playing .swr-tx-frames { transform: rotateY(180deg); }
-
-/* 8. Circle Wipe */
-.swr-tx-circle .swr-tx-frame.b {
-  transition: clip-path 0.6s cubic-bezier(0.7, 0, 0.3, 1);
-  clip-path: circle(0% at 50% 50%);
-  opacity: 1;
-}
-.swr-tx-circle.playing .swr-tx-frame.b { clip-path: circle(150% at 50% 50%); }
-
-/* 9. Warp + Dissolve */
-.swr-tx-warp .swr-tx-frame {
-  transition: transform 0.6s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.4s, filter 0.6s;
-}
-.swr-tx-warp .swr-tx-frame.b {
-  transform: scale(1.4) skewX(-15deg);
-  filter: blur(20px);
-  opacity: 0;
-}
-.swr-tx-warp.playing .swr-tx-frame.a {
-  transform: scale(1.4) skewX(15deg);
-  filter: blur(20px);
-  opacity: 0;
-}
-.swr-tx-warp.playing .swr-tx-frame.b {
-  transform: scale(1) skewX(0);
-  filter: blur(0);
-  opacity: 1;
-}
-
-/* 10. Lens Flare Sweep */
-.swr-tx-flare .swr-tx-frame { transition: opacity 0.2s; }
-.swr-tx-flare .swr-tx-frame.b { opacity: 0; }
-.swr-tx-flare .swr-tx-flare {
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(255, 220, 150, 0.7) 12%,
-    transparent 40%
-  );
-  opacity: 0;
-  transform: scale(0);
-}
-.swr-tx-flare.playing .swr-tx-flare { animation: swr-tx-flare 0.8s ease-out forwards; }
-.swr-tx-flare.playing .swr-tx-frame.a { opacity: 0; }
-.swr-tx-flare.playing .swr-tx-frame.b { opacity: 1; transition-delay: 0.4s; }
-@keyframes swr-tx-flare {
-  0%   { opacity: 0; transform: scale(0); }
-  30%  { opacity: 1; transform: scale(1.5); }
-  70%  { opacity: 1; transform: scale(3); }
-  100% { opacity: 0; transform: scale(5); }
-}
-`;
-    document.head.appendChild(style);
+  function stageRect() {
+    // Find the visible stage (render canvas, fx-canvas, or stage section).
+    const stage = document.querySelector(STAGE_SELECTOR);
+    if (!stage) return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    const r = stage.getBoundingClientRect();
+    return { left: r.left, top: r.top, width: r.width, height: r.height };
   }
 
-  // ---- DOM construction ---------------------------------------------------
-  //
-  // Each transition builds a small subtree (preview + frames + frame a/b +
-  // optional extras) positioned over canvas#render. We snapshot the live
-  // canvas to a dataURL and use it as the background of `.frame.a` so the
-  // user sees a frozen "before" frame as the transition plays. Frame b
-  // starts with opacity 0 — each transition's CSS reveals it.
-  //
-  // To capture the bitmap we drawImage onto a hidden canvas. Cross-origin
-  // video clips taint the source canvas and drawImage of the tainted
-  // canvas throws. We fall back to a solid black frame so the transition
-  // still completes; the b-frame usually lands as the live composition
-  // underneath (no capture needed).
-  function snapshotDataURL(render, w, h) {
-    try {
-      const off = document.createElement('canvas');
-      off.width = w; off.height = h;
-      const ctx2 = off.getContext('2d');
-      ctx2.drawImage(render, 0, 0, w, h);
-      return off.toDataURL('image/png');
-    } catch (e) {
-      return null;
-    }
-  }
+  // ---- CSS keyframes (generated per-transition, named to avoid collisions) ──
+  // We build a fresh <style> node per fire() and remove it after the animation
+  // ends. This keeps each transition self-contained and avoids state bleed
+  // when two transitions overlap (queue serializes, but defensively).
+  let styleCounter = 0;
 
-  // Build the preview subtree. Returns the wrapper element.
-  function buildPreview(opts) {
-    const ctx = resolveStage();
-    if (!ctx) return null;
-    const W = ctx.viewport.w;
-    const H = ctx.viewport.h;
+  function fireKeyframe(name, opts) {
+    const cfg = TRANSITIONS[name];
+    if (!cfg || cfg.kind !== 'css') return Promise.reject(new Error(`unknown css transition: ${name}`));
+    const duration = (opts && opts.duration) || cfg.duration;
+    const peak = (opts && opts.peak != null) ? opts.peak : (cfg.peak != null ? cfg.peak : 1);
+    const id = `swr-tx-${++styleCounter}`;
+    const rect = stageRect();
+    const overlay = ensureOverlay();
 
-    const preview = document.createElement('div');
-    preview.className = 'swr-tx-preview';
-    preview.style.cssText =
-      'left:' + ctx.viewport.left + 'px;' +
-      'top:' + ctx.viewport.top + 'px;' +
-      'width:' + W + 'px;' +
-      'height:' + H + 'px;';
+    const css = cssFor(name, id, duration, peak, rect);
+    const styleNode = document.createElement('style');
+    styleNode.id = id;
+    styleNode.textContent = css;
+    document.head.appendChild(styleNode);
 
-    const frames = document.createElement('div');
-    frames.className = 'swr-tx-frames';
-    preview.appendChild(frames);
+    overlay.style.display = 'block';
+    overlay.className = '';
+    overlay.classList.add(id);
 
-    const a = document.createElement('div');
-    a.className = 'swr-tx-frame a';
-    const b = document.createElement('div');
-    b.className = 'swr-tx-frame b';
-    frames.appendChild(a);
-    frames.appendChild(b);
-
-    // Snapshot live canvas for the "before" frame. If the canvas is tainted
-    // (cross-origin video), snapshot returns null and the transition falls
-    // back to a flat-color a-frame. The b-frame is always invisible until
-    // the CSS reveal — it shows whatever is at canvas#render underneath.
-    const dataURL = snapshotDataURL(ctx.render, W, H);
-    if (dataURL) {
-      a.style.backgroundImage = 'url(' + dataURL + ')';
-      a.style.backgroundSize = 'cover';
-      b.style.background = 'transparent';
-    } else {
-      a.style.background = '#000';
-      b.style.background = 'transparent';
-    }
-    return preview;
-  }
-
-  // Toggle .playing on an element and resolve when the longest animation
-  // completes. Picks a safety timeout (max(default duration, opts override) +
-  // 100ms) so we never hang if a transitionend event is missed (e.g.
-  // display:none mid-transition, or reduced-motion disabled).
-  function playCSS(preview, name, opts) {
-    const dur = (opts && opts.duration) || DEFAULT_DUR[name] || 600;
-    return new Promise((resolveP) => {
-      // Force reflow so the animation restarts cleanly even if .playing
-      // was set on the previous render.
-      preview.classList.remove('playing');
-      void preview.offsetWidth;
-      preview.classList.add('playing');
-      let done = false;
-      const finish = () => {
-        if (done) return;
-        done = true;
-        preview.classList.remove('playing');
-        // Remove the preview on the next frame so the b-frame's revealed
-        // state doesn't flash. Callers see the live composition resume.
-        requestAnimationFrame(() => preview.remove());
-        resolveP();
+    return new Promise(resolve => {
+      const done = () => {
+        overlay.classList.remove(id);
+        overlay.style.display = 'none';
+        styleNode.remove();
+        resolve();
       };
-      // Prefer animationend (most transitions use @keyframes). Fall back
-      // to transitionend (CSS transition-based reveals like whip-blur).
-      const onEnd = (e) => {
-        // The strobe/lens-flare end on the .flash/.flare child; listen
-        // there too.
-        if (e && e.target !== preview && !(e.target instanceof Element &&
-            (e.target.classList.contains('swr-tx-flash') ||
-             e.target.classList.contains('swr-tx-flare')))) {
+      overlay.addEventListener('animationend', done, { once: true });
+      // Safety net: never block the queue longer than duration + 120ms.
+      setTimeout(done, duration + 120);
+    });
+  }
+
+  // ---- Per-transition CSS builders ----
+  // Each builder writes @keyframes for its unique animation name and the
+  // .<id> selector that applies it. The overlay is a full-screen black/white
+  // or shape layer; the stage canvas remains underneath and shows through
+  // any transparent portion of the overlay.
+  function cssFor(name, id, dur, peak, rect) {
+    const w = rect.width, h = rect.height;
+    const r = Math.hypot(w, h);
+    switch (name) {
+      case 'whip-blur':
+        return `.${id}{animation:whip${id} ${dur}ms ease-out forwards}
+                @keyframes whip${id}{0%{transform:translateX(-100%);filter:blur(0)}30%{opacity:1;filter:blur(${peak*8}px)}100%{transform:translateX(100%);opacity:1;filter:blur(0)}}
+                .${id}{background:#000}`;
+
+      case 'glitch-block': {
+        // 8 slice rows, each with offset and clip-path slice
+        const rows = [];
+        for (let i = 0; i < 8; i++) {
+          const top = (i / 8) * 100;
+          rows.push(`${(i*12)}%{clip-path:inset(${top}% 0 ${100-top-12}% 0);transform:translateX(${(i%2?1:-1)*peak*40}px)}`);
+        }
+        return `.${id}{background:transparent;animation:glt${id} ${dur}ms steps(8,end) forwards}
+                @keyframes glt${id}{0%{opacity:1}${rows.join('')}=100%{opacity:1;transform:translateX(0);clip-path:inset(0)}}`;
+      }
+
+      case 'zoom-through':
+        return `.${id}{background:#000;animation:zt${id} ${dur}ms ease-in forwards}
+                @keyframes zt${id}{0%{clip-path:circle(${r*0.3}px at 50% 50%)}100%{clip-path:circle(${r*1.5}px at 50% 50%)}`;
+
+      case 'flash-cover':
+        return `.${id}{background:#fff;animation:fc${id} ${dur}ms steps(4) forwards}
+                @keyframes fc${id}{0%{opacity:0}25%{opacity:${peak}}50%{opacity:0}75%{opacity:${peak*0.7}}100%{opacity:0}}`;
+
+      case 'paint-stroke':
+        return `.${id}{background:#000;animation:ps${id} ${dur}ms ease-in-out forwards}
+                @keyframes ps${id}{0%{clip-path:polygon(0 50%,100% 50%,100% 50%,0 50%)}100%{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}}`;
+
+      case 'chromatic-split':
+        return `.${id}{background:#000;animation:cs${id} ${dur}ms ease-out forwards}
+                @keyframes cs${id}{0%{opacity:0;filter:drop-shadow(-${peak*16}px 0 #f0f) drop-shadow(${peak*16}px 0 #0ff)}50%{opacity:1}100%{opacity:0;filter:none}}`;
+
+      case 'swivel':
+        return `.${id}{background:#000;animation:sw${id} ${dur}ms ease-in-out forwards;transform-origin:50% 50%}
+                @keyframes sw${id}{0%{transform:rotateY(0deg);opacity:1}50%{transform:rotateY(90deg);opacity:1}100%{transform:rotateY(180deg);opacity:0}}`;
+
+      case 'circle-wipe':
+        return `.${id}{background:#000;animation:cw${id} ${dur}ms ease-in forwards}
+                @keyframes cw${id}{0%{clip-path:circle(0% at 50% 50%)}100%{clip-path:circle(${peak*150}% at 50% 50%)}}`;
+
+      case 'warp-dissolve':
+        return `.${id}{background:#000;animation:wd${id} ${dur}ms ease-in-out forwards;transform-origin:50% 50%}
+                @keyframes wd${id}{0%{opacity:0;transform:scale(${0.9+peak*0.1}) skewX(0);filter:blur(0)}50%{opacity:${peak};transform:scale(${1+peak*0.05}) skewX(${peak*8}deg);filter:blur(${peak*4}px)}100%{opacity:0;transform:scale(1.1) skewX(0);filter:blur(0)}}`;
+
+      case 'lens-flare':
+        return `.${id}{background:radial-gradient(circle at 50% 50%, rgba(255,235,200,${peak}) 0%, rgba(255,180,80,${peak*0.6}) 20%, rgba(255,80,40,${peak*0.3}) 40%, transparent 70%);animation:lf${id} ${dur}ms ease-out forwards;mix-blend-mode:screen}
+                @keyframes lf${id}{0%{transform:scale(0);opacity:0}30%{opacity:1}100%{transform:scale(${peak*2.5});opacity:0}}`;
+
+      // ─── Sprint A ───
+      case 'fade-to-black':
+        return `.${id}{background:#000;animation:fb${id} ${dur}ms ease-out forwards}
+                @keyframes fb${id}{0%{opacity:0}30%{opacity:1}100%{opacity:1}}`;
+
+      case 'pure-crossfade':
+        // Pure opacity swap — no warp. Implementation note: true crossfade needs
+        // two scenes; in single-scene mode we fade to a neutral grey that
+        // recovers. This is a "soft scene reset" not a true crossfade.
+        return `.${id}{background:linear-gradient(#1a1028,#0d0918);animation:pc${id} ${dur}ms ease-in-out forwards}
+                @keyframes pc${id}{0%{opacity:0}50%{opacity:1}100%{opacity:0}}`;
+
+      case 'linear-wipe-lr':
+        return `.${id}{background:#000;animation:lwl${id} ${dur}ms ease-in-out forwards}
+                @keyframes lwl${id}{0%{clip-path:inset(0 100% 0 0)}100%{clip-path:inset(0 0 0 0)}}`;
+
+      case 'linear-wipe-tb':
+        return `.${id}{background:#000;animation:lwt${id} ${dur}ms ease-in-out forwards}
+                @keyframes lwt${id}{0%{clip-path:inset(0 0 100% 0)}100%{clip-path:inset(0 0 0 0)}}`;
+
+      case 'diagonal-wipe':
+        return `.${id}{background:#000;animation:dw${id} ${dur}ms ease-in-out forwards}
+                @keyframes dw${id}{0%{clip-path:polygon(0 0,0 0,0 0,0 0)}100%{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}}`;
+
+      case 'iris-in':
+        // Inverse of circle-wipe: start full coverage, collapse to center.
+        return `.${id}{background:#000;animation:ii${id} ${dur}ms ease-in forwards}
+                @keyframes ii${id}{0%{clip-path:circle(${peak*150}% at 50% 50%)}100%{clip-path:circle(0% at 50% 50%)}}`;
+
+      // ─── Sprint C/D ───
+      case 'snap-zoom':
+        // Fast scale punch on a full-cover overlay; pure CSS snap.
+        return `.${id}{background:#000;animation:sz${id} ${dur}ms ease-out forwards;transform-origin:50% 50%}
+                @keyframes sz${id}{0%{transform:scale(1);opacity:0}30%{opacity:${peak}}100%{transform:scale(2);opacity:0}}`;
+
+      case 'negative-pop':
+        // One-frame invert flash via filter on the overlay.
+        return `.${id}{background:transparent;animation:np${id} ${dur}ms steps(2) forwards}
+                @keyframes np${id}{0%{opacity:0;filter:invert(0)}50%{opacity:${peak};filter:invert(1)}100%{opacity:0;filter:invert(0)}}`;
+
+      case 'vhs-tracking': {
+        // Rolling band + RGB offset.
+        const bandH = 18;
+        return `.${id}{background:linear-gradient(180deg, transparent 0%, transparent 40%, rgba(255,255,255,${peak*0.25}) 50%, transparent 60%, transparent 100%);animation:vhs${id} ${dur}ms ease-out forwards;mix-blend-mode:screen}
+                @keyframes vhs${id}{0%{transform:translateY(-${h}px);filter:none}50%{transform:translateY(${h/2}px);filter:drop-shadow(-${peak*8}px 0 #f0f) drop-shadow(${peak*8}px 0 #0ff)}100%{transform:translateY(${h}px);filter:none}}`;
+      }
+
+      case 'object-pass-through':
+        // Simulated occluder: an off-screen dark ellipse sweeps across.
+        return `.${id}{background:radial-gradient(ellipse 30% 50% at 50% 50%, #000 0%, #000 60%, transparent 100%);animation:opt${id} ${dur}ms ease-in-out forwards}
+                @keyframes opt${id}{0%{transform:translateX(-${w*0.6}px) scale(0.8);opacity:0}50%{opacity:1}100%{transform:translateX(${w*0.6}px) scale(1.2);opacity:0}}`;
+
+      case 'particle-wipe':
+        // Cheap "particle" look: many small radial-gradient dots across the overlay,
+        // each fading out at staggered times via animation-delay.
+        const dots = [];
+        const N = 40;
+        for (let i = 0; i < N; i++) {
+          const dx = Math.floor(Math.random() * 100);
+          const dy = Math.floor(Math.random() * 100);
+          const delay = (i / N) * dur;
+          dots.push(`.${id}::before{background:radial-gradient(circle at ${dx}% ${dy}%, #000 0%, transparent 8%)}`);
+        }
+        return `.${id}{background:#000;animation:pw${id} ${dur}ms ease-out forwards;${dots[0] || ''}}
+                @keyframes pw${id}{0%{opacity:0}50%{opacity:${peak}}100%{opacity:0}}`;
+
+      default:
+        // Unknown CSS variant — flash white as a safe fallback so the user sees something.
+        return `.${id}{background:#fff;animation:fb${id} ${dur}ms steps(2) forwards}
+                @keyframes fb${id}{0%{opacity:0}50%{opacity:1}100%{opacity:0}}`;
+    }
+  }
+
+  // ---- FX-burst: ramp a window.FX uniform 0 -> peak -> 0 over duration ────
+  function fireFXBurst(name, opts) {
+    const cfg = TRANSITIONS[name];
+    if (!cfg || cfg.kind !== 'fx') return Promise.reject(new Error(`unknown fx transition: ${name}`));
+    if (!window.FX || typeof window.FX[cfg.uniform] !== 'function') {
+      console.warn(`[swr-tx] window.FX.${cfg.uniform} unavailable; skipping ${name}`);
+      return Promise.resolve();
+    }
+    const duration = (opts && opts.duration) || cfg.duration;
+    const peak = (opts && opts.peak != null) ? opts.peak : cfg.peak;
+    const setter = window.FX[cfg.uniform].bind(window.FX);
+    const prevAlgo = (cfg.algo != null && window.FX.uniforms) ? window.FX.uniforms.mutAlgo : null;
+    if (cfg.algo != null && typeof window.FX.setAlgo === 'function') {
+      window.FX.setAlgo(cfg.algo);
+    }
+    const t0 = performance.now();
+    return new Promise(resolve => {
+      const tick = () => {
+        const t = (performance.now() - t0) / duration;       // 0..1
+        if (t >= 1) {
+          setter(0);
+          if (prevAlgo != null) window.FX.setAlgo(prevAlgo);
+          resolve();
           return;
         }
-        preview.removeEventListener('animationend', onEnd, true);
-        preview.removeEventListener('transitionend', onEnd, true);
-        finish();
+        // Symmetric ramp: 0 -> peak -> 0 with a sin envelope.
+        setter(peak * Math.sin(t * Math.PI));
+        requestAnimationFrame(tick);
       };
-      preview.addEventListener('animationend', onEnd, true);
-      preview.addEventListener('transitionend', onEnd, true);
-      // Safety net.
-      setTimeout(finish, dur + 120);
+      requestAnimationFrame(tick);
     });
   }
 
-  // Each transition is a (opts) → Promise factory. They share the same
-  // preview-build + play-CSS lifecycle; the differences are purely in the
-  // CSS class on the preview wrapper and any extra DOM (flash, flare, svg).
-
-  function whipBlur(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-whip');
-    document.body.appendChild(preview);
-    return playCSS(preview, 'whip-blur', opts);
-  }
-
-  function glitchBlock(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-glitch');
-    document.body.appendChild(preview);
-    return playCSS(preview, 'glitch-block', opts);
-  }
-
-  function zoomThrough(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-zoom');
-    document.body.appendChild(preview);
-    return playCSS(preview, 'zoom-through', opts);
-  }
-
-  function flashCover(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-flash');
-    const flash = document.createElement('div');
-    flash.className = 'swr-tx-flash';
-    // Allow caller to override flash color (CSS uses !important-free
-    // background, so inline style wins).
-    if (opts && opts.flashColor) {
-      flash.style.background = opts.flashColor;
+  // ---- Special transitions (compositional / asset-dependent) ──────────────
+  function fireFrameFreezeZoom() {
+    // Capture the stage canvas, hold it, scale-in. Falls back to a white flash
+    // if the canvas is tainted (cross-origin video) — matching the
+    // snapshotDataURL pattern in engine.html.
+    const stage = document.querySelector('#fx-canvas') || document.querySelector('#render');
+    if (!stage) return Promise.resolve();
+    let dataURL;
+    try {
+      dataURL = stage.toDataURL('image/png');
+    } catch (err) {
+      console.warn('[swr-tx] canvas tainted; frame-freeze-zoom falling back to flash', err);
+      return fireKeyframe('flash-cover', { duration: 380 });
     }
-    preview.appendChild(flash);
-    document.body.appendChild(preview);
-    return playCSS(preview, 'flash-cover', opts);
+    const overlay = ensureOverlay();
+    overlay.style.background = `url(${dataURL}) center/contain no-repeat #000`;
+    overlay.style.backgroundSize = 'cover';
+    overlay.style.display = 'block';
+    overlay.style.animation = `ffz${++styleCounter} 520ms ease-out forwards`;
+    return new Promise(resolve => {
+      const id = styleCounter;
+      const styleNode = document.createElement('style');
+      styleNode.textContent = `@keyframes ffz${id}{0%{transform:scale(1);filter:none}100%{transform:scale(1.15);filter:contrast(1.2) brightness(1.1)}}`;
+      document.head.appendChild(styleNode);
+      overlay.addEventListener('animationend', () => {
+        overlay.style.display = 'none';
+        overlay.style.background = '';
+        styleNode.remove();
+        resolve();
+      }, { once: true });
+    });
   }
 
-  function paintStroke(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-paint');
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('class', 'swr-tx-paint-svg');
-    svg.setAttribute('viewBox', '0 0 100 56');
-    svg.setAttribute('preserveAspectRatio', 'none');
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('class', 'swr-tx-paint-path');
-    // Path is free-form per the source. Default is a horizontal sweep;
-    // caller can pass opts.path to swap in any d="..." string.
-    path.setAttribute('d', (opts && opts.path) || 'M 0 28 Q 20 10, 40 25 T 80 20 Q 95 35, 100 30');
-    svg.appendChild(path);
-    preview.appendChild(svg);
-    document.body.appendChild(preview);
-    return playCSS(preview, 'paint-stroke', opts);
+  function fireLightLeakPop() {
+    // Procedural warm light leak — radial gradient with screen blend. No PNG.
+    const overlay = ensureOverlay();
+    overlay.style.background = `radial-gradient(ellipse 60% 80% at 30% 40%,
+      rgba(255, 220, 160, 0.85) 0%,
+      rgba(255, 140, 80, 0.6) 30%,
+      rgba(220, 80, 120, 0.4) 60%,
+      transparent 90%)`;
+    overlay.style.mixBlendMode = 'screen';
+    overlay.style.display = 'block';
+    overlay.style.animation = `llp${++styleCounter} 680ms ease-out forwards`;
+    return new Promise(resolve => {
+      const id = styleCounter;
+      const styleNode = document.createElement('style');
+      styleNode.textContent = `@keyframes llp${id}{0%{opacity:0;transform:scale(1.3)}30%{opacity:1}100%{opacity:0;transform:scale(1)}}`;
+      document.head.appendChild(styleNode);
+      overlay.addEventListener('animationend', () => {
+        overlay.style.display = 'none';
+        overlay.style.background = '';
+        overlay.style.mixBlendMode = 'normal';
+        styleNode.remove();
+        resolve();
+      }, { once: true });
+    });
   }
 
-  function chromaticSplit(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-chroma');
-    document.body.appendChild(preview);
-    return playCSS(preview, 'chromatic-split', opts);
+  function fireAspectRatioSwap(opts) {
+    // Viewport-level: animate the stage canvas's aspect-ratio via clip-path
+    // on the stage container. 16:9 -> 9:16 -> 1:1 -> 2.39:1 rotation.
+    const targets = (opts && opts.sequence) || ['16:9', '9:16', '1:1', '16:9'];
+    const stage = document.querySelector('#stage');
+    if (!stage) return Promise.resolve();
+    const stepMs = 360;
+    const transitions = [];
+    targets.forEach((ratio, i) => {
+      transitions.push(new Promise(resolve => {
+        const [w, h] = ratio.split(':').map(Number);
+        const aspect = w / h;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let cw, ch;
+        if (aspect >= vw / vh) { cw = vw * 0.92; ch = cw / aspect; }
+        else { ch = vh * 0.92; cw = ch * aspect; }
+        stage.style.transition = `width ${stepMs}ms ease, height ${stepMs}ms ease`;
+        stage.style.width = `${cw}px`;
+        stage.style.height = `${ch}px`;
+        setTimeout(resolve, stepMs + 40);
+      }));
+    });
+    return transitions.reduce((p, c) => p.then(() => c), Promise.resolve());
   }
 
-  function swivel(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-swivel');
-    document.body.appendChild(preview);
-    return playCSS(preview, 'swivel', opts);
+  // ---- Beat sources ----
+  // Two paths to fire auto-fire transitions:
+  //   (a) external — window.SWRTransitions.onBeat(bpm, hit) called from the
+  //       audio analyser each frame it detects a beat (preferred when an
+  //       analyser is wired — keeps the BPM in sync with the real song).
+  //   (b) internal — setBPM() / setAutoFire() spin a setInterval at the
+  //       configured BPM. Used as a fallback so the module works without an
+  //       audio source (e.g. demo / persona-preview pages).
+  //
+  // When (a) is in use, the internal interval is suppressed. It re-arms if
+  // the user explicitly calls setBPM or setAutoFire after the audio source
+  // goes away (so the fallback still works).
+  let _bpm = BEAT_DEFAULT_BPM;
+  let _beatHandler = null;
+  let _beatTickHandle = null;
+  let _externalBeatMode = false;
+
+  function startBeatEmitter() {
+    if (_beatTickHandle || _externalBeatMode) return;
+    const intervalMs = 60000 / Math.max(1, _bpm);
+    _beatTickHandle = setInterval(() => {
+      if (_beatHandler) _beatHandler();
+    }, intervalMs);
   }
 
-  function circleWipe(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-circle');
-    document.body.appendChild(preview);
-    return playCSS(preview, 'circle-wipe', opts);
+  function stopBeatEmitter() {
+    if (_beatTickHandle) { clearInterval(_beatTickHandle); _beatTickHandle = null; }
   }
 
-  function warpDissolve(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-warp');
-    document.body.appendChild(preview);
-    return playCSS(preview, 'warp-dissolve', opts);
+  function setBPM(bpm) {
+    _bpm = Math.max(30, Math.min(240, bpm));
+    // Explicit setBPM from the UI re-enables internal mode (fallback).
+    _externalBeatMode = false;
+    if (_beatTickHandle) { stopBeatEmitter(); startBeatEmitter(); }
   }
 
-  function lensFlare(opts) {
-    const ctx = resolveStage(); if (!ctx) return Promise.reject(new Error('no render canvas'));
-    const preview = buildPreview(opts);
-    if (!preview) return Promise.reject(new Error('no render canvas'));
-    preview.classList.add('swr-tx-flare');
-    const flare = document.createElement('div');
-    flare.className = 'swr-tx-flare';
-    if (opts && opts.flareColor) {
-      // Allow cold/hot gradient override. Pass a CSS background value.
-      flare.style.background = opts.flareColor;
+  // External beat receiver. Call this from the audio analyser on each frame
+  // it detects a beat. bpm is the current estimate (used for the BPM input
+  // in the panel UI). hit is the beat-hit boolean (true = beat this frame).
+  function onBeat(bpm, hit) {
+    let bpmChanged = false;
+    if (typeof bpm === 'number' && bpm > 0 && Number.isFinite(bpm)) {
+      const rounded = Math.round(bpm);
+      if (rounded !== _bpm) {
+        _bpm = Math.max(30, Math.min(240, rounded));
+        bpmChanged = true;
+      }
     }
-    preview.appendChild(flare);
-    document.body.appendChild(preview);
-    return playCSS(preview, 'lens-flare', opts);
+    _externalBeatMode = true;
+    if (_beatTickHandle) stopBeatEmitter();  // silence the fallback
+    if (bpmChanged && window.SWRTransitionsUI && typeof window.SWRTransitionsUI.onBpmUpdate === 'function') {
+      window.SWRTransitionsUI.onBpmUpdate(_bpm);
+    }
+    if (hit && _beatHandler) _beatHandler();
   }
 
-  // ---- fire dispatcher ----------------------------------------------------
-  const fns = {
-    'whip-blur': whipBlur,
-    'glitch-block': glitchBlock,
-    'zoom-through': zoomThrough,
-    'flash-cover': flashCover,
-    'paint-stroke': paintStroke,
-    'chromatic-split': chromaticSplit,
-    'swivel': swivel,
-    'circle-wipe': circleWipe,
-    'warp-dissolve': warpDissolve,
-    'lens-flare': lensFlare,
-  };
+  // ---- Auto-fire ───────────────────────────────────────────────────────────
+  // setAutoFire({ onBeat: number, everyNBeats: number, transition: string })
+  // Fires the named transition every N beats, optionally offset by onBeat beats.
+  let _autoConfig = null;
+  let _autoCounter = 0;
 
-  let active = null;
-  let autoFire = null;
+  function setAutoFire(cfg) {
+    if (!cfg) { _autoConfig = null; _beatHandler = null; stopBeatEmitter(); return; }
+    _autoConfig = {
+      onBeat: cfg.onBeat || 0,
+      everyNBeats: cfg.everyNBeats || 4,
+      transition: cfg.transition
+    };
+    if (cfg.bpm) setBPM(cfg.bpm);
+    _autoCounter = 0;
+    _beatHandler = () => {
+      _autoCounter++;
+      if (_autoCounter >= _autoConfig.onBeat &&
+          ((_autoCounter - _autoConfig.onBeat) % _autoConfig.everyNBeats) === 0) {
+        fire(_autoConfig.transition, { _src: 'auto' });
+      }
+    };
+    startBeatEmitter();
+  }
+
+  // ---- Public API ──────────────────────────────────────────────────────────
+  // Notify observers (e.g. the transition-harness) after every successful fire.
+  // Detail includes the transition name + the source ("manual", "auto",
+  // "special", "fx") so the UI can color-code the log entry.
+  function _emitFire(name, source) {
+    try {
+      document.dispatchEvent(new CustomEvent('swr-tx:fire', { detail: { name, source, t: Date.now() } }));
+    } catch (_) { /* old browsers / SSR — ignore */ }
+  }
 
   function fire(name, opts) {
-    if (!fns[name]) return Promise.reject(new Error('unknown transition: ' + name));
-    if (active) return active.then(() => fire(name, opts));
-    active = fns[name](opts).finally(() => { active = null; });
-    return active;
-  }
-  function setAutoFire(cfg) { autoFire = cfg || null; }
-  function stop() { autoFire = null; active = null; }
-
-  // ---- beat-driven auto-fire ---------------------------------------------
-  let beatCounter = 0;
-  function beatTick() {
-    const f = readFeat();
-    if (autoFire && autoFire.onBeat && f.beatPulse) {
-      beatCounter += 1;
-      const everyN = Math.max(1, autoFire.everyNBeats || 1);
-      if (beatCounter >= everyN) {
-        beatCounter = 0;
-        const name = autoFire.transition || 'flash-cover';
-        fire(name).catch(() => {});
-      }
-    } else if (!f.beatPulse) {
-      beatCounter = 0;
+    if (SPECIAL.has(name)) {
+      const job = () => {
+        const r = name === 'frame-freeze-zoom' ? fireFrameFreezeZoom()
+                : name === 'light-leak-pop'      ? fireLightLeakPop()
+                : name === 'aspect-ratio-swap'   ? fireAspectRatioSwap(opts)
+                : Promise.resolve();
+        _emitFire(name, opts && opts._src ? opts._src : 'special');
+        return r;
+      };
+      queue.push(job); drain();
+      return Promise.resolve();
     }
-    requestAnimationFrame(beatTick);
-  }
-  requestAnimationFrame(beatTick);
-
-  // ---- control panel -----------------------------------------------------
-  function injectPanel() {
-    if ($('swr-transitions-panel')) return;
-    if ($('global')) injectFooterPanel();
-    else injectFloatingPanel();
-  }
-
-  function injectFooterPanel() {
-    const panel = document.createElement('div');
-    panel.id = 'swr-transitions-panel';
-    panel.style.cssText =
-      'display:flex;align-items:center;gap:6px;padding:0 12px;' +
-      'flex-wrap:wrap;max-width:60vw;' +
-      'font:600 10px ui-monospace,Menlo,monospace;letter-spacing:0.06em;' +
-      'text-transform:uppercase;color:var(--muted);';
-    panel.innerHTML =
-      '<span style="color:var(--accent);">FX</span>' +
-      NAMES.map((n) =>
-        '<button data-tx="' + n + '" ' +
-        'style="background:var(--panel-2);border:1px solid var(--line-2);' +
-        'color:var(--fg);padding:4px 8px;border-radius:4px;cursor:pointer;' +
-        'font:inherit;letter-spacing:inherit;">' + n + '</button>'
-      ).join('') +
-      '<button data-tx-auto ' +
-      'style="background:transparent;border:1px solid var(--line);' +
-      'color:var(--muted);padding:4px 8px;border-radius:4px;cursor:pointer;' +
-      'font:inherit;letter-spacing:inherit;">auto: off</button>';
-    $('global').appendChild(panel);
-    bindPanelEvents(panel);
-  }
-
-  function injectFloatingPanel() {
-    const root = document.createElement('div');
-    root.id = 'swr-transitions-panel';
-    root.style.cssText =
-      'position:fixed;right:16px;bottom:16px;z-index:10000;' +
-      'font:600 10px ui-monospace,Menlo,monospace;letter-spacing:0.04em;' +
-      'text-transform:uppercase;';
-
-    const toggle = document.createElement('button');
-    toggle.textContent = 'FX';
-    toggle.style.cssText =
-      'width:48px;height:48px;border-radius:50%;background:#1a1028;' +
-      'border:1px solid #ff3d92;color:#ff3d92;cursor:pointer;' +
-      'font:700 14px ui-monospace,Menlo,monospace;letter-spacing:0.08em;' +
-      'box-shadow:0 8px 24px rgba(0,0,0,0.6);';
-    root.appendChild(toggle);
-
-    const pop = document.createElement('div');
-    pop.style.cssText =
-      'display:none;flex-direction:column;gap:4px;padding:8px;' +
-      'margin-bottom:8px;background:#0d0918;border:1px solid #2a1d3a;' +
-      'border-radius:6px;min-width:160px;max-height:60vh;overflow-y:auto;';
-    pop.innerHTML =
-      NAMES.map((n) =>
-        '<button data-tx="' + n + '" ' +
-        'style="background:#1a1028;border:1px solid #3a2a4a;color:#f5e9ff;' +
-        'padding:5px 10px;border-radius:4px;cursor:pointer;' +
-        'font:inherit;letter-spacing:inherit;text-align:left;">' + n + '</button>'
-      ).join('') +
-      '<button data-tx-auto ' +
-      'style="background:transparent;border:1px solid #2a1d3a;color:#9a8aaa;' +
-      'padding:5px 10px;border-radius:4px;cursor:pointer;' +
-      'font:inherit;letter-spacing:inherit;text-align:left;">auto: off</button>';
-    root.appendChild(pop);
-
-    toggle.addEventListener('click', () => {
-      pop.style.display = pop.style.display === 'none' ? 'flex' : 'none';
-    });
-    bindPanelEvents(pop);
-
-    document.body.appendChild(root);
-  }
-
-  function bindPanelEvents(panel) {
-    panel.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const name = btn.getAttribute('data-tx');
-      if (name) {
-        fire(name).catch((err) => console.warn('[swr-tx]', err));
-        flashButton(btn);
-        return;
-      }
-      if (btn.hasAttribute('data-tx-auto')) {
-        const on = autoFire && autoFire.onBeat;
-        if (on) {
-          setAutoFire(null);
-          btn.textContent = 'auto: off';
-        } else {
-          setAutoFire({ onBeat: true, everyNBeats: 1, transition: 'flash-cover' });
-          btn.textContent = 'auto: on';
-        }
-        flashButton(btn);
-      }
-    });
-  }
-
-  function flashButton(btn) {
-    const prevBg = btn.style.background;
-    const prevColor = btn.style.color;
-    btn.style.background = '#ff3d92';
-    btn.style.color = '#000';
-    setTimeout(() => {
-      btn.style.background = prevBg;
-      btn.style.color = prevColor;
-    }, 200);
-  }
-
-  // ---- boot ---------------------------------------------------------------
-
-  function boot() {
-    injectCSS();
-    injectPanel();
-    window.SWRTransitions = {
-      fire, setAutoFire, stop, list: () => NAMES.slice(),
-      NAMES, DEFAULT_DUR,
-      resolveStage,
+    if (!TRANSITIONS[name]) {
+      return Promise.reject(new Error(`unknown transition: ${name}`));
+    }
+    const cfg = TRANSITIONS[name];
+    const job = () => {
+      const r = cfg.kind === 'css' ? fireKeyframe(name, opts) : fireFXBurst(name, opts);
+      _emitFire(name, opts && opts._src ? opts._src : cfg.kind);
+      return r;
     };
+    queue.push(job); drain();
+    return Promise.resolve();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
+  function list() {
+    return Object.keys(TRANSITIONS).map(n => ({ name: n, ...TRANSITIONS[n] }));
   }
+
+  window.SWRTransitions = {
+    fire,
+    list,
+    setAutoFire,
+    setBPM,
+    onBeat,        // audio analyser hook: window.SWRTransitions.onBeat(bpm, hit)
+    // Escape hatch for debug / advanced users.
+    _TRANSITIONS: TRANSITIONS
+  };
 })();

@@ -1,26 +1,14 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SWR Personas · 6 character presets</title>
   <meta name="description" content="The same 8 personas rendered in 6 different visual registers: Editorial, Dark, Friendly, Dashboard, Brutalist, Wireframe 3D. Pick the one that fits the room." />
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
-
-  <script>
-    (function() {
-      try {
-        var saved = localStorage.getItem('ms-theme');
-        var theme = saved || 'system';
-        var resolved = theme === 'system'
-          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : theme;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-pref', theme);
-      } catch (e) {}
-    })();
-  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -465,19 +453,7 @@
     })();
   </script>
 
-<nav class="nav">
-  <div class="nav__inner">
-    <a class="nav__brand" href="./landing.html"><span class="dot"></span> Sainted Word Records</a>
-    <span class="nav__sub">Personas · 5 registers</span>
-    <div class="nav__links">
-      <a href="./landing.html#versions">Landing</a>
-      <a href="/engine">Engine</a>
-      <a href="./campaign.html">Campaign</a>
-      <a href="./profit-plan.html">Plan</a>
-    </div>
-    <a class="nav__cta" href="/engine">Try the engine →</a>
-  </div>
-</nav>
+<swr-nav></swr-nav>
 
 <!-- ============================ HERO ============================ -->
 <header class="hero">
@@ -694,6 +670,35 @@
   </div>
 </footer>
 
+
+<script>
+// personas.html ?id= detection: when a persona ID is provided, dynamically
+// load persona-runtime.client.js and show that persona's demo. This replaces
+// the separate persona-demo.html page (merged 2026-09-12).
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const personaId = params.get('id');
+  if (!personaId) return;
+
+  // Show a banner indicating demo mode
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--accent);color:white;padding:12px 20px;font-family:var(--font-mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;z-index:9999;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+  banner.innerHTML = 'Persona demo: <strong>' + personaId + '</strong> · <a href="/personas" style="color:white;text-decoration:underline;">← back to all personas</a>';
+  document.body.appendChild(banner);
+
+  // Load persona-runtime.client.js
+  const script = document.createElement('script');
+  script.src = '/persona-runtime.client.js';
+  script.defer = true;
+  script.onload = () => {
+    if (window.SWR_PERSONA && window.SWR_PERSONA.apply) {
+      window.SWR_PERSONA.apply(personaId);
+    }
+  };
+  document.head.appendChild(script);
+})();
+</script>
+
 <script>
 class ThemeToggle extends HTMLElement {
   connectedCallback() {
@@ -715,5 +720,6 @@ class ThemeToggle extends HTMLElement {
 customElements.define('theme-toggle', ThemeToggle);
 </script>
 
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

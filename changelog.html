@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Changelog · Sainted Word Records</title>
@@ -39,16 +41,7 @@
   <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <nav class="top">
-    <a class="brand" href="/">SWR</a>
-    <div>
-      <a href="/engine">Engine</a>
-      <a href="/campaign.html">Pricing</a>
-      <a href="/personas.html">Personas</a>
-      <a href="/press.html">Press</a>
-      <a href="/intro.html">Intro</a> <a href="/about.html">About</a>
-    </div>
-  </nav>
+  <swr-nav></swr-nav>
   <main>
     <h1>Changelog</h1>
     <p class="sub">Public release history. Daily preset-pipeline runs aren't listed here — see <a href="/presets/manifest.json">/presets/manifest.json</a> for the live list.</p>
@@ -97,5 +90,6 @@
       Source on <a href="https://github.com/kajica2/rnn">GitHub</a>. Engine is MIT-licensed.
     </p>
   </main>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

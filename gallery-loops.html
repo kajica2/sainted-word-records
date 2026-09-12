@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LOOPS.GALLERY — SWR</title>
@@ -229,20 +231,7 @@
       <p class="header__sub">
         21 looping compositions · midjourney session 2 · h.264 CRF 28 · audio stripped
       </p>
-      <nav class="header__nav" aria-label="Gallery navigation">
-        <a href="#cinematic">▸ CINEMATIC (3)</a>
-        <a href="#character">▸ CHARACTER (2)</a>
-        <a href="#cityscape">▸ BELGRADE (2)</a>
-        <a href="#product">▸ PRODUCT (4)</a>
-        <a href="#editorial">▸ EDITORIAL (2)</a>
-        <a href="#illustration">▸ SERBIAN (2)</a>
-        <a href="#typography">▸ TYPOGRAPHY (2)</a>
-        <a href="#music-prompt">▸ MORODER (2)</a>
-        <a href="#kinetic">▸ KINETIC (1)</a>
-        <a href="#abstract">▸ ABSTRACT (1)</a>
-        <a class="is-cta" href="./gallery-brutalist.html">◀ BRUTALIST GALLERY</a>
-        <a href="./portfolio.html">PORTFOLIO →</a>
-      </nav>
+      <swr-nav></swr-nav>
     </div>
   </header>
 
@@ -473,5 +462,6 @@
 
   <script src="./client/dropzone.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

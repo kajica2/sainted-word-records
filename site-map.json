@@ -1,0 +1,414 @@
+{
+  "$schema": "./site-map.schema.json",
+  "_comment": "Canonical site IA. Source of truth for navigation, vercel.json rewrites, and vite.config.js rootFiles. Edit this file, then run scripts/generate-vercel-rewrites.mjs to regenerate vercel.json. Categories: engine, gallery, persona, learn, tool, page, legal.",
+  "_maintenance": {
+    "addPage": [
+      "1. Add page to appropriate section (nav, footer, auth, legal, or tools)",
+      "2. Run: node scripts/generate-vercel-rewrites.mjs",
+      "3. Run: node scripts/migrate-html.mjs <page.html> (adds shared CSS/JS)",
+      "4. Run: npm run verify:site-nav (smoke test)"
+    ],
+    "archivePage": [
+      "1. Add filename to 'archived' array below",
+      "2. Run: node scripts/archive-pages.mjs --dry-run (preview)",
+      "3. Run: node scripts/archive-pages.mjs (moves files to _archive/)",
+      "4. Run: node scripts/generate-vercel-rewrites.mjs"
+    ],
+    "removePage": [
+      "1. Remove entry from site-map.json (nav, footer, auth, legal, or tools)",
+      "2. Delete the .html file",
+      "3. Run: node scripts/generate-vercel-rewrites.mjs"
+    ],
+    "discoverPages": "Run: node scripts/generate-site-manifest.mjs --dry-run (auto-adds untracked HTML files)"
+  },
+  "_pathConventions": {
+    "root": "/page-name → /page-name.html",
+    "subdirectory": "/artists/foo → /artists/foo.html",
+    "gallery": "/gallery/music → /gallery-music.html (hyphenated)",
+    "withDotHtml": "/legal/privacy.html → /legal/privacy.html (as-is)",
+    "artistsIndex": "/artists → /artists/index.html",
+    "dynamic": "/s/:id → handled by share-view.html client-side"
+  },
+  "nav": [
+    {
+      "label": "Engine",
+      "href": "/engine",
+      "description": "Audio-reactive video engine",
+      "children": [
+        {
+          "label": "Launch",
+          "href": "/engine",
+          "description": "Open the engine"
+        },
+        {
+          "label": "Versions",
+          "href": "/versions",
+          "description": "5+ visual variants"
+        },
+        {
+          "label": "Make Video",
+          "href": "/make-video",
+          "description": "Music video maker"
+        },
+        {
+          "label": "Marketplace",
+          "href": "/marketplace",
+          "description": "Curated .swr-set templates"
+        },
+        {
+          "label": "Demos",
+          "href": "/engine-demos",
+          "description": "Live engine demos"
+        }
+      ]
+    },
+    {
+      "label": "Galleries",
+      "href": "/gallery",
+      "description": "19 curated galleries",
+      "children": [
+        {
+          "label": "All Galleries",
+          "href": "/gallery",
+          "description": "Gallery directory"
+        },
+        {
+          "label": "Artists",
+          "href": "/artists",
+          "description": "Featured artists"
+        },
+        {
+          "label": "Music",
+          "href": "/gallery/music",
+          "description": "Music gallery"
+        },
+        {
+          "label": "Generative",
+          "href": "/gallery/generative",
+          "description": "Generative gallery"
+        },
+        {
+          "label": "Cosmic",
+          "href": "/gallery/cosmic",
+          "description": "Cosmic gallery"
+        },
+        {
+          "label": "Bio",
+          "href": "/gallery/bio",
+          "description": "Bio gallery"
+        },
+        {
+          "label": "AI",
+          "href": "/gallery/ai",
+          "description": "AI gallery"
+        },
+        {
+          "label": "Glyphs",
+          "href": "/gallery/glyphs",
+          "description": "Glyphs gallery"
+        },
+        {
+          "label": "VR",
+          "href": "/gallery/vr",
+          "description": "VR gallery"
+        },
+        {
+          "label": "T-Shirts",
+          "href": "/gallery/tshirts",
+          "description": "T-shirt designs"
+        },
+        {
+          "label": "Posters",
+          "href": "/gallery/posters",
+          "description": "Poster designs"
+        },
+        {
+          "label": "Albums",
+          "href": "/gallery/albums",
+          "description": "Album art"
+        },
+        {
+          "label": "Video FX",
+          "href": "/gallery/videofx",
+          "description": "Video FX showcase"
+        },
+        {
+          "label": "Photo Exp",
+          "href": "/gallery/photoexp",
+          "description": "Photo experiments"
+        },
+        {
+          "label": "Point4Brand",
+          "href": "/gallery/point4brand",
+          "description": "Point4Brand gallery"
+        },
+        {
+          "label": "Artist",
+          "href": "/gallery/artist",
+          "description": "Artist gallery"
+        },
+        {
+          "label": "Dark Future",
+          "href": "/gallery/darkfuture",
+          "description": "Dark future gallery"
+        },
+        {
+          "label": "Bachdrop",
+          "href": "/gallery/bachdrop",
+          "description": "Bachdrop gallery"
+        },
+        {
+          "label": "Brutalist",
+          "href": "/gallery/brutalist",
+          "description": "Brutalist gallery"
+        },
+        {
+          "label": "Loops",
+          "href": "/gallery/loops",
+          "description": "Looping videos"
+        },
+        {
+          "label": "Vintage",
+          "href": "/gallery/vintage",
+          "description": "Vintage compositions"
+        }
+      ]
+    },
+    {
+      "label": "Personas",
+      "href": "/personas",
+      "description": "6 character presets"
+    },
+    {
+      "label": "Weddings",
+      "href": "/weddings",
+      "description": "Wedding visualizers"
+    },
+    {
+      "label": "Shop",
+      "href": "/shop",
+      "description": "SWR merchandise"
+    },
+    {
+      "label": "Learn",
+      "href": "/intro",
+      "description": "Tutorials and docs",
+      "children": [
+        {
+          "label": "Intro",
+          "href": "/intro",
+          "description": "30-second intro"
+        },
+        {
+          "label": "30s Tutorial",
+          "href": "/tutorial-30s",
+          "description": "Quick tutorial"
+        },
+        {
+          "label": "Interactive How-to",
+          "href": "/interactive-howto",
+          "description": "Interactive tutorial"
+        },
+        {
+          "label": "Changelog",
+          "href": "/changelog",
+          "description": "What's new"
+        },
+        {
+          "label": "About",
+          "href": "/about",
+          "description": "About SWR"
+        },
+        {
+          "label": "Press",
+          "href": "/press",
+          "description": "Press kit"
+        },
+        {
+          "label": "Portfolio",
+          "href": "/portfolio",
+          "description": "Portfolio"
+        },
+        {
+          "label": "Status",
+          "href": "/status",
+          "description": "System status"
+        }
+      ]
+    }
+  ],
+  "footer": [
+    {
+      "label": "Get a visualizer",
+      "href": "/campaign",
+      "description": "Hire us for a custom visualizer"
+    },
+    {
+      "label": "Marketplace",
+      "href": "/marketplace",
+      "description": "Browse templates"
+    },
+    {
+      "label": "Share",
+      "href": "/share-view",
+      "description": "View shared compositions"
+    }
+  ],
+  "auth": {
+    "label": "Login",
+    "href": "/login",
+    "description": "Sign in to your account"
+  },
+  "legal": [
+    {
+      "label": "Privacy",
+      "href": "/legal/privacy.html",
+      "description": "Privacy policy"
+    },
+    {
+      "label": "Terms",
+      "href": "/legal/terms.html",
+      "description": "Terms of service"
+    }
+  ],
+  "tools": [
+    {
+      "label": "AR GIF",
+      "href": "/ar-gif",
+      "description": "Drop a GIF, see it in AR"
+    },
+    {
+      "label": "Share View",
+      "href": "/s/:id",
+      "description": "View shared composition"
+    },
+    {
+      "label": "App",
+      "href": "/swr-app",
+      "description": "SWR app"
+    },
+    {
+      "label": "Thanks",
+      "href": "/thanks",
+      "description": "Thank you page"
+    }
+  ],
+  "archived": [
+    "style-guide.html"
+  ],
+  "meta": {
+    "version": "1.0.0",
+    "lastUpdated": "2026-09-12",
+    "totalPages": 108,
+    "corePages": 107,
+    "archivedPages": 1
+  },
+  "discovered": [
+    "about.html",
+    "artists/ana-maric.html",
+    "artists/dusan-popov.html",
+    "artists/index.html",
+    "artists/kira-lindqvist.html",
+    "artists/marko-ilic.html",
+    "artists/nina-volkova.html",
+    "artists/vodolija/index.html",
+    "artists/vodolija.html",
+    "auth/login.html",
+    "auth/verify.html",
+    "campaign.html",
+    "changelog.html",
+    "engine-demos.html",
+    "engine.html",
+    "gallery-ai.html",
+    "gallery-albums.html",
+    "gallery-artist.html",
+    "gallery-bachdrop.html",
+    "gallery-bio.html",
+    "gallery-brutalist.html",
+    "gallery-cosmic.html",
+    "gallery-darkfuture.html",
+    "gallery-generative.html",
+    "gallery-glyphs.html",
+    "gallery-loops.html",
+    "gallery-music.html",
+    "gallery-photoexp.html",
+    "gallery-point4brand.html",
+    "gallery-posters.html",
+    "gallery-tshirts.html",
+    "gallery-videofx.html",
+    "gallery-vintage.html",
+    "gallery-vr.html",
+    "gallery.html",
+    "interactive-howto.html",
+    "intro.html",
+    "landing-personas-v11-zine.html",
+    "landing.html",
+    "login.html",
+    "make-video.html",
+    "marketplace.html",
+    "personas/v/clubstrobe.html",
+    "personas/v/filmfilm.html",
+    "personas/v/filter.html",
+    "personas/v/fx.html",
+    "personas/v/grid.html",
+    "personas/v/hallucination.html",
+    "personas/v/index.html",
+    "personas/v/liquidglass.html",
+    "personas/v/mask.html",
+    "personas/v/morphaanchor.html",
+    "personas/v/morphaecho.html",
+    "personas/v/morphaflow.html",
+    "personas/v/morphafracture.html",
+    "personas/v/morphavoid.html",
+    "personas/v/neon.html",
+    "personas/v/neonwash.html",
+    "personas/v/pearlhaze.html",
+    "personas/v/poster.html",
+    "personas/v/raw.html",
+    "personas/v/smoke.html",
+    "personas/v/trainstage1.html",
+    "personas/v/trainstage2.html",
+    "personas/v/trainstage3.html",
+    "personas/v/vhsvibe.html",
+    "personas.html",
+    "portfolio.html",
+    "press.html",
+    "share-view.html",
+    "shop.html",
+    "shotlist/index.html",
+    "status.html",
+    "swr-app.html",
+    "swr-intro-10s.html",
+    "thanks.html",
+    "tools/hf-publish.html",
+    "tools/manifest-editor.html",
+    "tools/mobile/index.html",
+    "tutorial-30s.html",
+    "versions/aurora.html",
+    "versions/bachdrop.html",
+    "versions/baroque.html",
+    "versions/chrome.html",
+    "versions/collage.html",
+    "versions/eclipse.html",
+    "versions/film.html",
+    "versions/fractal.html",
+    "versions/gallery.html",
+    "versions/glitch.html",
+    "versions/grid.html",
+    "versions/hallucination.html",
+    "versions/kraft.html",
+    "versions/mosaic.html",
+    "versions/music_video.html",
+    "versions/neon.html",
+    "versions/phosphor.html",
+    "versions/pulse.html",
+    "versions/smoke.html",
+    "versions/spectrum.html",
+    "versions/tape.html",
+    "versions/typography.html",
+    "versions/void.html",
+    "versions/watercolor.html",
+    "versions.html",
+    "weddings.html"
+  ]
+}

@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sainted Word Records — Audio-reactive video engine</title>
@@ -24,30 +26,16 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
 
   <!-- No-flash theme bootstrap -->
-  <script>
-    (function() {
-      try {
-        var saved = localStorage.getItem('swr-theme');
-        var theme = saved || 'system';
-        var resolved = theme === 'system'
-          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : theme;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-pref', theme);
-      } catch (e) {}
-    })();
-  </script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
+  <link rel="stylesheet" href="/lib/design-base.css">
 
   <style>
     :root {
       --bg: #faf7f2;
       --bg-2: #f1ebe1;
       --bg-3: #ffffff;
-      --surface: transparent;
       --ink: #1a1612;
       --ink-2: #4a4035;
       --muted: #8a7a66;
@@ -68,17 +56,16 @@
       --font-display: 'Fraunces', ui-serif, Georgia, serif;
       --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
       --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-      --radius: 2px;
-      --radius-sm: 2px;
-      --shadow-1: none;
-      --shadow-2: none;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+      --shadow-2: 0 2px 8px rgba(26, 22, 18, 0.06), 0 16px 48px rgba(26, 22, 18, 0.08);
       --transition: 0.18s ease;
     }
     [data-theme="dark"] {
       --bg: #0e0c0a;
       --bg-2: #161310;
       --bg-3: #1d1815;
-      --surface: transparent;
       --ink: #f5ead8;
       --ink-2: #d4c7b3;
       --muted: #8a7a66;
@@ -96,8 +83,8 @@
       --code-key: #ffaa3a;
       --code-str: #00ffa3;
       --code-fn: #ff2d8a;
-      --shadow-1: none;
-      --shadow-2: none;
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -123,7 +110,8 @@
     /* ===== NAV ===== */
     .nav {
       position: sticky; top: 0; z-index: 50;
-      background: var(--bg);
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
       border-bottom: 1px solid var(--line);
     }
     .nav__inner {
@@ -137,8 +125,15 @@
       color: var(--ink);
     }
     .nav__brand .dot {
-      width: 6px; height: 6px; border-radius: 50%;
+      width: 10px; height: 10px; border-radius: 50%;
       background: var(--accent);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); }
+      70%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent); }
+      100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
     }
     .nav__links { display: flex; gap: 22px; margin-left: auto; }
     .nav__links a {
@@ -213,6 +208,7 @@
       border-radius: var(--radius);
       overflow: hidden; position: relative;
       background: var(--bg-3);
+      box-shadow: var(--shadow-2);
     }
     .engine-mini canvas, engine-mini canvas {
       width: 100%; height: 100%; display: block;
@@ -242,6 +238,7 @@
       color: var(--bg);
       background: rgba(26, 22, 18, 0.75);
       padding: 4px 9px; border-radius: 4px;
+      backdrop-filter: blur(4px);
     }
     .engine-mini__meters {
       position: absolute; bottom: 12px; right: 12px;
@@ -386,6 +383,7 @@
       letter-spacing: 0.14em; text-transform: uppercase;
       color: var(--bg); background: rgba(26, 22, 18, 0.78);
       padding: 4px 8px; border-radius: 3px;
+      backdrop-filter: blur(4px);
     }
     .ver__body { padding: 20px 22px 22px; }
     .ver__name {
@@ -528,6 +526,7 @@
       font-family: var(--font-mono);
       font-size: 13px;
       line-height: 1.7;
+      box-shadow: var(--shadow-2);
     }
     .terminal__bar {
       display: flex; align-items: center; gap: 8px;
@@ -714,7 +713,7 @@
       color: var(--accent);
     }
     .pill--size {
-      background: var(--surface);
+      background: var(--bg-2);
       color: var(--muted);
       border: 1px solid var(--line);
     }
@@ -725,88 +724,11 @@
 
     /* GitHub icon */
     .icon-gh { width: 16px; height: 16px; fill: currentColor; }
-
-    /* ===== TRANSITIONS GRID ===== */
-    .transition-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
-    }
-    @media (max-width: 980px) { .transition-grid { grid-template-columns: 1fr; } }
-    .tx-card {
-      position: relative;
-      background: var(--bg-3);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 22px 24px 20px;
-      transition: border-color var(--transition), transform var(--transition);
-    }
-    .tx-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-1px);
-    }
-    .tx-num {
-      position: absolute; top: 14px; right: 18px;
-      font-family: var(--font-mono);
-      font-size: 10px; letter-spacing: 0.14em;
-      color: var(--muted);
-    }
-    .tx-card h3 {
-      font-family: var(--font-display); font-weight: 500;
-      font-size: 20px; letter-spacing: -0.01em;
-      margin: 0 0 6px; color: var(--ink);
-    }
-    .tx-tag {
-      font-family: var(--font-mono); font-size: 10px;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--accent); margin: 0 0 10px;
-    }
-    .tx-body {
-      font-size: 13px; line-height: 1.55;
-      color: var(--ink-2); margin: 0;
-    }
-    .tx-cta {
-      margin-top: 32px;
-      display: flex; flex-wrap: wrap; align-items: center;
-      gap: 12px;
-    }
-    .tx-cta .tx-note {
-      flex: 1 1 100%;
-      margin: 8px 0 0;
-      font-size: 12px; line-height: 1.55;
-      color: var(--muted);
-    }
-    .tx-cta .tx-note code {
-      font-family: var(--font-mono);
-      background: rgba(255, 210, 74, 0.1);
-      color: var(--accent-3);
-      padding: 1px 5px; border-radius: 3px;
-    }
   </style>
-  <script src="/nav.client.js" defer></script>
-  <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
   <!-- ============ NAV ============ -->
-  <nav class="nav">
-    <div class="nav__inner">
-      <a class="nav__brand" href="#">
-        <span class="dot"></span>
-        Sainted Word Records
-      </a>
-      <div class="nav__links">
-        <a href="#features">Engine</a>
-        <a href="/versions">Versions</a>
-        <a href="/intro">Intro</a>
-        <a href="#quickstart">Quick start</a>
-        <a href="#stack">Stack</a>
-        <a href="#pages">All pages</a>
-      </div>
-      <theme-toggle></theme-toggle>
-      <a class="nav__cta" href="./campaign.html">
-        Get a visualizer
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-      </a>
-    </div>
-  </nav>
+  <swr-nav></swr-nav>
 
   <!-- ============ HERO ============ -->
   <header class="hero">
@@ -838,9 +760,6 @@
           </a>
           <a class="btn btn--ghost" href="/engine">
             Open the engine
-          </a>
-          <a class="btn btn--ghost" href="/video_single">
-            Transition stage
           </a>
         </div>
       </div>
@@ -1195,105 +1114,6 @@
           <p class="persona__body">Visual content for the whole roster. One tool, one workflow, ten artists' worth of social posts per month.</p>
           <span class="persona__tool">→ <code>profit-plan.html</code></span>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ TRANSITIONS ============ -->
-  <section class="section" id="transitions">
-    <div class="wrap">
-      <div class="section__head reveal">
-        <span class="section__kicker">10 CSS transitions</span>
-        <h2 class="section__title">
-          The cuts between the <em>shots</em>.
-        </h2>
-        <p class="section__lede">
-          Ten music-video transition techniques, built as pure-CSS keyframes
-          on top of a single full-bleed canvas. Whip-pan cover, glitch block,
-          zoom-through, strobe flash, paint-stroke, chromatic split, swivel
-          clone, circle wipe, warp dissolve, lens-flare sweep. Beat-synced or
-          manual — drive the whole reel from a JSON timeline or fire one
-          transition per click.
-        </p>
-      </div>
-
-      <div class="transition-grid reveal">
-        <div class="tx-card">
-          <span class="tx-num">01</span>
-          <h3>Whip Pan Cover</h3>
-          <p class="tx-tag">Cover · 0.45s · 90–130 BPM</p>
-          <p class="tx-body">Directional motion-blurred pan. Match direction and shutter speed on both ends to sell the cover.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">02</span>
-          <h3>Glitch Block</h3>
-          <p class="tx-tag">Distortion · 0.5s · 70–160 BPM</p>
-          <p class="tx-body">Stair-stepped clip-path displacement. Pair with RGB split on the sub-bass drop.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">03</span>
-          <h3>Zoom Through Object</h3>
-          <p class="tx-tag">Spatial · 0.5s · 80–120 BPM</p>
-          <p class="tx-body">Scale through a foreground mask — pretending the camera passes through a subject.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">04</span>
-          <h3>Strobe Flash</h3>
-          <p class="tx-tag">Brightness · 0.5s · Any</p>
-          <p class="tx-body">Multi-frame white strobe, then cut. Cheap, loud, effective on beat drops.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">05</span>
-          <h3>Paint Stroke</h3>
-          <p class="tx-tag">Mask · 0.55s · 60–90 BPM</p>
-          <p class="tx-body">SVG stroke-dasharray reveals the next frame through a hand-drawn mask path.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">06</span>
-          <h3>Chromatic Split</h3>
-          <p class="tx-tag">Distortion · 0.5s · 80–140 BPM</p>
-          <p class="tx-body">RGB channels offset on transition, then snap back. Reads as analog distortion.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">07</span>
-          <h3>Swivel Clone</h3>
-          <p class="tx-tag">Cover · 0.6s · 70–110 BPM</p>
-          <p class="tx-body">3D rotateY 180° on the cut point. The subject becomes the next subject.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">08</span>
-          <h3>Circle Wipe</h3>
-          <p class="tx-tag">Mask · 0.6s · 80–120 BPM</p>
-          <p class="tx-body">Expanding clip-path circle from the center. Classic for a reason.</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">09</span>
-          <h3>Warp + Dissolve</h3>
-          <p class="tx-tag">Hybrid · 0.6s · 90–130 BPM</p>
-          <p class="tx-body">Scale, skew, blur, and cross-dissolve. Reads as a "stretch through time".</p>
-        </div>
-        <div class="tx-card">
-          <span class="tx-num">10</span>
-          <h3>Lens Flare Sweep</h3>
-          <p class="tx-tag">Brightness · 0.8s · 60–100 BPM</p>
-          <p class="tx-body">Radial flare blooms from center and washes the cut. Cinematic, a music-video workhorse.</p>
-        </div>
-      </div>
-
-      <div class="tx-cta reveal">
-        <a class="btn btn--primary" href="/video_single">
-          ▶ Open the transition stage
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-        </a>
-        <a class="btn btn--ghost" href="/engine">
-          Use them in the engine
-        </a>
-        <p class="tx-note">
-          Single-canvas stage. Web Audio FFT. Beat-led. Keyboard 1–0 fires each transition,
-          Shift+1–0 sets auto-fire. The rooftop-opening reel plays on a JSON timeline
-          mapped to <code>audios/kraft.mp3</code> — every panel boundary lands on a real
-          audio energy gap, not a hardcoded cue.
-        </p>
       </div>
     </div>
   </section>
@@ -1782,8 +1602,7 @@
           <ul>
             <li><a href="/engine">Main engine</a></li>
             <li><a href="/versions">All versions</a></li>
-            <li><a href="/video_single">Transition stage</a></li>
-            <li><a href="./versions.html">23 visual versions</a></li>
+            <li><a href="./versions.html">5 visual versions</a></li>
             <li><a href="./HOWTO-30s-VIDEO.md">How to · 30s</a></li>
             <li><a href="./library/manifest.json">Library manifest</a></li>
             <li><a href="#pages">All pages</a></li>
@@ -2238,5 +2057,6 @@
   <script src="/client/dropzone.client.js" defer></script>
 <script src="/client/asset-curator.client.js" defer></script>
 <script src="/client/bg-removal-confirm.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

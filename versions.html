@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Versions · Sainted Word Records</title>
@@ -298,23 +300,7 @@
 </head>
 <body>
   <!-- ============ NAV ============ -->
-  <nav class="nav">
-    <div class="nav__inner">
-      <a class="nav__brand" href="/">
-        <span class="dot"></span>
-        Sainted Word Records
-      </a>
-      <div class="nav__links">
-        <a href="/">Home</a>
-        <a href="/engine">Engine</a>
-        <a href="/versions" style="color: var(--accent);">Versions</a>
-        <a href="/changelog">Changelog</a>
-        <a href="/press">Press</a>
-        <a href="/status">Status</a>
-      </div>
-      <a class="nav__cta" href="/engine">Open engine →</a>
-    </div>
-  </nav>
+  <swr-nav></swr-nav>
 
   <div class="wrap">
     <!-- ============ HERO ============ -->
@@ -891,5 +877,6 @@
   </footer>
 
   <script src="/versions.client.js"></script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

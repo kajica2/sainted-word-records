@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Press · Sainted Word Records</title>
@@ -43,16 +45,7 @@
   <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <nav class="top">
-    <a class="brand" href="/">SWR</a>
-    <div>
-      <a href="/engine">Engine</a>
-      <a href="/campaign.html">Pricing</a>
-      <a href="/personas.html">Personas</a>
-      <a href="/changelog.html">Changelog</a>
-      <a href="/intro.html">Intro</a> <a href="/about.html">About</a>
-    </div>
-  </nav>
+  <swr-nav></swr-nav>
   <main>
     <h1>Press kit</h1>
     <p class="lede">Logos, screenshots, and a one-line bio. Everything below is free to use in editorial coverage with attribution. For interviews or exclusive assets, drop a line at <code>kai [at] saintedwordrecords [dot] com</code>.</p>
@@ -151,5 +144,6 @@
 
     <p class="small">Attribution appreciated: "Sainted Word Records — saintedwordrecords.com". Logos are released under the same MIT license as the engine. Email for exclusive assets, custom sizes, or raw source files.</p>
   </main>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

@@ -103,12 +103,12 @@
       "destination": "/engine.html"
     },
     {
-      "source": "/ar-loop",
-      "destination": "/engine-ar-loop.html"
+      "source": "/engine",
+      "destination": "/engine.html"
     },
     {
-      "source": "/ar-loop/",
-      "destination": "/engine-ar-loop.html"
+      "source": "/engine/",
+      "destination": "/engine.html"
     },
     {
       "source": "/versions",
@@ -119,20 +119,20 @@
       "destination": "/versions.html"
     },
     {
-      "source": "/about",
-      "destination": "/about.html"
+      "source": "/make-video",
+      "destination": "/make-video.html"
     },
     {
-      "source": "/about/",
-      "destination": "/about.html"
+      "source": "/make-video/",
+      "destination": "/make-video.html"
     },
     {
-      "source": "/changelog",
-      "destination": "/changelog.html"
+      "source": "/marketplace",
+      "destination": "/marketplace.html"
     },
     {
-      "source": "/changelog/",
-      "destination": "/changelog.html"
+      "source": "/marketplace/",
+      "destination": "/marketplace.html"
     },
     {
       "source": "/engine-demos",
@@ -143,20 +143,180 @@
       "destination": "/engine-demos.html"
     },
     {
-      "source": "/press",
-      "destination": "/press.html"
+      "source": "/gallery",
+      "destination": "/gallery.html"
     },
     {
-      "source": "/press/",
-      "destination": "/press.html"
+      "source": "/gallery/",
+      "destination": "/gallery.html"
     },
     {
-      "source": "/status",
-      "destination": "/status.html"
+      "source": "/gallery",
+      "destination": "/gallery.html"
     },
     {
-      "source": "/status/",
-      "destination": "/status.html"
+      "source": "/gallery/",
+      "destination": "/gallery.html"
+    },
+    {
+      "source": "/artists",
+      "destination": "/artists.html"
+    },
+    {
+      "source": "/artists/",
+      "destination": "/artists.html"
+    },
+    {
+      "source": "/gallery/music",
+      "destination": "/gallery-music.html"
+    },
+    {
+      "source": "/gallery/music/",
+      "destination": "/gallery-music.html"
+    },
+    {
+      "source": "/gallery/generative",
+      "destination": "/gallery-generative.html"
+    },
+    {
+      "source": "/gallery/generative/",
+      "destination": "/gallery-generative.html"
+    },
+    {
+      "source": "/gallery/cosmic",
+      "destination": "/gallery-cosmic.html"
+    },
+    {
+      "source": "/gallery/cosmic/",
+      "destination": "/gallery-cosmic.html"
+    },
+    {
+      "source": "/gallery/bio",
+      "destination": "/gallery-bio.html"
+    },
+    {
+      "source": "/gallery/bio/",
+      "destination": "/gallery-bio.html"
+    },
+    {
+      "source": "/gallery/ai",
+      "destination": "/gallery-ai.html"
+    },
+    {
+      "source": "/gallery/ai/",
+      "destination": "/gallery-ai.html"
+    },
+    {
+      "source": "/gallery/glyphs",
+      "destination": "/gallery-glyphs.html"
+    },
+    {
+      "source": "/gallery/glyphs/",
+      "destination": "/gallery-glyphs.html"
+    },
+    {
+      "source": "/gallery/vr",
+      "destination": "/gallery-vr.html"
+    },
+    {
+      "source": "/gallery/vr/",
+      "destination": "/gallery-vr.html"
+    },
+    {
+      "source": "/gallery/tshirts",
+      "destination": "/gallery-tshirts.html"
+    },
+    {
+      "source": "/gallery/tshirts/",
+      "destination": "/gallery-tshirts.html"
+    },
+    {
+      "source": "/gallery/posters",
+      "destination": "/gallery-posters.html"
+    },
+    {
+      "source": "/gallery/posters/",
+      "destination": "/gallery-posters.html"
+    },
+    {
+      "source": "/gallery/albums",
+      "destination": "/gallery-albums.html"
+    },
+    {
+      "source": "/gallery/albums/",
+      "destination": "/gallery-albums.html"
+    },
+    {
+      "source": "/gallery/videofx",
+      "destination": "/gallery-videofx.html"
+    },
+    {
+      "source": "/gallery/videofx/",
+      "destination": "/gallery-videofx.html"
+    },
+    {
+      "source": "/gallery/photoexp",
+      "destination": "/gallery-photoexp.html"
+    },
+    {
+      "source": "/gallery/photoexp/",
+      "destination": "/gallery-photoexp.html"
+    },
+    {
+      "source": "/gallery/point4brand",
+      "destination": "/gallery-point4brand.html"
+    },
+    {
+      "source": "/gallery/point4brand/",
+      "destination": "/gallery-point4brand.html"
+    },
+    {
+      "source": "/gallery/artist",
+      "destination": "/gallery-artist.html"
+    },
+    {
+      "source": "/gallery/artist/",
+      "destination": "/gallery-artist.html"
+    },
+    {
+      "source": "/gallery/darkfuture",
+      "destination": "/gallery-darkfuture.html"
+    },
+    {
+      "source": "/gallery/darkfuture/",
+      "destination": "/gallery-darkfuture.html"
+    },
+    {
+      "source": "/gallery/bachdrop",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
+      "source": "/gallery/bachdrop/",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
+      "source": "/gallery/brutalist",
+      "destination": "/gallery-brutalist.html"
+    },
+    {
+      "source": "/gallery/brutalist/",
+      "destination": "/gallery-brutalist.html"
+    },
+    {
+      "source": "/gallery/loops",
+      "destination": "/gallery-loops.html"
+    },
+    {
+      "source": "/gallery/loops/",
+      "destination": "/gallery-loops.html"
+    },
+    {
+      "source": "/gallery/vintage",
+      "destination": "/gallery-vintage.html"
+    },
+    {
+      "source": "/gallery/vintage/",
+      "destination": "/gallery-vintage.html"
     },
     {
       "source": "/personas",
@@ -167,111 +327,160 @@
       "destination": "/personas.html"
     },
     {
-      "source": "/personas/v/:id",
-      "destination": "/personas/v/:id.html"
+      "source": "/weddings",
+      "destination": "/weddings.html"
     },
     {
-      "source": "/personas/v/:id/",
-      "destination": "/personas/v/:id.html"
+      "source": "/weddings/",
+      "destination": "/weddings.html"
     },
     {
-      "source": "/personas/v/index",
-      "destination": "/personas/v/index.html"
+      "source": "/shop",
+      "destination": "/shop.html"
     },
     {
-      "source": "/personas/v/index/",
-      "destination": "/personas/v/index.html"
+      "source": "/shop/",
+      "destination": "/shop.html"
     },
     {
-      "source": "/personas/:id",
-      "destination": "/persona-demo.html?id=:id"
+      "source": "/intro",
+      "destination": "/intro.html"
     },
     {
-      "source": "/personas/:id/",
-      "destination": "/persona-demo.html?id=:id"    },
+      "source": "/intro/",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/intro",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/intro/",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/tutorial-30s",
+      "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/tutorial-30s/",
+      "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/interactive-howto",
+      "destination": "/interactive-howto.html"
+    },
+    {
+      "source": "/interactive-howto/",
+      "destination": "/interactive-howto.html"
+    },
+    {
+      "source": "/changelog",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/changelog/",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/about/",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/press",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/press/",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/portfolio/",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/status/",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/campaign",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/campaign/",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/marketplace",
+      "destination": "/marketplace.html"
+    },
+    {
+      "source": "/marketplace/",
+      "destination": "/marketplace.html"
+    },
+    {
+      "source": "/share-view",
+      "destination": "/share-view.html"
+    },
+    {
+      "source": "/share-view/",
+      "destination": "/share-view.html"
+    },
+    {
+      "source": "/legal/privacy.html",
+      "destination": "/legal/privacy.html"
+    },
+    {
+      "source": "/legal/privacy.html/",
+      "destination": "/legal/privacy.html"
+    },
+    {
+      "source": "/legal/terms.html",
+      "destination": "/legal/terms.html"
+    },
+    {
+      "source": "/legal/terms.html/",
+      "destination": "/legal/terms.html"
+    },
+    {
+      "source": "/ar-gif",
+      "destination": "/ar-gif.html"
+    },
+    {
+      "source": "/ar-gif/",
+      "destination": "/ar-gif.html"
+    },
+    {
+      "source": "/s/:id",
+      "destination": "/s/:id.html"
+    },
+    {
+      "source": "/s/:id/",
+      "destination": "/s/:id.html"
+    },
+    {
+      "source": "/swr-app",
+      "destination": "/swr-app.html"
+    },
+    {
+      "source": "/swr-app/",
+      "destination": "/swr-app.html"
+    },
     {
       "source": "/thanks",
       "destination": "/thanks.html"
-    },
-    {
-      "source": "/atlas",
-      "destination": "/atlas.html"
-    },
-    {
-      "source": "/atlas/",
-      "destination": "/atlas.html"
-    },
-    {
-      "source": "/atlas/crisis",
-      "destination": "/atlas-crisis.html"
-    },
-    {
-      "source": "/atlas/crisis/",
-      "destination": "/atlas-crisis.html"
-    },
-    {
-      "source": "/atlas/life-stages",
-      "destination": "/atlas-life-stages.html"
-    },
-    {
-      "source": "/atlas/life-stages/",
-      "destination": "/atlas-life-stages.html"
-    },
-    {
-      "source": "/atlas/200-steps",
-      "destination": "/atlas-200-steps.html"
-    },
-    {
-      "source": "/atlas/200-steps/",
-      "destination": "/atlas-200-steps.html"
-    },
-    {
-      "source": "/atlas/checklist",
-      "destination": "/atlas-checklist.html"
-    },
-    {
-      "source": "/atlas/checklist/",
-      "destination": "/atlas-checklist.html"
-    },
-    {
-      "source": "/atlas/final-insight",
-      "destination": "/atlas-final-insight.html"
-    },
-    {
-      "source": "/atlas/final-insight/",
-      "destination": "/atlas-final-insight.html"
-    },
-    {
-      "source": "/atlas/architect",
-      "destination": "/atlas-architect.html"
-    },
-    {
-      "source": "/atlas/architect/",
-      "destination": "/atlas-architect.html"
-    },
-    {
-      "source": "/atlas/forge",
-      "destination": "/atlas-forge.html"
-    },
-    {
-      "source": "/atlas/forge/",
-      "destination": "/atlas-forge.html"
-    },
-    {
-      "source": "/atlas/integration",
-      "destination": "/atlas-integration.html"
-    },
-    {
-      "source": "/atlas/integration/",
-      "destination": "/atlas-integration.html"
-    },
-    {
-      "source": "/atlas/legacy",
-      "destination": "/atlas-legacy.html"
-    },
-    {
-      "source": "/atlas/legacy/",
-      "destination": "/atlas-legacy.html"
     },
     {
       "source": "/thanks/",
@@ -279,10 +488,18 @@
     },
     {
       "source": "/login",
-      "destination": "/auth/login.html"
+      "destination": "/login.html"
     },
     {
       "source": "/login/",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/auth/login",
+      "destination": "/auth/login.html"
+    },
+    {
+      "source": "/auth/login/",
       "destination": "/auth/login.html"
     },
     {
@@ -294,96 +511,38 @@
       "destination": "/auth/verify.html"
     },
     {
-      "source": "/auth/login",
-      "destination": "/auth/login.html"
+      "source": "/personas/v/:id",
+      "destination": "/personas.html"
     },
     {
-      "source": "/auth/login/",
-      "destination": "/auth/login.html"
+      "source": "/personas/v/:id/",
+      "destination": "/personas.html"
     },
     {
-      "source": "/campaign",
-      "destination": "/campaign.html"
+      "source": "/personas/v/index",
+      "destination": "/personas.html"
     },
     {
-      "source": "/campaign/",
-      "destination": "/campaign.html"
+      "source": "/personas/v/index/",
+      "destination": "/personas.html"
     },
     {
-      "source": "/portfolio",
-      "destination": "/portfolio.html"
+      "source": "/personas/:id",
+      "destination": "/personas.html"
     },
     {
-      "source": "/portfolio/",
-      "destination": "/portfolio.html"
+      "source": "/personas/:id/",
+      "destination": "/personas.html"
     },
     {
-      "source": "/artists",
-      "destination": "/artists/index.html"
+      "source": "/style-guide",
+      "destination": "/style-guide.html",
+      "statusCode": 404
     },
     {
-      "source": "/artists/",
-      "destination": "/artists/index.html"
-    },
-    {
-      "source": "/artists/:id",
-      "destination": "/artists/:id.html"
-    },
-    {
-      "source": "/artists/:id/",
-      "destination": "/artists/:id.html"
-    },
-    {
-      "source": "/artists/vodolija",
-      "destination": "/artists/vodolija/index.html"
-    },
-    {
-      "source": "/artists/vodolija/",
-      "destination": "/artists/vodolija/index.html"
-    },
-    {
-      "source": "/shotlist",
-      "destination": "/shotlist/index.html"
-    },
-    {
-      "source": "/shotlist/",
-      "destination": "/shotlist/index.html"
-    },
-    {
-      "source": "/intro",
-      "destination": "/intro.html"
-    },
-    {
-      "source": "/gif-to-svg",
-      "destination": "/gif-to-svg.html"
-    },
-    {
-      "source": "/gif-to-svg/",
-      "destination": "/gif-to-svg.html"
-    },
-    {
-      "source": "/gif-to-svg.client.js",
-      "destination": "/gif-to-svg.client.js"
-    },
-    {
-      "source": "/intro/",
-      "destination": "/intro.html"
-    },
-    {
-      "source": "/make-video",
-      "destination": "/make-video.html"
-    },
-    {
-      "source": "/make-video/",
-      "destination": "/make-video.html"
-    },
-    {
-      "source": "/photo",
-      "destination": "/photo.html"
-    },
-    {
-      "source": "/photo/",
-      "destination": "/photo.html"
+      "source": "/persona-demo.html",
+      "destination": "/personas.html",
+      "statusCode": 301
     },
     {
       "source": "/tools/hf-publish",
@@ -398,165 +557,14 @@
       "destination": "/tools/lib/hf-publish.client.js"
     },
     {
-      "source": "/app",
-      "destination": "/swr-app.html"
-    },
-    {
-      "source": "/app/",
-      "destination": "/swr-app.html"
-    },
-    {
-      "source": "/s/:id",
-      "destination": "/share-view.html"
-    },
-    {
-      "source": "/video_single",
-      "destination": "/video_single.html"    },
-    {
-      "source": "/video_single/",
-      "destination": "/video_single.html"    },
-    {
-      "source": "/enhance",
-      "destination": "/enhance.html"    },
-    {
-      "source": "/enhance/",
-      "destination": "/enhance.html"    },
-    {
-      "source": "/echo-manifold",
-      "destination": "/versions/echo-manifold.html"    },
-    {
-      "source": "/echo-manifold/",
-      "destination": "/versions/echo-manifold.html"    },
-    {
-      "source": "/gallery/music",
-      "destination": "/gallery-music.html"    },
-    {
-      "source": "/gallery/music/",
-      "destination": "/gallery-music.html"    },
-    {
-      "source": "/gallery/generative",
-      "destination": "/gallery-generative.html"    },
-    {
-      "source": "/gallery/generative/",
-      "destination": "/gallery-generative.html"    },
-    {
-      "source": "/gallery/cosmic",
-      "destination": "/gallery-cosmic.html"    },
-    {
-      "source": "/gallery/cosmic/",
-      "destination": "/gallery-cosmic.html"    },
-    {
-      "source": "/gallery/bio",
-      "destination": "/gallery-bio.html"    },
-    {
-      "source": "/gallery/bio/",
-      "destination": "/gallery-bio.html"    },
-    {
-      "source": "/gallery/ai",
-      "destination": "/gallery-ai.html"    },
-    {
-      "source": "/gallery/ai/",
-      "destination": "/gallery-ai.html"    },
-    {
-      "source": "/gallery/glyphs",
-      "destination": "/gallery-glyphs.html"    },
-    {
-      "source": "/gallery/glyphs/",
-      "destination": "/gallery-glyphs.html"    },
-    {
-      "source": "/gallery/vr",
-      "destination": "/gallery-vr.html"    },
-    {
-      "source": "/gallery/vr/",
-      "destination": "/gallery-vr.html"    },
-    {
-      "source": "/gallery/tshirts",
-      "destination": "/gallery-tshirts.html"    },
-    {
-      "source": "/gallery/tshirts/",
-      "destination": "/gallery-tshirts.html"    },
-    {
-      "source": "/gallery/posters",
-      "destination": "/gallery-posters.html"    },
-    {
-      "source": "/gallery/posters/",
-      "destination": "/gallery-posters.html"    },
-    {
-      "source": "/gallery/albums",
-      "destination": "/gallery-albums.html"    },
-    {
-      "source": "/gallery/albums/",
-      "destination": "/gallery-albums.html"    },
-    {
-      "source": "/gallery/videofx",
-      "destination": "/gallery-videofx.html"    },
-    {
-      "source": "/gallery/videofx/",
-      "destination": "/gallery-videofx.html"    },
-    {
-      "source": "/gallery/photoexp",
-      "destination": "/gallery-photoexp.html"    },
-    {
-      "source": "/gallery/photoexp/",
-      "destination": "/gallery-photoexp.html"    },
-    {
-      "source": "/gallery/point4brand",
-      "destination": "/gallery-point4brand.html"    },
-    {
-      "source": "/gallery/point4brand/",
-      "destination": "/gallery-point4brand.html"    },
-    {
-      "source": "/gallery/artist",
-      "destination": "/gallery-artist.html"    },
-    {
-      "source": "/gallery/artist/",
-      "destination": "/gallery-artist.html"    },
-    {
-      "source": "/gallery/darkfuture",
-      "destination": "/gallery-darkfuture.html"    },
-    {
-      "source": "/gallery/darkfuture/",
-      "destination": "/gallery-darkfuture.html"    },
-    {
-      "source": "/gallery/bachdrop",
-      "destination": "/gallery-bachdrop.html"    },
-    {
-      "source": "/gallery/brutalist",
-      "destination": "/gallery-brutalist.html"    },
-    {
-      "source": "/gallery/brutalist/",
-      "destination": "/gallery-brutalist.html"    },
-    {
-      "source": "/gallery/loops",
-      "destination": "/gallery-loops.html"    },
-    {
-      "source": "/gallery/loops/",
-      "destination": "/gallery-loops.html"    },
-    {
-      "source": "/versions/bachdrop",
-      "destination": "/versions/bachdrop.html"    },
-    {
-      "source": "/versions/bachdrop/",
-      "destination": "/versions/bachdrop.html"    },
-    {
-      "source": "/shop",
-      "destination": "/shop.html"    },
-    {
-      "source": "/shop/",
-      "destination": "/shop.html"    },
-    {
-      "source": "/gallery",
-      "destination": "/gallery.html"    },
-    {
-      "source": "/gallery/",
-      "destination": "/gallery.html"    },
-    {
       "source": "/_curator-runner.html",
       "destination": "/_curator-runner.html",
-      "statusCode": 404    },
+      "statusCode": 404
+    },
     {
       "source": "/curator-runner.html",
       "destination": "/curator-runner.html",
-      "statusCode": 404    }
+      "statusCode": 404
+    }
   ]
 }

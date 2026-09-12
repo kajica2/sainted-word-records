@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BRUTALIST.GALLERY — SWR</title>
@@ -273,13 +275,7 @@
       <p class="header__sub">
         20 raw compositions · sheet-music × architectural drawing · sunrise × end of night
       </p>
-      <nav class="header__nav" aria-label="Gallery navigation">
-        <a href="#sheet-music">▸ SHEET MUSIC (12)</a>
-        <a href="#sunrise">▸ SUNRISE (8)</a>
-        <a href="#index">▸ FILE INDEX</a>
-        <a class="is-cta" href="./portfolio.html">PORTFOLIO →</a>
-        <a href="./gallery.html">← ALL GALLERIES</a>
-      </nav>
+      <swr-nav></swr-nav>
     </div>
   </header>
 
@@ -395,5 +391,6 @@
 
   <script src="./client/dropzone.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

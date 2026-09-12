@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Privacy · Sainted Word Records</title>
@@ -30,16 +32,7 @@
   </style>
 </head>
 <body>
-  <nav class="top">
-    <a class="brand" href="/">SWR</a>
-    <div>
-      <a href="/engine">Engine</a>
-      <a href="/intro.html">Intro</a> <a href="/about.html">About</a>
-      <a href="/press.html">Press</a>
-      <a href="/changelog.html">Changelog</a>
-      <a href="/">Legal</a>
-    </div>
-  </nav>
+  <swr-nav></swr-nav>
   <main>
     <h1>Privacy</h1>
     <p class="lede">Plain-English summary of what the engine does and doesn't do with your data. Last updated 2026-08-17.</p>
@@ -88,5 +81,6 @@
 
     <p class="meta">Questions? <a href="mailto:kai@saintedwordrecords.com">kai [at] saintedwordrecords [dot] com</a></p>
   </main>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

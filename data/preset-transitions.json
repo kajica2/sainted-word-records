@@ -1,0 +1,130 @@
+{
+  "$schema": "./preset-transitions.schema.json",
+  "version": 1,
+  "_doc": "Recommended music-video transitions per version-presets.js preset. Picked for aesthetic resonance with the preset's dominant visual trait (high grain → film-style transitions, high chroma → RGB-distortion transitions, etc.). Sources: gap-analysis 2026-09-12 §3 PRD-019 note; observed in 2020-2026 music videos; tested against the 29 transitions in engine-transitions.client.js.",
+  "_how_to_use": "window.SWRPresetTransitions.recommended('film') → ['lens-flare','paint-stroke','fade-to-black','whip-blur']",
+  "_family_legend": {
+    "cover": "Hide the cut behind motion (whip pan, swivel, pass-through). Universal.",
+    "distortion": "RGB / glitch / pixelation. Pairs with cyberpunk, lo-fi, electronic.",
+    "spatial": "Zoom / camera roll / push-in. Drama, climaxes.",
+    "brightness": "Flash, flare, strobe. Drops, hits, emotional beats.",
+    "mask": "Iris, paint stroke, shape wipe. Reveal / conceal.",
+    "hybrid": "Warp + dissolve. Smooth, organic, painterly.",
+    "fade": "Crossfade, fade to black, dip to color. The grammar of endings.",
+    "wipe": "Linear / radial wipe. Pacing, section transitions."
+  },
+  "film": {
+    "label": "16mm",
+    "rationale": "Grain + sepia + vignette = warm 70s doc aesthetic. Pair with on-camera transitions that don't fight the texture.",
+    "primary": ["lens-flare", "paint-stroke", "fade-to-black"],
+    "secondary": ["whip-blur", "warp-dissolve", "frame-freeze-zoom"]
+  },
+  "grid": {
+    "label": "Monochrome cells",
+    "rationale": "Posterize + grayscale = pixel-perfect hard cuts. Transitions that emphasize the digital subdivision.",
+    "primary": ["pixelation-ramp", "glitch-block", "snap-zoom"],
+    "secondary": ["chromatic-split", "negative-pop", "vhs-tracking"]
+  },
+  "neon": {
+    "label": "Magenta/cyan electric",
+    "rationale": "Chroma aberration + glow = pure RGB-distortion territory. Let the colors split and bloom.",
+    "primary": ["chromatic-split", "glow-burst", "lens-flare"],
+    "secondary": ["chroma-burst", "vignette-punch", "object-pass-through"]
+  },
+  "smoke": {
+    "label": "Cream warm blur",
+    "rationale": "Heavy blur + slow drift = hazy, soft-focus transitions. Don't fight the softness.",
+    "primary": ["warp-dissolve", "lens-flare", "fade-to-black"],
+    "secondary": ["paint-stroke", "frame-freeze-zoom", "light-leak-pop"]
+  },
+  "hallucination": {
+    "label": "Heavy mutation (algo=2 liquid)",
+    "rationale": "Liquid warp substrate. Pair with transitions that are themselves warped or that amplify the surrealism.",
+    "primary": ["liquid-burst", "kaleidoscope-burst", "warp-dissolve"],
+    "secondary": ["chromatic-split", "ripple-burst", "vhs-tracking"]
+  },
+  "eclipse": {
+    "label": "Dark vignette",
+    "rationale": "Massive R / chrome / Massive Attack. Restraint — only let the dark reveal transitions through.",
+    "primary": ["iris-in", "circle-wipe", "fade-to-black"],
+    "secondary": ["vignette-punch", "vhs-tracking", "frame-freeze-zoom"]
+  },
+  "aurora": {
+    "label": "Pastel soft",
+    "rationale": "Light grain, low mutation. Pastoral/Björk/Sigur Rós territory — let the transitions breathe.",
+    "primary": ["linear-wipe-lr", "light-leak-pop", "paint-stroke"],
+    "secondary": ["warp-dissolve", "fade-to-black", "iris-in"]
+  },
+  "chrome": {
+    "label": "Liquid metal",
+    "rationale": "Med-high everything, algo 2 (liquid). 90s electronic / Daft Punk 'Around the World'.",
+    "primary": ["swivel", "warp-dissolve", "liquid-burst"],
+    "secondary": ["lens-flare", "chromatic-split", "kaleidoscope-burst"]
+  },
+  "fractal": {
+    "label": "Mandelbrot / psychedelic",
+    "rationale": "High mutation, kaleidoscopic substrate. Transitions that recurse or mirror.",
+    "primary": ["kaleidoscope-burst", "ripple-burst"],
+    "secondary": ["liquid-burst", "swivel", "vhs-tracking"]
+  },
+  "glitch": {
+    "label": "Aphex / Death Grips",
+    "rationale": "High chroma + mutAlgo=1. The whole substrate is broken — transitions should match.",
+    "primary": ["glitch-block", "chromatic-split", "snap-zoom"],
+    "secondary": ["negative-pop", "vhs-tracking", "frame-freeze-zoom"]
+  },
+  "pulse": {
+    "label": "Club strobe / rave",
+    "rationale": "mutAlgo=4 (ripple). The whole frame is pulsing — transitions should ripple or strobe.",
+    "primary": ["ripple-burst", "kaleidoscope-burst"],
+    "secondary": ["flash-cover", "snap-zoom", "particle-wipe"]
+  },
+  "void": {
+    "label": "Minimalist performance",
+    "rationale": "James Blake / black frame minimalism. Transitions should be invisible or just absence.",
+    "primary": ["fade-to-black", "iris-in"],
+    "secondary": ["particle-wipe", "frame-freeze-zoom", "swivel"]
+  },
+  "watercolor": {
+    "label": "Indie folk soft",
+    "rationale": "Bon Iver / soft painterly. Transitions that feel hand-applied.",
+    "primary": ["warp-dissolve", "paint-stroke", "light-leak-pop"],
+    "secondary": ["fade-to-black", "frame-freeze-zoom", "iris-in"]
+  },
+  "baroque": {
+    "label": "Gilded / Arcade Fire",
+    "rationale": "Sepia + glow = ornate, gilded. Transitions that feel stage-lit and dramatic.",
+    "primary": ["lens-flare", "paint-stroke", "swivel"],
+    "secondary": ["fade-to-black", "warp-dissolve", "object-pass-through"]
+  },
+  "gallery": {
+    "label": "Gallery-white clean",
+    "rationale": "Stub preset (PRD gallery page). Clean transitions that don't compete with the artwork.",
+    "primary": ["linear-wipe-lr", "fade-to-black"],
+    "secondary": ["iris-in", "circle-wipe", "paint-stroke"]
+  },
+  "kraft": {
+    "label": "Paper grain DIY",
+    "rationale": "Lo-fi / zine aesthetic. Transitions that feel photocopied or hand-cut.",
+    "primary": ["paint-stroke", "fade-to-black"],
+    "secondary": ["warp-dissolve", "particle-wipe", "iris-in"]
+  },
+  "mosaic": {
+    "label": "Stained glass",
+    "rationale": "Posterize high, no chroma. Religious-iconography transitions — discrete shapes revealing.",
+    "primary": ["pixelation-ramp", "paint-stroke"],
+    "secondary": ["circle-wipe", "iris-in", "particle-wipe"]
+  },
+  "phosphor": {
+    "label": "CRT phosphor green",
+    "rationale": "80s VHS / Stranger Things. Glow + chroma. Let the screen bleed.",
+    "primary": ["glow-burst", "chroma-burst", "vignette-punch"],
+    "secondary": ["chromatic-split", "vhs-tracking", "particle-wipe"]
+  },
+  "tape": {
+    "label": "VHS lo-fi",
+    "rationale": "Chromatic + grain = analog degradation. Transitions that look like tape damage.",
+    "primary": ["chromatic-split", "glitch-block", "vhs-tracking"],
+    "secondary": ["chroma-burst", "frame-freeze-zoom", "particle-wipe"]
+  }
+}

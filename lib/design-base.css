@@ -1,0 +1,27 @@
+/*
+ * Sainted Word Records — Design Base
+ * Minimal reset + body defaults. Only load this on pages that DON'T have
+ * their own body styles. Pages with custom themes (engine, marketplace,
+ * gallery, weddings) should skip this file.
+ *
+ * Loaded via <link rel="stylesheet" href="/lib/design-base.css">
+ * (after design-tokens.css)
+ */
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; transition: color var(--transition); }
+a:hover { color: var(--ink); }
+code, pre, kbd { font-family: var(--font-mono); }
+img { max-width: 100%; display: block; }
+button { font-family: inherit; cursor: pointer; }
+::selection { background: var(--accent); color: white; }

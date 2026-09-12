@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bachdrop — SWR Gallery</title>
@@ -257,17 +259,7 @@
 
 </head>
 <body>
-  <nav class="nav">
-    <div class="nav__inner">
-      <div class="nav__brand">Bachdrop</div>
-      <div class="nav__links">
-        <a href="./versions/bachdrop.html">Open engine</a>
-        <a href="./portfolio.html">Portfolio</a>
-        <a href="./gallery.html">Galleries</a>
-      </div>
-      <a class="nav__cta" href="./versions/bachdrop.html">▶ Play</a>
-    </div>
-  </nav>
+  <swr-nav></swr-nav>
 
   <header class="hero">
     <div class="wrap">
@@ -396,5 +388,6 @@
   <script src="./client/dropzone.client.js" defer></script>
   <script src="./client/shop-decorator.client.js" defer></script>
   <script src="./swr-build-id.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>
