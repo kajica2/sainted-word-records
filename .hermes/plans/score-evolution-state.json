@@ -10,8 +10,8 @@
       "id": 1,
       "title": "Narrative accumulator state (client/narrative-state.client.js)",
       "tasks": [
-        {"id": "1.1", "title": "Create client/narrative-state.client.js with 5 state vars", "status": "pending", "worker": null, "artifacts": []},
-        {"id": "1.2", "title": "Write scripts/check-narrative-unit.mjs with 6 tests", "status": "pending", "worker": null, "artifacts": []},
+        {"id": "1.1", "title": "Create client/narrative-state.client.js with 5 state vars", "status": "done", "worker": "hermes", "artifacts": ["client/narrative-state.client.js"], "completedAt": "2026-09-12"},
+        {"id": "1.2", "title": "Write scripts/check-narrative-unit.mjs with 6 tests", "status": "done", "worker": "hermes", "artifacts": ["scripts/check-narrative-unit.mjs"], "completedAt": "2026-09-12"},
         {"id": "1.3", "title": "Wire narrative into versions/music_video.html", "status": "pending", "worker": null, "artifacts": []}
       ]
     },
