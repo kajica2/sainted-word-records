@@ -40,10 +40,31 @@ if (inputs.length === 0) { console.error('no mp3/wav inputs found at', inputArg)
 console.log(`batch: ${inputs.length} input(s), output -> ${outDir}, parallel=${args.parallel}, fps=${args.fps}`);
 
 const parallel = args.parallel;
+const analyzeOnly = args.analyzeOnly;
+const skipExisting = args.skipExisting;
+const maxRetries = args.retry;
 
 // === Step 1: analyze all inputs (single Puppeteer is fine for this) ===
 const analyses = await analyzeAll(inputs);
 const summary = [];
+
+// --analyze-only: print picks table and exit before any rendering.
+if (analyzeOnly) {
+  console.log('\n--- picks ---');
+  for (let i = 0; i < inputs.length; i++) {
+    const inPath = inputs[i];
+    const a = analyses[i];
+    const pick_ = args.variant
+      ? { variant: args.variant, score: 999, rationale: 'cli-override' }
+      : pick(a);
+    console.log(`${path.basename(inPath).padEnd(50)}  -> ${pick_.variant.padEnd(14)} (score ${pick_.score.toFixed(2)})  ${pick_.rationale}`);
+    summary.push({ input: inPath, pick: pick_, analysis: trimAnalysis(a), render: null, wallMs: 0 });
+  }
+  const summaryPath = path.join(outDir, 'summary.json');
+  fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+  console.log(`\nanalyze-only: ${summary.length} picks -> ${summaryPath}`);
+  process.exit(0);
+}
 
 // === Step 2: render each ================================================
 if (parallel <= 1) {
@@ -55,20 +76,36 @@ if (parallel <= 1) {
     const pick_ = args.variant ? { variant: args.variant, score: 999, rationale: 'cli-override', allScores: {}, features: a.features || {} } : pick(a);
     const outPath = path.join(outDir, path.basename(inPath, path.extname(inPath)) + '.' + pick_.variant + '.mp4');
     const t0 = Date.now();
-    try {
-      const r = await renderVariant({
-        inputPath: inPath, outPath,
-        variant: pick_.variant,
-        fps: args.fps,
-        width: args.width, height: args.height,
-        quiet: args.quiet,
-      });
-      summary.push({ input: inPath, ok: true, output: outPath, analysis: trimAnalysis(a),
-                     pick: pick_, render: r, wallMs: Date.now() - t0 });
-    } catch (e) {
-      summary.push({ input: inPath, ok: false, error: e.message,
+    if (skipExisting && shouldSkip(outPath)) {
+      if (!args.quiet) console.log(`skip ${path.basename(inPath)} -> ${path.basename(outPath)} (exists)`);
+      summary.push({ input: inPath, ok: true, output: outPath, skipped: true,
+                     analysis: trimAnalysis(a), pick: pick_, wallMs: 0 });
+      continue;
+    }
+    let lastErr;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const r = await renderVariant({
+          inputPath: inPath, outPath,
+          variant: pick_.variant,
+          fps: args.fps,
+          width: args.width, height: args.height,
+          quiet: args.quiet,
+        });
+        summary.push({ input: inPath, ok: true, output: outPath, analysis: trimAnalysis(a),
+                       pick: pick_, render: r, attempts: attempt + 1, wallMs: Date.now() - t0 });
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (!args.quiet) console.error(`FAIL ${path.basename(inPath)} attempt ${attempt + 1}/${maxRetries + 1}: ${e.message}`);
+        // Remove partial output so the next attempt starts clean
+        try { fs.unlinkSync(outPath); } catch (_) {}
+      }
+    }
+    if (lastErr) {
+      summary.push({ input: inPath, ok: false, error: lastErr.message,
                      analysis: trimAnalysis(a), pick: pick_ });
-      console.error(`FAIL ${path.basename(inPath)}: ${e.message}`);
     }
   }
 } else {
@@ -87,28 +124,57 @@ if (parallel <= 1) {
         if (!job) return resolveAll();
         slot.busy = true;
         const outPath = path.join(outDir, path.basename(job.inPath, path.extname(job.inPath)) + '.' + job.pick_.variant + '.mp4');
-        const t0 = Date.now();
-        const child = spawn(process.execPath, [
-          path.resolve('scripts/render-full-song.mjs'),
-          job.inPath, outPath,
-          '--variant', job.pick_.variant,
-        ], { stdio: ['ignore', 'pipe', 'pipe'] });
-        let stderr = '';
-        child.stderr.on('data', (d) => { stderr += d.toString(); if (!args.quiet) process.stderr.write(d); });
-        child.stdout.on('data', (d) => { if (!args.quiet) process.stdout.write(d); });
-        child.on('exit', (code) => {
-          const ok = code === 0 && fs.existsSync(outPath);
-          summary.push({
-            input: job.inPath, ok, output: ok ? outPath : null,
-            analysis: trimAnalysis(job.a),
-            pick: job.pick_,
-            wallMs: Date.now() - t0,
-            ...(ok ? {} : { error: stderr.split('\n').slice(-3).join('\n') || `exit ${code}` }),
-          });
-          if (!ok && !args.quiet) console.error(`FAIL ${path.basename(job.inPath)}: ${code !== 0 ? `exit ${code}` : 'output missing'}`);
+        // Skip if output already exists.
+        if (skipExisting && shouldSkip(outPath)) {
+          if (!args.quiet) console.log(`skip ${path.basename(job.inPath)} -> ${path.basename(outPath)} (exists)`);
+          summary.push({ input: job.inPath, ok: true, output: outPath, skipped: true,
+                         analysis: trimAnalysis(job.a), pick: job.pick_, wallMs: 0 });
           slot.busy = false;
           next();
-        });
+          return;
+        }
+        // Spawn a render with retry loop. Each attempt is a fresh child
+        // process so transient state (browser, port, etc.) is fully reset.
+        const t0 = Date.now();
+        let attemptIdx = 0;
+        const spawnAttempt = () => {
+          attemptIdx++;
+          const child = spawn(process.execPath, [
+            path.resolve('scripts/render-full-song.mjs'),
+            job.inPath, outPath,
+            '--variant', job.pick_.variant,
+          ], { stdio: ['ignore', 'pipe', 'pipe'] });
+          let stderr = '';
+          child.stderr.on('data', (d) => { stderr += d.toString(); if (!args.quiet) process.stderr.write(d); });
+          child.stdout.on('data', (d) => { if (!args.quiet) process.stdout.write(d); });
+          child.on('exit', (code) => {
+            const ok = code === 0 && shouldSkip(outPath);
+            if (ok) {
+              summary.push({
+                input: job.inPath, ok: true, output: outPath,
+                analysis: trimAnalysis(job.a), pick: job.pick_,
+                attempts: attemptIdx, wallMs: Date.now() - t0,
+              });
+              slot.busy = false;
+              next();
+            } else if (attemptIdx <= maxRetries) {
+              if (!args.quiet) console.error(`FAIL ${path.basename(job.inPath)} attempt ${attemptIdx}/${maxRetries + 1}: exit ${code}`);
+              try { fs.unlinkSync(outPath); } catch (_) {}
+              spawnAttempt();
+            } else {
+              summary.push({
+                input: job.inPath, ok: false,
+                analysis: trimAnalysis(job.a), pick: job.pick_,
+                attempts: attemptIdx,
+                error: stderr.split('\n').slice(-3).join('\n') || `exit ${code}`,
+              });
+              if (!args.quiet) console.error(`FAIL ${path.basename(job.inPath)} after ${attemptIdx} attempts`);
+              slot.busy = false;
+              next();
+            }
+          });
+        };
+        spawnAttempt();
       };
       next();
     });
@@ -123,7 +189,8 @@ console.log(`summary -> ${summaryPath}`);
 
 // === helpers ==============================================================
 function parseArgs(argv) {
-  const out = { parallel: 1, fps: 24, width: 640, height: 360, quiet: false };
+  const out = { parallel: 1, fps: 24, width: 640, height: 360, quiet: false,
+                analyzeOnly: false, skipExisting: false, retry: 0 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--input') out.input = argv[++i];
@@ -134,8 +201,44 @@ function parseArgs(argv) {
     else if (a === '--width') out.width = parseInt(argv[++i], 10);
     else if (a === '--height') out.height = parseInt(argv[++i], 10);
     else if (a === '--quiet') out.quiet = true;
+    else if (a === '--analyze-only') out.analyzeOnly = true;
+    else if (a === '--skip-existing') out.skipExisting = true;
+    else if (a === '--retry') out.retry = parseInt(argv[++i], 10);
+    else if (a === '--help' || a === '-h') {
+      console.log(`batch-video.mjs — analyze audio + render MP4 per song
+Usage: node scripts/batch-video.mjs --input <dir|file> --output <dir> [options]
+
+Options:
+  --variant <name>     override picker; force this variant for every song
+  --parallel N         spawn N concurrent Node child processes (each its own browser)
+  --fps N              capture fps (default 24; 12 = draft mode)
+  --width N --height N viewport + capture dimensions (default 640x360)
+  --analyze-only       run analyzer + picker, print picks, exit before rendering
+  --skip-existing      skip a song if <out>/<song>.<variant>.mp4 already exists
+  --retry N            retry a failed render up to N times before giving up
+  --quiet              suppress per-render progress logs
+
+Output: writes <song>.<variant>.mp4 + summary.json to --output.
+`);
+      process.exit(0);
+    }
+    else { console.error(`unknown flag: ${a}`); process.exit(2); }
   }
   return out;
+}
+
+// Returns true if --skip-existing should skip this job. We consider
+// the output "present" only if the file is at least 100KB — a typical
+// rendered MP4 is multi-MB; anything smaller is a half-written file
+// from a previous failed render that should be re-attempted.
+const MIN_VALID_OUTPUT_SIZE = 100 * 1024;
+function shouldSkip(outPath) {
+  try {
+    const st = fs.statSync(outPath);
+    return st.size >= MIN_VALID_OUTPUT_SIZE;
+  } catch (_) {
+    return false;
+  }
 }
 
 function discoverInputs(arg) {
