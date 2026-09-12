@@ -867,6 +867,46 @@
       color: #000;
       border-color: var(--warn);
     }
+    .swr-tx-flash {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--accent);
+      color: #000;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+    .swr-tx-flash.on {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .swr-tx-log {
+      max-height: 96px;
+      overflow-y: auto;
+      background: var(--bg-0);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
+    }
+    .swr-tx-log-entry {
+      display: flex;
+      gap: 6px;
+      padding: 1px 0;
+      color: var(--muted);
+      border-bottom: 1px dashed var(--line);
+    }
+    .swr-tx-log-entry:last-child { border-bottom: none; }
+    .swr-tx-log-entry .when { color: var(--accent-3); flex-shrink: 0; }
+    .swr-tx-log-entry .what { color: var(--fg); flex: 1; }
+    .swr-tx-log-entry .src  { color: var(--muted); font-size: 9px; opacity: 0.8; }
+    .swr-tx-log-entry.src-auto .what { color: var(--accent); }
     .beat-led {
       width: 10px; height: 10px;
       border-radius: 50%;
@@ -2084,7 +2124,7 @@
       <span class="separator"></span>
       <button class="tbtn" id="panels-toggle" style="padding:4px 10px; font-size:9px;" title="Show/hide the LFO, TIMING, and AUTO-SWAP floating panels">PANELS: <b id="panels-toggle-state">hidden</b></button>
       <span class="separator"></span>
-      <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions)">TRANSITIONS</button>
+      <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions; 1-9 to fire from dropdown)">TRANSITIONS<span id="swr-tx-flash" class="swr-tx-flash" aria-hidden="true"></span></button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
@@ -2112,6 +2152,13 @@
         <label for="swr-tx-bpm">bpm</label>
         <input type="number" id="swr-tx-bpm" min="30" max="240" step="1" value="120" style="width:60px;" />
         <button class="swr-tx-auto" id="swr-tx-auto-toggle">AUTO-FIRE OFF</button>
+      </div>
+      <div class="swr-tx-panel__row" style="border-top:1px solid var(--line); padding-top:8px; flex-direction:column; align-items:stretch; gap:4px;">
+        <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;">
+          <span>Recent fires</span>
+          <span id="swr-tx-log-count">0</span>
+        </div>
+        <div id="swr-tx-log" class="swr-tx-log" aria-live="polite"></div>
       </div>
     </div>
   </div>
@@ -5646,6 +5693,59 @@
 
           // Expose minimal API for keyboard / persona integration later.
           window.SWRTransitionsUI = Object.assign(window.SWRTransitionsUI || {}, { setOpen, pick, fireBtn });
+
+          // ---- Visual flash + history log ----
+          // Listen for the module's CustomEvent and flash a badge next to the
+          // TRANSITIONS button + append to the in-popover log.
+          const flashEl = $('swr-tx-flash');
+          const logEl = $('swr-tx-log');
+          const logCountEl = $('swr-tx-log-count');
+          let logCount = 0;
+          const flashTimer = { id: null };
+          function flashBadge(name, source) {
+            if (!flashEl) return;
+            flashEl.textContent = source === 'auto' ? 'AUTO' : name.toUpperCase().slice(0, 8);
+            flashEl.classList.add('on');
+            if (flashTimer.id) clearTimeout(flashTimer.id);
+            flashTimer.id = setTimeout(() => flashEl.classList.remove('on'), 700);
+          }
+          function appendLog(name, source) {
+            if (!logEl) return;
+            const entry = document.createElement('div');
+            entry.className = `swr-tx-log-entry src-${source || 'manual'}`;
+            const when = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            entry.innerHTML =
+              `<span class="when">${pad(when.getHours())}:${pad(when.getMinutes())}:${pad(when.getSeconds())}</span>` +
+              `<span class="what">${name}</span>` +
+              `<span class="src">${source || ''}</span>`;
+            logEl.insertBefore(entry, logEl.firstChild);
+            logCount++;
+            if (logCountEl) logCountEl.textContent = String(logCount);
+            while (logEl.children.length > 20) logEl.removeChild(logEl.lastChild);
+          }
+          document.addEventListener('swr-tx:fire', (ev) => {
+            const { name, source } = ev.detail || {};
+            flashBadge(name, source);
+            appendLog(name, source);
+          });
+
+          // ---- Keyboard shortcuts: 1-9 fires the dropdown option at that index ----
+          // Modifier-free so it's fast; ignored when typing in an input/textarea.
+          document.addEventListener('keydown', (e) => {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            const t = e.target;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+            const k = e.key;
+            if (k < '1' || k > '9') return;
+            const idx = parseInt(k, 10) - 1;
+            const opts = pick.options;
+            if (idx >= opts.length) return;
+            const opt = opts[idx];
+            if (!opt) return;
+            e.preventDefault();
+            window.SWRTransitions.fire(opt.value);
+          });
         })();
         // Distortion sliders (from flexible-smart-videomaker preset system)
         const liquidInp = $('liquid');
