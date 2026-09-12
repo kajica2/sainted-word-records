@@ -77,6 +77,9 @@
       color: var(--amber); letter-spacing: .06em; text-transform: uppercase;
       white-space: nowrap; }
     .atlas-card:hover .atlas-card__cta { color: var(--gold); }
+    /* Sub-nav for the Section II card — links to the 4 per-life-stage pages. */
+    .atlas-toc-subnav { font-size: 13px; color: var(--muted); margin: -4px 0 8px 76px; }
+    .atlas-toc-subnav a { color: var(--amber); margin: 0 2px; white-space: nowrap; }
     @media (max-width: 600px) {
       .atlas-card { grid-template-columns: 36px 1fr; gap: 12px; padding: 16px; }
       .atlas-card__cta { grid-column: 2; justify-self: start; margin-top: 4px; }
@@ -157,6 +160,13 @@
         </span>
         <span class="atlas-card__cta">Read →</span>
       </a>
+      <p class="atlas-toc-subnav">
+        Dive into each stage:
+        <a href="/atlas/architect">Architect (15)</a> ·
+        <a href="/atlas/forge">Forge (25)</a> ·
+        <a href="/atlas/integration">Integration (50)</a> ·
+        <a href="/atlas/legacy">Legacy (75+)</a>
+      </p>
       <a class="atlas-card" href="/atlas/200-steps">
         <span class="atlas-card__roman">III</span>
         <span class="atlas-card__body">

@@ -141,6 +141,38 @@
       "destination": "/atlas-final-insight.html"
     },
     {
+      "source": "/atlas/architect",
+      "destination": "/atlas-architect.html"
+    },
+    {
+      "source": "/atlas/architect/",
+      "destination": "/atlas-architect.html"
+    },
+    {
+      "source": "/atlas/forge",
+      "destination": "/atlas-forge.html"
+    },
+    {
+      "source": "/atlas/forge/",
+      "destination": "/atlas-forge.html"
+    },
+    {
+      "source": "/atlas/integration",
+      "destination": "/atlas-integration.html"
+    },
+    {
+      "source": "/atlas/integration/",
+      "destination": "/atlas-integration.html"
+    },
+    {
+      "source": "/atlas/legacy",
+      "destination": "/atlas-legacy.html"
+    },
+    {
+      "source": "/atlas/legacy/",
+      "destination": "/atlas-legacy.html"
+    },
+    {
       "source": "/thanks/",
       "destination": "/thanks.html"
     },
