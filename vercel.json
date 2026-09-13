@@ -322,7 +322,7 @@
       "destination": "/dashboard.html"
     },
     {
-      "source": "/gallery/vintage/",
+          "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
     },
     {
