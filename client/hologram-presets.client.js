@@ -161,11 +161,25 @@
         color_temp: tempMix[id],
       };
     }
+    // Inline 4D-distance against the embedding (not against the
+    // raw knobs — neighboursFn ranks by the same mixed values the
+    // rest of the engine reads).
+    function neighboursFn(coords, n) {
+      n = (typeof n === 'number' && n > 0) ? n : 4;
+      var ordered = ids.map(function (id) {
+        var a = embeds[id];
+        var d2 = sqDist(coords || {}, a);
+        return { id: id, anchor: a, dist: Math.sqrt(d2) };
+      });
+      ordered.sort(function (x, y) { return x.dist - y.dist; });
+      return ordered.slice(0, n);
+    }
     return {
       list: function () { return ids.slice(); },
       get: function (id) { return embeds[id] || null; },
       embed: function (p) { return rawEmbed(p); },
       rawEmbed: rawEmbed,
+      neighbours: neighboursFn,
       _all: function () { return embeds; },
       _raw: function () { return raw; },
     };
