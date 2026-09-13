@@ -724,6 +724,100 @@
 
     /* GitHub icon */
     .icon-gh { width: 16px; height: 16px; fill: currentColor; }
+
+    /* ===== HOME GALLERY (music-video-gallery inline on the landing page) ===== */
+    /* Scoped to .home-gallery to avoid colliding with the .section/.hero/.wrap
+       classes landing.html already uses. */
+    .home-gallery .music-video-stage {
+      position: relative;
+      perspective: 1600px;
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .home-gallery .music-video {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: rotateY(90deg);
+      transform-origin: center;
+      transition:
+        transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1),
+        opacity 0.6s ease,
+        visibility 0s linear 0.6s;
+      backface-visibility: hidden;
+      will-change: transform, opacity;
+    }
+    .home-gallery .music-video.is-active {
+      opacity: 1;
+      visibility: visible;
+      transform: rotateY(0deg);
+      transition-delay: 0s;
+      position: relative;
+    }
+    .home-gallery .music-video.leaving-left {
+      transform: rotateY(-90deg);
+      opacity: 0;
+    }
+    .home-gallery .music-video.leaving-right {
+      transform: rotateY(90deg);
+      opacity: 0;
+    }
+    .home-gallery .music-video video {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .home-gallery .music-video-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding: 0 1rem;
+    }
+    .home-gallery .music-video-nav button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: #111;
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      font: inherit;
+      cursor: pointer;
+      transition: background 0.2s ease, opacity 0.2s ease;
+    }
+    .home-gallery .music-video-nav button:hover:not(:disabled) {
+      background: #333;
+    }
+    .home-gallery .music-video-nav button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .home-gallery .music-video-nav .counter {
+      font-variant-numeric: tabular-nums;
+      opacity: 0.7;
+      min-width: 4ch;
+      text-align: center;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .home-gallery .music-video {
+        transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+        transform: none !important;
+      }
+      .home-gallery .music-video.is-active {
+        transform: none !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -768,6 +862,55 @@
       </div>
     </div>
   </header>
+
+  <!-- ============ MUSIC VIDEO GALLERY (inlined from versions/music-video-gallery.html) ============ -->
+  <section class="section home-gallery" id="music-video-gallery" aria-label="Music video gallery">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <span class="section__kicker">Music videos</span>
+        <h2 class="section__title">Flip through the renders.</h2>
+        <p class="section__sub">
+          Click <strong>Next</strong> / <strong>Previous</strong>, use the arrow keys,
+          or swipe on mobile. Each video flips in with a 3D rotateY transition.
+        </p>
+      </div>
+      <div class="music-video-stage reveal">
+
+        <section class="music-video is-active" data-title="Neon">
+          <h3>Neon</h3>
+          <video controls playsinline preload="metadata">
+            <source src="/videos/neon.mp4" type="video/mp4" />
+          </video>
+        </section>
+
+        <section class="music-video" data-title="Grid">
+          <h3>Grid</h3>
+          <video controls playsinline preload="metadata">
+            <source src="/videos/grid.mp4" type="video/mp4" />
+          </video>
+        </section>
+
+        <section class="music-video" data-title="Film">
+          <h3>Film</h3>
+          <video controls playsinline preload="metadata">
+            <source src="/videos/film.mp4" type="video/mp4" />
+          </video>
+        </section>
+
+      </div>
+      <nav class="music-video-nav" aria-label="Music video navigation">
+        <button class="nav-prev" type="button">
+          <span class="arrow">←</span>
+          <span class="label">Previous</span>
+        </button>
+        <span class="counter"><span id="home-current-index">1</span> / <span id="home-total-count">3</span></span>
+        <button class="nav-next" type="button">
+          <span class="label">Next</span>
+          <span class="arrow">→</span>
+        </button>
+      </nav>
+    </div>
+  </section>
 
   <!-- ============ 3 PATHS (target personas) ============ -->
   <section class="section section--paths" id="paths">
@@ -2058,5 +2201,106 @@
 <script src="/client/asset-curator.client.js" defer></script>
 <script src="/client/bg-removal-confirm.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+
+  <!-- ============ HOME GALLERY (music-video-gallery flip logic) ============ -->
+  <!-- Scoped to the .home-gallery section so it only runs on the homepage.
+       Duplicates versions/music-video-gallery.html's logic with home-prefixed
+       DOM ids (home-current-index, home-total-count) to avoid colliding with
+       the standalone page. -->
+  <script>
+  (function () {
+    const root = document.querySelector('.home-gallery');
+    if (!root) return;
+    const videos = Array.from(root.querySelectorAll('.music-video'));
+    const prevBtn = root.querySelector('.nav-prev');
+    const nextBtn = root.querySelector('.nav-next');
+    const indexEl = document.getElementById('home-current-index');
+    const totalEl = document.getElementById('home-total-count');
+
+    if (!videos.length || !prevBtn || !nextBtn) return;
+
+    let current = videos.findIndex(v => v.classList.contains('is-active'));
+    if (current === -1) current = 0;
+    videos.forEach((v, i) => v.classList.toggle('is-active', i === current));
+    if (totalEl) totalEl.textContent = videos.length;
+
+    function pauseAllExcept(active) {
+      videos.forEach(v => {
+        if (v === active) return;
+        v.querySelectorAll('video').forEach(vid => {
+          vid.pause();
+          vid.currentTime = 0;
+        });
+      });
+    }
+
+    function show(nextIndex, direction) {
+      if (nextIndex < 0 || nextIndex >= videos.length || nextIndex === current) return;
+
+      const oldEl = videos[current];
+      const newEl = videos[nextIndex];
+
+      newEl.classList.remove('leaving-left', 'leaving-right');
+      newEl.style.transform =
+        direction === 'next' ? 'rotateY(90deg)' : 'rotateY(-90deg)';
+
+      void newEl.offsetWidth;
+
+      oldEl.classList.remove('is-active');
+      oldEl.classList.add(direction === 'next' ? 'leaving-left' : 'leaving-right');
+
+      newEl.classList.add('is-active');
+      newEl.style.transform = '';
+
+      setTimeout(() => {
+        oldEl.classList.remove('leaving-left', 'leaving-right');
+      }, 650);
+
+      current = nextIndex;
+      if (indexEl) indexEl.textContent = current + 1;
+      pauseAllExcept(newEl);
+
+      // Update the URL hash without triggering scroll
+      history.replaceState(null, '', '#video-' + (current + 1));
+    }
+
+    prevBtn.addEventListener('click', () => show(current - 1, 'prev'));
+    nextBtn.addEventListener('click', () => show(current + 1, 'next'));
+
+    document.addEventListener('keydown', e => {
+      if (e.target.matches('input, textarea, select')) return;
+      // Only react to arrows when the gallery is in view, so we don't
+      // hijack arrows while the user is browsing the rest of the page.
+      const rect = root.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight && rect.bottom > 0;
+      if (!inView) return;
+      if (e.key === 'ArrowLeft') show(current - 1, 'prev');
+      if (e.key === 'ArrowRight') show(current + 1, 'next');
+    });
+
+    let touchStartX = null;
+    const stage = root.querySelector('.music-video-stage');
+    if (stage) {
+      stage.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+      }, { passive: true });
+      stage.addEventListener('touchend', e => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 50) {
+          if (dx < 0) show(current + 1, 'next');
+          else show(current - 1, 'prev');
+        }
+        touchStartX = null;
+      }, { passive: true });
+    }
+
+    const hashMatch = location.hash.match(/^#video-(\d+)$/);
+    if (hashMatch) {
+      const target = Math.min(Math.max(parseInt(hashMatch[1], 10) - 1, 0), videos.length - 1);
+      if (target !== current) show(target, target > current ? 'next' : 'prev');
+    }
+  })();
+  </script>
 </body>
 </html>
