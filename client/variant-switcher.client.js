@@ -290,6 +290,17 @@
       const cur = document.getElementById('variant');
       if (cur) cur.value = id || 'off';
     };
+    // Deep-link entry: /engine?variant=<id> auto-activates a variant look.
+    // Used as the consolidation seam for engine-demos.html + marketing pages:
+    // the version-page URL (/versions/<id>.html) stays canonical because
+    // 28 verify suites drive its page-specific DOM; the engine entry point
+    // is the one-page-app surface.
+    try {
+      const q = new URLSearchParams(window.location.search).get('variant');
+      if (q && VARIANTS.some((v) => v.id === q)) {
+        window.SWR_VARIANTS.activate(q).catch((e) => { console.warn('variant deep-link', e.message); });
+      }
+    } catch (_) { /* non-URL context (file://, sandboxed) */ }
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', wireUI, { once: true });

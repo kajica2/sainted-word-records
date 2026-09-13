@@ -129,6 +129,20 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
     if (afterOff.accent === accentBefore) pass('deactivate: original --accent restored');
     else fail('deactivate: accent not restored', `${accentBefore} vs ${afterOff.accent}`);
 
+    // 4.5 Deep-link: /engine?variant=neon auto-activates (Phase B seam)
+    await page.goto(`${BASE}/engine.html?variant=neon`, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await page.waitForFunction(() => window.SWR_VARIANTS && window.SWR_VARIANTS.current() === 'neon', { timeout: 8000 })
+      .catch(() => {});
+    const deep = await page.evaluate(() => ({
+      current: window.SWR_VARIANTS.current(),
+      selectSynced: document.getElementById('variant').value,
+    }));
+    if (deep.current === 'neon' && deep.selectSynced === 'neon') {
+      pass('deep-link ?variant=neon auto-activates + synced to select');
+    } else {
+      fail('deep-link activation failed', JSON.stringify(deep));
+    }
+
     // 5. No variant-related JS errors (filter dev-server WebSocket noise)
     const realErrs = errs.filter((e) => !/WebSocket|ws:\/\/|Failed to load resource/i.test(e));
     if (realErrs.length === 0) pass('no variant-related JS errors');
