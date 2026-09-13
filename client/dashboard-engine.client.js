@@ -38,6 +38,9 @@
     const Ctx = window.AudioContext || window.webkitAudioContext;
     audioCtx = new Ctx();
     sourceNode = audioCtx.createMediaElementSource(audio);
+    // Expose for the recorder module so it can build a combined stream
+    window.__SWR_AUDIO_CTX = audioCtx;
+    window.__SWR_AUDIO_SOURCE = sourceNode;
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 1024;
     analyser.smoothingTimeConstant = 0.78;

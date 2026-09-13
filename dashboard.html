@@ -63,6 +63,8 @@
     }
     /* Sidebar transitions */
     .sidebar-l, .sidebar-r { transition: width .25s ease; }
+    /* Record blink */
+    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0.2; } }
     /* Drawer smooth height */
     .drawer-body { transition: max-height .3s ease, opacity .2s ease; overflow: hidden; }
     .drawer.collapsed .drawer-body { max-height: 0; opacity: 0; pointer-events: none; }
@@ -112,6 +114,13 @@
       <button class="icon-btn" id="play-btn" style="width: 32px; height: 32px; color: #ff8a3d;" title="Play / Pause">
         <i class="fa-solid fa-play"></i>
       </button>
+      <button class="icon-btn" id="rec-btn" style="width: 28px; height: 28px; color: #ff4a4a;" title="Record canvas + audio (saves WebM)">
+        <i class="fa-solid fa-circle text-xs"></i>
+      </button>
+      <span id="rec-indicator" class="hidden items-center gap-1.5 ml-1">
+        <span class="w-2 h-2 rounded-full" style="background:#ff4a4a; animation: blink 1s infinite;"></span>
+        <span class="text-[10px] text-[#ff4a4a] tabular" id="rec-time">00:00</span>
+      </span>
       <span class="text-xs tabular text-gray-300" id="time-readout">0:21 / 2:09</span>
       <div class="wave-bars w-32" id="top-wave" aria-hidden="true"></div>
       <div class="flex items-center gap-1.5 ml-2">
@@ -412,5 +421,6 @@
   })();
   </script>
   <script src="/client/dashboard-engine.client.js" defer></script>
+  <script src="/client/dashboard-recorder.client.js" defer></script>
 </body>
 </html>

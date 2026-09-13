@@ -166,6 +166,17 @@ try {
   const dropZoneOK = await page.$eval('#drop-zone', (el) => !el.classList.contains('hidden'));
   check('Drop zone visible on load', dropZoneOK);
 
+  // 15. Recorder: button exists + API installed (skip MediaRecorder
+  // exercise; headless Chromium blocks on captureStream + MediaRecorder
+  // in some environments and the actual recording flow is testable
+  // manually in a real browser).
+  const recBtnOK = await page.evaluate(() => !!document.getElementById('rec-btn'));
+  check('Rec button exists', recBtnOK);
+  const recAPIOK = await page.evaluate(() => !!(window.__SWR_RECORDER && window.__SWR_RECORDER.start && window.__SWR_RECORDER.stop && window.__SWR_RECORDER.isRecording));
+  check('Recorder API installed', recAPIOK);
+  const notRecordingInitially = await page.evaluate(() => !window.__SWR_RECORDER.isRecording());
+  check('Recorder starts idle', notRecordingInitially);
+
 } finally {
   await browser.close();
   server.close();
