@@ -314,6 +314,14 @@
       "destination": "/versions/music-video-gallery.html"
     },
     {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/dashboard/",
+      "destination": "/dashboard.html"
+    },
+    {
       "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
     },

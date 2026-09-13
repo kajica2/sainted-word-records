@@ -59,6 +59,10 @@
           "label": "Demos",
           "href": "/engine-demos",
           "description": "Live engine demos"
+        },
+        {
+          "href": "/dashboard",
+          "label": "Dashboard"
         }
       ]
     },

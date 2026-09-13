@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Engine · Sainted Word Records</title>
+  <meta name="description" content="SWR Engine — music video production dashboard" />
+  <meta name="theme-color" content="#0a0a0b" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:    '#0a0a0b',
+            panel:  '#111114',
+            line:   '#1e1e24',
+            orange: { DEFAULT: '#ff6a2c', light: '#ff8a3d' },
+            glow:   '#3a0d18',
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        },
+      },
+    };
+  </script>
+  <style>
+    html, body { background: #0a0a0b; color: #e5e5e5; font-family: 'Inter', system-ui, sans-serif; }
+    body { font-feature-settings: 'tnum' 1, 'cv11' 1; }
+    .micro { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #9a9aa3; }
+    .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #c4c4cc; }
+    .tabular { font-variant-numeric: tabular-nums; }
+    .tab-active { color: #ff8a3d; border-bottom: 1px solid #ff6a2c; }
+    .icon-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: #c4c4cc; transition: background-color .15s, color .15s; }
+    .icon-btn:hover { background: #1e1e24; color: #fff; }
+    .panel { background: #111114; border: 1px solid #1e1e24; border-radius: 8px; }
+    /* Canvas radial glow */
+    .canvas-stage {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(58, 13, 24, 0.65) 0%, rgba(58, 13, 24, 0) 60%),
+        radial-gradient(circle at 50% 50%, rgba(20, 20, 24, 0.9) 0%, #0a0a0b 75%);
+      box-shadow: inset 0 0 80px rgba(0,0,0,0.6), 0 0 0 1px #1e1e24;
+    }
+    /* Waveform pseudo-bars */
+    .wave-bars { display: flex; align-items: center; gap: 1px; height: 12px; flex: 1; }
+    .wave-bars > span { display: block; width: 2px; background: #3a3a44; border-radius: 1px; }
+    /* Range input */
+    input[type=range].swr-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px; background: #1e1e24; border-radius: 2px; outline: none;
+    }
+    input[type=range].swr-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 12px; height: 12px; background: #ff6a2c; border-radius: 50%; cursor: pointer; border: 0;
+    }
+    input[type=range].swr-slider::-moz-range-thumb {
+      width: 12px; height: 12px; background: #ff6a2c; border-radius: 50%; cursor: pointer; border: 0;
+    }
+    /* Sidebar transitions */
+    .sidebar-l, .sidebar-r { transition: width .25s ease; }
+    /* Drawer smooth height */
+    .drawer-body { transition: max-height .3s ease, opacity .2s ease; overflow: hidden; }
+    .drawer.collapsed .drawer-body { max-height: 0; opacity: 0; pointer-events: none; }
+    .drawer:not(.collapsed) .drawer-body { max-height: 360px; opacity: 1; }
+    .drawer:not(.collapsed) .chev { transform: rotate(180deg); }
+    .chev { transition: transform .2s ease; }
+    /* Layer row details */
+    details > summary { list-style: none; cursor: pointer; }
+    details > summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+<body class="h-screen overflow-hidden">
+
+  <!-- ===================== TOP BAR ===================== -->
+  <header class="flex items-center justify-between px-4 border-b border-line" style="height: 56px;">
+    <!-- Left: logo + wordmark -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: #ff6a2c;">
+        <span class="text-white font-bold text-sm">SW</span>
+      </div>
+      <div class="leading-tight">
+        <div class="text-white font-semibold tracking-wide" style="font-size: 11px;">SAINTED</div>
+        <div class="text-white tracking-wide" style="font-size: 11px;">WORD RECORDS</div>
+      </div>
+    </div>
+
+    <!-- Center-left: tabs -->
+    <nav class="flex items-center gap-1 ml-6 self-stretch">
+      <button class="tab-btn px-3 h-full text-xs font-medium tab-active" data-tab="engine">Engine</button>
+      <button class="tab-btn px-3 h-full text-xs font-medium text-gray-400 hover:text-white" data-tab="enhance">Enhance</button>
+      <button class="tab-btn px-3 h-full text-xs font-medium text-gray-400 hover:text-white" data-tab="photo">Photo</button>
+      <button class="tab-btn px-3 h-full text-xs font-medium text-gray-400 hover:text-white" data-tab="transitions">Transitions</button>
+      <div class="relative" id="more-wrap">
+        <button class="px-3 h-full text-xs font-medium text-gray-400 hover:text-white inline-flex items-center gap-1" id="more-btn">
+          More <i class="fa-solid fa-chevron-down text-[9px]"></i>
+        </button>
+        <div id="more-menu" class="hidden absolute left-0 top-full mt-1 w-44 panel py-1 z-50">
+          <a href="./marketplace.html" class="block px-3 py-2 text-xs text-gray-300 hover:bg-[#1e1e24] hover:text-white">Market</a>
+          <a href="./atlas.html"      class="block px-3 py-2 text-xs text-gray-300 hover:bg-[#1e1e24] hover:text-white">Atlas</a>
+          <a href="./about.html"      class="block px-3 py-2 text-xs text-gray-300 hover:bg-[#1e1e24] hover:text-white">About</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Right: transport cluster -->
+    <div class="flex items-center gap-3">
+      <button class="icon-btn" id="play-btn" style="width: 32px; height: 32px; color: #ff8a3d;" title="Play / Pause">
+        <i class="fa-solid fa-play"></i>
+      </button>
+      <span class="text-xs tabular text-gray-300" id="time-readout">0:21 / 2:09</span>
+      <div class="wave-bars w-32" id="top-wave" aria-hidden="true"></div>
+      <div class="flex items-center gap-1.5 ml-2">
+        <span class="micro">BPM</span>
+        <span class="text-xs tabular text-white font-medium">235</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="micro">KEY</span>
+        <span class="text-xs tabular text-white font-medium">08</span>
+      </div>
+      <div class="w-px h-5 bg-line mx-2"></div>
+      <button class="icon-btn" title="Mic"><i class="fa-solid fa-microphone text-xs"></i></button>
+      <button class="icon-btn" title="Cam"><i class="fa-solid fa-video text-xs"></i></button>
+      <button class="icon-btn" title="Load Song"><i class="fa-solid fa-folder-open text-xs"></i></button>
+      <button class="px-3 h-7 rounded-md text-xs font-medium border border-line text-gray-300 hover:bg-[#1e1e24] hover:text-white" title="Back">
+        <i class="fa-solid fa-arrow-left text-[10px] mr-1"></i>Back
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================== MAIN: 3 COLUMNS + DRAWER ===================== -->
+  <div class="flex" style="height: calc(100vh - 56px - 40px);">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar-l panel flex-shrink-0 border-r border-line" style="width: 240px;" id="sidebar-l">
+      <div class="flex items-center justify-between px-3 py-2 border-b border-line">
+        <span class="micro">Library</span>
+        <div class="flex items-center gap-1">
+          <button class="icon-btn" title="Clear"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+          <button class="icon-btn" title="Save Set"><i class="fa-solid fa-floppy-disk text-[10px]"></i></button>
+          <button class="icon-btn" title="Import .SMR-SET"><i class="fa-solid fa-file-import text-[10px]"></i></button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 p-3 overflow-y-auto" id="library-grid" style="height: calc(100% - 41px);"></div>
+      <!-- Collapse toggle (bottom edge) -->
+      <button class="absolute" id="toggle-l" title="Collapse library ( [ )" style="position: absolute; bottom: 8px; left: 8px;">
+        <span class="icon-btn"><i class="fa-solid fa-chevron-left text-[10px]"></i></span>
+      </button>
+    </aside>
+
+    <!-- CENTER CANVAS -->
+    <main class="flex-1 relative" id="canvas-wrap">
+      <!-- Canvas area -->
+      <div class="absolute inset-4 canvas-stage rounded-xl flex items-center justify-center" id="canvas">
+        <div class="absolute top-3 left-3 micro">Preview — 1080 × 1350</div>
+        <!-- Tab placeholders -->
+        <div id="placeholder" class="hidden text-center text-gray-500 text-sm">
+          <i class="fa-solid fa-wrench text-2xl mb-3 block"></i>
+          <div class="micro">Coming soon</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM DRAWER -->
+      <div class="drawer collapsed absolute left-4 right-4 bottom-4 panel" id="advanced-drawer" style="border-radius: 8px;">
+        <!-- header -->
+        <button class="w-full flex items-center px-4 border-b border-line" style="height: 40px;" id="drawer-toggle">
+          <span class="micro flex items-center gap-1.5">
+            Advanced
+            <i class="fa-solid fa-chevron-down chev text-[9px]"></i>
+          </span>
+          <span class="micro ml-6">Waveform ▸ Beats</span>
+          <div class="wave-bars ml-3" id="drawer-wave" aria-hidden="true"></div>
+        </button>
+        <!-- body -->
+        <div class="drawer-body">
+          <div class="grid grid-cols-3 gap-6 p-4">
+            <!-- MOTION -->
+            <div>
+              <div class="micro mb-3">Motion</div>
+              <div class="space-y-3">
+                <div><div class="flex justify-between label mb-1"><span>Sensitivity</span><span class="tabular text-white text-[11px]">0.68</span></div><input type="range" class="swr-slider" value="68" min="0" max="100"></div>
+                <div><div class="flex justify-between label mb-1"><span>Beat Gate</span><span class="tabular text-white text-[11px]">0.42</span></div><input type="range" class="swr-slider" value="42" min="0" max="100"></div>
+                <div><div class="flex justify-between label mb-1"><span>Decay</span><span class="tabular text-white text-[11px]">0.16</span></div><input type="range" class="swr-slider" value="16" min="0" max="100"></div>
+                <div><div class="flex justify-between label mb-1"><span>Temp</span><span class="tabular text-white text-[11px]">1.0</span></div><input type="range" class="swr-slider" value="50" min="0" max="100"></div>
+              </div>
+            </div>
+            <!-- GENERATE -->
+            <div>
+              <div class="micro mb-3">Generate</div>
+              <div class="space-y-3">
+                <div><div class="flex justify-between label mb-1"><span>Mutations</span><span class="tabular text-white text-[11px]">12</span></div><input type="range" class="swr-slider" value="12" min="0" max="100"></div>
+                <div>
+                  <div class="flex justify-between label mb-1"><span>Algo</span></div>
+                  <select class="w-full bg-panel border border-line rounded text-[11px] px-2 py-1.5 text-gray-200 focus:outline-none focus:border-orange">
+                    <option>vortex</option>
+                    <option>drift</option>
+                    <option>bloom</option>
+                    <option>halo</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <!-- LOOK -->
+            <div>
+              <div class="micro mb-3">Look</div>
+              <div class="space-y-3">
+                <div><div class="flex justify-between label mb-1"><span>Posterize</span><span class="tabular text-white text-[11px]">0.20</span></div><input type="range" class="swr-slider" value="20" min="0" max="100"></div>
+                <div><div class="flex justify-between label mb-1"><span>Vignette</span><span class="tabular text-white text-[11px]">0.55</span></div><input type="range" class="swr-slider" value="55" min="0" max="100"></div>
+                <div><div class="flex justify-between label mb-1"><span>Chroma</span><span class="tabular text-white text-[11px]">0.10</span></div><input type="range" class="swr-slider" value="10" min="0" max="100"></div>
+                <div><div class="flex justify-between label mb-1"><span>Grain</span><span class="tabular text-white text-[11px]">0.08</span></div><input type="range" class="swr-slider" value="8" min="0" max="100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="sidebar-r panel flex-shrink-0 border-l border-line" style="width: 300px;" id="sidebar-r">
+      <div class="flex items-center justify-between px-3 py-2 border-b border-line">
+        <span class="micro">Layers</span>
+        <div class="flex items-center gap-1">
+          <button class="px-2 h-6 rounded text-[10px] uppercase tracking-wider border border-line text-gray-300 hover:bg-[#1e1e24] hover:text-white" title="Add layer">+ Layer</button>
+          <button class="icon-btn" title="3D"><span class="text-[10px] font-semibold">3D</span></button>
+          <button class="icon-btn" title="Rotate"><i class="fa-solid fa-rotate text-[10px]"></i></button>
+          <button class="icon-btn" title="Re-map"><i class="fa-solid fa-arrows-rotate text-[10px]"></i></button>
+          <button class="icon-btn" id="toggle-r" title="Collapse layers ( ] )"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+        </div>
+      </div>
+      <div class="overflow-y-auto" id="layers-list" style="height: calc(100% - 41px);"></div>
+    </aside>
+
+  </div>
+
+  <!-- ===================== SCRIPTS ===================== -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ─── Library: 8 placeholder cards ────────────────────────────
+    const libraryGrid = document.getElementById('library-grid');
+    const SAMPLE_TITLES = ['Crystal', 'Drift', 'Glow', 'Halo', 'Lattice', 'Mist', 'Neon', 'Pulse'];
+    SAMPLE_TITLES.forEach((name) => {
+      const card = document.createElement('div');
+      card.className = 'relative aspect-square rounded-md overflow-hidden cursor-pointer';
+      card.style.background = `linear-gradient(135deg, #1e1e24 0%, #${(0x1a1a20 + Math.random() * 0x10 | 0).toString(16)} 100%)`;
+      card.innerHTML = `
+        <div class="absolute inset-0 flex items-center justify-center">
+          <i class="fa-solid fa-image text-gray-600 text-lg"></i>
+        </div>
+        <span class="absolute bottom-1 right-1 micro" style="font-size: 8px; background: rgba(0,0,0,0.6); padding: 1px 4px; border-radius: 2px;">PNG</span>
+        <span class="absolute bottom-1 left-1 text-[9px] text-gray-300 truncate" style="max-width: calc(100% - 32px);">${name}</span>
+      `;
+      libraryGrid.appendChild(card);
+    });
+
+    // ─── Layers: accordion ────────────────────────────────────────
+    const LAYERS = [
+      { name: 'SHARED',  react: 'bass-scale*0.68 . b64-opacity*0.48', blend: 'over', opacity: 100, base: 0.50, scale: 1.00, hue: 0, rot: 0 },
+      { name: 'AURA',    react: 'mid-energy*0.72 . hue-drift*0.34',   blend: 'overlay', opacity: 80,  base: 0.40, scale: 0.96, hue: 12, rot: 0 },
+      { name: 'GRAIN',   react: 'rms*0.30 . seed*42',                blend: 'screen',  opacity: 60,  base: 0.20, scale: 1.04, hue: 0, rot: 0 },
+      { name: 'HALO',    react: 'lfo*0.18 . radial*0.55',            blend: 'over',    opacity: 70,  base: 0.30, scale: 1.10, hue: 6, rot: 0 },
+      { name: 'MARKER',  react: 'onset*0.90 . decay*0.20',           blend: 'multiply',opacity: 50,  base: 0.10, scale: 1.00, hue: 0, rot: 0 },
+    ];
+    const layersList = document.getElementById('layers-list');
+    LAYERS.forEach((L, i) => {
+      const row = document.createElement('details');
+      row.className = 'border-b border-line';
+      if (i === 0) row.setAttribute('open', '');
+      row.innerHTML = `
+        <summary class="flex items-center gap-2 px-3 py-2 hover:bg-[#161619]">
+          <span class="text-gray-500 text-[10px] cursor-grab"><i class="fa-solid fa-grip-vertical"></i></span>
+          <span class="micro w-4 tabular text-right text-gray-500">${i + 1}</span>
+          <span class="w-8 h-8 rounded bg-[#1e1e24] flex items-center justify-center">
+            <i class="fa-solid fa-layer-group text-[10px] text-gray-500"></i>
+          </span>
+          <span class="text-[12px] font-medium text-white flex-1">${L.name}</span>
+          <span class="flex items-center gap-1" onclick="event.stopPropagation()">
+            <a class="icon-btn" title="Link"><i class="fa-solid fa-link text-[10px]"></i></a>
+            <a class="icon-btn" title="Duplicate"><i class="fa-solid fa-copy text-[10px]"></i></a>
+            <a class="icon-btn" title="Delete"><i class="fa-solid fa-trash-can text-[10px]"></i></a>
+          </span>
+        </summary>
+        <div class="px-3 pb-3 space-y-2.5">
+          <div>
+            <div class="label mb-1">React</div>
+            <input class="w-full bg-panel border border-line rounded text-[11px] px-2 py-1.5 text-gray-200 focus:outline-none focus:border-orange font-mono" value="${L.react}" />
+          </div>
+          <div>
+            <div class="label mb-1">Blend</div>
+            <select class="w-full bg-panel border border-line rounded text-[11px] px-2 py-1.5 text-gray-200 focus:outline-none focus:border-orange">
+              <option ${L.blend === 'over' ? 'selected' : ''}>over</option>
+              <option ${L.blend === 'overlay' ? 'selected' : ''}>overlay</option>
+              <option ${L.blend === 'screen' ? 'selected' : ''}>screen</option>
+              <option ${L.blend === 'multiply' ? 'selected' : ''}>multiply</option>
+            </select>
+          </div>
+          ${sliderRow('Opacity', L.opacity)}
+          ${sliderRow('Base', L.base)}
+          ${sliderRow('Scale', L.scale)}
+          ${sliderRow('Hue', L.hue)}
+          ${sliderRow('Rot', L.rot)}
+          <label class="flex items-center justify-end gap-2 text-[11px] text-gray-300 cursor-pointer pt-1">
+            <input type="checkbox" class="accent-orange" /> Rotate
+          </label>
+        </div>
+      `;
+      layersList.appendChild(row);
+    });
+
+    function sliderRow(label, val) {
+      const display = typeof val === 'number' && val < 10 ? val.toFixed(2) : Math.round(val);
+      return `
+        <div>
+          <div class="flex justify-between label mb-1">
+            <span>${label}</span>
+            <span class="tabular text-white text-[11px]">${display}</span>
+          </div>
+          <input type="range" class="swr-slider" value="${val}" min="0" max="100" />
+        </div>`;
+    }
+
+    // Accordion: open one, close others
+    layersList.addEventListener('toggle', (e) => {
+      if (e.target.tagName !== 'DETAILS') return;
+      if (!e.target.open) return;
+      layersList.querySelectorAll('details[open]').forEach((d) => {
+        if (d !== e.target) d.removeAttribute('open');
+      });
+    }, true);
+
+    // ─── Sidebar collapse ─────────────────────────────────────────
+    const sidebarL = document.getElementById('sidebar-l');
+    const sidebarR = document.getElementById('sidebar-r');
+    document.getElementById('toggle-l').addEventListener('click', () => {
+      const collapsed = sidebarL.style.width === '48px';
+      sidebarL.style.width = collapsed ? '240px' : '48px';
+      // Hide content when collapsed
+      sidebarL.querySelectorAll(':scope > *').forEach(el => {
+        if (el.id !== 'toggle-l') el.style.display = collapsed ? '' : 'none';
+      });
+      // Move toggle to opposite edge
+      const btn = document.getElementById('toggle-l').firstElementChild;
+      btn.className = `fa-solid ${collapsed ? 'fa-chevron-left' : 'fa-chevron-right'} text-[10px]`;
+    });
+    document.getElementById('toggle-r').addEventListener('click', () => {
+      const collapsed = sidebarR.style.width === '48px';
+      sidebarR.style.width = collapsed ? '300px' : '48px';
+      sidebarR.querySelectorAll(':scope > *').forEach(el => {
+        if (el.id !== 'toggle-r') el.style.display = collapsed ? '' : 'none';
+      });
+      const btn = document.getElementById('toggle-r');
+      btn.innerHTML = `<i class="fa-solid ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'} text-[10px]"></i>`;
+    });
+
+    // ─── Drawer ──────────────────────────────────────────────────
+    const drawer = document.getElementById('advanced-drawer');
+    document.getElementById('drawer-toggle').addEventListener('click', () => {
+      drawer.classList.toggle('collapsed');
+    });
+
+    // ─── Tabs ────────────────────────────────────────────────────
+    const tabs = document.querySelectorAll('.tab-btn');
+    const placeholder = document.getElementById('placeholder');
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(b => { b.classList.remove('tab-active'); b.classList.add('text-gray-400'); });
+        btn.classList.add('tab-active');
+        btn.classList.remove('text-gray-400');
+        placeholder.classList.toggle('hidden', btn.dataset.tab === 'engine');
+      });
+    });
+
+    // ─── More menu ──────────────────────────────────────────────
+    const moreBtn = document.getElementById('more-btn');
+    const moreMenu = document.getElementById('more-menu');
+    moreBtn.addEventListener('click', (e) => { e.stopPropagation(); moreMenu.classList.toggle('hidden'); });
+    document.addEventListener('click', () => moreMenu.classList.add('hidden'));
+
+    // ─── Waveform bars (purely decorative) ──────────────────────
+    function fillWaveBars(el, n) {
+      const heights = [];
+      for (let i = 0; i < n; i++) heights.push(20 + Math.abs(Math.sin(i * 0.42) * 70) + Math.random() * 10);
+      el.innerHTML = heights.map(h => `<span style="height: ${h.toFixed(0)}%"></span>`).join('');
+    }
+    fillWaveBars(document.getElementById('top-wave'), 64);
+    fillWaveBars(document.getElementById('drawer-wave'), 96);
+
+    // ─── Keyboard shortcuts ─────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+      // Ignore when typing in inputs/textareas/selects
+      if (e.target.matches('input, textarea, select')) return;
+      if (e.key === '[') document.getElementById('toggle-l').click();
+      if (e.key === ']') document.getElementById('toggle-r').click();
+      if (e.key === 'a' || e.key === 'A') document.getElementById('drawer-toggle').click();
+    });
+  })();
+  </script>
+</body>
+</html>
