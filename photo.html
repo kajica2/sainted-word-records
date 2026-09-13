@@ -179,12 +179,18 @@
   <aside class="side-col">
     <div class="panel">
       <h2>Source</h2>
-      <input type="file" id="image-input" accept="image/*" />
+      <input type="file" id="image-input" accept="image/*" multiple />
       <input type="file" id="audio-input" accept="audio/*" />
       <select id="format-select">
         <option value="1080x1080">1:1 · 1080²</option>
         <option value="1920x1080">16:9 · 1080p</option>
       </select>
+      <label style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;font-size:10px;letter-spacing:0.04em;margin-bottom:6px;">Multiple images = slideshow
+        <span class="v" id="slideshow-count">—</span>
+      </label>
+      <label style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;font-size:10px;letter-spacing:0.04em;margin-bottom:6px;">Advance on beat
+        <input type="checkbox" id="advance-on-beat" checked style="accent-color:var(--accent);width:12px;height:12px;margin:0;" />
+      </label>
     </div>
 
     <div class="panel">
@@ -254,11 +260,40 @@
   };
 
   // ---- image + playback state ----------------------------------------
-  let img = null;
+  // Slideshow mode: multiple dropped images advance on beat with a short
+  // crossfade. Single image = exact legacy behavior (no advance).
+  const images = [];        // {im, w, h}
+  let curIdx = 0;           // currently shown image
+  let prevShot = null;      // {im, w, h} snapshot for crossfade, or null
+  let fadeT = -1;           // 0..1 crossfade progress; -1 = no fade in flight
+  const FADE_MS = 300;      // crossfade window after a beat advance
+  let advanceOnBeat = true;
   let elapsed = 0;
   let lastT = 0;
   let playing = false;
   let looping = false;
+
+  function currentShot() {
+    return images.length ? images[curIdx] : null;
+  }
+
+  // Crossfade from the shown image to the next one. Called on beats when
+  // multiple photos are loaded and "Advance on beat" is checked.
+  function advancePhoto() {
+    if (images.length < 2) return;
+    prevShot = currentShot();
+    curIdx = (curIdx + 1) % images.length;
+    fadeT = 0;             // start fading from prevShot → images[curIdx]
+    elapsed = 0;           // Ken Burns restarts on the new photo
+    const cnt = $('slideshow-count');
+    if (cnt) cnt.textContent = `${curIdx + 1}/${images.length}`;
+  }
+
+  function onBeat() {
+    if (!images || images.length < 2) return;
+    if (!advanceOnBeat) return;
+    advancePhoto();
+  }
 
   // ---- format (default 1080×1080) ------------------------------------
   function setFormat(w, h) {
@@ -326,6 +361,7 @@
       if (A.feat.bass > prevBass + 0.08 && A.feat.bass > 0.25 && now - A.lastBeatAt > 200) {
         A.feat.beat = 1;
         A.lastBeatAt = now;
+        onBeat();   // slideshow advance (no-op with <2 images or toggle off)
       } else if (now - A.lastBeatAt > 120) {
         A.feat.beat = 0;
       }
@@ -336,23 +372,70 @@
   }
 
   // ---- image setup ----------------------------------------------------
-  function setupImage(file) {
-    const url = URL.createObjectURL(file);
-    const im = new Image();
-    im.onload = () => {
-      img = im;
-      hintEl.classList.add('hidden');
-      playBtn.disabled = false;
-      exportBtn.disabled = false;
-      statusEl.textContent = 'IMAGE LOADED';
-    };
-    im.onerror = () => {
-      statusEl.textContent = 'IMAGE FAILED';
-    };
-    im.src = url;
+  // Multiple selected files = slideshow deck; the first file becomes the
+  // initial photo and each subsequent beat advances to the next one.
+  // A single file keeps the exact legacy single-image path.
+  function setupImages(files) {
+    const list = Array.from(files || []).filter((f) => f && f.type && f.type.startsWith('image/'));
+    if (!list.length) return;
+    for (const file of list) {
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = () => {
+        images.push({ im, w: im.naturalWidth || im.width, h: im.naturalHeight || im.height });
+        if (images.length === 1) {
+          hintEl.classList.add('hidden');
+          playBtn.disabled = false;
+          exportBtn.disabled = false;
+          statusEl.textContent = 'IMAGE LOADED';
+        }
+        const cnt = $('slideshow-count');
+        if (cnt) cnt.textContent = `${curIdx + 1}/${images.length}`;
+      };
+      im.onerror = () => { statusEl.textContent = 'IMAGE FAILED'; };
+      im.src = url;
+    }
   }
 
   // ---- draw frame -----------------------------------------------------
+  // Cover-fit a shot onto the stage with the Ken Burns crop + scale.
+  // Returns {dw, dh, dx, dy} for the caller to draw at.
+  function coverFit(shot, dur, tt, scale) {
+    const sx = parseFloat($('kb-start-x').value);
+    const sy = parseFloat($('kb-start-y').value);
+    const ex = parseFloat($('kb-end-x').value);
+    const ey = parseFloat($('kb-end-y').value);
+    const zoom = parseFloat($('kb-zoom').value);
+    const cx = lerp(sx, ex, tt);
+    const cy = lerp(sy, ey, tt);
+    const bassPulse = 1 + A.feat.bass * parseFloat($('ar-bass').value);
+    const beatFlash = A.feat.beat ? parseFloat($('ar-beat').value) : 0;
+    const s = scale * bassPulse + beatFlash;
+    // Cover-mode render: scale image to cover the stage, then offset by
+    // (cx, cy) which are 0..1 in stage-normalized coords.
+    const iar = (shot.w || 1) / (shot.h || 1);
+    const sar = stage.width / stage.height;
+    let dw, dh;
+    if (iar > sar) {
+      dh = stage.height * s;
+      dw = dh * iar;
+    } else {
+      dw = stage.width * s;
+      dh = dw / iar;
+    }
+    const dx = (stage.width - dw) / 2 + (cx - 0.5) * stage.width;
+    const dy = (stage.height - dh) / 2 + (cy - 0.5) * stage.height;
+    return { dw, dh, dx, dy, cx, cy, zoom, bassPulse, beatFlash };
+  }
+
+  function drawShot(shot, tt, scale, alpha) {
+    if (!shot || !shot.im) return;
+    const f = coverFit(shot, 0, tt, scale);
+    if (alpha < 1) ctx.globalAlpha = alpha;
+    ctx.drawImage(shot.im, f.dx, f.dy, f.dw, f.dh);
+    if (alpha < 1) ctx.globalAlpha = 1;
+  }
+
   function drawFrame(t) {
     const dt = (t - lastT) / 1000;
     lastT = t;
@@ -361,37 +444,24 @@
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, stage.width, stage.height);
 
-    if (!img) return;
+    const shot = currentShot();
+    if (!shot) return;
 
     const dur = parseFloat($('kb-duration').value) || 5;
     const tt = looping ? (elapsed % dur) / dur : Math.min(elapsed / dur, 1);
-    const sx = parseFloat($('kb-start-x').value);
-    const sy = parseFloat($('kb-start-y').value);
-    const ex = parseFloat($('kb-end-x').value);
-    const ey = parseFloat($('kb-end-y').value);
-    const zoom = parseFloat($('kb-zoom').value);
 
-    const cx = lerp(sx, ex, tt);
-    const cy = lerp(sy, ey, tt);
-    const bassPulse = 1 + A.feat.bass * parseFloat($('ar-bass').value);
-    const beatFlash = A.feat.beat ? parseFloat($('ar-beat').value) : 0;
-    const scale = zoom * bassPulse + beatFlash;
-
-    // Cover-mode render: scale image to cover the stage, then offset by
-    // (cx, cy) which are 0..1 in stage-normalized coords.
-    const iar = img.width / img.height;
-    const sar = stage.width / stage.height;
-    let dw, dh;
-    if (iar > sar) {
-      dh = stage.height * scale;
-      dw = dh * iar;
+    // Crossfade in flight: draw the outgoing prevShot fading out beneath the
+    // incoming current shot (which fades in on top).
+    if (fadeT >= 0 && prevShot) {
+      const alpha = Math.max(0, 1 - fadeT);
+      drawShot(prevShot, tt, 1, alpha);
+      // Current shot fades in on top during the fade window.
+      drawShot(shot, tt, 1, 1 - alpha);
+      fadeT += dt / (FADE_MS / 1000);
+      if (fadeT >= 1) { fadeT = -1; prevShot = null; }
     } else {
-      dw = stage.width * scale;
-      dh = dw / iar;
+      drawShot(shot, tt, 1, 1);
     }
-    const dx = (stage.width - dw) / 2 + (cx - 0.5) * stage.width;
-    const dy = (stage.height - dh) / 2 + (cy - 0.5) * stage.height;
-    ctx.drawImage(img, dx, dy, dw, dh);
   }
 
   function loop(t) {
@@ -419,8 +489,8 @@
 
   // ---- UI wiring ------------------------------------------------------
   $('image-input').addEventListener('change', (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) setupImage(f);
+    const files = e.target.files;
+    if (files && files.length) setupImages(files);
   });
   $('audio-input').addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
@@ -430,9 +500,12 @@
     const [w, h] = e.target.value.split('x').map(Number);
     if (w && h) setFormat(w, h);
   });
+  $('advance-on-beat').addEventListener('change', (e) => {
+    advanceOnBeat = e.target.checked;
+  });
 
   playBtn.addEventListener('click', () => {
-    if (!img) return;
+    if (!images.length) return;
     playing = !playing;
     playBtn.textContent = playing ? '⏸ PAUSE' : '▶ PLAY';
     if (A.el && A.audioCtx && A.audioCtx.state === 'suspended') A.audioCtx.resume();
@@ -448,7 +521,7 @@
   });
 
   exportBtn.addEventListener('click', async () => {
-    if (!img) return;
+    if (!images.length) return;
     if (!window.SWR_RECORDER || !window.SWR_RECORDER.canUseWebCodecs()) {
       exportBtn.textContent = 'WebCodecs unsupported';
       setTimeout(() => { exportBtn.textContent = '⤓ EXPORT MP4'; }, 2000);
@@ -508,6 +581,15 @@
       if (A.el) try { A.el.pause(); } catch (_) {}
     }
   });
+
+  // ---- test seam (repo convention: window._debug handles for Puppeteer) ---
+  // Lets verify-photo-slideshow drive a beat / manual advance deterministically.
+  window.PHOTO_STUDIO_DEBUG = {
+    advance: advancePhoto,
+    beat: onBeat,
+    setAdvanceOnBeat: (v) => { advanceOnBeat = !!v; },
+    state: () => ({ count: images.length, idx: curIdx, fade: fadeT, advanceOnBeat }),
+  };
 })();
 </script>
 </body>
