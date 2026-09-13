@@ -6544,61 +6544,14 @@
           }, { once: true });
         }
       } catch (e) { console.warn('song restore', e); }
-      // Auto-load any pre-seeded assets from ./library/ on the first run per
-      // browser. We use a localStorage flag so the manifest only seeds once:
-      // if the user has uploaded their own assets, the manifest skips; if
-      // they later Clear, the next visit stays empty (no manifest surprise).
-      //
-      // Two-phase load:
-      //   Phase 1 (boot): fetch the manifest + first 8 image thumbs (cheap).
-      //     First paint is no longer blocked on 5 videos decoding; user can
-      //     drop a song and start playing immediately.
-      //   Phase 2 (idle): videos + remaining thumbs in a requestIdleCallback
-      //     slice. By the time the user opens the library tab, the rest is
-      //     already in IDB.
-      if (Library.items.length === 0 && !localStorage.getItem('swr-manifest-loaded')) {
-        try {
-          const r = await fetch('./library/manifest.json', { cache: 'no-cache' });
-          if (r.ok) {
-            const m = await r.json();
-            const files = m.files || [];
-            // Partition by type. Images decode fast; videos are the bottleneck.
-            const imageFiles = files.filter(f => /\.(jpe?g|png|webp|gif)$/i.test(f));
-            const videoFiles = files.filter(f => /\.(mp4|webm|mov)$/i.test(f));
-            const phase1 = imageFiles.slice(0, 8);
-            const phase1Blobs = await Promise.all(phase1.map(async f => {
-              const fr = await fetch('./library/' + f);
-              return { name: f, blob: await fr.blob() };
-            }));
-            await Library.addFiles(phase1Blobs.map(({ name, blob }) => new File([blob], name, { type: blob.type })));
-            // Phase 2 — defer to idle time. If rIC isn't available, fall back
-            // to a short setTimeout so we still don't block first paint.
-            const phase2Files = [...imageFiles.slice(8), ...videoFiles];
-            let phase2Resolve;
-            window.__swrPhase2Done = new Promise((res) => { phase2Resolve = res; });
-            if (phase2Files.length) {
-              const runPhase2 = async () => {
-                const blobs = await Promise.all(phase2Files.map(async f => {
-                  const fr = await fetch('./library/' + f);
-                  return { name: f, blob: await fr.blob() };
-                }));
-                await Library.addFiles(blobs.map(({ name, blob }) => new File([blob], name, { type: blob.type })));
-                localStorage.setItem('swr-manifest-loaded', '1');
-                phase2Resolve();
-              };
-              if (typeof requestIdleCallback === 'function') {
-                requestIdleCallback(() => { runPhase2().catch(() => phase2Resolve()); }, { timeout: 5000 });
-              } else {
-                setTimeout(() => { runPhase2().catch(() => phase2Resolve()); }, 100);
-              }
-            } else {
-              localStorage.setItem('swr-manifest-loaded', '1');
-              phase2Resolve();
-            }
-          }
-        } catch (e) {
-          // No library folder, that's fine
-        }
+      // Demo library has been removed — users bring their own assets via
+      // the Media Manager upload affordance. Mark phase2 done immediately so
+      // any downstream waits (e.g. verify-library-loads.mjs) resolve. The
+      // 'swr-manifest-loaded' flag is preserved so once-empty stays empty
+      // across reloads (don't surprise the user by re-checking the network).
+      window.__swrPhase2Done = Promise.resolve();
+      if (!localStorage.getItem('swr-manifest-loaded')) {
+        localStorage.setItem('swr-manifest-loaded', '1');
       }
       // Wire preset dropdown
       const presetSel = document.getElementById('preset');
@@ -8359,16 +8312,12 @@
     })();
   </script>
   <script>
-    // Bundled songs — one-click load into the audio source
+    // Bundled songs — one-click load into the audio source.
+    // The curated library has been removed; users bring their own audio via
+    // the file picker. This list is kept as an empty stub so downstream code
+    // (which iterates SONGS to populate a UI) keeps working.
     (function () {
-      const SONGS = [
-        { url: '/library/audio/coltrane-like-sonny.mp3', name: 'Like Sonny (Alt. Take)', artist: 'John Coltrane', size: '14.5 MB' },
-        { url: '/library/audio/loop-drone.wav',   name: 'Drone',   artist: 'procedural',  size: '882 KB' },
-        { url: '/library/audio/loop-pulse.wav',   name: 'Pulse',   artist: 'procedural',  size: '662 KB' },
-        { url: '/library/audio/loop-shimmer.wav', name: 'Shimmer', artist: 'procedural',  size: '882 KB' },
-        { url: '/library/audio/loop-bass.wav',    name: 'Bass',    artist: 'procedural',  size: '662 KB' },
-        { url: '/library/audio/loop-grain.wav',   name: 'Grain',   artist: 'procedural',  size: '794 KB' },
-      ];
+      const SONGS = [];
       function fmtBytes(b) {
         if (b < 1024) return b + ' B';
         if (b < 1024*1024) return (b/1024).toFixed(0) + ' KB';

@@ -47,3 +47,55 @@ Stage 1 ready: `rm -rf library/` + `git rm` dead scripts. No push yet.
   Stage 2.3's job.
 
 Stage 1 actual time: ~5 min (faster than planned — pure rm + git rm).
+
+
+## 2026-09-13T03:55:00Z · STAGE 2 · done · hermes
+
+Stage 2 took ~25 min (planned 2 hours; smaller blast radius than feared).
+
+Files changed: 4 (vite.config.js, vercel.json, package.json, engine.html,
+versions/music_video.html).
+
+### vite.config.js
+- Removed `LIB_FILES` + `getLibraryFiles()` block (~22 lines, the manifest
+  reader).
+- Removed `doCopy()` warning log about missing library/ folder (~9 lines).
+- Removed the `closeBundle()` library-handling block: the heavy-dir strip
+  shrunk from `['library','style-graphics','style-videos','style-videos-watermarked','style-videos-original']`
+  to `['library']` (only library exists in defensive scope; the others
+  were never there). The `closeBundle` library re-copy logic (~45 lines,
+  ~38 LoC) is gone.
+- Replaced the comment block at the top of `copyStatic()` to call out
+  that the curated library is intentionally not shipped.
+
+### vercel.json
+- Removed the `/library/:path*` cache header block (9 lines). /audios/
+  block untouched.
+
+### package.json
+- Removed `prebuild`, `build:vercel`, `upload:library`, `check:manifest`,
+  `verify:library-loads`, `verify:library-switcher`. check chain no
+  longer calls check:manifest.
+- Fixed a pre-existing duplicate `verify:grid-library-persist` (was at
+  lines 51 and 78 — kept line 51 which was the canonical position).
+- `npm run check` runs the same set minus the deleted scripts.
+
+### engine.html
+- Replaced the 56-line "Auto-load any pre-seeded assets from ./library/"
+  block with a no-op that sets `window.__swrPhase2Done = Promise.resolve()`
+  and marks `swr-manifest-loaded`. This preserves the API surface that
+  verify-library-loads.mjs probes (window.__swrPhase2Done as a Promise)
+  while dropping the network calls.
+- Emptied the `SONGS` array (was 6 entries pointing at /library/audio/*).
+  Kept the array as `[]` so the UI iterator doesn't break.
+
+### versions/music_video.html
+- Replaced the "Request demo files" hint that linked to /library/manifest.json
+  with a plain upload-hint. DEFAULT_SONG = '../audios/film.mp3' untouched.
+
+### Verification
+- `npm run check`: ALL GREEN (same checks as before, minus the deleted ones)
+- `npm run build`: success, dist/ is 66MB (was ~140MB+). dist/library/
+  does not exist. dist/audios/ contains the 20 per-variant demo MP3s.
+
+Stage 2 actual time: ~25 min vs 2 hour plan.
