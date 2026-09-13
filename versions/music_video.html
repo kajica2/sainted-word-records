@@ -1171,7 +1171,12 @@
       if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
       return t;
     }
-    function applyR(l) {
+    // applyR is a let binding (not a function declaration) so the
+    // post-modules wiring can wrap it. Originally was a function
+    // declaration which is hoisted and not reassignable; the
+    // binding form is equivalent for the IIFE's own read at line
+    // 915's SWR_RENDER.frame() call site.
+    let applyR = function (l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
 
@@ -1216,7 +1221,7 @@
       if (out.rot) out.rot = ((out.rot + 540) % 360) - 180;
       out._v = "0";
       return out;
-    }
+    };
     function drawLayer(l) {
       const a = l.asset; if (!a) return;
       let src;
@@ -1987,7 +1992,7 @@
       }
     })();
 
-    window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
+    window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; }, get applyR() { return applyR; }, set applyR(fn) { applyR = fn; } };
 
     // ---- Canvas-level "fit to screen" toggle ----------------------------
     // Flips the #render canvas's CSS object-fit between the browser
@@ -3854,14 +3859,26 @@
       onChange: function () { if (__HOLO_PANEL) __HOLO_PANEL.redraw(); },
     });
 
-    // ApplyR wrap is intentionally omitted in this Phase F block.
-    // The page's `function applyR(l)` declaration is hoisted inside
-    // the inline IIFE; rebinding it from a separate <script> would
-    // require converting the declaration to a `let`. That's a
-    // separate small commit. The remaining wiring (panel + keys
-    // + audio analysis) is fully functional and is what this
-    // Phase F smoke exercises. The renderer module's wrapApplyR
-    // is unit-tested separately in scripts/check-mv-render-unit.mjs.
+    // ApplyR wrap. The IIFE exposes window.SWR.applyR as a getter/setter
+    // proxy for the closure-local applyR binding. We wrap the
+    // original and assign back; the SWR_RENDER.frame() loop reads
+    // applyR via closure on each tick, so the next RAF sees the
+    // wrapped version. Falls back silently if applyR isn't exposed
+    // (older page versions).
+    if (window.SWR && window.SWR_HOLOGRAM_INSTALL) {
+      var __origApplyR = window.SWR.applyR;
+      if (typeof __origApplyR === 'function') {
+        var __wrapped = window.SWR_HOLOGRAM_INSTALL.wrapApplyR(__origApplyR, __holo, {
+          get features()    { return State.features; },
+          get focus()       { return State.focus; },
+          get depth()       { return State.depth; },
+          get focusAmount() { return State.focusAmount; },
+        });
+        window.__SWR_APPLY_R_ORIG = __origApplyR;
+        window.SWR.applyR = __wrapped;
+        console.log('[hologram] applyR wrapped');
+      }
+    }
 
     // Song-drop hook: the existing UI WIRING listens on song-input
     // and calls A.load(). We add another listener that runs

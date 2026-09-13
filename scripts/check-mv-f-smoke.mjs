@@ -164,6 +164,22 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
   assert(boot.synthPillText && boot.synthPillText.includes('no track'),
     `synth pill says "no track" before any drop (got ${JSON.stringify(boot.synthPillText)})`);
 
+  // applyR wrap: window.SWR.applyR must differ from the original
+  // (captured at wrap time as window.__SWR_APPLY_R_ORIG). The wrap
+  // path is conditional on window.SWR.applyR being exposed; older
+  // page versions that haven't been updated skip the wrap silently.
+  await page.evaluate(() => {});
+  const applyrDiag = await page.evaluate(() => ({
+    exposed: typeof window.SWR?.applyR,
+    orig: typeof window.__SWR_APPLY_R_ORIG,
+    differ: !!(window.SWR && window.__SWR_APPLY_R_ORIG
+              && window.SWR.applyR !== window.__SWR_APPLY_R_ORIG),
+  }));
+  console.log('  [applyR diag]', JSON.stringify(applyrDiag));
+  assert(applyrDiag.exposed === 'function', 'window.SWR.applyR is exposed as a function');
+  assert(applyrDiag.orig === 'function', 'window.__SWR_APPLY_R_ORIG captures the original applyR');
+  assert(applyrDiag.differ, 'window.SWR.applyR is the wrapped version, distinct from the original');
+
   console.log('\n=== gradient canvas paints ===');
   const paint = await page.evaluate(() => {
     const cv = document.getElementById('gradient');
