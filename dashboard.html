@@ -155,8 +155,19 @@
     <!-- CENTER CANVAS -->
     <main class="flex-1 relative" id="canvas-wrap">
       <!-- Canvas area -->
-      <div class="absolute inset-4 canvas-stage rounded-xl flex items-center justify-center" id="canvas">
-        <div class="absolute top-3 left-3 micro">Preview — 1080 × 1350</div>
+      <div class="absolute inset-4 canvas-stage rounded-xl flex items-center justify-center overflow-hidden" id="canvas">
+        <div class="absolute top-3 left-3 micro z-10">Preview — 1080 × 1350</div>
+        <!-- Engine render surface (real audio-reactive canvas) -->
+        <canvas id="render-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+        <!-- Drop zone (visible until first audio loads) -->
+        <div id="drop-zone" class="absolute inset-0 flex items-center justify-center z-20 cursor-pointer" style="background: rgba(10, 10, 11, 0.4);">
+          <input type="file" id="audio-file" accept="audio/*" style="display:none" />
+          <div class="text-center pointer-events-none">
+            <i class="fa-solid fa-music text-3xl text-gray-500 mb-3 block"></i>
+            <div class="micro">Drop audio · or click to browse</div>
+            <div class="text-[10px] text-gray-600 mt-1">MP3 / WAV / M4A / OGG / FLAC</div>
+          </div>
+        </div>
         <!-- Tab placeholders -->
         <div id="placeholder" class="hidden text-center text-gray-500 text-sm">
           <i class="fa-solid fa-wrench text-2xl mb-3 block"></i>
@@ -165,7 +176,7 @@
       </div>
 
       <!-- BOTTOM DRAWER -->
-      <div class="drawer collapsed absolute left-4 right-4 bottom-4 panel" id="advanced-drawer" style="border-radius: 8px;">
+      <div class="drawer collapsed absolute left-4 right-4 bottom-4 panel z-30" id="advanced-drawer" style="border-radius: 8px;">
         <!-- header -->
         <button class="w-full flex items-center px-4 border-b border-line" style="height: 40px;" id="drawer-toggle">
           <span class="micro flex items-center gap-1.5">
@@ -400,5 +411,6 @@
     });
   })();
   </script>
+  <script src="/client/dashboard-engine.client.js" defer></script>
 </body>
 </html>

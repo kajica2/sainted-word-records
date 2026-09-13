@@ -142,6 +142,30 @@ try {
   // 12. No console errors
   check('No console errors', errors.length === 0, errors.length ? errors.slice(0,3).join('|') : '');
 
+  // 13. Engine: canvas + audio element wired
+  await page.evaluate(() => document.body.focus());
+  await new Promise((r) => setTimeout(r, 300));
+  const engineReady = await page.evaluate(() => !!window.__SWR_ENGINE);
+  check('Engine global installed', engineReady);
+  const canvasOK = await page.evaluate(() => {
+    const c = document.getElementById('render-canvas');
+    return c && c.width === 540 && c.height === 675;
+  });
+  check('Render canvas 540x675', canvasOK);
+  const audioOK = await page.evaluate(() => !!window.__SWR_ENGINE && !!window.__SWR_ENGINE.audio);
+  check('Engine has audio element', audioOK);
+  const featuresOK = await page.evaluate(() => {
+    const e = window.__SWR_ENGINE;
+    if (!e) return false;
+    const f = e.features();
+    return f && typeof f.bass === 'number';
+  });
+  check('Engine features accessible', featuresOK);
+
+  // 14. Drop zone visible
+  const dropZoneOK = await page.$eval('#drop-zone', (el) => !el.classList.contains('hidden'));
+  check('Drop zone visible on load', dropZoneOK);
+
 } finally {
   await browser.close();
   server.close();
