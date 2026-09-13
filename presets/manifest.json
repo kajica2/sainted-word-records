@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-16T23:29:03.048985+00:00",
+  "updated_at": "2026-09-09T09:31:54+00:00",
   "presets": [
     {
       "id": "swr-preset-2026-08-14-midsommar-voronoi-lateral",
@@ -1351,7 +1351,971 @@
         "style_name": "Aurora",
         "song_name": "Like Sonny (Alternate Take) \u2014 John Coltrane"
       }
+    },
+    {
+      "id": "swr-preset-2026-09-09-click-kahn-whip-cyan",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T09:30:00.000000+00:00",
+      "name": "Click Kahn Whip Cyan",
+      "family": "GENERATIVE",
+      "description": "JISOO 'CLICK' (Joseph Kahn, 2026-09-04): electric magenta/cyan whip-pan cover cuts on 4/4 downbeats. Hot screen-blend stacks, sharp easings, scanlines \u2014 paired with sci-fi/fairy-tale palette. Synced with paint-stroke crossfades in the spatial-zoom window.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "glitch-blocks",
+          "weight": 0.4
+        },
+        {
+          "kind": "shader_ref",
+          "name": "bloom-halo",
+          "weight": 0.25
+        },
+        {
+          "kind": "palette_ref",
+          "name": "kahn-magenta-cyan",
+          "weight": 0.25
+        },
+        {
+          "kind": "motion_ref",
+          "name": "whip-pan-cover",
+          "weight": 0.1
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.45,
+        "grain": 0.18,
+        "chroma": 0.0,
+        "bloom": 0.55,
+        "vignette": 0.35,
+        "sepia": 0.0,
+        "glow": 0.0,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.25,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.15,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#ff3d92",
+        "secondary": "#00e5ff",
+        "accent": "#ffd24a",
+        "bg": "#0a0414"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "posterize",
+          "pan_x"
+        ],
+        "mid": [
+          "bloom"
+        ],
+        "treble": [
+          "glitch"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0414\"/><rect x=\"4\" y=\"14\" width=\"14\" height=\"52\" fill=\"#ff3d92\" opacity=\"0.85\"/><rect x=\"22\" y=\"14\" width=\"14\" height=\"52\" fill=\"#00e5ff\" opacity=\"0.85\"/><rect x=\"40\" y=\"14\" width=\"14\" height=\"52\" fill=\"#ff3d92\" opacity=\"0.6\"/><rect x=\"58\" y=\"14\" width=\"14\" height=\"52\" fill=\"#ffd24a\" opacity=\"0.45\"/><rect x=\"0\" y=\"0\" width=\"80\" height=\"2\" fill=\"#ffffff\" opacity=\"0.4\"/><rect x=\"0\" y=\"78\" width=\"80\" height=\"2\" fill=\"#ffffff\" opacity=\"0.4\"/></svg>",
+        "tags": [
+          "kahn",
+          "whip-pan",
+          "kpop",
+          "click",
+          "magenta-cyan"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "neon.html",
+        "style_name": "Neon",
+        "song_name": "JISOO 'CLICK' (Joseph Kahn, 2026-09-04)"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-shrine-flash-longlens",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T09:30:00.000000+00:00",
+      "name": "Shrine Flash Longlens",
+      "family": "GENERATIVE",
+      "description": "Chat Pile 'Shrine' (David Fitt, 2026-09-04, album 'Who Loves the Sun'): long-lens environmental scenes, hard cuts on impact, single over-exposed flash cut for the build. Noise-rock on post-rock/art-noise axis. Earth tones, slow drift, low FX overall so the flash-cut reads as the singular punctuation.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "film-grain",
+          "weight": 0.45
+        },
+        {
+          "kind": "shader_ref",
+          "name": "soft-vignette",
+          "weight": 0.2
+        },
+        {
+          "kind": "palette_ref",
+          "name": "longlens-desaturated-earth",
+          "weight": 0.25
+        },
+        {
+          "kind": "motion_ref",
+          "name": "flash-cover-on-snare",
+          "weight": 0.1
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.55,
+        "chroma": 0.0,
+        "bloom": 0.05,
+        "vignette": 0.45,
+        "sepia": 0.0,
+        "glow": 0.0,
+        "grayscale": 0.18,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.4,
+        "posterize": 8
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.05
+      },
+      "palette": {
+        "primary": "#6b5d4a",
+        "secondary": "#3d4a3a",
+        "accent": "#d4a574",
+        "bg": "#1a1612"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "grain"
+        ],
+        "mid": [
+          "pan_y"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "vignette"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><defs><radialGradient id=\"vg\" cx=\"0.5\" cy=\"0.5\" r=\"0.7\"><stop offset=\"0\" stop-color=\"#1a1612\"/><stop offset=\"1\" stop-color=\"#0a0806\"/></radialGradient></defs><rect width=\"80\" height=\"80\" fill=\"url(#vg)\"/><circle cx=\"40\" cy=\"40\" r=\"20\" fill=\"#3d4a3a\" opacity=\"0.5\"/><circle cx=\"40\" cy=\"40\" r=\"6\" fill=\"#d4a574\" opacity=\"0.85\"/><rect x=\"0\" y=\"0\" width=\"80\" height=\"80\" fill=\"#6b5d4a\" opacity=\"0.06\"/></svg>",
+        "tags": [
+          "chat-pile",
+          "flash-cover",
+          "noise-rock",
+          "longlens",
+          "earth"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "neon.html",
+        "style_name": "Neon",
+        "song_name": "Chat Pile 'Shrine' (David Fitt, 2026-09-04, album 'Who Loves the Sun')"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-dogma-paint-stroke-dissolve",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T09:30:00.000000+00:00",
+      "name": "Dogma Paint Stroke Dissolve",
+      "family": "GENERATIVE",
+      "description": "Kim Ximya 'Dogma' (Park Chan-kyong, 2026-09-04 surprise 26-min single): crossfades end-to-end with paint-stroke masks and layered spatial zooms. Reads as moving painting, audio-reactive dissolves NOT cuts. Resolve 20 / Fusion paint-stroke mask node analog \u2014 heavy blur, liquid warp, painterly grain.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "liquid-fbm-warp",
+          "weight": 0.4
+        },
+        {
+          "kind": "shader_ref",
+          "name": "heavy-blur",
+          "weight": 0.25
+        },
+        {
+          "kind": "shader_ref",
+          "name": "voronoi-pearl",
+          "weight": 0.15
+        },
+        {
+          "kind": "palette_ref",
+          "name": "ink-wash-ochre",
+          "weight": 0.15
+        },
+        {
+          "kind": "motion_ref",
+          "name": "paint-stroke-mask-dissolve",
+          "weight": 0.05
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.45,
+        "pearl": 0.25,
+        "glitch": 0.0,
+        "grain": 0.35,
+        "chroma": 0.0,
+        "bloom": 0.0,
+        "vignette": 0.15,
+        "sepia": 0.2,
+        "glow": 0.0,
+        "grayscale": 0.0,
+        "blur": 0.55,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.05,
+        "posterize": 12
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.08,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#5a4a3a",
+        "secondary": "#d4b87a",
+        "accent": "#8b3a3a",
+        "bg": "#1a1614"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "blur"
+        ],
+        "mid": [
+          "liquid"
+        ],
+        "treble": [
+          "pearl"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a1614\"/><ellipse cx=\"40\" cy=\"40\" rx=\"30\" ry=\"22\" fill=\"#5a4a3a\" opacity=\"0.7\"/><ellipse cx=\"32\" cy=\"34\" rx=\"14\" ry=\"10\" fill=\"#d4b87a\" opacity=\"0.6\"/><ellipse cx=\"50\" cy=\"46\" rx=\"8\" ry=\"6\" fill=\"#8b3a3a\" opacity=\"0.55\"/><rect x=\"0\" y=\"0\" width=\"80\" height=\"80\" fill=\"#5a4a3a\" opacity=\"0.15\"/></svg>",
+        "tags": [
+          "kim-ximya",
+          "park-chan-kyong",
+          "paint-stroke",
+          "ambient",
+          "electronic",
+          "26min"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "neon.html",
+        "style_name": "Neon",
+        "song_name": "Kim Ximya 'Dogma' (Park Chan-kyong, 2026-09-04 surprise 26-min single)"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-pause-freeze-frame",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T09:45:00.000000+00:00",
+      "name": "Pause Freeze Frame",
+      "family": "GENERATIVE",
+      "description": "Pause Freeze Frame: zeros motion and audio reactivity so the render loop ticks but produces the same frame every time. Use as a 'still photo' mode \u2014 captures the current composition at rest, no beat-sync pulses, no pans, no scale. Pair with the engine's #play toggle to also silence audio. Apply a different preset to resume motion.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "neutral",
+          "weight": 0.5
+        },
+        {
+          "kind": "palette_ref",
+          "name": "inherit-current",
+          "weight": 0.5
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.0,
+        "chroma": 0.0,
+        "bloom": 0.0,
+        "vignette": 0.0,
+        "sepia": 0.0,
+        "glow": 0.0,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.5,
+        "posterize": 16
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#000000",
+        "secondary": "#000000",
+        "accent": "#000000",
+        "bg": "#000000"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "sepia"
+        ],
+        "mid": [],
+        "treble": [],
+        "onset": []
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0806\"/><rect x=\"28\" y=\"20\" width=\"8\" height=\"40\" fill=\"#5a4a6a\"/><rect x=\"44\" y=\"20\" width=\"8\" height=\"40\" fill=\"#5a4a6a\"/></svg>",
+        "tags": [
+          "pause",
+          "freeze",
+          "still",
+          "rest"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "neon.html",
+        "style_name": "Neon",
+        "song_name": "Pause Freeze Frame"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-style-neon",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T10:00:00.000000+00:00",
+      "name": "Neon",
+      "family": "GENERATIVE",
+      "description": "Neon \u00b7 club / pulse / luminous. Concentric rings radiating from a central orb. Bass \u2192 ring expansion, mids \u2192 rotation, treble \u2192 hue shift. Best for: four-on-the-floor, synthwave, anything with sub.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "bloom-halo",
+          "weight": 0.35
+        },
+        {
+          "kind": "shader_ref",
+          "name": "concentric-rings",
+          "weight": 0.25
+        },
+        {
+          "kind": "palette_ref",
+          "name": "neon-magenta-cyan",
+          "weight": 0.25
+        },
+        {
+          "kind": "motion_ref",
+          "name": "orbital-rotation",
+          "weight": 0.15
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.0,
+        "chroma": 0.0,
+        "bloom": 0.7,
+        "vignette": 0.3,
+        "sepia": 0.0,
+        "glow": 0.45,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.15,
+        "posterize": 4
+      },
+      "motion": {
+        "rotation_speed": 0.6,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#ff3d92",
+        "secondary": "#00e5ff",
+        "accent": "#ffd24a",
+        "bg": "#0a0414"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "scale_pulse",
+          "bloom"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "temp"
+        ],
+        "onset": [
+          "glow"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0414\"/><circle cx=\"40\" cy=\"40\" r=\"6\" fill=\"#ffd24a\"/><circle cx=\"40\" cy=\"40\" r=\"14\" fill=\"none\" stroke=\"#ff3d92\" stroke-width=\"2\" opacity=\"0.85\"/><circle cx=\"40\" cy=\"40\" r=\"24\" fill=\"none\" stroke=\"#00e5ff\" stroke-width=\"2\" opacity=\"0.65\"/><circle cx=\"40\" cy=\"40\" r=\"34\" fill=\"none\" stroke=\"#ff3d92\" stroke-width=\"1.5\" opacity=\"0.45\"/></svg>",
+        "tags": [
+          "neon",
+          "club",
+          "luminous",
+          "synthwave",
+          "four-on-the-floor"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "neon.html",
+        "style_name": "Neon",
+        "song_name": "Neon \u00b7 club / pulse / luminous. Concentric rings radiating from a central orb. Bass \u2192 ring expansion, mids \u2192 rotation, treble \u2192 hue shift. Best for"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-style-film",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T10:00:00.000000+00:00",
+      "name": "Film",
+      "family": "GENERATIVE",
+      "description": "Film \u00b7 cinematic / warm / vintage. Letterbox bars, slow drifting orbs, vignette, warm color cast. Mids \u2192 sweep intensity, treble \u2192 highlight pulse. Best for: ballads, ambient, music-video cuts.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "vignette-letterbox",
+          "weight": 0.3
+        },
+        {
+          "kind": "shader_ref",
+          "name": "warm-sepia-cast",
+          "weight": 0.25
+        },
+        {
+          "kind": "shader_ref",
+          "name": "soft-grain",
+          "weight": 0.2
+        },
+        {
+          "kind": "palette_ref",
+          "name": "cinema-warm-vintage",
+          "weight": 0.15
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.4,
+        "chroma": 0.0,
+        "bloom": 0.25,
+        "vignette": 0.6,
+        "sepia": 0.55,
+        "glow": 0.0,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.65,
+        "posterize": 8
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.05,
+        "pan_y": 0.05
+      },
+      "palette": {
+        "primary": "#d4a574",
+        "secondary": "#8b5a3c",
+        "accent": "#f5d4a8",
+        "bg": "#1a1612"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "vignette"
+        ],
+        "mid": [
+          "bloom",
+          "pan_x"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "sepia"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><defs><radialGradient id=\"fg\" cx=\"0.5\" cy=\"0.5\" r=\"0.7\"><stop offset=\"0\" stop-color=\"#3a2a1a\"/><stop offset=\"1\" stop-color=\"#0a0806\"/></radialGradient></defs><rect width=\"80\" height=\"80\" fill=\"url(#fg)\"/><rect x=\"0\" y=\"0\" width=\"80\" height=\"14\" fill=\"#000\"/><rect x=\"0\" y=\"66\" width=\"80\" height=\"14\" fill=\"#000\"/><circle cx=\"28\" cy=\"40\" r=\"9\" fill=\"#d4a574\" opacity=\"0.7\"/><circle cx=\"52\" cy=\"44\" r=\"7\" fill=\"#8b5a3c\" opacity=\"0.55\"/><circle cx=\"40\" cy=\"36\" r=\"4\" fill=\"#f5d4a8\" opacity=\"0.85\"/></svg>",
+        "tags": [
+          "film",
+          "cinematic",
+          "warm",
+          "vintage",
+          "ballad"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "film.html",
+        "style_name": "Film",
+        "song_name": "Film \u00b7 cinematic / warm / vintage. Letterbox bars, slow drifting orbs, vignette, warm color cast. Mids \u2192 sweep intensity, treble \u2192 highlight pulse. Best for"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-style-grid",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T10:00:00.000000+00:00",
+      "name": "Grid",
+      "family": "GENERATIVE",
+      "description": "Grid \u00b7 synthwave / retro / wide. Perspective grid receding to a UV-orange horizon with a hot sun. Bass \u2192 ground pulse rolling toward camera. Best for: retrowave, Outrun-style tracks, anything 80s.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "perspective-grid",
+          "weight": 0.35
+        },
+        {
+          "kind": "shader_ref",
+          "name": "uv-horizon",
+          "weight": 0.2
+        },
+        {
+          "kind": "palette_ref",
+          "name": "retrowave-outrun",
+          "weight": 0.3
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.0,
+        "chroma": 0.05,
+        "bloom": 0.5,
+        "vignette": 0.2,
+        "sepia": 0.0,
+        "glow": 0.3,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.2,
+        "posterize": 6
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": -0.4
+      },
+      "palette": {
+        "primary": "#ff6b1a",
+        "secondary": "#ff1a8b",
+        "accent": "#1ae5ff",
+        "bg": "#1a0834"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "pan_y",
+          "bloom"
+        ],
+        "mid": [
+          "glow"
+        ],
+        "treble": [
+          "chroma"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><defs><linearGradient id=\"sky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1a0834\"/><stop offset=\"1\" stop-color=\"#ff1a8b\"/></linearGradient></defs><rect width=\"80\" height=\"40\" fill=\"url(#sky)\"/><rect y=\"40\" width=\"80\" height=\"40\" fill=\"#0a0414\"/><circle cx=\"40\" cy=\"40\" r=\"14\" fill=\"#ff6b1a\"/><line x1=\"0\" y1=\"40\" x2=\"80\" y2=\"40\" stroke=\"#1ae5ff\" stroke-width=\"1\"/><line x1=\"0\" y1=\"48\" x2=\"80\" y2=\"48\" stroke=\"#ff1a8b\" stroke-width=\"1\" opacity=\"0.7\"/><line x1=\"0\" y1=\"58\" x2=\"80\" y2=\"58\" stroke=\"#ff1a8b\" stroke-width=\"1\" opacity=\"0.5\"/><line x1=\"0\" y1=\"70\" x2=\"80\" y2=\"70\" stroke=\"#ff1a8b\" stroke-width=\"1\" opacity=\"0.3\"/></svg>",
+        "tags": [
+          "grid",
+          "retrowave",
+          "outrun",
+          "synthwave",
+          "80s"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "grid.html",
+        "style_name": "Grid",
+        "song_name": "Grid \u00b7 synthwave / retro / wide. Perspective grid receding to a UV-orange horizon with a hot sun. Bass \u2192 ground pulse rolling toward camera. Best for"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-style-smoke",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T10:00:00.000000+00:00",
+      "name": "Smoke",
+      "family": "GENERATIVE",
+      "description": "Smoke \u00b7 ambient / soft / breath. Soft particle system, upward flow, color bleed, shockwave on bass. Best for: pads, drone, lofi hip-hop, breath work.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "soft-particles",
+          "weight": 0.3
+        },
+        {
+          "kind": "shader_ref",
+          "name": "upward-flow",
+          "weight": 0.2
+        },
+        {
+          "kind": "shader_ref",
+          "name": "color-bleed",
+          "weight": 0.2
+        },
+        {
+          "kind": "palette_ref",
+          "name": "soft-cream-warm",
+          "weight": 0.2
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.4,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.0,
+        "chroma": 0.0,
+        "bloom": 0.4,
+        "vignette": 0.3,
+        "sepia": 0.15,
+        "glow": 0.3,
+        "grayscale": 0.0,
+        "blur": 0.45,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.55,
+        "posterize": 12
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.2
+      },
+      "palette": {
+        "primary": "#f5ead8",
+        "secondary": "#d4b89a",
+        "accent": "#a8b8d4",
+        "bg": "#1a1614"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "blur",
+          "bloom"
+        ],
+        "mid": [
+          "pan_y"
+        ],
+        "treble": [
+          "glow"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a1614\"/><ellipse cx=\"40\" cy=\"58\" rx=\"32\" ry=\"14\" fill=\"#f5ead8\" opacity=\"0.25\"/><ellipse cx=\"40\" cy=\"48\" rx=\"28\" ry=\"12\" fill=\"#d4b89a\" opacity=\"0.3\"/><ellipse cx=\"40\" cy=\"38\" rx=\"22\" ry=\"10\" fill=\"#f5ead8\" opacity=\"0.35\"/><ellipse cx=\"40\" cy=\"28\" rx=\"16\" ry=\"8\" fill=\"#a8b8d4\" opacity=\"0.4\"/><ellipse cx=\"40\" cy=\"20\" rx=\"10\" ry=\"6\" fill=\"#f5ead8\" opacity=\"0.5\"/></svg>",
+        "tags": [
+          "smoke",
+          "ambient",
+          "soft",
+          "breath",
+          "lofi"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "smoke.html",
+        "style_name": "Smoke",
+        "song_name": "Smoke \u00b7 ambient / soft / breath. Soft particle system, upward flow, color bleed, shockwave on bass. Best for"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-style-hallucination",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T10:00:00.000000+00:00",
+      "name": "Hallucination",
+      "family": "GENERATIVE",
+      "description": "Hallucination \u00b7 intense / psychedelic / mirror. 8-fold kaleidoscopic symmetry, hue-cycling polygons. Bass \u2192 shape scale, treble \u2192 color speed. Best for: drop moments, glitch, anything that needs a visual moment.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "kaleidoscope-8x",
+          "weight": 0.35
+        },
+        {
+          "kind": "shader_ref",
+          "name": "hue-cycle",
+          "weight": 0.25
+        },
+        {
+          "kind": "palette_ref",
+          "name": "psychedelic-violet-cyan",
+          "weight": 0.25
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.3,
+        "pearl": 0.5,
+        "glitch": 0.35,
+        "grain": 0.0,
+        "chroma": 0.5,
+        "bloom": 0.6,
+        "vignette": 0.2,
+        "sepia": 0.0,
+        "glow": 0.4,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.3,
+        "mutAlgo": 1.0,
+        "temp": 0.0,
+        "posterize": 5
+      },
+      "motion": {
+        "rotation_speed": 0.8,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#a020f0",
+        "secondary": "#00e5ff",
+        "accent": "#ff1a8b",
+        "bg": "#0a0420"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "scale_pulse",
+          "mut"
+        ],
+        "mid": [
+          "rotation_speed"
+        ],
+        "treble": [
+          "temp",
+          "chroma"
+        ],
+        "onset": [
+          "glitch"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0420\"/><g transform=\"translate(40 40)\"><polygon points=\"0,-22 19,-11 19,11 0,22 -19,11 -19,-11\" fill=\"#a020f0\" opacity=\"0.85\"/><polygon points=\"0,-15 13,-7.5 13,7.5 0,15 -13,7.5 -13,-7.5\" fill=\"#00e5ff\" opacity=\"0.7\" transform=\"rotate(22.5)\"/><polygon points=\"0,-10 8.7,-5 8.7,5 0,10 -8.7,5 -8.7,-5\" fill=\"#ff1a8b\" opacity=\"0.85\" transform=\"rotate(45)\"/><circle r=\"3\" fill=\"#fff\"/></g></svg>",
+        "tags": [
+          "hallucination",
+          "psychedelic",
+          "kaleidoscope",
+          "mirror",
+          "drop"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "hallucination.html",
+        "style_name": "Hallucination",
+        "song_name": "Hallucination \u00b7 intense / psychedelic / mirror. 8-fold kaleidoscopic symmetry, hue-cycling polygons. Bass \u2192 shape scale, treble \u2192 color speed. Best for"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-style-broadcast",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T10:00:00.000000+00:00",
+      "name": "Broadcast",
+      "family": "GENERATIVE",
+      "description": "Broadcast \u00b7 VHS / static / CRT. Scanlines, chromatic aberration (R/C offset on bass), tracking-line glitch, grain. Best for: lo-fi, sample-based, anything that wants a degraded TV feel.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "scanlines-crt",
+          "weight": 0.3
+        },
+        {
+          "kind": "shader_ref",
+          "name": "rgb-split",
+          "weight": 0.25
+        },
+        {
+          "kind": "shader_ref",
+          "name": "tracking-glitch",
+          "weight": 0.2
+        },
+        {
+          "kind": "shader_ref",
+          "name": "vhs-grain",
+          "weight": 0.15
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.35,
+        "grain": 0.55,
+        "chroma": 0.4,
+        "bloom": 0.0,
+        "vignette": 0.25,
+        "sepia": 0.0,
+        "glow": 0.0,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 1.0,
+        "temp": 0.4,
+        "posterize": 6
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#f5f5f5",
+        "secondary": "#ff2020",
+        "accent": "#00d4ff",
+        "bg": "#080808"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "chroma",
+          "glitch"
+        ],
+        "mid": [
+          "grain"
+        ],
+        "treble": [
+          "vignette"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#080808\"/><g opacity=\"0.7\"><rect x=\"0\" y=\"6\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"14\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"22\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"30\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"38\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"46\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"54\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"62\" width=\"80\" height=\"2\" fill=\"#fff\"/><rect x=\"0\" y=\"70\" width=\"80\" height=\"2\" fill=\"#fff\"/></g><rect x=\"34\" y=\"20\" width=\"20\" height=\"40\" fill=\"#f5f5f5\" opacity=\"0.35\"/><rect x=\"36\" y=\"20\" width=\"20\" height=\"40\" fill=\"#ff2020\" opacity=\"0.25\"/><rect x=\"32\" y=\"20\" width=\"20\" height=\"40\" fill=\"#00d4ff\" opacity=\"0.25\"/></svg>",
+        "tags": [
+          "broadcast",
+          "vhs",
+          "static",
+          "crt",
+          "lofi",
+          "degraded"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "broadcast.html",
+        "style_name": "Broadcast",
+        "song_name": "Broadcast \u00b7 VHS / static / CRT. Scanlines, chromatic aberration (R/C offset on bass), tracking-line glitch, grain. Best for"
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-09-style-cassette",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-09T10:00:00.000000+00:00",
+      "name": "Cassette",
+      "family": "GENERATIVE",
+      "description": "Cassette \u00b7 tape / warm / analog. Two spinning tape reels, ribbon between them, label, wobble on bass. Best for: boom-bap, indie folk, anything Mixtape '94.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "tape-reels",
+          "weight": 0.3
+        },
+        {
+          "kind": "shader_ref",
+          "name": "ribbon-wobble",
+          "weight": 0.2
+        },
+        {
+          "kind": "palette_ref",
+          "name": "tape-orange-warm",
+          "weight": 0.3
+        }
+      ],
+      "fx_state": {
+        "liquid": 0.0,
+        "pearl": 0.0,
+        "glitch": 0.0,
+        "grain": 0.45,
+        "chroma": 0.05,
+        "bloom": 0.15,
+        "vignette": 0.4,
+        "sepia": 0.4,
+        "glow": 0.0,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.55,
+        "posterize": 10
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#ff8c1a",
+        "secondary": "#5a3a1a",
+        "accent": "#f5d4a8",
+        "bg": "#1a1208"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "vignette",
+          "sepia"
+        ],
+        "mid": [
+          "grain"
+        ],
+        "treble": [
+          "chroma"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a1208\"/><rect x=\"4\" y=\"20\" width=\"72\" height=\"40\" fill=\"#ff8c1a\" rx=\"3\"/><rect x=\"8\" y=\"24\" width=\"64\" height=\"10\" fill=\"#f5d4a8\" opacity=\"0.9\"/><circle cx=\"24\" cy=\"48\" r=\"9\" fill=\"#1a1208\"/><circle cx=\"24\" cy=\"48\" r=\"3\" fill=\"#5a3a1a\"/><circle cx=\"56\" cy=\"48\" r=\"9\" fill=\"#1a1208\"/><circle cx=\"56\" cy=\"48\" r=\"3\" fill=\"#5a3a1a\"/><rect x=\"36\" y=\"46\" width=\"8\" height=\"4\" fill=\"#1a1208\" opacity=\"0.7\"/></svg>",
+        "tags": [
+          "cassette",
+          "tape",
+          "warm",
+          "analog",
+          "boom-bap",
+          "mixtape"
+        ]
+      },
+      "demo": {
+        "audio": "library/audio/coltrane-like-sonny.mp3",
+        "style": "cassette.html",
+        "style_name": "Cassette",
+        "song_name": "Cassette \u00b7 tape / warm / analog. Two spinning tape reels, ribbon between them, label, wobble on bass. Best for"
+      }
     }
   ],
-  "count": 16
+  "count": 27
 }

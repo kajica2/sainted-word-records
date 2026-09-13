@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stripe payment links setup · Sainted Word Records</title>
+  <meta name="description" content="10-minute walkthrough: create products, generate payment links, plug them into campaign.html." />
+  <meta name="author" content="Kai Djuric" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/swr-stripe-setup.html" />
+  <meta property="og:title" content="Stripe payment links setup · Sainted Word Records" />
+  <meta property="og:description" content="10-minute walkthrough: create products, generate payment links, plug them into campaign.html." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/swr-stripe-setup.html" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --hot: #e6306b;
+      --cool: #0085b3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "Inter", ui-sans-serif, system-ui, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --radius: 2px;
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --hot: #ff2d8a;
+      --cool: #00e5ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 16px; line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.2s, color 0.2s;
+    }
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 300; font-size: clamp(34px, 5vw, 48px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    p.lede {
+      font-family: var(--font-display);
+      font-weight: 300; font-size: 19px;
+      color: var(--ink-2); line-height: 1.5;
+      margin: 0 0 48px;
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 500; font-size: 22px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      margin: 56px 0 12px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    h3 {
+      font-family: var(--font-body);
+      font-weight: 600; font-size: 15px;
+      color: var(--ink);
+      margin: 28px 0 8px;
+    }
+    p { color: var(--ink-2); margin: 0 0 16px; }
+    strong { color: var(--ink); font-weight: 600; }
+    em { color: var(--accent); font-style: italic; }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover { color: var(--ink); }
+    ul, ol { padding-left: 22px; color: var(--ink-2); }
+    li { margin: 6px 0; }
+    li::marker { color: var(--accent); }
+    li > ul, li > ol { margin: 8px 0 4px; }
+    blockquote {
+      margin: 24px 0;
+      padding: 4px 0 4px 16px;
+      border-left: 2px solid var(--accent);
+      color: var(--ink-2);
+      font-style: normal;
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: var(--bg-2);
+      color: var(--ink);
+      padding: 1px 6px;
+      border-radius: 2px;
+    }
+    pre {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: var(--ink-2);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line-2);
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 48px 0;
+    }
+    .meta {
+      margin-top: 56px;
+      padding: 14px 18px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .meta b { color: var(--ink); }
+    @media (max-width: 720px) {
+      main { padding: 40px 20px 60px; }
+      table { font-size: 13px; }
+      th, td { padding: 8px 6px; }
+    }
+  </style>
+  <script src="/nav.client.js" defer></script>
+</head>
+<body data-page="">
+    <h1>Stripe payment links setup</h1>
+    <p class="lede">10-minute walkthrough: create products, generate payment links, plug them into campaign.html.</p>
+<h2 id="what-you-need">What You Need</h2>
+<ul>
+<li>Stripe account (free to create at stripe.com)</li>
+<li>5 minutes</li>
+</ul>
+<h2 id="step-1-create-the-products">Step 1: Create the Products</h2>
+<p>In your Stripe Dashboard → Products → Add product:</p>
+<table>
+<thead><tr>
+<th>Product Name</th>
+<th>Price</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>SWR Single</td>
+<td>€25.00</td>
+<td>1 curated set · 1 song · 30s render</td>
+</tr>
+<tr>
+<td>SWR Double</td>
+<td>€45.00</td>
+<td>2 curated sets · 1 song · 30s renders</td>
+</tr>
+<tr>
+<td>SWR Full Rotation</td>
+<td>€75.00</td>
+<td>All 5 sets · 1 song · 5 renders</td>
+</tr>
+<tr>
+<td>SWR Custom Source</td>
+<td>€55.00</td>
+<td>Your assets + 1 SWR set · 30s render</td>
+</tr>
+</tbody>
+</table>
+<p>Set each to <strong>One-time</strong> payment. No shipping, no tax.</p>
+<h2 id="step-2-generate-payment-links">Step 2: Generate Payment Links</h2>
+<p>For each product, click "Create payment link" in the product detail page.</p>
+<p>Configure:</p>
+<ul>
+<li><strong>After payment</strong>: Redirect to <code>https://sainted-word-records.vercel.app/thanks.html</code></li>
+<li><strong>Collect</strong>: Customer email (required — this is how you know who paid)</li>
+<li><strong>Collect</strong>: Phone number (optional)</li>
+<li><strong>Allow promotion codes</strong>: Yes (for founding-customer discounts)</li>
+</ul>
+<h2 id="step-3-copy-links-into-campaign-html">Step 3: Copy Links Into campaign.html</h2>
+<p>Replace the placeholder URLs in <code>campaign.html</code>:</p>
+<pre><code>
+https://buy.stripe.com/SWR_SINGLE_25   → your real Single link
+https://buy.stripe.com/SWR_DOUBLE_45   → your real Double link
+https://buy.stripe.com/SWR_FULL_75     → your real Full Rotation link
+https://buy.stripe.com/SWR_CUSTOM_55   → your real Custom Source link
+</code></pre>
+<h2 id="step-4-test-mode">Step 4: Test Mode</h2>
+<p>Before going live:</p>
+<ol>
+<li>Toggle Stripe to <strong>Test mode</strong> (top-right switch)</li>
+<li>Use test card <code>4242 4242 4242 4242</code>, any future date, any 3-digit CVC</li>
+<li>Complete a test purchase</li>
+<li>Verify the redirect and email collection work</li>
+<li>Switch to <strong>Live mode</strong> and repeat with real card</li>
+</ol>
+<h2 id="step-5-fulfillment-workflow">Step 5: Fulfillment Workflow</h2>
+<p>Stripe sends you an email for every purchase. Your workflow:</p>
+<ol>
+<li><strong>Receive payment email</strong> from Stripe (contains customer email)</li>
+<li><strong>Email the customer</strong> within 2 hours:</li>
+</ol>
+<blockquote>Hi [name], thanks for ordering SWR [Single/Double/Full/Custom]. Send me: - Your song (WAV or MP3, WeTransfer/Drive/Dropbox link) - Which set(s) you want [Neon Church / Morning Haunt / Brutalist Grid / Dream Sequence / System Error] - Preferred format [9:16 / 1:1 / 16:9] - Any reference videos or notes  I'll confirm delivery time within 24 hours.</blockquote>
+<ol>
+<li><strong>Render</strong> using the engine at <code>http://localhost:5174/</code></li>
+<li><strong>Deliver</strong> via WeTransfer or Google Drive</li>
+<li><strong>Follow up</strong> 48 hours after delivery asking if they need revisions</li>
+</ol>
+<h2 id="founding-customer-discount-30-off">Founding Customer Discount (30% Off)</h2>
+<p>Create a promotion code in Stripe for each product:</p>
+<table>
+<thead><tr>
+<th>Product</th>
+<th>Code</th>
+<th>Discounted Price</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Single</td>
+<td><code>FOUNDER1</code></td>
+<td>€17.50</td>
+</tr>
+<tr>
+<td>Double</td>
+<td><code>FOUNDER2</code></td>
+<td>€31.50</td>
+</tr>
+<tr>
+<td>Full</td>
+<td><code>FOUNDER3</code></td>
+<td>€52.50</td>
+</tr>
+<tr>
+<td>Custom</td>
+<td><code>FOUNDER4</code></td>
+<td>€38.50</td>
+</tr>
+</tbody>
+</table>
+<p>Set each code to:</p>
+<ul>
+<li><strong>Type</strong>: Percentage off</li>
+<li><strong>Amount</strong>: 30%</li>
+<li><strong>Redemption limit</strong>: 2 (only 2 uses per code = 8 total founding slots)</li>
+<li><strong>Expiration</strong>: 30 days from now</li>
+</ul>
+<p>Mention these codes in your founding-customer outreach. First come, first served.</p>
+<h2 id="alternative-lemon-squeezy-eu-friendly">Alternative: Lemon Squeezy (EU-friendly)</h2>
+<p>If Stripe isn't available in your country or you want EU VAT handling:</p>
+<ol>
+<li>Sign up at lemonsqueezy.com</li>
+<li>Create products with the same names/prices</li>
+<li>Generate checkout links</li>
+<li>Replace Stripe URLs in <code>campaign.html</code> with Lemon Squeezy checkout URLs</li>
+<li>Lemon Squeezy auto-handles EU VAT + sends license keys — less manual work</li>
+</ol>
+<h2 id="automation-optional-month-2">Automation (Optional, Month 2+)</h2>
+<p>When order volume justifies it, automate:</p>
+<ul>
+<li><strong>Zapier/Make</strong>: Stripe payment → Send email with form link (Typeform/Tally)</li>
+<li><strong>Form</strong>: Collects song link, set choice, format preference</li>
+<li><strong>Airtable/Notion</strong>: Track order status (Paid → Assets Received → Rendering → Delivered)</li>
+<li><strong>Zapier</strong>: Airtable status change → Email customer with Drive/WeTransfer link</li>
+</ul>
+<p>Don't build this until you've processed 20+ orders manually. The manual phase teaches you what questions customers actually ask.</p>
+<hr>
+<p><em>Setup time: 10 minutes. Revenue starts when the first link is live.</em></p>
+    <div class="meta"><b>Internal documentation.</b> Last updated 2026-08-13.</div>
+  </main>
+</body>
+</html>

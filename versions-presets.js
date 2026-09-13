@@ -10,7 +10,7 @@
 // The GLSL is a single shader with a switch on u_page; the JS side
 // sets both the persona-style FX uniforms and the u_effect value.
 //
-// 19 presets in total (indices 0..18).
+// 20 presets in total (indices 0..19).
     // u_page index mapping (must match Object.keys(PRESETS) order):
     //   0 = film
     //   1 = grid
@@ -31,6 +31,7 @@
     //   16 = mosaic
     //   17 = phosphor
     //   18 = tape
+    //   19 = mtv (music_video_mtv — 90s retro MTV/CRT/scanlines)
 
 (function () {
   if (window.VersionsPresets) return;  // idempotent
@@ -43,7 +44,54 @@
   // FX uniforms use the same shape as fx-postprocess.js state.
   // `effect` is a 0..1 amount for the page-specific GLSL effect.
   // `tint` adds an additional color tint not covered by temp.
-  const PRESETS = {
+  // ---- Self-evolving automixer override (versions/music_video.html) ----
+// Pure helper for the math. Exposed on window.__SWR_BLEND_FX so
+// scripts/check-depth-blend-unit.mjs can exercise it directly under Node.
+// Called from the render loop inside init().
+//
+// Blend amount is driven by HologramState.depth (the footer slider):
+//   depth=0 → pure static page preset (override ignored)
+//   depth=1 → pure override (static preset ignored)
+//   depth=0.5 → 50/50 (matches the original PR #9 default)
+// Default 0.4 is the fallback when HologramState isn't set (other version
+// pages that don't ship the slider).
+function blendFxOverride(preset, ovFx, depth) {
+  var mixFx = ovFx ? Math.max(0, Math.min(1, depth)) : 0;
+  return {
+    temp:      preset.temp      * (1 - mixFx) + (ovFx ? (ovFx.temp      || 0) : 0) * mixFx,
+    mut:       preset.mut       * (1 - mixFx) + (ovFx ? (ovFx.mut       || 0) : 0) * mixFx,
+    sepia:     preset.sepia     * (1 - mixFx) + (ovFx ? (ovFx.sepia     || 0) : 0) * mixFx,
+    chroma:    preset.chroma    * (1 - mixFx) + (ovFx ? (ovFx.chroma    || 0) : 0) * mixFx,
+    grain:     preset.grain     * (1 - mixFx) + (ovFx ? (ovFx.grain     || 0) : 0) * mixFx,
+    glow:      preset.glow      * (1 - mixFx) + (ovFx ? (ovFx.glow      || 0) : 0) * mixFx,
+    grayscale: preset.grayscale * (1 - mixFx) + (ovFx ? (ovFx.grayscale || 0) : 0) * mixFx,
+    posterize: preset.posterize * (1 - mixFx) + (ovFx ? (ovFx.posterize || 0) : 0) * mixFx,
+  };
+}
+window.__SWR_BLEND_FX = blendFxOverride;
+
+// Pure helper for the music_video "jump to preset" flow. Reads a named
+// preset from the table and returns a normalised fx_state object that
+// can be written straight to window.SWR._fxOverride — bypassing
+// window.FX.setPersona, which music_video doesn't wire. Returns null
+// when the id is unknown. Exposed for unit tests.
+function getPresetAsOverride(pageKey) {
+  var preset = PRESETS[pageKey];
+  if (!preset) return null;
+  return {
+    temp:      preset.temp,
+    mut:       preset.mut,
+    sepia:     preset.sepia,
+    chroma:    preset.chroma,
+    grain:     preset.grain,
+    glow:      preset.glow,
+    grayscale: preset.grayscale,
+    posterize: preset.posterize,
+  };
+}
+window.__SWR_GET_PRESET = getPresetAsOverride;
+
+const PRESETS = {
     film: {
       label: 'FILM',
       desc:  '16mm grain + sepia + warm temperature',
@@ -367,6 +415,23 @@
       effect:    0.0,
       tint:      [0.9, 0.78, 0.7],
     },
+    mtv: {
+      label: 'MTV',
+      desc:  '90s retro — heavy scanlines, RGB shift, vignette warmth',
+      temp:      0.15,
+      mut:       0.25,
+      mutAlgo:   0,
+      posterize: 0.35,
+      vignette:  0.6,
+      chroma:    0.55,
+      grain:     0.45,
+      sepia:     0.2,
+      glow:      0.2,
+      grayscale: 0,
+      blur:      0,
+      effect:    1.0,
+      tint:      [1.05, 0.92, 0.78],
+    },
   };
 
   // ---- Fragment shader: same base as fx-postprocess + per-page effect ----
@@ -619,6 +684,20 @@
       return c;
     }
 
+    // MTV: 90s retro CRT — scanlines + RGB chromatic shift + slight curvature tint
+    vec3 mtvEffect(vec3 c, vec2 uv, float t) {
+      // Scanlines (denser than filmEffect to read as CRT)
+      float scan = 1.0 - 0.45 * step(0.5, fract(uv.y * 320.0));
+      // RGB chromatic split — shift red and blue channels horizontally
+      float shift = 0.004 * sin(uv.y * 80.0 + t * 0.5);
+      vec3 chromaR = c * vec3(1.08, 0.96, 0.92);
+      vec3 chromaB = c * vec3(0.92, 0.96, 1.08);
+      vec3 base = mix(chromaR, chromaB, 0.5 + shift);
+      // Faint horizontal rolling band (60Hz hum)
+      float band = 0.04 * sin(uv.y * 3.14159 * 0.5 - t * 2.0);
+      return base * scan + band;
+    }
+
     vec3 applyPageEffect(vec3 c, vec2 uv, float t) {
       if (u_effect < 0.01) return c;
       vec3 e;
@@ -641,6 +720,7 @@
       else if (u_page == 16) e = mosaicEffect(c, uv, t);
       else if (u_page == 17) e = phosphorEffect(c, uv, t);
       else if (u_page == 18) e = tapeEffect(c, uv, t);
+      else if (u_page == 19) e = mtvEffect(c, uv, t);
       return mix(c, e, u_effect);
     }
 
@@ -872,16 +952,41 @@
       gl.uniform1f(u.mid,       mid);
       gl.uniform1f(u.treble,    treble);
       gl.uniform1f(u.beat,      beat);
-      gl.uniform1f(u.temp,      tempOverride !== null ? tempOverride : preset.temp);
-      gl.uniform1f(u.mut,       preset.mut);
+      // Self-evolving automixer override (versions/music_video.html):
+      // when window.SWR._fxOverride is set, blend its 8 fx_state fields
+      // on top of the static page preset. The blend amount is driven by
+      // HologramState.depth (the footer slider on music_video.html):
+      //   depth=0 → pure static page preset (override ignored)
+      //   depth=1 → pure override (static preset ignored)
+      //   depth=0.5 → 50/50 (matches the original PR #9 default)
+      // Default 0.4 is kept as a fallback when the page hasn't set
+      // HologramState (other version pages that don't ship the slider).
+      // The math itself lives at module scope as blendFxOverride() so it can be
+      // unit-tested under Node without a browser (check-depth-blend-unit.mjs).
+      const _ovFx = (window.SWR && window.SWR._fxOverride) || null;
+      const _depth = (window.SWR && window.SWR.HologramState && typeof window.SWR.HologramState.depth === 'number')
+        ? window.SWR.HologramState.depth
+        : 0.4;
+      const _blend = _ovFx ? blendFxOverride(preset, _ovFx, _depth) : preset;
+      const _hasOv = !!_ovFx;
+      const _temp      = tempOverride !== null ? tempOverride : (_hasOv ? _blend.temp : preset.temp);
+      const _mut       = _hasOv ? _blend.mut       : preset.mut;
+      const _chroma    = _hasOv ? _blend.chroma    : preset.chroma;
+      const _grain     = _hasOv ? _blend.grain     : preset.grain;
+      const _sepia     = _hasOv ? _blend.sepia     : preset.sepia;
+      const _glow      = _hasOv ? _blend.glow      : preset.glow;
+      const _grayscale = _hasOv ? _blend.grayscale : preset.grayscale;
+      const _posterize = _hasOv ? _blend.posterize : preset.posterize;
+      gl.uniform1f(u.temp,      _temp);
+      gl.uniform1f(u.mut,       _mut);
       gl.uniform1f(u.mutAlgo,   preset.mutAlgo);
-      gl.uniform1f(u.posterize, preset.posterize);
+      gl.uniform1f(u.posterize, _posterize);
       gl.uniform1f(u.vignette,  preset.vignette);
-      gl.uniform1f(u.chroma,    preset.chroma);
-      gl.uniform1f(u.grain,     preset.grain);
-      gl.uniform1f(u.sepia,     preset.sepia);
-      gl.uniform1f(u.glow,      preset.glow);
-      gl.uniform1f(u.grayscale, preset.grayscale);
+      gl.uniform1f(u.chroma,    _chroma);
+      gl.uniform1f(u.grain,     _grain);
+      gl.uniform1f(u.sepia,     _sepia);
+      gl.uniform1f(u.glow,      _glow);
+      gl.uniform1f(u.grayscale, _grayscale);
       gl.uniform1f(u.blur,      preset.blur);
       gl.uniform1f(u.effect,    preset.effect);
       gl.uniform1i(u.page,      pageIdx);
@@ -936,6 +1041,17 @@
         return s.tempOverride;
       }
       return PRESETS[pageKey] ? PRESETS[pageKey].temp : 0;
+    },
+    // music_video.html: apply a named preset's fx_state as the override.
+    // Writes to window.SWR._fxOverride so the existing GLSL blend path
+    // picks it up. No-op (returns false) if the id is unknown or SWR
+    // isn't ready. Returns true on success.
+    setPresetOverride(pageKey) {
+      var preset = getPresetAsOverride(pageKey);
+      if (!preset) return false;
+      if (typeof window === 'undefined' || !window.SWR) return false;
+      window.SWR._fxOverride = preset;
+      return true;
     },
     // Apply a named preset's FX configuration to the running engine.
     // Updates the in-page FX uniforms via window.FX.setPersona(...) so

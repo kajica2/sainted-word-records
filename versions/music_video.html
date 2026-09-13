@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="/lib/components.css">
-  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <title>MUSIC VIDEO · SWR engine v1</title>
   <meta name="description" content="Gradient preset engine — drop a track, the engine synthesizes a preset and blends related anchors as reactive depth" />
@@ -44,6 +42,9 @@
     .tbtn:hover { border-color: var(--m); color: var(--m); }
     .tbtn.primary { background: var(--m); color: #000; border-color: var(--m); font-weight: 700; }
     .tbtn.primary:hover { background: var(--c); border-color: var(--c); }
+    #solo-btn.on { border-color: var(--m); color: var(--m); font-weight: 700; }
+    #fit-btn.on { border-color: var(--m); color: var(--m); font-weight: 700; }
+
     .spacer { flex: 1; }
     .meter { width: 160px; height: 16px; background: #0a0612; border: 1px solid var(--line); border-radius: 3px; display: block; }
     aside.lib, aside.layers { background: var(--panel); overflow-y: auto; }
@@ -59,6 +60,14 @@
     .li img, .li video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--m);
       color: #000; border-radius: 1px; letter-spacing: 0.08em; }
+    .li .rm { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px;
+      background: rgba(0,0,0,0.6); color: var(--muted); border: none; border-radius: 2px;
+      font: 11px/1 ui-monospace, monospace; cursor: pointer; padding: 0;
+      opacity: 0; transition: opacity 0.1s, color 0.1s, background 0.1s; }
+    .li:hover .rm { opacity: 1; }
+    .li .rm:hover { color: var(--m); background: rgba(0,0,0,0.85); }
+    .li .rm.rm-armed { color: #fff; background: var(--m); opacity: 1; }
+
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
       background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #layers { display: flex; flex-direction: column; gap: 4px; }
@@ -76,6 +85,9 @@
     .l .react { font-size: 8px; color: var(--c); letter-spacing: 0.04em; margin-top: 3px; }
     section.stage { position: relative; background: #000; }
     canvas { display: block; width: 100%; height: 100%; }
+    body[data-fit="on"] #render,
+    body[data-fit="on"] canvas { object-fit: cover; }
+
     #flash { position: absolute; inset: 0; pointer-events: none;
       background: radial-gradient(circle at center, rgba(255,45,138,0.5), transparent 60%);
       opacity: 0; mix-blend-mode: screen; }
@@ -174,6 +186,7 @@
     .packs-empty div:first-child { font-size: 22px; margin-bottom: 6px; opacity: 0.7; }
     .packs-empty-title { font-weight: 600; color: var(--c, #ccc); margin-bottom: 2px; }
     .packs-empty-sub { font-size: 9px; opacity: 0.7; }
+
 
     @media (max-width: 720px) {
       #app {
@@ -344,8 +357,16 @@
 <script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
+<script src="../client/anchor-embed.js"></script>
+<script src="../client/automix.client.js"></script>
+<script src="../versions-presets.js"></script>
+<script src="../client/preset-cycle.client.js"></script>
+<script src="../client/preset-pick-store.client.js"></script>
+<script src="../client/layer-state-store.client.js"></script>
+<script src="../client/last-mix-store.client.js"></script>
   <script src="../client/asset-curator.client.js"></script>
   <script src="../client/library-packs.client.js" defer></script>
+
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
 <script src="../engine-lfos.client.js"></script>
@@ -357,11 +378,15 @@
 <script src="../layer-scheduler.client.js"></script>
 <script src="../lib/reset-state.client.js"></script>
     <script src="../lib/recorder.client.js"></script>
+<script src="../audio-analysis-v2.js" defer></script>
 <link rel="stylesheet" href="../engine-genops.css" />
+<!-- Brand Kit (PRD-007 partial) — chip + 4-card editor. See engine.html for the canonical wiring. -->
+<link rel="stylesheet" href="../brandkit.css" />
 </head>
 <body data-page="music_video">
   <div id="app">
-    <!-- SWR-HEADER-DATA-ICONS --><header>
+    <!-- SWR-HEADER-DATA-ICONS --><header id="hdr">
+
       <div class="v">MUSIC VIDEO <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -401,10 +426,13 @@
       <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
       <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
+
       <div class="body"><div id="lib"></div></div>
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
+      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
+
       <div id="flash"></div>
       <div class="swr-watermark">
         <img src="../watermark-monogram.svg" alt="SWR" />
@@ -412,6 +440,33 @@
     </section>
     <aside class="layers">
       <div class="head"><h2>Gradient</h2><span class="pill" id="synth-pill" style="font-size:8px;padding:2px 6px;color:var(--c);border-color:var(--c);">— no track</span></div>
+      <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
+        <div class="ph">
+          <span>Hook Export</span>
+          <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+        </div>
+        <div id="hook-info" style="font-size:9px;color:var(--muted);padding:2px 0 4px;">
+          <span>drop: <b id="hook-time">—</b></span> · <span>energy: <b id="hook-energy">—</b></span> · <span>conf: <b id="hook-conf">—</b></span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
+          <button class="tbtn hook-preset" data-preset="teaser" style="padding:3px 6px;font-size:9px;">Teaser 3s</button>
+          <button class="tbtn hook-preset" data-preset="hook" style="padding:3px 6px;font-size:9px;">Hook 5s</button>
+          <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
+        </div>
+      </div>
+      <div id="hero-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">
+          <span style="flex:1;">Hero Frames</span>
+          <span id="hero-count" style="color:var(--c);">0</span>
+          <button id="hero-clear" class="tbtn" title="Clear captured frames" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+        </div>
+        <div id="hero-thumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;min-height:48px;"></div>
+        <div style="display:flex;gap:4px;padding-top:4px;">
+          <button id="hero-grab" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Grab now</button>
+          <button id="hero-suggest" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Suggest 3</button>
+        </div>
+      </div>
+
       <div class="body" style="padding:8px;display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:8px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;">
           <span style="flex:1;">warmth</span>
@@ -443,6 +498,18 @@
       <span class="gc">decay <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.85" /> <b id="decay-v">0.85</b></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">depth <input type="range" id="depth" min="0" max="1" step="0.05" value="0.5" /> <b id="depth-v">0.50</b></span>
       <span class="gc">N <input type="range" id="neighbour-count" min="1" max="8" step="1" value="4" /> <b id="neighbour-count-v">4</b></span>
+      <span class="gc"><button class="tbtn" id="reset-layers" title="Clear all layers (Backspace)" style="padding:3px 8px;font-size:9px;">↺ Layers</button></span>
+      <span class="gc"><button class="tbtn" id="solo-btn" title="Solo one layer (Shift+S)" style="padding:3px 8px;font-size:9px;">Solo</button></span>
+      <span class="gc"><button class="tbtn" id="fit-btn" title="Fit to screen (F)" style="padding:3px 8px;font-size:9px;">Fit</button></span>
+      <span class="gc"><button class="tbtn" id="hero-btn" title="Hero frame capture (last 3s buffer, suggests 3 best frames)" style="padding:3px 8px;font-size:9px;">Hero</button></span>
+      <span class="gc"><button class="tbtn" id="edit-data-btn" title="Download edit data (BPM/key/onsets JSON)" style="padding:3px 8px;font-size:9px;">Edit Data</button></span>
+      <span class="gc"><button class="tbtn" id="review-btn" title="Export watermarked preview + client review page" style="padding:3px 8px;font-size:9px;">Review</button></span>
+      <span class="gc"><button class="tbtn" id="hook-btn" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)" style="padding:3px 8px;font-size:9px;">Hooks</button></span>
+      <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
+      <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
+      <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
+      <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
+
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
     </footer>
@@ -458,10 +525,8 @@
       <div class="label">Drop a song to begin</div>
       <div class="sub" id="swr-start-sub">Your uploads stay on this device</div>
       <div class="hint" id="swr-start-hint" style="font-size:9px;letter-spacing:0.06em;color:var(--muted);margin-top:14px;text-transform:none;line-height:1.5;max-width:260px;">
-        Don't have one handy?
-        <a id="swr-request-demo" href="/library/manifest.json" target="_blank" rel="noopener"
-           style="color:var(--c);text-decoration:none;border-bottom:1px dotted var(--c);">Request demo files</a>
-        — pick anything from the list and drag it back here.
+        Drop any audio file (MP3, WAV, M4A, OGG, FLAC) and any images or
+        short video clips. They stay on this device — nothing is uploaded.
       </div>
     </div>
   </div>
@@ -509,8 +574,13 @@
         // browser allows autoplay — but only if a saved song doesn't
         // already exist. This is the gating logic.
         var picked = null;
-        if (window.SWR_LAST_SONG) {
-          picked = await window.SWR_LAST_SONG();
+        // SWR_LAST_SONG is a Promise<{blob,...}|null> exposed by
+        // versions/last-song.js — NOT a function. versions/last-song.js:128
+        // sets `window.SWR_LAST_SONG = getSavedSong()`. Awaiting the
+        // Promise directly avoids the previous TypeError.
+        if (window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function') {
+          picked = await window.SWR_LAST_SONG;
+
         }
         if (!picked) {
           // No persisted user song. Show the overlay regardless of
@@ -555,11 +625,12 @@
     // visible on first visit (when IDB has no song) regardless of
     // autoplay permission — the user must drop a song to begin.
     function waitForPick() {
-      if (!window.SWR_LAST_SONG) {
+      if (!window.SWR_LAST_SONG || typeof window.SWR_LAST_SONG.then !== 'function') {
         var tries = 0;
         var iv = setInterval(function() {
           tries++;
-          if (window.SWR_LAST_SONG) {
+          if (window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function') {
+
             clearInterval(iv);
             start();
           } else if (tries > 50) {  // ~5s timeout
@@ -687,6 +758,18 @@
         this.feat.beat = beatHit ? 1 : this.feat.beat*dec;
         this.feat.onset = onsetHit ? 1 : this.feat.onset*dec;
         this.feat.beatPulse = beatHit; this.feat.onsetPulse = onsetHit;
+        // Phase B: push the current audio features into the gradient panel
+        // so the track dot lands at the right (warmth, intensity). Throttled
+        // to ~10 Hz because Gradient.setTrack mutates canvas state.
+        const __grad = window.SWR_GRADIENT;
+        if (__grad) {
+          if (!__grad._lastSetTrack || (now - __grad._lastSetTrack) > 0.1) {
+            __grad.setTrack({ bass: this.feat.bass, mid: this.feat.mid, treb: this.feat.treble });
+            __grad._lastSetTrack = now;
+          }
+          __grad.setBeatPulse(this.feat.beat);
+        }
+
         this.hist.prev = Uint8Array.from(this.fft);
         $('beat-led').classList.toggle('on', beatHit);
         $('onset-led').classList.toggle('on', onsetHit);
@@ -696,6 +779,7 @@
     const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t, cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
+
 
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
@@ -732,6 +816,7 @@
             folder: (curatorMeta && curatorMeta.folder) || 'uncategorized',
             tags: (curatorMeta && curatorMeta.tags) || [],
             curator: curatorMeta };
+
           this.items.push(it); this._classify(it); }
         this.render(); },
       _classify(it) {
@@ -800,6 +885,7 @@
       }
     };
 
+
     // === LAYERS ===
     const Layers = { list: [], sel: null,
       add(it) { const i=this.list.length;
@@ -812,15 +898,170 @@
           [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
         ];
         const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
-          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
-        this.list.push(l); this.render(); this.sel = l; },
-      rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
+          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, cover: false, reactors: presets[i%presets.length] };
+        this.list.push(l); this.render(); this.sel = l; this._persist(); },
+      rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); this._persist(); },
+      // Clear all layers without touching library assets, IDB song, or
+      // any other engine state. Cheap: replace the list, drop selection,
+      // re-render, invalidate the WebGL render cache so the next frame
+      // doesn't paint ghosts of the dropped layers. Returns the count
+      // cleared (useful for status-bar feedback). Also clears the
+      // persisted snapshot so a reload really does start from scratch.
+      // Optional opts.fadeMs triggers a parallel fadeOut on each layer
+      // before clearing the list (defers the actual clear by fadeMs+50ms).
+      // Default opts.fadeMs=0 preserves the original instant-clear behavior.
+      // SWR_TIMING.fadeOut + step() handle the per-frame easing.
+      reset(opts) {
+        const o = opts || {};
+        const fadeMs = typeof o.fadeMs === 'number' ? o.fadeMs : 0;
+        const n = this.list.length;
+        const fading = this.list.slice();
+        if (fadeMs > 0 && window.SWR_TIMING && typeof window.SWR_TIMING.fadeOut === 'function') {
+          for (const l of fading) {
+            try { window.SWR_TIMING.fadeOut(l, fadeMs); } catch (_) {}
+          }
+          setTimeout(() => {
+            // Idempotent: only clear if list is still the same shape.
+            if (this.list.length === fading.length) {
+              this.list.length = 0;
+              this.sel = null;
+              this.render();
+              try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+              if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
+            }
+          }, fadeMs + 50);
+        } else {
+          this.list.length = 0;
+          this.sel = null;
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+          if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.clear();
+        }
+        return n;
+      },
+      // Flip the layer's `cover` flag. When true, drawLayer scales the
+      // asset to fill the entire stage edge-to-edge (CSS object-fit:
+      // cover semantics) instead of fitting inside (contain). Returns
+      // true on hit, false on miss. Calls _persist() so the new value
+      // survives reload via layer-state-store. Mirrors the shape of
+      // Layers.rm / Layers.reset.
+      cover(id, value) {
+        const l = this.list.find(x => x.id === id);
+        if (!l) return false;
+        l.cover = !!value;
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(l.id); } catch (_) {}
+        this._persist();
+        return true;
+      },
+      // Internal: persist the current list (assets stripped, debounced).
+      // Called by add/rm/reset and the slider input handlers in render().
+      _persist() {
+        if (window.SWR_LAYER_STATE) window.SWR_LAYER_STATE.save(this.list);
+      },
+      cleanupForAsset(it) {
+        const before = this.list.length;
+        this.list = this.list.filter(l => l.asset !== it);
+        if (this.list.length !== before) {
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+        // If the dropped asset was referenced by the solo snapshot,
+        // discard the snapshot — restoring it later would resurrect
+        // a layer pointing at a dead asset.
+        if (this._soloSnapshot && this._soloSnapshot.some(l => l.asset === it)) {
+          this._soloSnapshot = null;
+          this._soloId = null;
+          const btn = $('solo-btn');
+          if (btn) btn.classList.remove('on');
+        }
+      },
+      solo(id) {
+        // Find the target layer. While solo is on, the current list is
+        // pinned to a single entry — to switch solo to a different layer
+        // we look up the id in the snapshot (the original list the user
+        // pinned from). This keeps "switch solo targets" working without
+        // forcing the caller to solo-off first.
+        let target = this.list.find(x => x.id === id);
+        if (!target && this._soloSnapshot) target = this._soloSnapshot.find(x => x.id === id);
+        if (!target) return false;
+        // If already solo on this layer: toggle off.
+        if (this._soloId === id) {
+          this.soloOff();
+          return true;
+        }
+        // If we're entering solo (or switching): snapshot the current list.
+        // The first time we enter solo, we snapshot from whatever's there.
+        // On subsequent switches, we keep the original snapshot — so
+        // bouncing between "solo L1" and "solo L2" doesn't lose layers.
+        // Treat both null and undefined as "no snapshot yet" — _soloSnapshot
+        // is uninitialised before the first solo call.
+        if (this._soloSnapshot == null) {
+          this._soloSnapshot = this.list.slice();
+        }
+        this.list = [target];
+        this._soloId = id;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        const btn = $('solo-btn');
+        if (btn) btn.classList.add('on');
+        return true;
+      },
+      soloOff() {
+        if (this._soloSnapshot == null) return false;
+        this.list = this._soloSnapshot.slice();
+        this._soloSnapshot = null;
+        this._soloId = null;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        const btn = $('solo-btn');
+        if (btn) btn.classList.remove('on');
+        return true;
+      },
+      // Swap the topmost layer's asset to the next/prev Lib.items entry.
+      // Reactors, baseScale, hue, opacity, blend, alpha, brightness,
+      // contrast, and cover stay untouched — only `asset` changes. Wraps
+      // modulo Lib.items.length. No-op when there are no layers or no
+      // library items. Returns {ok, from, to, item} so callers can show
+      // a status-bar hint.
+      swapAsset(direction) {
+        if (!this.list.length) return { ok: false, reason: 'no layers' };
+        if (!window.SWR_LIB || !Array.isArray(window.SWR_LIB.items) || !window.SWR_LIB.items.length) {
+          return { ok: false, reason: 'no library items' };
+        }
+        const top = this.list[this.list.length - 1];
+        const lib = window.SWR_LIB.items;
+        let idx = lib.findIndex(it => it === top.asset);
+        if (idx < 0) idx = -1; // Sentinel: "no current asset in library"
+        const n = lib.length;
+        let next = idx + (direction === 'prev' ? -1 : 1);
+        // Wrap modulo n (handles negatives correctly).
+        next = ((next % n) + n) % n;
+        const newIt = lib[next];
+        // Always update the asset reference synchronously so callers see
+        // the swap immediately (consistent with the {from, to, item}
+        // return shape and the original instant-swap behaviour). The
+        // visual fade is handled by SWR_TIMING.crossfade — it eases the
+        // current opacity to 0 and back up while the asset is swapped,
+        // so the user never sees a hard cut. Falls back to a plain
+        // render() call when SWR_TIMING isn't loaded (older build /
+        // test env without engine-timing.client.js).
+        top.asset = newIt;
+        if (window.SWR_TIMING && typeof window.SWR_TIMING.crossfade === 'function') {
+          window.SWR_TIMING.crossfade(top, newIt);
+        } else {
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+        return { ok: true, from: idx, to: next, item: newIt };
+      },
+
       render() {
         const el = $('layers'); el.innerHTML = '';
         for (let i=0;i<this.list.length;i++) {
           const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
-          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
+          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>cover</label><input type="checkbox" data-cover="1" /></div>`;
+
           d.querySelector('select').value = l.blend;
           for (const inp of d.querySelectorAll('input[type=range]')) {
             const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
@@ -829,15 +1070,30 @@
           const ins = d.querySelectorAll('input[type=range]');
           ins[0].value = l.opacity; ins[1].value = l.baseScale; ins[2].value = l.hue;
           ins[3].value = l.contrast; ins[4].value = l.brightness; ins[5].value = l.alpha; ins[6].value = l.mutate;
-          d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
-          ins[0].addEventListener('input', e => l.opacity = +e.target.value);
-          ins[1].addEventListener('input', e => l.baseScale = +e.target.value);
-          ins[2].addEventListener('input', e => l.hue = +e.target.value);
-          ins[3].addEventListener('input', e => l.contrast = +e.target.value);
-          ins[4].addEventListener('input', e => l.brightness = +e.target.value);
-          ins[5].addEventListener('input', e => l.alpha = +e.target.value);
-          ins[6].addEventListener('input', e => l.mutate = +e.target.value);
+          d.querySelector('select').addEventListener('change', e => { l.blend = e.target.value; this._persist(); });
+          ins[0].addEventListener('input', e => { l.opacity = +e.target.value; this._persist(); });
+          ins[1].addEventListener('input', e => { l.baseScale = +e.target.value; this._persist(); });
+          ins[2].addEventListener('input', e => { l.hue = +e.target.value; this._persist(); });
+          ins[3].addEventListener('input', e => { l.contrast = +e.target.value; this._persist(); });
+          ins[4].addEventListener('input', e => { l.brightness = +e.target.value; this._persist(); });
+          ins[5].addEventListener('input', e => { l.alpha = +e.target.value; this._persist(); });
+          ins[6].addEventListener('input', e => { l.mutate = +e.target.value; this._persist(); });
           d.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
+          // Per-layer cover checkbox (CSS object-fit: cover semantics in
+          // drawLayer). Init from l.cover; on flip, set the field, persist,
+          // and invalidate the offscreen render cache so the new scale
+          // takes effect on the next frame. Mirrors the Layers.cover() API
+          // path so the checkbox and the programmatic method stay in sync.
+          const coverCb = d.querySelector('input[type=checkbox][data-cover]');
+          if (coverCb) {
+            coverCb.checked = !!l.cover;
+            coverCb.addEventListener('change', e => {
+              l.cover = !!e.target.checked;
+              try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(l.id); } catch (_) {}
+              this._persist();
+            });
+          }
+
           el.appendChild(d);
         }
       },
@@ -915,9 +1171,25 @@
       if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
       return t;
     }
-    function applyR(l) {
+    // applyR is a let binding (not a function declaration) so the
+    // post-modules wiring can wrap it. Originally was a function
+    // declaration which is hoisted and not reassignable; the
+    // binding form is equivalent for the IIFE's own read at line
+    // 915's SWR_RENDER.frame() call site.
+    let applyR = function (l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
+
+      // Master transformations toggle (swr-tx-master, ⏸): when the user has
+      // muted all audio reactors globally, skip the entire reactor loop and
+      // return the static baseScale/opacity/hue/etc. shape. Per-layer
+      // override: l.reactorsEnabled = true re-enables reactors for that
+      // layer even when the master is OFF (checked first, so the layer
+      // opt-out survives the global mute).
+      const _txOn = (l.reactorsEnabled !== false)
+                 && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
+      if (!_txOn) return out;
+
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
@@ -949,14 +1221,67 @@
       if (out.rot) out.rot = ((out.rot + 540) % 360) - 180;
       out._v = "0";
       return out;
-    }
+    };
     function drawLayer(l) {
       const a = l.asset; if (!a) return;
       let src;
       if (a.type === 'video') {
-        if (!a._el) { a._el = document.createElement('video'); a._el.src=a.url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
+        if (!a._el) {
+          // First time we see this asset: create the element AND wire
+          // the lifecycle listeners the page actually needs. The
+          // previous code only listened for readyState >= 2 on every
+          // frame, which silently fails forever if the video errors
+          // (bad codec, CORS, blob revoked, autoplay-blocked). The
+          // error + canplay listeners below are the missing piece —
+          // they surface failures to the user via the status bar and
+          // invalidate the render cache once the video is actually
+          // playable.
+          const v = document.createElement('video');
+          v.src = a.url;
+          v.muted = true;
+          v.loop = true;
+          v.playsInline = true;
+          v.preload = 'auto';
+          v.crossOrigin = 'anonymous';  // hint for CORS-friendly CDNs
+          v.addEventListener('canplay', () => {
+            a._ready = true;
+            // Invalidate the engine's render cache. Without this, the
+            // first frame's empty offscreen (cached because the video
+            // wasn't ready yet) is blitted on every subsequent frame
+            // and drawToCtx is never called again — the user sees a
+            // permanent black layer even after the video loads.
+            try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(l.id); } catch (_) {}
+            try { setStatus('video ready · ' + (a.name || ''), 'ok'); } catch (_) {}
+          });
+          v.addEventListener('error', () => {
+            const code = v.error ? v.error.code : 0;
+            // 1=MEDIA_ERR_ABORTED, 2=MEDIA_ERR_NETWORK,
+            // 3=MEDIA_ERR_DECODE, 4=MEDIA_ERR_SRC_NOT_SUPPORTED.
+            // The most common is 4 (browser can't decode the source).
+            const msg = 'video load failed (' + (a.name || 'unknown') + '): ' +
+                        ({ 1: 'aborted', 2: 'network', 3: 'decode', 4: 'unsupported format' }[code] || ('code ' + code));
+            try { setStatus(msg, 'err'); } catch (_) {}
+            a._ready = false;
+            a._errored = true;
+          });
+          // Stalled / indefinite-loading fallback. If the video hasn't
+          // become playable after STALL_TIMEOUT_MS with no error, the
+          // user is staring at a black canvas with zero feedback. Fire
+          // a status message so they know to investigate (or check
+          // their network).
+          const STALL_TIMEOUT_MS = 5000;
+          setTimeout(() => {
+            if (a._ready || a._errored) return;
+            try { setStatus('video still loading (' + (a.name || '') + ') — check network or codec', 'err'); } catch (_) {}
+          }, STALL_TIMEOUT_MS);
+          a._el = v;
+        }
         src = a._el;
-        if (A.playing && src.paused) src.play().catch(()=>{});
+        // Already errored — skip permanently. Drawing nothing is the
+        // correct visual; the status-bar message is the only signal.
+        if (a._errored) return;
+        if (A.playing && src.paused && a._ready) src.play().catch(()=>{});
+
         if (!A.playing && !src.paused) src.pause();
       } else {
         if (!a._el) { a._el = new Image(); a._el.src=a.url; }
@@ -971,7 +1296,52 @@
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;
       let dw, dh;
-      if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
+      // Cover semantics (CSS object-fit: cover): when l.cover === true,
+      // the asset is scaled so BOTH dimensions are >= the corresponding
+      // stage dimensions; the overflow is cropped by the canvas. This
+      // guarantees edge-to-edge fill regardless of r.scale. The default
+      // (contain) branch preserves the original behaviour: pick the
+      // SHORTER stage dimension and match it to the asset, which overflows
+      // the LONGER stage dimension when r.scale=1 but produces letterbox /
+      // pillarbox bars when r.scale<1. Missing l.cover (old persisted
+      // snapshot) is treated as false so the rendered shape is unchanged
+      // for pre-cover users.
+      //
+      // Cover branch ignores r.scale entirely (the user opted in to
+      // "force cover" by flipping the flag — they want the layer to
+      // ALWAYS fill the stage). The audio-reactor `scale` target still
+      // writes r.scale on this branch but we don't apply it to the
+      // final dimensions; the slider for baseScale still affects the
+      // size via the uniform-cover formula (a higher baseScale zooms
+      // in further, a lower one... no, baseScale is the audio reactor
+      // accumulator output — it's r.scale in this code).
+      //
+      // Formulas:
+      //   cover:   scale = max(W/assetW, H/assetH)   // ignore r.scale
+      //            dw = assetW * scale; dh = assetH * scale
+      //   default: pick the SHORTER stage dimension to fit the asset
+      //            (overflows the longer one at r.scale=1, letterboxes at
+      //            r.scale<1) — this is the existing behaviour.
+      //
+      // Concretely for a 1x1 image on 800x600 stage:
+      //   cover (any r.scale): dw=800, dh=800 (fills both, crops top/bot)
+      //   default r.scale=1:   dw=800, dh=800 (overflows top/bot 100 each)
+      //   default r.scale=0.5: dw=400, dh=400 (heavy letterbox all sides)
+      if (l.cover) {
+        // CSS object-fit: cover — uniform scale = max(W/assetW, H/assetH).
+        // r.scale is intentionally ignored so the asset ALWAYS fills the
+        // stage regardless of audio reactor activity or low baseScale.
+        const assetW = (a.w || src.naturalWidth || src.videoWidth || 1);
+        const assetH = (a.h || src.naturalHeight || src.videoHeight || 1);
+        const s = Math.max(W / assetW, H / assetH);
+        dw = assetW * s;
+        dh = assetH * s;
+      } else {
+        // Original behaviour: fit the SHORTER stage dimension to the asset.
+        if (ar > car) { dh = H * r.scale; dw = dh * ar; }
+        else        { dw = W * r.scale; dh = dw / ar; }
+      }
+
       const dx = (W - dw)/2 + r.x;
       const dy = (H - dh)/2 + r.y;
       ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;
@@ -1016,6 +1386,31 @@
         ctx.restore();
       }
     }
+    // Burn-in watermark for client-review exports. Reads
+    // window.__SWR_REVIEW_WATERMARK each frame; the SWR_REVIEW
+    // export sets it before calling SWR_RECORDER.start() and
+    // clears it after the recording finishes. When set, paints
+    // the text at the canvas center with a contrasting stroke
+    // so it survives any underlying composition. Cheap enough
+    // to run every frame (~1-2ms of font rasterization).
+    function drawWatermark() {
+      const text = window.__SWR_REVIEW_WATERMARK;
+      if (!text) return;
+      const opacity = (typeof window.__SWR_REVIEW_WATERMARK_OPACITY === 'number')
+        ? window.__SWR_REVIEW_WATERMARK_OPACITY : 0.25;
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = Math.max(2, W / 400);
+      ctx.font = `bold ${Math.round(H / 24)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeText(text, W / 2, H / 2);
+      ctx.fillText(text, W / 2, H / 2);
+      ctx.restore();
+    }
+
     function drawMeter() {
       const m = meter; const w = m.canvas.width, h = m.canvas.height;
       m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
@@ -1041,7 +1436,8 @@
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
-      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawWatermark, drawMeter] });
+
       $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
       requestAnimationFrame(loop);
     }
@@ -1049,7 +1445,8 @@
 
     // === UI WIRING ===
     $('load-song').addEventListener('click', () => $('song-input').click());
-    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); } });
+    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setGhostDot) window.SWR.Gradient.setGhostDot(null); } });
+
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
@@ -1292,6 +1689,14 @@
         // Free the download URL once the click has been dispatched.
         setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
         setStatus('exported · ' + ext.toUpperCase(), 'ok');
+        // SWR_STATS instrumentation (PRD-018 partial). Captures
+        // durationMs + total blob size for the local stats widget.
+        try {
+          const durationMs = Date.now() - (this.startedAt || Date.now());
+          const size = this.chunks.reduce((a, c) => a + c.size, 0);
+          if (window.SWR_STATS) window.SWR_STATS.record(durationMs, ext, size);
+        } catch (_) {}
+
       },
     };
         // Invalidate the per-layer cache whenever the page rebuilds.
@@ -1354,25 +1759,212 @@
         }
       }
 
+      // ---- Phase B: current-song dot -------------------------------------
+      // _track = { warmth, intensity, beatPulse: 0..1 }. Updated by the
+      // audio frame loop (10 Hz throttled) via Gradient.setTrack() and by
+      // the beat detector via Gradient.setBeatPulse(). When null, no dot
+      // is drawn (Phase A behaviour).
+      //
+      // coordinates come from window.SWR_ANCHOR_EMBED.featuresToCoords
+      // (loaded via ../client/anchor-embed.js) so the gradient panel and
+      // the automix blend always land at the same (warmth, intensity) for
+      // the same audio features. Phase C refactor — single source of truth.
+      //
+      // _automixAnchor: when set (e.g. "neon"), the matching anchor dot
+      // gets a magenta ring around it AND the track dot dims to 0.4×
+      // alpha — visual signal that the automix is actively choosing this
+      // anchor. null clears both effects. Wired by automix.tick().
+      let _track = null;
+      let _automixAnchor = null;
+      let _ghost = null;
+      let _neighboursList = [];
+      function drawTrackDot() {
+        if (!_track) return;
+        const { x, y } = toCanvas(_track.warmth, _track.intensity);
+        const pulse = Math.max(0, Math.min(1, _track.beatPulse || 0));
+        // Automix dim: track dot alpha × 0.4 while automix is choosing
+        // an anchor — the anchor ring is the foreground signal.
+        const dim = _automixAnchor ? 0.4 : 1.0;
+        // outer ring: scales with beat pulse (3px → 9px)
+        const ringR = 3 + pulse * 6;
+        ctx2.fillStyle = 'rgba(255, 45, 138, ' + ((0.10 + pulse * 0.20) * dim) + ')';
+        ctx2.beginPath(); ctx2.arc(x, y, ringR, 0, Math.PI * 2); ctx2.fill();
+        // core dot: solid magenta
+        ctx2.fillStyle = 'rgba(255, 45, 138, ' + (0.95 * dim) + ')';
+        ctx2.beginPath(); ctx2.arc(x, y, 2.4, 0, Math.PI * 2); ctx2.fill();
+      }
+      function drawAutomixRing() {
+        if (!_automixAnchor) return;
+        const a = map.get(_automixAnchor);
+        if (!a) return;
+        const { x, y } = toCanvas(a.warmth, a.intensity);
+        // outer faint ring
+        ctx2.strokeStyle = 'rgba(255, 45, 138, 0.35)';
+        ctx2.lineWidth = 1;
+        ctx2.beginPath(); ctx2.arc(x, y, 8, 0, Math.PI * 2); ctx2.stroke();
+        // inner solid ring
+        ctx2.strokeStyle = 'rgba(255, 45, 138, 0.85)';
+        ctx2.lineWidth = 1.5;
+        ctx2.beginPath(); ctx2.arc(x, y, 4.5, 0, Math.PI * 2); ctx2.stroke();
+      }
+      function drawGhostDot() {
+        if (!_ghost) return;
+        const { x, y } = toCanvas(_ghost.warmth, _ghost.intensity);
+        // Faded hollow ring — clearly "not the live track"
+        ctx2.strokeStyle = 'rgba(138, 122, 160, 0.55)';
+        ctx2.lineWidth = 1;
+        ctx2.beginPath(); ctx2.arc(x, y, 4, 0, Math.PI * 2); ctx2.stroke();
+      }
+
+
       function render() {
         ctx2.fillStyle = '#0a0612';
         ctx2.fillRect(0, 0, W2, H2);
         drawAxes();
         drawAnchors();
+        drawAutomixRing();
+        drawGhostDot();
+        drawTrackDot();
       }
 
-      // Expose so other modules can ask for a redraw after a track lands.
-      window.SWR_GRADIENT = { refresh: render };
+      // Throttled redraw loop for Phase B. Reads from _track each tick so
+      // audio-frame updates are coalesced. ~10 Hz keeps the canvas work
+      // negligible while still feeling live.
+      let _redrawIv = setInterval(() => { if (_track) render(); }, 100);
+
+      // Public API
+      window.SWR_GRADIENT = {
+        refresh: render,
+        setTrack(features) {
+          // Delegate to the shared embedder. If anchor-embed.js failed to
+          // load, fall back to the midpoint so the dot sits safely at
+          // (0.5, 0.5) instead of crashing the gradient panel.
+          let c;
+          if (window.SWR_ANCHOR_EMBED && window.SWR_ANCHOR_EMBED.featuresToCoords) {
+            c = window.SWR_ANCHOR_EMBED.featuresToCoords(features);
+          } else {
+            c = { warmth: 0.5, intensity: 0.5 };
+          }
+          if (!_track) _track = { warmth: c.warmth, intensity: c.intensity, beatPulse: 0 };
+          else { _track.warmth = c.warmth; _track.intensity = c.intensity; }
+          // Phase D: refresh the neighbours list to reflect new coords.
+          // Defer to next tick so callers can set HologramState.neighbours
+          // first if they're about to. setNeighbours reads HologramState at
+          // call time.
+          const n = (window.SWR && window.SWR.HologramState && window.SWR.HologramState.neighbours) || 4;
+          this.setNeighbours(n, c);
+        },
+        setBeatPulse(p) {
+          if (!_track) return;
+          _track.beatPulse = Math.max(0, Math.min(1, p || 0));
+        },
+        // Highlight a specific anchor dot with a magenta ring + dim the
+        // track dot so the user can see which preset the automix is
+        // currently using. Pass null to clear.
+        setAutomixAnchor(id) {
+          _automixAnchor = (typeof id === 'string' && map.get(id)) ? id : null;
+        },
+        // Populate the #neighbours-list div with the N nearest anchors
+        // to the current track coords (or a passed-in coords). Each entry
+        // is clickable: clicking calls window.VersionsPresets.setPresetOverride(id)
+        // to jump the engine to that preset. Pass n <= 0 to clear the list.
+        // Re-runs cheaply on every Gradient.setTrack() call.
+        setNeighbours(n, coords) {
+          const el = document.getElementById('neighbours-list');
+          if (!el) return;
+          const useN = Math.max(0, Math.min(8, n || 0));
+          const useCoords = coords || (_track ? { warmth: _track.warmth, intensity: _track.intensity } : null);
+          if (!useCoords || !useN) { el.innerHTML = ''; _neighboursList = []; return; }
+          const items = map.neighbours
+            ? map.neighbours(useCoords, useN)
+            : [];
+          // Render: bold id, dim distance. Each line is a button.
+          let html = '';
+          for (let i = 0; i < items.length; i++) {
+            const a = items[i];
+            const id = a.id;
+            const d = a.dist;
+            const safeId = String(id).replace(/[<>"'&]/g, c => ({ '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;', '&':'&amp;' }[c]));
+            html += '<button class="neigh" data-id="' + safeId + '" style="display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--m);font:8px ui-monospace,monospace;letter-spacing:0.04em;padding:2px 0;cursor:pointer;">' +
+                    safeId + ' <span style="color:var(--muted);">' + d.toFixed(2) + '</span></button>';
+          }
+          el.innerHTML = html;
+          // Wire click handlers (one per id).
+          const buttons = el.querySelectorAll('.neigh');
+          for (let i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', (e) => {
+              const targetId = e.currentTarget.getAttribute('data-id');
+              // Jump: write the preset's fx_state straight into _fxOverride.
+              // Bypasses window.FX (which music_video doesn't wire).
+              if (window.VersionsPresets && window.VersionsPresets.setPresetOverride) {
+                window.VersionsPresets.setPresetOverride(targetId);
+              }
+              // Persist manual pick + update the cycle cursor so a
+              // subsequent Tab press advances from the clicked preset
+              // (not from whatever was last cycled).
+              window.__swrCurrentPreset = targetId;
+              if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.save(targetId);
+              // Clear the automix ring (user is taking manual control).
+              _automixAnchor = null;
+            });
+          }
+          _neighboursList = items.map(a => ({ id: a.id, dist: a.dist }));
+        },
+        // Draw a faded "last session" dot at the given coords. Used by the
+        // boot path to show the user what their previous automix blend
+        // looked like, even if no song is currently loaded. Distinct from
+        // setTrack() — does not enable beat-pulse animation, no ring.
+        setGhostDot(coords) {
+          if (!coords || typeof coords.warmth !== 'number') {
+            _ghost = null;
+          } else {
+            _ghost = {
+              warmth:    Math.max(0, Math.min(1, coords.warmth)),
+              intensity: Math.max(0, Math.min(1, coords.intensity)),
+            };
+          }
+        },
+        _state() { return _track ? { ..._track, automixAnchor: _automixAnchor, ghost: _ghost, neighbours: _neighboursList } : null; },
+      };
+
+      // ---- Restore last session -------------------------------------------
+      // If the user has a persisted automix blend from a previous visit,
+      // draw a faded ghost dot on the gradient so they can find where
+      // they left off. Cleared as soon as the live track lands (setTrack
+      // resets _track but leaves _ghost — setGhostDot(null) explicitly
+      // when the user wants to dismiss).
+      try {
+        if (window.SWR_LAST_MIX && window.SWR_LAST_MIX.read) {
+          const prev = window.SWR_LAST_MIX.read();
+          if (prev && prev.coords) {
+            _ghost = { warmth: prev.coords.warmth, intensity: prev.coords.intensity };
+            render();
+          }
+        }
+      } catch (_) { /* ignore — privacy mode etc. */ }
+
       render();
-      return { refresh: render };
+      return window.SWR_GRADIENT;
+
     })();
 
-    // Wire the depth + N sliders so they actually move things (Phase A
-    // just keeps the values in a window-scope state object so later
-    // phases can read them from applyR).
-    const HologramState = {
+    // Hologram engine v1 — extended state object. Phase D wiring.
+    // The renderer's wrapApplyR reads `features`, `focus`,
+    // `focusAmount`, `hidden`; the keys handler mutates `focus`,
+    // `depth`, `focusAmount`, `hidden`. The song drop path stores
+    // the audio analysis result on `_audio` and recomputes
+    // `features` from it. Exposed as window.SWR_HOLOGRAM_STATE for
+    // Phase F Puppeteer assertions.
+    const HologramState = window.SWR_HOLOGRAM_STATE = {
       depth: 0.5,
       neighbours: 4,
+      focus: null,
+      features: null,
+      focusAmount: 0,
+      hidden: false,
+      _audio: null,
+      _ready: false,
+      _error: null,
     };
     (function wireSliders() {
       const dIn = $('depth'), dOut = $('depth-v');
@@ -1391,15 +1983,1927 @@
         nIn.addEventListener('input', () => {
           HologramState.neighbours = parseInt(nIn.value, 10);
           if (nOut) nOut.textContent = String(HologramState.neighbours);
+          // Phase D: re-render the neighbours list with the new N.
+          if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setNeighbours) {
+            window.SWR.Gradient.setNeighbours(HologramState.neighbours);
+          }
+
         });
       }
     })();
 
-    window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
+    window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; }, get applyR() { return applyR; }, set applyR(fn) { applyR = fn; } };
+
+    // ---- Canvas-level "fit to screen" toggle ----------------------------
+    // Flips the #render canvas's CSS object-fit between the browser
+    // default (fill — stretches the bitmap) and cover (fills the
+    // section edge-to-edge, crops overflow). Exposed as window.SWR_FIT
+    // for smoke testing. Default off matches today's behavior; the
+    // body[data-fit='on'] selector is the CSS hook (see <style>).
+    function refreshFitBtn() {
+      const btn = $('fit-btn');
+      if (!btn) return;
+      btn.classList.toggle('on', !!(window.SWR_FIT && window.SWR_FIT.isOn));
+    }
+    window.SWR_FIT = {
+      enabled: false,
+      toggle(value) {
+        this.enabled = (typeof value === 'boolean') ? value : !this.enabled;
+        document.body.setAttribute('data-fit', this.enabled ? 'on' : 'off');
+        refreshFitBtn();
+        return this.enabled;
+      },
+      get isOn() { return this.enabled; },
+    };
+
+    // ---- Hero frame capture (PRD-010 partial) ----------------------------
+    // Captures the #render canvas into a small ring buffer (last 3s at
+    // 4fps = 12 entries), scores each frame by energy + contrast +
+    // composition, and exposes `best(n)` for selecting the top-N to
+    // surface as clickable thumbnails in the Hero panel. Clicking a
+    // thumbnail re-emits its stored PNG as a download. The sampler
+    // auto-starts when audio plays and stops on pause; the footer
+    // "Hero" button is a manual toggle.
+    window.SWR_HERO_FRAMES = {
+      buffer: [],
+      maxFrames: 12,
+      samplerHandle: null,
+      start() {
+        if (this.samplerHandle) return;
+        const capture = () => {
+          try {
+            const stage = document.getElementById('render');
+            if (!stage) return;
+            // 32x32 downsample for analysis (cheap; avoids the
+            // ~50-150ms main-thread cost of a full-res PNG encode).
+            const w = 32, h = 32;
+            const off = document.createElement('canvas');
+            off.width = w; off.height = h;
+            const offCtx = off.getContext('2d');
+            offCtx.drawImage(stage, 0, 0, w, h);
+            const img = offCtx.getImageData(0, 0, w, h).data;
+            let sum = 0, sumX = 0, sumY = 0, brightCount = 0;
+            const lum = new Array(w * h);
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                const L = 0.299 * img[i] + 0.587 * img[i + 1] + 0.114 * img[i + 2];
+                lum[y * w + x] = L;
+                sum += L;
+                if (L > 128) { sumX += x; sumY += y; brightCount++; }
+              }
+            }
+            const mean = sum / (w * h);
+            let variance = 0;
+            for (let i = 0; i < lum.length; i++) variance += (lum[i] - mean) ** 2;
+            variance /= lum.length;
+            const contrast = Math.sqrt(variance) / 255;
+            const cx = brightCount > 0 ? sumX / brightCount : w / 2;
+            const cy = brightCount > 0 ? sumY / brightCount : h / 2;
+            const compDist = Math.sqrt(((cx - w / 2) / w) ** 2 + ((cy - h / 2) / h) ** 2);
+            const compScore = 1 - Math.min(1, compDist);
+            // Energy from audio features (cheap proxy for reactor writes).
+            const f = (window.A && window.A.feat) || {};
+            const energy = (f.bass || 0) + (f.rms || 0) + (f.beat || 0);
+            // Store the 32x32 thumbnail PNG (small) instead of a full-
+            // resolution PNG. downloadFrame() re-captures at full
+            // resolution when the user actually clicks a thumbnail.
+            const dataURL = off.toDataURL('image/png');
+            const entry = { dataURL, energy, contrast, comp: compScore, t: Date.now() };
+            this.buffer.push(entry);
+            if (this.buffer.length > this.maxFrames) this.buffer.shift();
+            if (typeof refreshHeroPanel === 'function') refreshHeroPanel();
+          } catch (_) {}
+        };
+        this.samplerHandle = setInterval(capture, 250);
+      },
+      stop() {
+        if (this.samplerHandle) {
+          clearInterval(this.samplerHandle);
+          this.samplerHandle = null;
+        }
+      },
+      best(n = 3) {
+        if (this.buffer.length < 2) return this.buffer.slice();
+        const scored = this.buffer.map((e) => ({
+          ...e,
+          score: e.energy * 0.4 + e.contrast * 0.4 + e.comp * 0.2,
+        }));
+        scored.sort((a, b) => (b.score - a.score) || (a.t - b.t));
+        return scored.slice(0, n).sort((a, b) => a.t - b.t);
+      },
+      captureNow() {
+        const stage = document.getElementById('render');
+        if (!stage) return false;
+        const link = document.createElement('a');
+        link.download = `swr-frame-${Date.now()}.png`;
+        link.href = stage.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return true;
+      },
+      downloadFrame(entry) {
+        if (!entry || !entry.dataURL) return this.captureNow();
+        // Re-capture at full resolution so the user gets a high-quality
+        // PNG. The stored 32x32 thumbnail is for ranking/display only.
+        const stage = document.getElementById('render');
+        const dataURL = stage ? stage.toDataURL('image/png') : entry.dataURL;
+        const link = document.createElement('a');
+        link.download = `swr-hero-${entry.t}.png`;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return true;
+      },
+    };
+
+    // ---- SWR_EDIT_DATA ----------------------------------------------------
+    // "Download Edit Data" button (PRD-005 partial). Runs
+    // AudioAnalysisV2.analyzeBuffer() on the currently loaded song and
+    // downloads the result as a swr-edl/1 JSON. Premiere Pro XML export
+    // (§5.2.2) is out of scope — see plan §5.2.2.
+    //
+    // Audio source priority: SWR_LAST_SONG (IDB-persisted blob) first,
+    // then A.el.src (the live <audio> element's blob URL). Both routes
+    // point at the same user-uploaded file in normal use.
+    function formatEDL(analysis, blob) {
+      const songName = blob && blob.name ? blob.name : 'untitled.mp3';
+      const duration = (analysis && analysis.duration) || 0;
+      const bpm = Math.round((analysis && analysis.bpm) || 0);
+      const key = (analysis && analysis.key) || 'C';
+      const scale = (analysis && analysis.scale) || 'major';
+      const onsets = (analysis && analysis.onsets) || [];
+      const confidence = (analysis && analysis.confidence) || 0.5;
+
+      // Classify onsets: first marker is a downbeat at t=0; subsequent
+      // onsets are labelled kick/snare/onset by inter-onset interval
+      // (short intervals at the beat grid are likely kick/snare hits).
+      const markers = [];
+      if (onsets.length > 0) {
+        markers.push({ time: 0.0, type: 'downbeat', label: '1.1', confidence: 1.0 });
+        const beatSec = bpm > 0 ? 60 / bpm : 0.5;
+        for (let i = 0; i < onsets.length; i++) {
+          const t = onsets[i];
+          const prev = i > 0 ? onsets[i - 1] : 0;
+          const interval = t - prev;
+          const c = Math.max(0, Math.min(1, confidence * (1 - interval / 2)));
+          let type = 'onset';
+          if (interval < beatSec * 1.5 && c > 0.6) type = 'kick';
+          else if (interval < beatSec * 1.0 && c > 0.5) type = 'snare';
+          markers.push({
+            time: Math.round(t * 1000) / 1000,
+            type,
+            label: '',
+            confidence: Math.round(c * 100) / 100,
+          });
+        }
+      }
+
+      // Phrase segmentation: simple heuristic — 16s intro, 32s build,
+      // 32s drop, rest is post-drop. Real phrase detection is out of
+      // scope (audio-analysis-v2 doesn't expose structural segmentation).
+      const phrases = [];
+      if (duration > 0) {
+        const i16 = Math.min(16, duration / 4);
+        const i32 = Math.min(32, duration / 3);
+        phrases.push({ start: 0, end: i16, type: 'intro' });
+        if (duration > 32) {
+          phrases.push({ start: i16, end: i16 + i32, type: 'build' });
+          phrases.push({ start: i16 + i32, end: i16 + i32 + i32, type: 'drop' });
+          if (i16 + i32 + i32 < duration) {
+            phrases.push({ start: i16 + i32 + i32, end: duration, type: 'post-drop' });
+          }
+        } else if (duration > i16) {
+          phrases.push({ start: i16, end: duration, type: 'post-intro' });
+        }
+      }
+
+      return {
+        version: 'swr-edl/1',
+        song: songName,
+        duration: Math.round(duration * 100) / 100,
+        bpm: bpm,
+        key: key + ' ' + scale,
+        timecode: '00:00:00:00',
+        markers: markers,
+        drops: [],
+        phrases: phrases,
+      };
+    }
+    window.SWR_EDIT_DATA = {
+      lastAnalysis: null,
+
+      async downloadEditData(filename) {
+        // 1. Get the audio blob.
+        let blob = null;
+        try {
+          const song = window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function'
+            ? await window.SWR_LAST_SONG
+            : window.SWR_LAST_SONG;
+          if (song && song.blob) blob = song.blob;
+        } catch (_) {}
+        if (!blob && window.A && window.A.el && window.A.el.src) {
+          try {
+            const r = await fetch(window.A.el.src);
+            blob = await r.blob();
+          } catch (_) {}
+        }
+        if (!blob) {
+          setStatus('no song loaded — drop a file first', 'err');
+          return false;
+        }
+
+        // 2. Decode to AudioBuffer.
+        let audioBuffer = null;
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) {
+            setStatus('AudioContext unavailable', 'err');
+            return false;
+          }
+          const audioCtx = new Ctx();
+          const arrayBuffer = await blob.arrayBuffer();
+          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        } catch (e) {
+          setStatus('decode failed: ' + (e && e.message || e), 'err');
+          return false;
+        }
+
+        // 3. Analyze.
+        if (!window.AudioAnalysisV2 || typeof window.AudioAnalysisV2.analyzeBuffer !== 'function') {
+          setStatus('audio-analysis-v2.js not loaded', 'err');
+          return false;
+        }
+        const analysis = window.AudioAnalysisV2.analyzeBuffer(audioBuffer);
+        this.lastAnalysis = analysis;
+
+        // 4. Format + download.
+        const edl = formatEDL(analysis, blob);
+        const json = JSON.stringify(edl, null, 2);
+        const fileBlob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(fileBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || (edl.song ? edl.song.replace(/\.[^.]+$/, '') + '.swr-edl.json' : 'swr-edl.json');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('downloaded edit data · ' + a.download, 'ok');
+        return true;
+      },
+    };
+
+    // ---- SWR_REVIEW ----------------------------------------------------
+    // Client-review export (PRD-009 §9.2). Records a watermarked preview
+    // MP4 at 1 Mbps and pairs it with a self-contained HTML review page
+    // that has click-to-comment pins (persisted to localStorage per
+    // browser). The artist sends both files to the client; the client
+    // opens the HTML, watches the watermarked video, drops comment pins,
+    // and the artist reads the pins locally.
+    //
+    // Watermark is burned into the canvas via window.__SWR_REVIEW_WATERMARK
+    // — the drawWatermark() hook in the render loop paints it each frame
+    // while the recorder's captureStream() snapshots the canvas. Cleared
+    // after recording so the live preview is unaffected.
+
+    function reviewDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function reviewFilenameForSong(songName) {
+      const base = (songName || 'review').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_\-]+/g, '_');
+      return base || 'review';
+    }
+
+    function reviewGeneratePage(videoBlob, metadata) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const songName = String(metadata.song || 'untitled').replace(/[<>&"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
+          const date = String(metadata.date || '');
+          const preset = String(metadata.preset || '');
+          const watermark = String(metadata.watermark || 'PREVIEW — NOT FOR DISTRIBUTION').replace(/[<>&"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
+          const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SWR Review — ${songName}</title>
+  <style>
+    body { margin:0; background:#0a0d12; color:#fff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding:20px; }
+    .header { text-align:center; margin-bottom:20px; }
+    .header h1 { font-size:18px; margin:0 0 8px; font-weight:600; }
+    .header .meta { color:#888; font-size:12px; }
+    .watermark-notice { background:#ff0050; color:#fff; padding:6px 12px; border-radius:4px; font-size:11px; display:inline-block; margin-top:8px; letter-spacing:0.04em; text-transform:uppercase; }
+    .stage { position:relative; max-width:960px; margin:0 auto; }
+    video { width:100%; max-width:960px; display:block; border-radius:8px; background:#000; }
+    .pin { position:absolute; width:18px; height:18px; background:#6366f1; border-radius:50%; cursor:pointer; transform:translate(-50%,-50%); box-shadow:0 0 0 2px rgba(0,0,0,0.5); }
+    .pin:hover, .pin:focus { background:#818cf8; outline:none; }
+    .comment { display:none; position:absolute; left:24px; top:-8px; background:#1a1e28; color:#fff; padding:10px; border-radius:8px; width:240px; font-size:13px; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.5); }
+    .pin:hover .comment, .pin:focus .comment { display:block; }
+    .comment .ts { color:#888; font-size:11px; margin-bottom:4px; }
+    .footer { text-align:center; color:#666; font-size:11px; margin-top:24px; line-height:1.5; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${songName}</h1>
+    <div class="meta">${date}${preset ? ' · ' + preset : ''}</div>
+    <div class="watermark-notice">${watermark}</div>
+  </div>
+  <div class="stage" id="stage">
+    <video src="${reader.result}" controls id="video" preload="metadata"></video>
+  </div>
+  <div class="footer">Click anywhere on the video to drop a comment pin. Comments are saved to this browser only.</div>
+  <script>
+    var pins = [];
+    var pinId = 0;
+    var STORAGE_KEY = 'swr.review.pins.' + (location.pathname.split('/').pop() || 'review');
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) { pins = JSON.parse(saved); pins.forEach(addPinToDom); }
+    } catch (_) {}
+
+    var video = document.getElementById('video');
+    var stage = document.getElementById('stage');
+    video.addEventListener('click', function (e) {
+      // Don't add a pin if the click landed on an existing pin.
+      if (e.target.classList && (e.target.classList.contains('pin') || e.target.closest('.pin'))) return;
+      var rect = video.getBoundingClientRect();
+      var x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+      var y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+      var note = prompt('Comment (this browser only):');
+      if (note && note.trim()) {
+        var pin = { id: ++pinId, x: x, y: y, note: note.trim(), t: Math.floor(video.currentTime * 1000) };
+        pins.push(pin);
+        savePins();
+        addPinToDom(pin);
+      }
+    });
+
+    function addPinToDom(pin) {
+      var div = document.createElement('div');
+      div.className = 'pin';
+      div.style.left = pin.x + '%';
+      div.style.top = pin.y + '%';
+      div.tabIndex = 0;
+      var comment = document.createElement('div');
+      comment.className = 'comment';
+      var at = formatTime(pin.t || 0);
+      comment.innerHTML = '<div class="ts"><b>' + at + '</b></div><div>' + escapeHtml(pin.note) + '</div>';
+      div.appendChild(comment);
+      stage.appendChild(div);
+    }
+
+    function savePins() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pins)); } catch (_) {}
+    }
+
+    function formatTime(ms) {
+      var s = Math.floor(ms / 1000);
+      var m = Math.floor(s / 60);
+      return m + ':' + ('00' + (s % 60)).slice(-2);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  <\/script>
+</body>
+</html>`;
+          resolve(html);
+        };
+        reader.onerror = () => reject(new Error('FileReader failed'));
+        reader.readAsDataURL(videoBlob);
+      });
+    }
+
+    function reviewReadSongName() {
+      // Prefer the IDB-persisted last song name (human-readable); fall
+      // back to the live <audio> element's blob: URL basename; finally
+      // to 'review'.
+      try {
+        const song = window.SWR_LAST_SONG && typeof window.SWR_LAST_SONG.then === 'function'
+          ? null
+          : window.SWR_LAST_SONG;
+        if (song && song.name) return song.name;
+      } catch (_) {}
+      try {
+        if (window.A && window.A.el && window.A.el.src) {
+          const parts = window.A.el.src.split('/').pop().split('?')[0];
+          if (parts && parts.length) return decodeURIComponent(parts) || 'review';
+        }
+      } catch (_) {}
+      return 'review';
+    }
+
+    window.SWR_REVIEW = {
+      async exportReview(filename) {
+        if (!window.SWR_RECORDER || typeof window.SWR_RECORDER.start !== 'function') {
+          setStatus('recorder not loaded', 'err');
+          return false;
+        }
+        const stage = document.getElementById('render');
+        if (!stage) { setStatus('no render canvas', 'err'); return false; }
+        if (!window.A || !window.A.src || !window.A.el || !isFinite(window.A.el.duration) || window.A.el.duration <= 0) {
+          setStatus('load a song first', 'err');
+          return false;
+        }
+
+        const songName = reviewReadSongName();
+        const baseName = filename || reviewFilenameForSong(songName);
+
+        // 1. Set the watermark.
+        window.__SWR_REVIEW_WATERMARK = 'PREVIEW — NOT FOR DISTRIBUTION';
+
+        // 2. Start the recorder at 1 Mbps (PRD-009 §9.2.1).
+        setStatus('recording preview at 1 Mbps…', 'ok');
+        const pending = window.SWR_RECORDER.start({
+          canvas: stage,
+          audioSource: window.A.src,
+          audioSampleRate: window.A.ctx ? window.A.ctx.sampleRate : 44100,
+          audioNumberOfChannels: 2,
+          width: stage.width,
+          height: stage.height,
+          fps: 30,
+          videoBitsPerSecond: 1_000_000,
+        });
+
+        // 3. Record for the remainder of the song.
+        const remainingMs = Math.max(0, (window.A.el.duration - (window.A.el.currentTime || 0)) * 1000);
+        await new Promise(r => setTimeout(r, remainingMs));
+        const result = await window.SWR_RECORDER.stop();
+        window.__SWR_REVIEW_WATERMARK = null;
+        if (!result || !result.blob) {
+          setStatus('no recording produced', 'err');
+          return false;
+        }
+        setStatus('recorded ' + Math.round(result.blob.size / 1024) + ' KB', 'ok');
+
+        // 4. Generate the review HTML.
+        const metadata = {
+          song: songName,
+          date: new Date().toISOString().slice(0, 10),
+          preset: (window.MVM_PRESET && window.MVM_PRESET.name) || '',
+          watermark: 'PREVIEW — NOT FOR DISTRIBUTION',
+        };
+        let reviewHTML = '';
+        try {
+          reviewHTML = await reviewGeneratePage(result.blob, metadata);
+        } catch (e) {
+          setStatus('review page generation failed: ' + (e && e.message || e), 'err');
+          return false;
+        }
+
+        // 5. Download both files.
+        reviewDownloadBlob(result.blob, baseName + '.mp4');
+        setTimeout(() => reviewDownloadBlob(new Blob([reviewHTML], { type: 'text/html' }), baseName + '-review.html'), 500);
+        setStatus('downloaded ' + baseName + '.mp4 + review page', 'ok');
+
+        // Touch the pending so we don't lose it (recorder API contract).
+        try { await pending; } catch (_) {}
+        return true;
+      },
+    };
+
+    // ---- SWR_HOOK_DETECTOR --------------------------------------------
+    // Hook-generator (PRD-006 §6.2.1 — drop detection + Teaser/Hook/Clip
+    // export). Reuses the same 20ms-RMS / 10ms-hop math that
+    // audio-analysis-v2.js uses for onset detection, but here we build
+    // an energy envelope so we can pick the FIRST major spike after a
+    // sustained low-energy intro (the "drop"). The drop time is then
+    // snapped to the nearest onset within 200ms.
+    //
+    // Exports three presets via SWR_RECORDER at 2 Mbps (PRD-006 §6.4
+    // "no bars on TikTok" — 1080×1920 H.264 at 2 Mbps is well above
+    // TikTok's bitrate requirements):
+    //   teaser — 3s before the drop (build hits at drop time)
+    //   hook   — 5s before the drop (build + drop + 1 bar)
+    //   clip   — 15s from the song start (intro + drop + 8 bars)
+
+    function hookDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    window.SWR_HOOK_DETECTOR = {
+      lastResult: null,
+
+      async detect() {
+        // Fetch the audio blob from SWR_LAST_SONG.
+        let blob;
+        try {
+          const song = await window.SWR_LAST_SONG;
+          if (song && song.blob) blob = song.blob;
+        } catch (_) {}
+        if (!blob) return { ok: false, reason: 'no song loaded' };
+
+        // Decode.
+        let audioBuffer;
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          const audioCtx = new Ctx();
+          audioBuffer = await audioCtx.decodeAudioData(await blob.arrayBuffer());
+        } catch (e) {
+          return { ok: false, reason: 'decode failed: ' + e.message };
+        }
+
+        // Run analyzeBuffer for onsets (used for snapping).
+        let onsets = [];
+        if (window.AudioAnalysisV2 && window.AudioAnalysisV2.analyzeBuffer) {
+          try {
+            const analysis = window.AudioAnalysisV2.analyzeBuffer(audioBuffer);
+            onsets = (analysis && analysis.onsets) || [];
+          } catch (_) {}
+        }
+
+        // Energy envelope: 20ms RMS window, 10ms hop. Same hop/window as
+        // audio-analysis-v2.js:225-267 but here we keep the magnitudes
+        // (not onset deltas) so we can find the first big spike.
+        const sampleRate = audioBuffer.sampleRate;
+        const samples = audioBuffer.getChannelData(0);
+        const win = Math.floor(sampleRate * 0.02);
+        const hop = Math.floor(sampleRate * 0.01);
+        const nFrames = Math.max(1, Math.floor(samples.length / hop));
+        const energies = new Float32Array(nFrames);
+        for (let f = 0; f < nFrames; f++) {
+          const start = f * hop;
+          let sum = 0;
+          for (let j = 0; j < win && start + j < samples.length; j++) {
+            const s = samples[start + j];
+            sum += s * s;
+          }
+          energies[f] = Math.sqrt(sum / win);
+        }
+
+        // Intro mean: first 8 seconds (per PRD-006 §6.2.1 step 2).
+        const introFrames = Math.min(nFrames, Math.floor(8 * sampleRate / hop));
+        let introMean = 0;
+        for (let i = 0; i < introFrames; i++) introMean += energies[i];
+        introMean /= introFrames;
+
+        // First spike > 2× intro mean (PRD-006 §6.2.1 step 3).
+        let dropFrame = -1;
+        for (let i = introFrames; i < nFrames; i++) {
+          if (energies[i] > 2 * introMean) { dropFrame = i; break; }
+        }
+        if (dropFrame < 0) {
+          this.lastResult = null;
+          return { ok: false, reason: 'no drop detected (no spike > 2× intro)' };
+        }
+
+        let dropTime = (dropFrame * hop) / sampleRate;
+        const energyRatio = energies[dropFrame] / Math.max(introMean, 1e-6);
+
+        // Snap to nearest onset within 200ms (PRD-006 §6.2.1 step 4).
+        let snapped = dropTime;
+        if (onsets.length > 0) {
+          let bestDelta = Infinity;
+          for (const o of onsets) {
+            const delta = o - dropTime;
+            if (Math.abs(delta) < Math.abs(bestDelta)) bestDelta = delta;
+          }
+          if (Math.abs(bestDelta) < 0.2) snapped = dropTime + bestDelta;
+        }
+
+        const result = {
+          time: Math.round(snapped * 100) / 100,
+          confidence: 0.85,
+          energy: Math.round(energyRatio * 100) / 100,
+          label: 'Drop 1',
+          introMean: Math.round(introMean * 1000) / 1000,
+        };
+        this.lastResult = result;
+        return { ok: true, result };
+      },
+
+      async exportHook(preset) {
+        if (!this.lastResult) return { ok: false, reason: 'no drop detected; run detect() first' };
+        if (!window.A || !window.A.el) return { ok: false, reason: 'no audio element' };
+        const r = this.lastResult;
+        let startTime, duration;
+        if (preset === 'teaser') { startTime = Math.max(0, r.time - 3); duration = 3; }
+        else if (preset === 'hook') { startTime = Math.max(0, r.time - 5); duration = 5; }
+        else if (preset === 'clip') { startTime = 0; duration = 15; }
+        else { return { ok: false, reason: 'unknown preset: ' + preset }; }
+
+        if (!window.SWR_RECORDER || !window.SWR_RECORDER.start) {
+          return { ok: false, reason: 'SWR_RECORDER not loaded' };
+        }
+        const stage = document.getElementById('render');
+        if (!stage) return { ok: false, reason: 'no render canvas' };
+
+        try { window.A.el.currentTime = startTime; } catch (_) {}
+
+        let rec;
+        try {
+          rec = window.SWR_RECORDER.start({
+            canvas: stage,
+            audioSource: window.A.el,
+            audioSampleRate: 44100,
+            audioNumberOfChannels: 2,
+            width: stage.width,
+            height: stage.height,
+            fps: 30,
+            videoBitsPerSecond: 2_000_000,
+          });
+        } catch (e) {
+          return { ok: false, reason: 'record failed: ' + e.message };
+        }
+
+        setStatus('recording ' + preset + ' (' + duration + 's)…', 'ok');
+        await new Promise(res => setTimeout(res, duration * 1000 + 200));
+        const result = await window.SWR_RECORDER.stop();
+        if (!result || !result.blob) {
+          return { ok: false, reason: 'no recording produced' };
+        }
+
+        const ext = (result.mime || 'video/mp4').includes('webm') ? 'webm' : 'mp4';
+        const filename = preset + '-' + Math.round(r.time * 100) / 100 + 's.' + ext;
+        hookDownloadBlob(result.blob, filename);
+        setStatus('downloaded ' + filename + ' (' + Math.round(result.blob.size / 1024) + ' KB)', 'ok');
+        return { ok: true, filename };
+      },
+    };
+
+    // ---- Restore persisted layer state ---------------------------------
+    // Load the previous Layers.list from localStorage (asset references
+    // are stripped on save — they're Blob URLs that don't survive a
+    // reload). On restore, layers come back with their settings but
+    // asset: null; the user re-uploads via the + button to slot
+    // assets back in. Until then, the layer exists in the engine
+    // state but renders as an inert placeholder (its `reactors` are
+    // still wired so toggling automix affects it).
+    try {
+      if (window.SWR_LAYER_STATE) {
+        const saved = window.SWR_LAYER_STATE.load();
+        if (saved && saved.length) {
+          // Push saved layers into the existing list. The render()
+          // call updates the (hidden) layer panel. Invalidates the
+          // WebGL render cache so the new layers show up next frame.
+          for (let i = 0; i < saved.length; i++) Layers.list.push(saved[i]);
+          Layers.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+          setStatus('restored ' + saved.length + ' layer' + (saved.length === 1 ? '' : 's'), 'ok');
+        }
+      }
+    } catch (_) {}
+
+    // ---- SWR_STATS --------------------------------------------------------
+    // Local-only render statistics (PRD-018 partial — backend integrations
+    // §18.2.1-3 are explicitly out of scope). Records (ts, durationMs,
+    // ext, size) on every successful Recorder._save() to localStorage.
+    // All data is per-device; clearing browser storage zeroes the stats.
+    window.SWR_STATS = {
+      STORAGE_KEY: 'swr.stats.v1',
+
+      _load() {
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return { renders: [], lastPreset: null };
+          return JSON.parse(raw);
+        } catch (_) {
+          return { renders: [], lastPreset: null };
+        }
+      },
+
+      _save(data) {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+        } catch (_) {}
+      },
+
+      // Called from Recorder._save() after a successful recording.
+      record(durationMs, ext, size) {
+        const data = this._load();
+        const now = Date.now();
+        const render = {
+          ts: now,
+          durationMs: Math.round(durationMs || 0),
+          ext: ext || 'mp4',
+          size: Math.round(size || 0),
+        };
+        data.renders.push(render);
+        // Cap at 100 most recent renders to keep localStorage lean.
+        if (data.renders.length > 100) data.renders.shift();
+        this._save(data);
+        return render;
+      },
+
+      // Returns summary stats for the widget.
+      summary() {
+        const data = this._load();
+        const renders = data.renders || [];
+        const last30 = renders.filter(r => r.ts > Date.now() - 30 * 86400000);
+        const totalDurationMs = renders.reduce((a, r) => a + (r.durationMs || 0), 0);
+        const totalSize = renders.reduce((a, r) => a + (r.size || 0), 0);
+        return {
+          totalRenders: renders.length,
+          last30Count: last30.length,
+          totalMinutes: Math.round(totalDurationMs / 60000 * 100) / 100,
+          last30Minutes: Math.round(last30.reduce((a, r) => a + (r.durationMs || 0), 0) / 60000 * 100) / 100,
+          totalSizeMB: Math.round(totalSize / 1048576 * 100) / 100,
+          lastPreset: data.lastPreset,
+          recent: renders.slice(-5).reverse(),
+        };
+      },
+
+      // Track the most recent preset used.
+      setPreset(presetId) {
+        const data = this._load();
+        data.lastPreset = presetId;
+        this._save(data);
+      },
+
+      // Reset all stats (used by the "Clear" button).
+      reset() {
+        this._save({ renders: [], lastPreset: null });
+      },
+    };
+
+    // ---- SWR_MOOD ---------------------------------------------------------
+    // Mood-board reference analyzer (PRD-011 partial). Drops in a
+    // reference image (or hex color), runs k-means (k=5) on a 64x64
+    // downsample to extract a palette + brightness/saturation/Michelson
+    // contrast + warm/cool temperature, maps those features onto the 4
+    // footer sliders (depth/gate/decay/sens), and shows the reference
+    // as a draggable overlay that persists per-session. All local —
+    // no backend.
+    window.SWR_MOOD = {
+      STORAGE_KEY: 'swr.mood.overlay.v1',
+
+      _kmeans(pixels, k, maxIter) {
+        if (pixels.length < k) return { centroids: pixels.slice(0, k), sizes: pixels.map(() => 1) };
+        // k-means++ init.
+        const centroids = [];
+        centroids.push(pixels[Math.floor(Math.random() * pixels.length)].slice());
+        while (centroids.length < k) {
+          const dists = pixels.map(p => {
+            let minD = Infinity;
+            for (const c of centroids) {
+              const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+              if (d < minD) minD = d;
+            }
+            return minD;
+          });
+          const total = dists.reduce((a, b) => a + b, 0);
+          let r = Math.random() * total;
+          for (let i = 0; i < dists.length; i++) {
+            r -= dists[i];
+            if (r <= 0) { centroids.push(pixels[i].slice()); break; }
+          }
+        }
+        // Iterate.
+        for (let it = 0; it < maxIter; it++) {
+          const sums = centroids.map(() => [0, 0, 0, 0]);
+          for (const p of pixels) {
+            let bestI = 0, bestD = Infinity;
+            for (let i = 0; i < centroids.length; i++) {
+              const c = centroids[i];
+              const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+              if (d < bestD) { bestD = d; bestI = i; }
+            }
+            const s = sums[bestI];
+            s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++;
+          }
+          let moved = false;
+          for (let i = 0; i < centroids.length; i++) {
+            if (sums[i][3] > 0) {
+              const newC = [sums[i][0]/sums[i][3], sums[i][1]/sums[i][3], sums[i][2]/sums[i][3]];
+              if (Math.abs(newC[0]-centroids[i][0]) + Math.abs(newC[1]-centroids[i][1]) + Math.abs(newC[2]-centroids[i][2]) > 1) {
+                centroids[i] = newC;
+                moved = true;
+              }
+            }
+          }
+          if (!moved) break;
+        }
+        // Final cluster sizes.
+        const sizes = new Array(centroids.length).fill(0);
+        for (const p of pixels) {
+          let bestI = 0, bestD = Infinity;
+          for (let i = 0; i < centroids.length; i++) {
+            const c = centroids[i];
+            const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+            if (d < bestD) { bestD = d; bestI = i; }
+          }
+          sizes[bestI]++;
+        }
+        return { centroids, sizes };
+      },
+
+      _sampleImage(img, sampleSize) {
+        sampleSize = sampleSize || 64;
+        const c = document.createElement('canvas');
+        c.width = sampleSize; c.height = sampleSize;
+        const cx = c.getContext('2d');
+        cx.drawImage(img, 0, 0, sampleSize, sampleSize);
+        const data = cx.getImageData(0, 0, sampleSize, sampleSize).data;
+        const pixels = [];
+        for (let i = 0; i < data.length; i += 4) {
+          pixels.push([data[i], data[i+1], data[i+2]]);
+        }
+        return { pixels, raw: data, width: sampleSize, height: sampleSize };
+      },
+
+      _features(pixels) {
+        let sumL = 0, sumS = 0;
+        let minL = 255, maxL = 0;
+        let warm = 0, cool = 0;
+        for (const [r, g, b] of pixels) {
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const L = (max + min) / 2;
+          const S = max === min ? 0 : (max - min) / (255 - Math.abs(2*L - 255));
+          sumL += L;
+          sumS += S;
+          if (L < minL) minL = L;
+          if (L > maxL) maxL = L;
+          warm += (r - b);
+          cool += (b - r);
+        }
+        const n = pixels.length;
+        const meanBright = sumL / n / 255;
+        const meanSat = sumS / n;
+        const contrast = (maxL - minL) / (maxL + minL + 1e-6);
+        const tempSum = warm - cool;
+        const tempNorm = Math.max(-1, Math.min(1, tempSum / (n * 255)));
+        return { meanBright, meanSat, contrast, temperature: tempNorm };
+      },
+
+      _suggest(f) {
+        const warmth = f.temperature > 0;
+        const highContrast = f.contrast > 0.5;
+        const highSat = f.meanSat > 0.4;
+        const bright = f.meanBright > 0.5;
+        let depth = warmth ? 1.0 : 0.0;
+        let gate = highContrast ? 2.5 : 1.4;
+        let decay = highSat ? 0.65 : 0.85;
+        let sens = bright ? 1.5 : 1.0;
+        return { depth, gate, decay, sens, warmth: warmth ? 'warm' : 'cool',
+                 contrast: highContrast ? 'high' : 'low',
+                 saturation: highSat ? 'high' : 'low' };
+      },
+
+      async analyze(img) {
+        const { pixels } = this._sampleImage(img, 64);
+        const palette = this._kmeans(pixels, 5, 10);
+        const features = this._features(pixels);
+        const suggestion = this._suggest(features);
+        this.lastAnalysis = { palette, features, suggestion, ts: Date.now() };
+        return this.lastAnalysis;
+      },
+
+      applySuggestion() {
+        if (!this.lastAnalysis) return false;
+        const s = this.lastAnalysis.suggestion;
+        const sliders = [
+          ['depth', s.depth],
+          ['gate', s.gate],
+          ['decay', s.decay],
+          ['sens', s.sens],
+        ];
+        for (const [id, val] of sliders) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          el.value = String(val);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return true;
+      },
+
+      saveOverlayPos(x, y) {
+        try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ x, y, visible: this.overlayVisible })); } catch (_) {}
+      },
+
+      loadOverlayPos() {
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return { x: 16, y: 16, visible: false };
+          return JSON.parse(raw);
+        } catch (_) { return { x: 16, y: 16, visible: false }; }
+      },
+
+      setOverlayVisible(v) {
+        this.overlayVisible = !!v;
+        const img = $('mood-overlay');
+        if (img) img.style.display = v ? 'block' : 'none';
+        this.saveOverlayPos(this.overlayPos ? this.overlayPos.x : 16, this.overlayPos ? this.overlayPos.y : 16);
+      },
+
+      setOverlayImage(dataUrl) {
+        const img = $('mood-overlay');
+        if (img) img.src = dataUrl;
+      },
+
+      overlayPos: { x: 16, y: 16 },
+      overlayVisible: false,
+      lastAnalysis: null,
+    };
+
+    // Wire the mood-overlay drag handlers + restore persisted position.
+    // Lives in the main IIFE so we have access to $(); runs at boot
+    // after SWR_MOOD is defined and the overlay <img> is in the DOM.
+    (function () {
+      const overlay = $('mood-overlay');
+      if (!overlay) return;
+      let dragging = false, dx = 0, dy = 0;
+      overlay.addEventListener('mousedown', (e) => {
+        dragging = true;
+        dx = e.clientX - overlay.offsetLeft;
+        dy = e.clientY - overlay.offsetTop;
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const x = Math.max(0, Math.min(window.innerWidth - 160, e.clientX - dx));
+        const y = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dy));
+        overlay.style.left = x + 'px';
+        overlay.style.top = y + 'px';
+        overlay.style.right = 'auto';
+        if (window.SWR_MOOD) {
+          window.SWR_MOOD.overlayPos = { x, y };
+        }
+      });
+      document.addEventListener('mouseup', () => {
+        if (dragging && window.SWR_MOOD) {
+          window.SWR_MOOD.saveOverlayPos(window.SWR_MOOD.overlayPos.x, window.SWR_MOOD.overlayPos.y);
+          dragging = false;
+        }
+      });
+      const saved = window.SWR_MOOD ? window.SWR_MOOD.loadOverlayPos() : { x: 16, y: 16, visible: false };
+      overlay.style.left = saved.x + 'px';
+      overlay.style.top = saved.y + 'px';
+      overlay.style.right = 'auto';
+      overlay.style.display = saved.visible ? 'block' : 'none';
+      if (window.SWR_MOOD) {
+        window.SWR_MOOD.overlayPos = { x: saved.x, y: saved.y };
+        window.SWR_MOOD.overlayVisible = saved.visible;
+      }
+    })();
+
+    // ---- SWR_SCENES -------------------------------------------------------
+    // Scene-pad snapshot system (PRD-008 partial). Captures the current
+    // engine state (5 footer sliders + preset override + automix on/off)
+    // into localStorage under 'swr.scenes.v1'. A pad in the modal is
+    // clicked to recall the snapshot, or held 1s to save the current
+    // state to that pad. Capped at 4 scenes (2×2 grid). All local — no
+    // backend. (Plan: .hermes/plans/2026-09-09_029000-scene-pads.md.)
+    window.SWR_SCENES = {
+      STORAGE_KEY: 'swr.scenes.v1',
+      MAX_SCENES: 4,
+      _captureTimer: null,
+
+      _load() {
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return Array.from({ length: this.MAX_SCENES }, (_, i) => ({
+            id: i, label: 'Scene ' + (i + 1), snapshot: null, createdAt: null,
+          }));
+          const arr = JSON.parse(raw);
+          // Pad to MAX_SCENES.
+          while (arr.length < this.MAX_SCENES) {
+            arr.push({ id: arr.length, label: 'Scene ' + (arr.length + 1), snapshot: null, createdAt: null });
+          }
+          return arr;
+        } catch (_) {
+          return Array.from({ length: this.MAX_SCENES }, (_, i) => ({
+            id: i, label: 'Scene ' + (i + 1), snapshot: null, createdAt: null,
+          }));
+        }
+      },
+
+      _save(arr) {
+        try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(arr)); } catch (_) {}
+      },
+
+      // Read current engine state.
+      _currentSnapshot() {
+        const get = (id) => {
+          const el = document.getElementById(id);
+          return el ? parseFloat(el.value) : null;
+        };
+        // Preset id: the live cycle cursor (set by gradient neighbours +
+        // keyboard Tab + boot restore). Falls back to 'neon' (the static
+        // page preset on music_video.html) if nothing has been picked.
+        const presetOverride = (typeof window.__swrCurrentPreset === 'string' && window.__swrCurrentPreset)
+          ? window.__swrCurrentPreset
+          : 'neon';
+        return {
+          depth: get('depth'),
+          gate: get('gate'),
+          decay: get('decay'),
+          sens: get('sens'),
+          neighbourCount: get('neighbour-count'),
+          presetOverride,
+          automixOn: !!(document.getElementById('automix-toggle') && /ON/i.test(document.getElementById('automix-toggle').textContent || '')),
+        };
+      },
+
+      // Apply a snapshot to the live engine.
+      _applySnapshot(s) {
+        const set = (id, val) => {
+          const el = document.getElementById(id);
+          if (!el || val == null) return;
+          el.value = String(val);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        set('depth', s.depth);
+        set('gate', s.gate);
+        set('decay', s.decay);
+        set('sens', s.sens);
+        set('neighbour-count', s.neighbourCount);
+        if (s.presetOverride && window.VersionsPresets && typeof window.VersionsPresets.setPresetOverride === 'function') {
+          if (window.VersionsPresets.setPresetOverride(s.presetOverride) !== false) {
+            window.__swrCurrentPreset = s.presetOverride;
+            if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.save(s.presetOverride);
+          }
+        }
+        // Automix on/off. `automix` is the local IIFE-scoped automixer
+        // toggle defined just below — same scope, so direct call.
+        const toggleBtn = document.getElementById('automix-toggle');
+        const currentlyOn = !!(toggleBtn && /ON/i.test(toggleBtn.textContent || ''));
+        if (typeof automix !== 'undefined' && automix && typeof automix.toggle === 'function') {
+          if (s.automixOn && !currentlyOn) automix.toggle();
+          else if (!s.automixOn && currentlyOn) automix.toggle();
+        }
+      },
+
+      list() { return this._load(); },
+
+      save(index, label) {
+        const arr = this._load();
+        if (index < 0 || index >= this.MAX_SCENES) return false;
+        arr[index] = {
+          id: index,
+          label: label || arr[index].label || 'Scene ' + (index + 1),
+          snapshot: this._currentSnapshot(),
+          createdAt: Date.now(),
+        };
+        this._save(arr);
+        return true;
+      },
+
+      recall(index) {
+        const arr = this._load();
+        if (index < 0 || index >= this.MAX_SCENES) return false;
+        const s = arr[index];
+        if (!s || !s.snapshot) return false;
+        this._applySnapshot(s.snapshot);
+        return true;
+      },
+
+      // Long-press tracking. The pad's mousedown calls startCapture(index)
+      // which sets a 1s timer; on timeout, save(index, 'Scene N'). On
+      // mouseup, if the timer is still pending, cancel it and recall.
+      startCapture(index) {
+        if (this._captureTimer) clearTimeout(this._captureTimer);
+        this._captureTimer = setTimeout(() => {
+          this._captureTimer = null;
+          this.save(index, 'Scene ' + (index + 1));
+          if (typeof setStatus === 'function') setStatus('saved scene ' + (index + 1), 'ok');
+          // Refresh the UI.
+          if (typeof refreshScenesPanel === 'function') refreshScenesPanel();
+        }, 1000);
+      },
+
+      cancelCapture() {
+        if (this._captureTimer) {
+          clearTimeout(this._captureTimer);
+          this._captureTimer = null;
+          return true;
+        }
+        return false;
+      },
+    };
+
+    // ---- Self-evolving automixer toggle ----------------------------------
+    // Listens for clicks on the footer toggle + the `A` keyboard shortcut
+    // (when the page is focused and no input has focus). When ON, every
+    // 2000ms reads the live audio features, synthesizes a blended fx_state
+    // via SWR_AUTOMIX.mix(), and writes the result to window.SWR._fxOverride.
+    // The GLSL render loop (Task 4) reads _fxOverride each frame and blends
+    // it on top of the static `neon` page preset.
+    const automix = {
+      iv: null,
+      enabled: false,
+      toggle() {
+        if (this.enabled) this.stop(); else this.start();
+      },
+      start() {
+        if (this.enabled || !window.SWR_AUTOMIX) return;
+        this.enabled = true;
+        const lab = document.getElementById('automix-state');
+        if (lab) { lab.textContent = 'ON'; lab.style.color = 'var(--g)'; }
+        try { localStorage.setItem('swr.automix.enabled', '1'); } catch (_) {}
+        this.tick();
+        this.iv = setInterval(() => this.tick(), 2000);
+      },
+      stop() {
+        if (!this.enabled) return;
+        this.enabled = false;
+        const lab = document.getElementById('automix-state');
+        if (lab) { lab.textContent = 'OFF'; lab.style.color = 'var(--m)'; }
+        try { localStorage.setItem('swr.automix.enabled', '0'); } catch (_) {}
+        if (this.iv) { clearInterval(this.iv); this.iv = null; }
+        // Freeze the last blended state — do NOT clear _fxOverride.
+        // Also drop the gradient-panel anchor highlight so the user
+        // sees that automix is no longer choosing.
+        if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setAutomixAnchor) {
+          window.SWR.Gradient.setAutomixAnchor(null);
+        }
+      },
+      tick() {
+        const SWR = window.SWR; if (!SWR || !SWR.Audio) return;
+        // The audio engine exposes features at SWR.Audio.feat (bass, mid,
+        // treble, beat). Plan-scaffolded reader used SWR.Audio.bands;
+        // adapt to the actual schema so the tick survives without an
+        // audio track loaded (mid/treble default to 0 → anchors[n] chosen
+        // near {warmth:0.5,intensity:0.5}).
+        const feat = SWR.Audio.feat || {};
+        const bands = { bass: feat.bass || 0, mid: feat.mid || 0, treb: feat.treble || 0, beat: typeof feat.beat === 'number' ? feat.beat : 0 };
+        const n = (window.HologramState && window.HologramState.neighbours) || 4;
+        const mixed = window.SWR_AUTOMIX.mix(bands, n);
+        if (mixed && mixed.preset) {
+          SWR._fxOverride = mixed.preset;
+          // Reflect current anchor + coords in the gradient panel header for
+          // visibility — user sees the toggle is doing something.
+          const pill = document.getElementById('synth-pill');
+          if (pill && mixed.anchors[0]) pill.textContent = 'auto · ' + mixed.anchors[0].id;
+          // Phase B+: highlight the dominant anchor on the gradient canvas so
+          // the user can see which preset the automix is currently choosing.
+          if (SWR.Gradient && mixed.anchors[0]) {
+            SWR.Gradient.setAutomixAnchor(mixed.anchors[0].id);
+          }
+          // Persist the latest blend so the user can restore their last
+          // session after a reload (debounced inside last-mix-store).
+          if (window.SWR_LAST_MIX) {
+            window.SWR_LAST_MIX.save({
+              ts: Date.now(),
+              coords: mixed.coords,
+              anchors: mixed.anchors,
+              preset: mixed.preset,
+            });
+          }
+        }
+      },
+    };
+    const _toggleBtn = document.getElementById('automix-toggle');
+    if (_toggleBtn) _toggleBtn.addEventListener('click', () => automix.toggle());
+    // Reset-layers button — same code path as the Backspace shortcut so
+    // the status-bar feedback fires for mouse users too.
+    const _resetBtn = document.getElementById('reset-layers');
+    if (_resetBtn) _resetBtn.addEventListener('click', () => {
+      if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') {
+        const n = window.SWR.Layers.reset({ fadeMs: 600 });
+        setStatus('layers cleared · ' + n, 'ok');
+      }
+    });
+    // Solo button — pins the most recently added layer as the only entry
+    // in Layers.list, or restores the prior list if already solo'd. The
+    // matching Shift+S shortcut below calls the same logic.
+    const _soloBtn = document.getElementById('solo-btn');
+    const _soloClick = () => {
+      const L = window.SWR && window.SWR.Layers;
+      if (!L) return;
+      if (L._soloId) {
+        L.soloOff();
+        setStatus('solo off', 'ok');
+      } else {
+        const last = L.list[L.list.length - 1];
+        if (!last) { setStatus('add a layer first', 'err'); return; }
+        L.solo(last.id);
+        setStatus('solo · ' + last.id, 'ok');
+      }
+    };
+    if (_soloBtn) _soloBtn.addEventListener('click', _soloClick);
+    // Fit button — toggles SWR_FIT (CSS object-fit: cover on the canvas).
+    // The matching F (no-shift) keyboard shortcut lives further down in
+    // its own keydown listener so the guards stay grouped with their
+    // sibling shortcuts.
+    const _fitBtn = document.getElementById('fit-btn');
+    if (_fitBtn) _fitBtn.addEventListener('click', () => {
+      if (window.SWR_FIT) {
+        const on = window.SWR_FIT.toggle();
+        setStatus(on ? 'fit on' : 'fit off', 'ok');
+      }
+    });
+
+    // ---- Hero frame UI wiring --------------------------------------------
+    // The Hero button toggles the sampler manually. The panel helpers
+    // (showHeroPanel / refreshHeroPanel / refreshHeroBtn) live here so
+    // they're in scope when SWR_HERO_FRAMES.start()'s setInterval tick
+    // calls refreshHeroPanel(). Auto-start/stop is hooked into A.play
+    // and A.pause so the user doesn't have to click anything.
+    function refreshHeroBtn() {
+      const btn = $('hero-btn');
+      if (!btn) return;
+      const on = !!(window.SWR_HERO_FRAMES && window.SWR_HERO_FRAMES.samplerHandle);
+      btn.classList.toggle('on', on);
+      btn.textContent = on ? 'Hero ●' : 'Hero';
+    }
+    function refreshHeroPanel() {
+      const el = $('hero-thumbs');
+      const countEl = $('hero-count');
+      if (!el || !window.SWR_HERO_FRAMES) return;
+      if (countEl) countEl.textContent = window.SWR_HERO_FRAMES.buffer.length;
+      const best = window.SWR_HERO_FRAMES.best(3);
+      el.innerHTML = '';
+      for (const e of best) {
+        const img = document.createElement('img');
+        img.src = e.dataURL;
+        img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;border:1px solid var(--line);background:#000;';
+        const score = (e.energy * 0.4 + e.contrast * 0.4 + e.comp * 0.2).toFixed(2);
+        img.title = `score=${score} | E=${e.energy.toFixed(2)} C=${e.contrast.toFixed(2)} cmp=${e.comp.toFixed(2)}`;
+        img.addEventListener('click', () => {
+          if (window.SWR_HERO_FRAMES.downloadFrame(e)) {
+            setStatus('downloaded hero frame', 'ok');
+            // Auto-hide the hero panel 1.2s after a successful
+            // download so the user sees the status feedback but
+            // the panel doesn't linger. The Hero footer button
+            // re-shows it on next toggle.
+            setTimeout(() => {
+              const p = $('hero-panel');
+              if (p && p.style.display !== 'none') p.style.display = 'none';
+            }, 1200);
+          }
+        });
+        el.appendChild(img);
+      }
+    }
+    function showHeroPanel() {
+      const p = $('hero-panel');
+      if (!p) return;
+      p.style.display = 'block';
+      refreshHeroPanel();
+    }
+    function hideHeroPanel() {
+      const p = $('hero-panel');
+      if (p) p.style.display = 'none';
+    }
+    const _heroBtn = document.getElementById('hero-btn');
+    if (_heroBtn) _heroBtn.addEventListener('click', () => {
+      if (!window.SWR_HERO_FRAMES) return;
+      if (window.SWR_HERO_FRAMES.samplerHandle) {
+        window.SWR_HERO_FRAMES.stop();
+        showHeroPanel();
+        setStatus('hero frames: ' + window.SWR_HERO_FRAMES.buffer.length + ' captured', 'ok');
+      } else {
+        window.SWR_HERO_FRAMES.start();
+        showHeroPanel();
+        setStatus('capturing hero frames…', 'ok');
+      }
+      refreshHeroBtn();
+    });
+    const _heroClear = document.getElementById('hero-clear');
+    if (_heroClear) _heroClear.addEventListener('click', () => {
+      if (window.SWR_HERO_FRAMES) window.SWR_HERO_FRAMES.buffer.length = 0;
+      refreshHeroPanel();
+      setStatus('hero frames cleared', 'ok');
+    });
+    const _heroGrab = document.getElementById('hero-grab');
+    if (_heroGrab) _heroGrab.addEventListener('click', () => {
+      if (window.SWR_HERO_FRAMES && window.SWR_HERO_FRAMES.captureNow()) setStatus('frame grabbed', 'ok');
+    });
+    const _heroSuggest = document.getElementById('hero-suggest');
+    if (_heroSuggest) _heroSuggest.addEventListener('click', () => {
+      showHeroPanel();
+      refreshHeroPanel();
+      setStatus('showing best 3 frames', 'ok');
+    });
+    const _editDataBtn = document.getElementById('edit-data-btn');
+    if (_editDataBtn) _editDataBtn.addEventListener('click', async () => {
+      if (!window.SWR_EDIT_DATA) return;
+      setStatus('analyzing audio…', 'ok');
+      const ok = await window.SWR_EDIT_DATA.downloadEditData();
+      if (!ok) setStatus('analysis failed', 'err');
+    });
+    // Footer "Review" → SWR_REVIEW.exportReview(). The recording runs for
+    // the remainder of the loaded song at 1 Mbps with the watermark
+    // burned in; the review HTML is generated and downloaded alongside
+    // the MP4. SWR_REVIEW guards against missing recorder / no song, so
+    // here we just hand off and surface the result in the status pill.
+    const _reviewBtn = document.getElementById('review-btn');
+    if (_reviewBtn) _reviewBtn.addEventListener('click', async () => {
+      if (!window.SWR_REVIEW || typeof window.SWR_REVIEW.exportReview !== 'function') {
+        setStatus('review module not loaded', 'err');
+        return;
+      }
+      setStatus('starting preview export…', 'ok');
+      const ok = await window.SWR_REVIEW.exportReview();
+      if (!ok) setStatus('review export failed', 'err');
+    });
+
+    // Footer "Hooks" → SWR_HOOK_DETECTOR.detect(). Decodes the loaded
+    // song, scans the energy envelope for the first major spike after
+    // the 8-second intro window, snaps it to the nearest onset, then
+    // reveals the panel with the three preset buttons (Teaser 3s /
+    // Hook 5s / Clip 15s). Each preset exports a watermarked-free clip
+    // via SWR_RECORDER at 2 Mbps.
+    function showHookPanel() {
+      const panel = $('hook-panel');
+      if (!panel) return;
+      panel.style.display = 'block';
+      if (window.SWR_HOOK_DETECTOR && window.SWR_HOOK_DETECTOR.lastResult) {
+        const r = window.SWR_HOOK_DETECTOR.lastResult;
+        const t = $('hook-time'), e = $('hook-energy'), c = $('hook-conf');
+        if (t) t.textContent = (typeof r.time === 'number' ? r.time.toFixed(2) : '—') + 's';
+        if (e) e.textContent = (typeof r.energy === 'number' ? r.energy.toFixed(2) : '—') + '×';
+        if (c) c.textContent = (typeof r.confidence === 'number' ? Math.round(r.confidence * 100) : '—') + '%';
+      }
+    }
+    document.querySelectorAll('.hook-preset').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!window.SWR_HOOK_DETECTOR) { setStatus('hook detector not loaded', 'err'); return; }
+        setStatus('starting ' + btn.dataset.preset + ' export…', 'ok');
+        const r = await window.SWR_HOOK_DETECTOR.exportHook(btn.dataset.preset);
+        if (!r || !r.ok) setStatus((r && r.reason) || 'export failed', 'err');
+      });
+    });
+    const _hookClear = document.getElementById('hook-clear');
+    if (_hookClear) _hookClear.addEventListener('click', () => {
+      if (window.SWR_HOOK_DETECTOR) window.SWR_HOOK_DETECTOR.lastResult = null;
+      const panel = $('hook-panel');
+      if (panel) panel.style.display = 'none';
+    });
+    const _hookBtn = document.getElementById('hook-btn');
+    if (_hookBtn) _hookBtn.addEventListener('click', async () => {
+      if (!window.SWR_HOOK_DETECTOR) { setStatus('hook detector not loaded', 'err'); return; }
+      setStatus('analyzing drop…', 'ok');
+      const r = await window.SWR_HOOK_DETECTOR.detect();
+      if (r && r.ok) {
+        showHookPanel();
+        setStatus('drop @ ' + r.result.time + 's · conf ' + Math.round(r.result.confidence * 100) + '%', 'ok');
+      } else {
+        setStatus((r && r.reason) || 'detection failed', 'err');
+      }
+    });
+    // Footer "Stats" → SWR_STATS modal. Pure local data; no backend.
+    // Renders a small overlay with totals + last 5 renders. Closes on
+    // CLOSE button, ESC, or Clear (which also wipes localStorage).
+    const _statsBtn = document.getElementById('stats-btn');
+    if (_statsBtn) _statsBtn.addEventListener('click', () => {
+      if (!window.SWR_STATS) return;
+      const s = window.SWR_STATS.summary();
+      const m = document.createElement('div');
+      m.className = 'mvm-modal-bg';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      const rows = s.recent.length === 0
+        ? '<div style="color:var(--text-mute);font-size:10px;padding:8px 0;">no renders yet</div>'
+        : '<table style="width:100%;border-collapse:collapse;font-size:10px;">'
+          + '<tr style="color:var(--muted);text-align:left;">'
+          + '<th style="padding:2px 4px;font-weight:400;">when</th>'
+          + '<th style="padding:2px 4px;font-weight:400;">dur</th>'
+          + '<th style="padding:2px 4px;font-weight:400;">ext</th>'
+          + '<th style="padding:2px 4px;font-weight:400;">size</th>'
+          + '</tr>'
+          + s.recent.map(r => '<tr style="border-top:1px solid var(--line);">'
+              + '<td style="padding:2px 4px;">' + new Date(r.ts).toLocaleString() + '</td>'
+              + '<td style="padding:2px 4px;">' + (r.durationMs / 1000).toFixed(1) + 's</td>'
+              + '<td style="padding:2px 4px;">' + (r.ext || 'mp4') + '</td>'
+              + '<td style="padding:2px 4px;">' + Math.round(r.size / 1024) + ' KB</td>'
+              + '</tr>').join('')
+          + '</table>';
+      m.innerHTML = [
+        '<div style="background:var(--panel);border:1px solid var(--line);padding:24px 28px;min-width:380px;max-width:520px;color:var(--ink);font:11px ui-monospace;">',
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">',
+        '<span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">LOCAL STATS</span>',
+        '<button class="tbtn" id="stats-close">CLOSE</button>',
+        '</div>',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:16px;">',
+        '<div><span style="color:var(--muted);">renders:</span> <b>' + s.totalRenders + '</b></div>',
+        '<div><span style="color:var(--muted);">last 30d:</span> <b>' + s.last30Count + '</b></div>',
+        '<div><span style="color:var(--muted);">minutes:</span> <b>' + s.totalMinutes + '</b></div>',
+        '<div><span style="color:var(--muted);">last 30d:</span> <b>' + s.last30Minutes + '</b></div>',
+        '<div><span style="color:var(--muted);">storage:</span> <b>' + s.totalSizeMB + ' MB</b></div>',
+        '<div><span style="color:var(--muted);">last preset:</span> <b>' + (s.lastPreset || '\u2014') + '</b></div>',
+        '</div>',
+        '<div style="color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Recent renders</div>',
+        rows,
+        '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">',
+        '<button class="tbtn" id="stats-clear" style="color:var(--muted);">Clear stats</button>',
+        '</div>',
+        '</div>',
+      ].join('');
+      document.body.appendChild(m);
+      m.querySelector('#stats-close').addEventListener('click', () => {
+        m.remove();
+        document.removeEventListener('keydown', onKey);
+      });
+      m.querySelector('#stats-clear').addEventListener('click', () => {
+        window.SWR_STATS.reset();
+        m.remove();
+        document.removeEventListener('keydown', onKey);
+      });
+      const onKey = (e) => {
+        if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); }
+      };
+      document.addEventListener('keydown', onKey);
+    });
+    // Footer "Mood" → SWR_MOOD modal. Lets the user upload a reference
+    // image (or paste a #rrggbb hex), see the extracted palette +
+    // heuristic engine mapping, and one-click apply the suggestion to
+    // the 4 footer sliders. Closes on CLOSE, ESC, or Apply. Persists
+    // overlay visibility + position via localStorage.
+    function showMoodResult(modal, result) {
+      if (!result) return;
+      const pal = modal.querySelector('#mood-palette');
+      pal.innerHTML = '';
+      for (const [r, g, b] of result.palette.centroids) {
+        const hex = '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+        const sw = document.createElement('div');
+        sw.style.cssText = 'width:60px;height:40px;background:' + hex + ';border:1px solid var(--line);border-radius:2px;display:flex;align-items:flex-end;justify-content:center;font-size:8px;color:#fff;text-shadow:0 0 2px #000;';
+        sw.title = hex;
+        sw.textContent = hex;
+        pal.appendChild(sw);
+      }
+      const s = result.suggestion;
+      const sg = modal.querySelector('#mood-suggestion');
+      sg.innerHTML = '<span style="color:var(--muted);">temperature:</span> ' + s.warmth
+        + ' · <span style="color:var(--muted);">contrast:</span> ' + s.contrast
+        + ' · <span style="color:var(--muted);">saturation:</span> ' + s.saturation
+        + '<br><span style="color:var(--muted);">→</span> depth=' + s.depth.toFixed(2)
+        + ' gate=' + s.gate.toFixed(2)
+        + ' decay=' + s.decay.toFixed(2)
+        + ' sens=' + s.sens.toFixed(2);
+      modal.querySelector('#mood-result').style.display = 'block';
+    }
+    const _moodBtn = document.getElementById('mood-btn');
+    if (_moodBtn) _moodBtn.addEventListener('click', () => {
+      if (!window.SWR_MOOD) return;
+      const m = document.createElement('div');
+      m.className = 'mvm-modal-bg';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      const overlayOn = window.SWR_MOOD.overlayVisible;
+      m.innerHTML = '<div style="background:var(--panel);border:1px solid var(--line);padding:24px 28px;min-width:480px;max-width:560px;color:var(--ink);font:11px ui-monospace;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
+        + '<span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">MOOD BOARD</span>'
+        + '<button class="tbtn" id="mood-close">CLOSE</button>'
+        + '</div>'
+        + '<div style="margin-bottom:14px;">'
+        + '<input type="file" id="mood-file" accept="image/png,image/jpeg,image/webp" style="font-size:10px;width:100%;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:9px;color:var(--muted);">'
+        + '<span>or</span>'
+        + '<input type="text" id="mood-hex" placeholder="#ff00aa" style="width:90px;background:var(--bg-2);border:1px solid var(--line);color:var(--ink);padding:2px 4px;font-family:inherit;font-size:10px;">'
+        + '<button class="tbtn" id="mood-hex-btn">use hex</button>'
+        + '</div>'
+        + '</div>'
+        + '<div id="mood-result" style="display:none;">'
+        + '<div style="color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Palette</div>'
+        + '<div id="mood-palette" style="display:flex;gap:4px;margin-bottom:14px;"></div>'
+        + '<div style="color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Suggestion</div>'
+        + '<div id="mood-suggestion" style="font-size:10px;line-height:1.6;margin-bottom:14px;"></div>'
+        + '<div style="display:flex;gap:6px;justify-content:space-between;">'
+        + '<button class="tbtn" id="mood-apply">Apply suggestion</button>'
+        + '<label style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:4px;">'
+        + '<input type="checkbox" id="mood-overlay-toggle"' + (overlayOn ? ' checked' : '') + '>'
+        + 'reference overlay</label>'
+        + '<button class="tbtn" id="mood-clear" style="color:var(--muted);">Clear</button>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+      document.body.appendChild(m);
+      m.querySelector('#mood-close').addEventListener('click', () => m.remove());
+      m.querySelector('#mood-file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = async () => {
+          try {
+            const result = await window.SWR_MOOD.analyze(img);
+            showMoodResult(m, result);
+          } catch (err) {
+            setStatus('analyze failed: ' + err.message, 'err');
+          }
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+        window.SWR_MOOD.setOverlayImage(url);
+      });
+      m.querySelector('#mood-hex-btn').addEventListener('click', () => {
+        const hex = m.querySelector('#mood-hex').value.trim();
+        if (!/^#[0-9a-f]{6}$/i.test(hex)) {
+          setStatus('hex must be #rrggbb', 'err');
+          return;
+        }
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const cx = c.getContext('2d');
+        cx.fillStyle = hex; cx.fillRect(0, 0, 64, 64);
+        cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, 32, 64);
+        cx.fillStyle = '#000000'; cx.fillRect(32, 0, 32, 64);
+        const dataUrl = c.toDataURL('image/png');
+        window.SWR_MOOD.setOverlayImage(dataUrl);
+        const img = new Image();
+        img.onload = async () => {
+          const result = await window.SWR_MOOD.analyze(img);
+          showMoodResult(m, result);
+        };
+        img.src = dataUrl;
+      });
+      m.querySelector('#mood-apply').addEventListener('click', () => {
+        if (window.SWR_MOOD.applySuggestion()) {
+          setStatus('applied mood suggestion to sliders', 'ok');
+          m.remove();
+        }
+      });
+      m.querySelector('#mood-overlay-toggle').addEventListener('change', (e) => {
+        window.SWR_MOOD.setOverlayVisible(e.target.checked);
+      });
+      m.querySelector('#mood-clear').addEventListener('click', () => {
+        window.SWR_MOOD.lastAnalysis = null;
+        window.SWR_MOOD.setOverlayImage('');
+        window.SWR_MOOD.setOverlayVisible(false);
+        m.querySelector('#mood-result').style.display = 'none';
+        m.querySelector('#mood-file').value = '';
+      });
+      const onKey = (e) => { if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); } };
+      document.addEventListener('keydown', onKey);
+    });
+    // Footer "Scenes" → SWR_SCENES modal. 2×2 grid of pads: click to
+    // recall a snapshot, hold 1s to save the current engine state to
+    // that pad. ESC closes. (Plan: .hermes/plans/2026-09-09_029000-scene-pads.md.)
+    function refreshScenesPanel(modal) {
+      const m = modal || document.querySelector('.mvm-modal-bg.scenes-modal');
+      if (!m || !window.SWR_SCENES) return;
+      const scenes = window.SWR_SCENES.list();
+      let html = '<div style="background:var(--panel);border:1px solid var(--line);padding:24px 28px;min-width:480px;color:var(--ink);font:11px ui-monospace;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
+        + '<span style="color:var(--accent);font-weight:700;letter-spacing:0.14em;">SCENE PADS</span>'
+        + '<button class="tbtn" id="scenes-close">CLOSE</button>'
+        + '</div>'
+        + '<div style="color:var(--muted);font-size:9px;margin-bottom:12px;letter-spacing:0.06em;">click=recall · hold 1s=save</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">';
+      scenes.forEach((s, i) => {
+        const has = !!s.snapshot;
+        const label = s.label + (has ? '' : ' (empty)');
+        html += '<button class="scene-pad" data-idx="' + i + '" style="padding:18px;background:' + (has ? 'var(--panel-2)' : 'transparent') + ';border:1px solid var(--line);color:var(--ink);cursor:pointer;font:11px ui-monospace;text-align:left;">'
+          + '<div style="color:' + (has ? 'var(--m)' : 'var(--muted)') + ';font-size:9px;letter-spacing:0.1em;">SCENE ' + (i + 1) + '</div>'
+          + '<div style="margin-top:4px;">' + label + '</div>'
+          + (has ? '<div style="margin-top:6px;color:var(--muted);font-size:9px;">d=' + s.snapshot.depth.toFixed(2) + ' g=' + s.snapshot.gate.toFixed(2) + ' s=' + s.snapshot.sens.toFixed(2) + '</div>' : '')
+          + '</button>';
+      });
+      html += '</div>'
+        + '<div style="margin-top:14px;color:var(--muted);font-size:9px;letter-spacing:0.06em;text-align:center;">'
+        + 'Hold any pad 1 second to save current engine state.'
+        + '</div>'
+        + '</div>';
+      m.innerHTML = html;
+      // Wire close.
+      const closeBtn = m.querySelector('#scenes-close');
+      if (closeBtn) closeBtn.addEventListener('click', () => m.remove());
+      // Wire pads.
+      m.querySelectorAll('.scene-pad').forEach(pad => {
+        const idx = parseInt(pad.getAttribute('data-idx'), 10);
+        pad.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          if (window.SWR_SCENES) window.SWR_SCENES.startCapture(idx);
+          pad.style.background = 'var(--m)';
+          pad.style.color = '#fff';
+        });
+        pad.addEventListener('mouseup', () => {
+          if (window.SWR_SCENES && window.SWR_SCENES.cancelCapture()) {
+            // Timer was still pending → click → recall.
+            if (window.SWR_SCENES.recall(idx)) {
+              setStatus('recalled scene ' + (idx + 1), 'ok');
+              m.remove();
+            } else {
+              setStatus('scene ' + (idx + 1) + ' is empty — hold to save', 'err');
+              refreshScenesPanel(m);
+            }
+          }
+          // restore style
+          pad.style.background = '';
+          pad.style.color = '';
+        });
+        pad.addEventListener('mouseleave', () => {
+          // Mouse left the pad \u2014 cancel any pending save.
+          if (window.SWR_SCENES) window.SWR_SCENES.cancelCapture();
+          pad.style.background = '';
+          pad.style.color = '';
+        });
+      });
+    }
+    const _scenesBtn = document.getElementById('scenes-btn');
+    if (_scenesBtn) _scenesBtn.addEventListener('click', () => {
+      if (!window.SWR_SCENES) return;
+      const m = document.createElement('div');
+      m.className = 'mvm-modal-bg scenes-modal';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      refreshScenesPanel(m);
+      document.body.appendChild(m);
+      const onKey = (e) => { if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onKey); } };
+      document.addEventListener('keydown', onKey);
+    });
+    // Auto-start/stop hooks on the existing audio play / pause methods.
+    // Wrapping instead of duplicating keeps the original A.play / A.pause
+    // bodies intact — every existing caller (the play button click,
+    // autoplay resume, etc.) still flows through the originals.
+    if (typeof A.play === 'function') {
+      const _origPlay = A.play.bind(A);
+      A.play = function() {
+        _origPlay();
+        if (window.SWR_HERO_FRAMES && !window.SWR_HERO_FRAMES.samplerHandle) window.SWR_HERO_FRAMES.start();
+        refreshHeroBtn();
+      };
+    }
+    if (typeof A.pause === 'function') {
+      const _origPause = A.pause.bind(A);
+      A.pause = function() {
+        _origPause();
+        if (window.SWR_HERO_FRAMES && window.SWR_HERO_FRAMES.samplerHandle) {
+          window.SWR_HERO_FRAMES.stop();
+          showHeroPanel();
+        }
+        refreshHeroBtn();
+      };
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'S' && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        var t = e.target; var tag = t && t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+        const L = window.SWR && window.SWR.Layers;
+        if (!L) return;
+        if (L._soloId) {
+          L.soloOff();
+          setStatus('solo off', 'ok');
+        } else {
+          const last = L.list[L.list.length - 1];
+          if (last) { L.solo(last.id); setStatus('solo · ' + last.id, 'ok'); }
+        }
+        e.preventDefault();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key && e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        var t = e.target; var tag = t && t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+        automix.toggle();
+        e.preventDefault();
+      }
+    });
+    // ---- Reset-layers keyboard shortcut ----------------------------------
+    // Backspace (not Shift+Backspace — that's standard browser nav)
+    // clears all layers. Skipped when focus is in an input/textarea/
+    // contentEditable element so typing in the depth / neighbours
+    // sliders (which use Backspace to delete a digit) doesn't trigger.
+    // Doesn't touch library assets, IDB song, or automix state.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Backspace') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;  // browser nav
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (window.SWR && window.SWR.Layers && typeof window.SWR.Layers.reset === 'function') {
+        const n = window.SWR.Layers.reset({ fadeMs: 600 });
+        // Tiny status-bar confirmation so the user knows the shortcut fired.
+        setStatus('layers cleared · ' + n, 'ok');
+        e.preventDefault();
+      }
+    });
+    // ---- F (no shift) fit-to-screen shortcut ----------------------------
+    // Plain `F` flips SWR_FIT (CSS object-fit: cover). `Shift+F` is
+    // already wired to browser fullscreen via engine-layout.client.js
+    // and is intentionally left alone here. Modifier + focus guards
+    // mirror the Reset / Solo handlers so typing in inputs and
+    // Cmd+F / Ctrl+F (browser find) never trigger.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'F') return;
+      if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (window.SWR_FIT) {
+        const on = window.SWR_FIT.toggle();
+        setStatus(on ? 'fit on' : 'fit off', 'ok');
+        e.preventDefault();
+      }
+    });
+    // ---- { } swap-asset shortcut ---------------------------------------
+    // `{` swaps the topmost layer's asset to the previous Lib.items
+    // entry; `}` advances to the next. Wraps modulo Lib.items.length.
+    // Focus + modifier guards mirror the Reset handler above so typing
+    // in inputs and Cmd+{ (used by some macOS apps) never trigger.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '{' && e.key !== '}') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (!window.SWR || !window.SWR.Layers || typeof window.SWR.Layers.swapAsset !== 'function') return;
+      const dir = e.key === '{' ? 'prev' : 'next';
+      const r = window.SWR.Layers.swapAsset(dir);
+      if (r && r.ok) {
+        setStatus((dir === 'prev' ? '← ' : '→ ') + (r.item.name || 'item'), 'ok');
+      } else if (r && r.reason === 'no layers') {
+        setStatus('add a layer first', 'err');
+      } else if (r && r.reason === 'no library items') {
+        setStatus('drop a file first', 'err');
+      }
+      e.preventDefault();
+    });
+    // ---- Preset cycle (Tab / Shift+Tab) -----------------------------------
+    // Plain Tab cycles forward through SHORTCUT_PRESETS; Shift+Tab cycles
+    // backward. Each press applies the preset and highlights its anchor.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      const cyc = window.SWR_PRESET_CYCLE;
+      const VP = window.VersionsPresets;
+      const G = window.SWR && window.SWR.Gradient;
+      if (!cyc || !VP || !VP.setPresetOverride) return;
+      const prev = window.__swrCurrentPreset || null;
+      const id = e.shiftKey ? cyc.prev(prev) : cyc.next(prev);
+      const ok = VP.setPresetOverride(id);
+      if (ok !== false) {
+        window.__swrCurrentPreset = id;
+        if (window.SWR_PRESET_PICK) window.SWR_PRESET_PICK.save(id);
+        if (G && G.setAutomixAnchor) G.setAutomixAnchor(id);
+        setStatus('preset · ' + id, 'ok');
+      }
+      e.preventDefault();
+    });
+    // Restore previous manual preset pick from localStorage and re-apply
+    // it. Done before the automix-state restore so the gradient anchor
+    // ring reflects the manual pick, not the (transient) automix highlight.
+    try {
+      const PICK = window.SWR_PRESET_PICK;
+      if (PICK) {
+        const id = PICK.load();
+        if (id) {
+          window.__swrCurrentPreset = id;
+          if (window.VersionsPresets && window.VersionsPresets.setPresetOverride) {
+            window.VersionsPresets.setPresetOverride(id);
+          }
+          // Apply the gradient anchor ring at boot so the user can see
+          // which preset they last picked.
+          // Defer one tick so the Gradient IIFE has time to set up
+          // setAutomixAnchor (it sits at the bottom of the page's main
+          // IIFE and may not be live yet if restore runs synchronously).
+          setTimeout(() => {
+            if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setAutomixAnchor) {
+              window.SWR.Gradient.setAutomixAnchor(id);
+            }
+          }, 0);
+        }
+      }
+    } catch (_) {}
+    // Restore previous toggle state
+    try {
+      if (localStorage.getItem('swr.automix.enabled') === '1') automix.start();
+    } catch (_) {}
+
   })();
   </script>
 <script src="../versions-presets.js"></script>
 <script src="./temp-slider.js"></script>
-<script src="../engine-genops.client.js"></script>  <script src="/lib/nav.client.js" defer></script>
+<script src="../engine-genops.client.js"></script>
+<!-- Brand Kit (PRD-007 partial) — module + boot. Mirrors engine.html:5438-5459. -->
+<script type="module" src="../brandkit.client.js"></script>
+<script>
+  // Apply brandkit on studio boot — public launch: no auth wall.
+  // Brandkit is opt-in: if a profile exists, apply it; otherwise render with default theme.
+  (function () {
+    function go() {
+      if (!window.SWR_Brandkit) { setTimeout(go, 30); return; }
+      try {
+        const profile = window.SWR_Brandkit.readProfile();
+        if (profile && profile.brandkit) {
+          window.SWR_Brandkit.applyBrandkit(profile.brandkit);
+          window.SWR_Brandkit.mountChip('hdr');
+        }
+      } catch (e) {
+        console.warn('[brandkit] boot failed:', e);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', go);
+    } else {
+      go();
+    }
+  })();
+</script>
+  <script src="../engine-transitions.client.js" defer></script>
+<script src="../client/hologram-presets.client.js"></script>
+<script src="../client/track-analyzer.client.js"></script>
+<script src="../client/hologram-renderer.client.js"></script>
+<script src="../client/hologram-keys.client.js"></script>
+<script>
+  // ---- Hologram engine wiring (Phase D) ---------------------------
+  // Runs after the 4 hologram modules load. Pulls the manifest via
+  // synchronous XHR, builds the hologram instance, wraps applyR,
+  // mounts the panel, installs the keys handler, and hooks the
+  // song-drop path so the audio analyzer populates HologramState.
+  //
+  // The original applyR closure lives inside the inline IIFE above.
+  // We can't reach it directly, so we read window.__ORIG_APPLY_R if
+  // exposed. If it's not exposed (older phase-A scaffold), the wrap
+  // install is a no-op and the page behaves identically to before.
+  (function () {
+    var State = window.SWR_HOLOGRAM_STATE;
+    if (!State) { console.warn('[hologram] no SWR_HOLOGRAM_STATE'); return; }
+    var __HOLO_PRESETS = [];
+    try {
+      var __req = new XMLHttpRequest();
+      __req.open('GET', '../presets/manifest.json', false);
+      __req.send(null);
+      if (__req.status === 200) {
+        var __m = JSON.parse(__req.responseText);
+        __HOLO_PRESETS = Array.isArray(__m.presets) ? __m.presets : [];
+      }
+    } catch (e) {
+      State._error = String(e && e.message || e);
+    }
+
+    if (!window.SWR_HOLOGRAM || !window.SWR_HOLOGRAM_INSTALL
+        || !window.SWR_HOLOGRAM_KEYS || !__HOLO_PRESETS.length) {
+      console.warn('[hologram] missing modules or empty manifest (size=' + __HOLO_PRESETS.length + ')');
+      return;
+    }
+
+    var __holo = window.SWR_HOLOGRAM.build(__HOLO_PRESETS);
+    window.SWR_HOLOGRAM_INSTALL.attach(__holo, __HOLO_PRESETS);
+
+    // Mount the panel on the existing DOM elements.
+    var __audioRef = { get current() { return State._audio; } };
+    var __hStateRef = { get current() { return State; } };
+    var __HOLO_PANEL = window.SWR_HOLOGRAM_INSTALL.mountPanel({
+      canvasEl: document.getElementById('gradient'),
+      neighboursListEl: document.getElementById('neighbours-list'),
+      synthPillEl: document.getElementById('synth-pill'),
+      hologramInstance: __holo,
+      audioRef: __audioRef,
+      hStateRef: __hStateRef,
+    });
+
+    // Wire the keys handler — capture phase so it doesn't conflict
+    // with the engine's SWR_KEYS help overlay.
+    window.SWR_HOLOGRAM_KEYS.install({
+      state: State,
+      neighboursFn: __holo.presetMap.neighbours.bind(__holo.presetMap),
+      presetMap: __holo.presetMap,
+      onChange: function () { if (__HOLO_PANEL) __HOLO_PANEL.redraw(); },
+    });
+
+    // ApplyR wrap. The IIFE exposes window.SWR.applyR as a getter/setter
+    // proxy for the closure-local applyR binding. We wrap the
+    // original and assign back; the SWR_RENDER.frame() loop reads
+    // applyR via closure on each tick, so the next RAF sees the
+    // wrapped version. Falls back silently if applyR isn't exposed
+    // (older page versions).
+    if (window.SWR && window.SWR_HOLOGRAM_INSTALL) {
+      var __origApplyR = window.SWR.applyR;
+      if (typeof __origApplyR === 'function') {
+        var __wrapped = window.SWR_HOLOGRAM_INSTALL.wrapApplyR(__origApplyR, __holo, {
+          get features()    { return State.features; },
+          get focus()       { return State.focus; },
+          get depth()       { return State.depth; },
+          get focusAmount() { return State.focusAmount; },
+        });
+        window.__SWR_APPLY_R_ORIG = __origApplyR;
+        window.SWR.applyR = __wrapped;
+        console.log('[hologram] applyR wrapped');
+      }
+    }
+
+    // Song-drop hook: the existing UI WIRING listens on song-input
+    // and calls A.load(). We add another listener that runs
+    // SWR_TRACK_ANALYZE on the same file and populates State.
+    var __origLoadSong = document.getElementById('song-input');
+    if (__origLoadSong && window.SWR_TRACK_ANALYZE) {
+      __origLoadSong.addEventListener('change', function (e) {
+        var f = (e.target.files || [])[0];
+        if (!f) return;
+        Promise.resolve(window.SWR_TRACK_ANALYZE(f)).then(function (audio) {
+          State._audio = audio;
+          State.features = window.SWR_AUDIO_TO_FEATURES
+            ? window.SWR_AUDIO_TO_FEATURES(audio)
+            : null;
+          if (__HOLO_PANEL) __HOLO_PANEL.redraw();
+        }).catch(function (err) {
+          State._error = String(err && err.message || err);
+        });
+      });
+    }
+
+    window.__SWR_HOLOGRAM = __holo;
+    State._ready = true;
+    console.log('[hologram] ready: ' + __HOLO_PRESETS.length + ' presets');
+  })();
+</script>
 </body>
 </html>

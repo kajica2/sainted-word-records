@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MUSIC VIDEOS · SWR gallery</title>
+  <meta name="description" content="Flip through pre-rendered music videos with a 3D transition" />
+  <meta name="theme-color" content="#0a0d12" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta property="og:title" content="Music videos · SWR gallery" />
+  <meta property="og:description" content="Flip through pre-rendered music videos with a 3D transition" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/versions/music-video-gallery.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Music videos · SWR gallery" />
+  <meta name="twitter:description" content="Flip through pre-rendered music videos with a 3D transition" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <link rel="stylesheet" href="/lib/design-base.css" />
+  <script src="/lib/nav.client.js" defer></script>
+  <style>
+    /* --- Stage --- */
+    .music-video-stage {
+      position: relative;
+      perspective: 1600px;
+      min-height: 60vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* --- Each video --- */
+    .music-video {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: rotateY(90deg);
+      transform-origin: center;
+      transition:
+        transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1),
+        opacity 0.6s ease,
+        visibility 0s linear 0.6s;
+      backface-visibility: hidden;
+      will-change: transform, opacity;
+    }
+
+    .music-video.is-active {
+      opacity: 1;
+      visibility: visible;
+      transform: rotateY(0deg);
+      transition-delay: 0s;
+      position: relative; /* so it holds the height */
+    }
+
+    /* Direction-aware flips */
+    .music-video.leaving-left {
+      transform: rotateY(-90deg);
+      opacity: 0;
+    }
+
+    .music-video.leaving-right {
+      transform: rotateY(90deg);
+      opacity: 0;
+    }
+
+    .music-video video {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    /* --- Nav bar --- */
+    .music-video-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding: 0 1rem;
+    }
+
+    .music-video-nav button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: #111;
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      font: inherit;
+      cursor: pointer;
+      transition: background 0.2s ease, opacity 0.2s ease;
+    }
+
+    .music-video-nav button:hover:not(:disabled) {
+      background: #333;
+    }
+
+    .music-video-nav button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .music-video-nav .counter {
+      font-variant-numeric: tabular-nums;
+      opacity: 0.7;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .music-video {
+        transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+        transform: none !important;
+      }
+      .music-video.is-active {
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <h1>Music videos</h1>
+    <p class="muted">Click <strong>Next</strong> / <strong>Previous</strong> or use the arrow keys to flip through the videos.</p>
+  </header>
+
+  <main class="container music-video-stage">
+
+    <section class="music-video is-active" data-title="Neon">
+      <h2>Neon</h2>
+      <video controls playsinline>
+        <source src="/videos/neon.mp4" type="video/mp4" />
+      </video>
+    </section>
+
+    <section class="music-video" data-title="Grid">
+      <h2>Grid</h2>
+      <video controls playsinline>
+        <source src="/videos/grid.mp4" type="video/mp4" />
+      </video>
+    </section>
+
+    <section class="music-video" data-title="Film">
+      <h2>Film</h2>
+      <video controls playsinline>
+        <source src="/videos/film.mp4" type="video/mp4" />
+      </video>
+    </section>
+
+  </main>
+
+  <nav class="container music-video-nav" aria-label="Music video navigation">
+    <button class="nav-prev" type="button">
+      <span class="arrow">←</span>
+      <span class="label">Previous</span>
+    </button>
+    <span class="counter"><span id="current-index">1</span> / <span id="total-count">3</span></span>
+    <button class="nav-next" type="button">
+      <span class="label">Next</span>
+      <span class="arrow">→</span>
+    </button>
+  </nav>
+
+  <script>
+  (function () {
+    const videos = Array.from(document.querySelectorAll('.music-video'));
+    const prevBtn = document.querySelector('.nav-prev');
+    const nextBtn = document.querySelector('.nav-next');
+    const indexEl = document.getElementById('current-index');
+    const totalEl = document.getElementById('total-count');
+
+    if (!videos.length || !prevBtn || !nextBtn) return;
+
+    let current = videos.findIndex(v => v.classList.contains('is-active'));
+    if (current === -1) current = 0;
+    videos.forEach((v, i) => v.classList.toggle('is-active', i === current));
+    if (totalEl) totalEl.textContent = videos.length;
+
+    function pauseAllExcept(active) {
+      videos.forEach(v => {
+        if (v === active) return;
+        v.querySelectorAll('video').forEach(vid => {
+          vid.pause();
+          vid.currentTime = 0;
+        });
+      });
+    }
+
+    function show(nextIndex, direction) {
+      if (nextIndex < 0 || nextIndex >= videos.length || nextIndex === current) return;
+
+      const oldEl = videos[current];
+      const newEl = videos[nextIndex];
+
+      // Prepare new one off-screen in the correct direction
+      newEl.classList.remove('leaving-left', 'leaving-right');
+      newEl.style.transform =
+        direction === 'next' ? 'rotateY(90deg)' : 'rotateY(-90deg)';
+
+      // Force reflow so the transition runs
+      void newEl.offsetWidth;
+
+      // Old one flips out
+      oldEl.classList.remove('is-active');
+      oldEl.classList.add(direction === 'next' ? 'leaving-left' : 'leaving-right');
+
+      // New one flips in
+      newEl.classList.add('is-active');
+      newEl.style.transform = '';
+
+      // Cleanup after transition
+      setTimeout(() => {
+        oldEl.classList.remove('leaving-left', 'leaving-right');
+      }, 650);
+
+      current = nextIndex;
+      if (indexEl) indexEl.textContent = current + 1;
+      pauseAllExcept(newEl);
+
+      // Update URL hash so back/forward works
+      history.replaceState(null, '', '#video-' + (current + 1));
+    }
+
+    prevBtn.addEventListener('click', () => show(current - 1, 'prev'));
+    nextBtn.addEventListener('click', () => show(current + 1, 'next'));
+
+    // Keyboard
+    document.addEventListener('keydown', e => {
+      if (e.target.matches('input, textarea, select')) return;
+      if (e.key === 'ArrowLeft') show(current - 1, 'prev');
+      if (e.key === 'ArrowRight') show(current + 1, 'next');
+    });
+
+    // Touch swipe
+    let touchStartX = null;
+    const stage = document.querySelector('.music-video-stage');
+    if (stage) {
+      stage.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+      }, { passive: true });
+      stage.addEventListener('touchend', e => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 50) {
+          if (dx < 0) show(current + 1, 'next');
+          else show(current - 1, 'prev');
+        }
+        touchStartX = null;
+      }, { passive: true });
+    }
+
+    // Deep link: /versions/music_video.html#video-2
+    const hashMatch = location.hash.match(/^#video-(\d+)$/);
+    if (hashMatch) {
+      const target = Math.min(Math.max(parseInt(hashMatch[1], 10) - 1, 0), videos.length - 1);
+      if (target !== current) show(target, target > current ? 'next' : 'prev');
+    }
+  })();
+  </script>
+</body>
+</html>

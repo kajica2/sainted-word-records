@@ -1,0 +1,113 @@
+# Skip redundant WebGL uploads and uniform writes in the 13-page preset post-process loop
+
+**Cycle**: 2026-09-04T08-49
+**Type**: speed
+**Priority**: P1
+**Estimated effort**: M
+
+## TL;DR
+
+`versions-presets.js` runs a second WebGL full-screen post-process loop for 13 version pages. Every RAF currently calls `gl.pixelStorei`, uploads the entire `#render` backing store with `gl.texImage2D`, writes 17 float/int/vector uniforms, and draws six vertices, even when the source canvas and all preset/audio inputs are unchanged. The live `fx-postprocess.js` path already has an inactive-FX short circuit, but the variant-specific `versions-presets.js` loop has no equivalent change gate; its recent history is limited to preset wiring and the Y-flip fix. Add explicit source-frame and uniform signatures so the pipeline uploads/draws only when the source frame or shader inputs changed, while preserving time-animated effects and the current top-left orientation. This should remove redundant texture uploads and GPU draws from idle/static variant sessions and reduce uniform traffic for static preset fields without changing visible output.
+
+## Why this cycle
+
+The scan covered the clean engine source paths after excluding the user's unrelated root PNG deletes, the untracked `references/` tree, and the `.improvements/` files. The latest commit is `7594d9d feat(library): add 20 transparent PNG preset graphics (p36–p45) in Bauhaus geometric style`; the immediately relevant recent commits are `d7bbed8 fix(versions-presets): flip Y on WebGL texture upload — real fix`, `5e135f1 fix(fx): flip Y on WebGL texture upload to align with 2D canvas`, and `5feb82d feat(sprint): smoother audio + one cool flourish per visualizer`. No current untracked or staged file touches `versions-presets.js`, so this is not competing with an in-progress edit in the proposed area.
+
+`versions-presets.js` is 992 lines. Its WebGL render loop is at `versions-presets.js:840-893`:
+
+- `:841-843` reads `performance.now()`, derives `t`, and sets the viewport every frame.
+- `:845-851` reads four audio features on every frame.
+- `:853-864` activates and binds the texture, calls `gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)`, and calls `gl.texImage2D(...)` on every frame.
+- `:870-888` unconditionally issues 17 dynamic/static uniform calls: 17 `uniform1f` calls at `:870-886`, one `uniform1i` at `:887`, and one `uniform3f` at `:888`.
+- `:890-891` draws the full-screen quad and schedules the next RAF.
+
+The pipeline is duplicated conceptually but not literally with `fx-postprocess.js`: that file already gates the whole path when all persona FX are inactive at `fx-postprocess.js:441-463`, but `versions-presets.js` has per-page effects that are not represented by `window.FX.state`. Therefore the fix must live in `versions-presets.js`, the actual loader used by the 13 affected variants, rather than patching only `fx-postprocess.js`.
+
+The loader split is real: 13 of the 22 `versions/*.html` pages contain `versions-presets.js` (`aurora`, `chrome`, `eclipse`, `film`, `fractal`, `glitch`, `grid`, `hallucination`, `neon`, `pulse`, `smoke`, `void`, `watercolor`); the other five FX pages (`baroque`, `kraft`, `mosaic`, `phosphor`, `tape`) dynamically load `fx-postprocess.js`, while the remaining pages have their own paths. The plan therefore does not touch those other pages.
+
+`versions-presets.js:728-732` captures the static `preset` and `tempOverride`; `:834-835` derives a fixed `pageIdx`; and `:846-851` sources `window.Audio.feat`. These facts provide the signatures needed for a safe gate. The first render still must upload and draw. Audio changes must invalidate the gate because the shader consumes `bass`, `mid`, `treble`, and `beat`. `t` must *not* be used as an unconditional invalidator: it only matters when the selected shader effect is time-dependent. The fragment shader's common path uses `u_time` in time-animated mutation/distortion/grain/page-effect branches, so static-source skipping must be conditional on whether time can affect this page's current output.
+
+No prior plan in `.improvements/` proposes this exact `versions-presets.js` upload/draw gate. Prior speed plans cover the separate live FX uniform path, render cache sizing, timing/LFO allocations, an offscreen-canvas pool, and variant `extraDraws` array allocations. This plan is the next unaddressed duplicate-GPU-work surface and is materially higher leverage than another small JavaScript allocation because a 1920×1080 RGBA `texImage2D` upload happens once per RAF per affected page.
+
+## Goal
+
+For every `versions/*.html` page that loads `versions-presets.js`, an unchanged `#render` source frame plus unchanged shader inputs must not issue another `texImage2D` upload or `drawArrays`, while any source, audio, preset, temperature override, resize, or time-dependent visual change still produces the same correctly oriented frame as before.
+
+## Plan
+
+### Step 1 — Establish explicit invalidation state for the variant WebGL pipeline
+
+- **Files**: `versions-presets.js:728-754` (preset/temperature state and `sizeFx()`) and `:837-840` (render-loop state).
+- **Action**: Add private render-state fields inside `init()` for:
+  - `sourceFrameToken` — a source-change token or equivalent that can be advanced by the producer when `#render` is redrawn.
+  - `lastSourceFrameToken` — the token used by the most recent successful upload.
+  - `lastAudioSignature` and `lastUniformSignature` — primitive signatures for the audio and non-time shader inputs.
+  - `lastWidth` / `lastHeight` (or a single size signature) — the output/source dimensions used by the last successful draw.
+  - `lastDrawTime` / `lastTimeSignature` only if needed by the chosen time policy.
+
+  Do not infer source changes from `stageCanvas.toDataURL()`, `getImageData()`, or any other pixel readback; those add CPU work and can stall the pipeline. First discover whether the existing render producer already exposes a cheap monotonic frame/version counter. Search `versions/*.html`, `engine-render.client.js`, `versions/_genops-inject.js`, and the engine bootstrap for an existing dirty/frame token before adding one. If no token exists, introduce the smallest source-side hook: increment a shared `window.SWR_RENDER_FRAME_ID` immediately after a successful draw into `#render`, and have `versions-presets.js` read it. The hook must be added to the shared renderer or the common variant render path, not copied into 13 pages.
+
+  Treat the first render as dirty by initializing `lastSourceFrameToken` to a sentinel that cannot equal the current token. `sizeFx()` must invalidate the last size/signature when `out.width` or `out.height` changes, because a resize changes the viewport and texture dimensions even if the source token did not advance.
+
+- **Verify**: `grep -R -n "SWR_RENDER_FRAME_ID\|frame.*id\|markDirty" versions engine-render.client.js versions/_genops-inject.js` identifies the existing hook or confirms the new one is the only source token. Read the producer call site and verify the token advances once per completed source-canvas render, not once per post-process RAF.
+
+### Step 2 — Classify when time requires a new draw
+
+- **Files**: `versions-presets.js:104-147` (`mutate()`), `:160-709` (fragment shader), and `:840-851` (render-loop values).
+- **Action**: Determine a conservative `timeAnimated` boolean for the current page/preset. The safe implementation may be an explicit per-preset/per-page field or a static shader policy. Do not gate on `t` merely because `u_time` exists in the shader: a page's selected branch may still use time through mutation, liquid, pearl, glitch, grain, or its page effect. If precise branch classification is impractical, set `timeAnimated = true` for any page/preset that can use those paths and gate only the genuinely static case. The conservative fallback must preserve current animation even if it forfeits some skips.
+
+  The policy must also account for audio-reactive shader inputs: the shader reads `u_bass`, `u_mid`, `u_treble`, and `u_beat`, and the code binds them from `window.Audio.feat` at `:848-851`. A time-based redraw is unnecessary only when `timeAnimated` is false; an audio signature change is always a redraw trigger. For a static page, keep `t` out of the signature so repeated RAFs with identical source/audio do not redraw.
+
+- **Verify**: Build a truth table in a code comment or test covering: static page + unchanged source/audio → skip; static page + changed source → draw; static page + changed audio → draw; animated page + any elapsed RAF → draw; any resized output → draw; newly initialized pipeline → draw.
+
+### Step 3 — Add a source/audio/uniform draw gate before texture upload
+
+- **Files**: `versions-presets.js:840-890`.
+- **Action**: Refactor `render()` so it computes the current values first, then decides whether a GPU pass is required before `gl.activeTexture`, `gl.bindTexture`, `gl.pixelStorei`, or `gl.texImage2D` run. Use primitive signatures or per-field comparisons, not a new object/array allocation on every RAF. A valid gate should include at least:
+  - current source-frame token;
+  - `out.width` and `out.height`;
+  - `bass`, `mid`, `treble`, `beat` (or one stable audio revision if the audio subsystem exposes it);
+  - the active `temp` value (`tempOverride !== null ? tempOverride : preset.temp`);
+  - every static preset value sent to `u.mut`, `u.mutAlgo`, `u.posterize`, `u.vignette`, `u.chroma`, `u.grain`, `u.sepia`, `u.glow`, `u.grayscale`, `u.blur`, `u.effect`, `u.page`, and `u.tint`;
+  - `time` only when the Step 2 policy says the current branch is animated.
+
+  On a skip, schedule the next RAF and return before the texture upload. On a draw, retain the current order: activate/bind texture, set `UNPACK_FLIP_Y_WEBGL` to `true`, upload `stageCanvas`, write uniforms, draw six vertices, record the signatures only after successful upload/draw, and schedule the next RAF. Keep the existing upload `try/catch` at `:853-868`; a failed upload must not update the last-successful signatures, otherwise the next frame could skip forever after a transient canvas readiness or context error.
+
+  Prefer a reusable primitive signature string only if its construction is proven cheaper than the avoided GPU work and does not allocate in the skipped RAF path. Better still, compare scalar locals against cached scalar fields and use a single `needsDraw` boolean. Preserve `gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)` on every actual upload or set it once during initialization only after confirming WebGL state cannot be reset by any other code using this context.
+
+- **Verify**: Instrument a development-only counter around `gl.texImage2D` and `gl.drawArrays`, then load a static page with no audio/source changes for 120 RAFs. Confirm one initial upload/draw and zero additional passes. Change a feature, source frame, temperature, preset, and output size one at a time; each change must produce at least one subsequent upload/draw. Remove or disable the instrumentation before the final change unless it becomes a test hook.
+
+### Step 4 — Cache static uniform values without changing the page-specific contract
+
+- **Files**: `versions-presets.js:800-822` (uniform locations) and `:870-888` (uniform writes).
+- **Action**: On actual draws, avoid rewriting values that are unchanged since the previous successful draw. Add a local scalar cache for float/int values and a three-component cache for `u.tint`, or rely on the Step 3 draw gate for the stronger result. Do not cache only the uniform writes while still uploading/drawing: a texture/source change requires all uniforms to be correct, and WebGL state may be rebuilt after context restoration. If implementing a helper, keep it allocation-free and make it update its cache only after the corresponding WebGL call returns.
+
+  `u.time`, the four audio uniforms, and any temperature override are dynamic candidates; the remaining preset values are static until a preset event or `tempOverride` change. `u.page` and `u.tint` are also static for an initialized page. If Step 3 guarantees that no draw occurs without a changed input, Step 4 may be limited to documenting that the full uniform block is paid only on actual draws; do not introduce a complicated per-uniform cache unless it is independently measurable.
+
+- **Verify**: Use a stub/mock WebGL context in a focused Node test or development harness to count `uniform1f`, `uniform1i`, and `uniform3f` calls across: first draw, skipped frame, audio-only change, source-only change, preset-only change, and resize. Confirm the actual-draw call set still contains all required uniforms and that `u.page`/`u.tint` remain correct.
+
+### Step 5 — Wire invalidation from preset, temperature, resize, and audio paths
+
+- **Files**: `versions-presets.js:923-985` (`window.VersionsPresets` setters/applyPreset), `:743-753` (`sizeFx`), and `:845-851` (audio read).
+- **Action**: Make all existing mutation paths invalidate the gate without depending solely on a future RAF observation:
+  - `setTemp(pageKey, v)` and `applyPreset(pageKey)` must invalidate the current page if they change an input used by the shader.
+  - `sizeFx()` must invalidate when dimensions change, including `ResizeObserver` and the debounced window resize listener at `:895-903`.
+  - Audio changes must be detected by the signature in `render()`; do not add one event listener per page unless the audio module already provides a reliable revision event.
+  - If the source token is added to `engine-render.client.js`, ensure every successful `#render` draw path increments it exactly once, including the paths used by variants with and without `SWR_RENDER.frame()`.
+
+  Avoid calling `render()` synchronously from setters; let the existing RAF schedule handle it. Keep the API return values and `window.VersionsPresets` shape unchanged.
+
+- **Verify**: `VersionsPresets.setTemp(...)` and `applyPreset(...)` each cause the next eligible frame to draw; changing unrelated page state does not. Resize a running page and confirm the output canvas dimensions and one refreshed upload. Verify that a source frame update from the engine is observed without relying on a DOM layout event.
+
+### Step 6 — Add a focused regression verifier for pass counts and visual orientation
+
+- **Files**: new `verify-versions-presets-gate.mjs`, `package.json:24-41`, and the relevant shared renderer file if the source token is added there.
+- **Action**: Add a Puppeteer verifier using the repository's existing standalone verifier style. It should:
+  1. Start or connect to the local Vite server using the same approach as `verify-new-versions.mjs` / `verify-versions.mjs`.
+  2. Open a representative `versions/film.html` or `versions/neon.html` page that definitely loads `versions-presets.js`.
+  3. Install a development counter or expose a narrowly-scoped test-only hook for `texImage2D` and `drawArrays` before initialization.
+  4. Wait for initial rendering, record counts, wait through a static interval, and assert no new pass occurred if the page is static and the chosen time policy says it is non-animated. If all shipped presets are intentionally animated, test the source/audio signature gate by freezing the source/audio and using the explicit static test configuration rather than making a false assertion about production animation.
+  5. Trigger a temperature/preset or resize change and assert the count increases.
+  6. Assert the output is non-blank and preserve the Y-flip regression check already covered by `verify-css-fx.mjs` or add a stable asymmetric source fixture so an upside-down upload cannot pass.
+
+  Add `

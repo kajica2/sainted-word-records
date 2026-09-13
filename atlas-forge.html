@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Forge (Age 25) · Life-Stage Operating Systems · Kai Djuric</title>
+  <meta name="description" content="Age 25 — Competence and Real-World Testing. Skill leads to passion, not the other way around." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/atlas/forge" />
+  <link rel="icon" href="/favicon.ico" />
+  <meta property="og:title" content="The Forge (Age 25) · Life-Stage Operating Systems · Kai Djuric" />
+  <meta property="og:description" content="Competence and Real-World Testing. Skill leads to passion, not the other way around." />
+  <style>
+    :root {
+      --bg-0: #0a0d12; --bg-1: #111114; --bg-2: #16161b;
+      --ink: #e8e6e0; --muted: #7a7a82; --muted-2: #4a4a52;
+      --line: #1f1f25; --line-2: #2a2a32;
+      --gold: #d4a24c; --gold-soft: #8a6a32;
+      --amber: #f5a524; --cyan: #00e5ff; --green: #5ec27a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg-0); color: var(--ink);
+      font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    body { padding: 0 24px 96px; }
+    nav.top { max-width: 880px; margin: 0 auto; padding: 20px 0;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px; border-bottom: 1px solid var(--line); margin-bottom: 48px; }
+    nav.top a { color: var(--muted); text-decoration: none; margin-left: 18px; }
+    nav.top a:hover { color: var(--ink); }
+    nav.top .brand { color: var(--gold); font-weight: 700; letter-spacing: .06em; margin-left: 0; }
+    nav.top .atlas-link { color: var(--gold); }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { font: 38px/1.15 ui-sans-serif, system-ui, sans-serif;
+      margin: 0 0 8px; font-weight: 700; letter-spacing: -.015em; }
+    .sub { font: 14px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--muted); letter-spacing: .04em; margin: 0 0 32px; text-transform: uppercase; }
+    h2 { font: 24px/1.2 ui-sans-serif, system-ui, sans-serif;
+      margin: 56px 0 16px; color: var(--gold); font-weight: 700; }
+    h3 { font: 18px/1.3 ui-sans-serif, system-ui, sans-serif;
+      margin: 32px 0 12px; color: var(--ink); font-weight: 600; }
+    p { margin: 0 0 16px; color: var(--ink); }
+    p.lede { font-size: 18px; color: var(--ink); line-height: 1.55; }
+    a { color: var(--amber); text-decoration: none; border-bottom: 1px solid transparent; }
+    a:hover { border-bottom-color: var(--amber); }
+    blockquote { margin: 32px 0; padding: 24px 28px; border-left: 3px solid var(--gold);
+      background: var(--bg-1); color: var(--ink); font-style: italic;
+      border-radius: 0 6px 6px 0; }
+    blockquote p { margin: 0; }
+    blockquote p + p { margin-top: 12px; }
+    ul, ol { padding-left: 22px; color: var(--ink); }
+    li { margin: 8px 0; }
+    hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0; }
+    code { font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--bg-1); padding: 2px 6px; border-radius: 3px; color: var(--cyan); }
+    .signoff { margin-top: 56px; padding: 24px; background: var(--bg-1);
+      border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0;
+      font-style: italic; color: var(--muted); }
+    .hero-banner { width: 100%; max-width: 760px; aspect-ratio: 16/9;
+      border-radius: 6px; overflow: hidden; margin: 0 0 24px;
+      background: var(--bg-1); border: 1px solid var(--line); }
+    .hero-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .back-to-atlas { display: inline-block; margin-bottom: 24px; font-size: 13px;
+      color: var(--muted); }
+    /* Prev/next flow between life-stages — four-card linear sequence. */
+    .prev-next { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px;
+      margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--line);
+      align-items: center; }
+    .prev-next a { display: flex; flex-direction: column; gap: 4px;
+      padding: 14px 16px; border: 1px solid var(--line); border-radius: 6px;
+      background: var(--bg-1); color: var(--ink); text-decoration: none;
+      transition: border-color 140ms ease, background 140ms ease; }
+    .prev-next a:hover { border-color: var(--gold-soft); background: var(--bg-2); }
+    .prev-next a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .prev-next .pn-prev { text-align: left; }
+    .prev-next .pn-next { text-align: right; align-items: flex-end; }
+    .prev-next .pn-index { grid-column: 2; font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--muted); letter-spacing: .08em; text-transform: uppercase;
+      padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px;
+      background: var(--bg-1); white-space: nowrap; }
+    .prev-next .pn-arrow { font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+    .prev-next .pn-title { font: 600 14px/1.3 ui-sans-serif, system-ui, sans-serif;
+      color: var(--ink); }
+    .prev-next a:hover .pn-title { color: var(--gold); }
+    @media (max-width: 600px) {
+      .prev-next { grid-template-columns: 1fr 1fr; }
+      .prev-next .pn-index { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <a class="brand" href="/">SWR</a>
+    <div>
+      <a href="/engine">Engine</a>
+      <a href="/campaign">Pricing</a>
+      <a href="/personas">Personas</a>
+      <a href="/about">About</a>
+      <a class="atlas-link" href="/atlas">Atlas</a>
+    </div>
+  </nav>
+
+  <main>
+    <a class="back-to-atlas" href="/atlas/life-stages">&larr; Life-Stage Operating Systems</a>
+
+    <div class="hero-banner">
+      <img src="/docs/atlas-assets/08-forge-25.webp"
+           srcset="/docs/atlas-assets/08-forge-25.webp 1600w"
+           sizes="(max-width: 760px) 100vw, 760px"
+           alt="The Forge (Age 25) — illustration" loading="eager" />
+    </div>
+
+    <h1>⚔️ The Forge (Age 25)</h1>
+    <p class="sub">Focus: Competence and Real-World Testing</p>
+
+    <p class="lede">Skill leads to passion, not the other way around. Become rare and valuable.</p>
+
+    <h2>The Competence Loop</h2>
+    <p>"Follow your passion" is bad advice backwards.</p>
+    <p>Most people don't know what they're passionate about until they're already good at something. The loop is competence → confidence → taste → passion. You cannot enter the loop by waiting for inspiration. You enter it by getting good enough that the work starts teaching you what it wants to become.</p>
+
+    <h2>Compound Interest</h2>
+    <p>Save money and habits. A $1 investment in your 20s is $10 in your 40s.</p>
+    <p>A daily practice installed in your 20s — writing, training, meditation, instrument practice — compounds the same way money does. The 25-year-old who writes 500 words a day and the 25-year-old who waits for "the right moment to start" look identical at 25. By 35 they are not.</p>
+
+    <h2>Conflict as Intimacy</h2>
+    <p>Learn to have Difficult Conversations. They are the price of real relationships.</p>
+    <p>Most people under 25 avoid conflict. This is a bug, not a feature. The relationships that matter are precisely the ones where conflict is unavoidable. The skill is not learning to suppress — it is learning to surface disagreement without making the other person disappear.</p>
+
+    <hr>
+
+    <h2>When this stage is not enough</h2>
+    <p>The Forge is where most people burn out, not because they worked too hard, but because they confused endurance with direction. A hammer can hit the same spot for ten years and produce nothing.</p>
+    <p>If you are past 25 and feel you missed this stage, the work is the same. The age window is a heuristic, not a law.</p>
+
+    <div class="signoff">— <em>Kai Djuric, Belgrade</em></div>
+
+    <nav class="prev-next" aria-label="Life-stage navigation">
+      <a class="pn-prev" href="/atlas/architect">
+        <span class="pn-arrow">← Previous life-stage</span>
+        <span class="pn-title">The Architect (Age 15)</span>
+      </a>
+      <span class="pn-index">II of IV</span>
+      <a class="pn-next" href="/atlas/integration">
+        <span class="pn-arrow">Next life-stage →</span>
+        <span class="pn-title">The Integration (Age 50)</span>
+      </a>
+    </nav>
+
+  </main>
+</body>
+</html>

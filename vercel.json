@@ -62,15 +62,6 @@
       ]
     },
     {
-      "source": "/library/:path*",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/:path*.(png|jpg|jpeg|webp|avif|gif|svg|ico)",
       "headers": [
         {
@@ -315,7 +306,23 @@
       "destination": "/gallery-vintage.html"
     },
     {
-      "source": "/gallery/vintage/",
+      "source": "/music-video-gallery",
+      "destination": "/versions/music-video-gallery.html"
+    },
+    {
+      "source": "/music-video-gallery/",
+      "destination": "/versions/music-video-gallery.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/dashboard/",
+      "destination": "/dashboard.html"
+    },
+    {
+          "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
     },
     {
@@ -325,14 +332,6 @@
     {
       "source": "/personas/",
       "destination": "/personas.html"
-    },
-    {
-      "source": "/weddings",
-      "destination": "/weddings.html"
-    },
-    {
-      "source": "/weddings/",
-      "destination": "/weddings.html"
     },
     {
       "source": "/shop",
@@ -453,6 +452,14 @@
     {
       "source": "/legal/terms.html/",
       "destination": "/legal/terms.html"
+    },
+    {
+      "source": "/sitemap",
+      "destination": "/sitemap.html"
+    },
+    {
+      "source": "/sitemap/",
+      "destination": "/sitemap.html"
     },
     {
       "source": "/ar-gif",

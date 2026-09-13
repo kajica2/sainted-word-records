@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Atlas of the Awakened Life · Kai Djuric</title>
+  <meta name="description" content="A multi-generational manual for integrating wisdom, psychology, and presence. Four sections, 200 steps, four life-stages. Written by Kai Djuric in Belgrade." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/atlas" />
+  <link rel="icon" href="/favicon.ico" />
+  <meta property="og:title" content="The Atlas of the Awakened Life · Kai Djuric" />
+  <meta property="og:description" content="A multi-generational manual for integrating wisdom, psychology, and presence." />
+  <style>
+    :root {
+      --bg-0: #0a0d12; --bg-1: #111114; --bg-2: #16161b;
+      --ink: #e8e6e0; --muted: #7a7a82; --muted-2: #4a4a52;
+      --line: #1f1f25; --line-2: #2a2a32;
+      --gold: #d4a24c; --gold-soft: #8a6a32;
+      --amber: #f5a524; --cyan: #00e5ff; --green: #5ec27a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg-0); color: var(--ink);
+      font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    body { padding: 0 24px 96px; }
+    nav.top { max-width: 880px; margin: 0 auto; padding: 20px 0;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px; border-bottom: 1px solid var(--line); margin-bottom: 48px; }
+    nav.top a { color: var(--muted); text-decoration: none; margin-left: 18px; }
+    nav.top a:hover { color: var(--ink); }
+    nav.top .brand { color: var(--gold); font-weight: 700; letter-spacing: .06em; margin-left: 0; }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { font: 38px/1.15 ui-sans-serif, system-ui, sans-serif;
+      margin: 0 0 8px; font-weight: 700; letter-spacing: -.015em; }
+    .sub { font: 14px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--muted); letter-spacing: .04em; margin: 0 0 32px; text-transform: uppercase; }
+    h2 { font: 24px/1.2 ui-sans-serif, system-ui, sans-serif;
+      margin: 56px 0 16px; color: var(--gold); font-weight: 700; }
+    h3 { font: 18px/1.3 ui-sans-serif, system-ui, sans-serif;
+      margin: 32px 0 12px; color: var(--ink); font-weight: 600; }
+    p { margin: 0 0 16px; color: var(--ink); }
+    p.lede { font-size: 18px; color: var(--ink); line-height: 1.55; }
+    a { color: var(--amber); text-decoration: none; border-bottom: 1px solid transparent; }
+    a:hover { border-bottom-color: var(--amber); }
+    blockquote { margin: 32px 0; padding: 24px 28px; border-left: 3px solid var(--gold);
+      background: var(--bg-1); color: var(--ink); font-style: italic;
+      border-radius: 0 6px 6px 0; }
+    blockquote p { margin: 0; }
+    blockquote p + p { margin-top: 12px; }
+    ul, ol { padding-left: 22px; color: var(--ink); }
+    li { margin: 8px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--bg-1); color: var(--gold); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    td:first-child { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--cyan); white-space: nowrap; }
+    hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0; }
+    .toc { background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px; padding: 24px 28px; margin: 32px 0; }
+    .toc h2 { margin-top: 0; }
+    .toc ul { margin: 12px 0 0; }
+    /* Navigation hub — pure-link cards pointing at the standalone sections. */
+    .atlas-toc { display: grid; gap: 14px; margin: 28px 0 16px; }
+    .atlas-card { display: grid; grid-template-columns: 56px 1fr auto; gap: 18px;
+      align-items: center; padding: 20px 22px;
+      background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px;
+      color: var(--ink); text-decoration: none;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease; }
+    .atlas-card:hover { border-color: var(--gold-soft); background: var(--bg-2);
+      transform: translateX(2px); }
+    .atlas-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .atlas-card__roman { font: 28px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--gold); text-align: center; letter-spacing: -.02em; }
+    .atlas-card__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .atlas-card__title { font: 600 16px/1.3 ui-sans-serif, system-ui, sans-serif;
+      color: var(--ink); }
+    .atlas-card__sub { font-size: 13px; line-height: 1.5; color: var(--muted); }
+    .atlas-card__cta { font: 600 12px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--amber); letter-spacing: .06em; text-transform: uppercase;
+      white-space: nowrap; }
+    .atlas-card:hover .atlas-card__cta { color: var(--gold); }
+    /* Sub-nav for the Section II card — links to the 4 per-life-stage pages. */
+    .atlas-toc-subnav { font-size: 13px; color: var(--muted); margin: -4px 0 8px 76px; }
+    .atlas-toc-subnav a { color: var(--amber); margin: 0 2px; white-space: nowrap; }
+    @media (max-width: 600px) {
+      .atlas-card { grid-template-columns: 36px 1fr; gap: 12px; padding: 16px; }
+      .atlas-card__cta { grid-column: 2; justify-self: start; margin-top: 4px; }
+      .atlas-card__roman { font-size: 22px; }
+      .atlas-card__title { font-size: 15px; }
+    }
+    code { font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--bg-1); padding: 2px 6px; border-radius: 3px; color: var(--cyan); }
+    .signoff { margin-top: 56px; padding: 24px; background: var(--bg-1);
+      border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0;
+      font-style: italic; color: var(--muted); }
+    .hero-banner { width: 100%; max-width: 760px; aspect-ratio: 16/9;
+      border-radius: 6px; overflow: hidden; margin: 0 0 24px;
+      background: var(--bg-1); border: 1px solid var(--line); }
+    .hero-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .section-banner { width: 100%; aspect-ratio: 16/9; border-radius: 6px;
+      overflow: hidden; margin: 32px 0 16px; background: var(--bg-1);
+      border: 1px solid var(--line); }
+    .section-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <a class="brand" href="/">SWR</a>
+    <div>
+      <a href="/engine">Engine</a>
+      <a href="/campaign">Pricing</a>
+      <a href="/personas">Personas</a>
+      <a href="/about">About</a>
+      <a href="/atlas" style="color:var(--gold)">Atlas</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="hero-banner">
+      <img src="/docs/atlas-assets/11-final-insight.webp"
+           srcset="/docs/atlas-assets/11-final-insight.webp 1600w"
+           sizes="(max-width: 760px) 100vw, 760px"
+           alt="Atlas of the Awakened Life — illustration" loading="eager" />
+    </div>
+
+    <h1>The Atlas of the Awakened Life</h1>
+    <p class="sub">A Multi-Generational Manual for Integrating Wisdom, Psychology, and Presence</p>
+
+    <p class="lede">
+      Life is not a static destination but a series of shifts in perspective.
+      Whether you are building your foundation at 15, forging your identity at 25,
+      integrating your legacy at 50, or radiating peace at 75, the core principles remain:
+      <strong>Awareness, Compassion, and Non-Attachment</strong>.
+    </p>
+
+    <p>
+      This is a book for the whole arc of a life — not a self-help pamphlet for a single
+      crisis, and not a philosophy for a single age. It treats wisdom, psychology, and
+      presence as one integrated practice, applied differently at each life-stage.
+    </p>
+
+    <hr>
+
+    <h2>How to read this book</h2>
+    <p>You don't read it cover-to-cover. You read the section that meets where you are.</p>
+    <p><em>The book is a map. The walking is the work.</em></p>
+
+    <nav class="atlas-toc" aria-label="Atlas sections">
+      <a class="atlas-card" href="/atlas/crisis">
+        <span class="atlas-card__roman">I</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The Crisis Protocol</span>
+          <span class="atlas-card__sub">The Emergency Anchor — when the floor falls out, forget the steps and focus on survival.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <a class="atlas-card" href="/atlas/life-stages">
+        <span class="atlas-card__roman">II</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">Life-Stage Operating Systems</span>
+          <span class="atlas-card__sub">Four age-windows, each with its own focus. The principles don't change. The application does.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <p class="atlas-toc-subnav">
+        Dive into each stage:
+        <a href="/atlas/architect">Architect (15)</a> ·
+        <a href="/atlas/forge">Forge (25)</a> ·
+        <a href="/atlas/integration">Integration (50)</a> ·
+        <a href="/atlas/legacy">Legacy (75+)</a>
+      </p>
+      <a class="atlas-card" href="/atlas/200-steps">
+        <span class="atlas-card__roman">III</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The 200 Steps</span>
+          <span class="atlas-card__sub">The Core Curriculum. Four phases of 50 steps each. Pick one and live it for 24 hours.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <a class="atlas-card" href="/atlas/checklist">
+        <span class="atlas-card__roman">IV</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The Daily Maintenance Checklist</span>
+          <span class="atlas-card__sub">A simplified version of the Atlas, used every morning. Hardware, software, connectivity, presence.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+      <a class="atlas-card" href="/atlas/final-insight">
+        <span class="atlas-card__roman">★</span>
+        <span class="atlas-card__body">
+          <span class="atlas-card__title">The Final Insight</span>
+          <span class="atlas-card__sub">Before enlightenment, chop wood, carry water. After enlightenment, chop wood, carry water.</span>
+        </span>
+        <span class="atlas-card__cta">Read →</span>
+      </a>
+    </nav>
+
+    <hr>
+
+    <h2>What this book is not</h2>
+    <p>It is not a religion. It is not a productivity system. It is not a quick fix.</p>
+    <p>
+      It is a multi-generational manual written for anyone who has ever felt disconnected
+      from their purpose, or wondered if there is more to life than endless searching.
+      It chronicles the moment when seeking ends and being begins.
+    </p>
+    <p>
+      The 200 steps are not commandments. They are invitations. The four life-stages are
+      not prescriptions — they are recognitions of where most humans find themselves at
+      each decade. The crisis protocol is not therapy — it is a survival kit.
+    </p>
+    <p><strong>Pick one stage, one protocol, or one step, and live it fully for 24 hours. The rest will follow.</strong></p>
+
+    <hr>
+
+    <h2>For the Sainted Word Records reader</h2>
+    <p>
+      This book lives alongside the engine because both come from the same place: the
+      integration of sound, image, code, and breath into a single practice. The
+      audio-reactive visuals in this engine are themselves a form of meditation — the act
+      of watching your own attention move through sound made visible.
+    </p>
+    <p>
+      The Atlas is not a feature of the engine. The engine is one expression of the Atlas.
+    </p>
+
+    <div class="signoff">
+      — <em>Kai Djuric, Belgrade</em>
+    </div>
+  </main>
+</body>
+</html>

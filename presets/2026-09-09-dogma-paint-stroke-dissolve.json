@@ -1,0 +1,89 @@
+{
+  "id": "swr-preset-2026-09-09-dogma-paint-stroke-dissolve",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-09-09T09:30:00.000000+00:00",
+  "name": "Dogma Paint Stroke Dissolve",
+  "family": "GENERATIVE",
+  "description": "Kim Ximya 'Dogma' (Park Chan-kyong, 2026-09-04 surprise 26-min single): crossfades end-to-end with paint-stroke masks and layered spatial zooms. Reads as moving painting, audio-reactive dissolves NOT cuts. Resolve 20 / Fusion paint-stroke mask node analog — heavy blur, liquid warp, painterly grain.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "liquid-fbm-warp",
+      "weight": 0.4
+    },
+    {
+      "kind": "shader_ref",
+      "name": "heavy-blur",
+      "weight": 0.25
+    },
+    {
+      "kind": "shader_ref",
+      "name": "voronoi-pearl",
+      "weight": 0.15
+    },
+    {
+      "kind": "palette_ref",
+      "name": "ink-wash-ochre",
+      "weight": 0.15
+    },
+    {
+      "kind": "motion_ref",
+      "name": "paint-stroke-mask-dissolve",
+      "weight": 0.05
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.45,
+    "pearl": 0.25,
+    "glitch": 0.0,
+    "grain": 0.35,
+    "chroma": 0.0,
+    "bloom": 0.0,
+    "vignette": 0.15,
+    "sepia": 0.2,
+    "glow": 0.0,
+    "grayscale": 0.0,
+    "blur": 0.55,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.05,
+    "posterize": 12
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.08,
+    "pan_x": 0.0,
+    "pan_y": 0.0
+  },
+  "palette": {
+    "primary": "#5a4a3a",
+    "secondary": "#d4b87a",
+    "accent": "#8b3a3a",
+    "bg": "#1a1614"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "blur"
+    ],
+    "mid": [
+      "liquid"
+    ],
+    "treble": [
+      "pearl"
+    ],
+    "onset": [
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a1614\"/><ellipse cx=\"40\" cy=\"40\" rx=\"30\" ry=\"22\" fill=\"#5a4a3a\" opacity=\"0.7\"/><ellipse cx=\"32\" cy=\"34\" rx=\"14\" ry=\"10\" fill=\"#d4b87a\" opacity=\"0.6\"/><ellipse cx=\"50\" cy=\"46\" rx=\"8\" ry=\"6\" fill=\"#8b3a3a\" opacity=\"0.55\"/><rect x=\"0\" y=\"0\" width=\"80\" height=\"80\" fill=\"#5a4a3a\" opacity=\"0.15\"/></svg>",
+    "tags": [
+      "kim-ximya",
+      "park-chan-kyong",
+      "paint-stroke",
+      "ambient",
+      "electronic",
+      "26min"
+    ]
+  }
+}

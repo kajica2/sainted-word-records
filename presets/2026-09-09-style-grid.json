@@ -1,0 +1,79 @@
+{
+  "id": "swr-preset-2026-09-09-style-grid",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-09-09T10:00:00.000000+00:00",
+  "name": "Grid",
+  "family": "GENERATIVE",
+  "description": "Grid · synthwave / retro / wide. Perspective grid receding to a UV-orange horizon with a hot sun. Bass → ground pulse rolling toward camera. Best for: retrowave, Outrun-style tracks, anything 80s.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "perspective-grid",
+      "weight": 0.35
+    },
+    {
+      "kind": "shader_ref",
+      "name": "uv-horizon",
+      "weight": 0.2
+    },
+    {
+      "kind": "palette_ref",
+      "name": "retrowave-outrun",
+      "weight": 0.3
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.0,
+    "grain": 0.0,
+    "chroma": 0.05,
+    "bloom": 0.5,
+    "vignette": 0.2,
+    "sepia": 0.0,
+    "glow": 0.3,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.2,
+    "posterize": 6
+  },
+  "motion": {
+    "rotation_speed": 0.0,
+    "scale_pulse": 0.0,
+    "pan_x": 0.0,
+    "pan_y": -0.4
+  },
+  "palette": {
+    "primary": "#ff6b1a",
+    "secondary": "#ff1a8b",
+    "accent": "#1ae5ff",
+    "bg": "#1a0834"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "pan_y",
+      "bloom"
+    ],
+    "mid": [
+      "glow"
+    ],
+    "treble": [
+      "chroma"
+    ],
+    "onset": [
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><defs><linearGradient id=\"sky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1a0834\"/><stop offset=\"1\" stop-color=\"#ff1a8b\"/></linearGradient></defs><rect width=\"80\" height=\"40\" fill=\"url(#sky)\"/><rect y=\"40\" width=\"80\" height=\"40\" fill=\"#0a0414\"/><circle cx=\"40\" cy=\"40\" r=\"14\" fill=\"#ff6b1a\"/><line x1=\"0\" y1=\"40\" x2=\"80\" y2=\"40\" stroke=\"#1ae5ff\" stroke-width=\"1\"/><line x1=\"0\" y1=\"48\" x2=\"80\" y2=\"48\" stroke=\"#ff1a8b\" stroke-width=\"1\" opacity=\"0.7\"/><line x1=\"0\" y1=\"58\" x2=\"80\" y2=\"58\" stroke=\"#ff1a8b\" stroke-width=\"1\" opacity=\"0.5\"/><line x1=\"0\" y1=\"70\" x2=\"80\" y2=\"70\" stroke=\"#ff1a8b\" stroke-width=\"1\" opacity=\"0.3\"/></svg>",
+    "tags": [
+      "grid",
+      "retrowave",
+      "outrun",
+      "synthwave",
+      "80s"
+    ]
+  }
+}

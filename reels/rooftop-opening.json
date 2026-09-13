@@ -1,0 +1,77 @@
+{
+  "name": "rooftop-opening",
+  "description": "Two/three-panel opening mapped onto audios/kraft.mp3 after running scripts/analyze_reel_audio.py. Storyboard intent preserved (wide establishing → match-cut → CU → dissolve), but panel boundaries land on actual audio energy gaps: the 1.2s silence before the intro beat, the 6.0s chorus lift, and the 12.6s climax hit. Source: user-provided storyboard, 2026-09-09.",
+  "audio": "../audios/kraft.mp3",
+  "bpm": 120.0,
+  "panels": [
+    {
+      "id": "panel-1",
+      "at": 0.0,
+      "hold": 1.2,
+      "mood": "wide-rooftop",
+      "transitionIn": null,
+      "transitionOut": {
+        "name": "match-cut",
+        "cssTransition": null,
+        "duration": 0.0,
+        "audioCue": "0.8–1.2s silence gap before the intro beat lands at 1.2s",
+        "note": "Storyboard's 'head turn match cut' — audio silence is the natural cut. Palette swap (wide → CU) is the transition."
+      },
+      "storyboard": {
+        "label": "EXT. CITY ROOFTOP — NIGHT",
+        "shot": "WIDE — Artist standing alone on rooftop, city lights, rim light from full moon above",
+        "music": "Intro silence — first hit at 0.2s, release into 1.2s of quiet",
+        "color": "Deep blues, purple, warm orange from city, moonlight silver/white",
+        "intent": "Establishes isolation, scale, and mood."
+      }
+    },
+    {
+      "id": "panel-2",
+      "at": 1.2,
+      "hold": 4.8,
+      "mood": "close-up-face",
+      "transitionIn": null,
+      "transitionOut": {
+        "name": "dissolve",
+        "cssTransition": "paint-stroke",
+        "duration": 0.8,
+        "audioCue": "6.0s — sustained section ends, chorus lifts at 6.8s. Storyboard's 'vocal line completion' = first big chorus hit.",
+        "note": "Paint-stroke reads as the atmospheric/poetic version of a slow dissolve."
+      },
+      "storyboard": {
+        "label": "CLOSE UP — Artist's face turning",
+        "shot": "CU — Face turning, carried by the build-up (2.75–3.80)",
+        "music": "Intro → build (2.0–5.4s)",
+        "color": "Warm rim from one side, cool blue rim from the other",
+        "intent": "Establish intimacy and intensity. Eye contact draws viewer in."
+      }
+    },
+    {
+      "id": "panel-3",
+      "at": 6.0,
+      "hold": 6.6,
+      "mood": "wide-rooftop",
+      "transitionIn": {
+        "name": "warp-dissolve",
+        "cssTransition": "warp-dissolve",
+        "duration": 0.6,
+        "audioCue": "Chorus hits at 6.8s. Storyboard says 'camera pulls back through window reflection reveal' — warp-dissolve bends + blurs, suggests a pull-back reveal.",
+        "note": "Not in the original storyboard — added by the audio study. The chorus needs its own cut."
+      },
+      "transitionOut": {
+        "name": "lens-flare",
+        "cssTransition": "lens-flare",
+        "duration": 0.8,
+        "audioCue": "12.6s — peak RMS (0.146) at 12.8s. Climactic hit. Lens-flare blooms on the energy peak.",
+        "note": "A music-video workhorse transition — works here because the climax hit is the natural punctuation."
+      },
+      "storyboard": {
+        "label": "WIDE — pull-back reveal",
+        "shot": "WIDE — camera pulls back through window reflection, the city is back",
+        "music": "Sustained chorus (6.8–11.6) into climax (12.6–14.0)",
+        "color": "Deep blues + city lights again — the mood opens back up",
+        "intent": "Reset to scale. The artist's intimacy gives way to the full rooftop scene, lit by the climax hit."
+      }
+    }
+  ]
+}

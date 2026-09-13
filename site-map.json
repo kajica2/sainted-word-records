@@ -59,6 +59,10 @@
           "label": "Demos",
           "href": "/engine-demos",
           "description": "Live engine demos"
+        },
+        {
+          "href": "/dashboard",
+          "label": "Dashboard"
         }
       ]
     },
@@ -171,6 +175,10 @@
           "label": "Vintage",
           "href": "/gallery/vintage",
           "description": "Vintage compositions"
+        },
+        {
+          "href": "/versions/music-video-gallery",
+          "label": "Music videos"
         }
       ]
     },
@@ -178,11 +186,6 @@
       "label": "Personas",
       "href": "/personas",
       "description": "6 character presets"
-    },
-    {
-      "label": "Weddings",
-      "href": "/weddings",
-      "description": "Wedding visualizers"
     },
     {
       "label": "Shop",
@@ -272,6 +275,11 @@
     }
   ],
   "tools": [
+    {
+      "label": "Sitemap",
+      "href": "/sitemap",
+      "description": "Every page on the site, with search and filters"
+    },
     {
       "label": "AR GIF",
       "href": "/ar-gif",

@@ -450,15 +450,18 @@
       chip.innerHTML = `<span class="bk-chip-initial">${initial}</span><span class="bk-chip-text">${escapeHtml(b.brandName || profile.name || 'Brand')}</span>`;
     }
   }
-  function mountChip() {
+  function mountChip(targetId) {
     if (document.getElementById('brandkit-chip')) return;
     const chip = document.createElement('button');
     chip.id = 'brandkit-chip';
     chip.className = 'bk-chip';
     chip.title = 'Open brand kit';
     chip.addEventListener('click', openBrandkitPanel);
-    // Insert at the very left of the transport header (before the existing brand text)
-    const transport = document.getElementById('transport');
+    // Insert at the very left of the header (before the existing brand text).
+    // targetId defaults to 'transport' for engine.html; callers on other
+    // pages (swr-app, music_video, etc.) pass their own header id.
+    const hostId = targetId || 'transport';
+    const transport = document.getElementById(hostId);
     if (transport && transport.firstChild) {
       transport.insertBefore(chip, transport.firstChild);
     } else if (transport) {

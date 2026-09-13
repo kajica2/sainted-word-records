@@ -67,8 +67,13 @@ function copyDirRecursive(src, dst) {
   }
 }
 
-// Vite plugin: copy ./library/*, ./versions/*, and the GitHub project files
+// Vite plugin: copy ./versions/*, ./audios/*, and the GitHub project files
 // to the Vite-resolved outDir.
+//
+// The curated demo library (./library/*) is intentionally NOT shipped.
+// Users bring their own assets via the Media Manager upload affordance.
+// Per-variant demo MP3s (./audios/<variant>.mp3, ~4MB total) still ship
+// because each engine page references its own demo track directly.
 //
 // Two-phase copy strategy:
 //   1) buildStart — wipe outDir, then copy our root-level + dir-tree files
@@ -238,28 +243,9 @@ function copyStatic() {
     'share-view.html',
     'ar-gif.html',
     'ar-gif.client.js',
+    'sitemap.html',
     'site-map.json',
   ];
-  // Build a curated copy of library/: only ship the files the boot manifest
-  // references, plus the manifest itself. The full library/ has ~58MB of
-  // tracked media plus another ~76MB in public/library/ (Vite's copyPublicDir
-  // ships public/* on its own). Together that's 134MB, well over the 100MB
-  // Vercel Hobby cap. Curating to the manifest list keeps the deploy at
-  // ~38MB, restoring the video-reactive demo content.
-  let LIB_FILES = null;
-  function getLibraryFiles() {
-    if (LIB_FILES) return LIB_FILES;
-    try {
-      const m = JSON.parse(readFileSync(resolve('library', 'manifest.json'), 'utf8'));
-      // Concatenate curated image/video files with the loop pack so the
-      // gallery-loops.html MP4s ship alongside the engine's library.
-      const all = [];
-      if (Array.isArray(m.files)) all.push(...m.files);
-      if (Array.isArray(m.loopFiles)) all.push(...m.loopFiles);
-      LIB_FILES = all;
-    } catch (e) { LIB_FILES = []; }
-    return LIB_FILES;
-  }
 
   const dirs = [
     { src: 'versions', dst: 'versions' },
@@ -331,15 +317,6 @@ function copyStatic() {
   function doCopy() {
     const log = (m) => process.stdout.write('[copy-static] ' + m + '\n');
     log('outDir = ' + outDir);
-    // If library/ doesn't exist on disk, the build is running in CI without
-    // demo assets. The prebuild step (scripts/fetch-library.mjs) should have
-    // already downloaded it from Vercel Blob. If we get here without it, the
-    // engine will still build — just with no bundled library. Log loudly.
-    if (!existsSync(resolve('library'))) {
-      log('WARNING: ./library not present — engine will ship without demo assets.');
-      log('  Local dev: this is fine (engine has no library to demo).');
-      log('  Production: prebuild should have fetched it from LIBRARY_BLOB_URL.');
-    }
     for (const { src, dst } of dirs.map((d) => ({ src: resolve(d.src), dst: resolve(outDir, d.dst) }))) {
       if (!existsSync(src)) continue;
       if (statSync(src).isDirectory()) {
@@ -391,54 +368,15 @@ function copyStatic() {
       // Strip the heavy public/* dirs that Vite's copyPublicDir re-ships
       // (copyPublicDir flattens: public/library/ → outDir/library/, so the
       // path to remove is outDir/library, not outDir/public/library). The
-      // closeBundle re-copy of the curated library/ happens immediately
-      // after, so the curated set is authoritative.
-      for (const heavy of ['library', 'style-graphics', 'style-videos',
-                           'style-videos-watermarked', 'style-videos-original']) {
+      // library strip is defensive — if a stale public/library/ ever
+      // resurfaces, drop it here. Anything else (style-graphics, etc.)
+      // stays in public/ as intentional demo content.
+      for (const heavy of ['library']) {
         const p = resolve(outDir, heavy);
         if (existsSync(p)) {
           rmSync(p, { recursive: true, force: true });
           process.stdout.write('[copy-static] removed heavy dir ' + heavy + ' from outDir\n');
         }
-      }
-      // Re-copy the curated library/ (manifest-listed files only) since
-      // copyPublicDir's stale public/library/ overwrote our earlier copy.
-      const libRoot = resolve('library');
-      if (existsSync(libRoot)) {
-        const libDst = resolve(outDir, 'library');
-        mkdirSync(libDst, { recursive: true });
-        const libFiles = getLibraryFiles();
-        let copied = 0;
-        for (const f of libFiles) {
-          const sp = resolve(libRoot, f);
-          const dp = resolve(libDst, f);
-          if (!existsSync(sp)) continue;
-          mkdirSync(dirname(dp), { recursive: true });
-          copyFileSync(sp, dp);
-          copied += 1;
-        }
-        const mp = resolve(libRoot, 'manifest.json');
-        if (existsSync(mp)) copyFileSync(mp, resolve(libDst, 'manifest.json'));
-        // Always copy library/audio/* — the SONGS list in engine.html
-        // references these directly, and the curated manifest only lists
-        // image/video assets, not audio. Without this, the Songs panel
-        // shows every track as "404 — file missing" in production.
-        const audioRoot = resolve(libRoot, 'audio');
-        if (existsSync(audioRoot)) {
-          const audioDst = resolve(libDst, 'audio');
-          mkdirSync(audioDst, { recursive: true });
-          let audioCopied = 0;
-          for (const f of readdirSync(audioRoot)) {
-            const sp = resolve(audioRoot, f);
-            if (!statSync(sp).isFile()) continue;
-            copyFileSync(sp, resolve(audioDst, f));
-            audioCopied += 1;
-          }
-          if (audioCopied > 0) {
-            process.stdout.write('[copy-static] copied library/audio/: ' + audioCopied + ' files\n');
-          }
-        }
-        process.stdout.write('[copy-static] re-copied curated library/: ' + (copied + 1) + ' files\n');
       }
     },
   };

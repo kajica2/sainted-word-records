@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // scripts/check-mv-smoke.mjs — Phase A smoke for the music_video gradient page.
 //
+// Self-contained: ensureDist() auto-builds dist/ if missing. No need
+// to remember `npm run build` first.
+//
+
 // Boots a static server on dist/, opens versions/music_video.html in
 // Puppeteer, and verifies:
 //   - the page loads with the MUSIC VIDEO header + no outbound nav links
@@ -15,6 +19,11 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ensureDist } from './with-dist.mjs';
+
+// Auto-build dist/ if missing — no more "forgot to npm run build" 404s.
+ensureDist();
+
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const MIME = {
@@ -134,6 +143,84 @@ function assert(cond, msg) {
   }));
   assert(afterDepth.label === '1.00', `depth label updates to 1.00 after slider input (got: ${afterDepth.label})`);
   assert(afterDepth.state === 1, `HologramState.depth reflects 1.0 (got: ${afterDepth.state})`);
+
+  // Verify the make-video.html format selector.
+  await page.goto(`http://localhost:${PORT}/make-video.html`, {
+    waitUntil: 'domcontentloaded',
+  });
+  const fmtShape = await page.evaluate(async () => {
+    const sel = document.getElementById('format-select');
+    if (!sel) return { ok: false, reason: 'no #format-select' };
+    const initial = {
+      sel: sel.value,
+      mvm: window.MVM_FORMAT,
+      canvasW: document.getElementById('preview').width,
+      canvasH: document.getElementById('preview').height,
+    };
+    sel.value = '9:16';
+    sel.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 50));
+    const after9x16 = {
+      sel: sel.value,
+      mvm: window.MVM_FORMAT,
+      canvasW: document.getElementById('preview').width,
+      canvasH: document.getElementById('preview').height,
+    };
+    sel.value = '1:1';
+    sel.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 50));
+    const after1x1 = {
+      mvm: window.MVM_FORMAT,
+      canvasW: document.getElementById('preview').width,
+      canvasH: document.getElementById('preview').height,
+    };
+    return { ok: true, initial, after9x16, after1x1 };
+  });
+  assert(fmtShape.ok
+      && fmtShape.initial.mvm === '16:9'
+      && fmtShape.initial.canvasW === 640 && fmtShape.initial.canvasH === 360
+      && fmtShape.after9x16.mvm === '9:16'
+      && fmtShape.after9x16.canvasW === 360 && fmtShape.after9x16.canvasH === 640
+      && fmtShape.after1x1.mvm === '1:1'
+      && fmtShape.after1x1.canvasW === 720 && fmtShape.after1x1.canvasH === 720,
+    'make-video format selector: 16:9, 9:16, 1:1 sizes match FORMATS table '
+      + JSON.stringify(fmtShape));
+
+  // Verify /photo.html — Photo Studio MVP: stage canvas + inputs + export
+  // button + 1080×1080 default format.
+  await page.goto(`http://localhost:${PORT}/photo.html`, {
+    waitUntil: 'domcontentloaded',
+  });
+  const photoShape = await page.evaluate(() => ({
+    title: document.title,
+    hasStage: !!document.getElementById('stage'),
+    hasImageInput: !!document.getElementById('image-input'),
+    hasAudioInput: !!document.getElementById('audio-input'),
+    hasFormat: !!document.getElementById('format-select'),
+    hasExportBtn: !!document.getElementById('export-btn'),
+    hasPlayBtn: !!document.getElementById('play-btn'),
+    formatValue: document.getElementById('format-select')
+      ? document.getElementById('format-select').value : null,
+    stageSize: document.getElementById('stage')
+      ? [document.getElementById('stage').width, document.getElementById('stage').height]
+      : null,
+    hasRecorder: !!window.SWR_RECORDER,
+  }));
+  assert(
+    photoShape.title === 'Photo Studio · Sainted Word Records'
+      && photoShape.hasStage
+      && photoShape.hasImageInput
+      && photoShape.hasAudioInput
+      && photoShape.hasFormat
+      && photoShape.hasExportBtn
+      && photoShape.hasPlayBtn
+      && photoShape.formatValue === '1080x1080'
+      && photoShape.stageSize
+      && photoShape.stageSize[0] === 1080
+      && photoShape.stageSize[1] === 1080
+      && photoShape.hasRecorder,
+    `/photo loads with stage canvas + image/audio/format inputs + export button + 1080×1080 default (got: ${JSON.stringify(photoShape)})`);
+
 
   await browser.close();
   server.close();

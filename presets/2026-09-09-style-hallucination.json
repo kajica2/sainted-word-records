@@ -1,0 +1,80 @@
+{
+  "id": "swr-preset-2026-09-09-style-hallucination",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-09-09T10:00:00.000000+00:00",
+  "name": "Hallucination",
+  "family": "GENERATIVE",
+  "description": "Hallucination · intense / psychedelic / mirror. 8-fold kaleidoscopic symmetry, hue-cycling polygons. Bass → shape scale, treble → color speed. Best for: drop moments, glitch, anything that needs a visual moment.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "kaleidoscope-8x",
+      "weight": 0.35
+    },
+    {
+      "kind": "shader_ref",
+      "name": "hue-cycle",
+      "weight": 0.25
+    },
+    {
+      "kind": "palette_ref",
+      "name": "psychedelic-violet-cyan",
+      "weight": 0.25
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.3,
+    "pearl": 0.5,
+    "glitch": 0.35,
+    "grain": 0.0,
+    "chroma": 0.5,
+    "bloom": 0.6,
+    "vignette": 0.2,
+    "sepia": 0.0,
+    "glow": 0.4,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.3,
+    "mutAlgo": 1.0,
+    "temp": 0.0,
+    "posterize": 5
+  },
+  "motion": {
+    "rotation_speed": 0.8,
+    "scale_pulse": 0.0,
+    "pan_x": 0.0,
+    "pan_y": 0.0
+  },
+  "palette": {
+    "primary": "#a020f0",
+    "secondary": "#00e5ff",
+    "accent": "#ff1a8b",
+    "bg": "#0a0420"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "scale_pulse",
+      "mut"
+    ],
+    "mid": [
+      "rotation_speed"
+    ],
+    "treble": [
+      "temp",
+      "chroma"
+    ],
+    "onset": [
+      "glitch"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0420\"/><g transform=\"translate(40 40)\"><polygon points=\"0,-22 19,-11 19,11 0,22 -19,11 -19,-11\" fill=\"#a020f0\" opacity=\"0.85\"/><polygon points=\"0,-15 13,-7.5 13,7.5 0,15 -13,7.5 -13,-7.5\" fill=\"#00e5ff\" opacity=\"0.7\" transform=\"rotate(22.5)\"/><polygon points=\"0,-10 8.7,-5 8.7,5 0,10 -8.7,5 -8.7,-5\" fill=\"#ff1a8b\" opacity=\"0.85\" transform=\"rotate(45)\"/><circle r=\"3\" fill=\"#fff\"/></g></svg>",
+    "tags": [
+      "hallucination",
+      "psychedelic",
+      "kaleidoscope",
+      "mirror",
+      "drop"
+    ]
+  }
+}
