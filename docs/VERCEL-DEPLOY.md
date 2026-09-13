@@ -36,11 +36,12 @@ Auth resolution order: `--token` flag → `$VERCEL_TOKEN` env →
 
 This runs, in order:
 
-1. **`npm run check`** — full smoke (syntax + manifest + magenta-dsp
-   bundle + API tests). All green is required before the deploy.
+1. **`npm run check`** — full smoke (syntax + magenta-dsp bundle + API
+   tests). All green is required before the deploy.
    Skipped with `--no-check`.
-2. **`npm run build:vercel`** — runs `scripts/fetch-library.mjs` to pull
-   the curated library/audio assets, then Vite builds into `dist/`.
+2. **`npm run build`** — Vite builds into `dist/`. The curated demo
+   library was removed in 2026-09-13; the build is now self-contained
+   (`audios/` per-variant demo MP3s still ship).
 3. **`vercel deploy --yes --archive=tgz --target=<preview|production>`** —
    non-interactive deploy, packaged as a tarball (faster than the
    default per-file upload). The CLI returns a preview URL like

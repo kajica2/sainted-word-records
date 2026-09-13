@@ -29,7 +29,13 @@
       {"id": "3.2", "title": "verify:library-loads passes on empty library", "status": "done", "note": "node verify-library-loads.mjs: 4/4 pass. 'phase 1 populated Lib.items + Layers.remap fired' step is informational only (Lib.items stays at -1 because Lib never instantiates). Manifest 404 is the new normal."},
       {"id": "3.3", "title": "visual check: Media Manager shows drop files", "status": "done", "note": "Puppeteer-based verify covers this — Lib.items=-1, Layers.list=0, no console errors. The 'drop files' empty state is what users will see."}
     ]},
-    {"id": 4, "title": "AGENTS.md + docs (~30 min)", "tasks": [{"id": "4.1", "title": "AGENTS.md: update library/ entry"}, {"id": "4.2", "title": "README.md: remove LIBRARY_BLOB_URL mention"}, {"id": "4.3", "title": "SECURITY.md: clarify library is user uploads only"}]},
+    {"id": 4, "title": "AGENTS.md + docs (~30 min)", "tasks": [
+      {"id": "4.1", "title": "AGENTS.md: update library/ entry", "status": "pending", "note": "BLOCKED — AGENTS.md is a protected agent-instruction file. Patch tool refuses. Diff printed for manual apply via `git apply` or `patch -p1`. 5 hunks, ~12 lines of edits total."},
+      {"id": "4.2", "title": "README.md: remove LIBRARY_BLOB_URL mention", "status": "done", "note": "Removed '27-item library' from build comment, 'library/' from project tree, replaced 'drop a library of clips' / 'library-driven' / 'your library' / 'song and library' phrasing. No LIBRARY_BLOB_URL references found (only references to curated asset bundles)."},
+      {"id": "4.3", "title": "SECURITY.md: clarify library is user uploads only", "status": "done", "note": "Single mention of 'library assets' in the threat model — still accurate (user uploads ARE the library now). No edit needed."},
+      {"id": "4.4", "title": "docs/VERCEL-DEPLOY.md: remove build:vercel + fetch-library refs", "status": "done", "note": "Replaced `npm run build:vercel` step with `npm run build` since the script is gone. Removed the `scripts/fetch-library.mjs` line. Added a one-line note that the curated library was removed 2026-09-13."},
+      {"id": "4.5", "title": "docs/status-2026-09-05.md: supersede note", "status": "done", "note": "Doc is frozen historical record from 2026-09-05. Added a 'Superseded 2026-09-13' footer explaining the removal rather than rewriting the body."}
+    ]},
     {"id": 5, "title": "ship + verify (~1 hour)", "tasks": [{"id": "5.1", "title": "npm run check + check:verify green"}, {"id": "5.2", "title": "branch + commit + push + open PR"}, {"id": "5.3", "title": "verify Vercel deploy: no library/ in dist, audios/ present"}]}
   ],
   "estimatedHours": 4.5,

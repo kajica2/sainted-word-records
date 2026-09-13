@@ -126,3 +126,31 @@ loader Just Works without any caller changes.
 - `npm run check`: ALL GREEN.
 
 Stage 3 actual time: ~10 min vs 30 min plan.
+
+
+## 2026-09-13T04:35:00Z · STAGE 4 · mostly done · hermes
+
+Stage 4 took ~15 min for the unprotected files; AGENTS.md is blocked.
+
+### Done
+- README.md: 5 hunks cleaned. 'library-driven' → 'audio-reactive', 'drop
+  a library of clips' → 'drop your clips', '27-item library' from build
+  comment, library/ from project tree.
+- docs/VERCEL-DEPLOY.md: replaced `npm run build:vercel` step with `npm
+  run build`, removed the `scripts/fetch-library.mjs` line, added a
+  1-line note that the curated library was removed 2026-09-13.
+- docs/status-2026-09-05.md: added a 'Superseded 2026-09-13' footer
+  rather than rewriting the historical body. Doc is frozen record.
+- SECURITY.md: only mention is 'library assets' in a generic threat list;
+  still accurate (user uploads ARE the library now). No edit.
+
+### Blocked
+- AGENTS.md: the patch tool refuses to write to protected
+  agent-instruction files. The exact 5-hunk unified diff was printed
+  in chat for manual application via `git apply` or `patch -p1`.
+
+### Verification
+- npm run check: ALL GREEN (no syntax regressions from doc edits).
+
+Stage 4 actual time: ~15 min (vs 30 min plan, less the AGENTS.md
+apply step which is now user-driven).
