@@ -306,6 +306,14 @@
       "destination": "/gallery-vintage.html"
     },
     {
+      "source": "/music-video-gallery",
+      "destination": "/versions/music-video-gallery.html"
+    },
+    {
+      "source": "/music-video-gallery/",
+      "destination": "/versions/music-video-gallery.html"
+    },
+    {
       "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
     },

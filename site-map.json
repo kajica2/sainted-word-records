@@ -171,6 +171,10 @@
           "label": "Vintage",
           "href": "/gallery/vintage",
           "description": "Vintage compositions"
+        },
+        {
+          "href": "/versions/music-video-gallery",
+          "label": "Music videos"
         }
       ]
     },
