@@ -62,15 +62,6 @@
       ]
     },
     {
-      "source": "/library/:path*",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/:path*.(png|jpg|jpeg|webp|avif|gif|svg|ico)",
       "headers": [
         {

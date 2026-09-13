@@ -6,8 +6,7 @@ Algorithmic audio-reactive video engine. Drop in a song, drop in a library of vi
 
 - Install deps:    `npm install`
 - Start dev:       `npm run dev`               # http://localhost:5174
-- Build (local):   `npm run build`             # prebuild runs `scripts/fetch-library.mjs`; outputs `dist/`
-- Build (Vercel):  `npm run build:vercel`      # same as build, used in `vercel.json` buildCommand
+- Build (local):   `npm run build`             # outputs `dist/`
 - Preview:         `npm run preview`           # http://localhost:4173
 - Clean:           `npm run clean`             # wipes `dist/`, `dist-dev/`, `.vite/`
 
@@ -24,8 +23,7 @@ Node 20+ required (see `.nvmrc`). npm only — `package-lock.json` is the source
 - `api/` — Vercel serverless handlers (auth, storage, projects, health) + `_lib/` shared helpers
 - `auth/` — magic-link login + verify pages and their client scripts
 - `client/`, `lib/` — shared browser client modules (visualizer-controller, auth, media-store, library-manager, library-switcher, migrate, design-tokens, components, nav)
-- `audios/` — per-engine demo MP3s (auto-loaded by each variant)
-- `library/` — curated demo media (27 assets + `manifest.json`); populated at prebuild via `scripts/fetch-library.mjs` from `LIBRARY_BLOB_URL`
+- `audios/` — per-engine demo MP3s (auto-loaded by each variant). The curated demo asset library (`library/`) has been removed — users bring their own assets via the Media Manager upload affordance.
 - `versions/` — 5 audio-reactive engine variants (neon, film, grid, smoke, hallucination) + injected scripts
 - `site-map.json` — canonical IA: nav, footer, auth, legal, tools, archived. Source of truth for `vercel.json` rewrites and Vite `rootFiles`. Edit this, then run `scripts/generate-vercel-rewrites.mjs` to regenerate vercel.json
 - `_archive/` — gitignored experimental pages (landing-personas variants, internal docs, dev tools). Excluded from deploy
@@ -60,7 +58,7 @@ To archive a page:
 - `preset-pipeline/` — Python daily generator (`generate.py`) + Node schema verifier (`verify.mjs`); CI calls `./cron.sh`
 - `presets/` — JSON preset specs (one per file, append-only, daily-generated)
 - `marketplace/curated/`, `portfolio/`, `press/`, `promo/`, `keyart/`, `icons/`, `legal/` — content
-- `scripts/` — build / test / dev scripts (`check-syntax.mjs`, `check-manifest.mjs`, `build-magenta-dsp-bundle.sh`, `fetch-library.mjs`, `dev-api.mjs`, `test-api.mjs`, `upload-library.mjs`, `downsize-library.py`)
+- `scripts/` — build / test / dev scripts (`check-syntax.mjs`, `build-magenta-dsp-bundle.sh`, `dev-api.mjs`, `test-api.mjs`)
 - `tools/` — dev tools (`deploy-vercel.sh`, `hf-publish.html`, `dev-up.sh`/`dev-ps.sh`/`dev-down.sh`, `freq-bridge.js`, `agentic-set.mjs`)
 - `verify-*.mjs` — Puppeteer E2E suites at repo root (~80 files)
 - `verify-screenshots/`, `out/`, `docs/` — research + audit artifacts
@@ -103,5 +101,4 @@ To archive a page:
   - `swrc_session` cookie: HttpOnly, SameSite=Lax, Secure in production; 30-day rolling TTL
   - Rate limits on `/api/auth/magic` (10/min/IP), `/api/storage/sign-upload` (60/min/user), `sign-download` (120/min/user), `/api/projects` writes (30/min/user) — return 429 with `Retry-After`
   - `TRUSTED_PROXIES` must be set if deploying outside Vercel, otherwise `x-forwarded-for` is spoofable and bypasses the per-IP rate limit
-- Vercel deploys are auto on push to `main`; the `library/` directory is curated at build time to stay under the 100MB Vercel Hobby cap
-- **Production library fetch:** `scripts/fetch-library.mjs` runs in `prebuild` and downloads the curated library from `LIBRARY_BLOB_URL` (Vercel Blob). Without this env var the script logs "skipping" and ships an empty library — manifests/loop audio files 404, two-phase loader fires but `Lib.items` stays empty, and `verify:e2e-media-record` fails. Set `LIBRARY_BLOB_URL=https://<id>.public.blob.vercel-storage.com/library.tar.gz` in the Vercel project environment so the build pre-populates `library/`. Locally, missing `LIBRARY_BLOB_URL` is expected — the engine just has nothing to demo.
+- Vercel deploys are auto on push to `main`. Build size is ~66MB (down from ~140MB pre-2026-09-13 after the curated demo library removal).

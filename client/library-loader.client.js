@@ -1,23 +1,22 @@
 // client/library-loader.client.js — shared two-phase library loader
 // for engine.html and the 13 versions/*.html pages.
 //
-// Phase 1 (boot, blocking): fetch the manifest + first N image thumbs.
-//   Fast, cheap decodes. User can drop a song and start playing
-//   immediately without waiting on 5 videos to decode.
+// The curated demo library (./library/*) has been removed. This loader
+// is now a stub: it fetches the manifest just to confirm the 404, then
+// resolves window.__swrPhase2Done immediately. Users bring their own
+// assets via the Media Manager upload affordance.
 //
-// Phase 2 (idle): videos + remaining thumbs deferred via
-//   requestIdleCallback (timeout 5s) with setTimeout(100) fallback.
-//   By the time the user opens the library tab the rest is already
-//   in IDB.
+// The two-phase load + phase-1/phase-2 IDB seeding logic from the
+// original implementation is preserved verbatim — if the manifest ever
+// returns a 200 again (e.g. user re-enables the library feature later),
+// the loader Just Works without any caller changes.
 //
-// First-paint payload drops from ~24 MB (manifest + 5 videos + all
-// thumbs) to ~1 MB (manifest + 8 thumbs).
-//
-// Exposes window.__swrPhase2Done — a Promise that resolves when
-// phase 2 finishes. Verify tests can `await window.__swrPhase2Done`
-// instead of magic-number setTimeouts. The engine.html inline
-// loader (commit 36a3fc9 + faff7af) is the predecessor; this file
-// extracts the same logic for reuse across versions/*.html.
+// API surface is unchanged:
+//   window.SWR_LIBLOAD.boot({ manifestUrl, filePrefix, phase1Count,
+//                             Lib, onPhase1Done, doneFlag })
+//   window.__swrPhase2Done — Promise that resolves when phase 2 finishes
+//                            (or when the manifest 404s, which is now the
+//                            default state).
 //
 // Usage:
 //   <script src="../client/library-loader.client.js" defer></script>
@@ -51,16 +50,17 @@
     var onPhase1Done = typeof opts.onPhase1Done === 'function' ? opts.onPhase1Done : null;
     var doneFlag     = opts.doneFlag || 'swr-manifest-loaded';
 
-    if (!Lib || typeof Lib.addFiles !== 'function') {
-      // No library to populate; resolve the promise so callers don't hang.
-      return Promise.resolve();
-    }
-
+    // Expose phase2Done BEFORE the async work starts so verify-* tests
+    // that race to await it don't hang on a missing property.
     let phase2Resolve;
     const phase2Done = new Promise((res) => { phase2Resolve = res; });
-    // Expose globally so verify tests can `await window.__swrPhase2Done`
-    // instead of guessing timeouts.
     window.__swrPhase2Done = phase2Done;
+
+    if (!Lib || typeof Lib.addFiles !== 'function') {
+      // No library to populate; resolve the promise so callers don't hang.
+      phase2Resolve();
+      return Promise.resolve();
+    }
 
     return (async () => {
       try {

@@ -1,6 +1,6 @@
 # Sainted Word Records
 
-> **Audio-reactive video engine that lives in your browser.** Drop a song, drop a library of clips, get a music video. **23 personas, 20 CSS filters, local-first, zero backend, your-footage-driven.**
+> **Audio-reactive video engine that lives in your browser.** Drop a song, drop your clips, get a music video. **23 personas, 20 CSS filters, local-first, zero backend, your-footage-driven.**
 
 **🌐 Live:** [sainted-word-records.vercel.app](https://sainted-word-records.vercel.app/)
 
@@ -10,7 +10,7 @@
 
 | You want to | Use | Price |
 |---|---|---|
-| Make a music video from **your** song + **your** library | The engine (free, browser-native) | Free |
+| Make a music video from **your** song + **your** clips | The engine (free, browser-native) | Free |
 | Have someone **render it for you** (5 curated media sets) | [Service tier](./campaign.html#pricing) | €25 / €45 / €75 |
 | Use the engine yourself, **no watermark**, with credits | [Personal Tier (PT)](./campaign.html#pt) | €120 / €280 / €600 (one-time) |
 
@@ -20,7 +20,7 @@ Pick one. Mix-and-match. The engine stays open-source under MIT.
 
 ## What is this?
 
-A browser-native, library-driven, audio-reactive video engine for indie musicians, beatmakers, small labels, and live performers. The product exists because the current options for music-driven visuals split into three bad categories:
+A browser-native, audio-reactive video engine for indie musicians, beatmakers, small labels, and live performers. The product exists because the current options for music-driven visuals split into three bad categories:
 
 1. **Template tools** (Renderforest, VibeMV) — quick, generic, every visualizer looks the same
 2. **AI tools** (Freebeat, Plazmapunk, Neural Frames) — novel footage, but not yours
@@ -28,7 +28,7 @@ A browser-native, library-driven, audio-reactive video engine for indie musician
 
 SWR is the **fourth category**: load **your** clips, drop in **your** song, the engine analyses the audio (BPM, key, beats, onsets, chromagram) and renders a **real-time reactive composition** with 23 persona presets, 5 character presets, and 20 stackable CSS filters. Output: WebM at 1080p (MP4 in v1.1).
 
-The whole pipeline runs **locally in the browser** — no upload, no server render, no SaaS fees, no telemetry. The song and library are stored in **IndexedDB** and persist across reloads. **PWA-installable** on iOS, Android, and desktop.
+The whole pipeline runs **locally in the browser** — no upload, no server render, no SaaS fees, no telemetry. Your song and clips are stored in **IndexedDB** and persist across reloads. **PWA-installable** on iOS, Android, and desktop.
 
 ---
 
@@ -103,7 +103,7 @@ npm run dev   # http://localhost:5174
 Or production build:
 
 ```bash
-npm run build  # → dist/ (engine + 5 versions + 27-item library)
+npm run build  # → dist/ (engine + 5 versions)
 ```
 
 ---
@@ -116,7 +116,6 @@ sainted-word-records/
 ├── landing.html              # Public landing page
 ├── campaign.html             # 17-section sales page with pricing
 ├── personas.html             # 23-persona gallery with family filter
-├── library/                  # 27 demo assets (12 mp4 + 15 jpg/png)
 ├── versions/                 # 5 audio-reactive variants (neon, film, grid, smoke, hallucination)
 ├── fx-postprocess.js         # WebGL 14-FX pipeline
 ├── personas.js               # 23 personas as state
