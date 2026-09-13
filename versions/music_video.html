@@ -1943,12 +1943,23 @@
 
     })();
 
-    // Wire the depth + N sliders so they actually move things (Phase A
-    // just keeps the values in a window-scope state object so later
-    // phases can read them from applyR).
-    const HologramState = {
+    // Hologram engine v1 — extended state object. Phase D wiring.
+    // The renderer's wrapApplyR reads `features`, `focus`,
+    // `focusAmount`, `hidden`; the keys handler mutates `focus`,
+    // `depth`, `focusAmount`, `hidden`. The song drop path stores
+    // the audio analysis result on `_audio` and recomputes
+    // `features` from it. Exposed as window.SWR_HOLOGRAM_STATE for
+    // Phase F Puppeteer assertions.
+    const HologramState = window.SWR_HOLOGRAM_STATE = {
       depth: 0.5,
       neighbours: 4,
+      focus: null,
+      features: null,
+      focusAmount: 0,
+      hidden: false,
+      _audio: null,
+      _ready: false,
+      _error: null,
     };
     (function wireSliders() {
       const dIn = $('depth'), dOut = $('depth-v');
@@ -1975,6 +1986,103 @@
         });
       }
     })();
+
+    // ---- Hologram engine wiring (Phase D) ---------------------------
+    // Build a hologram instance from presets/manifest.json, attach
+    // the wrapped applyR, mount the panel, install the keys, and
+    // hook the song-drop path so the audio analyzer populates
+    // HologramState._audio + features.
+    //
+    // Manifest load: synchronous XHR against ../presets/manifest.json.
+    // Falls back gracefully (ready=false, wrap path returns the
+    // original applyR unchanged) if the file is missing.
+    let __HOLO_PRESETS = [];
+    try {
+      const __req = new XMLHttpRequest();
+      __req.open('GET', '../presets/manifest.json', false); // sync
+      __req.send(null);
+      if (__req.status === 200) {
+        const __m = JSON.parse(__req.responseText);
+        __HOLO_PRESETS = Array.isArray(__m.presets) ? __m.presets : [];
+      }
+    } catch (e) {
+      HologramState._error = String(e && e.message || e);
+    }
+
+    let __HOLO_PANEL = null;
+    if (window.SWR_HOLOGRAM && window.SWR_HOLOGRAM_INSTALL
+        && window.SWR_HOLOGRAM_KEYS && __HOLO_PRESETS.length) {
+      const __holo = window.SWR_HOLOGRAM.build(__HOLO_PRESETS);
+      window.SWR_HOLOGRAM_INSTALL.attach(__holo, __HOLO_PRESETS);
+
+      // Wrap applyR for the SWR_RENDER call below. We rebind into a
+      // local so the call site at line 915 stays a simple name ref.
+      const __wrapOpts = {
+        hStateGetter: () => HologramState,
+        holo: __holo,
+      };
+      const __origApplyR = applyR;
+      applyR = window.SWR_HOLOGRAM_INSTALL.wrapApplyR(function (l) {
+        return __origApplyR(l);
+      }, __holo, {
+        get features()   { return HologramState.features; },
+        get focus()      { return HologramState.focus; },
+        get depth()      { return HologramState.depth; },
+        get focusAmount(){ return HologramState.focusAmount; },
+      });
+      // Stash for diagnostics.
+      window.__SWR_HOLOGRAM = __holo;
+
+      // Mount the panel on the existing canvas / list / pill.
+      const __audioRef = {
+        get current() { return HologramState._audio; },
+      };
+      const __hStateRef = {
+        get current() { return HologramState; },
+      };
+      __HOLO_PANEL = window.SWR_HOLOGRAM_INSTALL.mountPanel({
+        canvasEl: $('gradient'),
+        neighboursListEl: $('neighbours-list'),
+        synthPillEl: $('synth-pill'),
+        hologramInstance: __holo,
+        audioRef: __audioRef,
+        hStateRef: __hStateRef,
+      });
+
+      // Wire the keys handler — capture phase so it doesn't conflict
+      // with the engine's SWR_KEYS help overlay.
+      window.SWR_HOLOGRAM_KEYS.install({
+        state: HologramState,
+        neighboursFn: __holo.presetMap.neighbours.bind(__holo.presetMap),
+        presetMap: __holo.presetMap,
+        onChange: function () { if (__HOLO_PANEL) __HOLO_PANEL.redraw(); },
+      });
+
+      HologramState._ready = true;
+    }
+
+    // Wrap the existing song-drop handler to run the audio analyzer
+    // and stash the result on HologramState. Original UI WIRING
+    // (UI WIRING section below) already calls A.load() — we add a
+    // post-load hook here that consumes the same file.
+    const __origLoadSong = $('song-input');
+    if (__origLoadSong && window.SWR_TRACK_ANALYZE) {
+      __origLoadSong.addEventListener('change', function (e) {
+        const f = (e.target.files || [])[0];
+        if (!f) return;
+        Promise.resolve(window.SWR_TRACK_ANALYZE(f)).then(function (audio) {
+          HologramState._audio = audio;
+          HologramState.features = window.SWR_AUDIO_TO_FEATURES
+            ? window.SWR_AUDIO_TO_FEATURES(audio)
+            : null;
+          if (__HOLO_PANEL) __HOLO_PANEL.redraw();
+        }).catch(function (err) {
+          HologramState._error = String(err && err.message || err);
+        });
+      });
+    }
+
+    // ---- /Hologram engine wiring ------------------------------------
 
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
 
@@ -3782,6 +3890,9 @@
   })();
 </script>
   <script src="../engine-transitions.client.js" defer></script>
+<script src="../client/hologram-presets.client.js"></script>
+<script src="../client/track-analyzer.client.js"></script>
+<script src="../client/hologram-renderer.client.js"></script>
+<script src="../client/hologram-keys.client.js"></script>
 </body>
-
 </html>
