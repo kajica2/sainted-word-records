@@ -534,7 +534,23 @@
       'box-shadow:0 12px 40px rgba(255,61,146,0.25)',
       'user-select:none',
     ].join(';');
-    const rows = help().map(function (r) {
+    // ---- Shortcut honesty: page-aware rows --------------------------
+    //
+    // music_video.html also loads client/hologram-keys.client.js,
+    // which installs in the CAPTURE phase and stopPropagation()s the
+    // keys it handles — so on that page "0" resets the hologram, it
+    // does NOT deselect the layer, and ←/→ + h belong to the
+    // hologram panel. When that module is present, relabel the rows
+    // it actually swallows and append its own keys, so the ? overlay
+    // matches live behavior instead of the engine.html default.
+    // engine.html never loads hologram-keys, so it is unaffected.
+    let helpRows = help();
+    const holoKeys = window.SWR_HOLOGRAM_KEYS;
+    if (holoKeys && Array.isArray(holoKeys.HELP)) {
+      helpRows = helpRows.filter(function (r) { return r.keys !== '0'; });
+      helpRows = helpRows.concat(holoKeys.HELP);
+    }
+    const rows = helpRows.map(function (r) {
       return '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0;border-bottom:1px solid rgba(255,61,146,0.08);">' +
                '<span style="color:#ff3d92;font-family:monospace;flex-shrink:0;min-width:90px;">' + r.keys + '</span>' +
                '<span style="text-align:right;color:#ccc;">' + r.label + '</span>' +
@@ -611,7 +627,14 @@
         case 'Period':          action = ev.shiftKey ? ACTIONS.nudgeContrastDown : ACTIONS.nudgeHueUp; break;
         case 'Semicolon':       action = ev.shiftKey ? ACTIONS.nudgeBrightnessUp : ACTIONS.nudgeScaleDown; break;
         case 'Quote':           action = ev.shiftKey ? ACTIONS.nudgeBrightnessDown : ACTIONS.nudgeScaleUp; break;
-        case 'Slash':           action = ACTIONS.nudgeOpacityDown; break;
+        // '?' must be claimed INSIDE the switch, before the bare-Slash
+        // case: on US layouts Shift+/ sends code 'Slash', and a plain
+        // `case 'Slash': break` would swallow it — the post-switch
+        // `if (!action && key === '?')` fallback below could then never
+        // fire, making the help overlay unopenable by keyboard. (This
+        // is exactly that bug, fixed 2026-09-14.)
+        case 'Slash':
+          action = (key === '?' || ev.shiftKey) ? ACTIONS.showHelp : ACTIONS.nudgeOpacityDown; break;
         case 'Delete':
         case 'Backspace':       action = ACTIONS.deleteLayer; break;
         case 'Escape':          action = ACTIONS.closeSettings; break;
@@ -787,7 +810,7 @@
       { keys: ', / .',          label: '− / + hue (±6°)' },
       { keys: "; / '",           label: '− / + scale' },
       { keys: '/',              label: '− opacity' },
-      { keys: 'Shift+/',        label: '+ opacity (legacy: bump fadeIn)' },
+      { keys: '= / -',          label: '+ / − opacity  ·  Shift = bump fadeIn/fadeOut' },
       { keys: 'Shift+,',        label: '− contrast  ·  Shift = ×4 nudge' },
       { keys: 'Shift+.',        label: '+ contrast' },
       { keys: 'Shift+;',        label: '− brightness' },
@@ -799,7 +822,6 @@
       { keys: 'C',              label: 'cycle blend mode' },
       { keys: 'Y',              label: 'duplicate selected layer' },
       { keys: 'Del / Bksp',     label: 'remove selected layer' },
-      { keys: 'Shift+T',        label: 'bump fadeInMs by 100ms' },
       { keys: 'Shift+-',        label: 'bump fadeOutMs by 100ms' },
 
       // ---- Panels ----
