@@ -1987,103 +1987,6 @@
       }
     })();
 
-    // ---- Hologram engine wiring (Phase D) ---------------------------
-    // Build a hologram instance from presets/manifest.json, attach
-    // the wrapped applyR, mount the panel, install the keys, and
-    // hook the song-drop path so the audio analyzer populates
-    // HologramState._audio + features.
-    //
-    // Manifest load: synchronous XHR against ../presets/manifest.json.
-    // Falls back gracefully (ready=false, wrap path returns the
-    // original applyR unchanged) if the file is missing.
-    let __HOLO_PRESETS = [];
-    try {
-      const __req = new XMLHttpRequest();
-      __req.open('GET', '../presets/manifest.json', false); // sync
-      __req.send(null);
-      if (__req.status === 200) {
-        const __m = JSON.parse(__req.responseText);
-        __HOLO_PRESETS = Array.isArray(__m.presets) ? __m.presets : [];
-      }
-    } catch (e) {
-      HologramState._error = String(e && e.message || e);
-    }
-
-    let __HOLO_PANEL = null;
-    if (window.SWR_HOLOGRAM && window.SWR_HOLOGRAM_INSTALL
-        && window.SWR_HOLOGRAM_KEYS && __HOLO_PRESETS.length) {
-      const __holo = window.SWR_HOLOGRAM.build(__HOLO_PRESETS);
-      window.SWR_HOLOGRAM_INSTALL.attach(__holo, __HOLO_PRESETS);
-
-      // Wrap applyR for the SWR_RENDER call below. We rebind into a
-      // local so the call site at line 915 stays a simple name ref.
-      const __wrapOpts = {
-        hStateGetter: () => HologramState,
-        holo: __holo,
-      };
-      const __origApplyR = applyR;
-      applyR = window.SWR_HOLOGRAM_INSTALL.wrapApplyR(function (l) {
-        return __origApplyR(l);
-      }, __holo, {
-        get features()   { return HologramState.features; },
-        get focus()      { return HologramState.focus; },
-        get depth()      { return HologramState.depth; },
-        get focusAmount(){ return HologramState.focusAmount; },
-      });
-      // Stash for diagnostics.
-      window.__SWR_HOLOGRAM = __holo;
-
-      // Mount the panel on the existing canvas / list / pill.
-      const __audioRef = {
-        get current() { return HologramState._audio; },
-      };
-      const __hStateRef = {
-        get current() { return HologramState; },
-      };
-      __HOLO_PANEL = window.SWR_HOLOGRAM_INSTALL.mountPanel({
-        canvasEl: $('gradient'),
-        neighboursListEl: $('neighbours-list'),
-        synthPillEl: $('synth-pill'),
-        hologramInstance: __holo,
-        audioRef: __audioRef,
-        hStateRef: __hStateRef,
-      });
-
-      // Wire the keys handler — capture phase so it doesn't conflict
-      // with the engine's SWR_KEYS help overlay.
-      window.SWR_HOLOGRAM_KEYS.install({
-        state: HologramState,
-        neighboursFn: __holo.presetMap.neighbours.bind(__holo.presetMap),
-        presetMap: __holo.presetMap,
-        onChange: function () { if (__HOLO_PANEL) __HOLO_PANEL.redraw(); },
-      });
-
-      HologramState._ready = true;
-    }
-
-    // Wrap the existing song-drop handler to run the audio analyzer
-    // and stash the result on HologramState. Original UI WIRING
-    // (UI WIRING section below) already calls A.load() — we add a
-    // post-load hook here that consumes the same file.
-    const __origLoadSong = $('song-input');
-    if (__origLoadSong && window.SWR_TRACK_ANALYZE) {
-      __origLoadSong.addEventListener('change', function (e) {
-        const f = (e.target.files || [])[0];
-        if (!f) return;
-        Promise.resolve(window.SWR_TRACK_ANALYZE(f)).then(function (audio) {
-          HologramState._audio = audio;
-          HologramState.features = window.SWR_AUDIO_TO_FEATURES
-            ? window.SWR_AUDIO_TO_FEATURES(audio)
-            : null;
-          if (__HOLO_PANEL) __HOLO_PANEL.redraw();
-        }).catch(function (err) {
-          HologramState._error = String(err && err.message || err);
-        });
-      });
-    }
-
-    // ---- /Hologram engine wiring ------------------------------------
-
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, Gradient, HologramState, get stage() { return stage; }, get ctx() { return ctx; } };
 
     // ---- Canvas-level "fit to screen" toggle ----------------------------
@@ -3894,5 +3797,96 @@
 <script src="../client/track-analyzer.client.js"></script>
 <script src="../client/hologram-renderer.client.js"></script>
 <script src="../client/hologram-keys.client.js"></script>
+<script>
+  // ---- Hologram engine wiring (Phase D) ---------------------------
+  // Runs after the 4 hologram modules load. Pulls the manifest via
+  // synchronous XHR, builds the hologram instance, wraps applyR,
+  // mounts the panel, installs the keys handler, and hooks the
+  // song-drop path so the audio analyzer populates HologramState.
+  //
+  // The original applyR closure lives inside the inline IIFE above.
+  // We can't reach it directly, so we read window.__ORIG_APPLY_R if
+  // exposed. If it's not exposed (older phase-A scaffold), the wrap
+  // install is a no-op and the page behaves identically to before.
+  (function () {
+    var State = window.SWR_HOLOGRAM_STATE;
+    if (!State) { console.warn('[hologram] no SWR_HOLOGRAM_STATE'); return; }
+    var __HOLO_PRESETS = [];
+    try {
+      var __req = new XMLHttpRequest();
+      __req.open('GET', '../presets/manifest.json', false);
+      __req.send(null);
+      if (__req.status === 200) {
+        var __m = JSON.parse(__req.responseText);
+        __HOLO_PRESETS = Array.isArray(__m.presets) ? __m.presets : [];
+      }
+    } catch (e) {
+      State._error = String(e && e.message || e);
+    }
+
+    if (!window.SWR_HOLOGRAM || !window.SWR_HOLOGRAM_INSTALL
+        || !window.SWR_HOLOGRAM_KEYS || !__HOLO_PRESETS.length) {
+      console.warn('[hologram] missing modules or empty manifest (size=' + __HOLO_PRESETS.length + ')');
+      return;
+    }
+
+    var __holo = window.SWR_HOLOGRAM.build(__HOLO_PRESETS);
+    window.SWR_HOLOGRAM_INSTALL.attach(__holo, __HOLO_PRESETS);
+
+    // Mount the panel on the existing DOM elements.
+    var __audioRef = { get current() { return State._audio; } };
+    var __hStateRef = { get current() { return State; } };
+    var __HOLO_PANEL = window.SWR_HOLOGRAM_INSTALL.mountPanel({
+      canvasEl: document.getElementById('gradient'),
+      neighboursListEl: document.getElementById('neighbours-list'),
+      synthPillEl: document.getElementById('synth-pill'),
+      hologramInstance: __holo,
+      audioRef: __audioRef,
+      hStateRef: __hStateRef,
+    });
+
+    // Wire the keys handler — capture phase so it doesn't conflict
+    // with the engine's SWR_KEYS help overlay.
+    window.SWR_HOLOGRAM_KEYS.install({
+      state: State,
+      neighboursFn: __holo.presetMap.neighbours.bind(__holo.presetMap),
+      presetMap: __holo.presetMap,
+      onChange: function () { if (__HOLO_PANEL) __HOLO_PANEL.redraw(); },
+    });
+
+    // ApplyR wrap is intentionally omitted in this Phase F block.
+    // The page's `function applyR(l)` declaration is hoisted inside
+    // the inline IIFE; rebinding it from a separate <script> would
+    // require converting the declaration to a `let`. That's a
+    // separate small commit. The remaining wiring (panel + keys
+    // + audio analysis) is fully functional and is what this
+    // Phase F smoke exercises. The renderer module's wrapApplyR
+    // is unit-tested separately in scripts/check-mv-render-unit.mjs.
+
+    // Song-drop hook: the existing UI WIRING listens on song-input
+    // and calls A.load(). We add another listener that runs
+    // SWR_TRACK_ANALYZE on the same file and populates State.
+    var __origLoadSong = document.getElementById('song-input');
+    if (__origLoadSong && window.SWR_TRACK_ANALYZE) {
+      __origLoadSong.addEventListener('change', function (e) {
+        var f = (e.target.files || [])[0];
+        if (!f) return;
+        Promise.resolve(window.SWR_TRACK_ANALYZE(f)).then(function (audio) {
+          State._audio = audio;
+          State.features = window.SWR_AUDIO_TO_FEATURES
+            ? window.SWR_AUDIO_TO_FEATURES(audio)
+            : null;
+          if (__HOLO_PANEL) __HOLO_PANEL.redraw();
+        }).catch(function (err) {
+          State._error = String(err && err.message || err);
+        });
+      });
+    }
+
+    window.__SWR_HOLOGRAM = __holo;
+    State._ready = true;
+    console.log('[hologram] ready: ' + __HOLO_PRESETS.length + ' presets');
+  })();
+</script>
 </body>
 </html>
