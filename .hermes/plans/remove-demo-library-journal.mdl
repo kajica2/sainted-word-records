@@ -154,3 +154,36 @@ Stage 4 took ~15 min for the unprotected files; AGENTS.md is blocked.
 
 Stage 4 actual time: ~15 min (vs 30 min plan, less the AGENTS.md
 apply step which is now user-driven).
+
+
+## 2026-09-13T05:00:00Z · STAGE 5 · mostly done · hermes
+
+Stage 5 took ~10 min (planned 1 hour; the verification gates ran clean
+because Stages 1-4 already exercised everything).
+
+### Verification
+- `npm run check`: ALL GREEN
+- `npm run check:verify`: 5/5 smokes pass
+  (cloud-auth, hf-publish, rotation-enabled, autoplay, e2e-media-record)
+- Vercel preview build: SUCCESS (15s, clean)
+
+### Ship
+- 4 commits pushed to origin/feat/remove-demo-library:
+  - df0a19f chore(library): Stage 1 — delete demo library + dead scripts
+  - feb82ab feat(build): strip curated demo library from build pipeline
+  - 5a8224e feat(library-loader): stub the curated library loader to no-op
+  - fe4308f docs(library): update README + Vercel deploy + status doc
+- PR #77 opened: https://github.com/kajica2/sainted-word-records/pull/77
+- 19 files changed: +422 / -1303 LoC net
+- PR state: MERGEABLE. CI check + verify IN_PROGRESS.
+- Diff size: dist/ shrunk from ~140MB+ to 66MB (-53%)
+
+### Pending
+- AGENTS.md follow-up. Patch saved at `/tmp/agents-md-library.patch`.
+  Apply from worktree root: `git apply /tmp/agents-md-library.patch`.
+  5 hunks, ~12 lines. Single follow-up commit, or skip — drift is
+  small and isolated to the doc.
+- PR #77 awaiting your merge. CI will run fully; Vercel will auto-deploy
+  to production on merge to main.
+
+Stage 5 actual time: ~10 min vs 1 hour plan (gates were pre-exercised).
