@@ -1,0 +1,49 @@
+# remove-demo-library-journal
+
+Append-only findings log for `feat/remove-demo-library`. Each entry
+is written when a worker (sub-agent or human) finishes a task.
+
+---
+
+## 2026-09-13T02:30:00Z · PLAN · created · hermes
+
+User decision tree:
+- Scope: curated `library/` only (keep `audios/`, keep fetch-library.mjs active) — wait,
+  corrected: delete fetch-library.mjs entirely. Library never re-populates.
+- Production: library/ AND audios/ empty on the live URL.
+- Confirmed: `audios/` is the per-variant auto-loaded demo MP3, NOT a curated
+  bundle. Each `versions/*.html` references `../audios/<variant>.mp3`. Keep.
+- `vite.config.js` already handles the no-library case (lines 338-340):
+  logs a warning and ships empty. Build itself is unaffected.
+- `client/library-loader.client.js`, `lib/library-*.client.js`,
+  `client/library-packs.client.js` are all user-library code (IndexedDB),
+  not demo-library code. Keep all of them.
+- Asset curator (`client/asset-curator.client.js`) runs on user uploads.
+  Keep.
+- 5 stages, ~4.5 hours total. Risk concentrated in Stage 2 (engine.html
+  block at 6524-6559 may be bigger than the read suggests — verify on
+  the first read).
+
+Artifacts:
+- .hermes/plans/remove-demo-library.md (the plan)
+- .hermes/plans/remove-demo-library-state.json (machine-readable)
+- .hermes/plans/remove-demo-library-journal.mdl (this file)
+
+Stage 1 ready: `rm -rf library/` + `git rm` dead scripts. No push yet.
+
+
+## 2026-09-13T02:45:00Z · STAGE 1 · done · hermes
+
+- `rm -rf library/` — 126MB / 173 files removed. Working tree shows them as
+  `D library/...` (deleted).
+- `git rm scripts/{fetch-library,upload-library,build-manifest,compress-gifts,downsize-library}.{mjs,py}`
+  + `scripts/check-manifest.mjs` — 6 files staged.
+- rg orphan scan: remaining refs are in `vite.config.js` (Stage 2.1),
+  `package.json` (Stage 2.3), `AGENTS.md` (Stage 4.1), and two docs files
+  (`docs/VERCEL-DEPLOY.md`, `docs/status-2026-09-05.md`, both Stage 4).
+  No code-side orphans — no module imports the dead scripts.
+- Did NOT run `npm run check` — expected to fail on `check:manifest` since
+  package.json still references it and the script is now gone. That's
+  Stage 2.3's job.
+
+Stage 1 actual time: ~5 min (faster than planned — pure rm + git rm).
