@@ -177,6 +177,31 @@ try {
   const notRecordingInitially = await page.evaluate(() => !window.__SWR_RECORDER.isRecording());
   check('Recorder starts idle', notRecordingInitially);
 
+  // 16. Presets: API installed, save round-trips, default applies
+  const presetAPI = await page.evaluate(() => !!window.__SWR_PRESETS);
+  check('Presets API installed', presetAPI);
+  const presetGet = await page.evaluate(() => {
+    const p = window.__SWR_PRESETS.get();
+    return p && p.format === 'smr-set' && Array.isArray(p.layers) && p.layers.length === 5;
+  });
+  check('Preset round-trips 5 layers', presetGet);
+  // Modify the first layer's REACT text, set the preset, verify it's set
+  const presetApply = await page.evaluate(() => {
+    const p = window.__SWR_PRESETS.DEFAULT;
+    // Mutate and apply
+    p.layers[0].react = 'TEST_REACT_TOKEN_42';
+    p.layers[1].open = true;
+    p.layers[0].opacity = 73;
+    window.__SWR_PRESETS.set(p);
+    const got = window.__SWR_PRESETS.get();
+    return got.layers[0].react === 'TEST_REACT_TOKEN_42' &&
+           got.layers[1].open === true &&
+           got.layers[0].opacity === 73;
+  });
+  check('Preset apply round-trips state', presetApply);
+  // Restore default
+  await page.evaluate(() => window.__SWR_PRESETS.set(window.__SWR_PRESETS.DEFAULT));
+
 } finally {
   await browser.close();
   server.close();

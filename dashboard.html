@@ -149,9 +149,10 @@
       <div class="flex items-center justify-between px-3 py-2 border-b border-line">
         <span class="micro">Library</span>
         <div class="flex items-center gap-1">
-          <button class="icon-btn" title="Clear"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
-          <button class="icon-btn" title="Save Set"><i class="fa-solid fa-floppy-disk text-[10px]"></i></button>
-          <button class="icon-btn" title="Import .SMR-SET"><i class="fa-solid fa-file-import text-[10px]"></i></button>
+          <button id="lib-clear"  class="icon-btn" title="Clear"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+          <button id="lib-save"   class="icon-btn" title="Save current layer set (.smr-set.json)"><i class="fa-solid fa-floppy-disk text-[10px]"></i></button>
+          <button id="lib-load"   class="icon-btn" title="Import .SMR-SET"><i class="fa-solid fa-file-import text-[10px]"></i></button>
+          <input type="file" id="lib-file" accept=".json,.smr-set,.smr-set.json,application/json" style="display:none" />
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2 p-3 overflow-y-auto" id="library-grid" style="height: calc(100% - 41px);"></div>
@@ -422,5 +423,6 @@
   </script>
   <script src="/client/dashboard-engine.client.js" defer></script>
   <script src="/client/dashboard-recorder.client.js" defer></script>
+  <script src="/client/dashboard-presets.client.js" defer></script>
 </body>
 </html>
