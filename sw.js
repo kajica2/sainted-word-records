@@ -1,5 +1,5 @@
 // Sainted Word Records — PWA service worker
-const CACHE_VERSION = 'swr-v2';
+const CACHE_VERSION = 'swr-v3';
 // Only paths that exist as separate files in the dist root after Vite build.
 // The engine now lives at /engine/ (rewritten to /engine.html). The 9 client
 // modules (project, mic-input, camera, timeline, trim, media-sets, share,
@@ -117,12 +117,18 @@ self.addEventListener('fetch', (e) => {
   // Same-origin assets (root-level .js, .html, .css, images): cache-first.
   if (sameOrigin) {
     e.respondWith((async () => {
+      // Range requests (video/audio seeking → 206 Partial Response) can't
+      // be cached — Cache.put rejects partial responses with a TypeError.
+      // Serve them straight from the network.
+      if (req.headers.get('range')) return fetch(req);
       const cache = await caches.open(CACHE_VERSION);
       const cached = await cache.match(req);
       if (cached) return cached;
       try {
         const fresh = await fetch(req);
-        if (fresh && fresh.ok) cache.put(req, fresh.clone());
+        if (fresh && fresh.ok && fresh.status === 200 && !fresh.headers.get('content-range')) {
+          cache.put(req, fresh.clone());
+        }
         return fresh;
       } catch (_) {
         return new Response('', { status: 504, statusText: 'Gateway Timeout' });
