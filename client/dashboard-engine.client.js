@@ -189,9 +189,47 @@
   // ─── Render loop ──────────────────────────────────────────
   let raf = null;
   let beatCount = 0;
+  let transition = 'cut';   // current transition (toggled by Transitions tab)
+  let transitionT = 0;        // 0..1 progress for the in-flight transition
+  let prevFrame = null;       // ImageBitmap captured at transition start
+  let TRANSITION_MS = 400;     // transition window
+  // Live filter state driven by the Enhance tab (0..1 each)
+  const filters = { brightness: 0.5, contrast: 0.5, saturation: 0.5, sharp: 0, denoise: 0, vignette: 0 };
+  function applyFilters() {
+    // CSS filter chain (brightness 0..1, contrast 0..2, saturate 0..2)
+    const b = 0.5 + filters.brightness;        // 0.5..1.5
+    const c = filters.contrast;                 // 0..1 → multiply 0.5..1.5
+    const s = filters.saturation;               // 0..1 → saturate 0.5..1.5
+    canvasEl.style.filter = `brightness(${b.toFixed(2)}) contrast(${c.toFixed(2)}) saturate(${s.toFixed(2)})`;
+  }
+  // Trigger a transition: snapshot current canvas as prevFrame; transitionT runs
+  // toward 1 in TRANSITION_MS via RAF; on completion prevFrame is released.
+  function triggerTransition() {
+    if (transition === 'cut') { prevFrame = null; transitionT = 0; return; }
+    try {
+      // createImageBitmap works on a canvas snapshot in modern browsers
+      prevFrame = document.createElement('canvas');
+      prevFrame.width = W; prevFrame.height = H;
+      prevFrame.getContext('2d').drawImage(canvasEl, 0, 0);
+    } catch (_) { prevFrame = null; }
+    transitionT = 0;
+  }
+  let beatGate = 0.6;            // onset threshold (0..1); higher = fewer pulses
+  let lastBeatPulseAt = 0;       // ms timestamp of last auto-fired pulse
   function frame() {
     updateFeatures();
     beatPulse *= 0.9;
+
+    // Beat-driven transition pulse: fire when a strong onset is detected and
+    // no transition is already in flight. Debounced so we don't double-fire
+    // on noisy onsets within the same beat.
+    if (audio && !audio.paused && features.onset > beatGate && prevFrame === null) {
+      const now = performance.now();
+      if (now - lastBeatPulseAt > 250) {
+        lastBeatPulseAt = now;
+        triggerTransition();
+      }
+    }
 
     if (beatCount++ % 10 === 0) {
       if (bpmEl && bpmEstimate > 0) bpmEl.textContent = bpmEstimate;
@@ -203,6 +241,50 @@
   }
 
   function render() {
+    // Apply transition overlay BEFORE the layer pass: blend the previous
+    // frame's snapshot with the live render, driving the blend alpha from
+    // transitionT. Each transition mode shapes the overlay differently.
+    const dtMs = 16;     // approximate frame interval; smoothed by RAF timing
+    if (prevFrame && transitionT < 1) {
+      transitionT = Math.min(1, transitionT + dtMs / TRANSITION_MS);
+      const a = Math.max(0, 1 - transitionT);     // overlay fades out as T→1
+      ctx2d.save();
+      switch (transition) {
+        case 'crossfade':
+          ctx2d.globalAlpha = a;
+          ctx2d.drawImage(prevFrame, 0, 0);
+          break;
+        case 'zoom':
+          // Previous frame scales from 1.0 → 1.25 as the overlay fades
+          ctx2d.globalAlpha = a;
+          ctx2d.translate(W / 2, H / 2);
+          ctx2d.scale(1 + 0.25 * transitionT, 1 + 0.25 * transitionT);
+          ctx2d.translate(-W / 2, -H / 2);
+          ctx2d.drawImage(prevFrame, 0, 0);
+          break;
+        case 'dip':
+          // Dip to black: fade previous frame through a black layer
+          ctx2d.globalAlpha = a * 0.85;
+          ctx2d.fillStyle = '#000';
+          ctx2d.fillRect(0, 0, W, H);
+          break;
+        case 'flash':
+          // 1-frame white flash then snap back
+          ctx2d.globalAlpha = Math.min(1, a * 4);
+          ctx2d.fillStyle = '#fff';
+          ctx2d.fillRect(0, 0, W, H);
+          break;
+        case 'warp':
+          // Warp: push the previous frame sideways then dissolve
+          ctx2d.globalAlpha = a;
+          ctx2d.translate(40 * transitionT, 0);
+          ctx2d.drawImage(prevFrame, 0, 0);
+          break;
+      }
+      ctx2d.restore();
+      if (transitionT >= 1) prevFrame = null;
+    }
+
     ctx2d.fillStyle = 'rgba(10, 10, 11, 0.18)';
     ctx2d.fillRect(0, 0, W, H);
 
@@ -222,6 +304,26 @@
       if (!row.open) return;
       renderLayer(idx, row);
     });
+
+    // Layer reorder on demand: shuffle the DOM order so the next render pass
+    // picks up the new index mapping. Captures the prev-frame snapshot first so
+    // the active transition tween shows the swap.
+    window.__SWR_REMAPPED_ONCE = false;
+    function remapLayers() {
+      const list = document.getElementById('layers-list');
+      if (!list) return [];
+      const rows = Array.from(list.querySelectorAll(':scope > details'));
+      // Fisher-Yates shuffle so each Re-map is a new arrangement
+      for (let i = rows.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = rows[i]; rows[i] = rows[j]; rows[j] = tmp;
+      }
+      rows.forEach((r) => list.appendChild(r));   // re-append in new order
+      // Open the first row so it renders on the next frame
+      if (rows.length) rows[0].setAttribute('open', '');
+      window.__SWR_REMAPPED_ONCE = true;
+      return rows;
+    }
 
     if (features.onset > 0.04) {
       ctx2d.strokeStyle = 'rgba(255, 138, 61, ' + Math.min(1, features.onset * 6) + ')';
@@ -317,6 +419,36 @@
 
   window.__SWR_ENGINE = {
     audio, loadFile, features: () => features, bpm: () => bpmEstimate,
+    setTransition: (id) => { transition = String(id || 'cut'); return transition; },
+    pulseTransition: () => { triggerTransition(); return transition; },
+    remapLayers: () => { remapLayers(); return Array.from(document.querySelectorAll('#layers-list > details')).map((d, i) => i); },
+    setBeatGate: (v) => { beatGate = Math.max(0, Math.min(1, Number(v) || 0.6)); return beatGate; },
+    setFilter: (key, value) => {
+      if (!(key in filters)) return false;
+      filters[key] = Number(value) || 0;
+      applyFilters();
+      return true;
+    },
+    // Capture the canvas as a webm/mp4 via MediaRecorder. Returns a Blob via
+    // callback so callers can save it as a file. No audio capture (audio is
+    // routed via the existing <audio> element, so recording canvas-only is
+    // sufficient for a quick MP4 export).
+    record: (durationMs = 8000) => {
+      if (!window.MediaRecorder) return Promise.reject(new Error('MediaRecorder unsupported'));
+      const stream = canvasEl.captureStream(30);
+      const chunks = [];
+      const rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.start();
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          rec.stop();
+          stream.getTracks().forEach(t => t.stop());
+          resolve(new Blob(chunks, { type: 'video/webm' }));
+        }, durationMs);
+      });
+    },
     stop: () => { if (raf) cancelAnimationFrame(raf); },
   };
+  applyFilters();
 })();
