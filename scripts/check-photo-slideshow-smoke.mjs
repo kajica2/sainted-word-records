@@ -183,7 +183,111 @@ async function dropImages(page, paths) {
       fail('single-image deck advanced on beat', JSON.stringify(singleAfterBeat));
     }
 
-    const allErrs = errs.concat(errs2).filter((e) => !/WebSocket|ws:\/\/|Failed to load resource/i.test(e));
+    // ── Deck C: preset template (Phase D) drives the slideshow ────────
+    // Drop a swr-preset/v1 JSON carrying a `photo` block through the real
+    // file input; verify transition/advance/holdBars take effect.
+    const presetCut = {
+      id: 'swr-preset-2026-09-14-test-cut',
+      schema: 'swr-preset/v1',
+      created_at: '2026-09-14T00:00:00Z',
+      name: 'Test Cut',
+      family: 'GENERATIVE',
+      description: 'fixture',
+      inspiration: [{ kind: 'palette_ref', name: 'x', weight: 0.8 }],
+      fx_state: { liquid: 0, pearl: 0, glitch: 0, grain: 0, chroma: 0, bloom: 0,
+                  vignette: 0, sepia: 0, glow: 0, grayscale: 0, blur: 0, mut: 0,
+                  mutAlgo: 0, temp: 0, posterize: 8 },
+      motion: { rotation_speed: 0, scale_pulse: 0, pan_x: 0, pan_y: 0 },
+      palette: { primary: '#ff0066', secondary: '#00ccff', accent: '#ffff00', bg: '#000000' },
+      audio_reactivity: { bass: ['scale_pulse'], mid: [], treble: [], onset: [] },
+      preview: { thumbnail_svg: '<svg width="8" height="8"><rect width="8" height="8" fill="#ff0066"/></svg>', tags: ['test'] },
+      photo: { transition: 'cut', advance: 'bars', holdBars: 2 },
+    };
+    const presetPath = '/tmp/test-cut-preset.json';
+    (await import('node:fs')).writeFileSync(presetPath, JSON.stringify(presetCut));
+
+    const page3 = await browser.newPage();
+    const errs3 = [];
+    page3.on('pageerror', (e) => errs3.push('pageerror: ' + e.message));
+    page3.on('console', (m) => { if (m.type() === 'error') errs3.push('console.error: ' + m.text()); });
+    await page3.goto(`${BASE}/${TARGET}`, { waitUntil: 'networkidle0', timeout: 20000 });
+    await new Promise((r) => setTimeout(r, 800));
+
+    // Deck of 2 + apply preset via the file input (real wire, not the seam)
+    await dropImages(page3, [p1, p2]);
+    const presetInput = await page3.$('#preset-file');
+    if (presetInput) {
+      await presetInput.uploadFile(presetPath);
+      await new Promise((r) => setTimeout(r, 400));
+    } else {
+      fail('#preset-file input missing');
+    }
+
+    // The manifest picker should list photo-block presets (we seeded one:
+    // swr-preset-2026-08-14-photo-cut-on-kick) and the list stays open even
+    // when the manifest is unreachable (local settings remain the default).
+    const pickerOpts = await page3.evaluate(() =>
+      Array.from(document.querySelectorAll('#preset-select option')).map((o) => o.textContent));
+    const hasPhotoPreset = pickerOpts.some((t) => /Photo Cut on Kick/.test(t));
+    if (hasPhotoPreset) pass('manifest picker lists seeded photo-block preset');
+    else fail('photo preset missing from picker', JSON.stringify(pickerOpts));
+
+    const tpl = await page3.evaluate(() => window.PHOTO_STUDIO_DEBUG.template());
+    if (tpl.transition === 'cut') pass('preset photo block: transition=cut applied');
+    else fail('transition not cut', JSON.stringify(tpl));
+    if (tpl.advance === 'bars' && tpl.holdBars === 2) pass('preset photo block: advance=bars holdBars=2 applied');
+    else fail('advance/holdBars not applied', JSON.stringify(tpl));
+
+    const statusText = await page3.evaluate(() => document.getElementById('preset-status').textContent);
+    if (/Test Cut/.test(statusText)) pass(`preset status shows template (${statusText})`);
+    else fail('preset status missing name', statusText);
+
+    // cut transition → advance is instant: no crossfade window in flight
+    await page3.evaluate(() => window.PHOTO_STUDIO_DEBUG.beat());
+    await new Promise((r) => setTimeout(r, 120));
+    const cutEnd = await page3.evaluate(() => {
+      window.PHOTO_STUDIO_DEBUG.advance();
+      return window.PHOTO_STUDIO_DEBUG.state();
+    });
+    if (cutEnd.fade === -1) pass('cut transition: no crossfade window (fade=-1)');
+    else fail('cut should have fade=-1', JSON.stringify(cutEnd));
+
+    // bars advance: holdBars=2 → 8 beats per advance. Beat 1..7 must NOT
+    // advance (from the current idx), the 8th must.
+    const barsStart = await page3.evaluate(() => {
+      window.PHOTO_STUDIO_DEBUG.applyPreset({
+        id: 'x', schema: 'swr-preset/v1', created_at: '2026-09-14T00:00:00Z',
+        name: 'Bars', family: 'GENERATIVE', description: 'f',
+        inspiration: [{ kind: 'palette_ref', name: 'x', weight: 0.8 }],
+        fx_state: { liquid: 0, pearl: 0, glitch: 0, grain: 0, chroma: 0, bloom: 0,
+                    vignette: 0, sepia: 0, glow: 0, grayscale: 0, blur: 0, mut: 0,
+                    mutAlgo: 0, temp: 0, posterize: 8 },
+        motion: { rotation_speed: 0, scale_pulse: 0, pan_x: 0, pan_y: 0 },
+        palette: { primary: '#ff0066', secondary: '#00ccff', accent: '#ffff00', bg: '#000000' },
+        audio_reactivity: { bass: ['scale_pulse'], mid: [], treble: [], onset: [] },
+        preview: { thumbnail_svg: '<svg width="8" height="8"/><rect/></svg>', tags: ['t'] },
+        photo: { transition: 'crossfade', advance: 'bars', holdBars: 2 },
+      });
+      return window.PHOTO_STUDIO_DEBUG.state();
+    });
+    let advanceOk = true;
+    for (let b = 1; b <= 7; b++) {
+      const s = await page3.evaluate(() => {
+        window.PHOTO_STUDIO_DEBUG.beat();
+        return window.PHOTO_STUDIO_DEBUG.state();
+      });
+      if (s.idx !== barsStart.idx) { advanceOk = false; break; }
+    }
+    if (advanceOk) pass('bars advance: beats 1–7 do NOT advance (holdBars=2)');
+    else fail('bars advance advanced early');
+    const barsAfter8 = await page3.evaluate(() => {
+      window.PHOTO_STUDIO_DEBUG.beat();   // the 8th beat
+      return window.PHOTO_STUDIO_DEBUG.state();
+    });
+    if (barsAfter8.idx !== barsStart.idx) pass('bars advance: 8th beat advances the photo');
+    else fail('8th beat did not advance', JSON.stringify({ start: barsStart, after: barsAfter8 }));
+
+    const allErrs = errs.concat(errs2, errs3).filter((e) => !/WebSocket|ws:\/\/|Failed to load resource/i.test(e));
     if (allErrs.length === 0) pass('no slideshow-related JS errors');
     else fail(`${allErrs.length} JS errors`, allErrs.slice(0, 3).join(' | '));
   } finally {

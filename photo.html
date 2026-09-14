@@ -194,6 +194,17 @@
     </div>
 
     <div class="panel">
+      <h2>Preset Template</h2>
+      <select id="preset-select" title="Presets with a photo block drive the slideshow personality">
+        <option value="">— none (local settings) —</option>
+      </select>
+      <input type="file" id="preset-file" accept=".json,application/json" title="Drop a swr-preset/v1 .json — its photo block styles the slideshow" />
+      <label style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;font-size:10px;letter-spacing:0.04em;margin-bottom:6px;">Template
+        <span class="v" id="preset-status" style="min-width:80px;">—</span>
+      </label>
+    </div>
+
+    <div class="panel">
       <h2>Ken Burns</h2>
       <label>Start X <span class="v" id="kb-start-x-v">0.30</span>
         <input type="range" id="kb-start-x" min="0" max="1" step="0.01" value="0.3" /></label>
@@ -267,7 +278,13 @@
   let prevShot = null;      // {im, w, h} snapshot for crossfade, or null
   let fadeT = -1;           // 0..1 crossfade progress; -1 = no fade in flight
   const FADE_MS = 300;      // crossfade window after a beat advance
-  let advanceOnBeat = true;
+  let advanceEnabled = true; // "Advance on beat" checkbox (master gate)
+  let beatCount = 0;        // beats seen since last advance (bars mode)
+  // Preset template (swr-preset/v1 `photo` block). Defines how photos
+  // transition and what times the advance. Absent photo block → local
+  // settings (crossfade on every beat).
+  const template = { transition: 'crossfade', advance: 'beat', holdBars: 1, name: null };
+  let photoPresets = [];    // manifest presets carrying a photo block
   let elapsed = 0;
   let lastT = 0;
   let playing = false;
@@ -277,13 +294,44 @@
     return images.length ? images[curIdx] : null;
   }
 
+  function setPresetStatus(text) {
+    const el = $('preset-status');
+    if (el) el.textContent = text || '—';
+    const sel = $('preset-select');
+    if (sel && template.name && text && text.startsWith(template.name)) {
+      const idx = photoPresets.findIndex((p) => p.name === template.name);
+      if (idx >= 0) sel.value = String(idx);
+    }
+  }
+
+  // Apply a swr-preset/v1 JSON's `photo` block (validated defensively —
+  // a malformed preset never breaks the slideshow). Returns true if applied.
+  function applyPreset(preset) {
+    if (!preset || typeof preset !== 'object') { setPresetStatus('bad preset'); return false; }
+    const p = preset.photo;
+    if (!p || typeof p !== 'object') { setPresetStatus('no photo block'); return false; }
+    template.transition = ['crossfade', 'zoom', 'cut'].includes(p.transition) ? p.transition : 'crossfade';
+    template.advance = ['beat', 'bars'].includes(p.advance) ? p.advance : 'beat';
+    template.holdBars = (Number.isInteger(p.holdBars) && p.holdBars >= 1) ? p.holdBars : 1;
+    template.name = (preset.name || 'preset');
+    beatCount = 0;
+    setPresetStatus(`${template.name} · ${template.transition} / ${template.advance === 'bars' ? template.holdBars + ' bars' : 'beat'}`);
+    return true;
+  }
+
   // Crossfade from the shown image to the next one. Called on beats when
-  // multiple photos are loaded and "Advance on beat" is checked.
+  // multiple photos are loaded and advance is enabled. Honors the preset
+  // template's transition mode: crossfade (fade), cut (hard switch, no
+  // fade window), zoom (fade + extra push-in on the incoming photo).
   function advancePhoto() {
     if (images.length < 2) return;
     prevShot = currentShot();
     curIdx = (curIdx + 1) % images.length;
-    fadeT = 0;             // start fading from prevShot → images[curIdx]
+    if (template.transition === 'cut') {
+      fadeT = -1; prevShot = null;   // instant switch
+    } else {
+      fadeT = 0;                     // crossfade / zoom both fade
+    }
     elapsed = 0;           // Ken Burns restarts on the new photo
     const cnt = $('slideshow-count');
     if (cnt) cnt.textContent = `${curIdx + 1}/${images.length}`;
@@ -291,7 +339,13 @@
 
   function onBeat() {
     if (!images || images.length < 2) return;
-    if (!advanceOnBeat) return;
+    if (!advanceEnabled) return;
+    beatCount++;
+    if (template.advance === 'bars') {
+      // 4/4: one bar = 4 beats; hold the photo for holdBars bars.
+      const bar = 4;
+      if (beatCount % (template.holdBars * bar) !== 0) return;
+    }
     advancePhoto();
   }
 
@@ -451,12 +505,13 @@
     const tt = looping ? (elapsed % dur) / dur : Math.min(elapsed / dur, 1);
 
     // Crossfade in flight: draw the outgoing prevShot fading out beneath the
-    // incoming current shot (which fades in on top).
+    // incoming current shot (which fades in on top). Zoom transition pushes
+    // the incoming photo in (scale 1.25 → 1.0 across the fade window).
     if (fadeT >= 0 && prevShot) {
       const alpha = Math.max(0, 1 - fadeT);
       drawShot(prevShot, tt, 1, alpha);
-      // Current shot fades in on top during the fade window.
-      drawShot(shot, tt, 1, 1 - alpha);
+      const zoomIn = template.transition === 'zoom' ? 1.25 - 0.25 * (1 - alpha) : 1;
+      drawShot(shot, tt, zoomIn, 1 - alpha);
       fadeT += dt / (FADE_MS / 1000);
       if (fadeT >= 1) { fadeT = -1; prevShot = null; }
     } else {
@@ -501,7 +556,46 @@
     if (w && h) setFormat(w, h);
   });
   $('advance-on-beat').addEventListener('change', (e) => {
-    advanceOnBeat = e.target.checked;
+    advanceEnabled = e.target.checked;
+  });
+
+  // ---- preset template: manifest picker + file drop ------------------
+  // Populate the select from presets/manifest.json — only presets carrying
+  // a `photo` block (the slideshow personality). No photo-block preset in
+  // the manifest → the dropdown stays at "none" and the local settings
+  // (crossfade / beat) apply; dropping a .json preset file works regardless.
+  function loadPhotoPresetOptions() {
+    fetch('/presets/manifest.json')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('manifest ' + r.status))))
+      .then((m) => {
+        photoPresets = (m && Array.isArray(m.presets) ? m.presets : [])
+          .filter((p) => p && p.photo && typeof p.photo === 'object');
+        const sel = $('preset-select');
+        for (const p of photoPresets) {
+          const opt = document.createElement('option');
+          opt.value = String(photoPresets.indexOf(p));
+          const trans = p.photo.transition || 'crossfade';
+          const adv = p.photo.advance || 'beat';
+          opt.textContent = `${p.name} · ${trans} / ${adv}`;
+          sel.appendChild(opt);
+        }
+      })
+      .catch(() => { /* manifest unavailable: dropdown stays at none */ });
+  }
+  loadPhotoPresetOptions();
+
+  $('preset-select').addEventListener('change', (e) => {
+    const i = Number(e.target.value);
+    const p = (Number.isInteger(i) && i >= 0) ? photoPresets[i] : null;
+    if (p) applyPreset(p);
+  });
+  $('preset-file').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    f.text().then((txt) => {
+      try { applyPreset(JSON.parse(txt)); }
+      catch (_) { setPresetStatus('bad JSON'); }
+    }).catch(() => setPresetStatus('read error'));
   });
 
   playBtn.addEventListener('click', () => {
@@ -587,8 +681,10 @@
   window.PHOTO_STUDIO_DEBUG = {
     advance: advancePhoto,
     beat: onBeat,
-    setAdvanceOnBeat: (v) => { advanceOnBeat = !!v; },
-    state: () => ({ count: images.length, idx: curIdx, fade: fadeT, advanceOnBeat }),
+    setAdvanceOnBeat: (v) => { advanceEnabled = !!v; },
+    applyPreset,
+    template: () => Object.assign({}, template),
+    state: () => ({ count: images.length, idx: curIdx, fade: fadeT, advanceEnabled, beatCount }),
   };
 })();
 </script>

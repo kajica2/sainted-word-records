@@ -60,6 +60,17 @@ function validate(p) {
   if (!svg.includes('</svg>')) errs.push('preview.thumbnail_svg missing </svg>');
   const wsum = (p.inspiration || []).reduce((s, i) => s + Number(i.weight || 0), 0);
   if (wsum < 0.5 || wsum > 1.0) errs.push(`inspiration weights sum ${wsum} not in [0.5,1.0]`);
+  // Optional photo block (Photo Studio slideshow personality). Absent = pure
+  // FX/motion preset; present = must be well-formed so photo.html can trust it.
+  const photo = p.photo;
+  if (photo !== undefined) {
+    if (typeof photo !== 'object' || photo === null) errs.push('photo must be an object');
+    else {
+      if (!['crossfade', 'zoom', 'cut'].includes(photo.transition)) errs.push(`photo.transition ${photo.transition} not in crossfade/zoom/cut`);
+      if (!['beat', 'bars'].includes(photo.advance)) errs.push(`photo.advance ${photo.advance} not in beat/bars`);
+      if (photo.holdBars !== undefined && (!Number.isInteger(photo.holdBars) || photo.holdBars < 1)) errs.push(`photo.holdBars ${photo.holdBars} not a positive int`);
+    }
+  }
   return errs;
 }
 

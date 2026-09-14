@@ -54,9 +54,19 @@ not a refactor.
   "preview": {
     "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\">...</svg>",
     "tags": ["aurora", "bloom", "soft"]
+  },
+  "photo": {
+    "transition": "zoom",
+    "advance": "bars",
+    "holdBars": 2
   }
 }
 ```
+
+`photo` is **optional** — a preset without it is a pure FX/motion personality
+(27 existing presets unchanged). When present, the preset can also drive the
+Photo Studio slideshow (photo.html): how photos transition, and what times the
+advance.
 
 ## Field rules
 
@@ -74,6 +84,7 @@ not a refactor.
 | `palette` | yes | 4 hex colors. `primary` and `secondary` required. |
 | `audio_reactivity` | yes | 4 lists. Names must match the keys in `fx_state` or `motion`. |
 | `preview` | yes | `thumbnail_svg` ≤ 4KB inline SVG. `tags` 1..5 lowercase strings. |
+| `photo` | no | Slideshow personality for photo.html. `transition` ∈ `crossfade`/`zoom`/`cut`, `advance` ∈ `beat`/`bars`, `holdBars` positive int (bars held per photo when `advance: bars`). |
 
 ## Validation (run on every output)
 
