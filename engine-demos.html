@@ -176,11 +176,20 @@
       glitch: '8a7aa0', pulse: '8a7aa0', void: '8a7aa0', watercolor: '8a7aa0',
     };
 
+    // One-page-app seam: the 5 switcher variants open inside the main engine
+    // (/engine?variant=<id>) — the same look, in the unified app. Eclipse +
+    // legacy builds keep their standalone version-page URLs (eclipse's look
+    // is DOM-corona driven, not yet in the switcher; legacy pages are
+    // reference builds).
+    const ONE_PAGE_VARIANTS = new Set(['film', 'grid', 'smoke', 'hallucination', 'neon']);
     function build(engine) {
       const a = document.createElement('a');
       a.className = 'demos';
-      a.href = `/versions/${engine.id}.html`;
+      a.href = ONE_PAGE_VARIANTS.has(engine.id)
+        ? `/engine?variant=${engine.id}`
+        : `/versions/${engine.id}.html`;
       a.dataset.group = engine.group;
+      a.dataset.app = ONE_PAGE_VARIANTS.has(engine.id) ? 'one-page' : 'standalone';
       a.setAttribute('aria-label', `${engine.id} engine ${engine.v}`);
       a.innerHTML = `
         <div class="frame">
