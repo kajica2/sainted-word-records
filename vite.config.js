@@ -102,6 +102,13 @@ function copyStatic() {
     // the release tag. Ship it at the dist root so the relative URL resolves.
     'package.json',
     'versions-presets.js',
+    // Root-level nav + FX + preset-preview clients referenced by
+    // engine.html / versions/*.html via absolute /<name>.js srcs.
+    // (lib/nav.client.js is a DIFFERENT file — the Web Component; this
+    // root nav.client.js is the self-contained header injector.)
+    'nav.client.js',
+    'fx-background.client.js',
+    'preset-preview.client.js',
     'engine-genops.client.js',
     'engine-render.client.js',
     'engine-timing.client.js',
