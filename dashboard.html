@@ -123,6 +123,7 @@
         <span class="text-xs tabular text-white font-medium">08</span>
       </div>
       <div class="w-px h-5 bg-line mx-2"></div>
+      <button class="icon-btn" id="rec-btn" title="Record canvas (8s WebM)" style="color:#ff6a2c;"><i class="fa-solid fa-circle-dot text-xs"></i></button>
       <button class="icon-btn" title="Mic"><i class="fa-solid fa-microphone text-xs"></i></button>
       <button class="icon-btn" title="Cam"><i class="fa-solid fa-video text-xs"></i></button>
       <button class="icon-btn" title="Load Song"><i class="fa-solid fa-folder-open text-xs"></i></button>
@@ -173,6 +174,59 @@
           <i class="fa-solid fa-wrench text-2xl mb-3 block"></i>
           <div class="micro">Coming soon</div>
         </div>
+        <!-- Enhance tab -->
+        <div id="tab-enhance" class="hidden absolute inset-0 z-20 p-4 overflow-y-auto" style="background: rgba(10,10,11,0.92);">
+          <div class="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
+            <div class="panel p-3"><div class="micro mb-2">Sharpness</div>
+              <input type="range" id="enh-sharp" class="swr-slider" value="0" min="0" max="100" />
+            </div>
+            <div class="panel p-3"><div class="micro mb-2">Denoise</div>
+              <input type="range" id="enh-denoise" class="swr-slider" value="0" min="0" max="100" />
+            </div>
+            <div class="panel p-3"><div class="micro mb-2">Brightness</div>
+              <input type="range" id="enh-bright" class="swr-slider" value="50" min="0" max="100" />
+            </div>
+            <div class="panel p-3"><div class="micro mb-2">Contrast</div>
+              <input type="range" id="enh-contrast" class="swr-slider" value="50" min="0" max="100" />
+            </div>
+            <div class="panel p-3"><div class="micro mb-2">Saturation</div>
+              <input type="range" id="enh-sat" class="swr-slider" value="50" min="0" max="100" />
+            </div>
+            <div class="panel p-3"><div class="micro mb-2">Vignette</div>
+              <input type="range" id="enh-vignette" class="swr-slider" value="0" min="0" max="100" />
+            </div>
+          </div>
+        </div>
+        <!-- Photo tab -->
+        <div id="tab-photo" class="hidden absolute inset-0 z-20 p-4 overflow-y-auto" style="background: rgba(10,10,11,0.92);">
+          <div class="max-w-2xl mx-auto space-y-3">
+            <div class="panel p-3">
+              <div class="micro mb-2">Photo mode</div>
+              <p class="text-[11px] text-gray-400 mb-3">Drop multiple photos for a beat-reactive slideshow with crossfade. Open <a href="/photo" class="text-orange-400 hover:underline">Photo Studio</a> for the full experience.</p>
+              <div id="photo-drop" class="border-2 border-dashed border-line rounded p-6 text-center text-[12px] text-gray-500 cursor-pointer hover:border-orange transition">
+                <i class="fa-solid fa-image text-2xl mb-2 block text-gray-600"></i>
+                Drop photos here · or click to browse
+                <input type="file" id="photo-file" accept="image/*" multiple style="display:none" />
+              </div>
+              <div id="photo-deck" class="mt-3 grid grid-cols-4 gap-2"></div>
+              <div class="flex items-center justify-between mt-3 text-[11px]">
+                <label class="flex items-center gap-2 text-gray-300"><input type="checkbox" id="photo-advance" checked class="accent-orange" /> Advance on beat</label>
+                <span id="photo-status" class="text-gray-500">— no photos —</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Transitions tab -->
+        <div id="tab-transitions" class="hidden absolute inset-0 z-20 p-4 overflow-y-auto" style="background: rgba(10,10,11,0.92);">
+          <div class="max-w-2xl mx-auto space-y-3">
+            <div class="micro">Transition presets</div>
+            <div id="trans-list" class="grid grid-cols-2 gap-2"></div>
+            <div class="panel p-3 mt-3">
+              <div class="micro mb-2">Active transition</div>
+              <div id="trans-active" class="text-[11px] text-gray-400">— none —</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- BOTTOM DRAWER -->
@@ -197,6 +251,14 @@
                 <div><div class="flex justify-between label mb-1"><span>Beat Gate</span><span class="tabular text-white text-[11px]">0.42</span></div><input type="range" class="swr-slider" value="42" min="0" max="100"></div>
                 <div><div class="flex justify-between label mb-1"><span>Decay</span><span class="tabular text-white text-[11px]">0.16</span></div><input type="range" class="swr-slider" value="16" min="0" max="100"></div>
                 <div><div class="flex justify-between label mb-1"><span>Temp</span><span class="tabular text-white text-[11px]">1.0</span></div><input type="range" class="swr-slider" value="50" min="0" max="100"></div>
+                <div class="pt-2 border-t border-line">
+                  <label class="flex items-center justify-between label cursor-pointer">
+                    <span>Beat auto-pulse</span>
+                    <input type="checkbox" id="beat-auto" checked class="accent-orange" />
+                  </label>
+                  <div class="flex justify-between label mt-2 mb-1"><span>Beat Threshold</span><span class="tabular text-white text-[11px]" id="beat-thresh-v">0.60</span></div>
+                  <input type="range" id="beat-thresh" class="swr-slider" value="60" min="10" max="95" />
+                </div>
               </div>
             </div>
             <!-- GENERATE -->
@@ -238,7 +300,7 @@
           <button class="px-2 h-6 rounded text-[10px] uppercase tracking-wider border border-line text-gray-300 hover:bg-[#1e1e24] hover:text-white" title="Add layer">+ Layer</button>
           <button class="icon-btn" title="3D"><span class="text-[10px] font-semibold">3D</span></button>
           <button class="icon-btn" title="Rotate"><i class="fa-solid fa-rotate text-[10px]"></i></button>
-          <button class="icon-btn" title="Re-map"><i class="fa-solid fa-arrows-rotate text-[10px]"></i></button>
+          <button class="icon-btn" id="remap-btn" title="Re-map (pulse transition)"><i class="fa-solid fa-arrows-rotate text-[10px]"></i></button>
           <button class="icon-btn" id="toggle-r" title="Collapse layers ( ] )"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
         </div>
       </div>
@@ -374,17 +436,200 @@
       drawer.classList.toggle('collapsed');
     });
 
+    // ─── Re-map button: shuffles the layer list AND pulses the active transition ──
+    const remapBtn = document.getElementById('remap-btn');
+    if (remapBtn) {
+      remapBtn.addEventListener('click', () => {
+        if (window.__SWR_ENGINE) {
+          // Order matters: shuffle first so the prevFrame snapshot reflects
+          // the OLD arrangement, then pulse the transition to tween between
+          // old and new on the next frame.
+          if (window.__SWR_ENGINE.remapLayers) window.__SWR_ENGINE.remapLayers();
+          if (window.__SWR_ENGINE.pulseTransition) window.__SWR_ENGINE.pulseTransition();
+        }
+        // Visual feedback: brief spin on the icon
+        const icon = remapBtn.querySelector('i');
+        if (icon) {
+          icon.classList.add('fa-spin');
+          setTimeout(() => icon.classList.remove('fa-spin'), 500);
+        }
+      });
+    }
+
+    // ─── REC button: capture canvas → WebM download ──────────────
+    const recBtn = document.getElementById('rec-btn');
+    if (recBtn) {
+      recBtn.addEventListener('click', async () => {
+        if (!window.__SWR_ENGINE || !window.__SWR_ENGINE.record) {
+          recBtn.title = 'engine not loaded';
+          return;
+        }
+        const origHTML = recBtn.innerHTML;
+        recBtn.disabled = true;
+        recBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
+        try {
+          const blob = await window.__SWR_ENGINE.record(8000);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'dashboard-' + Date.now() + '.webm';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+          recBtn.innerHTML = '<i class="fa-solid fa-check text-xs"></i>';
+        } catch (e) {
+          recBtn.title = 'record failed: ' + (e.message || e);
+          recBtn.innerHTML = origHTML;
+        } finally {
+          setTimeout(() => {
+            recBtn.disabled = false;
+            recBtn.innerHTML = origHTML;
+          }, 1500);
+        }
+      });
+    }
+
     // ─── Tabs ────────────────────────────────────────────────────
     const tabs = document.querySelectorAll('.tab-btn');
     const placeholder = document.getElementById('placeholder');
+    const tabPanels = {
+      engine: null,
+      enhance: document.getElementById('tab-enhance'),
+      photo: document.getElementById('tab-photo'),
+      transitions: document.getElementById('tab-transitions'),
+    };
+    function showTab(name) {
+      tabs.forEach(b => {
+        const on = b.dataset.tab === name;
+        b.classList.toggle('tab-active', on);
+        b.classList.toggle('text-gray-400', !on);
+      });
+      // engine tab keeps the canvas + drop zone visible; everything else hides them
+      const isEngine = name === 'engine';
+      if (placeholder) placeholder.classList.toggle('hidden', isEngine);
+      const stage = document.getElementById('stage') || document.querySelector('section');
+      if (stage) {
+        const dropZone = document.getElementById('drop-zone');
+        const canvas = document.getElementById('render-canvas');
+        if (canvas) canvas.style.display = isEngine ? '' : 'none';
+        if (dropZone) dropZone.style.display = isEngine ? '' : 'none';
+      }
+      Object.entries(tabPanels).forEach(([k, el]) => {
+        if (el) el.classList.toggle('hidden', k !== name);
+      });
+    }
     tabs.forEach(btn => {
-      btn.addEventListener('click', () => {
-        tabs.forEach(b => { b.classList.remove('tab-active'); b.classList.add('text-gray-400'); });
-        btn.classList.add('tab-active');
-        btn.classList.remove('text-gray-400');
-        placeholder.classList.toggle('hidden', btn.dataset.tab === 'engine');
+      btn.addEventListener('click', () => showTab(btn.dataset.tab));
+    });
+    showTab('engine');
+
+    // ─── Enhance tab: live filter sliders ─────────────────────────
+    const filterMap = { 'enh-sharp': 'sharp', 'enh-denoise': 'denoise', 'enh-bright': 'brightness', 'enh-contrast': 'contrast', 'enh-sat': 'saturation', 'enh-vignette': 'vignette' };
+    Object.entries(filterMap).forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        const v = parseFloat(el.value) / 100;
+        if (window.__SWR_ENGINE && window.__SWR_ENGINE.setFilter) {
+          window.__SWR_ENGINE.setFilter(key, v);
+        }
       });
     });
+
+    // ─── Beat-driven transitions (Advanced drawer) ───────────────
+    // The "Beat auto-pulse" checkbox and "Beat Threshold" slider tune when
+    // the engine auto-fires a transition pulse on a strong onset. When the
+    // toggle is OFF, transitions only fire from explicit triggers (Re-map
+    // button, tab click, etc.).
+    const beatAuto = document.getElementById('beat-auto');
+    const beatThresh = document.getElementById('beat-thresh');
+    const beatThreshV = document.getElementById('beat-thresh-v');
+    if (beatAuto && beatThresh) {
+      beatAuto.addEventListener('change', () => {
+        if (window.__SWR_ENGINE && window.__SWR_ENGINE.setBeatGate) {
+          // 1.5 (above 1) effectively disables the auto-fire check
+          window.__SWR_ENGINE.setBeatGate(beatAuto.checked ? parseFloat(beatThresh.value) / 100 : 1.5);
+        }
+      });
+      beatThresh.addEventListener('input', () => {
+        if (beatThreshV) beatThreshV.textContent = (parseFloat(beatThresh.value) / 100).toFixed(2);
+        if (beatAuto.checked && window.__SWR_ENGINE && window.__SWR_ENGINE.setBeatGate) {
+          window.__SWR_ENGINE.setBeatGate(parseFloat(beatThresh.value) / 100);
+        }
+      });
+    }
+
+    // ─── Photo tab: drop photos → render thumbnails ──────────────
+    const photoDeck = document.getElementById('photo-deck');
+    const photoStatus = document.getElementById('photo-status');
+    const photoDrop = document.getElementById('photo-drop');
+    const photoFile = document.getElementById('photo-file');
+    const photos = [];
+    function addPhoto(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const url = URL.createObjectURL(file);
+      const tile = document.createElement('div');
+      tile.className = 'aspect-square bg-[#1e1e24] rounded overflow-hidden border border-line';
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      tile.appendChild(img);
+      photoDeck.appendChild(tile);
+      photos.push({ file, url });
+      photoStatus.textContent = `${photos.length} photo${photos.length === 1 ? '' : 's'} loaded`;
+    }
+    if (photoDrop && photoFile) {
+      photoDrop.addEventListener('click', () => photoFile.click());
+      photoFile.addEventListener('change', (e) => {
+        Array.from(e.target.files || []).forEach(addPhoto);
+        photoFile.value = '';
+      });
+      ['dragenter', 'dragover'].forEach((evt) =>
+        photoDrop.addEventListener(evt, (e) => { e.preventDefault(); photoDrop.classList.add('border-orange'); })
+      );
+      ['dragleave', 'drop'].forEach((evt) =>
+        photoDrop.addEventListener(evt, (e) => { e.preventDefault(); photoDrop.classList.remove('border-orange'); })
+      );
+      photoDrop.addEventListener('drop', (e) => {
+        Array.from(e.dataTransfer.files || []).forEach(addPhoto);
+      });
+    }
+
+    // ─── Transitions tab: enumerate engine presets + apply ───────
+    const transList = document.getElementById('trans-list');
+    const transActive = document.getElementById('trans-active');
+    const TRANS_DEFS = [
+      { id: 'cut',       name: 'Cut',         desc: 'Hard cut between layers (default).' },
+      { id: 'crossfade', name: 'Crossfade',   desc: 'Blend previous and next over 400ms.' },
+      { id: 'zoom',      name: 'Zoom',        desc: 'Push-in transition (1.25 → 1.0).' },
+      { id: 'dip',       name: 'Dip to black',desc: 'Fade through black between layers.' },
+      { id: 'flash',     name: 'Flash',       desc: '1-frame white flash between layers.' },
+      { id: 'warp',      name: 'Warp',        desc: 'Liquid-warp out → reset → warp in.' },
+    ];
+    if (transList) {
+      TRANS_DEFS.forEach((t) => {
+        const card = document.createElement('button');
+        card.className = 'text-left panel p-3 hover:border-orange cursor-pointer transition';
+        card.dataset.trans = t.id;
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-[12px] font-medium text-white">${t.name}</span>
+            <span class="text-[10px] text-gray-500">${t.id}</span>
+          </div>
+          <div class="text-[11px] text-gray-400 mt-1">${t.desc}</div>`;
+        card.addEventListener('click', () => {
+          if (window.__SWR_ENGINE && window.__SWR_ENGINE.setTransition) {
+            window.__SWR_ENGINE.setTransition(t.id);
+          }
+          transActive.textContent = `${t.name} · ${t.id}`;
+          transList.querySelectorAll('button').forEach((b) =>
+            b.classList.toggle('border-orange', b === card)
+          );
+        });
+        transList.appendChild(card);
+      });
+    }
 
     // ─── More menu ──────────────────────────────────────────────
     const moreBtn = document.getElementById('more-btn');
