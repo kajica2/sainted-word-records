@@ -22,12 +22,12 @@
     "discoverPages": "Run: node scripts/generate-site-manifest.mjs --dry-run (auto-adds untracked HTML files)"
   },
   "_pathConventions": {
-    "root": "/page-name → /page-name.html",
-    "subdirectory": "/artists/foo → /artists/foo.html",
-    "gallery": "/gallery/music → /gallery-music.html (hyphenated)",
-    "withDotHtml": "/legal/privacy.html → /legal/privacy.html (as-is)",
-    "artistsIndex": "/artists → /artists/index.html",
-    "dynamic": "/s/:id → handled by share-view.html client-side"
+    "root": "/page-name \u2192 /page-name.html",
+    "subdirectory": "/artists/foo \u2192 /artists/foo.html",
+    "gallery": "/gallery/music \u2192 /gallery-music.html (hyphenated)",
+    "withDotHtml": "/legal/privacy.html \u2192 /legal/privacy.html (as-is)",
+    "artistsIndex": "/artists \u2192 /artists/index.html",
+    "dynamic": "/s/:id \u2192 handled by share-view.html client-side"
   },
   "nav": [
     {
@@ -304,6 +304,11 @@
       "label": "Thanks",
       "href": "/thanks",
       "description": "Thank you page"
+    },
+    {
+      "label": "Terms",
+      "href": "/terms.html",
+      "description": "Glossary of Sainted Word Records terms"
     }
   ],
   "archived": [
