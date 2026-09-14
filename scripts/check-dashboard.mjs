@@ -62,9 +62,12 @@ try {
   await page.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
   await new Promise((r) => setTimeout(r, 800));
 
-  // 1. Tabs
-  const tabs = await page.$$eval('[data-tab]', (els) => els.map(e => e.dataset.tab));
-  check('4 primary tabs', tabs.length === 4 && tabs.includes('engine'), tabs.join(','));
+  // 1. Tabs: Console nav = version selector (6 links) + 3 transport toggles
+  const versions = await page.$$eval('.versions a[data-v]', (els) => els.map(e => e.dataset.v));
+  const toggles = await page.$$eval('[data-toggle-tab]', (els) => els.map(e => e.dataset.toggleTab));
+  check('version selector has 6 versions', versions.length === 6 && versions.includes('console'), versions.join(','));
+  check('console is aria-current', (await page.$$eval('.versions a[aria-current="page"]', (els) => els.length)) === 1);
+  check('3 transport panel toggles', toggles.length === 3 && toggles.includes('enhance'), toggles.join(','));
 
   // 2. Library grid (rendered by JS)
   const libCount = await page.$$eval('#library-grid > div', (els) => els.length);
@@ -133,11 +136,12 @@ try {
   const drawerKbd = await page.$eval('#advanced-drawer', (el) => el.classList.contains('collapsed'));
   check('Keyboard "a" expands drawer', !drawerKbd);
 
-  // 11. Tabs switch (Engine -> Enhance shows placeholder)
-  await page.click('[data-tab="enhance"]');
+  // 11. Tabs switch (Engine -> Enhance shows the filter panel, hides canvas)
+  await page.click('[data-toggle-tab="enhance"]');
   await new Promise((r) => setTimeout(r, 200));
-  const placeholderVisible = await page.$eval('#placeholder', (el) => !el.classList.contains('hidden'));
-  check('Tab switch shows placeholder', placeholderVisible);
+  const enhVisible = await page.$eval('#tab-enhance', (el) => !el.classList.contains('hidden'));
+  const canvasHidden = await page.$eval('#render-canvas', (el) => el.style.display === 'none');
+  check('Tab switch shows Enhance panel', enhVisible && canvasHidden);
 
   // 12. No console errors
   check('No console errors', errors.length === 0, errors.length ? errors.slice(0,3).join('|') : '');

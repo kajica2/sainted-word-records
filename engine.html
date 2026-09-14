@@ -1515,6 +1515,7 @@
   <script src="/nav.client.js" defer></script>
   <script src="/fx-background.client.js" defer></script>
   <script src="/client/variant-switcher.client.js" defer></script>
+  <script src="/client/default-library.client.js" defer></script>
 </head>
 <body>
   <div id="app">
@@ -2558,7 +2559,12 @@
       play() {
         this.unlock();
         if (this.ctx.state === 'suspended') this.ctx.resume();
-        this.audioEl.play();
+        // play() can reject when called without a user gesture (autoplay
+        // policy). The UI state below is still correct (a gesture-queued
+        // retry re-calls play()), so swallow the rejection instead of
+        // surfacing it as an uncaught page error.
+        const started = this.audioEl.play();
+        if (started && started.catch) started.catch(() => {});
         this.playing = true;
         $('play').textContent = '❚❚ Pause';
         $('play').classList.remove('primary');
@@ -6551,7 +6557,7 @@
           // with the page in this tab) or queue for the first user gesture.
           // Without this the user reloads the engine expecting audio to
           // resume, but stays silent until they manually press Play.
-          const tryPlay = () => Audio.play();
+          const tryPlay = () => { try { const p = Audio.play(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* autoplay blocked until gesture */ } };
           tryPlay();
           document.addEventListener('pointerdown', function _autoplayOnGesture() {
             document.removeEventListener('pointerdown', _autoplayOnGesture);

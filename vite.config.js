@@ -257,6 +257,9 @@ function copyStatic() {
   const dirs = [
     { src: 'versions', dst: 'versions' },
     { src: 'data', dst: 'data' },
+    // Default (always-loaded) engine library: 7 hologram/glitch WebP images
+    // + manifest.json. The Endless Tomorrow song lives in audios/ below.
+    { src: 'default-library', dst: 'default-library' },
     // The layer scheduler worker is fetched from /versions/<file>
     // (not /<file>) because the engine's worker init resolves the URL
     // relative to the engine page's directory. Ship a copy in both
