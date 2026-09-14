@@ -573,6 +573,7 @@
     // The top bar now shows a version selector (Console spec). These four
     // toggles sit in the header's transport row. Engine shows the canvas;
     // Enhance/Photo/Transitions show their respective panels.
+    const placeholder = document.getElementById('placeholder');
     const tabPanels = {
       engine: null,
       enhance: document.getElementById('tab-enhance'),
@@ -583,14 +584,16 @@
     function showTab(name) {
       currentTab = name;
       const isEngine = name === 'engine';
-      if (placeholder) placeholder.classList.toggle('hidden', isEngine);
-      const stage = document.getElementById('stage') || document.querySelector('section');
-      if (stage) {
-        const dropZone = document.getElementById('drop-zone');
-        const canvas = document.getElementById('render-canvas');
-        if (canvas) canvas.style.display = isEngine ? '' : 'none';
-        if (dropZone) dropZone.style.display = isEngine ? '' : 'none';
-      }
+      // #placeholder is a leftover for panels that don't exist yet; every
+      // current tab (enhance/photo/transitions) has a real panel, so keep
+      // the placeholder hidden unconditionally.
+      if (placeholder) placeholder.classList.add('hidden');
+      // Engine canvas + drop zone live under #canvas-wrap in the dashboard
+      // layout; hide them while a panel tab is open regardless of container.
+      const dropZone = document.getElementById('drop-zone');
+      const canvas = document.getElementById('render-canvas');
+      if (canvas) canvas.style.display = isEngine ? '' : 'none';
+      if (dropZone) dropZone.style.display = isEngine ? '' : 'none';
       Object.entries(tabPanels).forEach(([k, el]) => {
         if (el) el.classList.toggle('hidden', k !== name);
       });
