@@ -134,6 +134,22 @@
       "destination": "/engine-demos.html"
     },
     {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/dashboard/",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/photo",
+      "destination": "/photo.html"
+    },
+    {
+      "source": "/photo/",
+      "destination": "/photo.html"
+    },
+    {
       "source": "/gallery",
       "destination": "/gallery.html"
     },
@@ -306,24 +322,16 @@
       "destination": "/gallery-vintage.html"
     },
     {
-      "source": "/music-video-gallery",
-      "destination": "/versions/music-video-gallery.html"
-    },
-    {
-      "source": "/music-video-gallery/",
-      "destination": "/versions/music-video-gallery.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/dashboard.html"
-    },
-    {
-      "source": "/dashboard/",
-      "destination": "/dashboard.html"
-    },
-    {
-          "source": "/gallery/vintage/",
+      "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
+    },
+    {
+      "source": "/versions/music-video-gallery",
+      "destination": "/versions/music-video-gallery.html"
+    },
+    {
+      "source": "/versions/music-video-gallery/",
+      "destination": "/versions/music-video-gallery.html"
     },
     {
       "source": "/personas",
