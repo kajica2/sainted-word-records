@@ -1510,7 +1510,10 @@ if (brandkitApp.ok && brandkitApp.hasReadProfile && brandkitApp.hasMountChip && 
   ok('swr-app.html loads brandkit: SWR_Brandkit global + readProfile + mountChip + applyBrandkit + chip mounted');
 else bad('swr-app brandkit', JSON.stringify(brandkitApp));
 
-// 71. Brandkit module loads on music_video.html (we're already here from boot).
+// 71. Brandkit module loads on music_video.html.
+// (The #70 navigation moved the page to swr-app.html — re-navigate back
+// before evaluating brandkitMV, or this quietly re-checks swr-app.)
+await nav('http://localhost:5181/versions/music_video.html');
 const brandkitMV = await page.evaluate(() => ({
   ok: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
   hasReadProfile: window.SWR_Brandkit && typeof window.SWR_Brandkit.readProfile === 'function',
