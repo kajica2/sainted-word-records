@@ -66,8 +66,12 @@ try {
   });
 
   await page.setViewport({ width: 1280, height: 720 });
+  // CI note: on the GitHub runner this page never reaches networkidle0 — the
+  // engine's media + render loops keep the process active past the 45s budget
+  // (the same runner condition that killed the photo-slideshow smoke). The
+  // readiness poll below is the real gate, so gate the nav on domcontentloaded.
   await page.goto(`${BASE}/versions/hallucination.html`,
-                  { waitUntil: 'networkidle0', timeout: 45000 });
+                  { waitUntil: 'domcontentloaded', timeout: 45000 });
 
   // Wait for SWR.Audio + Library + Layers to be populated.
   let waited = 0;
