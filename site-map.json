@@ -218,6 +218,11 @@
           "description": "Interactive tutorial"
         },
         {
+          "label": "Persona Library",
+          "href": "/persona-library",
+          "description": "Workflow personas & decision memo"
+        },
+        {
           "label": "Changelog",
           "href": "/changelog",
           "description": "What's new"
@@ -316,9 +321,9 @@
   ],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-09-12",
-    "totalPages": 108,
-    "corePages": 107,
+    "lastUpdated": "2026-09-16",
+    "totalPages": 109,
+    "corePages": 108,
     "archivedPages": 1
   },
   "discovered": [
@@ -364,6 +369,7 @@
     "login.html",
     "make-video.html",
     "marketplace.html",
+    "persona-library.html",
     "personas/v/clubstrobe.html",
     "personas/v/filmfilm.html",
     "personas/v/filter.html",
