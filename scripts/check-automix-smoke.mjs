@@ -50,7 +50,16 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
-await page.goto('http://localhost:5181/versions/music_video.html', { waitUntil: 'networkidle0', timeout: 30000 });
+// CI runner note: networkidle0 never settles within the timeout on GitHub
+// runners (same condition that killed the photo-slideshow and
+// e2e-media-record smokes). Navigate on domcontentloaded, then give the
+// page a bounded chance to reach the load event before checks run.
+async function nav(url) {
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
+}
+
+await nav('http://localhost:5181/versions/music_video.html');
 
 const results = [];
 function ok(name) { results.push('  ✓ ' + name); }
@@ -1131,7 +1140,7 @@ else bad('reset fade-out', JSON.stringify(resetFadeShape));
 //     "skip pages without swapAsset method or reset method" guard fires
 //     cleanly on the 13 variant pages instead of corrupting them with
 //     phantom anchors.
-await page.goto('http://localhost:5181/versions/neon.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await nav('http://localhost:5181/versions/neon.html');
 const variantShape = await page.evaluate(() => {
   return {
     swrPresent: typeof window.SWR === 'object' && window.SWR !== null,
@@ -1154,7 +1163,7 @@ else bad('variant page F-patch skip shape', JSON.stringify(variantShape));
 //     the body[data-fit] attribute, and that the CSS rule is present
 //     in a stylesheet (the selector that flips object-fit).
 //     Run on music_video.html — SWR_FIT lives there, not on neon.
-await page.goto('http://localhost:5181/versions/music_video.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await nav('http://localhost:5181/versions/music_video.html');
 const fitShape = await page.evaluate(() => {
   if (!window.SWR_FIT) return { ok: false, reason: 'no SWR_FIT' };
   const initial = window.SWR_FIT.isOn;
@@ -1488,7 +1497,7 @@ if (statsShape.ok
 else bad('SWR_STATS', JSON.stringify(statsShape));
 
 // 70. Brandkit module loads on swr-app.html.
-await page.goto('http://localhost:5181/swr-app.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await nav('http://localhost:5181/swr-app.html');
 await new Promise(r => setTimeout(r, 200));
 const brandkitApp = await page.evaluate(() => ({
   ok: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
@@ -1516,7 +1525,7 @@ else bad('music_video brandkit', JSON.stringify(brandkitMV));
 // 72. SWR_MOOD API shape + k-means returns k centroids on synthetic input.
 // (Re-navigate to music_video.html — the assertion above #70/#71 moved
 // the page to swr-app.html, which doesn't load SWR_MOOD.)
-await page.goto('http://localhost:5181/versions/music_video.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await nav('http://localhost:5181/versions/music_video.html');
 await new Promise(r => setTimeout(r, 200));
 const moodShape = await page.evaluate(() => {
   if (!window.SWR_MOOD) return { ok: false, reason: 'no SWR_MOOD' };
@@ -1632,7 +1641,7 @@ else bad('SWR_SCENES', JSON.stringify(scenesShape));
 // 74. engine.html has all 8 post-2026 SWR_* globals + brandkit + recorder
 // (parity with versions/music_video.html — see
 // .hermes/plans/2026-09-09_065000-engine-page-parity.md).
-await page.goto('http://localhost:5181/engine.html', { waitUntil: 'networkidle0', timeout: 30000 });
+await nav('http://localhost:5181/engine.html');
 await new Promise(r => setTimeout(r, 400));
 const engineParity = await page.evaluate(() => ({
   hero: typeof window.SWR_HERO_FRAMES === 'object' && window.SWR_HERO_FRAMES !== null,
