@@ -3,6 +3,7 @@
 <head>
   <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/brandkit.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Sainted Word Records — Make your music visible.</title>
@@ -2945,7 +2946,7 @@
   <!-- ============================================================
        NAVIGATION
        ============================================================ -->
-  <header class="nav" role="banner">
+  <header class="nav" role="banner" id="hdr">
     <div class="wrap nav__inner">
       <a href="#top" class="brand" aria-label="Sainted Word Records home">
         <span class="brand__mark" aria-hidden="true"></span>
@@ -9373,6 +9374,31 @@ recordTimer = setTimeout(() => {
     </div>
   </div>
 
+  <!-- Brand Kit (PRD-007 partial) — module + boot. Mirrors versions/music_video.html. -->
+  <script src="/brandkit.client.js" defer></script>
+  <script>
+    // Apply brandkit on app boot — public launch: no auth wall.
+    // Brandkit is opt-in: if a profile exists, apply it; otherwise render with default theme.
+    (function () {
+      function go() {
+        if (!window.SWR_Brandkit) { setTimeout(go, 30); return; }
+        try {
+          const profile = window.SWR_Brandkit.readProfile();
+          if (profile && profile.brandkit) {
+            window.SWR_Brandkit.applyBrandkit(profile.brandkit);
+            window.SWR_Brandkit.mountChip('hdr');
+          }
+        } catch (e) {
+          console.warn('[brandkit] boot failed:', e);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', go);
+      } else {
+        go();
+      }
+    })();
+  </script>
   <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>
