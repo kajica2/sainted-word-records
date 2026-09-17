@@ -85,6 +85,18 @@ console.log(`[verify-transitions] serving from ${ROOT} on :${PORT}`);
 
 try {
   const page = await browser.newPage();
+  // CI stability: pwa-bootstrap reloads the page on service-worker
+  // 'controllerchange' (first-visit install + claim). On slow runners that
+  // reload lands mid-test and kills the execution context ("Execution
+  // context was destroyed, most likely because of a navigation" + a dozen
+  // cascading failures — observed 2026-09-17). This verify covers the
+  // transitions wiring, not the PWA shell, so neutralise (but do not
+  // remove) the SW registration for the whole run.
+  await page.evaluateOnNewDocument(() => {
+    if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+      navigator.serviceWorker.register = () => new Promise(() => {});
+    }
+  });
   const consoleErrors = [];
   page.on('pageerror', (err) => consoleErrors.push('PE: ' + err.message));
   page.on('console', (msg) => {
