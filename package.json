@@ -50,6 +50,7 @@
     "verify:story-graph": "node verify-story-graph.mjs",
     "verify:hallucination-story": "node verify-hallucination-story.mjs",
     "verify:autoplay": "node verify-autoplay.mjs",
+    "verify:engine-boot": "node verify-engine-boot.mjs",
     "verify:transitions": "node verify-transitions.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",

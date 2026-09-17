@@ -61,15 +61,23 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     if (installed) pass('SWR_DEFAULT_LIBRARY installed');
     else fail('SWR_DEFAULT_LIBRARY missing');
 
-    // 2. Library seeded (wait for >=7 items with webp names)
+    // 2. Library seeded (wait for >=7 hologram textures). The seeder gives
+    // them display names (Wave/Grid/Bar/Dot/Line/Frame/Trace); raw .webp
+    // filenames are still accepted for older persisted seeds.
     try {
       await page.waitForFunction(() =>
         window.Library && window.Library.items &&
-        window.Library.items.filter(i => i && /\.webp$/i.test(i.name || '')).length >= 7,
+        window.Library.items.filter(i => {
+          const n = (i && i.name) || '';
+          return /\.webp$/i.test(n) || ['Wave', 'Grid', 'Bar', 'Dot', 'Line', 'Frame', 'Trace'].includes(n);
+        }).length >= 7,
         { timeout: 20000 });
       const names = await page.evaluate(() =>
-        window.Library.items.filter(i => /\.webp$/i.test(i.name || '')).map(i => i.name));
-      pass(`library seeded with ${names.length} default webp images`, names.slice(0, 3).join(','));
+        window.Library.items.filter(i => {
+          const n = (i && i.name) || '';
+          return /\.webp$/i.test(n) || ['Wave', 'Grid', 'Bar', 'Dot', 'Line', 'Frame', 'Trace'].includes(n);
+        }).map(i => i.name));
+      pass(`library seeded with ${names.length} default textures`, names.slice(0, 3).join(','));
     } catch (_) {
       const n = await page.evaluate(() => (window.Library && window.Library.items || []).length).catch(() => -1);
       fail('library did not seed to 7 within 20s', `items=${n}`);

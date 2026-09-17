@@ -33,7 +33,7 @@
       "tasks": [
         {"id": "3.1", "title": "Add 'Asset curator' status pill to footer", "status": "done", "artifacts": ["client/asset-curator.client.js:351"]},
         {"id": "3.2", "title": "Write scripts/check-asset-curator-smoke.mjs (5 Puppeteer tests)", "status": "done", "artifacts": ["scripts/check-asset-curator-smoke.mjs"]},
-        {"id": "3.3", "title": "Commit + push + open PR", "status": "in_progress", "note": "All code + tests green on disk; awaiting final commit on feat/asset-curator"}
+        {"id": "3.3", "title": "Commit + push + open PR", "status": "done", "artifacts": ["PR #83"]}
       ]
     }
   ],
