@@ -995,26 +995,8 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       _ctx.restore();
     }
     function drawFx() {
-      // Beat + onset both drive the flash; onset gets a stronger multiplier
-      // so heavy transients punch through. Capped at 0.85 to avoid a fully
-      // white frame that would hide the composition for a frame.
-      const beat = A.feat.beat || 0;
-      const onset = A.feat.onset || 0;
-      const flash = Math.min(0.85, beat * 0.6 + onset * 0.7);
-      $('flash').style.opacity = String(flash);
-      // Grid line pulse — the overlay becomes more visible on heavy hits
-      const gridOpacity = 0.35 + beat * 0.4;
-      $('grid').style.opacity = String(Math.min(1, gridOpacity));
-      // Kick drum punch — every 2nd beat (≈ downbeat at common tempos)
-      // a single white frame flashes the entire canvas for one tick.
-      // Tracked via the same _beatCount used for cell rotation so they
-      // stay in phase.
-      if (A.feat.beatPulse && _beatCount % 2 === 0) {
-        ctx.save();
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillRect(0, 0, W, H);
-        ctx.restore();
-      }
+      // Legacy flash/pulse retired — engine.html's console drives #flash/#grid now.
+      // Kept as an extractable no-op: the variant switcher compiles this source.
     }
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;

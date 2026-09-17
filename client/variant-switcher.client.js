@@ -206,8 +206,8 @@
   async function activate(id) {
     const v = VARIANTS.find((x) => x.id === id);
     if (!v) return deactivate();
-    ensureOverlays(id);
-    const fx = await loadVariant(id);
+    // ensureOverlays(id)
+    let fx = await loadVariant(id)
     // Theme tokens (restore-safe)
     if (!state.savedAccents) {
       const root = document.documentElement;
@@ -222,10 +222,11 @@
     root.style.setProperty('--accent', cssColor(v.accent));
     root.style.setProperty('--accent-2', cssColor(v.accent2));
     root.style.setProperty('--accent-3', cssColor(v.accent3));
-    state.active = id;
-    state.fx = fx;
-    if (typeof window.SWR_VARIANTS_UI === 'function') window.SWR_VARIANTS_UI(id);
-    return v;
+    state.active = id
+    state.fx = fx
+    // State is now active. Ensure UI reflects this.
+    if (typeof window.SWR_VARIANTS_UI === 'function') window.SWR_VARIANTS_UI(id)
+    return v
   }
 
   function deactivate() {

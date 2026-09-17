@@ -979,12 +979,12 @@ const a=l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a (l
       // === Audio-reactive vignette ===
       // Heavy bass + beat darken the edges like a film aperture closing.
       // We toggle a CSS variable on the vignette element — opacity only.
-      const vig = document.getElementById('vignette');
-      if (vig) {
-        // Base 0.7 (matches the static gradient), beat adds up to 0.25 more
-        const targetOpacity = 0.7 + beat * 0.2 + onset * 0.15;
-        vig.style.setProperty('background', `radial-gradient(ellipse at center, transparent ${Math.max(30, 40 - beat * 12)}%, rgba(0,0,0,${Math.min(0.95, targetOpacity)}) 100%)`);
-      }
+      // const vig = document.getElementById('vignette');
+      // if (vig) {
+      //   // Base 0.7 (matches the static gradient), beat adds up to 0.25 more
+      //   const targetOpacity = 0.7 + beat * 0.2 + onset * 0.15;
+      //   vig.style.setProperty('background', `radial-gradient(ellipse at center, transparent ${Math.max(30, 40 - beat * 12)}%, rgba(0,0,0,${Math.min(0.95, targetOpacity)}) 100%)`);
+      // }
     }
     function drawMeter() {
       const m=meter, w=m.canvas.width, h=m.canvas.height;
