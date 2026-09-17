@@ -2652,16 +2652,27 @@
         this.unlock();
         if (this.ctx.state === 'suspended') this.ctx.resume();
         // play() can reject when called without a user gesture (autoplay
-        // policy). The UI state below is still correct (a gesture-queued
-        // retry re-calls play()), so swallow the rejection instead of
-        // surfacing it as an uncaught page error.
+        // policy). Only flip the UI to "playing" once the play request
+        // actually succeeds: flipping it synchronously left the button
+        // claiming "Pause" while a blocked autoplay (boot song-restore)
+        // kept the engine silent, so the user's first click became a
+        // pause-of-nothing and playback needed two clicks. On rejection we
+        // stay in the honest paused state and the next real gesture (the
+        // pointerdown retry in the boot path, or the button itself) plays.
         const started = this.audioEl.play();
-        if (started && started.catch) started.catch(() => {});
-        this.playing = true;
-        $('play').textContent = '❚❚ Pause';
-        $('play').classList.remove('primary');
-        $('play').classList.add('danger');
-        stageEmpty.classList.add('hidden');
+        const self = this;
+        const markPlaying = () => {
+          self.playing = true;
+          $('play').textContent = '❚❚ Pause';
+          $('play').classList.remove('primary');
+          $('play').classList.add('danger');
+          stageEmpty.classList.add('hidden');
+        };
+        if (started && typeof started.then === 'function') {
+          started.then(markPlaying).catch(() => { this.playing = false; });
+        } else {
+          markPlaying();
+        }
       },
       // === Persistent song storage (IndexedDB 'songs' store, key 'current') ===
       // The latest loaded song survives reloads so the user doesn't have to
