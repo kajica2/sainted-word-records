@@ -85,6 +85,18 @@ console.log(`[verify-transitions] serving from ${ROOT} on :${PORT}`);
 
 try {
   const page = await browser.newPage();
+  // CI stability: pwa-bootstrap reloads the page on service-worker
+  // 'controllerchange' (first-visit install + claim). On slow runners that
+  // reload lands mid-test and kills the execution context ("Execution
+  // context was destroyed, most likely because of a navigation" + a dozen
+  // cascading failures — observed 2026-09-17). This verify covers the
+  // transitions wiring, not the PWA shell, so neutralise (but do not
+  // remove) the SW registration for the whole run.
+  await page.evaluateOnNewDocument(() => {
+    if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+      navigator.serviceWorker.register = () => new Promise(() => {});
+    }
+  });
   const consoleErrors = [];
   page.on('pageerror', (err) => consoleErrors.push('PE: ' + err.message));
   page.on('console', (msg) => {
@@ -254,32 +266,39 @@ try {
   await step('onBeat with hit=false does NOT fire', async () => {
     const fired = await page.evaluate(async () => {
       const tx = window.SWRTransitions;
-      tx.setAutoFire({ everyNBeats: 1, transition: 'linear-wipe-lr', bpm: 120 });
-      // Drain any in-flight overlay classes so we have a clean slate.
-      const overlay = document.getElementById('swr-tx-layer');
-      overlay.className = '';
-      // Wrap fire indirectly by checking if the overlay receives a fresh
-      // swr-tx-N class after a no-hit beat.
-      //
-      // Snapshot the class BEFORE setting up the observer so we only
-      // detect a change to a NEW class. (A no-op classList.remove()
-      // can still fire a class-list mutation, so naive MutationObserver
-      // watching reports changes when there aren't any.)
-      const beforeClass = overlay.className;
-      let changed = false;
-      const obs = new MutationObserver(() => {
-        const cls = overlay.className;
-        // Only flag if class actually became a non-empty transition class.
-        if (cls && cls !== beforeClass && /swr-tx-\d+/.test(cls)) changed = true;
-      });
-      obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
-      tx.onBeat(120, false);
-      await new Promise(r => setTimeout(r, 200));
-      obs.disconnect();
-      tx.setAutoFire(null);
-      return changed;
+      // The engine page is busy while this runs: the storyboard demo fires
+      // its own transitions on its timeline (e.g. swivel, source "css"),
+      // and engine.html feeds real beats through tx.onBeat() when the demo
+      // song plays (CI). Neither is this check's subject. The subject is
+      // the auto-fire CONTRACT: with everyNBeats:1 armed, a beat delivered
+      // with hit=false must not invoke the auto-fire handler — and the only
+      // path that fires the armed transition with source "auto" is that
+      // handler, so the swr-tx:fire event (name + source) is the precise
+      // probe. (Overlay-class observation flaked: storyboard fires and
+      // leftover lifecycle phases tripped it on CI runners.)
+      const ARMED = 'linear-wipe-lr';
+      const origOnBeat = tx.onBeat;
+      tx.onBeat = function () {}; // swallow the page's analyser beats
+      let autoFires = 0;
+      const details = [];
+      const onFire = (e) => {
+        const d = (e && e.detail) || {};
+        if (d.name === ARMED && d.source === 'auto') { autoFires++; details.push(d); }
+      };
+      document.addEventListener('swr-tx:fire', onFire);
+      try {
+        tx.setAutoFire(null);
+        tx.setAutoFire({ everyNBeats: 1, transition: ARMED, bpm: 120 });
+        origOnBeat.call(tx, 120, false); // the no-hit beat under test
+        await new Promise(r => setTimeout(r, 200));
+        return { autoFires, details };
+      } finally {
+        document.removeEventListener('swr-tx:fire', onFire);
+        tx.onBeat = origOnBeat;
+        tx.setAutoFire(null);
+      }
     });
-    if (fired) throw new Error('onBeat(false) incorrectly triggered a transition');
+    if (fired.autoFires > 0) throw new Error(`onBeat(false) invoked the auto-fire handler (${JSON.stringify(fired.details)})`);
   });
 
   await step('setAutoFire(null) disarms auto-fire', async () => {

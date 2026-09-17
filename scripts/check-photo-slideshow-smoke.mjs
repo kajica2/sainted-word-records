@@ -85,6 +85,40 @@ const checks = [];
 const pass = (m, d) => { checks.push({ ok: true, m, d }); console.log('✓', m, d ? `(${d})` : ''); };
 const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m, d ? `(${d})` : ''); };
 
+// Navigate photo.html robustly. The page runs fx-background.client.js (a
+// fullscreen Canvas2D rAF loop); on a CPU-starved CI runner 'networkidle0'
+// never settles and used to take the smoke down with a 20s navigation
+// timeout before a single check ran. Try networkidle0 briefly as a
+// diagnostic, then fall back to domcontentloaded + explicit seam wait (the
+// pattern the other smokes use).
+// How long to let networkidle0 try before falling back (override for testing:
+// SWR_SMOKE_NETIDLE_MS=1 forces the fallback path locally).
+const DIAG_MS = Number(process.env.SWR_SMOKE_NETIDLE_MS || 5000);
+
+async function gotoPhoto(page, label) {
+  const inflight = new Map();
+  const onReq = (r) => inflight.set(r.url(), true);
+  const onDone = (r) => inflight.delete(r.url());
+  page.on('request', onReq);
+  page.on('requestfinished', onDone);
+  page.on('requestfailed', onDone);
+  try {
+    await page.goto(`${BASE}/${TARGET}`, { waitUntil: 'networkidle0', timeout: DIAG_MS });
+  } catch (e) {
+    // A goto timeout does NOT cancel the navigation — the page keeps loading
+    // in the background. Wait for in-page readiness instead of re-navigating
+    // (a second goto while the first is in flight aborts it with ERR_ABORTED).
+    const pending = [...inflight.keys()];
+    console.log(`· ${label}: networkidle0 not reached in ${DIAG_MS}ms — waiting for page readiness instead`);
+    console.log(`· ${label}: requests still in flight: ${pending.length ? pending.join(', ') : '(none)'}`);
+    await page.waitForFunction(
+      () => document.readyState === 'complete' || !!window.PHOTO_STUDIO_DEBUG,
+      { timeout: 20000 }
+    ).catch(() => {});
+  }
+  await page.waitForFunction(() => !!window.PHOTO_STUDIO_DEBUG, { timeout: 15000 }).catch(() => {});
+}
+
 async function dropImages(page, paths) {
   const input = await page.$('#image-input');
   if (!input) throw new Error('#image-input not found');
@@ -114,7 +148,7 @@ async function dropImages(page, paths) {
     page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error') errs.push('console.error: ' + m.text()); });
 
-    await page.goto(`${BASE}/${TARGET}`, { waitUntil: 'networkidle0', timeout: 20000 });
+    await gotoPhoto(page, 'deck A');
     await new Promise((r) => setTimeout(r, 1000));
 
     const seamReady = await page.evaluate(() => !!window.PHOTO_STUDIO_DEBUG);
@@ -168,7 +202,7 @@ async function dropImages(page, paths) {
     const errs2 = [];
     page2.on('pageerror', (e) => errs2.push('pageerror: ' + e.message));
     page2.on('console', (m) => { if (m.type() === 'error') errs2.push('console.error: ' + m.text()); });
-    await page2.goto(`${BASE}/${TARGET}`, { waitUntil: 'networkidle0', timeout: 20000 });
+    await gotoPhoto(page2, 'deck B');
     await new Promise((r) => setTimeout(r, 800));
     await dropImages(page2, [p3]);
     const single = await page2.evaluate(() => window.PHOTO_STUDIO_DEBUG.state());
@@ -210,7 +244,7 @@ async function dropImages(page, paths) {
     const errs3 = [];
     page3.on('pageerror', (e) => errs3.push('pageerror: ' + e.message));
     page3.on('console', (m) => { if (m.type() === 'error') errs3.push('console.error: ' + m.text()); });
-    await page3.goto(`${BASE}/${TARGET}`, { waitUntil: 'networkidle0', timeout: 20000 });
+    await gotoPhoto(page3, 'deck C');
     await new Promise((r) => setTimeout(r, 800));
 
     // Deck of 2 + apply preset via the file input (real wire, not the seam)

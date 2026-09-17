@@ -94,7 +94,15 @@
     'inset:0',
     'width:100vw',
     'height:100vh',
-    'z-index:0',
+    // z-index:-1 so the canvas paints BEHIND in-flow page content (it only
+    // sits above the root background). z-index:0 looked equivalent but was
+    // not: positioned z-index:0 elements paint ABOVE static in-flow content,
+    // so the canvas covered every page whose content isn't itself positioned
+    // (press, about, changelog, intro, status, 404 — all shipped covered).
+    // A page that wants a solid background instead of the FX can set an
+    // explicit html{background:<color>} — that paints at the root layer,
+    // below this canvas.
+    'z-index:-1',
     'pointer-events:none',
   ].join(';');
   // Insert as the first child of <body>, AFTER any existing nav.
@@ -109,16 +117,9 @@
   }
   const fctx = fx.getContext('2d');
 
-  // Make sure the rest of the page content sits above the FX background.
-  // The page's existing content is already at z-index auto (effectively
-  // 0 or higher in stacking-context terms). We need the FX canvas to be
-  // BEHIND the content. The nav uses z-index 9998; the FX is z-index 0.
-  // Any other absolutely-positioned content (e.g. headers in landing.html)
-  // may need to be re-checked. The simplest fix: only apply this background
-  // if no other content is at z-index auto, OR add a global rule.
-  // For now: just ensure the FX canvas stays at z-index 0 by using
-  // position:fixed + z-index:0 (which it does). Pages with their own
-  // background-color will hide this; pages without will show it.
+  // Stacking note: content paints above this canvas because in-flow static
+  // content and positioned content both paint after negative-z descendants.
+  // The nav sits at z-index 9998; the FX is z-index -1 (see above).
 
   // ---- per-frame render ----
   // Without WebGL we'd just draw the source to the FX canvas every frame.

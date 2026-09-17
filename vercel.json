@@ -382,6 +382,14 @@
       "destination": "/interactive-howto.html"
     },
     {
+      "source": "/persona-library",
+      "destination": "/persona-library.html"
+    },
+    {
+      "source": "/persona-library/",
+      "destination": "/persona-library.html"
+    },
+    {
       "source": "/changelog",
       "destination": "/changelog.html"
     },
@@ -500,6 +508,14 @@
     {
       "source": "/thanks/",
       "destination": "/thanks.html"
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/terms.html/",
+      "destination": "/terms.html"
     },
     {
       "source": "/login",
