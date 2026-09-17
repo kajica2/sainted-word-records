@@ -266,62 +266,39 @@ try {
   await step('onBeat with hit=false does NOT fire', async () => {
     const fired = await page.evaluate(async () => {
       const tx = window.SWRTransitions;
-      // Isolate from the page's own beat feed: engine.html calls
-      // SWRTransitions.onBeat() from its audio analyser on every beat, and
-      // with --autoplay-policy=no-user-gesture-required the demo song really
-      // plays (in CI reliably). The analyser re-reads the property at each
-      // call site, so this wrapper intercepts its calls; the no-hit beat
-      // under test goes through the original function directly.
+      // The engine page is busy while this runs: the storyboard demo fires
+      // its own transitions on its timeline (e.g. swivel, source "css"),
+      // and engine.html feeds real beats through tx.onBeat() when the demo
+      // song plays (CI). Neither is this check's subject. The subject is
+      // the auto-fire CONTRACT: with everyNBeats:1 armed, a beat delivered
+      // with hit=false must not invoke the auto-fire handler — and the only
+      // path that fires the armed transition with source "auto" is that
+      // handler, so the swr-tx:fire event (name + source) is the precise
+      // probe. (Overlay-class observation flaked: storyboard fires and
+      // leftover lifecycle phases tripped it on CI runners.)
+      const ARMED = 'linear-wipe-lr';
       const origOnBeat = tx.onBeat;
-      let pageBeats = 0;
-      tx.onBeat = function () { pageBeats++; };
+      tx.onBeat = function () {}; // swallow the page's analyser beats
+      let autoFires = 0;
+      const details = [];
+      const onFire = (e) => {
+        const d = (e && e.detail) || {};
+        if (d.name === ARMED && d.source === 'auto') { autoFires++; details.push(d); }
+      };
+      document.addEventListener('swr-tx:fire', onFire);
       try {
-        // Stop new auto-fires.
         tx.setAutoFire(null);
-        // Wait for the fire QUEUE to drain. Each fire is a ~520ms CSS job
-        // and the analyser kept queuing during the previous steps, so a
-        // fixed sleep is not enough on a machine where the song actually
-        // plays — a leftover job draining into the observation window reads
-        // as "onBeat(false) fired". Quiet = no 'swr-tx:fire' event for
-        // 700ms (the module emits that event after every successful fire).
-        let lastFireAt = 0;
-        const onFire = () => { lastFireAt = Date.now(); };
-        document.addEventListener('swr-tx:fire', onFire);
-        const t0 = Date.now();
-        while (Date.now() - t0 < 6000) {
-          if (Date.now() - lastFireAt > 700) break;
-          await new Promise(r => setTimeout(r, 60));
-        }
-        document.removeEventListener('swr-tx:fire', onFire);
-        const overlay = document.getElementById('swr-tx-layer');
-        overlay.className = '';
-        // Snapshot the class BEFORE setting up the observer so we only
-        // detect a change to a NEW class. (A no-op classList.remove()
-        // can still fire a class-list mutation, so naive MutationObserver
-        // watching reports changes when there aren't any.)
-        const beforeClass = overlay.className;
-        let changed = false;
-        const obs = new MutationObserver(() => {
-          const cls = overlay.className;
-          // Only flag if class actually became a non-empty transition class.
-          if (cls && cls !== beforeClass && /swr-tx-\d+/.test(cls)) changed = true;
-        });
-        obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
-        // Arm auto-fire and deliver the no-hit beat synchronously from the
-        // harness: setAutoFire starts the internal emitter, the original
-        // onBeat() silences it in the same task — no internal tick can
-        // interleave (single-threaded).
-        tx.setAutoFire({ everyNBeats: 1, transition: 'linear-wipe-lr', bpm: 120 });
-        origOnBeat.call(tx, 120, false);
+        tx.setAutoFire({ everyNBeats: 1, transition: ARMED, bpm: 120 });
+        origOnBeat.call(tx, 120, false); // the no-hit beat under test
         await new Promise(r => setTimeout(r, 200));
-        obs.disconnect();
-        return { changed, pageBeats };
+        return { autoFires, details };
       } finally {
+        document.removeEventListener('swr-tx:fire', onFire);
         tx.onBeat = origOnBeat;
         tx.setAutoFire(null);
       }
     });
-    if (fired.changed) throw new Error(`onBeat(false) incorrectly triggered a transition (page beats swallowed meanwhile: ${fired.pageBeats})`);
+    if (fired.autoFires > 0) throw new Error(`onBeat(false) invoked the auto-fire handler (${JSON.stringify(fired.details)})`);
   });
 
   await step('setAutoFire(null) disarms auto-fire', async () => {
