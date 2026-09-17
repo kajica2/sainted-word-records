@@ -1555,7 +1555,11 @@ const moodShape = await page.evaluate(() => {
     ok: true,
     has,
     kmeansLen: r.centroids.length,
-    kmeansCentroidsDiverse: Math.abs(r.centroids[0][0] - r.centroids[1][0]) > 100,
+    // Order-independent: k-means++ init does not order centroids, so the
+    // old ordered-pair R-diff on [0] vs [1] flaked ~30% of runs (measured
+    // 60/200) even with perfectly separated clusters. The centroid SET
+    // must contain the red cluster (R≈255) and a non-red one (R≈0).
+    kmeansCentroidsDiverse: r.centroids.some(c => c[0] > 200) && r.centroids.some(c => c[0] < 55),
     featuresContrast: Math.abs(f.contrast - 1.0) < 0.01,
     featuresTempWarm: f.temperature > 0,
   };
