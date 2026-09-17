@@ -254,10 +254,19 @@ try {
   await step('onBeat with hit=false does NOT fire', async () => {
     const fired = await page.evaluate(async () => {
       const tx = window.SWRTransitions;
-      tx.setAutoFire({ everyNBeats: 1, transition: 'linear-wipe-lr', bpm: 120 });
-      // Drain any in-flight overlay classes so we have a clean slate.
+      // Disarm whatever the previous step left armed, then drain in-flight
+      // overlay classes AND let lifecycle timers from the previous step's
+      // fired transition settle (DEFAULT_DURATION is 520ms). On a slow CI
+      // runner a late phase otherwise lands inside this check's observation
+      // window and reads as "onBeat(false) fired".
+      tx.setAutoFire(null);
       const overlay = document.getElementById('swr-tx-layer');
       overlay.className = '';
+      await new Promise(r => setTimeout(r, 650));
+      // Arm auto-fire and deliver the no-hit beat synchronously: setAutoFire
+      // starts the internal emitter, onBeat() silences it in the same task —
+      // no internal tick can interleave (single-threaded).
+      tx.setAutoFire({ everyNBeats: 1, transition: 'linear-wipe-lr', bpm: 120 });
       // Wrap fire indirectly by checking if the overlay receives a fresh
       // swr-tx-N class after a no-hit beat.
       //
