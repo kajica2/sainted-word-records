@@ -266,41 +266,62 @@ try {
   await step('onBeat with hit=false does NOT fire', async () => {
     const fired = await page.evaluate(async () => {
       const tx = window.SWRTransitions;
-      // Disarm whatever the previous step left armed, then drain in-flight
-      // overlay classes AND let lifecycle timers from the previous step's
-      // fired transition settle (DEFAULT_DURATION is 520ms). On a slow CI
-      // runner a late phase otherwise lands inside this check's observation
-      // window and reads as "onBeat(false) fired".
-      tx.setAutoFire(null);
-      const overlay = document.getElementById('swr-tx-layer');
-      overlay.className = '';
-      await new Promise(r => setTimeout(r, 650));
-      // Arm auto-fire and deliver the no-hit beat synchronously: setAutoFire
-      // starts the internal emitter, onBeat() silences it in the same task —
-      // no internal tick can interleave (single-threaded).
-      tx.setAutoFire({ everyNBeats: 1, transition: 'linear-wipe-lr', bpm: 120 });
-      // Wrap fire indirectly by checking if the overlay receives a fresh
-      // swr-tx-N class after a no-hit beat.
-      //
-      // Snapshot the class BEFORE setting up the observer so we only
-      // detect a change to a NEW class. (A no-op classList.remove()
-      // can still fire a class-list mutation, so naive MutationObserver
-      // watching reports changes when there aren't any.)
-      const beforeClass = overlay.className;
-      let changed = false;
-      const obs = new MutationObserver(() => {
-        const cls = overlay.className;
-        // Only flag if class actually became a non-empty transition class.
-        if (cls && cls !== beforeClass && /swr-tx-\d+/.test(cls)) changed = true;
-      });
-      obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
-      tx.onBeat(120, false);
-      await new Promise(r => setTimeout(r, 200));
-      obs.disconnect();
-      tx.setAutoFire(null);
-      return changed;
+      // Isolate from the page's own beat feed: engine.html calls
+      // SWRTransitions.onBeat() from its audio analyser on every beat, and
+      // with --autoplay-policy=no-user-gesture-required the demo song really
+      // plays (in CI reliably). The analyser re-reads the property at each
+      // call site, so this wrapper intercepts its calls; the no-hit beat
+      // under test goes through the original function directly.
+      const origOnBeat = tx.onBeat;
+      let pageBeats = 0;
+      tx.onBeat = function () { pageBeats++; };
+      try {
+        // Stop new auto-fires.
+        tx.setAutoFire(null);
+        // Wait for the fire QUEUE to drain. Each fire is a ~520ms CSS job
+        // and the analyser kept queuing during the previous steps, so a
+        // fixed sleep is not enough on a machine where the song actually
+        // plays — a leftover job draining into the observation window reads
+        // as "onBeat(false) fired". Quiet = no 'swr-tx:fire' event for
+        // 700ms (the module emits that event after every successful fire).
+        let lastFireAt = 0;
+        const onFire = () => { lastFireAt = Date.now(); };
+        document.addEventListener('swr-tx:fire', onFire);
+        const t0 = Date.now();
+        while (Date.now() - t0 < 6000) {
+          if (Date.now() - lastFireAt > 700) break;
+          await new Promise(r => setTimeout(r, 60));
+        }
+        document.removeEventListener('swr-tx:fire', onFire);
+        const overlay = document.getElementById('swr-tx-layer');
+        overlay.className = '';
+        // Snapshot the class BEFORE setting up the observer so we only
+        // detect a change to a NEW class. (A no-op classList.remove()
+        // can still fire a class-list mutation, so naive MutationObserver
+        // watching reports changes when there aren't any.)
+        const beforeClass = overlay.className;
+        let changed = false;
+        const obs = new MutationObserver(() => {
+          const cls = overlay.className;
+          // Only flag if class actually became a non-empty transition class.
+          if (cls && cls !== beforeClass && /swr-tx-\d+/.test(cls)) changed = true;
+        });
+        obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+        // Arm auto-fire and deliver the no-hit beat synchronously from the
+        // harness: setAutoFire starts the internal emitter, the original
+        // onBeat() silences it in the same task — no internal tick can
+        // interleave (single-threaded).
+        tx.setAutoFire({ everyNBeats: 1, transition: 'linear-wipe-lr', bpm: 120 });
+        origOnBeat.call(tx, 120, false);
+        await new Promise(r => setTimeout(r, 200));
+        obs.disconnect();
+        return { changed, pageBeats };
+      } finally {
+        tx.onBeat = origOnBeat;
+        tx.setAutoFire(null);
+      }
     });
-    if (fired) throw new Error('onBeat(false) incorrectly triggered a transition');
+    if (fired.changed) throw new Error(`onBeat(false) incorrectly triggered a transition (page beats swallowed meanwhile: ${fired.pageBeats})`);
   });
 
   await step('setAutoFire(null) disarms auto-fire', async () => {
