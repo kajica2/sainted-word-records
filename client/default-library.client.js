@@ -24,11 +24,11 @@
     catch (_) { return String(u).split('/').pop(); }
   }
 
-  async function fetchFile(url, type) {
+  async function fetchFile(url, type, prettyName) {
     const r = await fetch(url);
     if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
     const blob = await r.blob();
-    return new File([blob], fileNameFromUrl(url), { type: type || blob.type || 'application/octet-stream' });
+    return new File([blob], prettyName || fileNameFromUrl(url), { type: type || blob.type || 'application/octet-stream' });
   }
 
   async function seed() {
@@ -39,8 +39,21 @@
       m = await r.json();
     } catch (e) { console.warn('[default-library] manifest fetch failed:', e.message); return; }
 
+    const PRETTY_NAMES = {
+      'holo-0.webp': 'Wave',
+      'holo-1.webp': 'Grid',
+      'holo-2.webp': 'Bar',
+      'holo-3.webp': 'Dot',
+      'holo-4.webp': 'Line',
+      'holo-5.webp': 'Frame',
+      'holo-6.webp': 'Trace'
+    };
+
     const wanted = (m.images || []).concat(m.audio || [])
-      .map((u) => ({ url: u, name: fileNameFromUrl(u) }));
+      .map((u) => {
+        const fname = fileNameFromUrl(u);
+        return { url: u, name: PRETTY_NAMES[fname] || fname };
+      });
     if (!wanted.length) return;
 
     // Poll until the engine's Library exists (module init ordering), max ~10s.
@@ -66,7 +79,7 @@
     for (const w of missing) {
       try {
         const isAudio = /\.(mp3|wav|ogg|flac|m4a)$/i.test(w.name);
-        files.push(await fetchFile(w.url, isAudio ? 'audio/mpeg' : 'image/webp'));
+        files.push(await fetchFile(w.url, isAudio ? 'audio/mpeg' : 'image/webp', w.name));
       } catch (e) { console.warn('[default-library] skip', w.url, e.message); }
     }
     if (files.length) {

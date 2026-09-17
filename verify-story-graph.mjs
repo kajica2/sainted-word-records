@@ -249,6 +249,59 @@ try {
        `tick() completed; before=${advanced.before} after=${advanced.after}`);
   });
 
+  await step('bpm unknown while playing: evolve() fires on nominal bars', async () => {
+    // Regression guard for the frozen-show bug. _tickBar() returns early when
+    // BPM is unknown, so Audio.bar stayed 0 forever and evolve() bailed on it —
+    // a quiet or free-tempo song sat motionless for its whole duration.
+    // barsInChapter() now supplies nominal 4/4 bars (NOMINAL_BAR_MS = 2000).
+    //
+    // The clock is driven rather than slept on: Layers.list is empty until
+    // seeded, Renderer.loop() returns early unless the transport is running,
+    // and 'signal' evolves every 4 bars — so wall-clock waiting would be slow
+    // and would test the browser's timer, not the runtime.
+    await seedLayer();
+
+    const r = await page.evaluate(async () => {
+      const S = window.SWR.Story, A = window.SWR.Audio;
+      const NUM = () => {
+        const l = window.SWR.Layers.list[0] || {};
+        return [l.opacity, l.hue, l.x, l.y, l.scale].map((v) => +(v ?? 0).toFixed(5)).join(',');
+      };
+      S.reset();
+      S.setMode('auto');
+      Object.defineProperty(A, 'bar', { get: () => 0, configurable: true });
+      A.feat = A.feat || {};
+      A.feat.bpm = 0;
+
+      const every = S.STORY.signal.evolve.everyBars;      // 4
+      const realNow = Date.now;
+      const base = 1700000000000;
+      let offset = 0;
+      Date.now = () => base + offset;
+      try {
+        const entered = await S.enter('signal', 'test');
+        const enteredAt = S.state.lastEnterAt;
+        const tooEarly = S.evolve();                      // 0 nominal bars in
+        offset = (every + 1) * 2000;                      // one bar past the cadence
+        const before = NUM();
+        const fired = S.evolve();
+        const after = NUM();
+        return { every, entered, enteredAt, base, tooEarly, fired, moved: before !== after,
+                 before, after, barsAfter: Math.floor(offset / 2000) };
+      } finally {
+        Date.now = realNow;
+        const d = Object.getOwnPropertyDescriptor(A, 'bar');
+        if (d && d.configurable) delete A.bar;
+      }
+    });
+
+    eq(r.entered, true, 'enter("signal")');
+    eq(r.enteredAt, r.base, 'chapter start must come from the clock we control');
+    eq(r.tooEarly, false, `evolve() must wait for its ${r.every}-bar cadence`);
+    eq(r.fired, true, `evolve() must fire at ${r.barsAfter} nominal bars with bpm=0`);
+    ok(r.moved, `evolve() returned true but no layer value changed (${r.before})`);
+  });
+
   await step('STORY UI strip renders 9 chapter pills with current = .active', async () => {
     const s = await page.evaluate(PROBE_RUNTIME);
     eq(s.pillCount, 9);

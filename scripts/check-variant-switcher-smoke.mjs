@@ -67,13 +67,18 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
       present: !!window.SWR_VARIANTS,
       hasPostFx: !!(window.SWR_VARIANTS && window.SWR_VARIANTS.postFx),
       select: !!document.getElementById('variant'),
-      opts: Array.from(document.querySelectorAll('#variant option')).map((o) => o.value),
+      opts: Array.from(document.querySelectorAll('#variant')[0].options).map((o) => o.value),
     }));
     if (init.present && init.hasPostFx) pass('window.SWR_VARIANTS installed with postFx()');
     else fail('window.SWR_VARIANTS missing', JSON.stringify(init));
     if (init.select) pass('#variant select found in transport');
     else fail('#variant select missing');
-    const expected = ['off', 'neon', 'film', 'grid', 'smoke', 'hallucination'];
+    // The switcher populates the FIRST #variant select (the hidden compat
+    // one kept for script wiring). The console toolbar carries a second
+    // #variant select with its own static "off" option, pending its own
+    // wiring — reading the merged list across both selects would mix the
+    // two. Expected = the 5 variant ids the switcher appends, in order.
+    const expected = ['neon', 'film', 'grid', 'smoke', 'hallucination'];
     if (JSON.stringify(init.opts) === JSON.stringify(expected)) {
       pass(`select populated with 5 variants (${init.opts.length} options)`);
     } else {

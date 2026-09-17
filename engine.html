@@ -15,37 +15,70 @@
   <link rel="stylesheet" href="/brandkit.css" />
   <style>
     :root {
-      --bg-0: #050308;
-      --bg-1: #0d0918;
-      --bg-2: #1a1226;
-      --panel: #11091a;
-      --panel-2: #1a1028;
-      --line: #2a1d3a;
-      --line-2: #3a2a4a;
-      --fg: #f5e9ff;
-      --muted: #9a8aaa;
-      --dim: #5a4a6a;
-      --accent: #ff3d92;
-      --accent-2: #00e5ff;
-      --accent-3: #ffd24a;
-      --warn: #ff7a3d;
-      --ok: #00ffa3;
-      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      /* — surface ————————————————————————————— */
+      --bg:           #0A0A0B;
+      --bg-panel:     #111114;
+      --bg-panel-2:   #16161B;
+      --bg-elev:      #1C1C22;
+      --line:         #232328;
+      --line-strong:  #2E2E36;
+
+      /* — text ——————————————————————————————— */
+      --fg:           #E5E5E7;
+      --fg-mute:      #8A8A92;
+      --fg-faint:     #5A5A62;
+      --fg-on-accent: #0A0A0B;
+
+      /* — signal —————————————————————————————— */
+      --signal:        #FF6B1A;   /* the ONE accent */
+      --signal-soft:   #FF6B1A33; /* 20% alpha — fills */
+      --signal-line:   #FF6B1A14; /*  8% alpha — grid */
+      --signal-glow:   #FF6B1A08; /*  3% alpha — halos */
+      --warn:          #FFD600;
+      --error:         #FF3355;
+      --ok:            #34D399;
+
+      /* — type ——————————————————————————————— */
+      --f-ui:    'Inter', system-ui, sans-serif;
+      --f-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+      /* — metrics ————————————————————————————— */
+      --r-sm: 4px;  --r-md: 6px;  --r-lg: 10px;
+      --sidebar-l-w: 240px;
+      --sidebar-r-w: 280px;
+      --top-h: 56px;
+      --bottom-h: 64px;
+
+      /* — motion ————————————————————————————— */
+      --ease: cubic-bezier(.2,.8,.2,1);
+      --dur-1: 120ms;
+      --dur-2: 240ms;
+
+      /* — old → new aliases ————————————————— */
+      --bg-0:            var(--bg);
+      --bg-1:            var(--bg-panel);
+      --bg-2:            var(--bg-panel-2);
+      --panel:           var(--bg-panel);
+      --panel-2:         var(--bg-panel-2);
+      --line-old:        var(--line);
+      --line-2:          var(--line-strong);
+      --muted:           var(--fg-mute);
+      --dim:             var(--fg-faint);
+      --accent:          var(--signal);
+      --accent-2:        #00e5ff;
+      --accent-3:        #ffd24a;
+      --font-mono:       var(--f-mono);
+      --font-sans:       var(--f-ui);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
     body {
-      background: var(--bg-0);
+      background: var(--bg);
       color: var(--fg);
       font-family: var(--font-sans);
       font-size: 13px;
       line-height: 1.4;
       -webkit-font-smoothing: antialiased;
-      background-image:
-        radial-gradient(ellipse at 20% 0%, rgba(255, 61, 146, 0.12), transparent 50%),
-        radial-gradient(ellipse at 80% 100%, rgba(0, 229, 255, 0.10), transparent 50%),
-        linear-gradient(180deg, var(--bg-0), var(--bg-1));
     }
 
     /* === LAYOUT === */
@@ -1511,6 +1544,51 @@
       font-size: 12px; color: rgba(245,234,216,0.7);
       cursor: pointer;
     }
+
+    *:focus { outline: 0; }
+    *:focus-visible {
+      outline: 2px solid var(--signal);
+      outline-offset: 2px;
+      border-radius: var(--r-sm);
+    }
+
+    @media (max-width: 1100px) {
+      :root { --sidebar-l-w: 200px; --sidebar-r-w: 240px; }
+      .transport .wave { display: none; }
+    }
+    @media (max-width: 768px) {
+      #app { grid-template-columns: 1fr; grid-template-rows: auto 50vh auto auto; }
+      aside#library { border-right: 0; border-bottom: 1px solid var(--line); max-height: 30vh; }
+      aside#layers { border-left: 0; border-top: 1px solid var(--line); max-height: 30vh; }
+      #library-grid { grid-template-columns: repeat(4, 1fr); }
+      .transport .pill, .transport .back { display: none; }
+      .versions { overflow-x: auto; max-width: 50vw; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    a.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    .top {
+      grid-area: transport;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; background: var(--bg-panel); border-bottom: 1px solid var(--line);
+      height: var(--top-h);
+    }
+    .top .brand { display: flex; align-items: center; text-decoration: none; color: var(--fg); font-size: 14px; letter-spacing: 0.05em; }
+    .top .versions { display: flex; align-items: center; gap: 4px; }
+    .top .versions a {
+      font-size: 11px; color: var(--fg-mute); text-decoration: none; padding: 4px 8px; border-radius: 4px;
+      transition: color var(--dur-1), background var(--dur-1);
+    }
+    .top .versions a:hover { color: var(--fg); background: var(--bg-elev); }
+    .top .versions a.active { color: var(--signal); font-weight: 600; }
+    .top .versions a.active::before { content: '•'; margin-right: 4px; }
+    .top .transport { display: flex; align-items: center; gap: 8px; }
   </style>
   <script src="/nav.client.js" defer></script>
   <script src="/fx-background.client.js" defer></script>
@@ -1518,60 +1596,56 @@
   <script src="/client/default-library.client.js" defer></script>
 </head>
 <body>
+  <a class="sr" href="#render">Skip to canvas</a>
   <div id="app">
-    <header id="transport">
-      <a class="tbtn ghost nav-arrow" id="nav-home" href="/" title="Back to home" aria-label="Home" style="padding:4px 8px; font-size:14px; text-decoration:none; line-height:1;">←</a>
-      <button class="tbtn ghost" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="padding:4px 10px; font-size:14px; line-height:1; margin:0 8px;">?</button>
-      <div class="brand">SAINTED-WORD <small>records</small></div>
-      <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
-      <button class="tbtn ghost nav-arrow" id="nav-ver-prev" title="Previous visual version (Shift+←)" aria-label="Previous version" style="padding:4px 8px; font-size:11px; line-height:1;">← ver</button>
-      <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
-      <span class="pill" id="status-pill">idle</span>
-      <button class="tbtn ghost" id="load-song">Load song</button>
-      <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" />
-      <span class="song-name" id="song-name">No song loaded</span>
-      <button class="tbtn ghost nav-arrow" id="nav-prev" title="Previous preset (←)" aria-label="Previous preset" style="padding:4px 8px; font-size:14px; line-height:1;">←</button>
-      <button class="tbtn ghost nav-arrow" id="nav-next" title="Next preset (→)" aria-label="Next preset" style="padding:4px 8px; font-size:14px; line-height:1;">→</button>
-      <button class="tbtn primary" id="play" disabled>▶ Play</button>
-      <span class="time" id="time">0:00 <b>/ 0:00</b></span>
-      <canvas id="meter" width="360" height="48"></canvas>
-      <span class="spacer"></span>
-      <span class="pill" id="bpm-pill">— bpm</span>
-      <button class="tbtn ghost" id="daily-btn" title="Today's editing practice" style="padding:4px 10px; font-size:9px;">📅 Day 1 · Practice</button>
-      <span class="pill" id="key-pill">— key</span>
-      <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
-      <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
-      <select id="rec-size" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Export size preset — re-fits the canvas to the chosen aspect ratio at full quality before recording">
-        <option value="landscape" selected>YouTube · 1920×1080</option>
-        <option value="square">Square · 1080×1080</option>
-        <option value="portrait">Instagram · 1080×1350</option>
-        <option value="reel">Reel / TikTok · 1080×1920</option>
-      </select>
-      <select id="rec-dur" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Auto-stop recording after N seconds">
-        <option value="0">manual</option>
-        <option value="10">10s</option>
-        <option value="15">15s</option>
-        <option value="30" selected>30s</option>
-        <option value="60">60s</option>
-        <option value="song">song</option>
-      </select>
-      <select id="rec-wm" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Watermark for the exported MP4/WebM">
-        <option value="none">no watermark</option>
-        <option value="a" selected>SWR monogram</option>
-        <option value="b">Sainted Word wordmark</option>
-        <option value="c">icon + SWR</option>
-      </select>
-      <button class="tbtn ghost" id="hero-btn" title="Hero frame capture" style="padding:4px 8px;font-size:9px;">Hero</button>
-      <button class="tbtn ghost" id="stats-btn" title="Local stats" style="padding:4px 8px;font-size:9px;">Stats</button>
-      <button class="tbtn ghost" id="edit-data-btn" title="Edit data export" style="padding:4px 8px;font-size:9px;">Edit Data</button>
-      <button class="tbtn ghost" id="review-btn" title="Client review export" style="padding:4px 8px;font-size:9px;">Review</button>
-      <button class="tbtn ghost" id="hook-btn" title="Hook generator" style="padding:4px 8px;font-size:9px;">Hooks</button>
-      <button class="tbtn ghost" id="mood-btn" title="Mood board" style="padding:4px 8px;font-size:9px;">Mood</button>
-      <button class="tbtn ghost" id="scenes-btn" title="Scene pads" style="padding:4px 8px;font-size:9px;">Scenes</button>
-      <button class="tbtn ghost" id="fit-btn" title="Fit to screen" style="padding:4px 8px;font-size:9px;">Fit</button>
-      <button class="tbtn danger" id="rec" disabled title="Start / stop recording (export to MP4 or WebM depending on browser). Loads a song for audio-reactive capture, or records video-only. Uses the size preset chosen in the dropdown next to REC.">● REC</button>
-      <button class="tbtn primary" id="export-video" disabled title="Start a 30s recording and download the file. Uses the size preset chosen in the dropdown next to REC. Records video-only if no song is loaded." style="background:var(--accent-2);border-color:var(--accent-2);color:#000;">🎬 Export video</button>
-      <a class="tbtn ghost" id="last-video" hidden style="text-decoration:none;padding:4px 10px;font-size:9px;">↓ last video</a>
+    <header class="top">
+      <a class="brand" href="/" id="nav-home">
+        <span class="sw" style="background: var(--signal); color: #000; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-right: 8px;">SW</span>
+        <span class="brand-text"><b>SAINTED</b><span style="font-weight: normal; opacity: 0.7; margin-left: 4px;">WORD RECORDS</span></span>
+      </a>
+
+      <nav class="versions" aria-label="Visual language">
+        <a href="/versions/neon"     data-v="neon">Neon</a>
+        <a href="/versions/film"     data-v="film">Film</a>
+        <a href="/versions/grid"     data-v="grid">Grid</a>
+        <a href="/versions/spectrum" data-v="spectrum">Spectrum</a>
+        <a href="/versions/aurora"   data-v="aurora">Aurora</a>
+        <span class="sep" aria-hidden="true" style="width: 1px; height: 16px; background: var(--line); margin: 0 8px;"></span>
+        <a href="/dashboard"         data-v="console" class="active">Console</a>
+        <!-- hidden variant select for script compatibility -->
+        <select id="variant" style="display:none"></select>
+      </nav>
+
+      <div class="transport">
+        <button class="tbtn primary" id="play" disabled aria-label="Play">▶ Play</button>
+        <span class="time" id="time">0:00 <b>/ 0:00</b></span>
+        <canvas id="meter" width="180" height="24" style="margin: 0 12px;"></canvas>
+        <span class="pill" id="bpm-pill">BPM <b>—</b></span>
+        <span class="pill" id="key-pill">KEY <b>—</b></span>
+        <button class="tbtn ghost" id="load-song">Load song</button>
+        <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" style="display:none" />
+        <button class="tbtn danger" id="rec" disabled>● REC</button>
+        
+        <details class="settings-menu" style="position: relative;">
+          <summary class="tbtn ghost" style="padding: 4px 8px; font-size: 11px; list-style: none;">Settings</summary>
+          <div style="position: absolute; top: 100%; right: 0; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 8px; z-index: 100; min-width: 160px; display: flex; flex-direction: column; gap: 4px;">
+            <a href="/pricing" style="color: var(--fg); text-decoration: none; font-size: 11px; padding: 4px;">Personal Tier — activate</a>
+            <a href="/about" style="color: var(--fg); text-decoration: none; font-size: 11px; padding: 4px;">About</a>
+            <hr style="border: 0; border-top: 1px solid var(--line); margin: 4px 0;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-size: 9px; color: var(--fg-mute); margin-bottom: 2px;">Export Size</label>
+              <select id="rec-size" class="tbtn ghost" style="font-size: 9px; padding: 2px 4px; width: 100%;">
+                <option value="landscape" selected>YouTube · 1920×1080</option>
+                <option value="square">Square · 1080×1080</option>
+                <option value="portrait">Instagram · 1080×1350</option>
+                <option value="reel">Reel / TikTok · 1080×1920</option>
+              </select>
+            </div>
+          </div>
+        </details>
+
+        <a class="back" href="/" style="margin-left: 12px; text-decoration: none; font-size: 11px; color: var(--fg-mute);">← Back</a>
+      </div>
     </header>
 
     <!-- ================================================================
@@ -1943,16 +2017,32 @@
 
     <section id="stage">
       <canvas id="render" width="1280" height="720"></canvas>
+      
+      <!-- Variant Overlays (Block B fix) -->
+      <div id="vignette" style="position:absolute; inset:0; pointer-events:none; z-index:5; background:radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%); opacity:0; transition:opacity 0.4s;"></div>
+      <div id="grid"     style="position:absolute; inset:0; pointer-events:none; z-index:6; background-image:linear-gradient(var(--signal-line) 1px, transparent 1px), linear-gradient(90deg, var(--signal-line) 1px, transparent 1px); background-size: 40px 40px; opacity:0;"></div>
+      <div id="flash"    style="position:absolute; inset:0; pointer-events:none; z-index:7; background:#fff; opacity:0;"></div>
       <div id="stage-flash"></div>
+
+      <!-- Console Empty State (Block A) -->
       <div id="stage-empty">
-        <h3>Algorithmic Audio-Reactive Engine</h3>
-        <p>
-          Load a song, drop a library of clips, hit play. The audio signal becomes the score —
-          bass, mids, treble, beats, and onsets drive a layered composition of your assets.
+        <canvas id="stage-preview" width="800" height="500" aria-hidden="true"></canvas>
+        <h3>Drop a song — or pick from the library</h3>
+        <p class="hint-row">
+          <button class="ghost" id="try-sample">Try a 30-second sample</button>
+          <button class="ghost" id="open-library">Browse library</button>
         </p>
-        <div class="hint">
-          ⌘+Drop folder for bulk import · click any layer to edit · RE-MAP re-derives the assignment · R rotates selected clip
+      </div>
+
+      <!-- Persistent Data Overlay (Block A) -->
+      <div class="bottom">
+        <button class="adv">▾ ADVANCED</button>
+        <div class="waveform">
+          <span>WAVEFORM</span>
+          <canvas id="bottomWave"></canvas>
+          <b>BEATS</b>
         </div>
+        <button class="rec">● REC</button>
       </div>
     </section>
 
@@ -2397,6 +2487,7 @@
     }
     function setStatus(t, cls) {
       const p = $('status-pill');
+      if (!p) { window.__lastStatus = t; return; }   // status pill removed by toolbar redesign
       p.textContent = t;
       p.classList.remove('ok', 'live');
       if (cls) p.classList.add(cls);
@@ -2542,7 +2633,8 @@
           ? '<span class="song-badge" title="Loaded from a video file — audio extracted in-browser">VIDEO</span> '
           : '';
         const saved = '<span class="song-badge" title="Saved to this browser — will auto-restore on next visit" style="background:#1f3;color:#0f0;">SAVED</span> ';
-        $('song-name').innerHTML = saved + badge + '<b>' + escapeHtml(file.name) + '</b>';
+        const songNameEl = $('song-name');
+        if (songNameEl) songNameEl.innerHTML = saved + badge + '<b>' + escapeHtml(file.name) + '</b>';
         $('play').disabled = false;
         $('rec').disabled = false;
         const ev = $('export-video');
@@ -2560,16 +2652,27 @@
         this.unlock();
         if (this.ctx.state === 'suspended') this.ctx.resume();
         // play() can reject when called without a user gesture (autoplay
-        // policy). The UI state below is still correct (a gesture-queued
-        // retry re-calls play()), so swallow the rejection instead of
-        // surfacing it as an uncaught page error.
+        // policy). Only flip the UI to "playing" once the play request
+        // actually succeeds: flipping it synchronously left the button
+        // claiming "Pause" while a blocked autoplay (boot song-restore)
+        // kept the engine silent, so the user's first click became a
+        // pause-of-nothing and playback needed two clicks. On rejection we
+        // stay in the honest paused state and the next real gesture (the
+        // pointerdown retry in the boot path, or the button itself) plays.
         const started = this.audioEl.play();
-        if (started && started.catch) started.catch(() => {});
-        this.playing = true;
-        $('play').textContent = '❚❚ Pause';
-        $('play').classList.remove('primary');
-        $('play').classList.add('danger');
-        stageEmpty.classList.add('hidden');
+        const self = this;
+        const markPlaying = () => {
+          self.playing = true;
+          $('play').textContent = '❚❚ Pause';
+          $('play').classList.remove('primary');
+          $('play').classList.add('danger');
+          stageEmpty.classList.add('hidden');
+        };
+        if (started && typeof started.then === 'function') {
+          started.then(markPlaying).catch(() => { this.playing = false; });
+        } else {
+          markPlaying();
+        }
       },
       // === Persistent song storage (IndexedDB 'songs' store, key 'current') ===
       // The latest loaded song survives reloads so the user doesn't have to
@@ -2711,8 +2814,9 @@
         this.feat.beatPulse  = beatHit;
         this.feat.onsetPulse = onsetHit;
         this.history.prev = Uint8Array.from(this.fft);
-        $('beat-led').classList.toggle('on', beatHit);
-        $('onset-led').classList.toggle('on', onsetHit);
+        const beatLed = $('beat-led'), onsetLed = $('onset-led');
+        if (beatLed) beatLed.classList.toggle('on', beatHit);
+        if (onsetLed) onsetLed.classList.toggle('on', onsetHit);
         if (this.feat.bpm) $('bpm-pill').textContent = this.feat.bpm + ' bpm';
         // Hook for engine-transitions: feed live beat + BPM into the auto-fire
         // subsystem. Idempotent — SWRTransitions may not be loaded yet (e.g.
@@ -4263,6 +4367,20 @@
       function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
 
       // ---- mutate helper: bounded, preserves locks/preserve fields ----
+      // Nominal 4/4 bar at 120 BPM. Used only when the tempo is unknown so the
+      // show keeps evolving instead of freezing (see the _bar comment above).
+      const NOMINAL_BAR_MS = 2000;
+
+      // Bars since the current chapter started. The real bar clock only advances
+      // once BPM is locked (_tickBar returns early otherwise); when it is not,
+      // fall back to wall-clock nominal bars so evolution and advance still run.
+      function barsInChapter() {
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        if (bar) return bar;
+        if (!state.lastEnterAt) state.lastEnterAt = Date.now();
+        return Math.floor((Date.now() - state.lastEnterAt) / NOMINAL_BAR_MS);
+      }
+
       function mutate(opts) {
         // opts: { amount, allowedParams, preserve, seed, scope }
         // preserve: array of strings ('assets','mappings','blend', or 'layer[N].field')
@@ -4272,7 +4390,7 @@
         const preserveMappings = preserve.has('mappings');
         const preserveBlend = preserve.has('blend');
         // Build per-bar seed
-        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        const bar = barsInChapter();
         const baseSeed = (typeof opts.seed === 'number') ? opts.seed : state.evoSeed;
         const seed = hashSeed(String(baseSeed) + ':' + String(bar) + ':' + String(opts.tag || ''));
         const rng = mulberry32(seed);
@@ -4441,9 +4559,7 @@
       function evolve() {
         const node = STORY[state.current];
         if (!node || !node.evolve || !node.evolve.enabled) return false;
-        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
-        // Don't evolve if we don't have a beat clock yet (BPM unknown).
-        if (!bar) return false;
+        const bar = barsInChapter();
         const every = node.evolve.everyBars || 4;
         if (bar - state._lastEvoBar < every) return false;
         state._lastEvoBar = bar;
@@ -4467,7 +4583,8 @@
         const t = node.transition.when;
         if (!t) return false;
         const a = audio || (typeof window !== 'undefined' && window.Audio && window.Audio.feat) || {};
-        const tp = transport || { bar: Audio && Audio.bar, barsInNode: state._barsInNode };
+        const bars = barsInChapter();
+        const tp = transport || { bar: bars, barsInNode: state._barsInNode };
         let fired = false;
         if (t.type === 'energyAbove') {
           fired = (a.rms || 0) > t.value && (tp.barsInNode || 0) >= (t.holdBars || 0);
@@ -4488,7 +4605,7 @@
       function tick(audio, transport) {
         // Mirror Audio.bar into our local counter so shouldAdvance() can
         // use barsInNode without the runtime needing to read Audio every time.
-        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        const bar = barsInChapter();
         if (bar > state._barsInNode) state._barsInNode = bar;
         // Run evolution if it's time
         evolve();
@@ -5663,7 +5780,7 @@
           if (Recorder.recording) Recorder.stop(); else Recorder.start();
         });
       // === Export video (one-click 30s WebM) ===
-      $('export-video').addEventListener('click', () => {
+      $('export-video')?.addEventListener('click', () => {
         if (Recorder.recording) { Recorder.stop(); return; }
         if (!Audio.audioEl) { UI.setStatus && UI.setStatus('load a song first', 'warn'); return; }
         // Auto-play so the recording has audio, then stop after the song's
@@ -8139,8 +8256,8 @@
         }
       }
       function init() {
-        $('nav-ver-prev').addEventListener('click', () => go(-1));
-        $('nav-ver-next').addEventListener('click', () => go(1));
+        $('nav-ver-prev')?.addEventListener('click', () => go(-1));
+        $('nav-ver-next')?.addEventListener('click', () => go(1));
         document.addEventListener('keydown', (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
           if (e.target.isContentEditable) return;
@@ -8189,8 +8306,8 @@
         }
       }
       function init() {
-        $('nav-prev').addEventListener('click', () => applyAt(_index - 1, -1));
-        $('nav-next').addEventListener('click', () => applyAt(_index + 1, 1));
+        $('nav-prev')?.addEventListener('click', () => applyAt(_index - 1, -1));
+        $('nav-next')?.addEventListener('click', () => applyAt(_index + 1, 1));
         // Keyboard arrows (only when no input/select is focused, no modal open)
         document.addEventListener('keydown', (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
@@ -8315,7 +8432,7 @@
           : `Today's editing practice · ${streak}-day streak`;
       }
       function init() {
-        $('daily-btn').addEventListener('click', open);
+        $('daily-btn')?.addEventListener('click', open);
         document.querySelector('.daily-modal__close')?.addEventListener('click', close);
         $('daily-modal').addEventListener('click', (e) => { if (e.target === $('daily-modal')) close(); });
         $('daily-reroll').addEventListener('click', reroll);
