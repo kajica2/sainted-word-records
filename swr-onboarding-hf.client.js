@@ -276,7 +276,10 @@
       'cursor:pointer',
     ].join(';');
     skip.textContent = 'Skip';
-    skip.addEventListener('click', function () { controller.dismiss(); });
+    // Skipping is the same intent as watching it through — persist the flag
+    // so the tour doesn't replay on every visit (Esc and natural end already
+    // persist; skip used to leave the flag unset and the tour re-ran).
+    skip.addEventListener('click', function () { controller.dismiss({ persist: true }); });
     root.appendChild(skip);
 
     document.body.appendChild(root);

@@ -1662,19 +1662,14 @@ const engineParity = await page.evaluate(() => ({
   // Plus the pre-existing globals
   brandkit: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
   recorder: typeof window.SWR_RECORDER === 'object' && window.SWR_RECORDER !== null,
-  // Footer buttons wired into the DOM
-  heroBtn: !!document.getElementById('hero-btn'),
-  statsBtn: !!document.getElementById('stats-btn'),
-  editDataBtn: !!document.getElementById('edit-data-btn'),
-  reviewBtn: !!document.getElementById('review-btn'),
-  hookBtn: !!document.getElementById('hook-btn'),
-  moodBtn: !!document.getElementById('mood-btn'),
-  scenesBtn: !!document.getElementById('scenes-btn'),
-  fitBtn: !!document.getElementById('fit-btn'),
 }));
+// Console redesign (ae88241 "boot past the console toolbar rewrite"): the 8
+// footer buttons were retired — the controls live on the console toolbar and
+// the panel markup is music_video-only (engine.html guards those lookups).
+// The durable parity contract is the API surface: the 8 SWR_* globals.
 const allGreen = Object.values(engineParity).every(v => v === true);
 if (allGreen)
-  ok('engine.html ships all 8 post-2026 SWR_* globals + brandkit + recorder + 8 footer buttons (parity with music_video.html)');
+  ok('engine.html ships all 8 post-2026 SWR_* globals + brandkit + recorder (console owns the controls)');
 else bad('engine.html parity', JSON.stringify(engineParity));
 
 await browser.close();
