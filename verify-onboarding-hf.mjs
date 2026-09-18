@@ -304,29 +304,24 @@ function fetchStatus(url) {
       if (!advOverlayPresent) pass('advanced mode: no tour mounts when swr.onboarded.v1 is set');
       else fail('advanced mode: tour mounted despite swr.onboarded.v1 being set');
 
-      // 11) the existing shortcuts modal still works
-      // The page's persona-onboarding modal can sit above the ? button,
-      // intercepting puppeteer's click. We exercise the public toggle
-      // directly (which we just proved works above in the diagnostics),
-      // since the engine's own SWR_ONBOARD.toggle() is the actual code
-      // path used by the ? button handler.
-      const helpBtnExists = await advPage.evaluate(() => !!document.getElementById('swr-keys-help-btn'));
-      if (helpBtnExists) {
-        const toggleOk = await advPage.evaluate(() => {
-          if (!window.SWR_ONBOARD || !window.SWR_ONBOARD.toggle) return false;
-          window.SWR_ONBOARD.toggle();
-          return true;
-        });
-        await new Promise((r) => setTimeout(r, 700));
-        const modalOpen = await advPage.evaluate(() => {
-          const m = document.getElementById('swr-onboard');
-          return m && !m.hidden && m.classList.contains('is-open');
-        });
-        if (toggleOk && modalOpen) pass('advanced mode: SWR_ONBOARD.toggle opens shortcuts modal');
-        else fail(`advanced mode: SWR_ONBOARD.toggle did not open modal (toggleOk=${toggleOk}, open=${modalOpen})`);
-      } else {
-        fail('advanced mode: #swr-keys-help-btn not present in engine.html');
-      }
+      // 11) the shortcuts modal still re-opens. The console redesign retired
+      // the legacy #swr-keys-help-btn (one of the ids the toolbar rewrite
+      // removed); the live re-open paths are the ? key and the public
+      // SWR_ONBOARD API — the engine keeps the ? -> toggle() handler, and
+      // toggle() is what any remaining affordance calls.
+      const toggleOk = await advPage.evaluate(() => {
+        if (!window.SWR_ONBOARD || !window.SWR_ONBOARD.toggle) return false;
+        window.SWR_ONBOARD.toggle();
+        return true;
+      });
+      await new Promise((r) => setTimeout(r, 700));
+      const modalOpen = await advPage.evaluate(() => {
+        const m = document.getElementById('swr-onboard');
+        return m && !m.hidden && m.classList.contains('is-open');
+      });
+      if (toggleOk && modalOpen) pass('advanced mode: SWR_ONBOARD.toggle (the ?-key path) opens the shortcuts modal');
+      else fail(`advanced mode: SWR_ONBOARD.toggle did not open modal (toggleOk=${toggleOk}, open=${modalOpen})`);
+      await advPage.evaluate(() => { if (window.SWR_ONBOARD && window.SWR_ONBOARD.close) window.SWR_ONBOARD.close(); });
 
       if (advErrors.length === 0) pass('advanced mode: no JS errors');
       else fail('advanced mode JS errors: ' + advErrors.slice(0, 3).join(' | '));
