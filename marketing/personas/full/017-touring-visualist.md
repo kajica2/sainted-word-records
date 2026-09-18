@@ -1,38 +1,44 @@
 # The Touring-Band Visualist
 
 **Slug:** touring-visualist
-**Surfaces touched (3+ minimum):** versions, FX, transitions, AR, presets
-**One-line:** A touring band's stage visualist who picks per-song variants from the 26, fires `glitch-block` on drops, and ships AR merch posters via /ar-loop at the merch table.
+**Surfaces:** versions, FX, transitions, AR, presets
+**One-line:** A touring band's stage visualist who picks per-song variants from the 27, fires `glitch-block` on drops, and ships AR merch posters via /ar-loop at the merch table.
 
 ## Who they are
-You are a touring band's visualist in your early thirties who has been on the road for six years with two different indie bands and who treats every show as its own small film. You project behind the band, you run the merch table, and you make the AR poster for the next tour leg. Your toolbelt is QLab, a hard drive of tour footage, and a willingness to learn one new tool per tour if it survives the bus.
+
+You have been on the road for six years with two different indie bands and you treat every show as its own small film. You project behind the band, you run the merch table, and you make the AR poster for the next tour leg. QLab handles the audio playback. A hard drive of tour footage handles the past. The engine handles everything in between. You learn one new tool per tour if it survives the bus.
 
 ## What they're trying to do
-You want to drop each setlist track into /engine and pick a per-song variant from the 26 (`/versions/tape.html` for the opener, `/versions/glitch.html` for the loud song, `/versions/watercolor.html` for the ballad). You fire `glitch-block` on drops, `whip-blur` on resets, and record the per-song WebM via MediaRecorder for the venue's archive. At the merch table, you drop the tour's poster GIF into /ar-loop on your phone and let fans record the AR scene with their own phones.
 
-## Which surfaces they actually use, and why
-1. **Versions (26 variants)** — you pick a variant per song so the visual language tracks the setlist's emotional arc.
-2. **FX pipeline** — you push `chroma` and `grain` on the loud song, `bloom` and `sepia` on the ballad.
-3. **Transitions** — `glitch-block` (500ms) on drops, `whip-blur` (450ms) on resets, `flash-cover` (500ms) on the encore.
-4. **/ar-loop** — the merch-table poster that fans record on their phones.
-5. **Presets** — you lock the per-tour visual language via the anchor map so the band identity is consistent across dates.
-6. **Recorder** — you record a per-song WebM for the venue's archive.
+You want to drop each setlist track into `/engine` and pick a per-song variant from the twenty-seven (`/versions/tape.html` for the opener, `/versions/glitch.html` for the loud song, `/versions/watercolor.html` for the ballad). You fire `glitch-block` on drops, `whip-blur` on resets, and record the per-song WebM via MediaRecorder for the venue's archive. At the merch table, you drop the tour's poster GIF into `/ar-loop` on your phone and let fans record the AR scene with their own phones — which is the merch they actually take home.
 
-## A typical session (90-180 minutes)
-1. You drop the opener track, audio-analysis v2 returns BPM=104, key=G major.
-2. You lock /versions/tape.html, push `grain=0.4`, `sepia=0.3` (warm, worn).
-3. You drop the loud song, lock /versions/glitch.html, push `chroma=0.6`, `grain=0.5` (cold, fractured).
-4. You drop the ballad, lock /versions/watercolor.html, push `bloom=0.5`, `posterize=4` (soft, painterly).
-5. You fire `glitch-block` on the loud song's drop, `whip-blur` on the ballad's entry, `flash-cover` on the encore.
-6. You record a per-song WebM via MediaRecorder for the venue's archive.
-7. At the merch table, you drop the tour poster GIF into /ar-loop on your phone; the AR scene loads, fans record the AR scene.
-8. You almost quit at step 7 — the venue's Wi-Fi almost failed at the merch table. You almost gave up before tethering to your phone's hotspot.
+## The surfaces they live in
+
+1. **The `/versions/` directory** is where the per-song choice lives. You pick a variant per song so the visual language tracks the setlist's emotional arc, and the arc is what the audience remembers the morning after the show.
+2. **The FX pipeline** is where you push `chroma` and `grain` on the loud song, `bloom` and `sepia` on the ballad. The loud song gets colder; the ballad gets warmer.
+3. **The transitions** carry the setlist's punctuation. `glitch-block` (500 ms) on drops, `whip-blur` (450 ms) on resets, `flash-cover` (500 ms) on the encore.
+4. **`/ar-loop`** is the merch-table poster. Fans record the AR scene with their phones and the loop travels home with them.
+5. **The anchor map** locks the per-tour visual language so the band's identity is consistent across dates, even when the venue's projector is wildly different.
+6. **The MediaRecorder WebM** is the per-song archive file the venue keeps.
+
+## A typical session (90–180 minutes)
+
+You drop the opener track. Audio analysis v2 returns BPM 104, key G major. You lock `/versions/tape.html`, push `grain=0.4`, `sepia=0.3` — warm, worn, like the band has been playing the song for a decade.
+
+You drop the loud song. You lock `/versions/glitch.html`, push `chroma=0.6`, `grain=0.5` — cold, fractured. You drop the ballad. You lock `/versions/watercolor.html`, push `bloom=0.5`, `posterize=4` — soft, painterly.
+
+You fire `glitch-block` on the loud song's drop, `whip-blur` on the ballad's entry, `flash-cover` on the encore. You record a per-song WebM via MediaRecorder for the venue's archive. At the merch table, you drop the tour poster GIF into `/ar-loop` on your phone; the AR scene loads, and fans record the AR scene with their own phones while you sell them the vinyl.
+
+There is a moment, around the merch table, when the venue's Wi-Fi almost fails. You almost gave up before tethering to your phone's hotspot. The hotspot saved the merch, and the fans went home with a loop on their phone that the band never recorded as a video.
 
 ## What they'd pay for
-You would pay $5/month per band for unlimited project saves and a 30-day TTL on the magic-link session (so the band's account does not lapse between tour legs). You would not pay per song.
+
+$5/month per band for unlimited project saves and a 30-day TTL on the magic-link session — so the band's account does not lapse between tour legs. You would not pay per song; per-song pricing would punish you for writing longer setlists and the longer setlists are the gigs the band wants to play.
 
 ## What would make them leave
-You would leave forever if the 26 variants collapsed into a single "theme picker" dropdown, because the per-song choice is the work. You would tolerate the venue Wi-Fi dependency forever — you have a phone hotspot.
+
+The twenty-seven variants collapsing into a single "theme picker" dropdown. The per-song choice is the work; a dropdown would make every show feel like the same show. You would also leave if `/ar-loop` ever required a login to view; the merch table is a no-account zone, and a login wall would erase the merch in the most literal sense.
 
 ## Quote
+
 "The /versions/tape.html opener and the /versions/glitch.html loud song are the visual language for this tour leg, and the /ar-loop share link at the merch table is the only reason fans record the poster on their phones."
