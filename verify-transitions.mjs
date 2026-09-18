@@ -307,24 +307,38 @@ try {
         const tx = window.SWRTransitions;
         if (!tx) return { err: 'no SWRTransitions at disarm' };
         if (typeof tx.onBeat !== 'function') return { err: 'tx.onBeat is not a function', txKeys: Object.keys(tx) };
-        tx.setAutoFire({ everyNBeats: 1, transition: 'whip-blur', bpm: 120 });
-        tx.setAutoFire(null);
-        const overlay = document.getElementById('swr-tx-layer');
-        if (!overlay) return { err: 'no overlay' };
-        overlay.className = '';
-        let changed = false;
-        const obs = new MutationObserver(() => { changed = true; });
-        obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
-        tx.onBeat(120, true);
-        await new Promise(r => setTimeout(r, 80));
-        obs.disconnect();
-        return { changed };
+        // Assert the CONTRACT via fire events: after setAutoFire(null), a hit
+        // beat must not produce any source:'auto' fire. The previous blanket
+        // overlay-class observer flaked on CI runners — the storyboard demo
+        // and leftover lifecycle phases write the overlay class too, none of
+        // which is this check's subject. Swallow the page's analyser beats
+        // and deliver the hit beat through the original onBeat().
+        const origOnBeat = tx.onBeat;
+        tx.onBeat = function () {}; // swallow analyser beats
+        let autoFires = 0;
+        const details = [];
+        const onFire = (e) => {
+          const d = (e && e.detail) || {};
+          if (d.source === 'auto') { autoFires++; details.push(d); }
+        };
+        document.addEventListener('swr-tx:fire', onFire);
+        try {
+          tx.setAutoFire({ everyNBeats: 1, transition: 'whip-blur', bpm: 120 });
+          tx.setAutoFire(null);
+          origOnBeat.call(tx, 120, true);
+          await new Promise(r => setTimeout(r, 200));
+          return { autoFires, details };
+        } finally {
+          document.removeEventListener('swr-tx:fire', onFire);
+          tx.onBeat = origOnBeat;
+          tx.setAutoFire(null);
+        }
       } catch (err) {
         return { err: 'threw: ' + err.message };
       }
     });
     if (typeof fired === 'object' && fired.err) throw new Error(fired.err);
-    if (fired.changed) throw new Error('disarmed auto-fire still fired');
+    if (fired.autoFires > 0) throw new Error(`disarmed auto-fire still fired (${JSON.stringify(fired.details)})`);
   });
 
   // --- 5. BPM update flows to UI input ---
