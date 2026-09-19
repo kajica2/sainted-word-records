@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sainted Word Records · 27 Looks</title>
+<meta name="description" content="The 27 audio-reactive visual variants of the Sainted Word Records engine, mapped on a warmth × intensity anchor grid." />
+
+<!-- No-flash theme bootstrap: runs before first paint -->
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('swr-theme');
+      var sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var t = saved || (sysDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
+
+<style>
+  /* ---------- TOKENS ---------- */
+  :root {
+    /* LIGHT — kraft / paper */
+    --color-bg: #f4ede1;
+    --color-bg-2: #ece2cf;
+    --color-surface: #fbf6ec;
+    --color-surface-2: #ffffff;
+    --color-ink: #1a1612;
+    --color-ink-2: #3a302a;
+    --color-muted: #6a5d52;
+    --color-line: rgba(26, 22, 18, 0.12);
+    --color-line-strong: rgba(26, 22, 18, 0.22);
+    --color-accent: #b45a2b;       /* warm copper — kraft paper edge */
+    --color-accent-soft: rgba(180, 90, 43, 0.12);
+    --color-anchor-grid: rgba(26, 22, 18, 0.08);
+
+    /* radii */
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-pill: 999px;
+
+    /* shadow */
+    --sh-1: 0 1px 2px rgba(26, 22, 18, 0.06), 0 8px 24px rgba(26, 22, 18, 0.08);
+    --sh-2: 0 1px 2px rgba(26, 22, 18, 0.10), 0 16px 40px rgba(26, 22, 18, 0.12);
+    --sh-glow: 0 0 0 1px var(--color-accent-soft), 0 12px 40px rgba(180, 90, 43, 0.18);
+
+    /* space (8px scale) */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --sp-7: 48px;
+    --sp-8: 72px;
+    --sp-9: 112px;
+
+    /* motion */
+    --dur-fast: 120ms;
+    --dur: 240ms;
+    --dur-slow: 400ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+    /* type */
+    --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --font-body: "Geist", "Söhne", -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+    --font-mono: "Geist Mono", "Söhne Mono", ui-monospace, "SF Mono", monospace;
+
+    --fs-xs: 12px;
+    --fs-sm: 14px;
+    --fs-md: 16px;
+    --fs-lg: 20px;
+    --fs-xl: 24px;
+    --fs-2xl: 32px;
+    --fs-3xl: 48px;
+    --fs-4xl: 72px;
+  }
+
+  /* DARK — void / phosphor */
+  [data-theme="dark"] {
+    --color-bg: #07080a;
+    --color-bg-2: #0c0e12;
+    --color-surface: #11141a;
+    --color-surface-2: #161a22;
+    --color-ink: #e8e8ec;
+    --color-ink-2: #b8b8c0;
+    --color-muted: #7a7a82;
+    --color-line: rgba(232, 232, 236, 0.10);
+    --color-line-strong: rgba(232, 232, 236, 0.20);
+    --color-accent: #5cd5e5;       /* phosphor cyan */
+    --color-accent-soft: rgba(92, 213, 229, 0.14);
+    --color-anchor-grid: rgba(232, 232, 236, 0.08);
+
+    --sh-1: 0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 24px rgba(0, 0, 0, 0.40);
+    --sh-2: 0 1px 2px rgba(0, 0, 0, 0.40), 0 16px 40px rgba(0, 0, 0, 0.55);
+    --sh-glow: 0 0 0 1px var(--color-accent-soft), 0 0 24px rgba(92, 213, 229, 0.35);
+  }
+
+  /* ---------- RESET ---------- */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    font-size: var(--fs-md);
+    line-height: 1.55;
+    color: var(--color-ink);
+    background: var(--color-bg);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+  }
+  img, svg { max-width: 100%; display: block; }
+  a { color: inherit; }
+  button {
+    font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+  ::selection { background: var(--color-accent); color: var(--color-bg); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ---------- TYPOGRAPHY ---------- */
+  .display { font-family: var(--font-display); font-weight: 460; letter-spacing: -0.01em; line-height: 1.05; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-muted);
+  }
+  .mono { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--color-muted); }
+
+  /* ---------- LAYOUT ---------- */
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 var(--sp-5); }
+  @media (min-width: 768px) { .wrap { padding: 0 var(--sp-7); } }
+
+  main { display: block; }
+
+  section { padding: var(--sp-8) 0; }
+  @media (min-width: 768px) { section { padding: var(--sp-9) 0; } }
+
+  /* ---------- NAV ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: color-mix(in srgb, var(--color-bg) 78%, transparent);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .brand {
+    font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 500;
+    display: flex; align-items: center; gap: var(--sp-2);
+    letter-spacing: -0.01em;
+  }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: conic-gradient(from 90deg,
+      var(--color-accent), color-mix(in srgb, var(--color-accent) 30%, transparent), var(--color-accent));
+    box-shadow: var(--sh-glow);
+  }
+  .nav-links {
+    display: none; gap: var(--sp-5); align-items: center;
+    font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--color-muted);
+  }
+  @media (min-width: 768px) { .nav-links { display: flex; } }
+  .nav-links a { text-decoration: none; transition: color var(--dur-fast) var(--ease-out); }
+  .nav-links a:hover { color: var(--color-accent); }
+
+  /* ---------- THEME TOGGLE ---------- */
+  .theme-toggle {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 4px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--r-pill);
+    box-shadow: var(--sh-1);
+  }
+  .theme-toggle button {
+    width: 32px; height: 28px; border-radius: var(--r-pill);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--color-muted);
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .theme-toggle button[aria-pressed="true"] {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+  .theme-toggle svg { width: 14px; height: 14px; }
+
+  /* ---------- HERO ---------- */
+  .hero { position: relative; padding-top: var(--sp-9); padding-bottom: var(--sp-8); overflow: hidden; }
+  .hero::before {
+    content: ''; position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(800px 400px at 15% 0%, var(--color-accent-soft), transparent 60%),
+      radial-gradient(700px 350px at 85% 20%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 60%);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  .hero h1 {
+    margin: 0 0 var(--sp-4);
+    font-size: clamp(var(--fs-3xl), 8vw, var(--fs-4xl));
+  }
+  .hero h1 em {
+    font-style: italic; color: var(--color-accent);
+  }
+  .hero p.lede {
+    max-width: 62ch;
+    font-size: var(--fs-lg); color: var(--color-ink-2);
+    margin: 0 0 var(--sp-6);
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: var(--sp-5);
+    margin-top: var(--sp-6);
+    padding-top: var(--sp-5);
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono); font-size: var(--fs-sm);
+    color: var(--color-muted);
+  }
+  .hero-meta b { color: var(--color-ink); font-weight: 500; }
+
+  /* ---------- ANCHOR MAP ---------- */
+  .map-shell {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-1);
+    padding: var(--sp-6);
+    overflow: hidden;
+  }
+  .map-shell header {
+    display: flex; flex-wrap: wrap; gap: var(--sp-4) var(--sp-6);
+    justify-content: space-between; align-items: baseline;
+    margin-bottom: var(--sp-5);
+  }
+  .map-shell header h2 {
+    margin: 0; font-size: var(--fs-xl); font-family: var(--font-display); font-weight: 460;
+  }
+  .map {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--color-line);
+    border-radius: var(--r-md);
+    background:
+      linear-gradient(90deg, transparent calc(100% - 1px), var(--color-anchor-grid) calc(100% - 1px)) 0 0 / 10% 100%,
+      linear-gradient(0deg, transparent calc(100% - 1px), var(--color-anchor-grid) calc(100% - 1px)) 0 0 / 100% 10%,
+      linear-gradient(135deg,
+        color-mix(in srgb, var(--color-accent) 5%, var(--color-bg)) 0%,
+        color-mix(in srgb, var(--color-accent) 2%, var(--color-bg)) 100%);
+  }
+  .map-axis {
+    position: absolute;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .map-axis.x { left: 0; right: 0; bottom: -22px; display: flex; justify-content: space-between; padding: 0 2px; }
+  .map-axis.y { left: -36px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; padding: 4px 0; }
+
+  .map-dot {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+    box-shadow: 0 0 0 2px var(--color-surface);
+  }
+  .map-dot[data-warmth="warm"]   { background: #c8703b; }
+  .map-dot[data-warmth="mid"]    { background: #b8a847; }
+  .map-dot[data-warmth="cold"]   { background: #5cb0d6; }
+  [data-theme="dark"] .map-dot[data-warmth="warm"] { background: #e88a4a; }
+  [data-theme="dark"] .map-dot[data-warmth="mid"]  { background: #d4c665; }
+  [data-theme="dark"] .map-dot[data-warmth="cold"] { background: #6ec4e6; }
+
+  .map-dot:hover, .map-dot.is-active {
+    transform: translate(-50%, -50%) scale(1.6);
+    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent);
+    z-index: 5;
+  }
+  .map-dot.is-dim { opacity: 0.25; }
+  .map-label {
+    position: absolute; transform: translate(-50%, calc(-100% - 10px));
+    font-family: var(--font-mono); font-size: var(--fs-xs);
+    color: var(--color-ink);
+    background: var(--color-surface-2);
+    padding: 2px 8px; border-radius: var(--r-pill);
+    border: 1px solid var(--color-line);
+    white-space: nowrap;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .map-dot:hover .map-label, .map-dot.is-active .map-label { opacity: 1; }
+
+  /* ---------- FILTER BAR ---------- */
+  .filters {
+    display: flex; flex-wrap: wrap; gap: var(--sp-2);
+    margin-bottom: var(--sp-6);
+    padding: var(--sp-2);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--r-pill);
+    width: fit-content;
+  }
+  .filters button {
+    padding: var(--sp-2) var(--sp-4);
+    border-radius: var(--r-pill);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--color-muted);
+    transition: all var(--dur-fast) var(--ease-out);
+  }
+  .filters button[aria-pressed="true"] {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  /* ---------- VARIANT GRID ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--sp-5);
+  }
+  .v-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    text-align: left;
+  }
+  .v-card:hover, .v-card:focus-within {
+    transform: translateY(-3px);
+    box-shadow: var(--sh-2);
+    border-color: var(--color-line-strong);
+  }
+  .v-card.is-dim { opacity: 0.32; }
+  .v-card.is-active {
+    border-color: var(--color-accent);
+    box-shadow: var(--sh-glow);
+  }
+
+  .v-preview {
+    aspect-ratio: 4 / 3;
+    position: relative;
+    overflow: hidden;
+    background: #1a1612;
+  }
+
+  .v-body {
+    padding: var(--sp-4) var(--sp-5) var(--sp-5);
+    display: flex; flex-direction: column; gap: var(--sp-2);
+    flex: 1;
+  }
+  .v-name {
+    font-family: var(--font-display);
+    font-size: var(--fs-xl);
+    font-weight: 460;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .v-coords {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .v-desc {
+    margin: var(--sp-2) 0 0;
+    color: var(--color-ink-2);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+  }
+  .v-tags {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: auto; padding-top: var(--sp-4);
+  }
+  .v-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: var(--r-pill);
+    background: var(--color-bg-2);
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+  }
+
+  /* ---------- VARIANT PREVIEWS (CSS-only evocations) ---------- */
+  /* Each preview is a 4:3 box; CSS gradients/filters evoke the look. */
+
+  .pv-film {
+    background:
+      radial-gradient(120% 80% at 50% 60%, rgba(255, 230, 200, 0.35), transparent 70%),
+      linear-gradient(135deg, #4a3826 0%, #2c1f12 60%, #1a0f06 100%);
+    filter: contrast(1.05) saturate(0.95);
+  }
+  .pv-film::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 4px);
+    mix-blend-mode: overlay;
+  }
+
+  .pv-tape {
+    background:
+      linear-gradient(170deg, #5a4530 0%, #3d2c1e 50%, #251a0e 100%);
+  }
+  .pv-tape::before, .pv-tape::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 30%;
+    background: repeating-linear-gradient(90deg,
+      transparent 0 8px,
+      rgba(255, 240, 220, 0.06) 8px 9px,
+      transparent 9px 22px);
+    mix-blend-mode: screen;
+  }
+  .pv-tape::after { top: auto; bottom: 0; }
+
+  .pv-kraft {
+    background:
+      radial-gradient(80% 80% at 30% 30%, rgba(255, 200, 140, 0.30), transparent 60%),
+      linear-gradient(135deg, #b88c5c 0%, #8d6a3f 100%);
+  }
+  .pv-kraft::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(85deg, rgba(80, 50, 20, 0.08) 0 1px, transparent 1px 4px),
+      repeating-linear-gradient(5deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 6px);
+    mix-blend-mode: multiply;
+  }
+
+  .pv-gallery {
+    background:
+      radial-gradient(circle at 30% 40%, #f3d9b3 0%, transparent 55%),
+      radial-gradient(circle at 70% 60%, #c89a78 0%, transparent 55%),
+      linear-gradient(135deg, #6b4a36 0%, #3d2a20 100%);
+  }
+
+  .pv-watercolor {
+    background:
+      radial-gradient(circle at 25% 30%, rgba(255, 200, 220, 0.6), transparent 40%),
+      radial-gradient(circle at 75% 70%, rgba(180, 220, 255, 0.55), transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba(255, 240, 200, 0.4), transparent 50%),
+      linear-gradient(135deg, #f7e8d8 0%, #e0d3c0 100%);
+    filter: blur(8px) saturate(1.1);
+  }
+  .pv-watercolor::after {
+    content: ''; position: absolute; inset: 0; backdrop-filter: blur(2px);
+  }
+
+  .pv-phosphor {
+    background: #050b0c;
+  }
+  .pv-phosphor::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(92, 213, 229, 0.12) 0 1px, transparent 1px 3px);
+  }
+  .pv-phosphor::after {
+    content: ''; position: absolute; inset: 20%;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(92, 213, 229, 0.55) 0%, transparent 50%),
+      radial-gradient(circle at 70% 60%, rgba(120, 240, 255, 0.7) 0%, transparent 50%);
+    filter: blur(8px);
+  }
+
+  .pv-pulse {
+    background:
+      radial-gradient(circle at 50% 50%, rgba(184, 90, 200, 0.55) 0%, transparent 35%),
+      linear-gradient(135deg, #2a1430 0%, #0e0816 100%);
+  }
+  .pv-pulse::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(184, 90, 200, 0.4) 60%, transparent 75%);
+    animation: pulse 2.4s var(--ease-in-out) infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+
+  .pv-glitch {
+    background: #0c0c10;
+    overflow: hidden;
+  }
+  .pv-glitch::before, .pv-glitch::after {
+    content: ''; position: absolute; inset: 0;
+  }
+  .pv-glitch::before {
+    background:
+      linear-gradient(90deg, rgba(255, 60, 60, 0.45), transparent 30%) 0 0 / 33% 100%,
+      linear-gradient(90deg, transparent 30%, rgba(60, 255, 80, 0.45), transparent 60%) 0 0 / 33% 100%,
+      linear-gradient(90deg, transparent 60%, rgba(60, 120, 255, 0.55)) 0 0 / 33% 100%;
+    mix-blend-mode: screen;
+    transform: translateX(0);
+    animation: glitch 1.8s steps(8) infinite;
+  }
+  .pv-glitch::after {
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 4px);
+    mix-blend-mode: overlay;
+  }
+  @keyframes glitch {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-3px, 1px); }
+    40% { transform: translate(2px, -2px); }
+    60% { transform: translate(-1px, 2px); }
+    80% { transform: translate(3px, 0); }
+  }
+
+  .pv-void {
+    background:
+      radial-gradient(circle at 50% 50%, rgba(40, 30, 80, 0.4) 0%, transparent 40%),
+      radial-gradient(circle at 20% 80%, rgba(120, 60, 180, 0.18) 0%, transparent 35%),
+      radial-gradient(circle at 80% 20%, rgba(60, 30, 120, 0.22) 0%, transparent 35%),
+      linear-gradient(180deg, #050308 0%, #02010a 100%);
+  }
+  .pv-void::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 85% 80%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1px 1px at 15% 85%, rgba(255,255,255,0.4), transparent);
+  }
+
+  .pv-spectrum {
+    background: #0a0a14;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    align-items: end;
+    gap: 6px;
+    padding: 18% 12% 18%;
+  }
+  .pv-spectrum::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 1px, rgba(232,232,236,0.06) 1px 2px);
+  }
+  .pv-spectrum > i {
+    display: block;
+    background: linear-gradient(180deg, #f0c060, #c050a0);
+    border-radius: 2px;
+    transform-origin: bottom;
+    box-shadow: 0 0 8px rgba(240, 192, 96, 0.5);
+  }
+
+  .pv-eclipse {
+    background: radial-gradient(circle at 50% 50%, #1a0e22 30%, #050208 31%, #050208 100%);
+  }
+  .pv-eclipse::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 25%, rgba(180, 140, 240, 0.6) 30%, transparent 32%);
+    mix-blend-mode: screen;
+  }
+
+  .pv-neon {
+    background: linear-gradient(135deg, #1a0028 0%, #2a0040 100%);
+  }
+  .pv-neon::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 50%, rgba(255, 30, 180, 0.7), transparent 30%),
+      radial-gradient(circle at 70% 50%, rgba(60, 220, 255, 0.7), transparent 30%);
+    filter: blur(2px);
+  }
+  .pv-neon::after {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,0.3) 3px 4px);
+    mix-blend-mode: multiply;
+  }
+
+  .pv-smoke {
+    background:
+      radial-gradient(circle at 30% 60%, rgba(220, 200, 200, 0.5), transparent 50%),
+      radial-gradient(circle at 70% 40%, rgba(180, 170, 180, 0.45), transparent 50%),
+      linear-gradient(135deg, #6a5d62 0%, #3a3236 100%);
+    filter: blur(3px);
+  }
+
+  .pv-hallucination {
+    background:
+      conic-gradient(from 45deg at 50% 50%,
+        #ff5e8a, #ffae5e, #f0ff5e, #5eff8a, #5ebaff, #c45eff, #ff5e8a);
+    filter: blur(6px) saturate(1.4);
+  }
+  .pv-hallucination::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,0.4) 90%);
+  }
+
+  .pv-aurora {
+    background: linear-gradient(180deg, #02060f 0%, #050a18 100%);
+    overflow: hidden;
+  }
+  .pv-aurora::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 60% at 30% 40%, rgba(80, 255, 180, 0.55), transparent 60%),
+      radial-gradient(120% 60% at 70% 50%, rgba(120, 100, 255, 0.55), transparent 60%),
+      radial-gradient(120% 60% at 50% 60%, rgba(255, 120, 200, 0.35), transparent 60%);
+    filter: blur(8px);
+  }
+  .pv-aurora::after {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent 0 1px, rgba(255,255,255,0.04) 1px 2px);
+  }
+
+  .pv-chrome {
+    background:
+      linear-gradient(180deg, #4a4a52 0%, #1a1a22 50%, #4a4a52 100%);
+  }
+  .pv-chrome::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(60% 80% at 30% 30%, rgba(255,255,255,0.35), transparent 60%),
+      radial-gradient(60% 80% at 70% 70%, rgba(255,255,255,0.25), transparent 60%);
+    mix-blend-mode: overlay;
+  }
+
+  .pv-fractal {
+    background: #0c0820;
+    overflow: hidden;
+  }
+  .pv-fractal::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      conic-gradient(from 0deg at 30% 30%, #5cd5e5, transparent 25%, transparent 75%, #5cd5e5),
+      conic-gradient(from 90deg at 70% 70%, #ff5e8a, transparent 25%, transparent 75%, #ff5e8a),
+      conic-gradient(from 45deg at 50% 50%, #f0c060, transparent 25%, transparent 75%, #f0c060);
+    filter: blur(10px) contrast(1.2);
+  }
+
+  .pv-mosaic {
+    background:
+      conic-gradient(from 0deg at 50% 50%, #c45e3a 0% 12.5%, #d4a85e 12.5% 25%, #8ec45e 25% 37.5%, #5ec4a8 37.5% 50%, #5e95c4 50% 62.5%, #7e5ec4 62.5% 75%, #c45eb0 75% 87.5%, #c45e5e 87.5% 100%);
+    filter: contrast(1.1);
+  }
+  .pv-mosaic::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.4) 0 2px, transparent 2px 20px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.4) 0 2px, transparent 2px 20px);
+    mix-blend-mode: multiply;
+  }
+
+  .pv-baroque {
+    background:
+      radial-gradient(circle at 50% 50%, #c89a4a 0%, #6a4022 40%, #1a0a04 100%);
+  }
+  .pv-baroque::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 50% 50%, transparent 15%, rgba(0,0,0,0.5) 80%);
+  }
+  .pv-baroque::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-radial-gradient(circle at 50% 50%, rgba(255,220,180,0.06) 0 1px, transparent 1px 16px);
+  }
+
+  .pv-collage {
+    background:
+      linear-gradient(60deg, #d8b888 0% 33%, #5882a8 33% 66%, #c45858 66% 100%);
+  }
+  .pv-collage::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 30px, rgba(0,0,0,0.15) 30px 32px),
+      repeating-linear-gradient(135deg, transparent 0 30px, rgba(0,0,0,0.15) 30px 32px);
+  }
+
+  .pv-typography {
+    background: var(--color-bg);
+    align-items: center; justify-content: center; display: flex;
+  }
+  .pv-typography::before {
+    content: 'Aa'; position: absolute;
+    font-family: var(--font-display); font-size: 140px;
+    font-weight: 700;
+    color: var(--color-ink);
+    line-height: 1;
+  }
+  .pv-typography::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 50%, var(--color-bg) 100%);
+  }
+
+  .pv-echo-manifold {
+    background: #050810;
+    overflow: hidden;
+  }
+  .pv-echo-manifold::before, .pv-echo-manifold::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    width: 60%; height: 4px;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(90deg, transparent, #5cd5e5, transparent);
+    box-shadow: 0 0 20px rgba(92, 213, 229, 0.6);
+  }
+  .pv-echo-manifold::after {
+    transform: translate(-50%, -50%) rotate(45deg);
+    box-shadow: 0 0 16px rgba(184, 90, 200, 0.5);
+    background: linear-gradient(90deg, transparent, #b85ac8, transparent);
+  }
+
+  .pv-music_video {
+    background:
+      linear-gradient(135deg, #1a0a18 0%, #0a0210 100%);
+  }
+  .pv-music-video::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(80% 60% at 50% 50%, rgba(220, 80, 180, 0.4), transparent 70%),
+      radial-gradient(40% 40% at 30% 60%, rgba(60, 200, 255, 0.3), transparent 70%);
+    filter: blur(4px);
+  }
+
+  .pv-music_video_mtv {
+    background:
+      conic-gradient(from 0deg at 50% 50%, #ff2080, #f0c060, #20ff80, #2080ff, #ff2080);
+    filter: blur(2px) saturate(1.6);
+  }
+  .pv-music_video_mtv::after {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,0.2) 2px 3px);
+    mix-blend-mode: multiply;
+  }
+
+  .pv-music-video-gallery {
+    background: #f4ede1;
+    align-items: center; justify-content: center; display: flex;
+  }
+  [data-theme="dark"] .pv-music-video-gallery { background: #161a22; }
+  .pv-music-video-gallery::before {
+    content: ''; position: absolute; inset: 12%;
+    border: 1px solid var(--color-ink);
+    background: linear-gradient(135deg, transparent 49%, var(--color-ink) 49% 51%, transparent 51%);
+    opacity: 0.4;
+  }
+
+  .pv-bachdrop {
+    background:
+      radial-gradient(circle at 50% 30%, #d4a85e 0%, #6a4022 30%, #1a0a04 100%);
+  }
+  .pv-bachdrop::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 4px, rgba(255,200,140,0.04) 4px 6px);
+  }
+
+  .pv-grid {
+    background: var(--color-surface-2);
+  }
+  .pv-grid::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 12px, var(--color-line-strong) 12px 13px),
+      repeating-linear-gradient(90deg, transparent 0 12px, var(--color-line-strong) 12px 13px);
+    opacity: 0.6;
+  }
+  .pv-grid::after {
+    content: ''; position: absolute; left: 25%; right: 25%; top: 25%; bottom: 25%;
+    border: 2px solid var(--color-accent);
+    background: var(--color-accent-soft);
+    border-radius: var(--r-sm);
+  }
+
+  /* ---------- SECTION HEADERS ---------- */
+  .section-head {
+    display: flex; align-items: end; justify-content: space-between;
+    flex-wrap: wrap; gap: var(--sp-4);
+    margin-bottom: var(--sp-6);
+  }
+  .section-head h2 {
+    margin: 0;
+    font-size: var(--fs-2xl);
+    font-family: var(--font-display);
+    font-weight: 460;
+    letter-spacing: -0.01em;
+  }
+  .section-head p {
+    margin: 0;
+    max-width: 50ch;
+    color: var(--color-ink-2);
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    margin-top: var(--sp-9);
+    padding: var(--sp-7) 0 var(--sp-7);
+    border-top: 1px solid var(--color-line);
+    color: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+  }
+  .footer-inner {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-4);
+  }
+
+  /* ---------- REVEAL ON SCROLL ---------- */
+  .reveal { opacity: 0; transform: translateY(12px); transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out); }
+  .reveal.is-in { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+
+<body>
+  <a class="skip-link visually-hidden" href="#main">Skip to content</a>
+
+  <nav class="nav" aria-label="Primary">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Sainted Word Records</span>
+      </a>
+      <div class="nav-links">
+        <a href="#anchor-map">Anchor Map</a>
+        <a href="#looks">Looks</a>
+        <a href="#about">About</a>
+      </div>
+      <div class="theme-toggle" role="group" aria-label="Theme">
+        <button data-theme-value="system" aria-pressed="false" title="System">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </button>
+        <button data-theme-value="light" aria-pressed="false" title="Light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+        <button data-theme-value="dark" aria-pressed="false" title="Dark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="wrap">
+        <p class="eyebrow reveal">The audio-reactive engine · 2026 catalogue</p>
+        <h1 class="display reveal" style="transition-delay: 60ms">
+          27 looks. <em>One engine.</em><br/>
+          Pick the mood; the chroma follows the song.
+        </h1>
+        <p class="lede reveal" style="transition-delay: 120ms">
+          Sainted Word Records is a browser-native audio-reactive engine. Drop a track, hover the anchor map, and the visual language follows the song's harmonic weight — without a server, without an account, without an opinion about what your art should look like.
+        </p>
+        <div class="hero-meta reveal" style="transition-delay: 200ms">
+          <span><b>27</b> visual variants</span>
+          <span><b>14</b> FX uniforms · <b>10</b> CSS transitions</span>
+          <span><b>19</b> anchor presets on a warmth × intensity grid</span>
+          <span><b>1</b> MediaRecorder WebM export</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="anchor-map">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">§ 1 · The anchor map</p>
+            <h2 class="display">Where each look lives.</h2>
+          </div>
+          <p>Every variant is plotted by warmth (cool → warm) and intensity (calm → loud). Hover a dot. Click a card below to highlight its dot.</p>
+        </div>
+
+        <div class="map-shell reveal">
+          <header>
+            <h2>27 variants · warmth × intensity</h2>
+            <p class="mono">click a dot or a card to cross-link</p>
+          </header>
+          <div style="position: relative; padding: 0 36px 26px 36px;">
+            <div class="map" id="anchor-map-canvas" role="img" aria-label="27 variants plotted on a warmth by intensity grid">
+              <span class="map-axis y"><span>cold</span><span></span><span>warm</span></span>
+              <span class="map-axis x"><span>calm</span><span></span><span>loud</span></span>
+              <!-- dots injected by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="looks">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">§ 2 · The 27 variants</p>
+            <h2 class="display">Pick a mood. Read the recipe.</h2>
+          </div>
+          <p>Each card shows the variant's preview, its anchor coordinates, and the FX-state recipe the engine ships with. Filter the field by temperature.</p>
+        </div>
+
+        <div class="filters reveal" role="group" aria-label="Filter variants by temperature">
+          <button data-filter="all" aria-pressed="true">All · 27</button>
+          <button data-filter="warm" aria-pressed="false">Warm · 7</button>
+          <button data-filter="mid" aria-pressed="false">Mid · 14</button>
+          <button data-filter="cold" aria-pressed="false">Cold · 6</button>
+        </div>
+
+        <div class="grid" id="variant-grid">
+          <!-- variant cards injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">§ 3 · How to use this page</p>
+            <h2 class="display">A catalogue, not a sales pitch.</h2>
+          </div>
+          <p>The engine's variants stay as peers — no theme picker collapses them into one dropdown. This page reflects that.</p>
+        </div>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+          <div class="v-card" style="cursor: default;">
+            <div class="v-body">
+              <p class="v-coords">step 01</p>
+              <h3 class="v-name">Open the engine</h3>
+              <p class="v-desc">Drop a track into <span class="mono">/engine</span>. Audio analysis v2 returns BPM, key, scale, and a 12-bin chromagram in real time.</p>
+            </div>
+          </div>
+          <div class="v-card" style="cursor: default;">
+            <div class="v-body">
+              <p class="v-coords">step 02</p>
+              <h3 class="v-name">Hover the anchor map</h3>
+              <p class="v-desc">The 19 anchor presets plot on a (warmth × intensity) grid. Click a dot to load that variant. The chromagram weight reads as the visual palette.</p>
+            </div>
+          </div>
+          <div class="v-card" style="cursor: default;">
+            <div class="v-body">
+              <p class="v-coords">step 03</p>
+              <h3 class="v-name">Push FX by hand</h3>
+              <p class="v-desc">14 uniforms — chroma, grain, glow, temp, sepia, bloom, vignette, blur, posterize, mut, mutAlgo, grayscale, liquid, pearl. No auto-correct pass.</p>
+            </div>
+          </div>
+          <div class="v-card" style="cursor: default;">
+            <div class="v-body">
+              <p class="v-coords">step 04</p>
+              <h3 class="v-name">Record as WebM</h3>
+              <p class="v-desc">MediaRecorder captures the canvas as <span class="mono">.webm</span>. Drop into <span class="mono">/ar-loop</span> for markerless AR, or transcode to MP4 with ffmpeg locally.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <span>Sainted Word Records · audio-reactive engine · 2026</span>
+      <span>27 variants · 19 anchor presets · 14 FX uniforms · 10 CSS transitions</span>
+    </div>
+  </footer>
+
+<script>
+  // ---------- VARIANT DATA ----------
+  const variants = [
+    { slug: 'film',               warmth: 0.55, intensity: 0.50, warmthClass: 'warm', name: 'film',                class: 'pv-film',              desc: '16mm-style warmth. Reads as cinema; the default for music videos.', fx: 'grain 0.4 · sepia 0.2', use: 'cinematic, promos, B2B' },
+    { slug: 'tape',               warmth: 0.65, intensity: 0.30, warmthClass: 'warm', name: 'tape',                class: 'pv-tape',              desc: 'VHS tape warble. Worn and intimate; the tour-leg opener.', fx: 'grain 0.3 · sepia 0.4', use: 'tour, archive, op-ed' },
+    { slug: 'kraft',              warmth: 0.70, intensity: 0.30, warmthClass: 'warm', name: 'kraft',               class: 'pv-kraft',             desc: 'Cardboard warm. The emotional opener anchor.', fx: 'sepia 0.5 · grain 0.4 · bloom 0.2', use: 'opener, gentle, acoustic' },
+    { slug: 'gallery',            warmth: 0.55, intensity: 0.40, warmthClass: 'warm', name: 'gallery',             class: 'pv-gallery',           desc: 'Painterly soft. The first-dance anchor.', fx: 'bloom 0.4 · posterize 3', use: 'wedding, ceremony, soft' },
+    { slug: 'watercolor',         warmth: 0.55, intensity: 0.25, warmthClass: 'warm', name: 'watercolor',          class: 'pv-watercolor',        desc: 'Painted soft edges. The lullaby anchor for therapy sessions.', fx: 'bloom 0.5 · posterize 4', use: 'lullaby, calming, kids' },
+    { slug: 'baroque',            warmth: 0.60, intensity: 0.50, warmthClass: 'warm', name: 'baroque',             class: 'pv-baroque',           desc: 'Ornate warm. The chamber-piece anchor.', fx: 'bloom 0.5 · chroma 0.3 · sepia 0.2', use: 'chamber, classical' },
+    { slug: 'bachdrop',           warmth: 0.55, intensity: 0.45, warmthClass: 'warm', name: 'bachdrop',            class: 'pv-bachdrop',          desc: 'Baroque orchestral warmth. The chamber anchor.', fx: 'sepia 0.3 · grain 0.3', use: 'orchestral, classical' },
+
+    { slug: 'phosphor',           warmth: 0.40, intensity: 0.55, warmthClass: 'mid',  name: 'phosphor',            class: 'pv-phosphor',          desc: 'CRT terminal. The middle anchor; the tide-pool palette.', fx: 'glow 0.6 · chroma 0.3 · temp -0.1', use: 'tech, ambient, retro' },
+    { slug: 'spectrum',           warmth: 0.45, intensity: 0.55, warmthClass: 'mid',  name: 'spectrum',            class: 'pv-spectrum',          desc: 'Twelve-bar chromagram visible. The theory-lesson variant.', fx: 'posterize 3 · chroma 0.4', use: 'pedagogy, theory' },
+    { slug: 'pulse',              warmth: 0.35, intensity: 0.70, warmthClass: 'mid',  name: 'pulse',               class: 'pv-pulse',             desc: 'Active pulse. The chase anchor; restless movement.', fx: 'chroma 0.4 · glow 0.5', use: 'chase, restless, pop' },
+    { slug: 'hallucination',      warmth: 0.45, intensity: 0.80, warmthClass: 'mid',  name: 'hallucination',       class: 'pv-hallucination',     desc: 'Tonal dreamy. The psychedelic anchor.', fx: 'chroma 0.7 · bloom 0.5', use: 'psychedelic, dream' },
+    { slug: 'aurora',             warmth: 0.45, intensity: 0.70, warmthClass: 'mid',  name: 'aurora',              class: 'pv-aurora',            desc: 'Northern-light shimmer. The wide-screen anchor.', fx: 'chroma 0.5 · glow 0.5', use: 'cinematic, wide' },
+    { slug: 'chrome',             warmth: 0.35, intensity: 0.65, warmthClass: 'mid',  name: 'chrome',              class: 'pv-chrome',            desc: 'Reflective metallic. The product anchor.', fx: 'chroma 0.4 · glow 0.6', use: 'product, B2B' },
+    { slug: 'fractal',            warmth: 0.45, intensity: 0.65, warmthClass: 'mid',  name: 'fractal',             class: 'pv-fractal',           desc: 'Recursive geometric. The generative anchor.', fx: 'chroma 0.4 · glow 0.5', use: 'generative, ID' },
+    { slug: 'mosaic',             warmth: 0.50, intensity: 0.55, warmthClass: 'mid',  name: 'mosaic',              class: 'pv-mosaic',            desc: 'Tile segmentation. The structured anchor.', fx: 'posterize 4 · chroma 0.3', use: 'structured, editorial' },
+    { slug: 'collage',            warmth: 0.50, intensity: 0.50, warmthClass: 'mid',  name: 'collage',             class: 'pv-collage',           desc: 'Layered cutout. The mixed-media anchor.', fx: 'posterize 3 · chroma 0.3', use: 'mixed-media, zine' },
+    { slug: 'typography',         warmth: 0.45, intensity: 0.50, warmthClass: 'mid',  name: 'typography',          class: 'pv-typography',        desc: 'Type-driven composition. The editorial anchor.', fx: 'posterize 2', use: 'editorial, print' },
+    { slug: 'echo-manifold',      warmth: 0.40, intensity: 0.65, warmthClass: 'mid',  name: 'echo-manifold',       class: 'pv-echo-manifold',     desc: 'Echo chamber. The spatial anchor.', fx: 'chroma 0.5 · bloom 0.4', use: 'spatial, ambient' },
+    { slug: 'music_video',        warmth: 0.50, intensity: 0.55, warmthClass: 'mid',  name: 'music_video',         class: 'pv-music-video',       desc: 'The music-video default. Where the anchor map lives.', fx: 'chroma 0.4 · bloom 0.4', use: 'default, MV' },
+    { slug: 'music_video_mtv',    warmth: 0.40, intensity: 0.75, warmthClass: 'mid',  name: 'music_video_mtv',     class: 'pv-music_video_mtv',   desc: 'MTV-era gloss. The 90s-music-channel anchor.', fx: 'chroma 0.6 · bloom 0.5 · grain 0.3', use: 'retro, gloss' },
+    { slug: 'music-video-gallery',warmth: 0.45, intensity: 0.45, warmthClass: 'mid',  name: 'music-video-gallery', class: 'pv-music-video-gallery',desc: 'Gallery-still. The curatorial anchor.', fx: 'bloom 0.4', use: 'curatorial, gallery' },
+    { slug: 'smoke',              warmth: 0.50, intensity: 0.35, warmthClass: 'mid',  name: 'smoke',               class: 'pv-smoke',             desc: 'Smokey softness. The lullaby softer than watercolor.', fx: 'blur 0.4 · glow 0.3', use: 'ambient, soft' },
+    { slug: 'grid',               warmth: 0.40, intensity: 0.60, warmthClass: 'mid',  name: 'grid',                class: 'pv-grid',              desc: 'Bar-grid reading as structure. The B2B anchor.', fx: 'posterize 2', use: 'B2B, data' },
+
+    { slug: 'glitch',             warmth: 0.20, intensity: 0.90, warmthClass: 'cold', name: 'glitch',              class: 'pv-glitch',            desc: 'Cold fractured. The opening-drop anchor for live VJ.', fx: 'chroma 0.8 · grain 0.6', use: 'club, VJ, loud' },
+    { slug: 'void',               warmth: 0.15, intensity: 0.85, warmthClass: 'cold', name: 'void',                class: 'pv-void',              desc: 'Deep space. The closer anchor; the dark album cover.', fx: 'chroma 0.7 · grain 0.6 · posterize 4', use: 'closer, dark, space' },
+    { slug: 'eclipse',            warmth: 0.20, intensity: 0.75, warmthClass: 'cold', name: 'eclipse',             class: 'pv-eclipse',           desc: 'Lunar cold. The gallery opener; the AR poster palette.', fx: 'chroma 0.4 · grain 0.3 · temp -0.3', use: 'gallery, AR, lunar' },
+    { slug: 'neon',               warmth: 0.25, intensity: 0.90, warmthClass: 'cold', name: 'neon',                class: 'pv-neon',              desc: 'Neon brightness. The club anchor.', fx: 'glow 0.8 · chroma 0.5', use: 'club, neon' },
+  ];
+
+  // ---------- DOM HOOKS ----------
+  const grid = document.getElementById('variant-grid');
+  const map  = document.getElementById('anchor-map-canvas');
+  const filtersEl = document.querySelector('.filters');
+
+  // ---------- RENDER GRID ----------
+  function renderGrid(activeFilter) {
+    grid.innerHTML = '';
+    for (const v of variants) {
+      const card = document.createElement('button');
+      card.className = 'v-card reveal';
+      card.type = 'button';
+      card.dataset.slug = v.slug;
+      card.dataset.warmth = v.warmthClass;
+      card.setAttribute('aria-label', `${v.name} variant`);
+
+      if (activeFilter !== 'all' && v.warmthClass !== activeFilter) {
+        card.classList.add('is-dim');
+      }
+
+      card.innerHTML = `
+        <div class="v-preview ${v.class}" aria-hidden="true"></div>
+        <div class="v-body">
+          <div class="v-coords">w ${v.warmth.toFixed(2)} · i ${v.intensity.toFixed(2)}</div>
+          <div class="v-name">${v.name.replace(/_/g, ' ')}</div>
+          <p class="v-desc">${v.desc}</p>
+          <div class="v-tags">
+            <span class="v-tag">${v.fx}</span>
+            <span class="v-tag">${v.use}</span>
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', () => selectVariant(v.slug));
+      card.addEventListener('mouseenter', () => highlightDot(v.slug, true));
+      card.addEventListener('mouseleave', () => highlightDot(v.slug, false));
+      grid.appendChild(card);
+      requestAnimationFrame(() => card.classList.add('is-in'));
+    }
+  }
+
+  // ---------- RENDER ANCHOR MAP ----------
+  function renderMap() {
+    map.querySelectorAll('.map-dot').forEach(n => n.remove());
+    for (const v of variants) {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'map-dot';
+      dot.dataset.slug = v.slug;
+      dot.dataset.warmth = v.warmthClass;
+      dot.style.left = `${v.intensity * 100}%`;
+      dot.style.top = `${(1 - v.warmth) * 100}%`;
+      dot.setAttribute('aria-label', `${v.name} — warmth ${v.warmth}, intensity ${v.intensity}`);
+      dot.innerHTML = `<span class="map-label">${v.name.replace(/_/g, ' ')}</span>`;
+      dot.addEventListener('click', () => selectVariant(v.slug));
+      dot.addEventListener('mouseenter', () => highlightCard(v.slug, true));
+      dot.addEventListener('mouseleave', () => highlightCard(v.slug, false));
+      map.appendChild(dot);
+    }
+  }
+
+  // ---------- VARIANT SELECTION (cross-link) ----------
+  function selectVariant(slug) {
+    document.querySelectorAll('.v-card').forEach(c => c.classList.toggle('is-active', c.dataset.slug === slug));
+    document.querySelectorAll('.map-dot').forEach(d => d.classList.toggle('is-active', d.dataset.slug === slug));
+  }
+  function highlightDot(slug, on) {
+    const d = map.querySelector(`.map-dot[data-slug="${slug}"]`);
+    if (!d) return;
+    d.classList.toggle('is-active', on);
+  }
+  function highlightCard(slug, on) {
+    const c = grid.querySelector(`.v-card[data-slug="${slug}"]`);
+    if (!c) return;
+    c.classList.toggle('is-active', on);
+  }
+
+  // ---------- FILTERS ----------
+  filtersEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-filter]');
+    if (!btn) return;
+    filtersEl.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    renderGrid(btn.dataset.filter);
+    // re-apply active highlight to dot grid if user had a selection
+    document.querySelectorAll('.map-dot.is-active').forEach(d => {
+      const slug = d.dataset.slug;
+      const card = grid.querySelector(`.v-card[data-slug="${slug}"]`);
+      if (card) card.classList.add('is-active');
+    });
+  });
+
+  // ---------- THEME TOGGLE ----------
+  const themeButtons = document.querySelectorAll('.theme-toggle button');
+  function applyTheme(mode) {
+    let resolved;
+    if (mode === 'system') {
+      resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else {
+      resolved = mode;
+    }
+    document.documentElement.setAttribute('data-theme', resolved);
+    try { localStorage.setItem('swr-theme', mode); } catch (e) {}
+    themeButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeValue === mode)));
+  }
+  themeButtons.forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.themeValue)));
+  // initial button state
+  (function () {
+    let saved = 'system';
+    try { saved = localStorage.getItem('swr-theme') || 'system'; } catch (e) {}
+    themeButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeValue === saved)));
+  })();
+
+  // ---------- REVEAL ON SCROLL ----------
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        e.target.classList.add('is-in');
+        io.unobserve(e.target);
+      }
+    }
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ---------- INIT ----------
+  renderMap();
+  renderGrid('all');
+
+  // react to system theme changes if user is on "system"
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    let saved = 'system';
+    try { saved = localStorage.getItem('swr-theme') || 'system'; } catch (e) {}
+    if (saved === 'system') applyTheme('system');
+  });
+</script>
+</body>
+</html>

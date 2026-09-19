@@ -74,7 +74,7 @@
     {
       "label": "Galleries",
       "href": "/gallery",
-      "description": "19 curated galleries",
+      "description": "20 curated galleries",
       "children": [
         {
           "label": "All Galleries",
@@ -130,6 +130,11 @@
           "label": "Posters",
           "href": "/gallery/posters",
           "description": "Poster designs"
+        },
+        {
+          "label": "Director Mode",
+          "href": "/gallery/director-mode",
+          "description": "27 audio-reactive visual variants mapped on a warmth × intensity anchor grid"
         },
         {
           "label": "Albums",
@@ -336,6 +341,7 @@
     "artists/nina-volkova.html",
     "artists/vodolija/index.html",
     "artists/vodolija.html",
+    "gallery-director-mode.html",
     "auth/login.html",
     "auth/verify.html",
     "campaign.html",
