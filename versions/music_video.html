@@ -898,8 +898,20 @@
             else { const i=new Image(); i.src=it.url; d.appendChild(i); }
             d.addEventListener('click', (e) => {
               // Don't fire "add to layer" if the click was on the × button.
-              if (e.target.classList.contains('rm')) return;
-              Layers.add(it);
+              if (e.target && e.target.classList && e.target.classList.contains('rm')) return;
+              try {
+                if (typeof Layers === 'undefined' || !Layers || typeof Layers.add !== 'function') {
+                  throw new Error('Layers module not ready');
+                }
+                if (!it || !it.url) {
+                  throw new Error('asset has no blob URL (stale or evicted)');
+                }
+                Layers.add(it);
+                if (typeof setStatus === 'function') setStatus(`♪ ${it.name} → layer`, 'ok');
+              } catch (err) {
+                console.error('[lib] add-as-layer failed', err, it);
+                if (typeof setStatus === 'function') setStatus(`could not load: ${err && err.message || err}`, 'err');
+              }
             });
             el.appendChild(d);
           }
