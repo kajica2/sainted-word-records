@@ -2673,6 +2673,12 @@
           // Helpful status so the user knows what's happening (no video frame will appear)
           setStatus('loaded MP4 audio · click play', 'ok');
         }
+        // Auto-setup hook: consumed by lib/auto-setup.client.js to fire
+        // the starter-layer + preset-cycle behavior. Safe no-op when that
+        // module isn't loaded.
+        if (typeof window.__swrOnSongLoaded === 'function') {
+          try { window.__swrOnSongLoaded(file); } catch (e) { console.warn('[onSongLoaded]', e); }
+        }
       },
       play() {
         this.unlock();
@@ -8303,6 +8309,7 @@
   <script src="/lib/persist-fx.client.js"></script>
   <script src="/lib/library-hygiene.client.js"></script>
   <script src="/lib/preset-transitions.client.js"></script>
+  <script src="/lib/auto-setup.client.js" defer></script>
   <script src="/lib/reset-state.client.js"></script>
   <script src="/lib/recorder.client.js"></script>
   <script type="module" src="/share.client.js"></script>
