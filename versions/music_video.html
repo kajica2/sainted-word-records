@@ -2487,8 +2487,6 @@
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
   <\/script>
-  <script src="../lib/media-store.client.js" defer></script>
-  <script src="../lib/user-media-mount.client.js" defer></script>
 </body>
 </html>`;
           resolve(html);
@@ -4015,5 +4013,7 @@
     console.log('[hologram] ready: ' + __HOLO_PRESETS.length + ' presets');
   })();
 </script>
+  <script src="../lib/media-store.client.js" defer></script>
+  <script src="../lib/user-media-mount.client.js" defer></script>
 </body>
 </html>

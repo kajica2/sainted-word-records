@@ -28,8 +28,19 @@
   if (metaUrl) {
     worker = new Worker(new URL('./layer-scheduler.worker.js', metaUrl));
   } else {
-    const base = window.location.href.replace(/[^/]*$/, '');
-    worker = new Worker(base + 'layer-scheduler.worker.js');
+    // Resolve the worker URL relative to *this* script's src, not the
+    // current page URL. The page URL is unreliable: in dev mode (vite
+    // serves from repo root) version pages live at /versions/foo.html,
+    // so a base derived from window.location.href points at
+    // /versions/layer-scheduler.worker.js, which vite doesn't serve.
+    // currentScript.src reliably points at where this script was loaded
+    // from, which works in both dev (repo-root /layer-scheduler.client.js)
+    // and prod (same path after copy-static emits it to the build root).
+    const cs = document.currentScript;
+    const scriptUrl = (cs && cs.src)
+      ? cs.src
+      : window.location.href.replace(/[^/]*$/, 'layer-scheduler.client.js');
+    worker = new Worker(scriptUrl.replace(/layer-scheduler\.client\.js.*$/, 'layer-scheduler.worker.js'));
   }
 
   // ---- State ----
