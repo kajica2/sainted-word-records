@@ -291,6 +291,7 @@
 <script src="../lib/reset-state.client.js"></script>
     <script src="../lib/recorder.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
+  <link rel="stylesheet" href="../lib/user-media.css">
 </head>
 <body data-page="glitch">
   <div id="app">
@@ -334,7 +335,16 @@
     <aside class="lib">
       <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
-      <div class="body"><div id="lib"></div></div>
+      <div class="body"><div id="lib"></div>
+        <div id="swr-user-media" class="swr-user-media">
+          <div class="head" style="padding:6px 8px 4px;">
+            <h2 style="font-size:10px;letter-spacing:.14em;">My Media</h2>
+            <label for="swr-user-media-input" class="tbtn" style="padding:3px 6px;font-size:9px;cursor:pointer;">+ Add</label>
+            <button type="button" id="swr-user-media-clear" class="tbtn" style="padding:3px 6px;font-size:9px;color:#f55;cursor:pointer;">Clear</button>
+          </div>
+          <input type="file" id="swr-user-media-input" multiple accept="image/*,video/*" style="display:none" />
+          <div id="swr-user-media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:3px;padding:6px 8px;"></div>
+        </div></div>
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
@@ -1253,5 +1263,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 
 
   <script src="../engine-transitions.client.js" defer></script>
+  <script src="../lib/media-store.client.js" defer></script>
+  <script src="../lib/user-media-mount.client.js" defer></script>
 </body>
 </html>
