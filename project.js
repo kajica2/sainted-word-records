@@ -593,11 +593,20 @@
     return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', buildUI);
-  } else {
-    setTimeout(buildUI, 100);
-  }
+  // ---- UI mount DISABLED ----
+  // The floating PROJECT panel (Save/Load/Cloud + share URL) was removed
+  // from the UI on user request. The buildUI() function above is kept so
+  // re-enabling is one block-uncomment away, but it is no longer wired to
+  // DOMContentLoaded. The window.Project API (get/apply/loadFile/download/
+  // saveToCloud/loadFromCloud/openCloudPicker/VERSION) remains exported,
+  // so other code can still drive the project save/load flow programmatically.
+  //
+  // To re-enable: uncomment the four lines below.
+  // if (document.readyState === 'loading') {
+  //   document.addEventListener('DOMContentLoaded', buildUI);
+  // } else {
+  //   setTimeout(buildUI, 100);
+  // }
 
   window.Project = { get, apply, loadFile, download, saveToCloud, loadFromCloud, openCloudPicker, VERSION };
 })();
