@@ -1515,8 +1515,39 @@
     $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setGhostDot) window.SWR.Gradient.setGhostDot(null); } });
 
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
-    $('add').addEventListener('click', () => $('asset-input').click());
-    $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
+    $('add').addEventListener('click', () => {
+      // Defensive: surface the actual failure if any of the add-media chain
+      // throws. Otherwise the click is silent and the user sees nothing
+      // happen (their report: "i cannot click on buttons to add media").
+      try {
+        const inp = $('asset-input');
+        if (!inp) throw new Error('asset-input element missing from DOM');
+        if (typeof Lib === 'undefined' || !Lib || typeof Lib.addFiles !== 'function') {
+          throw new Error('Lib module not ready');
+        }
+        inp.click();
+        if (typeof setStatus === 'function') setStatus('pick files…', '');
+      } catch (err) {
+        console.error('[add-media] failed', err);
+        if (typeof setStatus === 'function') setStatus(`could not open picker: ${err && err.message || err}`, 'err');
+      }
+    });
+    $('asset-input').addEventListener('change', e => {
+      try {
+        const files = e.target.files;
+        if (!files || !files.length) return;
+        if (typeof Lib === 'undefined' || !Lib || typeof Lib.addFiles !== 'function') {
+          throw new Error('Lib module not ready');
+        }
+        Lib.addFiles(files);
+        if (typeof setStatus === 'function') setStatus(`adding ${files.length} file${files.length === 1 ? '' : 's'}…`, '');
+      } catch (err) {
+        console.error('[add-media] change failed', err);
+        if (typeof setStatus === 'function') setStatus(`add failed: ${err && err.message || err}`, 'err');
+      } finally {
+        e.target.value = ''; // allow re-picking the same file
+      }
+    });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
     for (const id of ['sens','gate','decay']) {
       const inp = $(id); const out = $(id+'-v');
