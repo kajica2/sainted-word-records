@@ -3475,8 +3475,23 @@
               this.removeItem(it.id);
               return;
             }
-            // Add a new layer using this asset
-            Layers.add(it);
+            // Add a new layer using this asset. Wrapped in try/catch + status
+            // feedback so a silent throw (missing Audio.feat, undefined helper,
+            // missing stage element) becomes a visible toast instead of
+            // appearing to do nothing.
+            try {
+              if (typeof Layers === 'undefined' || !Layers || typeof Layers.add !== 'function') {
+                throw new Error('Layers module not ready');
+              }
+              if (!it || !it.url) {
+                throw new Error('asset has no blob URL (stale or evicted)');
+              }
+              Layers.add(it);
+              if (typeof setStatus === 'function') setStatus(`♪ ${it.name} → layer`, 'ok');
+            } catch (err) {
+              console.error('[library] add-as-layer failed', err, it);
+              if (typeof setStatus === 'function') setStatus(`could not load: ${err.message || err}`, 'err');
+            }
           });
           d.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/sainted-id', String(it.id));
