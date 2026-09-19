@@ -159,12 +159,13 @@ assert(st3.depth === 0.5 && st3.focus === undefined && st3.focusAmount === 0,
   '"0" resets depth to 0.5 and clears focus',
   `depth=${st3.depth} focus=${st3.focus} amount=${st3.focusAmount}`);
 
-// 11. "3" sets depth to 0.3.
+// 11. Digits are NO LONGER hijacked (shortcut-honesty trim): "3"
+//     must return false so engine-keys' select-layer-by-index wins.
 var st4 = { neighbours: 6, presetMap: presetMap, depth: 0.5 };
-KEYS.apply(st4, '3', { neighboursFn: neighboursFn, presetMap: presetMap });
-assert(st4.depth === 0.3,
-  '"3" sets depth to 0.3',
-  `depth=${st4.depth}`);
+var ok4 = KEYS.apply(st4, '3', { neighboursFn: neighboursFn, presetMap: presetMap });
+assert(ok4 === false && st4.depth === 0.5,
+  '"3" returns false, depth untouched (digit freed for engine)',
+  `handled=${ok4} depth=${st4.depth}`);
 
 // 12. "H" toggles state.hidden.
 var st5 = { neighbours: 6, presetMap: presetMap, depth: 0.5, hidden: false };
