@@ -1986,8 +1986,35 @@
               refresh();
             }, function (err) {
               console.warn('[user-media] addMedia failed', err);
+              var msg;
+              if (err && err.code === 'QUOTA_EXCEEDED') {
+                msg = 'Storage full — try Library Hygiene or remove some media.';
+                // Offer to run hygiene if the button is wired up
+                var hygieneBtn = document.getElementById('library-hygiene');
+                if (hygieneBtn && typeof window.SWR_LIBRARY_HYGIENE !== 'undefined') {
+                  var run = window.confirm(
+                    'Your browser storage is full.\n\n' +
+                    'You can:\n' +
+                    '  • Click OK to run Library Hygiene (removes stale entries)\n' +
+                    '  • Click Cancel and remove some media manually\n\n' +
+                    'Continue with Library Hygiene?'
+                  );
+                  if (run) {
+                    window.SWR_LIBRARY_HYGIENE.purge().then(function (r) {
+                      console.log('[user-media] hygiene purged', r.removed, 'stale items');
+                      if (typeof window.setStatus === 'function') {
+                        window.setStatus('Purged ' + r.removed + ' stale items. Try adding again.', 'ok');
+                      }
+                    }, function (hygErr) {
+                      console.warn('[user-media] hygiene failed', hygErr);
+                    });
+                  }
+                }
+              } else {
+                msg = 'storage error: ' + ((err && err.name) || 'unknown');
+              }
               if (typeof window.setStatus === 'function') {
-                window.setStatus('storage error: ' + (err && err.name || 'unknown'), 'err');
+                window.setStatus(msg, 'err');
               }
             });
           });
@@ -2380,7 +2407,7 @@
       <button class="agi-bg-panel__btn" id="agi-bg-open" type="button" title="Open the Space in a new tab">↗ Open</button>
       <button class="agi-bg-panel__btn" id="agi-bg-close" type="button" title="Close panel">×</button>
     </div>
-    <iframe id="agi-bg-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms" title="AGI Background Working System"></iframe>
+    <iframe id="agi-bg-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms" title="AGI Background Working System"></iframe>
     <div class="agi-bg-panel__fallback" id="agi-bg-fallback" hidden>
       <h4>Space offline</h4>
       <div><code id="agi-bg-fallback-url">kaidjuric-agi-background-working-system.hf.space</code></div>
@@ -2400,7 +2427,7 @@
       <button class="agi-bg-panel__btn" id="mg-agi-open" type="button" title="Open the Space in a new tab">↗ Open</button>
       <button class="agi-bg-panel__btn" id="mg-agi-close" type="button" title="Close panel">×</button>
     </div>
-    <iframe id="mg-agi-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms" title="Motion Graphic Designer AGI System"></iframe>
+    <iframe id="mg-agi-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms" title="Motion Graphic Designer AGI System"></iframe>
     <div class="agi-bg-panel__fallback" id="mg-agi-fallback" hidden>
       <h4>Space offline</h4>
       <div><code id="mg-agi-fallback-url">kaidjuric-motion-graphic-designer-agi-system.static.hf.space</code></div>
@@ -3022,6 +3049,35 @@
         return true;
       },
 
+      // Lazy-evict a stale library item whose blob failed to load (rendered
+      // as a 404 from URL.createObjectURL(it.blob) where the blob was
+      // already pruned under quota pressure). Distinct from removeItem()
+      // because (a) there's no undo — re-adding a stale entry will fail
+      // again on the next render, and (b) we don't gate on "remove from
+      // stage first" — a stale entry on the stage is already broken, so
+      // removing it from Library.items at least stops the 404 noise.
+      //
+      // Idempotent: if the item was already evicted between render and the
+      // deferred setTimeout (e.g. user clicked × in the meantime), findIndex
+      // returns -1 and we bail.
+      _evictStale(it, reason) {
+        const idx = this.items.findIndex((x) => x.id === it.id);
+        if (idx < 0) return false;
+        this.items.splice(idx, 1);
+        try { URL.revokeObjectURL(it.url); } catch {}
+        if (it._el) { try { it._el.src = ''; } catch {} }
+        if (this.db) {
+          try {
+            this.db.delete('assets', it.id).catch((e) => {
+              console.warn('[library] evict idb', e);
+            });
+          } catch (_) { /* best-effort */ }
+        }
+        console.info('[library] evicted stale item', it.name, '—', reason || 'blob missing');
+        if (typeof this.render === 'function') this.render();
+        return true;
+      },
+
       // Wipe everything: library assets + saved song. Used by the Clear All
       // button (with a confirm() prompt — the per-item × button on each
       // thumbnail has its own optimistic-delete + 5s undo flow and does not
@@ -3367,14 +3423,24 @@
           if (it.thumb) {
             const img = new Image();
             img.src = it.thumb;
+            img.onerror = () => {
+              // Defer eviction so we don't break the current render cycle.
+              setTimeout(() => Library._evictStale(it, 'thumbnail failed to load'), 0);
+            };
             d.appendChild(img);
           } else if (it.type === 'video') {
             const v = document.createElement('video');
             v.src = it.url; v.muted = true; v.playsInline = true;
+            v.onerror = () => {
+              setTimeout(() => Library._evictStale(it, 'video failed to load'), 0);
+            };
             d.appendChild(v);
           } else {
             const img = new Image();
             img.src = it.url;
+            img.onerror = () => {
+              setTimeout(() => Library._evictStale(it, 'image failed to load'), 0);
+            };
             d.appendChild(img);
           }
           d.addEventListener('click', (e) => {
