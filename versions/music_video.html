@@ -382,6 +382,7 @@
 <link rel="stylesheet" href="../engine-genops.css" />
 <!-- Brand Kit (PRD-007 partial) — chip + 4-card editor. See engine.html for the canonical wiring. -->
 <link rel="stylesheet" href="../brandkit.css" />
+  <link rel="stylesheet" href="../lib/user-media.css">
 </head>
 <body data-page="music_video">
   <div id="app">
@@ -427,7 +428,16 @@
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
       <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
 
-      <div class="body"><div id="lib"></div></div>
+      <div class="body"><div id="lib"></div>
+        <div id="swr-user-media" class="swr-user-media">
+          <div class="head" style="padding:6px 8px 4px;">
+            <h2 style="font-size:10px;letter-spacing:.14em;">My Media</h2>
+            <label for="swr-user-media-input" class="tbtn" style="padding:3px 6px;font-size:9px;cursor:pointer;">+ Add</label>
+            <button type="button" id="swr-user-media-clear" class="tbtn" style="padding:3px 6px;font-size:9px;color:#f55;cursor:pointer;">Clear</button>
+          </div>
+          <input type="file" id="swr-user-media-input" multiple accept="image/*,video/*" style="display:none" />
+          <div id="swr-user-media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:3px;padding:6px 8px;"></div>
+        </div></div>
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
@@ -898,8 +908,20 @@
             else { const i=new Image(); i.src=it.url; d.appendChild(i); }
             d.addEventListener('click', (e) => {
               // Don't fire "add to layer" if the click was on the × button.
-              if (e.target.classList.contains('rm')) return;
-              Layers.add(it);
+              if (e.target && e.target.classList && e.target.classList.contains('rm')) return;
+              try {
+                if (typeof Layers === 'undefined' || !Layers || typeof Layers.add !== 'function') {
+                  throw new Error('Layers module not ready');
+                }
+                if (!it || !it.url) {
+                  throw new Error('asset has no blob URL (stale or evicted)');
+                }
+                Layers.add(it);
+                if (typeof setStatus === 'function') setStatus(`♪ ${it.name} → layer`, 'ok');
+              } catch (err) {
+                console.error('[lib] add-as-layer failed', err, it);
+                if (typeof setStatus === 'function') setStatus(`could not load: ${err && err.message || err}`, 'err');
+              }
             });
             el.appendChild(d);
           }
@@ -1503,8 +1525,39 @@
     $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setGhostDot) window.SWR.Gradient.setGhostDot(null); } });
 
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
-    $('add').addEventListener('click', () => $('asset-input').click());
-    $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
+    $('add').addEventListener('click', () => {
+      // Defensive: surface the actual failure if any of the add-media chain
+      // throws. Otherwise the click is silent and the user sees nothing
+      // happen (their report: "i cannot click on buttons to add media").
+      try {
+        const inp = $('asset-input');
+        if (!inp) throw new Error('asset-input element missing from DOM');
+        if (typeof Lib === 'undefined' || !Lib || typeof Lib.addFiles !== 'function') {
+          throw new Error('Lib module not ready');
+        }
+        inp.click();
+        if (typeof setStatus === 'function') setStatus('pick files…', '');
+      } catch (err) {
+        console.error('[add-media] failed', err);
+        if (typeof setStatus === 'function') setStatus(`could not open picker: ${err && err.message || err}`, 'err');
+      }
+    });
+    $('asset-input').addEventListener('change', e => {
+      try {
+        const files = e.target.files;
+        if (!files || !files.length) return;
+        if (typeof Lib === 'undefined' || !Lib || typeof Lib.addFiles !== 'function') {
+          throw new Error('Lib module not ready');
+        }
+        Lib.addFiles(files);
+        if (typeof setStatus === 'function') setStatus(`adding ${files.length} file${files.length === 1 ? '' : 's'}…`, '');
+      } catch (err) {
+        console.error('[add-media] change failed', err);
+        if (typeof setStatus === 'function') setStatus(`add failed: ${err && err.message || err}`, 'err');
+      } finally {
+        e.target.value = ''; // allow re-picking the same file
+      }
+    });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
     for (const id of ['sens','gate','decay']) {
       const inp = $(id); const out = $(id+'-v');
@@ -3960,5 +4013,7 @@
     console.log('[hologram] ready: ' + __HOLO_PRESETS.length + ' presets');
   })();
 </script>
+  <script src="../lib/media-store.client.js" defer></script>
+  <script src="../lib/user-media-mount.client.js" defer></script>
 </body>
 </html>

@@ -246,6 +246,14 @@
       "destination": "/gallery-posters.html"
     },
     {
+      "source": "/gallery/director-mode",
+      "destination": "/gallery-director-mode.html"
+    },
+    {
+      "source": "/gallery/director-mode/",
+      "destination": "/gallery-director-mode.html"
+    },
+    {
       "source": "/gallery/albums",
       "destination": "/gallery-albums.html"
     },
