@@ -257,6 +257,9 @@ function copyStatic() {
   const dirs = [
     { src: 'versions', dst: 'versions' },
     { src: 'data', dst: 'data' },
+    // Placeholder MP4s for the music-video-gallery and the landing page's
+    // inline video tiles (landing.html:882-896, versions/music-video-gallery.html).
+    { src: 'videos', dst: 'videos' },
     // Default (always-loaded) engine library: 7 hologram/glitch WebP images
     // + manifest.json. The Endless Tomorrow song lives in audios/ below.
     { src: 'default-library', dst: 'default-library' },
