@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "variant": "echo-manifold",
+  "enabled": true,
+  "defaultState": "off",
+  "poolBias": {
+    "intro":     { "warmth": [0.4, 0.6], "intensity": [0.0, 0.4] },
+    "verse":     { "warmth": [0.3, 0.7], "intensity": [0.3, 0.6] },
+    "prechorus": { "warmth": [0.4, 0.7], "intensity": [0.5, 0.8] },
+    "chorus":    { "warmth": [0.2, 0.8], "intensity": [0.6, 1.0] },
+    "breakdown": { "warmth": [0.5, 0.9], "intensity": [0.0, 0.3] },
+    "outro":     { "warmth": [0.3, 0.6], "intensity": [0.2, 0.5] }
+  },
+  "driftAmplitude": { "base": 0.01, "beatScale": 0.02 },
+  "tuning": { "minTickMs": 500, "maxTickMs": 3000 },
+  "anchorMap": "all",
+  "ui": { "toggleLabel": "Auto-Mix", "toggleShortcut": "a" }
+}
