@@ -24,7 +24,7 @@ Node 20+ required (see `.nvmrc`). npm only — `package-lock.json` is the source
 - `auth/` — magic-link login + verify pages and their client scripts
 - `client/`, `lib/` — shared browser client modules (visualizer-controller, auth, media-store, library-manager, library-switcher, migrate, design-tokens, components, nav)
 - `audios/` — per-engine demo MP3s (auto-loaded by each variant). The curated demo asset library (`library/`) has been removed — users bring their own assets via the Media Manager upload affordance.
-- `versions/` — 5 audio-reactive engine variants (neon, film, grid, smoke, hallucination) + injected scripts
+- `versions/` — audio-reactive engine variants. The 5 core variants are neon, film, grid, smoke, hallucination. Plus reference implementation `music_video.html` (3D hologram) and the multi-video gallery `music-video-gallery.html`. The remaining 17 variants (aurora, baroque, chrome, collage, echo-manifold, eclipse, fractal, glitch, kraft, mosaic, phosphor, pulse, spectrum, tape, typography, void, watercolor) are individual artistic presets sharing the same runtime
 - `site-map.json` — canonical IA: nav, footer, auth, legal, tools, archived. Source of truth for `vercel.json` rewrites and Vite `rootFiles`. Edit this, then run `scripts/generate-vercel-rewrites.mjs` to regenerate vercel.json
 - `_archive/` — gitignored experimental pages (landing-personas variants, internal docs, dev tools). Excluded from deploy
 
@@ -55,12 +55,12 @@ To archive a page:
 2. Run `node scripts/archive-pages.mjs --dry-run` to preview
 3. Run `node scripts/archive-pages.mjs` to move files to `_archive/`
 4. Run `node scripts/generate-vercel-rewrites.mjs` to update vercel.json
-- `preset-pipeline/` — Python daily generator (`generate.py`) + Node schema verifier (`verify.mjs`); CI calls `./cron.sh`
+- `preset-pipeline/` — Python daily generator (`generate.py`) + Node schema verifier (`verify.mjs`). Local-only: `./cron.sh` runs on the dev box (the GitHub Action that previously auto-committed was removed 2026-09-20). New presets need to be committed by hand after generation
 - `presets/` — JSON preset specs (one per file, append-only, daily-generated)
 - `marketplace/curated/`, `portfolio/`, `press/`, `promo/`, `keyart/`, `icons/`, `legal/` — content
 - `scripts/` — build / test / dev scripts (`check-syntax.mjs`, `build-magenta-dsp-bundle.sh`, `dev-api.mjs`, `test-api.mjs`)
 - `tools/` — dev tools (`deploy-vercel.sh`, `hf-publish.html`, `dev-up.sh`/`dev-ps.sh`/`dev-down.sh`, `freq-bridge.js`, `agentic-set.mjs`)
-- `verify-*.mjs` — Puppeteer E2E suites at repo root (~80 files)
+- `verify-*.mjs` — Puppeteer E2E suites at repo root (~110 files; the 8 automix verifies are one per surface plus a cross-surface run; the curated 5-smoke + transitions verifier are the CI gate; see `.kai/conventions/testing.md` for the full layering)
 - `verify-screenshots/`, `out/`, `docs/` — research + audit artifacts
 - `vite.config.js` — custom `copy-static` + `swrc-api-middleware` + `strip-absolute-module-scripts` plugins
 - `vercel.json` — Vercel rewrites (`/` → `landing.html`, `/engine` → `engine.html`, etc.) + buildCommand
@@ -90,7 +90,7 @@ To archive a page:
 - Branch from `main`; never push to it directly
 - Conventional commits (`feat:` / `fix:` / `refactor:` / `docs:` / `chore:`); recent examples: `fix(hallucination): surface auto-loaded song`, `fix(deploy): capture stderr from vercel ls`
 - Repo-local git config is unset — assistant commits ship as the global user (`kajica2 <kai.djuric@gmail.com>`). If you ever set a repo-local `user.name`/`user.email`, unset it (or pass `-c user.name=… -c user.email=…` on the commit) — Vercel blocks deploys whose GitHub committer identity is unknown
-- GitHub Actions: `ci.yml` runs on PR/push (npm ci + `check:full` + `verify:transitions`); preset pipeline is local-only (`./preset-pipeline/cron.sh`)
+- GitHub Actions: `ci.yml` runs on PR/push (npm ci + `check:full` + `verify:transitions` + `verify:automix-cross-surface` + `npm run build` + build-size budget ≤ 130MB). Preset pipeline is local-only (`./preset-pipeline/cron.sh`)
 
 ## Security
 
@@ -101,4 +101,4 @@ To archive a page:
   - `swrc_session` cookie: HttpOnly, SameSite=Lax, Secure in production; 30-day rolling TTL
   - Rate limits on `/api/auth/magic` (10/min/IP), `/api/storage/sign-upload` (60/min/user), `sign-download` (120/min/user), `/api/projects` writes (30/min/user) — return 429 with `Retry-After`
   - `TRUSTED_PROXIES` must be set if deploying outside Vercel, otherwise `x-forwarded-for` is spoofable and bypasses the per-IP rate limit
-- Vercel deploys are auto on push to `main`. Build size is ~66MB (down from ~140MB pre-2026-09-13 after the curated demo library removal).
+- Vercel deploys are auto on push to `main`. Build size is ~114MB (was ~66MB after the 2026-09-13 curated demo library removal; grew to ~96MB file-content / ~114MB block-padded after the 2026-09-20 audit/keyart refresh; CI asserts ≤ 130MB budget).

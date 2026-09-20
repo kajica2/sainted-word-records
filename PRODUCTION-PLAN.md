@@ -7,6 +7,33 @@
 
 This plan sequences the work from **today's demo** to **a production-grade VJ tool** that musicians, DJs, and content creators will pay for. It is organized into 4 phases with explicit acceptance criteria per phase. Each phase ends with a **verifiable demo milestone** before the next phase begins.
 
+> **Status as of 2026-09-20** (added by Kai during the music_video → all-surfaces port):
+>
+> **Shipped since this plan was written:**
+>
+> - **Phase 1 milestones all landed.** Real MediaRecorder export ✓ (verified via `verify:e2e-media-record`); per-layer asset assignment + composite ✓ (engine variants); real beat detector ✓ (audio-analysis-v2 with adaptive threshold + section detection); project save/load ✓ (project-state stores).
+>
+> - **Phase 2 milestones all landed.** BPM detection ✓ (autocorrelation + beat phase); multiple reactors per layer ✓; RE-MAP system ✓ (preset cycle + anchor map); key detection ✓ (Krumhansl-Schmuckler).
+>
+> - **Phase 3 milestones all landed.** WebGL post-FX ✓ (fx-postprocess.js); persona assets panel ✓; PWA + mobile ✓ (pwa-bootstrap.js + sw.js + manifest).
+>
+> - **Phase 4 milestones all landed except the magic-link auth + Stripe wiring.** Cloud project save ✓ (api/projects); magic-link auth ✓ (api/auth/magic); pricing tier surface ✓ (landing.html, campaign.html). Stripe payment integration has not shipped (api/stripe route exists but is a placeholder).
+>
+> - **Bonus features not in this plan:**
+>
+>   - **Automix + curator stack** — ported from `versions/music_video.html` to engine + 5 core variants + dashboard. Adaptive-tick preset blender, section-aware anchor pool, freeze/save/lock + keyboard A/F/B/K/D + URL deep-links.
+>   - **Hook detector** — first-energy-spike drop finder + Teaser/Hook/Clip exporter.
+>   - **Cross-tab library sync** — `BroadcastChannel('swr-media')` refreshes the user library across tabs.
+>   - **CI build-size budget** — assert `dist/` ≤ 130MB on every PR.
+>   - **7 new cross-surface Puppeteer verifies** — one per surface + a cross-surface run.
+>
+> **Open items still on the plan:**
+>
+> - §4.3 Stripe payment integration (api/stripe route is a stub, no actual charge)
+> - §4.4 OG share images per preset (low priority, P4 backlog)
+>
+> **CI status:** `ci.yml` runs `check:full` + `verify:transitions` + `verify:automix-cross-surface` + `npm run build` + build-size ≤ 130MB. All gates green.
+
 ---
 
 ## Current state (baseline)

@@ -82,11 +82,14 @@ Credit-bank, not subscription. Credits never expire. Top up with another key any
 - **14 WebGL FX** on a fullscreen quad: posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch, mut, mutAlgo, temp
 - **20 stackable CSS filters** on the live stage: kenburns, pan-scan, mesh-warp, liquify, light-leak, film-grain, VHS, RGB-split, pixel-sort, CRT, hue-shift, kaleidoscope, zoom-pulse, camera-shake + 3 combos
 - **Persistent library** (IndexedDB v2) — both `assets` (per-clip) and `songs` (current) stores. Survives reload.
+- **Cross-tab library sync** — uploads + deletes in one tab refresh the library in all open tabs via `BroadcastChannel('swr-media')`. Falls back to local-only on very old browsers
 - **MP4-as-audio source** — drop a video file, the engine extracts audio. No conversion.
 - **PWA** — installable, offline, iOS splash screens, 4 PNG icons (192/512/maskable/apple-touch)
 - **Watermark engine** — 3 concepts (monogram / wordmark / icon+text). Suppressed for PT users.
 - **Layer scheduler** — per-layer rotate +90° + randomise, with `r` keyboard shortcut
 - **Auto-swap (AUTO DRIFT)** — engine cycles assets/FX automatically
+- **Automix + curator stack** (ported from `versions/music_video.html` 2026-09-20) — adaptive-tick preset blender driven by audio features (bass/mid/treb/beat/rms/centroid/onset/bpm), section-aware anchor pool (intro/verse/chorus/breakdown/outro), freeze/save/lock + keyboard A/F/B/K/D + URL deep-links. Ships on engine + 5 core variants + dashboard
+- **Hook detector** — finds the first >2× intro-mean energy jump after 8s, snaps to the nearest onset within 200ms, exports Teaser 3s / Hook 5s / Clip 15s as watermarked MP4/WebM
 - **Per-clip library** — drag a folder of clips, auto-classify by motion/luma/hue
 
 ---
@@ -116,7 +119,7 @@ sainted-word-records/
 ├── landing.html              # Public landing page
 ├── campaign.html             # 17-section sales page with pricing
 ├── personas.html             # 23-persona gallery with family filter
-├── versions/                 # 5 audio-reactive variants (neon, film, grid, smoke, hallucination)
+├── versions/                 # audio-reactive engine variants — 5 core (neon, film, grid, smoke, hallucination) + reference `music_video.html` (3D hologram) + 17 artistic presets sharing the same runtime
 ├── fx-postprocess.js         # WebGL 14-FX pipeline
 ├── personas.js               # 23 personas as state
 ├── audio-analysis-v2.js      # Zero-deps BPM + key + chromagram
