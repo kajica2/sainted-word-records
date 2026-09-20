@@ -390,6 +390,26 @@
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
   <script src="../engine-render.client.js"></script>
+
+  <!-- Automix + asset-curator stack (Phase 2 port from music_video) -->
+  <script src="../client/preset-anchor-map.client.js"></script>
+  <script src="../client/anchor-embed.js"></script>
+  <script src="../client/automix.client.js"></script>
+  <script src="../client/section-detector.client.js" defer></script>
+  <script src="../client/preset-cycle.client.js"></script>
+  <script src="../client/preset-pick-store.client.js"></script>
+  <script src="../client/layer-state-store.client.js"></script>
+  <script src="../client/last-mix-store.client.js"></script>
+  <script src="../client/asset-curator.client.js"></script>
+  <script src="../client/library-packs.client.js" defer></script>
+
+  <!-- Extracted runtimes (Phase 1b) — hero-frames intentionally omitted per /steer skip hero -->
+  <script src="../client/automix-runtime.client.js"></script>
+  <script src="../client/hook-detector.client.js"></script>
+  <script src="../client/stats.client.js"></script>
+  <script src="../client/mood.client.js"></script>
+  <script src="../client/scenes.client.js"></script>
+
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
 <script src="../engine-lfos.client.js"></script>
@@ -457,6 +477,7 @@
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
+      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <canvas id="noise"></canvas>
       <div class="swr-watermark">
         <img src="../watermark-monogram.svg" alt="SWR" />
@@ -466,10 +487,35 @@
       <div class="head"><h2>Layers</h2><button class="tbtn" id="remap" style="padding:3px 8px;">RE-MAP</button></div>
       <div class="body"><div id="layers"></div></div>
     </aside>
+    <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);position:absolute;bottom:48px;left:8px;right:8px;z-index:5;border-radius:4px;">
+      <div class="ph" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;">Hook Export</span>
+        <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+      </div>
+      <div id="hook-info" style="font-size:9px;color:var(--muted);padding:2px 0 4px;">
+        <span>drop: <b id="hook-time">—</b></span> · <span>energy: <b id="hook-energy">—</b></span> · <span>conf: <b id="hook-conf">—</b></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
+        <button class="tbtn hook-preset" data-preset="teaser" style="padding:3px 6px;font-size:9px;">Teaser 3s</button>
+        <button class="tbtn hook-preset" data-preset="hook" style="padding:3px 6px;font-size:9px;">Hook 5s</button>
+        <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
+      </div>
+    </div>
     <footer>
       <span class="gc">CHAOS <input type="range" id="sens" min="0.2" max="3" step="0.05" value="2" /> <b id="sens-v">2.00</b></span>
       <span class="gc">GATE <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.2" /> <b id="gate-v">1.20</b></span>
       <span class="gc">DECAY <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.6" /> <b id="decay-v">0.60</b></span>
+      <span class="gc"><button class="tbtn" id="hook-btn" title="Detect drop + export hook clips" style="padding:3px 8px;font-size:9px;">Hooks</button></span>
+      <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
+      <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
+      <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
+      <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">
+        <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
+        <button class="tbtn" id="automix-freeze" title="Freeze (F)" style="padding:3px 8px;font-size:9px;margin-left:6px;">Freeze</button>
+        <button class="tbtn" id="automix-save" title="Save blend (B)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Save</button>
+        <button class="tbtn" id="automix-lock" title="Lock to single anchor (K)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Lock</button>
+        <button class="tbtn" id="automix-debug" title="Toggle debug panel (D)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Debug</button>
+      </span>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--y);">— fps</span>
     </footer>
@@ -1800,5 +1846,93 @@ const a=l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a (l
 <script src="../engine-genops.client.js"></script>  <script src="../engine-transitions.client.js" defer></script>
   <script src="../lib/media-store.client.js" defer></script>
   <script src="../lib/user-media-mount.client.js" defer></script>
+
+<!-- Automix debug panel (Phase 2 port) -->
+<div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
+    <button id="automix-debug-close" title="Close" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">×</button>
+  </div>
+  <div id="automix-debug-body" style="color:var(--fg-mute);">idle</div>
+</div>
+
+<script>
+  // Variant UI wiring (Phase 2). See versions/neon.html for full comments.
+  (function () {
+    function $(id) { return document.getElementById(id); }
+    function setStatus(msg, kind) { const el = $('status'); if (el) { el.textContent = msg; el.style.color = kind === 'err' ? '#f55' : '#5f5'; } }
+    document.addEventListener('DOMContentLoaded', function () {
+      const hookBtn = $('hook-btn');
+      if (hookBtn) hookBtn.addEventListener('click', async function () {
+        if (!window.SWR_HOOK_DETECTOR) return;
+        const r = await window.SWR_HOOK_DETECTOR.detect();
+        if (r && r.ok) {
+          const p = $('hook-panel'); if (p) p.style.display = 'block';
+          const t = $('hook-time'), e = $('hook-energy'), c = $('hook-conf');
+          if (t) t.textContent = r.result.time + 's'; if (e) e.textContent = r.result.energy + '\u00d7'; if (c) c.textContent = Math.round(r.result.confidence * 100) + '%';
+          setStatus('drop @ ' + r.result.time + 's', 'ok');
+        } else { setStatus((r && r.reason) || 'detection failed', 'err'); }
+      });
+      const hookClear = $('hook-clear');
+      if (hookClear) hookClear.addEventListener('click', function () { if (window.SWR_HOOK_DETECTOR) window.SWR_HOOK_DETECTOR.lastResult = null; const p = $('hook-panel'); if (p) p.style.display = 'none'; });
+      document.querySelectorAll('.hook-preset').forEach(function (btn) {
+        btn.addEventListener('click', async function () { if (!window.SWR_HOOK_DETECTOR) return; const r = await window.SWR_HOOK_DETECTOR.exportHook(btn.dataset.preset); if (!r || !r.ok) setStatus((r && r.reason) || 'export failed', 'err'); });
+      });
+      const statsBtn = $('stats-btn');
+      if (statsBtn) statsBtn.addEventListener('click', function () {
+        if (!window.SWR_STATS) return;
+        const s = window.SWR_STATS.summary();
+        const m = document.createElement('div');
+        m.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;min-width:320px;font:11px ui-monospace,monospace;';
+        m.innerHTML = '<h3 style="margin:0 0 12px;color:var(--accent);">Local Stats</h3><div>Renders: <b>' + s.totalRenders + '</b></div><div>Minutes: <b>' + s.totalMinutes + '</b></div><div>Size: <b>' + s.totalSizeMB + ' MB</b></div><div style="margin-top:12px;"><button class="tbtn" id="stats-close" style="padding:4px 10px;font-size:10px;">Close</button></div>';
+        document.body.appendChild(m);
+        $('stats-close').addEventListener('click', function () { m.remove(); });
+      });
+      const moodBtn = $('mood-btn');
+      if (moodBtn) moodBtn.addEventListener('click', function () {
+        if (!window.SWR_MOOD) return;
+        let m = $('mood-modal'); if (m) { m.remove(); return; }
+        m = document.createElement('div');
+        m.id = 'mood-modal';
+        m.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;min-width:320px;';
+        m.innerHTML = '<h3 style="margin:0 0 12px;color:var(--accent);">Mood</h3><input type="file" id="mood-file" accept="image/*" style="font-size:10px;"><div style="margin-top:12px;display:flex;gap:6px;"><button class="tbtn" id="mood-apply" style="padding:4px 10px;font-size:10px;">Apply</button><button class="tbtn" id="mood-close" style="padding:4px 10px;font-size:10px;">Close</button></div><div id="mood-result" style="margin-top:10px;font-size:10px;"></div>';
+        document.body.appendChild(m);
+        $('mood-file').addEventListener('change', function (ev) {
+          const f = ev.target.files && ev.target.files[0]; if (!f) return;
+          const reader = new FileReader();
+          reader.onload = function () {
+            const img = new Image();
+            img.onload = async function () { const r = await window.SWR_MOOD.analyze(img); window.SWR_MOOD.setOverlayImage(reader.result); window.SWR_MOOD.setOverlayVisible(true); $('mood-result').textContent = 'bright ' + r.features.meanBright.toFixed(2) + ' sat ' + r.features.meanSat.toFixed(2); };
+            img.src = reader.result;
+          };
+          reader.readAsDataURL(f);
+        });
+        $('mood-apply').addEventListener('click', function () { if (window.SWR_MOOD.applySuggestion()) setStatus('mood applied', 'ok'); });
+        $('mood-close').addEventListener('click', function () { m.remove(); });
+      });
+      const scenesBtn = $('scenes-btn');
+      if (scenesBtn) scenesBtn.addEventListener('click', function () {
+        if (!window.SWR_SCENES) return;
+        let m = $('scenes-modal'); if (m) { m.remove(); return; }
+        m = document.createElement('div');
+        m.id = 'scenes-modal';
+        m.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;';
+        m.innerHTML = '<h3 style="margin:0 0 12px;color:var(--accent);">Scenes</h3><div id="scenes-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div><div style="margin-top:12px;"><button class="tbtn" id="scenes-close" style="padding:4px 10px;font-size:10px;">Close</button></div>';
+        document.body.appendChild(m);
+        const list = $('scenes-list');
+        window.SWR_SCENES.list().forEach(function (s, i) {
+          const pad = document.createElement('button'); pad.className = 'tbtn';
+          pad.style.cssText = 'padding:14px 6px;font-size:10px;'; pad.textContent = s.label;
+          let timer = null;
+          pad.addEventListener('click', function () { if (timer) { clearTimeout(timer); timer = null; window.SWR_SCENES.cancelCapture(); return; } window.SWR_SCENES.recall(i); setStatus('recalled ' + s.label, 'ok'); });
+          pad.addEventListener('mousedown', function () { timer = setTimeout(function () { window.SWR_SCENES.startCapture(i); timer = null; }, 1000); });
+          pad.addEventListener('mouseup', function () { if (timer) { clearTimeout(timer); timer = null; } });
+          list.appendChild(pad);
+        });
+        $('scenes-close').addEventListener('click', function () { m.remove(); });
+      });
+    });
+  })();
+</script>
 </body>
 </html>
