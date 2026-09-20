@@ -1,0 +1,40 @@
+project:
+  name: sainted-word-records
+  root: /Users/kaidejuricmasscmbook/Documents/sainted-word-records
+  languages: [JavaScript]
+  module_system: ESM
+  framework: vanilla-browser (Vite build, no frontend framework)
+  backend: Vercel serverless (`api/`)
+  package_manager: npm
+  node_version: ">=20.0.0 (see .nvmrc — Node 20)"
+  npm_version: ">=10.0.0"
+  test_runner: node + Puppeteer E2E
+  e2e_root: verify-*.mjs
+  unit_root: scripts/check-*.mjs
+  api_root: scripts/test-api.mjs
+  deploy_target: Vercel (auto on push to main)
+
+memory_version: "1.0"
+last_updated: 2026-09-20
+total_pipeline_runs: 0
+initialized_by: Kai (orchestrator first-run setup)
+
+flags:
+  has_conventions: true
+  has_decisions: false
+  has_postmortems: false
+  has_tech_debt: true
+  has_preferences: true
+
+active_prevention_rules: []
+
+# Auto-detected on 2026-09-20 from AGENTS.md, .editorconfig, package.json, vite.config.js.
+# Update via @postmortem when failures generate rules; update via @refactor-advisor when
+# tech-debt register detects a recurring pattern.
+
+owner:
+  global_git_user: kajica2 <kai.djuric@gmail.com>
+  note: |
+    Repo-local git config is unset by design — assistant commits ship as the global user.
+    Vercel blocks deploys whose GitHub committer identity is unknown, so do NOT set a
+    repo-local user.name/user.email (or pass -c user.name=… -c user.email=… on the commit).

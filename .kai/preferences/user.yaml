@@ -1,0 +1,51 @@
+# User Preferences
+# Owner: kajica2 <kai.djuric@gmail.com>
+# Last updated: 2026-09-20 (Kai first-run init)
+
+workflow:
+  # Default checkpoint behavior. Per AGENTS.md, default is auto-proceed through
+  # all phases. User can override per-session with natural language like
+  # "let me review the architecture first" or "pause before deployment".
+  checkpoints:
+    after_architect: false
+    before_devops: false
+    at_each_phase: false
+  # Tone of voice: terse, witty, factual. No filler phrases. Direct lead.
+  tone: sharp
+  # When user gives ambiguous commands ("continue", "go"), ASK before acting.
+  # Do not guess and start writing code.
+  clarify_ambiguous: true
+  # When a pipeline completes with no findings, still report (don't go silent).
+  report_no_findings: true
+
+risk_tolerance:
+  # Force-push: NEVER on shared branches. On a personal feature branch,
+  # only after explicit user confirmation.
+  force_push_shared: never
+  force_push_personal: ask_first
+  # `--no-verify` on commits: only for trivial chores; ASK before any feature/fix.
+  no_verify: ask_first
+  # Deleting untracked files: OK without asking when files are obviously stale
+  # (e.g. *.bak older than the surrounding fix commits). Always confirm before
+  # deleting anything in `_archive/` or that the user might have authored.
+  delete_untracked: confirm_if_authored
+
+commit:
+  # Use the global git user (kajica2). Repo-local git config is unset by design.
+  user: global
+  # Do NOT pass --no-verify unless user explicitly approves.
+  no_verify: ask_first
+  # Conventional commits. Auto-detect scope from changed files.
+  conventional: true
+
+tools:
+  # The user is on macOS with zsh. Path quoting is important for spaces.
+  shell: zsh
+  # Prefer dedicated tools over shell when possible (per AGENTS.md).
+  prefer_dedicated_tools: true
+
+reporting:
+  # When summarizing work, lead with the result, then explain. Show audit trail.
+  lead_with_result: true
+  # Include duration + deliverables count + issues found/resolved.
+  format: pipeline_agent
