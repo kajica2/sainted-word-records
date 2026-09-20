@@ -232,6 +232,7 @@
     }
     #stage-empty p { max-width: 380px; font-size: 12px; line-height: 1.6; margin: 0; }
     #stage-empty .hint { color: var(--dim); font-size: 11px; margin-top: 12px; }
+    #stage-empty button { pointer-events: auto; }   /* BUG-016: parent has pointer-events:none so buttons inside are unclickable until explicitly opted in */
     #stage-empty.hidden { display: none; }
     #stage-flash {
       position: absolute;

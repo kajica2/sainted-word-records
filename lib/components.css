@@ -43,6 +43,7 @@
 .swr-nav__links a {
   font-size: 13px; color: var(--ink-2); font-weight: 500;
   letter-spacing: 0.01em;
+  padding: 14px 8px;       /* BUG-009: expand touch target to ~44px tall (WCAG 2.5.5) without changing visual size of the text */
 }
 .swr-nav__links a:hover { color: var(--accent); }
 .swr-nav__cta {
@@ -392,7 +393,7 @@
 .footer__col h4 {
   font-family: var(--font-mono); font-size: 11px;
   letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--muted); margin: 0 0 14px;
+  color: var(--ink-2); margin: 0 0 14px;   /* BUG-015: was --muted (~4.9:1 on dark footer); --ink-2 lands ~7:1+ in both themes */
 }
 .footer__col ul { list-style: none; padding: 0; margin: 0; }
 .footer__col li { margin-bottom: 8px; }
