@@ -3,7 +3,8 @@
 Auto-detected 2026-09-20 from repo inspection. Update via @refactor-advisor.
 Severity scale: **P1** (blocks / user-visible) · **P2** (maintenance drag) · **P3** (nice-to-have).
 
-Last scan: 2026-09-20 (worktree + stash triage, refactor-advisor v1.2.2).
+Last scan: 2026-09-20 (worktree + stash triage, refactor-advisor v1.2.2;
+follow-up: feat-parallel-snapshot archived 2026-09-20 per user sign-off).
 
 ---
 
@@ -240,15 +241,18 @@ worktree-merge sweep (the prior register said 19 — actual count was 19 then,
 **Remediation**: prune after 30 days if not needed; or move off-repo to a
 `backups/` archive tarball.
 
-### P3-004 — Worktree ↔ branch mapping has one duplicated branch name (NEW)
+### P3-004 — `feat-parallel-snapshot` worktree naming + was archived (CLOSED — executed 2026-09-20)
 
-**Evidence**: The `feat-parallel-snapshot` worktree uses branch
-`feat-parallel-snapshot` (no slash), while every other `feat-*` worktree
-uses the slash-prefixed `feat/<name>` convention. `git worktree list` is
-slightly harder to read because of this.
-**Remediation**: rename the branch to `feat/parallel-snapshot` to match
-the project convention (`git branch -m feat-parallel-snapshot feat/parallel-snapshot`
-on the worktree). Low priority. Owner: user (Kai).
+**Detected**: 2026-09-20.
+**Closed**: 2026-09-20.
+**Evidence (was)**: The `feat-parallel-snapshot` worktree used the
+non-slash branch name `feat-parallel-snapshot`, breaking the
+`feat/<name>` convention. Branch was a personal Downloads-clone
+snapshot (commit message: "captures parallel-session work in Downloads
+clone") with 116 files / 18,524 insertions ahead.
+**Resolution**: Archived to `backup/feat-parallel-snapshot-20260920`
+(user sign-off). Worktree removed. Original branch deleted. No rename
+needed since the branch is gone.
 
 ---
 
