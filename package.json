@@ -59,6 +59,7 @@
     "verify:hallucination-automix": "node verify-hallucination-automix.mjs",
     "verify:dashboard-automix": "node verify-dashboard-automix.mjs",
     "verify:automix-cross-surface": "node verify-automix-cross-surface.mjs",
+    "verify:user-media-cross-tab": "node verify-user-media-cross-tab.mjs",
     "verify:transitions": "node verify-transitions.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
