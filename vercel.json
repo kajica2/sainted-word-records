@@ -575,8 +575,11 @@
     },
     {
       "source": "/style-guide",
-      "destination": "/style-guide.html",
-      "statusCode": 404
+      "destination": "/style-guide.html"
+    },
+    {
+      "source": "/style-guide/",
+      "destination": "/style-guide.html"
     },
     {
       "source": "/persona-demo.html",

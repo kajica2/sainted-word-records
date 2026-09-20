@@ -183,6 +183,7 @@ function copyStatic() {
     'changelog.html',
     'press.html',
     'about.html',
+    'style-guide.html',
     'status.html',
     'versions.html',
     'portfolio.html',
@@ -266,6 +267,7 @@ function copyStatic() {
     // places so the engines can find it.
     { src: 'layer-scheduler.worker.js', dst: 'versions/layer-scheduler.worker.js' },
     { src: 'icons', dst: 'icons' },
+    { src: 'logos', dst: 'logos' },
     { src: 'portfolio', dst: 'portfolio' },
     { src: 'keyart', dst: 'keyart' },
     { src: 'presets', dst: 'presets' },
