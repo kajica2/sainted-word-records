@@ -1672,6 +1672,94 @@ if (allGreen)
   ok('engine.html ships all 8 post-2026 SWR_* globals + brandkit + recorder (console owns the controls)');
 else bad('engine.html parity', JSON.stringify(engineParity));
 
+// 75. (Task 4) Cross-variant automix port — for each of the 15 enabled
+//     variants, navigate to versions/<name>.html, confirm the
+//     inlined #swrc-automix-config + visible #automix-toggle are wired,
+//     click the toggle, wait 5s, and assert window.SWR._fxOverride
+//     changed at least once. Some variants (collage, typography) don't
+//     ship a demo mp3, so SWR_Audio.feat may stay empty — we still
+//     expect the toggle click to register ON, even if drift is silent.
+const ENABLED_VARIANTS = [
+  'aurora', 'baroque', 'chrome', 'collage', 'eclipse',
+  'fractal', 'glitch', 'kraft', 'mosaic', 'phosphor',
+  'pulse', 'spectrum', 'typography', 'void', 'watercolor',
+];
+const DISABLED_VARIANTS = ['echo-manifold', 'tape'];
+
+async function variantEnabledCheck(name) {
+  await nav('http://localhost:5181/versions/' + name + '.html');
+  // Reset _fxOverride to a sentinel so we can prove the runtime
+  // populates it after toggling. Otherwise a prior page's value may
+  // bleed through (window survives across navigations in this puppeteer
+  // session — same page handle, same window context).
+  await page.evaluate(() => { if (window.SWR) window.SWR._fxOverride = null; });
+  const shape = await page.evaluate(() => ({
+    cfgPresent:  !!document.getElementById('swrc-automix-config'),
+    cfgJson:     (() => {
+      const n = document.getElementById('swrc-automix-config');
+      if (!n) return null;
+      try { return JSON.parse(n.textContent); } catch (_) { return null; }
+    })(),
+    toggleExists: !!document.getElementById('automix-toggle'),
+    toggleDisplay: (() => {
+      const t = document.getElementById('automix-toggle');
+      if (!t) return null;
+      return getComputedStyle(t).display;
+    })(),
+  }));
+  if (!shape.cfgPresent)    return { ok: false, step: 'cfgPresent', shape };
+  if (!shape.toggleExists)  return { ok: false, step: 'toggleExists', shape };
+  if (shape.toggleDisplay === 'none') return { ok: false, step: 'toggleHidden', shape };
+  if (!shape.cfgJson || shape.cfgJson.enabled !== true)
+    return { ok: false, step: 'cfg.enabled', shape };
+  // Snapshot _fxOverride before click.
+  const before = await page.evaluate(() => window.SWR && window.SWR._fxOverride);
+  await page.evaluate(() => document.getElementById('automix-toggle').click());
+  // Read toggle state — must flip to ON immediately.
+  await new Promise(r => setTimeout(r, 200));
+  const state = await page.evaluate(() => {
+    const s = document.getElementById('automix-state');
+    return s && s.textContent;
+  });
+  if (state !== 'ON') return { ok: false, step: 'clickFlips', shape, state };
+  // Wait for runtime to populate _fxOverride (5s window).
+  await new Promise(r => setTimeout(r, 5000));
+  const after = await page.evaluate(() => {
+    const o = window.SWR && window.SWR._fxOverride;
+    if (!o) return null;
+    return ['temp','mut','sepia','chroma','grain','glow','grayscale','posterize']
+      .every(k => typeof o[k] === 'number');
+  });
+  // Compare _fxOverride before/after: at minimum the object should now
+  // be present with all 8 numeric fields. Whether it differs from the
+  // snapshot is a stronger signal (drift evolution), but accepting
+  // "now-populated" matches the brief's contract.
+  return { ok: after === true, step: 'fxOverride', shape, state, after, beforePresent: before !== null };
+}
+
+for (const name of ENABLED_VARIANTS) {
+  const res = await variantEnabledCheck(name);
+  if (res.ok) ok('versions/' + name + '.html: automix toggle ON + _fxOverride populated');
+  else bad('versions/' + name + '.html: automix variant flow', JSON.stringify(res));
+}
+
+// 76. (Task 4) Disabled variants — #automix-toggle must be hidden
+//     (style.display === 'none'). No _fxOverride evolution is expected.
+async function variantDisabledCheck(name) {
+  await nav('http://localhost:5181/versions/' + name + '.html');
+  return await page.evaluate(() => {
+    const t = document.getElementById('automix-toggle');
+    if (!t) return { ok: false, reason: 'no #automix-toggle' };
+    const display = t.style.display;
+    return { ok: display === 'none', display, computedDisplay: getComputedStyle(t).display };
+  });
+}
+for (const name of DISABLED_VARIANTS) {
+  const res = await variantDisabledCheck(name);
+  if (res.ok) ok('versions/' + name + '.html: disabled → #automix-toggle hidden');
+  else bad('versions/' + name + '.html: disabled → toggle hidden', JSON.stringify(res));
+}
+
 await browser.close();
 server.close();
 console.log(results.join('\n'));

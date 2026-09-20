@@ -821,6 +821,165 @@ function makeRuntimeEnv(opts) {
   restoreDrift(driftSnap);
 }
 
+// ---- 1q (Task 4): validateAutomixConfig + 17-variant loop ----------------
+// Schema validator for variants/<name>.automix.json. Mirrors the runtime's
+// validation helpers (_validateBias, _validateDriftAmplitude,
+// _validateTuning) so the unit-level shape matches what loadConfig()
+// will accept at runtime. Returns { ok, errors[] } — non-fatal by design
+// so a single bad field doesn't blank out the whole config.
+function validateAutomixConfig(json, variantName) {
+  const errors = [];
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return { ok: false, errors: ['root must be an object'] };
+  }
+  if (json.version !== 1) {
+    errors.push('version must be 1 (got ' + JSON.stringify(json.version) + ')');
+  }
+  if (json.variant !== variantName) {
+    errors.push('variant must match filename ("' + variantName + '", got "' + json.variant + '")');
+  }
+  if ('enabled' in json && typeof json.enabled !== 'boolean') {
+    errors.push('enabled must be boolean when present');
+  }
+  if ('defaultState' in json && json.defaultState !== 'on' && json.defaultState !== 'off') {
+    errors.push('defaultState must be "on" or "off" when present');
+  }
+  if ('poolBias' in json) {
+    if (!json.poolBias || typeof json.poolBias !== 'object' || Array.isArray(json.poolBias)) {
+      errors.push('poolBias must be an object');
+    } else {
+      const validSecs = ['intro','verse','prechorus','chorus','breakdown','outro'];
+      for (const sec of Object.keys(json.poolBias)) {
+        if (!validSecs.includes(sec)) {
+          errors.push('poolBias section "' + sec + '" not in ' + JSON.stringify(validSecs));
+          continue;
+        }
+        const b = json.poolBias[sec];
+        if (!b || typeof b !== 'object') {
+          errors.push('poolBias.' + sec + ' must be an object');
+          continue;
+        }
+        for (const axis of ['warmth','intensity']) {
+          const arr = b[axis];
+          if (!Array.isArray(arr) || arr.length !== 2) {
+            errors.push('poolBias.' + sec + '.' + axis + ' must be a 2-element array');
+            continue;
+          }
+          for (let i = 0; i < 2; i++) {
+            const v = arr[i];
+            if (typeof v !== 'number' || !isFinite(v) || v < 0 || v > 1) {
+              errors.push('poolBias.' + sec + '.' + axis + '[' + i + '] must be a finite number in [0,1]');
+            }
+          }
+          if (typeof arr[0] === 'number' && typeof arr[1] === 'number' && arr[0] > arr[1]) {
+            errors.push('poolBias.' + sec + '.' + axis + ' low > high');
+          }
+        }
+      }
+    }
+  }
+  if ('driftAmplitude' in json) {
+    if (!json.driftAmplitude || typeof json.driftAmplitude !== 'object') {
+      errors.push('driftAmplitude must be an object');
+    } else {
+      for (const k of ['base','beatScale']) {
+        const v = json.driftAmplitude[k];
+        if (typeof v !== 'number' || !isFinite(v) || v < 0 || v > 1) {
+          errors.push('driftAmplitude.' + k + ' must be a finite number in [0,1]');
+        }
+      }
+    }
+  }
+  if ('tuning' in json) {
+    if (!json.tuning || typeof json.tuning !== 'object') {
+      errors.push('tuning must be an object');
+    } else {
+      for (const k of ['minTickMs','maxTickMs']) {
+        const v = json.tuning[k];
+        if (typeof v !== 'number' || !isFinite(v) || v < 1 || v > 10000) {
+          errors.push('tuning.' + k + ' must be a finite number in [1,10000]');
+        }
+      }
+      if (typeof json.tuning.minTickMs === 'number' && typeof json.tuning.maxTickMs === 'number'
+          && json.tuning.minTickMs > json.tuning.maxTickMs) {
+        errors.push('tuning.minTickMs > tuning.maxTickMs');
+      }
+    }
+  }
+  if ('anchorMap' in json && json.anchorMap !== 'all') {
+    errors.push('anchorMap must be "all" when present');
+  }
+  if ('ui' in json) {
+    if (!json.ui || typeof json.ui !== 'object') {
+      errors.push('ui must be an object');
+    } else {
+      if ('toggleLabel' in json.ui && (typeof json.ui.toggleLabel !== 'string' || json.ui.toggleLabel.length === 0)) {
+        errors.push('ui.toggleLabel must be a non-empty string when present');
+      }
+      if ('toggleShortcut' in json.ui && (typeof json.ui.toggleShortcut !== 'string' || json.ui.toggleShortcut.length !== 1)) {
+        errors.push('ui.toggleShortcut must be a single character when present');
+      }
+    }
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+// 17 known variants — covers all enabled (15) + the 2 disabled
+// (echo-manifold, tape). Disabled variants still must satisfy the schema
+// even though the runtime hides #automix-toggle when enabled=false.
+const VARIANT_NAMES = [
+  'aurora', 'baroque', 'chrome', 'collage', 'echo-manifold',
+  'eclipse', 'fractal', 'glitch', 'kraft', 'mosaic',
+  'phosphor', 'pulse', 'spectrum', 'tape', 'typography',
+  'void', 'watercolor',
+];
+{
+  const allErrors = [];
+  const variantsDir = new URL('../variants/', import.meta.url);
+  for (const name of VARIANT_NAMES) {
+    let json;
+    try {
+      const raw = readFileSync(new URL(name + '.automix.json', variantsDir), 'utf8');
+      json = JSON.parse(raw);
+    } catch (e) {
+      allErrors.push(name + ': ' + e.message);
+      continue;
+    }
+    const res = validateAutomixConfig(json, name);
+    if (!res.ok) {
+      allErrors.push(name + ': ' + res.errors.join('; '));
+    }
+  }
+  assert.equal(allErrors.length, 0,
+               'every variant config must validate cleanly (got errors: ' + JSON.stringify(allErrors) + ')');
+}
+
+// Spot-check the disabled variants are flagged with enabled=false (so
+// runtime contract tests below can rely on this state).
+{
+  for (const name of ['echo-manifold', 'tape']) {
+    const raw = readFileSync(new URL('../variants/' + name + '.automix.json', import.meta.url), 'utf8');
+    const json = JSON.parse(raw);
+    assert.equal(json.enabled, false, name + ' config must have enabled:false');
+  }
+}
+
+// Negative-case sanity: a deliberately broken config must produce errors.
+// This guards against the validator turning into a no-op (always ok).
+{
+  const bad = validateAutomixConfig({
+    version: 2, variant: 'mismatched',
+    enabled: 'yes', defaultState: 'maybe',
+    poolBias: { made_up: { warmth: [0.5, 0.1], intensity: [-0.5, 1.5] } },
+    driftAmplitude: { base: 2.0, beatScale: -1.0 },
+    tuning: { minTickMs: 2000, maxTickMs: 500 },
+    anchorMap: 'sparse',
+    ui: { toggleLabel: '', toggleShortcut: 'ab' },
+  }, 'mismatched');
+  assert.equal(bad.ok, false, 'broken config must fail validation');
+  assert.ok(bad.errors.length >= 8, 'broken config must produce multiple errors (got ' + bad.errors.length + ')');
+}
+
 // ---- 1p: _setTuning mutates computeTickInterval behaviour directly -------
 // (Task 1 fix round 2 — mirrors the 1m _setDriftAmplitude shape. Proves
 // the public surface independently of the loadConfig() path.)
@@ -873,4 +1032,4 @@ function makeRuntimeEnv(opts) {
   restoreTuning(tuningSnap);
 }
 
-console.log('AUTOMIX UNIT: ALL GREEN (55 tests)');
+console.log('AUTOMIX UNIT: ALL GREEN (58 tests)');
