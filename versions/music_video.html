@@ -1307,6 +1307,24 @@
       // ((x + 540) % 360) - 180 preserves the angle sign and only wraps at the +/-180° boundary
       // so rotation stays continuous.
       if (out.rot) out.rot = ((out.rot + 540) % 360) - 180;
+
+      // Narrative-state drift bias (ADR-001 Step 2): the song's
+      // accumulated drift walker biases layer position so the visual
+      // reflects the song's journey, not just its instantaneous features.
+      // drift.{x,y} are bounded to [-1, +1] (see narrative-state.client.js).
+      // phase.driftAmp: intro 0.3 → middle 1.0 → climax 1.4.
+      // getMicroAmp(): per-beat transient boost (~1.0 baseline, bumps
+      // on every 4th beat, decays back).
+      // 80px / 60px are the score-evolution branch's tuned scales.
+      // Guarded by `if (window.SWR_NARRATIVE)` so applyR is no-op if
+      // narrative-state isn't loaded.
+      if (window.SWR_NARRATIVE) {
+        const n = window.SWR_NARRATIVE;
+        const phase = n.phaseMultiplier((A.el && A.el.duration) || 0);
+        out.x += n.state.drift.x * phase.driftAmp * sens * 80 * n.getMicroAmp();
+        out.y += n.state.drift.y * phase.driftAmp * sens * 60 * n.getMicroAmp();
+      }
+
       out._v = "0";
       return out;
     };
