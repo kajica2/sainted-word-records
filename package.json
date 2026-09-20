@@ -52,6 +52,8 @@
     "verify:autoplay": "node verify-autoplay.mjs",
     "verify:engine-boot": "node verify-engine-boot.mjs",
     "verify:engine-automix": "node verify-engine-automix.mjs",
+    "verify:neon-automix": "node verify-neon-automix.mjs",
+    "verify:film-automix": "node verify-film-automix.mjs",
     "verify:transitions": "node verify-transitions.mjs",
     "verify:e2e-media-record": "node verify-e2e-media-record.mjs",
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
