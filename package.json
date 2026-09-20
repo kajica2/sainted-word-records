@@ -57,6 +57,7 @@
     "verify:grid-automix": "node verify-grid-automix.mjs",
     "verify:smoke-automix": "node verify-smoke-automix.mjs",
     "verify:hallucination-automix": "node verify-hallucination-automix.mjs",
+    "verify:variant-curator-wiring": "node verify-variant-curator-wiring.mjs",
     "verify:dashboard-automix": "node verify-dashboard-automix.mjs",
     "verify:dashboard-automix-integration": "node verify-dashboard-automix-integration.mjs",
     "verify:automix-cross-surface": "node verify-automix-cross-surface.mjs",
