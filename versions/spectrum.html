@@ -117,6 +117,7 @@
       <div class="param">vignette <b>0.4</b></div>
       <div class="param">chroma <b>0.15</b></div>
       <div class="param">temp <b>+0.0</b></div>
+      <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
       <button class="tbtn" id="rec" disabled style="font-size:10px;background:transparent;color:var(--ink);border:1px solid var(--line);padding:6px 12px;cursor:pointer;letter-spacing:0.16em;text-transform:uppercase;font:10px/1 ui-monospace,monospace;">● REC</button>
     </footer>
   </div>
@@ -657,6 +658,7 @@
   <script src="../lib/persist.client.js"></script>
     <script src="../lib/recorder.client.js"></script>
   <script src="../lib/persist-fx.client.js"></script>
+  <script src="../client/automix-runtime.client.js"></script>
 <script src="./temp-slider.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
 </body>
