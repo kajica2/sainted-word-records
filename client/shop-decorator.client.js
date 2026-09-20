@@ -111,6 +111,10 @@
   function buildStripeUrl(productId, gallerySlug, cardIndex) {
     var product = PRODUCTS.find(function (p) { return p.id === productId; });
     if (!product) return null;
+    // BUG-017: surface the placeholder Stripe URLs instead of silently
+    // navigating to a 404. Callers (shop.html, decorateCard) check for
+    // the REPLACE_ prefix and render a 'Coming soon' state.
+    if (/REPLACE_/.test(product.stripeUrl)) return null;
     var url = new URL(product.stripeUrl);
     url.searchParams.set('client_reference_id',
       'g=' + gallerySlug + '&c=' + cardIndex + '&p=' + productId);

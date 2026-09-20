@@ -745,10 +745,12 @@
             '<p class="product__blurb">' + p.blurb + '</p>' +
           '</div>' +
           '<span class="product__price">€' + p.price + '</span>' +
-          '<a class="product__buy" href="' +
-            (isPlaceholder ? '#shop-notice' : (p.stripeUrl + '?client_reference_id=g%3D' + slug + '%26c%3D' + cardIdx + '%26p%3D' + p.id)) +
-          '" ' + (isPlaceholder ? 'onclick="document.getElementById(\'notice\').scrollIntoView({behavior:\'smooths\'}); return false;"' : 'target="_blank" rel="noopener"') +
-          '>Buy →</a>';
+          '<a class="product__buy' + (isPlaceholder ? ' is-disabled' : '') + '" href="' +
+            (isPlaceholder ? '#notice' : (p.stripeUrl + '?client_reference_id=g%3D' + slug + '%26c%3D' + cardIdx + '%26p%3D' + p.id)) +
+          '" ' + (isPlaceholder
+              ? 'aria-disabled="true" onclick="document.getElementById(\'notice\').scrollIntoView({behavior:\'smooth\'}); return false;"'
+              : 'target="_blank" rel="noopener"') +
+          '>' + (isPlaceholder ? 'Coming soon' : 'Buy →') + '</a>';
         productsEl.appendChild(row);
       });
     })();
