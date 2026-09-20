@@ -737,41 +737,214 @@
        future dashboard integration). Each script is wrapped in IIFE +
        guard, so loading them in this separate runtime is a no-op when no
        audio/anchor/last-mix context exists. -->
+  <!-- Phase 3/4: load the 11 automix-stack libraries + 5 extracted
+       runtimes so dashboard.html can use the same automix+curator stack
+       as the engine + variants. The dashboard-engine-bridge synthesizes
+       __SWR_ENGINE features into the automix runtime shape. -->
+  <script src="/client/preset-anchor-map.client.js"></script>
+  <script src="/client/anchor-embed.js"></script>
+  <script src="/client/automix.client.js"></script>
+  <script src="/client/section-detector.client.js" defer></script>
+  <script src="/client/preset-cycle.client.js"></script>
+  <script src="/client/preset-pick-store.client.js"></script>
+  <script src="/client/layer-state-store.client.js"></script>
+  <script src="/client/last-mix-store.client.js"></script>
+  <script src="/client/asset-curator.client.js"></script>
+  <script src="/client/library-packs.client.js" defer></script>
   <script src="/client/automix-runtime.client.js"></script>
   <script src="/client/hook-detector.client.js"></script>
   <script src="/client/stats.client.js"></script>
   <script src="/client/mood.client.js"></script>
   <script src="/client/scenes.client.js"></script>
+  <script src="/client/dashboard-engine-bridge.client.js"></script>
 
-  <!-- Phase 3 status tile: read-only panel that surfaces whether the
-       extracted runtimes loaded. The dashboard has its own engine runtime
-       (window.__SWR_ENGINE) and doesn't share state with engine.html or
-       the variants, so the runtimes here are exposed globals only — they
-       become functional once dashboard-engine is wired to drive them. -->
+  <!-- Phase 3 → Phase 4 dashboard integration: the runtimes are now
+       interactable. The dashboard-engine-bridge feeds dashboard's
+       __SWR_ENGINE features into SWR.Audio.feat so automix has audio
+       context; the buttons below open the same modals the variants
+       open. The status tile now updates live (current BPM, automix
+       state, beat pulse). -->
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const tile = document.createElement('div');
-    tile.id = 'automix-curator-status';
-    tile.className = 'absolute bottom-4 right-4 z-30 panel px-3 py-2 rounded-md text-[10px] font-mono';
-    tile.style.cssText = 'background: rgba(10,10,11,0.85); border:1px solid var(--line); color:var(--fg-mute); min-width:200px; pointer-events:none;';
-    function refresh() {
-      const items = [
-        ['automix',      !!window.automix],
-        ['hookDetector', !!window.SWR_HOOK_DETECTOR],
-        ['stats',        !!window.SWR_STATS],
-        ['mood',         !!window.SWR_MOOD],
-        ['scenes',       !!window.SWR_SCENES],
-      ];
-      tile.innerHTML = '<div class="micro mb-1" style="color:var(--signal);letter-spacing:0.12em;">CURATOR STATUS</div>'
-        + items.map(function ([k, v]) {
-          return '<div style="display:flex;justify-content:space-between;gap:8px;"><span>' + k + '</span><span style="color:' + (v ? 'var(--g)' : 'var(--muted)') + ';">' + (v ? 'loaded' : 'absent') + '</span></div>';
-        }).join('');
+  (function () {
+    function $id(id) { return document.getElementById(id); }
+    function el(tag, attrs, kids) {
+      var e = document.createElement(tag);
+      if (attrs) for (var k in attrs) {
+        if (k === 'class') e.className = attrs[k];
+        else if (k === 'style') e.style.cssText = attrs[k];
+        else if (k === 'html') e.innerHTML = attrs[k];
+        else e.setAttribute(k, attrs[k]);
+      }
+      (kids || []).forEach(function (c) { if (c) e.appendChild(c); });
+      return e;
     }
-    refresh();
-    // Refresh periodically so future load-order changes are reflected.
-    setInterval(refresh, 2000);
-    document.body.appendChild(tile);
-  });
+    function setStatus(msg, kind) {
+      var pill = $id('dash-status-pill');
+      if (pill) { pill.textContent = msg; pill.style.color = kind === 'err' ? '#f55' : '#5f5'; }
+    }
+
+    // ---- Panel: bottom-right curator tile (replaces Phase 3 read-only tile) ----
+    document.addEventListener('DOMContentLoaded', function () {
+      var panel = el('div', {
+        id: 'automix-curator-panel',
+        class: 'absolute bottom-4 right-4 z-30 panel rounded-md text-[10px] font-mono',
+        style: 'background: rgba(10,10,11,0.92); border:1px solid var(--line); color:var(--fg-mute); min-width:280px; padding:10px 12px;'
+      });
+      panel.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+          '<span class="micro" style="color:var(--signal);letter-spacing:0.12em;">CURATOR</span>' +
+          '<span id="curator-bpm" style="color:var(--fg-mute);">— bpm</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">' +
+          '<button class="dash-curator-btn" id="dash-automix-toggle" title="Toggle Automix (A)" style="padding:3px 8px;">Automix <b id="dash-automix-state" style="color:var(--m);">OFF</b></button>' +
+          '<button class="dash-curator-btn" id="dash-hook-btn" title="Detect drop + export hook clips" style="padding:3px 8px;">Hooks</button>' +
+          '<button class="dash-curator-btn" id="dash-stats-btn" title="Local render statistics" style="padding:3px 8px;">Stats</button>' +
+          '<button class="dash-curator-btn" id="dash-mood-btn" title="Mood board: image \u2192 engine mapping" style="padding:3px 8px;">Mood</button>' +
+          '<button class="dash-curator-btn" id="dash-scenes-btn" title="Scene pads: click=recall, hold 1s=save" style="padding:3px 8px;">Scenes</button>' +
+        '</div>' +
+        '<div style="font-size:9px;color:var(--muted);">bridge + 5 runtimes</div>';
+      // Add button styling
+      var styleEl = document.createElement('style');
+      styleEl.textContent = '.dash-curator-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--fg);font-size:9px;cursor:pointer;border-radius:3px;} .dash-curator-btn:hover{border-color:var(--accent);}';
+      document.head.appendChild(styleEl);
+      document.body.appendChild(panel);
+
+      // ---- Wire bridge + automix ----
+      function ensureBridge() {
+        if (window.SWR_DASHBOARD_BRIDGE && !window.SWR_DASHBOARD_BRIDGE.enabled) {
+          window.SWR_DASHBOARD_BRIDGE.start();
+        }
+      }
+      function ensureSWR() {
+        if (!window.SWR) window.SWR = {};
+        if (!window.SWR.Audio) window.SWR.Audio = { feat: null };
+      }
+
+      $id('dash-automix-toggle').addEventListener('click', function () {
+        ensureSWR();
+        ensureBridge();
+        if (window.automix) window.automix.toggle();
+        // Refresh state display immediately
+        setTimeout(refreshState, 50);
+      });
+      $id('dash-hook-btn').addEventListener('click', async function () {
+        ensureBridge();
+        if (!window.SWR_HOOK_DETECTOR) { setStatus('hook detector not loaded', 'err'); return; }
+        setStatus('analyzing drop…', 'ok');
+        var r = await window.SWR_HOOK_DETECTOR.detect();
+        if (r && r.ok) {
+          setStatus('drop @ ' + r.result.time + 's · conf ' + Math.round(r.result.confidence * 100) + '%', 'ok');
+        } else {
+          setStatus((r && r.reason) || 'detection failed', 'err');
+        }
+      });
+      $id('dash-stats-btn').addEventListener('click', function () {
+        if (!window.SWR_STATS) return;
+        var s = window.SWR_STATS.summary();
+        var m = el('div', {
+          id: 'dash-stats-modal',
+          style: 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;min-width:320px;font:11px ui-monospace,monospace;'
+        });
+        m.innerHTML =
+          '<h3 style="margin:0 0 12px;color:var(--accent);">Local Stats</h3>' +
+          '<div>Renders: <b>' + s.totalRenders + '</b></div>' +
+          '<div>Minutes: <b>' + s.totalMinutes + '</b></div>' +
+          '<div>Size: <b>' + s.totalSizeMB + ' MB</b></div>' +
+          '<div style="margin-top:12px;display:flex;gap:6px;">' +
+            '<button class="dash-curator-btn" id="dash-stats-close" style="padding:4px 10px;">Close</button>' +
+          '</div>';
+        document.body.appendChild(m);
+        $id('dash-stats-close').addEventListener('click', function () { m.remove(); });
+      });
+      $id('dash-mood-btn').addEventListener('click', function () {
+        if (!window.SWR_MOOD) return;
+        var m = el('div', {
+          id: 'dash-mood-modal',
+          style: 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;min-width:320px;'
+        });
+        m.innerHTML =
+          '<h3 style="margin:0 0 12px;color:var(--accent);">Mood Board</h3>' +
+          '<input type="file" id="dash-mood-file" accept="image/*" style="font-size:10px;">' +
+          '<div style="margin-top:8px;font-size:10px;color:var(--muted);">Drop a reference image — extracts a k-means palette + brightness/sat/contrast/warmth.</div>' +
+          '<div style="margin-top:12px;display:flex;gap:6px;">' +
+            '<button class="dash-curator-btn" id="dash-mood-apply" style="padding:4px 10px;">Apply</button>' +
+            '<button class="dash-curator-btn" id="dash-mood-close" style="padding:4px 10px;">Close</button>' +
+          '</div>' +
+          '<div id="dash-mood-result" style="margin-top:10px;font-size:10px;"></div>';
+        document.body.appendChild(m);
+        $id('dash-mood-file').addEventListener('change', function (ev) {
+          var f = ev.target.files && ev.target.files[0]; if (!f) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var img = new Image();
+            img.onload = async function () {
+              var r = await window.SWR_MOOD.analyze(img);
+              window.SWR_MOOD.setOverlayImage(reader.result);
+              window.SWR_MOOD.setOverlayVisible(true);
+              $id('dash-mood-result').textContent = 'bright ' + r.features.meanBright.toFixed(2) + ' sat ' + r.features.meanSat.toFixed(2) + ' contrast ' + r.features.contrast.toFixed(2);
+            };
+            img.src = reader.result;
+          };
+          reader.readAsDataURL(f);
+        });
+        $id('dash-mood-apply').addEventListener('click', function () {
+          if (window.SWR_MOOD.applySuggestion()) setStatus('mood applied', 'ok');
+        });
+        $id('dash-mood-close').addEventListener('click', function () { m.remove(); });
+      });
+      $id('dash-scenes-btn').addEventListener('click', function () {
+        if (!window.SWR_SCENES) return;
+        var m = el('div', {
+          id: 'dash-scenes-modal',
+          style: 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;'
+        });
+        m.innerHTML =
+          '<h3 style="margin:0 0 12px;color:var(--accent);">Scenes</h3>' +
+          '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">Click to recall · long-press (1s) to save</div>' +
+          '<div id="dash-scenes-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div>' +
+          '<div style="margin-top:12px;"><button class="dash-curator-btn" id="dash-scenes-close" style="padding:4px 10px;">Close</button></div>';
+        document.body.appendChild(m);
+        var list = $id('dash-scenes-list');
+        window.SWR_SCENES.list().forEach(function (s, i) {
+          var pad = el('button', { class: 'dash-curator-btn', style: 'padding:14px 6px;font-size:10px;' });
+          pad.textContent = s.label + (s.snapshot ? '' : '\n(empty)');
+          var timer = null;
+          pad.addEventListener('click', function () {
+            if (timer) { clearTimeout(timer); timer = null; window.SWR_SCENES.cancelCapture(); return; }
+            window.SWR_SCENES.recall(i);
+            setStatus('recalled ' + s.label, 'ok');
+          });
+          pad.addEventListener('mousedown', function () { timer = setTimeout(function () { window.SWR_SCENES.startCapture(i); timer = null; }, 1000); });
+          pad.addEventListener('mouseup', function () { if (timer) { clearTimeout(timer); timer = null; } });
+          list.appendChild(pad);
+        });
+        $id('dash-scenes-close').addEventListener('click', function () { m.remove(); });
+      });
+
+      // Keyboard shortcut: A toggles automix. The runtime's own
+      // _onKey() handler (registered on document by automix-runtime)
+      // already handles this — we don't need a second listener.
+      // Note: the dashboard's existing drawer-toggle keybinding also
+      // uses 'A' (toggles the Advanced drawer) — both handlers are
+      // independent and both fire on the same key.
+
+      // ---- Live state refresher (200ms tick) ----
+      function refreshState() {
+        var bpmEl = $id('curator-bpm');
+        if (bpmEl && window.__SWR_ENGINE && typeof window.__SWR_ENGINE.bpm === 'function') {
+          var b = window.__SWR_ENGINE.bpm();
+          bpmEl.textContent = (b && b > 0) ? Math.round(b) + ' bpm' : '— bpm';
+        }
+        var stateEl = $id('dash-automix-state');
+        if (stateEl && window.automix) {
+          stateEl.textContent = window.automix.enabled ? 'ON' : 'OFF';
+          stateEl.style.color = window.automix.enabled ? 'var(--g)' : 'var(--m)';
+        }
+      }
+      setInterval(refreshState, 100);
+      refreshState();
+    });
+  })();
   </script>
 </body>
 </html>

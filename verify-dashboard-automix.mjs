@@ -9,7 +9,10 @@
 //   2. All 5 runtime scripts are loaded as <script> elements
 //   3. All 5 runtimes exposed on window (even if not actively driven)
 //   4. The curator-status tile renders in the DOM
-//   5. The tile shows "loaded" for all 5 runtimes
+//   5. The curator panel renders (Phase 4 supersedes the Phase 3
+//      read-only tile; both the new panel and the underlying globals
+//      are what matters)
+//   6. The panel shows the 5 runtime rows runtimes
 
 import http from 'http';
 import fs from 'fs';
@@ -98,19 +101,23 @@ async function run() {
     if (Object.values(apiExposed).every(Boolean)) ok('all 5 runtimes exposed on window');
     else fail('runtime APIs exposed', JSON.stringify(apiExposed));
 
-    // 4. Curator status tile in DOM
-    const tileExists = await page.evaluate(() => !!document.getElementById('automix-curator-status'));
-    if (tileExists) ok('curator-status tile rendered in DOM');
-    else fail('curator-status tile', 'tile element not found');
+    // 4. Curator panel in DOM (Phase 4 supersedes the Phase 3 read-only tile)
+    const panelExists = await page.evaluate(() => !!document.getElementById('automix-curator-panel'));
+    if (panelExists) ok('curator panel rendered in DOM (Phase 4 supersedes Phase 3 tile)');
+    else fail('curator panel', 'panel element not found');
 
-    // 5. Tile shows loaded for all 5
-    const tileText = await page.evaluate(() => {
-      const tile = document.getElementById('automix-curator-status');
-      return tile ? tile.textContent : '';
-    });
-    const loadedCount = (tileText.match(/loaded/g) || []).length;
-    if (loadedCount === 5) ok(`tile shows all 5 runtimes as loaded`);
-    else fail('tile loaded count', `expected 5 "loaded", got ${loadedCount}. Full: ${tileText.slice(0, 200)}`);
+    // 5. Panel shows the 5 curator buttons (Phase 4 layout; replaces the
+//    Phase 3 "loaded" text). Each button label corresponds to one of
+//    the 5 extracted runtimes.
+    const panelButtons = await page.evaluate(() => ({
+      automix: !!document.getElementById('dash-automix-toggle'),
+      hook:    !!document.getElementById('dash-hook-btn'),
+      stats:   !!document.getElementById('dash-stats-btn'),
+      mood:    !!document.getElementById('dash-mood-btn'),
+      scenes:  !!document.getElementById('dash-scenes-btn'),
+    }));
+    if (Object.values(panelButtons).every(Boolean)) ok('panel shows all 5 curator buttons');
+    else fail('panel buttons', JSON.stringify(panelButtons));
 
     if (realErrors.length === 0) ok('no relevant console errors during full run');
     else fail('console errors', realErrors.join('; '));
