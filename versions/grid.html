@@ -650,6 +650,8 @@
         this.el.src = this.el.__swr_blob_url; this.el.preload='auto';
         this.el.addEventListener('ended', ()=>{A.playing=false;$('play').textContent='▶';});
         this.el.addEventListener('timeupdate', ()=>{const t=this.el.currentTime,d=this.el.duration||0;$('time').textContent=fmt(t)+' / '+fmt(d);});
+        // narrative-state init (ADR-001 rollout)
+        if (window.SWR_NARRATIVE) window.SWR_NARRATIVE.init(120, this.el.duration || 0);
         this.src = this.ctx.createMediaElementSource(this.el); this.src.connect(this.an);
         this.hist = {prev:null,bassAvg:0,fluxAvg:0}; this.beats=[]; this.feat.bpm=0;
         $('play').disabled=false; $('rec').disabled=false; },
@@ -978,6 +980,17 @@ d.addEventListener('click', (e) => {
       // ((x + 540) % 360) - 180 preserves the angle sign and only wraps at the +/-180° boundary
       // so rotation stays continuous.
       if (out.rot) out.rot = ((out.rot + 540) % 360) - 180;
+
+      // Narrative-state drift bias (ADR-001 rollout): biases layer
+      // position by the song's accumulated drift walker. Guarded by
+      // if (window.SWR_NARRATIVE) so applyR is no-op without the module.
+      if (window.SWR_NARRATIVE) {
+        const n = window.SWR_NARRATIVE;
+        const phase = n.phaseMultiplier((A.el && A.el.duration) || 0);
+        out.x += n.state.drift.x * phase.driftAmp * sens * 80 * n.getMicroAmp();
+        out.y += n.state.drift.y * phase.driftAmp * sens * 60 * n.getMicroAmp();
+      }
+
       out._v = "0";
       return out;
     }
@@ -1072,6 +1085,15 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       const dt=(t-lastT)/1000; lastT=t; fps=lerp(fps,1/Math.max(dt,0.0001),0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
+      // narrative-state step (ADR-001 rollout)
+      if (window.SWR_NARRATIVE && A.feat) {
+        window.SWR_NARRATIVE.step({
+          rms: A.feat.rms,
+          beat: A.feat.beat,
+          centroid: A.feat.centroid || 0,
+          dt: dt,
+        });
+      }
       // === BPM readout (footer) — only writes when value changes, avoids per-frame DOM churn ===
       const _bpm = A.feat.bpm;
       if (_bpm !== _lastBpm) {
@@ -1400,6 +1422,10 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="./temp-slider.js"></script>
 <script src="../engine-genops.client.js"></script>  <script src="../engine-transitions.client.js" defer></script>
   <script src="../lib/media-store.client.js" defer></script>
+
+  <!-- ADR-001 Step 3 rollout: narrative-state accumulator (extended
+       from engine + neon surfaces to grid). -->
+  <script src="../client/narrative-state.client.js" defer></script>
   <script src="../lib/user-media-mount.client.js" defer></script>
 
 <!-- Automix debug panel (Phase 2 port) -->
