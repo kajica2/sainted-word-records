@@ -686,8 +686,13 @@
       var art = document.getElementById('art');
       // Strip any existing <img> from a previous render so cards don't
       // bleed state when switching between gradient- and image-backed
-      // designs.
-      while (art.firstChild) art.removeChild(art.firstChild);
+      // designs. BUG-006 fix: only remove <img> children — leave #art-meta
+      // intact. The previous `while (firstChild) removeChild(...)` wiped
+      // EVERYTHING under #art including the static #art-meta node, so
+      // the subsequent `getElementById('art-meta').textContent = ...` on
+      // line 711 threw "Cannot set properties of null".
+      var imgChildren = art.querySelectorAll('img');
+      for (var i = 0; i < imgChildren.length; i++) art.removeChild(imgChildren[i]);
       // Reset inline background to the gallery's CSS default (--bg-2)
       art.style.background = card.gradient || 'var(--bg-2)';
       if (card.images && card.images.length) {
