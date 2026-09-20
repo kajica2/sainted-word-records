@@ -32,7 +32,7 @@
     *, *::before, *::after { box-sizing: border-box; border-radius: 0 !important; box-shadow: none !important; background-image: none !important; }
     *:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-    html, body { margin: 0; padding: 0; }
+    html, body { margin: 0; padding: 0; overflow-x: clip; }  /* BUG-010: rotated .stamp__seal extends bounding rect ~1px past viewport on desktop; clip prevents horizontal overflow while preserving vertical scroll */
     body {
       font-family: var(--font-mono);
       background: var(--bg);
@@ -99,6 +99,7 @@
     /* ===== FILE INDEX TABLE ===== */
     .file-index {
       width: 100%; border-collapse: collapse;
+      table-layout: fixed;           /* BUG-007: respect container width on tablet */
       margin: 24px 0 36px;
       font-size: 13px;
     }
@@ -116,6 +117,8 @@
       padding: 8px 12px;
       text-align: left;
       vertical-align: top;
+      word-break: break-word;          /* BUG-007: long content can't force overflow */
+      overflow-wrap: anywhere;
     }
     .file-index th {
       background: var(--ink); color: var(--bg);

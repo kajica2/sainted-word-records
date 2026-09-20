@@ -26,10 +26,13 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { background: var(--bg); color: var(--ink); font-family: 'Fraunces', Georgia, serif; min-height: 100vh; }
-    body { padding: 60px 24px; display: flex; align-items: center; justify-content: center; }
+    body { padding: 60px 24px; }
     .card {
       max-width: 640px;
       width: 100%;
+      margin: 0 auto;          /* BUG-008: replace flex centering with margin auto so
+                                  the card uses full content width instead of
+                                  collapsing to its content size in flex row layout */
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid var(--line);
       border-radius: 4px;
