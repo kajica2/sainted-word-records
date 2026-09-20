@@ -47,7 +47,7 @@ first create `backup/integration-worktree-merge-20260920`. For
 `feat-parallel-snapshot`, see P2-002 (1 ahead, owner decision). Pending user
 approval — agent is read-only per the 2026-09-20 sprint scope.
 
-### P2-002 — 4 feature branches with ahead-commits + 1 parallel-snapshot (CLOSED — triage issued 2026-09-20)
+### P2-002 — 4 feature branches with ahead-commits + 1 parallel-snapshot (CLOSED — executed 2026-09-20)
 
 **Detected**: 2026-09-20.
 **Triaged**: 2026-09-20 (refactor-advisor P1 sweep).
@@ -73,8 +73,16 @@ detached HEAD and is the actual working state, not on any worktree branch.
 worktree-disk + cognitive overhead; their unique work (narrative state, GIF
 support, keyboard shortcuts) is invisible to anyone who only follows `main`.
 
-**Remediation**: archive per the table above (read-only — pending user approval
-to actually run `git worktree remove` + `git branch -m`). Owner: user (Kai).
+**Remediation**: archive per the table above.
+**Executed 2026-09-20**:
+- ✅ Archived `fix/desktop-overflow-tabs-fit` (worktree removed, branch deleted)
+- ✅ Archived `feat/agent-key-nudger` (worktree removed, branch deleted)
+- ✅ Archived `feat/auth-and-membership` (worktree removed, branch deleted)
+- ⏳ `feat/score-evolution` — KEPT (porting risk per P2-005; deferred)
+- ⏳ `feat-parallel-snapshot` — KEPT (personal scratch, owner-decide)
+
+**Final state (2026-09-20 post-cleanup)**: 2 worktrees remain from P2-002
+(`feat/score-evolution`, `feat-parallel-snapshot`). All others archived.
 
 ### P2-003 — No `.kai/` project memory prior to 2026-09-20
 
@@ -85,7 +93,7 @@ not tracking prevention rules, tech-debt register, or ADR log.
 **Remediation**: initialized 2026-09-20. Future @postmortem and @refactor-advisor
 runs should populate this register. This scan is the first such entry.
 
-### P2-004 — 2 historical stashes (CLOSED — triage issued 2026-09-20)
+### P2-004 — 2 historical stashes (CLOSED — executed 2026-09-20)
 
 **Detected**: 2026-09-20.
 **Triaged**: 2026-09-20 (refactor-advisor P1 sweep).
@@ -107,8 +115,12 @@ So main's `3926f1a` is a strict superset.
 `git stash show`/`git fetch` slows slightly; agents waste time guessing
 whether stashes hold unsaved work.
 
-**Remediation**: drop both stashes (read-only — pending user approval).
-Owner: user (Kai).
+**Remediation**: drop both stashes.
+**Executed 2026-09-20**: `git stash drop stash@{0}` (asset-curator rename,
+superseded), `git stash drop stash@{0}` (tmp-merge untracked blob,
+superseded). `git stash list` is now empty.
+
+**Final state (2026-09-20 post-cleanup)**: 0 stashes. 4 worktrees remain.
 
 ### P2-005 — `feat/score-evolution` narrative modules need porting to new runtimes architecture (NEW)
 
