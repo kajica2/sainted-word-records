@@ -1675,10 +1675,15 @@ else bad('engine.html parity', JSON.stringify(engineParity));
 // 75. (Task 4) Cross-variant automix port — for each of the 15 enabled
 //     variants, navigate to versions/<name>.html, confirm the
 //     inlined #swrc-automix-config + visible #automix-toggle are wired,
-//     click the toggle, wait 5s, and assert window.SWR._fxOverride
-//     changed at least once. Some variants (collage, typography) don't
-//     ship a demo mp3, so SWR_Audio.feat may stay empty — we still
-//     expect the toggle click to register ON, even if drift is silent.
+//     click the toggle, then capture window.SWR._fxOverride at +1s
+//     and +5s and assert the two snapshots differ. This proves drift
+//     evolution, not just one-shot population — a runtime that writes
+//     _fxOverride once on toggle-ON and never ticks again fails.
+//     JSON.stringify diff is sensitive enough to detect any field-level
+//     change (numeric jitter included). Some variants (collage,
+//     typography) don't ship a demo mp3, so SWR_Audio.feat may stay
+//     empty — drift still ticks from the safe (0.5, 0.5) path so
+//     _fxOverride still evolves.
 const ENABLED_VARIANTS = [
   'aurora', 'baroque', 'chrome', 'collage', 'eclipse',
   'fractal', 'glitch', 'kraft', 'mosaic', 'phosphor',
@@ -1722,24 +1727,54 @@ async function variantEnabledCheck(name) {
     return s && s.textContent;
   });
   if (state !== 'ON') return { ok: false, step: 'clickFlips', shape, state };
-  // Wait for runtime to populate _fxOverride (5s window).
-  await new Promise(r => setTimeout(r, 5000));
-  const after = await page.evaluate(() => {
-    const o = window.SWR && window.SWR._fxOverride;
-    if (!o) return null;
-    return ['temp','mut','sepia','chroma','grain','glow','grayscale','posterize']
-      .every(k => typeof o[k] === 'number');
-  });
-  // Compare _fxOverride before/after: at minimum the object should now
-  // be present with all 8 numeric fields. Whether it differs from the
-  // snapshot is a stronger signal (drift evolution), but accepting
-  // "now-populated" matches the brief's contract.
-  return { ok: after === true, step: 'fxOverride', shape, state, after, beforePresent: before !== null };
+  // Drift evolution check (5s window). The brief requires
+  // "_fxOverride changed ≥ 1 time" — not just "populated". A runtime
+  // that sets _fxOverride once on toggle-ON and never ticks again
+  // must fail this assertion. Capture two snapshots at +1s and +5s;
+  // JSON.stringify diff catches any field-level change (numeric
+  // jitter included: even a 1e-15 delta round-trips to a different
+  // string, so the test is sensitive without being noisy).
+  const FX_FIELDS = ['temp', 'mut', 'sepia', 'chroma', 'grain', 'glow', 'grayscale', 'posterize'];
+  async function snapshotFxOverride() {
+    return await page.evaluate((fields) => {
+      const o = window.SWR && window.SWR._fxOverride;
+      if (!o) return null;
+      const snap = {};
+      for (const k of fields) snap[k] = (typeof o[k] === 'number') ? o[k] : null;
+      return snap;
+    }, FX_FIELDS);
+  }
+  const snap1 = await snapshotFxOverride();          // t = +1s
+  await new Promise(r => setTimeout(r, 4000));       // wait 4s more → t = +5s
+  const snap2 = await snapshotFxOverride();          // t = +5s
+  const populated1 = snap1 && FX_FIELDS.every(k => typeof snap1[k] === 'number');
+  const populated2 = snap2 && FX_FIELDS.every(k => typeof snap2[k] === 'number');
+  // Both snapshots must be populated (runtime ticked at least once in
+  // each window) AND the two must differ (runtime ticked more than
+  // once across the window → drift is actually evolving).
+  const evolved = populated1 && populated2 && JSON.stringify(snap1) !== JSON.stringify(snap2);
+  return {
+    ok: evolved,
+    step: 'fxOverrideEvolution',
+    shape,
+    state,
+    populated1,
+    populated2,
+    snap1,
+    snap2,
+    hint: !populated1
+      ? '_fxOverride was not populated at +1s — runtime never wrote it'
+      : !populated2
+      ? '_fxOverride was not populated at +5s — runtime stopped before second tick'
+      : !evolved
+      ? '_fxOverride populated but never evolved (snap1 == snap2 across 5s window)'
+      : 'ok',
+  };
 }
 
 for (const name of ENABLED_VARIANTS) {
   const res = await variantEnabledCheck(name);
-  if (res.ok) ok('versions/' + name + '.html: automix toggle ON + _fxOverride populated');
+  if (res.ok) ok('versions/' + name + '.html: automix toggle ON + _fxOverride evolved across 5s');
   else bad('versions/' + name + '.html: automix variant flow', JSON.stringify(res));
 }
 
