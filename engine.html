@@ -2046,7 +2046,8 @@
 
     <section id="stage">
       <canvas id="render" width="1280" height="720"></canvas>
-      
+      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
+
       <!-- Variant Overlays (Block B fix) -->
       <div id="vignette" style="position:absolute; inset:0; pointer-events:none; z-index:5; background:radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%); opacity:0; transition:opacity 0.4s;"></div>
       <div id="grid"     style="position:absolute; inset:0; pointer-events:none; z-index:6; background-image:linear-gradient(var(--signal-line) 1px, transparent 1px), linear-gradient(90deg, var(--signal-line) 1px, transparent 1px); background-size: 40px 40px; opacity:0;"></div>
@@ -2082,6 +2083,32 @@
         <button class="tbtn ghost" id="add-3d" style="padding:4px 8px; font-size:9px;" title="Add a 3D primitive as a layer (sphere, cube, torus, icosahedron)">+ 3D</button>
         <button class="tbtn" id="rotate-sel" disabled title="Rotate selected clip 90° (R / Shift+R for -90°)" style="padding:4px 8px; font-size:9px; opacity:0.4; cursor:not-allowed;">↻ ROT</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
+      </div>
+      <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
+        <div class="ph">
+          <span>Hook Export</span>
+          <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+        </div>
+        <div id="hook-info" style="font-size:9px;color:var(--muted);padding:2px 0 4px;">
+          <span>drop: <b id="hook-time">—</b></span> · <span>energy: <b id="hook-energy">—</b></span> · <span>conf: <b id="hook-conf">—</b></span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
+          <button class="tbtn hook-preset" data-preset="teaser" style="padding:3px 6px;font-size:9px;">Teaser 3s</button>
+          <button class="tbtn hook-preset" data-preset="hook" style="padding:3px 6px;font-size:9px;">Hook 5s</button>
+          <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
+        </div>
+      </div>
+      <div id="hero-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">
+          <span style="flex:1;">Hero Frames</span>
+          <span id="hero-count" style="color:var(--c);">0</span>
+          <button id="hero-clear" class="tbtn" title="Clear captured frames" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+        </div>
+        <div id="hero-thumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;min-height:48px;"></div>
+        <div style="display:flex;gap:4px;padding-top:4px;">
+          <button id="hero-grab" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Grab now</button>
+          <button id="hero-suggest" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Suggest 3</button>
+        </div>
       </div>
       <div id="3d-picker" class="hidden" style="position:absolute; top: 38px; right: 8px; background: var(--bg-elevated, #1a1208); border: 1px solid var(--line, #3a2a22); border-radius: 6px; padding: 4px; display: flex; gap: 4px; z-index: 50;">
         <button class="tbtn ghost" data-3d="sphere"      style="padding:3px 8px; font-size:9px;">Sphere</button>
@@ -2325,6 +2352,20 @@
       <button class="tbtn" id="panels-toggle" style="padding:4px 10px; font-size:9px;" title="Show/hide the LFO, TIMING, and AUTO-SWAP floating panels">PANELS: <b id="panels-toggle-state">hidden</b></button>
       <span class="separator"></span>
       <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions; 1-9 to fire from dropdown)">TRANSITIONS<span id="swr-tx-flash" class="swr-tx-flash" aria-hidden="true"></span></button>
+      <span class="separator"></span>
+      <button class="tbtn" id="hook-btn" style="padding:4px 10px; font-size:9px;" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)">Hooks</button>
+      <span class="separator"></span>
+      <button class="tbtn" id="stats-btn" style="padding:4px 10px; font-size:9px;" title="Local render statistics">Stats</button>
+      <span class="separator"></span>
+      <button class="tbtn" id="mood-btn" style="padding:4px 10px; font-size:9px;" title="Mood board: analyze a reference image + suggest engine mapping">Mood</button>
+      <span class="separator"></span>
+      <button class="tbtn" id="scenes-btn" style="padding:4px 10px; font-size:9px;" title="Scene pads (4): click=recall, hold 1s=save">Scenes</button>
+      <span class="separator"></span>
+      <button class="tbtn" id="automix-toggle" style="padding:4px 10px; font-size:9px; cursor:pointer;" title="Toggle Automix (A)">Automix <b id="automix-state" style="color:var(--m);">OFF</b></button>
+      <button class="tbtn" id="automix-freeze" style="padding:4px 10px; font-size:9px;" title="Freeze: stop ticking but keep the current blend (F)">Freeze</button>
+      <button class="tbtn" id="automix-save" style="padding:4px 10px; font-size:9px;" title="Save the current blend as a manual preset (B)">Save</button>
+      <button class="tbtn" id="automix-lock" style="padding:4px 10px; font-size:9px;" title="Lock to the single nearest anchor (K)">Lock</button>
+      <button class="tbtn" id="automix-debug" style="padding:4px 10px; font-size:9px;" title="Toggle the automix debug panel (D)">Debug</button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
@@ -2440,6 +2481,7 @@
   </div>
 
   <script src="/audio-analysis-v2.js" defer></script>
+  <script src="/client/track-analyzer.client.js"></script>
   <script src="/swr-sets.js" defer></script>
   <script src="/persona-onboarding.js" defer></script>
   <!-- M1: auth + storage clients. project.js depends on these. -->
@@ -8148,6 +8190,22 @@
     })();
 
   </script>
+
+  <!-- Automix + asset-curator stack (ported from music_video, Phase 1) -->
+  <script src="/client/preset-anchor-map.client.js"></script>
+  <script src="/client/anchor-embed.js"></script>
+  <script src="/client/automix.client.js"></script>
+  <script src="/client/section-detector.client.js" defer></script>
+  <script src="/client/preset-cycle.client.js"></script>
+  <script src="/client/preset-pick-store.client.js"></script>
+  <script src="/client/layer-state-store.client.js"></script>
+  <script src="/client/last-mix-store.client.js"></script>
+  <script src="/client/asset-curator.client.js"></script>
+  <script src="/client/library-packs.client.js" defer></script>
+
+  <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
+  <script src="/client/automix-runtime.client.js"></script>
+
   <script type="module" src="/engine-panel-visibility.client.js"></script>
   <script type="module" src="/layer-scheduler.client.js"></script>
   <script type="module" src="/engine-timing.client.js"></script>
@@ -8719,5 +8777,14 @@
       }
     })();
   </script>
+
+  <!-- Automix debug panel (ported from music_video, Phase 1) -->
+  <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
+      <button id="automix-debug-close" title="Close" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">×</button>
+    </div>
+    <div id="automix-debug-body" style="color:var(--fg-mute);">idle</div>
+  </div>
 </body>
 </html>
