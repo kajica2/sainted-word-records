@@ -228,10 +228,34 @@
     DRIFT_BEAT_BONUS = Math.max(0, Math.min(1, beatScale));
   }
   // Read accessor — returns the CURRENT closure-private values (the
-  // exported `DRIFT_BASE` / `DRIFT_BEAT_BONUS` properties are by-value
-  // snapshots at IIFE time, so they're stale after a setter call).
+  // by-value `DRIFT_BASE` / `DRIFT_BEAT_BONUS` exports below are
+  // converted to live getters at IIFE time, so reading them yields the
+  // current values too — but tests prefer this object form for clarity).
   function _getDriftAmplitude() {
     return { base: DRIFT_BASE, beatScale: DRIFT_BEAT_BONUS };
+  }
+
+  // Mutator for the closure-private tick-interval bounds. Replaces
+  // TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS in place so subsequent
+  // computeTickInterval() calls honour the override (no per-tick
+  // compounding in callers). Mirrors the _setDriftAmplitude shape.
+  // Bad inputs (NaN, non-number, min > max) are silently ignored so
+  // the public setter is safe to call from untrusted configs. Values
+  // are clamped to [1, 10000] ms (matching the runtime's
+  // _validateTuning contract) and rounded to integers so the
+  // computeTickInterval() return value stays predictable.
+  function _setTuning(minTickMs, maxTickMs) {
+    if (typeof minTickMs !== 'number' || !isFinite(minTickMs)) return;
+    if (typeof maxTickMs !== 'number' || !isFinite(maxTickMs)) return;
+    var mn = Math.max(1, Math.min(10000, Math.round(minTickMs)));
+    var mx = Math.max(1, Math.min(10000, Math.round(maxTickMs)));
+    if (mn > mx) return; // invalid range; ignore
+    TICK_INTERVAL_MIN_MS = mn;
+    TICK_INTERVAL_MAX_MS = mx;
+  }
+  // Read accessor — returns the CURRENT closure-private bounds.
+  function _getTuning() {
+    return { minTickMs: TICK_INTERVAL_MIN_MS, maxTickMs: TICK_INTERVAL_MAX_MS };
   }
 
   // ---- Section classification (Phase 2.1) --------------------------------
@@ -323,21 +347,29 @@
     mix: mix,
     computeTickInterval: computeTickInterval,
     RAMP_MS: RAMP_MS,
-    TICK_INTERVAL_MIN_MS: TICK_INTERVAL_MIN_MS,
-    TICK_INTERVAL_MAX_MS: TICK_INTERVAL_MAX_MS,
+    // Task 1 fix round 2 — TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS
+    // are converted to live getters below so they stay in sync with
+    // the closure-private vars after _setTuning() mutates them.
     smoothstep: smoothstep,
     lerpPreset: lerpPreset,
     presetDistance: presetDistance,
     // Phase 1.3: drift
     drift: drift,
-    DRIFT_BASE: DRIFT_BASE,
-    DRIFT_BEAT_BONUS: DRIFT_BEAT_BONUS,
+    // Task 1 fix round 2 — DRIFT_BASE / DRIFT_BEAT_BONUS are converted
+    // to live getters below so they stay in sync with the closure-
+    // private vars after _setDriftAmplitude() mutates them.
     // Task 1 fix round 1 — runtime config-loader replaces the closure-
     // private drift amplitudes in place. Read accessor returns the
-    // current values (the by-value `DRIFT_BASE` / `DRIFT_BEAT_BONUS`
-    // exports above are stale after a setter call).
+    // current values.
     _setDriftAmplitude: _setDriftAmplitude,
     _getDriftAmplitude: _getDriftAmplitude,
+    // Task 1 fix round 2 — runtime config-loader replaces the closure-
+    // private tick-interval bounds in place. Mirrors the driftAmplitude
+    // shape (mutator + read accessor) so the runtime can apply
+    // per-variant `tuning` overrides via a single setter call instead
+    // of carrying a local mirror that duplicates the formula.
+    _setTuning: _setTuning,
+    _getTuning: _getTuning,
     // Phase 2: musical intelligence
     featuresToCoords: featuresToCoords,
     featuresToCoordsV2: featuresToCoordsV2,
@@ -357,4 +389,32 @@
     // Back-compat (test hooks)
     blendAnchors: blendAnchors,
   };
+  // Convert the closure-private numeric constants to live getters on
+  // the exported object. Without this, `SWR_AUTOMIX.DRIFT_BASE` holds
+  // the IIFE-time value (0.01) even after `_setDriftAmplitude(0.5, …)`
+  // mutates the closure var — callers reading the export see a stale
+  // snapshot. Same applies to TICK_INTERVAL_*MS after _setTuning().
+  // (Task 1 fix round 2.)
+  Object.defineProperties(window.SWR_AUTOMIX, {
+    DRIFT_BASE: {
+      get: function () { return DRIFT_BASE; },
+      enumerable: true,
+      configurable: true,
+    },
+    DRIFT_BEAT_BONUS: {
+      get: function () { return DRIFT_BEAT_BONUS; },
+      enumerable: true,
+      configurable: true,
+    },
+    TICK_INTERVAL_MIN_MS: {
+      get: function () { return TICK_INTERVAL_MIN_MS; },
+      enumerable: true,
+      configurable: true,
+    },
+    TICK_INTERVAL_MAX_MS: {
+      get: function () { return TICK_INTERVAL_MAX_MS; },
+      enumerable: true,
+      configurable: true,
+    },
+  });
 })();

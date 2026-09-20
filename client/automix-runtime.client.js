@@ -32,8 +32,6 @@
   // ---- Constants (mirror music_video's behavior) --------------------------
   var TICK_DEFAULT_MS = 1500;
   var FADE_MS = 200;
-  var TICK_MIN_DEFAULT = 500;
-  var TICK_MAX_DEFAULT = 3000;
 
   // ---- Helpers -----------------------------------------------------------
   function $(id) { return document.getElementById(id); }
@@ -46,13 +44,13 @@
   // IIFE closure; exposed via SWR_AUTOMIX_RUNTIME accessor functions so
   // tests can inspect without breaking encapsulation.
   //
-  // driftAmplitude no longer needs a local mirror: loadConfig() applies
-  // it directly via SWR_AUTOMIX._setDriftAmplitude(), which mutates the
-  // closure-private DRIFT_BASE / DRIFT_BEAT_BONUS in place. Subsequent
-  // drift() calls (including those inside A.mix() during tick()) honour
-  // the override without per-tick compounding.
+  // driftAmplitude and tuning no longer need local mirrors: loadConfig()
+  // applies them directly via SWR_AUTOMIX._setDriftAmplitude() and
+  // SWR_AUTOMIX._setTuning(), which mutate the closure-private vars in
+  // place. Subsequent drift() / computeTickInterval() calls honour the
+  // overrides without per-tick branching or mirroring here. (Task 1
+  // fix round 2 — same shape as the round 1 driftAmplitude fix.)
   var _config = null;
-  var _tuning = null;           // { minTickMs, maxTickMs } when config overrides defaults
   var _toggleShortcut = null;   // string (single char, lowercased) when config overrides 'a'
 
   // ---- Validation helpers ------------------------------------------------
@@ -82,17 +80,6 @@
     if (typeof t.maxTickMs !== 'number' || !isFinite(t.maxTickMs) || t.maxTickMs < 1 || t.maxTickMs > 10000) return false;
     if (t.minTickMs > t.maxTickMs) return false;
     return true;
-  }
-
-  // ---- Custom computeTickInterval (uses config tuning when set) ----------
-  function _runtimeComputeTickInterval(features) {
-    var f = features || {};
-    var rms = (typeof f.rms === 'number') ? f.rms : 0;
-    var onset = (typeof f.onset === 'number') ? f.onset : 0;
-    var intensity = Math.max(0, Math.min(1, rms * 1.5 + onset * 0.8));
-    var min = _tuning ? _tuning.minTickMs : TICK_MIN_DEFAULT;
-    var max = _tuning ? _tuning.maxTickMs : TICK_MAX_DEFAULT;
-    return Math.round(max - intensity * (max - min));
   }
 
   // ---- Toggle label updater (preserves inner #automix-state span) --------
@@ -202,13 +189,19 @@
       }
     }
 
-    // tuning (minTickMs, maxTickMs)
+    // tuning (minTickMs, maxTickMs) — replaces the closure-private
+    // TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS in SWR_AUTOMIX via
+    // the public setter. Once the setter mutates the closure vars,
+    // every subsequent computeTickInterval() call (including the one
+    // invoked by _scheduleNext() during each tick) honours the
+    // override in place — no per-tick branch or local mirror in the
+    // runtime. (Task 1 fix round 2 — mirrors the round 1
+    // driftAmplitude fix shape.)
     if (cfg.tuning && typeof cfg.tuning === 'object') {
-      if (_validateTuning(cfg.tuning)) {
-        _tuning = {
-          minTickMs: cfg.tuning.minTickMs,
-          maxTickMs: cfg.tuning.maxTickMs,
-        };
+      if (_validateTuning(cfg.tuning) &&
+          window.SWR_AUTOMIX &&
+          typeof window.SWR_AUTOMIX._setTuning === 'function') {
+        window.SWR_AUTOMIX._setTuning(cfg.tuning.minTickMs, cfg.tuning.maxTickMs);
       }
     }
 
@@ -288,12 +281,12 @@
       if (!this.enabled || this.frozen) return;
       if (this.iv) clearTimeout(this.iv);
       var feat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
-      // Use runtime computeTickInterval when config overrides tuning,
-      // else delegate to SWR_AUTOMIX (default behaviour).
+      // Delegate to SWR_AUTOMIX.computeTickInterval — it now reads
+      // the closure-private TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS
+      // that loadConfig() may have overridden via _setTuning(). No
+      // local mirror here. (Task 1 fix round 2.)
       var interval;
-      if (_tuning) {
-        interval = _runtimeComputeTickInterval(feat);
-      } else if (window.SWR_AUTOMIX && window.SWR_AUTOMIX.computeTickInterval) {
+      if (window.SWR_AUTOMIX && window.SWR_AUTOMIX.computeTickInterval) {
         interval = window.SWR_AUTOMIX.computeTickInterval(feat);
       } else {
         interval = TICK_DEFAULT_MS;
@@ -705,7 +698,6 @@
     // Task 1 — config-loader hooks for tests + diagnostics.
     loadConfig: loadConfig,
     _config: function () { return _config; },
-    _tuning: function () { return _tuning; },
     _toggleShortcut: function () { return _toggleShortcut; },
   };
 

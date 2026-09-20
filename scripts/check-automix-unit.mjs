@@ -299,6 +299,25 @@ function restoreDrift(snap) {
     A._setDriftAmplitude(snap.base, snap.beatScale);
   }
 }
+// Snapshot/restore the closure-private tick-interval bounds. After Task 1
+// fix round 2, _setTuning() mutates them in place — shared state across
+// sandboxes, so scenarios that apply a tuning config (1b, 1h, 1p) must
+// capture & restore. `_getTuning()` reads the current values. The
+// by-value `TICK_INTERVAL_MIN_MS` / `TICK_INTERVAL_MAX_MS` exports on
+// `A` are now live getters (Important 3 fix), so they yield the same
+// values as _getTuning() — but the getter is the documented public
+// surface.
+function snapshotTuning() {
+  if (typeof A._getTuning === 'function') {
+    return A._getTuning();
+  }
+  return { minTickMs: A.TICK_INTERVAL_MIN_MS, maxTickMs: A.TICK_INTERVAL_MAX_MS };
+}
+function restoreTuning(snap) {
+  if (typeof A._setTuning === 'function') {
+    A._setTuning(snap.minTickMs, snap.maxTickMs);
+  }
+}
 
 function makeRuntimeEnv(opts) {
   opts = opts || {};
@@ -308,17 +327,27 @@ function makeRuntimeEnv(opts) {
   function makeNode(tag) {
     const n = {
       _tag: tag,
+      // parentNode tracks which makeNode (or null) owns this node, so the
+      // runtime's _applyToggleLabel can compare `span.parentNode === el`
+      // (test 1n + 1o scenarios for toggle-label DOM mutation).
+      parentNode: null,
       style: { display: '' },
       classList: { _set: new Set(), add(c) { this._set.add(c); }, remove(c) { this._set.delete(c); }, toggle(c, on) { if (on) this._set.add(c); else this._set.delete(c); }, contains(c) { return this._set.has(c); } },
       hidden: false,
       textContent: '',
       childNodes: [],
       firstChild: null,
-      appendChild(c) { this.childNodes.push(c); this.firstChild = this.childNodes[0] || null; return c; },
+      appendChild(c) {
+        this.childNodes.push(c);
+        this.firstChild = this.childNodes[0] || null;
+        if (c && typeof c === 'object') c.parentNode = this;
+        return c;
+      },
       insertBefore(c, ref) {
         const idx = ref ? this.childNodes.indexOf(ref) : 0;
         this.childNodes.splice(idx, 0, c);
         this.firstChild = this.childNodes[0] || null;
+        if (c && typeof c === 'object') c.parentNode = this;
         return c;
       },
       addEventListener() {},
@@ -375,6 +404,7 @@ function makeRuntimeEnv(opts) {
 {
   const poolSnap = snapshotPoolBias();
   const driftSnap = snapshotDrift();
+  const tuningSnap = snapshotTuning();
   const cfgScript = { textContent: JSON.stringify({
     version: 1, variant: 'aurora', enabled: true, defaultState: 'off',
     poolBias: { intro: { warmth: [0.1, 0.5], intensity: [0.0, 0.2] } },
@@ -408,6 +438,13 @@ function makeRuntimeEnv(opts) {
   const drift = A._getDriftAmplitude();
   assert.equal(drift.base, 0.02, 'driftAmplitude.base applied via _setDriftAmplitude');
   assert.equal(drift.beatScale, 0.03, 'driftAmplitude.beatScale applied via _setDriftAmplitude');
+  // (Task 1 fix round 2 — tuning applied via _setTuning, replacing
+  // closure-private TICK_INTERVAL_*MS in place. computeTickInterval()
+  // now honours the override.)
+  const tuning = A._getTuning();
+  assert.equal(tuning.minTickMs, 400, 'tuning.minTickMs applied via _setTuning');
+  assert.equal(tuning.maxTickMs, 2500, 'tuning.maxTickMs applied via _setTuning');
+  restoreTuning(tuningSnap);
   restoreDrift(driftSnap);
   restorePoolBias(poolSnap);
 }
@@ -544,24 +581,38 @@ function makeRuntimeEnv(opts) {
 }
 
 // ---- 1h: tuning validation bounds-check ----------------------------------
+// (Task 1 fix round 2 — tuning is now applied via SWR_AUTOMIX._setTuning
+// instead of being stored as a local mirror. Verify the public surface.)
 {
+  const tuningSnap = snapshotTuning();
   let cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 400, maxTickMs: 2500 } }) };
   let env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  const t = env.sandbox.SWR_AUTOMIX_RUNTIME._tuning();
-  assert.ok(t, 'valid tuning stored');
-  assert.equal(t.minTickMs, 400);
-  assert.equal(t.maxTickMs, 2500);
+  const t = A._getTuning();
+  assert.ok(t, '_getTuning() returns object');
+  assert.equal(t.minTickMs, 400, 'valid tuning → _getTuning().minTickMs replaced');
+  assert.equal(t.maxTickMs, 2500, 'valid tuning → _getTuning().maxTickMs replaced');
+  // computeTickInterval now reads the overridden bounds (verify via
+  // intensity=0 → max, intensity=1 → min).
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 2500,
+               'tuning override → intensity=0 maps to maxTickMs=2500');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 400,
+               'tuning override → intensity=1 maps to minTickMs=400');
   // invalid: max < min
   cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 2000, maxTickMs: 500 } }) };
   env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  assert.equal(env.sandbox.SWR_AUTOMIX_RUNTIME._tuning(), null, 'max<min → rejected');
+  const t2 = A._getTuning();
+  assert.equal(t2.minTickMs, 400, 'max<min → _setTuning rejected, bounds unchanged');
+  assert.equal(t2.maxTickMs, 2500, 'max<min → _setTuning rejected, bounds unchanged');
   // invalid: min out of range
   cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 0, maxTickMs: 1000 } }) };
   env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  assert.equal(env.sandbox.SWR_AUTOMIX_RUNTIME._tuning(), null, 'min<1 → rejected');
+  const t3 = A._getTuning();
+  assert.equal(t3.minTickMs, 400, 'min<1 → _setTuning rejected, bounds unchanged');
+  assert.equal(t3.maxTickMs, 2500, 'min<1 → _setTuning rejected, bounds unchanged');
+  restoreTuning(tuningSnap);
 }
 
 // ---- 1i: poolBias partial override — unlisted sections keep global ------
@@ -621,14 +672,62 @@ function makeRuntimeEnv(opts) {
 }
 
 // ---- 1k: ui.toggleShortcut applied (stored on runtime) ------------------
+// (Task 1 fix round 2 — extended to also verify ui.toggleLabel mutates
+// the DOM. The done variants all match the film.html:407 pattern:
+// `<label id="automix-toggle">Automix <span id="automix-state">OFF</span></label>`
+// — verify the leading text node is updated and the span child structure
+// (with its state text) is preserved.)
 {
+  // Build the toggle element to mirror film.html:407 / grid.html:462 /
+  // neon.html:404 / hallucination.html:513 / smoke.html:396 exactly.
+  const toggle = makeRuntimeEnv().dom.createElement('label'); // fresh makeNode
+  const span = makeRuntimeEnv().dom.createElement('span');
+  span.textContent = 'OFF';
+  // Append the "Automix " text node + state span as children (the order
+  // matches the live DOM).
+  toggle.appendChild({ nodeType: 3, textContent: 'Automix ' });
+  toggle.appendChild(span);
   const cfgScript = { textContent: JSON.stringify({
     version: 1, ui: { toggleLabel: 'Auto-Mix', toggleShortcut: 'm' },
   }) };
-  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  const env = makeRuntimeEnv({ elements: {
+    'swrc-automix-config': cfgScript,
+    'automix-toggle': toggle,
+    'automix-state': span,
+  } });
   runInContext(runtimeSrc, env.sandbox);
   const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  // toggleShortcut still stored on the runtime
   assert.equal(R._toggleShortcut(), 'm', 'ui.toggleShortcut stored (lowercased)');
+  // toggleLabel: leading text node updated, span child + state preserved.
+  assert.equal(toggle.childNodes.length, 2, 'toggle keeps text+span child structure');
+  assert.equal(toggle.childNodes[0].nodeType, 3, 'leading child is still a text node');
+  assert.equal(toggle.childNodes[0].textContent, 'Auto-Mix ',
+               'leading text node reads "Auto-Mix " (label + space)');
+  assert.equal(toggle.childNodes[1], span, 'span still in childNodes');
+  assert.equal(toggle.childNodes[1].parentNode, toggle, 'span.parentNode still === toggle');
+  assert.equal(span.textContent, 'OFF', 'span textContent (state) preserved verbatim');
+}
+
+// ---- 1n: ui.toggleLabel fallback when toggle has no #automix-state span --
+// (Task 1 fix round 2 — the plain-textContent fallback path is also
+// untested. Covers variants that ship a bare `<label id="automix-toggle">`
+// without the inner state span — none of the current 5 done variants do,
+// but the fallback should still work safely when the span is absent.)
+{
+  const toggle = makeRuntimeEnv().dom.createElement('label');
+  // No children — fallback path: plain textContent replacement.
+  const cfgScript = { textContent: JSON.stringify({
+    version: 1, ui: { toggleLabel: 'Auto-Mix' },
+  }) };
+  const env = makeRuntimeEnv({ elements: {
+    'swrc-automix-config': cfgScript,
+    'automix-toggle': toggle,
+    // No 'automix-state' registered → span lookup returns null → fallback.
+  } });
+  runInContext(runtimeSrc, env.sandbox);
+  assert.equal(toggle.textContent, 'Auto-Mix',
+               'toggleLabel without span → plain textContent replacement');
 }
 
 // ---- 1l: anchorMap:"all" is a no-op (reserved field) --------------------
@@ -722,4 +821,56 @@ function makeRuntimeEnv(opts) {
   restoreDrift(driftSnap);
 }
 
-console.log('AUTOMIX UNIT: ALL GREEN (52 tests)');
+// ---- 1p: _setTuning mutates computeTickInterval behaviour directly -------
+// (Task 1 fix round 2 — mirrors the 1m _setDriftAmplitude shape. Proves
+// the public surface independently of the loadConfig() path.)
+{
+  const tuningSnap = snapshotTuning();
+  // Mutate to a narrow band: intensity=0 → 1800ms, intensity=1 → 200ms.
+  A._setTuning(200, 1800);
+  const cur1 = A._getTuning();
+  assert.equal(cur1.minTickMs, 200, 'setter writes minTickMs');
+  assert.equal(cur1.maxTickMs, 1800, 'setter writes maxTickMs');
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 1800,
+               'setter → computeTickInterval intensity=0 yields maxTickMs');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 200,
+               'setter → computeTickInterval intensity=1 yields minTickMs');
+  // Mid intensity (rms=0.5 → intensity≈0.75) lands inside the band.
+  const mid = A.computeTickInterval({ rms: 0.5, onset: 0 });
+  assert.ok(mid >= 200 && mid <= 1800, 'setter → mid intensity lands within bounds, got ' + mid);
+
+  // Defensive: non-number / non-finite inputs are silently ignored.
+  A._setTuning(NaN, 1000);
+  const cur2 = A._getTuning();
+  assert.equal(cur2.minTickMs, 200, 'NaN min → ignored');
+  A._setTuning(500, 'not-a-number');
+  const cur3 = A._getTuning();
+  assert.equal(cur3.maxTickMs, 1800, 'string max → ignored');
+  A._setTuning(Infinity, 1000);
+  const cur4 = A._getTuning();
+  assert.equal(cur4.minTickMs, 200, 'Infinity min → ignored');
+
+  // Out-of-range / inverted-range inputs are clamped / rejected.
+  A._setTuning(0, 500);  // min=0 < 1 → clamped to 1
+  const cur5 = A._getTuning();
+  assert.equal(cur5.minTickMs, 1, 'min<1 clamped to 1');
+  assert.equal(cur5.maxTickMs, 500, 'max applied alongside');
+  A._setTuning(99999, 1000); // min>max → rejected, bounds unchanged
+  const cur6 = A._getTuning();
+  assert.equal(cur6.minTickMs, 1, 'min>max → rejected, min unchanged');
+  assert.equal(cur6.maxTickMs, 500, 'min>max → rejected, max unchanged');
+  A._setTuning(50, 99999); // max > 10000 → clamped to 10000
+  const cur7 = A._getTuning();
+  assert.equal(cur7.minTickMs, 50, 'min applied');
+  assert.equal(cur7.maxTickMs, 10000, 'max>10000 clamped to 10000');
+
+  // Live-getter parity: by-value exports track the closure vars after
+  // _setTuning (Task 1 fix round 2 — Important 3).
+  A._setTuning(123, 4567);
+  assert.equal(A.TICK_INTERVAL_MIN_MS, 123, 'live getter TICK_INTERVAL_MIN_MS tracks closure var');
+  assert.equal(A.TICK_INTERVAL_MAX_MS, 4567, 'live getter TICK_INTERVAL_MAX_MS tracks closure var');
+
+  restoreTuning(tuningSnap);
+}
+
+console.log('AUTOMIX UNIT: ALL GREEN (55 tests)');
