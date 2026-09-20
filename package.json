@@ -82,6 +82,7 @@
     "verify:site-nav": "node verify-site-nav.mjs",
     "verify:curator-batch": "node verify-curator-batch.mjs",
     "verify:automix": "node verify-automix.mjs",
+    "verify:library-stage-load": "node verify-library-stage-load.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

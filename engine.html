@@ -4983,6 +4983,37 @@
             a._el.muted = true; a._el.loop = true; a._el.playsInline = true;
             a._el.preload = 'auto';
             if (a.type === 'video') a._el.src = a.url;
+            // Onerror for video: same retry pattern as image. If the
+            // blob URL has been revoked (e.g. quota eviction + IDB
+            // restore race), rebuild from a.blob and try again.
+            a._el.onerror = () => {
+              if (a._elBroken) return;
+              a._elBroken = true;
+              if (a.blob) {
+                try {
+                  const freshUrl = URL.createObjectURL(a.blob);
+                  if (a.url && a.url !== freshUrl) { try { URL.revokeObjectURL(a.url); } catch (_) {} }
+                  a.url = freshUrl;
+                  a._el = document.createElement('video');
+                  a._el.muted = true; a._el.loop = true; a._el.playsInline = true;
+                  a._el.preload = 'auto';
+                  a._el.onloadeddata = () => { a._elBroken = false; };
+                  a._el.onerror = () => {
+                    if (typeof setStatus === 'function') {
+                      setStatus('video failed to load · ' + (a.name || 'asset'), 'err');
+                    }
+                  };
+                  a._el.src = a.url;
+                  src = a._el;
+                } catch (e) {
+                  if (typeof setStatus === 'function') {
+                    setStatus('video failed to load · ' + (a.name || 'asset'), 'err');
+                  }
+                }
+              } else if (typeof setStatus === 'function') {
+                setStatus('video blob missing · ' + (a.name || 'asset'), 'err');
+              }
+            };
           }
           src = a._el;
           // Video with a blob URL: drive playback from main audio play state.
@@ -5016,6 +5047,40 @@
           if (!a._el) {
             a._el = new Image();
             a._el.src = a.url;
+            // Onerror: the asset's blob URL has failed to decode. Common
+            // causes — the blob was revoked (e.g. removeItem() called
+            // and then user re-added via undo, racing a revoke), the
+            // blob was evicted under quota pressure, or the file is
+            // truly corrupt. Try once more with a fresh blob URL built
+            // from a.blob; if that also fails, surface a status toast
+            // so the user knows the asset is broken instead of
+            // wondering why nothing's drawing on the stage.
+            a._el.onerror = () => {
+              if (a._elBroken) return;       // already retried
+              a._elBroken = true;
+              if (a.blob) {
+                try {
+                  const freshUrl = URL.createObjectURL(a.blob);
+                  if (a.url && a.url !== freshUrl) { try { URL.revokeObjectURL(a.url); } catch (_) {} }
+                  a.url = freshUrl;
+                  a._el = new Image();
+                  a._el.onload = () => { a._elBroken = false; };
+                  a._el.onerror = () => {
+                    if (typeof setStatus === 'function') {
+                      setStatus('media failed to load · ' + (a.name || 'asset'), 'err');
+                    }
+                  };
+                  a._el.src = a.url;
+                  src = a._el;
+                } catch (e) {
+                  if (typeof setStatus === 'function') {
+                    setStatus('media failed to load · ' + (a.name || 'asset'), 'err');
+                  }
+                }
+              } else if (typeof setStatus === 'function') {
+                setStatus('media blob missing · ' + (a.name || 'asset'), 'err');
+              }
+            };
           }
           src = a._el;
         }
