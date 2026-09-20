@@ -28,7 +28,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink);
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-    #app { display: grid; grid-template-columns: 200px minmax(0, 1fr) 220px; grid-template-rows: 48px 1fr 40px; height: 100vh; }
+    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
     header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 16px;
       background: var(--bg-2); border-bottom: 1px solid var(--line); }
     .head-title { display: flex; flex-direction: column; gap: 2px; line-height: 1; }
@@ -418,10 +418,10 @@
       <span class="gc preset-chip"><span class="preset-label">PRESET</span><span class="preset-name">GRID</span><span class="preset-vals">POSTERIZE 0.95 · MUT 0.85 · GRAY 1.00</span></span>
       <span class="gc">SENS <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1.5" /> <b id="sens-v">1.50</b></span>
       <span class="gc">GATE <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.2" /> <b id="gate-v">1.20</b></span>
-      <span class="gc">SNAP <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.7" /> <b id="decay-v">0.70</b></span>
+      <span class="gc">DECAY <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.7" /> <b id="decay-v">0.70</b></span>
       <span class="spacer" style="flex:1"></span>
       <span class="gc bpm-readout"><span class="bpm-label">BPM</span> <b id="bpm-v">—</b><span class="bpm-bar"><span class="bpm-bar-fill" id="bpm-bar-fill"></span><span class="bpm-bar-ref"></span></span></span>
-      <span id="fps" style="color:var(--accent);">— FPS</span>
+      <span id="fps" style="color:var(--accent);">— fps</span>
     </footer>
   </div>
 
@@ -1024,7 +1024,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
     }
     function loop(t) {
       const dt=(t-lastT)/1000; lastT=t; fps=lerp(fps,1/Math.max(dt,0.0001),0.05);
-      $('fps').textContent = Math.round(fps)+' FPS';
+      $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
       // === BPM readout (footer) — only writes when value changes, avoids per-frame DOM churn ===
       const _bpm = A.feat.bpm;
