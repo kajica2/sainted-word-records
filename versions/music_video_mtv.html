@@ -419,6 +419,7 @@
   <script src="../client/preset-anchor-map.client.js"></script>
 <script src="../client/anchor-embed.js"></script>
 <script src="../client/automix.client.js"></script>
+<script src="../client/section-detector.client.js" defer></script>
 <script src="../versions-presets.js"></script>
 <script src="../client/preset-cycle.client.js"></script>
 <script src="../client/preset-pick-store.client.js"></script>
@@ -570,7 +571,14 @@
       <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
       <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
       <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
-      <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label></span>
+      <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;"><label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label><button class="tbtn" id="automix-freeze" title="Freeze: stop ticking but keep the current blend (F)" style="padding:3px 8px;font-size:9px;margin-left:6px;">Freeze</button><button class="tbtn" id="automix-save" title="Save the current blend as a manual preset (B)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Save</button><button class="tbtn" id="automix-lock" title="Lock to the single nearest anchor (K)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Lock</button><button class="tbtn" id="automix-debug" title="Toggle the automix debug panel (D)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Debug</button></span>
+  <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
+      <button id="automix-debug-close" title="Close" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">×</button>
+    </div>
+    <div id="automix-debug-body" style="color:var(--fg-mute);">idle</div>
+  </div>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
     </footer>
@@ -3130,79 +3138,382 @@
       },
     };
 
-    // ---- Self-evolving automixer toggle ----------------------------------
+    // ---- Self-evolving automixer v2 --------------------------------------
     // Listens for clicks on the footer toggle + the `A` keyboard shortcut
-    // (when the page is focused and no input has focus). When ON, every
-    // 2000ms reads the live audio features, synthesizes a blended fx_state
-    // via SWR_AUTOMIX.mix(), and writes the result to window.SWR._fxOverride.
-    // The GLSL render loop (Task 4) reads _fxOverride each frame and blends
-    // it on top of the static `neon` page preset.
+    // (when the page is focused and no input has focus). When ON, schedules
+    // itself with an adaptive cadence (Phase 1.1: 500–3000ms based on live
+    // RMS + onset intensity). Each tick:
+    //   1. Classifies the current song section via SWR_SECTION (Phase 2.1)
+    //      with 2-tick hysteresis (Phase 2.5).
+    //   2. Filters the anchor pool by POOL_BIAS[section] (Phase 2.2).
+    //   3. Reads the live audio features (bass/mid/treb/rms/centroid/onset)
+    //      and synthesizes a blended fx_state via SWR_AUTOMIX.mix() using
+    //      the richer v2 embedding when centroid/rms are present (Phase 2.3).
+    //   4. Detects stuck blends (Phase 3.2) and forces a scene change.
+    //   5. Sets the result as the new _fxOverride target — the render loop
+    //      smoothsteps from the previous target over RAMP_MS (Phase 1.2) so
+    //      blends evolve continuously instead of snapping.
+    //
+    // Beat-phased drift (Phase 1.3) is applied via _startBeatPoll() — a
+    // 30fps rising-edge detector on Audio.feat.beatPulse that calls drift()
+    // on each detected beat.
+    //
+    // Phase 4 controls: .freeze(), .saveBlend(), .lockToNearest().
     const automix = {
-      iv: null,
+      iv: null,                // adaptive tick handle
+      beatIv: null,            // beat-edge poll handle (Phase 1.3)
       enabled: false,
+      frozen: false,           // Phase 4.2
+      locked: false,           // Phase 4.4
+      lastBeatPulse: false,    // rising-edge detector state
+      lastPreset: null,        // Phase 3.2 stuck detection
+      lastChangeTs: 0,         // Phase 3.2
+      flatSinceTs: 0,          // Phase 3.3
+      lastAntiPatternTs: 0,    // Phase 3.3
+      tickCount: 0,
+      sectionState: { current: 'verse', pending: null, pendingCount: 0 },
+      _fxFrom: null,           // Phase 1.2: previous target for ramp
+      _fxT0: 0,                // Phase 1.2: ramp start timestamp
+
       toggle() {
         if (this.enabled) this.stop(); else this.start();
       },
+
       start() {
         if (this.enabled || !window.SWR_AUTOMIX) return;
         this.enabled = true;
-        const lab = document.getElementById('automix-state');
-        if (lab) { lab.textContent = 'ON'; lab.style.color = 'var(--g)'; }
-        try { localStorage.setItem('swr.automix.enabled', '1'); } catch (_) {}
+        const now = Date.now();
+        this.lastChangeTs = now;
+        this.flatSinceTs = now;
+        this.lastAntiPatternTs = now;
         this.tick();
-        this.iv = setInterval(() => this.tick(), 2000);
+        this._scheduleNext();
+        this._startBeatPoll();
+        this._updateUI('ON');
+        try { localStorage.setItem('swr.automix.enabled', '1'); } catch (_) {}
       },
+
       stop() {
         if (!this.enabled) return;
         this.enabled = false;
-        const lab = document.getElementById('automix-state');
-        if (lab) { lab.textContent = 'OFF'; lab.style.color = 'var(--m)'; }
-        try { localStorage.setItem('swr.automix.enabled', '0'); } catch (_) {}
-        if (this.iv) { clearInterval(this.iv); this.iv = null; }
+        if (this.iv) { clearTimeout(this.iv); this.iv = null; }
+        if (this.beatIv) { clearInterval(this.beatIv); this.beatIv = null; }
         // Freeze the last blended state — do NOT clear _fxOverride.
         // Also drop the gradient-panel anchor highlight so the user
         // sees that automix is no longer choosing.
         if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setAutomixAnchor) {
           window.SWR.Gradient.setAutomixAnchor(null);
         }
+        this._updateUI('OFF');
+        try { localStorage.setItem('swr.automix.enabled', '0'); } catch (_) {}
       },
+
+      // Phase 1.1: adaptive setTimeout reschedule
+      _scheduleNext() {
+        if (!this.enabled || this.frozen) return;
+        if (this.iv) clearTimeout(this.iv);
+        const feat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        const interval = window.SWR_AUTOMIX.computeTickInterval(feat);
+        this._lastIntervalMs = interval;
+        this.iv = setTimeout(() => {
+          this.tick();
+          if (this.enabled && !this.frozen) this._scheduleNext();
+        }, interval);
+      },
+
+      // Phase 1.3: beat-edge detector at 30fps
+      _startBeatPoll() {
+        if (this.beatIv) return;
+        this.beatIv = setInterval(() => this._onBeatPoll(), 33);
+      },
+
+      _onBeatPoll() {
+        if (!this.enabled || this.frozen) return;
+        const feat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        const pulse = !!feat.beatPulse;
+        if (pulse && !this.lastBeatPulse) {
+          this._applyBeatDrift(feat);
+        }
+        this.lastBeatPulse = pulse;
+      },
+
+      _applyBeatDrift(feat) {
+        if (!window.SWR || !window.SWR._fxOverride) return;
+        const intensity = (typeof feat.onset === 'number') ? Math.max(0, Math.min(1, feat.onset)) : 0;
+        const newPreset = window.SWR_AUTOMIX.drift(window.SWR._fxOverride, intensity);
+        this._setTarget(newPreset);
+      },
+
+      // Phase 1.2: set new target — render loop interpolates from _fxFrom
+      _setTarget(preset) {
+        if (!preset) return;
+        const SWR = window.SWR;
+        if (!SWR) return;
+        if (SWR._fxOverride) this._fxFrom = Object.assign({}, SWR._fxOverride);
+        this._fxT0 = performance.now();
+        SWR._fxOverride = preset;
+      },
+
       tick() {
+        if (this.frozen) return;
         const SWR = window.SWR; if (!SWR || !SWR.Audio) return;
-        // The audio engine exposes features at SWR.Audio.feat (bass, mid,
-        // treble, beat). Plan-scaffolded reader used SWR.Audio.bands;
-        // adapt to the actual schema so the tick survives without an
-        // audio track loaded (mid/treble default to 0 → anchors[n] chosen
-        // near {warmth:0.5,intensity:0.5}).
         const feat = SWR.Audio.feat || {};
-        const bands = { bass: feat.bass || 0, mid: feat.mid || 0, treb: feat.treble || 0, beat: typeof feat.beat === 'number' ? feat.beat : 0 };
+
+        // Phase 2.1+2.5: section classification with hysteresis
+        const sectionResult = window.SWR_AUTOMIX.tickSection(feat, this.sectionState);
+        this.sectionState = sectionResult;
+        const section = sectionResult.current;
+
+        // Phase 3.3: anti-pattern — track when audio first went flat
+        const centroidVar = (typeof feat.centroidVar === 'number') ? feat.centroidVar : 1;
+        if (centroidVar < window.SWR_AUTOMIX.FLAT_CENTROID_VAR) {
+          if (!this.flatSinceTs) this.flatSinceTs = Date.now();
+        } else {
+          this.flatSinceTs = 0;
+        }
+
         const n = (window.HologramState && window.HologramState.neighbours) || 4;
-        const mixed = window.SWR_AUTOMIX.mix(bands, n);
-        if (mixed && mixed.preset) {
-          SWR._fxOverride = mixed.preset;
-          // Reflect current anchor + coords in the gradient panel header for
-          // visibility — user sees the toggle is doing something.
-          const pill = document.getElementById('synth-pill');
-          if (pill && mixed.anchors[0]) pill.textContent = 'auto · ' + mixed.anchors[0].id;
-          // Phase B+: highlight the dominant anchor on the gradient canvas so
-          // the user can see which preset the automix is currently choosing.
-          if (SWR.Gradient && mixed.anchors[0]) {
-            SWR.Gradient.setAutomixAnchor(mixed.anchors[0].id);
+        let mixed;
+
+        if (this.locked) {
+          // Phase 4.4: lock to single nearest anchor — no blending, no drift
+          const coords = window.SWR_AUTOMIX.featuresToCoordsV2(feat);
+          const nn = (window.SWR_ANCHOR_MAP && window.SWR_ANCHOR_MAP.neighbours)
+            ? window.SWR_ANCHOR_MAP.neighbours(coords, 1) : [];
+          if (nn && nn[0]) {
+            mixed = { coords, anchors: [nn[0]], preset: nn[0].anchor.preset, section };
           }
-          // Persist the latest blend so the user can restore their last
-          // session after a reload (debounced inside last-mix-store).
-          if (window.SWR_LAST_MIX) {
-            window.SWR_LAST_MIX.save({
-              ts: Date.now(),
-              coords: mixed.coords,
-              anchors: mixed.anchors,
-              preset: mixed.preset,
-            });
+        } else {
+          // Phase 2.2 + 2.3: section-filtered anchor pool + richer embedding
+          mixed = window.SWR_AUTOMIX.mix(feat, n, { section });
+        }
+
+        if (!mixed || !mixed.preset) return;
+
+        // Phase 3.2: stuck detection — force scene change if blend hasn't moved
+        const now = Date.now();
+        if (window.SWR_AUTOMIX.isStuck(this.lastPreset, mixed.preset, now - this.lastChangeTs)) {
+          const sceneChange = this._findSceneChange(mixed.coords);
+          if (sceneChange && sceneChange.anchor && sceneChange.anchor.preset) {
+            mixed.preset = Object.assign({}, mixed.preset, sceneChange.anchor.preset);
+            mixed.anchors = [sceneChange];
+          }
+          this.lastChangeTs = now;
+        } else if (this.lastPreset &&
+            window.SWR_AUTOMIX.presetDistance(this.lastPreset, mixed.preset) > 0.05) {
+          this.lastChangeTs = now;
+        }
+        this.lastPreset = Object.assign({}, mixed.preset);
+
+        // Phase 1.2: set new target — render loop interpolates
+        this._setTarget(mixed.preset);
+
+        // Phase 3.3: inject curated mutation if audio has been flat long enough
+        if (this.flatSinceTs && (now - this.flatSinceTs) >= window.SWR_AUTOMIX.FLAT_DURATION_MS
+            && (now - this.lastAntiPatternTs) >= window.SWR_AUTOMIX.ANTI_PATTERN_INTERVAL_MS) {
+          const tweak = this._antiPatternMutation();
+          if (tweak) {
+            this._setTarget(window.SWR_AUTOMIX.lerpPreset(mixed.preset, tweak, 0.5));
+            this.lastAntiPatternTs = now;
           }
         }
+
+        // Reflect current anchor + coords in the gradient panel header.
+        const pill = document.getElementById('synth-pill');
+        if (pill && mixed.anchors[0]) pill.textContent = 'auto · ' + mixed.anchors[0].id;
+        if (SWR.Gradient && mixed.anchors[0]) {
+          SWR.Gradient.setAutomixAnchor(mixed.anchors[0].id);
+        }
+
+        // Phase 4.1: track last values for the debug panel
+        this._lastCoords = mixed.coords;
+        this._lastAnchorId = mixed.anchors[0] ? mixed.anchors[0].id : null;
+
+        // Persist the latest blend so the user can restore their last
+        // session after a reload (debounced inside last-mix-store).
+        if (window.SWR_LAST_MIX) {
+          window.SWR_LAST_MIX.save({
+            ts: now,
+            coords: mixed.coords,
+            anchors: mixed.anchors,
+            preset: mixed.preset,
+            section,
+          });
+        }
+
+        this.tickCount += 1;
+        this._emit('swr-automix-tick', { mixed, section });
+      },
+
+      // Phase 3.2: pick an anchor 1–3 hops away from the nearest one
+      _findSceneChange(coords) {
+        if (!window.SWR_ANCHOR_MAP || !window.SWR_ANCHOR_MAP.neighbours) return null;
+        const nn = window.SWR_ANCHOR_MAP.neighbours(coords, 1);
+        if (!nn || !nn[0]) return null;
+        const target = nn[0].anchor;
+        if (typeof target.warmth !== 'number') return null;
+        const targetCoords = { warmth: target.warmth, intensity: target.intensity };
+        const hopNeighbours = window.SWR_ANCHOR_MAP.neighbours(targetCoords, 3);
+        if (!hopNeighbours || hopNeighbours.length < 2) return null;
+        const pickIdx = 1 + Math.floor(Math.random() * (hopNeighbours.length - 1));
+        return hopNeighbours[pickIdx];
+      },
+
+      // Phase 3.3: curated "mood" presets for flat-audio sections. Picks
+      one of three rotations randomly each time it fires.
+      _antiPatternMutation() {
+        if (!window.SWR || !window.SWR._fxOverride) return null;
+        const cur = window.SWR._fxOverride;
+        const presets = [
+          // Chromatic bloom — boost chroma + glow
+          { temp: cur.temp || 0, mut: Math.min(1, (cur.mut || 0) + 0.3),
+            sepia: cur.sepia || 0, chroma: Math.min(1, (cur.chroma || 0) + 0.4),
+            grain: cur.grain || 0, glow: Math.min(1, (cur.glow || 0) + 0.3),
+            grayscale: cur.grayscale || 0, posterize: cur.posterize || 0 },
+          // Dense grain — boost grain + grayscale
+          { temp: cur.temp || 0, mut: cur.mut || 0, sepia: cur.sepia || 0,
+            chroma: cur.chroma || 0, grain: Math.min(1, (cur.grain || 0) + 0.4),
+            glow: cur.glow || 0, grayscale: Math.min(1, (cur.grayscale || 0) + 0.2),
+            posterize: Math.min(1, (cur.posterize || 0) + 0.15) },
+          // Strong glow + temp shift
+          { temp: Math.max(-1, Math.min(1, (cur.temp || 0) + 0.25)), mut: cur.mut || 0,
+            sepia: cur.sepia || 0, chroma: cur.chroma || 0, grain: cur.grain || 0,
+            glow: Math.min(1, (cur.glow || 0) + 0.5),
+            grayscale: cur.grayscale || 0, posterize: cur.posterize || 0 },
+        ];
+        return presets[Math.floor(Math.random() * presets.length)];
+      },
+
+      // Phase 4.2: freeze — stop ticking but keep the current blend
+      freeze() {
+        this.frozen = !this.frozen;
+        if (this.frozen) {
+          if (this.iv) { clearTimeout(this.iv); this.iv = null; }
+        } else if (this.enabled) {
+          this._scheduleNext();
+        }
+        this._updateUI(this.frozen ? 'FROZEN' : (this.enabled ? 'ON' : 'OFF'));
+        this._emit('swr-automix-freeze', { frozen: this.frozen });
+        return this.frozen;
+      },
+
+      // Phase 4.3: save the current blend as a manual preset
+      saveBlend() {
+        if (!window.SWR || !window.SWR._fxOverride) return null;
+        const saved = {
+          ts: Date.now(),
+          preset: Object.assign({}, window.SWR._fxOverride),
+          name: 'auto-' + new Date().toISOString().slice(11, 19).replace(/:/g, ''),
+        };
+        try {
+          const KEY = 'swrc.presets.user.v1';
+          const list = JSON.parse(localStorage.getItem(KEY) || '[]');
+          list.push(saved);
+          // Cap to last 16 to avoid unbounded growth
+          while (list.length > 16) list.shift();
+          localStorage.setItem(KEY, JSON.stringify(list));
+        } catch (_) {}
+        if (typeof setStatus === 'function') setStatus('saved blend · ' + saved.name, 'ok');
+        this._emit('swr-automix-save', saved);
+        return saved;
+      },
+
+      // Phase 4.4: lock to single nearest anchor — no blending, no drift
+      lockToNearest() {
+        this.locked = !this.locked;
+        this._updateUI(this.locked ? 'LOCKED' : (this.enabled ? 'ON' : 'OFF'));
+        this._emit('swr-automix-lock', { locked: this.locked });
+        return this.locked;
+      },
+
+      _updateUI(state) {
+        const lab = document.getElementById('automix-state');
+        if (lab) {
+          lab.textContent = state;
+          lab.style.color = state === 'OFF' ? 'var(--m)' : 'var(--g)';
+        }
+      },
+
+      _emit(name, detail) {
+        try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch (_) {}
       },
     };
     const _toggleBtn = document.getElementById('automix-toggle');
     if (_toggleBtn) _toggleBtn.addEventListener('click', () => automix.toggle());
+
+    // ---- Phase 4: freeze / save / lock / debug panel wiring ---------------
+    function _setBtnActive(btn, on) {
+      if (!btn) return;
+      btn.classList.toggle('active', !!on);
+    }
+    const _freezeBtn = document.getElementById('automix-freeze');
+    if (_freezeBtn) _freezeBtn.addEventListener('click', () => {
+      const wasEnabled = automix.enabled;
+      if (!wasEnabled) automix.start();      // enable first so freeze has something to hold
+      automix.freeze();
+      _setBtnActive(_freezeBtn, automix.frozen);
+    });
+    const _saveBtn = document.getElementById('automix-save');
+    if (_saveBtn) _saveBtn.addEventListener('click', () => {
+      const result = automix.saveBlend();
+      _saveBtn.classList.add('active');
+      setTimeout(() => _saveBtn.classList.remove('active'), 350);
+    });
+    const _lockBtn = document.getElementById('automix-lock');
+    if (_lockBtn) _lockBtn.addEventListener('click', () => {
+      automix.lockToNearest();
+      _setBtnActive(_lockBtn, automix.locked);
+    });
+    const _debugBtn = document.getElementById('automix-debug');
+    const _debugPanel = document.getElementById('automix-debug-panel');
+    const _debugBody = document.getElementById('automix-debug-body');
+    const _debugClose = document.getElementById('automix-debug-close');
+    function _renderDebug() {
+      if (!_debugBody) return;
+      const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+      const last = automix.lastPreset || {};
+      const tickRate = automix.tickCount > 1
+        ? (automix.tickCount / ((Date.now() - (automix._firstTickTs || Date.now())) / 60000)).toFixed(1)
+        : '0.0';
+      const lines = [
+        `section    ${automix.sectionState.current} (${(f.sectionConfidence || 0).toFixed(2)})`,
+        `coords     w=${(automix._lastCoords || { warmth: 0.5 }).warmth.toFixed(2)} i=${(automix._lastCoords || { intensity: 0.5 }).intensity.toFixed(2)}`,
+        `anchor     ${automix._lastAnchorId || '—'}`,
+        `tickRate   ${tickRate} / min`,
+        `interval   ${automix._lastIntervalMs || '—'} ms`,
+        `frozen     ${automix.frozen ? 'yes' : 'no'}    locked ${automix.locked ? 'yes' : 'no'}`,
+        `preset     temp=${(last.temp || 0).toFixed(2)} mut=${(last.mut || 0).toFixed(2)} chroma=${(last.chroma || 0).toFixed(2)}`,
+        `           glow=${(last.glow || 0).toFixed(2)} grain=${(last.grain || 0).toFixed(2)} sepia=${(last.sepia || 0).toFixed(2)}`,
+      ];
+      _debugBody.textContent = lines.join('\n');
+    }
+    function _toggleDebug() {
+      if (!_debugPanel) return;
+      const open = !_debugPanel.hidden;
+      _debugPanel.hidden = open;
+      _setBtnActive(_debugBtn, !open);
+      try { localStorage.setItem('swr.automix.debugOpen', open ? '0' : '1'); } catch (_) {}
+      if (!open) {
+        automix._firstTickTs = Date.now();
+        _renderDebug();
+      }
+    }
+    if (_debugBtn) _debugBtn.addEventListener('click', _toggleDebug);
+    if (_debugClose) _debugClose.addEventListener('click', () => {
+      _debugPanel.hidden = true;
+      _setBtnActive(_debugBtn, false);
+      try { localStorage.setItem('swr.automix.debugOpen', '0'); } catch (_) {}
+    });
+    window.addEventListener('swr-automix-tick', () => {
+      if (_debugPanel && !_debugPanel.hidden) _renderDebug();
+    });
+    try {
+      if (localStorage.getItem('swr.automix.debugOpen') === '1' && _debugPanel) {
+        _debugPanel.hidden = false;
+        _setBtnActive(_debugBtn, true);
+      }
+    } catch (_) {}
+
     // Reset-layers button — same code path as the Backspace shortcut so
     // the status-bar feedback fires for mouse users too.
     const _resetBtn = document.getElementById('reset-layers');
@@ -3688,12 +3999,16 @@
       }
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key && e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        var t = e.target; var tag = t && t.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
-        automix.toggle();
-        e.preventDefault();
-      }
+      var t = e.target; var tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key && e.key.toLowerCase();
+      if (k === 'a') { automix.toggle(); e.preventDefault(); }
+      // Phase 4 keyboard shortcuts
+      else if (k === 'f' && automix.freeze) { automix.freeze(); _setBtnActive(document.getElementById('automix-freeze'), automix.frozen); e.preventDefault(); }
+      else if (k === 'b' && automix.saveBlend) { automix.saveBlend(); e.preventDefault(); }
+      else if (k === 'k' && automix.lockToNearest) { automix.lockToNearest(); _setBtnActive(document.getElementById('automix-lock'), automix.locked); e.preventDefault(); }
+      else if (k === 'd') { _toggleDebug(); e.preventDefault(); }
     });
     // ---- Reset-layers keyboard shortcut ----------------------------------
     // Backspace (not Shift+Backspace — that's standard browser nav)
@@ -3891,5 +4206,12 @@
     requestAnimationFrame(tick);
   })();
   </script>
+  <style>
+    /* Phase 4 active-state styling for the automix toolbar buttons */
+    #automix-freeze.active { background: var(--accent); color: #000; }
+    #automix-save.active { background: var(--g); color: #000; }
+    #automix-lock.active { background: var(--accent-3); color: #000; }
+    #automix-debug.active { background: var(--accent-2); color: #000; }
+  </style>
 </body>
 </html>

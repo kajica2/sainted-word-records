@@ -13,7 +13,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "check": "npm run check:syntax && npm run check:bundle && npm run check:automix-unit && npm run check:gradient-dot-unit && npm run check:depth-blend-unit && npm run check:last-mix-unit && npm run check:get-preset-unit && npm run check:preset-cycle-unit && npm run check:preset-pick-unit && npm run check:layer-state-unit && npm run check:with-dist-unit && npm run check:auth-unit && node scripts/test-api.mjs && npm run check:dashboard && npm run check:variant-switcher-unit && npm run check:variant-switcher-smoke && npm run check:photo-slideshow && npm run check:default-library",
-    "check:full": "npm run check && npm run check:verify && npm run check:automix-smoke && npm run check:storyboard",
+    "check:full": "npm run check && npm run check:verify && npm run check:automix-smoke && npm run check:storyboard && npm run verify:automix",
     "check:syntax": "node scripts/check-syntax.mjs",
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
     "check:auth-unit": "node scripts/check-auth-unit.mjs",
@@ -81,6 +81,7 @@
     "verify:smtp": "node --test verify-smtp-transport.mjs",
     "verify:site-nav": "node verify-site-nav.mjs",
     "verify:curator-batch": "node verify-curator-batch.mjs",
+    "verify:automix": "node verify-automix.mjs",
     "clean": "rm -rf dist dist-dev .vite"
   },
   "devDependencies": {

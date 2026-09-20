@@ -963,7 +963,25 @@ const PRESETS = {
       // HologramState (other version pages that don't ship the slider).
       // The math itself lives at module scope as blendFxOverride() so it can be
       // unit-tested under Node without a browser (check-depth-blend-unit.mjs).
-      const _ovFx = (window.SWR && window.SWR._fxOverride) || null;
+      //
+      // Phase 1.2: smooth interpolation. The automix orchestrator sets
+      // window.SWR._fxOverride as the *target* and writes _fxFrom + _fxT0
+      // each time the target moves. We smoothstep from _fxFrom to the
+      // target over RAMP_MS (1000ms) so the visual evolves continuously
+      // instead of snapping every tick.
+      const _ovFxRaw = (window.SWR && window.SWR._fxOverride) || null;
+      const _ovFxFrom = (window.SWR && window.SWR._fxFrom) || null;
+      const _ovFxT0 = (window.SWR && typeof window.SWR._fxT0 === 'number') ? window.SWR._fxT0 : 0;
+      const _RAMP_MS = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
+      let _ovFx = _ovFxRaw;
+      if (_ovFxRaw && _ovFxFrom && _ovFxT0 > 0 &&
+          window.SWR_AUTOMIX && window.SWR_AUTOMIX.smoothstep && window.SWR_AUTOMIX.lerpPreset) {
+        const elapsed = performance.now() - _ovFxT0;
+        if (elapsed < _RAMP_MS) {
+          const t = window.SWR_AUTOMIX.smoothstep(elapsed / _RAMP_MS);
+          _ovFx = window.SWR_AUTOMIX.lerpPreset(_ovFxFrom, _ovFxRaw, t);
+        }
+      }
       const _depth = (window.SWR && window.SWR.HologramState && typeof window.SWR.HologramState.depth === 'number')
         ? window.SWR.HologramState.depth
         : 0.4;
