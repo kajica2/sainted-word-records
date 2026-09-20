@@ -74,8 +74,9 @@ merge branch.
 
 ### P3-001 — No CI on PR open
 
-**Evidence**: `presets-daily.yml` is the only GitHub Action. `npm run check:full`
-is local-only.
+**Evidence**: Only GitHub Action is `.github/workflows/ci.yml` (PR/push gate). It
+does not run `check:full` or any of the `verify:*` scripts — the curated
+5-smoke + transitions verifier are local-only.
 **Remediation**: add a `ci.yml` that runs `npm run check` on PR open + push to
 non-main branches.
 

@@ -38,7 +38,7 @@ Algorithmic audio-reactive video engine. Two surfaces:
 | `vercel.json`       | Rewrites (`/` → `landing.html`, `/engine` → …)    | `scripts/generate-vercel-rewrites.mjs` (run after editing site-map.json) |
 | `vite.config.js`    | Build, `rootFiles`, plugins, copy-static          | hand-edited (with `BUILD_MARKER_v*`) |
 | `manifest.webmanifest` | PWA manifest                                    | hand-edited                          |
-| `presets/*.json`    | Daily preset specs (append-only)                  | `preset-pipeline/generate.py` (CI daily cron) |
+| `presets/*.json`    | Daily preset specs (append-only)                  | `preset-pipeline/generate.py` (local cron)   |
 | `versions/<variant>.html` | Each engine variant's markup                | hand-edited per variant              |
 
 **Process rule**: any change to `site-map.json` requires running
@@ -113,6 +113,6 @@ script (the `migrate-html.mjs` script enforces this — it strips duplicates whe
 
 - `preset-pipeline/generate.py` (Python) — daily preset generator
 - `preset-pipeline/verify.mjs` (Node) — schema verifier
-- CI entrypoint: `preset-pipeline/cron.sh`
+- Local entrypoint: `preset-pipeline/cron.sh` (run on dev box; no GitHub Action)
 - Output: append-only `presets/*.json`
-- Auto-committed by `presets-daily.yml` GitHub Action.
+- Committed manually by whoever runs `cron.sh`.
