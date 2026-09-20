@@ -277,7 +277,92 @@ async function main() {
       await new Promise((r) => setTimeout(r, 200));
     });
 
-    // ---- 13. Stop cleans up timers ------------------------------------
+    // ---- 13. URL deep-links -------------------------------------------
+    // Each test loads the page with a different query string and asserts
+    // the resulting automix state. We open a fresh tab each time so
+    // page state from previous tests doesn't leak.
+    async function loadFresh(query) {
+      const fresh = await browser.newPage();
+      const errs = [];
+      fresh.on('pageerror', (e) => errs.push(e.message));
+      const consoleErrs = [];
+      fresh.on('console', (m) => {
+        if (m.type() !== 'error') return;
+        const t = m.text();
+        if (/WebSocket|ERR_CONNECTION_REFUSED|net::ERR_/i.test(t)) return;
+        if (/Failed to load resource.*\(404\)/.test(t)) return;
+        consoleErrs.push(t);
+      });
+      // Clear localStorage flags before each fresh load so deep-link
+      // tests don't inherit state from earlier pages in this browser.
+      await fresh.goto(`http://localhost:${PORT}/versions/music_video.html${query}`,
+                       { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await fresh.evaluate(() => {
+        try {
+          localStorage.removeItem('swr.automix.enabled');
+          localStorage.removeItem('swr.automix.debugOpen');
+          localStorage.removeItem('swr.automix.frozen');
+          localStorage.removeItem('swr.automix.locked');
+          localStorage.removeItem('swrc.presets.user.v1');
+          localStorage.removeItem('swr.automix.lastMix.v1');
+        } catch (_) {}
+      });
+      // Now reload so the URL-param handler reads clean localStorage.
+      await fresh.goto(`http://localhost:${PORT}/versions/music_video.html${query}`,
+                       { waitUntil: 'networkidle0', timeout: 30000 });
+      await new Promise((r) => setTimeout(r, 1200));
+      return { fresh, errs, consoleErrs };
+    }
+
+    await step('?automix=1 enables on load', async () => {
+      const { fresh, errs, consoleErrs } = await loadFresh('?automix=1');
+      const state = await fresh.evaluate(() =>
+        document.getElementById('automix-state').textContent);
+      if (state !== 'ON') throw new Error('expected ON, got ' + state);
+      if (errs.length || consoleErrs.length) throw new Error('errors: ' + (errs+consoleErrs).slice(0, 200));
+      await fresh.close();
+    });
+
+    await step('?automix-debug=1 opens panel on load', async () => {
+      const { fresh, errs, consoleErrs } = await loadFresh('?automix-debug=1');
+      const visible = await fresh.evaluate(() =>
+        !document.getElementById('automix-debug-panel').hidden);
+      if (!visible) throw new Error('panel not visible on load');
+      if (errs.length || consoleErrs.length) throw new Error('errors: ' + (errs+consoleErrs).slice(0, 200));
+      await fresh.close();
+    });
+
+    await step('?automix-frozen=1 starts frozen', async () => {
+      const { fresh, errs, consoleErrs } = await loadFresh('?automix-frozen=1');
+      const state = await fresh.evaluate(() =>
+        document.getElementById('automix-state').textContent);
+      if (state !== 'FROZEN') throw new Error('expected FROZEN, got ' + state);
+      if (errs.length || consoleErrs.length) throw new Error('errors: ' + (errs+consoleErrs).slice(0, 200));
+      await fresh.close();
+    });
+
+    await step('?automix-locked=1 starts locked', async () => {
+      const { fresh, errs, consoleErrs } = await loadFresh('?automix-locked=1');
+      const state = await fresh.evaluate(() =>
+        document.getElementById('automix-state').textContent);
+      if (state !== 'LOCKED') throw new Error('expected LOCKED, got ' + state);
+      if (errs.length || consoleErrs.length) throw new Error('errors: ' + (errs+consoleErrs).slice(0, 200));
+      await fresh.close();
+    });
+
+    await step('combined ?automix=1&automix-debug=1&automix-frozen=1 boots pre-configured', async () => {
+      const { fresh, errs, consoleErrs } = await loadFresh('?automix=1&automix-debug=1&automix-frozen=1');
+      const state = await fresh.evaluate(() =>
+        document.getElementById('automix-state').textContent);
+      const visible = await fresh.evaluate(() =>
+        !document.getElementById('automix-debug-panel').hidden);
+      if (state !== 'FROZEN') throw new Error('expected FROZEN, got ' + state);
+      if (!visible) throw new Error('panel not visible');
+      if (errs.length || consoleErrs.length) throw new Error('errors: ' + (errs+consoleErrs).slice(0, 200));
+      await fresh.close();
+    });
+
+    // ---- 14. Stop cleans up timers ------------------------------------
     await step('stop cleans up tick + beat timers', async () => {
       // Use evaluate-click instead of mouse-click — labels sometimes don't
       // route mouse events cleanly in headless Chrome.

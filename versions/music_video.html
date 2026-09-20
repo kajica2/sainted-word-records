@@ -3303,6 +3303,8 @@
         const pulse = !!feat.beatPulse;
         if (pulse && !this.lastBeatPulse) {
           this._applyBeatDrift(feat);
+          // Phase 2.4: BPM-locked anchor cycling on bar boundaries
+          if (typeof feat.beatInBar === 'number') this._applyBarNudge(feat);
         }
         this.lastBeatPulse = pulse;
       },
@@ -3312,6 +3314,36 @@
         const intensity = (typeof feat.onset === 'number') ? Math.max(0, Math.min(1, feat.onset)) : 0;
         const newPreset = window.SWR_AUTOMIX.drift(window.SWR._fxOverride, intensity);
         this._setTarget(newPreset);
+      },
+
+      // Phase 2.4: every Nth beat (N = round(bpm / 30) → 4..8 across
+      // common tempos), nudge the blend 25% toward a randomly chosen
+      // anchor that ISN'T the current dominant. Keeps the visual
+      // evolving on bar boundaries even when the song is stationary.
+      _applyBarNudge(feat) {
+        if (!window.SWR || !window.SWR._fxOverride) return;
+        if (typeof feat.beatInBar !== 'number') return;
+        if (typeof feat.bpm !== 'number' || feat.bpm <= 0) return;
+        if (!window.SWR_ANCHOR_MAP || !window.SWR_ANCHOR_MAP.neighbours) return;
+        const beatsPerNudge = Math.max(2, Math.round(feat.bpm / 30));
+        if (!this._lastNudgeBeatInBar || this._lastNudgeBeatInBar === 0) {
+          this._lastNudgeBeatInBar = feat.beatInBar;
+          return;
+        }
+        // beatInBar wraps 1→2→3→4→1, so use modulo-4 distance
+        const delta = ((feat.beatInBar - this._lastNudgeBeatInBar) % 4 + 4) % 4;
+        if (delta < beatsPerNudge) return;
+        // Pick a random anchor from the 8 nearest that's NOT the dominant
+        const coords = window.SWR_AUTOMIX.featuresToCoordsV2(feat);
+        const nn = window.SWR_ANCHOR_MAP.neighbours(coords, 8);
+        if (!nn || nn.length < 2) return;
+        const others = nn.filter((a) => a.id !== this._lastAnchorId);
+        const pool = (others.length > 0) ? others : nn;
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        if (!pick || !pick.anchor || !pick.anchor.preset) return;
+        const lerped = window.SWR_AUTOMIX.lerpPreset(window.SWR._fxOverride, pick.anchor.preset, 0.25);
+        this._setTarget(lerped);
+        this._lastNudgeBeatInBar = feat.beatInBar;
       },
 
       // Phase 1.2: set new target — render loop interpolates from _fxFrom
@@ -4083,6 +4115,27 @@
       else if (k === 'k' && automix.lockToNearest) { automix.lockToNearest(); _setBtnActive(document.getElementById('automix-lock'), automix.locked); e.preventDefault(); }
       else if (k === 'd') { _toggleDebug(); e.preventDefault(); }
     });
+
+    // ---- URL deep-links for automix state -------------------------------
+    // ?automix=1          enable on load
+    // ?automix-debug=1    open debug panel on load
+    // ?automix-frozen=1   start in frozen state (implies enable)
+    // ?automix-locked=1   start in locked-to-nearest mode (implies enable)
+    // Useful for support tickets ("send me the URL with debug on") and
+    // for the verify suite to test deep-link rendering without clicks.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const want = {
+        on:    params.get('automix') === '1',
+        dbg:   params.get('automix-debug') === '1',
+        frozen:params.get('automix-frozen') === '1',
+        locked:params.get('automix-locked') === '1',
+      };
+      if (want.on || want.frozen || want.locked) automix.start();
+      if (want.locked) { automix.lockToNearest(); _setBtnActive(document.getElementById('automix-lock'), true); }
+      if (want.frozen) { automix.freeze(); _setBtnActive(document.getElementById('automix-freeze'), true); }
+      if (want.dbg) _toggleDebug();
+    } catch (_) {}
     // ---- Reset-layers keyboard shortcut ----------------------------------
     // Backspace (not Shift+Backspace — that's standard browser nav)
     // clears all layers. Skipped when focus is in an input/textarea/
