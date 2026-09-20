@@ -84,7 +84,11 @@
     /* === LAYOUT === */
     #app {
       display: grid;
-      grid-template-rows: 56px 1fr 48px;
+      /* row 3 sized to content (was: 48px) so #global can wrap onto a 2nd
+         line when the new toolbar buttons overflow — fixes the Phase 1a
+         regression where Automix + Hooks/Stats/Mood/Scenes lived at
+         x=6209, past the viewport edge */
+      grid-template-rows: 56px 1fr auto;
       grid-template-columns: 240px 1fr 280px;
       grid-template-areas:
         "transport transport transport"
@@ -794,8 +798,27 @@
       background: linear-gradient(180deg, var(--panel), var(--bg-2));
       display: flex;
       align-items: center;
-      padding: 0 16px;
+      /* Phase 1a regression fix: let the toolbar wrap onto a 2nd row when
+         it overflows the viewport.  Pattern mirrors versions/_responsive-
+         inject.js so the two surfaces stay consistent.  `column-gap` is
+         declared AFTER the `gap` shorthand so the explicit `row-gap`
+         wins (otherwise the shorthand resets both to 18px and the footer
+         balloons).  min-height preserves the original single-row baseline
+         (48px); max-height caps pathological cases (very narrow viewports)
+         so the stage column never collapses to 0.  overflow-x: hidden
+         removes the old horizontal scroll, which silently hid the new
+         buttons.  Single-row layout (wide viewports) is unchanged. */
+      flex-wrap: wrap;
+      align-content: center;
       gap: 18px;
+      column-gap: 18px;
+      row-gap: 4px;
+      min-height: 48px;
+      max-height: 32vh;
+      min-width: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 0 16px;
       font-family: var(--font-mono);
     }
     .gctrl {
