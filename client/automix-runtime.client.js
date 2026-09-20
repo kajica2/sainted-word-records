@@ -32,8 +32,6 @@
   // ---- Constants (mirror music_video's behavior) --------------------------
   var TICK_DEFAULT_MS = 1500;
   var FADE_MS = 200;
-  var DRIFT_BASE_DEFAULT = 0.01;
-  var DRIFT_BEAT_DEFAULT = 0.02;
   var TICK_MIN_DEFAULT = 500;
   var TICK_MAX_DEFAULT = 3000;
 
@@ -47,8 +45,13 @@
   // Populated by loadConfig() from #swrc-automix-config. Private to the
   // IIFE closure; exposed via SWR_AUTOMIX_RUNTIME accessor functions so
   // tests can inspect without breaking encapsulation.
+  //
+  // driftAmplitude no longer needs a local mirror: loadConfig() applies
+  // it directly via SWR_AUTOMIX._setDriftAmplitude(), which mutates the
+  // closure-private DRIFT_BASE / DRIFT_BEAT_BONUS in place. Subsequent
+  // drift() calls (including those inside A.mix() during tick()) honour
+  // the override without per-tick compounding.
   var _config = null;
-  var _driftAmplitude = null;   // { base, beatScale } when config overrides defaults
   var _tuning = null;           // { minTickMs, maxTickMs } when config overrides defaults
   var _toggleShortcut = null;   // string (single char, lowercased) when config overrides 'a'
 
@@ -79,25 +82,6 @@
     if (typeof t.maxTickMs !== 'number' || !isFinite(t.maxTickMs) || t.maxTickMs < 1 || t.maxTickMs > 10000) return false;
     if (t.minTickMs > t.maxTickMs) return false;
     return true;
-  }
-
-  // ---- Runtime drift (uses config amplitudes when set) --------------------
-  // Mirrors SWR_AUTOMIX.drift() but with config-driven amplitudes. Applied
-  // on top of A.mix()'s output when _driftAmplitude is set; compound effect
-  // is bounded because both drift passes clamp to [-1, 1] per field.
-  function _runtimeDrift(preset, beat) {
-    if (!preset) return preset;
-    var b = (typeof beat === 'number' && isFinite(beat)) ? Math.max(0, Math.min(1, beat)) : 0;
-    var base = _driftAmplitude ? _driftAmplitude.base : DRIFT_BASE_DEFAULT;
-    var beatScale = _driftAmplitude ? _driftAmplitude.beatScale : DRIFT_BEAT_DEFAULT;
-    var amplitude = base + beatScale * b;
-    var out = {};
-    for (var k in preset) {
-      if (!Object.prototype.hasOwnProperty.call(preset, k)) continue;
-      var delta = (Math.random() - 0.5) * 2 * amplitude;
-      out[k] = Math.max(-1, Math.min(1, preset[k] + delta));
-    }
-    return out;
   }
 
   // ---- Custom computeTickInterval (uses config tuning when set) ----------
@@ -201,13 +185,20 @@
       }
     }
 
-    // driftAmplitude
+    // driftAmplitude — replaces the closure-private DRIFT_BASE /
+    // DRIFT_BEAT_BONUS in SWR_AUTOMIX via the public setter. Once the
+    // setter mutates the closure vars, every subsequent drift() call
+    // (including the ones invoked inside A.mix() during tick()) honours
+    // the override in place — no per-tick compounding, no per-tick
+    // branch in the runtime.
     if (cfg.driftAmplitude && typeof cfg.driftAmplitude === 'object') {
-      if (_validateDriftAmplitude(cfg.driftAmplitude)) {
-        _driftAmplitude = {
-          base: cfg.driftAmplitude.base,
-          beatScale: cfg.driftAmplitude.beatScale,
-        };
+      if (_validateDriftAmplitude(cfg.driftAmplitude) &&
+          window.SWR_AUTOMIX &&
+          typeof window.SWR_AUTOMIX._setDriftAmplitude === 'function') {
+        window.SWR_AUTOMIX._setDriftAmplitude(
+          cfg.driftAmplitude.base,
+          cfg.driftAmplitude.beatScale
+        );
       }
     }
 
@@ -402,13 +393,12 @@
 
       if (!mixed || !mixed.preset) return;
 
-      // When config overrides drift amplitudes, re-apply drift on top of
-      // A.mix()'s drift using the config-driven amplitudes. The compound
-      // is bounded: both passes clamp to [-1, 1] per field, and the
-      // combined amplitude stays well within the safe preset range.
-      if (_driftAmplitude && mixed.preset) {
-        mixed.preset = _runtimeDrift(mixed.preset, feat.beat);
-      }
+      // driftAmplitude override is already applied to the closure-private
+      // DRIFT_BASE / DRIFT_BEAT_BONUS via SWR_AUTOMIX._setDriftAmplitude()
+      // inside loadConfig(). The drift() that A.mix() invokes honours it
+      // in place — no per-tick branch or compounding needed here.
+      // (Task 1 fix round 1 — replaced the previous compound path that
+      // layered runtime drift on top of A.mix()'s built-in drift.)
 
       var now = Date.now();
       if (window.SWR_AUTOMIX.isStuck(this.lastPreset, mixed.preset, now - this.lastChangeTs)) {
@@ -715,7 +705,6 @@
     // Task 1 — config-loader hooks for tests + diagnostics.
     loadConfig: loadConfig,
     _config: function () { return _config; },
-    _driftAmplitude: function () { return _driftAmplitude; },
     _tuning: function () { return _tuning; },
     _toggleShortcut: function () { return _toggleShortcut; },
   };

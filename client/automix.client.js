@@ -197,10 +197,12 @@
   // invoke drift() on every detected beat rather than every tick; the
   // beat-phase step is then visual-evolution that breathes with the
   // song's tempo. Amplitude scales linearly with beat:
-  //   beat = 0   → step ±0.01  (gentle, no rhythmic anchor)
-  //   beat = 1   → step ±0.03  (3× more, the visual breathes with tempo)
-  //   beat undefined / omitted → step ±0.01  (backward-compat default)
+  //   beat = 0   → step ±DRIFT_BASE         (gentle, no rhythmic anchor)
+  //   beat = 1   → step ±(DRIFT_BASE + DRIFT_BEAT_BONUS)  (visual breathes with tempo)
+  //   beat undefined / omitted → step ±DRIFT_BASE  (backward-compat default)
   // Each field is clamped to [-1, 1] so the visual stays in its safe range.
+  // Amplitudes are closure-private vars that the runtime config-loader
+  // mutates via _setDriftAmplitude() (per Task 1 fix round 1).
   function drift(preset, beat) {
     if (!preset) return preset;
     var b = (typeof beat === 'number' && isFinite(beat)) ? Math.max(0, Math.min(1, beat)) : 0;
@@ -212,6 +214,24 @@
       out[k] = Math.max(-1, Math.min(1, preset[k] + delta));
     }
     return out;
+  }
+  // Mutator for the closure-private drift amplitudes. Replaces the
+  // constants in place so subsequent drift() calls honour the override
+  // (no per-tick compounding in callers). Used by the runtime
+  // config-loader to apply per-variant `driftAmplitude` overrides.
+  // Bad inputs (NaN, non-number) are silently ignored to keep the
+  // public setter safe to call from untrusted configs.
+  function _setDriftAmplitude(base, beatScale) {
+    if (typeof base !== 'number' || !isFinite(base)) return;
+    if (typeof beatScale !== 'number' || !isFinite(beatScale)) return;
+    DRIFT_BASE = Math.max(0, Math.min(1, base));
+    DRIFT_BEAT_BONUS = Math.max(0, Math.min(1, beatScale));
+  }
+  // Read accessor — returns the CURRENT closure-private values (the
+  // exported `DRIFT_BASE` / `DRIFT_BEAT_BONUS` properties are by-value
+  // snapshots at IIFE time, so they're stale after a setter call).
+  function _getDriftAmplitude() {
+    return { base: DRIFT_BASE, beatScale: DRIFT_BEAT_BONUS };
   }
 
   // ---- Section classification (Phase 2.1) --------------------------------
@@ -312,6 +332,12 @@
     drift: drift,
     DRIFT_BASE: DRIFT_BASE,
     DRIFT_BEAT_BONUS: DRIFT_BEAT_BONUS,
+    // Task 1 fix round 1 — runtime config-loader replaces the closure-
+    // private drift amplitudes in place. Read accessor returns the
+    // current values (the by-value `DRIFT_BASE` / `DRIFT_BEAT_BONUS`
+    // exports above are stale after a setter call).
+    _setDriftAmplitude: _setDriftAmplitude,
+    _getDriftAmplitude: _getDriftAmplitude,
     // Phase 2: musical intelligence
     featuresToCoords: featuresToCoords,
     featuresToCoordsV2: featuresToCoordsV2,

@@ -281,6 +281,24 @@ function restorePoolBias(snap) {
     A.POOL_BIAS[k] = { warmth: snap[k].warmth.slice(), intensity: snap[k].intensity.slice() };
   }
 }
+// Snapshot/restore SWR_AUTOMIX's closure-private drift amplitudes. After
+// Task 1 fix round 1, the runtime config-loader mutates the amplitudes
+// in place via _setDriftAmplitude() — shared state across sandboxes, so
+// scenarios that apply a config (1b, 1g, 1m) must capture & restore.
+// `_getDriftAmplitude()` reads the current values; the by-value
+// `DRIFT_BASE` / `DRIFT_BEAT_BONUS` exports on `A` are stale after a
+// setter call, so we never read those for current state.
+function snapshotDrift() {
+  if (typeof A._getDriftAmplitude === 'function') {
+    return A._getDriftAmplitude();
+  }
+  return { base: A.DRIFT_BASE, beatScale: A.DRIFT_BEAT_BONUS };
+}
+function restoreDrift(snap) {
+  if (typeof A._setDriftAmplitude === 'function') {
+    A._setDriftAmplitude(snap.base, snap.beatScale);
+  }
+}
 
 function makeRuntimeEnv(opts) {
   opts = opts || {};
@@ -356,6 +374,7 @@ function makeRuntimeEnv(opts) {
 // ---- 1b: parse success with a valid config -------------------------------
 {
   const poolSnap = snapshotPoolBias();
+  const driftSnap = snapshotDrift();
   const cfgScript = { textContent: JSON.stringify({
     version: 1, variant: 'aurora', enabled: true, defaultState: 'off',
     poolBias: { intro: { warmth: [0.1, 0.5], intensity: [0.0, 0.2] } },
@@ -381,6 +400,15 @@ function makeRuntimeEnv(opts) {
   assert.equal(A.POOL_BIAS.chorus.warmth[0], 0.2, 'unlisted chorus keeps global default');
   assert.equal(A.POOL_BIAS.chorus.warmth[1], 0.8);
   assert.equal(A.POOL_BIAS.verse.warmth[0], 0.3, 'unlisted verse keeps global default');
+  // driftAmplitude applied via SWR_AUTOMIX._setDriftAmplitude (replaces
+  // closure-private DRIFT_BASE / DRIFT_BEAT_BONUS in place — no
+  // per-tick compounding in the runtime). The runtime no longer
+  // exposes its own _driftAmplitude accessor; the public surface is
+  // SWR_AUTOMIX._getDriftAmplitude().
+  const drift = A._getDriftAmplitude();
+  assert.equal(drift.base, 0.02, 'driftAmplitude.base applied via _setDriftAmplitude');
+  assert.equal(drift.beatScale, 0.03, 'driftAmplitude.beatScale applied via _setDriftAmplitude');
+  restoreDrift(driftSnap);
   restorePoolBias(poolSnap);
 }
 
@@ -450,35 +478,69 @@ function makeRuntimeEnv(opts) {
 
 // ---- 1g: driftAmplitude validation bounds-check ---------------------------
 {
+  const driftSnap = snapshotDrift();
+  // Public surface checks: _setDriftAmplitude / _getDriftAmplitude are
+  // exposed on SWR_AUTOMIX and replace the closure-private drift
+  // amplitudes in place. The runtime no longer carries its own
+  // _driftAmplitude mirror — verification goes through SWR_AUTOMIX.
+  assert.equal(typeof A._setDriftAmplitude, 'function', '_setDriftAmplitude exposed on SWR_AUTOMIX');
+  assert.equal(typeof A._getDriftAmplitude, 'function', '_getDriftAmplitude exposed on SWR_AUTOMIX');
+
   // invalid: base > 1
   let cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: 1.5, beatScale: 0.02 } }) };
   let env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  assert.equal(env.sandbox.SWR_AUTOMIX_RUNTIME._config().driftAmplitude.base, 1.5, 'invalid amplitude still stored on _config (validation applies at use-time)');
-  // After the loadConfig path, driftAmplitude field is captured but the
-  // runtime's internal _driftAmplitude should be set only after validation.
-  // Verify via internal accessor: we expose _driftAmplitude as a function
-  // (mirroring _config) — see below.
-  // For now, valid case:
+  const R1 = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.equal(R1._config().driftAmplitude.base, 1.5, 'invalid amplitude still captured on _config (validation applies at use-time)');
+  // Validation rejects → SWR_AUTOMIX amplitudes unchanged from snapshot.
+  const cur1 = A._getDriftAmplitude();
+  assert.equal(cur1.base, driftSnap.base, 'invalid base>1 → SWR_AUTOMIX DRIFT_BASE unchanged');
+  assert.equal(cur1.beatScale, driftSnap.beatScale, 'invalid base>1 → SWR_AUTOMIX DRIFT_BEAT_BONUS unchanged');
+
+  // valid: applied via _setDriftAmplitude. Verify drift() now uses the
+  // new amplitude (no per-tick compounding in the runtime — drift()
+  // itself honours the override in place).
   cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: 0.02, beatScale: 0.04 } }) };
   env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
-  assert.equal(typeof R._driftAmplitude, 'function', '_driftAmplitude accessor exposed');
-  const da = R._driftAmplitude();
-  assert.ok(da, 'valid driftAmplitude stored internally');
-  assert.equal(da.base, 0.02);
-  assert.equal(da.beatScale, 0.04);
-  // invalid: base < 0
+  const cur2 = A._getDriftAmplitude();
+  assert.equal(cur2.base, 0.02, 'valid config → SWR_AUTOMIX DRIFT_BASE replaced');
+  assert.equal(cur2.beatScale, 0.04, 'valid config → SWR_AUTOMIX DRIFT_BEAT_BONUS replaced');
+  // Beat=1 → amplitude = 0.02 + 0.04 = 0.06, step ≤ 0.061.
+  const baseP = { temp: 0.5, mut: 0.5, sepia: 0.5, chroma: 0.5, grain: 0.5, glow: 0.5, grayscale: 0.5, posterize: 0.5 };
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.062,
+                'after override, beat=1 drift step ≤ 0.062 (got ' + (d[f] - baseP[f]).toFixed(4) + ')');
+    }
+  }
+  // Beat=0 → amplitude = 0.02, step ≤ 0.021.
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 0);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.022,
+                'after override, beat=0 drift step ≤ 0.022');
+    }
+  }
+
+  // invalid: base < 0 → rejected (amplitudes unchanged from last valid).
   cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: -0.01, beatScale: 0.02 } }) };
   env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  assert.equal(env.sandbox.SWR_AUTOMIX_RUNTIME._driftAmplitude(), null, 'invalid base → rejected');
-  // invalid: beatScale > 1
+  const cur3 = A._getDriftAmplitude();
+  assert.equal(cur3.base, 0.02, 'invalid base<0 → SWR_AUTOMIX DRIFT_BASE unchanged');
+  assert.equal(cur3.beatScale, 0.04, 'invalid base<0 → SWR_AUTOMIX DRIFT_BEAT_BONUS unchanged');
+
+  // invalid: beatScale > 1 → rejected.
   cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: 0.01, beatScale: 2.0 } }) };
   env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  assert.equal(env.sandbox.SWR_AUTOMIX_RUNTIME._driftAmplitude(), null, 'invalid beatScale → rejected');
+  const cur4 = A._getDriftAmplitude();
+  assert.equal(cur4.base, 0.02, 'invalid beatScale>1 → SWR_AUTOMIX DRIFT_BASE unchanged');
+  assert.equal(cur4.beatScale, 0.04, 'invalid beatScale>1 → SWR_AUTOMIX DRIFT_BEAT_BONUS unchanged');
+
+  restoreDrift(driftSnap);
 }
 
 // ---- 1h: tuning validation bounds-check ----------------------------------
@@ -579,4 +641,85 @@ function makeRuntimeEnv(opts) {
   assert.equal(env.sandbox.SWR_AUTOMIX_RUNTIME._config().anchorMap, 'all');
 }
 
-console.log('AUTOMIX UNIT: ALL GREEN (45 tests)');
+// ---- 1m: _setDriftAmplitude mutates drift() behaviour directly -----------
+// (Task 1 fix round 1 — the loadConfig() path goes through this same
+// setter, but this scenario proves the public surface independently.)
+{
+  const driftSnap = snapshotDrift();
+  const baseP = { temp: 0.5, mut: 0.5, sepia: 0.5, chroma: 0.5, grain: 0.5, glow: 0.5, grayscale: 0.5, posterize: 0.5 };
+
+  // Baseline: default amplitudes (DRIFT_BASE=0.01, DRIFT_BEAT_BONUS=0.02).
+  // Beat=1 → amplitude = 0.03, step ≤ 0.031.
+  for (let i = 0; i < 50; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.032,
+                'baseline beat=1 step ≤ 0.032');
+    }
+  }
+
+  // Mutate via the setter to ZERO drift. Every drift() call must now be
+  // a no-op (output equals input) regardless of beat — this is the
+  // load-bearing proof that the closure vars were replaced, not layered.
+  A._setDriftAmplitude(0.0, 0.0);
+  const cur1 = A._getDriftAmplitude();
+  assert.equal(cur1.base, 0.0, 'setter writes base');
+  assert.equal(cur1.beatScale, 0.0, 'setter writes beatScale');
+  for (let i = 0; i < 50; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) < 1e-6,
+                'zero amplitude → drift is no-op (got delta ' + (d[f] - baseP[f]).toFixed(8) + ')');
+    }
+  }
+
+  // Mutate to HIGH drift. Beat=1 → amplitude = 0.05 + 0.10 = 0.15.
+  A._setDriftAmplitude(0.05, 0.10);
+  const cur2 = A._getDriftAmplitude();
+  assert.equal(cur2.base, 0.05);
+  assert.equal(cur2.beatScale, 0.10);
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.152,
+                'high amplitude → beat=1 step ≤ 0.152');
+    }
+  }
+  // Beat=0 → amplitude = 0.05, step ≤ 0.051.
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 0);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.052,
+                'high amplitude → beat=0 step ≤ 0.052');
+    }
+  }
+
+  // Defensive: non-number / non-finite inputs are silently ignored
+  // (amplitudes unchanged). Finite numbers in any range are clamped
+  // to [0, 1] — the public setter is the load-bearing surface, so it
+  // stays safe even when called from untrusted config inputs.
+  A._setDriftAmplitude(NaN, 0.05);
+  const cur3 = A._getDriftAmplitude();
+  assert.equal(cur3.base, 0.05, 'NaN base → ignored');
+  A._setDriftAmplitude('not-a-number', 0.05);
+  const cur4 = A._getDriftAmplitude();
+  assert.equal(cur4.base, 0.05, 'string base → ignored');
+  A._setDriftAmplitude(0.05, Infinity);
+  const cur5 = A._getDriftAmplitude();
+  assert.equal(cur5.beatScale, 0.10, 'Infinity beatScale → ignored');
+
+  // Finite out-of-range numbers clamp to [0, 1] (consistent with the
+  // runtime's _validateDriftAmplitude contract).
+  A._setDriftAmplitude(1.5, 0.02);
+  const cur6 = A._getDriftAmplitude();
+  assert.equal(cur6.base, 1.0, 'base>1 clamped to 1.0');
+  assert.equal(cur6.beatScale, 0.02, 'beatScale applied alongside');
+  A._setDriftAmplitude(0.01, -0.5);
+  const cur7 = A._getDriftAmplitude();
+  assert.equal(cur7.base, 0.01, 'base applied alongside');
+  assert.equal(cur7.beatScale, 0.0, 'beatScale<0 clamped to 0.0');
+
+  restoreDrift(driftSnap);
+}
+
+console.log('AUTOMIX UNIT: ALL GREEN (52 tests)');
