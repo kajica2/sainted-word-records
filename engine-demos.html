@@ -193,7 +193,7 @@
       a.setAttribute('aria-label', `${engine.id} engine ${engine.v}`);
       a.innerHTML = `
         <div class="frame">
-          <img data-thumb-src="/verify-screenshots/${engine.id}.png" alt="${engine.id} engine preset thumb" loading="lazy"><div class="placeholder">${engine.id}…</div>
+          <img src="/verify-screenshots/${engine.id}.png" alt="${engine.id} engine preset thumb" loading="lazy" onerror="this.classList.add('broken');"><div class="placeholder">${engine.id}…</div>
         </div>
         <div class="body">
           <div class="label">${engine.label}</div>
@@ -236,12 +236,18 @@
     setFilter('all');
 
     // Lazy-load PNGs: set src only when the image enters the viewport.
+    // NOTE: src is now set directly in the build() template above; this observer
+    // is now a no-op fallback for older browsers that need explicit hydration.
+    // We deliberately do NOT use data-thumb-src here — BUG-004 found that
+    // relying on JS to copy data-thumb-src → src leaves the last few images
+    // broken when the observer doesn't fire (small viewport, headless test,
+    // or user never scrolls). Direct src + loading="lazy" is browser-native
+    // and survives all those cases.
     if ('IntersectionObserver' in window) {
       const io = new IntersectionObserver((entries) => {
         for (const ent of entries) {
           if (!ent.isIntersecting) continue;
           const node = ent.target;
-          if (node.tagName === 'IMG') node.src = node.dataset.thumbSrc;
           // hide the placeholder sibling on intersection
           const sib = node.parentElement.querySelector('.placeholder');
           if (sib) sib.classList.add('hidden');
