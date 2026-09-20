@@ -306,3 +306,34 @@ This plan file:
 ## Pending tweaks
 
 _(To be filled in by user if any of sections 1–4 of the brainstormed design need adjustments.)_
+
+---
+
+## Shipped
+
+- Branch: `feat/automix-v2-port`
+- Final commit hash: `<filled in at commit time — see the docs commit appended below>`
+- Mega-PR commit chain (oldest → newest, matches `git log 49e275a~1..feat/automix-v2-port`):
+  - `49e275a` docs(plan): automix v2 cross-variant port (17 variants, mega-PR)
+  - `9482db8` feat(automix): runtime config-loader for cross-variant port (Task 1 initial)
+  - `c25ca94` feat(automix): runtime config-loader replaces drift amplitudes (Task 1 round 1 fix)
+  - `098ab53` feat(automix): runtime config-loader parity for tuning + label tests (Task 1 round 2 fix)
+  - `f59ea82` feat(automix): 17 variant configs + vite inline plugin (Task 2)
+  - `6848752` feat(automix): cross-variant UI hook (17 toggle buttons + script tags) (Task 3)
+  - `22dad03` feat(automix): opt out echo-manifold + tape (no automix stack) (Task 3 round 1)
+  - `b2a9c6a` feat(automix): test coverage for cross-variant port (Task 4)
+  - `f23b84d` feat(automix): smoke assertion now checks _fxOverride evolution (Task 4 round 1 fix)
+  - `<docs commit>` docs(automix): changelog + AGENTS.md + plan close-out (Task 5)
+
+### Surface coverage at ship time
+
+- 22 surfaces total: 1 reference (`music_video`) + 5 core (neon, film, grid, smoke, hallucination) + 16 artistic presets.
+- 15 enabled (toggle ships + toggles runtime): aurora, baroque, chrome, collage, eclipse, fractal, glitch, kraft, mosaic, phosphor, pulse, spectrum, typography, void, watercolor.
+- 2 opt-out (`enabled: false`, toggle hidden): echo-manifold, tape.
+- `music-video-gallery.html` deliberately not wired (gallery, not a single-variant engine).
+
+### Docs deliverables (Task 5)
+
+- `docs/CHANGELOG-2026-09-21.md` — new dated changelog with the cross-variant rollout summary. Created following the project's established `docs/CHANGELOG-YYYY-MM-DD.md` convention (the brief referenced `docs/CHANGELOG.md`, which doesn't exist in the repo). See Task 5 report for rationale.
+- `AGENTS.md` — appended a sentence to the `versions/` line acknowledging the cross-variant rollout + the `enabled: false` opt-outs; added a new `variants/` line describing the per-variant config convention; added `inline-automix-config` to the `vite.config.js` plugin list.
+- This plan file — appended "Shipped" section (this section).
