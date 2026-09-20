@@ -732,5 +732,46 @@
   })();
   </script>
   <script src="/client/dashboard-engine.client.js" defer></script>
+
+  <!-- Phase 3: Music-video automix+curator runtimes (exposed for any
+       future dashboard integration). Each script is wrapped in IIFE +
+       guard, so loading them in this separate runtime is a no-op when no
+       audio/anchor/last-mix context exists. -->
+  <script src="/client/automix-runtime.client.js"></script>
+  <script src="/client/hook-detector.client.js"></script>
+  <script src="/client/stats.client.js"></script>
+  <script src="/client/mood.client.js"></script>
+  <script src="/client/scenes.client.js"></script>
+
+  <!-- Phase 3 status tile: read-only panel that surfaces whether the
+       extracted runtimes loaded. The dashboard has its own engine runtime
+       (window.__SWR_ENGINE) and doesn't share state with engine.html or
+       the variants, so the runtimes here are exposed globals only — they
+       become functional once dashboard-engine is wired to drive them. -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tile = document.createElement('div');
+    tile.id = 'automix-curator-status';
+    tile.className = 'absolute bottom-4 right-4 z-30 panel px-3 py-2 rounded-md text-[10px] font-mono';
+    tile.style.cssText = 'background: rgba(10,10,11,0.85); border:1px solid var(--line); color:var(--fg-mute); min-width:200px; pointer-events:none;';
+    function refresh() {
+      const items = [
+        ['automix',      !!window.automix],
+        ['hookDetector', !!window.SWR_HOOK_DETECTOR],
+        ['stats',        !!window.SWR_STATS],
+        ['mood',         !!window.SWR_MOOD],
+        ['scenes',       !!window.SWR_SCENES],
+      ];
+      tile.innerHTML = '<div class="micro mb-1" style="color:var(--signal);letter-spacing:0.12em;">CURATOR STATUS</div>'
+        + items.map(function ([k, v]) {
+          return '<div style="display:flex;justify-content:space-between;gap:8px;"><span>' + k + '</span><span style="color:' + (v ? 'var(--g)' : 'var(--muted)') + ';">' + (v ? 'loaded' : 'absent') + '</span></div>';
+        }).join('');
+    }
+    refresh();
+    // Refresh periodically so future load-order changes are reflected.
+    setInterval(refresh, 2000);
+    document.body.appendChild(tile);
+  });
+  </script>
 </body>
 </html>
