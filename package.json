@@ -63,6 +63,8 @@
     "verify:narrative-applyR": "node verify-narrative-applyR.mjs",
     "verify:asset-curator": "node verify-asset-curator.mjs",
     "verify:dashboard-curate-integration": "node verify-dashboard-curate-integration.mjs",
+    "verify:engine-narrative": "node verify-engine-narrative.mjs",
+    "verify:variant-narrative": "node verify-variant-narrative.mjs",
     "verify:dashboard-automix": "node verify-dashboard-automix.mjs",
     "verify:dashboard-automix-integration": "node verify-dashboard-automix-integration.mjs",
     "verify:automix-cross-surface": "node verify-automix-cross-surface.mjs",

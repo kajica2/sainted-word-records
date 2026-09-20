@@ -5445,6 +5445,18 @@
         $('fps-v').textContent = Math.round(this.fps) + ' fps';
         // Sample audio features
         if (Audio.playing) Audio.sample();
+        // Narrative-state step (ADR-001 rollout): feeds the song's
+        // emergent drift / tension / peak state. The accumulator
+        // computes its values from raw rms/beat/centroid; the
+        // renderer reads state.drift.{x,y} below.
+        if (window.SWR_NARRATIVE && Audio.feat) {
+          window.SWR_NARRATIVE.step({
+            rms: Audio.feat.rms,
+            beat: Audio.feat.beat,
+            centroid: Audio.feat.centroid || 0,
+            dt: dt,
+          });
+        }
         // Smooth features
         const a = Audio.feat, s = this.smooth;
         const k = 0.18;
@@ -5477,8 +5489,22 @@
             const t = this._t;
             // Smooth slow drift, scaled by audio energy (mid → x, treble → y, beat → rot kick)
             const eMid = s.mid, eTre = s.treble, eBeat = s.beat;
-            l.pos.x = Math.sin(t * 0.35 + ph) * 22 + eMid * 18;
-            l.pos.y = Math.cos(t * 0.28 + ph * 0.7) * 18 + eTre * 14;
+            // Narrative-state drift bias (ADR-001 rollout): the song's
+            // accumulated drift walker biases each layer's position so
+            // the visual reflects the song's journey, not just its
+            // instantaneous features. drift.{x,y} are bounded to [-1, +1]
+            // (see narrative-state.client.js). phase.driftAmp scales by
+            // song lifecycle (intro 0.3 → middle 1.0 → climax 1.4).
+            // 80px / 60px scales match the score-evolution branch's
+            // tuning. Guarded by `if (window.SWR_NARRATIVE)` so the
+            // auto-drift loop is no-op if the module isn't loaded.
+            const _ns = window.SWR_NARRATIVE;
+            const _phase = _ns ? _ns.phaseMultiplier((Audio.audioEl && Audio.audioEl.duration) || 0) : { driftAmp: 0 };
+            const _micro = _ns ? _ns.getMicroAmp() : 1;
+            const _driftX = _ns ? _ns.state.drift.x * _phase.driftAmp * 80 * _micro : 0;
+            const _driftY = _ns ? _ns.state.drift.y * _phase.driftAmp * 60 * _micro : 0;
+            l.pos.x = Math.sin(t * 0.35 + ph) * 22 + eMid * 18 + _driftX;
+            l.pos.y = Math.cos(t * 0.28 + ph * 0.7) * 18 + eTre * 14 + _driftY;
             l.pos.rot = Math.sin(t * 0.22 + ph * 0.5) * 3.2 + eBeat * 6;
             // v2: snap-to-beat (compute nearest beat for layers that opted in)
             if (l.snapBeat && Audio._beatGrid && Audio._beatGrid.length) {
@@ -6607,6 +6633,10 @@
           setTimeout(() => { cleanup(); resolve(); }, 8000);
         });
         const dur = (Audio.audioEl && Audio.audioEl.duration) || 0;
+        // Narrative-state init (ADR-001 rollout). Seeds the accumulator
+        // with the loaded song's metadata. bpm default 120 until the
+        // beat detector locks on.
+        if (window.SWR_NARRATIVE) window.SWR_NARRATIVE.init(120, dur);
         if (!(dur > 0)) {
           if (typeof setStatus === 'function') {
             setStatus('song loaded · press 🎬 Export video to render', 'warn');
@@ -8219,6 +8249,7 @@
 
   <!-- Hero / Hook / Stats / Mood / Scenes runtimes (Phase 1b) -->
   <!-- NOTE: hero-frames.client.js intentionally omitted per /steer skip hero -->
+  <script src="/client/narrative-state.client.js" defer></script>
   <script src="/client/hook-detector.client.js"></script>
   <script src="/client/stats.client.js"></script>
   <script src="/client/mood.client.js"></script>
