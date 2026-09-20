@@ -3457,8 +3457,10 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload the watermark image based on the user's selector choice
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
+        // Preload the watermark image. If a #rec-wm selector exists it wins;
+        // otherwise we default to slot 'a' (currently the SWR wordmark) so
+        // recordings are protected instead of silently unbranded.
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'a';
         this._loadWatermark(wmSel);
         // PT watermark-free status indicator (no credit consumed at start —
         // the engine charges the renderer on stop, with a final cost based
@@ -3567,8 +3569,8 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload watermark
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
+        // Preload watermark (default to slot 'a' when no #rec-wm selector)
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'a';
         this._loadWatermark(wmSel);
         // PT license chip
         if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
