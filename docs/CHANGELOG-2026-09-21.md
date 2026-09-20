@@ -5,7 +5,7 @@
 > preserve the existing UX; `echo-manifold` and `tape` opt out because their
 > audio-feature extraction diverges from the canonical path.
 
-## Cross-variant automix rollout (9 commits, 22 surfaces)
+## Cross-variant automix rollout (10 commits, 23 surfaces)
 
 The 17 artistic variants (`aurora, baroque, chrome, collage, echo-manifold,
 eclipse, fractal, glitch, kraft, mosaic, phosphor, pulse, spectrum, tape,
@@ -31,7 +31,7 @@ Commits (mega-PR chain, oldest first):
 - `22dad03` — `feat(automix): opt out echo-manifold + tape (no automix stack)` (Task 3 round 1)
 - `b2a9c6a` — `feat(automix): test coverage for cross-variant port` (Task 4)
 - `f23b84d` — `feat(automix): smoke assertion now checks _fxOverride evolution (round 1 fix)`
-- `<this commit>` — `docs(automix): changelog + AGENTS.md + plan close-out` (Task 5)
+- `4559525` — `docs(automix): changelog + AGENTS.md + plan close-out` (Task 5)
 
 ## Stats
 
