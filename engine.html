@@ -133,6 +133,7 @@
     }
     .pill.ok { color: var(--ok); border-color: rgba(0, 255, 163, 0.3); }
     .pill.live { color: var(--accent); border-color: rgba(255, 61, 146, 0.4); animation: pulse 1.4s ease-in-out infinite; }
+    .pill.err { color: #ff6464; border-color: rgba(255, 100, 100, 0.35); }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
     /* Key pill: warm for major, cool for minor (palette-locked) */
     #key-pill.major { color: var(--accent-3); border-color: rgba(255, 210, 74, 0.4); }
@@ -1621,6 +1622,7 @@
         <canvas id="meter" width="180" height="24" style="margin: 0 12px;"></canvas>
         <span class="pill" id="bpm-pill">BPM <b>—</b></span>
         <span class="pill" id="key-pill">KEY <b>—</b></span>
+        <span class="pill" id="status-pill" data-default="idle">idle</span>
         <button class="tbtn ghost" id="load-song">Load song</button>
         <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" style="display:none" />
         <button class="tbtn danger" id="rec" disabled>● REC</button>
@@ -5613,8 +5615,10 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload the watermark image based on the user's selector choice
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
+        // Preload the watermark image. If a #rec-wm selector exists it wins;
+        // otherwise we default to slot 'a' (currently the SWR wordmark) so
+        // recordings are protected instead of silently unbranded.
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'a';
         this._loadWatermark(wmSel);
         // PT watermark-free status indicator (no credit consumed at start —
         // the engine charges the renderer on stop, with a final cost based
@@ -5723,8 +5727,8 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload watermark
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
+        // Preload watermark (default to slot 'a' when no #rec-wm selector)
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'a';
         this._loadWatermark(wmSel);
         // PT license chip
         if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
