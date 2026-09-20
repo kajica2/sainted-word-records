@@ -2098,18 +2098,6 @@
           <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
         </div>
       </div>
-      <div id="hero-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">
-          <span style="flex:1;">Hero Frames</span>
-          <span id="hero-count" style="color:var(--c);">0</span>
-          <button id="hero-clear" class="tbtn" title="Clear captured frames" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
-        </div>
-        <div id="hero-thumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;min-height:48px;"></div>
-        <div style="display:flex;gap:4px;padding-top:4px;">
-          <button id="hero-grab" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Grab now</button>
-          <button id="hero-suggest" class="tbtn" style="flex:1;padding:3px 6px;font-size:9px;">Suggest 3</button>
-        </div>
-      </div>
       <div id="3d-picker" class="hidden" style="position:absolute; top: 38px; right: 8px; background: var(--bg-elevated, #1a1208); border: 1px solid var(--line, #3a2a22); border-radius: 6px; padding: 4px; display: flex; gap: 4px; z-index: 50;">
         <button class="tbtn ghost" data-3d="sphere"      style="padding:3px 8px; font-size:9px;">Sphere</button>
         <button class="tbtn ghost" data-3d="cube"        style="padding:3px 8px; font-size:9px;">Cube</button>
@@ -8205,6 +8193,13 @@
 
   <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
   <script src="/client/automix-runtime.client.js"></script>
+
+  <!-- Hero / Hook / Stats / Mood / Scenes runtimes (Phase 1b) -->
+  <!-- NOTE: hero-frames.client.js intentionally omitted per /steer skip hero -->
+  <script src="/client/hook-detector.client.js"></script>
+  <script src="/client/stats.client.js"></script>
+  <script src="/client/mood.client.js"></script>
+  <script src="/client/scenes.client.js"></script>
 
   <script type="module" src="/engine-panel-visibility.client.js"></script>
   <script type="module" src="/layer-scheduler.client.js"></script>

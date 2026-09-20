@@ -64,7 +64,6 @@ const AUTOMIX_SCRIPTS = [
 const PANEL_IDS = [
   'mood-overlay',
   'hook-panel',
-  'hero-panel',
   'automix-toggle',
   'automix-state',
   'automix-freeze',
@@ -78,10 +77,6 @@ const PANEL_IDS = [
   'hook-time',
   'hook-energy',
   'hook-conf',
-  'hero-count',
-  'hero-thumbs',
-  'hero-grab',
-  'hero-suggest',
   'stats-btn',
   'mood-btn',
   'scenes-btn',
@@ -131,15 +126,22 @@ async function run() {
     if (missingPanels.length === 0) ok(`all ${PANEL_IDS.length} panel IDs present in DOM`);
     else fail('panel IDs present', `missing: ${missingPanels.join(', ')}`);
 
-    // 4. automix global API exposed
+    // 4. automix global API exposed (5 newly-extracted runtimes)
+//    Note: SWR_HERO_FRAMES was already inline in engine.html before this
+//    port (line 6989) — it's intentionally NOT extracted from music_video
+//    per the /steer skip hero direction. We don't assert its presence.
     const apiExposed = await page.evaluate(() => ({
       automix: !!(window.automix && typeof window.automix.toggle === 'function'),
       runtime: !!window.SWR_AUTOMIX_RUNTIME,
       library: !!window.SWR_AUTOMIX,
-      layerState: !!(window.SWR_LAYER_STATE || window.layerStateStore),
+      hookDetector: !!(window.SWR_HOOK_DETECTOR && typeof window.SWR_HOOK_DETECTOR.detect === 'function'),
+      stats: !!(window.SWR_STATS && typeof window.SWR_STATS.summary === 'function'),
+      mood: !!(window.SWR_MOOD && typeof window.SWR_MOOD.analyze === 'function'),
+      scenes: !!(window.SWR_SCENES && typeof window.SWR_SCENES.list === 'function'),
     }));
-    if (apiExposed.automix && apiExposed.library) ok('automix runtime + library both exposed on window');
-    else fail('automix API exposed', `runtime=${apiExposed.runtime} lib=${apiExposed.library} api=${apiExposed.automix}`);
+    const allRuntimes = Object.values(apiExposed).every(Boolean);
+    if (allRuntimes) ok('all 5 extracted runtimes exposed on window');
+    else fail('runtime APIs exposed', JSON.stringify(apiExposed));
 
     // 5. Click Automix toggle — state text changes
     // engine.html's footer is wide; the Automix button is off-screen on
