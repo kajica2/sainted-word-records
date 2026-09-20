@@ -380,6 +380,7 @@
 <script src="../lib/reset-state.client.js"></script>
     <script src="../lib/recorder.client.js"></script>
 <script src="../audio-analysis-v2.js" defer></script>
+  <script src="../client/narrative-state.client.js" defer></script>
 <link rel="stylesheet" href="../engine-genops.css" />
 <!-- Brand Kit (PRD-007 partial) — chip + 4-card editor. See engine.html for the canonical wiring. -->
 <link rel="stylesheet" href="../brandkit.css" />
@@ -740,6 +741,8 @@
         this.el.addEventListener('timeupdate', ()=>{
           const t=this.el.currentTime,d=this.el.duration||0;
           $('time').textContent = fmt(t)+' / '+fmt(d); });
+        // narrative-state init (ADR-001, Option A: minimal wiring)
+        if (window.SWR_NARRATIVE) window.SWR_NARRATIVE.init(120, this.el.duration || 0);
         this.src = this.ctx.createMediaElementSource(this.el);
         this.src.connect(this.an);
         this.hist = { prev:null, bassAvg:0, fluxAvg:0 }; this.beats=[]; this.feat.bpm=0;
@@ -1518,6 +1521,16 @@
       const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
       $('fps').textContent = Math.round(fps)+' fps';
       if (A.playing) A.sample();
+      // narrative-state step (ADR-001, Option A: minimal wiring — state
+      // machine only; applyR() integration is deferred to a follow-up)
+      if (window.SWR_NARRATIVE) {
+        window.SWR_NARRATIVE.step({
+          rms: A.feat.rms,
+          beat: A.feat.beat,
+          centroid: A.feat.centroid || 0,
+          dt: dt,
+        });
+      }
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
