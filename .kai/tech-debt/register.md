@@ -196,19 +196,40 @@ before any cleanup. Owner: user (Kai).
 
 ## P3 — Nice-to-Have
 
-### P3-001 — No CI on PR open
+### P3-001 — No CI on PR open (CLOSED — extended 2026-09-20)
 
-**Evidence**: Only GitHub Action is `.github/workflows/ci.yml` (PR/push gate). It
-does not run `check:full` or any of the `verify:*` scripts — the curated
-5-smoke + transitions verifier are local-only.
-**Remediation**: add a `ci.yml` that runs `npm run check` on PR open + push to
-non-main branches.
+**Detected**: 2026-09-20.
+**Closed**: 2026-09-20.
+**Evidence (was)**: Only GitHub Action was `.github/workflows/ci.yml`, but it
+didn't run the new automix verifiers or assert build size.
+**Resolution**: Extended `.github/workflows/ci.yml` to also run:
+- `npm run verify:automix-cross-surface` — 33 cross-surface checks
+  (covers engine + 5 variants + dashboard in one run)
+- `npm run build` — full Vite build
+- `du`-based size budget check — fails if dist/ > 130MB
 
-### P3-002 — Build size not enforced
+`presets-daily.yml` removed separately on 2026-09-20 (commit `c27b669`).
+Still local-only: per-surface `verify:<variant>-automix` (covered by
+cross-surface run), deeper unit suites (`check:mv-*`, `check:automix-unit`).
+These are investigation tools, not merge gates.
 
-**Evidence**: Build is ~66MB post-library-removal. No budget assertion in CI.
-**Remediation**: when adding new asset-heavy features, snapshot build size in
-`.vercel-build-size.json` and assert ≤ 80MB.
+### P3-002 — Build size not enforced (CLOSED — extended 2026-09-20)
+
+**Detected**: 2026-09-20.
+**Closed**: 2026-09-20.
+**Evidence (was)**: Build is ~114M (macOS du block-padded; ~96M file-content).
+No budget assertion in CI.
+**Resolution**: Added a build-size budget step in `.github/workflows/ci.yml`:
+- `find dist/ -type f -printf '%s\n' | awk '{s+=$1}'` sums file contents
+- Asserts total ≤ 130M (≈36% headroom over current 96M file-content)
+- On breach: `::error::` annotation + sorted breakdown of top contributors
+- CI timeout for the build step: included in the 20-min job timeout
+
+Note: this budget is asset-heavy (keyart 49M, portfolio 18M,
+gallery-vintage 10M, audios 8M, tutorial 6M). JS code added by
+Phase 1-4 was ~100KB total — well under any reasonable budget.
+If a future feature adds significant assets (e.g. new persona art
+set), the budget should be raised intentionally, not silently inflated.
 
 ### P3-003 — Backup branches accumulating under `backup/*`
 

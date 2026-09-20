@@ -15,9 +15,21 @@ name: CI
 #           onBpmUpdate on the last line, clobbering the hook assigned
 #           earlier in the same IIFE
 #      Both would have been caught here.)
+#   4. (added 2026-09-20) run npm run verify:automix-cross-surface —
+#      loads all 7 surfaces (engine + 5 variants + dashboard) and
+#      asserts the 11+5 scripts + 18 panel IDs + 5 runtime APIs are
+#      present on each. Caught the Phase 1a/2/3 regression risk where
+#      every surface has to ship the same automix+curator stack.
+#   5. (added 2026-09-20) run npm run build + size budget assertion —
+#      the music_video → all-surfaces port added ~100KB of JS but the
+#      real cost is the asset library (keyart 49M, portfolio 18M,
+#      gallery-vintage 10M, audios 8M). 130MB ceiling = current 114M
+#      + ~14% headroom for legitimate growth (SVG optimization, new
+#      persona art). Anything bigger is a regression to investigate.
 #
 # A passing CI run is the contract: 'the engine boot path + the
-# transitions module + the curated 5-smoke still work end-to-end'.
+# transitions module + the curated 5-smoke + the automix stack
+# across all surfaces + the build size is still under 130MB'.
 # Don't merge without it green.
 # 'on' is quoted to dodge YAML 1.1's yes/no/on/off-as-boolean parsing
 # (GitHub Actions uses YAML 1.2 and parses 'on:' correctly unquoted).
@@ -37,9 +49,9 @@ concurrency:
 
 jobs:
   ci:
-    name: check + verify
+    name: check + verify + build-size
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,3 +76,39 @@ jobs:
         # 38 checks: module shape, every transition fires cleanly, UI
         # popover, auto-fire wiring, BPM hook, console clean.
         run: npm run verify:transitions
+
+      - name: verify:automix-cross-surface
+        # Net-new as of 2026-09-20 — the music_video → all-surfaces port
+        # added the automix+curator stack to 7 surfaces. This verifier
+        # boots each one and asserts the 11 automix-stack scripts +
+        # 5 runtime scripts + 18 panel IDs + 5 runtime APIs are present.
+        # 33 checks total; catches panel/script drift across surfaces.
+        # The per-surface verifies (engine/neon/film/grid/smoke/
+        # hallucination/dashboard) are covered by this cross-surface
+        # run, so we don't need to invoke them individually.
+        run: npm run verify:automix-cross-surface
+
+      - name: vite build
+        # Needed so we can measure dist/ size. Adds ~30s to CI but
+        # catches build-config regressions (broken copy-static plugin,
+        # missing vite plugins, etc.) and feeds the size-budget check
+        # below.
+        run: npm run build
+
+      - name: build-size budget (<= 130M)
+        # 130M ceiling = current 114M (post-Phase 1-4 + keyart growth)
+        # + ~14% headroom. If this fails, the asset library grew in a
+        # way that needs justification — don't silently let the budget
+        # inflate. Uses stat-based byte counting so it works on both
+        # GNU and BSD du (GitHub Actions runners are Ubuntu GNU).
+        run: |
+          SIZE_BYTES=$(find dist/ -type f -printf '%s\n' | awk '{s+=$1} END {print s+0}')
+          SIZE_MB=$(awk "BEGIN { printf \"%.1f\", $SIZE_BYTES / 1048576 }")
+          BUDGET_MB=130
+          BUDGET_BYTES=136314880
+          echo "[ci] dist/ size: ${SIZE_MB}M (budget: ${BUDGET_MB}M)"
+          if [ "$SIZE_BYTES" -gt "$BUDGET_BYTES" ]; then
+            echo "::error::dist/ is ${SIZE_MB}M, exceeds ${BUDGET_MB}M budget"
+            du -sh dist/* 2>/dev/null | sort -rh | head -10
+            exit 1
+          fi
