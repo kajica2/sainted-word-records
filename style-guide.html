@@ -1,0 +1,1487 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SWR Style Guide · Sainted Word Records</title>
+  <meta name="description" content="Single source of truth for the Sainted Word Records visual language: warm cream surfaces, hot-pink identity, 5 visual-language product cards, full component library." />
+  <link rel="icon" href="./logos/swr-monogram-current.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ====================================================================
+       01 · DESIGN TOKENS
+       The system is warm-by-default with three product-identity moments
+       reserved for the 5 visual languages. Pill-radius is the default
+       shape language (carried over from the MiniMax system, adapted to
+       SWR's warm aesthetic).
+       ==================================================================== */
+    :root {
+      /* Surfaces (warm cream) */
+      --canvas:        #faf7f2;
+      --surface:       #f1ebe1;
+      --surface-soft:  #ffffff;
+      --surface-deep:  #0e0c0a;
+      --footer:        #161310;
+      /* Ink (warm, sepia-tinted black) */
+      --ink:           #1a1612;
+      --ink-2:         #2c2419;
+      --charcoal:      #4a4035;
+      --slate:         #5a4d40;
+      --steel:         #7a6a55;
+      --stone:         #8a7a66;
+      --muted:         #a89889;
+      /* Borders */
+      --hairline:      #ddd3c2;
+      --hairline-soft: #e8e0d0;
+      /* Brand — reserved for product identity (5 visual languages) */
+      --hot:           #e6306b;
+      --hot-glow:      #ff2d8a;
+      --orange:        #ff8a3a;
+      --orange-glow:   #ffaa3a;
+      --green:         #1c8c64;
+      --neon-green:    #00ffa3;
+      --cool:          #0085b3;
+      --cool-glow:     #00e5ff;
+      --gold:          #fff04a;
+      --purple:        #7c4dff;
+      /* The 5 visual languages — the system’s product identity palette */
+      --neon-a:        #ff2d8a;
+      --neon-b:        #00f0ff;
+      --film-a:        #d4a574;
+      --film-b:        #1a1612;
+      --grid-a:        #1a1a1a;
+      --grid-b:        #f5f5f5;
+      --smoke-a:       #d4c7b3;
+      --smoke-b:       #4a4035;
+      --hal-a:         #ff2d8a;
+      --hal-b:         #00ffa3;
+      --hal-c:         #0a0610;
+      /* Semantic */
+      --success:       #1c8c64;
+      --success-bg:    #e8f5ee;
+      --warn:          #d97706;
+      --warn-bg:       #fef3e2;
+      --error:         #c4381d;
+      --error-bg:      #fdebe7;
+      /* Code (dark) */
+      --code-bg:       #1a1612;
+      --code-ink:      #f5ead8;
+      --code-line:     #2c2419;
+      --code-comment:  #6a5d4a;
+      --code-key:      #ffaa3a;
+      --code-str:      #00ffa3;
+      --code-fn:       #ff2d8a;
+      /* Shadows */
+      --shadow-card:  0 1px 2px rgba(26,22,18,0.04), 0 4px 12px rgba(26,22,18,0.04);
+      --shadow-pop:   0 2px 8px rgba(26,22,18,0.06), 0 16px 48px rgba(26,22,18,0.08);
+      --shadow-glow:  0 0 24px rgba(230,48,107,0.16);
+      /* Radii (pill-by-default, like MiniMax) */
+      --r-xs:    4px;
+      --r-sm:    6px;
+      --r-md:   12px;
+      --r-lg:   16px;
+      --r-xl:   24px;
+      --r-pill: 9999px;
+      /* Fonts */
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body:    'Geist', ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
+      --font-mono:    'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      /* Transitions */
+      --t-fast: 0.12s ease;
+      --t-base: 0.18s ease;
+      --t-slow: 0.36s ease;
+    }
+
+    /* ====================================================================
+       02 · BASE
+       ==================================================================== */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--canvas);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    code, pre, .mono { font-family: var(--font-mono); }
+    a { color: var(--hot); text-decoration: none; }
+    a:hover { color: var(--ink); }
+    ::selection { background: var(--hot); color: white; }
+
+    /* ====================================================================
+       03 · LAYOUT SHELL (sidebar nav + main)
+       ==================================================================== */
+    .shell { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+
+    /* --- sidebar --- */
+    nav.side {
+      position: sticky; top: 0; align-self: start;
+      height: 100vh; overflow: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--hairline);
+      padding: 28px 22px;
+    }
+    nav.side .brand {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 28px; padding-bottom: 22px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    nav.side .logo {
+      width: 34px; height: 34px; border-radius: var(--r-sm);
+      background: var(--ink);
+      display: grid; place-items: center;
+      color: #fff; font-weight: 700; font-size: 17px;
+      font-family: var(--font-display);
+      position: relative;
+    }
+    nav.side .logo::after {
+      content: ""; position: absolute; right: -3px; top: -3px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--hot); box-shadow: 0 0 8px var(--hot);
+    }
+    nav.side .brand-name {
+      font-family: var(--font-display); font-weight: 500; font-size: 15px;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    nav.side .brand-sub {
+      font-size: 10.5px; color: var(--stone); margin-top: 2px;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    nav.side .group {
+      font-size: 10.5px; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--stone);
+      margin: 20px 8px 8px; font-weight: 600;
+    }
+    nav.side a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: var(--r-sm);
+      color: var(--charcoal); text-decoration: none; font-size: 13px;
+      transition: background var(--t-fast);
+    }
+    nav.side a:hover { background: rgba(26,22,18,0.04); }
+    nav.side a.active { background: var(--ink); color: #fff; }
+    nav.side a .num {
+      font-family: var(--font-mono); font-size: 10.5px;
+      color: var(--stone); width: 22px; flex-shrink: 0;
+    }
+    nav.side a.active .num { color: rgba(255,255,255,0.6); }
+    nav.side .ver-pill {
+      display: inline-block; padding: 2px 7px; margin-left: auto;
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      background: var(--hot); color: white; border-radius: var(--r-pill);
+      font-weight: 600;
+    }
+
+    /* --- main --- */
+    main { padding: 56px 64px 120px; max-width: 1180px; }
+    section { margin-bottom: 88px; scroll-margin-top: 24px; }
+    h1.doc-title {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 56px; letter-spacing: -0.02em; line-height: 1.05;
+      margin: 0 0 12px;
+    }
+    h1.doc-title em { font-style: italic; color: var(--hot); }
+    .doc-kicker {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--stone); margin-bottom: 10px; font-weight: 600;
+    }
+    .doc-lead {
+      color: var(--slate); font-size: 16px; line-height: 1.55;
+      max-width: 720px; margin: 0 0 48px;
+    }
+
+    h2.section {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 32px; letter-spacing: -0.015em; line-height: 1.15;
+      margin: 0 0 6px;
+      display: flex; align-items: baseline; gap: 14px;
+    }
+    h2.section .num {
+      font-family: var(--font-mono); font-size: 11px; color: var(--stone);
+      font-weight: 500; letter-spacing: 0.06em;
+    }
+    .section-blurb {
+      color: var(--slate); font-size: 14.5px; line-height: 1.55;
+      margin: 0 0 28px; max-width: 660px;
+    }
+    h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 18px; margin: 36px 0 14px; letter-spacing: -0.01em;
+    }
+    hr.rule { border: 0; border-top: 1px solid var(--hairline); margin: 48px 0; }
+
+    /* ====================================================================
+       04 · DOC TITLE + HERO BAND
+       ==================================================================== */
+    .hero-band {
+      background: var(--ink); color: var(--code-ink);
+      border-radius: var(--r-xl);
+      padding: 56px 48px; margin: 32px 0 36px;
+      position: relative; overflow: hidden;
+    }
+    .hero-band::before {
+      content: ""; position: absolute; right: -100px; top: -80px;
+      width: 360px; height: 360px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(230,48,107,0.30) 0%, transparent 70%);
+    }
+    .hero-band::after {
+      content: ""; position: absolute; left: -100px; bottom: -120px;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,138,58,0.20) 0%, transparent 70%);
+    }
+    .hero-band h2 {
+      font-family: var(--font-display); font-size: 64px;
+      font-weight: 400; letter-spacing: -0.025em; line-height: 1.0;
+      margin: 0; position: relative; z-index: 1; color: #fff;
+    }
+    .hero-band h2 em { font-style: italic; color: var(--hot-glow); }
+    .hero-band p {
+      font-size: 16px; color: rgba(255,255,255,0.7);
+      max-width: 540px; margin: 16px 0 28px; position: relative; z-index: 1;
+    }
+    .hero-band .cta-row { display: flex; gap: 10px; position: relative; z-index: 1; }
+
+    /* ====================================================================
+       05 · PRINCIPLES
+       ==================================================================== */
+    .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .principle {
+      border-radius: var(--r-md); background: var(--surface-soft);
+      border: 1px solid var(--hairline); padding: 22px 24px;
+      box-shadow: var(--shadow-card);
+    }
+    .principle .p-num {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--stone); margin-bottom: 8px;
+    }
+    .principle h3 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 0 0 8px; color: var(--ink);
+    }
+    .principle p { font-size: 13.5px; color: var(--slate); margin: 0; line-height: 1.55; }
+
+    /* ====================================================================
+       06 · COLOR SWATCHES
+       ==================================================================== */
+    .swatches {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .swatch {
+      border: 1px solid var(--hairline); border-radius: var(--r-md);
+      overflow: hidden; background: var(--surface-soft);
+    }
+    .swatch .chip { height: 96px; position: relative; }
+    .swatch .chip .ring { position: absolute; top: 12px; right: 12px; }
+    .swatch .meta { padding: 12px 14px; }
+    .swatch .name { font-weight: 600; font-size: 13px; color: var(--ink); }
+    .swatch .hex {
+      font-family: var(--font-mono); font-size: 11.5px;
+      color: var(--slate); margin-top: 2px;
+    }
+    .swatch .role { font-size: 11px; color: var(--stone); margin-top: 6px; }
+
+    /* token table */
+    table.tokens {
+      width: 100%; border-collapse: collapse; font-size: 13.5px;
+      margin-top: 16px;
+    }
+    table.tokens th, table.tokens td {
+      text-align: left; padding: 10px 12px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    table.tokens th {
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--stone); font-weight: 600; background: var(--surface);
+    }
+    table.tokens td.mono { font-family: var(--font-mono); font-size: 12.5px; }
+    table.tokens .swatch-mini {
+      display: inline-block; width: 14px; height: 14px;
+      border-radius: 3px; vertical-align: middle; margin-right: 8px;
+      border: 1px solid var(--hairline);
+    }
+
+    /* ====================================================================
+       07 · TYPOGRAPHY SPECIMEN
+       ==================================================================== */
+    .type-row {
+      display: grid; grid-template-columns: 220px 1fr; gap: 24px;
+      align-items: baseline; padding: 22px 0;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .type-row:last-child { border-bottom: 0; }
+    .type-meta .name { font-weight: 600; font-size: 13px; color: var(--ink); }
+    .type-meta .token {
+      font-family: var(--font-mono); font-size: 11.5px;
+      color: var(--slate); margin-top: 2px;
+    }
+    .type-meta .use { font-size: 11.5px; color: var(--stone); margin-top: 6px; }
+
+    .specimen-display {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: 64px; line-height: 1.05; letter-spacing: -0.025em;
+      color: var(--ink);
+    }
+    .specimen-display em { font-style: italic; color: var(--hot); }
+    .specimen-h1 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 44px; line-height: 1.1; letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .specimen-h2 {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 28px; line-height: 1.2; letter-spacing: -0.015em;
+      color: var(--ink);
+    }
+    .specimen-h3 {
+      font-family: var(--font-body); font-weight: 600;
+      font-size: 20px; line-height: 1.3; color: var(--ink);
+    }
+    .specimen-body {
+      font-family: var(--font-body); font-weight: 400;
+      font-size: 16px; line-height: 1.6; color: var(--ink-2);
+    }
+    .specimen-medium {
+      font-family: var(--font-body); font-weight: 500;
+      font-size: 16px; color: var(--ink);
+    }
+    .specimen-small {
+      font-family: var(--font-body); font-weight: 400;
+      font-size: 14px; color: var(--slate);
+    }
+    .specimen-caption {
+      font-family: var(--font-body); font-weight: 400;
+      font-size: 13px; color: var(--stone);
+    }
+    .specimen-mono {
+      font-family: var(--font-mono); font-size: 13px; color: var(--charcoal);
+    }
+    .specimen-mono .c { color: var(--code-comment); }
+    .specimen-mono .k { color: var(--code-key); }
+    .specimen-mono .s { color: var(--code-str); }
+    .specimen-mono .f { color: var(--code-fn); }
+
+    /* ====================================================================
+       08 · SPACING SCALE
+       ==================================================================== */
+    .space-rows { display: flex; flex-direction: column; gap: 2px; }
+    .space-row {
+      display: grid; grid-template-columns: 100px 1fr 80px;
+      align-items: center; gap: 16px; padding: 8px 0;
+    }
+    .space-row .lbl {
+      font-family: var(--font-mono); font-size: 12px; color: var(--slate);
+    }
+    .space-row .bar {
+      background: var(--ink); height: 10px; border-radius: 3px;
+    }
+    .space-row .val {
+      font-family: var(--font-mono); font-size: 12px; color: var(--stone);
+      text-align: right;
+    }
+
+    /* ====================================================================
+       09 · RADIUS
+       ==================================================================== */
+    .radius-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 18px;
+    }
+    .radius-tile { text-align: center; }
+    .radius-tile .box {
+      width: 100%; aspect-ratio: 1.2;
+      background: var(--ink); margin-bottom: 10px;
+    }
+    .radius-tile .lbl { font-weight: 600; font-size: 12.5px; color: var(--ink); }
+    .radius-tile .tok {
+      font-family: var(--font-mono); font-size: 11px; color: var(--slate);
+    }
+
+    /* ====================================================================
+       10 · SHADOW
+       ==================================================================== */
+    .shadow-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .shadow-tile {
+      background: var(--surface-soft); padding: 28px;
+      border-radius: var(--r-md);
+    }
+    .shadow-tile .demo {
+      height: 80px; background: var(--canvas);
+      border-radius: var(--r-sm); border: 1px solid var(--hairline);
+    }
+    .shadow-tile .lbl { font-weight: 600; font-size: 13px; margin-top: 14px; color: var(--ink); }
+    .shadow-tile .tok {
+      font-family: var(--font-mono); font-size: 11px; color: var(--slate);
+      margin-top: 4px; line-height: 1.4;
+    }
+    .shadow-card-tile { box-shadow: var(--shadow-card); }
+    .shadow-pop-tile { box-shadow: var(--shadow-pop); }
+    .shadow-glow-tile {
+      box-shadow: var(--shadow-glow);
+      border: 1px solid rgba(230,48,107,0.18);
+    }
+
+    /* ====================================================================
+       11 · BUTTONS
+       ==================================================================== */
+    .btn-row {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      margin-bottom: 16px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; font-family: var(--font-body);
+      font-weight: 500; font-size: 14px;
+      border: 1px solid transparent; cursor: pointer;
+      transition: all 0.15s ease; text-decoration: none;
+      border-radius: var(--r-pill);
+    }
+    .btn-primary { background: var(--ink); color: #fff; }
+    .btn-primary:hover { background: var(--hot); transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface-soft); color: var(--ink);
+      border: 1px solid var(--hairline);
+    }
+    .btn-secondary:hover { border-color: var(--ink); }
+    .btn-ghost { background: transparent; color: var(--ink); }
+    .btn-ghost:hover { color: var(--hot); }
+    .btn-hot { background: var(--hot); color: #fff; }
+    .btn-hot:hover { background: var(--hot-glow); transform: translateY(-1px); }
+    .btn-orange { background: var(--orange); color: #fff; }
+    .btn-orange:hover { background: var(--orange-glow); }
+    .btn-cool { background: var(--cool); color: #fff; }
+    .btn-cool:hover { background: var(--cool-glow); }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover { background: var(--neon-green); color: var(--ink); }
+    .btn-lg { padding: 14px 24px; font-size: 15px; }
+    .btn-sm { padding: 7px 14px; font-size: 13px; }
+    .btn-square { border-radius: var(--r-sm); }
+
+    /* ====================================================================
+       12 · BADGES & PILLS
+       ==================================================================== */
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; font-size: 12px; font-weight: 500;
+      border-radius: var(--r-pill); background: var(--surface);
+      color: var(--charcoal); border: 1px solid var(--hairline);
+    }
+    .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hot); }
+    .pill.hot { background: rgba(230,48,107,0.10); color: #b12a55; border-color: rgba(230,48,107,0.18); }
+    .pill.hot .dot { background: var(--hot); }
+    .pill.orange { background: rgba(255,138,58,0.12); color: #b85d1a; }
+    .pill.orange .dot { background: var(--orange); }
+    .pill.green { background: var(--success-bg); color: #14684a; }
+    .pill.green .dot { background: var(--green); }
+    .pill.cool { background: rgba(0,133,179,0.10); color: #005580; }
+    .pill.cool .dot { background: var(--cool); }
+    .pill.neon { background: rgba(0,255,163,0.10); color: #14684a; }
+    .pill.neon .dot { background: var(--neon-green); }
+    .pill.gold { background: rgba(255,240,74,0.16); color: #8a6800; }
+    .pill.gold .dot { background: var(--gold); }
+    .pill.live {
+      background: var(--neon-green); color: var(--ink);
+      border-color: var(--neon-green);
+    }
+    .pill.live .dot {
+      background: var(--ink);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* ====================================================================
+       13 · CARDS
+       ==================================================================== */
+    .card-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      border-radius: var(--r-md); background: var(--surface-soft);
+      border: 1px solid var(--hairline); padding: 22px 22px 24px;
+      box-shadow: var(--shadow-card);
+      transition: transform var(--t-base), box-shadow var(--t-base), border-color var(--t-base);
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-pop);
+      border-color: var(--ink);
+    }
+    .card .card-kicker {
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--stone); font-weight: 600; margin-bottom: 6px;
+    }
+    .card .card-title {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 22px; margin: 0 0 8px; color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .card .card-body { font-size: 13.5px; color: var(--slate); line-height: 1.55; }
+
+    /* Product identity cards — the 5 visual languages */
+    .lang-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px; margin-top: 8px;
+    }
+    .lang-card {
+      position: relative; overflow: hidden;
+      border-radius: var(--r-xl); padding: 26px 24px;
+      color: #fff; min-height: 220px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      box-shadow: var(--shadow-glow);
+      transition: transform var(--t-base);
+    }
+    .lang-card:hover { transform: translateY(-3px); }
+    .lang-card .num {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      opacity: 0.75; margin-bottom: 8px;
+    }
+    .lang-card .name {
+      font-family: var(--font-display); font-weight: 500;
+      font-size: 28px; letter-spacing: -0.015em; line-height: 1.0;
+      margin: 0;
+    }
+    .lang-card .name em { font-style: italic; }
+    .lang-card .tag {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      opacity: 0.8; margin-top: 6px;
+    }
+    .lang-card .stack {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.06em; opacity: 0.7;
+      padding-top: 14px; margin-top: auto;
+      border-top: 1px solid rgba(255,255,255,0.16);
+    }
+    /* The 5 visual languages as product identity cards */
+    .lang-neon   { background: linear-gradient(135deg, #ff2d8a 0%, #1a0612 50%, #00f0ff 100%); }
+    .lang-film   { background: linear-gradient(135deg, #d4a574 0%, #8a4a2a 50%, #1a1612 100%); }
+    .lang-grid   { background: linear-gradient(135deg, #f5f5f5 0%, #888 50%, #1a1a1a 100%); color: #1a1a1a; }
+    .lang-grid .stack { border-top-color: rgba(0,0,0,0.16); }
+    .lang-smoke  { background: linear-gradient(135deg, #f5ead8 0%, #d4c7b3 50%, #4a4035 100%); color: #1a1612; }
+    .lang-smoke .stack { border-top-color: rgba(0,0,0,0.16); }
+    .lang-hal    { background: linear-gradient(135deg, #ff2d8a 0%, #1a0e1a 50%, #00ffa3 100%); }
+
+    /* ====================================================================
+       14 · INPUTS
+       ==================================================================== */
+    .field {
+      display: flex; flex-direction: column; gap: 6px; max-width: 360px;
+    }
+    .field label {
+      font-size: 12.5px; color: var(--slate); font-weight: 500;
+    }
+    .input {
+      padding: 11px 16px; border-radius: var(--r-pill);
+      border: 1px solid var(--hairline); background: var(--surface-soft);
+      font-size: 14px; color: var(--ink);
+      font-family: var(--font-body); outline: none;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    }
+    .input:focus {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(26,22,18,0.08);
+    }
+    .input.square { border-radius: var(--r-sm); }
+
+    /* ====================================================================
+       15 · ICONOGRAPHY
+       ==================================================================== */
+    .icon-grid {
+      display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px;
+    }
+    .icon-tile {
+      aspect-ratio: 1; display: grid; place-items: center;
+      background: var(--surface); border: 1px solid var(--hairline);
+      border-radius: var(--r-sm);
+    }
+    .icon-tile svg {
+      width: 22px; height: 22px;
+      stroke: var(--ink); fill: none; stroke-width: 1.6;
+    }
+
+    /* ====================================================================
+       16 · DO / DONT
+       ==================================================================== */
+    .dodont { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .dodont .item {
+      padding: 20px; border-radius: var(--r-md);
+      border: 1px solid var(--hairline);
+    }
+    .dodont .do {
+      background: var(--success-bg);
+      border-color: rgba(28,140,100,0.25);
+    }
+    .dodont .dont {
+      background: var(--error-bg);
+      border-color: rgba(196,56,29,0.22);
+    }
+    .dodont .head {
+      font-weight: 600; font-size: 11.5px; text-transform: uppercase;
+      letter-spacing: 0.12em; margin-bottom: 8px;
+    }
+    .dodont .do .head { color: #14684a; }
+    .dodont .dont .head { color: #a82a18; }
+    .dodont .item p { margin: 0; font-size: 13.5px; color: var(--charcoal); line-height: 1.55; }
+
+    /* ====================================================================
+       17 · CODE BLOCK
+       ==================================================================== */
+    .codeblock {
+      background: var(--code-bg); color: var(--code-ink);
+      border-radius: var(--r-md); padding: 20px 24px;
+      font-family: var(--font-mono); font-size: 13px; line-height: 1.7;
+      overflow-x: auto; margin: 14px 0;
+    }
+    .codeblock .c { color: var(--code-comment); }
+    .codeblock .k { color: var(--code-key); }
+    .codeblock .s { color: var(--code-str); }
+    .codeblock .f { color: var(--code-fn); }
+
+    /* ====================================================================
+       18 · FOOTER
+       ==================================================================== */
+
+    /* Brand Mark */
+    .brand-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      margin-bottom: 16px;
+    }
+    .brand-tile {
+      border: 1px solid var(--hairline); border-radius: var(--r-md);
+      overflow: hidden; background: var(--surface-soft);
+      transition: transform var(--t-base), box-shadow var(--t-base);
+    }
+    .brand-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+    .brand-tile__bg {
+      display: flex; align-items: center; justify-content: center;
+      padding: 36px 24px; min-height: 160px;
+    }
+    .brand-tile__bg--light { background: #f5f5f5; }
+    .brand-tile__bg--paper { background: var(--surface); }
+    .brand-tile__bg--dark  { background: var(--ink); }
+    .brand-tile__bg img { height: 64px; width: auto; }
+    .brand-tile__img-invert { filter: invert(1); }
+    .brand-tile__meta { padding: 12px 14px; border-top: 1px solid var(--hairline); }
+    .brand-tile__meta .name { font-weight: 600; font-size: 13px; color: var(--ink); }
+    .brand-tile__meta .file { font-family: var(--font-mono); font-size: 11px; color: var(--slate); margin-top: 2px; }
+
+    @media (max-width: 720px) {
+      .brand-grid { grid-template-columns: 1fr; }
+    }
+
+    .footer-block {
+      background: var(--ink); color: #fff;
+      border-radius: var(--r-xl); padding: 56px 48px; margin-top: 32px;
+    }
+    .footer-block h3 {
+      color: #fff; font-family: var(--font-display);
+      font-size: 20px; margin: 0 0 18px; font-weight: 500;
+    }
+    .footer-block .links {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px;
+    }
+    .footer-block .col h4 {
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em;
+      color: rgba(255,255,255,0.5); margin: 0 0 14px; font-weight: 600;
+    }
+    .footer-block .col a {
+      display: block; color: rgba(255,255,255,0.78);
+      text-decoration: none; font-size: 13.5px; padding: 4px 0;
+      transition: color var(--t-fast);
+    }
+    .footer-block .col a:hover { color: #fff; }
+
+    .doc-foot {
+      margin-top: 48px; padding-top: 24px;
+      border-top: 1px solid var(--hairline);
+      display: flex; justify-content: space-between;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--stone); letter-spacing: 0.04em;
+    }
+
+    /* ====================================================================
+       19 · RESPONSIVE
+       ==================================================================== */
+    @media (max-width: 920px) {
+      .shell { grid-template-columns: 1fr; }
+      nav.side {
+        position: relative; height: auto;
+        border-right: 0; border-bottom: 1px solid var(--hairline);
+      }
+      main { padding: 32px 24px 80px; }
+      h1.doc-title { font-size: 40px; }
+      .hero-band h2 { font-size: 40px; }
+      .principles { grid-template-columns: 1fr; }
+      .type-row { grid-template-columns: 1fr; gap: 8px; }
+      .footer-block .links { grid-template-columns: repeat(2, 1fr); }
+      .dodont { grid-template-columns: 1fr; }
+      .icon-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <!-- ====================================================================
+       SIDEBAR NAVIGATION
+       ==================================================================== -->
+  <nav class="side">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <div class="brand-name">Sainted Word Records</div>
+        <div class="brand-sub">Style Guide · v1.0 · 2026</div>
+      </div>
+    </div>
+
+    <div class="group">Foundations</div>
+    <a href="#overview" class="active"><span class="num">00</span> Overview</a>
+    <a href="#brand-mark"><span class="num">01</span> Brand Mark</a>
+    <a href="#voice"><span class="num">02</span> Brand Voice</a>
+    <a href="#color"><span class="num">03</span> Color</a>
+    <a href="#type"><span class="num">04</span> Typography</a>
+    <a href="#space"><span class="num">05</span> Spacing</a>
+    <a href="#radius"><span class="num">06</span> Radius &amp; Shape</a>
+    <a href="#shadow"><span class="num">07</span> Shadows</a>
+
+    <div class="group">Components</div>
+    <a href="#buttons"><span class="num">08</span> Buttons</a>
+    <a href="#badges"><span class="num">09</span> Badges &amp; Pills</a>
+    <a href="#cards"><span class="num">10</span> Cards</a>
+    <a href="#inputs"><span class="num">11</span> Inputs</a>
+    <a href="#icons"><span class="num">12</span> Iconography</a>
+
+    <div class="group">Patterns</div>
+    <a href="#hero"><span class="num">13</span> Hero Band</a>
+    <a href="#footer"><span class="num">14</span> Footer</a>
+    <a href="#languages"><span class="num">15</span> Visual Languages <span class="ver-pill">★</span></a>
+    <a href="#dodont"><span class="num">16</span> Do &amp; Don't</a>
+  </nav>
+
+  <!-- ====================================================================
+       MAIN
+       ==================================================================== -->
+  <main>
+
+    <!-- 00 · OVERVIEW -->
+    <section id="overview">
+      <div class="doc-kicker">Style Guide · 2026 · v1.0</div>
+      <h1 class="doc-title">SWR Design System</h1>
+      <p class="doc-lead">
+        A single source of truth for the Sainted Word Records visual language — built from
+        the live site, the 22 visual-language engine variants, and the service-tier marketing
+        pages. The system is warm by default: cream surfaces, sepia-tinted ink, hot-pink as
+        the single saturated hue. Five named visual languages (Neon, Film, Grid, Smoke,
+        Hallucination) are treated as the system's <em>product identity moments</em> — vibrant,
+        gradient, and reserved.
+      </p>
+
+      <div class="hero-band">
+        <h2>Drop a song.<br/>Get a <em>music video.</em></h2>
+        <p>A browser-based audio-reactive engine. One HTML file. Five visual languages. Zero install. The system is built for that promise.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary btn-lg" href="./landing.html">See the landing →</a>
+          <a class="btn btn-secondary btn-lg" href="#color" style="background:transparent; color:#fff; border-color:rgba(255,255,255,0.2);">Explore the system</a>
+        </div>
+      </div>
+
+      <div class="principles">
+        <div class="principle">
+          <div class="p-num">Principle 01</div>
+          <h3>Warm by default, hot for moments</h3>
+          <p>Cream surfaces, sepia ink, hot-pink only for product identity, the launch CTA, and the 5 visual languages. Ninety percent of the system is monochrome-warm.</p>
+        </div>
+        <div class="principle">
+          <div class="p-num">Principle 02</div>
+          <h3>Pills over rectangles</h3>
+          <p>Every button, badge, tab, and input is full-radius. Rectangles live only in data tables, code blocks, and visual-language preview tiles.</p>
+        </div>
+        <div class="principle">
+          <div class="p-num">Principle 03</div>
+          <h3>Editorial over generic-AI</h3>
+          <p>Fraunces (display) + Geist (body) + Geist Mono (code). The system leads with a serif hero and a generous body voice — never the AI-product sans cliché.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 · BRAND MARK -->
+    <section id="brand-mark">
+      <h2 class="section"><span class="num">01</span> Brand Mark</h2>
+      <p class="section-blurb">The SWR monogram is the system's identity. The wordmark is the full label. Both ship in three surface variants: <strong>current</strong> (inherits color), <strong>black</strong> (light surfaces), and <strong>white</strong> (dark surfaces).</p>
+
+      <h3>Monogram</h3>
+      <div class="brand-grid">
+        <div class="brand-tile">
+          <div class="brand-tile__bg brand-tile__bg--light">
+            <img src="./logos/swr-monogram-black.svg" alt="SWR monogram — black" />
+          </div>
+          <div class="brand-tile__meta">
+            <div class="name">Monogram · Black</div>
+            <div class="file">swr-monogram-black.svg</div>
+          </div>
+        </div>
+        <div class="brand-tile">
+          <div class="brand-tile__bg brand-tile__bg--paper">
+            <img src="./logos/swr-monogram-current.svg" alt="SWR monogram — current" />
+          </div>
+          <div class="brand-tile__meta">
+            <div class="name">Monogram · Current</div>
+            <div class="file">swr-monogram-current.svg</div>
+          </div>
+        </div>
+        <div class="brand-tile">
+          <div class="brand-tile__bg brand-tile__bg--dark">
+            <img src="./logos/swr-monogram-white.svg" alt="SWR monogram — white" class="brand-tile__img-invert" />
+          </div>
+          <div class="brand-tile__meta">
+            <div class="name">Monogram · White</div>
+            <div class="file">swr-monogram-white.svg</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Wordmark</h3>
+      <div class="brand-grid">
+        <div class="brand-tile">
+          <div class="brand-tile__bg brand-tile__bg--light">
+            <img src="./logos/swr-wordmark-black.svg" alt="SWR wordmark — black" />
+          </div>
+          <div class="brand-tile__meta">
+            <div class="name">Wordmark · Black</div>
+            <div class="file">swr-wordmark-black.svg</div>
+          </div>
+        </div>
+        <div class="brand-tile">
+          <div class="brand-tile__bg brand-tile__bg--paper">
+            <img src="./logos/swr-wordmark-current.svg" alt="SWR wordmark — current" />
+          </div>
+          <div class="brand-tile__meta">
+            <div class="name">Wordmark · Current</div>
+            <div class="file">swr-wordmark-current.svg</div>
+          </div>
+        </div>
+        <div class="brand-tile">
+          <div class="brand-tile__bg brand-tile__bg--dark">
+            <img src="./logos/swr-wordmark-white.svg" alt="SWR wordmark — white" />
+          </div>
+          <div class="brand-tile__meta">
+            <div class="name">Wordmark · White</div>
+            <div class="file">swr-wordmark-white.svg</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Usage rules</h3>
+      <div class="dodont">
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Use the monogram for tight spaces (favicons, nav marks, footer corner). Use the wordmark when there's room and the label needs reading. Use <code>current</code> when the parent element already supplies a color via CSS <code>color</code>.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Recolor the monogram manually with CSS filters or background — pick the right variant. Don't mix the monogram and wordmark colors (a black monogram on a dark hero reads as a missing asset).</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Keep the monogram at 32–48px in the nav, 24–32px in the footer. The wordmark reads at 120px+ in marketing and 24px+ in compact UI.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Stretch, skew, or rotate the monogram more than 4°. The mark is geometrically locked. If it needs rotation, use a wrapper.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 · BRAND VOICE -->
+    <section id="voice">
+      <h2 class="section"><span class="num">01</span> Brand Voice</h2>
+      <p class="section-blurb">SWR is an audio-reactive video engine that ships in 90 seconds. The voice pairs editorial confidence (Fraunces) with engineer's precision (Geist Mono).</p>
+
+      <div class="dodont">
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Lead with the product action: "Drop a song. Get a music video." — short, declarative, no qualifiers. Let the visual language carry the warmth.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Stack hype adjectives ("revolutionary", "groundbreaking", "next-gen") or generic AI tropes ("powered by AI", "intelligently designed").</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Use concrete nouns and numbers: "5 visual languages", "48-hour turnaround", "30-second MP4". Specificity is the credibility.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Bury the action. Front-load qualifiers. Three clauses in one sentence. The reader knows the model and the product — they came for the music video.</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Mix register — Fraunces serif for the hero and emotional moments, Geist sans for body, Geist Mono for technical surfaces. The system is multi-voiced by design.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Pick one typeface and use it everywhere. The mixture is the brand. A landing that is all-Geist reads like a SaaS dashboard, not a music engine.</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Talk about audio in music terms — BPM, beat, onsets, FFT bands, chromagram. The audience knows what they sound like. The system respects that.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Talk about audio in data terms — "audio data", "signal processing", "frequency analysis". That language is for spec sheets, not landing pages.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 · COLOR -->
+    <section id="color">
+      <h2 class="section"><span class="num">02</span> Color</h2>
+      <p class="section-blurb">33 tokens across five groups. The system is 90% warm-monochrome. Saturated hues are reserved for product identity, the launch CTA, and the 5 visual languages.</p>
+
+      <h3>Surface &amp; Canvas</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#faf7f2"></div><div class="meta"><div class="name">Canvas</div><div class="hex">#faf7f2</div><div class="role">Page bg, hero surface</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#f1ebe1"></div><div class="meta"><div class="name">Surface</div><div class="hex">#f1ebe1</div><div class="role">Sidebar, alt section bg</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ffffff;border-bottom:1px solid var(--hairline)"></div><div class="meta"><div class="name">Surface Soft</div><div class="hex">#ffffff</div><div class="role">Card backgrounds</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#161310"></div><div class="meta"><div class="name">Footer</div><div class="hex">#161310</div><div class="role">Dense footer, near-black</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#0e0c0a"></div><div class="meta"><div class="name">Surface Deep</div><div class="hex">#0e0c0a</div><div class="role">Hero bands, dark sections</div></div></div>
+      </div>
+
+      <h3>Ink &amp; Text</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#1a1612"></div><div class="meta"><div class="name">Ink</div><div class="hex">#1a1612</div><div class="role">Headlines, CTAs</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#2c2419"></div><div class="meta"><div class="name">Ink 2</div><div class="hex">#2c2419</div><div class="role">Primary text, buttons</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#4a4035"></div><div class="meta"><div class="name">Charcoal</div><div class="hex">#4a4035</div><div class="role">Body text</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#5a4d40"></div><div class="meta"><div class="name">Slate</div><div class="hex">#5a4d40</div><div class="role">Secondary text</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#7a6a55"></div><div class="meta"><div class="name">Steel</div><div class="hex">#7a6a55</div><div class="role">Tertiary text</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#8a7a66"></div><div class="meta"><div class="name">Stone</div><div class="hex">#8a7a66</div><div class="role">Muted captions, kicker</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#a89889"></div><div class="meta"><div class="name">Muted</div><div class="hex">#a89889</div><div class="role">Footer links, helper text</div></div></div>
+      </div>
+
+      <h3>Borders &amp; Hairlines</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#ddd3c2"></div><div class="meta"><div class="name">Hairline</div><div class="hex">#ddd3c2</div><div class="role">Borders, dividers</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#e8e0d0"></div><div class="meta"><div class="name">Hairline Soft</div><div class="hex">#e8e0d0</div><div class="role">Quiet table dividers</div></div></div>
+      </div>
+
+      <h3>Brand &amp; Accent</h3>
+      <p class="section-blurb" style="margin-top:0">Saturated hues for product identity, the launch CTA, and the 5 visual languages. Don't apply to general navigation or chrome.</p>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#e6306b"></div><div class="meta"><div class="name">Hot</div><div class="hex">#e6306b</div><div class="role">Launch CTA, hero accent</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ff2d8a"></div><div class="meta"><div class="name">Hot Glow</div><div class="hex">#ff2d8a</div><div class="role">Neon identity, dark mode</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ff8a3a"></div><div class="meta"><div class="name">Orange</div><div class="hex">#ff8a3a</div><div class="role">Film identity, secondary CTA</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ffaa3a"></div><div class="meta"><div class="name">Orange Glow</div><div class="hex">#ffaa3a</div><div class="role">Dark mode hover</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#1c8c64"></div><div class="meta"><div class="name">Green</div><div class="hex">#1c8c64</div><div class="role">Success, live state</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#00ffa3"></div><div class="meta"><div class="name">Neon Green</div><div class="hex">#00ffa3</div><div class="role">Hallucination identity, dark</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#0085b3"></div><div class="meta"><div class="name">Cool</div><div class="hex">#0085b3</div><div class="role">Cool identity, links</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#00e5ff"></div><div class="meta"><div class="name">Cool Glow</div><div class="hex">#00e5ff</div><div class="role">Neon counter-accent, dark</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#fff04a"></div><div class="meta"><div class="name">Gold</div><div class="hex">#fff04a</div><div class="role">Highlight, version tag</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#7c4dff"></div><div class="meta"><div class="name">Purple</div><div class="hex">#7c4dff</div><div class="role">Reserved · future use</div></div></div>
+      </div>
+
+      <h3>Semantic</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#1c8c64"></div><div class="meta"><div class="name">Success</div><div class="hex">#1c8c64</div><div class="role">Confirm, success badges</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#e8f5ee"></div><div class="meta"><div class="name">Success BG</div><div class="hex">#e8f5ee</div><div class="role">Success badge bg</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#d97706"></div><div class="meta"><div class="name">Warn</div><div class="hex">#d97706</div><div class="role">License, attention</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#c4381d"></div><div class="meta"><div class="name">Error</div><div class="hex">#c4381d</div><div class="role">Destructive, error</div></div></div>
+      </div>
+
+      <h3>Token Reference</h3>
+      <table class="tokens">
+        <thead><tr><th>Group</th><th>Token</th><th>Value</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td>surface</td><td>canvas</td><td class="mono"><span class="swatch-mini" style="background:#faf7f2"></span>#faf7f2</td><td>Page bg</td></tr>
+          <tr><td>surface</td><td>surface</td><td class="mono"><span class="swatch-mini" style="background:#f1ebe1"></span>#f1ebe1</td><td>Sidebar, alt section</td></tr>
+          <tr><td>ink</td><td>ink</td><td class="mono"><span class="swatch-mini" style="background:#1a1612"></span>#1a1612</td><td>Headlines, primary CTA</td></tr>
+          <tr><td>ink</td><td>charcoal</td><td class="mono"><span class="swatch-mini" style="background:#4a4035"></span>#4a4035</td><td>Body text</td></tr>
+          <tr><td>brand</td><td>hot</td><td class="mono"><span class="swatch-mini" style="background:#e6306b"></span>#e6306b</td><td>Launch CTA, accent</td></tr>
+          <tr><td>brand</td><td>orange</td><td class="mono"><span class="swatch-mini" style="background:#ff8a3a"></span>#ff8a3a</td><td>Film identity</td></tr>
+          <tr><td>brand</td><td>cool</td><td class="mono"><span class="swatch-mini" style="background:#0085b3"></span>#0085b3</td><td>Cool identity, links</td></tr>
+          <tr><td>hairline</td><td>hairline</td><td class="mono"><span class="swatch-mini" style="background:#ddd3c2"></span>#ddd3c2</td><td>Default border</td></tr>
+          <tr><td>semantic</td><td>success</td><td class="mono"><span class="swatch-mini" style="background:#1c8c64"></span>#1c8c64</td><td>Success, live</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 03 · TYPOGRAPHY -->
+    <section id="type">
+      <h2 class="section"><span class="num">03</span> Typography</h2>
+      <p class="section-blurb">Three typefaces, mixed by role. Fraunces (display serif) for the hero and emotional moments. Geist (body sans) for prose. Geist Mono (code) for technical surfaces and labels.</p>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">Display / Hero</div>
+          <div class="token">--font-display · Fraunces 300–800</div>
+          <div class="use">44–80px / 300–500 / -0.025em</div>
+        </div>
+        <div class="specimen-display">Music videos that <em>breathe</em> with the song.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">H1 · Section title</div>
+          <div class="token">--font-display · Fraunces</div>
+          <div class="use">44px / 500 / -0.02em</div>
+        </div>
+        <div class="specimen-h1">A platform for audio-reactive video.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">H2 · Card title</div>
+          <div class="token">--font-display · Fraunces</div>
+          <div class="use">28–32px / 500 / -0.015em</div>
+        </div>
+        <div class="specimen-h2">Five visual languages. One engine.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">H3 · Feature title</div>
+          <div class="token">--font-body · Geist</div>
+          <div class="use">20–22px / 600</div>
+        </div>
+        <div class="specimen-h3">Adaptive beat detection</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">Body</div>
+          <div class="token">--font-body · Geist</div>
+          <div class="use">16px / 400 / 1.6</div>
+        </div>
+        <div class="specimen-body">Default paragraph. Generous line-height for long-form. Max 72ch per line.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">Body medium</div>
+          <div class="token">--font-body · Geist</div>
+          <div class="use">16px / 500</div>
+        </div>
+        <div class="specimen-medium">Emphasized body — feature intros, button labels.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">Small</div>
+          <div class="token">--font-body · Geist</div>
+          <div class="use">14px / 400</div>
+        </div>
+        <div class="specimen-small">Compact descriptions and metadata.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">Caption · Kicker</div>
+          <div class="token">--font-mono · Geist Mono</div>
+          <div class="use">11px / 500 / 0.12em / uppercase</div>
+        </div>
+        <div class="specimen-caption">Tertiary metadata · labels · section kickers</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="name">Mono · Code</div>
+          <div class="token">--font-mono · Geist Mono</div>
+          <div class="use">13px / 400 / 1.7</div>
+        </div>
+        <div class="specimen-mono"><span class="c">// drop a song, get a video</span><br/><span class="k">const</span> engine = <span class="k">new</span> <span class="f">SWREngine</span>(<span class="s">"song.wav"</span>);</div>
+      </div>
+    </section>
+
+    <!-- 04 · SPACING -->
+    <section id="space">
+      <h2 class="section"><span class="num">04</span> Spacing</h2>
+      <p class="section-blurb">A 4px base scale. The system rarely goes below 4px or above 120px on UI — larger values are reserved for hero rhythm.</p>
+
+      <div class="space-rows">
+        <div class="space-row"><div class="lbl">--space-1</div><div class="bar" style="width:4px"></div><div class="val">4px</div></div>
+        <div class="space-row"><div class="lbl">--space-2</div><div class="bar" style="width:8px"></div><div class="val">8px</div></div>
+        <div class="space-row"><div class="lbl">--space-3</div><div class="bar" style="width:12px"></div><div class="val">12px</div></div>
+        <div class="space-row"><div class="lbl">--space-4</div><div class="bar" style="width:16px"></div><div class="val">16px</div></div>
+        <div class="space-row"><div class="lbl">--space-5</div><div class="bar" style="width:20px"></div><div class="val">20px</div></div>
+        <div class="space-row"><div class="lbl">--space-6</div><div class="bar" style="width:24px"></div><div class="val">24px</div></div>
+        <div class="space-row"><div class="lbl">--space-8</div><div class="bar" style="width:32px"></div><div class="val">32px</div></div>
+        <div class="space-row"><div class="lbl">--space-10</div><div class="bar" style="width:40px"></div><div class="val">40px</div></div>
+        <div class="space-row"><div class="lbl">--space-12</div><div class="bar" style="width:48px"></div><div class="val">48px</div></div>
+        <div class="space-row"><div class="lbl">--space-16</div><div class="bar" style="width:64px"></div><div class="val">64px</div></div>
+        <div class="space-row"><div class="lbl">--space-20</div><div class="bar" style="width:80px"></div><div class="val">80px</div></div>
+        <div class="space-row"><div class="lbl">--space-24</div><div class="bar" style="width:96px"></div><div class="val">96px</div></div>
+        <div class="space-row"><div class="lbl">--space-30</div><div class="bar" style="width:120px"></div><div class="val">120px</div></div>
+      </div>
+    </section>
+
+    <!-- 05 · RADIUS & SHAPE -->
+    <section id="radius">
+      <h2 class="section"><span class="num">05</span> Radius &amp; Shape</h2>
+      <p class="section-blurb">Seven radii. The system alternates between full pills, 12-16px documentation cards, and 24px product identity moments — radius contrast is the visual signature.</p>
+
+      <div class="radius-grid">
+        <div class="radius-tile"><div class="box" style="border-radius:4px"></div><div class="lbl">xs · chips</div><div class="tok">4px</div></div>
+        <div class="radius-tile"><div class="box" style="border-radius:6px"></div><div class="lbl">sm · UI</div><div class="tok">6px</div></div>
+        <div class="radius-tile"><div class="box" style="border-radius:12px"></div><div class="lbl">md · cards</div><div class="tok">12px</div></div>
+        <div class="radius-tile"><div class="box" style="border-radius:16px"></div><div class="lbl">lg · containers</div><div class="tok">16px</div></div>
+        <div class="radius-tile"><div class="box" style="border-radius:24px"></div><div class="lbl">xl · hero band</div><div class="tok">24px</div></div>
+        <div class="radius-tile"><div class="box" style="border-radius:32px"></div><div class="lbl">2xl · product</div><div class="tok">32px</div></div>
+        <div class="radius-tile"><div class="box" style="border-radius:9999px"></div><div class="lbl">pill · default</div><div class="tok">9999px</div></div>
+      </div>
+    </section>
+
+    <!-- 06 · SHADOWS -->
+    <section id="shadow">
+      <h2 class="section"><span class="num">06</span> Shadows</h2>
+      <p class="section-blurb">Three shadow systems: a subtle card elevation, a stronger pop for hovered surfaces, and a brand-tinted hot-pink glow reserved for featured product cards and hero moments.</p>
+
+      <div class="shadow-grid">
+        <div class="shadow-tile shadow-card-tile">
+          <div class="demo"></div>
+          <div class="lbl">Card elevation</div>
+          <div class="tok">0 1px 2px rgba(26,22,18,0.04), 0 4px 12px rgba(26,22,18,0.04)</div>
+        </div>
+        <div class="shadow-tile shadow-pop-tile">
+          <div class="demo"></div>
+          <div class="lbl">Pop · hover</div>
+          <div class="tok">0 2px 8px rgba(26,22,18,0.06), 0 16px 48px rgba(26,22,18,0.08)</div>
+        </div>
+        <div class="shadow-tile shadow-glow-tile">
+          <div class="demo"></div>
+          <div class="lbl">Brand glow</div>
+          <div class="tok">0 0 24px rgba(230,48,107,0.16)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 · BUTTONS -->
+    <section id="buttons">
+      <h2 class="section"><span class="num">07</span> Buttons</h2>
+      <p class="section-blurb">Pill-shaped by default. The primary action is ink (near-black) and hovers to hot-pink. Secondary sits on white with a hairline. Brand-color buttons exist but are reserved for product identity moments.</p>
+
+      <h3>Primary actions</h3>
+      <div class="btn-row">
+        <a class="btn btn-primary btn-lg" href="#">Get started</a>
+        <a class="btn btn-primary" href="#">Default</a>
+        <a class="btn btn-primary btn-sm" href="#">Small</a>
+        <a class="btn btn-primary" href="#"><span>With icon</span> →</a>
+      </div>
+
+      <h3>Secondary &amp; Ghost</h3>
+      <div class="btn-row">
+        <a class="btn btn-secondary btn-lg" href="#">Learn more</a>
+        <a class="btn btn-secondary" href="#">Default</a>
+        <a class="btn btn-secondary btn-sm" href="#">Small</a>
+        <a class="btn btn-ghost" href="#">Ghost →</a>
+      </div>
+
+      <h3>Brand actions (reserved for product moments)</h3>
+      <p class="section-blurb" style="margin-top:0">Use only on the launch CTA, the 5 visual-language cards, and the service-tier hero.</p>
+      <div class="btn-row">
+        <a class="btn btn-hot" href="#">Get a visualizer</a>
+        <a class="btn btn-orange" href="#">Try Film</a>
+        <a class="btn btn-cool" href="#">Try Grid</a>
+        <a class="btn btn-green" href="#">Try Smoke</a>
+      </div>
+
+      <h3>Square variants</h3>
+      <p class="section-blurb" style="margin-top:0">Rectangles live only in data tables, code blocks, and visual-language preview tiles.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary btn-square" href="#">Square</a>
+        <a class="btn btn-secondary btn-square" href="#">Square secondary</a>
+      </div>
+    </section>
+
+    <!-- 08 · BADGES & PILLS -->
+    <section id="badges">
+      <h2 class="section"><span class="num">08</span> Badges &amp; Pills</h2>
+      <p class="section-blurb">Tags, status indicators, version labels. Full-radius. Color encodes meaning, never decoration.</p>
+
+      <div class="btn-row">
+        <span class="pill"><span class="dot"></span>Default</span>
+        <span class="pill hot"><span class="dot"></span>Hot · v1.0</span>
+        <span class="pill orange"><span class="dot"></span>Film</span>
+        <span class="pill cool"><span class="dot"></span>Grid</span>
+        <span class="pill green"><span class="dot"></span>Smoke</span>
+        <span class="pill neon"><span class="dot"></span>Hallucination</span>
+        <span class="pill gold"><span class="dot"></span>Neon</span>
+        <span class="pill live"><span class="dot"></span>Live</span>
+      </div>
+    </section>
+
+    <!-- 09 · CARDS -->
+    <section id="cards">
+      <h2 class="section"><span class="num">09</span> Cards</h2>
+      <p class="section-blurb">Two card archetypes: 12px white documentation cards for prose surfaces, and 24px vibrant gradient product cards for the 5 visual-language identity moments.</p>
+
+      <h3>Documentation cards</h3>
+      <div class="card-row">
+        <div class="card">
+          <div class="card-kicker">Guide</div>
+          <div class="card-title">How to render a 30s video</div>
+          <div class="card-body">Drop a song, pick a visual language, hit record. The engine does the rest in 90 seconds.</div>
+        </div>
+        <div class="card">
+          <div class="card-kicker">Release</div>
+          <div class="card-title">v1.0 · self-evolving</div>
+          <div class="card-body">The engine now ships 2 fresh audio-reactive personalities every morning, automatically.</div>
+        </div>
+        <div class="card">
+          <div class="card-kicker">Concept</div>
+          <div class="card-title">On-device variants</div>
+          <div class="card-body">After 3 uses of a single persona, the engine mutates a personalized variant tuned to your BPM and key.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 · INPUTS -->
+    <section id="inputs">
+      <h2 class="section"><span class="num">10</span> Inputs</h2>
+      <p class="section-blurb">Pill-shaped inputs by default, square inputs inside data-dense forms. Hairline border, ink focus ring.</p>
+
+      <div class="card-row" style="grid-template-columns:1fr 1fr; max-width:760px">
+        <div class="field">
+          <label>Email</label>
+          <input class="input" type="email" placeholder="you@label.com" />
+        </div>
+        <div class="field">
+          <label>Search visual languages</label>
+          <input class="input" type="search" placeholder="Filter by mood, BPM, FX…" />
+        </div>
+        <div class="field">
+          <label>API key (square)</label>
+          <input class="input square" type="text" value="swr-•••••••••••••" />
+        </div>
+        <div class="field">
+          <label>Region</label>
+          <input class="input square" type="text" value="eu-central-1" />
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 · ICONOGRAPHY -->
+    <section id="icons">
+      <h2 class="section"><span class="num">11</span> Iconography</h2>
+      <p class="section-blurb">1.6px stroke icons on a 22px box. Single weight. Color encodes state, never the icon itself.</p>
+
+      <div class="icon-grid">
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M3 12h2l2-7 4 14 4-11 2 8h4"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1018 0 9 9 0 00-18 0z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M4 19h16M4 5h16M9 12h6"/></svg></div>
+      </div>
+    </section>
+
+    <!-- 12 · HERO BAND -->
+    <section id="hero">
+      <h2 class="section"><span class="num">12</span> Hero Band</h2>
+      <p class="section-blurb">Near-black warm surface. Oversized 56–80px Fraunces display. Hot-pink radial glow. The signature first-impression pattern.</p>
+      <div class="hero-band">
+        <h2>Build with <em>SWR</em></h2>
+        <p>Drop a song. Drop a library. Get a music video. The engine ships as a single HTML file — no install, no account, no API keys.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary btn-lg" href="#">Open the engine</a>
+          <a class="btn btn-secondary btn-lg" href="#" style="background:transparent; color:#fff; border-color:rgba(255,255,255,0.2);">View on GitHub</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 · FOOTER -->
+    <section id="footer">
+      <h2 class="section"><span class="num">13</span> Footer</h2>
+      <p class="section-blurb">Dense, near-black warm surface. Four-column. Low-contrast text, all links discoverable.</p>
+      <div class="footer-block">
+        <h3>Sainted Word Records</h3>
+        <div class="links">
+          <div class="col">
+            <h4>Engine</h4>
+            <a href="#">Open engine</a>
+            <a href="#">5 visual languages</a>
+            <a href="#">Marketplace</a>
+            <a href="#">How to render 30s</a>
+          </div>
+          <div class="col">
+            <h4>Service</h4>
+            <a href="#">Order a visualizer</a>
+            <a href="#">Pricing</a>
+            <a href="#">Yugo-nostalgia pack</a>
+            <a href="#">Belgrade demos</a>
+          </div>
+          <div class="col">
+            <h4>Source</h4>
+            <a href="#">GitHub repo</a>
+            <a href="#">Changelog</a>
+            <a href="#">Press kit</a>
+            <a href="#">Status</a>
+          </div>
+          <div class="col">
+            <h4>Company</h4>
+            <a href="#">About Kai</a>
+            <a href="#">Contact</a>
+            <a href="#">License (MIT)</a>
+            <a href="#">Privacy</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 14 · VISUAL LANGUAGES — the system's unique product identity -->
+    <section id="languages">
+      <h2 class="section"><span class="num">14</span> Visual Languages <span style="font-family:var(--font-mono); font-size:10.5px; color:var(--stone); letter-spacing:0.06em; font-weight:500;">— 5 product identity cards</span></h2>
+      <p class="section-blurb">The system's most important moment. Each visual language is a self-contained engine variant with its own color, motion, and signature. Treat them like products, not themes.</p>
+
+      <div class="lang-row">
+        <div class="lang-card lang-neon">
+          <div>
+            <div class="num">01 · NEON</div>
+            <h3 class="name">Neon <em>Church</em></h3>
+            <div class="tag">electric · club · urban</div>
+          </div>
+          <div class="stack">screen blend · sharpened easings · scanlines</div>
+        </div>
+        <div class="lang-card lang-film">
+          <div>
+            <div class="num">02 · FILM</div>
+            <h3 class="name">Morning <em>Haunt</em></h3>
+            <div class="tag">16mm · sepia · grain</div>
+          </div>
+          <div class="stack">handheld · warm tone · smooth drift</div>
+        </div>
+        <div class="lang-card lang-grid">
+          <div>
+            <div class="num">03 · GRID</div>
+            <h3 class="name">Brutalist <em>Grid</em></h3>
+            <div class="tag">hard · monochrome · precision</div>
+          </div>
+          <div class="stack">2×2 cells · snap-beat · binary easings</div>
+        </div>
+        <div class="lang-card lang-smoke">
+          <div>
+            <div class="num">04 · SMOKE</div>
+            <h3 class="name">Dream <em>Sequence</em></h3>
+            <div class="tag">cream · motion blur · drift</div>
+          </div>
+          <div class="stack">0.5 opacity · slow drift · fog</div>
+        </div>
+        <div class="lang-card lang-hal">
+          <div>
+            <div class="num">05 · HALLUCINATION</div>
+            <h3 class="name">System <em>Error</em></h3>
+            <div class="tag">RGB shift · scanlines · chaos</div>
+          </div>
+          <div class="stack">rgb drift · difference · noise overlay</div>
+        </div>
+      </div>
+
+      <h3>How a visual language is specified</h3>
+      <p class="section-blurb" style="margin-top:0">Each language is a self-contained <code>.swr-set</code> JSON file with palette, motion, FX chain, and a single <code>signature</code> blob. The engine loads the file, swaps the WebGL uniforms, and the music video takes a new shape.</p>
+      <pre class="codeblock"><span class="c">// 1 of 5 visual languages — the Neon personality</span>
+{
+  <span class="k">"id"</span>: <span class="s">"swr-preset-neon-v1"</span>,
+  <span class="k">"name"</span>: <span class="s">"Neon Church"</span>,
+  <span class="k">"palette"</span>: { <span class="k">"a"</span>: <span class="s">"#ff2d8a"</span>, <span class="k">"b"</span>: <span class="s">"#00f0ff"</span>, <span class="k">"bg"</span>: <span class="s">"#0a0610"</span> },
+  <span class="k">"motion"</span>: <span class="s">"screen-blend"</span>,
+  <span class="k">"fx"</span>:    { <span class="k">"chroma"</span>: <span class="f">0.85</span>, <span class="k">"glow"</span>: <span class="f">0.6</span>, <span class="k">"scanlines"</span>: <span class="f">0.3</span> },
+  <span class="k">"signature"</span>: <span class="s">"cuts-on-the-beat"</span>
+}</pre>
+    </section>
+
+    <!-- 15 · DO / DONT -->
+    <section id="dodont">
+      <h2 class="section"><span class="num">15</span> Do &amp; Don't</h2>
+      <p class="section-blurb">The rules that hold the system together.</p>
+
+      <div class="dodont">
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Use cream surfaces and sepia ink for 90% of the system. Let the 5 visual languages and the launch CTA bring the color.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Apply hot-pink or orange to navigation or general UI. They're reserved for the launch CTA and the 5 visual languages.</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Default to pill radius (9999px) for buttons, badges, and inputs. Rectangles live only in data tables, code blocks, and the 24px product cards.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Mix a third typeface into the system. Fraunces (display) + Geist (body) + Geist Mono (code) is the trio. Adding more dilutes the brand.</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Use the hot-pink brand glow on hero bands, product cards, and the launch CTA. It's the system's "this is the moment" signal.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Use italics for emphasis in body text. Change weight (500, 600, 700), not slope. Fraunces is the only place italics are allowed.</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Keep body at 16px / 1.6. Hero display at 44–80px. Section kicker (the mono uppercase label) at 11px / 0.12em / 600.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Push the hero past 80px on desktop or below 40px on mobile. The system tunes for that band. Outside it, the typography looks uncalibrated.</p>
+        </div>
+        <div class="item do">
+          <div class="head">Do</div>
+          <p>Talk about audio in music terms — BPM, beat, FFT, chromagram. The audience knows what they sound like. The system respects that.</p>
+        </div>
+        <div class="item dont">
+          <div class="head">Don't</div>
+          <p>Talk about audio in data terms — "audio data", "signal processing", "frequency analysis". That language is for spec sheets, not landing pages.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="rule" />
+    <div class="doc-foot">
+      <span>SWR Style Guide · v1.0 · compiled 2026-09-04</span>
+      <span>Live at <a href="./landing.html">sainted-word-records landing</a></span>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Sync sidebar active state on scroll
+  (function() {
+    const links = document.querySelectorAll('nav.side a[href^="#"]');
+    const sections = Array.from(links).map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = '#' + e.target.id;
+          links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+        }
+      });
+    }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+    sections.forEach(s => io.observe(s));
+  })();
+</script>
+</body>
+</html>
