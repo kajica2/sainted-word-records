@@ -750,6 +750,8 @@
   <script src="/client/layer-state-store.client.js"></script>
   <script src="/client/last-mix-store.client.js"></script>
   <script src="/client/asset-curator.client.js"></script>
+  <script src="/lib/media-store.client.js"></script>
+  <script src="/lib/user-media-mount.client.js" defer></script>
   <script src="/client/library-packs.client.js" defer></script>
   <script src="/client/automix-runtime.client.js"></script>
   <script src="/client/hook-detector.client.js"></script>
@@ -801,6 +803,7 @@
           '<button class="dash-curator-btn" id="dash-stats-btn" title="Local render statistics" style="padding:3px 8px;">Stats</button>' +
           '<button class="dash-curator-btn" id="dash-mood-btn" title="Mood board: image \u2192 engine mapping" style="padding:3px 8px;">Mood</button>' +
           '<button class="dash-curator-btn" id="dash-scenes-btn" title="Scene pads: click=recall, hold 1s=save" style="padding:3px 8px;">Scenes</button>' +
+          '<button class="dash-curator-btn" id="dash-curate-btn" title="Process each media file with the asset curator (chroma-key + tag)" style="padding:3px 8px;">Curate</button>' +
         '</div>' +
         '<div style="font-size:9px;color:var(--muted);">bridge + 5 runtimes</div>';
       // Add button styling
@@ -919,6 +922,73 @@
           list.appendChild(pad);
         });
         $id('dash-scenes-close').addEventListener('click', function () { m.remove(); });
+      });
+
+      // ---- Curate Library ----
+      // Iterates SWR_MEDIA records, calls SWR_ASSET_CURATOR.process()
+      // on each, and surfaces the assigned folder + top tag in a modal.
+      // Validated by verify-asset-curator.mjs (the runtime works);
+      // this is the first real consumer beyond the verify.
+      $id('dash-curate-btn').addEventListener('click', async function () {
+        if (!window.SWR_ASSET_CURATOR) { setStatus('asset curator not loaded', 'err'); return; }
+        if (!window.SWR_MEDIA) { setStatus('media store not loaded', 'err'); return; }
+        var items = await window.SWR_MEDIA.getUserMedia();
+        if (!items || !items.length) { setStatus('library is empty — upload something first', 'err'); return; }
+        var existing = $id('dash-curate-modal');
+        if (existing) { existing.remove(); return; }
+        var modal = el('div', {
+          id: 'dash-curate-modal',
+          style: 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-2);color:var(--fg);padding:20px;border:1px solid var(--accent);border-radius:8px;z-index:9999;min-width:380px;max-width:560px;font:11px ui-monospace,monospace;'
+        });
+        modal.innerHTML =
+          '<h3 style="margin:0 0 12px;color:var(--accent);">Curate Library</h3>' +
+          '<div id="dash-curate-results" style="font-size:10px;max-height:50vh;overflow-y:auto;margin-bottom:12px;">Processing ' + items.length + ' file(s)…</div>' +
+          '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
+            '<button class="dash-curator-btn" id="dash-curate-close" style="padding:4px 10px;">Close</button>' +
+          '</div>';
+        document.body.appendChild(modal);
+        $id('dash-curate-close').addEventListener('click', function () { modal.remove(); });
+        setStatus('curating ' + items.length + ' file(s)…', 'ok');
+        // Process each file in sequence (parallel would be fine but
+        // keeps the UI progress predictable)
+        var rows = [];
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          if (!item || !item.blob) { rows.push({ name: item && item.name, status: 'skipped', folder: '?', topTag: '?' }); continue; }
+          // Reconstruct a File from the stored Blob so process() can
+          // accept it.
+          var file = new File([item.blob], item.name || 'media', { type: item.mime || 'application/octet-stream' });
+          var result;
+          try { result = await window.SWR_ASSET_CURATOR.process(file); }
+          catch (e) { rows.push({ name: item.name, status: 'error: ' + e.message, folder: '?', topTag: '?' }); continue; }
+          rows.push({
+            name: item.name,
+            status: result.status,
+            folder: result.folder,
+            topTag: result.tags && result.tags[0] ? result.tags[0].tag : '—',
+            topScore: result.tags && result.tags[0] ? result.tags[0].score : 0,
+            tookMs: result.tookMs,
+          });
+        }
+        // Render results
+        $id('dash-curate-results').innerHTML =
+          '<table style="width:100%;border-collapse:collapse;">' +
+          '<tr style="color:var(--muted);text-align:left;border-bottom:1px solid var(--line);">' +
+            '<th style="padding:2px 4px;font-weight:400;">file</th>' +
+            '<th style="padding:2px 4px;font-weight:400;">folder</th>' +
+            '<th style="padding:2px 4px;font-weight:400;">tag</th>' +
+            '<th style="padding:2px 4px;font-weight:400;">status</th>' +
+          '</tr>' +
+          rows.map(function (r) {
+            return '<tr style="border-bottom:1px solid var(--line);">' +
+              '<td style="padding:2px 4px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">' + r.name + '</td>' +
+              '<td style="padding:2px 4px;color:var(--accent);">' + r.folder + '</td>' +
+              '<td style="padding:2px 4px;">' + r.topTag + (r.topScore ? ' <span style="color:var(--muted);">@' + r.topScore.toFixed(2) + '</span>' : '') + '</td>' +
+              '<td style="padding:2px 4px;color:' + (r.status === 'cleaned' ? 'var(--g)' : 'var(--muted)') + ';">' + r.status + '</td>' +
+            '</tr>';
+          }).join('') +
+          '</table>';
+        setStatus('curated ' + rows.length + ' file(s)', 'ok');
       });
 
       // Keyboard shortcut: A toggles automix. The runtime's own

@@ -59,6 +59,7 @@
     "verify:hallucination-automix": "node verify-hallucination-automix.mjs",
     "verify:variant-curator-wiring": "node verify-variant-curator-wiring.mjs",
     "verify:asset-curator": "node verify-asset-curator.mjs",
+    "verify:dashboard-curate-integration": "node verify-dashboard-curate-integration.mjs",
     "verify:dashboard-automix": "node verify-dashboard-automix.mjs",
     "verify:dashboard-automix-integration": "node verify-dashboard-automix-integration.mjs",
     "verify:automix-cross-surface": "node verify-automix-cross-surface.mjs",
