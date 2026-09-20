@@ -1046,7 +1046,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
     }
     $('rec').onclick = () => recorder && recorder.state==='recording' ? stopRec() : startRec();
 
-    // === Auto-load 27-item library from /library/manifest.json (matches sibling versions) ===
+    // === Library hydrates from user uploads + IDB-persisted items (curated demo library was removed 2026-09-13, see AGENTS.md) ===
     // Defer to DOMContentLoaded so the deferred `<script
     // src="../client/library-loader.client.js">` (loaded in <head>
     // with the defer attribute) has executed first. Without this,
@@ -1060,7 +1060,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
         return;
       }
       window.SWR_LIBLOAD.boot({
-        manifestUrl: '../library/manifest.json',
+        manifestUrl: null,
         filePrefix:  '../library/',
         phase1Count: 8,
         Lib: Lib,

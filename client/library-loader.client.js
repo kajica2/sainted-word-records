@@ -62,6 +62,16 @@
       return Promise.resolve();
     }
 
+    // Opt-out: pass manifestUrl: null (or empty string) to skip the curated
+    // library fetch entirely. The curated demo library was removed from the
+    // build (AGENTS.md, 2026-09-13) — versions now hydrate exclusively from
+    // user uploads + IDB-persisted items. Skipping the fetch prevents a
+    // browser-logged 404 on every page load (BUG-005/012).
+    if (!manifestUrl) {
+      phase2Resolve();
+      return Promise.resolve();
+    }
+
     return (async () => {
       try {
         const r = await fetch(manifestUrl, { cache: 'no-cache' });

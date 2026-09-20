@@ -927,7 +927,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
         return;
       }
       window.SWR_LIBLOAD.boot({
-        manifestUrl: '../library/manifest.json',
+        manifestUrl: null,
         filePrefix:  '../library/',
         phase1Count: 8,
         Lib: Lib,
