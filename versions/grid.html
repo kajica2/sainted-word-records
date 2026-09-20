@@ -1064,15 +1064,25 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       // Store the render fn so the RAF loop below can invoke it
       // instead of calling SWR_RENDER.frame.
       window.__grid_render = function () {
-        if (!window.SWR || !Layers.list.length) return;
+        // Always paint the stage background, even when no layers exist.
+        // Without this, an empty library leaves the canvas fully transparent
+        // and the underlying #stage (#fff) shows through, so the page reads
+        // as "white void with grid lines" instead of the light-grey stage
+        // the variant is designed for. Neon and film always paint their bg
+        // via SWR_RENDER.frame(); grid takes the manual path because its
+        // `multiply` blend wouldn't compose against a transparent offscreen,
+        // so it has to repaint its own bg here.
+        if (!window.SWR) return;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = __grid_bg;
         ctx.fillRect(0, 0, stage.width, stage.height);
         const fit = SWR_RENDER.fit(stage);
         ctx.setTransform(fit.dpr || 1, 0, 0, fit.dpr || 1, 0, 0);
         W = fit.cssW; H = fit.cssH;
-        const layers = Layers.list.slice().sort((a, b) => (a.z || 0) - (b.z || 0));
-        for (const l of layers) drawLayer(l, null, ctx, W, H);
+        if (Layers.list.length) {
+          const layers = Layers.list.slice().sort((a, b) => (a.z || 0) - (b.z || 0));
+          for (const l of layers) drawLayer(l, null, ctx, W, H);
+        }
         if (typeof drawFx === 'function') drawFx();
         if (typeof drawMeter === 'function') drawMeter();
       };
