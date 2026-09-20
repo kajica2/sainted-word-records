@@ -158,7 +158,9 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
   assert(boot._ready === true, `HologramState._ready === true after sync XHR (got ${boot._ready} err=${boot._error})`);
   assert(boot._error === null, `HologramState._error is null (got ${boot._error})`);
   assert(boot.hologramInstalled, 'window.SWR_HOLOGRAM + INSTALL + KEYS all installed');
-  assert(boot.presetCount === 16, `manifest exposes 16 presets (got ${boot.presetCount})`);
+  // presets/ is append-only (daily generator), so assert a floor,
+  // never an exact count — an exact number rots within a day.
+  assert(boot.presetCount >= 16, `manifest exposes >=16 presets (got ${boot.presetCount})`);
   assert(boot.presetSample && boot.presetSample.length === 3,
     `preset list returns ids (got ${JSON.stringify(boot.presetSample)})`);
   assert(boot.synthPillText && boot.synthPillText.includes('no track'),
@@ -286,13 +288,26 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
   assert(hiddenAfter2 === hiddenBefore,
     `"h" toggles hidden back (was ${hiddenBefore}, now ${hiddenAfter2})`);
 
-  console.log('\n=== keyboard: "3" sets depth to 0.3 ===');
+  console.log('\n=== keyboard: "3" is freed for the engine (no depth hijack) ===');
   await page.focus('body');
   await page.keyboard.press('3');
   await sleep(50);
   const depth3 = await page.evaluate(() => window.SWR_HOLOGRAM_STATE.depth);
-  assert(depth3 === 0.3,
-    `"3" sets depth to 0.3 (got ${depth3})`);
+  assert(depth3 !== 0.3,
+    `"3" no longer sets hologram depth to 0.3 (got ${depth3}; digit freed for select-layer)`);
+
+  console.log('\n=== ? overlay is hologram-aware ===');
+  await page.keyboard.press('?');
+  await sleep(100);
+  const overlay = await page.evaluate(() => {
+    const el = document.getElementById('swr-keys-help');
+    return el ? el.textContent : null;
+  });
+  assert(!!overlay, '? opens the help overlay on music_video.html');
+  assert(overlay && overlay.includes('hologram: cycle focus preset'),
+    'overlay shows the hologram ←/→ row');
+  assert(overlay && !/deselect layer/.test(overlay),
+    'overlay no longer claims "0 deselects layer" on this page');
 
   fs.unlinkSync(wavPath);
   await browser.close();

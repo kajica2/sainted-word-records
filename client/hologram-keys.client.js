@@ -6,15 +6,18 @@
 // cycleFocus() and exported via _impl so it's unit-testable in
 // plain Node without a DOM.
 //
-// Plan-doc spec:
+// Plan-doc spec (trimmed 2026-09-14 — see "Shortcut honesty" note):
 //   ← / →       cycle focus along the mood axis
-//   ↑ / ↓       cycle focus along the complexity axis
-//   , / .       cycle focus along the motion axis
-//   [ / ]       cycle focus along the color_temp axis
-//   1 .. 9      set depth to 0.1 .. 0.9
 //   0           reset (depth=0.5, focus cleared)
-//   H           toggle panel hide
-//   ?           (out of scope — handled by SWR_KEYS engine-keys)
+//   h           toggle panel hide
+//
+// The ↑/↓, ,/. and [/] preset-axis cycles and the 1..9 depth
+// digits were REMOVED: they hijacked engine-keys bindings that the
+// ? overlay advertises (select layer, hue, alpha, layer-by-index),
+// and the overlay could not tell the truth while this module
+// swallowed the keys in the capture phase. Depth has a slider in
+// the panel; the extra axes were undiscoverable. cycleFocus()
+// still supports all four axes for programmatic use.
 //
 // install() attaches a global keydown listener. Pass
 // `state: window.SWR_HOLOGRAM_STATE` (the page's HologramState
@@ -125,51 +128,11 @@
         state.focus = next.id;
         return true;
       }
-      case 'ArrowUp':
-      case 'ArrowDown': {
-        if (!neighboursFn) return false;
-        var dirUD = (key === 'ArrowDown') ? 1 : -1;
-        var next2 = cycleFocus(
-          state, neighboursFn, 'complexity', dirUD, state.focus
-        );
-        if (!next2) return false;
-        state.focus = next2.id;
-        return true;
-      }
-      case ',':
-      case '.': {
-        if (!neighboursFn) return false;
-        var dirComma = (key === '.') ? 1 : -1;
-        var next3 = cycleFocus(
-          state, neighboursFn, 'motion', dirComma, state.focus
-        );
-        if (!next3) return false;
-        state.focus = next3.id;
-        return true;
-      }
-      case '[':
-      case ']': {
-        if (!neighboursFn) return false;
-        var dirBrack = (key === ']') ? 1 : -1;
-        var next4 = cycleFocus(
-          state, neighboursFn, 'color_temp', dirBrack, state.focus
-        );
-        if (!next4) return false;
-        state.focus = next4.id;
-        return true;
-      }
       case '0':
         state.depth = 0.5;
         state.focusAmount = 0;
         delete state.focus;
         return true;
-      case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8': case '9': {
-        var d = depthFromDigit(parseInt(key, 10));
-        if (d == null) return false;
-        state.depth = d;
-        return true;
-      }
       case 'h':
       case 'H':
         state.hidden = !state.hidden;
@@ -222,10 +185,26 @@
     };
   }
 
+  // ---- HELP -----------------------------------------------------------
+  //
+  // The keys this module actually handles, in the same {keys,label}
+  // shape engine-keys' help overlay uses. music_video.html loads
+  // engine-keys too, and those shared keys (1..9, [ ], , . , ↑ ↓)
+  // mean something different here — the overlay in engine-keys
+  // consults window.SWR_HOLOGRAM_KEYS.HELP (if installed) and
+  // swaps the hijacked rows for these so ? tells the truth.
+  var HELP = [
+    { keys: '← / →',   label: 'hologram: cycle focus preset (mood axis)' },
+    { keys: '0',       label: 'hologram: reset depth + clear focus' },
+    { keys: 'h',       label: 'hologram: toggle preset panel' },
+    { keys: 'depth',   label: 'hologram: use the panel slider (no key)' },
+  ];
+
   root.SWR_HOLOGRAM_KEYS = {
     install: install,
     apply: apply,
     cycleFocus: cycleFocus,
+    HELP: HELP,
     _impl: {
       cycleFocus: cycleFocus,
       depthFromDigit: depthFromDigit,
