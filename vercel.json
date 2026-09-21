@@ -603,6 +603,14 @@
       "destination": "/tools/hf-publish.html"
     },
     {
+      "source": "/lab/media-input",
+      "destination": "/lab/media-input.html"
+    },
+    {
+      "source": "/lab/media-input/",
+      "destination": "/lab/media-input.html"
+    },
+    {
       "source": "/tools/lib/hf-publish.client.js",
       "destination": "/tools/lib/hf-publish.client.js"
     },
