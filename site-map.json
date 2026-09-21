@@ -61,6 +61,11 @@
           "description": "Live engine demos"
         },
         {
+          "label": "Visual Languages",
+          "href": "/visual-languages",
+          "description": "6 visual languages (neon, film, grid, smoke, hallucination, console)"
+        },
+        {
           "href": "/dashboard",
           "label": "Dashboard"
         },
