@@ -1954,9 +1954,11 @@
         // Skip if localStorage says dismissed. Delay so the engine's
         // own boot animations land first and the panel feels like
         // an intentional intro, not a popup.
-        if (!isDismissed()) {
-          setTimeout(open, AUTO_OPEN_DELAY_MS);
-        }
+        // DISABLED FOR NOW (2026-09-21) — first-visit auto-open silenced.
+        // Re-enable by removing this comment + uncommenting the next 2 lines.
+        // if (!isDismissed()) {
+        //   setTimeout(open, AUTO_OPEN_DELAY_MS);
+        // }
 
         // Expose for the verifier + power users who want to
         // re-trigger the intro from the console.
@@ -1968,7 +1970,10 @@
          Skips on subsequent visits (mode = advanced); "?" button still opens
          the shortcuts modal above. See swr-onboarding-hf.client.js + .hermes/
          plans/swr-onboarding-hf.md for the choreography. -->
+    <!-- DISABLED FOR NOW (2026-09-21) — first-visit HyperFrames tour silenced.
+         Re-enable by removing this comment + uncommenting the line below.
     <script src="/swr-onboarding-hf.client.js" defer></script>
+    -->
 
     <script>
       // ---- SWR_MEDIA wire-up (engine.html) ----
