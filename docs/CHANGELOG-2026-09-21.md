@@ -50,3 +50,14 @@ Commits (mega-PR chain, oldest first):
   `engine-render.client.js`, `engine-transitions.client.js`,
   `engine-timing.client.js`, `audio-analysis-v2.js`). The runtime composes
   around them.
+
+## Visual Language Index (Console + marketing routes)
+
+Adds **Console** as the 6th visual language and a marketing-style index that
+surfaces all 6 languages at a dedicated route. The existing `/versions` route
+keeps its release-history purpose (mapped to `versions.html` at repo root); the
+new `/visual-languages` route serves the index. Wired via Vercel rewrite
+(`/visual-languages` → `/versions/index.html`) and a new nav entry under Engine.
+
+- `feat(versions): add Console as the 6th visual language + shared stylesheet
+  + visual-language index at /visual-languages`

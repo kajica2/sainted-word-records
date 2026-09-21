@@ -110,6 +110,14 @@
       "destination": "/versions.html"
     },
     {
+      "source": "/visual-languages",
+      "destination": "/versions/index.html"
+    },
+    {
+      "source": "/visual-languages/",
+      "destination": "/versions/index.html"
+    },
+    {
       "source": "/make-video",
       "destination": "/make-video.html"
     },
