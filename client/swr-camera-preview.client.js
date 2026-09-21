@@ -219,6 +219,21 @@
                     var p = videoEl.play();
                     if (p && typeof p.catch === 'function') p.catch(function () {});
                   } catch (_) {}
+                  return;
+                }
+                if (typeof options.onError === 'function') {
+                  options.onError({
+                    error: (res && res.error) || 'SwitchFailed',
+                    message: (res && res.message) || 'switchCamera returned failure'
+                  });
+                } else {
+                  _warn('swr-camera-preview: switchCamera failed', res);
+                }
+              }).catch(function (err) {
+                if (typeof options.onError === 'function') {
+                  options.onError({ error: 'Error', message: String((err && err.message) || err) });
+                } else {
+                  _warn('swr-camera-preview: switchCamera rejected', err);
                 }
               });
             }
