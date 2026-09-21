@@ -80,7 +80,7 @@ All 6 tasks landed on `feat/live-camera-mic` and reviewed:
 | 3 — Mic Meter UI | `91203a5` | PASS with minor deviation (no-analyser-source returns null instead of mounting idle — defensive) |
 | 4 — Tests + chain wiring | `c1a99d6` | PASS, 75/75 unit assertions green, smoke syntax-clean |
 | 5 — Demo page | `64492a8` + `632f126` | PASS + minor fix (persistence readout now reflects live state) |
-| 6 — Docs (this commit) | `b8b7248` | n/a |
+| 6 — Docs (this commit) | `435d79d` | n/a |
 
 7 commits total. PR opens after this commit lands.
 
