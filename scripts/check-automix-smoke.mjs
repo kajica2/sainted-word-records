@@ -1692,19 +1692,23 @@ const ENABLED_VARIANTS = [
 const DISABLED_VARIANTS = ['echo-manifold', 'tape'];
 
 async function variantEnabledCheck(name) {
-  await nav('http://localhost:5181/versions/' + name + '.html');
-  // Clear automix-related localStorage keys before clicking the toggle.
-  // Without this, variant N+1's runtime IIFE auto-starts from variant N's
-  // persisted `swr.automix.enabled=1`, so the click hits a runtime that is
-  // already running — toggle() sees enabled===true and calls stop(),
-  // setting state back to OFF, which fails `clickFlips` on even-position
-  // variants. localStorage is keyed by origin so this is per-test-run.
+  // Clear automix-related localStorage keys BEFORE navigating so the new
+  // variant's runtime IIFE doesn't auto-start from a previous variant's
+  // persisted state. The runtime reads localStorage synchronously at
+  // script load (client/automix-runtime.client.js:634), which fires
+  // during nav() — clearing AFTER nav is too late. Without this clear,
+  // variant N+1's runtime auto-starts from variant N's persisted
+  // `swr.automix.enabled=1`, the click hits a running runtime, toggle()
+  // sees enabled===true and calls stop(), setting state back to OFF,
+  // which fails `clickFlips` on even-position variants. localStorage is
+  // keyed by origin so this is per-test-run.
   await page.evaluate(() => {
     try { localStorage.removeItem('swr.automix.enabled'); } catch (_) {}
     try { localStorage.removeItem('swr.automix.frozen'); } catch (_) {}
     try { localStorage.removeItem('swr.automix.locked'); } catch (_) {}
     try { localStorage.removeItem('swr.automix.debugOpen'); } catch (_) {}
   });
+  await nav('http://localhost:5181/versions/' + name + '.html');
   // Reset _fxOverride to a sentinel so we can prove the runtime
   // populates it after toggling. Otherwise a prior page's value may
   // bleed through (window survives across navigations in this puppeteer
