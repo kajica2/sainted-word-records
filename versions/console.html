@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Console · Sainted Word Records</title>
+<meta name="description" content="The Console visual language — a precision oscilloscope aesthetic for IDM, experimental, and industrial audio-reactive video. Black canvas, single accent, geometric primitives.">
+<meta property="og:title" content="Console — Sainted Word Records">
+<meta property="og:description" content="A precision oscilloscope aesthetic for audio-reactive video.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./_shared.css">
+<style>
+/* —————————————————————————————————————————————
+   CONSOLE — version-specific tokens
+   ————————————————————————————————————————————— */
+:root {
+  --bg:        #0A0A0B;
+  --bg-panel:  #111114;
+  --bg-elev:   #1C1C22;
+  --fg:        #E5E5E7;
+  --fg-mute:   #8A8A92;
+  --fg-faint:  #5A5A62;
+  --line:      #232328;
+  --line-2:    #2E2E36;
+  --signal:        #FF6B1A;
+  --signal-soft:   #FF6B1A33;
+  --signal-line:   #FF6B1A14;
+  --signal-glow:   #FF6B1A08;
+}
+
+/* Inverted chrome — the version page lives on the same dark surface as the editor */
+.top { background: var(--bg); border-bottom-color: var(--line); }
+.brand { color: var(--fg); }
+.brand .sw { background: var(--signal); color: var(--bg); }
+.brand-text { color: var(--fg-mute); }
+.brand-text b { color: var(--fg); }
+.versions { background: var(--bg-panel); border-color: var(--line); }
+.versions a { color: var(--fg-mute); }
+.versions a:hover { background: var(--bg-elev); color: var(--fg); }
+.versions a[aria-current="page"] { background: var(--bg-elev); color: var(--fg); }
+.versions a[aria-current="page"]::before { background: var(--signal); box-shadow: 0 0 6px var(--signal); }
+.versions .sep { background: var(--line); }
+.btn-open { background: var(--signal); color: var(--bg); }
+
+/* —————————————————————————————————————————————
+   HERO
+   ————————————————————————————————————————————— */
+.hero { border-bottom-color: var(--line); }
+.h-display { color: var(--fg); }
+.h-display em { color: var(--signal); }
+.lede { color: var(--fg-mute); }
+.tag { border-color: var(--line); color: var(--fg-mute); }
+
+/* Hero visual — the Console look rendered statically */
+.hero-visual {
+  background:
+    linear-gradient(var(--signal-line) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, var(--signal-line) 1px, transparent 1px) 0 0 / 32px 32px,
+    var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+.hero-visual canvas { display: block; width: 100%; height: 100%; }
+
+/* —————————————————————————————————————————————
+   SECTIONS
+   ————————————————————————————————————————————— */
+.section { border-bottom-color: var(--line); }
+.section-head h2 { color: var(--fg); }
+.section-head p { color: var(--fg-mute); }
+
+/* Spec rows — invert */
+.spec-row { border-bottom-color: var(--line); }
+.spec-row dt { color: var(--fg-faint); }
+.spec-row dd { color: var(--fg); }
+.spec-row dd code { background: var(--bg-panel); color: var(--signal); }
+
+/* Rules */
+.rule { background: var(--bg-panel); border-color: var(--line); }
+.rule .num { color: var(--signal); }
+.rule b { color: var(--fg); }
+.rule p { color: var(--fg-mute); }
+
+/* CTA strip */
+.cta-strip {
+  background: var(--bg-panel);
+  border-color: var(--line);
+}
+.cta-strip h3 { color: var(--fg); }
+.cta-strip p { color: var(--fg-mute); }
+.cta-strip .btn-open { background: var(--signal); color: var(--bg); }
+
+/* —————————————————————————————————————————————
+   KEY VISUAL DEMOS — three signature looks
+   ————————————————————————————————————————————— */
+.looks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+@media (max-width: 900px) { .looks { grid-template-columns: 1fr; } }
+
+.look {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.look .visual {
+  aspect-ratio: 16 / 9;
+  background:
+    linear-gradient(var(--signal-line) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--signal-line) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--bg);
+  position: relative;
+  display: grid; place-items: center;
+}
+.look .visual canvas { display: block; width: 100%; height: 100%; }
+.look .caption {
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+  font: 500 11px/1.3 var(--f-mono);
+  letter-spacing: 0.04em;
+}
+.look .caption b {
+  color: var(--fg);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.look .caption span { color: var(--fg-mute); }
+
+/* Inline data tags in spec rows */
+.swatch {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  margin-right: 4px;
+}
+</style>
+</head>
+<body class="theme-console">
+
+<a class="sr" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="brand" href="/" aria-label="Sainted Word Records, home">
+    <span class="sw" aria-hidden="true">SW</span>
+    <span class="brand-text"><b>SAINTED</b><span>WORD RECORDS</span></span>
+  </a>
+
+  <nav class="versions" aria-label="Visual language">
+    <a href="/versions/neon"      data-v="neon">Neon</a>
+    <a href="/versions/film"      data-v="film">Film</a>
+    <a href="/versions/grid"      data-v="grid">Grid</a>
+    <a href="/versions/spectrum"  data-v="spectrum">Spectrum</a>
+    <a href="/versions/aurora"    data-v="aurora">Aurora</a>
+    <span class="sep" aria-hidden="true"></span>
+    <a href="/versions/console"   data-v="console" aria-current="page">Console</a>
+  </nav>
+
+  <div class="top-right">
+    <a class="btn-open" href="/dashboard">
+      Open in editor
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</header>
+
+<main id="main" class="page">
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero">
+    <div>
+      <span class="kicker">05 · Visual language</span>
+      <h1 class="h-display">A precision <em>oscilloscope</em> for your music.</h1>
+      <p class="lede">Console renders your audio as a clean, monochrome signal — no film grain, no atmospheric haze, no decorative glow. Just the audio, the waveform, and the data that proves what it's doing.</p>
+
+      <div class="tag-row">
+        <span class="tag">IDM</span>
+        <span class="tag">Experimental</span>
+        <span class="tag">Industrial</span>
+        <span class="tag">Modular</span>
+        <span class="tag">Glitch</span>
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-label="Console visual demo">
+      <canvas id="heroCanvas"></canvas>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LOOKS — three signature variations
+       ============================================================ -->
+  <section class="section">
+    <header class="section-head">
+      <span class="kicker">Three looks</span>
+      <h2>Same engine, three different <em>oscilloscope modes</em>.</h2>
+      <p>Pick a layout. The output stays precise; only the composition changes. You can swap at any time without losing your library or settings.</p>
+    </header>
+
+    <div class="looks">
+      <article class="look">
+        <div class="visual"><canvas id="lookA"></canvas></div>
+        <div class="caption"><b>Trace</b><span>Hero · 1 layer</span></div>
+      </article>
+      <article class="look">
+        <div class="visual"><canvas id="lookB"></canvas></div>
+        <div class="caption"><b>Stack</b><span>Hero + meter · 2 layers</span></div>
+      </article>
+      <article class="look">
+        <div class="visual"><canvas id="lookC"></canvas></div>
+        <div class="caption"><b>Full</b><span>Wave + spec + HUDs · 3 layers</span></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SPEC — the visual language as data
+       ============================================================ -->
+  <section class="section">
+    <header class="section-head">
+      <span class="kicker">The language, as data</span>
+      <h2>Eight rules, no exceptions.</h2>
+      <p>Console is a constrained vocabulary. The rules below are non-negotiable — break one and it stops being Console.</p>
+    </header>
+
+    <dl class="spec">
+
+      <div class="spec-row">
+        <dt>Background</dt>
+        <dd><span class="swatch" style="background:#0A0A0B"></span><code>#0A0A0B</code> — pure black, no gradients, no atmospheric haze.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Accent</dt>
+        <dd><span class="swatch" style="background:#FF6B1A"></span><code>#FF6B1A</code> — single accent, used for signal, beat, and HUD text.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Type</dt>
+        <dd><code>JetBrains Mono</code> on canvas. <code>Inter</code> for UI. <code>Fraunces</code> for headings.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Primitives</dt>
+        <dd>Lines, dots, grids, bars, sine waves, rectangles. No particles, no glow, no chromatic aberration.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Beat response</dt>
+        <dd>Single full-frame flash, 50 ms in, 150 ms decay. No bloom, no smear.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Layer cap</dt>
+        <dd>3 layers visible at once. 1 hero + 1 waveform + 1 number overlay.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Data overlay</dt>
+        <dd>BPM, KEY, and WAVEFORM visible at all times — even with no audio loaded.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Output</dt>
+        <dd>Same <code>.mp4</code> export, same <code>.swr-set</code> save format. Switch versions without re-rendering.</dd>
+      </div>
+
+    </dl>
+  </section>
+
+  <!-- ============================================================
+       RULES — the eight non-negotiables
+       ============================================================ -->
+  <section class="section">
+    <header class="section-head">
+      <span class="kicker">Why these rules</span>
+      <h2>Restraint is the <em>design</em>.</h2>
+    </header>
+
+    <ol class="rules">
+
+      <li class="rule">
+        <span class="num">01</span>
+        <div>
+          <b>One accent only.</b>
+          <p>Console is a signal, not a celebration. The orange is the trace. Adding a second color makes it look like every other visualizer.</p>
+        </div>
+      </li>
+      <li class="rule">
+        <span class="num">02</span>
+        <div>
+          <b>Pure black background.</b>
+          <p>No gradients, no warmth, no atmospheric haze. The canvas is a control surface, not a mood.</p>
+        </div>
+      </li>
+      <li class="rule">
+        <span class="num">03</span>
+        <div>
+          <b>Geometric primitives only.</b>
+          <p>Lines, dots, grids, bars, rectangles, sine waves. Particles, glow, and grain belong to other versions.</p>
+        </div>
+      </li>
+      <li class="rule">
+        <span class="num">04</span>
+        <div>
+          <b>Mono numerics on canvas.</b>
+          <p>JetBrains Mono, 11–14 px, in the accent color. Tiny numbers tick next to reacting elements — like a real oscilloscope.</p>
+        </div>
+      </li>
+      <li class="rule">
+        <span class="num">05</span>
+        <div>
+          <b>BPM, KEY, WAVEFORM always visible.</b>
+          <p>The data is the design. Hide them and the language collapses.</p>
+        </div>
+      </li>
+      <li class="rule">
+        <span class="num">06</span>
+        <div>
+          <b>Beat response is one hard flash.</b>
+          <p>50 ms in, 150 ms decay. No bloom, no smear, no trail. The flash is punctuation, not atmosphere.</p>
+        </div>
+      </li>
+      <li class="rule">
+        <span class="num">07</span>
+        <div>
+          <b>Max 3 layers visible.</b>
+          <p>1 hero element + 1 waveform + 1 number overlay. The composition is the restraint.</p>
+        </div>
+      </li>
+      <li class="rule">
+        <span class="num">08</span>
+        <div>
+          <b>No atmospheric effects.</b>
+          <p>No fog, no dust, no "energy". The canvas is a control surface, not a mood.</p>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <!-- ============================================================
+       CTA — open in editor
+       ============================================================ -->
+  <section class="cta-strip">
+    <div>
+      <h3>Open Console in the editor.</h3>
+      <p>Drop a song, pick from the geometric library, hit REC. Export as MP4 in 30 fps or any preset aspect.</p>
+    </div>
+    <a class="btn-open" href="/dashboard">
+      Open the editor
+      <span aria-hidden="true">→</span>
+    </a>
+  </section>
+
+</main>
+
+<footer style="max-width:1200px;margin:0 auto;padding:24px;border-top:1px solid var(--line);font:500 11px/1.4 var(--f-mono);color:var(--fg-faint);letter-spacing:0.06em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+  <span>CONSOLE · v1 · swr-version/v1 · MIT licensed</span>
+  <span>
+    <a href="/versions" style="color:var(--fg-mute);text-decoration:none;margin-right:16px;">All versions</a>
+    <a href="/engine" style="color:var(--fg-mute);text-decoration:none;margin-right:16px;">Engine</a>
+    <a href="/" style="color:var(--fg-mute);text-decoration:none;">Home</a>
+  </span>
+</footer>
+
+<script>
+/* =========================================================================
+   CANVAS RENDERING
+   Four small canvases: hero + three looks. All share the same audio sim.
+   Replace with real FFT bindings when wired to the engine.
+   ========================================================================= */
+
+const SIGNAL = '#FF6B1A';
+const BG     = '#0A0A0B';
+const LINE   = 'rgba(255, 107, 26, 0.08)';
+
+const N = 32;
+const bands = new Array(N).fill(0);
+const targets = new Array(N).fill(0);
+let t = 0;
+let beatPulse = 0;
+const beatPeriod = 0.5; // 120 BPM
+
+function nextBands(dt) {
+  t += dt;
+  if (beatPulse > 0) beatPulse *= 0.92;
+  if (t % beatPeriod < 0.05) beatPulse = 1;
+  for (let i = 0; i < N; i++) {
+    const f = i / N;
+    const bass = Math.exp(-f * 6) * beatPulse;
+    const mid  = 0.4 * Math.sin(t * 0.7 + f * 3) * 0.5 + 0.3;
+    const tre  = (Math.random() * 0.6 + 0.1) * Math.exp(-(1 - f) * 2);
+    targets[i] = Math.min(1, bass + mid * 0.5 + tre * 0.3);
+    bands[i] += (targets[i] - bands[i]) * 0.18;
+  }
+}
+
+/* Generic painter — draws the Console chrome + grid + corner ticks */
+function paintChrome(ctx, w, h) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, w, h);
+
+  // Faint grid
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 1;
+  const step = Math.max(20, Math.floor(w / 28));
+  for (let x = 0; x < w; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y < h; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // Corner registration ticks
+  ctx.strokeStyle = SIGNAL;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 1;
+  const m = Math.min(w, h) * 0.04;
+  const corners = [[m, m], [w - m, m], [m, h - m], [w - m, h - m]];
+  corners.forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.moveTo(x - m * 0.4, y); ctx.lineTo(x + m * 0.4, y);
+    ctx.moveTo(x, y - m * 0.4); ctx.lineTo(x, y + m * 0.4);
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+}
+
+/* Look A — Trace: just the hero sine, nothing else */
+function paintA(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.clientWidth * 2;
+  const h = canvas.height = canvas.clientHeight * 2;
+  paintChrome(ctx, w, h);
+
+  const cy = h / 2;
+  const amp = h * 0.18 + beatPulse * h * 0.06;
+  ctx.strokeStyle = SIGNAL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 2) {
+    const n = x / w;
+    const y = Math.sin(n * Math.PI * 6 + t * 4) * amp * (bands[6] + 0.2)
+            + Math.sin(n * Math.PI * 14 + t * 7) * amp * 0.4 * bands[14]
+            + Math.sin(n * Math.PI * 32 + t * 11) * amp * 0.2 * bands[28];
+    if (x === 0) ctx.moveTo(x, cy + y); else ctx.lineTo(x, cy + y);
+  }
+  ctx.stroke();
+
+  // HUD
+  ctx.fillStyle = SIGNAL;
+  ctx.font = '500 14px "JetBrains Mono", monospace';
+  ctx.fillText('BPM 120', 16, 24);
+  ctx.fillText('A min', w - 80, 24);
+}
+
+/* Look B — Stack: hero sine + meter bar at bottom */
+function paintB(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.clientWidth * 2;
+  const h = canvas.height = canvas.clientHeight * 2;
+  paintChrome(ctx, w, h);
+
+  const cy = h * 0.45;
+  const amp = h * 0.15 + beatPulse * h * 0.05;
+  ctx.strokeStyle = SIGNAL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 2) {
+    const n = x / w;
+    const y = Math.sin(n * Math.PI * 6 + t * 4) * amp * (bands[6] + 0.2)
+            + Math.sin(n * Math.PI * 14 + t * 7) * amp * 0.4 * bands[14];
+    if (x === 0) ctx.moveTo(x, cy + y); else ctx.lineTo(x, cy + y);
+  }
+  ctx.stroke();
+
+  // Meter — two horizontal bars
+  const meterY = h * 0.78;
+  const meterH = 6;
+  const peak = bands.reduce((a, b) => a + b, 0) / N;
+  ctx.fillStyle = 'rgba(255, 107, 26, 0.15)';
+  ctx.fillRect(w * 0.1, meterY, w * 0.8, meterH);
+  ctx.fillStyle = SIGNAL;
+  ctx.fillRect(w * 0.1, meterY, w * 0.8 * peak, meterH);
+
+  ctx.fillStyle = SIGNAL;
+  ctx.font = '500 12px "JetBrains Mono", monospace';
+  ctx.fillText('PEAK', w * 0.1, meterY - 6);
+  ctx.fillText((peak * 100).toFixed(0) + ' dB', w * 0.9 - 60, meterY - 6);
+}
+
+/* Look C — Full: wave + spectrum bars + HUDs */
+function paintC(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.clientWidth * 2;
+  const h = canvas.height = canvas.clientHeight * 2;
+  paintChrome(ctx, w, h);
+
+  // Hero wave
+  const cy = h * 0.45;
+  const amp = h * 0.12 + beatPulse * h * 0.04;
+  ctx.strokeStyle = SIGNAL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 2) {
+    const n = x / w;
+    const y = Math.sin(n * Math.PI * 6 + t * 4) * amp * (bands[6] + 0.2)
+            + Math.sin(n * Math.PI * 14 + t * 7) * amp * 0.4 * bands[14];
+    if (x === 0) ctx.moveTo(x, cy + y); else ctx.lineTo(x, cy + y);
+  }
+  ctx.stroke();
+
+  // Spectrum
+  const barArea = { x: w * 0.06, y: h * 0.7, w: w * 0.88, h: h * 0.18 };
+  const bw = barArea.w / N;
+  ctx.fillStyle = SIGNAL;
+  for (let i = 0; i < N; i++) {
+    const bh = bands[i] * barArea.h;
+    ctx.globalAlpha = 0.5 + bands[i] * 0.5;
+    ctx.fillRect(barArea.x + i * bw + 1, barArea.y + barArea.h - bh, bw - 2, bh);
+  }
+  ctx.globalAlpha = 1;
+
+  // HUDs
+  ctx.fillStyle = SIGNAL;
+  ctx.font = '500 13px "JetBrains Mono", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('BPM 120', 16, 24);
+  ctx.fillText('KEY A min', 16, 42);
+  ctx.textAlign = 'right';
+  ctx.fillText('v1 · ' + Math.round(60 / 0.016) + 'fps', w - 16, 24);
+}
+
+/* Hero — big version of Look C with a beat pulse */
+function paintHero(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.clientWidth * 2;
+  const h = canvas.height = canvas.clientHeight * 2;
+  paintChrome(ctx, w, h);
+
+  // Beat rings
+  if (beatPulse > 0.05) {
+    for (let i = 0; i < 3; i++) {
+      const r = (1 - beatPulse) * Math.max(w, h) * 0.5 + i * 40;
+      ctx.strokeStyle = SIGNAL;
+      ctx.globalAlpha = beatPulse * (1 - i * 0.3) * 0.5;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Hero wave
+  const cy = h / 2;
+  const amp = h * 0.16 + beatPulse * h * 0.06;
+  ctx.strokeStyle = SIGNAL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 2) {
+    const n = x / w;
+    const y = Math.sin(n * Math.PI * 6 + t * 4) * amp * (bands[6] + 0.2)
+            + Math.sin(n * Math.PI * 14 + t * 7) * amp * 0.4 * bands[14]
+            + Math.sin(n * Math.PI * 32 + t * 11) * amp * 0.2 * bands[28];
+    if (x === 0) ctx.moveTo(x, cy + y); else ctx.lineTo(x, cy + y);
+  }
+  ctx.stroke();
+
+  // Spectrum (smaller, at bottom)
+  const barArea = { x: w * 0.08, y: h * 0.78, w: w * 0.84, h: h * 0.12 };
+  const bw = barArea.w / N;
+  ctx.fillStyle = SIGNAL;
+  for (let i = 0; i < N; i++) {
+    const bh = bands[i] * barArea.h;
+    ctx.globalAlpha = 0.5 + bands[i] * 0.5;
+    ctx.fillRect(barArea.x + i * bw + 1, barArea.y + barArea.h - bh, bw - 2, bh);
+  }
+  ctx.globalAlpha = 1;
+
+  // HUDs
+  ctx.fillStyle = SIGNAL;
+  ctx.font = '500 14px "JetBrains Mono", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('BPM 120', 20, 32);
+  ctx.textAlign = 'right';
+  ctx.fillText('A min', w - 20, 32);
+}
+
+const renderers = [
+  ['heroCanvas', paintHero],
+  ['lookA',      paintA],
+  ['lookB',      paintB],
+  ['lookC',      paintC],
+];
+
+let lastT = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  nextBands(dt);
+  for (const [id, fn] of renderers) {
+    const el = document.getElementById(id);
+    if (el) fn(el);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
