@@ -152,6 +152,6 @@ All 5 implementation tasks landed on `feat/periodic-capture` and reviewed:
 | 2 — toolbar UI | `011f355` | PASS, 0 critical, 0 important, 4 minor observational |
 | 3 — HTML wiring + npm scripts | `2fdcfde` (+ follow-up `3d3da2c`) | PASS with minor (chain wiring deferred to Task 4 for green-commit discipline) |
 | 4 — tests + chain wiring | `beb7d80` | PASS, 56/56 unit assertions green, smoke syntax-clean |
-| 5 — docs (this commit) | `5bdaf26` | n/a |
+| 5 — docs (this commit) | `a610096` | n/a |
 
 PR opened after Task 5 lands.
