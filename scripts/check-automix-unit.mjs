@@ -256,4 +256,780 @@ const v1Coords = A.mix({ bass: 0.5, mid: 0.5, treb: 0.5 }, 2).coords;
 assert.notEqual(v2Coords.warmth, v1Coords.warmth,
                 'v2 vs v1 must differ when centroid is present');
 
-console.log('AUTOMIX UNIT: ALL GREEN (33 tests)');
+// ---- Task 1 (cross-variant port): runtime config-loader -----------------
+// Loads client/automix-runtime.client.js into a fresh sandbox per scenario
+// and exercises the loadConfig() entry point (parse / validate / apply).
+//
+// Each scenario builds its own sandbox with document stubs so we can
+// simulate variants that ship a #swrc-automix-config script tag vs.
+// variants (music_video + 5 done) that don't.
+import { createContext, runInContext } from 'node:vm';
+const runtimeSrc = readFileSync(new URL('../client/automix-runtime.client.js', import.meta.url), 'utf8');
+
+// Snapshot/restore SWR_AUTOMIX.POOL_BIAS around each scenario so tests
+// stay isolated even though `A` is shared across all the unit checks.
+// (POOL_BIAS is a single object — mutations in one scenario would leak.)
+function snapshotPoolBias() {
+  const out = {};
+  for (const k of Object.keys(A.POOL_BIAS)) {
+    out[k] = { warmth: A.POOL_BIAS[k].warmth.slice(), intensity: A.POOL_BIAS[k].intensity.slice() };
+  }
+  return out;
+}
+function restorePoolBias(snap) {
+  for (const k of Object.keys(snap)) {
+    A.POOL_BIAS[k] = { warmth: snap[k].warmth.slice(), intensity: snap[k].intensity.slice() };
+  }
+}
+// Snapshot/restore SWR_AUTOMIX's closure-private drift amplitudes. After
+// Task 1 fix round 1, the runtime config-loader mutates the amplitudes
+// in place via _setDriftAmplitude() — shared state across sandboxes, so
+// scenarios that apply a config (1b, 1g, 1m) must capture & restore.
+// `_getDriftAmplitude()` reads the current values; the by-value
+// `DRIFT_BASE` / `DRIFT_BEAT_BONUS` exports on `A` are stale after a
+// setter call, so we never read those for current state.
+function snapshotDrift() {
+  if (typeof A._getDriftAmplitude === 'function') {
+    return A._getDriftAmplitude();
+  }
+  return { base: A.DRIFT_BASE, beatScale: A.DRIFT_BEAT_BONUS };
+}
+function restoreDrift(snap) {
+  if (typeof A._setDriftAmplitude === 'function') {
+    A._setDriftAmplitude(snap.base, snap.beatScale);
+  }
+}
+// Snapshot/restore the closure-private tick-interval bounds. After Task 1
+// fix round 2, _setTuning() mutates them in place — shared state across
+// sandboxes, so scenarios that apply a tuning config (1b, 1h, 1p) must
+// capture & restore. `_getTuning()` reads the current values. The
+// by-value `TICK_INTERVAL_MIN_MS` / `TICK_INTERVAL_MAX_MS` exports on
+// `A` are now live getters (Important 3 fix), so they yield the same
+// values as _getTuning() — but the getter is the documented public
+// surface.
+function snapshotTuning() {
+  if (typeof A._getTuning === 'function') {
+    return A._getTuning();
+  }
+  return { minTickMs: A.TICK_INTERVAL_MIN_MS, maxTickMs: A.TICK_INTERVAL_MAX_MS };
+}
+function restoreTuning(snap) {
+  if (typeof A._setTuning === 'function') {
+    A._setTuning(snap.minTickMs, snap.maxTickMs);
+  }
+}
+
+function makeRuntimeEnv(opts) {
+  opts = opts || {};
+  const elements = opts.elements || {};
+  // Tiny DOM stub: getElementById returns whatever was registered via opts.elements;
+  // createElement/createTextNode return nodes that record their writes so we can assert.
+  function makeNode(tag) {
+    const n = {
+      _tag: tag,
+      // parentNode tracks which makeNode (or null) owns this node, so the
+      // runtime's _applyToggleLabel can compare `span.parentNode === el`
+      // (test 1n + 1o scenarios for toggle-label DOM mutation).
+      parentNode: null,
+      style: { display: '' },
+      classList: { _set: new Set(), add(c) { this._set.add(c); }, remove(c) { this._set.delete(c); }, toggle(c, on) { if (on) this._set.add(c); else this._set.delete(c); }, contains(c) { return this._set.has(c); } },
+      hidden: false,
+      textContent: '',
+      childNodes: [],
+      firstChild: null,
+      appendChild(c) {
+        this.childNodes.push(c);
+        this.firstChild = this.childNodes[0] || null;
+        if (c && typeof c === 'object') c.parentNode = this;
+        return c;
+      },
+      insertBefore(c, ref) {
+        const idx = ref ? this.childNodes.indexOf(ref) : 0;
+        this.childNodes.splice(idx, 0, c);
+        this.firstChild = this.childNodes[0] || null;
+        if (c && typeof c === 'object') c.parentNode = this;
+        return c;
+      },
+      addEventListener() {},
+      removeEventListener() {},
+    };
+    return n;
+  }
+  const dom = {
+    getElementById(id) { return Object.prototype.hasOwnProperty.call(elements, id) ? elements[id] : null; },
+    addEventListener() {},
+    removeEventListener() {},
+    readyState: 'complete',
+    createElement(tag) { return makeNode(tag); },
+    createTextNode(text) { return { nodeType: 3, textContent: text }; },
+  };
+  const ls = { _data: {}, getItem(k) { return Object.prototype.hasOwnProperty.call(ls._data, k) ? ls._data[k] : null; }, setItem(k, v) { ls._data[k] = String(v); } };
+  const sb = {
+    console: { warn() {}, log() {}, info() {}, error() {} },
+    Math, Object, Array, JSON, Number, String, Boolean, Date,
+    setTimeout() { return 0; },
+    clearTimeout() {},
+    setInterval() { return 0; },
+    clearInterval() {},
+    performance: { now() { return 0; } },
+    URLSearchParams: class { constructor() { this._q = {}; } get(k) { return Object.prototype.hasOwnProperty.call(this._q, k) ? this._q[k] : null; } },
+    CustomEvent: class { constructor(name, init) { this.type = name; this.detail = init && init.detail; } },
+    dispatchEvent() {},
+    document: dom,
+    localStorage: ls,
+  };
+  sb.window = sb;
+  sb.globalThis = sb;
+  sb.SWR_AUTOMIX = A;
+  sb.SWR = { Audio: { feat: {} }, _fxOverride: null, Gradient: null };
+  sb.HologramState = { neighbours: 4 };
+  // window-level event listener stubs (used by wire() and _parseURL).
+  sb.addEventListener = function () {};
+  sb.removeEventListener = function () {};
+  createContext(sb);
+  return { sandbox: sb, dom: dom, ls: ls };
+}
+
+// ---- 1a: parse success (graceful default when no config) -----------------
+{
+  const env = makeRuntimeEnv();  // no #swrc-automix-config element
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.ok(R, 'SWR_AUTOMIX_RUNTIME must be defined');
+  assert.equal(typeof R.loadConfig, 'function', 'loadConfig must be exposed');
+  assert.equal(R._config(), null, 'no #swrc-automix-config in DOM → _config stays null');
+}
+
+// ---- 1b: parse success with a valid config -------------------------------
+{
+  const poolSnap = snapshotPoolBias();
+  const driftSnap = snapshotDrift();
+  const tuningSnap = snapshotTuning();
+  const cfgScript = { textContent: JSON.stringify({
+    version: 1, variant: 'aurora', enabled: true, defaultState: 'off',
+    poolBias: { intro: { warmth: [0.1, 0.5], intensity: [0.0, 0.2] } },
+    driftAmplitude: { base: 0.02, beatScale: 0.03 },
+    tuning: { minTickMs: 400, maxTickMs: 2500 },
+    anchorMap: 'all',
+    ui: { toggleLabel: 'Auto-Mix', toggleShortcut: 'm' },
+  }) };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  const cfg = R._config();
+  assert.ok(cfg, 'valid config must populate _config');
+  assert.equal(cfg.variant, 'aurora');
+  assert.equal(cfg.enabled, true);
+  // poolBias merged into SWR_AUTOMIX.POOL_BIAS.intro
+  assert.ok(A.POOL_BIAS.intro, 'POOL_BIAS.intro exists');
+  assert.equal(A.POOL_BIAS.intro.warmth[0], 0.1, 'poolBias.intro.warmth[0] overridden');
+  assert.equal(A.POOL_BIAS.intro.warmth[1], 0.5, 'poolBias.intro.warmth[1] overridden');
+  assert.equal(A.POOL_BIAS.intro.intensity[0], 0.0);
+  assert.equal(A.POOL_BIAS.intro.intensity[1], 0.2);
+  // unlisted sections kept their global defaults
+  assert.equal(A.POOL_BIAS.chorus.warmth[0], 0.2, 'unlisted chorus keeps global default');
+  assert.equal(A.POOL_BIAS.chorus.warmth[1], 0.8);
+  assert.equal(A.POOL_BIAS.verse.warmth[0], 0.3, 'unlisted verse keeps global default');
+  // driftAmplitude applied via SWR_AUTOMIX._setDriftAmplitude (replaces
+  // closure-private DRIFT_BASE / DRIFT_BEAT_BONUS in place — no
+  // per-tick compounding in the runtime). The runtime no longer
+  // exposes its own _driftAmplitude accessor; the public surface is
+  // SWR_AUTOMIX._getDriftAmplitude().
+  const drift = A._getDriftAmplitude();
+  assert.equal(drift.base, 0.02, 'driftAmplitude.base applied via _setDriftAmplitude');
+  assert.equal(drift.beatScale, 0.03, 'driftAmplitude.beatScale applied via _setDriftAmplitude');
+  // (Task 1 fix round 2 — tuning applied via _setTuning, replacing
+  // closure-private TICK_INTERVAL_*MS in place. computeTickInterval()
+  // now honours the override.)
+  const tuning = A._getTuning();
+  assert.equal(tuning.minTickMs, 400, 'tuning.minTickMs applied via _setTuning');
+  assert.equal(tuning.maxTickMs, 2500, 'tuning.maxTickMs applied via _setTuning');
+  restoreTuning(tuningSnap);
+  restoreDrift(driftSnap);
+  restorePoolBias(poolSnap);
+}
+
+// ---- 1c: parse failure (graceful fallback) -------------------------------
+{
+  const poolSnap = snapshotPoolBias();
+  const warnCalls = [];
+  const cfgScript = { textContent: '{invalid json,,,' };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  env.sandbox.console.warn = function () { warnCalls.push(Array.from(arguments)); };
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.equal(R._config(), null, 'invalid JSON → _config stays null (graceful)');
+  assert.ok(warnCalls.length > 0, 'invalid JSON → console.warn called');
+  // POOL_BIAS unchanged from defaults
+  assert.equal(A.POOL_BIAS.chorus.warmth[0], 0.2, 'fallback keeps global defaults');
+  restorePoolBias(poolSnap);
+}
+
+// ---- 1d: parse failure when JSON is not an object ------------------------
+{
+  const warnCalls = [];
+  const cfgScript = { textContent: '"a string"' };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  env.sandbox.console.warn = function () { warnCalls.push(Array.from(arguments)); };
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.equal(R._config(), null, 'non-object JSON → _config stays null');
+  assert.ok(warnCalls.length > 0, 'non-object JSON → console.warn called');
+}
+
+// ---- 1e: enabled=false hides #automix-toggle -----------------------------
+{
+  let toggleDisplay = '';
+  const toggle = {
+    _display: '',
+    style: { set display(v) { toggleDisplay = v; }, get display() { return toggleDisplay; } },
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  const cfgScript = { textContent: JSON.stringify({ version: 1, enabled: false }) };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript, 'automix-toggle': toggle } });
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.equal(R._config().enabled, false);
+  assert.equal(toggleDisplay, 'none', 'enabled=false sets #automix-toggle display:none');
+}
+
+// ---- 1f: defaultState:"on" calls automix.start() -------------------------
+{
+  // automix.start() requires window.SWR_AUTOMIX (set up in env) and
+  // a non-null audio feat so it can call A.mix(). Our env has feat={} which
+  // still works for the start path (mix() returns coords/anchors/preset).
+  // We stub HologramState.neighbours + SWR_ANCHOR_MAP so mix() succeeds.
+  const cfgScript = { textContent: JSON.stringify({ version: 1, defaultState: 'on' }) };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  env.sandbox.SWR_Audio = env.sandbox.SWR.Audio;
+  env.sandbox.SWR_AUTOMIX = A;
+  env.sandbox.SWR.Audio.feat = { bass: 0.5, mid: 0.5, treb: 0.5 };
+  env.sandbox.SWR_ANCHOR_MAP = sandbox.window.SWR_ANCHOR_MAP;
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.equal(R.automix.enabled, true, 'defaultState:"on" → automix.enabled after load');
+  // cleanup: stop to release any timers that might leak across cases
+  try { R.automix.stop(); } catch (_) {}
+}
+
+// ---- 1g: driftAmplitude validation bounds-check ---------------------------
+{
+  const driftSnap = snapshotDrift();
+  // Public surface checks: _setDriftAmplitude / _getDriftAmplitude are
+  // exposed on SWR_AUTOMIX and replace the closure-private drift
+  // amplitudes in place. The runtime no longer carries its own
+  // _driftAmplitude mirror — verification goes through SWR_AUTOMIX.
+  assert.equal(typeof A._setDriftAmplitude, 'function', '_setDriftAmplitude exposed on SWR_AUTOMIX');
+  assert.equal(typeof A._getDriftAmplitude, 'function', '_getDriftAmplitude exposed on SWR_AUTOMIX');
+
+  // invalid: base > 1
+  let cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: 1.5, beatScale: 0.02 } }) };
+  let env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const R1 = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.equal(R1._config().driftAmplitude.base, 1.5, 'invalid amplitude still captured on _config (validation applies at use-time)');
+  // Validation rejects → SWR_AUTOMIX amplitudes unchanged from snapshot.
+  const cur1 = A._getDriftAmplitude();
+  assert.equal(cur1.base, driftSnap.base, 'invalid base>1 → SWR_AUTOMIX DRIFT_BASE unchanged');
+  assert.equal(cur1.beatScale, driftSnap.beatScale, 'invalid base>1 → SWR_AUTOMIX DRIFT_BEAT_BONUS unchanged');
+
+  // valid: applied via _setDriftAmplitude. Verify drift() now uses the
+  // new amplitude (no per-tick compounding in the runtime — drift()
+  // itself honours the override in place).
+  cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: 0.02, beatScale: 0.04 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const cur2 = A._getDriftAmplitude();
+  assert.equal(cur2.base, 0.02, 'valid config → SWR_AUTOMIX DRIFT_BASE replaced');
+  assert.equal(cur2.beatScale, 0.04, 'valid config → SWR_AUTOMIX DRIFT_BEAT_BONUS replaced');
+  // Beat=1 → amplitude = 0.02 + 0.04 = 0.06, step ≤ 0.061.
+  const baseP = { temp: 0.5, mut: 0.5, sepia: 0.5, chroma: 0.5, grain: 0.5, glow: 0.5, grayscale: 0.5, posterize: 0.5 };
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.062,
+                'after override, beat=1 drift step ≤ 0.062 (got ' + (d[f] - baseP[f]).toFixed(4) + ')');
+    }
+  }
+  // Beat=0 → amplitude = 0.02, step ≤ 0.021.
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 0);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.022,
+                'after override, beat=0 drift step ≤ 0.022');
+    }
+  }
+
+  // invalid: base < 0 → rejected (amplitudes unchanged from last valid).
+  cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: -0.01, beatScale: 0.02 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const cur3 = A._getDriftAmplitude();
+  assert.equal(cur3.base, 0.02, 'invalid base<0 → SWR_AUTOMIX DRIFT_BASE unchanged');
+  assert.equal(cur3.beatScale, 0.04, 'invalid base<0 → SWR_AUTOMIX DRIFT_BEAT_BONUS unchanged');
+
+  // invalid: beatScale > 1 → rejected.
+  cfgScript = { textContent: JSON.stringify({ version: 1, driftAmplitude: { base: 0.01, beatScale: 2.0 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const cur4 = A._getDriftAmplitude();
+  assert.equal(cur4.base, 0.02, 'invalid beatScale>1 → SWR_AUTOMIX DRIFT_BASE unchanged');
+  assert.equal(cur4.beatScale, 0.04, 'invalid beatScale>1 → SWR_AUTOMIX DRIFT_BEAT_BONUS unchanged');
+
+  restoreDrift(driftSnap);
+}
+
+// ---- 1h: tuning validation bounds-check ----------------------------------
+// (Task 1 fix round 2 — tuning is now applied via SWR_AUTOMIX._setTuning
+// instead of being stored as a local mirror. Verify the public surface.)
+{
+  const tuningSnap = snapshotTuning();
+  let cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 400, maxTickMs: 2500 } }) };
+  let env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const t = A._getTuning();
+  assert.ok(t, '_getTuning() returns object');
+  assert.equal(t.minTickMs, 400, 'valid tuning → _getTuning().minTickMs replaced');
+  assert.equal(t.maxTickMs, 2500, 'valid tuning → _getTuning().maxTickMs replaced');
+  // computeTickInterval now reads the overridden bounds (verify via
+  // intensity=0 → max, intensity=1 → min).
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 2500,
+               'tuning override → intensity=0 maps to maxTickMs=2500');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 400,
+               'tuning override → intensity=1 maps to minTickMs=400');
+  // invalid: max < min
+  cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 2000, maxTickMs: 500 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const t2 = A._getTuning();
+  assert.equal(t2.minTickMs, 400, 'max<min → _setTuning rejected, bounds unchanged');
+  assert.equal(t2.maxTickMs, 2500, 'max<min → _setTuning rejected, bounds unchanged');
+  // invalid: min out of range
+  cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 0, maxTickMs: 1000 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const t3 = A._getTuning();
+  assert.equal(t3.minTickMs, 400, 'min<1 → _setTuning rejected, bounds unchanged');
+  assert.equal(t3.maxTickMs, 2500, 'min<1 → _setTuning rejected, bounds unchanged');
+  restoreTuning(tuningSnap);
+}
+
+// ---- 1i: poolBias partial override — unlisted sections keep global ------
+{
+  const poolSnap = snapshotPoolBias();
+  // Note: SWR_AUTOMIX.POOL_BIAS is shared across sandboxes (we reuse `A`
+  // from the existing setup). Each test that mutates POOL_BIAS records
+  // its own section. To verify "unlisted sections keep global" we look at
+  // a section we never touch in this scenario.
+  const cfgScript = { textContent: JSON.stringify({
+    version: 1,
+    poolBias: { chorus: { warmth: [0.0, 0.4], intensity: [0.7, 1.0] } },
+  }) };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  // chorus overridden
+  assert.equal(A.POOL_BIAS.chorus.warmth[0], 0.0, 'poolBias.chorus overridden');
+  assert.equal(A.POOL_BIAS.chorus.warmth[1], 0.4);
+  assert.equal(A.POOL_BIAS.chorus.intensity[0], 0.7);
+  assert.equal(A.POOL_BIAS.chorus.intensity[1], 1.0);
+  // intro, verse, prechorus, breakdown, outro: untouched (still global defaults)
+  assert.equal(A.POOL_BIAS.intro.warmth[0], 0.4, 'intro untouched');
+  assert.equal(A.POOL_BIAS.verse.warmth[0], 0.3, 'verse untouched');
+  assert.equal(A.POOL_BIAS.prechorus.warmth[0], 0.4, 'prechorus untouched');
+  assert.equal(A.POOL_BIAS.breakdown.warmth[0], 0.5, 'breakdown untouched');
+  assert.equal(A.POOL_BIAS.outro.warmth[0], 0.3, 'outro untouched');
+  restorePoolBias(poolSnap);
+}
+
+// ---- 1j: poolBias bounds-check — invalid range rejected -----------------
+{
+  const poolSnap = snapshotPoolBias();
+  // We need a section that won't collide with other tests; use 'verse' but
+  // first capture its current state to restore after.
+  const cfgScript = { textContent: JSON.stringify({
+    version: 1,
+    poolBias: {
+      // invalid: warmth range inverted (low > high)
+      verse: { warmth: [0.9, 0.1], intensity: [0.3, 0.6] },
+      // invalid: warmth[1] > 1
+      chorus: { warmth: [0.0, 1.5], intensity: [0.6, 1.0] },
+      // invalid: intensity[0] < 0
+      intro: { warmth: [0.4, 0.6], intensity: [-0.1, 0.4] },
+    },
+  }) };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  // None of the bad entries should have been applied. Each section
+  // should still match the snapshot taken before this scenario ran.
+  assert.deepEqual(A.POOL_BIAS.verse, { warmth: poolSnap.verse.warmth.slice(), intensity: poolSnap.verse.intensity.slice() },
+                   'inverted range rejected → verse untouched');
+  assert.deepEqual(A.POOL_BIAS.chorus, { warmth: poolSnap.chorus.warmth.slice(), intensity: poolSnap.chorus.intensity.slice() },
+                   'out-of-range warmth rejected → chorus untouched');
+  assert.deepEqual(A.POOL_BIAS.intro, { warmth: poolSnap.intro.warmth.slice(), intensity: poolSnap.intro.intensity.slice() },
+                   'negative intensity rejected → intro untouched');
+  restorePoolBias(poolSnap);
+}
+
+// ---- 1k: ui.toggleShortcut applied (stored on runtime) ------------------
+// (Task 1 fix round 2 — extended to also verify ui.toggleLabel mutates
+// the DOM. The done variants all match the film.html:407 pattern:
+// `<label id="automix-toggle">Automix <span id="automix-state">OFF</span></label>`
+// — verify the leading text node is updated and the span child structure
+// (with its state text) is preserved.)
+{
+  // Build the toggle element to mirror film.html:407 / grid.html:462 /
+  // neon.html:404 / hallucination.html:513 / smoke.html:396 exactly.
+  const toggle = makeRuntimeEnv().dom.createElement('label'); // fresh makeNode
+  const span = makeRuntimeEnv().dom.createElement('span');
+  span.textContent = 'OFF';
+  // Append the "Automix " text node + state span as children (the order
+  // matches the live DOM).
+  toggle.appendChild({ nodeType: 3, textContent: 'Automix ' });
+  toggle.appendChild(span);
+  const cfgScript = { textContent: JSON.stringify({
+    version: 1, ui: { toggleLabel: 'Auto-Mix', toggleShortcut: 'm' },
+  }) };
+  const env = makeRuntimeEnv({ elements: {
+    'swrc-automix-config': cfgScript,
+    'automix-toggle': toggle,
+    'automix-state': span,
+  } });
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  // toggleShortcut still stored on the runtime
+  assert.equal(R._toggleShortcut(), 'm', 'ui.toggleShortcut stored (lowercased)');
+  // toggleLabel: leading text node updated, span child + state preserved.
+  assert.equal(toggle.childNodes.length, 2, 'toggle keeps text+span child structure');
+  assert.equal(toggle.childNodes[0].nodeType, 3, 'leading child is still a text node');
+  assert.equal(toggle.childNodes[0].textContent, 'Auto-Mix ',
+               'leading text node reads "Auto-Mix " (label + space)');
+  assert.equal(toggle.childNodes[1], span, 'span still in childNodes');
+  assert.equal(toggle.childNodes[1].parentNode, toggle, 'span.parentNode still === toggle');
+  assert.equal(span.textContent, 'OFF', 'span textContent (state) preserved verbatim');
+}
+
+// ---- 1n: ui.toggleLabel fallback when toggle has no #automix-state span --
+// (Task 1 fix round 2 — the plain-textContent fallback path is also
+// untested. Covers variants that ship a bare `<label id="automix-toggle">`
+// without the inner state span — none of the current 5 done variants do,
+// but the fallback should still work safely when the span is absent.)
+{
+  const toggle = makeRuntimeEnv().dom.createElement('label');
+  // No children — fallback path: plain textContent replacement.
+  const cfgScript = { textContent: JSON.stringify({
+    version: 1, ui: { toggleLabel: 'Auto-Mix' },
+  }) };
+  const env = makeRuntimeEnv({ elements: {
+    'swrc-automix-config': cfgScript,
+    'automix-toggle': toggle,
+    // No 'automix-state' registered → span lookup returns null → fallback.
+  } });
+  runInContext(runtimeSrc, env.sandbox);
+  assert.equal(toggle.textContent, 'Auto-Mix',
+               'toggleLabel without span → plain textContent replacement');
+}
+
+// ---- 1l: anchorMap:"all" is a no-op (reserved field) --------------------
+{
+  // Just verify _config has the field captured; the runtime shouldn't
+  // throw or otherwise misbehave.
+  const cfgScript = { textContent: JSON.stringify({ version: 1, anchorMap: 'all' }) };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  assert.equal(env.sandbox.SWR_AUTOMIX_RUNTIME._config().anchorMap, 'all');
+}
+
+// ---- 1m: _setDriftAmplitude mutates drift() behaviour directly -----------
+// (Task 1 fix round 1 — the loadConfig() path goes through this same
+// setter, but this scenario proves the public surface independently.)
+{
+  const driftSnap = snapshotDrift();
+  const baseP = { temp: 0.5, mut: 0.5, sepia: 0.5, chroma: 0.5, grain: 0.5, glow: 0.5, grayscale: 0.5, posterize: 0.5 };
+
+  // Baseline: default amplitudes (DRIFT_BASE=0.01, DRIFT_BEAT_BONUS=0.02).
+  // Beat=1 → amplitude = 0.03, step ≤ 0.031.
+  for (let i = 0; i < 50; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.032,
+                'baseline beat=1 step ≤ 0.032');
+    }
+  }
+
+  // Mutate via the setter to ZERO drift. Every drift() call must now be
+  // a no-op (output equals input) regardless of beat — this is the
+  // load-bearing proof that the closure vars were replaced, not layered.
+  A._setDriftAmplitude(0.0, 0.0);
+  const cur1 = A._getDriftAmplitude();
+  assert.equal(cur1.base, 0.0, 'setter writes base');
+  assert.equal(cur1.beatScale, 0.0, 'setter writes beatScale');
+  for (let i = 0; i < 50; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) < 1e-6,
+                'zero amplitude → drift is no-op (got delta ' + (d[f] - baseP[f]).toFixed(8) + ')');
+    }
+  }
+
+  // Mutate to HIGH drift. Beat=1 → amplitude = 0.05 + 0.10 = 0.15.
+  A._setDriftAmplitude(0.05, 0.10);
+  const cur2 = A._getDriftAmplitude();
+  assert.equal(cur2.base, 0.05);
+  assert.equal(cur2.beatScale, 0.10);
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 1);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.152,
+                'high amplitude → beat=1 step ≤ 0.152');
+    }
+  }
+  // Beat=0 → amplitude = 0.05, step ≤ 0.051.
+  for (let i = 0; i < 100; i++) {
+    const d = A.drift(baseP, 0);
+    for (const f of Object.keys(baseP)) {
+      assert.ok(Math.abs(d[f] - baseP[f]) <= 0.052,
+                'high amplitude → beat=0 step ≤ 0.052');
+    }
+  }
+
+  // Defensive: non-number / non-finite inputs are silently ignored
+  // (amplitudes unchanged). Finite numbers in any range are clamped
+  // to [0, 1] — the public setter is the load-bearing surface, so it
+  // stays safe even when called from untrusted config inputs.
+  A._setDriftAmplitude(NaN, 0.05);
+  const cur3 = A._getDriftAmplitude();
+  assert.equal(cur3.base, 0.05, 'NaN base → ignored');
+  A._setDriftAmplitude('not-a-number', 0.05);
+  const cur4 = A._getDriftAmplitude();
+  assert.equal(cur4.base, 0.05, 'string base → ignored');
+  A._setDriftAmplitude(0.05, Infinity);
+  const cur5 = A._getDriftAmplitude();
+  assert.equal(cur5.beatScale, 0.10, 'Infinity beatScale → ignored');
+
+  // Finite out-of-range numbers clamp to [0, 1] (consistent with the
+  // runtime's _validateDriftAmplitude contract).
+  A._setDriftAmplitude(1.5, 0.02);
+  const cur6 = A._getDriftAmplitude();
+  assert.equal(cur6.base, 1.0, 'base>1 clamped to 1.0');
+  assert.equal(cur6.beatScale, 0.02, 'beatScale applied alongside');
+  A._setDriftAmplitude(0.01, -0.5);
+  const cur7 = A._getDriftAmplitude();
+  assert.equal(cur7.base, 0.01, 'base applied alongside');
+  assert.equal(cur7.beatScale, 0.0, 'beatScale<0 clamped to 0.0');
+
+  restoreDrift(driftSnap);
+}
+
+// ---- 1q (Task 4): validateAutomixConfig + 17-variant loop ----------------
+// Schema validator for variants/<name>.automix.json. Mirrors the runtime's
+// validation helpers (_validateBias, _validateDriftAmplitude,
+// _validateTuning) so the unit-level shape matches what loadConfig()
+// will accept at runtime. Returns { ok, errors[] } — non-fatal by design
+// so a single bad field doesn't blank out the whole config.
+function validateAutomixConfig(json, variantName) {
+  const errors = [];
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return { ok: false, errors: ['root must be an object'] };
+  }
+  if (json.version !== 1) {
+    errors.push('version must be 1 (got ' + JSON.stringify(json.version) + ')');
+  }
+  if (json.variant !== variantName) {
+    errors.push('variant must match filename ("' + variantName + '", got "' + json.variant + '")');
+  }
+  if ('enabled' in json && typeof json.enabled !== 'boolean') {
+    errors.push('enabled must be boolean when present');
+  }
+  if ('defaultState' in json && json.defaultState !== 'on' && json.defaultState !== 'off') {
+    errors.push('defaultState must be "on" or "off" when present');
+  }
+  if ('poolBias' in json) {
+    if (!json.poolBias || typeof json.poolBias !== 'object' || Array.isArray(json.poolBias)) {
+      errors.push('poolBias must be an object');
+    } else {
+      const validSecs = ['intro','verse','prechorus','chorus','breakdown','outro'];
+      for (const sec of Object.keys(json.poolBias)) {
+        if (!validSecs.includes(sec)) {
+          errors.push('poolBias section "' + sec + '" not in ' + JSON.stringify(validSecs));
+          continue;
+        }
+        const b = json.poolBias[sec];
+        if (!b || typeof b !== 'object') {
+          errors.push('poolBias.' + sec + ' must be an object');
+          continue;
+        }
+        for (const axis of ['warmth','intensity']) {
+          const arr = b[axis];
+          if (!Array.isArray(arr) || arr.length !== 2) {
+            errors.push('poolBias.' + sec + '.' + axis + ' must be a 2-element array');
+            continue;
+          }
+          for (let i = 0; i < 2; i++) {
+            const v = arr[i];
+            if (typeof v !== 'number' || !isFinite(v) || v < 0 || v > 1) {
+              errors.push('poolBias.' + sec + '.' + axis + '[' + i + '] must be a finite number in [0,1]');
+            }
+          }
+          if (typeof arr[0] === 'number' && typeof arr[1] === 'number' && arr[0] > arr[1]) {
+            errors.push('poolBias.' + sec + '.' + axis + ' low > high');
+          }
+        }
+      }
+    }
+  }
+  if ('driftAmplitude' in json) {
+    if (!json.driftAmplitude || typeof json.driftAmplitude !== 'object') {
+      errors.push('driftAmplitude must be an object');
+    } else {
+      for (const k of ['base','beatScale']) {
+        const v = json.driftAmplitude[k];
+        if (typeof v !== 'number' || !isFinite(v) || v < 0 || v > 1) {
+          errors.push('driftAmplitude.' + k + ' must be a finite number in [0,1]');
+        }
+      }
+    }
+  }
+  if ('tuning' in json) {
+    if (!json.tuning || typeof json.tuning !== 'object') {
+      errors.push('tuning must be an object');
+    } else {
+      for (const k of ['minTickMs','maxTickMs']) {
+        const v = json.tuning[k];
+        if (typeof v !== 'number' || !isFinite(v) || v < 1 || v > 10000) {
+          errors.push('tuning.' + k + ' must be a finite number in [1,10000]');
+        }
+      }
+      if (typeof json.tuning.minTickMs === 'number' && typeof json.tuning.maxTickMs === 'number'
+          && json.tuning.minTickMs > json.tuning.maxTickMs) {
+        errors.push('tuning.minTickMs > tuning.maxTickMs');
+      }
+    }
+  }
+  if ('anchorMap' in json && json.anchorMap !== 'all') {
+    errors.push('anchorMap must be "all" when present');
+  }
+  if ('ui' in json) {
+    if (!json.ui || typeof json.ui !== 'object') {
+      errors.push('ui must be an object');
+    } else {
+      if ('toggleLabel' in json.ui && (typeof json.ui.toggleLabel !== 'string' || json.ui.toggleLabel.length === 0)) {
+        errors.push('ui.toggleLabel must be a non-empty string when present');
+      }
+      if ('toggleShortcut' in json.ui && (typeof json.ui.toggleShortcut !== 'string' || json.ui.toggleShortcut.length !== 1)) {
+        errors.push('ui.toggleShortcut must be a single character when present');
+      }
+    }
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+// 17 known variants — covers all enabled (15) + the 2 disabled
+// (echo-manifold, tape). Disabled variants still must satisfy the schema
+// even though the runtime hides #automix-toggle when enabled=false.
+const VARIANT_NAMES = [
+  'aurora', 'baroque', 'chrome', 'collage', 'echo-manifold',
+  'eclipse', 'fractal', 'glitch', 'kraft', 'mosaic',
+  'phosphor', 'pulse', 'spectrum', 'tape', 'typography',
+  'void', 'watercolor',
+];
+{
+  const allErrors = [];
+  const variantsDir = new URL('../variants/', import.meta.url);
+  for (const name of VARIANT_NAMES) {
+    let json;
+    try {
+      const raw = readFileSync(new URL(name + '.automix.json', variantsDir), 'utf8');
+      json = JSON.parse(raw);
+    } catch (e) {
+      allErrors.push(name + ': ' + e.message);
+      continue;
+    }
+    const res = validateAutomixConfig(json, name);
+    if (!res.ok) {
+      allErrors.push(name + ': ' + res.errors.join('; '));
+    }
+  }
+  assert.equal(allErrors.length, 0,
+               'every variant config must validate cleanly (got errors: ' + JSON.stringify(allErrors) + ')');
+}
+
+// Spot-check the disabled variants are flagged with enabled=false (so
+// runtime contract tests below can rely on this state).
+{
+  for (const name of ['echo-manifold', 'tape']) {
+    const raw = readFileSync(new URL('../variants/' + name + '.automix.json', import.meta.url), 'utf8');
+    const json = JSON.parse(raw);
+    assert.equal(json.enabled, false, name + ' config must have enabled:false');
+  }
+}
+
+// Negative-case sanity: a deliberately broken config must produce errors.
+// This guards against the validator turning into a no-op (always ok).
+{
+  const bad = validateAutomixConfig({
+    version: 2, variant: 'mismatched',
+    enabled: 'yes', defaultState: 'maybe',
+    poolBias: { made_up: { warmth: [0.5, 0.1], intensity: [-0.5, 1.5] } },
+    driftAmplitude: { base: 2.0, beatScale: -1.0 },
+    tuning: { minTickMs: 2000, maxTickMs: 500 },
+    anchorMap: 'sparse',
+    ui: { toggleLabel: '', toggleShortcut: 'ab' },
+  }, 'mismatched');
+  assert.equal(bad.ok, false, 'broken config must fail validation');
+  assert.ok(bad.errors.length >= 8, 'broken config must produce multiple errors (got ' + bad.errors.length + ')');
+}
+
+// ---- 1p: _setTuning mutates computeTickInterval behaviour directly -------
+// (Task 1 fix round 2 — mirrors the 1m _setDriftAmplitude shape. Proves
+// the public surface independently of the loadConfig() path.)
+{
+  const tuningSnap = snapshotTuning();
+  // Mutate to a narrow band: intensity=0 → 1800ms, intensity=1 → 200ms.
+  A._setTuning(200, 1800);
+  const cur1 = A._getTuning();
+  assert.equal(cur1.minTickMs, 200, 'setter writes minTickMs');
+  assert.equal(cur1.maxTickMs, 1800, 'setter writes maxTickMs');
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 1800,
+               'setter → computeTickInterval intensity=0 yields maxTickMs');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 200,
+               'setter → computeTickInterval intensity=1 yields minTickMs');
+  // Mid intensity (rms=0.5 → intensity≈0.75) lands inside the band.
+  const mid = A.computeTickInterval({ rms: 0.5, onset: 0 });
+  assert.ok(mid >= 200 && mid <= 1800, 'setter → mid intensity lands within bounds, got ' + mid);
+
+  // Defensive: non-number / non-finite inputs are silently ignored.
+  A._setTuning(NaN, 1000);
+  const cur2 = A._getTuning();
+  assert.equal(cur2.minTickMs, 200, 'NaN min → ignored');
+  A._setTuning(500, 'not-a-number');
+  const cur3 = A._getTuning();
+  assert.equal(cur3.maxTickMs, 1800, 'string max → ignored');
+  A._setTuning(Infinity, 1000);
+  const cur4 = A._getTuning();
+  assert.equal(cur4.minTickMs, 200, 'Infinity min → ignored');
+
+  // Out-of-range / inverted-range inputs are clamped / rejected.
+  A._setTuning(0, 500);  // min=0 < 1 → clamped to 1
+  const cur5 = A._getTuning();
+  assert.equal(cur5.minTickMs, 1, 'min<1 clamped to 1');
+  assert.equal(cur5.maxTickMs, 500, 'max applied alongside');
+  A._setTuning(99999, 1000); // min>max → rejected, bounds unchanged
+  const cur6 = A._getTuning();
+  assert.equal(cur6.minTickMs, 1, 'min>max → rejected, min unchanged');
+  assert.equal(cur6.maxTickMs, 500, 'min>max → rejected, max unchanged');
+  A._setTuning(50, 99999); // max > 10000 → clamped to 10000
+  const cur7 = A._getTuning();
+  assert.equal(cur7.minTickMs, 50, 'min applied');
+  assert.equal(cur7.maxTickMs, 10000, 'max>10000 clamped to 10000');
+
+  // Live-getter parity: by-value exports track the closure vars after
+  // _setTuning (Task 1 fix round 2 — Important 3).
+  A._setTuning(123, 4567);
+  assert.equal(A.TICK_INTERVAL_MIN_MS, 123, 'live getter TICK_INTERVAL_MIN_MS tracks closure var');
+  assert.equal(A.TICK_INTERVAL_MAX_MS, 4567, 'live getter TICK_INTERVAL_MAX_MS tracks closure var');
+
+  restoreTuning(tuningSnap);
+}
+
+console.log('AUTOMIX UNIT: ALL GREEN (58 tests)');

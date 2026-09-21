@@ -14,6 +14,10 @@
 //   versions/grid.html       — CRT grid + flash
 //   versions/smoke.html      — soft particle haze
 //   versions/hallucination.html — kaleidoscope
+//   versions/{aurora,baroque,chrome,collage,echo-manifold,eclipse,
+//             fractal,glitch,kraft,mosaic,phosphor,pulse,spectrum,
+//             tape,typography,void,watercolor}.html
+//                              — 17 cross-variant port pages (Task 4)
 //   dashboard.html           — read-only status tile only
 //
 // Expected per surface:
@@ -85,6 +89,21 @@ const PANEL_IDS = [
 // Each entry: [label, path, expectsStack]
 //   expectsStack=true  → expects 11 automix + 5 runtime scripts + 18 panel IDs
 //   expectsStack=false → dashboard: expects only 5 runtime scripts + status tile
+//
+// Task 4 (cross-variant port) adds the 17 new variant pages that ship
+// the automix config (Task 3) plus the script tag + toggle button.
+// All 15 enabled variants have an inlined #swrc-automix-config; the
+// 2 disabled (echo-manifold, tape) ship the script tag too but the
+// runtime hides #automix-toggle when enabled=false. Both kinds go
+// through expectsStack=true — the assertions below check structural
+// drift (panel IDs present, scripts loaded, runtimes exposed), not
+// runtime behaviour, so opt-out variants behave the same as enabled.
+const TASK_4_VARIANTS = [
+  'aurora', 'baroque', 'chrome', 'collage', 'echo-manifold',
+  'eclipse', 'fractal', 'glitch', 'kraft', 'mosaic',
+  'phosphor', 'pulse', 'spectrum', 'tape', 'typography',
+  'void', 'watercolor',
+];
 const SURFACES = [
   ['engine.html',            'engine.html',                        true],
   ['versions/neon.html',     'versions/neon.html',                 true],
@@ -93,6 +112,7 @@ const SURFACES = [
   ['versions/smoke.html',    'versions/smoke.html',                true],
   ['versions/hallucination.html', 'versions/hallucination.html',    true],
   ['dashboard.html',         'dashboard.html',                     false],
+  ...TASK_4_VARIANTS.map(v => ['versions/' + v + '.html', 'versions/' + v + '.html', true]),
 ];
 
 function ok(label) { console.log(`  \u2713 ${label}`); }

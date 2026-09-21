@@ -1,6 +1,6 @@
 // BUILD_MARKER_v4
 import { defineConfig } from 'vite';
-import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, readFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { handleApi } from './scripts/dev-api.mjs';
 
@@ -65,6 +65,51 @@ function copyDirRecursive(src, dst) {
       copyFileSync(sp, dp);
     }
   }
+}
+
+// Vite plugin: inline-automix-config — injects the per-variant automix
+// config (variants/<name>.automix.json) as a <script type="application/json">
+// tag immediately before </head>, so client/automix-runtime.client.js can
+// read #swrc-automix-config from the DOM at boot. Only operates on HTML
+// files inside versions/; if no matching JSON exists (e.g. the 5 done
+// variants: film/grid/hallucination/neon/smoke, or originator
+// music_video*.html), the plugin no-ops so those builds stay unchanged.
+// Inline-only — never fetched at runtime, keeps the deploy offline-first.
+//
+// Implementation note: we run on `closeBundle` (after copy-static has
+// finished copying versions/*.html to dist/) rather than
+// `transformIndexHtml` because Vite's transformIndexHtml only fires for
+// HTML files registered as Rollup inputs — and our single Rollup input
+// is engine.html. The variant HTMLs are plain copyFileSync copies that
+// bypass the transform pipeline entirely, so we modify them on disk
+// after they're written. copy-static is registered before this plugin
+// in the plugins: [] array, so its closeBundle (which re-copies
+// versions/*.html) finishes first; our edits persist.
+function inlineAutomixConfig() {
+  let outDir = 'dist';
+  return {
+    name: 'inline-automix-config',
+    configResolved(config) {
+      outDir = config.build.outDir || 'dist';
+    },
+    closeBundle() {
+      const variantsDir = resolve(outDir, 'versions');
+      if (!existsSync(variantsDir)) return;
+      for (const f of readdirSync(variantsDir)) {
+        if (!f.endsWith('.html')) continue;
+        const variant = f.replace(/\.html$/, '');
+        const jsonPath = resolve(`variants/${variant}.automix.json`);
+        if (!existsSync(jsonPath)) continue;
+        const htmlPath = resolve(variantsDir, f);
+        const html = readFileSync(htmlPath, 'utf8');
+        if (html.includes('id="swrc-automix-config"')) continue; // idempotent
+        const json = readFileSync(jsonPath, 'utf8');
+        const tag = `<script type="application/json" id="swrc-automix-config">${json}</script>`;
+        writeFileSync(htmlPath, html.replace('</head>', `${tag}\n</head>`));
+        process.stdout.write('[inline-automix-config] inlined ' + variant + '\n');
+      }
+    },
+  };
 }
 
 // Vite plugin: copy ./versions/*, ./audios/*, and the GitHub project files
@@ -485,6 +530,7 @@ export default defineConfig(({ command, mode }) => {
           },
         },
       },
+      inlineAutomixConfig(),
     ],
     server: {
       port: 5174,

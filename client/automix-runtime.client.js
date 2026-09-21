@@ -39,6 +39,192 @@
     if (typeof window.setStatus === 'function') window.setStatus(msg, kind);
   }
 
+  // ---- Config state (Task 1 — cross-variant port) -------------------------
+  // Populated by loadConfig() from #swrc-automix-config. Private to the
+  // IIFE closure; exposed via SWR_AUTOMIX_RUNTIME accessor functions so
+  // tests can inspect without breaking encapsulation.
+  //
+  // driftAmplitude and tuning no longer need local mirrors: loadConfig()
+  // applies them directly via SWR_AUTOMIX._setDriftAmplitude() and
+  // SWR_AUTOMIX._setTuning(), which mutate the closure-private vars in
+  // place. Subsequent drift() / computeTickInterval() calls honour the
+  // overrides without per-tick branching or mirroring here. (Task 1
+  // fix round 2 — same shape as the round 1 driftAmplitude fix.)
+  var _config = null;
+  var _toggleShortcut = null;   // string (single char, lowercased) when config overrides 'a'
+
+  // ---- Validation helpers ------------------------------------------------
+  function _validateBias(bias) {
+    if (!bias || typeof bias !== 'object') return false;
+    if (!Array.isArray(bias.warmth) || bias.warmth.length !== 2) return false;
+    if (!Array.isArray(bias.intensity) || bias.intensity.length !== 2) return false;
+    if (bias.warmth[0] > bias.warmth[1]) return false;
+    if (bias.intensity[0] > bias.intensity[1]) return false;
+    for (var i = 0; i < 2; i++) {
+      var w = bias.warmth[i];
+      var inten = bias.intensity[i];
+      if (typeof w !== 'number' || !isFinite(w) || w < 0 || w > 1) return false;
+      if (typeof inten !== 'number' || !isFinite(inten) || inten < 0 || inten > 1) return false;
+    }
+    return true;
+  }
+  function _validateDriftAmplitude(amp) {
+    if (!amp || typeof amp !== 'object') return false;
+    if (typeof amp.base !== 'number' || !isFinite(amp.base) || amp.base < 0 || amp.base > 1) return false;
+    if (typeof amp.beatScale !== 'number' || !isFinite(amp.beatScale) || amp.beatScale < 0 || amp.beatScale > 1) return false;
+    return true;
+  }
+  function _validateTuning(t) {
+    if (!t || typeof t !== 'object') return false;
+    if (typeof t.minTickMs !== 'number' || !isFinite(t.minTickMs) || t.minTickMs < 1 || t.minTickMs > 10000) return false;
+    if (typeof t.maxTickMs !== 'number' || !isFinite(t.maxTickMs) || t.maxTickMs < 1 || t.maxTickMs > 10000) return false;
+    if (t.minTickMs > t.maxTickMs) return false;
+    return true;
+  }
+
+  // ---- Toggle label updater (preserves inner #automix-state span) --------
+  function _applyToggleLabel(label) {
+    try {
+      var el = document.getElementById('automix-toggle');
+      if (!el) return;
+      var span = document.getElementById('automix-state');
+      var stateText = (span && span.textContent) || 'OFF';
+      if (span && span.parentNode === el) {
+        // Preserve the existing <span id="automix-state"> child structure.
+        // Find the leading text node before the span and update it; if
+        // there's no text node, prepend one. Falls back to plain text if
+        // the DOM is too simple to walk safely.
+        var textNode = null;
+        var nodes = el.childNodes;
+        for (var i = 0; i < nodes.length; i++) {
+          if (nodes[i].nodeType === 3) { textNode = nodes[i]; break; }
+          if (nodes[i] === span) break;
+        }
+        if (textNode) {
+          textNode.textContent = label + ' ';
+        } else {
+          el.insertBefore(document.createTextNode(label + ' '), span);
+        }
+        span.textContent = stateText;
+      } else {
+        el.textContent = label;
+      }
+    } catch (_) {}
+  }
+
+  // ---- Config loader (Task 1) ---------------------------------------------
+  // Reads #swrc-automix-config (or `jsonOverride` if provided for tests),
+  // parses JSON, validates each optional field, applies valid entries to
+  // runtime state. Missing or invalid JSON → console.warn + defaults.
+  function loadConfig(jsonOverride) {
+    var json;
+    if (typeof jsonOverride === 'string') {
+      json = jsonOverride;
+    } else {
+      try {
+        var el = document.getElementById('swrc-automix-config');
+        json = el ? el.textContent : null;
+      } catch (_) {
+        json = null;
+      }
+    }
+    if (!json || typeof json !== 'string') return null;
+    var cfg;
+    try {
+      cfg = JSON.parse(json);
+    } catch (err) {
+      if (typeof console !== 'undefined' && console && console.warn) {
+        console.warn('automix: invalid config JSON, using defaults', err);
+      }
+      return null;
+    }
+    if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) {
+      if (typeof console !== 'undefined' && console && console.warn) {
+        console.warn('automix: config must be a plain object, using defaults');
+      }
+      return null;
+    }
+
+    _config = cfg;
+
+    // enabled: false → hide toggle (and skip remaining config so the
+    // variant stays inert until someone ships a real kill-switch).
+    if (cfg.enabled === false) {
+      try {
+        var toggle = document.getElementById('automix-toggle');
+        if (toggle && toggle.style) toggle.style.display = 'none';
+      } catch (_) {}
+      return cfg;
+    }
+
+    // poolBias partial override — merge into SWR_AUTOMIX.POOL_BIAS
+    if (cfg.poolBias && typeof cfg.poolBias === 'object' &&
+        window.SWR_AUTOMIX && window.SWR_AUTOMIX.POOL_BIAS) {
+      for (var section in cfg.poolBias) {
+        if (!Object.prototype.hasOwnProperty.call(cfg.poolBias, section)) continue;
+        var bias = cfg.poolBias[section];
+        if (_validateBias(bias)) {
+          window.SWR_AUTOMIX.POOL_BIAS[section] = {
+            warmth: bias.warmth.slice(),
+            intensity: bias.intensity.slice(),
+          };
+        }
+      }
+    }
+
+    // driftAmplitude — replaces the closure-private DRIFT_BASE /
+    // DRIFT_BEAT_BONUS in SWR_AUTOMIX via the public setter. Once the
+    // setter mutates the closure vars, every subsequent drift() call
+    // (including the ones invoked inside A.mix() during tick()) honours
+    // the override in place — no per-tick compounding, no per-tick
+    // branch in the runtime.
+    if (cfg.driftAmplitude && typeof cfg.driftAmplitude === 'object') {
+      if (_validateDriftAmplitude(cfg.driftAmplitude) &&
+          window.SWR_AUTOMIX &&
+          typeof window.SWR_AUTOMIX._setDriftAmplitude === 'function') {
+        window.SWR_AUTOMIX._setDriftAmplitude(
+          cfg.driftAmplitude.base,
+          cfg.driftAmplitude.beatScale
+        );
+      }
+    }
+
+    // tuning (minTickMs, maxTickMs) — replaces the closure-private
+    // TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS in SWR_AUTOMIX via
+    // the public setter. Once the setter mutates the closure vars,
+    // every subsequent computeTickInterval() call (including the one
+    // invoked by _scheduleNext() during each tick) honours the
+    // override in place — no per-tick branch or local mirror in the
+    // runtime. (Task 1 fix round 2 — mirrors the round 1
+    // driftAmplitude fix shape.)
+    if (cfg.tuning && typeof cfg.tuning === 'object') {
+      if (_validateTuning(cfg.tuning) &&
+          window.SWR_AUTOMIX &&
+          typeof window.SWR_AUTOMIX._setTuning === 'function') {
+        window.SWR_AUTOMIX._setTuning(cfg.tuning.minTickMs, cfg.tuning.maxTickMs);
+      }
+    }
+
+    // anchorMap: "all" → no-op (reserved for future gradient:<id> slicing)
+
+    // ui.toggleLabel / ui.toggleShortcut
+    if (cfg.ui && typeof cfg.ui === 'object') {
+      if (typeof cfg.ui.toggleLabel === 'string') {
+        _applyToggleLabel(cfg.ui.toggleLabel);
+      }
+      if (typeof cfg.ui.toggleShortcut === 'string' && cfg.ui.toggleShortcut.length > 0) {
+        _toggleShortcut = cfg.ui.toggleShortcut.toLowerCase();
+      }
+    }
+
+    // defaultState: "on" → start (off is the no-op default)
+    if (cfg.defaultState === 'on' && window.SWR_AUTOMIX) {
+      try { automix.start(); } catch (_) {}
+    }
+
+    return cfg;
+  }
+
   // ---- The automix runtime ------------------------------------------------
   var automix = {
     iv: null,
@@ -95,9 +281,16 @@
       if (!this.enabled || this.frozen) return;
       if (this.iv) clearTimeout(this.iv);
       var feat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
-      var interval = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.computeTickInterval)
-        ? window.SWR_AUTOMIX.computeTickInterval(feat)
-        : TICK_DEFAULT_MS;
+      // Delegate to SWR_AUTOMIX.computeTickInterval — it now reads
+      // the closure-private TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS
+      // that loadConfig() may have overridden via _setTuning(). No
+      // local mirror here. (Task 1 fix round 2.)
+      var interval;
+      if (window.SWR_AUTOMIX && window.SWR_AUTOMIX.computeTickInterval) {
+        interval = window.SWR_AUTOMIX.computeTickInterval(feat);
+      } else {
+        interval = TICK_DEFAULT_MS;
+      }
       this._lastIntervalMs = interval;
       this.iv = setTimeout(function () {
         this.tick();
@@ -192,6 +385,13 @@
       }
 
       if (!mixed || !mixed.preset) return;
+
+      // driftAmplitude override is already applied to the closure-private
+      // DRIFT_BASE / DRIFT_BEAT_BONUS via SWR_AUTOMIX._setDriftAmplitude()
+      // inside loadConfig(). The drift() that A.mix() invokes honours it
+      // in place — no per-tick branch or compounding needed here.
+      // (Task 1 fix round 1 — replaced the previous compound path that
+      // layered runtime drift on top of A.mix()'s built-in drift.)
 
       var now = Date.now();
       if (window.SWR_AUTOMIX.isStuck(this.lastPreset, mixed.preset, now - this.lastChangeTs)) {
@@ -443,7 +643,8 @@
     if (!ev || ev.defaultPrevented) return;
     var k = ev.key;
     var lower = typeof k === 'string' ? k.toLowerCase() : '';
-    if (lower === 'a' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    var toggleKey = _toggleShortcut || 'a';
+    if (lower === toggleKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
       automix.toggle();
       ev.preventDefault();
     } else if (lower === 'f' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
@@ -494,7 +695,18 @@
     automix: automix,
     version: '1.0.0',
     ui: { wire: wire, unwire: unwire, renderDebug: _renderDebug },
+    // Task 1 — config-loader hooks for tests + diagnostics.
+    loadConfig: loadConfig,
+    _config: function () { return _config; },
+    _toggleShortcut: function () { return _toggleShortcut; },
   };
+
+  // ---- IIFE init ----------------------------------------------------------
+  // Load config BEFORE wire() runs so defaultState + poolBias + drift
+  // overrides take effect before any state is read or persisted state is
+  // restored (localStorage 'swr.automix.enabled'). Wrapped in try/catch so
+  // a malformed config can never block the runtime from wiring up.
+  try { loadConfig(); } catch (_) {}
 
   // Auto-wire on DOMContentLoaded (or immediately if already past it)
   function _boot() { wire(); }

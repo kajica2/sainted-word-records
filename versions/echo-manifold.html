@@ -383,6 +383,7 @@
                 </button>
                 <button id="start-btn" class="px-4 xl:px-6 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] rounded uppercase tracking-widest transition-all">Engage</button>
                 <button id="stop-btn" class="px-4 xl:px-6 py-1.5 bg-transparent border border-white/10 text-slate-500 hover:text-white text-[9px] rounded uppercase tracking-widest transition-all">Null</button>
+                <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
             </div>
         </div>
     </header>
@@ -460,6 +461,8 @@
         </div>
     </main>
 
+    <script src="../client/automix.client.js"></script>
+    <script src="../client/automix-runtime.client.js"></script>
     <script>
         // ECHO Manifold 5.0 — Harmonic / Quantum Resonance Engine
         // Ported verbatim from the Gemini Canvas artifact. Standalone:

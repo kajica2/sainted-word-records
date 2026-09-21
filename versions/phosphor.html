@@ -131,6 +131,7 @@
       <div class="param">chroma <b>0.30</b></div>
       <div class="param">grain <b>0.15</b></div>
       <div class="param">temp <b>+0.0</b></div>
+      <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
       <button class="tbtn" id="rec" disabled style="font-size:10px;">● REC</button>
     </footer>
   </div>
@@ -234,6 +235,8 @@
   <script src="../lib/persist.client.js"></script>
     <script src="../lib/recorder.client.js"></script>
   <script src="../lib/persist-fx.client.js"></script>
+  <script src="../client/automix.client.js"></script>
+  <script src="../client/automix-runtime.client.js"></script>
 
   <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
     <div class="box">

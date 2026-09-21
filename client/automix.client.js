@@ -197,10 +197,12 @@
   // invoke drift() on every detected beat rather than every tick; the
   // beat-phase step is then visual-evolution that breathes with the
   // song's tempo. Amplitude scales linearly with beat:
-  //   beat = 0   → step ±0.01  (gentle, no rhythmic anchor)
-  //   beat = 1   → step ±0.03  (3× more, the visual breathes with tempo)
-  //   beat undefined / omitted → step ±0.01  (backward-compat default)
+  //   beat = 0   → step ±DRIFT_BASE         (gentle, no rhythmic anchor)
+  //   beat = 1   → step ±(DRIFT_BASE + DRIFT_BEAT_BONUS)  (visual breathes with tempo)
+  //   beat undefined / omitted → step ±DRIFT_BASE  (backward-compat default)
   // Each field is clamped to [-1, 1] so the visual stays in its safe range.
+  // Amplitudes are closure-private vars that the runtime config-loader
+  // mutates via _setDriftAmplitude() (per Task 1 fix round 1).
   function drift(preset, beat) {
     if (!preset) return preset;
     var b = (typeof beat === 'number' && isFinite(beat)) ? Math.max(0, Math.min(1, beat)) : 0;
@@ -212,6 +214,48 @@
       out[k] = Math.max(-1, Math.min(1, preset[k] + delta));
     }
     return out;
+  }
+  // Mutator for the closure-private drift amplitudes. Replaces the
+  // constants in place so subsequent drift() calls honour the override
+  // (no per-tick compounding in callers). Used by the runtime
+  // config-loader to apply per-variant `driftAmplitude` overrides.
+  // Bad inputs (NaN, non-number) are silently ignored to keep the
+  // public setter safe to call from untrusted configs.
+  function _setDriftAmplitude(base, beatScale) {
+    if (typeof base !== 'number' || !isFinite(base)) return;
+    if (typeof beatScale !== 'number' || !isFinite(beatScale)) return;
+    DRIFT_BASE = Math.max(0, Math.min(1, base));
+    DRIFT_BEAT_BONUS = Math.max(0, Math.min(1, beatScale));
+  }
+  // Read accessor — returns the CURRENT closure-private values (the
+  // by-value `DRIFT_BASE` / `DRIFT_BEAT_BONUS` exports below are
+  // converted to live getters at IIFE time, so reading them yields the
+  // current values too — but tests prefer this object form for clarity).
+  function _getDriftAmplitude() {
+    return { base: DRIFT_BASE, beatScale: DRIFT_BEAT_BONUS };
+  }
+
+  // Mutator for the closure-private tick-interval bounds. Replaces
+  // TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS in place so subsequent
+  // computeTickInterval() calls honour the override (no per-tick
+  // compounding in callers). Mirrors the _setDriftAmplitude shape.
+  // Bad inputs (NaN, non-number, min > max) are silently ignored so
+  // the public setter is safe to call from untrusted configs. Values
+  // are clamped to [1, 10000] ms (matching the runtime's
+  // _validateTuning contract) and rounded to integers so the
+  // computeTickInterval() return value stays predictable.
+  function _setTuning(minTickMs, maxTickMs) {
+    if (typeof minTickMs !== 'number' || !isFinite(minTickMs)) return;
+    if (typeof maxTickMs !== 'number' || !isFinite(maxTickMs)) return;
+    var mn = Math.max(1, Math.min(10000, Math.round(minTickMs)));
+    var mx = Math.max(1, Math.min(10000, Math.round(maxTickMs)));
+    if (mn > mx) return; // invalid range; ignore
+    TICK_INTERVAL_MIN_MS = mn;
+    TICK_INTERVAL_MAX_MS = mx;
+  }
+  // Read accessor — returns the CURRENT closure-private bounds.
+  function _getTuning() {
+    return { minTickMs: TICK_INTERVAL_MIN_MS, maxTickMs: TICK_INTERVAL_MAX_MS };
   }
 
   // ---- Section classification (Phase 2.1) --------------------------------
@@ -303,15 +347,29 @@
     mix: mix,
     computeTickInterval: computeTickInterval,
     RAMP_MS: RAMP_MS,
-    TICK_INTERVAL_MIN_MS: TICK_INTERVAL_MIN_MS,
-    TICK_INTERVAL_MAX_MS: TICK_INTERVAL_MAX_MS,
+    // Task 1 fix round 2 — TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS
+    // are converted to live getters below so they stay in sync with
+    // the closure-private vars after _setTuning() mutates them.
     smoothstep: smoothstep,
     lerpPreset: lerpPreset,
     presetDistance: presetDistance,
     // Phase 1.3: drift
     drift: drift,
-    DRIFT_BASE: DRIFT_BASE,
-    DRIFT_BEAT_BONUS: DRIFT_BEAT_BONUS,
+    // Task 1 fix round 2 — DRIFT_BASE / DRIFT_BEAT_BONUS are converted
+    // to live getters below so they stay in sync with the closure-
+    // private vars after _setDriftAmplitude() mutates them.
+    // Task 1 fix round 1 — runtime config-loader replaces the closure-
+    // private drift amplitudes in place. Read accessor returns the
+    // current values.
+    _setDriftAmplitude: _setDriftAmplitude,
+    _getDriftAmplitude: _getDriftAmplitude,
+    // Task 1 fix round 2 — runtime config-loader replaces the closure-
+    // private tick-interval bounds in place. Mirrors the driftAmplitude
+    // shape (mutator + read accessor) so the runtime can apply
+    // per-variant `tuning` overrides via a single setter call instead
+    // of carrying a local mirror that duplicates the formula.
+    _setTuning: _setTuning,
+    _getTuning: _getTuning,
     // Phase 2: musical intelligence
     featuresToCoords: featuresToCoords,
     featuresToCoordsV2: featuresToCoordsV2,
@@ -331,4 +389,32 @@
     // Back-compat (test hooks)
     blendAnchors: blendAnchors,
   };
+  // Convert the closure-private numeric constants to live getters on
+  // the exported object. Without this, `SWR_AUTOMIX.DRIFT_BASE` holds
+  // the IIFE-time value (0.01) even after `_setDriftAmplitude(0.5, …)`
+  // mutates the closure var — callers reading the export see a stale
+  // snapshot. Same applies to TICK_INTERVAL_*MS after _setTuning().
+  // (Task 1 fix round 2.)
+  Object.defineProperties(window.SWR_AUTOMIX, {
+    DRIFT_BASE: {
+      get: function () { return DRIFT_BASE; },
+      enumerable: true,
+      configurable: true,
+    },
+    DRIFT_BEAT_BONUS: {
+      get: function () { return DRIFT_BEAT_BONUS; },
+      enumerable: true,
+      configurable: true,
+    },
+    TICK_INTERVAL_MIN_MS: {
+      get: function () { return TICK_INTERVAL_MIN_MS; },
+      enumerable: true,
+      configurable: true,
+    },
+    TICK_INTERVAL_MAX_MS: {
+      get: function () { return TICK_INTERVAL_MAX_MS; },
+      enumerable: true,
+      configurable: true,
+    },
+  });
 })();

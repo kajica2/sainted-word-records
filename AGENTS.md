@@ -24,7 +24,8 @@ Node 20+ required (see `.nvmrc`). npm only — `package-lock.json` is the source
 - `auth/` — magic-link login + verify pages and their client scripts
 - `client/`, `lib/` — shared browser client modules (visualizer-controller, auth, media-store, library-manager, library-switcher, migrate, design-tokens, components, nav)
 - `audios/` — per-engine demo MP3s (auto-loaded by each variant). The curated demo asset library (`library/`) has been removed — users bring their own assets via the Media Manager upload affordance.
-- `versions/` — audio-reactive engine variants. The 5 core variants are neon, film, grid, smoke, hallucination. Plus reference implementation `music_video.html` (3D hologram) and the multi-video gallery `music-video-gallery.html`. The remaining 17 variants (aurora, baroque, chrome, collage, echo-manifold, eclipse, fractal, glitch, kraft, mosaic, phosphor, pulse, spectrum, tape, typography, void, watercolor) are individual artistic presets sharing the same runtime
+- `versions/` — audio-reactive engine variants. The 5 core variants are neon, film, grid, smoke, hallucination. Plus reference implementation `music_video.html` (3D hologram) and the multi-video gallery `music-video-gallery.html`. The remaining 17 variants (aurora, baroque, chrome, collage, echo-manifold, eclipse, fractal, glitch, kraft, mosaic, phosphor, pulse, spectrum, tape, typography, void, watercolor) are individual artistic presets sharing the same runtime. The automix + curator stack (originally shipped only on `music_video.html`) is now wired into 15 of the 17 artistic variants via the per-variant config map at `variants/<name>.automix.json` — `echo-manifold` and `tape` are `enabled: false` opt-outs because their audio-feature extraction diverges from the canonical path
+- `variants/` — per-variant automix + curator config maps (one JSON per variant). Inlined into the matching `versions/<name>.html` at build time by the `inline-automix-config` Vite plugin, so configs never need a runtime fetch (offline-first, matches the PWA shell ethos)
 - `site-map.json` — canonical IA: nav, footer, auth, legal, tools, archived. Source of truth for `vercel.json` rewrites and Vite `rootFiles`. Edit this, then run `scripts/generate-vercel-rewrites.mjs` to regenerate vercel.json
 - `_archive/` — gitignored experimental pages (landing-personas variants, internal docs, dev tools). Excluded from deploy
 
@@ -62,7 +63,7 @@ To archive a page:
 - `tools/` — dev tools (`deploy-vercel.sh`, `hf-publish.html`, `dev-up.sh`/`dev-ps.sh`/`dev-down.sh`, `freq-bridge.js`, `agentic-set.mjs`)
 - `verify-*.mjs` — Puppeteer E2E suites at repo root (~110 files; the 8 automix verifies are one per surface plus a cross-surface run; the curated 5-smoke + transitions verifier are the CI gate; see `.kai/conventions/testing.md` for the full layering)
 - `verify-screenshots/`, `out/`, `docs/` — research + audit artifacts
-- `vite.config.js` — custom `copy-static` + `swrc-api-middleware` + `strip-absolute-module-scripts` plugins
+- `vite.config.js` — custom `copy-static` + `swrc-api-middleware` + `strip-absolute-module-scripts` + `inline-automix-config` plugins
 - `vercel.json` — Vercel rewrites (`/` → `landing.html`, `/engine` → `engine.html`, etc.) + buildCommand
 
 ## Code style
