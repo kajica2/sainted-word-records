@@ -306,6 +306,11 @@
       "description": "Drop a GIF, see it in AR"
     },
     {
+      "label": "Media Input Lab",
+      "href": "/lab/media-input",
+      "description": "Live camera + mic demo for the SWRMediaInput primitive"
+    },
+    {
       "label": "Share View",
       "href": "/s/:id",
       "description": "View shared composition"

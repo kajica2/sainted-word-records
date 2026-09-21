@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Media Input Lab — SWR MediaInput primitive demo</title>
+  <meta name="description" content="Live camera + mic demo for the SWRMediaInput primitive. Mounts a shared MediaInput through SWRCameraPreview and SWRMicMeter." />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#0e0c0a" />
+  <meta name="author" content="Kai Djuric" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
+  <style>
+    :root { --bg:#faf7f2; --bg-2:#f1ebe1; --ink:#1a1612; --ink-2:#4a4035; --muted:#8a7a66; --line:#ddd3c2; --accent:#e6306b; --font-display:'Fraunces',ui-serif,Georgia,serif; --radius:12px; --radius-sm:6px; --shadow:0 2px 8px rgba(26,22,18,.06),0 16px 48px rgba(26,22,18,.08); }
+    [data-theme="dark"] { --bg:#0e0c0a; --bg-2:#161310; --ink:#f5ead8; --ink-2:#d4c7b3; --muted:#8a7a66; --line:#2c2419; --accent:#ff2d8a; --shadow:0 2px 8px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.4); }
+    *{box-sizing:border-box} html,body{margin:0;padding:0}
+    body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem} button{font-family:inherit;cursor:pointer}
+    .lab-wrap{max-width:1180px;margin:0 auto;padding:32px}
+    @media (max-width:720px){.lab-wrap{padding:20px}}
+    .lab-head{margin:32px 0 24px}
+    .lab-head__eyebrow{color:var(--accent);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:8px}
+    .lab-head__title{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;margin:0 0 8px;line-height:1.1;letter-spacing:-.02em}
+    .lab-head__sub{color:var(--ink-2);font-size:1.05rem;max-width:60ch;margin:0}
+    .lab-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+    @media (max-width:820px){.lab-grid{grid-template-columns:1fr}}
+    .lab-panel{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+    .lab-panel--full{grid-column:1/-1}
+    .lab-panel__label{display:inline-block;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px}
+    .lab-panel__title{font-family:var(--font-display);font-size:1.25rem;font-weight:600;margin:0 0 12px}
+    .swr-camera-host{display:flex;justify-content:center;align-items:center;min-height:360px}
+    .swr-mic-host{min-height:220px}
+    .lab-btn{background:var(--ink);color:var(--bg);border:none;border-radius:var(--radius-sm);padding:10px 16px;font-size:.85rem;font-weight:600;transition:background .18s ease,transform .18s ease}
+    .lab-btn:hover{background:var(--accent);transform:translateY(-1px)}
+    .lab-btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+    .lab-btn--ghost:hover{background:var(--ink);color:var(--bg)}
+    .lab-btn--record{background:#c2185b}
+    .lab-btn--record:hover{background:var(--accent)}
+    .lab-control-group{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-top:1px dashed var(--line)}
+    .lab-control-group:first-of-type{border-top:none;padding-top:0}
+    .lab-control-group__label{font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;min-width:80px}
+    .lab-status,.lab-info{margin-top:16px;padding:12px 14px;border-radius:var(--radius-sm);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem;color:var(--ink-2)}
+    .lab-status{background:var(--bg);border:1px solid var(--line);min-height:1.5em}
+    .lab-info{background:var(--bg);border:1px dashed var(--line);font-size:.78rem;margin-top:12px}
+    .lab-status__label,.lab-info__label{color:var(--muted);margin-right:8px}
+    .lab-foot{margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+    .lab-foot code{background:var(--bg-2);padding:2px 6px;border-radius:4px}
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main class="lab-wrap">
+    <header class="lab-head">
+      <div class="lab-head__eyebrow">📷 Media Input Lab</div>
+      <h1 class="lab-head__title">Live Camera + Mic</h1>
+      <p class="lab-head__sub">Try the <code>SWRMediaInput</code> primitive — a single shared instance drives both <code>SWRCameraPreview</code> and <code>SWRMicMeter</code>, and persists your last device selections across reloads.</p>
+    </header>
+
+    <section class="lab-grid">
+      <div class="lab-panel">
+        <span class="lab-panel__label">Preview</span>
+        <h2 class="lab-panel__title">Camera</h2>
+        <div id="camera-host" class="swr-camera-host"></div>
+      </div>
+      <div class="lab-panel">
+        <span class="lab-panel__label">Audio</span>
+        <h2 class="lab-panel__title">Mic meter</h2>
+        <div id="mic-host" class="swr-mic-host"></div>
+      </div>
+      <div class="lab-panel lab-panel--full">
+        <span class="lab-panel__label">Controls</span>
+        <h2 class="lab-panel__title">Drive the shared MediaInput</h2>
+
+        <div class="lab-control-group">
+          <span class="lab-control-group__label">Camera</span>
+          <button id="btn-start-cam" class="lab-btn">Start Camera</button>
+          <button id="btn-stop-cam" class="lab-btn lab-btn--ghost">Stop</button>
+          <button id="btn-switch" class="lab-btn lab-btn--ghost">Switch</button>
+        </div>
+        <div class="lab-control-group">
+          <span class="lab-control-group__label">Mic</span>
+          <button id="btn-start-mic" class="lab-btn">Start Mic</button>
+          <button id="btn-stop-mic" class="lab-btn lab-btn--ghost">Stop</button>
+        </div>
+        <div class="lab-control-group">
+          <span class="lab-control-group__label">Record</span>
+          <button id="btn-record" class="lab-btn lab-btn--record">Record 5s</button>
+          <span style="color:var(--muted);font-size:.78rem;margin-left:4px">Captures cam + mic → downloads a <code>.webm</code></span>
+        </div>
+
+        <div class="lab-status"><span class="lab-status__label">Status:</span><span id="status">Loading…</span></div>
+        <div class="lab-info"><span class="lab-info__label">localStorage:</span><span id="persistence-info">checking…</span></div>
+      </div>
+    </section>
+
+    <footer class="lab-foot">
+      Modules: <code>/client/swr-media-input.client.js</code> · <code>/client/swr-camera-preview.client.js</code> · <code>/client/swr-mic-meter.client.js</code>
+    </footer>
+  </main>
+
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/client/swr-media-input.client.js"></script>
+  <script src="/client/swr-camera-preview.client.js"></script>
+  <script src="/client/swr-mic-meter.client.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var $ = function (id) { return document.getElementById(id); };
+      var statusEl = $('status');
+      var infoEl = $('persistence-info');
+      var setStatus = function (msg) {
+        if (statusEl) statusEl.textContent = msg;
+        if (typeof console !== 'undefined' && console.log) console.log('[lab/media-input]', msg);
+      };
+
+      if (!window.SWR_MEDIA_INPUT || !window.SWR_CAMERA_PREVIEW || !window.SWR_MIC_METER) {
+        setStatus('Error: client modules did not load. Check the network tab.');
+        return;
+      }
+
+      // Single shared MediaInput instance — auto-created by the preview
+      // because we don't pass `mediaInput` in options.
+      var cameraMount = window.SWR_CAMERA_PREVIEW.mount($('camera-host'), {
+        size: 'large',
+        autoStart: false,
+        onError: function (err) { setStatus('Camera error: ' + (err && err.error) + ' — ' + (err && err.message)); },
+      });
+      if (!cameraMount) { setStatus('Error: could not mount camera preview.'); return; }
+      var mediaInput = cameraMount.mediaInput;
+
+      var meterMount = window.SWR_MIC_METER.mount($('mic-host'), { mediaInput: mediaInput });
+      if (!meterMount) { setStatus('Error: could not mount mic meter.'); return; }
+
+      // Auto-start mic so users see activity before clicking anything.
+      mediaInput.startMic().then(function (res) {
+        if (res && res.success) {
+          meterMount.meter.start();
+          setStatus('Mic on (auto). Click "Start Camera" to add video.');
+        } else {
+          setStatus('Mic permission denied — click "Start Mic" to retry.');
+        }
+      });
+
+      $('btn-start-cam').addEventListener('click', function () {
+        setStatus('Starting camera...');
+        mediaInput.startCamera().then(function (res) {
+          if (res && res.success) setStatus('Camera on @ ' + res.resolution.width + 'x' + res.resolution.height);
+          else setStatus('Camera failed: ' + (res && res.error));
+        });
+      });
+      $('btn-stop-cam').addEventListener('click', function () {
+        mediaInput.stopCamera();
+        setStatus('Camera stopped.');
+      });
+      $('btn-switch').addEventListener('click', function () {
+        setStatus('Switching camera...');
+        mediaInput.switchCamera().then(function (res) {
+          if (res && res.success) setStatus('Switched to new device.');
+          else setStatus('Switch failed: ' + (res && res.error));
+        });
+      });
+      $('btn-start-mic').addEventListener('click', function () {
+        setStatus('Starting mic...');
+        mediaInput.startMic().then(function (res) {
+          if (res && res.success) { meterMount.meter.start(); setStatus('Mic on.'); }
+          else setStatus('Mic failed: ' + (res && res.error));
+        });
+      });
+      $('btn-stop-mic').addEventListener('click', function () {
+        mediaInput.stopMic();
+        meterMount.meter.stop();
+        setStatus('Mic stopped.');
+      });
+      $('btn-record').addEventListener('click', function () {
+        setStatus('Recording 5s...');
+        mediaInput.startRecording().then(function (res) {
+          if (!res || !res.success) { setStatus('Record failed: ' + (res && res.error)); return; }
+          setTimeout(function () {
+            mediaInput.stopRecording().then(function (out) {
+              if (!out) { setStatus('No recording produced.'); return; }
+              var blob = out.blob || out; // tolerate { blob, url, size, duration } or raw blob
+              var url = out.url || (blob && URL.createObjectURL(blob));
+              var size = out.size || (blob && blob.size) || 0;
+              var a = document.createElement('a');
+              a.href = url;
+              a.download = 'swr-lab-recording-' + Date.now() + '.webm';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setStatus('Saved: ' + a.download + ' (' + Math.round(size / 1024) + ' KB)');
+            });
+          }, 5000);
+        });
+      });
+
+      try {
+        var raw = localStorage.getItem('swr.media.lastDevices');
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          infoEl.textContent = 'video=' + (parsed.videoDeviceId || '(default)') + ', audio=' + (parsed.audioDeviceId || '(default)') + ', facing=' + (parsed.videoFacingMode || 'user') + ', camera=' + (mediaInput._video.enabled ? 'on' : 'off') + ', mic=' + (mediaInput._audio.enabled ? 'on' : 'off');
+        } else {
+          infoEl.textContent = 'No devices persisted yet — start camera or mic to populate.';
+        }
+      } catch (_) {
+        infoEl.textContent = 'Persistence unavailable (private mode?).';
+      }
+    })();
+  </script>
+</body>
+</html>
