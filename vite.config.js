@@ -397,7 +397,13 @@ function copyStatic() {
     for (const f of rootFiles) {
       const sp = resolve(f);
       if (!existsSync(sp)) continue;
-      copyFileSync(sp, resolve(outDir, f));
+      const dp = resolve(outDir, f);
+      // Mirror the styleThumbs pattern (line 394): ensure the parent
+      // directory exists for nested entries like lab/media-input.html
+      // before copyFileSync. Without this, dist-dev/lab/ never gets
+      // created and the build aborts with ENOENT.
+      mkdirSync(dirname(dp), { recursive: true });
+      copyFileSync(sp, dp);
       log('copied ' + f);
     }
   }
