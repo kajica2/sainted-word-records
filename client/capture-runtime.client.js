@@ -14,9 +14,13 @@
 //   getState()                     — { enabled, intervalSec, lastCaptureAt, captureCount }
 //   captureNow()                   — one-shot: capture + download (async toBlob)
 //   reset()                        — clear localStorage keys, stop timer
+//   getToolbarEl()                 — #swr-capture-toolbar (or null) — Task 2 test hook
+//   getToggleBtn()                 — toggle button (or null) — Task 2 test hook
+//   getIntervalInput()             — interval <input> (or null) — Task 2 test hook
 //
-// Pure logic in this task. The toolbar UI (toggle button + numeric input)
-// is appended in Task 2; nothing here renders into the DOM.
+// Pure logic lives next to the toolbar UI. The DOM overlay (toggle button
+// + numeric input + status text + red-dot pulse indicator) is appended
+// to <body> as the last child at boot time.
 //
 // Persistence keys:
 //   swr.capture.enabled       — '1' | '0'  (default '0')
@@ -151,17 +155,20 @@
     _enabled = true;
     _safeSet(KEY_ENABLED, '1');
     _startTimer();
+    updateUI();
   }
   function disable() {
     _enabled = false;
     _stopTimer();
     _safeSet(KEY_ENABLED, '0');
+    updateUI();
   }
   function isEnabled() { return _enabled; }
   function setIntervalSec(n) {
     _intervalSec = _clampInterval(n);
     _safeSet(KEY_INTERVAL, String(_intervalSec));
     if (_enabled) _startTimer();
+    updateUI();
   }
   function getIntervalSec() { return _intervalSec; }
   function getState() {
@@ -179,6 +186,164 @@
     _intervalSec = DEFAULT_INTERVAL;
     _lastCaptureAt = 0;
     _captureCount = 0;
+  }
+
+  // ---- Toolbar UI (Task 2) -----------------------------------------------
+  // Self-contained overlay toolbar appended to <body>. Inline styles only
+  // (matches the engine HTML <style> blocks + automix debug panel at
+  // engine.html:1385). Idempotent — safe to call multiple times.
+  var _styleEl = null;
+  var TOOLBAR_CSS =
+    '@keyframes swr-capture-pulse{' +
+      '0%,100%{box-shadow:0 0 0 0 rgba(255,107,26,0.65);}' +
+      '50%{box-shadow:0 0 0 6px rgba(255,107,26,0);}' +
+    '}' +
+    '#swr-capture-toolbar{' +
+      'position:fixed;bottom:12px;right:12px;z-index:9999;' +
+      'background:rgba(10,10,16,0.92);color:var(--fg,#E5E5E7);' +
+      'padding:10px 12px;border-radius:8px;' +
+      'font:11px ui-monospace,SFMono-Regular,Menlo,monospace;' +
+      'line-height:1.3;display:flex;flex-direction:column;gap:6px;' +
+      'min-width:160px;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+      'user-select:none;-webkit-user-select:none;' +
+    '}' +
+    '#swr-capture-toolbar .swr-capture-row{' +
+      'display:flex;align-items:center;gap:8px;' +
+    '}' +
+    '#swr-capture-toolbar button{' +
+      'position:relative;background:transparent;color:inherit;' +
+      'border:1px solid rgba(255,255,255,0.18);border-radius:4px;' +
+      'padding:4px 10px 4px 18px;font:inherit;cursor:pointer;' +
+    '}' +
+    '#swr-capture-toolbar button:hover{' +
+      'border-color:rgba(255,255,255,0.32);' +
+    '}' +
+    '#swr-capture-toolbar button:disabled{' +
+      'opacity:0.4;cursor:not-allowed;' +
+    '}' +
+    '#swr-capture-toolbar button::before{' +
+      'content:"";position:absolute;left:6px;top:50%;' +
+      'width:8px;height:8px;margin-top:-4px;border-radius:50%;' +
+      'background:rgba(255,255,255,0.25);' +
+    '}' +
+    '#swr-capture-toolbar.is-active button::before{' +
+      'background:#FF6B1A;' +
+      'animation:swr-capture-pulse 2s ease-in-out infinite;' +
+    '}' +
+    '#swr-capture-toolbar label{' +
+      'display:inline-flex;align-items:center;gap:4px;' +
+    '}' +
+    '#swr-capture-toolbar input[type="number"]{' +
+      'background:rgba(255,255,255,0.06);color:inherit;' +
+      'border:1px solid rgba(255,255,255,0.18);border-radius:4px;' +
+      'padding:3px 6px;font:inherit;width:60px;text-align:center;' +
+    '}' +
+    '#swr-capture-toolbar .swr-capture-status{' +
+      'font-size:10px;opacity:0.7;text-align:right;letter-spacing:0.02em;' +
+    '}';
+
+  function _injectStyles() {
+    if (_styleEl || !document.head) return;
+    _styleEl = document.createElement('style');
+    _styleEl.id = 'swr-capture-toolbar-style';
+    _styleEl.textContent = TOOLBAR_CSS;
+    document.head.appendChild(_styleEl);
+  }
+
+  function _statusText() {
+    return _enabled ? ('every ' + _intervalSec + 's') : 'off';
+  }
+
+  // Refresh the button's disabled state based on canvas availability.
+  // Engine surfaces populate #stage asynchronously after DOMContentLoaded,
+  // so we re-check a couple of times.
+  function _refreshBtnDisabled() {
+    var wrap = $('swr-capture-toolbar');
+    if (!wrap) return;
+    var btn = wrap.querySelector('button');
+    if (btn) btn.disabled = !_findCanvas();
+  }
+
+  function mountToolbar() {
+    if ($('swr-capture-toolbar')) return;
+    if (!document.body) return; // mount only after <body> is ready
+
+    _injectStyles();
+
+    var wrap = document.createElement('div');
+    wrap.id = 'swr-capture-toolbar';
+
+    var row = document.createElement('div');
+    row.className = 'swr-capture-row';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Capture';
+    btn.setAttribute('aria-pressed', _enabled ? 'true' : 'false');
+    btn.addEventListener('click', function () {
+      if (_enabled) disable(); else enable();
+    });
+
+    var label = document.createElement('label');
+    var lblText = document.createElement('span');
+    lblText.textContent = 'every';
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.min = String(MIN_INTERVAL);
+    input.max = String(MAX_INTERVAL);
+    input.step = '1';
+    input.value = String(_intervalSec);
+    input.setAttribute('aria-label', 'Capture interval in seconds');
+    function commitInput() {
+      var n = parseInt(input.value, 10);
+      if (!isFinite(n)) n = _intervalSec;
+      setIntervalSec(n);
+    }
+    input.addEventListener('change', commitInput);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commitInput(); input.blur(); }
+    });
+    var lblUnit = document.createElement('span');
+    lblUnit.textContent = 's';
+    label.appendChild(lblText);
+    label.appendChild(input);
+    label.appendChild(lblUnit);
+
+    row.appendChild(btn);
+    row.appendChild(label);
+
+    var status = document.createElement('span');
+    status.className = 'swr-capture-status';
+    status.textContent = _statusText();
+
+    wrap.appendChild(row);
+    wrap.appendChild(status);
+    document.body.appendChild(wrap);
+
+    _refreshBtnDisabled();
+    // Re-check canvas availability after engine boot settles.
+    setTimeout(_refreshBtnDisabled, 500);
+    setTimeout(_refreshBtnDisabled, 2000);
+
+    updateUI();
+  }
+
+  // Reflect current state into the toolbar DOM. Idempotent; safe to call
+  // before mountToolbar() (it's a no-op when the toolbar is absent).
+  function updateUI() {
+    var wrap = $('swr-capture-toolbar');
+    if (!wrap) return;
+    wrap.classList.toggle('is-active', !!_enabled);
+    var status = wrap.querySelector('.swr-capture-status');
+    if (status) status.textContent = _statusText();
+    var input = wrap.querySelector('input[type="number"]');
+    // Don't clobber the input while the user is typing in it.
+    if (input && document.activeElement !== input) {
+      input.value = String(_intervalSec);
+    }
+    var btn = wrap.querySelector('button');
+    if (btn) btn.setAttribute('aria-pressed', _enabled ? 'true' : 'false');
   }
 
   // ---- Config loader (URL + localStorage) --------------------------------
@@ -232,6 +397,16 @@
     getState: getState,
     captureNow: captureNow,
     reset: reset,
+    // Test hooks — Task 2 (toolbar UI access for unit/smoke tests).
+    getToolbarEl: function () { return $('swr-capture-toolbar'); },
+    getToggleBtn: function () {
+      var t = $('swr-capture-toolbar');
+      return t && t.querySelector('button');
+    },
+    getIntervalInput: function () {
+      var t = $('swr-capture-toolbar');
+      return t && t.querySelector('input[type="number"]');
+    },
     // Constants for tests + diagnostics.
     KEY_ENABLED: KEY_ENABLED,
     KEY_INTERVAL: KEY_INTERVAL,
@@ -248,6 +423,10 @@
   function _boot() {
     loadConfig();
     if (_enabled) _startTimer();
+    // Mount toolbar after loadConfig so updateUI() reflects the persisted
+    // state on first paint. Mirrors automix-runtime.client.js:711-717.
+    mountToolbar();
+    updateUI();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _boot);
