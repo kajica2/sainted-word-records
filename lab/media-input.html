@@ -201,7 +201,7 @@
         var raw = localStorage.getItem('swr.media.lastDevices');
         if (raw) {
           var parsed = JSON.parse(raw);
-          infoEl.textContent = 'video=' + (parsed.videoDeviceId || '(default)') + ', audio=' + (parsed.audioDeviceId || '(default)') + ', facing=' + (parsed.videoFacingMode || 'user') + ', camera=' + (mediaInput.video.enabled ? 'on' : 'off') + ', mic=' + (mediaInput.audio.enabled ? 'on' : 'off');
+          infoEl.textContent = 'video=' + (parsed.videoDeviceId || '(default)') + ', audio=' + (parsed.audioDeviceId || '(default)') + ', facing=' + (parsed.videoFacingMode || 'user') + ', camera=' + (mediaInput._video.enabled ? 'on' : 'off') + ', mic=' + (mediaInput._audio.enabled ? 'on' : 'off');
         } else {
           infoEl.textContent = 'No devices persisted yet — start camera or mic to populate.';
         }
