@@ -22,7 +22,7 @@ Node 20+ required (see `.nvmrc`). npm only — `package-lock.json` is the source
 - `pwa-bootstrap.js`, `sw.js`, `manifest.webmanifest`, `offline.html` — PWA shell
 - `api/` — Vercel serverless handlers (auth, storage, projects, health) + `_lib/` shared helpers
 - `auth/` — magic-link login + verify pages and their client scripts
-- `client/`, `lib/` — shared browser client modules (visualizer-controller, auth, media-store, library-manager, library-switcher, migrate, design-tokens, components, nav, capture-runtime)
+- `client/`, `lib/` — shared browser client modules (visualizer-controller, auth, media-store, library-manager, library-switcher, migrate, design-tokens, components, nav, capture-runtime, swr-media-input, swr-camera-preview, swr-mic-meter)
 - `audios/` — per-engine demo MP3s (auto-loaded by each variant). The curated demo asset library (`library/`) has been removed — users bring their own assets via the Media Manager upload affordance.
 - `versions/` — audio-reactive engine variants. The 5 core variants are neon, film, grid, smoke, hallucination. Plus reference implementation `music_video.html` (3D hologram) and the multi-video gallery `music-video-gallery.html`. The remaining 17 variants (aurora, baroque, chrome, collage, echo-manifold, eclipse, fractal, glitch, kraft, mosaic, phosphor, pulse, spectrum, tape, typography, void, watercolor) are individual artistic presets sharing the same runtime. The automix + curator stack (originally shipped only on `music_video.html`) is now wired into 15 of the 17 artistic variants via the per-variant config map at `variants/<name>.automix.json` — `echo-manifold` and `tape` are `enabled: false` opt-outs because their audio-feature extraction diverges from the canonical path
 - **`versions/_shared.css`** — shared stylesheet for the marketing-style visual-language pages. Loaded by the visual-language index and the 6th-language landing page; not loaded by engine variants. Page-specific tokens live in each page's `:root`.
@@ -82,6 +82,8 @@ To archive a page:
 - Full pre-PR gate: `npm run check:full` → all of the above + `check:verify` (verify smoke)
 - `check:capture-unit` — node:vm unit coverage for the periodic frame capture runtime (URL parse, localStorage, clamp, state machine, blob trigger). Runs as part of `npm run check`.
 - `check:capture-smoke` — Puppeteer smoke against built `dist/engine`. Toolbar mount, toggle flow, interval two-way binding, URL opt-in. Runs as part of `npm run check:full`.
+- `check:media-input-unit` — node:vm unit coverage for the live-camera-mic foundation (MediaInput factory + codec + audio features, Camera Preview + Mic Meter mount/unmount contracts). Runs as part of `npm run check`.
+- `check:media-input-smoke` — Puppeteer smoke verifying the 3 module globals load and the factory returns an instance. Skips real camera/mic permissions (CI sandbox). Runs as part of `npm run check:full`.
 - E2E: `npm run verify:<name>` (e.g. `verify:cloud-auth`, `verify:story-graph`, `verify:hallucination-story`, `verify:autoplay`, `verify:e2e-media-record`, `verify:music-video-maker`, `verify:weddings`, `verify:site-nav`); Puppeteer auto-logs-in via stored cookies when needed
 - `verify:site-nav` — smoke test for the unified navigation system. Crawls every nav URL from `site-map.json`, verifies shared CSS/JS loads, checks archived pages return 404
 - Each `verify-*.mjs` is standalone (no shared harness); they're discovered and run individually. Add a new `verify-<feature>.mjs` at repo root and wire it as `npm run verify:<feature>` in `package.json`
