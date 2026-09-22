@@ -611,6 +611,14 @@
       "destination": "/lab/media-input.html"
     },
     {
+      "source": "/spit",
+      "destination": "/spit.html"
+    },
+    {
+      "source": "/spit/",
+      "destination": "/spit.html"
+    },
+    {
       "source": "/tools/lib/hf-publish.client.js",
       "destination": "/tools/lib/hf-publish.client.js"
     },
