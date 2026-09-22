@@ -2322,19 +2322,14 @@
   <script src="/audio-analysis-v2.js" defer></script>
   <script src="/swr-sets.js" defer></script>
   <script src="/persona-onboarding.js" defer></script>
-  <!-- Sprint B1 (feat/asset-curator): Audio subsystem extracted into
-       a standalone lib. Loaded before the engine IIFE so window.Audio
-       is ready when the IIFE body references it. -->
+  <!-- Audio / Library / Layers subsystems extracted into standalone libs
+       (see the file headers in lib/audio.client.js, lib/library.client.js,
+       lib/layers.client.js for per-module docs). Load order matters: each
+       script tag must evaluate before the engine IIFE body references
+       the corresponding global, and the later libs depend on the earlier
+       ones (Library reads Audio; Layers reads Library + Audio). -->
   <script src="/lib/audio.client.js" defer></script>
-  <!-- Sprint B2 (feat/asset-curator): Library subsystem extracted into
-       a standalone lib. Depends on window.Audio (for clearCurrentSong /
-       promoteToSong) and DOM refs. Loaded right after audio so both are
-       available before the engine IIFE runs. -->
   <script src="/lib/library.client.js" defer></script>
-  <!-- Sprint B3 (feat/asset-curator): Layers subsystem extracted into
-       a standalone lib. Depends on window.Library, window.Audio, and
-       DOM refs (#layer-list, #stage-empty). Loaded after library so the
-       autoMap() flow (Library.items) is reachable. -->
   <script src="/lib/layers.client.js" defer></script>
   <!-- M1: auth + storage clients. project.js depends on these. -->
   <script src="/lib/auth.client.js" defer></script>
