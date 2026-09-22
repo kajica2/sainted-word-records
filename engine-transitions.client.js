@@ -25,6 +25,10 @@
   const OVERLAY_ID = 'swr-tx-layer';
   const STAGE_SELECTOR = '#render, #stage canvas, #fx-canvas';
   const BEAT_DEFAULT_BPM = 120;        // fallback when no audio wired
+  // Sprint C1: real light-leak WebP asset baked at /public/media/transitions/.
+  // Preloaded on init (this IIFE is module-deferred, so DOM ready by then).
+  const LIGHT_LEAK_URL = '/media/transitions/light-leak-pop.webp';
+  let lightLeakImg = null;             // set by preload; checked at fire time
 
   // ---- Transition catalog ----
   // Family tags drive picker UIs and preset↔transition pairing. The
@@ -361,13 +365,21 @@
   }
 
   function fireLightLeakPop() {
-    // Procedural warm light leak — radial gradient with screen blend. No PNG.
+    // Real light-leak WebP asset (Sprint C1 of feat/asset-curator burndown).
+    // Previously a CSS radial gradient; now the baked PNG/WebP (warm orange
+    // center, pink halo, cream/gold anamorphic streaks) is composited with
+    // screen blend so the stage colors below show through naturally.
+    // Falls back to the procedural gradient if the asset didn't preload.
     const overlay = ensureOverlay();
-    overlay.style.background = `radial-gradient(ellipse 60% 80% at 30% 40%,
-      rgba(255, 220, 160, 0.85) 0%,
-      rgba(255, 140, 80, 0.6) 30%,
-      rgba(220, 80, 120, 0.4) 60%,
-      transparent 90%)`;
+    if (lightLeakImg && lightLeakImg.complete && lightLeakImg.naturalWidth) {
+      overlay.style.background = `url(${LIGHT_LEAK_URL}) center/contain no-repeat #000`;
+    } else {
+      overlay.style.background = `radial-gradient(ellipse 60% 80% at 30% 40%,
+        rgba(255, 220, 160, 0.85) 0%,
+        rgba(255, 140, 80, 0.6) 30%,
+        rgba(220, 80, 120, 0.4) 60%,
+        transparent 90%)`;
+    }
     overlay.style.mixBlendMode = 'screen';
     overlay.style.display = 'block';
     overlay.style.animation = `llp${++styleCounter} 680ms ease-out forwards`;
@@ -541,4 +553,21 @@
     // Escape hatch for debug / advanced users.
     _TRANSITIONS: TRANSITIONS
   };
+
+  // ---- Preload (Sprint C1) ---------------------------------------------
+  // fireLightLeakPop() uses the baked WebP. Preload it once at module-init
+  // so the first fire doesn't show the procedural fallback. On 404 (e.g.
+  // local dev without /public served), fall back silently — the procedural
+  // gradient still produces a usable leak.
+  (function preloadLightLeakAsset() {
+    const img = new Image();
+    img.onload = () => {
+      lightLeakImg = img;
+      console.log('[swr-tx] loaded light-leak-pop asset');
+    };
+    img.onerror = () => {
+      console.warn('[swr-tx] light-leak-pop asset missing — using procedural fallback');
+    };
+    img.src = LIGHT_LEAK_URL;
+  })();
 })();

@@ -273,6 +273,10 @@ function copyStatic() {
     // ~4 MB total). Each engine auto-loads ../audios/<engine>.mp3 as the
     // default audio source so the reactivity has something to drive.
     { src: 'audios', dst: 'audios' },
+    // media/ ships the Sprint C1 transition assets (light-leak-pop.webp,
+    // vhs-tracking.svg, occluder-1/2/3.webp). Referenced from
+    // engine-transitions.client.js.
+    { src: 'media', dst: 'media' },
     // M1: ship the auth pages and api/ tree.
     { src: 'auth', dst: 'auth' },
     { src: 'api', dst: 'api' },
