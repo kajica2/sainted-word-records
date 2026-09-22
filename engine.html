@@ -238,6 +238,11 @@
     #stage-empty .hint { color: var(--dim); font-size: 11px; margin-top: 12px; }
     #stage-empty button { pointer-events: auto; }   /* BUG-016: parent has pointer-events:none so buttons inside are unclickable until explicitly opted in */
     #stage-empty.hidden { display: none; }
+    /* ---- Block A "Persistent Data Overlay" was scaffolded in commit
+       ae88241 but never wired to CSS or JS — its buttons / canvas sit
+       unstyled inside #stage and shift around as content changes,
+       which reads as "flashing UI". Hidden until the feature ships. */
+    .bottom { display: none !important; }
     #stage-flash {
       position: absolute;
       inset: 0;
