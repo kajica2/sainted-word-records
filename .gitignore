@@ -119,3 +119,8 @@ artists.json
 # cover the bare-prefixed probes.
 probe-*.mjs
 _archive/
+
+# Isolated worktrees created for in-progress feature work (subagent-driven
+# development, parallel sprints). Tracked by .git/worktrees/ but the working
+# trees themselves must never be committed.
+.worktrees/
