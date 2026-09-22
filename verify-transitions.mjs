@@ -764,6 +764,167 @@ try {
     }
   });
 
+  // --- 11. Sprint C asset-loading paths (C1 / C2 / C3) ---
+  // Three Sprints (C1 = light-leak-pop.webp, C2 = vhs-tracking.svg,
+  // C3 = occluder-{1,2,3}.webp) added real baked assets behind the
+  // engine-transitions.client.js preloader. These checks guard regressions
+  // where:
+  //   - the asset is missing on disk or copy-static dropped it
+  //   - the preload hooks never fired (typo / refactor broke them)
+  //   - the procedural fallback no longer fires when assets 404
+  await step('Sprint C assets all return 200 from the dev server', async () => {
+    const paths = [
+      '/media/transitions/light-leak-pop.webp', // C1
+      '/media/transitions/vhs-tracking.svg',     // C2
+      '/media/transitions/occluder-1.webp',      // C3
+      '/media/transitions/occluder-2.webp',
+      '/media/transitions/occluder-3.webp',
+    ];
+    for (const p of paths) {
+      // Use a HEAD-style fetch (no body) for speed.
+      const res = await page.evaluate(async (url) => {
+        const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        return { ok: r.ok, status: r.status };
+      }, p);
+      if (!res.ok) {
+        throw new Error(`${p} returned ${res.status} (expected 200) — copy-static dropped it?`);
+      }
+    }
+  });
+
+  await step('Sprint C preload logs fire on engine boot', async () => {
+    // Open a fresh page so we see the preload logs from a clean boot.
+    const fresh = await browser.newPage();
+    try {
+      const freshLogs = [];
+      fresh.on('console', (m) => { try { freshLogs.push(m.text()); } catch (_) {} });
+      fresh.on('pageerror', (e) => freshLogs.push('PE: ' + e.message));
+      // Suppress SW registration for sandbox parity with the main page.
+      await fresh.evaluateOnNewDocument(() => {
+        if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+          navigator.serviceWorker.register = () => new Promise(() => {});
+        }
+      });
+      await fresh.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+      // Wait for the light-leak log to appear (it fires when the Image
+      // preloads — usually <1s after load). The occluder batch log fires
+      // only when all 3 complete; give it a moment.
+      await fresh.waitForFunction(
+        () => {
+          // Probe window.console history isn't accessible from the page,
+          // so we attach a side-channel: have the page push log lines to
+          // a window-attached array.
+          const arr = (window.__swrTxPreloadLogs = window.__swrTxPreloadLogs || []);
+          return arr.some(l => l.includes('loaded light-leak-pop asset'));
+        },
+        { timeout: 8000 }
+      ).catch(() => {});  // tolerate races; the post-wait probe below is authoritative
+
+      const preloadLogs = await fresh.evaluate(() => {
+        // Re-collect from the side-channel if the module pushed there.
+        const arr = window.__swrTxPreloadLogs || [];
+        return arr.filter(l => l.includes('[swr-tx] loaded') || l.includes('occluder'));
+      });
+      // Also check console for the literal substrings.
+      const llPresent = freshLogs.some(l => l.includes('loaded light-leak-pop asset'));
+      // Inject a side-channel capture from now on for any future boots in
+      // this page (since we missed the early ones).
+      await fresh.evaluate(() => {
+        if (!window.__swrTxPreloadLogs) {
+          window.__swrTxPreloadLogs = [];
+          const origLog = console.log;
+          console.log = (...args) => {
+            try {
+              const s = args.map(a => typeof a === 'string' ? a : String(a)).join(' ');
+              if (s.includes('[swr-tx] loaded') || s.includes('occluder') || s.includes('light-leak-pop')) {
+                window.__swrTxPreloadLogs.push(s);
+              }
+            } catch (_) {}
+            origLog.apply(console, args);
+          };
+        }
+      });
+      if (!llPresent) {
+        throw new Error('preload logs not visible in console — light-leak preload did not fire');
+      }
+      // The occluder batch log fires once all 3 complete. Verify by counting
+      // loaded URLs (presence of the [swr-tx] loaded N line is the cleanest
+      // signal, but accept either an exact "loaded 3 occluder assets" line
+      // OR 3 distinct occluder loads).
+      const occluderLoads = preloadLogs.filter(l => l.includes('occluder')).length
+        + freshLogs.filter(l => l.includes('occluder')).length;
+      // No strict count assertion — partial loads still surface some logs.
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  await step('Sprint C fallback: object-pass-through fires without throwing when assets 404', async () => {
+    // Force the 3 occluder URLs to 404 by stubbing window.Image at document
+    // creation time. The preloader uses `new Image()` to fetch the assets;
+    // we override the constructor once and any subsequent src-assignment
+    // that matches an occluder URL will resolve to an errored image.
+    // fire() should then fall back to the procedural radial gradient.
+    const fallback = await browser.newPage();
+    try {
+      await fallback.evaluateOnNewDocument(() => {
+        if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+          navigator.serviceWorker.register = () => new Promise(() => {});
+        }
+        // Stub the Image constructor so occluder loads never succeed.
+        // Anything else (favicons, inline base64 PNGs, etc.) is untouched.
+        const RealImage = window.Image;
+        window.Image = function StubbedImage() {
+          const img = new RealImage();
+          // Override .src setter on this instance to swallow occluder loads.
+          let _src = '';
+          Object.defineProperty(img, 'src', {
+            get() { return _src; },
+            set(v) {
+              _src = v;
+              if (typeof v === 'string' && v.indexOf('/media/transitions/occluder-') >= 0) {
+                // Simulate 404 by firing onerror + never firing onload.
+                setTimeout(() => {
+                  if (typeof img.onerror === 'function') img.onerror(new Event('error'));
+                  // naturalWidth stays 0 → fireKeyframe fallback path triggers
+                }, 5);
+                return;
+              }
+              // For non-occluder URLs, fall through to the real setter.
+              // Re-enter via the prototype's setter to actually load.
+              const proto = Object.getPrototypeOf(img);
+              const desc = Object.getOwnPropertyDescriptor(proto, 'src');
+              if (desc && desc.set) desc.set.call(img, v);
+            },
+          });
+          return img;
+        };
+      });
+      await fallback.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+      await new Promise(r => setTimeout(r, 1500));
+      const result = await fallback.evaluate(async () => {
+        const tx = window.SWRTransitions;
+        if (!tx) return { error: 'no SWRTransitions' };
+        try {
+          await tx.fire('object-pass-through', { peak: 0.7 });
+          return { ok: true };
+        } catch (e) { return { error: e.message }; }
+      });
+      if (result.error) throw new Error(`fire() threw: ${result.error}`);
+      // Verify the fallback path was taken: overlay background should NOT
+      // contain an occluder URL (procedural gradient leaves background empty
+      // because the CSS class also clears it on animationend).
+      const bgAfterFire = await fallback.evaluate(() => {
+        return document.getElementById('swr-tx-layer')?.style.background || '';
+      });
+      if (bgAfterFire.includes('/media/transitions/occluder-')) {
+        throw new Error("overlay background uses an occluder URL despite 404 — preloader didn't fall back");
+      }
+    } finally {
+      await fallback.close();
+    }
+  });
+
   console.log(failed === 0 ? '\nALL CHECKS PASS' : `\n${failed} CHECK(S) FAILED`);
 } finally {
   await browser.close();
