@@ -82,6 +82,324 @@
   ],
   "rewrites": [
     {
+      "source": "/visual-languages",
+      "destination": "/versions/index.html"
+    },
+    {
+      "source": "/visual-languages/",
+      "destination": "/versions/index.html"
+    },
+    {
+      "source": "/artists",
+      "destination": "/artists/index.html"
+    },
+    {
+      "source": "/artists/",
+      "destination": "/artists/index.html"
+    },
+    {
+      "source": "/tools/hf-publish",
+      "destination": "/tools/hf-publish.html"
+    },
+    {
+      "source": "/tools/hf-publish/",
+      "destination": "/tools/hf-publish.html"
+    },
+    {
+      "source": "/tools/lib/hf-publish.client.js",
+      "destination": "/tools/lib/hf-publish.client.js"
+    },
+    {
+      "source": "/_curator-runner.html",
+      "destination": "/_curator-runner.html",
+      "statusCode": 404
+    },
+    {
+      "source": "/curator-runner.html",
+      "destination": "/curator-runner.html",
+      "statusCode": 404
+    },
+    {
+      "source": "/atlas",
+      "destination": "/atlas.html"
+    },
+    {
+      "source": "/atlas/",
+      "destination": "/atlas.html"
+    },
+    {
+      "source": "/versions/music-video",
+      "destination": "/versions/music_video.html"
+    },
+    {
+      "source": "/versions/music-video/",
+      "destination": "/versions/music_video.html"
+    },
+    {
+      "source": "/versions/echo-manifold",
+      "destination": "/versions/echo-manifold.html"
+    },
+    {
+      "source": "/versions/echo-manifold/",
+      "destination": "/versions/echo-manifold.html"
+    },
+    {
+      "source": "/artists/ana-maric",
+      "destination": "/artists/ana-maric.html"
+    },
+    {
+      "source": "/artists/ana-maric/",
+      "destination": "/artists/ana-maric.html"
+    },
+    {
+      "source": "/artists/dusan-popov",
+      "destination": "/artists/dusan-popov.html"
+    },
+    {
+      "source": "/artists/dusan-popov/",
+      "destination": "/artists/dusan-popov.html"
+    },
+    {
+      "source": "/artists/kira-lindqvist",
+      "destination": "/artists/kira-lindqvist.html"
+    },
+    {
+      "source": "/artists/kira-lindqvist/",
+      "destination": "/artists/kira-lindqvist.html"
+    },
+    {
+      "source": "/artists/marko-ilic",
+      "destination": "/artists/marko-ilic.html"
+    },
+    {
+      "source": "/artists/marko-ilic/",
+      "destination": "/artists/marko-ilic.html"
+    },
+    {
+      "source": "/artists/nina-volkova",
+      "destination": "/artists/nina-volkova.html"
+    },
+    {
+      "source": "/artists/nina-volkova/",
+      "destination": "/artists/nina-volkova.html"
+    },
+    {
+      "source": "/artists/vodolija",
+      "destination": "/artists/vodolija/index.html"
+    },
+    {
+      "source": "/artists/vodolija/",
+      "destination": "/artists/vodolija/index.html"
+    },
+    {
+      "source": "/versions/music-video-gallery",
+      "destination": "/versions/music-video-gallery.html"
+    },
+    {
+      "source": "/versions/music-video-gallery/",
+      "destination": "/versions/music-video-gallery.html"
+    },
+    {
+      "source": "/versions/neon",
+      "destination": "/versions/neon.html"
+    },
+    {
+      "source": "/versions/neon/",
+      "destination": "/versions/neon.html"
+    },
+    {
+      "source": "/versions/film",
+      "destination": "/versions/film.html"
+    },
+    {
+      "source": "/versions/film/",
+      "destination": "/versions/film.html"
+    },
+    {
+      "source": "/versions/grid",
+      "destination": "/versions/grid.html"
+    },
+    {
+      "source": "/versions/grid/",
+      "destination": "/versions/grid.html"
+    },
+    {
+      "source": "/versions/smoke",
+      "destination": "/versions/smoke.html"
+    },
+    {
+      "source": "/versions/smoke/",
+      "destination": "/versions/smoke.html"
+    },
+    {
+      "source": "/versions/hallucination",
+      "destination": "/versions/hallucination.html"
+    },
+    {
+      "source": "/versions/hallucination/",
+      "destination": "/versions/hallucination.html"
+    },
+    {
+      "source": "/versions/aurora",
+      "destination": "/versions/aurora.html"
+    },
+    {
+      "source": "/versions/aurora/",
+      "destination": "/versions/aurora.html"
+    },
+    {
+      "source": "/versions/baroque",
+      "destination": "/versions/baroque.html"
+    },
+    {
+      "source": "/versions/baroque/",
+      "destination": "/versions/baroque.html"
+    },
+    {
+      "source": "/versions/chrome",
+      "destination": "/versions/chrome.html"
+    },
+    {
+      "source": "/versions/chrome/",
+      "destination": "/versions/chrome.html"
+    },
+    {
+      "source": "/versions/collage",
+      "destination": "/versions/collage.html"
+    },
+    {
+      "source": "/versions/collage/",
+      "destination": "/versions/collage.html"
+    },
+    {
+      "source": "/versions/eclipse",
+      "destination": "/versions/eclipse.html"
+    },
+    {
+      "source": "/versions/eclipse/",
+      "destination": "/versions/eclipse.html"
+    },
+    {
+      "source": "/versions/fractal",
+      "destination": "/versions/fractal.html"
+    },
+    {
+      "source": "/versions/fractal/",
+      "destination": "/versions/fractal.html"
+    },
+    {
+      "source": "/versions/glitch",
+      "destination": "/versions/glitch.html"
+    },
+    {
+      "source": "/versions/glitch/",
+      "destination": "/versions/glitch.html"
+    },
+    {
+      "source": "/versions/kraft",
+      "destination": "/versions/kraft.html"
+    },
+    {
+      "source": "/versions/kraft/",
+      "destination": "/versions/kraft.html"
+    },
+    {
+      "source": "/versions/mosaic",
+      "destination": "/versions/mosaic.html"
+    },
+    {
+      "source": "/versions/mosaic/",
+      "destination": "/versions/mosaic.html"
+    },
+    {
+      "source": "/versions/phosphor",
+      "destination": "/versions/phosphor.html"
+    },
+    {
+      "source": "/versions/phosphor/",
+      "destination": "/versions/phosphor.html"
+    },
+    {
+      "source": "/versions/pulse",
+      "destination": "/versions/pulse.html"
+    },
+    {
+      "source": "/versions/pulse/",
+      "destination": "/versions/pulse.html"
+    },
+    {
+      "source": "/versions/spectrum",
+      "destination": "/versions/spectrum.html"
+    },
+    {
+      "source": "/versions/spectrum/",
+      "destination": "/versions/spectrum.html"
+    },
+    {
+      "source": "/versions/tape",
+      "destination": "/versions/tape.html"
+    },
+    {
+      "source": "/versions/tape/",
+      "destination": "/versions/tape.html"
+    },
+    {
+      "source": "/versions/typography",
+      "destination": "/versions/typography.html"
+    },
+    {
+      "source": "/versions/typography/",
+      "destination": "/versions/typography.html"
+    },
+    {
+      "source": "/versions/void",
+      "destination": "/versions/void.html"
+    },
+    {
+      "source": "/versions/void/",
+      "destination": "/versions/void.html"
+    },
+    {
+      "source": "/versions/watercolor",
+      "destination": "/versions/watercolor.html"
+    },
+    {
+      "source": "/versions/watercolor/",
+      "destination": "/versions/watercolor.html"
+    },
+    {
+      "source": "/versions/gallery",
+      "destination": "/versions/gallery.html"
+    },
+    {
+      "source": "/versions/gallery/",
+      "destination": "/versions/gallery.html"
+    },
+    {
+      "source": "/versions/bachdrop",
+      "destination": "/versions/bachdrop.html"
+    },
+    {
+      "source": "/versions/bachdrop/",
+      "destination": "/versions/bachdrop.html"
+    },
+    {
+      "source": "/versions/music_video",
+      "destination": "/versions/music_video.html"
+    },
+    {
+      "source": "/versions/music_video/",
+      "destination": "/versions/music_video.html"
+    },
+    {
+      "source": "/versions/console",
+      "destination": "/versions/console.html"
+    },
+    {
+      "source": "/versions/console/",
+      "destination": "/versions/console.html"
+    },
+    {
       "source": "/",
       "destination": "/landing.html"
     },
@@ -108,14 +426,6 @@
     {
       "source": "/versions/",
       "destination": "/versions.html"
-    },
-    {
-      "source": "/visual-languages",
-      "destination": "/versions/index.html"
-    },
-    {
-      "source": "/visual-languages/",
-      "destination": "/versions/index.html"
     },
     {
       "source": "/make-video",
@@ -172,14 +482,6 @@
     {
       "source": "/gallery/",
       "destination": "/gallery.html"
-    },
-    {
-      "source": "/artists",
-      "destination": "/artists.html"
-    },
-    {
-      "source": "/artists/",
-      "destination": "/artists.html"
     },
     {
       "source": "/gallery/music",
@@ -326,28 +628,12 @@
       "destination": "/gallery-brutalist.html"
     },
     {
-      "source": "/gallery/loops",
-      "destination": "/gallery-loops.html"
-    },
-    {
-      "source": "/gallery/loops/",
-      "destination": "/gallery-loops.html"
-    },
-    {
       "source": "/gallery/vintage",
       "destination": "/gallery-vintage.html"
     },
     {
       "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
-    },
-    {
-      "source": "/versions/music-video-gallery",
-      "destination": "/versions/music-video-gallery.html"
-    },
-    {
-      "source": "/versions/music-video-gallery/",
-      "destination": "/versions/music-video-gallery.html"
     },
     {
       "source": "/personas",
@@ -502,6 +788,22 @@
       "destination": "/ar-gif.html"
     },
     {
+      "source": "/lab/media-input",
+      "destination": "/lab/media-input.html"
+    },
+    {
+      "source": "/lab/media-input/",
+      "destination": "/lab/media-input.html"
+    },
+    {
+      "source": "/spit",
+      "destination": "/spit.html"
+    },
+    {
+      "source": "/spit/",
+      "destination": "/spit.html"
+    },
+    {
       "source": "/s/:id",
       "destination": "/s/:id.html"
     },
@@ -582,55 +884,9 @@
       "destination": "/personas.html"
     },
     {
-      "source": "/style-guide",
-      "destination": "/style-guide.html"
-    },
-    {
-      "source": "/style-guide/",
-      "destination": "/style-guide.html"
-    },
-    {
       "source": "/persona-demo.html",
       "destination": "/personas.html",
       "statusCode": 301
-    },
-    {
-      "source": "/tools/hf-publish",
-      "destination": "/tools/hf-publish.html"
-    },
-    {
-      "source": "/tools/hf-publish/",
-      "destination": "/tools/hf-publish.html"
-    },
-    {
-      "source": "/lab/media-input",
-      "destination": "/lab/media-input.html"
-    },
-    {
-      "source": "/lab/media-input/",
-      "destination": "/lab/media-input.html"
-    },
-    {
-      "source": "/spit",
-      "destination": "/spit.html"
-    },
-    {
-      "source": "/spit/",
-      "destination": "/spit.html"
-    },
-    {
-      "source": "/tools/lib/hf-publish.client.js",
-      "destination": "/tools/lib/hf-publish.client.js"
-    },
-    {
-      "source": "/_curator-runner.html",
-      "destination": "/_curator-runner.html",
-      "statusCode": 404
-    },
-    {
-      "source": "/curator-runner.html",
-      "destination": "/curator-runner.html",
-      "statusCode": 404
     }
   ]
 }
