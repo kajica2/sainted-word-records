@@ -337,15 +337,15 @@ async function section4() {
   assert(fxOn && fxOn.success === true && fxOn.fx === 'punch',
     "triggerFx('punch') → { success:true, fx:'punch' }");
 
-  // Runtime's triggerFx always returns { success:true, fx } when FX module
-  // is loaded; the underlying FX failure surfaces via onFxTrigger.
+  // Runtime's triggerFx now propagates the underlying FX result
+  // (fixed: was always { success:true, fx } before the Task 5 follow-up).
   let onFxResult = null;
   const inst2 = SR.create(doc.getElementById('spit-canvas'), {
     onFxTrigger: (evt) => { onFxResult = evt; },
   });
   const fxBad = inst2.triggerFx('not-a-fx');
-  assert(fxBad && fxBad.success === true && fxBad.fx === 'not-a-fx',
-    "triggerFx('not-a-fx') runtime: { success:true, fx:'not-a-fx' }", JSON.stringify(fxBad));
+  assert(fxBad && fxBad.success === false && fxBad.error === 'unknown_fx' && fxBad.fx === 'not-a-fx',
+    "triggerFx('not-a-fx') propagates FX failure: { success:false, error:'unknown_fx' }", JSON.stringify(fxBad));
   assert(onFxResult && onFxResult.result && onFxResult.result.success === false
     && onFxResult.result.error === 'unknown_fx',
     'triggerFx surfaces underlying FX failure via onFxTrigger');

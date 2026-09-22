@@ -483,7 +483,10 @@
     this._fxQueue.push({ name: name, t: Date.now() });
     if (this._fxQueue.length > 32) this._fxQueue = this._fxQueue.slice(-32);
     if (this._options.onFxTrigger) { try { this._options.onFxTrigger({ name: name, result: res }); } catch (_) {} }
-    return { success: true, fx: name };
+    // Propagate the underlying FX result instead of always reporting success.
+    // The FX module returns its own {success, fx, duration, id} shape;
+    // callers depend on the success flag to detect bad FX names.
+    return res && typeof res === 'object' ? res : { success: true, fx: name };
   };
 
   // ---- 7-8. startRecording / stopRecording ------------------------------
