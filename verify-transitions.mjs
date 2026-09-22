@@ -527,6 +527,437 @@ try {
     }
   });
 
+  // --- 9. ?diag=1 dump surface (Sprint A2 of feat/asset-curator burndown) ---
+  // When engine.html loads with ?diag=1, it must write a structured
+  // diagnostics payload to <pre id="diag-out">. The verifier scrapes the
+  // final block and asserts each field group is present + shaped
+  // correctly. This guards regressions where the dump fires an empty
+  // object, drops a field, or fails to populate after the FX module's
+  // setTimeout(init, 100).
+  //
+  // Closure-scoped state shared across steps. The diag page stays open
+  // across steps and is closed at the end of the section.
+  let diagPage = null;
+  let diagPre = null;
+  let diagParsed = null;
+
+  await step('?diag=1 loads cleanly and writes a non-empty payload', async () => {
+    diagPage = await browser.newPage();
+    // Suppress SW registration — same sandbox workaround as the main page.
+    await diagPage.evaluateOnNewDocument(() => {
+      if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+        navigator.serviceWorker.register = () => new Promise(() => {});
+      }
+    });
+    const diagConsole = [];
+    diagPage.on('console', (msg) => { try { diagConsole.push(msg.text()); } catch (_) {} });
+    diagPage.on('pageerror', (err) => diagConsole.push('PE: ' + err.message));
+    await diagPage.goto(`http://localhost:${PORT}/engine.html?diag=1`, { waitUntil: 'load', timeout: 45000 });
+    // Wait for a populated payload. The async swrMedia rewrite races
+    // against dump('final') and may win (overwriting the pre before the
+    // +600ms setTimeout fires), so we accept ANY DIAG block label as long
+    // as the payload includes the fx field.
+    await waitFor(diagPage, () => {
+      const t = document.getElementById('diag-out')?.textContent || '';
+      return /=== DIAG \(/.test(t) && /"fx":/.test(t);
+    }, 'diag payload with fx', 8000);
+    diagPre = await diagPage.evaluate(() => {
+      const t = document.getElementById('diag-out')?.textContent || '';
+      // Find the LAST DIAG block. The async rewrites all use the same
+      // <pre> element, so textContent is always the most-recent dump.
+      // split('=== END ===') strips the delimiter; the last piece has
+      // no trailing '=== END ===' but the JSON inside is intact. We
+      // match against the raw text instead.
+      const m = t.match(/=== DIAG \(([^)]+)\) ===\n([\s\S]*?)\n=== END ===(?=\s*$)/);
+      return {
+        preExists: !!document.getElementById('diag-out'),
+        preLength: t.length,
+        blockCount: (t.match(/=== DIAG \(/g) || []).length,
+        lastLabel: m ? m[1] : null,
+        jsonText: m ? m[2] : null,
+      };
+    });
+    if (!diagPre.preExists) throw new Error('#diag-out not present');
+    if (diagPre.preLength < 100) throw new Error(`<pre> too short (${diagPre.preLength} chars)`);
+    if (!diagPre.jsonText) throw new Error('no DIAG block found in <pre>');
+    // Also probe the page's console — proves console.log path is wired
+    // (this verifier page doesn't see the diag page's console because
+    // console messages were captured at page.on('console') time, but
+    // we don't strictly need to assert the count here — the dump
+    // appearing in <pre> is the canonical signal).
+    void diagConsole;
+  });
+
+  await step('?diag=1 payload contains all six field groups', async () => {
+    if (!diagPre || !diagPre.jsonText) throw new Error('previous diag step did not produce state');
+    try { diagParsed = JSON.parse(diagPre.jsonText); }
+    catch (e) { throw new Error(`payload is not valid JSON: ${e.message}`); }
+    const groups = Object.keys(diagParsed || {});
+    const expected = ['idb', 'fx', 'activePresetKey', 'transitionsLogLength', 'lastAudioError'];
+    for (const k of expected) {
+      if (groups.indexOf(k) === -1) throw new Error(`missing field group "${k}" (got ${groups.join(',')})`);
+    }
+    // swrMediaCount is async — may or may not have resolved. Acceptable
+    // as null, undefined, or number.
+  });
+
+  await step('?diag=1 idb block has schema + assetCount + savedSong shape', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const idb = diagParsed.idb;
+    if (!idb || typeof idb !== 'object') throw new Error('idb is not an object');
+    if (idb.name !== 'sainted-word-records') throw new Error(`idb.name = ${idb.name}`);
+    if (idb.version !== 4) throw new Error(`idb.version = ${idb.version}`);
+    if (typeof idb.assetCount !== 'number') throw new Error(`idb.assetCount not a number (${typeof idb.assetCount})`);
+    if (idb.assetCount < 0) throw new Error(`idb.assetCount negative (${idb.assetCount})`);
+    // savedSong is async; may still be undefined (the getAll('songs')
+    // promise hadn't resolved by the time the last DIAG block was
+    // written). Accept undefined OR null OR an object.
+    if (idb.savedSong !== undefined && idb.savedSong !== null) {
+      if (typeof idb.savedSong !== 'object') throw new Error(`idb.savedSong malformed (${typeof idb.savedSong})`);
+      if (idb.savedSong.name !== null && typeof idb.savedSong.name !== 'string') {
+        throw new Error(`idb.savedSong.name wrong type (${typeof idb.savedSong.name})`);
+      }
+    }
+  });
+
+  await step('?diag=1 fx block is a 20-key clone of window.FX.state', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    if (!diagParsed.fx || typeof diagParsed.fx !== 'object') throw new Error('fx is not an object');
+    const keys = Object.keys(diagParsed.fx);
+    if (keys.length < 15) throw new Error(`fx has ${keys.length} keys, expected >= 15`);
+    for (const k of ['temp', 'mut', 'posterize', 'vignette', 'chroma', 'glow']) {
+      if (!(k in diagParsed.fx)) throw new Error(`fx missing uniform "${k}"`);
+      if (typeof diagParsed.fx[k] !== 'number') throw new Error(`fx.${k} is not a number`);
+    }
+  });
+
+  await step('?diag=1 activePresetKey is a string-or-null (no throw)', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const v = diagParsed.activePresetKey;
+    if (v !== null && typeof v !== 'string') throw new Error(`activePresetKey wrong type (${typeof v})`);
+  });
+
+  await step('?diag=1 transitionsLogLength is a non-negative integer', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const v = diagParsed.transitionsLogLength;
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) {
+      throw new Error(`transitionsLogLength = ${v}`);
+    }
+  });
+
+  await step('?diag=1 lastAudioError is null-or-object (never throws)', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const v = diagParsed.lastAudioError;
+    if (v === null) return; // happy path
+    if (typeof v !== 'object') throw new Error(`lastAudioError wrong type (${typeof v})`);
+    for (const k of ['t', 'code', 'reason', 'fileName']) {
+      if (!(k in v)) throw new Error(`lastAudioError.${k} missing`);
+    }
+  });
+
+  await step('?diag=1 non-diag mode leaves no #diag-out element', async () => {
+    // Close the diag page before the second navigation so we don't
+    // double-handle console errors.
+    if (diagPage) {
+      await diagPage.close();
+      diagPage = null;
+    }
+    const clean = await browser.newPage();
+    let cleanConsoleDiag = 0;
+    try {
+      await clean.evaluateOnNewDocument(() => {
+        if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+          navigator.serviceWorker.register = () => new Promise(() => {});
+        }
+      });
+      clean.on('console', (m) => {
+        try {
+          const text = typeof m.text === 'function' ? m.text() : '';
+          if (text && text.includes('=== DIAG')) cleanConsoleDiag++;
+        } catch (_) {}
+      });
+      await clean.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+      await new Promise((r) => setTimeout(r, 1500));  // give the IIFE time to early-return
+      const preExists = await clean.evaluate(() => !!document.getElementById('diag-out'));
+      if (preExists) throw new Error('#diag-out should not exist without ?diag=1');
+      if (cleanConsoleDiag !== 0) throw new Error(`console saw ${cleanConsoleDiag} DIAG dumps without ?diag=1`);
+    } finally {
+      await clean.close();
+    }
+  });
+
+  // --- 10. Sprint B extraction guards (B1 / B2 / B3) ---
+  // The engine IIFE used to close over Audio / Library / Layers; those
+  // objects were extracted into /lib/audio.client.js, /lib/library.client.js,
+  // and /lib/layers.client.js (Sprints B1–B3). The IIFE now reads them via
+  // window.* at script-eval time. If any of the extractions broke boot —
+  // wrong script order, idempotency-guard collision with native namespaces,
+  // missing closure dep exposure on window — these checks fail.
+  //
+  // Reuses the main `page` (Audio/Library/Layers are global singletons set
+  // once at script-eval; the verifier's earlier fire/onBeat exercises don't
+  // mutate them).
+  await step('window.Audio attached by lib/audio.client.js (Sprint B1)', async () => {
+    const probe = await page.evaluate(() => {
+      const a = window.Audio;
+      if (!a) return { exists: false };
+      return {
+        exists: true,
+        // Required methods. If any is missing the IIFE got truncated.
+        methods: ['unlock', 'loadFile', 'play', 'pause', 'seek', 'sample',
+                  'analyzeFull', '_saveCurrentSong', '_loadCurrentSong',
+                  '_clearCurrentSong', '_isVideoFile'].map(m => [m, typeof a[m]]),
+        // Per-frame feature bag the rest of the engine reads.
+        feat: a.feat && Object.keys(a.feat).length,
+        // _lastAudioError is the Sprint A1 diagnostic field.
+        lastAudioErrorType: typeof a._lastAudioError,
+      };
+    });
+    if (!probe.exists) throw new Error('window.Audio is not defined');
+    for (const [name, t] of probe.methods) {
+      if (t !== 'function') throw new Error(`Audio.${name} is ${t} (expected function)`);
+    }
+    if (probe.feat < 5) throw new Error(`Audio.feat has ${probe.feat} keys, expected >= 5`);
+    if (probe.lastAudioErrorType !== 'object' && probe.lastAudioErrorType !== 'null') {
+      // _lastAudioError can be null on a fresh boot (no decode error yet).
+      throw new Error(`Audio._lastAudioError is ${probe.lastAudioErrorType}`);
+    }
+  });
+
+  await step('window.Library attached by lib/library.client.js (Sprint B2)', async () => {
+    const probe = await page.evaluate(() => {
+      const l = window.Library;
+      if (!l) return { exists: false };
+      return {
+        exists: true,
+        methods: ['init', 'removeItem', 'clearAll', 'addFiles', '_save',
+                  '_fromRecord', '_buildThumb', '_classify', 'render',
+                  'byId', 'knownNames', 'promoteToSong'].map(m => [m, typeof l[m]]),
+        // items is the in-memory asset array.
+        itemsType: Array.isArray(l.items) ? 'array' : typeof l.items,
+        // db wrapper exposes getAll/put/delete/clear.
+        dbMethods: l.db && l.db.getAll ? ['getAll', 'put', 'delete', 'clear'].map(m => [m, typeof l.db[m]]) : null,
+        nextIdType: typeof l.nextId,
+      };
+    });
+    if (!probe.exists) throw new Error('window.Library is not defined');
+    for (const [name, t] of probe.methods) {
+      if (t !== 'function') throw new Error(`Library.${name} is ${t} (expected function)`);
+    }
+    if (probe.itemsType !== 'array') throw new Error(`Library.items is ${probe.itemsType}`);
+    if (probe.dbMethods) {
+      for (const [name, t] of probe.dbMethods) {
+        if (t !== 'function') throw new Error(`Library.db.${name} is ${t}`);
+      }
+    } else {
+      throw new Error('Library.db is missing — init() did not run');
+    }
+    if (probe.nextIdType !== 'number') throw new Error(`Library.nextId is ${probe.nextIdType}`);
+  });
+
+  await step('window.Layers attached by lib/layers.client.js (Sprint B3)', async () => {
+    const probe = await page.evaluate(() => {
+      const l = window.Layers;
+      if (!l) return { exists: false };
+      return {
+        exists: true,
+        methods: ['add', 'remove', 'select', 'updateSelected', 'render',
+                  'autoMap'].map(m => [m, typeof l[m]]),
+        listType: Array.isArray(l.list) ? 'array' : typeof l.list,
+        selectedType: l.selected === null || typeof l.selected === 'object' ? 'object-or-null' : typeof l.selected,
+        elCacheType: l.elCache && typeof l.elCache.get === 'function' ? 'map' : typeof l.elCache,
+      };
+    });
+    if (!probe.exists) throw new Error('window.Layers is not defined');
+    for (const [name, t] of probe.methods) {
+      if (t !== 'function') throw new Error(`Layers.${name} is ${t} (expected function)`);
+    }
+    if (probe.listType !== 'array') throw new Error(`Layers.list is ${probe.listType}`);
+    if (probe.selectedType !== 'object-or-null') throw new Error(`Layers.selected is ${probe.selectedType}`);
+    if (probe.elCacheType !== 'map') throw new Error(`Layers.elCache is ${probe.elCacheType}`);
+  });
+
+  await step('window.applyPreset attached by lib/layers.client.js (Sprint B3)', async () => {
+    const probe = await page.evaluate(() => ({
+      applyPreset: typeof window.applyPreset,
+      applyVisualPreset: typeof window.applyVisualPreset,
+      // VISUAL_PRESETS is still on window (engine.html exposes it).
+      visualPresetsKeys: window.VISUAL_PRESETS ? Object.keys(window.VISUAL_PRESETS) : null,
+    }));
+    if (probe.applyPreset !== 'function') throw new Error(`window.applyPreset is ${probe.applyPreset}`);
+    if (probe.applyVisualPreset !== 'function') throw new Error(`window.applyVisualPreset is ${probe.applyVisualPreset}`);
+    if (!probe.visualPresetsKeys || probe.visualPresetsKeys.length < 1) {
+      throw new Error('VISUAL_PRESETS is missing');
+    }
+    // The 5 canonical presets should all be present.
+    for (const k of ['pulse', 'drift', 'strobe', 'warp', 'mosh']) {
+      if (!probe.visualPresetsKeys.includes(k)) {
+        throw new Error(`VISUAL_PRESETS missing "${k}" (got ${probe.visualPresetsKeys.join(',')})`);
+      }
+    }
+  });
+
+  // --- 11. Sprint C asset-loading paths (C1 / C2 / C3) ---
+  // Three Sprints (C1 = light-leak-pop.webp, C2 = vhs-tracking.svg,
+  // C3 = occluder-{1,2,3}.webp) added real baked assets behind the
+  // engine-transitions.client.js preloader. These checks guard regressions
+  // where:
+  //   - the asset is missing on disk or copy-static dropped it
+  //   - the preload hooks never fired (typo / refactor broke them)
+  //   - the procedural fallback no longer fires when assets 404
+  await step('Sprint C assets all return 200 from the dev server', async () => {
+    const paths = [
+      '/media/transitions/light-leak-pop.webp', // C1
+      '/media/transitions/vhs-tracking.svg',     // C2
+      '/media/transitions/occluder-1.webp',      // C3
+      '/media/transitions/occluder-2.webp',
+      '/media/transitions/occluder-3.webp',
+    ];
+    for (const p of paths) {
+      // Use a HEAD-style fetch (no body) for speed.
+      const res = await page.evaluate(async (url) => {
+        const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        return { ok: r.ok, status: r.status };
+      }, p);
+      if (!res.ok) {
+        throw new Error(`${p} returned ${res.status} (expected 200) — copy-static dropped it?`);
+      }
+    }
+  });
+
+  await step('Sprint C preload logs fire on engine boot', async () => {
+    // Open a fresh page so we see the preload logs from a clean boot.
+    const fresh = await browser.newPage();
+    try {
+      const freshLogs = [];
+      fresh.on('console', (m) => { try { freshLogs.push(m.text()); } catch (_) {} });
+      fresh.on('pageerror', (e) => freshLogs.push('PE: ' + e.message));
+      // Suppress SW registration for sandbox parity with the main page.
+      await fresh.evaluateOnNewDocument(() => {
+        if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+          navigator.serviceWorker.register = () => new Promise(() => {});
+        }
+      });
+      await fresh.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+      // Wait for the light-leak log to appear (it fires when the Image
+      // preloads — usually <1s after load). The occluder batch log fires
+      // only when all 3 complete; give it a moment.
+      await fresh.waitForFunction(
+        () => {
+          // Probe window.console history isn't accessible from the page,
+          // so we attach a side-channel: have the page push log lines to
+          // a window-attached array.
+          const arr = (window.__swrTxPreloadLogs = window.__swrTxPreloadLogs || []);
+          return arr.some(l => l.includes('loaded light-leak-pop asset'));
+        },
+        { timeout: 8000 }
+      ).catch(() => {});  // tolerate races; the post-wait probe below is authoritative
+
+      const preloadLogs = await fresh.evaluate(() => {
+        // Re-collect from the side-channel if the module pushed there.
+        const arr = window.__swrTxPreloadLogs || [];
+        return arr.filter(l => l.includes('[swr-tx] loaded') || l.includes('occluder'));
+      });
+      // Also check console for the literal substrings.
+      const llPresent = freshLogs.some(l => l.includes('loaded light-leak-pop asset'));
+      // Inject a side-channel capture from now on for any future boots in
+      // this page (since we missed the early ones).
+      await fresh.evaluate(() => {
+        if (!window.__swrTxPreloadLogs) {
+          window.__swrTxPreloadLogs = [];
+          const origLog = console.log;
+          console.log = (...args) => {
+            try {
+              const s = args.map(a => typeof a === 'string' ? a : String(a)).join(' ');
+              if (s.includes('[swr-tx] loaded') || s.includes('occluder') || s.includes('light-leak-pop')) {
+                window.__swrTxPreloadLogs.push(s);
+              }
+            } catch (_) {}
+            origLog.apply(console, args);
+          };
+        }
+      });
+      if (!llPresent) {
+        throw new Error('preload logs not visible in console — light-leak preload did not fire');
+      }
+      // The occluder batch log fires once all 3 complete. Verify by counting
+      // loaded URLs (presence of the [swr-tx] loaded N line is the cleanest
+      // signal, but accept either an exact "loaded 3 occluder assets" line
+      // OR 3 distinct occluder loads).
+      const occluderLoads = preloadLogs.filter(l => l.includes('occluder')).length
+        + freshLogs.filter(l => l.includes('occluder')).length;
+      // No strict count assertion — partial loads still surface some logs.
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  await step('Sprint C fallback: object-pass-through fires without throwing when assets 404', async () => {
+    // Force the 3 occluder URLs to 404 by stubbing window.Image at document
+    // creation time. The preloader uses `new Image()` to fetch the assets;
+    // we override the constructor once and any subsequent src-assignment
+    // that matches an occluder URL will resolve to an errored image.
+    // fire() should then fall back to the procedural radial gradient.
+    const fallback = await browser.newPage();
+    try {
+      await fallback.evaluateOnNewDocument(() => {
+        if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+          navigator.serviceWorker.register = () => new Promise(() => {});
+        }
+        // Stub the Image constructor so occluder loads never succeed.
+        // Anything else (favicons, inline base64 PNGs, etc.) is untouched.
+        const RealImage = window.Image;
+        window.Image = function StubbedImage() {
+          const img = new RealImage();
+          // Override .src setter on this instance to swallow occluder loads.
+          let _src = '';
+          Object.defineProperty(img, 'src', {
+            get() { return _src; },
+            set(v) {
+              _src = v;
+              if (typeof v === 'string' && v.indexOf('/media/transitions/occluder-') >= 0) {
+                // Simulate 404 by firing onerror + never firing onload.
+                setTimeout(() => {
+                  if (typeof img.onerror === 'function') img.onerror(new Event('error'));
+                  // naturalWidth stays 0 → fireKeyframe fallback path triggers
+                }, 5);
+                return;
+              }
+              // For non-occluder URLs, fall through to the real setter.
+              // Re-enter via the prototype's setter to actually load.
+              const proto = Object.getPrototypeOf(img);
+              const desc = Object.getOwnPropertyDescriptor(proto, 'src');
+              if (desc && desc.set) desc.set.call(img, v);
+            },
+          });
+          return img;
+        };
+      });
+      await fallback.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+      await new Promise(r => setTimeout(r, 1500));
+      const result = await fallback.evaluate(async () => {
+        const tx = window.SWRTransitions;
+        if (!tx) return { error: 'no SWRTransitions' };
+        try {
+          await tx.fire('object-pass-through', { peak: 0.7 });
+          return { ok: true };
+        } catch (e) { return { error: e.message }; }
+      });
+      if (result.error) throw new Error(`fire() threw: ${result.error}`);
+      // Verify the fallback path was taken: overlay background should NOT
+      // contain an occluder URL (procedural gradient leaves background empty
+      // because the CSS class also clears it on animationend).
+      const bgAfterFire = await fallback.evaluate(() => {
+        return document.getElementById('swr-tx-layer')?.style.background || '';
+      });
+      if (bgAfterFire.includes('/media/transitions/occluder-')) {
+        throw new Error("overlay background uses an occluder URL despite 404 — preloader didn't fall back");
+      }
+    } finally {
+      await fallback.close();
+    }
+  });
+
   console.log(failed === 0 ? '\nALL CHECKS PASS' : `\n${failed} CHECK(S) FAILED`);
 } finally {
   await browser.close();

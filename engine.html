@@ -15,80 +15,43 @@
   <link rel="stylesheet" href="/brandkit.css" />
   <style>
     :root {
-      /* — surface ————————————————————————————— */
-      --bg:           #0A0A0B;
-      --bg-panel:     #111114;
-      --bg-panel-2:   #16161B;
-      --bg-elev:      #1C1C22;
-      --line:         #232328;
-      --line-strong:  #2E2E36;
-
-      /* — text ——————————————————————————————— */
-      --fg:           #E5E5E7;
-      --fg-mute:      #8A8A92;
-      --fg-faint:     #5A5A62;
-      --fg-on-accent: #0A0A0B;
-
-      /* — signal —————————————————————————————— */
-      --signal:        #FF6B1A;   /* the ONE accent */
-      --signal-soft:   #FF6B1A33; /* 20% alpha — fills */
-      --signal-line:   #FF6B1A14; /*  8% alpha — grid */
-      --signal-glow:   #FF6B1A08; /*  3% alpha — halos */
-      --warn:          #FFD600;
-      --error:         #FF3355;
-      --ok:            #34D399;
-
-      /* — type ——————————————————————————————— */
-      --f-ui:    'Inter', system-ui, sans-serif;
-      --f-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-
-      /* — metrics ————————————————————————————— */
-      --r-sm: 4px;  --r-md: 6px;  --r-lg: 10px;
-      --sidebar-l-w: 240px;
-      --sidebar-r-w: 280px;
-      --top-h: 56px;
-      --bottom-h: 64px;
-
-      /* — motion ————————————————————————————— */
-      --ease: cubic-bezier(.2,.8,.2,1);
-      --dur-1: 120ms;
-      --dur-2: 240ms;
-
-      /* — old → new aliases ————————————————— */
-      --bg-0:            var(--bg);
-      --bg-1:            var(--bg-panel);
-      --bg-2:            var(--bg-panel-2);
-      --panel:           var(--bg-panel);
-      --panel-2:         var(--bg-panel-2);
-      --line-old:        var(--line);
-      --line-2:          var(--line-strong);
-      --muted:           var(--fg-mute);
-      --dim:             var(--fg-faint);
-      --accent:          var(--signal);
-      --accent-2:        #00e5ff;
-      --accent-3:        #ffd24a;
-      --font-mono:       var(--f-mono);
-      --font-sans:       var(--f-ui);
+      --bg-0: #050308;
+      --bg-1: #0d0918;
+      --bg-2: #1a1226;
+      --panel: #11091a;
+      --panel-2: #1a1028;
+      --line: #2a1d3a;
+      --line-2: #3a2a4a;
+      --fg: #f5e9ff;
+      --muted: #9a8aaa;
+      --dim: #5a4a6a;
+      --accent: #ff3d92;
+      --accent-2: #00e5ff;
+      --accent-3: #ffd24a;
+      --warn: #ff7a3d;
+      --ok: #00ffa3;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
     body {
-      background: var(--bg);
+      background: var(--bg-0);
       color: var(--fg);
       font-family: var(--font-sans);
       font-size: 13px;
       line-height: 1.4;
       -webkit-font-smoothing: antialiased;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(255, 61, 146, 0.12), transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(0, 229, 255, 0.10), transparent 50%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1));
     }
 
     /* === LAYOUT === */
     #app {
       display: grid;
-      /* row 3 sized to content (was: 48px) so #global can wrap onto a 2nd
-         line when the new toolbar buttons overflow — fixes the Phase 1a
-         regression where Automix + Hooks/Stats/Mood/Scenes lived at
-         x=6209, past the viewport edge */
-      grid-template-rows: 56px 1fr auto;
+      grid-template-rows: 56px 1fr 48px;
       grid-template-columns: 240px 1fr 280px;
       grid-template-areas:
         "transport transport transport"
@@ -137,7 +100,6 @@
     }
     .pill.ok { color: var(--ok); border-color: rgba(0, 255, 163, 0.3); }
     .pill.live { color: var(--accent); border-color: rgba(255, 61, 146, 0.4); animation: pulse 1.4s ease-in-out infinite; }
-    .pill.err { color: #ff6464; border-color: rgba(255, 100, 100, 0.35); }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
     /* Key pill: warm for major, cool for minor (palette-locked) */
     #key-pill.major { color: var(--accent-3); border-color: rgba(255, 210, 74, 0.4); }
@@ -236,13 +198,7 @@
     }
     #stage-empty p { max-width: 380px; font-size: 12px; line-height: 1.6; margin: 0; }
     #stage-empty .hint { color: var(--dim); font-size: 11px; margin-top: 12px; }
-    #stage-empty button { pointer-events: auto; }   /* BUG-016: parent has pointer-events:none so buttons inside are unclickable until explicitly opted in */
     #stage-empty.hidden { display: none; }
-    /* ---- Block A "Persistent Data Overlay" was scaffolded in commit
-       ae88241 but never wired to CSS or JS — its buttons / canvas sit
-       unstyled inside #stage and shift around as content changes,
-       which reads as "flashing UI". Hidden until the feature ships. */
-    .bottom { display: none !important; }
     #stage-flash {
       position: absolute;
       inset: 0;
@@ -803,27 +759,8 @@
       background: linear-gradient(180deg, var(--panel), var(--bg-2));
       display: flex;
       align-items: center;
-      /* Phase 1a regression fix: let the toolbar wrap onto a 2nd row when
-         it overflows the viewport.  Pattern mirrors versions/_responsive-
-         inject.js so the two surfaces stay consistent.  `column-gap` is
-         declared AFTER the `gap` shorthand so the explicit `row-gap`
-         wins (otherwise the shorthand resets both to 18px and the footer
-         balloons).  min-height preserves the original single-row baseline
-         (48px); max-height caps pathological cases (very narrow viewports)
-         so the stage column never collapses to 0.  overflow-x: hidden
-         removes the old horizontal scroll, which silently hid the new
-         buttons.  Single-row layout (wide viewports) is unchanged. */
-      flex-wrap: wrap;
-      align-content: center;
-      gap: 18px;
-      column-gap: 18px;
-      row-gap: 4px;
-      min-height: 48px;
-      max-height: 32vh;
-      min-width: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
       padding: 0 16px;
+      gap: 18px;
       font-family: var(--font-mono);
     }
     .gctrl {
@@ -1574,51 +1511,6 @@
       font-size: 12px; color: rgba(245,234,216,0.7);
       cursor: pointer;
     }
-
-    *:focus { outline: 0; }
-    *:focus-visible {
-      outline: 2px solid var(--signal);
-      outline-offset: 2px;
-      border-radius: var(--r-sm);
-    }
-
-    @media (max-width: 1100px) {
-      :root { --sidebar-l-w: 200px; --sidebar-r-w: 240px; }
-      .transport .wave { display: none; }
-    }
-    @media (max-width: 768px) {
-      #app { grid-template-columns: 1fr; grid-template-rows: auto 50vh auto auto; }
-      aside#library { border-right: 0; border-bottom: 1px solid var(--line); max-height: 30vh; }
-      aside#layers { border-left: 0; border-top: 1px solid var(--line); max-height: 30vh; }
-      #library-grid { grid-template-columns: repeat(4, 1fr); }
-      .transport .pill, .transport .back { display: none; }
-      .versions { overflow-x: auto; max-width: 50vw; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
-
-    a.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-
-    .top {
-      grid-area: transport;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px; background: var(--bg-panel); border-bottom: 1px solid var(--line);
-      height: var(--top-h);
-    }
-    .top .brand { display: flex; align-items: center; text-decoration: none; color: var(--fg); font-size: 14px; letter-spacing: 0.05em; }
-    .top .versions { display: flex; align-items: center; gap: 4px; }
-    .top .versions a {
-      font-size: 11px; color: var(--fg-mute); text-decoration: none; padding: 4px 8px; border-radius: 4px;
-      transition: color var(--dur-1), background var(--dur-1);
-    }
-    .top .versions a:hover { color: var(--fg); background: var(--bg-elev); }
-    .top .versions a.active { color: var(--signal); font-weight: 600; }
-    .top .versions a.active::before { content: '•'; margin-right: 4px; }
-    .top .transport { display: flex; align-items: center; gap: 8px; }
   </style>
   <script src="/nav.client.js" defer></script>
   <script src="/fx-background.client.js" defer></script>
@@ -1626,56 +1518,60 @@
   <script src="/client/default-library.client.js" defer></script>
 </head>
 <body>
-  <a class="sr" href="#render">Skip to canvas</a>
   <div id="app">
-    <header class="top">
-      <a class="brand" href="/" id="nav-home">
-        <span class="sw" style="background: var(--signal); color: #000; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-right: 8px;">SW</span>
-        <span class="brand-text"><b>SAINTED</b><span style="font-weight: normal; opacity: 0.7; margin-left: 4px;">WORD RECORDS</span></span>
-      </a>
-
-      <nav class="versions" aria-label="Visual language">
-        <a href="/versions/neon"     data-v="neon">Neon</a>
-        <a href="/versions/film"     data-v="film">Film</a>
-        <a href="/versions/grid"     data-v="grid">Grid</a>
-        <a href="/versions/spectrum" data-v="spectrum">Spectrum</a>
-        <a href="/versions/aurora"   data-v="aurora">Aurora</a>
-        <span class="sep" aria-hidden="true" style="width: 1px; height: 16px; background: var(--line); margin: 0 8px;"></span>
-        <a href="/dashboard"         data-v="console" class="active">Console</a>
-
-      </nav>
-
-      <div class="transport">
-        <button class="tbtn primary" id="play" disabled aria-label="Play">▶ Play</button>
-        <span class="time" id="time">0:00 <b>/ 0:00</b></span>
-        <canvas id="meter" width="180" height="24" style="margin: 0 12px;"></canvas>
-        <span class="pill" id="bpm-pill">BPM <b>—</b></span>
-        <span class="pill" id="key-pill">KEY <b>—</b></span>
-        <span class="pill" id="status-pill" data-default="idle">idle</span>
-        <button class="tbtn ghost" id="load-song">Load song</button>
-        <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" style="display:none" />
-        <button class="tbtn danger" id="rec" disabled>● REC</button>
-        
-        <details class="settings-menu" style="position: relative;">
-          <summary class="tbtn ghost" style="padding: 4px 8px; font-size: 11px; list-style: none;">Settings</summary>
-          <div style="position: absolute; top: 100%; right: 0; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 8px; z-index: 100; min-width: 160px; display: flex; flex-direction: column; gap: 4px;">
-            <span style="color: var(--fg-mute); text-decoration: line-through; font-size: 11px; padding: 4px; cursor: not-allowed;" title="Coming soon">Personal Tier — coming soon</span>
-            <a href="/about" style="color: var(--fg); text-decoration: none; font-size: 11px; padding: 4px;">About</a>
-            <hr style="border: 0; border-top: 1px solid var(--line); margin: 4px 0;">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-              <label style="font-size: 9px; color: var(--fg-mute); margin-bottom: 2px;">Export Size</label>
-              <select id="rec-size" class="tbtn ghost" style="font-size: 9px; padding: 2px 4px; width: 100%;">
-                <option value="landscape" selected>YouTube · 1920×1080</option>
-                <option value="square">Square · 1080×1080</option>
-                <option value="portrait">Instagram · 1080×1350</option>
-                <option value="reel">Reel / TikTok · 1080×1920</option>
-              </select>
-            </div>
-          </div>
-        </details>
-
-        <a class="back" href="/" style="margin-left: 12px; text-decoration: none; font-size: 11px; color: var(--fg-mute);">← Back</a>
-      </div>
+    <header id="transport">
+      <a class="tbtn ghost nav-arrow" id="nav-home" href="/" title="Back to home" aria-label="Home" style="padding:4px 8px; font-size:14px; text-decoration:none; line-height:1;">←</a>
+      <button class="tbtn ghost" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="padding:4px 10px; font-size:14px; line-height:1; margin:0 8px;">?</button>
+      <div class="brand">SAINTED-WORD <small>records</small></div>
+      <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
+      <button class="tbtn ghost nav-arrow" id="nav-ver-prev" title="Previous visual version (Shift+←)" aria-label="Previous version" style="padding:4px 8px; font-size:11px; line-height:1;">← ver</button>
+      <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
+      <span class="pill" id="status-pill">idle</span>
+      <button class="tbtn ghost" id="load-song">Load song</button>
+      <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" />
+      <span class="song-name" id="song-name">No song loaded</span>
+      <button class="tbtn ghost nav-arrow" id="nav-prev" title="Previous preset (←)" aria-label="Previous preset" style="padding:4px 8px; font-size:14px; line-height:1;">←</button>
+      <button class="tbtn ghost nav-arrow" id="nav-next" title="Next preset (→)" aria-label="Next preset" style="padding:4px 8px; font-size:14px; line-height:1;">→</button>
+      <button class="tbtn primary" id="play" disabled>▶ Play</button>
+      <span class="time" id="time">0:00 <b>/ 0:00</b></span>
+      <canvas id="meter" width="360" height="48"></canvas>
+      <span class="spacer"></span>
+      <span class="pill" id="bpm-pill">— bpm</span>
+      <button class="tbtn ghost" id="daily-btn" title="Today's editing practice" style="padding:4px 10px; font-size:9px;">📅 Day 1 · Practice</button>
+      <span class="pill" id="key-pill">— key</span>
+      <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
+      <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
+      <select id="rec-size" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Export size preset — re-fits the canvas to the chosen aspect ratio at full quality before recording">
+        <option value="landscape" selected>YouTube · 1920×1080</option>
+        <option value="square">Square · 1080×1080</option>
+        <option value="portrait">Instagram · 1080×1350</option>
+        <option value="reel">Reel / TikTok · 1080×1920</option>
+      </select>
+      <select id="rec-dur" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Auto-stop recording after N seconds">
+        <option value="0">manual</option>
+        <option value="10">10s</option>
+        <option value="15">15s</option>
+        <option value="30" selected>30s</option>
+        <option value="60">60s</option>
+        <option value="song">song</option>
+      </select>
+      <select id="rec-wm" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Watermark for the exported MP4/WebM">
+        <option value="none">no watermark</option>
+        <option value="a" selected>SWR monogram</option>
+        <option value="b">Sainted Word wordmark</option>
+        <option value="c">icon + SWR</option>
+      </select>
+      <button class="tbtn ghost" id="hero-btn" title="Hero frame capture" style="padding:4px 8px;font-size:9px;">Hero</button>
+      <button class="tbtn ghost" id="stats-btn" title="Local stats" style="padding:4px 8px;font-size:9px;">Stats</button>
+      <button class="tbtn ghost" id="edit-data-btn" title="Edit data export" style="padding:4px 8px;font-size:9px;">Edit Data</button>
+      <button class="tbtn ghost" id="review-btn" title="Client review export" style="padding:4px 8px;font-size:9px;">Review</button>
+      <button class="tbtn ghost" id="hook-btn" title="Hook generator" style="padding:4px 8px;font-size:9px;">Hooks</button>
+      <button class="tbtn ghost" id="mood-btn" title="Mood board" style="padding:4px 8px;font-size:9px;">Mood</button>
+      <button class="tbtn ghost" id="scenes-btn" title="Scene pads" style="padding:4px 8px;font-size:9px;">Scenes</button>
+      <button class="tbtn ghost" id="fit-btn" title="Fit to screen" style="padding:4px 8px;font-size:9px;">Fit</button>
+      <button class="tbtn danger" id="rec" disabled title="Start / stop recording (export to MP4 or WebM depending on browser). Loads a song for audio-reactive capture, or records video-only. Uses the size preset chosen in the dropdown next to REC.">● REC</button>
+      <button class="tbtn primary" id="export-video" disabled title="Start a 30s recording and download the file. Uses the size preset chosen in the dropdown next to REC. Records video-only if no song is loaded." style="background:var(--accent-2);border-color:var(--accent-2);color:#000;">🎬 Export video</button>
+      <a class="tbtn ghost" id="last-video" hidden style="text-decoration:none;padding:4px 10px;font-size:9px;">↓ last video</a>
     </header>
 
     <!-- ================================================================
@@ -1959,11 +1855,9 @@
         // Skip if localStorage says dismissed. Delay so the engine's
         // own boot animations land first and the panel feels like
         // an intentional intro, not a popup.
-        // DISABLED FOR NOW (2026-09-21) — first-visit auto-open silenced.
-        // Re-enable by removing this comment + uncommenting the next 2 lines.
-        // if (!isDismissed()) {
-        //   setTimeout(open, AUTO_OPEN_DELAY_MS);
-        // }
+        if (!isDismissed()) {
+          setTimeout(open, AUTO_OPEN_DELAY_MS);
+        }
 
         // Expose for the verifier + power users who want to
         // re-trigger the intro from the console.
@@ -1975,10 +1869,7 @@
          Skips on subsequent visits (mode = advanced); "?" button still opens
          the shortcuts modal above. See swr-onboarding-hf.client.js + .hermes/
          plans/swr-onboarding-hf.md for the choreography. -->
-    <!-- DISABLED FOR NOW (2026-09-21) — first-visit HyperFrames tour silenced.
-         Re-enable by removing this comment + uncommenting the line below.
     <script src="/swr-onboarding-hf.client.js" defer></script>
-    -->
 
     <script>
       // ---- SWR_MEDIA wire-up (engine.html) ----
@@ -2022,35 +1913,8 @@
               refresh();
             }, function (err) {
               console.warn('[user-media] addMedia failed', err);
-              var msg;
-              if (err && err.code === 'QUOTA_EXCEEDED') {
-                msg = 'Storage full — try Library Hygiene or remove some media.';
-                // Offer to run hygiene if the button is wired up
-                var hygieneBtn = document.getElementById('library-hygiene');
-                if (hygieneBtn && typeof window.SWR_LIBRARY_HYGIENE !== 'undefined') {
-                  var run = window.confirm(
-                    'Your browser storage is full.\n\n' +
-                    'You can:\n' +
-                    '  • Click OK to run Library Hygiene (removes stale entries)\n' +
-                    '  • Click Cancel and remove some media manually\n\n' +
-                    'Continue with Library Hygiene?'
-                  );
-                  if (run) {
-                    window.SWR_LIBRARY_HYGIENE.purge().then(function (r) {
-                      console.log('[user-media] hygiene purged', r.removed, 'stale items');
-                      if (typeof window.setStatus === 'function') {
-                        window.setStatus('Purged ' + r.removed + ' stale items. Try adding again.', 'ok');
-                      }
-                    }, function (hygErr) {
-                      console.warn('[user-media] hygiene failed', hygErr);
-                    });
-                  }
-                }
-              } else {
-                msg = 'storage error: ' + ((err && err.name) || 'unknown');
-              }
               if (typeof window.setStatus === 'function') {
-                window.setStatus(msg, 'err');
+                window.setStatus('storage error: ' + (err && err.name || 'unknown'), 'err');
               }
             });
           });
@@ -2079,33 +1943,16 @@
 
     <section id="stage">
       <canvas id="render" width="1280" height="720"></canvas>
-      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
-
-      <!-- Variant Overlays (Block B fix) -->
-      <div id="vignette" style="position:absolute; inset:0; pointer-events:none; z-index:5; background:radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%); opacity:0; transition:opacity 0.4s;"></div>
-      <div id="grid"     style="position:absolute; inset:0; pointer-events:none; z-index:6; background-image:linear-gradient(var(--signal-line) 1px, transparent 1px), linear-gradient(90deg, var(--signal-line) 1px, transparent 1px); background-size: 40px 40px; opacity:0;"></div>
-      <div id="flash"    style="position:absolute; inset:0; pointer-events:none; z-index:7; background:#fff; opacity:0;"></div>
       <div id="stage-flash"></div>
-
-      <!-- Console Empty State (Block A) -->
       <div id="stage-empty">
-        <canvas id="stage-preview" width="800" height="500" aria-hidden="true"></canvas>
-        <h3>Drop a song — or pick from the library</h3>
-        <p class="hint-row">
-          <button class="ghost" id="try-sample">Try a 30-second sample</button>
-          <button class="ghost" id="open-library">Browse library</button>
+        <h3>Algorithmic Audio-Reactive Engine</h3>
+        <p>
+          Load a song, drop a library of clips, hit play. The audio signal becomes the score —
+          bass, mids, treble, beats, and onsets drive a layered composition of your assets.
         </p>
-      </div>
-
-      <!-- Persistent Data Overlay (Block A) -->
-      <div class="bottom">
-        <button class="adv">▾ ADVANCED</button>
-        <div class="waveform">
-          <span>WAVEFORM</span>
-          <canvas id="bottomWave"></canvas>
-          <b>BEATS</b>
+        <div class="hint">
+          ⌘+Drop folder for bulk import · click any layer to edit · RE-MAP re-derives the assignment · R rotates selected clip
         </div>
-        <button class="rec">● REC</button>
       </div>
     </section>
 
@@ -2116,20 +1963,6 @@
         <button class="tbtn ghost" id="add-3d" style="padding:4px 8px; font-size:9px;" title="Add a 3D primitive as a layer (sphere, cube, torus, icosahedron)">+ 3D</button>
         <button class="tbtn" id="rotate-sel" disabled title="Rotate selected clip 90° (R / Shift+R for -90°)" style="padding:4px 8px; font-size:9px; opacity:0.4; cursor:not-allowed;">↻ ROT</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
-      </div>
-      <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
-        <div class="ph">
-          <span>Hook Export</span>
-          <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
-        </div>
-        <div id="hook-info" style="font-size:9px;color:var(--muted);padding:2px 0 4px;">
-          <span>drop: <b id="hook-time">—</b></span> · <span>energy: <b id="hook-energy">—</b></span> · <span>conf: <b id="hook-conf">—</b></span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
-          <button class="tbtn hook-preset" data-preset="teaser" style="padding:3px 6px;font-size:9px;">Teaser 3s</button>
-          <button class="tbtn hook-preset" data-preset="hook" style="padding:3px 6px;font-size:9px;">Hook 5s</button>
-          <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
-        </div>
       </div>
       <div id="3d-picker" class="hidden" style="position:absolute; top: 38px; right: 8px; background: var(--bg-elevated, #1a1208); border: 1px solid var(--line, #3a2a22); border-radius: 6px; padding: 4px; display: flex; gap: 4px; z-index: 50;">
         <button class="tbtn ghost" data-3d="sphere"      style="padding:3px 8px; font-size:9px;">Sphere</button>
@@ -2373,20 +2206,6 @@
       <button class="tbtn" id="panels-toggle" style="padding:4px 10px; font-size:9px;" title="Show/hide the LFO, TIMING, and AUTO-SWAP floating panels">PANELS: <b id="panels-toggle-state">hidden</b></button>
       <span class="separator"></span>
       <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions; 1-9 to fire from dropdown)">TRANSITIONS<span id="swr-tx-flash" class="swr-tx-flash" aria-hidden="true"></span></button>
-      <span class="separator"></span>
-      <button class="tbtn" id="hook-btn" style="padding:4px 10px; font-size:9px;" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)">Hooks</button>
-      <span class="separator"></span>
-      <button class="tbtn" id="stats-btn" style="padding:4px 10px; font-size:9px;" title="Local render statistics">Stats</button>
-      <span class="separator"></span>
-      <button class="tbtn" id="mood-btn" style="padding:4px 10px; font-size:9px;" title="Mood board: analyze a reference image + suggest engine mapping">Mood</button>
-      <span class="separator"></span>
-      <button class="tbtn" id="scenes-btn" style="padding:4px 10px; font-size:9px;" title="Scene pads (4): click=recall, hold 1s=save">Scenes</button>
-      <span class="separator"></span>
-      <button class="tbtn" id="automix-toggle" style="padding:4px 10px; font-size:9px; cursor:pointer;" title="Toggle Automix (A)">Automix <b id="automix-state" style="color:var(--m);">OFF</b></button>
-      <button class="tbtn" id="automix-freeze" style="padding:4px 10px; font-size:9px;" title="Freeze: stop ticking but keep the current blend (F)">Freeze</button>
-      <button class="tbtn" id="automix-save" style="padding:4px 10px; font-size:9px;" title="Save the current blend as a manual preset (B)">Save</button>
-      <button class="tbtn" id="automix-lock" style="padding:4px 10px; font-size:9px;" title="Lock to the single nearest anchor (K)">Lock</button>
-      <button class="tbtn" id="automix-debug" style="padding:4px 10px; font-size:9px;" title="Toggle the automix debug panel (D)">Debug</button>
       <span class="spacer" style="flex:1"></span>
       <span class="gctrl" id="fps-v">— fps</span>
     </footer>
@@ -2472,7 +2291,7 @@
       <button class="agi-bg-panel__btn" id="agi-bg-open" type="button" title="Open the Space in a new tab">↗ Open</button>
       <button class="agi-bg-panel__btn" id="agi-bg-close" type="button" title="Close panel">×</button>
     </div>
-    <iframe id="agi-bg-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms" title="AGI Background Working System"></iframe>
+    <iframe id="agi-bg-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms" title="AGI Background Working System"></iframe>
     <div class="agi-bg-panel__fallback" id="agi-bg-fallback" hidden>
       <h4>Space offline</h4>
       <div><code id="agi-bg-fallback-url">kaidjuric-agi-background-working-system.hf.space</code></div>
@@ -2492,7 +2311,7 @@
       <button class="agi-bg-panel__btn" id="mg-agi-open" type="button" title="Open the Space in a new tab">↗ Open</button>
       <button class="agi-bg-panel__btn" id="mg-agi-close" type="button" title="Close panel">×</button>
     </div>
-    <iframe id="mg-agi-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms" title="Motion Graphic Designer AGI System"></iframe>
+    <iframe id="mg-agi-frame" class="agi-bg-panel__frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms" title="Motion Graphic Designer AGI System"></iframe>
     <div class="agi-bg-panel__fallback" id="mg-agi-fallback" hidden>
       <h4>Space offline</h4>
       <div><code id="mg-agi-fallback-url">kaidjuric-motion-graphic-designer-agi-system.static.hf.space</code></div>
@@ -2502,9 +2321,17 @@
   </div>
 
   <script src="/audio-analysis-v2.js" defer></script>
-  <script src="/client/track-analyzer.client.js"></script>
   <script src="/swr-sets.js" defer></script>
   <script src="/persona-onboarding.js" defer></script>
+  <!-- Audio / Library / Layers subsystems extracted into standalone libs
+       (see the file headers in lib/audio.client.js, lib/library.client.js,
+       lib/layers.client.js for per-module docs). Load order matters: each
+       script tag must evaluate before the engine IIFE body references
+       the corresponding global, and the later libs depend on the earlier
+       ones (Library reads Audio; Layers reads Library + Audio). -->
+  <script src="/lib/audio.client.js" defer></script>
+  <script src="/lib/library.client.js" defer></script>
+  <script src="/lib/layers.client.js" defer></script>
   <!-- M1: auth + storage clients. project.js depends on these. -->
   <script src="/lib/auth.client.js" defer></script>
   <script src="/lib/storage.client.js" defer></script>
@@ -2532,6 +2359,28 @@
       const t = clamp((x - a) / (b - a), 0, 1);
       return t * t * (3 - 2 * t);
     };
+
+    // ---------- Audio (extracted to lib/audio.client.js in Sprint B1) ----------
+    // The Audio IIFE lives in /lib/audio.client.js and attaches itself to
+    // window.Audio at script-eval time. This local shadow keeps the rest
+    // of the engine IIFE unchanged (calls like Audio.loadFile still
+    // resolve via the local 'Audio' binding).
+    const Audio = window.Audio;
+
+    // ---------- Library (extracted to lib/library.client.js in Sprint B2) ----------
+    // Same pattern: the Library IIFE lives in /lib/library.client.js and
+    // attaches window.Library. Local shadow keeps existing Library.*
+    // call sites in the engine unchanged.
+    const Library = window.Library;
+
+    // ---------- Layers (extracted to lib/layers.client.js in Sprint B3) ----------
+    // Same pattern: Layers IIFE lives in /lib/layers.client.js, attaches
+    // window.Layers. Local shadow keeps the engine IIFE call sites
+    // (Layers.add / Layers.render / Layers.autoMap / etc.) unchanged.
+    const Layers = window.Layers;
+    // applyPreset also lives in /lib/layers.client.js (it touches layer
+    // helpers that became lib-private). Same shadow pattern.
+    const applyPreset = window.applyPreset;
 
     // ---------- DOM refs ----------
     const $ = (id) => document.getElementById(id);
@@ -2566,20 +2415,8 @@
     }
     function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
-    // Layer property helpers — the rot slider in the per-layer panel writes
-    // to l.rotOffset (the per-clip persistent tilt), not l.pos.rot (which is
-    // audio-driven every frame). The final rotation is pos.rot + rotOffset.
-    function readLayerProp(l, prop) {
-      if (prop === 'rot') return l.rotOffset || 0;
-      return l[prop];
-    }
-    function writeLayerProp(l, prop, value) {
-      if (prop === 'rot') { l.rotOffset = value; return; }
-      l[prop] = value;
-    }
     function setStatus(t, cls) {
       const p = $('status-pill');
-      if (!p) { window.__lastStatus = t; return; }   // status pill removed by toolbar redesign
       p.textContent = t;
       p.classList.remove('ok', 'live');
       if (cls) p.classList.add(cls);
@@ -2595,1195 +2432,15 @@
     window.fmt = fmt;
     window.escapeHtml = escapeHtml;
     window.trunc = trunc;
-
-    const Audio = {
-      ctx: null,
-      analyser: null,
-      source: null,
-      gain: null,
-      audioEl: null,
-      fft: null,
-      time: null,
-      // Per-frame features
-      feat: {
-        bass: 0, mid: 0, treble: 0, air: 0, sub: 0,
-        rms: 0, centroid: 0,
-        beat: 0,         // 0..1 envelope (decays)
-        onset: 0,        // 0..1 envelope (decays)
-        beatPulse: false, // fires on each beat
-        onsetPulse: false,
-        bpm: 0,
-      },
-      history: { prev: null, bassAvg: 0, fluxAvg: 0 },
-      beatTimes: [],
-      playing: false,
-      // Bar counter for the Story runtime (and any other time-aware code).
-      // 1 bar = Audio.feat.bpm / 60 seconds. When BPM is unknown (no song
-      // loaded), bar stays at 0 and never advances; the Story runtime treats
-      // that as "no timing, use the fallback maxBars timer instead".
-      _bar: 0,
-      _barStartedAt: 0, // performance.now() at the start of the current bar
-      _barsSinceSongStart: 0,
-      get bar() { return this._bar; },
-      // Resets the bar counter — call from Story.enter() so each chapter
-      // gets its own fresh bar count.
-      resetBarCounter() {
-        this._bar = 0;
-        this._barStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-      },
-      // Advance the bar counter based on elapsed wall time + current BPM.
-      // Cheap enough to call once per animation frame; clamps to integer.
-      _tickBar() {
-        const bpm = (this.feat && this.feat.bpm) || 0;
-        if (!bpm) return;
-        const secPerBar = 60 / bpm;
-        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        const elapsed = (now - (this._barStartedAt || now)) / 1000;
-        const newBar = Math.floor(elapsed / secPerBar);
-        if (newBar > this._bar) this._bar = newBar;
-      },
-      unlock() {
-        if (this.ctx) return;
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.analyser = this.ctx.createAnalyser();
-        this.analyser.fftSize = 2048;
-        this.analyser.smoothingTimeConstant = 0.65;
-        this.fft = new Uint8Array(this.analyser.frequencyBinCount);
-        this.time = new Uint8Array(this.analyser.fftSize);
-        this.gain = this.ctx.createGain();
-        this.gain.gain.value = 1.0;
-        this.analyser.connect(this.gain);
-        this.gain.connect(this.ctx.destination);
-        setStatus('audio live', 'ok');
-      },
-      // True for any file we should decode through a <video> element.
-      // Both <audio> and <video> support createMediaElementSource identically,
-      // so the rest of the engine doesn't care which element backs the source.
-      _isVideoFile(file) {
-        if (!file) return false;
-        if (file.type && file.type.startsWith('video/')) return true;
-        return /\.(mp4|m4v|webm|mov|mkv|m3u8|ogv)$/i.test(file.name || '');
-      },
-      loadFile(file) {
-        this.unlock();
-        if (this.source) try { this.source.disconnect(); } catch {}
-        if (this.audioEl) {
-          this.audioEl.pause();
-          // For <video>, removeAttribute is needed (no `src = ''` resets state the same way)
-          this.audioEl.removeAttribute('src');
-          try { this.audioEl.load(); } catch {}
-        }
-        // Persist the song blob so it survives reloads. Fire-and-forget — a
-        // failed save should not block the user from playing music.
-        this._saveCurrentSong(file);
-        const isVideo = this._isVideoFile(file);
-        // Use a <video> element for video files so the browser decodes the
-        // MP4/MOV/etc container (and its audio track). The element is kept
-        // off-screen but rendered (display:none would pause audio in some
-        // browsers — use opacity:0 + 1×1px positioning instead).
-        const el = isVideo ? document.createElement('video') : document.createElement('audio');
-        el.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
-        el.crossOrigin = 'anonymous';
-        el.preload = 'auto';
-        if (isVideo) {
-          // Plays inline on iOS Safari, allow autoplay once user interacts
-          el.setAttribute('playsinline', '');
-          el.setAttribute('webkit-playsinline', '');
-        }
-        el.src = URL.createObjectURL(file);
-        this.audioEl = el;
-        this.audioEl.addEventListener('ended', () => UI.onSongEnd());
-        this.audioEl.addEventListener('timeupdate', () => UI.updateTime());
-        // Decode-error feedback: a corrupt / unsupported / unsupported-codec
-        // file silently fails otherwise (no console error visible to the
-        // user, just a "loaded" status with no playback). Surface it.
-        this.audioEl.addEventListener('error', () => {
-          const err = this.audioEl.error;
-          const code = err ? err.code : 0;
-          // 1 = MEDIA_ERR_ABORTED, 2 = MEDIA_ERR_NETWORK, 3 = MEDIA_ERR_DECODE,
-          // 4 = MEDIA_ERR_SRC_NOT_SUPPORTED
-          const reason = code === 3 ? 'decode failed (corrupt or unsupported codec)'
-                          : code === 4 ? 'format not supported by this browser'
-                          : code === 2 ? 'network error'
-                          : 'audio element error';
-          if (typeof setStatus === 'function') {
-            setStatus(`✕ can't play ${file.name}: ${reason}`, 'err');
-          }
-          // Disable the play button so the user doesn't repeatedly click
-          // into silence.
-          const playBtn = $('play');
-          if (playBtn) playBtn.disabled = true;
-          const recBtn = $('rec');
-          if (recBtn) recBtn.disabled = true;
-        });
-        // Mark element type so the recorder knows what to display
-        this.audioEl.dataset.kind = isVideo ? 'video' : 'audio';
-        this.source = this.ctx.createMediaElementSource(this.audioEl);
-        this.source.connect(this.analyser);
-        // Render the song name with a small badge for video source
-        const badge = isVideo
-          ? '<span class="song-badge" title="Loaded from a video file — audio extracted in-browser">VIDEO</span> '
-          : '';
-        const saved = '<span class="song-badge" title="Saved to this browser — will auto-restore on next visit" style="background:#1f3;color:#0f0;">SAVED</span> ';
-        const songNameEl = $('song-name');
-        if (songNameEl) songNameEl.innerHTML = saved + badge + '<b>' + escapeHtml(file.name) + '</b>';
-        $('play').disabled = false;
-        $('rec').disabled = false;
-        const ev = $('export-video');
-        if (ev) ev.disabled = false;
-        this.history = { prev: null, bassAvg: 0, fluxAvg: 0 };
-        this.beatTimes = [];
-        this.feat.bpm = 0;
-        $('bpm-pill').textContent = '— bpm';
-        if (isVideo) {
-          // Helpful status so the user knows what's happening (no video frame will appear)
-          setStatus('loaded MP4 audio · click play', 'ok');
-        }
-        // Auto-setup hook: consumed by lib/auto-setup.client.js to fire
-        // the starter-layer + preset-cycle behavior. Safe no-op when that
-        // module isn't loaded.
-        if (typeof window.__swrOnSongLoaded === 'function') {
-          try { window.__swrOnSongLoaded(file); } catch (e) { console.warn('[onSongLoaded]', e); }
-        }
-      },
-      play() {
-        this.unlock();
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-        // play() can reject when called without a user gesture (autoplay
-        // policy). Only flip the UI to "playing" once the play request
-        // actually succeeds: flipping it synchronously left the button
-        // claiming "Pause" while a blocked autoplay (boot song-restore)
-        // kept the engine silent, so the user's first click became a
-        // pause-of-nothing and playback needed two clicks. On rejection we
-        // stay in the honest paused state and the next real gesture (the
-        // pointerdown retry in the boot path, or the button itself) plays.
-        const started = this.audioEl.play();
-        const self = this;
-        const markPlaying = () => {
-          self.playing = true;
-          $('play').textContent = '❚❚ Pause';
-          $('play').classList.remove('primary');
-          $('play').classList.add('danger');
-          stageEmpty.classList.add('hidden');
-        };
-        if (started && typeof started.then === 'function') {
-          started.then(markPlaying).catch(() => { this.playing = false; });
-        } else {
-          markPlaying();
-        }
-      },
-      // === Persistent song storage (IndexedDB 'songs' store, key 'current') ===
-      // The latest loaded song survives reloads so the user doesn't have to
-      // re-pick a file every time they open the engine. Saving is fire-and-
-      // forget; loading is async and used at boot.
-      async _saveCurrentSong(file) {
-        if (!file) return;
-        try {
-          // Library.db may not be open yet (loadFile can fire before Library.init
-          // completes during boot). Wait briefly for it.
-          let tries = 0;
-          while ((!window.Library || !window.Library.db) && tries < 50) {
-            await new Promise(r => setTimeout(r, 20));
-            tries++;
-          }
-          if (!window.Library || !window.Library.db) return;
-          await window.Library.db.put('songs', {
-            id: 'current',
-            blob: file,
-            name: file.name,
-            type: file.type,
-            savedAt: Date.now(),
-          });
-          if (typeof setStatus === 'function') setStatus('song saved', 'ok');
-        } catch (e) {
-          console.warn('saveCurrentSong', e);
-        }
-      },
-      async _loadCurrentSong() {
-        try {
-          if (!window.Library || !window.Library.db) return false;
-          const all = await window.Library.db.getAll('songs');
-          const rec = (all || []).find(r => r && r.id === 'current');
-          if (!rec || !rec.blob) return false;
-          // Rebuild a File so the existing loadFile path handles it (and we
-          // get the same VIDEO badge, MP4 chooser, etc.).
-          const file = new File([rec.blob], rec.name, { type: rec.type || rec.blob.type || 'audio/mpeg' });
-          this.loadFile(file);
-          return true;
-        } catch (e) {
-          console.warn('loadCurrentSong', e);
-          return false;
-        }
-      },
-      async _clearCurrentSong() {
-        try {
-          if (!window.Library || !window.Library.db) return;
-          await window.Library.db.delete('songs', 'current');
-        } catch (e) { console.warn('clearCurrentSong', e); }
-      },
-      pause() {
-        if (this.audioEl) this.audioEl.pause();
-        this.playing = false;
-        $('play').textContent = '▶ Play';
-        $('play').classList.add('primary');
-        $('play').classList.remove('danger');
-      },
-      seek(frac) {
-        if (!this.audioEl) return;
-        this.audioEl.currentTime = this.audioEl.duration * clamp(frac, 0, 1);
-      },
-      // returns true if a beat was detected this frame
-      sample() {
-        if (!this.analyser) return;
-        this.analyser.getByteFrequencyData(this.fft);
-        this.analyser.getByteTimeDomainData(this.time);
-        const N = this.fft.length;            // 1024
-        const sr = this.ctx.sampleRate;
-        const hzPerBin = sr / (this.analyser.fftSize); // ~21.5 Hz per bin
-        // sub 20-60 Hz
-        // bass 60-250 Hz
-        // mid 250-2000 Hz
-        // treble 2000-6000 Hz
-        // air 6000+ Hz
-        const ranges = {
-          sub:   [Math.floor(20/hzPerBin),    Math.floor(60/hzPerBin)],
-          bass:  [Math.floor(60/hzPerBin),    Math.floor(250/hzPerBin)],
-          mid:   [Math.floor(250/hzPerBin),   Math.floor(2000/hzPerBin)],
-          treble:[Math.floor(2000/hzPerBin),  Math.floor(6000/hzPerBin)],
-          air:   [Math.floor(6000/hzPerBin),  N - 1],
-        };
-        const mean = (lo, hi) => {
-          if (hi <= lo) return 0;
-          let s = 0, c = 0;
-          for (let i = lo; i <= hi; i++) { s += this.fft[i]; c++; }
-          return s / c / 255; // 0..1
-        };
-        this.feat.sub   = mean(ranges.sub[0],   ranges.sub[1]);
-        this.feat.bass  = mean(ranges.bass[0],  ranges.bass[1]);
-        this.feat.mid   = mean(ranges.mid[0],   ranges.mid[1]);
-        this.feat.treble= mean(ranges.treble[0],ranges.treble[1]);
-        this.feat.air   = mean(ranges.air[0],   ranges.air[1]);
-        // RMS
-        let rms = 0;
-        for (let i = 0; i < this.time.length; i++) {
-          const v = (this.time[i] - 128) / 128;
-          rms += v * v;
-        }
-        this.feat.rms = Math.sqrt(rms / this.time.length);
-        // Spectral centroid
-        let num = 0, den = 0;
-        for (let i = 1; i < N; i++) {
-          num += i * this.fft[i];
-          den += this.fft[i];
-        }
-        this.feat.centroid = den > 0 ? (num / den) / N : 0;
-        // ----- Onset (spectral flux) -----
-        let flux = 0;
-        if (this.history.prev) {
-          for (let i = 1; i < N; i++) {
-            const d = this.fft[i] - this.history.prev[i];
-            if (d > 0) flux += d;
-          }
-        }
-        flux /= (255 * N);
-        this.history.fluxAvg = lerp(this.history.fluxAvg, flux, 0.08);
-        const onsetGate = parseFloat($('beat-gate').value);
-        const onsetHit = flux > this.history.fluxAvg * onsetGate && flux > 0.02;
-        // ----- Beat (bass energy) -----
-        this.history.bassAvg = lerp(this.history.bassAvg, this.feat.bass, 0.06);
-        const beatGate = parseFloat($('beat-gate').value);
-        const beatHit = this.feat.bass > this.history.bassAvg * beatGate && this.feat.bass > 0.18;
-        // BPM estimate (lock to a stable tempo)
-        const now = this.ctx.currentTime;
-        if (beatHit) {
-          this.beatTimes.push(now);
-          while (this.beatTimes.length > 0 && this.beatTimes[0] < now - 8) this.beatTimes.shift();
-          if (this.beatTimes.length >= 4) {
-            let total = 0;
-            for (let i = 1; i < this.beatTimes.length; i++) total += this.beatTimes[i] - this.beatTimes[i-1];
-            const avg = total / (this.beatTimes.length - 1);
-            if (avg > 0) this.feat.bpm = Math.round(60 / avg);
-          }
-        }
-        // Decay envelopes
-        const decay = parseFloat($('decay').value);
-        this.feat.beat  = beatHit ? 1 : this.feat.beat * decay;
-        this.feat.onset = onsetHit ? 1 : this.feat.onset * decay;
-        this.feat.beatPulse  = beatHit;
-        this.feat.onsetPulse = onsetHit;
-        this.history.prev = Uint8Array.from(this.fft);
-        const beatLed = $('beat-led'), onsetLed = $('onset-led');
-        if (beatLed) beatLed.classList.toggle('on', beatHit);
-        if (onsetLed) onsetLed.classList.toggle('on', onsetHit);
-        if (this.feat.bpm) $('bpm-pill').textContent = this.feat.bpm + ' bpm';
-        // Hook for engine-transitions: feed live beat + BPM into the auto-fire
-        // subsystem. Idempotent — SWRTransitions may not be loaded yet (e.g.
-        // on persona-preview pages without the transitions script).
-        if (window.SWRTransitions && typeof window.SWRTransitions.onBeat === 'function') {
-          window.SWRTransitions.onBeat(this.feat.bpm || 0, !!beatHit);
-        }
-        // v2: enhanced analysis
-        if (window.AudioAnalysisV2 && this.audioEl) {
-          // Track recent onsets for BPM autocorrelation
-          if (beatHit) this._onsetHistory = this._onsetHistory || [];
-          if (beatHit) {
-            this._onsetHistory.push(now);
-            while (this._onsetHistory.length > 0 && this._onsetHistory[0] < now - 8) {
-              this._onsetHistory.shift();
-            }
-            if (this._onsetHistory.length >= 6) {
-              const v2bpm = window.AudioAnalysisV2.estimateBPM(this._onsetHistory);
-              if (v2bpm > 0) this.feat.bpm = v2bpm;
-            }
-          }
-          // Beat phase (assumes 4/4)
-          if (this.feat.bpm > 0 && this._downbeatTime !== undefined) {
-            const beatDur = 60 / this.feat.bpm;
-            const barDur = beatDur * 4;
-            this.feat.beatPhase = ((now - this._downbeatTime) % barDur) / barDur;
-            this.feat.beatInBar = Math.floor(((now - this._downbeatTime) % barDur) / beatDur) + 1; // 1-4
-          }
-        }
-      },
-      // One-shot full analysis using audio-analysis-v2 (decode whole buffer offline)
-      async analyzeFull() {
-        if (!this.audioEl) return null;
-        if (!this.ctx) this.unlock();
-        // Need decoded buffer; decode from the audioEl's src
-        const resp = await fetch(this.audioEl.src);
-        const arr = await resp.arrayBuffer();
-        const buf = await this.ctx.decodeAudioData(arr);
-        if (!window.AudioAnalysisV2) return null;
-        const result = window.AudioAnalysisV2.analyzeBuffer(buf);
-        // Apply: update bpm (if better than current), set key/scale/confidence
-        if (result.bpm > 0 && (this.feat.bpm === 0 || Math.abs(result.bpm - this.feat.bpm) < 3)) {
-          this.feat.bpm = result.bpm;
-        }
-        this.feat.key = result.key;
-        this.feat.scale = result.scale;
-        this.feat.confidence = result.confidence;
-        // Derive downbeat + beatGrid from onsets array (v2 returns onsets not beatGrid)
-        const onsets = result.onsets || [];
-        const downbeat = onsets.length ? onsets[0] : 0;
-        const beatGrid = [];
-        if (result.bpm > 0 && result.duration > 0) {
-          const beatSec = 60 / result.bpm;
-          let t = downbeat;
-          while (t < result.duration && beatGrid.length < 1024) {
-            beatGrid.push(t);
-            t += beatSec;
-          }
-        }
-        this.feat.downbeat = downbeat;
-        this._downbeatTime = downbeat;
-        this._beatGrid = beatGrid;
-        // Update UI
-        this._updateKeyPill();
-        return result;
-      },
-      _updateKeyPill() {
-        if (!this.feat.key) return;
-        const k = this.feat.key;
-        const s = this.feat.scale || 'major';
-        const el = $('key-pill');
-        if (el) {
-          el.textContent = k + ' ' + s;
-          el.classList.remove('major', 'minor');
-          el.classList.add(s);
-        }
-      },
-    };
+    // Expose small helpers + DOM refs that the extracted lib/audio.client.js
+    // needs (Sprint B1 of feat/asset-curator burndown). The Audio IIFE used
+    // to close over these; now it reads them via window.* at call time.
+    window.clamp = clamp;
+    window.lerp = lerp;
+    window.stageEmpty = stageEmpty;
 
     // ======================================================================
-    // LIBRARY (asset store + classification)
-    // ======================================================================
-    // Asset shape:
-    //   { id, name, type, blob, url, w, h, duration?, motion, luma, hue, added }
-    // type: 'video' | 'image'
-    // motion: 0..1 (variance of pixel diffs over a short probe; videos only)
-    // luma:   0..1 (mean luminance of first frame)
-    // hue:    0..1 (mean hue of first frame, 0=red, 0.33=green, 0.66=blue)
-    const Library = {
-      items: [],          // {id, name, type, blob, url, w, h, duration, motion, luma, hue, added, thumb}
-      nextId: 1,
-      db: null,
-      async init() {
-        this.db = await openDb('sainted-word-records', 4, (db) => {
-          if (!db.objectStoreNames.contains('assets')) {
-            const s = db.createObjectStore('assets', { keyPath: 'id' });
-            s.createIndex('added', 'added');
-          }
-          if (!db.objectStoreNames.contains('songs')) {
-            // Single-record store for the currently-loaded song. Key is always 'current'.
-            // When the user loads a new song, we overwrite 'current' so only the latest
-            // survives. The blob itself is large (could be 100MB+ for an MP4 song) so we
-            // keep it in IDB and not in localStorage.
-            db.createObjectStore('songs', { keyPath: 'id' });
-          }
-          if (!db.objectStoreNames.contains('sets')) {
-            // Installed .swr-set documents (marketplace page)
-            db.createObjectStore('sets', { keyPath: 'id' });
-          }
-        });
-        // Load existing assets
-        const all = await this.db.getAll('assets');
-        for (const rec of all) {
-          const item = await this._fromRecord(rec);
-          if (item) this.items.push(item);
-        }
-        this.render();
-        setStatus(this.items.length ? 'lib ' + this.items.length : 'idle', this.items.length ? 'ok' : '');
-      },
-      // Remove a single asset with a 5-second undo window.
-      //
-      // UI path: user clicks the × button on a Library thumbnail. The asset
-      // leaves the visible grid immediately (optimistic), persists removal
-      // to IDB, and surfaces a status-bar undo affordance. If the user
-      // doesn't click the undo prompt within 5 s, the underlying blob is
-      // revoked and forgotten forever. If they do, the blob URL is re-issued
-      // from a stored buffer and the asset is put back at the original index.
-      //
-      // Why optimistic + undo rather than confirm() modals: the user already
-      // has a global Clear-All (which does confirm()) for the dangerous case;
-      // per-item × should be one click. The 5 s window is short enough that
-      // a stray click is recoverable, long enough that any deliberate click
-      // has time to land.
-      async removeItem(id, opts) {
-        opts = opts || {};
-        const idx = this.items.findIndex(i => i.id === id);
-        if (idx < 0) return false;
-        const it = this.items[idx];
-        // Snapshot for potential undo. Buffer is cheap (we're not in the
-        // hot path; the asset was just sitting on disk).
-        const snapshot = { index: idx, item: it };
-        // If this asset is currently used as a layer on stage, refuse quietly
-        // (setStatus='err') — the user must remove the layer first. The
-        // global Clear-All handles the bulk case where they accept losing refs.
-        if (window.Layers && Array.isArray(window.Layers.list)) {
-          const usedAsLayer = window.Layers.list.some(l => l.asset === it);
-          if (usedAsLayer) {
-            if (typeof setStatus === 'function') setStatus('remove it from the stage first', 'err');
-            return false;
-          }
-        }
-        // Optimistic UI removal
-        this.items.splice(idx, 1);
-        try { URL.revokeObjectURL(it.url); } catch {}
-        if (it._el) { try { it._el.src = ''; } catch {} }
-        this.render();
-        // Persist removal to IDB
-        if (this.db) {
-          try { await this.db.delete('assets', it.id); }
-          catch (e) { console.warn('remove asset', e); }
-        }
-        // Surface the undo prompt
-        if (typeof setStatus === 'function' && !opts.skipUndo) {
-          // Use the engine's status pill with a click target embedded as a
-          // CSS-classed child — setStatus() in this codebase takes a string
-          // (or DOM node). Build the pill inline.
-          const pill = document.createElement('span');
-          pill.appendChild(document.createTextNode(`removed ${it.name} · `));
-          const undo = document.createElement('a');
-          undo.href = '#';
-          undo.textContent = 'undo';
-          undo.style.cssText = 'color: var(--accent-2); text-decoration: underline; cursor: pointer; margin-left: 4px;';
-          pill.appendChild(undo);
-          const armed = { done: false };
-          const restore = async () => {
-            if (armed.done) return;
-            armed.done = true;
-            // Put the blob back at its original index.
-            try { it.url = URL.createObjectURL(it.blob); } catch {}
-            this.items.splice(Math.min(snapshot.index, this.items.length), 0, it);
-            if (this.db) {
-              try { await this.db.put('assets', {
-                id: it.id, name: it.name, type: it.type, blob: it.blob,
-                added: it.added, motion: it.motion, luma: it.luma, hue: it.hue,
-                w: it.w, h: it.h, duration: it.duration || 0, rotation: it.rotation || 0,
-              }); } catch (e) { console.warn('undo save', e); }
-            }
-            this.render();
-            this._buildThumb(it);
-          };
-          undo.addEventListener('click', (ev) => {
-            ev.preventDefault();
-            restore().then(() => {
-              if (typeof setStatus === 'function') setStatus(`restored ${it.name}`, 'ok');
-            });
-          });
-          if (typeof setStatus === 'function') setStatus(pill, 'ok');
-          // After 5 s the unguarded path finalizes the removal (blob URL is
-          // already revoked; the asset is already gone from IDB; nothing to do
-          // except clear `armed` so an undo arriving in the post-window race
-          // doesn't re-add a stale item).
-          setTimeout(() => { armed.done = true; }, 5000);
-        }
-        return true;
-      },
-
-      // Lazy-evict a stale library item whose blob failed to load (rendered
-      // as a 404 from URL.createObjectURL(it.blob) where the blob was
-      // already pruned under quota pressure). Distinct from removeItem()
-      // because (a) there's no undo — re-adding a stale entry will fail
-      // again on the next render, and (b) we don't gate on "remove from
-      // stage first" — a stale entry on the stage is already broken, so
-      // removing it from Library.items at least stops the 404 noise.
-      //
-      // Idempotent: if the item was already evicted between render and the
-      // deferred setTimeout (e.g. user clicked × in the meantime), findIndex
-      // returns -1 and we bail.
-      _evictStale(it, reason) {
-        const idx = this.items.findIndex((x) => x.id === it.id);
-        if (idx < 0) return false;
-        this.items.splice(idx, 1);
-        try { URL.revokeObjectURL(it.url); } catch {}
-        if (it._el) { try { it._el.src = ''; } catch {} }
-        if (this.db) {
-          try {
-            this.db.delete('assets', it.id).catch((e) => {
-              console.warn('[library] evict idb', e);
-            });
-          } catch (_) { /* best-effort */ }
-        }
-        console.info('[library] evicted stale item', it.name, '—', reason || 'blob missing');
-        if (typeof this.render === 'function') this.render();
-        return true;
-      },
-
-      // Wipe everything: library assets + saved song. Used by the Clear All
-      // button (with a confirm() prompt — the per-item × button on each
-      // thumbnail has its own optimistic-delete + 5s undo flow and does not
-      // ask for confirmation). After this, both the on-screen library and the
-      // IndexedDB 'songs'/'assets' stores are empty, and the song-name pill
-      // goes back to "no song".
-      async clearAll() {
-        // 1. In-memory items + their blob URLs
-        for (const it of this.items) {
-          try { URL.revokeObjectURL(it.url); } catch {}
-        }
-        this.items = [];
-        // NOTE: we intentionally do NOT reset the swr-manifest-loaded flag here.
-        // Once the demo library has been seeded, the user has seen it — Clear
-        // means "wipe everything I uploaded and remember nothing", not "reset
-        // the engine to factory state". To re-seed the demo library the user
-        // would have to clear localStorage manually.
-        // 2. IndexedDB 'assets' store (the wrapper exposes clear())
-        if (this.db) {
-          try { await this.db.clear('assets'); } catch (e) { console.warn('clear assets', e); }
-        }
-        // 3. Saved song
-        if (window.Audio) await window.Audio._clearCurrentSong();
-        // 4. UI
-        this.render();
-        const sn = document.getElementById('song-name');
-        if (sn) sn.innerHTML = '<i style="opacity:.5">no song</i>';
-        const play = document.getElementById('play');
-        if (play) { play.disabled = true; play.textContent = '▶ Play'; play.classList.add('primary'); play.classList.remove('danger'); }
-        const rec = document.getElementById('rec');
-        if (rec) rec.disabled = true;
-        if (window.Audio) { window.Audio.pause(); window.Audio.audioEl = null; window.Audio.source = null; }
-        if (typeof setStatus === 'function') setStatus('cleared', 'ok');
-      },
-      async addFiles(files) {
-        const arr = Array.from(files);
-        // ---- Progress UI bootstrap ----
-        // Show an inline progress badge in the library panel-head. Cleared
-        // when the import finishes (success or cancel). The same UI is
-        // shared with the folder-picker and any future batch flow.
-        const progressEl = document.getElementById('import-progress');
-        const progressText = document.getElementById('import-progress-text');
-        const progressCancel = document.getElementById('import-progress-cancel');
-        const cancelled = { v: false };
-        const onCancel = () => { cancelled.v = true; };
-        if (progressCancel) progressCancel.onclick = onCancel;
-        const updateProgress = (state) => {
-          if (!progressEl || !progressText) return;
-          progressEl.hidden = false;
-          progressEl.classList.remove('done', 'error');
-          progressText.textContent = `importing ${state.done}/${state.total}`
-            + (state.skipped ? ` · ${state.skipped} dup` : '')
-            + (state.errors ? ` · ${state.errors} err` : '');
-        };
-        const finishProgress = (kind) => {
-          if (!progressEl || !progressText) return;
-          progressEl.classList.add(kind);
-          if (progressCancel) progressCancel.onclick = null;
-          if (kind === 'done') {
-            progressText.textContent = `+${state.imported}`;
-          } else if (kind === 'error') {
-            progressText.textContent = `import error`;
-          } else { // cancelled
-            progressText.textContent = `cancelled`;
-          }
-          setTimeout(() => { progressEl.hidden = true; }, 1600);
-        };
-
-        const state = { total: arr.length, done: 0, imported: 0, skipped: 0, errors: 0 };
-        if (state.total > 1) updateProgress(state);
-
-        const knownKeys = new Set(this.items.map(i => i.name + ':' + (i.blob ? i.blob.size : 0)));
-        // ---- Concurrency-throttled classify pipeline ----
-        // _buildThumb/_classify are background tasks per item. With 50+ files
-        // they pile up (50 video metadata loads = browser stall). A simple
-        // promise-pool caps in-flight work at 4.
-        const THUMB_POOL = 4;
-        let inflight = 0;
-        const waiters = [];
-        const acquire = () => new Promise(res => {
-          if (inflight < THUMB_POOL) { inflight++; res(); }
-          else waiters.push(() => { inflight++; res(); });
-        });
-        const release = () => {
-          inflight--;
-          const next = waiters.shift();
-          if (next) next();
-        };
-        const runClassify = (item) => acquire().then(() => {
-          try {
-            this._buildThumb(item);
-            return this._classify(item)
-              .then(() => { if (item.id) return this._save(item); })
-              .then(() => this.render())
-              .catch(err => { console.warn('classify', item.name, err); state.errors++; });
-          } finally { release(); }
-        });
-
-        for (const f of arr) {
-          if (cancelled.v) break;
-          if (!f.type) { state.skipped++; continue; }
-          const isVid = f.type.startsWith('video/');
-          const isImg = f.type.startsWith('image/');
-          if (!isVid && !isImg) { state.skipped++; state.done++; if (state.total > 1) updateProgress(state); continue; }
-          // Dedupe by name+size (relativePath for folder picks so two folders
-          // with same-name files don't collide)
-          const relKey = (f.webkitRelativePath || f.name) + ':' + f.size;
-          if (knownKeys.has(relKey)) { state.skipped++; state.done++; if (state.total > 1) updateProgress(state); continue; }
-          knownKeys.add(relKey);
-          const id = this.nextId++;
-          const item = {
-            id,
-            name: f.name,
-            relPath: f.webkitRelativePath || null,
-            type: isVid ? 'video' : 'image',
-            blob: f,
-            url: URL.createObjectURL(f),
-            added: Date.now(),
-            thumb: null,
-            motion: 0, luma: 0.5, hue: 0, w: 0, h: 0, duration: 0,
-            rotation: 0,   // overridden by _detectRotation() once metadata loads
-          };
-          this.items.push(item);
-          state.imported++;
-          state.done++;
-          this.render();
-          // Build thumb + classify in background (throttled).
-          runClassify(item);
-          if (state.total > 1) updateProgress(state);
-          // Tiny pause between items keeps the UI thread from stalling on
-          // 100-file drops. The await isn't necessary for correctness but
-          // gives the browser a frame to paint the progress badge.
-          if (state.done % 8 === 0) await new Promise(r => setTimeout(r, 0));
-        }
-        if (state.total > 1) {
-          finishProgress(cancelled.v ? 'cancelled' : (state.errors > 0 ? 'error' : 'done'));
-        } else {
-          setStatus('lib ' + this.items.length, 'ok');
-        }
-        return state;
-      },
-      async _save(item) {
-        if (!this.db) return;
-        const rec = {
-          id: item.id, name: item.name, type: item.type,
-          blob: item.blob, added: item.added,
-          motion: item.motion, luma: item.luma, hue: item.hue,
-          w: item.w, h: item.h, duration: item.duration || 0,
-          rotation: item.rotation || 0,   // 0/90/180/270 — user-set asset orientation override
-        };
-        await this.db.put('assets', rec);
-      },
-      async _fromRecord(rec) {
-        try {
-          const item = {
-            id: rec.id, name: rec.name, type: rec.type,
-            blob: rec.blob, added: rec.added,
-            url: URL.createObjectURL(rec.blob),
-            thumb: null,
-            motion: rec.motion, luma: rec.luma, hue: rec.hue,
-            w: rec.w, h: rec.h, duration: rec.duration || 0,
-            rotation: rec.rotation || 0,
-          };
-          // Build thumb
-          this._buildThumb(item);
-          return item;
-        } catch (e) { console.warn(e); return null; }
-      },
-      _buildThumb(item) {
-        const w = 120, h = 120;
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        const cx = c.getContext('2d');
-        const onThumb = () => {
-          if (typeof Layers !== 'undefined') Layers.render();
-        };
-        // drawRotated: writes `src` into `cx` fitting a `w x h` square,
-        // pre-rotating by `deg` (0/90/180/270). Used by thumbs and stage draw.
-        const drawRotated = (src, deg) => {
-          cx.save();
-          cx.clearRect(0, 0, w, h);
-          if (!deg) {
-            cx.drawImage(src, 0, 0, w, h);
-          } else {
-            // For 90/270 we swap the canvas so the rotated image still fills.
-            const swap = (deg === 90 || deg === 270);
-            const dw = swap ? h : w;
-            const dh = swap ? w : h;
-            const cx2 = (cx.canvas.width - dw) / 2;
-            const cy2 = (cx.canvas.height - dh) / 2;
-            cx.translate(cx.canvas.width / 2, cx.canvas.height / 2);
-            cx.rotate(deg * Math.PI / 180);
-            cx.drawImage(src, -dw / 2, -dh / 2, dw, dh);
-          }
-          cx.restore();
-        };
-        if (item.type === 'video') {
-          const v = document.createElement('video');
-          v.muted = true; v.playsInline = true; v.preload = 'metadata';
-          v.src = item.url;
-          v.addEventListener('loadedmetadata', () => {
-            try { v.currentTime = Math.min(0.5, (v.duration || 1) * 0.1); } catch {}
-          });
-          v.addEventListener('seeked', () => {
-            try {
-              item.w = v.videoWidth; item.h = v.videoHeight;
-              item.duration = v.duration;
-              drawRotated(v, item.rotation || 0);
-              item.thumb = c.toDataURL('image/jpeg', 0.7);
-              this.render();
-              onThumb();
-            } catch {}
-          });
-          // Detect tkhd rotation if we haven't already (one-shot, lazy).
-          if (!item.rotationProbeDone) {
-            item.rotationProbeDone = true;
-            detectMp4Rotation(item.blob).then(deg => {
-              if (deg && !item.rotationUserSet) {
-                item.rotation = deg;
-                // Re-render thumb + save to IDB once the seeked event has run.
-                // (If thumb is already built, we just re-mark it dirty.)
-                item.thumb = null;
-                this._buildThumb(item);
-                // _save runs after _classify; if rotation was discovered after classification,
-                // persist explicitly.
-                if (item.id) this._save(item).catch(() => {});
-              }
-            }).catch(() => {});
-          }
-        } else {
-          const img = new Image();
-          img.onload = () => {
-            item.w = img.naturalWidth; item.h = img.naturalHeight;
-            drawRotated(img, item.rotation || 0);
-            item.thumb = c.toDataURL('image/jpeg', 0.7);
-            this.render();
-            onThumb();
-            // Detect EXIF orientation for JPEGs (very common on phone photos).
-            if (item.type === 'image' && !item.rotationProbeDone) {
-              item.rotationProbeDone = true;
-              detectImageOrientation(item.blob).then(deg => {
-                if (deg && !item.rotationUserSet) {
-                  item.rotation = deg;
-                  item.thumb = null;
-                  this._buildThumb(item);
-                  if (item.id) this._save(item).catch(() => {});
-                }
-              }).catch(() => {});
-            }
-          };
-          img.src = item.url;
-        }
-      },
-      async _classify(item) {
-        // Probe 4 frames (video) or 1 frame (image), sample to 32x32 grayscale
-        const w = 32, h = 32;
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        const cx = c.getContext('2d', { willReadFrequently: true });
-        const samples = [];
-        let lumaSum = 0, hueSum = 0;
-        const tryGet = (source, t) => new Promise(res => {
-          if (item.type === 'video') {
-            source.currentTime = t;
-            source.addEventListener('seeked', () => {
-              cx.drawImage(source, 0, 0, w, h);
-              const d = cx.getImageData(0, 0, w, h).data;
-              const luma = sampleLuma(d);
-              const hue = sampleHue(d);
-              samples.push(luma);
-              lumaSum += luma; hueSum += hue;
-              res();
-            }, { once: true });
-          } else {
-            cx.drawImage(source, 0, 0, w, h);
-            const d = cx.getImageData(0, 0, w, h).data;
-            lumaSum += sampleLuma(d);
-            hueSum += sampleHue(d);
-            res();
-          }
-        });
-        const source = item.type === 'video'
-          ? Object.assign(document.createElement('video'), { src: item.url, muted: true, playsInline: true, crossOrigin: 'anonymous', preload: 'metadata' })
-          : Object.assign(new Image(), { src: item.url });
-        await new Promise(res => {
-          if (source.readyState >= 2) res();
-          else source.addEventListener(source.tagName === 'VIDEO' ? 'loadeddata' : 'load', res, { once: true });
-        });
-        if (item.type === 'video') {
-          const dur = source.duration || 0;
-          item.duration = dur;
-          for (const t of [0.05, 0.3, 0.55, 0.8].map(f => f * dur)) {
-            try { await tryGet(source, Math.min(t, Math.max(0, dur - 0.05))); } catch {}
-          }
-          if (samples.length >= 2) {
-            let v = 0;
-            for (let i = 1; i < samples.length; i++) v += Math.abs(samples[i] - samples[i-1]);
-            item.motion = clamp(v / (samples.length - 1) * 4, 0, 1);
-          }
-        } else {
-          await tryGet(source, 0);
-        }
-        item.luma = clamp(lumaSum, 0, 1);
-        item.hue = ((hueSum % 1) + 1) % 1;
-      },
-      render() {
-        if (!this.items.length) {
-          libGrid.innerHTML = '<div class="lib-empty">Drop videos, GIFs, or images<br/>anywhere on the page</div>';
-          return;
-        }
-        const frag = document.createDocumentFragment();
-        for (const it of this.items) {
-          const d = document.createElement('div');
-          d.className = 'lib-item';
-          d.draggable = true;
-          d.dataset.id = it.id;
-          const tag = it.type === 'video' ? 'VID' :
-                   it.type === 'camera' ? 'CAM' :
-                   (it.name.toLowerCase().endsWith('.gif') ? 'GIF' : 'IMG');
-          // Video items get a "use as song" button so users can promote a
-          // library clip to the audio source. Other types just get the tag + name.
-          const songBtn = (it.type === 'video')
-            ? '<button class="lib-use-as-song" title="Use this clip as the song (audio only)">♪</button>'
-            : '';
-          // Rotate-the-asset button. This is the (orthogonal) "fix sideways"
-          // control — the per-layer `↻ ROT` button tilts the layer on stage.
-          // The asset rotation persists in IDB and shows the rotation badge.
-          const rotBadge = it.rotation ? `<span class="lib-rot-badge">${it.rotation}°</span>` : '';
-          const rotBtn = '<button class="lib-rot" title="Rotate this asset 90° clockwise">↻</button>';
-          // Per-asset remove (top-right ×). Distinct from the global Clear
-          // All button — this deletes one item, with a 5s undo window via
-          // the existing setStatus() helper. Hover-revealed to keep the
-          // card clean; always-visible on touch devices (see CSS).
-          const delBtn = '<button class="lib-del" aria-label="Remove this asset" title="Remove this asset (5s undo via status bar)">×</button>';
-          d.innerHTML = `
-            <span class="tag">${tag}</span>
-            <span class="name">${escapeHtml(it.name)}</span>
-            ${rotBadge}
-            ${rotBtn}
-            ${delBtn}
-            ${songBtn}
-          `;
-          if (it.thumb) {
-            const img = new Image();
-            img.src = it.thumb;
-            img.onerror = () => {
-              // Defer eviction so we don't break the current render cycle.
-              setTimeout(() => Library._evictStale(it, 'thumbnail failed to load'), 0);
-            };
-            d.appendChild(img);
-          } else if (it.type === 'video') {
-            const v = document.createElement('video');
-            v.src = it.url; v.muted = true; v.playsInline = true;
-            v.onerror = () => {
-              setTimeout(() => Library._evictStale(it, 'video failed to load'), 0);
-            };
-            d.appendChild(v);
-          } else {
-            const img = new Image();
-            img.src = it.url;
-            img.onerror = () => {
-              setTimeout(() => Library._evictStale(it, 'image failed to load'), 0);
-            };
-            d.appendChild(img);
-          }
-          d.addEventListener('click', (e) => {
-            // If the user clicked the "use as song" button, route there instead
-            // of adding a layer. (Stop event from bubbling to the layer handler.)
-            if (e.target && e.target.classList && e.target.classList.contains('lib-use-as-song')) {
-              e.stopPropagation();
-              Library.promoteToSong(it);
-              return;
-            }
-            // Asset rotate: flips through 0/90/180/270, marks user-set so the
-            // EXIF/tkhd auto-detect won't clobber it, rebuilds the thumb, and
-            // persists to IDB. Sideways-phone clips → click ↻ until right-side up.
-            if (e.target && e.target.classList && e.target.classList.contains('lib-rot')) {
-              e.stopPropagation();
-              it.rotation = (((it.rotation || 0) + 90) % 360);
-              it.rotationUserSet = true;          // protect from detection clobber
-              it.thumb = null;
-              it._rotated = null;                // invalidate stage cache too
-              this._buildThumb(it);
-              this._save(it).catch(() => {});
-              if (typeof setStatus === 'function') setStatus(`${it.name}: ${it.rotation}°`, 'ok');
-              return;
-            }
-            // Per-asset × (top-right). One-click optimistic delete with a 5s
-            // undo window surfaced via setStatus — see Library.removeItem for
-            // the IDB + layer-ref safety details. Refuses (toast=err) if the
-            // asset is currently a layer on stage; user removes the layer first.
-            if (e.target && e.target.classList && e.target.classList.contains('lib-del')) {
-              e.stopPropagation();
-              e.preventDefault();
-              this.removeItem(it.id);
-              return;
-            }
-            // Add a new layer using this asset. Wrapped in try/catch + status
-            // feedback so a silent throw (missing Audio.feat, undefined helper,
-            // missing stage element) becomes a visible toast instead of
-            // appearing to do nothing.
-            try {
-              if (typeof Layers === 'undefined' || !Layers || typeof Layers.add !== 'function') {
-                throw new Error('Layers module not ready');
-              }
-              if (!it || !it.url) {
-                throw new Error('asset has no blob URL (stale or evicted)');
-              }
-              Layers.add(it);
-              if (typeof setStatus === 'function') setStatus(`♪ ${it.name} → layer`, 'ok');
-            } catch (err) {
-              console.error('[library] add-as-layer failed', err, it);
-              if (typeof setStatus === 'function') setStatus(`could not load: ${err.message || err}`, 'err');
-            }
-          });
-          d.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/sainted-id', String(it.id));
-            e.dataTransfer.effectAllowed = 'copy';
-          });
-          frag.appendChild(d);
-        }
-        libGrid.innerHTML = '';
-        libGrid.appendChild(frag);
-      },
-      byId(id) { return this.items.find(i => i.id === id); },
-      // List every already-known asset name (used to detect new ones in folder)
-      knownNames() { return new Set(this.items.map(i => i.name)); },
-      // Promote a library video item to the song slot. Re-fetches the blob from
-      // the (object URL) source so the Audio module can decode it the same way
-      // it would any user-picked file.
-      async promoteToSong(item) {
-        if (!item) return;
-        try {
-          const resp = await fetch(item.url);
-          if (!resp.ok) throw new Error('fetch failed: ' + resp.status);
-          const blob = await resp.blob();
-          const file = new File([blob], item.name, { type: blob.type || 'video/mp4' });
-          Audio.loadFile(file);
-          setStatus(`♪ ${item.name} loaded as song`, 'ok');
-        } catch (e) {
-          setStatus('could not load as song: ' + (e.message || e), 'err');
-        }
-      },
-    };
-
-    // ------------------------------------------------------------------
-    // Orientation detection — used to auto-rotate videos / images whose
-    // display orientation is encoded in the file metadata (phone-recorded
-    // portrait clips ship sideways without it). The rotate button in the
-    // library overrides the detected value with a user-chosen 0/90/180/270.
-    // ------------------------------------------------------------------
-
-    // Walk an MP4 / MOV box tree. Yields every box whose type is `name`.
-    // Returns nothing; calls cb(boxStart, boxSize) for each match.
-    async function _walkMp4Boxes(blob, name, cb, _opts) {
-      // Read up to 16 MiB — enough for tkhd in the moov.trak.tkhd location
-      // for any reasonable file. Larger uploads fall back to "0 deg".
-      const MAX = 16 * 1024 * 1024;
-      const size = Math.min(blob.size, MAX);
-      const buf = await blob.slice(0, size).arrayBuffer();
-      const dv = new DataView(buf);
-      const dec = new TextDecoder('latin1');
-      const parse = (off, end) => {
-        let p = off;
-        while (p + 8 <= end) {
-          let boxSize = dv.getUint32(p);
-          const type = dec.decode(buf.slice(p + 4, p + 8));
-          if (boxSize === 0) return;          // box extends to EOF
-          if (boxSize === 1 && p + 16 <= end) { // 64-bit largesize
-            const hi = dv.getUint32(p + 8), lo = dv.getUint32(p + 12);
-            boxSize = hi * 0x100000000 + lo;
-          }
-          if (type === name) cb(p, boxSize, dv);
-          // Recurse into container boxes (moov, trak, mdia, minf, stbl, edts, udta).
-          const containers = ['moov', 'trak', 'mdia', 'minf', 'stbl', 'edts', 'udta'];
-          if (containers.indexOf(type) >= 0 && boxSize > 8 && p + boxSize <= end) {
-            parse(p + 8, p + boxSize);
-          }
-          if (boxSize < 8) return;
-          p += boxSize;
-        }
-      };
-      parse(0, dv.byteLength);
-    }
-
-    // Read the QuickTime display matrix out of the first 'tkhd' box.
-    // The matrix is 36 bytes of signed 16.16 fixed-point at content offset 36.
-    // Returns 0/90/180/270 clockwise as the user would see when played.
-    async function detectMp4Rotation(blob) {
-      if (!blob) return 0;
-      try {
-        return await new Promise(resolve => {
-          let found = 0;
-          _walkMp4Boxes(blob, 'tkhd', (off, size, dv) => {
-            if (found) return;
-            found = 1;
-            // tkhd layout (QuickTime / ISO-BMFF, version 0):
-            //   version(1) flags(3) creation(4) modification(4)
-            //   track_id(4) reserved(4) duration(4) reserved(8)
-            //   layer(2) alternate_group(2) volume(2) reserved(2)
-            //   matrix(36) width(4) height(4)
-            // That's 40 bytes of header before the matrix.
-            // We also account for the 8-byte box header (size + 'tkhd') passed
-            // in `off` (which points at the start of the size field).
-            const m = off + 8 + 40;
-            if (size < 48 + 36) return;
-            const a = dv.getInt32(m + 0) / 65536;   // matrix[0][0]
-            const b = dv.getInt32(m + 4) / 65536;   // matrix[1][0]
-            if (!isFinite(a) || !isFinite(b)) return;
-            // For a pure 2D screen transform, the rotation θ satisfies
-            // matrix[0][0] = a = cos θ, matrix[1][0] = b = sin θ (CW positive).
-            const deg = Math.round(Math.atan2(b, a) * 180 / Math.PI / 90) * 90;
-            const norm = ((deg % 360) + 360) % 360;
-            resolve(norm);
-          });
-          // If we never hit a tkhd (rare), resolve 0 after the file is scanned.
-          setTimeout(() => { if (!found) resolve(0); }, 50);
-        });
-      } catch {
-        return 0;
-      }
-    }
-
-    // Minimal EXIF orientation reader for JPEGs. We only need the IFD0
-    // orientation tag (0x0112). Returns 0/90/180/270.
-    function detectImageOrientation(blob) {
-      return new Promise(resolve => {
-        if (!blob || blob.type !== 'image/jpeg') return resolve(0);
-        // Node and very-old browsers won't have FileReader; treat that as "no EXIF".
-        if (typeof FileReader === 'undefined') return resolve(0);
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const dv = new DataView(reader.result);
-            if (dv.getUint16(0) !== 0xFFD8) return resolve(0); // not JPEG
-            let p = 2;
-            while (p < dv.byteLength) {
-              const markerSize = dv.getUint16(p + 2);
-              if (dv.getUint16(p) === 0xFFE1) { // APP1 (EXIF)
-                // EXIF starts with "Exif\0\0" then 'MM' (big) or 'II' (little).
-                const tiff = p + 4 + 6;
-                const little = dv.getUint16(tiff) === 0x4949;
-                const get16 = o => dv.getUint16(o + (little ? 0 : 0), little);
-                const get32 = o => dv.getUint32(o + (little ? 0 : 0), little);
-                if (get16(tiff) === 0x002A) {
-                  const ifd0 = tiff + get32(tiff + 4);
-                  const entries = get16(ifd0);
-                  for (let i = 0; i < entries; i++) {
-                    const ent = ifd0 + 2 + i * 12;
-                    if (get16(ent) === 0x0112) {
-                      // orientation is a SHORT in the value field (first 2 bytes).
-                      const raw = get16(ent + 8);
-                      const map = { 1: 0, 3: 180, 6: 90, 8: 270 };
-                      return resolve(map[raw] || 0);
-                    }
-                  }
-                }
-              }
-              p += 2 + markerSize;
-            }
-            return resolve(0);
-          } catch { return resolve(0); }
-        };
-        reader.onerror = () => resolve(0);
-        // Only read first 64 KiB — EXIF is always in the first segment.
-        reader.readAsArrayBuffer(blob.slice(0, 65536));
-      });
-    }
-
-    function sampleLuma(data) {
-      let s = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        s += 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-      }
-      return (s / (data.length / 4)) / 255;
-    }
-    function sampleHue(data) {
-      // simple average hue using atan2
-      let sx = 0, sy = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i], g = data[i+1], b = data[i+2];
-        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-        if (mx === mn) continue;
-        const d = mx - mn;
-        let h = 0;
-        if (mx === r) h = ((g - b) / d) % 6;
-        else if (mx === g) h = (b - r) / d + 2;
-        else h = (r - g) / d + 4;
-        h /= 6;
-        const a = Math.cos(h * Math.PI * 2);
-        const b2 = Math.sin(h * Math.PI * 2);
-        sx += a; sy += b2;
-      }
-      const n = data.length / 4;
-      return (Math.atan2(sy / n, sx / n) / (Math.PI * 2) + 1) % 1;
-    }
-
-    // Tiny IndexedDB wrapper
-    function openDb(name, ver, upgrade) {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open(name, ver);
-        req.onupgradeneeded = (e) => upgrade(e.target.result);
-        req.onsuccess = (e) => {
-          const db = e.target.result;
-          const api = {
-            getAll: (store) => new Promise((r, rj) => {
-              const t = db.transaction(store, 'readonly').objectStore(store).getAll();
-              t.onsuccess = () => r(t.result);
-              t.onerror = () => rj(t.error);
-            }),
-            put: (store, val) => new Promise((r, rj) => {
-              const t = db.transaction(store, 'readwrite').objectStore(store).put(val);
-              t.onsuccess = () => r();
-              t.onerror = () => rj(t.error);
-            }),
-            delete: (store, key) => new Promise((r, rj) => {
-              const t = db.transaction(store, 'readwrite').objectStore(store).delete(key);
-              t.onsuccess = () => r();
-              t.onerror = () => rj(t.error);
-            }),
-            clear: (store) => new Promise((r, rj) => {
-              const t = db.transaction(store, 'readwrite').objectStore(store).clear();
-              t.onsuccess = () => r();
-              t.onerror = () => rj(t.error);
-            }),
-          };
-          resolve(api);
-        };
-        req.onerror = () => reject(req.error);
-      });
-    }
-
-    // ======================================================================
-    // LAYERS
+    // LAYERS (extracted to lib/layers.client.js in Sprint B3)
     // ======================================================================
     // Layer shape:
     //   {
@@ -3792,560 +2449,6 @@
     //     pos: {x, y, rot},  // base position
     //     z: int
     //   }
-    const Layers = {
-      list: [],
-      selected: null,
-      elCache: new Map(),
-      add(asset) {
-        const z = this.list.length;
-        const layer = {
-          id: 'L' + (this.list.length + 1),
-          asset,
-          blend: pickBlend(this.list.length),
-          opacity: 1,
-          baseScale: pickScale(this.list.length, asset),
-          hue: 0,
-          brightness: 1,
-          contrast: 1,
-          pos: { x: 0, y: 0, rot: 0 },
-          rotOffset: 0,         // per-clip persistent tilt (added on top of pos.rot)
-          rotationEnabled: true, // gate BOTH manual rot + audio rot reactors; undefined = enabled
-          z,
-          reactors: pickReactors(this.list.length, asset, Audio.feat),
-          snapBeat: false,
-        };
-        this.list.push(layer);
-        this.render();
-        this.select(layer);
-        if (this.list.length === 1) stageEmpty.classList.add('hidden');
-      },
-      remove(id) {
-        const i = this.list.findIndex(l => l.id === id);
-        if (i < 0) return;
-        this.list.splice(i, 1);
-        if (this.selected && this.selected.id === id) this.selected = this.list[0] || null;
-        this.render();
-        if (this.list.length === 0) stageEmpty.classList.remove('hidden');
-      },
-      select(layer) {
-        this.selected = layer;
-        for (const el of this.elCache.values()) el.classList.remove('selected');
-        const e = this.elCache.get(layer.id);
-        if (e) e.classList.add('selected');
-        const rotBtn = $('rotate-sel');
-        if (rotBtn) {
-          rotBtn.disabled = !layer;
-          rotBtn.style.opacity = layer ? '1' : '0.4';
-          rotBtn.style.cursor = layer ? 'pointer' : 'not-allowed';
-        }
-      },
-      updateSelected(patch) {
-        if (!this.selected) return;
-        Object.assign(this.selected, patch);
-        this.render();
-      },
-      render() {
-        const frag = document.createDocumentFragment();
-        this.elCache.clear();
-        for (let i = 0; i < this.list.length; i++) {
-          const l = this.list[i];
-          const el = document.createElement('div');
-          el.className = 'layer' + (this.selected === l ? ' selected' : '');
-          el.dataset.id = l.id;
-          const reactors = l.reactors.map(r =>
-            `${r.feature}→${r.target}×${r.scale.toFixed(2)}`
-          ).join(' · ') || '—';
-          el.innerHTML = `
-            <div class="layer-head">
-              <span class="num">${i + 1}</span>
-              <span class="thumb">${l.asset ? '' : '∅'}</span>
-              <span class="name">${l.asset ? escapeHtml(trunc(l.asset.name, 18)) : '(empty)'}</span>
-              <span class="layer-audio-pill" title="All layers share the loaded song (one audio source drives every reactor)">♪ shared</span>
-              <button class="x-rot clip" title="Rotate this clip +90° (or press R)" aria-label="Rotate clip 90°">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
-                  <path d="M2.5 8a5.5 5.5 0 0 1 9.39-3.89L13.5 5.5"/>
-                  <path d="M13.5 2.5v3h-3"/>
-                  <path d="M13.5 8a5.5 5.5 0 0 1-9.39 3.89L2.5 10.5"/>
-                  <path d="M2.5 13.5v-3h3"/>
-                </svg>
-              </button>
-              <button class="x-rand" title="Randomise pos / rot / scale / blend">🎲</button>
-              <button class="x-beat" title="Snap to beat (BPM-locked)">⌐</button>
-              <button class="x" title="remove">×</button>
-            </div>
-            <div class="layer-row">
-              <label>react</label>
-              <span style="font-family:var(--font-mono);font-size:9px;color:var(--accent-2);">${reactors}</span>${l.rotationEnabled === false ? ' <span class="rot-off-tag" title="ROTATE toggle is off — rot-target reactors are silenced">[rot off]</span>' : ''}
-            </div>
-            <div class="layer-row">
-              <label>blend</label>
-              <select data-prop="blend">
-                <option value="source-over">over</option>
-                <option value="screen">screen</option>
-                <option value="multiply">multiply</option>
-                <option value="lighter">add</option>
-                <option value="difference">diff</option>
-                <option value="overlay">overlay</option>
-                <option value="soft-light">soft</option>
-              </select>
-            </div>
-            <div class="layer-row">
-              <label>opacity</label>
-              <input type="range" data-prop="opacity" min="0" max="1" step="0.01" />
-            </div>
-            <div class="layer-row">
-              <label>base scale</label>
-              <input type="range" data-prop="baseScale" min="0.1" max="3" step="0.01" />
-            </div>
-            <div class="layer-row">
-              <label>hue</label>
-              <input type="range" data-prop="hue" min="-180" max="180" step="1" />
-            </div>
-            <div class="layer-row">
-              <label>rot</label>
-              <input type="range" data-prop="rot" min="-180" max="180" step="1" />
-              <b class="rot-v" style="font-family:var(--font-mono);font-size:9px;color:var(--accent);min-width:30px;text-align:right;margin-left:4px;">0°</b>
-            </div>
-            <div class="layer-row layer-row-toggle">
-              <label title="Gate ALL rotation on this layer (manual slider + audio reactors)">rotate</label>
-              <input type="checkbox" data-prop="rotationEnabled" class="rot-enable-toggle" title="On = manual rot + audio rot reactors apply. Off = rotation is suppressed entirely." />
-            </div>
-          `;
-          const sel = el.querySelector('select[data-prop="blend"]');
-          sel.value = l.blend;
-          for (const r of el.querySelectorAll('input[type=range]')) {
-            r.value = readLayerProp(l, r.dataset.prop);
-          }
-          const rotEnable = el.querySelector('input.rot-enable-toggle');
-          if (rotEnable) rotEnable.checked = l.rotationEnabled !== false;
-          const rotV = el.querySelector('.rot-v');
-          if (rotV) {
-            const off = l.rotationEnabled === false;
-            rotV.textContent = `${Math.round(l.rotOffset || 0)}°${off ? ' (held)' : ''}`;
-            rotV.style.opacity = off ? '0.45' : '1';
-          }
-          if (l.asset && l.asset.thumb) {
-            const img = new Image();
-            img.src = l.asset.thumb;
-            el.querySelector('.thumb').appendChild(img);
-          }
-          el.addEventListener('click', (e) => {
-            if (e.target.classList.contains('x')) { this.remove(l.id); return; }
-            if (e.target.classList.contains('x-rot')) {
-              // Shift+click = -90° (counter-clockwise), plain click = +90°
-              // Mutates the per-clip offset so the user's tilt survives audio drift
-              l.rotOffset = (l.rotOffset + (e.shiftKey ? -90 : 90) + 360) % 360;
-              // Update the slider + readout in the same layer card
-              const rotSlider = el.querySelector('input[data-prop="rot"]');
-              const rotV = el.querySelector('.rot-v');
-              if (rotSlider) rotSlider.value = l.rotOffset;
-              if (rotV) rotV.textContent = `${Math.round(l.rotOffset)}°`;
-              e.stopPropagation();
-              return;
-            }
-            if (e.target.classList.contains('x-rand')) {
-              if (!l.pos) l.pos = { x: 0, y: 0, rot: 0 };
-              l.pos.x = (Math.random() - 0.5) * 200;
-              l.pos.y = (Math.random() - 0.5) * 200;
-              l.pos.rot = Math.random() * 360;
-              l.baseScale = 0.4 + Math.random() * 1.4;
-              const blends = ['source-over','screen','multiply','lighter','difference','overlay','soft-light'];
-              l.blend = blends[Math.floor(Math.random() * blends.length)];
-              e.stopPropagation();
-              return;
-            }
-            if (e.target.classList.contains('x-beat')) {
-              l.snapBeat = !l.snapBeat;
-              e.target.classList.toggle('active', l.snapBeat);
-              e.stopPropagation();
-              return;
-            }
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-            this.select(l);
-          });
-          sel.addEventListener('change', () => { l.blend = sel.value; });
-          for (const r of el.querySelectorAll('input[type=range]')) {
-            r.addEventListener('input', () => {
-              writeLayerProp(l, r.dataset.prop, parseFloat(r.value));
-              if (r.dataset.prop === 'rot' && rotV) rotV.textContent = `${Math.round(r.value)}°${l.rotationEnabled === false ? ' (held)' : ''}`;
-            });
-          }
-          // ROTATE checkbox — toggles the layer-wide gate for both manual
-          // rot and audio rot reactors. Re-render so the [rot off] hint,
-          // the rot readout state, and the slider styling update at once.
-          const rotEnableCb = el.querySelector('input.rot-enable-toggle');
-          if (rotEnableCb) {
-            rotEnableCb.addEventListener('change', () => {
-              l.rotationEnabled = rotEnableCb.checked;
-              this.render();
-            });
-          }
-          this.elCache.set(l.id, el);
-          frag.appendChild(el);
-        }
-        layerList.innerHTML = '';
-        layerList.appendChild(frag);
-      },
-      // Auto-remap: algorithmically assign assets to layers by classification
-      // relative to current audio features.
-      autoMap() {
-        if (!Library.items.length) {
-          setStatus('lib empty', 'warn');
-          return;
-        }
-        const mode = $('mode').value;
-        const sens = parseFloat($('sensitivity').value);
-        const f = Audio.feat;
-        // Compute a "score" for each asset for each layer role
-        const roles = [
-          { name: 'bass',  want: 'motion', weight: 0.6 + f.bass * sens },
-          { name: 'mid',   want: 'mid',    weight: 0.4 + f.mid * sens },
-          { name: 'treb',  want: 'luma',   weight: 0.3 + f.treble * sens },
-          { name: 'air',   want: 'hue',    weight: 0.2 + f.air * sens },
-          { name: 'rms',   want: 'motion', weight: 0.5 + f.rms * sens * 2 },
-          { name: 'onset', want: 'motion', weight: 0.7 + f.onset * sens * 3 },
-        ];
-        // Score every asset for every role
-        const scored = Library.items.map(it => {
-          const sc = {};
-          // Want keys match roles[i].want exactly
-          sc.motion = (it.motion) * 0.7 + (1 - Math.abs(it.luma - 0.5) * 2) * 0.3;   // bass, rms, onset lean on motion
-          sc.mid    = (it.luma) * 0.5 + (1 - it.motion) * 0.5;
-          sc.luma   = (1 - it.motion) * 0.4 + (it.luma) * 0.6;                       // treble prefers bright & static
-          sc.hue    = (it.hue) * 0.5 + (1 - it.motion) * 0.5;                       // air prefers colorful
-          return { it, sc };
-        });
-        // Pick from top-N candidates randomly so each RE-MAP click produces a
-        // new visual look. N=1 in 'auto' (still score-driven, but jittered),
-        // N=3 in 'chaos' (more variety), N=1 in 'pulse'/'ambient'.
-        const topN = { auto: 2, chaos: 4, pulse: 1, ambient: 1 }[mode] || 2;
-        const used = new Set();
-        const assignments = roles.map(r => {
-          // Score unused candidates
-          const cands = [];
-          for (const s of scored) {
-            if (used.has(s.it.id)) continue;
-            cands.push({ it: s.it, v: s.sc[r.want] * r.weight });
-          }
-          if (!cands.length) return { role: r, asset: null };
-          // Sort by score, take top N
-          cands.sort((a, b) => b.v - a.v);
-          const pool = cands.slice(0, Math.min(topN, cands.length));
-          // Weight the random pick by score so the best is still most likely
-          const total = pool.reduce((s, c) => s + Math.max(c.v, 0.01), 0);
-          let r2 = Math.random() * total;
-          let pick = pool[0];
-          for (const c of pool) {
-            r2 -= Math.max(c.v, 0.01);
-            if (r2 <= 0) { pick = c; break; }
-          }
-          used.add(pick.it.id);
-          return { role: r, asset: pick.it };
-        });
-        // Reset and rebuild layers
-        this.list = [];
-        for (let i = 0; i < assignments.length; i++) {
-          const a = assignments[i];
-          if (!a.asset) continue;
-          const l = {
-            id: 'L' + (i + 1),
-            asset: a.asset,
-            blend: pickBlend(i, mode),
-            opacity: 1,
-            baseScale: pickScale(i, a.asset),
-            hue: (mode === 'chaos') ? (Math.random() * 360 - 180) : 0,
-            brightness: 1,
-            contrast: 1,
-            pos: { x: 0, y: 0, rot: 0 },
-            z: i,
-            reactors: pickReactors(i, a.asset, Audio.feat, mode),
-          };
-          this.list.push(l);
-        }
-        this.render();
-        if (this.list.length) { stageEmpty.classList.add('hidden'); this.select(this.list[0]); }
-        setStatus('mapped ' + this.list.length, 'ok');
-      },
-    };
-
-    function pickBlend(i, mode='auto') {
-      const opts = ['source-over', 'screen', 'lighter', 'overlay', 'soft-light', 'difference'];
-      // If a preset is active, use its blend sequence
-      if (window._activePreset && window._activePreset.blends) {
-        return window._activePreset.blends[i % window._activePreset.blends.length];
-      }
-      if (mode === 'chaos') return opts[Math.floor(Math.random() * opts.length)];
-      if (mode === 'pulse') return i % 2 === 0 ? 'screen' : 'lighter';
-      if (mode === 'ambient') return ['source-over', 'soft-light', 'overlay'][i % 3];
-      // Auto: shuffle 3 random blends and assign cyclically so each remap = new blend set
-      if (!pickBlend._pool) pickBlend._pool = ['source-over', 'screen', 'overlay', 'lighter'];
-      pickBlend._pool.push(pickBlend._pool.shift());
-      return pickBlend._pool[i % pickBlend._pool.length];
-    }
-    function pickScale(i, asset) {
-      if (!asset) return 1;
-      const ar = (asset.w || 1) / (asset.h || 1);
-      // base around filling the canvas; tweak per role
-      const fills = (window._activePreset && window._activePreset.fills) || [1.0, 0.8, 1.2, 0.5, 1.5, 0.7];
-      return fills[i % fills.length] * (ar > 1 ? 0.7 : 1.0);
-    }
-    function pickReactors(i, asset, feat, mode='auto') {
-      if (!asset) return [];
-      // Preset mode: use the curated reactor sequence
-      if (window._activePreset && window._activePreset.reactors) {
-        return window._activePreset.reactors[i % window._activePreset.reactors.length] || [];
-      }
-      // Each layer gets 1-3 reactors based on its role index
-      const presets = [
-        // Layer 0: bass-pumping scale + opacity on beat
-        [
-          { feature: 'bass', target: 'scale',  scale: 0.6, ease: 'soft' },
-          { feature: 'beat', target: 'opacity', scale: 0.4, ease: 'soft' },
-        ],
-        // Layer 1: mid-driven hue rotation
-        [
-          { feature: 'mid',  target: 'hue',   scale: 120, ease: 'smooth' },
-          { feature: 'rms',  target: 'scale', scale: 0.2, ease: 'soft' },
-        ],
-        // Layer 2: treble shimmer — position + rotation
-        [
-          { feature: 'treble', target: 'rot',     scale: 30,  ease: 'smooth' },
-          { feature: 'air',    target: 'y',       scale: 60,  ease: 'smooth' },
-        ],
-        // Layer 3: bass + rms scale
-        [
-          { feature: 'rms',  target: 'scale',  scale: 0.5, ease: 'soft' },
-          { feature: 'onset', target: 'brightness', scale: 0.5, ease: 'sharp' },
-        ],
-        // Layer 4: centroid hue + treble scale
-        [
-          { feature: 'centroid', target: 'hue', scale: 180, ease: 'smooth' },
-          { feature: 'treble',   target: 'scale', scale: 0.3, ease: 'soft' },
-        ],
-        // Layer 5: bass thump + beat pulse
-        [
-          { feature: 'bass',  target: 'scale',  scale: 0.8, ease: 'sharp' },
-          { feature: 'beat',  target: 'opacity', scale: 0.7, ease: 'sharp' },
-        ],
-        // Layer 6: rms + onset flicker
-        [
-          { feature: 'onset', target: 'opacity', scale: 0.9, ease: 'sharp' },
-          { feature: 'rms',   target: 'x',       scale: 30,  ease: 'soft' },
-        ],
-        // Layer 7: mid + air drift
-        [
-          { feature: 'mid',  target: 'x', scale: 40, ease: 'smooth' },
-          { feature: 'air',  target: 'y', scale: 30, ease: 'smooth' },
-        ],
-      ];
-      return presets[i % presets.length] || [];
-    }
-
-    // ======================================================================
-    // VISUAL PRESETS — 5 curated looks. Each preset overrides reactors/blends/
-    // scale-fills for ALL layers so the look is consistent. Reactor values are
-    // tuned with `soft` / `release` eases for visual smoothness.
-    // ======================================================================
-    const VISUAL_PRESETS = {
-      pulse: {
-        name: 'Pulse',
-        desc: 'Bass-thumping, beat-pulsing. Dark, heavy, club-energy.',
-        reactors: [
-          [{ feature: 'bass', target: 'scale',   scale: 0.55, ease: 'soft' },
-           { feature: 'beat', target: 'opacity', scale: 0.35, ease: 'soft' },
-           { feature: 'rms',  target: 'scale',   scale: 0.15, ease: 'release' }],
-          [{ feature: 'bass', target: 'scale',   scale: 0.35, ease: 'soft' },
-           { feature: 'beat', target: 'brightness', scale: 0.4, ease: 'release' }],
-          [{ feature: 'beat', target: 'rot',     scale: 6,   ease: 'release' },
-           { feature: 'rms',  target: 'y',       scale: 24,  ease: 'soft' }],
-        ],
-        blends: ['screen', 'screen', 'lighter', 'screen'],
-        fills:  [1.0, 0.9, 1.1, 0.7, 1.3, 0.8],
-      },
-      drift: {
-        name: 'Drift',
-        desc: 'Slow continuous motion. Mid + air, soft-light, ambient.',
-        reactors: [
-          [{ feature: 'mid',  target: 'x',     scale: 28,  ease: 'smooth' },
-           { feature: 'air',  target: 'y',     scale: 22,  ease: 'smooth' }],
-          [{ feature: 'mid',  target: 'hue',   scale: 90,  ease: 'smooth' },
-           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
-          [{ feature: 'air',  target: 'rot',   scale: 18,  ease: 'smooth' },
-           { feature: 'treble', target: 'scale', scale: 0.2, ease: 'soft' }],
-        ],
-        blends: ['source-over', 'soft-light', 'overlay', 'soft-light'],
-        fills:  [0.9, 1.1, 0.7, 1.0, 0.8, 1.2],
-      },
-      strobe: {
-        name: 'Strobe',
-        desc: 'Sharp onset flicker, x/y jitter, lighter blend. Chaotic.',
-        reactors: [
-          [{ feature: 'onset', target: 'opacity', scale: 0.7, ease: 'sharp' },
-           { feature: 'rms',   target: 'x',       scale: 60,  ease: 'release' }],
-          [{ feature: 'onset', target: 'brightness', scale: 0.8, ease: 'sharp' },
-           { feature: 'rms',   target: 'y',       scale: 45,  ease: 'release' }],
-          [{ feature: 'onset', target: 'scale',  scale: 0.4, ease: 'sharp' },
-           { feature: 'beat',  target: 'rot',    scale: 14,  ease: 'sharp' }],
-        ],
-        blends: ['lighter', 'difference', 'lighter', 'screen'],
-        fills:  [0.7, 1.2, 0.9, 1.4, 0.6, 1.1],
-      },
-      warp: {
-        name: 'Warp',
-        desc: 'Hue rotation, smoothstep, overlay. Psychedelic, slow.',
-        reactors: [
-          [{ feature: 'centroid', target: 'hue', scale: 220, ease: 'smooth' },
-           { feature: 'mid',      target: 'scale', scale: 0.2, ease: 'soft' }],
-          [{ feature: 'mid',  target: 'hue',   scale: 160, ease: 'smooth' },
-           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
-          [{ feature: 'centroid', target: 'hue', scale: 200, ease: 'smooth' },
-           { feature: 'treble',   target: 'scale', scale: 0.25, ease: 'soft' }],
-        ],
-        blends: ['overlay', 'overlay', 'soft-light', 'overlay'],
-        fills:  [1.0, 0.85, 1.15, 0.95, 1.05, 0.9],
-      },
-      mosh: {
-        name: 'Mosh',
-        desc: 'Bass + rms thump, rotation, sharp attack. Live-show energy.',
-        reactors: [
-          [{ feature: 'bass', target: 'scale', scale: 0.7, ease: 'release' },
-           { feature: 'rms',  target: 'rot',   scale: 22,  ease: 'release' }],
-          [{ feature: 'bass', target: 'rot',   scale: 18,  ease: 'release' },
-           { feature: 'rms',  target: 'x',     scale: 40,  ease: 'release' }],
-          [{ feature: 'bass', target: 'scale', scale: 0.5, ease: 'release' },
-           { feature: 'rms',  target: 'y',     scale: 30,  ease: 'release' }],
-        ],
-        blends: ['source-over', 'source-over', 'overlay', 'multiply'],
-        fills:  [1.1, 0.95, 1.2, 0.85, 1.05, 1.0],
-      },
-    };
-
-    function applyPreset(key) {
-      if (!key || key === 'off') {
-        window._activePreset = null;
-        const sel = document.getElementById('preset');
-        if (sel) sel.value = 'off';
-        if (Layers && Layers.list && Layers.list.length && Layers.render) Layers.render();
-        if (typeof setStatus === 'function') setStatus('preset: off (default mode)', 'ok');
-        return;
-      }
-      const preset = VISUAL_PRESETS[key];
-      if (!preset) return;
-      window._activePreset = preset;
-      // Auto-populate the stage when the user picks a preset on an
-      // empty canvas: presets are styled for N layers (the preset's
-      // reactors/blends/fills array length). Picking pulse on an empty
-      // stage used to do nothing visible because the apply-loop was
-      // gated on Layers.list.length > 0. Pick N images from the library
-      // and add them as layers so the preset has something to style.
-      if (Layers && Layers.list && Layers.list.length === 0 && Library && Library.items && Library.items.length) {
-        // N = the largest array in the preset (whichever has the most
-        // entries); fall back to 4 (the typical preset shape) if no
-        // arrays defined.
-        const arrs = ['reactors', 'blends', 'fills'].map(k => Array.isArray(preset[k]) ? preset[k].length : 0);
-        const N = Math.max(4, ...arrs);
-        const images = Library.items.filter(it => it && it.type === 'image').slice(0, N);
-        for (const it of images) {
-          try { Layers.add(it); } catch (_) { /* skip broken items */ }
-        }
-        if (typeof setStatus === 'function') setStatus('preset: ' + preset.name + ' (' + images.length + ' layers)', 'ok');
-      }
-      // Re-render layer panel so the new blends/scales show. When the preset
-      // defines explicit `reactors` / `blends` / `fills` arrays that match
-      // the current layer count, honor them verbatim. Otherwise fall back to
-      // the asset-driven heuristics (pickReactors / pickBlend / pickScale).
-      // Falls back layer-by-layer so a 4-layer preset applied to a 6-layer
-      // scene still works: layers 0..N-1 use the preset; layers N..end use
-      // the heuristic.
-      if (Layers && Layers.list && Layers.list.length) {
-        const presetReactors = Array.isArray(preset.reactors) ? preset.reactors : null;
-        const presetBlends = Array.isArray(preset.blends) ? preset.blends : null;
-        const presetFills = Array.isArray(preset.fills) ? preset.fills : null;
-        for (let i = 0; i < Layers.list.length; i++) {
-          const l = Layers.list[i];
-          if (presetBlends && presetBlends[i % presetBlends.length]) {
-            l.blend = presetBlends[i % presetBlends.length];
-          } else {
-            l.blend = pickBlend(i, 'auto');
-          }
-          if (presetFills && typeof presetFills[i % presetFills.length] === 'number') {
-            l.baseScale = presetFills[i % presetFills.length];
-          } else {
-            l.baseScale = pickScale(i, l.asset);
-          }
-          if (presetReactors && presetReactors[i % presetReactors.length]) {
-            l.reactors = presetReactors[i % presetReactors.length].slice();
-          } else {
-            l.reactors = pickReactors(i, l.asset, Audio.feat, 'auto');
-          }
-        }
-        if (Layers.render) Layers.render();
-      }
-      if (typeof setStatus === 'function') setStatus('preset: ' + preset.name, 'ok');
-
-      // PRD-019: auto-arm the recommended primary transition for this
-      // preset if the transitions module + manifest are loaded. The
-      // transitions popover re-renders its recommendation chips via
-      // its own listener on the #preset/#persona dropdowns, so we
-      // don't need to touch the panel here.
-      if (window.SWRPresetTransitions && typeof window.SWRPresetTransitions.applyPresetAutoFire === 'function') {
-        window.SWRPresetTransitions.applyPresetAutoFire(key, {
-          every: 4,
-          bpm: 120,
-          peak: 0.85
-        });
-      }
-    }
-    // Expose for debugging from devtools / puppeteer
-    window.VISUAL_PRESETS = VISUAL_PRESETS;
-    // Back-compat alias: the Story runtime and external scripts sometimes
-    // call applyVisualPreset by name. Keep the legacy entrypoint working.
-    window.applyVisualPreset = applyPreset;
-
-
-    // ======================================================================
-    // STORY GRAPH
-    // ======================================================================
-    //
-    // A 9-chapter narrative that wraps the existing layer / preset system.
-    // Each chapter says: start here, change only within these boundaries,
-    // move to <next> when the music or the user earns it.
-    //
-    // Public API on window.SWR.Story:
-    //   .current            — id of the active chapter ('fragments' | …)
-    //   .history            — array of chapter ids in order of entry
-    //   .mode               — 'manual' | 'guided' | 'auto' | 'generative'
-    //   .state              — { current, history, mode, lastEnterAt, evoSeed }
-    //   .STORY              — read-only view of the chapter graph
-    //   .ORDER              — ['fragments', 'signal', …] (slot for Shift+1..9)
-    //   .enter(id, reason?) — snapshot → transition → activate chapter
-    //   .evolve()           — everyBars-driven bounded mutation
-    //   .tick(audio, transport) — advance bar + advance if shouldAdvance()
-    //   .shouldAdvance(audio, transport) — boolean, never side-effects
-    //   .renderStrip()      — repaint the STORY UI strip
-    //   .hold() / .next() / .branch() / .reset() — UI buttons
-    //
-    // Chapters:
-    //   fragments  → signal    → pursuit   → fracture
-    //   revelation → overload  → afterimage → memory → loop (→ fragments)
-    //
-    // Each chapter's `state` references a VISUAL_PRESETS key (or inline
-    // parameters). `locks` freezes hero-layer fields; `evolve.preserve`
-    // declares what NOT to mutate. Transitions are bloom / crossfade / morph
-    // wrappers over the existing engine primitives.
-
-    const STORY_ORDER = ['fragments', 'signal', 'pursuit', 'fracture',
-                         'revelation', 'overload', 'afterimage', 'memory', 'loop'];
-
-    const STORY_DEFAULTS = {
-      // Common params every chapter inherits unless overridden
-      _common: {
-        evolve: { enabled: true, everyBars: 4, amount: 0.12, targets: ['opacity','hue','x','y'],
-                  preserve: ['assets','mappings','blend'], seed: 0xA17 },
-        transition: { when: { type: 'energyAbove', value: 0.55, holdBars: 2 },
-                      to: 'signal', style: 'bloom', maxBars: 64 },
-      },
-    };
 
     const STORY = {
       fragments: {
@@ -4451,6 +2554,100 @@
       },
     };
 
+    const STORY_ORDER = ['fragments', 'signal', 'pursuit', 'fracture',
+                         'revelation', 'overload', 'afterimage', 'memory', 'loop'];
+
+    // ======================================================================
+    // VISUAL PRESETS — 5 curated looks. Each preset overrides reactors/blends/
+    // scale-fills for ALL layers so the look is consistent. Reactor values are
+    // tuned with `soft` / `release` eases for visual smoothness.
+    // ======================================================================
+    const VISUAL_PRESETS = {
+      pulse: {
+        name: 'Pulse',
+        desc: 'Bass-thumping, beat-pulsing. Dark, heavy, club-energy.',
+        reactors: [
+          [{ feature: 'bass', target: 'scale',   scale: 0.55, ease: 'soft' },
+           { feature: 'beat', target: 'opacity', scale: 0.35, ease: 'soft' },
+           { feature: 'rms',  target: 'scale',   scale: 0.15, ease: 'release' }],
+          [{ feature: 'bass', target: 'scale',   scale: 0.35, ease: 'soft' },
+           { feature: 'beat', target: 'brightness', scale: 0.4, ease: 'release' }],
+          [{ feature: 'beat', target: 'rot',     scale: 6,   ease: 'release' },
+           { feature: 'rms',  target: 'y',       scale: 24,  ease: 'soft' }],
+        ],
+        blends: ['screen', 'screen', 'lighter', 'screen'],
+        fills:  [1.0, 0.9, 1.1, 0.7, 1.3, 0.8],
+      },
+      drift: {
+        name: 'Drift',
+        desc: 'Slow continuous motion. Mid + air, soft-light, ambient.',
+        reactors: [
+          [{ feature: 'mid',  target: 'x',     scale: 28,  ease: 'smooth' },
+           { feature: 'air',  target: 'y',     scale: 22,  ease: 'smooth' }],
+          [{ feature: 'mid',  target: 'hue',   scale: 90,  ease: 'smooth' },
+           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
+          [{ feature: 'air',  target: 'rot',   scale: 18,  ease: 'smooth' },
+           { feature: 'treble', target: 'scale', scale: 0.2, ease: 'soft' }],
+        ],
+        blends: ['source-over', 'soft-light', 'overlay', 'soft-light'],
+        fills:  [0.9, 1.1, 0.7, 1.0, 0.8, 1.2],
+      },
+      strobe: {
+        name: 'Strobe',
+        desc: 'Sharp onset flicker, x/y jitter, lighter blend. Chaotic.',
+        reactors: [
+          [{ feature: 'onset', target: 'opacity', scale: 0.7, ease: 'sharp' },
+           { feature: 'rms',   target: 'x',       scale: 60,  ease: 'release' }],
+          [{ feature: 'onset', target: 'brightness', scale: 0.8, ease: 'sharp' },
+           { feature: 'rms',   target: 'y',       scale: 45,  ease: 'release' }],
+          [{ feature: 'onset', target: 'scale',  scale: 0.4, ease: 'sharp' },
+           { feature: 'beat',  target: 'rot',    scale: 14,  ease: 'sharp' }],
+        ],
+        blends: ['lighter', 'difference', 'lighter', 'screen'],
+        fills:  [0.7, 1.2, 0.9, 1.4, 0.6, 1.1],
+      },
+      warp: {
+        name: 'Warp',
+        desc: 'Hue rotation, smoothstep, overlay. Psychedelic, slow.',
+        reactors: [
+          [{ feature: 'centroid', target: 'hue', scale: 220, ease: 'smooth' },
+           { feature: 'mid',      target: 'scale', scale: 0.2, ease: 'soft' }],
+          [{ feature: 'mid',  target: 'hue',   scale: 160, ease: 'smooth' },
+           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
+          [{ feature: 'centroid', target: 'hue', scale: 200, ease: 'smooth' },
+           { feature: 'treble',   target: 'scale', scale: 0.25, ease: 'soft' }],
+        ],
+        blends: ['overlay', 'overlay', 'soft-light', 'overlay'],
+        fills:  [1.0, 0.85, 1.15, 0.95, 1.05, 0.9],
+      },
+      mosh: {
+        name: 'Mosh',
+        desc: 'Bass + rms thump, rotation, sharp attack. Live-show energy.',
+        reactors: [
+          [{ feature: 'bass', target: 'scale', scale: 0.7, ease: 'release' },
+           { feature: 'rms',  target: 'rot',   scale: 22,  ease: 'release' }],
+          [{ feature: 'bass', target: 'rot',   scale: 18,  ease: 'release' },
+           { feature: 'rms',  target: 'x',     scale: 40,  ease: 'release' }],
+          [{ feature: 'bass', target: 'scale', scale: 0.5, ease: 'release' },
+           { feature: 'rms',  target: 'y',     scale: 30,  ease: 'release' }],
+        ],
+        blends: ['source-over', 'source-over', 'overlay', 'multiply'],
+        fills:  [1.1, 0.95, 1.2, 0.85, 1.05, 1.0],
+      },
+    };
+
+    // Expose for debugging from devtools / puppeteer
+    window.VISUAL_PRESETS = VISUAL_PRESETS;
+    // Back-compat alias: the Story runtime and external scripts sometimes
+    // call applyVisualPreset by name. Keep the legacy entrypoint working.
+    // applyPreset itself lives in lib/layers.client.js (Sprint B3) because
+    // it touches layer helpers (pickBlend / pickScale / pickReactors) that
+    // became lib-private there. The lib attaches window.applyPreset at
+    // script-eval time.
+    window.applyVisualPreset = function (key) {
+      if (typeof window.applyPreset === 'function') window.applyPreset(key);
+    };
+
     // ---- Story runtime -------------------------------------------------
     function makeStoryRuntime() {
       const LS_KEY = 'swr.story';
@@ -4519,20 +2716,6 @@
       function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
 
       // ---- mutate helper: bounded, preserves locks/preserve fields ----
-      // Nominal 4/4 bar at 120 BPM. Used only when the tempo is unknown so the
-      // show keeps evolving instead of freezing (see the _bar comment above).
-      const NOMINAL_BAR_MS = 2000;
-
-      // Bars since the current chapter started. The real bar clock only advances
-      // once BPM is locked (_tickBar returns early otherwise); when it is not,
-      // fall back to wall-clock nominal bars so evolution and advance still run.
-      function barsInChapter() {
-        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
-        if (bar) return bar;
-        if (!state.lastEnterAt) state.lastEnterAt = Date.now();
-        return Math.floor((Date.now() - state.lastEnterAt) / NOMINAL_BAR_MS);
-      }
-
       function mutate(opts) {
         // opts: { amount, allowedParams, preserve, seed, scope }
         // preserve: array of strings ('assets','mappings','blend', or 'layer[N].field')
@@ -4542,7 +2725,7 @@
         const preserveMappings = preserve.has('mappings');
         const preserveBlend = preserve.has('blend');
         // Build per-bar seed
-        const bar = barsInChapter();
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
         const baseSeed = (typeof opts.seed === 'number') ? opts.seed : state.evoSeed;
         const seed = hashSeed(String(baseSeed) + ':' + String(bar) + ':' + String(opts.tag || ''));
         const rng = mulberry32(seed);
@@ -4711,7 +2894,9 @@
       function evolve() {
         const node = STORY[state.current];
         if (!node || !node.evolve || !node.evolve.enabled) return false;
-        const bar = barsInChapter();
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        // Don't evolve if we don't have a beat clock yet (BPM unknown).
+        if (!bar) return false;
         const every = node.evolve.everyBars || 4;
         if (bar - state._lastEvoBar < every) return false;
         state._lastEvoBar = bar;
@@ -4735,8 +2920,7 @@
         const t = node.transition.when;
         if (!t) return false;
         const a = audio || (typeof window !== 'undefined' && window.Audio && window.Audio.feat) || {};
-        const bars = barsInChapter();
-        const tp = transport || { bar: bars, barsInNode: state._barsInNode };
+        const tp = transport || { bar: Audio && Audio.bar, barsInNode: state._barsInNode };
         let fired = false;
         if (t.type === 'energyAbove') {
           fired = (a.rms || 0) > t.value && (tp.barsInNode || 0) >= (t.holdBars || 0);
@@ -4757,7 +2941,7 @@
       function tick(audio, transport) {
         // Mirror Audio.bar into our local counter so shouldAdvance() can
         // use barsInNode without the runtime needing to read Audio every time.
-        const bar = barsInChapter();
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
         if (bar > state._barsInNode) state._barsInNode = bar;
         // Run evolution if it's time
         evolve();
@@ -5047,37 +3231,6 @@
             a._el.muted = true; a._el.loop = true; a._el.playsInline = true;
             a._el.preload = 'auto';
             if (a.type === 'video') a._el.src = a.url;
-            // Onerror for video: same retry pattern as image. If the
-            // blob URL has been revoked (e.g. quota eviction + IDB
-            // restore race), rebuild from a.blob and try again.
-            a._el.onerror = () => {
-              if (a._elBroken) return;
-              a._elBroken = true;
-              if (a.blob) {
-                try {
-                  const freshUrl = URL.createObjectURL(a.blob);
-                  if (a.url && a.url !== freshUrl) { try { URL.revokeObjectURL(a.url); } catch (_) {} }
-                  a.url = freshUrl;
-                  a._el = document.createElement('video');
-                  a._el.muted = true; a._el.loop = true; a._el.playsInline = true;
-                  a._el.preload = 'auto';
-                  a._el.onloadeddata = () => { a._elBroken = false; };
-                  a._el.onerror = () => {
-                    if (typeof setStatus === 'function') {
-                      setStatus('video failed to load · ' + (a.name || 'asset'), 'err');
-                    }
-                  };
-                  a._el.src = a.url;
-                  src = a._el;
-                } catch (e) {
-                  if (typeof setStatus === 'function') {
-                    setStatus('video failed to load · ' + (a.name || 'asset'), 'err');
-                  }
-                }
-              } else if (typeof setStatus === 'function') {
-                setStatus('video blob missing · ' + (a.name || 'asset'), 'err');
-              }
-            };
           }
           src = a._el;
           // Video with a blob URL: drive playback from main audio play state.
@@ -5111,40 +3264,6 @@
           if (!a._el) {
             a._el = new Image();
             a._el.src = a.url;
-            // Onerror: the asset's blob URL has failed to decode. Common
-            // causes — the blob was revoked (e.g. removeItem() called
-            // and then user re-added via undo, racing a revoke), the
-            // blob was evicted under quota pressure, or the file is
-            // truly corrupt. Try once more with a fresh blob URL built
-            // from a.blob; if that also fails, surface a status toast
-            // so the user knows the asset is broken instead of
-            // wondering why nothing's drawing on the stage.
-            a._el.onerror = () => {
-              if (a._elBroken) return;       // already retried
-              a._elBroken = true;
-              if (a.blob) {
-                try {
-                  const freshUrl = URL.createObjectURL(a.blob);
-                  if (a.url && a.url !== freshUrl) { try { URL.revokeObjectURL(a.url); } catch (_) {} }
-                  a.url = freshUrl;
-                  a._el = new Image();
-                  a._el.onload = () => { a._elBroken = false; };
-                  a._el.onerror = () => {
-                    if (typeof setStatus === 'function') {
-                      setStatus('media failed to load · ' + (a.name || 'asset'), 'err');
-                    }
-                  };
-                  a._el.src = a.url;
-                  src = a._el;
-                } catch (e) {
-                  if (typeof setStatus === 'function') {
-                    setStatus('media failed to load · ' + (a.name || 'asset'), 'err');
-                  }
-                }
-              } else if (typeof setStatus === 'function') {
-                setStatus('media blob missing · ' + (a.name || 'asset'), 'err');
-              }
-            };
           }
           src = a._el;
         }
@@ -5455,18 +3574,6 @@
         $('fps-v').textContent = Math.round(this.fps) + ' fps';
         // Sample audio features
         if (Audio.playing) Audio.sample();
-        // Narrative-state step (ADR-001 rollout): feeds the song's
-        // emergent drift / tension / peak state. The accumulator
-        // computes its values from raw rms/beat/centroid; the
-        // renderer reads state.drift.{x,y} below.
-        if (window.SWR_NARRATIVE && Audio.feat) {
-          window.SWR_NARRATIVE.step({
-            rms: Audio.feat.rms,
-            beat: Audio.feat.beat,
-            centroid: Audio.feat.centroid || 0,
-            dt: dt,
-          });
-        }
         // Smooth features
         const a = Audio.feat, s = this.smooth;
         const k = 0.18;
@@ -5499,22 +3606,8 @@
             const t = this._t;
             // Smooth slow drift, scaled by audio energy (mid → x, treble → y, beat → rot kick)
             const eMid = s.mid, eTre = s.treble, eBeat = s.beat;
-            // Narrative-state drift bias (ADR-001 rollout): the song's
-            // accumulated drift walker biases each layer's position so
-            // the visual reflects the song's journey, not just its
-            // instantaneous features. drift.{x,y} are bounded to [-1, +1]
-            // (see narrative-state.client.js). phase.driftAmp scales by
-            // song lifecycle (intro 0.3 → middle 1.0 → climax 1.4).
-            // 80px / 60px scales match the score-evolution branch's
-            // tuning. Guarded by `if (window.SWR_NARRATIVE)` so the
-            // auto-drift loop is no-op if the module isn't loaded.
-            const _ns = window.SWR_NARRATIVE;
-            const _phase = _ns ? _ns.phaseMultiplier((Audio.audioEl && Audio.audioEl.duration) || 0) : { driftAmp: 0 };
-            const _micro = _ns ? _ns.getMicroAmp() : 1;
-            const _driftX = _ns ? _ns.state.drift.x * _phase.driftAmp * 80 * _micro : 0;
-            const _driftY = _ns ? _ns.state.drift.y * _phase.driftAmp * 60 * _micro : 0;
-            l.pos.x = Math.sin(t * 0.35 + ph) * 22 + eMid * 18 + _driftX;
-            l.pos.y = Math.cos(t * 0.28 + ph * 0.7) * 18 + eTre * 14 + _driftY;
+            l.pos.x = Math.sin(t * 0.35 + ph) * 22 + eMid * 18;
+            l.pos.y = Math.cos(t * 0.28 + ph * 0.7) * 18 + eTre * 14;
             l.pos.rot = Math.sin(t * 0.22 + ph * 0.5) * 3.2 + eBeat * 6;
             // v2: snap-to-beat (compute nearest beat for layers that opted in)
             if (l.snapBeat && Audio._beatGrid && Audio._beatGrid.length) {
@@ -5770,10 +3863,8 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload the watermark image. If a #rec-wm selector exists it wins;
-        // otherwise we default to slot 'a' (currently the SWR wordmark) so
-        // recordings are protected instead of silently unbranded.
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'a';
+        // Preload the watermark image based on the user's selector choice
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
         this._loadWatermark(wmSel);
         // PT watermark-free status indicator (no credit consumed at start —
         // the engine charges the renderer on stop, with a final cost based
@@ -5882,8 +3973,8 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload watermark (default to slot 'a' when no #rec-wm selector)
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'a';
+        // Preload watermark
+        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
         this._loadWatermark(wmSel);
         // PT license chip
         if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
@@ -6025,7 +4116,7 @@
           if (Recorder.recording) Recorder.stop(); else Recorder.start();
         });
       // === Export video (one-click 30s WebM) ===
-      $('export-video')?.addEventListener('click', () => {
+      $('export-video').addEventListener('click', () => {
         if (Recorder.recording) { Recorder.stop(); return; }
         if (!Audio.audioEl) { UI.setStatus && UI.setStatus('load a song first', 'warn'); return; }
         // Auto-play so the recording has audio, then stop after the song's
@@ -6643,10 +4734,6 @@
           setTimeout(() => { cleanup(); resolve(); }, 8000);
         });
         const dur = (Audio.audioEl && Audio.audioEl.duration) || 0;
-        // Narrative-state init (ADR-001 rollout). Seeds the accumulator
-        // with the loaded song's metadata. bpm default 120 until the
-        // beat detector locks on.
-        if (window.SWR_NARRATIVE) window.SWR_NARRATIVE.init(120, dur);
         if (!(dur > 0)) {
           if (typeof setStatus === 'function') {
             setStatus('song loaded · press 🎬 Export video to render', 'warn');
@@ -6886,10 +4973,11 @@
       // M1 of story-graph: also expose Story on window.SWR so callers that
       // only know the SWR.* namespace (tests, devtools snippets) can reach it.
       try { window.SWR.Story = Story; } catch (_) {}
-      window.Audio = Audio;
-      window.Layers = Layers;
-      window.Library = Library;
+      // window.Audio is attached by lib/audio.client.js (Sprint B1).
+      // window.Library is attached by lib/library.client.js (Sprint B2).
+      // window.Layers is attached by lib/layers.client.js (Sprint B3).
       window.CSSFX = CSSFX;
+      window.UI = UI;
       // Auto-apply a pending .swr-set if the marketplace page queued one.
       // Marketplace stores the full set doc in localStorage under
       // 'swr.pending-set'; engine.html reads it on boot and applies via
@@ -6923,7 +5011,7 @@
           // with the page in this tab) or queue for the first user gesture.
           // Without this the user reloads the engine expecting audio to
           // resume, but stays silent until they manually press Play.
-          const tryPlay = () => { try { const p = Audio.play(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* autoplay blocked until gesture */ } };
+          const tryPlay = () => Audio.play();
           tryPlay();
           document.addEventListener('pointerdown', function _autoplayOnGesture() {
             document.removeEventListener('pointerdown', _autoplayOnGesture);
@@ -7298,6 +5386,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SWR Review — ${songName}</title>
   <style>
     body { margin:0; background:#0a0d12; color:#fff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding:20px; }
     .header { text-align:center; margin-bottom:20px; }
@@ -8241,32 +6330,6 @@
     })();
 
   </script>
-
-  <!-- Automix + asset-curator stack (ported from music_video, Phase 1) -->
-  <script src="/client/preset-anchor-map.client.js"></script>
-  <script src="/client/anchor-embed.js"></script>
-  <script src="/client/automix.client.js"></script>
-  <script src="/client/section-detector.client.js" defer></script>
-  <script src="/client/preset-cycle.client.js"></script>
-  <script src="/client/preset-pick-store.client.js"></script>
-  <script src="/client/layer-state-store.client.js"></script>
-  <script src="/client/last-mix-store.client.js"></script>
-  <script src="/client/asset-curator.client.js"></script>
-  <script src="/client/library-packs.client.js" defer></script>
-
-  <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
-  <script src="/client/automix-runtime.client.js"></script>
-  <!-- Periodic frame capture runtime + UI (Phase 1) -->
-  <script src="/client/capture-runtime.client.js"></script>
-
-  <!-- Hero / Hook / Stats / Mood / Scenes runtimes (Phase 1b) -->
-  <!-- NOTE: hero-frames.client.js intentionally omitted per /steer skip hero -->
-  <script src="/client/narrative-state.client.js" defer></script>
-  <script src="/client/hook-detector.client.js"></script>
-  <script src="/client/stats.client.js"></script>
-  <script src="/client/mood.client.js"></script>
-  <script src="/client/scenes.client.js"></script>
-
   <script type="module" src="/engine-panel-visibility.client.js"></script>
   <script type="module" src="/layer-scheduler.client.js"></script>
   <script type="module" src="/engine-timing.client.js"></script>
@@ -8492,13 +6555,11 @@
   <script type="module" src="/persona-preview.client.js"></script>
   <script type="module" src="/media-sets.client.js"></script>
 <script type="module" src="/lib/media-store.client.js"></script>
-  <script src="/lib/user-media-mount.client.js" defer></script>
   <script src="/lib/persist.client.js"></script>
   <script src="/lib/persist-wire.client.js"></script>
   <script src="/lib/persist-fx.client.js"></script>
   <script src="/lib/library-hygiene.client.js"></script>
   <script src="/lib/preset-transitions.client.js"></script>
-  <script src="/lib/auto-setup.client.js" defer></script>
   <script src="/lib/reset-state.client.js"></script>
   <script src="/lib/recorder.client.js"></script>
   <script type="module" src="/share.client.js"></script>
@@ -8532,8 +6593,8 @@
         }
       }
       function init() {
-        $('nav-ver-prev')?.addEventListener('click', () => go(-1));
-        $('nav-ver-next')?.addEventListener('click', () => go(1));
+        $('nav-ver-prev').addEventListener('click', () => go(-1));
+        $('nav-ver-next').addEventListener('click', () => go(1));
         document.addEventListener('keydown', (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
           if (e.target.isContentEditable) return;
@@ -8582,8 +6643,8 @@
         }
       }
       function init() {
-        $('nav-prev')?.addEventListener('click', () => applyAt(_index - 1, -1));
-        $('nav-next')?.addEventListener('click', () => applyAt(_index + 1, 1));
+        $('nav-prev').addEventListener('click', () => applyAt(_index - 1, -1));
+        $('nav-next').addEventListener('click', () => applyAt(_index + 1, 1));
         // Keyboard arrows (only when no input/select is focused, no modal open)
         document.addEventListener('keydown', (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
@@ -8708,7 +6769,7 @@
           : `Today's editing practice · ${streak}-day streak`;
       }
       function init() {
-        $('daily-btn')?.addEventListener('click', open);
+        $('daily-btn').addEventListener('click', open);
         document.querySelector('.daily-modal__close')?.addEventListener('click', close);
         $('daily-modal').addEventListener('click', (e) => { if (e.target === $('daily-modal')) close(); });
         $('daily-reroll').addEventListener('click', reroll);
@@ -8848,5 +6909,125 @@
     </div>
     <div id="automix-debug-body" style="color:var(--fg-mute);">idle</div>
   </div>
+
+  <script>
+    // ?diag=1 dump surface (Sprint A1 of feat/asset-curator burndown).
+    // Read-only diagnostics payload for headless verifiers + manual inspection.
+    // No state mutation. No-op when ?diag is absent.
+    (function () {
+      var params;
+      try { params = new URLSearchParams(window.location.search); }
+      catch (_) { return; }
+      if (params.get('diag') !== '1') return;
+
+      function fmt(v) {
+        try { return JSON.stringify(v, null, 2); }
+        catch (_) { return String(v); }
+      }
+      function snap() {
+        var out = {};
+        // IDB schema + engine-library asset count + saved song timestamp.
+        try {
+          if (window.Library && window.Library.db) {
+            out.idb = { name: 'sainted-word-records', version: 4 };
+            out.idb.assetCount = (window.Library.items || []).length;
+            // Read-only scan of the 'songs' store for the saved song record.
+            if (typeof window.Library.db.getAll === 'function') {
+              window.Library.db.getAll('songs').then(function (songs) {
+                var cur = (songs || []).find(function (r) { return r && r.id === 'current'; });
+                if (cur) {
+                  out.idb.savedSong = { savedAt: cur.savedAt || null, name: cur.name || null };
+                } else {
+                  out.idb.savedSong = null;
+                }
+                // Re-write the pre so the verifier sees the savedSong field.
+                writePre('savedSong', out);
+              }).catch(function () {});
+            }
+          }
+        } catch (_) {}
+        // FX state (defensive clone — FX.state is the live object)
+        try {
+          if (window.FX && window.FX.state) {
+            out.fx = JSON.parse(JSON.stringify(window.FX.state));
+          }
+        } catch (_) {}
+        // Active preset key (use the engine's helper if exposed on window,
+        // else fall back to the dropdown value)
+        try {
+          if (typeof window.getActivePresetKey === 'function') {
+            out.activePresetKey = window.getActivePresetKey();
+          } else {
+            var sel = document.getElementById('preset');
+            out.activePresetKey = sel ? (sel.value || null) : null;
+          }
+        } catch (_) { out.activePresetKey = null; }
+        // Transitions log length — the engine keeps entries in #swr-tx-log
+        try {
+          var logEl = document.getElementById('swr-tx-log');
+          out.transitionsLogLength = logEl ? logEl.children.length : 0;
+        } catch (_) { out.transitionsLogLength = 0; }
+        // Last audio error
+        try {
+          out.lastAudioError = (window.Audio && window.Audio._lastAudioError) || null;
+        } catch (_) { out.lastAudioError = null; }
+        // SWR_MEDIA (user library) count — async; also re-writes the <pre>
+        // text so the verifier sees the merged state (savedSong + swrMedia).
+        try {
+          if (window.SWR_MEDIA && typeof window.SWR_MEDIA.getUserMedia === 'function') {
+            window.SWR_MEDIA.getUserMedia().then(function (recs) {
+              out.swrMediaCount = (recs || []).length;
+              writePre('swrMedia', out);
+            }).catch(function () { out.swrMediaCount = null; });
+          }
+        } catch (_) {}
+        return out;
+      }
+
+      // Helper to write to <pre id="diag-out"> without console spam.
+      // Called by dump() AND by the async SWR_MEDIA resolution.
+      function writePre(label, payload) {
+        var text = '=== DIAG (' + label + ') ===\n' + fmt(payload) + '\n=== END ===';
+        var pre = document.getElementById('diag-out');
+        if (!pre) {
+          pre = document.createElement('pre');
+          pre.id = 'diag-out';
+          pre.setAttribute('aria-hidden', 'true');
+          pre.style.cssText = 'display:none;';
+          document.body.appendChild(pre);
+        }
+        pre.textContent = text;
+      }
+
+      function dump(label, payload) {
+        var text = '=== DIAG (' + label + ') ===\n' + fmt(payload) + '\n=== END ===';
+        console.log(text);
+        writePre(label, payload);
+      }
+
+      // Run once now (catches the fast path — Library.init etc. done
+      // before this script fires if their <script> tags were above us).
+      // We sit at end-of-body, after the brandkit module + init block, but
+      // the deferred module scripts may still be pending. 'load' fires
+      // after every script (incl. deferred modules) is done.
+      dump('early', snap());
+
+      // The 'late' dump must catch fx-postprocess.js, which sets
+      // window.FX via setTimeout(init, 100) when DOM is already loaded.
+      // Wait long enough for that + a render tick. The 'final' dump
+      // catches anything still settling (e.g. SWR_MEDIA async init).
+      function scheduleLate() {
+        setTimeout(function () { dump('late', snap()); }, 250);
+        setTimeout(function () { dump('final', snap()); }, 600);
+      }
+      if (document.readyState === 'complete') {
+        scheduleLate();
+      } else {
+        window.addEventListener('load', function () {
+          scheduleLate();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

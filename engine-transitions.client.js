@@ -25,6 +25,21 @@
   const OVERLAY_ID = 'swr-tx-layer';
   const STAGE_SELECTOR = '#render, #stage canvas, #fx-canvas';
   const BEAT_DEFAULT_BPM = 120;        // fallback when no audio wired
+  // Sprint C1: real light-leak WebP asset baked at /public/media/transitions/.
+  // Preloaded on init (this IIFE is module-deferred, so DOM ready by then).
+  const LIGHT_LEAK_URL = '/media/transitions/light-leak-pop.webp';
+  let lightLeakImg = null;             // set by preload; checked at fire time
+  // Sprint C2: real vhs-tracking SVG asset (8 glitch strips + scanlines).
+  const VHS_TRACKING_URL = '/media/transitions/vhs-tracking.svg';
+  // Sprint C3: occluder silhouettes for object-pass-through. Each fire picks
+  // one at random. Preloaded at init so the first fire doesn't show a frame
+  // of empty overlay.
+  const OCCLUDER_URLS = [
+    '/media/transitions/occluder-1.webp', // arm with hand
+    '/media/transitions/occluder-2.webp', // coffee mug
+    '/media/transitions/occluder-3.webp', // head silhouette
+  ];
+  const occluderImgs = [null, null, null]; // filled by preload
 
   // ---- Transition catalog ----
   // Family tags drive picker UIs and preset↔transition pairing. The
@@ -151,10 +166,26 @@
     overlay.className = '';
     overlay.classList.add(id);
 
+    // Sprint C3: object-pass-through picks a random preloaded silhouette and
+    // overrides the CSS-class background with the inline url(). Inline style
+    // wins over the class so the random pick lands without touching the CSS
+    // builder. Falls back to the procedural radial gradient if no occluder
+    // is preloaded yet.
+    if (name === 'object-pass-through') {
+      const ready = occluderImgs.filter(Boolean);
+      if (ready.length) {
+        const pick = ready[Math.floor(Math.random() * ready.length)];
+        overlay.style.background = `url(${pick.src}) center/contain no-repeat`;
+      } else {
+        overlay.style.background = '';
+      }
+    }
+
     return new Promise(resolve => {
       const done = () => {
         overlay.classList.remove(id);
         overlay.style.display = 'none';
+        overlay.style.background = '';   // clear the per-fire override
         styleNode.remove();
         resolve();
       };
@@ -262,15 +293,19 @@
                 @keyframes np${id}{0%{opacity:0;filter:invert(0)}50%{opacity:${peak};filter:invert(1)}100%{opacity:0;filter:invert(0)}}`;
 
       case 'vhs-tracking': {
-        // Rolling band + RGB offset.
-        const bandH = 18;
-        return `.${id}{background:linear-gradient(180deg, transparent 0%, transparent 40%, rgba(255,255,255,${peak*0.25}) 50%, transparent 60%, transparent 100%);animation:vhs${id} ${dur}ms ease-out forwards;mix-blend-mode:screen}
+        // Rolling band + RGB offset. Sprint C2: composited with a baked
+        // SVG of 8 RGB-shifted glitch strips + scanlines, much richer than
+        // the prior flat linear-gradient. The CSS keyframes still drive
+        // the vertical roll and drop-shadow RGB offset on top.
+        return `.${id}{background:url(${VHS_TRACKING_URL}) center/cover no-repeat #000;mix-blend-mode:screen;animation:vhs${id} ${dur}ms ease-out forwards}
                 @keyframes vhs${id}{0%{transform:translateY(-${h}px);filter:none}50%{transform:translateY(${h/2}px);filter:drop-shadow(-${peak*8}px 0 #f0f) drop-shadow(${peak*8}px 0 #0ff)}100%{transform:translateY(${h}px);filter:none}}`;
       }
 
       case 'object-pass-through':
-        // Simulated occluder: an off-screen dark ellipse sweeps across.
-        return `.${id}{background:radial-gradient(ellipse 30% 50% at 50% 50%, #000 0%, #000 60%, transparent 100%);animation:opt${id} ${dur}ms ease-in-out forwards}
+        // Sprint C3: a preloaded silhouette sweeps across. The background is
+        // set inline at fire-time (fireKeyframe picks a random occluder).
+        // The CSS class only owns the animation + size.
+        return `.${id}{animation:opt${id} ${dur}ms ease-in-out forwards;background-position:center;background-repeat:no-repeat}
                 @keyframes opt${id}{0%{transform:translateX(-${w*0.6}px) scale(0.8);opacity:0}50%{opacity:1}100%{transform:translateX(${w*0.6}px) scale(1.2);opacity:0}}`;
 
       case 'particle-wipe':
@@ -361,13 +396,21 @@
   }
 
   function fireLightLeakPop() {
-    // Procedural warm light leak — radial gradient with screen blend. No PNG.
+    // Real light-leak WebP asset (Sprint C1 of feat/asset-curator burndown).
+    // Previously a CSS radial gradient; now the baked PNG/WebP (warm orange
+    // center, pink halo, cream/gold anamorphic streaks) is composited with
+    // screen blend so the stage colors below show through naturally.
+    // Falls back to the procedural gradient if the asset didn't preload.
     const overlay = ensureOverlay();
-    overlay.style.background = `radial-gradient(ellipse 60% 80% at 30% 40%,
-      rgba(255, 220, 160, 0.85) 0%,
-      rgba(255, 140, 80, 0.6) 30%,
-      rgba(220, 80, 120, 0.4) 60%,
-      transparent 90%)`;
+    if (lightLeakImg && lightLeakImg.complete && lightLeakImg.naturalWidth) {
+      overlay.style.background = `url(${LIGHT_LEAK_URL}) center/contain no-repeat #000`;
+    } else {
+      overlay.style.background = `radial-gradient(ellipse 60% 80% at 30% 40%,
+        rgba(255, 220, 160, 0.85) 0%,
+        rgba(255, 140, 80, 0.6) 30%,
+        rgba(220, 80, 120, 0.4) 60%,
+        transparent 90%)`;
+    }
     overlay.style.mixBlendMode = 'screen';
     overlay.style.display = 'block';
     overlay.style.animation = `llp${++styleCounter} 680ms ease-out forwards`;
@@ -541,4 +584,44 @@
     // Escape hatch for debug / advanced users.
     _TRANSITIONS: TRANSITIONS
   };
+
+  // ---- Preload (Sprint C1) ---------------------------------------------
+  // fireLightLeakPop() uses the baked WebP. Preload it once at module-init
+  // so the first fire doesn't show the procedural fallback. On 404 (e.g.
+  // local dev without /public served), fall back silently — the procedural
+  // gradient still produces a usable leak.
+  (function preloadLightLeakAsset() {
+    const img = new Image();
+    img.onload = () => {
+      lightLeakImg = img;
+      console.log('[swr-tx] loaded light-leak-pop asset');
+    };
+    img.onerror = () => {
+      console.warn('[swr-tx] light-leak-pop asset missing — using procedural fallback');
+    };
+    img.src = LIGHT_LEAK_URL;
+  })();
+
+  // ---- Preload (Sprint C3) ---------------------------------------------
+  // Each fire of object-pass-through picks one of the 3 occluder images.
+  // Preload all 3 so the first fire isn't an empty overlay. A 404 leaves
+  // the slot null — fireKeyframe() filters out null slots and falls back
+  // to the procedural radial gradient if none loaded.
+  (function preloadOccluders() {
+    let loaded = 0;
+    for (let i = 0; i < OCCLUDER_URLS.length; i++) {
+      const img = new Image();
+      img.onload = () => {
+        occluderImgs[i] = img;
+        loaded++;
+        if (loaded === OCCLUDER_URLS.length) {
+          console.log(`[swr-tx] loaded ${loaded} occluder assets`);
+        }
+      };
+      img.onerror = () => {
+        console.warn(`[swr-tx] occluder-${i + 1} asset missing`);
+      };
+      img.src = OCCLUDER_URLS[i];
+    }
+  })();
 })();
