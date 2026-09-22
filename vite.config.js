@@ -223,13 +223,14 @@ function copyStatic() {
     'favicon.ico',
     'favicon.svg',
     'og.png',
-    'apple-touch-icon.png',
     '404.html',
     'changelog.html',
     'press.html',
     'about.html',
-    'style-guide.html',
     'status.html',
+    // reel-player is loaded by video_single.html via ../reel-player.client.js
+    // (browser resolves ../ at root → /reel-player.client.js).
+    'reel-player.client.js',
     'versions.html',
     'portfolio.html',
     'gallery-music.html',

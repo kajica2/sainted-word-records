@@ -147,16 +147,56 @@ const specialPatterns = [
   /^\/marketplace\/curated\//,
   /^\/_curator-runner\.html$/,
   /^\/curator-runner\.html$/,
+  // /visual-languages maps to /versions/index.html because that file
+  // exists; the auto-generated /visual-languages.html does not. PR #99.
+  /^\/visual-languages\/?$/,
+  // /artists maps to /artists/index.html (directory + index) because
+  // that file is the canonical landing page; /artists.html does not
+  // exist.
+  /^\/artists\/?$/,
+  // /versions/music-video → /versions/music_video.html (the underscore
+  // in the filename breaks the auto-generator's `clean + .html` logic).
+  /^\/versions\/music-video\/?$/,
+  // /versions/echo-manifold has no site-map entry but is reachable
+  // from /versions.html style cards.
+  /^\/versions\/echo-manifold\/?$/,
+  // /atlas exists as atlas.html but isn't in site-map; reachable from
+  // the atlas-* exploratory pages.
+  /^\/atlas\/?$/,
+  // /artists/<name> → /artists/<name>.html for individual artist pages.
+  // Not in site-map nav but linked from /artists/index.html cards.
+  /^\/artists\/(ana-maric|dusan-popov|kira-lindqvist|marko-ilic|nina-volkova|vodolija)\/?$/,
+  // /versions/<name> → /versions/<name>.html for the 22 variants and
+  // index pages. The auto-generator doesn't emit subdirectory rewrites
+  // under /versions/ (only under /artists/), so we preserve manually.
+  /^\/versions\/(?!index$)[a-z_-]+\/?$/,
 ];
 const preservedRewrites = (existing.rewrites || []).filter(r =>
   specialPatterns.some(p => p.test(r.source))
 );
 
-const finalRewrites = [...generatedRewrites, ...preservedRewrites];
+// Dedupe preservedRewrites by source — last occurrence wins. This protects
+// against double-stacking if the script is run multiple times in a row
+// (each run used to append preserved rules on top of existing).
+const preservedBySource = new Map();
+for (const r of preservedRewrites) preservedBySource.set(r.source, r);
+const dedupedPreserved = [...preservedBySource.values()];
+
+// Build a set of sources that will be handled by preserved rewrites so we
+// can drop the auto-generated equivalents (Vercel uses first-match-wins,
+// so a preserved rule appended after the generated one wouldn't take
+// effect).
+const preservedSources = new Set(dedupedPreserved.map(r => r.source));
+const filteredGenerated = generatedRewrites.filter(
+  r => !preservedSources.has(r.source)
+);
+
+// Preserved rules go FIRST so they win on first-match.
+const finalRewrites = [...dedupedPreserved, ...filteredGenerated];
 
 if (VERBOSE) {
   console.log(`Generated ${generatedRewrites.length} rewrites from site-map`);
-  console.log(`Preserved ${preservedRewrites.length} special-case rewrites`);
+  console.log(`Preserved ${dedupedPreserved.length} special-case rewrites`);
   console.log(`Total: ${finalRewrites.length} rewrite rules`);
 }
 

@@ -110,8 +110,19 @@ function loadSiteMap() {
       page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
       page.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
 
-      // Build list of URLs to crawl from site-map
-      // Apply same path mapping as generate-vercel-rewrites.mjs
+      // Build list of URLs to crawl from site-map.
+      // Strategy: consult vercel.json rewrites FIRST (canonical truth for
+      // production routing). Fall back to the historical
+      // `generate-vercel-rewrites.mjs` mapping (no rewrite found).
+      const vercel = (() => {
+        try { return JSON.parse(fs.readFileSync('vercel.json', 'utf8')); }
+        catch (_) { return null; }
+      })();
+      const rewriteMap = new Map();
+      for (const r of (vercel && vercel.rewrites) || []) {
+        // Normalize source (strip trailing slash variants): "/foo/" and "/foo" → same key
+        rewriteMap.set(r.source.replace(/\/$/, ''), r.destination);
+      }
       const urls = new Set();
       function addUrl(href) {
         if (!href || href.startsWith('http')) return;
@@ -119,10 +130,14 @@ function loadSiteMap() {
         const clean = href.replace(/^\//, '').replace(/\/$/, '');
         if (!clean) return;
         let url;
-        if (clean.endsWith('.html')) {
+        // First, check if a Vercel rewrite resolves this URL
+        const rewriteDest = rewriteMap.get('/' + clean) || rewriteMap.get('/' + clean + '/');
+        if (rewriteDest) {
+          url = rewriteDest.replace(/^\//, '');
+        } else if (clean.endsWith('.html')) {
           url = clean;
         } else if (clean === 'artists') {
-          // /artists → /artists/index.html
+          // /artists → /artists/index.html (canonical, matches dist convention)
           url = 'artists/index.html';
         } else if (clean.startsWith('artists/')) {
           url = `${clean}.html`;
