@@ -31,6 +31,15 @@
   let lightLeakImg = null;             // set by preload; checked at fire time
   // Sprint C2: real vhs-tracking SVG asset (8 glitch strips + scanlines).
   const VHS_TRACKING_URL = '/media/transitions/vhs-tracking.svg';
+  // Sprint C3: occluder silhouettes for object-pass-through. Each fire picks
+  // one at random. Preloaded at init so the first fire doesn't show a frame
+  // of empty overlay.
+  const OCCLUDER_URLS = [
+    '/media/transitions/occluder-1.webp', // arm with hand
+    '/media/transitions/occluder-2.webp', // coffee mug
+    '/media/transitions/occluder-3.webp', // head silhouette
+  ];
+  const occluderImgs = [null, null, null]; // filled by preload
 
   // ---- Transition catalog ----
   // Family tags drive picker UIs and preset↔transition pairing. The
@@ -157,10 +166,26 @@
     overlay.className = '';
     overlay.classList.add(id);
 
+    // Sprint C3: object-pass-through picks a random preloaded silhouette and
+    // overrides the CSS-class background with the inline url(). Inline style
+    // wins over the class so the random pick lands without touching the CSS
+    // builder. Falls back to the procedural radial gradient if no occluder
+    // is preloaded yet.
+    if (name === 'object-pass-through') {
+      const ready = occluderImgs.filter(Boolean);
+      if (ready.length) {
+        const pick = ready[Math.floor(Math.random() * ready.length)];
+        overlay.style.background = `url(${pick.src}) center/contain no-repeat`;
+      } else {
+        overlay.style.background = '';
+      }
+    }
+
     return new Promise(resolve => {
       const done = () => {
         overlay.classList.remove(id);
         overlay.style.display = 'none';
+        overlay.style.background = '';   // clear the per-fire override
         styleNode.remove();
         resolve();
       };
@@ -277,8 +302,10 @@
       }
 
       case 'object-pass-through':
-        // Simulated occluder: an off-screen dark ellipse sweeps across.
-        return `.${id}{background:radial-gradient(ellipse 30% 50% at 50% 50%, #000 0%, #000 60%, transparent 100%);animation:opt${id} ${dur}ms ease-in-out forwards}
+        // Sprint C3: a preloaded silhouette sweeps across. The background is
+        // set inline at fire-time (fireKeyframe picks a random occluder).
+        // The CSS class only owns the animation + size.
+        return `.${id}{animation:opt${id} ${dur}ms ease-in-out forwards;background-position:center;background-repeat:no-repeat}
                 @keyframes opt${id}{0%{transform:translateX(-${w*0.6}px) scale(0.8);opacity:0}50%{opacity:1}100%{transform:translateX(${w*0.6}px) scale(1.2);opacity:0}}`;
 
       case 'particle-wipe':
@@ -573,5 +600,28 @@
       console.warn('[swr-tx] light-leak-pop asset missing — using procedural fallback');
     };
     img.src = LIGHT_LEAK_URL;
+  })();
+
+  // ---- Preload (Sprint C3) ---------------------------------------------
+  // Each fire of object-pass-through picks one of the 3 occluder images.
+  // Preload all 3 so the first fire isn't an empty overlay. A 404 leaves
+  // the slot null — fireKeyframe() filters out null slots and falls back
+  // to the procedural radial gradient if none loaded.
+  (function preloadOccluders() {
+    let loaded = 0;
+    for (let i = 0; i < OCCLUDER_URLS.length; i++) {
+      const img = new Image();
+      img.onload = () => {
+        occluderImgs[i] = img;
+        loaded++;
+        if (loaded === OCCLUDER_URLS.length) {
+          console.log(`[swr-tx] loaded ${loaded} occluder assets`);
+        }
+      };
+      img.onerror = () => {
+        console.warn(`[swr-tx] occluder-${i + 1} asset missing`);
+      };
+      img.src = OCCLUDER_URLS[i];
+    }
   })();
 })();
