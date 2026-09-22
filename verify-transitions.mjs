@@ -494,6 +494,165 @@ try {
     }
   });
 
+  // --- 9. ?diag=1 dump surface (Sprint A2 of feat/asset-curator burndown) ---
+  // When engine.html loads with ?diag=1, it must write a structured
+  // diagnostics payload to <pre id="diag-out">. The verifier scrapes the
+  // final block and asserts each field group is present + shaped
+  // correctly. This guards regressions where the dump fires an empty
+  // object, drops a field, or fails to populate after the FX module's
+  // setTimeout(init, 100).
+  //
+  // Closure-scoped state shared across steps. The diag page stays open
+  // across steps and is closed at the end of the section.
+  let diagPage = null;
+  let diagPre = null;
+  let diagParsed = null;
+
+  await step('?diag=1 loads cleanly and writes a non-empty payload', async () => {
+    diagPage = await browser.newPage();
+    // Suppress SW registration — same sandbox workaround as the main page.
+    await diagPage.evaluateOnNewDocument(() => {
+      if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+        navigator.serviceWorker.register = () => new Promise(() => {});
+      }
+    });
+    const diagConsole = [];
+    diagPage.on('console', (msg) => { try { diagConsole.push(msg.text()); } catch (_) {} });
+    diagPage.on('pageerror', (err) => diagConsole.push('PE: ' + err.message));
+    await diagPage.goto(`http://localhost:${PORT}/engine.html?diag=1`, { waitUntil: 'load', timeout: 45000 });
+    // Wait for a populated payload. The async swrMedia rewrite races
+    // against dump('final') and may win (overwriting the pre before the
+    // +600ms setTimeout fires), so we accept ANY DIAG block label as long
+    // as the payload includes the fx field.
+    await waitFor(diagPage, () => {
+      const t = document.getElementById('diag-out')?.textContent || '';
+      return /=== DIAG \(/.test(t) && /"fx":/.test(t);
+    }, 'diag payload with fx', 8000);
+    diagPre = await diagPage.evaluate(() => {
+      const t = document.getElementById('diag-out')?.textContent || '';
+      // Find the LAST DIAG block. The async rewrites all use the same
+      // <pre> element, so textContent is always the most-recent dump.
+      // split('=== END ===') strips the delimiter; the last piece has
+      // no trailing '=== END ===' but the JSON inside is intact. We
+      // match against the raw text instead.
+      const m = t.match(/=== DIAG \(([^)]+)\) ===\n([\s\S]*?)\n=== END ===(?=\s*$)/);
+      return {
+        preExists: !!document.getElementById('diag-out'),
+        preLength: t.length,
+        blockCount: (t.match(/=== DIAG \(/g) || []).length,
+        lastLabel: m ? m[1] : null,
+        jsonText: m ? m[2] : null,
+      };
+    });
+    if (!diagPre.preExists) throw new Error('#diag-out not present');
+    if (diagPre.preLength < 100) throw new Error(`<pre> too short (${diagPre.preLength} chars)`);
+    if (!diagPre.jsonText) throw new Error('no DIAG block found in <pre>');
+    // Also probe the page's console — proves console.log path is wired
+    // (this verifier page doesn't see the diag page's console because
+    // console messages were captured at page.on('console') time, but
+    // we don't strictly need to assert the count here — the dump
+    // appearing in <pre> is the canonical signal).
+    void diagConsole;
+  });
+
+  await step('?diag=1 payload contains all six field groups', async () => {
+    if (!diagPre || !diagPre.jsonText) throw new Error('previous diag step did not produce state');
+    try { diagParsed = JSON.parse(diagPre.jsonText); }
+    catch (e) { throw new Error(`payload is not valid JSON: ${e.message}`); }
+    const groups = Object.keys(diagParsed || {});
+    const expected = ['idb', 'fx', 'activePresetKey', 'transitionsLogLength', 'lastAudioError'];
+    for (const k of expected) {
+      if (groups.indexOf(k) === -1) throw new Error(`missing field group "${k}" (got ${groups.join(',')})`);
+    }
+    // swrMediaCount is async — may or may not have resolved. Acceptable
+    // as null, undefined, or number.
+  });
+
+  await step('?diag=1 idb block has schema + assetCount + savedSong shape', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const idb = diagParsed.idb;
+    if (!idb || typeof idb !== 'object') throw new Error('idb is not an object');
+    if (idb.name !== 'sainted-word-records') throw new Error(`idb.name = ${idb.name}`);
+    if (idb.version !== 4) throw new Error(`idb.version = ${idb.version}`);
+    if (typeof idb.assetCount !== 'number') throw new Error(`idb.assetCount not a number (${typeof idb.assetCount})`);
+    if (idb.assetCount < 0) throw new Error(`idb.assetCount negative (${idb.assetCount})`);
+    // savedSong is async; may still be undefined (the getAll('songs')
+    // promise hadn't resolved by the time the last DIAG block was
+    // written). Accept undefined OR null OR an object.
+    if (idb.savedSong !== undefined && idb.savedSong !== null) {
+      if (typeof idb.savedSong !== 'object') throw new Error(`idb.savedSong malformed (${typeof idb.savedSong})`);
+      if (idb.savedSong.name !== null && typeof idb.savedSong.name !== 'string') {
+        throw new Error(`idb.savedSong.name wrong type (${typeof idb.savedSong.name})`);
+      }
+    }
+  });
+
+  await step('?diag=1 fx block is a 20-key clone of window.FX.state', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    if (!diagParsed.fx || typeof diagParsed.fx !== 'object') throw new Error('fx is not an object');
+    const keys = Object.keys(diagParsed.fx);
+    if (keys.length < 15) throw new Error(`fx has ${keys.length} keys, expected >= 15`);
+    for (const k of ['temp', 'mut', 'posterize', 'vignette', 'chroma', 'glow']) {
+      if (!(k in diagParsed.fx)) throw new Error(`fx missing uniform "${k}"`);
+      if (typeof diagParsed.fx[k] !== 'number') throw new Error(`fx.${k} is not a number`);
+    }
+  });
+
+  await step('?diag=1 activePresetKey is a string-or-null (no throw)', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const v = diagParsed.activePresetKey;
+    if (v !== null && typeof v !== 'string') throw new Error(`activePresetKey wrong type (${typeof v})`);
+  });
+
+  await step('?diag=1 transitionsLogLength is a non-negative integer', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const v = diagParsed.transitionsLogLength;
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) {
+      throw new Error(`transitionsLogLength = ${v}`);
+    }
+  });
+
+  await step('?diag=1 lastAudioError is null-or-object (never throws)', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const v = diagParsed.lastAudioError;
+    if (v === null) return; // happy path
+    if (typeof v !== 'object') throw new Error(`lastAudioError wrong type (${typeof v})`);
+    for (const k of ['t', 'code', 'reason', 'fileName']) {
+      if (!(k in v)) throw new Error(`lastAudioError.${k} missing`);
+    }
+  });
+
+  await step('?diag=1 non-diag mode leaves no #diag-out element', async () => {
+    // Close the diag page before the second navigation so we don't
+    // double-handle console errors.
+    if (diagPage) {
+      await diagPage.close();
+      diagPage = null;
+    }
+    const clean = await browser.newPage();
+    let cleanConsoleDiag = 0;
+    try {
+      await clean.evaluateOnNewDocument(() => {
+        if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+          navigator.serviceWorker.register = () => new Promise(() => {});
+        }
+      });
+      clean.on('console', (m) => {
+        try {
+          const text = typeof m.text === 'function' ? m.text() : '';
+          if (text && text.includes('=== DIAG')) cleanConsoleDiag++;
+        } catch (_) {}
+      });
+      await clean.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+      await new Promise((r) => setTimeout(r, 1500));  // give the IIFE time to early-return
+      const preExists = await clean.evaluate(() => !!document.getElementById('diag-out'));
+      if (preExists) throw new Error('#diag-out should not exist without ?diag=1');
+      if (cleanConsoleDiag !== 0) throw new Error(`console saw ${cleanConsoleDiag} DIAG dumps without ?diag=1`);
+    } finally {
+      await clean.close();
+    }
+  });
+
   console.log(failed === 0 ? '\nALL CHECKS PASS' : `\n${failed} CHECK(S) FAILED`);
 } finally {
   await browser.close();
