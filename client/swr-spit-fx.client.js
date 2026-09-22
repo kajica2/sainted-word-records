@@ -250,10 +250,6 @@
   // 3. Ride — chromatic aberration (R/G/B shifted copies via screen blend)
   function _fxRide(ctx, opts) {
     return _startLoop(HOLD_MS_RIDE, function (phase) {
-      // Shift distance decays from RIDE_SHIFT_MAX → 0
-      var shift = Math.round(RIDE_SHIFT_MAX * (1 - phase));
-      if (shift < 0) shift = 0;
-      if (shift > RIDE_SHIFT_MAX) shift = RIDE_SHIFT_MAX;
       // Fade-out tail: alpha envelope so the tail is visible but doesn't
       // linger after the chromatic shift collapses.
       var env = 1 - phase * 0.4;
@@ -284,10 +280,6 @@
           });
         });
       } catch (e) { _warn('swr-spit-fx: ride failed', e); }
-      // Suppress unused-variable warning (shift is exposed for future
-      // pixel-shader implementations; current path uses tinted layers
-      // because per-channel drawImage requires a shader).
-      void shift;
     });
   }
 
@@ -326,7 +318,6 @@
       return { holdMs: HOLD_MS_ECHO, cancel: function () {} };
     }
     var trailAlphas = [0.6, 0.4, 0.2, 0.1, 0.0];
-    var start = _now();
     return _startLoop(HOLD_MS_ECHO, function (phase, elapsed) {
       // For each trail frame whose scheduled time has passed, paint it.
       // Each frame is drawn at decreasing alpha + increasing x-offset.
@@ -346,8 +337,6 @@
           });
         } catch (e) { _warn('swr-spit-fx: echo draw failed', e); }
       }
-      // Reference start so the closure isn't flagged unused.
-      void start;
     });
   }
 
