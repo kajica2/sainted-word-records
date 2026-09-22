@@ -311,6 +311,11 @@
       "description": "Live camera + mic demo for the SWRMediaInput primitive"
     },
     {
+      "label": "Spit Live",
+      "href": "/spit",
+      "description": "One-take freestyle studio for hip-hop MCs"
+    },
+    {
       "label": "Share View",
       "href": "/s/:id",
       "description": "View shared composition"

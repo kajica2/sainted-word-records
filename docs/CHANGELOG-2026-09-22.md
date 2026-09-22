@@ -68,3 +68,61 @@ If `mount()` is called without `options.analyser`, `options.mediaInput`, or `opt
 - WebRTC peer connections
 - Authentication / saved sessions
 - Safari MP4 codec support (currently webm-only)
+
+---
+
+## Spit Live (`/spit`) — PR 2 of 4
+
+One-take hip-hop freestyle studio. Drop a beat, switch on the mic,
+hit record. Visuals react to both beat AND voice. Built on top of the
+MediaInput foundation (PR #101).
+
+Commits:
+- `15f6747` — `feat(spit-live): page layout + CSS for /spit`
+- `6de8b0e` — `fix(spit): rename #btn-rec-2 to #btn-rec-transport for clarity`
+- `d160f83` — `feat(spit): SWRSpit runtime — page state machine + reactive canvas`
+- `798299b` — `fix(spit): document mic gain slider as OS-controlled`
+- `b22f9fb` — `feat(spit): SWRSpitFX library — 6 one-shot FX for Spit Live`
+- `537ce50` — `fix(fx): remove dead shift + start vars in Ride/Echo`
+- `45c88d0` — `test(spit-live): unit + smoke coverage, wire check chains`
+- `552b66f` — `fix(spit): triggerFx propagates underlying FX result`
+
+### Stats
+
+- **1 new HTML page** — `spit.html` (519 LOC) at the repo root, served at `/spit`. Self-contained: shared `<swr-nav>` + design tokens from `lib/`, inline styles, plain script tags.
+- **2 new client modules**:
+  - `client/swr-spit-runtime.client.js` (~620 LOC) — `SWR_SPIT.create(stageCanvas, options)` factory + 10 prototype methods (loadBeat, playBeat, pauseBeat, seekBeat, toggleMic, triggerFx, startRecording, stopRecording, getState, destroy).
+  - `client/swr-spit-fx.client.js` (~447 LOC) — `SWR_SPIT_FX.trigger(name, ctx, options?)` + `destroyAll()` + 6 FX (Punch, Flow, Ride, Stutter, Echo, Black).
+- **2 new test scripts**: `scripts/check-spit-live-unit.mjs` (95 assertions across 5 sections) + `scripts/check-spit-live-smoke.mjs` (Puppeteer against built `dist/spit`).
+- **NPM scripts**: `check:spit-live-unit` (wired into `check`) + `check:spit-live-smoke` (wired into `check:full`).
+- **No edits** to `engine.html`, the 5 core variants, or any pre-existing engine subsystem. Spit Live is a standalone page that consumes the MediaInput foundation as-is.
+
+### Public API
+
+- `window.SWR_SPIT.create(stageCanvas, options)` → instance with 10 public methods (prototype-based)
+- `window.SWR_SPIT_FX.trigger(name, ctx, options?)` + `destroyAll()` + 11 exported constants
+- Page lives at `/spit`
+
+### State machine
+
+`LOADING → READY → RECORDING → SAVED → READY`. Each transition fires `onStateChange(prev, next)` callback.
+
+### Persistence keys
+
+None this PR. Future PRs may add `swr.spit.lastBeatName` if a save-session feature ships.
+
+### Known minor (non-blocking, in CHANGELOG)
+
+- **Mic gain slider is OS-controlled.** The `#mic-gain` slider is a visual placeholder; changing it has no audio effect. The browser doesn't expose a per-stream gain API, and MediaInput has no `setGain`. Tracked as a follow-up to add `SWRMediaInput.setMicGain(value)` once a viable Web Audio GainNode path lands.
+- **TriggerFX error propagation.** Now correctly propagates the underlying FX result (commit `552b66f`). Callers can detect bad FX names via `res.success === false`.
+- **No iOS Safari audio-analysis-while-paused.** `_ensureBeatAnalyser` is only called from `playBeat()`. Paused-before-play path never creates a source node, so no `InvalidStateError`. iOS works as long as the user hits play before any analysis.
+
+### Out of scope (intentionally — future PRs)
+
+- Multi-MC cypher mode (PRD §3)
+- Auto-transcribe lyrics (Web Speech API is unreliable)
+- Vocal enhancer DSP (compression + EQ)
+- YouTube link support (CORS + ToS)
+- Sharing / posting integration
+- Save Session / project format
+- Punch/Flow/Ride FX presets beyond the 6 spec'd

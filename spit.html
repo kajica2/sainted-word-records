@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spit Live · SWR Freestyle Studio</title>
+  <meta name="description" content="One-take hip-hop freestyle studio: drop a beat, switch on the mic, hit record — visuals react to both beat and voice." />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0e0c0a" />
+  <meta name="author" content="Kai Djuric" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Cpath d='M11 8 L16 18 L21 8 L19 8 L16 14 L13 8 Z' fill='%23ff6b00'/%3E%3Crect x='9' y='20' width='14' height='2' rx='1' fill='%23ff0050'/%3E%3Crect x='9' y='23' width='14' height='1.5' rx='.75' fill='%23ff6b00'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/nav.client.js" defer></script>
+  <style>
+    /* Spit Live — page-local tokens. Aliases to the lib/design-tokens.css
+       tokens (--bg, --ink, --line, --accent-3, etc.) so Spit styles read
+       consistently and dark/light theme inherits via the lib's
+       [data-theme="dark"] block. Spit doesn't need its own dark override. */
+    :root {
+      --bg-base:        var(--bg);
+      --bg-surface:     var(--bg-2);
+      --bg-elevated:    var(--bg-3);
+      --bg-hover:       var(--bg-2);
+      --border-medium:  var(--line-2);
+      --border-strong:  var(--line);
+      --text-primary:   var(--ink);
+      --text-secondary: var(--ink-2);
+      --text-muted:     var(--muted);
+      --accent-success: var(--accent-3, #1c8c64);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: var(--bg-base); color: var(--text-primary);
+      font-family: var(--font-body, ui-sans-serif, system-ui, -apple-system, sans-serif);
+      line-height: 1.45; -webkit-font-smoothing: antialiased; overflow: hidden;
+    }
+
+    /* === Utility ==================================================== */
+    .is-hidden { display: none !important; }
+
+    /* === Stage frame =============================================== */
+    .spit-stage { display: flex; flex-direction: column; height: 100vh; width: 100%; min-height: 0; }
+
+    /* === Header ==================================================== */
+    .spit-header {
+      flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px; gap: 16px;
+      background: var(--bg-elevated); border-bottom: 1px solid var(--border-strong);
+    }
+    .spit-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; letter-spacing: 0.08em; font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+    .spit-brand-mark {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: linear-gradient(135deg, #ff6b00, #ff0050);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 900; font-size: 0.85rem;
+    }
+    .spit-brand-sub {
+      color: var(--text-muted); font-weight: 500; letter-spacing: 0.06em;
+      font-size: 0.78rem; margin-left: 6px;
+    }
+    .spit-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .spit-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
+      background: var(--bg-surface); color: var(--text-secondary);
+      border: 1px solid var(--border-medium); border-radius: 20px;
+    }
+    .spit-pill::before {
+      content: ''; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-muted); flex-shrink: 0;
+    }
+    .spit-pill.is-active { color: var(--text-primary); border-color: var(--accent-success); }
+    .spit-pill.is-active::before { background: var(--accent-success); }
+    .spit-pill.is-recording {
+      color: #fff; border-color: #ff0050; background: rgba(255, 0, 80, 0.12);
+    }
+    .spit-pill.is-recording::before {
+      background: #ff0050;
+      animation: spit-rec-blink 0.9s ease-in-out infinite;
+    }
+    @keyframes spit-rec-blink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.35; transform: scale(0.7); }
+    }
+    .spit-btn {
+      padding: 8px 14px; font-size: 0.82rem; font-weight: 600; border-radius: 10px;
+      background: var(--bg-surface); color: var(--text-primary);
+      border: 1px solid var(--border-medium); cursor: pointer;
+      transition: border-color 180ms ease, background 180ms ease, transform 120ms ease;
+    }
+    .spit-btn:hover { border-color: #ff6b00; transform: translateY(-1px); }
+    .spit-btn.is-rec {
+      background: linear-gradient(135deg, #ff6b00, #ff0050);
+      color: #fff; border-color: transparent; font-weight: 700;
+    }
+    .spit-btn.is-rec:hover { filter: brightness(1.08); }
+
+    /* === Panels row ================================================ */
+    .spit-row {
+      flex: 1 1 auto; display: flex; gap: 16px; padding: 16px 24px; min-height: 0;
+    }
+    .spit-panel {
+      background: var(--bg-surface); border: 1px solid var(--border-medium);
+      border-radius: 12px; padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+      overflow-y: auto; min-height: 0;
+    }
+    .spit-panel-beat, .spit-panel-mic { width: 280px; flex-shrink: 0; }
+    .spit-stage-canvas {
+      flex: 1 1 auto; position: relative; background: #000;
+      border-radius: 12px; border: 1px solid var(--border-medium);
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 0; min-width: 0;
+    }
+    .spit-stage-canvas-frame {
+      position: relative; width: 100%; max-width: 360px;
+      aspect-ratio: 9 / 16; border-radius: 12px;
+      overflow: hidden; background: #000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .spit-panel-title {
+      font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-muted); font-weight: 700;
+    }
+
+    /* === Beat panel ================================================ */
+    .spit-dropzone {
+      padding: 32px 20px; border: 2px dashed var(--border-medium);
+      border-radius: 14px; text-align: center; cursor: pointer;
+      transition: all 200ms ease; background: transparent;
+      color: var(--text-secondary);
+    }
+    .spit-dropzone:hover, .spit-dropzone.is-drag-over {
+      border-color: #ff6b00; background: rgba(255, 107, 0, 0.05);
+      color: var(--text-primary);
+    }
+    .spit-drop-icon { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+    .spit-drop-text { font-size: 0.9rem; font-weight: 600; }
+    .spit-drop-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    .spit-loaded { display: flex; flex-direction: column; gap: 14px; }
+    .spit-waveform {
+      width: 100%; height: 60px; background: var(--bg-base);
+      border-radius: 8px; border: 1px solid var(--border-medium); display: block;
+    }
+    .spit-meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .spit-meta {
+      background: var(--bg-base); border: 1px solid var(--border-medium);
+      border-radius: 8px; padding: 8px 10px; text-align: center;
+    }
+    .spit-meta-label {
+      font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 2px;
+    }
+    .spit-meta-value {
+      font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+      font-size: 0.95rem; font-weight: 700; color: var(--text-primary);
+    }
+    .spit-transport-row { display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .spit-transport-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid var(--border-medium);
+      background: var(--bg-base); color: var(--text-primary);
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; transition: border-color 160ms ease, background 160ms ease;
+    }
+    .spit-transport-btn:hover { border-color: #ff6b00; }
+    .spit-transport-btn.is-play {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, #ff6b00, #ff0050);
+      color: #fff; border-color: transparent; font-size: 1.05rem;
+    }
+    .spit-visual-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .spit-visual-pill {
+      padding: 8px 16px; border: 1px solid var(--border-medium);
+      border-radius: 20px; background: var(--bg-base);
+      color: var(--text-secondary); cursor: pointer;
+      font-size: 0.82rem; font-weight: 600; transition: all 160ms ease;
+    }
+    .spit-visual-pill:hover { border-color: #ff6b00; color: var(--text-primary); }
+    .spit-visual-pill.is-active {
+      background: linear-gradient(135deg, #ff6b00, #ff0050);
+      color: #fff; border-color: transparent;
+    }
+
+    /* === Mic panel ================================================= */
+    .spit-control { display: flex; flex-direction: column; gap: 6px; }
+    .spit-control-label {
+      font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); font-weight: 700;
+    }
+    .spit-select, .spit-slider {
+      width: 100%; padding: 8px 10px;
+      background: var(--bg-base); border: 1px solid var(--border-medium);
+      border-radius: 8px; color: var(--text-primary);
+      font: inherit; font-size: 0.85rem;
+    }
+    .spit-slider { padding: 0; height: 28px; accent-color: #ff6b00; }
+    .spit-checkbox-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;
+    }
+    .spit-checkbox-row input { accent-color: #ff6b00; width: 16px; height: 16px; }
+
+    .spit-reaction-modes { display: flex; flex-direction: column; gap: 8px; }
+    .spit-reaction-mode {
+      display: flex; align-items: center; gap: 12px; padding: 12px;
+      background: var(--bg-base); border: 2px solid transparent;
+      border-radius: 10px; cursor: pointer; text-align: left;
+      color: var(--text-primary); font: inherit; width: 100%;
+      transition: all 160ms ease;
+    }
+    .spit-reaction-mode:hover { border-color: var(--border-medium); }
+    .spit-reaction-mode.is-active {
+      border-color: #ff6b00; background: rgba(255, 107, 0, 0.05);
+    }
+    .spit-mode-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--bg-hover);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; flex-shrink: 0;
+    }
+    .spit-mode-name { font-weight: 700; font-size: 0.9rem; }
+    .spit-mode-desc { font-size: 0.78rem; color: var(--text-secondary); }
+
+    /* === Main stage overlays ======================================= */
+    .spit-layer-indicator {
+      position: absolute; top: 12px; left: 12px;
+      display: flex; flex-direction: column; gap: 6px; z-index: 3;
+    }
+    .spit-layer-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+      color: #fff; letter-spacing: 0.04em;
+    }
+    .spit-layer-badge .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #ff6b00;
+      animation: spit-layer-pulse 1.4s ease-in-out infinite;
+    }
+    .spit-layer-badge.is-vocal .pulse-dot { background: #ff0050; }
+    @keyframes spit-layer-pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+    .spit-lyric-overlay {
+      position: absolute; bottom: 60px; left: 16px; right: 16px;
+      text-align: center; font-size: 1.2rem; font-weight: 700;
+      color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+      pointer-events: none; min-height: 1.4em; z-index: 2; line-height: 1.25;
+    }
+    .spit-punch-fx {
+      position: absolute; inset: 0; pointer-events: none;
+      opacity: 0; background: rgba(255, 255, 255, 0.9);
+      transition: opacity 100ms ease; z-index: 4;
+    }
+    .spit-punch-fx.is-active { opacity: 1; }
+
+    /* === FX tray =================================================== */
+    .spit-fx-tray {
+      flex: 0 0 auto; display: flex; gap: 8px;
+      padding: 0 24px 16px; flex-wrap: wrap; align-items: center;
+    }
+    .spit-fx-tray-label {
+      font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); font-weight: 700; margin-right: 4px;
+    }
+    .spit-fx-btn {
+      display: inline-flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 10px 14px; background: var(--bg-surface);
+      border: 1px solid var(--border-medium); border-radius: 10px;
+      cursor: pointer; font-size: 0.85rem; font-weight: 600;
+      color: var(--text-secondary); transition: all 160ms ease; min-width: 78px;
+    }
+    .spit-fx-btn span:not([aria-hidden]) { font-size: 0.78rem; }
+    .spit-fx-btn:hover { border-color: #ff6b00; color: var(--text-primary); }
+    .spit-fx-btn.is-active {
+      border-color: #ff6b00; background: rgba(255, 107, 0, 0.1);
+      color: var(--text-primary);
+    }
+    .spit-fx-emoji { font-size: 1.3rem; line-height: 1; }
+
+    /* === Transport bar ============================================= */
+    .spit-transport {
+      flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+      gap: 16px; padding: 14px 24px;
+      background: var(--bg-elevated); border-top: 1px solid var(--border-strong);
+      flex-wrap: wrap;
+    }
+    .spit-transport button:not(.spit-btn) {
+      width: 40px; height: 40px; border-radius: 50%; border: 0;
+      background: var(--bg-hover); color: var(--text-primary);
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1rem; transition: background 160ms ease, transform 120ms ease;
+    }
+    .spit-transport button:not(.spit-btn):hover { background: var(--border-medium); }
+    .spit-transport button.is-play {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #ff6b00, #ff0050);
+      color: #fff; font-size: 1.3rem;
+      box-shadow: 0 4px 16px rgba(255, 107, 0, 0.35);
+    }
+    .spit-transport button.is-play:hover { transform: scale(1.05); }
+    .spit-transport button.is-rec {
+      background: #ff0050; color: #fff; font-weight: 700;
+      width: auto; padding: 0 14px; border-radius: 20px; gap: 6px;
+    }
+    .spit-transport button.is-rec:hover { background: #e6004a; }
+    .spit-transport #spit-time {
+      font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+      color: var(--text-secondary); font-size: 0.9rem;
+      min-width: 96px; text-align: center;
+    }
+
+    /* === Responsive (tablet portrait + smaller) ==================== */
+    @media (max-width: 980px) {
+      .spit-row { flex-wrap: wrap; }
+      .spit-panel-beat, .spit-panel-mic { width: 100%; }
+      .spit-stage-canvas { width: 100%; }
+      .spit-stage-canvas-frame { max-width: 280px; }
+    }
+    @media (max-width: 640px) {
+      .spit-header { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px 14px; }
+      .spit-header-right { justify-content: center; }
+      .spit-row { padding: 12px 14px; gap: 12px; }
+      .spit-fx-tray { padding: 0 14px 12px; }
+      .spit-transport { padding: 12px 14px; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <main class="spit-stage" data-spit-root>
+    <!-- ============ HEADER ============ -->
+    <header class="spit-header">
+      <div class="spit-brand">
+        <span class="spit-brand-mark" aria-hidden="true">⚡</span>
+        <span>SPIT LIVE</span>
+        <span class="spit-brand-sub">SWR Freestyle Studio</span>
+      </div>
+      <div class="spit-header-right">
+        <span class="spit-pill" id="beat-status">No Beat</span>
+        <span class="spit-pill" id="mic-status">Mic Off</span>
+        <span class="spit-pill is-recording is-hidden" id="rec-status">● REC</span>
+        <button class="spit-btn" id="btn-load-beat" type="button">Load Beat</button>
+        <button class="spit-btn" id="btn-mic-check" type="button">Mic Check</button>
+        <button class="spit-btn is-rec" id="btn-rec" type="button">● REC</button>
+      </div>
+    </header>
+
+    <!-- ============ 3-PANEL ROW ============ -->
+    <section class="spit-row">
+      <!-- Beat panel -->
+      <div class="spit-panel spit-panel-beat" data-panel="beat">
+        <div class="spit-panel-title">Beat</div>
+
+        <!-- Dropzone (initial state) -->
+        <div class="spit-dropzone" id="beat-drop" role="button" tabindex="0"
+             aria-label="Drop or click to load a beat">
+          <span class="spit-drop-icon" aria-hidden="true">🥁</span>
+          <div class="spit-drop-text">Drop a beat</div>
+          <div class="spit-drop-hint">.mp3 · .wav · .m4a · or click to browse</div>
+        </div>
+
+        <!-- Loaded state (hidden until a beat is loaded) -->
+        <div class="spit-loaded is-hidden" id="beat-loaded">
+          <canvas class="spit-waveform" id="beat-waveform-canvas" width="280" height="60"
+                  aria-label="Beat waveform"></canvas>
+          <div class="spit-meta-grid">
+            <div class="spit-meta">
+              <div class="spit-meta-label">BPM</div>
+              <div class="spit-meta-value" id="beat-bpm">—</div>
+            </div>
+            <div class="spit-meta">
+              <div class="spit-meta-label">Key</div>
+              <div class="spit-meta-value" id="beat-key">—</div>
+            </div>
+            <div class="spit-meta">
+              <div class="spit-meta-label">Length</div>
+              <div class="spit-meta-value" id="beat-duration">—</div>
+            </div>
+          </div>
+          <div class="spit-transport-row">
+            <button class="spit-transport-btn" id="btn-beat-prev" type="button" aria-label="Restart beat">⏮</button>
+            <button class="spit-transport-btn is-play" id="btn-beat-play" type="button" aria-label="Play / pause beat">▶</button>
+            <button class="spit-transport-btn" id="btn-beat-next" type="button" aria-label="Skip to end">⏭</button>
+          </div>
+          <div>
+            <div class="spit-control-label" style="margin-bottom:8px">Visual Style</div>
+            <div class="spit-visual-pills" id="beat-visual-pills">
+              <button class="spit-visual-pill" type="button" data-style="pocket">Pocket</button>
+              <button class="spit-visual-pill" type="button" data-style="ride">Ride</button>
+              <button class="spit-visual-pill" type="button" data-style="chop">Chop</button>
+              <button class="spit-visual-pill" type="button" data-style="ghost">Ghost</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mic panel -->
+      <div class="spit-panel spit-panel-mic" data-panel="mic">
+        <div class="spit-panel-title">Mic</div>
+
+        <div class="spit-control">
+          <label class="spit-control-label" for="mic-source">Input source</label>
+          <select class="spit-select" id="mic-source">
+            <option value="">Detecting…</option>
+          </select>
+        </div>
+
+        <div class="spit-control">
+          <label class="spit-control-label" for="mic-gain">Gain</label>
+          <input class="spit-slider" type="range" id="mic-gain" min="0" max="200" value="100" />
+        </div>
+
+        <label class="spit-checkbox-row">
+          <input type="checkbox" id="mic-monitor" />
+          <span>Monitor (play through speakers)</span>
+        </label>
+
+        <div>
+          <div class="spit-control-label" style="margin-bottom:8px">Reactive Mode</div>
+          <div class="spit-reaction-modes" id="mic-reactive-mode" role="radiogroup" aria-label="Vocal reactive mode">
+            <button class="spit-reaction-mode" type="button" data-mode="punch" role="radio" aria-checked="false">
+              <span class="spit-mode-icon" aria-hidden="true">👊</span>
+              <span>
+                <span class="spit-mode-name">Punch</span>
+                <span class="spit-mode-desc">Hits flash the visuals</span>
+              </span>
+            </button>
+            <button class="spit-reaction-mode is-active" type="button" data-mode="flow" role="radio" aria-checked="true">
+              <span class="spit-mode-icon" aria-hidden="true">🌊</span>
+              <span>
+                <span class="spit-mode-name">Flow</span>
+                <span class="spit-mode-desc">Smooth reaction to dynamics</span>
+              </span>
+            </button>
+            <button class="spit-reaction-mode" type="button" data-mode="ride" role="radio" aria-checked="false">
+              <span class="spit-mode-icon" aria-hidden="true">🏄</span>
+              <span>
+                <span class="spit-mode-name">Ride</span>
+                <span class="spit-mode-desc">Long swells, sustained motion</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <label class="spit-checkbox-row">
+          <input type="checkbox" id="mic-vocal-enhance" />
+          <span>Vocal enhancer (light compression)</span>
+        </label>
+      </div>
+
+      <!-- Main stage (9:16 canvas + overlays) -->
+      <div class="spit-stage-canvas" data-panel="stage">
+        <div class="spit-stage-canvas-frame">
+          <canvas id="spit-canvas" width="1080" height="1920" aria-label="Reactive freestyle canvas"></canvas>
+
+          <div class="spit-layer-indicator" id="layer-indicators" aria-live="polite">
+            <span class="spit-layer-badge is-hidden" data-layer="beat">
+              <span class="pulse-dot"></span><span>Beat</span>
+            </span>
+            <span class="spit-layer-badge is-vocal is-hidden" data-layer="vocal">
+              <span class="pulse-dot"></span><span>Vocal</span>
+            </span>
+          </div>
+
+          <div class="spit-lyric-overlay" id="lyric-overlay" aria-live="polite"></div>
+          <div class="spit-punch-fx" id="punch-fx" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FX TRAY ============ -->
+    <section class="spit-fx-tray" aria-label="One-shot FX">
+      <span class="spit-fx-tray-label">FX</span>
+      <button class="spit-fx-btn" type="button" data-fx="punch"><span class="spit-fx-emoji" aria-hidden="true">👊</span><span>Punch</span></button>
+      <button class="spit-fx-btn" type="button" data-fx="flow"><span class="spit-fx-emoji" aria-hidden="true">🌊</span><span>Flow</span></button>
+      <button class="spit-fx-btn" type="button" data-fx="ride"><span class="spit-fx-emoji" aria-hidden="true">🏄</span><span>Ride</span></button>
+      <button class="spit-fx-btn" type="button" data-fx="stutter"><span class="spit-fx-emoji" aria-hidden="true">⏩</span><span>Stutter</span></button>
+      <button class="spit-fx-btn" type="button" data-fx="echo"><span class="spit-fx-emoji" aria-hidden="true">🔁</span><span>Echo</span></button>
+      <button class="spit-fx-btn" type="button" data-fx="black"><span class="spit-fx-emoji" aria-hidden="true">⬛</span><span>Black</span></button>
+    </section>
+
+    <!-- ============ TRANSPORT ============ -->
+    <footer class="spit-transport" aria-label="Transport">
+      <button id="spit-prev" type="button" aria-label="Previous">⏮</button>
+      <button id="spit-back" type="button" aria-label="Back 5s">◀◀</button>
+      <button id="spit-play" class="is-play" type="button" aria-label="Play / pause">▶</button>
+      <button id="spit-forward" type="button" aria-label="Forward 5s">▶▶</button>
+      <button id="spit-next" type="button" aria-label="Next">⏭</button>
+      <span id="spit-time" aria-live="off">0:00 / 0:00</span>
+      <button id="btn-rec-transport" class="is-rec" type="button" aria-label="Record">● REC</button>
+      <button class="spit-btn" id="spit-save" type="button">Save .webm</button>
+    </footer>
+  </main>
+
+  <!-- Foundation + Spit runtime wiring. The spit-runtime + spit-fx modules
+       don't exist yet — Tasks 2 and 3 will add them. Until then the page
+       boots clean and the canvas stays empty. -->
+  <script src="/audio-analysis-v2.js" defer></script>
+  <script src="/client/swr-media-input.client.js"></script>
+  <script src="/client/swr-camera-preview.client.js"></script>
+  <script src="/client/swr-mic-meter.client.js"></script>
+  <script src="/client/swr-spit-runtime.client.js"></script>
+  <script src="/client/swr-spit-fx.client.js"></script>
+</body>
+</html>
