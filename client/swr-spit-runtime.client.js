@@ -298,7 +298,14 @@
         else self._emitError((r && r.error) || 'MicStartFailed', (r && r.message) || 'mic start failed');
       }).catch(function (e) { self._emitError('MicStartException', String(e && e.message || e)); });
     });
-    if (els.micGain) this._on(els.micGain, 'input', function () { self._micGainValue = parseFloat(els.micGain.value) || 100; });
+    if (els.micGain) {
+      // Mic gain is currently OS-level (the browser doesn't expose a
+      // per-stream gain API yet; MediaInput has no setGain). The slider
+      // stays in the UI as a visual placeholder until that lands.
+      // Track value so future getState() can surface it, but no audio
+      // effect.
+      this._on(els.micGain, 'input', function () { self._micGainValue = parseFloat(els.micGain.value) || 100; });
+    }
     if (els.micMonitor) this._on(els.micMonitor, 'change', function () {
       if (!self._mediaInput) return;
       if (els.micMonitor.checked && typeof self._mediaInput.startMonitor === 'function') {
