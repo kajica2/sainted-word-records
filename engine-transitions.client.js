@@ -29,6 +29,8 @@
   // Preloaded on init (this IIFE is module-deferred, so DOM ready by then).
   const LIGHT_LEAK_URL = '/media/transitions/light-leak-pop.webp';
   let lightLeakImg = null;             // set by preload; checked at fire time
+  // Sprint C2: real vhs-tracking SVG asset (8 glitch strips + scanlines).
+  const VHS_TRACKING_URL = '/media/transitions/vhs-tracking.svg';
 
   // ---- Transition catalog ----
   // Family tags drive picker UIs and preset↔transition pairing. The
@@ -266,9 +268,11 @@
                 @keyframes np${id}{0%{opacity:0;filter:invert(0)}50%{opacity:${peak};filter:invert(1)}100%{opacity:0;filter:invert(0)}}`;
 
       case 'vhs-tracking': {
-        // Rolling band + RGB offset.
-        const bandH = 18;
-        return `.${id}{background:linear-gradient(180deg, transparent 0%, transparent 40%, rgba(255,255,255,${peak*0.25}) 50%, transparent 60%, transparent 100%);animation:vhs${id} ${dur}ms ease-out forwards;mix-blend-mode:screen}
+        // Rolling band + RGB offset. Sprint C2: composited with a baked
+        // SVG of 8 RGB-shifted glitch strips + scanlines, much richer than
+        // the prior flat linear-gradient. The CSS keyframes still drive
+        // the vertical roll and drop-shadow RGB offset on top.
+        return `.${id}{background:url(${VHS_TRACKING_URL}) center/cover no-repeat #000;mix-blend-mode:screen;animation:vhs${id} ${dur}ms ease-out forwards}
                 @keyframes vhs${id}{0%{transform:translateY(-${h}px);filter:none}50%{transform:translateY(${h/2}px);filter:drop-shadow(-${peak*8}px 0 #f0f) drop-shadow(${peak*8}px 0 #0ff)}100%{transform:translateY(${h}px);filter:none}}`;
       }
 
