@@ -32,10 +32,32 @@
   // ---- Constants ---------------------------------------------------------
   // Tunable knobs. Exported for tests + diagnostics.
   var FIELDS = ['temp','mut','sepia','chroma','grain','glow','grayscale','posterize'];
-  // Tick-interval bounds (Phase 1.1): active sections → fast ticks,
-  // quiet sections → slow ticks. Linear between, intensity ∈ [0,1].
-  var TICK_INTERVAL_MIN_MS = 500;
-  var TICK_INTERVAL_MAX_MS = 3000;
+  // ---- Bars-based tick interval -------------------------------------------
+  // Phase 4: replaced the ms-based "tick every 0.5–3 s" with a musical
+  // "tick every N bars" model. Default 8 bars (typical song-section length:
+  // verse→chorus happens every 8 bars). At 120 BPM that maps to 16 s — the
+  // visual settles long enough for the listener to absorb a section before
+  // the next major blend lands. Intensity still modulates, but gently:
+  //   intensity = 0 (quiet)   → 1.5× bars  (12 bars — slowdown for breakdowns)
+  //   intensity = 0.5 (mid)   → 1.0× bars  ( 8 bars — default)
+  //   intensity = 1 (chorus)  → 0.5× bars  ( 4 bars — "music calls for it")
+  // The bar-nudge in automix-runtime.client.js (per-2-second subtle lerp
+  // toward a neighbour anchor) keeps the visual evolving between major
+  // blends so 8 bars never feels static.
+  var BARS_PER_TICK = 8;
+  var BARS_INTENSITY_FLOOR = 0.5;     // multiplier at intensity = 1
+  var BARS_INTENSITY_CEILING = 1.5;   // multiplier at intensity = 0
+  var DEFAULT_BPM = 120;
+  var BPM_MIN = 40;
+  var BPM_MAX = 240;
+  // ---- Legacy ms-based bounds --------------------------------------------
+  // Retained for the public API + getter so existing callers / tests that
+  // read SWR_AUTOMIX.TICK_INTERVAL_MIN_MS / MAX_MS don't break. They no
+  // longer drive computeTickInterval() — _setTuning() now consumes
+  // barsPerTick (preferred) and derives BARS_PER_TICK from the midpoint
+  // at 120 BPM if only the legacy ms fields are provided.
+  var TICK_INTERVAL_MIN_MS = 4000;
+  var TICK_INTERVAL_MAX_MS = 24000;
   // Blend ramp duration (Phase 1.2): when the target moves, the render
   // loop smoothsteps from the previous to the new value over this many ms.
   var RAMP_MS = 1000;
@@ -94,15 +116,27 @@
     return Math.sqrt(sum);
   }
 
-  // ---- Adaptive tick interval (Phase 1.1) --------------------------------
-  // intensity = clamp(rms*1.5 + onset*0.8, 0, 1) → ms linearly between
-  // MAX and MIN. Quiet → 3000ms, active → 500ms.
+  // ---- Adaptive tick interval (Phase 4) -----------------------------------
+  // BPM-aware, bars-based. Reads feat.bpm (defaults to 120), then:
+  //   barMs    = 4 beats × (60000 ms / bpm)
+  //   barsMul  = ceiling − intensity × (ceiling − floor)        // [floor, ceiling]
+  //   interval = BARS_PER_TICK × barsMul × barMs               // ms
+  // Examples (default 8 bars, ceiling 1.5, floor 0.5):
+  //   90 BPM,  intensity 0   → 8 × 1.5 × 4 × (60000/90)  = 32000 ms (12 bars)
+  //  120 BPM,  intensity 0.5 → 8 × 1.0 × 4 × 500         = 16000 ms ( 8 bars)
+  //  140 BPM,  intensity 1   → 8 × 0.5 × 4 × (60000/140) =  6857 ms ( 4 bars)
   function computeTickInterval(features) {
     var f = features || {};
+    var bpm = (typeof f.bpm === 'number' && f.bpm >= BPM_MIN && f.bpm <= BPM_MAX)
+      ? f.bpm
+      : DEFAULT_BPM;
+    var barMs = 4 * (60000 / bpm);
     var rms = (typeof f.rms === 'number') ? f.rms : 0;
     var onset = (typeof f.onset === 'number') ? f.onset : 0;
     var intensity = Math.max(0, Math.min(1, rms * 1.5 + onset * 0.8));
-    return Math.round(TICK_INTERVAL_MAX_MS - intensity * (TICK_INTERVAL_MAX_MS - TICK_INTERVAL_MIN_MS));
+    var barsMul = BARS_INTENSITY_CEILING -
+      intensity * (BARS_INTENSITY_CEILING - BARS_INTENSITY_FLOOR);
+    return Math.round(BARS_PER_TICK * barsMul * barMs);
   }
 
   // ---- Anchor read --------------------------------------------------------
@@ -235,27 +269,44 @@
     return { base: DRIFT_BASE, beatScale: DRIFT_BEAT_BONUS };
   }
 
-  // Mutator for the closure-private tick-interval bounds. Replaces
-  // TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS in place so subsequent
-  // computeTickInterval() calls honour the override (no per-tick
-  // compounding in callers). Mirrors the _setDriftAmplitude shape.
-  // Bad inputs (NaN, non-number, min > max) are silently ignored so
-  // the public setter is safe to call from untrusted configs. Values
-  // are clamped to [1, 10000] ms (matching the runtime's
-  // _validateTuning contract) and rounded to integers so the
-  // computeTickInterval() return value stays predictable.
-  function _setTuning(minTickMs, maxTickMs) {
-    if (typeof minTickMs !== 'number' || !isFinite(minTickMs)) return;
-    if (typeof maxTickMs !== 'number' || !isFinite(maxTickMs)) return;
-    var mn = Math.max(1, Math.min(10000, Math.round(minTickMs)));
-    var mx = Math.max(1, Math.min(10000, Math.round(maxTickMs)));
-    if (mn > mx) return; // invalid range; ignore
-    TICK_INTERVAL_MIN_MS = mn;
-    TICK_INTERVAL_MAX_MS = mx;
+  // Mutator for the closure-private tick-cadence knob. Phase 4: now takes an
+  // optional `barsPerTick` (preferred) and falls back to deriving one from
+  // the legacy (minTickMs, maxTickMs) midpoint at 120 BPM when only the
+  // legacy fields are provided. Bars are clamped to [1, 32] (matching the
+  // runtime's _validateTuning contract) and rounded to integers. Bad
+  // inputs (NaN, non-number, invalid range) are silently ignored so the
+  // public setter stays safe to call from untrusted configs. Mirrors the
+  // _setDriftAmplitude shape.
+  function _setTuning(minTickMs, maxTickMs, barsPerTick) {
+    if (typeof barsPerTick === 'number' && isFinite(barsPerTick)) {
+      BARS_PER_TICK = Math.max(1, Math.min(32, Math.round(barsPerTick)));
+      return;
+    }
+    if (typeof minTickMs === 'number' && isFinite(minTickMs) &&
+        typeof maxTickMs === 'number' && isFinite(maxTickMs) &&
+        minTickMs <= maxTickMs) {
+      var mn = Math.max(1, Math.min(10000, Math.round(minTickMs)));
+      var mx = Math.max(1, Math.min(10000, Math.round(maxTickMs)));
+      // Legacy fallback — derive bars from midpoint at 120 BPM.
+      // 1 bar @ 120 BPM = 4 × 500 ms = 2000 ms.
+      var midMs = (mn + mx) / 2;
+      var inferred = Math.max(1, Math.min(32, Math.round(midMs / 2000)));
+      BARS_PER_TICK = inferred;
+      TICK_INTERVAL_MIN_MS = mn;
+      TICK_INTERVAL_MAX_MS = mx;
+    }
   }
-  // Read accessor — returns the CURRENT closure-private bounds.
+  // Read accessor — returns the CURRENT closure-private state. Includes
+  // both the new bars-based knob and the legacy ms bounds so existing
+  // callers / tests keep working.
   function _getTuning() {
-    return { minTickMs: TICK_INTERVAL_MIN_MS, maxTickMs: TICK_INTERVAL_MAX_MS };
+    return {
+      barsPerTick: BARS_PER_TICK,
+      intensityFloor: BARS_INTENSITY_FLOOR,
+      intensityCeiling: BARS_INTENSITY_CEILING,
+      minTickMs: TICK_INTERVAL_MIN_MS,
+      maxTickMs: TICK_INTERVAL_MAX_MS,
+    };
   }
 
   // ---- Section classification (Phase 2.1) --------------------------------
@@ -385,6 +436,11 @@
     FLAT_CENTROID_VAR: FLAT_CENTROID_VAR,
     FLAT_DURATION_MS: FLAT_DURATION_MS,
     ANTI_PATTERN_INTERVAL_MS: ANTI_PATTERN_INTERVAL_MS,
+    // Phase 4: bars-based cadence
+    BARS_PER_TICK: BARS_PER_TICK,
+    BARS_INTENSITY_FLOOR: BARS_INTENSITY_FLOOR,
+    BARS_INTENSITY_CEILING: BARS_INTENSITY_CEILING,
+    DEFAULT_BPM: DEFAULT_BPM,
     FIELDS: FIELDS,
     // Back-compat (test hooks)
     blendAnchors: blendAnchors,
@@ -393,8 +449,8 @@
   // the exported object. Without this, `SWR_AUTOMIX.DRIFT_BASE` holds
   // the IIFE-time value (0.01) even after `_setDriftAmplitude(0.5, …)`
   // mutates the closure var — callers reading the export see a stale
-  // snapshot. Same applies to TICK_INTERVAL_*MS after _setTuning().
-  // (Task 1 fix round 2.)
+  // snapshot. Same applies to TICK_INTERVAL_*MS and BARS_PER_TICK after
+  // _setTuning(). (Task 1 fix round 2 + Phase 4.)
   Object.defineProperties(window.SWR_AUTOMIX, {
     DRIFT_BASE: {
       get: function () { return DRIFT_BASE; },
@@ -413,6 +469,11 @@
     },
     TICK_INTERVAL_MAX_MS: {
       get: function () { return TICK_INTERVAL_MAX_MS; },
+      enumerable: true,
+      configurable: true,
+    },
+    BARS_PER_TICK: {
+      get: function () { return BARS_PER_TICK; },
       enumerable: true,
       configurable: true,
     },

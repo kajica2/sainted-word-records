@@ -3,7 +3,8 @@
 // (Phase 1: adaptive tick + smooth interpolation + beat-phased drift;
 //  Phase 2: section-aware blending + richer features;
 //  Phase 3: stuck detection + anti-pattern injection;
-//  Phase 4: freeze / save / lock / debug panel).
+//  Phase 4: freeze / save / lock / debug panel;
+//  Phase 5: bars-based BPM-aware cadence).
 //
 //   node verify-automix.mjs
 //
@@ -12,14 +13,17 @@
 // (no real audio needed), and asserts:
 //   1. Page loads with no console errors
 //   2. Toggle button switches OFF → ON
-//   3. Adaptive tick interval lands in [500, 3000] ms
-//   4. After 8 ticks, blend evolves (preset field values change)
-//   5. Freeze stops new ticks but keeps the blend
-//   6. Save writes to localStorage `swrc.presets.user.v1`
-//   7. Lock switches to single-anchor mode (preset changes drastically)
-//   8. Debug panel toggles open and renders text
-//   9. Keyboard shortcuts A/F/B/K/D fire
-//  10. Stop cleans up timers (no leaks)
+//   3. Adaptive tick interval lands in [8000, 24000] ms at 120 BPM
+//      with the default 8 bars × 1.5× ceiling (no intensity) down to
+//      8 bars × 0.5× floor (peak intensity). Tests can override to
+//      1 bar/tick via _setTuning for fast iteration.
+//   5. After several forced ticks with shifting features, blend evolves
+//   6. Freeze stops new ticks but keeps the blend
+//   7. Save writes to localStorage `swrc.presets.user.v1`
+//   8. Lock switches to single-anchor mode (preset changes drastically)
+//   9. Debug panel toggles open and renders text
+//  10. Keyboard shortcuts A/F/B/K/D fire
+//  11. Stop cleans up timers (no leaks)
 
 import http from 'http';
 import fs from 'fs';
@@ -112,11 +116,22 @@ async function main() {
       // Make Audio.feat a controllable object that returns our synthetic values
       if (!window.SWR) window.SWR = {};
       if (!window.SWR.Audio) window.SWR.Audio = { feat: {} };
+      // Phase 5: include bpm so computeTickInterval() can be BPM-aware
+      // during direct assertions. Default tempo for the test song = 120.
       window.__synthFeat = { bass: 0.4, mid: 0.5, treb: 0.3,
                              rms: 0.3, onset: 0.2, centroid: 0.5,
                              beat: 0, beatPulse: false,
-                             centroidVar: 0.4 };
+                             centroidVar: 0.4,
+                             bpm: 120 };
       window.SWR.Audio.feat = window.__synthFeat;
+      // Speed up automix for the rest of the suite: 1 bar/tick instead
+      // of the production default of 8 bars. The runtime scheduler
+      // becomes ~1.5–2 s/tick at 120 BPM, so steps that wait for ticks
+      // to land don't have to sleep 16+ s. Step 6 below restores the
+      // production default to verify the bars-based interval range.
+      if (window.SWR_AUTOMIX && window.SWR_AUTOMIX._setTuning) {
+        window.SWR_AUTOMIX._setTuning(undefined, undefined, 1);
+      }
     });
 
     // The automix IIFE is inside a `<script>` tag — it lives in module scope.
@@ -137,19 +152,86 @@ async function main() {
 
     // ---- 5. _fxOverride is written within the adaptive interval --------
     await step('adaptive tick writes _fxOverride', async () => {
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2500));
       const fx = await page.evaluate(() => window.SWR && window.SWR._fxOverride);
       if (!fx || typeof fx.temp !== 'number') throw new Error('_fxOverride not set: ' + JSON.stringify(fx));
     });
 
-    // ---- 6. Adaptive interval lands in [500, 3000] ----------------------
-    await step('tick interval in [500, 3000] ms', async () => {
-      const interval = await page.evaluate(() => window.SWR_AUTOMIX.computeTickInterval(
-        (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {}));
-      if (interval < 500 || interval > 3000) throw new Error('out of range: ' + interval);
+    // ---- 6. Bars-based interval lands in [8000, 24000] ms --------------
+    // Phase 5: with the production default of 8 bars × intensity ceiling
+    // 1.5× at 120 BPM, computeTickInterval returns up to 24000 ms (12 bars);
+    // with the floor 0.5× at peak intensity, down to 8000 ms (4 bars).
+    // Restores the production default for this assertion so we measure the
+    // shipped cadence, not the 1-bar/tick the rest of the suite uses.
+    await step('tick interval in [8000, 24000] ms at 120 BPM / 8 bars', async () => {
+      const interval = await page.evaluate(() => {
+        if (window.SWR_AUTOMIX && window.SWR_AUTOMIX._setTuning) {
+          window.SWR_AUTOMIX._setTuning(undefined, undefined, 8);
+        }
+        return window.SWR_AUTOMIX.computeTickInterval(
+          (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {});
+      });
+      if (interval < 8000 || interval > 24000) throw new Error('out of range: ' + interval);
+    });
+
+    // ---- 6b. Interval scales with BPM -----------------------------------
+    // Phase 5: same intensity, faster tempo → shorter interval (more
+    // bars per second). 8 bars at 180 BPM = 8 × 4 × (60000/180) =
+    // 10667 ms; 8 bars at 90 BPM = 8 × 4 × (60000/90) = 21333 ms.
+    await step('tick interval scales with BPM', async () => {
+      const fast = await page.evaluate(() => {
+        const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        return window.SWR_AUTOMIX.computeTickInterval(Object.assign({}, f, { bpm: 180, rms: 0, onset: 0 }));
+      });
+      const slow = await page.evaluate(() => {
+        const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        return window.SWR_AUTOMIX.computeTickInterval(Object.assign({}, f, { bpm: 90, rms: 0, onset: 0 }));
+      });
+      if (fast >= slow) throw new Error('faster BPM did not produce shorter interval: fast=' + fast + ' slow=' + slow);
+    });
+
+    // ---- 6c. Intensity pulls interval toward 0.5× floor ----------------
+    // Phase 5: rms=1, onset=1 → intensity=clamp(1.5+0.8)=1 → barsMul=0.5 →
+    // interval = 0.5 × 8 × 4 × 500 = 8000 ms at 120 BPM. We just check
+    // high intensity is meaningfully shorter than low intensity.
+    await step('intensity compresses interval toward floor', async () => {
+      const low = await page.evaluate(() => {
+        const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        return window.SWR_AUTOMIX.computeTickInterval(Object.assign({}, f, { bpm: 120, rms: 0, onset: 0 }));
+      });
+      const high = await page.evaluate(() => {
+        const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        return window.SWR_AUTOMIX.computeTickInterval(Object.assign({}, f, { bpm: 120, rms: 1, onset: 1 }));
+      });
+      // low = 1.5× 8000 = 24000, high = 0.5× 8000 = 8000 (BPM 120, 8 bars)
+      if (high >= low) throw new Error('intensity did not compress interval: low=' + low + ' high=' + high);
+      if (low < 20000 || low > 26000) throw new Error('low intensity out of expected 24000±5%: ' + low);
+      if (high < 7000 || high > 9000) throw new Error('high intensity out of expected 8000±5%: ' + high);
+    });
+
+    // ---- 6d. _setTuning(barsPerTick) overrides correctly ----------------
+    await step('_setTuning(barsPerTick) mutates interval', async () => {
+      const before = await page.evaluate(() => {
+        const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        return window.SWR_AUTOMIX.computeTickInterval(Object.assign({}, f, { rms: 0, onset: 0 }));
+      });
+      const after = await page.evaluate(() => {
+        const f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+        window.SWR_AUTOMIX._setTuning(undefined, undefined, 4);
+        const v = window.SWR_AUTOMIX.computeTickInterval(Object.assign({}, f, { rms: 0, onset: 0 }));
+        window.SWR_AUTOMIX._setTuning(undefined, undefined, 8); // restore
+        return v;
+      });
+      if (after >= before) throw new Error('halving barsPerTick did not halve interval: before=' + before + ' after=' + after);
     });
 
     // ---- 7. After several ticks with shifting features, blend evolves ---
+    // Speed back up to 1 bar/tick so we don't have to wait 16+ s.
+    await page.evaluate(() => {
+      if (window.SWR_AUTOMIX && window.SWR_AUTOMIX._setTuning) {
+        window.SWR_AUTOMIX._setTuning(undefined, undefined, 1);
+      }
+    });
     await step('blend evolves as features shift', async () => {
       const before = await page.evaluate(() => Object.assign({}, window.SWR._fxOverride));
       // Push through 5 ticks worth of changing features
@@ -159,8 +241,10 @@ async function main() {
           window.SWR.Audio.feat.mid = 1 - v;
           window.SWR.Audio.feat.treb = v * 0.5;
           window.SWR.Audio.feat.rms = Math.abs(v - 0.5);
+          // Force a tick on the running automix (skip the scheduler wait)
+          if (window.automix) window.automix.tick();
         }, i / 4);
-        await new Promise((r) => setTimeout(r, 700));
+        await new Promise((r) => setTimeout(r, 200));
       }
       const after = await page.evaluate(() => Object.assign({}, window.SWR._fxOverride));
       // blend should have moved at least one field by >0.05

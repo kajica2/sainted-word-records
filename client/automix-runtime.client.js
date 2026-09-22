@@ -76,10 +76,16 @@
   }
   function _validateTuning(t) {
     if (!t || typeof t !== 'object') return false;
-    if (typeof t.minTickMs !== 'number' || !isFinite(t.minTickMs) || t.minTickMs < 1 || t.minTickMs > 10000) return false;
-    if (typeof t.maxTickMs !== 'number' || !isFinite(t.maxTickMs) || t.maxTickMs < 1 || t.maxTickMs > 10000) return false;
-    if (t.minTickMs > t.maxTickMs) return false;
-    return true;
+    // Phase 4: accept either barsPerTick (preferred) OR legacy ms bounds.
+    // At least one valid pair must be present.
+    var hasBars = typeof t.barsPerTick === 'number' && isFinite(t.barsPerTick) &&
+                  t.barsPerTick >= 1 && t.barsPerTick <= 32;
+    var hasMs = typeof t.minTickMs === 'number' && isFinite(t.minTickMs) &&
+                t.minTickMs >= 1 && t.minTickMs <= 10000 &&
+                typeof t.maxTickMs === 'number' && isFinite(t.maxTickMs) &&
+                t.maxTickMs >= 1 && t.maxTickMs <= 10000 &&
+                t.minTickMs <= t.maxTickMs;
+    return hasBars || hasMs;
   }
 
   // ---- Toggle label updater (preserves inner #automix-state span) --------
@@ -189,19 +195,22 @@
       }
     }
 
-    // tuning (minTickMs, maxTickMs) — replaces the closure-private
-    // TICK_INTERVAL_MIN_MS / TICK_INTERVAL_MAX_MS in SWR_AUTOMIX via
-    // the public setter. Once the setter mutates the closure vars,
-    // every subsequent computeTickInterval() call (including the one
-    // invoked by _scheduleNext() during each tick) honours the
-    // override in place — no per-tick branch or local mirror in the
-    // runtime. (Task 1 fix round 2 — mirrors the round 1
-    // driftAmplitude fix shape.)
+    // tuning (barsPerTick preferred; legacy minTickMs/maxTickMs still accepted)
+    // — replaces the closure-private BARS_PER_TICK in SWR_AUTOMIX via the
+    // public setter. Once the setter mutates the closure var, every
+    // subsequent computeTickInterval() call (including the one invoked by
+    // _scheduleNext() during each tick) honours the override in place —
+    // no per-tick branch or local mirror in the runtime. (Phase 4 — bars-
+    // based cadence; supersedes the round 2 ms-based setter.)
     if (cfg.tuning && typeof cfg.tuning === 'object') {
       if (_validateTuning(cfg.tuning) &&
           window.SWR_AUTOMIX &&
           typeof window.SWR_AUTOMIX._setTuning === 'function') {
-        window.SWR_AUTOMIX._setTuning(cfg.tuning.minTickMs, cfg.tuning.maxTickMs);
+        window.SWR_AUTOMIX._setTuning(
+          cfg.tuning.minTickMs,
+          cfg.tuning.maxTickMs,
+          cfg.tuning.barsPerTick
+        );
       }
     }
 

@@ -12,7 +12,7 @@
     "outro":     { "warmth": [0.3, 0.6], "intensity": [0.2, 0.5] }
   },
   "driftAmplitude": { "base": 0.01, "beatScale": 0.02 },
-  "tuning": { "minTickMs": 500, "maxTickMs": 3000 },
+  "tuning": {"barsPerTick": 8},
   "anchorMap": "all",
   "ui": { "toggleLabel": "Auto-Mix", "toggleShortcut": "a" }
 }

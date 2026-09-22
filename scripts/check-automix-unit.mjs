@@ -159,20 +159,42 @@ sandbox.window.HologramState = { neighbours: 3 };
 const m2 = A.mix({ bass: 0.5, mid: 0.5, treb: 0.5 });
 assert.equal(m2.anchors.length, 3, 'HologramState.neighbours must override default n');
 
-// ---- Phase 1.1: computeTickInterval -------------------------------------
-assert.equal(A.computeTickInterval(null), 3000, 'null features → max interval (3000ms)');
-assert.equal(A.computeTickInterval({}), 3000, 'empty features → max interval (3000ms)');
-assert.equal(A.computeTickInterval({ rms: 1.0, onset: 1.0 }), 500,
-             'max-intensity features → min interval (500ms)');
-// mid intensity (~0.5)
+// ---- Phase 5: computeTickInterval (bars-based, BPM-aware) ----------------
+// Default = 8 bars × [0.5×, 1.5×] intensity scaling, 120 BPM when bpm
+// missing. At 120 BPM, 1 bar = 4 × 500 ms = 2000 ms.
+//   intensity 0   → 1.5 × 8 × 2000 = 24000 ms
+//   intensity 0.5 → 1.0 × 8 × 2000 = 16000 ms
+//   intensity 1   → 0.5 × 8 × 2000 =  8000 ms
+assert.equal(A.computeTickInterval(null), 24000, 'null features → 12 bars × 1.5× = 24000ms');
+assert.equal(A.computeTickInterval({}), 24000, 'empty features → 12 bars × 1.5× = 24000ms');
+assert.equal(A.computeTickInterval({ rms: 1.0, onset: 1.0 }), 8000,
+             'max-intensity features → 4 bars × 0.5× = 8000ms');
+// mid intensity (~0.495 from rms=0.33 → intensity = 0.495)
+//   barsMul = 1.5 − 0.495 × 1.0 = 1.005
+//   interval = 8 × 1.005 × 2000 ≈ 16080 ms
 const mid = A.computeTickInterval({ rms: 0.33, onset: 0 });
-assert.ok(mid > 1500 && mid < 2000, 'mid intensity should land in (1500, 2000), got ' + mid);
+assert.ok(mid > 15000 && mid < 17000, 'mid intensity should land ~16080 ms, got ' + mid);
 // intensity clipped to [0, 1] even with huge inputs
 const clipped = A.computeTickInterval({ rms: 99, onset: 99 });
-assert.equal(clipped, 500, 'clamped at min interval');
+assert.equal(clipped, 8000, 'clamped at 0.5× floor = 8000ms');
 // intensity clipped to [0, 1] from negative inputs
 const noNeg = A.computeTickInterval({ rms: -1, onset: -1 });
-assert.equal(noNeg, 3000, 'clamped at max interval');
+assert.equal(noNeg, 24000, 'clamped at 1.5× ceiling = 24000ms');
+// BPM-aware: 12 bars at 180 BPM low intensity = 12 × 4 × (60000/180)
+// = 12 × 1333.33 = 16000 ms.
+const fastBpm = A.computeTickInterval({ bpm: 180, rms: 0, onset: 0 });
+assert.ok(fastBpm > 15000 && fastBpm < 17000,
+          '12 bars @ 180 BPM low intensity → ~16000 ms, got ' + fastBpm);
+// BPM-aware: 12 bars at 90 BPM low intensity = 12 × 4 × (60000/90)
+// = 12 × 2666.67 = 32000 ms.
+const slowBpm = A.computeTickInterval({ bpm: 90, rms: 0, onset: 0 });
+assert.ok(slowBpm > 31000 && slowBpm < 33000,
+          '12 bars @ 90 BPM low intensity → ~32000 ms, got ' + slowBpm);
+// fastBpm < slowBpm — faster tempo yields shorter interval at same intensity
+assert.ok(fastBpm < slowBpm, 'faster BPM must produce shorter interval');
+// BPM out of range → falls back to 120 BPM default
+const weirdBpm = A.computeTickInterval({ bpm: 9999, rms: 0, onset: 0 });
+assert.equal(weirdBpm, 24000, 'BPM out of [40, 240] → falls back to 120 BPM default');
 
 // ---- Phase 1.2: smoothstep + lerpPreset + presetDistance ----------------
 assert.equal(A.smoothstep(0), 0, 'smoothstep(0) = 0');
@@ -580,38 +602,70 @@ function makeRuntimeEnv(opts) {
   restoreDrift(driftSnap);
 }
 
-// ---- 1h: tuning validation bounds-check ----------------------------------
-// (Task 1 fix round 2 — tuning is now applied via SWR_AUTOMIX._setTuning
-// instead of being stored as a local mirror. Verify the public surface.)
+// ---- 1h: tuning validation bounds-check (Phase 4: bars-based preferred) ---
+// Phase 5: the validator now accepts either barsPerTick (preferred) OR the
+// legacy minTickMs/maxTickMs pair. barsPerTick sets BARS_PER_TICK directly;
+// the legacy ms pair derives barsPerTick from the midpoint at 120 BPM
+// (1 bar @ 120 BPM = 2000 ms). _getTuning() returns both knobs.
 {
   const tuningSnap = snapshotTuning();
-  let cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 400, maxTickMs: 2500 } }) };
+  // Valid: barsPerTick path (preferred going forward)
+  let cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { barsPerTick: 4 } }) };
   let env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
-  const t = A._getTuning();
-  assert.ok(t, '_getTuning() returns object');
-  assert.equal(t.minTickMs, 400, 'valid tuning → _getTuning().minTickMs replaced');
-  assert.equal(t.maxTickMs, 2500, 'valid tuning → _getTuning().maxTickMs replaced');
-  // computeTickInterval now reads the overridden bounds (verify via
-  // intensity=0 → max, intensity=1 → min).
-  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 2500,
-               'tuning override → intensity=0 maps to maxTickMs=2500');
-  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 400,
-               'tuning override → intensity=1 maps to minTickMs=400');
-  // invalid: max < min
+  let t = A._getTuning();
+  assert.equal(t.barsPerTick, 4, 'valid barsPerTick → _getTuning().barsPerTick replaced');
+  // At 120 BPM, 4 bars × 1.5× ceiling = 12000 ms; × 0.5× floor = 4000 ms.
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 12000,
+               'barsPerTick=4, intensity=0 → 6 bars × 1.5× = 12000ms');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 4000,
+               'barsPerTick=4, intensity=1 → 2 bars × 0.5× = 4000ms');
+
+  // Valid: legacy minTickMs/maxTickMs path (back-compat).
+  // midpoint = 1450 ms → round(1450 / 2000) = 1 bar. The legacy ms
+  // fields are also surfaced via _getTuning() for inspection.
+  cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 400, maxTickMs: 2500 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  t = A._getTuning();
+  assert.equal(t.minTickMs, 400, 'valid legacy tuning → _getTuning().minTickMs replaced');
+  assert.equal(t.maxTickMs, 2500, 'valid legacy tuning → _getTuning().maxTickMs replaced');
+  assert.equal(t.barsPerTick, 1, 'legacy ms midpoint at 120 BPM → barsPerTick=1');
+  // 1 bar × 1.5× ceiling = 3000 ms; × 0.5× floor = 1000 ms.
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 3000,
+               'legacy ms derived barsPerTick=1, intensity=0 → 3000ms');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 1000,
+               'legacy ms derived barsPerTick=1, intensity=1 → 1000ms');
+
+  // Invalid: max < min → rejected, last valid state preserved.
   cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 2000, maxTickMs: 500 } }) };
   env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
   const t2 = A._getTuning();
-  assert.equal(t2.minTickMs, 400, 'max<min → _setTuning rejected, bounds unchanged');
-  assert.equal(t2.maxTickMs, 2500, 'max<min → _setTuning rejected, bounds unchanged');
-  // invalid: min out of range
-  cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 0, maxTickMs: 1000 } }) };
+  assert.equal(t2.barsPerTick, 1, 'max<min → _setTuning rejected, barsPerTick unchanged');
+  assert.equal(t2.minTickMs, 400, 'max<min → legacy ms preserved from last valid');
+  assert.equal(t2.maxTickMs, 2500, 'max<min → legacy ms preserved from last valid');
+
+  // Invalid: barsPerTick out of range [1, 32] → rejected.
+  cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { barsPerTick: 100 } }) };
   env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
   runInContext(runtimeSrc, env.sandbox);
   const t3 = A._getTuning();
-  assert.equal(t3.minTickMs, 400, 'min<1 → _setTuning rejected, bounds unchanged');
-  assert.equal(t3.maxTickMs, 2500, 'min<1 → _setTuning rejected, bounds unchanged');
+  assert.equal(t3.barsPerTick, 1, 'barsPerTick=100 → _setTuning rejected, unchanged');
+  // Negative barsPerTick → rejected.
+  cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { barsPerTick: -1 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const t4 = A._getTuning();
+  assert.equal(t4.barsPerTick, 1, 'barsPerTick=-1 → _setTuning rejected, unchanged');
+
+  // Invalid: min out of range [1, 10000] ms → rejected.
+  cfgScript = { textContent: JSON.stringify({ version: 1, tuning: { minTickMs: 0, maxTickMs: 1000 } }) };
+  env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const t5 = A._getTuning();
+  assert.equal(t5.minTickMs, 400, 'min<1 → _setTuning rejected, bounds unchanged');
+  assert.equal(t5.maxTickMs, 2500, 'min<1 → _setTuning rejected, bounds unchanged');
   restoreTuning(tuningSnap);
 }
 
@@ -894,15 +948,26 @@ function validateAutomixConfig(json, variantName) {
     if (!json.tuning || typeof json.tuning !== 'object') {
       errors.push('tuning must be an object');
     } else {
-      for (const k of ['minTickMs','maxTickMs']) {
-        const v = json.tuning[k];
-        if (typeof v !== 'number' || !isFinite(v) || v < 1 || v > 10000) {
-          errors.push('tuning.' + k + ' must be a finite number in [1,10000]');
+      // Phase 5: accept either barsPerTick (preferred) OR the legacy
+      // minTickMs/maxTickMs pair. At least one valid knob must be present
+      // when `tuning` is supplied at all.
+      var hasBars = typeof json.tuning.barsPerTick === 'number'
+        && isFinite(json.tuning.barsPerTick)
+        && json.tuning.barsPerTick >= 1 && json.tuning.barsPerTick <= 32;
+      var hasMs = typeof json.tuning.minTickMs === 'number'
+        && isFinite(json.tuning.minTickMs)
+        && json.tuning.minTickMs >= 1 && json.tuning.minTickMs <= 10000
+        && typeof json.tuning.maxTickMs === 'number'
+        && isFinite(json.tuning.maxTickMs)
+        && json.tuning.maxTickMs >= 1 && json.tuning.maxTickMs <= 10000
+        && json.tuning.minTickMs <= json.tuning.maxTickMs;
+      if (!hasBars && !hasMs) {
+        if (typeof json.tuning.barsPerTick !== 'undefined') {
+          errors.push('tuning.barsPerTick must be a finite integer in [1,32] when present');
         }
-      }
-      if (typeof json.tuning.minTickMs === 'number' && typeof json.tuning.maxTickMs === 'number'
-          && json.tuning.minTickMs > json.tuning.maxTickMs) {
-        errors.push('tuning.minTickMs > tuning.maxTickMs');
+        if (typeof json.tuning.minTickMs !== 'undefined' || typeof json.tuning.maxTickMs !== 'undefined') {
+          errors.push('tuning.minTickMs/maxTickMs must both be finite numbers in [1,10000] with min <= max when present');
+        }
       }
     }
   }
@@ -981,53 +1046,71 @@ const VARIANT_NAMES = [
 }
 
 // ---- 1p: _setTuning mutates computeTickInterval behaviour directly -------
-// (Task 1 fix round 2 — mirrors the 1m _setDriftAmplitude shape. Proves
-// the public surface independently of the loadConfig() path.)
+// Phase 5: setter is bars-based (preferred) with a legacy ms-pair
+// fallback that derives barsPerTick from the midpoint at 120 BPM. Mirrors
+// the 1m _setDriftAmplitude shape — proves the public surface independently
+// of the loadConfig() path.
 {
   const tuningSnap = snapshotTuning();
-  // Mutate to a narrow band: intensity=0 → 1800ms, intensity=1 → 200ms.
-  A._setTuning(200, 1800);
+  // ----- barsPerTick path (canonical) -----
+  A._setTuning(undefined, undefined, 4);
   const cur1 = A._getTuning();
-  assert.equal(cur1.minTickMs, 200, 'setter writes minTickMs');
-  assert.equal(cur1.maxTickMs, 1800, 'setter writes maxTickMs');
-  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 1800,
-               'setter → computeTickInterval intensity=0 yields maxTickMs');
-  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 200,
-               'setter → computeTickInterval intensity=1 yields minTickMs');
-  // Mid intensity (rms=0.5 → intensity≈0.75) lands inside the band.
-  const mid = A.computeTickInterval({ rms: 0.5, onset: 0 });
-  assert.ok(mid >= 200 && mid <= 1800, 'setter → mid intensity lands within bounds, got ' + mid);
+  assert.equal(cur1.barsPerTick, 4, 'setter writes barsPerTick');
+  // 4 bars at 120 BPM: ceil 1.5× = 12000ms, floor 0.5× = 4000ms.
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 12000,
+               'barsPerTick=4, intensity=0 → 12000ms');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 4000,
+               'barsPerTick=4, intensity=1 → 4000ms');
 
-  // Defensive: non-number / non-finite inputs are silently ignored.
-  A._setTuning(NaN, 1000);
+  // ----- legacy ms path (back-compat): derives bars from midpoint -----
+  // midpoint = 1000 → round(1000/2000) = 1 bar at 120 BPM.
+  A._setTuning(200, 1800);
   const cur2 = A._getTuning();
-  assert.equal(cur2.minTickMs, 200, 'NaN min → ignored');
-  A._setTuning(500, 'not-a-number');
+  assert.equal(cur2.minTickMs, 200, 'legacy setter writes minTickMs');
+  assert.equal(cur2.maxTickMs, 1800, 'legacy setter writes maxTickMs');
+  assert.equal(cur2.barsPerTick, 1, 'legacy midpoint 1000 → barsPerTick=1');
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 3000,
+               'legacy ms → barsPerTick=1, intensity=0 → 3000ms');
+  assert.equal(A.computeTickInterval({ rms: 1, onset: 1 }), 1000,
+               'legacy ms → barsPerTick=1, intensity=1 → 1000ms');
+
+  // ----- defensive: non-number / non-finite inputs are silently ignored -----
+  A._setTuning(NaN, 1000);
   const cur3 = A._getTuning();
-  assert.equal(cur3.maxTickMs, 1800, 'string max → ignored');
-  A._setTuning(Infinity, 1000);
+  assert.equal(cur3.minTickMs, 200, 'NaN min → ignored');
+  A._setTuning(500, 'not-a-number');
   const cur4 = A._getTuning();
-  assert.equal(cur4.minTickMs, 200, 'Infinity min → ignored');
+  assert.equal(cur4.maxTickMs, 1800, 'string max → ignored');
+  A._setTuning(undefined, undefined, NaN);
+  assert.equal(A._getTuning().barsPerTick, 1, 'NaN barsPerTick → ignored');
 
-  // Out-of-range / inverted-range inputs are clamped / rejected.
-  A._setTuning(0, 500);  // min=0 < 1 → clamped to 1
+  // ----- out-of-range / inverted-range inputs are clamped or rejected -----
+  A._setTuning(99999, 1000); // min>max → rejected, state unchanged
   const cur5 = A._getTuning();
-  assert.equal(cur5.minTickMs, 1, 'min<1 clamped to 1');
-  assert.equal(cur5.maxTickMs, 500, 'max applied alongside');
-  A._setTuning(99999, 1000); // min>max → rejected, bounds unchanged
-  const cur6 = A._getTuning();
-  assert.equal(cur6.minTickMs, 1, 'min>max → rejected, min unchanged');
-  assert.equal(cur6.maxTickMs, 500, 'min>max → rejected, max unchanged');
-  A._setTuning(50, 99999); // max > 10000 → clamped to 10000
-  const cur7 = A._getTuning();
-  assert.equal(cur7.minTickMs, 50, 'min applied');
-  assert.equal(cur7.maxTickMs, 10000, 'max>10000 clamped to 10000');
+  assert.equal(cur5.barsPerTick, 1, 'min>max → rejected, barsPerTick unchanged');
+  // barsPerTick > 32 is clamped to 32 (forgiving for callers, mirrors the
+  // _validateTuning range contract). Setter accepts the clamped value
+  // rather than rejecting silently.
+  A._setTuning(undefined, undefined, 100); // > 32 → clamped to 32
+  assert.equal(A._getTuning().barsPerTick, 32, 'barsPerTick>32 → clamped to 32');
+  A._setTuning(undefined, undefined, 0); // < 1 → clamped to 1
+  assert.equal(A._getTuning().barsPerTick, 1, 'barsPerTick<1 → clamped to 1');
 
-  // Live-getter parity: by-value exports track the closure vars after
-  // _setTuning (Task 1 fix round 2 — Important 3).
+  // ----- valid setter call after rejections restores expected state -----
+  A._setTuning(undefined, undefined, 8);
+  assert.equal(A._getTuning().barsPerTick, 8, 'valid setter after rejections works');
+  assert.equal(A.computeTickInterval({ rms: 0, onset: 0 }), 24000,
+               'barsPerTick=8, intensity=0 → 24000ms');
+
+  // ----- live-getter parity: by-value exports track the closure vars -----
+  A._setTuning(undefined, undefined, 12);
+  assert.equal(A.BARS_PER_TICK, 12, 'live getter BARS_PER_TICK tracks closure var');
+  // legacy live-getter still surfaces the last ms-pair write so callers
+  // that migrated from v1 (and external test suites that read it) keep
+  // working. Write through the legacy path then read it back.
   A._setTuning(123, 4567);
-  assert.equal(A.TICK_INTERVAL_MIN_MS, 123, 'live getter TICK_INTERVAL_MIN_MS tracks closure var');
-  assert.equal(A.TICK_INTERVAL_MAX_MS, 4567, 'live getter TICK_INTERVAL_MAX_MS tracks closure var');
+  assert.equal(A.TICK_INTERVAL_MIN_MS, 123, 'live getter TICK_INTERVAL_MIN_MS tracks legacy ms setter');
+  assert.equal(A.TICK_INTERVAL_MAX_MS, 4567, 'live getter TICK_INTERVAL_MAX_MS tracks legacy ms setter');
 
   restoreTuning(tuningSnap);
 }
