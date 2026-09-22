@@ -2420,6 +2420,9 @@
       audioEl: null,
       fft: null,
       time: null,
+      // Last audio decode/playback error. Read by the ?diag=1 dump surface.
+      // Shape: { t: <ms epoch>, code: <MediaError.code>, reason: <string>, fileName: <string> } | null
+      _lastAudioError: null,
       // Per-frame features
       feat: {
         bass: 0, mid: 0, treble: 0, air: 0, sub: 0,
@@ -2531,6 +2534,14 @@
           if (playBtn) playBtn.disabled = true;
           const recBtn = $('rec');
           if (recBtn) recBtn.disabled = true;
+          // Diagnostic snapshot for ?diag=1 dump (Sprint A1 of
+          // feat/asset-curator burndown). Read-only; no other consumer.
+          this._lastAudioError = {
+            t: Date.now(),
+            code: code,
+            reason: reason,
+            fileName: file.name,
+          };
         });
         // Mark element type so the recorder knows what to display
         this.audioEl.dataset.kind = isVideo ? 'video' : 'audio';
@@ -8437,6 +8448,135 @@
         document.addEventListener('DOMContentLoaded', renderList);
       } else {
         renderList();
+      }
+    })();
+  </script>
+
+  <!-- Automix debug panel (ported from music_video, Phase 1) -->
+  <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
+      <button id="automix-debug-close" title="Close" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">×</button>
+    </div>
+    <div id="automix-debug-body" style="color:var(--fg-mute);">idle</div>
+  </div>
+
+  <script>
+    // ?diag=1 dump surface (Sprint A1 of feat/asset-curator burndown).
+    // Read-only diagnostics payload for headless verifiers + manual inspection.
+    // No state mutation. No-op when ?diag is absent.
+    (function () {
+      var params;
+      try { params = new URLSearchParams(window.location.search); }
+      catch (_) { return; }
+      if (params.get('diag') !== '1') return;
+
+      function fmt(v) {
+        try { return JSON.stringify(v, null, 2); }
+        catch (_) { return String(v); }
+      }
+      function snap() {
+        var out = {};
+        // IDB schema + engine-library asset count + saved song timestamp.
+        try {
+          if (window.Library && window.Library.db) {
+            out.idb = { name: 'sainted-word-records', version: 4 };
+            out.idb.assetCount = (window.Library.items || []).length;
+            // Read-only scan of the 'songs' store for the saved song record.
+            if (typeof window.Library.db.getAll === 'function') {
+              window.Library.db.getAll('songs').then(function (songs) {
+                var cur = (songs || []).find(function (r) { return r && r.id === 'current'; });
+                if (cur) {
+                  out.idb.savedSong = { savedAt: cur.savedAt || null, name: cur.name || null };
+                } else {
+                  out.idb.savedSong = null;
+                }
+                // Re-write the pre so the verifier sees the savedSong field.
+                writePre('savedSong', out);
+              }).catch(function () {});
+            }
+          }
+        } catch (_) {}
+        // FX state (defensive clone — FX.state is the live object)
+        try {
+          if (window.FX && window.FX.state) {
+            out.fx = JSON.parse(JSON.stringify(window.FX.state));
+          }
+        } catch (_) {}
+        // Active preset key (use the engine's helper if exposed on window,
+        // else fall back to the dropdown value)
+        try {
+          if (typeof window.getActivePresetKey === 'function') {
+            out.activePresetKey = window.getActivePresetKey();
+          } else {
+            var sel = document.getElementById('preset');
+            out.activePresetKey = sel ? (sel.value || null) : null;
+          }
+        } catch (_) { out.activePresetKey = null; }
+        // Transitions log length — the engine keeps entries in #swr-tx-log
+        try {
+          var logEl = document.getElementById('swr-tx-log');
+          out.transitionsLogLength = logEl ? logEl.children.length : 0;
+        } catch (_) { out.transitionsLogLength = 0; }
+        // Last audio error
+        try {
+          out.lastAudioError = (window.Audio && window.Audio._lastAudioError) || null;
+        } catch (_) { out.lastAudioError = null; }
+        // SWR_MEDIA (user library) count — async; also re-writes the <pre>
+        // text so the verifier sees the merged state (savedSong + swrMedia).
+        try {
+          if (window.SWR_MEDIA && typeof window.SWR_MEDIA.getUserMedia === 'function') {
+            window.SWR_MEDIA.getUserMedia().then(function (recs) {
+              out.swrMediaCount = (recs || []).length;
+              writePre('swrMedia', out);
+            }).catch(function () { out.swrMediaCount = null; });
+          }
+        } catch (_) {}
+        return out;
+      }
+
+      // Helper to write to <pre id="diag-out"> without console spam.
+      // Called by dump() AND by the async SWR_MEDIA resolution.
+      function writePre(label, payload) {
+        var text = '=== DIAG (' + label + ') ===\n' + fmt(payload) + '\n=== END ===';
+        var pre = document.getElementById('diag-out');
+        if (!pre) {
+          pre = document.createElement('pre');
+          pre.id = 'diag-out';
+          pre.setAttribute('aria-hidden', 'true');
+          pre.style.cssText = 'display:none;';
+          document.body.appendChild(pre);
+        }
+        pre.textContent = text;
+      }
+
+      function dump(label, payload) {
+        var text = '=== DIAG (' + label + ') ===\n' + fmt(payload) + '\n=== END ===';
+        console.log(text);
+        writePre(label, payload);
+      }
+
+      // Run once now (catches the fast path — Library.init etc. done
+      // before this script fires if their <script> tags were above us).
+      // We sit at end-of-body, after the brandkit module + init block, but
+      // the deferred module scripts may still be pending. 'load' fires
+      // after every script (incl. deferred modules) is done.
+      dump('early', snap());
+
+      // The 'late' dump must catch fx-postprocess.js, which sets
+      // window.FX via setTimeout(init, 100) when DOM is already loaded.
+      // Wait long enough for that + a render tick. The 'final' dump
+      // catches anything still settling (e.g. SWR_MEDIA async init).
+      function scheduleLate() {
+        setTimeout(function () { dump('late', snap()); }, 250);
+        setTimeout(function () { dump('final', snap()); }, 600);
+      }
+      if (document.readyState === 'complete') {
+        scheduleLate();
+      } else {
+        window.addEventListener('load', function () {
+          scheduleLate();
+        });
       }
     })();
   </script>
