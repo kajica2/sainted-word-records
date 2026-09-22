@@ -4489,6 +4489,10 @@
             if (personaSel && personaSel.value && personaSel.value !== 'off') return personaSel.value;
             return null;
           }
+          // Expose for the ?diag=1 dump (Sprint D2 review fix). The diag
+          // block reads window.getActivePresetKey and falls back to a direct
+          // dropdown read if the helper isn't present.
+          window.getActivePresetKey = getActivePresetKey;
           function renderRecs() {
             if (!recListEl) return;
             if (!window.SWRPresetTransitions || !window.SWRPresetTransitions.recommended) {

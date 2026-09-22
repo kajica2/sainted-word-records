@@ -31,6 +31,11 @@
   let lightLeakImg = null;             // set by preload; checked at fire time
   // Sprint C2: real vhs-tracking SVG asset (8 glitch strips + scanlines).
   const VHS_TRACKING_URL = '/media/transitions/vhs-tracking.svg';
+  // Preloaded via fetch() — SVG can't be decoded by `new Image()` reliably,
+  // so a HEAD-style probe is the cheapest reliable preload. False on 404
+  // (or any non-2xx) → cssFor() emits the original linear-gradient fallback
+  // so the transition still produces a visible glitch effect.
+  let vhsTrackingOk = false;
   // Sprint C3: occluder silhouettes for object-pass-through. Each fire picks
   // one at random. Preloaded at init so the first fire doesn't show a frame
   // of empty overlay.
@@ -297,7 +302,15 @@
         // SVG of 8 RGB-shifted glitch strips + scanlines, much richer than
         // the prior flat linear-gradient. The CSS keyframes still drive
         // the vertical roll and drop-shadow RGB offset on top.
-        return `.${id}{background:url(${VHS_TRACKING_URL}) center/cover no-repeat #000;mix-blend-mode:screen;animation:vhs${id} ${dur}ms ease-out forwards}
+        //
+        // Fallback (Sprint D2 review): when the SVG asset 404s (or the
+        // preload probe hasn't resolved yet), fall back to the original
+        // flat CSS linear-gradient + RGB drop-shadow. The visual is less
+        // rich but the transition is still a recognizable VHS glitch.
+        const bg = vhsTrackingOk
+          ? `url(${VHS_TRACKING_URL}) center/cover no-repeat #000`
+          : `linear-gradient(180deg, transparent 0%, transparent 40%, rgba(255,255,255,${peak*0.25}) 50%, transparent 60%, transparent 100%)`;
+        return `.${id}{background:${bg};mix-blend-mode:screen;animation:vhs${id} ${dur}ms ease-out forwards}
                 @keyframes vhs${id}{0%{transform:translateY(-${h}px);filter:none}50%{transform:translateY(${h/2}px);filter:drop-shadow(-${peak*8}px 0 #f0f) drop-shadow(${peak*8}px 0 #0ff)}100%{transform:translateY(${h}px);filter:none}}`;
       }
 
@@ -623,5 +636,28 @@
       };
       img.src = OCCLUDER_URLS[i];
     }
+  })();
+
+  // ---- Preload (Sprint D2 — vhs-tracking fallback) ---------------------
+  // SVG can't be decoded by `new Image()` reliably across browsers, so we
+  // probe with `fetch()` and set vhsTrackingOk to true on a 2xx response.
+  // cssFor('vhs-tracking') branches on this flag to use either the baked
+  // SVG or the original CSS linear-gradient fallback. Network failures
+  // (404, CORS, offline) leave the flag at its initial `false`, so the
+  // fallback is the safe default.
+  (function preloadVhsTrackingAsset() {
+    if (typeof fetch !== 'function') return;
+    fetch(VHS_TRACKING_URL, { method: 'GET', cache: 'no-store' })
+      .then((r) => {
+        if (r && r.ok) {
+          vhsTrackingOk = true;
+          console.log('[swr-tx] loaded vhs-tracking asset');
+        } else {
+          console.warn(`[swr-tx] vhs-tracking asset missing (HTTP ${r && r.status}) — using procedural fallback`);
+        }
+      })
+      .catch(() => {
+        console.warn('[swr-tx] vhs-tracking asset fetch failed — using procedural fallback');
+      });
   })();
 })();
