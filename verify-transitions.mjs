@@ -653,6 +653,117 @@ try {
     }
   });
 
+  // --- 10. Sprint B extraction guards (B1 / B2 / B3) ---
+  // The engine IIFE used to close over Audio / Library / Layers; those
+  // objects were extracted into /lib/audio.client.js, /lib/library.client.js,
+  // and /lib/layers.client.js (Sprints B1–B3). The IIFE now reads them via
+  // window.* at script-eval time. If any of the extractions broke boot —
+  // wrong script order, idempotency-guard collision with native namespaces,
+  // missing closure dep exposure on window — these checks fail.
+  //
+  // Reuses the main `page` (Audio/Library/Layers are global singletons set
+  // once at script-eval; the verifier's earlier fire/onBeat exercises don't
+  // mutate them).
+  await step('window.Audio attached by lib/audio.client.js (Sprint B1)', async () => {
+    const probe = await page.evaluate(() => {
+      const a = window.Audio;
+      if (!a) return { exists: false };
+      return {
+        exists: true,
+        // Required methods. If any is missing the IIFE got truncated.
+        methods: ['unlock', 'loadFile', 'play', 'pause', 'seek', 'sample',
+                  'analyzeFull', '_saveCurrentSong', '_loadCurrentSong',
+                  '_clearCurrentSong', '_isVideoFile'].map(m => [m, typeof a[m]]),
+        // Per-frame feature bag the rest of the engine reads.
+        feat: a.feat && Object.keys(a.feat).length,
+        // _lastAudioError is the Sprint A1 diagnostic field.
+        lastAudioErrorType: typeof a._lastAudioError,
+      };
+    });
+    if (!probe.exists) throw new Error('window.Audio is not defined');
+    for (const [name, t] of probe.methods) {
+      if (t !== 'function') throw new Error(`Audio.${name} is ${t} (expected function)`);
+    }
+    if (probe.feat < 5) throw new Error(`Audio.feat has ${probe.feat} keys, expected >= 5`);
+    if (probe.lastAudioErrorType !== 'object' && probe.lastAudioErrorType !== 'null') {
+      // _lastAudioError can be null on a fresh boot (no decode error yet).
+      throw new Error(`Audio._lastAudioError is ${probe.lastAudioErrorType}`);
+    }
+  });
+
+  await step('window.Library attached by lib/library.client.js (Sprint B2)', async () => {
+    const probe = await page.evaluate(() => {
+      const l = window.Library;
+      if (!l) return { exists: false };
+      return {
+        exists: true,
+        methods: ['init', 'removeItem', 'clearAll', 'addFiles', '_save',
+                  '_fromRecord', '_buildThumb', '_classify', 'render',
+                  'byId', 'knownNames', 'promoteToSong'].map(m => [m, typeof l[m]]),
+        // items is the in-memory asset array.
+        itemsType: Array.isArray(l.items) ? 'array' : typeof l.items,
+        // db wrapper exposes getAll/put/delete/clear.
+        dbMethods: l.db && l.db.getAll ? ['getAll', 'put', 'delete', 'clear'].map(m => [m, typeof l.db[m]]) : null,
+        nextIdType: typeof l.nextId,
+      };
+    });
+    if (!probe.exists) throw new Error('window.Library is not defined');
+    for (const [name, t] of probe.methods) {
+      if (t !== 'function') throw new Error(`Library.${name} is ${t} (expected function)`);
+    }
+    if (probe.itemsType !== 'array') throw new Error(`Library.items is ${probe.itemsType}`);
+    if (probe.dbMethods) {
+      for (const [name, t] of probe.dbMethods) {
+        if (t !== 'function') throw new Error(`Library.db.${name} is ${t}`);
+      }
+    } else {
+      throw new Error('Library.db is missing — init() did not run');
+    }
+    if (probe.nextIdType !== 'number') throw new Error(`Library.nextId is ${probe.nextIdType}`);
+  });
+
+  await step('window.Layers attached by lib/layers.client.js (Sprint B3)', async () => {
+    const probe = await page.evaluate(() => {
+      const l = window.Layers;
+      if (!l) return { exists: false };
+      return {
+        exists: true,
+        methods: ['add', 'remove', 'select', 'updateSelected', 'render',
+                  'autoMap'].map(m => [m, typeof l[m]]),
+        listType: Array.isArray(l.list) ? 'array' : typeof l.list,
+        selectedType: l.selected === null || typeof l.selected === 'object' ? 'object-or-null' : typeof l.selected,
+        elCacheType: l.elCache && typeof l.elCache.get === 'function' ? 'map' : typeof l.elCache,
+      };
+    });
+    if (!probe.exists) throw new Error('window.Layers is not defined');
+    for (const [name, t] of probe.methods) {
+      if (t !== 'function') throw new Error(`Layers.${name} is ${t} (expected function)`);
+    }
+    if (probe.listType !== 'array') throw new Error(`Layers.list is ${probe.listType}`);
+    if (probe.selectedType !== 'object-or-null') throw new Error(`Layers.selected is ${probe.selectedType}`);
+    if (probe.elCacheType !== 'map') throw new Error(`Layers.elCache is ${probe.elCacheType}`);
+  });
+
+  await step('window.applyPreset attached by lib/layers.client.js (Sprint B3)', async () => {
+    const probe = await page.evaluate(() => ({
+      applyPreset: typeof window.applyPreset,
+      applyVisualPreset: typeof window.applyVisualPreset,
+      // VISUAL_PRESETS is still on window (engine.html exposes it).
+      visualPresetsKeys: window.VISUAL_PRESETS ? Object.keys(window.VISUAL_PRESETS) : null,
+    }));
+    if (probe.applyPreset !== 'function') throw new Error(`window.applyPreset is ${probe.applyPreset}`);
+    if (probe.applyVisualPreset !== 'function') throw new Error(`window.applyVisualPreset is ${probe.applyVisualPreset}`);
+    if (!probe.visualPresetsKeys || probe.visualPresetsKeys.length < 1) {
+      throw new Error('VISUAL_PRESETS is missing');
+    }
+    // The 5 canonical presets should all be present.
+    for (const k of ['pulse', 'drift', 'strobe', 'warp', 'mosh']) {
+      if (!probe.visualPresetsKeys.includes(k)) {
+        throw new Error(`VISUAL_PRESETS missing "${k}" (got ${probe.visualPresetsKeys.join(',')})`);
+      }
+    }
+  });
+
   console.log(failed === 0 ? '\nALL CHECKS PASS' : `\n${failed} CHECK(S) FAILED`);
 } finally {
   await browser.close();
