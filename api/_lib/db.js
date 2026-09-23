@@ -433,58 +433,86 @@ export function safeKey(key) {
   return key.replace(/^\/+/, '');
 }
 
-// True when Vercel Blob credentials are resolvable, and WHICH ones.
+// Parse a Vercel read-write token, validating its shape.
+// Format: vercel_blob_rw_<storeId>_<secret>
+// Mirrors parseStoreIdFromReadWriteToken() in @vercel/blob, but returns
+// null for a malformed value instead of yielding `undefined` for the
+// store id and failing later inside the SDK. A truncated or placeholder
+// value in the env is common (a half-pasted token) and would otherwise be
+// selected silently and then explode on first upload.
+function parseReadWriteToken(tok) {
+  const segs = String(tok || '').split('_');
+  if (segs.length < 5) return null;
+  if (segs[0] !== 'vercel' || segs[1] !== 'blob' || segs[2] !== 'rw') return null;
+  if (!segs[3]) return null;
+  return { storeId: segs[3] };
+}
+
+// Resolve Blob credentials and which store they point at.
 //
-// Vercel names these env vars from the "custom environment variable prefix"
-// chosen when a store is connected to a project. The prefix defaults to
-// BLOB, but becomes BLOB2, BLOB3, ... when a second/third store is
-// connected — Vercel auto-bumps it rather than overwriting.
-//
-// @vercel/blob only auto-reads the unprefixed names, so we resolve the
-// credentials ourselves (handling any BLOB<digits> prefix) and pass them
-// explicitly on every call. Without this, a project with two stores
-// silently writes to whichever one owns the plain BLOB_ prefix.
+// Vercel names these vars from the "custom environment variable prefix"
+// chosen when a store is connected. Details that matter here:
+//   - The prefix is USER-SUPPLIED, so its case is whatever was typed:
+//     Vercel will happily create blob_, blob2_, or BLOB_. Matching is
+//     therefore case-insensitive.
+//   - Connecting a further store auto-bumps the prefix (BLOB2, BLOB3, ...)
+//     rather than overwriting an existing STORE_ID.
+//   - @vercel/blob only reads the exact uppercase names, case-sensitively,
+//     so a lowercase set is invisible to it. We resolve ourselves and pass
+//     the credentials explicitly on every call.
 //
 // Two auth modes per store:
-//   token: <PREFIX>_READ_WRITE_TOKEN
-//   oidc:  <PREFIX>_STORE_ID + VERCEL_OIDC_TOKEN (platform-injected)
-// Mirrors resolveBlobAuth() in @vercel/blob: no credentials resolvable ->
-// fall back to local-FS rather than crashing at call time.
+//   token: <prefix>_READ_WRITE_TOKEN   (must parse; else ignored)
+//   oidc:  <prefix>_STORE_ID + VERCEL_OIDC_TOKEN (platform-injected)
+//
+// Precedence when several stores are connected: valid tokens first (more
+// reliable than OIDC), then the bare prefix over numbered ones, then
+// uppercase over lowercase. Deterministic, and never env-iteration order.
 function resolveBlobCredentials() {
   const env = process.env;
-  // Collect candidates, then prefer the unprefixed BLOB store (the
-  // project's primary) over BLOB2/BLOB3/... so the choice is deterministic
-  // rather than depending on env iteration order.
-  const byPrimary = (a, b) => {
-    const rank = (p) => (p === 'BLOB' ? 0 : Number(p.slice(4)) || 99);
-    return rank(a.prefix) - rank(b.prefix);
+  const rank = (prefix, suffix) => {
+    const digits = suffix ? Number(suffix) || 99 : 0;
+    // Bare BLOB/blob outranks BLOB2/blob2; uppercase outranks lowercase.
+    const caseRank = /^[A-Z]/.test(prefix) ? 0 : 1;
+    return digits * 2 + caseRank;
   };
 
-  const tokenCandidates = [];
-  const storeIdCandidates = [];
+  const tokens = [];
+  const stores = [];
   for (const key of Object.keys(env)) {
     if (!env[key]) continue;
-    const tok = /^(BLOB\d*)_READ_WRITE_TOKEN$/.exec(key);
-    if (tok) tokenCandidates.push({ prefix: tok[1], token: env[key] });
-    const sid = /^(BLOB\d*)_STORE_ID$/.exec(key);
-    if (sid) storeIdCandidates.push({ prefix: sid[1], storeId: env[key] });
+    const tok = /^(blob\d*)_read_write_token$/i.exec(key);
+    if (tok) {
+      const base = tok[1].toUpperCase();
+      const parsed = parseReadWriteToken(env[key]);
+      if (parsed) {
+        tokens.push({ prefix: base, suffix: tok[1].slice(4), token: env[key], storeId: parsed.storeId });
+      } else if (process.env.NODE_ENV !== 'test') {
+        // eslint-disable-next-line no-console
+        console.warn(`[db] storage: ignoring malformed ${key} (expected vercel_blob_rw_<storeId>_<secret>)`);
+      }
+    }
+    const sid = /^(blob\d*)_store_id$/i.exec(key);
+    if (sid) stores.push({ prefix: sid[1].toUpperCase(), suffix: sid[1].slice(4), storeId: env[key] });
   }
 
-  tokenCandidates.sort(byPrimary);
-  if (tokenCandidates.length) {
-    const { prefix, token } = tokenCandidates[0];
-    return { mode: 'read-write-token', prefix, token, extra: { token } };
+  const byRank = (a, b) => rank(a.prefix, a.suffix) - rank(b.prefix, b.suffix);
+  tokens.sort(byRank);
+
+  if (tokens.length) {
+    const { prefix, token, storeId } = tokens[0];
+    return { mode: 'read-write-token', prefix, storeId, extra: { token } };
   }
 
   const oidcToken = env.VERCEL_OIDC_TOKEN;
   if (oidcToken) {
-    storeIdCandidates.sort(byPrimary);
-    if (storeIdCandidates.length) {
-      const { prefix, storeId } = storeIdCandidates[0];
+    stores.sort(byRank);
+    if (stores.length) {
+      const { prefix, storeId } = stores[0];
       return { mode: 'oidc', prefix, storeId, extra: { oidcToken, storeId } };
     }
   }
-  return { mode: 'local-fs', prefix: null, extra: {} };
+  return { mode: 'local-fs', prefix: null, storeId: null, extra: {} };
 }
 
 const BLOB_AUTH = resolveBlobCredentials();
@@ -493,15 +521,19 @@ const USE_BLOB = BLOB_AUTH.mode !== 'local-fs';
 // so the resolved store wins over the SDK's own env lookup.
 const BLOB_OPTS = BLOB_AUTH.extra;
 
-// Exported so diagnostics can report which backend + store prefix is live.
-// The fastest way to confirm a Vercel Blob link actually took effect:
+// Exported so diagnostics can report which backend + store is live. The
+// fastest way to confirm a Vercel Blob link actually took effect:
 //   curl '<host>/api/manifest?action=health'
-//   -> "storage": { "mode": "read-write-token", "prefix": "BLOB", ... }
+//   -> "storage": { "mode": "read-write-token", "prefix": "BLOB2", ... }
 // 'local-fs' means uploads will not survive a cold start.
 export function storageBackend() {
   return {
     mode: BLOB_AUTH.mode,
+    // Which env-var prefix supplied the credentials (BLOB, BLOB2, blob, ...).
     prefix: BLOB_AUTH.prefix,
+    // The store the credentials point at, when we can tell. Compare this
+    // against the dashboard's Blob store id to confirm the right one.
+    storeId: BLOB_AUTH.storeId || null,
     persistent: USE_BLOB,
   };
 }
@@ -512,10 +544,11 @@ if (!USE_BLOB && process.env.NODE_ENV !== 'test') {
   // Skip in test env so the verify suite stays silent.
   // eslint-disable-next-line no-console
   console.warn(
-    '[db] storage: local-FS. No Blob credentials resolved. Looked for ' +
-    'BLOB_READ_WRITE_TOKEN (or BLOB<n>_...), and BLOB_STORE_ID + ' +
-    'VERCEL_OIDC_TOKEN. Uploads will NOT survive a Vercel cold start. ' +
-    'Connect a Blob store in the Vercel dashboard (or run `vercel env pull`).'
+    '[db] storage: local-FS. No usable Blob credentials resolved. Looked for ' +
+    'any <prefix>_READ_WRITE_TOKEN (BLOB, blob, BLOB2, blob2, ...) or ' +
+    '<prefix>_STORE_ID + VERCEL_OIDC_TOKEN. Uploads will NOT survive a ' +
+    'Vercel cold start. Connect a Blob store in the Vercel dashboard, or ' +
+    'run `vercel env pull` locally.'
   );
 }
 

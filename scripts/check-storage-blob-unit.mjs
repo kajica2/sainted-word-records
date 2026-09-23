@@ -101,6 +101,7 @@ const CASE_SOURCES = {
   assert.equal(backend.mode, EXPECTED_MODE, 'storageBackend().mode');
   assert.equal(backend.persistent, true, 'persistent');
   assert.equal(backend.prefix, EXPECTED_PREFIX, 'storageBackend().prefix');
+  assert.equal(backend.storeId, EXPECTED_STORE, 'storageBackend().storeId');
 
   // safeKey guards stay intact in every mode.
   assert.throws(() => db.safeKey('../etc/passwd'), /invalid key/);
@@ -165,38 +166,63 @@ const CASE_SOURCES = {
 `,
 };
 
+// A well-formed read-write token is vercel_blob_rw_<storeId>_<secret>.
+const tok = (storeId) => `vercel_blob_rw_${storeId}_FAKEsecret`;
+
 const CASES = [
   {
-    label: 'BLOB_READ_WRITE_TOKEN (primary store)',
-    expected: 'read-write-token', prefix: 'BLOB', cred: 'vercel_blob_rw_FAKE_primary',
-    env: { BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_primary' },
+    label: 'BLOB_ (uppercase primary)',
+    expected: 'read-write-token', prefix: 'BLOB', storeId: 'storePRIMARY', cred: tok('storePRIMARY'),
+    env: { BLOB_READ_WRITE_TOKEN: tok('storePRIMARY') },
     body: CASE_SOURCES.blob,
   },
   {
-    label: 'BLOB2_READ_WRITE_TOKEN (second store)',
-    expected: 'read-write-token', prefix: 'BLOB2', cred: 'vercel_blob_rw_FAKE_second',
-    env: { BLOB2_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_second' },
+    label: 'blob_ (lowercase — what the Vercel prefix field actually produced)',
+    expected: 'read-write-token', prefix: 'BLOB', storeId: 'storeLOWER', cred: tok('storeLOWER'),
+    env: { blob_READ_WRITE_TOKEN: tok('storeLOWER') },
     body: CASE_SOURCES.blob,
   },
   {
-    label: 'both stores -> prefers the primary BLOB_',
-    expected: 'read-write-token', prefix: 'BLOB', cred: 'vercel_blob_rw_FAKE_primary',
+    label: 'blob2_ (second store, lowercase)',
+    expected: 'read-write-token', prefix: 'BLOB2', storeId: 'storeSECOND', cred: tok('storeSECOND'),
+    env: { blob2_READ_WRITE_TOKEN: tok('storeSECOND') },
+    body: CASE_SOURCES.blob,
+  },
+  {
+    label: 'primary beats BLOB2 when both valid',
+    expected: 'read-write-token', prefix: 'BLOB', storeId: 'storePRIMARY', cred: tok('storePRIMARY'),
     env: {
-      BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_primary',
-      BLOB2_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_second',
+      BLOB_READ_WRITE_TOKEN: tok('storePRIMARY'),
+      BLOB2_READ_WRITE_TOKEN: tok('storeSECOND'),
     },
     body: CASE_SOURCES.blob,
   },
   {
-    label: 'OIDC (BLOB_STORE_ID + VERCEL_OIDC_TOKEN)',
-    expected: 'oidc', prefix: 'BLOB', cred: 'oidc_FAKE',
-    env: { BLOB_STORE_ID: 'store_FAKE', VERCEL_OIDC_TOKEN: 'oidc_FAKE' },
+    label: 'malformed BLOB_ falls through to valid blob2_',
+    expected: 'read-write-token', prefix: 'BLOB2', storeId: 'storeSECOND', cred: tok('storeSECOND'),
+    env: {
+      // 11-char placeholder — the shape Vercel accepts but the SDK cannot use
+      BLOB_READ_WRITE_TOKEN: 'vercel_blob',
+      blob2_READ_WRITE_TOKEN: tok('storeSECOND'),
+    },
     body: CASE_SOURCES.blob,
   },
   {
-    label: 'OIDC with BLOB2_ prefix',
-    expected: 'oidc', prefix: 'BLOB2', cred: 'oidc_FAKE',
-    env: { BLOB2_STORE_ID: 'store_FAKE_2', VERCEL_OIDC_TOKEN: 'oidc_FAKE' },
+    label: 'only a malformed token -> local-fs (not a broken SDK call)',
+    expected: 'local-fs', prefix: null, storeId: null, cred: null,
+    env: { BLOB_READ_WRITE_TOKEN: 'vercel_blob' },
+    body: CASE_SOURCES.local,
+  },
+  {
+    label: 'OIDC (BLOB_STORE_ID + VERCEL_OIDC_TOKEN)',
+    expected: 'oidc', prefix: 'BLOB', storeId: 'storeOIDC', cred: 'oidc_FAKE',
+    env: { BLOB_STORE_ID: 'storeOIDC', VERCEL_OIDC_TOKEN: 'oidc_FAKE' },
+    body: CASE_SOURCES.blob,
+  },
+  {
+    label: 'OIDC with a lowercase blob2_ prefix',
+    expected: 'oidc', prefix: 'BLOB2', storeId: 'storeOIDC2', cred: 'oidc_FAKE',
+    env: { blob2_STORE_ID: 'storeOIDC2', VERCEL_OIDC_TOKEN: 'oidc_FAKE' },
     body: CASE_SOURCES.blob,
   },
   {
@@ -213,7 +239,7 @@ for (const c of CASES) {
   // strip every BLOB<n>_* variant so cases cannot bleed into each other.
   const env = {};
   for (const [k, v] of Object.entries(process.env)) {
-    if (/^BLOB\d*_(READ_WRITE_TOKEN|STORE_ID|WEBHOOK_PUBLIC_KEY)$/.test(k)) continue;
+    if (/^blob\d*_(read_write_token|store_id|webhook_public_key)$/i.test(k)) continue;
     if (k === 'VERCEL_OIDC_TOKEN') continue;
     env[k] = v;
   }
@@ -230,6 +256,7 @@ for (const c of CASES) {
   writeFileSync(casePath, [
     `const EXPECTED_MODE = ${JSON.stringify(c.expected)};`,
     `const EXPECTED_PREFIX = ${JSON.stringify(c.prefix)};`,
+    `const EXPECTED_STORE = ${JSON.stringify(c.storeId)};`,
     `const EXPECTED_CRED = ${JSON.stringify(c.cred)};`,
     c.body,
     "console.log('ok');",
