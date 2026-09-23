@@ -407,18 +407,19 @@ export async function softDeleteProject(userId, id) {
 // =====================================================================
 //
 // Two backends, selected at module load by env:
-//   1. Vercel Blob (default when BLOB_READ_WRITE_TOKEN is set — Vercel
-//      auto-injects this when a Blob store is linked to the project).
-//      Clients PUT/GET directly to Blob's signed URLs; /api/storage/object
-//      becomes unused.
-//   2. Local filesystem (fallback when BLOB_READ_WRITE_TOKEN is unset —
-//      keeps `npm run dev` working without a Vercel account). Files live
-//      under <SWRC_DATA_DIR>/storage/<userId>/. Same function signatures
-//      so callers + handlers don't care which backend is active.
+//   1. Vercel Blob — active when EITHER auth mode resolves:
+//        a. BLOB_READ_WRITE_TOKEN (per-store read-write token), or
+//        b. BLOB_STORE_ID + VERCEL_OIDC_TOKEN (OIDC; this is what the
+//           Vercel dashboard's "Connect Project" dialog sets up).
+//      Blobs persist across cold starts.
+//   2. Local filesystem — fallback when neither mode resolves. Keeps
+//      `npm run dev` working without a Vercel account. Files live under
+//      <SWRC_DATA_DIR>/storage/<userId>/. Ephemeral on Vercel.
 //
-// Switching backends requires NO code changes — just set/unset the env
-// var and restart. Env-skip pattern means the dev slice never breaks
-// even if Vercel Blob is the production backend.
+// Same function signatures either way, so callers + handlers don't care
+// which backend is active. Switching requires no code change — set the
+// env and restart. The cached USE_BLOB below is computed once at module
+// load, so a running server picks up env changes on restart only.
 
 import { put as blobPut, del as blobDel, head as blobHead } from '@vercel/blob';
 
@@ -432,19 +433,43 @@ export function safeKey(key) {
   return key.replace(/^\/+/, '');
 }
 
-// True when Vercel Blob is wired up. Auto-detected at module load — the
-// Vercel platform sets BLOB_READ_WRITE_TOKEN when the project links a
-// Blob store, so this is true in production and false in `npm run dev`
-// (unless the user explicitly opts in locally).
-const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+// True when Vercel Blob credentials are resolvable. @vercel/blob supports
+// two auth modes and we must detect both or we'd silently fall back to
+// the ephemeral local-FS path in production:
+//
+//   1. Read-write token — BLOB_READ_WRITE_TOKEN (per-store token).
+//   2. OIDC — BLOB_STORE_ID (set when you link a Blob store to the
+//      project in the Vercel dashboard) + VERCEL_OIDC_TOKEN (injected
+//      by the platform per-invocation). This is the mode the dashboard
+//      "Connect Project" dialog creates.
+//
+// Mirrors resolveBlobAuth() in @vercel/blob: if neither mode resolves,
+// the SDK throws, so we fall back to local-FS instead of crashing.
+const USE_BLOB = !!(
+  process.env.BLOB_READ_WRITE_TOKEN ||
+  (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)
+);
+// Name the mode in diagnostics so a misconfigured env is obvious. Exported
+// so the health endpoint can report which backend is live — the fastest
+// way to confirm a Vercel Blob link actually took effect.
+const BLOB_AUTH_MODE = process.env.BLOB_READ_WRITE_TOKEN
+  ? 'read-write-token'
+  : USE_BLOB
+    ? 'oidc'
+    : 'local-fs';
+export function storageBackend() {
+  return { mode: BLOB_AUTH_MODE, persistent: BLOB_AUTH_MODE !== 'local-fs' };
+}
 if (!USE_BLOB && process.env.NODE_ENV !== 'test') {
   // One-time warning so devs know uploads vanish on cold starts.
   // Use console.warn (not console.log) so it's visible without -v.
   // Skip in test env so the verify suite stays silent.
   // eslint-disable-next-line no-console
   console.warn(
-    '[db] BLOB_READ_WRITE_TOKEN not set — using local-FS storage. ' +
-    'Data WILL be lost on Vercel cold starts. Set BLOB_READ_WRITE_TOKEN to use Vercel Blob.'
+    '[db] storage: local-FS. BLOB_READ_WRITE_TOKEN is unset and ' +
+    'BLOB_STORE_ID + VERCEL_OIDC_TOKEN are not both set — uploads will NOT ' +
+    'survive a Vercel cold start. Link a Blob store in the Vercel dashboard ' +
+    '(or use `vercel env pull` locally) to persist uploads.'
   );
 }
 
@@ -606,5 +631,10 @@ export async function health() {
     users: Array.isArray(users) ? users.length : 0,
     sessions: sessions.length,
     projects: Array.isArray(projects) ? projects.length : 0,
+    // Which storage backend resolved at module load. Lets you confirm a
+    // Vercel Blob link took effect with a single GET:
+    //   curl /api/manifest?action=health
+    // 'local-fs' means uploads will not survive a cold start.
+    storage: storageBackend(),
   };
 }

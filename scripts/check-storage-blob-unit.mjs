@@ -1,38 +1,40 @@
-// Throwaway: exercise the Blob branch of api/_lib/db.js with a stubbed
-// @vercel/blob module. Verifies put/get/head/del wiring + guards without
-// needing a real BLOB_READ_WRITE_TOKEN.
+// scripts/check-storage-blob-unit.mjs — unit coverage for the Vercel Blob
+// branch of api/_lib/db.js, with the SDK swapped for an in-memory stub.
 //
-// Why this exists: the Blob branch is unreachable in CI (no token) and in
-// local dev (no token). Without this test, the wiring could rot silently
-// between the shape-level assertions and the production deploy. The stub
-// pins the PUT/HEAD/DELETE call shapes against @vercel/blob's documented
-// API, so a breaking SDK upgrade or a bad option name fails here.
+// Why this exists: the Blob branch is unreachable in CI (no credentials)
+// and in a bare local dev checkout (no credentials). Without this test,
+// bad option names or a breaking @vercel/blob upgrade would only surface
+// in production. The stub pins the PUT/HEAD/DELETE call shapes against
+// the documented SDK API.
+//
+// Covers all three credential states, because getting the detection wrong
+// silently degrades to the ephemeral filesystem (the exact bug this
+// storage layer was written to fix):
+//   1. BLOB_READ_WRITE_TOKEN          -> 'read-write-token'
+//   2. BLOB_STORE_ID + VERCEL_OIDC_TOKEN -> 'oidc'
+//   3. neither                        -> 'local-fs'
 //
 // Run: node scripts/check-storage-blob-unit.mjs
 
-import { strict as assert } from 'node:assert';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-
 const TMP = mkdtempSync(join(tmpdir(), 'swrc-blob-test-'));
-process.env.SWRC_DATA_DIR = TMP;
-process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_rw_FAKE_token_for_test';
 
-// ---- Stub @vercel/blob via a loader hook ----------------------------
-// We install a resolve+load hook that swaps the real module for our stub.
-const stubSource = `
+// ---- In-memory @vercel/blob stand-in ---------------------------------
+const STUB_SOURCE = `
 const store = new Map();
 export async function put(pathname, body, options) {
   if (!options || options.access !== 'public') {
-    throw new Error('stub: options.access must be "public"');
+    throw new Error('stub: put() requires options.access === "public"');
   }
   const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
   const url = 'https://stub.blob.vercel-storage.com/' + pathname;
-  store.set(pathname, { body: buf, contentType: options.contentType || 'application/octet-stream', url });
+  store.set(pathname, { body: buf, contentType: options.contentType, url });
   return { url, pathname, contentType: options.contentType, size: buf.length };
 }
 export async function head(pathname) {
@@ -42,7 +44,11 @@ export async function head(pathname) {
     e.name = 'BlobNotFoundError';
     throw e;
   }
-  return { size: rec.body.length, url: rec.url, pathname, contentType: rec.contentType, uploadedAt: new Date(), contentDisposition: 'inline', cacheControl: 'public', etag: 'stub' };
+  return {
+    size: rec.body.length, url: rec.url, pathname,
+    contentType: rec.contentType, uploadedAt: new Date(),
+    contentDisposition: 'inline', cacheControl: 'public', etag: 'stub',
+  };
 }
 export async function del(pathname) {
   if (!store.has(pathname)) {
@@ -55,87 +61,153 @@ export async function del(pathname) {
 export function __store() { return store; }
 `;
 
-const hookSource = `
+const HOOK_SOURCE = `
 export async function resolve(specifier, context, nextResolve) {
-  if (specifier === '@vercel/blob') {
-    return { url: 'stub:vercel-blob', shortCircuit: true };
-  }
+  if (specifier === '@vercel/blob') return { url: 'stub:vercel-blob', shortCircuit: true };
   return nextResolve(specifier, context);
 }
 export async function load(url, context, nextLoad) {
   if (url === 'stub:vercel-blob') {
-    return { format: 'module', source: ${JSON.stringify(stubSource)}, shortCircuit: true };
+    return { format: 'module', source: ${JSON.stringify(STUB_SOURCE)}, shortCircuit: true };
   }
   return nextLoad(url, context);
 }
 `;
 
 const hookPath = join(TMP, 'stub-loader.mjs');
-writeFileSync(hookPath, hookSource);
+writeFileSync(hookPath, HOOK_SOURCE);
+const hookImport = `data:text/javascript,import{register}from"node:module";register(${JSON.stringify('file://' + hookPath)});`;
 
-// ---- Run the assertions in a child process with the hook -------------
-const { spawnSync } = await import('node:child_process');
-const child = spawnSync(process.execPath, [
-  '--import', `data:text/javascript,import{register}from"node:module";register(${JSON.stringify('file://' + hookPath)});`,
-  '--input-type=module',
-  '-e', `
-    import { strict as assert } from 'node:assert';
-    const db = await import('./api/_lib/db.js');
-    const { __store } = await import('@vercel/blob');
+// ---- Assertions run in a child so env can differ per case ------------
+const ASSERT_BLOB = `
+  const { strict: assert } = await import('node:assert');
+  const db = await import('./api/_lib/db.js');
+  const { __store } = await import('@vercel/blob');
 
-    // 1. safeKey guards
-    assert.throws(() => db.safeKey('../etc/passwd'), /invalid key/);
-    assert.throws(() => db.safeKey('/abs'), /invalid key/);
-    assert.throws(() => db.safeKey('a\\\\b'), /invalid key/);
-    assert.equal(db.safeKey('u/f.mp3'), 'u/f.mp3');
-    console.log('  ok safeKey guards');
+  // Detection: the mode must match the credential state, because a wrong
+  // detection here silently degrades to the ephemeral filesystem.
+  const backend = db.storageBackend();
+  assert.equal(backend.mode, EXPECTED_MODE, 'storageBackend().mode');
+  assert.equal(backend.persistent, true, 'persistent');
 
-    // 2. signed-upload shape (backend-agnostic)
-    const up = await db.createSignedUpload('u1', 'audio/a.mp3', 'audio/mpeg');
-    assert.equal(up.key, 'u1/audio/a.mp3');
-    assert.ok(up.uploadUrl.startsWith('/api/storage/object?key='));
-    console.log('  ok createSignedUpload');
+  // safeKey guards stay intact in every mode.
+  assert.throws(() => db.safeKey('../etc/passwd'), /invalid key/);
+  assert.throws(() => db.safeKey('/abs'), /invalid key/);
+  assert.throws(() => db.safeKey('a\\\\b'), /invalid key/);
+  assert.equal(db.safeKey('u/f.mp3'), 'u/f.mp3');
 
-    // 3. storagePut writes to Blob (stub store)
-    const putRes = await db.storagePut('u1', 'u1/audio/a.mp3', Buffer.from('HELLO_BLOB'), 'audio/mpeg');
-    assert.equal(putRes.size, 10);
-    assert.equal(putRes.key, 'u1/audio/a.mp3');
-    assert.ok(putRes.url.includes('stub.blob.vercel-storage.com'));
-    assert.ok(__store().has('u1/audio/a.mp3'), 'stub store received the blob');
-    console.log('  ok storagePut -> Blob');
+  // signed-upload / signed-download keep the same URL shape in both modes.
+  const up = await db.createSignedUpload('u1', 'audio/a.mp3', 'audio/mpeg');
+  assert.equal(up.key, 'u1/audio/a.mp3');
+  assert.equal(up.method, 'PUT');
+  assert.ok(up.uploadUrl.startsWith('/api/storage/object?key='));
+  const dl = await db.readSignedDownload('u1', 'audio/a.mp3');
+  assert.ok(dl.downloadUrl.startsWith('/api/storage/object?key='));
 
-    // 4. storageHead reads size
-    const h = await db.storageHead('u1', 'u1/audio/a.mp3');
-    assert.equal(h.size, 10);
-    console.log('  ok storageHead');
+  // Round-trip through the blob branch.
+  const putRes = await db.storagePut('u1', 'u1/audio/a.mp3', Buffer.from('HELLO_BLOB'), 'audio/mpeg');
+  assert.equal(putRes.size, 10);
+  assert.equal(putRes.key, 'u1/audio/a.mp3');
+  assert.ok(putRes.url.includes('stub.blob.vercel-storage.com'), 'went to the Blob stub');
+  assert.ok(__store().has('u1/audio/a.mp3'), 'stub store holds the blob');
 
-    // 5. storageHead returns null for missing (BlobNotFoundError mapped)
-    const h2 = await db.storageHead('u1', 'u1/nope.mp3');
-    assert.equal(h2, null);
-    console.log('  ok storageHead missing -> null');
+  assert.equal((await db.storageHead('u1', 'u1/audio/a.mp3')).size, 10);
+  assert.equal(await db.storageHead('u1', 'u1/nope.mp3'), null, 'missing head -> null');
 
-    // 6. signed-download shape
-    const dl = await db.readSignedDownload('u1', 'audio/a.mp3');
-    assert.ok(dl.downloadUrl.startsWith('/api/storage/object?key='));
-    console.log('  ok readSignedDownload');
+  assert.equal(await db.storageDelete('u1', 'u1/audio/a.mp3'), true);
+  assert.ok(!__store().has('u1/audio/a.mp3'));
+  assert.equal(await db.storageDelete('u1', 'u1/nope.mp3'), false, 'missing delete -> false');
 
-    // 7. storageDelete removes from Blob
-    const d1 = await db.storageDelete('u1', 'u1/audio/a.mp3');
-    assert.equal(d1, true);
-    assert.ok(!__store().has('u1/audio/a.mp3'));
-    console.log('  ok storageDelete');
+  // Health reports the mode so a live deploy can be checked with one GET.
+  assert.equal((await db.health()).storage.mode, EXPECTED_MODE);
+`;
 
-    // 8. storageDelete on missing -> false (not a throw)
-    const d2 = await db.storageDelete('u1', 'u1/nope.mp3');
-    assert.equal(d2, false);
-    console.log('  ok storageDelete missing -> false');
+const ASSERT_LOCAL = `
+  const { strict: assert } = await import('node:assert');
+  const { existsSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const db = await import('./api/_lib/db.js');
+  const { __store } = await import('@vercel/blob');
 
-    console.log('');
-    console.log('ALL GREEN (Blob branch)');
-  `,
-], { encoding: 'utf8', cwd: REPO_ROOT });
+  // No credentials -> the ephemeral filesystem, and the stub must stay
+  // untouched (proves we did not call the SDK).
+  const backend = db.storageBackend();
+  assert.equal(backend.mode, 'local-fs', 'storageBackend().mode');
+  assert.equal(backend.persistent, false, 'not persistent');
 
-process.stdout.write(child.stdout || '');
-process.stderr.write(child.stderr || '');
+  const putRes = await db.storagePut('u1', 'u1/audio/a.mp3', Buffer.from('HELLO_DISK'), 'audio/mpeg');
+  assert.equal(putRes.size, 10);
+  assert.equal(putRes.url, undefined, 'local-fs put has no Blob url');
+  assert.equal(__store().size, 0, 'Blob SDK was not called');
+  assert.ok(existsSync(join(process.env.SWRC_DATA_DIR, 'storage', 'u1', 'audio', 'a.mp3')), 'file landed on disk');
+
+  assert.equal((await db.storageHead('u1', 'u1/audio/a.mp3')).size, 10);
+  assert.equal(await db.storageHead('u1', 'u1/nope.mp3'), null);
+  assert.equal(await db.storageDelete('u1', 'u1/audio/a.mp3'), true);
+  assert.equal(await db.storageDelete('u1', 'u1/nope.mp3'), false);
+`;
+
+const CASES = [
+  {
+    label: 'read-write token',
+    expected: 'read-write-token',
+    env: { BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_for_test' },
+    body: ASSERT_BLOB,
+  },
+  {
+    label: 'OIDC (store id + oidc token)',
+    expected: 'oidc',
+    env: { BLOB_STORE_ID: 'store_FAKE', VERCEL_OIDC_TOKEN: 'oidc_FAKE' },
+    body: ASSERT_BLOB,
+  },
+  {
+    label: 'no credentials -> local-fs',
+    expected: 'local-fs',
+    env: {},
+    body: ASSERT_LOCAL,
+  },
+];
+
+let failed = 0;
+for (const c of CASES) {
+  // Start from a clean env: never inherit a real token from the shell.
+  const env = { ...process.env };
+  delete env.BLOB_READ_WRITE_TOKEN;
+  delete env.BLOB_STORE_ID;
+  delete env.VERCEL_OIDC_TOKEN;
+  Object.assign(env, c.env, {
+    SWRC_DATA_DIR: TMP,
+    NODE_ENV: 'test', // suppress the local-fs warning during the suite
+  });
+
+  // Run each case from a temp .mjs file: `-e` with --input-type=module
+  // does not reliably parse top-level await across Node versions. The file
+  // lives in REPO_ROOT so the body's relative imports resolve, and is
+  // removed after the run.
+  const casePath = join(REPO_ROOT, `.storage-blob-case-${c.expected}.mjs`);
+  writeFileSync(casePath, `const EXPECTED_MODE = ${JSON.stringify(c.expected)};\n${c.body}\nconsole.log('ok');\n`);
+
+  const child = spawnSync(process.execPath, [
+    '--import', hookImport,
+    casePath,
+  ], { encoding: 'utf8', cwd: REPO_ROOT, env });
+  rmSync(casePath, { force: true });
+
+  if (child.status === 0 && /(^|\n)ok(\n|$)/.test(child.stdout || '')) {
+    console.log(`  ✓ ${c.label} -> ${c.expected}`);
+  } else {
+    failed++;
+    console.log(`  ✗ ${c.label} -> expected ${c.expected}`);
+    const detail = (child.stderr || child.stdout || '').trim();
+    if (detail) console.log(detail.split('\n').slice(0, 12).map((l) => '      ' + l).join('\n'));
+  }
+}
+
+// Remove the disks the local-fs case wrote.
 rmSync(TMP, { recursive: true, force: true });
-process.exit(child.status ?? 1);
+
+console.log('');
+console.log(failed === 0
+  ? 'STORAGE BLOB UNIT: ALL GREEN (3 credential states)'
+  : `STORAGE BLOB UNIT: ${failed} CASE(S) FAILED`);
+process.exit(failed === 0 ? 0 : 1);
