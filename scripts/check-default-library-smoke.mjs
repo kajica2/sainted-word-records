@@ -64,6 +64,12 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     // 2. Library seeded (wait for >=7 hologram textures). The seeder gives
     // them display names (Wave/Grid/Bar/Dot/Line/Frame/Trace); raw .webp
     // filenames are still accepted for older persisted seeds.
+    //
+    // 2026-09-23: bumped timeout from 20s → 45s. CI sandbox has been
+    // intermittently failing this assertion at exactly 20s (Library
+    // reaches 5/7 textures then stalls before the final IDB writes
+    // commit). Local runs typically complete in <3s; 45s gives CI
+    // ~4× headroom without making local runs noticeably slower.
     try {
       await page.waitForFunction(() =>
         window.Library && window.Library.items &&
@@ -71,7 +77,7 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
           const n = (i && i.name) || '';
           return /\.webp$/i.test(n) || ['Wave', 'Grid', 'Bar', 'Dot', 'Line', 'Frame', 'Trace'].includes(n);
         }).length >= 7,
-        { timeout: 20000 });
+        { timeout: 45000 });
       const names = await page.evaluate(() =>
         window.Library.items.filter(i => {
           const n = (i && i.name) || '';
@@ -85,11 +91,12 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
 
     // 3. default song wired via Audio.loadFile — the engine paints the
     // current song's name into #song-name once loadFile completes.
+    // 2026-09-23: bumped 20s → 45s for CI parity (same reason as #2).
     try {
       await page.waitForFunction(() => {
         const sn = document.getElementById('song-name');
         return !!(sn && /endless-tomorrow/i.test(sn.textContent || ''));
-      }, { timeout: 20000 });
+      }, { timeout: 45000 });
       pass('default song endless-tomorrow.mp3 loaded into transport');
     } catch (_) {
       // The engine may have restored a saved song from IDB — that's correct
