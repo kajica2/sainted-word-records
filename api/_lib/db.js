@@ -1,35 +1,53 @@
-// scripts/db.mjs — minimal local-first JSON store.
+// scripts/db.mjs — auth + project store.
 //
-// This is the dev/prod backing for auth + projects in the M1 slice. It is
-// intentionally zero-dep so the project stays free of runtime dependencies
-// (only Vite as a devDependency today). The API is shaped to mirror a
-// Prisma-style adapter: same calls work against either this file store or
-// a real Postgres client. When M2/M3 add Postgres, swap `STORE` to a
-// Prisma-backed implementation; route handlers do not change.
+// This is the backing for auth + projects in the M1 slice. It has one
+// optional runtime dependency, `pg`, imported lazily and only when
+// DATABASE_URL is set — the filesystem path stays zero-dep. The API is
+// shaped to mirror a Prisma-style adapter: the same calls work against
+// either the file store or Postgres. Both backends are implemented in
+// this module (see the POSTGRES BACKEND section); route handlers do not
+// know which is active.
 //
-// File layout under SWRC_DATA_DIR (default ./data):
-//   data/auth/users.json      [{ id, email, name, image, provider, createdAt }]
-//   data/auth/sessions.json   [{ token, userId, expiresAt }]
-//   data/auth/accounts.json   [{ userId, provider, providerAccountId }]
-//   data/auth/verifications.json [{ identifier, token, expires }]
-//   data/projects/index.json  [{ id, userId, name, updatedAt, deletedAt }]
-//   data/projects/<id>.json   { id, userId, name, doc, updatedAt, deletedAt }
-//   data/storage/<userId>/...  binary blobs keyed by content hash
+// Store layout. With the filesystem backend these are files under
+// SWRC_DATA_DIR (default ./data); with Postgres they are `kv` table rows
+// whose key is this same relative path minus the `.json` suffix
+// (e.g. auth/users, projects/<id>).
+//   auth/users.json      [{ id, email, name, image, provider, createdAt }]
+//   auth/sessions.json   [{ token, userId, expiresAt }]
+//   auth/accounts.json   [{ userId, provider, providerAccountId }]
+//   auth/verifications.json [{ identifier, token, expires }]
+//   projects/index.json  [{ id, userId, name, updatedAt, deletedAt }]
+//   projects/<id>.json   { id, userId, name, doc, updatedAt, deletedAt }
+//   storage/<userId>/...  binary blobs keyed by content hash
 //
-// All writes are synchronous (small files; human-scale auth/project count).
-// A flock on data/.lock serializes concurrent processes; the API runs
-// single-process in dev and per-lambda in prod, so contention is rare.
+// Document sizes are small and the record count is human-scale, so whole-
+// document read-modify-write is acceptable; correctness under concurrency
+// comes from withLock(), not from partial updates.
+//
+// Auth + project state lives in one of two interchangeable backends,
+// chosen at module load by env:
+//
+//   DATABASE_URL set  → Postgres (durable). See the POSTGRES BACKEND
+//                       section below for why, and for the locking model.
+//   else              → JSON files under SWRC_DATA_DIR.
+//
+// On Vercel, /var/task is read-only, so the filesystem backend falls back
+// to /tmp — which is per-instance and dies with the instance. That is why
+// production MUST set DATABASE_URL: without it, sign-ins and saved
+// projects are wiped on every cold start. The fallback exists so local dev
+// and the test suite work with zero setup.
 
 import { promises as fs } from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, relative, sep } from 'node:path';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 
 // On Vercel serverless (/var/task is read-only), fall back to /tmp so module
-// evaluation doesn't crash on the top-level ensureDir() below. Persistent
-// auth requires SWRC_DATA_DIR pointing at Vercel KV / Blob / Postgres, but
-// that's a M2 concern — for now /tmp keeps every handler importable so
-// function cold-starts succeed.
+// evaluation doesn't crash on the top-level ensureDir() below. This root is
+// only consulted by the filesystem backend — when DATABASE_URL is set the
+// store is Postgres and nothing is written here. On Vercel without
+// DATABASE_URL, /tmp is per-instance and dies with the instance, so data
+// does not survive a cold start; db.js warns loudly in that case.
 function pickDataRoot() {
   if (process.env.SWRC_DATA_DIR) return process.env.SWRC_DATA_DIR;
   if (process.env.VERCEL) return '/tmp/swr-data';
@@ -56,7 +74,7 @@ try { ensureDir(join(ROOT, 'storage')); } catch (_) {}
 
 // ---- Naive file lock (process-local; sufficient for Vercel single-lambda) ----
 let lockChain = Promise.resolve();
-async function withLock(fn) {
+async function fileWithLock(fn) {
   const next = lockChain.then(async () => {
     if (existsSync(LOCK)) {
       const st = statSync(LOCK);
@@ -76,8 +94,8 @@ async function withLock(fn) {
   return next;
 }
 
-// ---- JSON helpers ----
-async function readJson(path, fallback) {
+// ---- JSON helpers (filesystem backend) ----
+async function fileReadJson(path, fallback) {
   try {
     const txt = await fs.readFile(path, 'utf8');
     return JSON.parse(txt);
@@ -87,12 +105,181 @@ async function readJson(path, fallback) {
   }
 }
 
-async function writeJson(path, obj) {
+async function fileWriteJson(path, obj) {
   ensureDir(dirname(path));
   const tmp = path + '.tmp';
   await fs.writeFile(tmp, JSON.stringify(obj, null, 2));
   await fs.rename(tmp, path);
 }
+
+// =====================================================================
+// POSTGRES BACKEND (durable)
+// =====================================================================
+//
+// Why this exists: on Vercel every function gets a per-instance /tmp that
+// dies with the instance. Users, sessions, verifications and projects all
+// live there, so a cold start silently wipes sign-ins and saved projects
+// (observed: sign in, then /api/manifest?action=health reports users: 0).
+//
+// Activated by DATABASE_URL (Neon/Supabase/Vercel Postgres all set one).
+// When unset the filesystem backend above is used, which is correct for
+// local dev (files persist on disk) and keeps the test suite hermetic.
+//
+// Design: the store is a single key/value table holding the same JSON
+// documents the filesystem held, so the ~30 call sites in this module are
+// unchanged. Concurrency is the interesting part.
+//
+// The previous lock was a process-local promise chain plus a `.lock` file
+// — it serialises within ONE warm instance only. Two concurrent requests
+// landing on different instances could both read users.json, each append
+// a user, and the second write would drop the first. That race exists
+// today, independent of cold starts.
+//
+// Here, withLock() opens a transaction and takes pg_advisory_xact_lock(),
+// which is held for the transaction and released automatically on
+// COMMIT/ROLLBACK. That is a genuine cross-instance mutex with no TTL to
+// tune and no stale-lock path. The transaction client is propagated to
+// readJson/writeJson via AsyncLocalStorage, so the guarded read-modify-
+// write pair runs on the same connection and sees a consistent snapshot.
+//
+// All 12 write sites in this module are inside withLock(), which is what
+// makes this substitution sound.
+
+// Prisma Postgres (and some other integrations) inject several variables,
+// and only SOME are usable here. The `prisma+postgres://` form is an
+// Accelerate URL that speaks a different protocol over HTTP — the pg
+// driver cannot open it. Vercel marks these variables sensitive, so their
+// values cannot be read back to check which is which; pick by scheme
+// rather than trusting the name.
+function pickDbUrl() {
+  const unusable = [];
+  for (const name of ['DATABASE_URL', 'POSTGRES_URL', 'PRISMA_DATABASE_URL']) {
+    const v = process.env[name];
+    if (!v) continue;
+    if (/^postgres(ql)?:\/\//i.test(v)) return { url: v, from: name, unusable };
+    if (/^prisma\+postgres:\/\//i.test(v)) unusable.push(name);
+  }
+  return { url: '', from: '', unusable };
+}
+
+const DB_URL = pickDbUrl();
+const DATABASE_URL = DB_URL.url;
+
+let pgPool = null;
+async function getPool() {
+  if (pgPool) return pgPool;
+  const { default: pg } = await import('pg');
+  pgPool = new pg.Pool({
+    connectionString: DATABASE_URL,
+    // Serverless: each instance should hold very few connections; the
+    // provider's pooler (pgBouncer/Neon) does the real multiplexing.
+    max: 1,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
+    // Managed Postgres (Neon, Supabase, Vercel) terminates TLS with a
+    // cert the driver does not verify against a bundled CA.
+    ssl: /sslmode=disable/.test(DATABASE_URL) ? false : { rejectUnauthorized: false },
+  });
+  return pgPool;
+}
+
+// Holds the transaction client for the duration of withLock(fn) so the
+// read/write helpers below join the same transaction.
+const { AsyncLocalStorage } = await import('node:async_hooks');
+const txStore = new AsyncLocalStorage();
+
+let schemaReady = null;
+function ensureSchema() {
+  if (schemaReady) return schemaReady;
+  schemaReady = (async () => {
+    const pool = await getPool();
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS kv (
+        key        TEXT PRIMARY KEY,
+        value      JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+  })().catch((e) => {
+    // Do not cache a failed migration — the next request should retry.
+    schemaReady = null;
+    throw e;
+  });
+  return schemaReady;
+}
+
+// Stable logical key for a store path, so the key does not depend on
+// ROOT (which differs between /tmp/swr-data and ./data).
+function kvKey(path) {
+  const rel = relative(ROOT, path).split(sep).join('/').replace(/\.json$/, '');
+  return rel || 'root';
+}
+
+async function pgReadJson(path, fallback) {
+  await ensureSchema();
+  const key = kvKey(path);
+  const client = txStore.getStore() || (await getPool());
+  const { rows } = await client.query('SELECT value FROM kv WHERE key = $1', [key]);
+  return rows.length ? rows[0].value : fallback;
+}
+
+async function pgWriteJson(path, obj) {
+  await ensureSchema();
+  const key = kvKey(path);
+  const client = txStore.getStore() || (await getPool());
+  await client.query(
+    `INSERT INTO kv (key, value, updated_at) VALUES ($1, $2, now())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    [key, JSON.stringify(obj)],
+  );
+}
+
+// Advisory-lock key. One global lock, matching the previous single-chain
+// semantics (all mutations serialised). Fine at this volume; per-store
+// locks are a trivial follow-up if contention ever matters.
+const ADVISORY_LOCK_KEY = 0x5357_5201; // 'SWR' + 1
+
+async function pgWithLock(fn) {
+  await ensureSchema();
+  const pool = await getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [ADVISORY_LOCK_KEY]);
+    const result = await txStore.run(client, fn);
+    await client.query('COMMIT');
+    return result;
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch (_) { /* connection already gone */ }
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+// ---- Backend selection ----
+const USE_PG = !!DATABASE_URL;
+if (!USE_PG && process.env.NODE_ENV !== 'test' && process.env.VERCEL) {
+  if (DB_URL.unusable.length) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[db] ${DB_URL.unusable.join(', ')} holds a prisma+postgres:// (Accelerate) URL, which the ` +
+      'pg driver cannot open. Falling back to the ephemeral filesystem. Set DATABASE_URL ' +
+      'to the DIRECT TCP connection string from the Prisma Postgres dashboard ' +
+      '(postgres://…@db.prisma.io:5432/postgres?sslmode=require).',
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[db] No Postgres URL is set — auth + project data is on the ephemeral ' +
+      'filesystem. Sign-ins and saved projects will NOT survive a cold start.',
+    );
+  }
+}
+
+const withLock = USE_PG ? pgWithLock : fileWithLock;
+const readJson = USE_PG ? pgReadJson : fileReadJson;
+const writeJson = USE_PG ? pgWriteJson : fileWriteJson;
 
 // ---- ID helpers ----
 export function uuid() {
@@ -711,6 +898,12 @@ export async function health() {
     users: Array.isArray(users) ? users.length : 0,
     sessions: sessions.length,
     projects: Array.isArray(projects) ? projects.length : 0,
+    // Which auth/project backend resolved at module load. Lets you confirm
+    // a DATABASE_URL took effect with a single GET:
+    //   curl /api/manifest?action=health
+    // 'filesystem' means users/sessions/projects will NOT survive a cold
+    // start on Vercel — the `users` count reported above reads 0 after one.
+    store: USE_PG ? 'postgres' : 'filesystem',
     // Which storage backend resolved at module load. Lets you confirm a
     // Vercel Blob link took effect with a single GET:
     //   curl /api/manifest?action=health
