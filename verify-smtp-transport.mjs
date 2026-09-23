@@ -96,6 +96,87 @@ test('selects resend transport when only RESEND_API_KEY is set', async () => {
   delete process.env.RESEND_API_KEY;
 });
 
+// ---- Resend: the request must be well-formed, not merely sent ----
+// Resend rejects (401) a missing/incorrect Authorization header and (422)
+// a missing or unverified `from`. A test that only asserts "fetch was
+// called" passes even when the mail would never send, so assert the
+// actual request shape here.
+test('resend send builds an authorised request with a resolved from', async () => {
+  const ORIG_FROM = process.env.SWR_FROM_EMAIL;
+  const ORIG_SMTP_FROM = process.env.SMTP_FROM;
+  process.env.RESEND_API_KEY = 're_abc123';
+  process.env.SWR_FROM_EMAIL = 'Sainted Word <noreply@example.com>';
+  delete process.env.SMTP_HOST;
+  const email = await importEmail();
+
+  const origFetch = globalThis.fetch;
+  let seen = null;
+  globalThis.fetch = async (url, opts) => {
+    seen = { url, opts };
+    return { ok: true, text: async () => '{"id":"r1"}', status: 200 };
+  };
+  try {
+    const link = 'http://localhost/verify?token=abc';
+    const result = await email.sendMagicLink({
+      to: 'someone@example.com',
+      url: link,
+      appOrigin: 'http://localhost',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.transport, 'resend');
+
+    assert.ok(seen, 'fetch was not called');
+    assert.equal(seen.url, 'https://api.resend.com/emails');
+    assert.equal(seen.opts.method, 'POST');
+
+    // Auth + content type — a missing bearer token is a hard 401.
+    const h = seen.opts.headers || {};
+    assert.equal(h.Authorization, 'Bearer re_abc123', 'Authorization header');
+    assert.equal(h['Content-Type'], 'application/json', 'Content-Type header');
+
+    const body = JSON.parse(seen.opts.body);
+    assert.equal(body.from, 'Sainted Word <noreply@example.com>', 'from');
+    assert.equal(body.to, 'someone@example.com', 'to');
+    assert.ok(body.subject, 'subject must be present');
+    assert.ok(body.text.includes(link), 'body must carry the magic link');
+  } finally {
+    globalThis.fetch = origFetch;
+    delete process.env.RESEND_API_KEY;
+    if (ORIG_FROM === undefined) delete process.env.SWR_FROM_EMAIL;
+    else process.env.SWR_FROM_EMAIL = ORIG_FROM;
+    if (ORIG_SMTP_FROM === undefined) delete process.env.SMTP_FROM;
+    else process.env.SMTP_FROM = ORIG_SMTP_FROM;
+  }
+});
+
+test('resend from falls back to SMTP_FROM when SWR_FROM_EMAIL is unset', async () => {
+  const ORIG_FROM = process.env.SWR_FROM_EMAIL;
+  const ORIG_SMTP_FROM = process.env.SMTP_FROM;
+  process.env.RESEND_API_KEY = 're_abc123';
+  delete process.env.SWR_FROM_EMAIL;
+  process.env.SMTP_FROM = 'fallback@example.com';
+  delete process.env.SMTP_HOST;
+  const email = await importEmail();
+
+  const origFetch = globalThis.fetch;
+  let body = null;
+  globalThis.fetch = async (url, opts) => {
+    body = JSON.parse(opts.body);
+    return { ok: true, text: async () => '{"id":"r1"}', status: 200 };
+  };
+  try {
+    await email.sendMagicLink({ to: 'a@b.co', url: 'http://x/v?t=1', appOrigin: 'http://x' });
+    assert.equal(body.from, 'fallback@example.com', 'SMTP_FROM fallback');
+  } finally {
+    globalThis.fetch = origFetch;
+    delete process.env.RESEND_API_KEY;
+    if (ORIG_FROM === undefined) delete process.env.SWR_FROM_EMAIL;
+    else process.env.SWR_FROM_EMAIL = ORIG_FROM;
+    if (ORIG_SMTP_FROM === undefined) delete process.env.SMTP_FROM;
+    else process.env.SMTP_FROM = ORIG_SMTP_FROM;
+  }
+});
+
 // ---- RED 3: Transport selection — stdout when neither is set ----
 test('selects stdout transport when neither SMTP_HOST nor RESEND_API_KEY is set', async () => {
   delete process.env.SMTP_HOST;
