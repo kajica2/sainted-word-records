@@ -86,7 +86,7 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
       pass(`library seeded with ${names.length} default textures`, names.slice(0, 3).join(','));
     } catch (_) {
       const n = await page.evaluate(() => (window.Library && window.Library.items || []).length).catch(() => -1);
-      fail('library did not seed to 7 within 20s', `items=${n}`);
+      fail('library did not seed to 7 within 45s', `items=${n}`);
     }
 
     // 3. default song wired via Audio.loadFile — the engine paints the
