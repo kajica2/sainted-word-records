@@ -28,16 +28,19 @@ const TMP = mkdtempSync(join(tmpdir(), 'swrc-blob-test-'));
 // ---- In-memory @vercel/blob stand-in ---------------------------------
 const STUB_SOURCE = `
 const store = new Map();
+let lastOpts = {};
 export async function put(pathname, body, options) {
   if (!options || options.access !== 'public') {
     throw new Error('stub: put() requires options.access === "public"');
   }
+  lastOpts = options;
   const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
   const url = 'https://stub.blob.vercel-storage.com/' + pathname;
   store.set(pathname, { body: buf, contentType: options.contentType, url });
   return { url, pathname, contentType: options.contentType, size: buf.length };
 }
-export async function head(pathname) {
+export async function head(pathname, options) {
+  lastOpts = options || {};
   const rec = store.get(pathname);
   if (!rec) {
     const e = new Error('The requested blob does not exist');
@@ -50,7 +53,8 @@ export async function head(pathname) {
     contentDisposition: 'inline', cacheControl: 'public', etag: 'stub',
   };
 }
-export async function del(pathname) {
+export async function del(pathname, options) {
+  lastOpts = options || {};
   if (!store.has(pathname)) {
     const e = new Error('The requested blob does not exist');
     e.name = 'BlobNotFoundError';
@@ -58,7 +62,13 @@ export async function del(pathname) {
   }
   store.delete(pathname);
 }
-export function __store() { return store; }
+// Test hooks: the record map, plus the options from the most recent call
+// (used to assert the resolved credentials reach the SDK explicitly).
+export function __store() {
+  const m = store;
+  m.lastOpts = lastOpts;
+  return m;
+}
 `;
 
 const HOOK_SOURCE = `
@@ -79,16 +89,18 @@ writeFileSync(hookPath, HOOK_SOURCE);
 const hookImport = `data:text/javascript,import{register}from"node:module";register(${JSON.stringify('file://' + hookPath)});`;
 
 // ---- Assertions run in a child so env can differ per case ------------
-const ASSERT_BLOB = `
+const CASE_SOURCES = {
+  blob: (expected) => `
   const { strict: assert } = await import('node:assert');
   const db = await import('./api/_lib/db.js');
   const { __store } = await import('@vercel/blob');
 
-  // Detection: the mode must match the credential state, because a wrong
-  // detection here silently degrades to the ephemeral filesystem.
+  // Detection: wrong detection here silently degrades to the ephemeral
+  // filesystem, which is the exact bug this layer exists to fix.
   const backend = db.storageBackend();
   assert.equal(backend.mode, EXPECTED_MODE, 'storageBackend().mode');
   assert.equal(backend.persistent, true, 'persistent');
+  assert.equal(backend.prefix, EXPECTED_PREFIX, 'storageBackend().prefix');
 
   // safeKey guards stay intact in every mode.
   assert.throws(() => db.safeKey('../etc/passwd'), /invalid key/);
@@ -111,6 +123,11 @@ const ASSERT_BLOB = `
   assert.ok(putRes.url.includes('stub.blob.vercel-storage.com'), 'went to the Blob stub');
   assert.ok(__store().has('u1/audio/a.mp3'), 'stub store holds the blob');
 
+  // The resolved credentials must reach the SDK explicitly — otherwise a
+  // BLOB2_ store would be ignored in favour of the plain BLOB_ one.
+  assert.equal(__store().lastOpts.token || __store().lastOpts.oidcToken, EXPECTED_CRED,
+    'credentials passed through to put()');
+
   assert.equal((await db.storageHead('u1', 'u1/audio/a.mp3')).size, 10);
   assert.equal(await db.storageHead('u1', 'u1/nope.mp3'), null, 'missing head -> null');
 
@@ -120,9 +137,9 @@ const ASSERT_BLOB = `
 
   // Health reports the mode so a live deploy can be checked with one GET.
   assert.equal((await db.health()).storage.mode, EXPECTED_MODE);
-`;
+`,
 
-const ASSERT_LOCAL = `
+  local: `
   const { strict: assert } = await import('node:assert');
   const { existsSync } = await import('node:fs');
   const { join } = await import('node:path');
@@ -145,36 +162,61 @@ const ASSERT_LOCAL = `
   assert.equal(await db.storageHead('u1', 'u1/nope.mp3'), null);
   assert.equal(await db.storageDelete('u1', 'u1/audio/a.mp3'), true);
   assert.equal(await db.storageDelete('u1', 'u1/nope.mp3'), false);
-`;
+`,
+};
 
 const CASES = [
   {
-    label: 'read-write token',
-    expected: 'read-write-token',
-    env: { BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_for_test' },
-    body: ASSERT_BLOB,
+    label: 'BLOB_READ_WRITE_TOKEN (primary store)',
+    expected: 'read-write-token', prefix: 'BLOB', cred: 'vercel_blob_rw_FAKE_primary',
+    env: { BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_primary' },
+    body: CASE_SOURCES.blob,
   },
   {
-    label: 'OIDC (store id + oidc token)',
-    expected: 'oidc',
+    label: 'BLOB2_READ_WRITE_TOKEN (second store)',
+    expected: 'read-write-token', prefix: 'BLOB2', cred: 'vercel_blob_rw_FAKE_second',
+    env: { BLOB2_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_second' },
+    body: CASE_SOURCES.blob,
+  },
+  {
+    label: 'both stores -> prefers the primary BLOB_',
+    expected: 'read-write-token', prefix: 'BLOB', cred: 'vercel_blob_rw_FAKE_primary',
+    env: {
+      BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_primary',
+      BLOB2_READ_WRITE_TOKEN: 'vercel_blob_rw_FAKE_second',
+    },
+    body: CASE_SOURCES.blob,
+  },
+  {
+    label: 'OIDC (BLOB_STORE_ID + VERCEL_OIDC_TOKEN)',
+    expected: 'oidc', prefix: 'BLOB', cred: 'oidc_FAKE',
     env: { BLOB_STORE_ID: 'store_FAKE', VERCEL_OIDC_TOKEN: 'oidc_FAKE' },
-    body: ASSERT_BLOB,
+    body: CASE_SOURCES.blob,
+  },
+  {
+    label: 'OIDC with BLOB2_ prefix',
+    expected: 'oidc', prefix: 'BLOB2', cred: 'oidc_FAKE',
+    env: { BLOB2_STORE_ID: 'store_FAKE_2', VERCEL_OIDC_TOKEN: 'oidc_FAKE' },
+    body: CASE_SOURCES.blob,
   },
   {
     label: 'no credentials -> local-fs',
-    expected: 'local-fs',
+    expected: 'local-fs', prefix: null, cred: null,
     env: {},
-    body: ASSERT_LOCAL,
+    body: CASE_SOURCES.local,
   },
 ];
 
 let failed = 0;
 for (const c of CASES) {
-  // Start from a clean env: never inherit a real token from the shell.
-  const env = { ...process.env };
-  delete env.BLOB_READ_WRITE_TOKEN;
-  delete env.BLOB_STORE_ID;
-  delete env.VERCEL_OIDC_TOKEN;
+  // Start from a clean env: never inherit a real token from the shell, and
+  // strip every BLOB<n>_* variant so cases cannot bleed into each other.
+  const env = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (/^BLOB\d*_(READ_WRITE_TOKEN|STORE_ID|WEBHOOK_PUBLIC_KEY)$/.test(k)) continue;
+    if (k === 'VERCEL_OIDC_TOKEN') continue;
+    env[k] = v;
+  }
   Object.assign(env, c.env, {
     SWRC_DATA_DIR: TMP,
     NODE_ENV: 'test', // suppress the local-fs warning during the suite
@@ -184,8 +226,14 @@ for (const c of CASES) {
   // does not reliably parse top-level await across Node versions. The file
   // lives in REPO_ROOT so the body's relative imports resolve, and is
   // removed after the run.
-  const casePath = join(REPO_ROOT, `.storage-blob-case-${c.expected}.mjs`);
-  writeFileSync(casePath, `const EXPECTED_MODE = ${JSON.stringify(c.expected)};\n${c.body}\nconsole.log('ok');\n`);
+  const casePath = join(REPO_ROOT, `.storage-blob-case-${c.label.replace(/\W+/g, '-')}.mjs`);
+  writeFileSync(casePath, [
+    `const EXPECTED_MODE = ${JSON.stringify(c.expected)};`,
+    `const EXPECTED_PREFIX = ${JSON.stringify(c.prefix)};`,
+    `const EXPECTED_CRED = ${JSON.stringify(c.cred)};`,
+    c.body,
+    "console.log('ok');",
+  ].join('\n'));
 
   const child = spawnSync(process.execPath, [
     '--import', hookImport,
@@ -208,6 +256,6 @@ rmSync(TMP, { recursive: true, force: true });
 
 console.log('');
 console.log(failed === 0
-  ? 'STORAGE BLOB UNIT: ALL GREEN (3 credential states)'
+  ? `STORAGE BLOB UNIT: ALL GREEN (${CASES.length} credential states)`
   : `STORAGE BLOB UNIT: ${failed} CASE(S) FAILED`);
 process.exit(failed === 0 ? 0 : 1);

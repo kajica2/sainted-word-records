@@ -433,43 +433,89 @@ export function safeKey(key) {
   return key.replace(/^\/+/, '');
 }
 
-// True when Vercel Blob credentials are resolvable. @vercel/blob supports
-// two auth modes and we must detect both or we'd silently fall back to
-// the ephemeral local-FS path in production:
+// True when Vercel Blob credentials are resolvable, and WHICH ones.
 //
-//   1. Read-write token — BLOB_READ_WRITE_TOKEN (per-store token).
-//   2. OIDC — BLOB_STORE_ID (set when you link a Blob store to the
-//      project in the Vercel dashboard) + VERCEL_OIDC_TOKEN (injected
-//      by the platform per-invocation). This is the mode the dashboard
-//      "Connect Project" dialog creates.
+// Vercel names these env vars from the "custom environment variable prefix"
+// chosen when a store is connected to a project. The prefix defaults to
+// BLOB, but becomes BLOB2, BLOB3, ... when a second/third store is
+// connected — Vercel auto-bumps it rather than overwriting.
 //
-// Mirrors resolveBlobAuth() in @vercel/blob: if neither mode resolves,
-// the SDK throws, so we fall back to local-FS instead of crashing.
-const USE_BLOB = !!(
-  process.env.BLOB_READ_WRITE_TOKEN ||
-  (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)
-);
-// Name the mode in diagnostics so a misconfigured env is obvious. Exported
-// so the health endpoint can report which backend is live — the fastest
-// way to confirm a Vercel Blob link actually took effect.
-const BLOB_AUTH_MODE = process.env.BLOB_READ_WRITE_TOKEN
-  ? 'read-write-token'
-  : USE_BLOB
-    ? 'oidc'
-    : 'local-fs';
-export function storageBackend() {
-  return { mode: BLOB_AUTH_MODE, persistent: BLOB_AUTH_MODE !== 'local-fs' };
+// @vercel/blob only auto-reads the unprefixed names, so we resolve the
+// credentials ourselves (handling any BLOB<digits> prefix) and pass them
+// explicitly on every call. Without this, a project with two stores
+// silently writes to whichever one owns the plain BLOB_ prefix.
+//
+// Two auth modes per store:
+//   token: <PREFIX>_READ_WRITE_TOKEN
+//   oidc:  <PREFIX>_STORE_ID + VERCEL_OIDC_TOKEN (platform-injected)
+// Mirrors resolveBlobAuth() in @vercel/blob: no credentials resolvable ->
+// fall back to local-FS rather than crashing at call time.
+function resolveBlobCredentials() {
+  const env = process.env;
+  // Collect candidates, then prefer the unprefixed BLOB store (the
+  // project's primary) over BLOB2/BLOB3/... so the choice is deterministic
+  // rather than depending on env iteration order.
+  const byPrimary = (a, b) => {
+    const rank = (p) => (p === 'BLOB' ? 0 : Number(p.slice(4)) || 99);
+    return rank(a.prefix) - rank(b.prefix);
+  };
+
+  const tokenCandidates = [];
+  const storeIdCandidates = [];
+  for (const key of Object.keys(env)) {
+    if (!env[key]) continue;
+    const tok = /^(BLOB\d*)_READ_WRITE_TOKEN$/.exec(key);
+    if (tok) tokenCandidates.push({ prefix: tok[1], token: env[key] });
+    const sid = /^(BLOB\d*)_STORE_ID$/.exec(key);
+    if (sid) storeIdCandidates.push({ prefix: sid[1], storeId: env[key] });
+  }
+
+  tokenCandidates.sort(byPrimary);
+  if (tokenCandidates.length) {
+    const { prefix, token } = tokenCandidates[0];
+    return { mode: 'read-write-token', prefix, token, extra: { token } };
+  }
+
+  const oidcToken = env.VERCEL_OIDC_TOKEN;
+  if (oidcToken) {
+    storeIdCandidates.sort(byPrimary);
+    if (storeIdCandidates.length) {
+      const { prefix, storeId } = storeIdCandidates[0];
+      return { mode: 'oidc', prefix, storeId, extra: { oidcToken, storeId } };
+    }
+  }
+  return { mode: 'local-fs', prefix: null, extra: {} };
 }
+
+const BLOB_AUTH = resolveBlobCredentials();
+const USE_BLOB = BLOB_AUTH.mode !== 'local-fs';
+// Credentials to spread into every @vercel/blob call as trailing options,
+// so the resolved store wins over the SDK's own env lookup.
+const BLOB_OPTS = BLOB_AUTH.extra;
+
+// Exported so diagnostics can report which backend + store prefix is live.
+// The fastest way to confirm a Vercel Blob link actually took effect:
+//   curl '<host>/api/manifest?action=health'
+//   -> "storage": { "mode": "read-write-token", "prefix": "BLOB", ... }
+// 'local-fs' means uploads will not survive a cold start.
+export function storageBackend() {
+  return {
+    mode: BLOB_AUTH.mode,
+    prefix: BLOB_AUTH.prefix,
+    persistent: USE_BLOB,
+  };
+}
+
 if (!USE_BLOB && process.env.NODE_ENV !== 'test') {
   // One-time warning so devs know uploads vanish on cold starts.
   // Use console.warn (not console.log) so it's visible without -v.
   // Skip in test env so the verify suite stays silent.
   // eslint-disable-next-line no-console
   console.warn(
-    '[db] storage: local-FS. BLOB_READ_WRITE_TOKEN is unset and ' +
-    'BLOB_STORE_ID + VERCEL_OIDC_TOKEN are not both set — uploads will NOT ' +
-    'survive a Vercel cold start. Link a Blob store in the Vercel dashboard ' +
-    '(or use `vercel env pull` locally) to persist uploads.'
+    '[db] storage: local-FS. No Blob credentials resolved. Looked for ' +
+    'BLOB_READ_WRITE_TOKEN (or BLOB<n>_...), and BLOB_STORE_ID + ' +
+    'VERCEL_OIDC_TOKEN. Uploads will NOT survive a Vercel cold start. ' +
+    'Connect a Blob store in the Vercel dashboard (or run `vercel env pull`).'
   );
 }
 
@@ -514,6 +560,7 @@ export async function storagePut(userId, key, body /* Buffer | Uint8Array | stri
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: contentType || 'application/octet-stream',
+      ...BLOB_OPTS,   // resolved store credentials; must win over env lookup
     });
     return { key: fullKey, size: buf.length, contentType: contentType || 'application/octet-stream', url: result.url };
   }
@@ -532,7 +579,7 @@ export async function storageGet(userId, key /* may include userId prefix or not
     // Blobs are written with access:'public'; the key contains the user's
     // UUID so it's not enumerable in practice. head() gives us the CDN URL.
     try {
-      const stat = await blobHead(fullKey);
+      const stat = await blobHead(fullKey, BLOB_OPTS);
       if (!stat || !stat.url) return null;
       const res = await fetch(stat.url);
       if (!res.ok) return null;
@@ -559,7 +606,7 @@ export async function storageHead(userId, key) {
     // @vercel/blob head() throws BlobNotFoundError (it does not return
     // null) — catch it and map to the null contract the callers expect.
     try {
-      const stat = await blobHead(fullKey);
+      const stat = await blobHead(fullKey, BLOB_OPTS);
       return stat ? { size: stat.size } : null;
     } catch (e) {
       if (e && (e.name === 'BlobNotFoundError' || /not found/i.test(String(e.message)))) return null;
@@ -581,7 +628,7 @@ export async function storageDelete(userId, key) {
   const fullKey = `${userId}/${safe}`;
   if (USE_BLOB) {
     try {
-      await blobDel(fullKey);
+      await blobDel(fullKey, BLOB_OPTS);
       return true;
     } catch (e) {
       if (e && /not found/i.test(String(e.message))) return false;
