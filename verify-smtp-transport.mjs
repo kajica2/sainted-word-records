@@ -261,3 +261,100 @@ test('SMTP sendMail error returns ok:false (does not silently stdout-fallback)',
   delete process.env.SMTP_HOST;
   clearNodemailerStub();
 });
+
+// ---- Welcome email (first sign-up) ----
+// Sent once per account from api/auth/verify.js. Must carry the product
+// links, a working unsubscribe affordance, and the postal block when
+// SWR_MAILING_ADDRESS is set (CAN-SPAM requirement for commercial mail).
+test('welcome email carries product links, unsubscribe, and postal address', async () => {
+  const SAVED = {
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    SMTP_HOST: process.env.SMTP_HOST,
+    SWR_FROM_EMAIL: process.env.SWR_FROM_EMAIL,
+    SWR_REPLY_TO_EMAIL: process.env.SWR_REPLY_TO_EMAIL,
+    SWR_MAILING_ADDRESS: process.env.SWR_MAILING_ADDRESS,
+  };
+  process.env.RESEND_API_KEY = 're_abc123';
+  process.env.SWR_FROM_EMAIL = 'SWR <noreply@example.com>';
+  process.env.SWR_REPLY_TO_EMAIL = 'kai@example.com';
+  process.env.SWR_MAILING_ADDRESS = '1 Example St, Belgrade 11000, RS';
+  delete process.env.SMTP_HOST;
+  const email = await importEmail();
+
+  const origFetch = globalThis.fetch;
+  let payload = null;
+  globalThis.fetch = async (url, opts) => {
+    payload = JSON.parse(opts.body);
+    return { ok: true, text: async () => '{"id":"r1"}', status: 200 };
+  };
+  try {
+    const r = await email.sendWelcomeEmail({
+      to: 'newuser@example.com',
+      name: 'newuser',
+      appOrigin: 'https://sainted-word-records.vercel.app',
+    });
+    assert.equal(r.ok, true);
+    assert.equal(r.transport, 'resend');
+    assert.match(payload.subject, /Welcome/i);
+
+    // Product links, with trailing-slash normalisation applied.
+    assert.ok(payload.text.includes('https://sainted-word-records.vercel.app/engine'),
+      'text must link the engine');
+    assert.ok(payload.text.includes('https://sainted-word-records.vercel.app/versions'),
+      'text must link the versions page');
+    // The three tips and the reply hook are the point of the email.
+    assert.match(payload.text, /3 tips/i);
+    assert.match(payload.text, /Hit Reply/i);
+
+    // Compliance: opt-out + postal address.
+    const unsub = payload.headers && payload.headers['List-Unsubscribe'];
+    assert.ok(unsub, 'List-Unsubscribe header');
+    assert.ok(unsub.includes('kai@example.com'), 'unsubscribe targets the reply-to inbox');
+    assert.ok(payload.text.includes('1 Example St, Belgrade 11000, RS'), 'text has the postal address');
+    assert.ok(payload.html.includes('1 Example St, Belgrade 11000, RS'), 'html has the postal address');
+    assert.ok(payload.text.includes('Unsubscribe'), 'text has an unsubscribe line');
+
+    // Replies must reach a monitored inbox, not the send-only From.
+    assert.equal(payload.reply_to, 'kai@example.com', 'reply_to');
+  } finally {
+    globalThis.fetch = origFetch;
+    for (const [k, v] of Object.entries(SAVED)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+});
+
+test('welcome email omits the postal block and warns when SWR_MAILING_ADDRESS is unset', async () => {
+  const SAVED = {
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    SMTP_HOST: process.env.SMTP_HOST,
+    SWR_MAILING_ADDRESS: process.env.SWR_MAILING_ADDRESS,
+  };
+  process.env.RESEND_API_KEY = 're_abc123';
+  delete process.env.SMTP_HOST;
+  delete process.env.SWR_MAILING_ADDRESS;
+  const email = await importEmail();
+
+  const origFetch = globalThis.fetch;
+  const origWrite = process.stdout.write;
+  let warned = '';
+  let payload = null;
+  process.stdout.write = (s) => { warned += s; return true; };
+  globalThis.fetch = async (url, opts) => {
+    payload = JSON.parse(opts.body);
+    return { ok: true, text: async () => '{"id":"r1"}', status: 200 };
+  };
+  try {
+    await email.sendWelcomeEmail({ to: 'x@example.com', appOrigin: 'https://x.test' });
+    assert.match(warned, /SWR_MAILING_ADDRESS is unset/, 'must warn loudly when unset');
+    assert.ok(payload.text.includes('Unsubscribe'), 'opt-out still present');
+  } finally {
+    process.stdout.write = origWrite;
+    globalThis.fetch = origFetch;
+    for (const [k, v] of Object.entries(SAVED)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+});
