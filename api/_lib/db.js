@@ -145,7 +145,25 @@ async function fileWriteJson(path, obj) {
 // All 12 write sites in this module are inside withLock(), which is what
 // makes this substitution sound.
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+// Prisma Postgres (and some other integrations) inject several variables,
+// and only SOME are usable here. The `prisma+postgres://` form is an
+// Accelerate URL that speaks a different protocol over HTTP — the pg
+// driver cannot open it. Vercel marks these variables sensitive, so their
+// values cannot be read back to check which is which; pick by scheme
+// rather than trusting the name.
+function pickDbUrl() {
+  const unusable = [];
+  for (const name of ['DATABASE_URL', 'POSTGRES_URL', 'PRISMA_DATABASE_URL']) {
+    const v = process.env[name];
+    if (!v) continue;
+    if (/^postgres(ql)?:\/\//i.test(v)) return { url: v, from: name, unusable };
+    if (/^prisma\+postgres:\/\//i.test(v)) unusable.push(name);
+  }
+  return { url: '', from: '', unusable };
+}
+
+const DB_URL = pickDbUrl();
+const DATABASE_URL = DB_URL.url;
 
 let pgPool = null;
 async function getPool() {
@@ -242,11 +260,21 @@ async function pgWithLock(fn) {
 // ---- Backend selection ----
 const USE_PG = !!DATABASE_URL;
 if (!USE_PG && process.env.NODE_ENV !== 'test' && process.env.VERCEL) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    '[db] DATABASE_URL is unset — auth + project data is on the ephemeral ' +
-    'filesystem. Sign-ins and saved projects will NOT survive a cold start.',
-  );
+  if (DB_URL.unusable.length) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[db] ${DB_URL.unusable.join(', ')} holds a prisma+postgres:// (Accelerate) URL, which the ` +
+      'pg driver cannot open. Falling back to the ephemeral filesystem. Set DATABASE_URL ' +
+      'to the DIRECT TCP connection string from the Prisma Postgres dashboard ' +
+      '(postgres://…@db.prisma.io:5432/postgres?sslmode=require).',
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[db] No Postgres URL is set — auth + project data is on the ephemeral ' +
+      'filesystem. Sign-ins and saved projects will NOT survive a cold start.',
+    );
+  }
 }
 
 const withLock = USE_PG ? pgWithLock : fileWithLock;
