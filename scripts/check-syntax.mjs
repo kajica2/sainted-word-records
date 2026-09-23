@@ -25,7 +25,7 @@ import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 
 const ROOT = process.cwd();
-const EXCLUDE_DIRS = new Set(['node_modules', 'dist', 'dist-dev', '.vite', '.git', '.hermes', 'public']);
+const EXCLUDE_DIRS = new Set(['node_modules', 'dist', 'dist-dev', '.vite', '.git', '.hermes', 'public', '.worktrees']);
 const EXCLUDE_FILES = new Set([]); // none yet
 
 /** @type {string[]} */
