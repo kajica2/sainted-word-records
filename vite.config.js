@@ -206,6 +206,23 @@ function copyStatic() {
     'project.js',
     'share.client.js',
     'timeline.client.js',
+    // Landing-page variants for each persona (linked from
+    // /personas registry cards). v1..v11 ship from the project root;
+    // they're not auto-discovered by the SITE_MAP_ROOT_FILES derivation
+    // because no nav/footer entry points at them — they're reached via
+    // the registry cards on /personas. Listed here so vite copy-static
+    // ships them to dist.
+    'landing-personas-v1-editorial.html',
+    'landing-personas-v2-dark.html',
+    'landing-personas-v3-friendly.html',
+    'landing-personas-v4-dashboard.html',
+    'landing-personas-v5-brutalist.html',
+    'landing-personas-v6-wireframe.html',
+    'landing-personas-v7-riso.html',
+    'landing-personas-v8-broadcast.html',
+    'landing-personas-v9-cassette.html',
+    'landing-personas-v10-neon.html',
+    'landing-personas-v11-zine.html',
     'trim.client.js',
     'wizard.js',
     'icons/apple-touch-icon-180.png',
