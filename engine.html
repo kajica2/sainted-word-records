@@ -1942,6 +1942,23 @@
     </script>
 
     <section id="stage">
+      <!-- .bottom overlay (Block A: persistent data ribbon) was added in
+           commit 6de8e25 (Console engine integration) but never styled and
+           currently renders unstyled HTML — visible ▾ ADVANCED / ● REC
+           buttons that the engine.html UI doesn't use. Hide by default;
+           the Console variant (versions/console.html) provides its own
+           equivalent panel if needed. Defensive: if any future merge
+           reintroduces the div, it stays invisible here. -->
+      <div class="bottom" hidden style="display:none !important;">
+        <button class="adv">▾ ADVANCED</button>
+        <div class="waveform">
+          <span>WAVEFORM</span>
+          <canvas id="bottomWave"></canvas>
+          <b>BEATS</b>
+        </div>
+        <button class="rec">● REC</button>
+      </div>
+
       <canvas id="render" width="1280" height="720"></canvas>
       <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <div id="stage-flash"></div>
