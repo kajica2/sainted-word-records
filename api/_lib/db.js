@@ -403,15 +403,24 @@ export async function softDeleteProject(userId, id) {
 }
 
 // =====================================================================
-// STORAGE (signed-upload + signed-download emulation)
+// STORAGE (signed-upload + signed-download)
 // =====================================================================
 //
-// We don't have S3 in the dev slice. Instead we expose:
-//   - createSignedUpload(userId, key, contentType) → { uploadUrl, key, method, fields }
-//     For local: uploadUrl = `/api/storage/upload?key=<userId>/<key>`, method=PUT
-//   - readSignedDownload(userId, key) → { downloadUrl, expiresAt }
-//     For local: downloadUrl = `/api/storage/object?key=<userId>/<key>}`
-// All files live under data/storage/<userId>/.
+// Two backends, selected at module load by env:
+//   1. Vercel Blob (default when BLOB_READ_WRITE_TOKEN is set — Vercel
+//      auto-injects this when a Blob store is linked to the project).
+//      Clients PUT/GET directly to Blob's signed URLs; /api/storage/object
+//      becomes unused.
+//   2. Local filesystem (fallback when BLOB_READ_WRITE_TOKEN is unset —
+//      keeps `npm run dev` working without a Vercel account). Files live
+//      under <SWRC_DATA_DIR>/storage/<userId>/. Same function signatures
+//      so callers + handlers don't care which backend is active.
+//
+// Switching backends requires NO code changes — just set/unset the env
+// var and restart. Env-skip pattern means the dev slice never breaks
+// even if Vercel Blob is the production backend.
+
+import { put as blobPut, del as blobDel, head as blobHead } from '@vercel/blob';
 
 export function safeKey(key) {
   if (typeof key !== 'string') throw new Error('key required');
@@ -423,9 +432,29 @@ export function safeKey(key) {
   return key.replace(/^\/+/, '');
 }
 
+// True when Vercel Blob is wired up. Auto-detected at module load — the
+// Vercel platform sets BLOB_READ_WRITE_TOKEN when the project links a
+// Blob store, so this is true in production and false in `npm run dev`
+// (unless the user explicitly opts in locally).
+const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+if (!USE_BLOB && process.env.NODE_ENV !== 'test') {
+  // One-time warning so devs know uploads vanish on cold starts.
+  // Use console.warn (not console.log) so it's visible without -v.
+  // Skip in test env so the verify suite stays silent.
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[db] BLOB_READ_WRITE_TOKEN not set — using local-FS storage. ' +
+    'Data WILL be lost on Vercel cold starts. Set BLOB_READ_WRITE_TOKEN to use Vercel Blob.'
+  );
+}
+
 export async function createSignedUpload(userId, key, contentType) {
   const safe = safeKey(key);
   const uploadKey = `${userId}/${safe}`;
+  // The URL is Vercel-hosted in BOTH backends — the storage layer decides
+  // where the bytes actually land (Blob vs local-FS). This keeps the
+  // client contract identical across environments and avoids a second
+  // upload protocol (Vercel Blob's client-token flow) in the browser.
   return {
     method: 'PUT',
     uploadUrl: `/api/storage/object?key=${encodeURIComponent(uploadKey)}`,
@@ -447,16 +476,47 @@ export async function readSignedDownload(userId, key) {
 export async function storagePut(userId, key, body /* Buffer | Uint8Array | string */, contentType) {
   // `key` may already include the userId prefix (from signed-upload); if not, add it.
   const safe = safeKey(key.startsWith(userId + '/') ? key.slice(userId.length + 1) : key);
+  const fullKey = `${userId}/${safe}`;
+  if (USE_BLOB) {
+    // On Vercel Blob, the client PUTs directly to the signed URL — the
+    // server-side put path is only exercised by the local fallback or
+    // admin tools. We mirror the body to Blob so storageGet reads see
+    // the same bytes regardless of whether the upload came via the
+    // signed URL or via direct API calls.
+    const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
+    const result = await blobPut(fullKey, buf, {
+      access: 'public',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType: contentType || 'application/octet-stream',
+    });
+    return { key: fullKey, size: buf.length, contentType: contentType || 'application/octet-stream', url: result.url };
+  }
   const fullPath = join(ROOT, 'storage', userId, safe);
   ensureDir(dirname(fullPath));
   const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
   await fs.writeFile(fullPath, buf);
   const st = await fs.stat(fullPath);
-  return { key: `${userId}/${safe}`, size: st.size, contentType: contentType || 'application/octet-stream' };
+  return { key: fullKey, size: st.size, contentType: contentType || 'application/octet-stream' };
 }
 
 export async function storageGet(userId, key /* may include userId prefix or not */) {
   const safe = safeKey(key.startsWith(userId + '/') ? key.slice(userId.length + 1) : key);
+  const fullKey = `${userId}/${safe}`;
+  if (USE_BLOB) {
+    // Blobs are written with access:'public'; the key contains the user's
+    // UUID so it's not enumerable in practice. head() gives us the CDN URL.
+    try {
+      const stat = await blobHead(fullKey);
+      if (!stat || !stat.url) return null;
+      const res = await fetch(stat.url);
+      if (!res.ok) return null;
+      const ab = await res.arrayBuffer();
+      return { body: Buffer.from(ab), size: ab.byteLength };
+    } catch (e) {
+      return null;
+    }
+  }
   const fullPath = join(ROOT, 'storage', userId, safe);
   try {
     const buf = await fs.readFile(fullPath);
@@ -469,6 +529,18 @@ export async function storageGet(userId, key /* may include userId prefix or not
 
 export async function storageHead(userId, key) {
   const safe = safeKey(key.startsWith(userId + '/') ? key.slice(userId.length + 1) : key);
+  const fullKey = `${userId}/${safe}`;
+  if (USE_BLOB) {
+    // @vercel/blob head() throws BlobNotFoundError (it does not return
+    // null) — catch it and map to the null contract the callers expect.
+    try {
+      const stat = await blobHead(fullKey);
+      return stat ? { size: stat.size } : null;
+    } catch (e) {
+      if (e && (e.name === 'BlobNotFoundError' || /not found/i.test(String(e.message)))) return null;
+      throw e;
+    }
+  }
   const fullPath = join(ROOT, 'storage', userId, safe);
   try {
     const st = await fs.stat(fullPath);
@@ -481,6 +553,16 @@ export async function storageHead(userId, key) {
 
 export async function storageDelete(userId, key) {
   const safe = safeKey(key.startsWith(userId + '/') ? key.slice(userId.length + 1) : key);
+  const fullKey = `${userId}/${safe}`;
+  if (USE_BLOB) {
+    try {
+      await blobDel(fullKey);
+      return true;
+    } catch (e) {
+      if (e && /not found/i.test(String(e.message))) return false;
+      return false;
+    }
+  }
   const fullPath = join(ROOT, 'storage', userId, safe);
   try {
     await fs.unlink(fullPath);

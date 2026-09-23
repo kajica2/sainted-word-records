@@ -12,11 +12,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
-    "check": "npm run check:syntax && npm run check:bundle && npm run check:automix-unit && npm run check:gradient-dot-unit && npm run check:depth-blend-unit && npm run check:last-mix-unit && npm run check:get-preset-unit && npm run check:preset-cycle-unit && npm run check:preset-pick-unit && npm run check:layer-state-unit && npm run check:with-dist-unit && npm run check:auth-unit && node scripts/test-api.mjs && npm run check:dashboard && npm run check:variant-switcher-unit && npm run check:variant-switcher-smoke && npm run check:media-input-unit && npm run check:spit-live-unit && npm run check:capture-unit && npm run check:photo-slideshow && npm run check:default-library",
+    "check": "npm run check:syntax && npm run check:bundle && npm run check:automix-unit && npm run check:gradient-dot-unit && npm run check:depth-blend-unit && npm run check:last-mix-unit && npm run check:get-preset-unit && npm run check:preset-cycle-unit && npm run check:preset-pick-unit && npm run check:layer-state-unit && npm run check:with-dist-unit && npm run check:auth-unit && npm run check:storage-blob-unit && node scripts/test-api.mjs && npm run check:dashboard && npm run check:variant-switcher-unit && npm run check:variant-switcher-smoke && npm run check:media-input-unit && npm run check:spit-live-unit && npm run check:capture-unit && npm run check:photo-slideshow && npm run check:default-library",
     "check:full": "npm run check && npm run check:verify && npm run check:automix-smoke && npm run check:storyboard && npm run verify:automix && npm run check:capture-smoke && npm run check:media-input-smoke && npm run check:spit-live-smoke",
     "check:syntax": "node scripts/check-syntax.mjs",
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
     "check:auth-unit": "node scripts/check-auth-unit.mjs",
+    "check:storage-blob-unit": "node scripts/check-storage-blob-unit.mjs",
     "check:unit": "npm run test:generated-audio && npm run test:mascot-states && node scripts/check-asset-curator-unit.mjs && node scripts/check-narrative-unit.mjs && npm run test:asset-curator",
     "test:asset-curator-unit": "node scripts/check-asset-curator-unit.mjs",
     "test:generated-audio": "node tests/generated-audio.test.mjs",
@@ -116,6 +117,7 @@
     "vite": "^5.4.10"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
     "nodemailer": "^10.0.8"
   }
 }

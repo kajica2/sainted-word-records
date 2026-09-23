@@ -1,7 +1,18 @@
-// api/storage/object.js — PUT/GET/HEAD/DELETE backed by the local file store.
-// In production with R2/S3, this endpoint would not exist; clients would
-// PUT/GET directly to the signed bucket URL. In the dev slice, we route
-// through here so the client code is identical.
+// api/storage/object.js — proxy for the storage layer.
+//
+// The URL shape is identical in both backends; the storage layer
+// (api/_lib/db.js) decides where the bytes actually land:
+//   - Vercel Blob (BLOB_READ_WRITE_TOKEN set — production): PUT writes
+//     via @vercel/blob put(); GET reads via head().url + fetch(). Data
+//     survives cold starts.
+//   - Local-FS (token unset — `npm run dev`): writes/reads
+//     <SWRC_DATA_DIR>/storage/<userId>/. Data is ephemeral on Vercel.
+//
+// The unconditional guards here (cross-user 403, path-traversal 400)
+// run in both backends; the verifier exercises them.
+//
+// Optional direct-to-Blob uploads (client-token flow) would remove the
+// serverless proxy hop but require a different client API; deferred.
 
 import { requireUser } from '../_lib/session.js';
 import { storagePut, storageGet, storageHead, storageDelete, rateLimit, safeKey } from '../_lib/db.js';
