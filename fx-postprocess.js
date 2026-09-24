@@ -456,7 +456,12 @@
       // underlying stage canvas still draws every frame via engine-render;
       // we just don't re-process it. Resumes automatically on the first
       // non-zero uniform because anyFxActive() is re-checked each RAF.
-      if (!anyFxActive()) {
+      // EXCEPTION: a pending automix override must NOT be skipped — on a
+      // page whose persona defaults are all zero (engine.html), state can
+      // only become non-zero THROUGH the override-consumption block below,
+      // so the fast-path would lock automix out forever (variants never
+      // noticed: their personas start non-zero, keeping the loop hot).
+      if (!anyFxActive() && !((window.SWR && window.SWR._fxOverride) || null)) {
         if (overlayVisible) {
           out.style.display = 'none';
           overlayVisible = false;
