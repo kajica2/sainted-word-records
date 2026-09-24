@@ -213,6 +213,7 @@
     // directly (smoke, etc.) invalidate correctly when audio changes.
     return assetId + '|' + r._v + '|' + r.scale + '|' + r.x + '|' + r.y + '|' + r.rot +
            '|' + r.opacity + '|' + r.hue + '|' + r.brightness + '|' + r.contrast +
+           '|f=' + (r.flipX ? 1 : 0) +
            '|a=' + audioHash;
   }
 
@@ -373,6 +374,10 @@
           r = window.SWR_LFOS.apply(dt, l, r);
         }
         const assetId = l.asset ? l.asset.id : 'none';
+        // Horizontal mirror flag — set per-swap by the layer scheduler's
+        // mirror mode (consecutive clips alternate facing). Read onto the
+        // reactor so the version hash busts the draw cache on flip.
+        if (l.__mirrored) r.flipX = true;
         const version = hashVersion(buildVersion(r, assetId, audioHash));
         const force = state.activeSet.has(l.id) || state.dirty;
 
@@ -380,7 +385,9 @@
         if (cached) {
           // Blit cached layer. Cached canvas is at backing-store size; draw it
           // sized to CSS px so the transform we set above scales it.
+          if (r.flipX) { ctx.save(); ctx.translate(state.cssW, 0); ctx.scale(-1, 1); }
           ctx.drawImage(cached, 0, 0, state.cssW, state.cssH);
+          if (r.flipX) ctx.restore();
         } else {
           // Render into offscreen at backing-store size, then blit.
           const oc = makeOffscreen(backingW, backingH);
@@ -399,7 +406,9 @@
             }
           }
           setCached(l.id, version, oc);
+          if (r.flipX) { ctx.save(); ctx.translate(state.cssW, 0); ctx.scale(-1, 1); }
           ctx.drawImage(oc, 0, 0, state.cssW, state.cssH);
+          if (r.flipX) ctx.restore();
         }
       } catch (err) {
         // Defensive: applyR, T.step, or SWR_LFOS.apply threw. Skip this

@@ -57,6 +57,13 @@
     poolIds: [],
     lastSwapAt: 0,
     swapCount: 0,
+    // Mirror mode: consecutive clip swaps alternate horizontal facing
+    // (layer.__mirrored toggles per swap) — same clip re-used across acts
+    // reads as a different composition when it faces the other way.
+    // Persisted; togglable in the scheduler panel + programmatic API.
+    mirror: (function () {
+      try { return localStorage.getItem('swr.ls.mirror') === '1'; } catch (_) { return false; }
+    })(),
   };
 
   // ---- Helpers ----
@@ -99,6 +106,11 @@
     if (!asset) return false;
     const layer = findLayerByIndex(layerIndex === -1 ? -1 : layerIndex);
     if (!layer) return false;
+
+    // Mirror mode: flip the layer's facing on each swap so consecutive
+    // clips alternate — when disabled, clear any stale flag.
+    if (state.mirror) layer.__mirrored = !layer.__mirrored;
+    else layer.__mirrored = false;
 
     // Cross-fade under the curtain (A2 reactor morph). If SWR_TIMING is
     // available, hand the swap to its crossfade() — it will:
@@ -189,6 +201,10 @@
       <label style="display:flex;align-items:center;gap:6px;margin:4px 0;">
         <input type="checkbox" id="ls-beat" />
         <span>beat-sync (4 bars)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer;">
+        <input type="checkbox" id="ls-mirror" />
+        <span>mirror consecutive swaps</span>
       </label>
       <div style="display:flex;gap:6px;margin-top:8px;">
         <button id="ls-refresh" style="flex:1;padding:4px 8px;background:#222;color:#ddd;border:1px solid #444;border-radius:6px;cursor:pointer;">refresh pool</button>
@@ -290,6 +306,18 @@
     const minIn = $('ls-min');
     const maxIn = $('ls-max');
     const beatIn = $('ls-beat');
+    const mirrorIn = $('ls-mirror');
+    if (mirrorIn) {
+      mirrorIn.checked = state.mirror;
+      mirrorIn.addEventListener('change', () => {
+        state.mirror = mirrorIn.checked;
+        try { localStorage.setItem('swr.ls.mirror', state.mirror ? '1' : '0'); } catch (_) {}
+        if (!state.mirror) {
+          const Layers = getLayers();
+          (Layers && Layers.list || []).forEach(l => { l.__mirrored = false; });
+        }
+      });
+    }
     const status = $('ls-status');
     const stats = $('ls-stats');
 
@@ -400,6 +428,17 @@
         state.beatSnap = cfg.beatSync;
       }
       if (typeof cfg.enabled === 'boolean') state.enabled = cfg.enabled;
+      if (typeof cfg.mirror === 'boolean') {
+        state.mirror = cfg.mirror;
+        try { localStorage.setItem('swr.ls.mirror', cfg.mirror ? '1' : '0'); } catch (_) {}
+        const mirrorIn = document.getElementById('ls-mirror');
+        if (mirrorIn) mirrorIn.checked = cfg.mirror;
+        if (!cfg.mirror) {
+          // Clear stale flips so layers face their natural way again.
+          const Layers = getLayers();
+          (Layers && Layers.list || []).forEach(l => { l.__mirrored = false; });
+        }
+      }
       // Keep the panel inputs honest with the programmatic state.
       const minIn = document.getElementById('ls-min');
       const maxIn = document.getElementById('ls-max');
@@ -427,6 +466,7 @@
         minSeconds: state.minSeconds,
         maxSeconds: state.maxSeconds,
         beatSync: state.beatSync,
+        mirror: state.mirror,
       };
     },
   };
