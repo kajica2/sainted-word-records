@@ -44,22 +44,32 @@
     var sched = window.SWR_LAYER_SCHEDULER;
     if (!sched || typeof sched.setConfig !== 'function') return false;
     var profile = PROFILES[actName] || DEFAULT_PROFILE;
-    // Never fight the user mid-edit: if the panel's values already match
-    // what we applied, still push (cheap) — but skip redundant DOM churn.
+    var minSeconds = profile.minSeconds;
+    var maxSeconds = profile.maxSeconds;
+    // Global invariant: a clip never stays visible longer than 8 bars.
+    // Bars are tempo-dependent — 8 bars = 32 beats = 32·60/bpm seconds —
+    // so the cap is computed from the live BPM (analyzed or realtime;
+    // 120 fallback). At 115 BPM the cap is ~16.7s, which only bites the
+    // slow profiles (breakdown 20s); at 140 BPM it's ~13.7s.
+    var bpm = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat && window.SWR.Audio.feat.bpm) || 0;
+    if (!(bpm > 0)) bpm = 120;
+    var cap8 = (32 * 60 / bpm);
+    if (maxSeconds > cap8) maxSeconds = cap8;
+    if (minSeconds > maxSeconds) minSeconds = maxSeconds;
     var same = lastApplied &&
-      lastApplied.minSeconds === profile.minSeconds &&
-      lastApplied.maxSeconds === profile.maxSeconds;
+      lastApplied.minSeconds === minSeconds &&
+      lastApplied.maxSeconds === maxSeconds;
     if (same) return true;
     sched.setConfig({
       enabled: true,
-      minSeconds: profile.minSeconds,
-      maxSeconds: profile.maxSeconds,
+      minSeconds: minSeconds,
+      maxSeconds: maxSeconds,
       beatSync: true, // fades land on the beat — visibly tighter cuts
     });
-    lastApplied = profile;
+    lastApplied = { minSeconds: minSeconds, maxSeconds: maxSeconds };
     try {
       document.dispatchEvent(new CustomEvent('swr-composition-change', {
-        detail: { act: actName, profile: profile, reason: reason || 'act-change' },
+        detail: { act: actName, profile: { minSeconds: minSeconds, maxSeconds: maxSeconds }, reason: reason || 'act-change' },
       }));
     } catch (_) {}
     return true;
