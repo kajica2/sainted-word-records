@@ -150,7 +150,7 @@ refresh. Assets are stale-while-revalidate: one load to converge, offline intact
   14 FX fields every 5s for 80–180s on engine.html and requires ≥0.3 absolute
   movement of at least one field per fully-observed arc act, plus the pill's
   act-context format. Sprint gate (too slow for check:full).
-- `verify-transitions.mjs` — 58 checks incl. `?diag=1` payload + intensity invariant
+- `verify-transitions.mjs` — 60 checks incl. `?diag=1` payload + intensity invariant
   (setIntensity never mutates `FX.state`).
 - `verify-automix-cross-surface.mjs` — 77 checks, three tiers: full (engine + 5
   core), min (17 artistic), off (echo-manifold opt-out).
