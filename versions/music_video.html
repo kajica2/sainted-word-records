@@ -1630,8 +1630,17 @@
     // We still wire up #reset-state so the user can clear their
     // uploaded assets and IDB-persisted song in one click.
     function __swr_libboot() {
-      // Intentionally a no-op. The neon/film/etc pages call
-      // SWR_LIBLOAD.boot() here. We don't.
+      // Deliberately skips the shared curated-manifest loader (see above),
+      // but user uploads must still persist. augment() adds the IndexedDB
+      // write path + hydrate without pulling the curated set in — boot()
+      // would, which is exactly why it isn't used here.
+      if (typeof Lib === 'undefined' || !Lib) return;
+      if (!window.SWR_LIB_PERSIST) {
+        console.warn('[swr-libload] SWR_LIB_PERSIST not loaded — user uploads will NOT persist on this page');
+        return;
+      }
+      window.SWR_LIB_PERSIST.augment(Lib);
+      if (typeof Lib.hydrate === 'function') Lib.hydrate();
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
@@ -4416,6 +4425,7 @@
   })();
 </script>
   <script src="../lib/media-store.client.js" defer></script>
+  <script src="../lib/library-persist.client.js" defer></script>
   <script src="../lib/user-media-mount.client.js" defer></script>
   <style>
     /* Phase 4 active-state styling for the automix toolbar buttons */

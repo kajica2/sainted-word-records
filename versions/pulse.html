@@ -1031,13 +1031,17 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
         console.warn('[swr-libload] inline Lib not found at boot time');
         return;
       }
-      window.SWR_LIBLOAD.boot({
+      if (!window.SWR_LIB_PERSIST) {
+        console.warn('[swr-libload] SWR_LIB_PERSIST not loaded — user uploads will NOT persist on this page');
+        return;
+      }
+      window.SWR_LIB_PERSIST.boot(Lib, {
         manifestUrl: null,
         filePrefix:  '../library/',
         phase1Count: 8,
-        Lib: Lib,
-        doneFlag: 'swr-manifest-loaded',
-      }).then(() => { try { Layers.remap(); } catch (_) {} });
+        doneFlag:    'swr-manifest-loaded',
+        onReady:     function () { try { Layers.remap(); } catch (_) {} },
+      });
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
@@ -1250,6 +1254,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="../engine-genops.client.js"></script>
 <script src="./last-song.js"></script>
 <script src="../lib/media-store.client.js"></script>
+  <script src="../lib/library-persist.client.js" defer></script>
   <script src="../lib/persist.client.js"></script>
   <script src="../lib/persist-wire.client.js"></script>
 <script>
