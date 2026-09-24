@@ -441,7 +441,11 @@ Conflict discipline, because this layer sits under 68 pages:
 Rollout: 68 pages (every page loading `nav.client.js`). `engine.html` is
 intentionally excluded — its only `nav.client.js` hit is inside the
 self-contained-HTML export template string, and the engine surface already
-has the richer `engine-keys` keymap.
+has the richer `engine-keys` keymap. `swr-app.html` sets
+`SWR_SITE_KEYS_DISABLE = true`: it ships its own keymap and help overlay
+(`t/T`, `m/M`, `?`, `/`, `z`, `c`, `s`, brackets) that the `SWR_KEYS`
+deference cannot see, so it opts out. A scan of all 68 pages for literal
+`key === '…'` handlers found no other collision.
 
 Verified in a browser on a marketing page: module loads enabled with the 6
 rows; `?` opens the overlay and `Esc` closes it; `T` flips the theme; a `t`
