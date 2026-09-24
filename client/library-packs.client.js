@@ -50,6 +50,16 @@
       description: '8 stage-lit dancer silhouettes (B&W, 1456\u00D7816)',
     },
     {
+      id: 'dancer-video',
+      label: 'Dance Clips',
+      icon: '\u{1F3AC}',
+      source: 'pack',
+      packKey: 'dancer-video',
+      folder: 'dancer-video',
+      emptyMsg: 'No dance clips in the pack manifest.',
+      description: '13 looping dance clips (B&W strobe, 5s, web-optimised)',
+    },
+    {
       id: 'photos',
       label: 'Photos',
       icon: '📸',
