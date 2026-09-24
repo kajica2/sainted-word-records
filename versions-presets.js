@@ -1262,6 +1262,24 @@ const PRESETS = {
     init();
   }
 
+  // Keyboard map: Shift+1..9 applies SHORTCUT_PRESETS[n-1] (the stable
+  // "most distinctive" ordering above). Keyed off e.code Digit1..Digit9 —
+  // with Shift held, e.key is the shifted glyph ('!' '@' …) on US layouts,
+  // so the physical code is the only stable identity. Typing in a field
+  // never jumps presets.
+  window.addEventListener('keydown', function (e) {
+    if (!e.shiftKey) return;
+    var m = /^Digit([1-9])$/.exec(e.code || '');
+    if (!m) return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' ||
+              t.tagName === 'SELECT' || t.isContentEditable)) return;
+    var pageKey = (window.VersionsPresets && window.VersionsPresets.SHORTCUT_PRESETS ||
+      [])[Number(m[1]) - 1];
+    if (!pageKey) return;
+    if (window.VersionsPresets.applyPreset(pageKey)) e.preventDefault();
+  });
+
   window.VersionsPresets = {
     PRESETS,
     init,
