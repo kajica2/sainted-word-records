@@ -1262,22 +1262,36 @@ const PRESETS = {
     init();
   }
 
-  // Keyboard map: Shift+1..9 applies SHORTCUT_PRESETS[n-1] (the stable
-  // "most distinctive" ordering above). Keyed off e.code Digit1..Digit9 —
-  // with Shift held, e.key is the shifted glyph ('!' '@' …) on US layouts,
-  // so the physical code is the only stable identity. Typing in a field
-  // never jumps presets.
+  // Keyboard map: 1..9 (plain or Shift+) applies SHORTCUT_PRESETS[n-1]
+  // (the stable "most distinctive" ordering above). Keyed off e.code
+  // Digit1..Digit9 — with Shift held, e.key is the shifted glyph ('!' '@'
+  // …) on US layouts, so the physical code is the only stable identity.
+  // Typing in a field never jumps presets. Application mirrors the
+  // Tab-cycle idiom: _fxOverride for pages that consume it, persona +
+  // swr:preset-applied for FX.setPersona pages and page-local listeners,
+  // then the cycle/pick/gradient bookkeeping so the next Tab press
+  // continues from the jumped-to preset.
   window.addEventListener('keydown', function (e) {
-    if (!e.shiftKey) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
     var m = /^Digit([1-9])$/.exec(e.code || '');
     if (!m) return;
     var t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' ||
               t.tagName === 'SELECT' || t.isContentEditable)) return;
-    var pageKey = (window.VersionsPresets && window.VersionsPresets.SHORTCUT_PRESETS ||
-      [])[Number(m[1]) - 1];
+    var VP = window.VersionsPresets;
+    var pageKey = (VP && VP.SHORTCUT_PRESETS || [])[Number(m[1]) - 1];
     if (!pageKey) return;
-    if (window.VersionsPresets.applyPreset(pageKey)) e.preventDefault();
+    var viaOverride = !!(VP.setPresetOverride && VP.setPresetOverride(pageKey));
+    var viaPersona = !!VP.applyPreset(pageKey);
+    if (!viaOverride && !viaPersona) return;
+    window.__swrCurrentPreset = pageKey;
+    if (window.SWR_PRESET_PICK && typeof window.SWR_PRESET_PICK.save === 'function') {
+      window.SWR_PRESET_PICK.save(pageKey);
+    }
+    if (window.SWR && window.SWR.Gradient && typeof window.SWR.Gradient.setAutomixAnchor === 'function') {
+      window.SWR.Gradient.setAutomixAnchor(pageKey);
+    }
+    e.preventDefault();
   });
 
   window.VersionsPresets = {
