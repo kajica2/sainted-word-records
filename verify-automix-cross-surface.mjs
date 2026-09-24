@@ -204,6 +204,8 @@ async function checkSurface(page, label, path, expectsStack) {
       for (const s of scripts) out[s] = nodes.some(n => (n.getAttribute('src') || '').includes(s));
       out['#automix-toggle'] = !!document.getElementById('automix-toggle');
       out['#automix-state'] = !!document.getElementById('automix-state');
+      out['#fx-intensity'] = !!(document.getElementById('fx-intensity') ||
+        document.querySelector('[data-fx-intensity-mount]'));
       out['SWR_ANCHOR_MAP'] = !!(window.SWR_ANCHOR_MAP && typeof window.SWR_ANCHOR_MAP.neighbours === 'function');
       return out;
     }, AUTOMIX_MIN_SCRIPTS);

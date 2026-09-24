@@ -305,6 +305,7 @@
 <script src="../lib/reset-state.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
   <script src="../client/anchor-embed.js"></script>
+<script src="../lib/intensity-slider.client.js" defer></script>
   <script src="../client/automix.client.js"></script>
   <script src="../client/automix-runtime.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
@@ -375,6 +376,7 @@
       <span class="gc">sens <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1.2" /> <b id="sens-v">1.20</b></span>
       <span class="gc">gate <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.4" /> <b id="gate-v">1.40</b></span>
       <span class="gc">decay <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.85" /> <b id="decay-v">0.85</b></span>
+      <span data-fx-intensity-mount></span>
       <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--rim);">— fps</span>

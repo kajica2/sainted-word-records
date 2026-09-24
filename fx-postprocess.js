@@ -544,20 +544,27 @@
       gl.uniform1f(u.mid,       state.mid);
       gl.uniform1f(u.treble,    state.treble);
       gl.uniform1f(u.beat,      state.beat);
-      gl.uniform1f(u.temp,      state.temp);
-      gl.uniform1f(u.mut,       state.mut);
+      // FX intensity master multiplier (0…1). Applied ONLY here — the
+      // render/uniform boundary — never written back into `state`, so
+      // personas, automix overrides, LFOs and sliders keep their canonical
+      // values and dragging intensity back to 1 is an exact restore.
+      // mutAlgo is an algorithm selector (not an amount) and the audio
+      // features are inputs, not filters — both stay unscaled.
+      const k = (typeof FX_INTENSITY === 'number') ? FX_INTENSITY : 1;
+      gl.uniform1f(u.temp,      state.temp * k);
+      gl.uniform1f(u.mut,       state.mut * k);
       gl.uniform1f(u.mutAlgo,   state.mutAlgo);
-      gl.uniform1f(u.posterize, state.posterize);
-      gl.uniform1f(u.vignette,  state.vignette);
-      gl.uniform1f(u.chroma,    state.chroma);
-      gl.uniform1f(u.grain,     state.grain);
-      gl.uniform1f(u.sepia,     state.sepia);
-      gl.uniform1f(u.glow,      state.glow);
-      gl.uniform1f(u.grayscale, state.grayscale);
-      gl.uniform1f(u.blur,      state.blur);
-      gl.uniform1f(u.liquid,    state.liquid);
-      gl.uniform1f(u.pearl,     state.pearl);
-      gl.uniform1f(u.glitch,    state.glitch);
+      gl.uniform1f(u.posterize, state.posterize * k);
+      gl.uniform1f(u.vignette,  state.vignette * k);
+      gl.uniform1f(u.chroma,    state.chroma * k);
+      gl.uniform1f(u.grain,     state.grain * k);
+      gl.uniform1f(u.sepia,     state.sepia * k);
+      gl.uniform1f(u.glow,      state.glow * k);
+      gl.uniform1f(u.grayscale, state.grayscale * k);
+      gl.uniform1f(u.blur,      state.blur * k);
+      gl.uniform1f(u.liquid,    state.liquid * k);
+      gl.uniform1f(u.pearl,     state.pearl * k);
+      gl.uniform1f(u.glitch,    state.glitch * k);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
@@ -569,10 +576,27 @@
     const ro = new ResizeObserver(() => sizeFx());
     ro.observe(stageCanvas);
 
+    // ---- FX intensity master multiplier (0…1, default 1) ----------------
+    // Closure-private so it can only change via FX.setIntensity (which
+    // clamps + persists). Read per-frame by the uniform-write block.
+    var FX_INTENSITY = 1;
+    try {
+      var savedInt = parseFloat(localStorage.getItem('swr.fx.intensity'));
+      if (isFinite(savedInt)) FX_INTENSITY = Math.max(0, Math.min(1, savedInt));
+    } catch (_) {}
+
     // Expose for the wizard
     window.FX = {
       state,
       FRAG_SOURCE,
+      get intensity() { return FX_INTENSITY; },
+      setIntensity(v) {
+        var n = typeof v === 'number' && isFinite(v) ? v : parseFloat(v);
+        if (!isFinite(n)) return FX_INTENSITY;
+        FX_INTENSITY = Math.max(0, Math.min(1, n));
+        try { localStorage.setItem('swr.fx.intensity', String(FX_INTENSITY)); } catch (_) {}
+        return FX_INTENSITY;
+      },
       setTemp(v) { state.temp = Math.max(-1, Math.min(1, v)); },
       setMut(v)  { state.mut  = Math.max(0, Math.min(1, v)); },
       setAlgo(a) { state.mutAlgo = Math.max(0, Math.min(5, Math.floor(a))); },

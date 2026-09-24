@@ -2035,6 +2035,12 @@
       </span>
       <span class="separator"></span>
       <span class="gctrl">
+        fx
+        <input type="range" id="fx-intensity" min="0" max="1" step="0.05" value="1" />
+        <b id="fx-intensity-v">1.00</b>
+      </span>
+      <span class="separator"></span>
+      <span class="gctrl">
         temp
         <input type="range" id="temperature" min="-1" max="1" step="0.02" value="0" />
         <b id="temperature-v">0.00</b>
@@ -6415,6 +6421,7 @@
   <script type="module" src="/engine-automap.client.js"></script>
   <script defer src="/lib/generated-audio.client.js"></script>
   <script type="module" src="/engine-settings.client.js"></script>
+  <script src="/lib/intensity-slider.client.js" defer></script>
   <script type="module" src="/engine-keys.client.js"></script>
   <script type="module" src="/project.client.js"></script>
   <script type="module">
@@ -7026,6 +7033,8 @@
         try {
           if (window.FX && window.FX.state) {
             out.fx = JSON.parse(JSON.stringify(window.FX.state));
+            out.fxIntensity = (typeof window.FX.intensity === 'number') ? window.FX.intensity :
+              (typeof window.SWR_FX_INTENSITY === 'number' ? window.SWR_FX_INTENSITY : 1);
           }
         } catch (_) {}
         // Active preset key (use the engine's helper if exposed on window,

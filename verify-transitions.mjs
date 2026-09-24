@@ -659,6 +659,36 @@ try {
     }
   });
 
+  await step('?diag=1 fxIntensity is a 0..1 number', async () => {
+    if (!diagParsed) throw new Error('no parsed payload');
+    const v = diagParsed.fxIntensity;
+    if (typeof v !== 'number' || !isFinite(v) || v < 0 || v > 1) {
+      throw new Error(`fxIntensity = ${v}`);
+    }
+  });
+
+  await step('FX.setIntensity scales uniforms, never mutates FX.state', async () => {
+    // The double-scaling guard: intensity is a render-time multiplier.
+    // State values are canonical and must be untouched by the knob.
+    const r = await page.evaluate(() => {
+      if (!window.FX || !window.FX.setIntensity) return { ok: false, reason: 'FX.setIntensity missing' };
+      const before = JSON.parse(JSON.stringify(window.FX.state));
+      const clamped = window.FX.setIntensity(0.5);
+      const stateAtHalf = JSON.parse(JSON.stringify(window.FX.state));
+      const overClamped = window.FX.setIntensity(7);   // → 1
+      const underClamped = window.FX.setIntensity(-3); // → 0
+      const restored = window.FX.setIntensity(1);
+      const stateAfter = JSON.parse(JSON.stringify(window.FX.state));
+      const stateKeys = ['temp', 'mut', 'posterize', 'vignette', 'chroma', 'grain', 'glow'];
+      const stateUntouched = stateKeys.every(k => stateAtHalf[k] === before[k] && stateAfter[k] === before[k]);
+      return {
+        ok: stateUntouched && clamped === 0.5 && overClamped === 1 && underClamped === 0 && restored === 1,
+        reason: stateUntouched ? 'clamp/restore wrong' : 'state mutated by setIntensity',
+      };
+    });
+    if (!r.ok) throw new Error(r.reason);
+  });
+
   await step('?diag=1 non-diag mode leaves no #diag-out element', async () => {
     // Close the diag page before the second navigation so we don't
     // double-handle console errors.
