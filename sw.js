@@ -1,5 +1,5 @@
 // Sainted Word Records — PWA service worker
-const CACHE_VERSION = 'swr-v3';
+const CACHE_VERSION = 'swr-v4';
 // Only paths that exist as separate files in the dist root after Vite build.
 // The engine now lives at /engine/ (rewritten to /engine.html). The 9 client
 // modules (project, mic-input, camera, timeline, trim, media-sets, share,
@@ -114,7 +114,13 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Same-origin assets (root-level .js, .html, .css, images): cache-first.
+  // Same-origin assets (root-level .js, .html, .css, images):
+  // STALE-WHILE-REVALIDATE. Was cache-first — which pinned the morning's
+  // JS forever: every deploy shipped to the edge but SW-controlled
+  // browsers kept serving the stale copies through any number of hard
+  // refreshes (the service worker intercepts before the network). Now:
+  // cached copy served instantly (offline-first preserved) + background
+  // fetch refreshes the cache so the NEXT load is fresh.
   if (sameOrigin) {
     e.respondWith((async () => {
       // Range requests (video/audio seeking → 206 Partial Response) can't
@@ -123,16 +129,15 @@ self.addEventListener('fetch', (e) => {
       if (req.headers.get('range')) return fetch(req);
       const cache = await caches.open(CACHE_VERSION);
       const cached = await cache.match(req);
-      if (cached) return cached;
-      try {
-        const fresh = await fetch(req);
-        if (fresh && fresh.ok && fresh.status === 200 && !fresh.headers.get('content-range')) {
-          cache.put(req, fresh.clone());
-        }
-        return fresh;
-      } catch (_) {
-        return new Response('', { status: 504, statusText: 'Gateway Timeout' });
-      }
+      const network = fetch(req)
+        .then((fresh) => {
+          if (fresh && fresh.ok && fresh.status === 200 && !fresh.headers.get('content-range')) {
+            cache.put(req, fresh.clone()).catch(() => {});
+          }
+          return fresh;
+        })
+        .catch(() => null);
+      return cached || (await network) || new Response('', { status: 504, statusText: 'Gateway Timeout' });
     })());
     return;
   }
