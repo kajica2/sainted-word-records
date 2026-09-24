@@ -513,7 +513,13 @@
         const fxFields = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette',
           'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch'];
         for (const f of fxFields) {
-          const target = typeof ov[f] === 'number' ? ov[f] : (ov.preset && ov.preset[f]) || 0;
+          // Only blend fields the automix preset actually carries — absent
+          // fields (vignette, glitch, blur, …) keep the page persona's
+          // value instead of being stomped to 0.
+          const target = (ov && typeof ov[f] === 'number') ? ov[f]
+            : (ov && ov.preset && typeof ov.preset[f] === 'number') ? ov.preset[f]
+            : null;
+          if (target === null) continue;
           const from = (ovFrom && typeof ovFrom[f] === 'number') ? ovFrom[f] : state[f];
           state[f] = from * (1 - smooth) + target * smooth;
         }
