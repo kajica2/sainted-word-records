@@ -238,6 +238,7 @@
   var automix = {
     iv: null,
     beatIv: null,
+    glideIv: null,
     enabled: false,
     frozen: false,
     locked: false,
@@ -255,6 +256,7 @@
     _lastAnchorId: null,
     _firstTickTs: 0,
     _lastIntervalMs: 0,
+    _sessionAnchors: [],
 
     toggle() {
       if (this.enabled) this.stop(); else this.start();
@@ -272,8 +274,54 @@
       this.tick();
       this._scheduleNext();
       this._startBeatPoll();
+      this._startGlideClock();
       this._updateUI('ON');
       try { localStorage.setItem('swr.automix.enabled', '1'); } catch (_) {}
+    },
+
+    // The arc's within-act glide runs on its own 1s clock, decoupled from
+    // computeTickInterval's bars-based cadence (which stretches to ~20s at
+    // low feat energy). The tick layers phrase musically; the L3 macro
+    // glide is slow continuous motion and must stay visible between ticks —
+    // otherwise the act-to-act displacement lands as one teleport per tick
+    // and "changes over time are visible" dies in the cadence.
+    _startGlideClock() {
+      clearInterval(this.glideIv);
+      this.glideIv = setInterval(this._glideTick.bind(this), 1000);
+    },
+
+    _glideTick() {
+      if (!this.enabled || this.frozen || !this.arc) return;
+      var A = (window.SWR && window.SWR.Audio) || null;
+      var el = A && (A.el || A._el || A.audioEl);
+      if (!el || !el.src) return;
+      var arcSample = window.SWR_AUTOMIX_ARC &&
+        window.SWR_AUTOMIX_ARC.sampleAt(this.arc, el.currentTime || 0);
+      if (!arcSample) return;
+      this._lastArcSample = arcSample;
+      var preset = this._arcGlidePreset(arcSample);
+      // Only re-arm the ramp when the glide actually moved — a no-op write
+      // would restart the 1s smoothstep on the same value every second.
+      var SWRo = window.SWR;
+      if (preset && (!SWRo || !SWRo._fxOverride ||
+          window.SWR_AUTOMIX.presetDistance(SWRo._fxOverride, preset) > 0.005)) {
+        this._setTarget(preset);
+        this._updatePill({
+          anchors: [{ id: arcSample.anchorId }],
+          arc: { actIndex: arcSample.actIndex, actCount: arcSample.actCount },
+        });
+      }
+    },
+
+    // Shared glide math for the arc layer and the glide clock: this act's
+    // baseline gliding toward the next act's; the last act wraps to the
+    // first baseline (the outro drifts back toward the intro's feel).
+    _arcGlidePreset(arcSample) {
+      var acts = this.arc.acts;
+      var next = acts[arcSample.actIndex + 1] || acts[0];
+      if (!next || !next.preset || !window.SWR_AUTOMIX ||
+          typeof window.SWR_AUTOMIX.lerpPreset !== 'function') return arcSample.preset;
+      return window.SWR_AUTOMIX.lerpPreset(arcSample.preset, next.preset, arcSample.actProgress);
     },
 
     // L3 song arc — build (or rebuild after a song change) from the
@@ -282,13 +330,22 @@
     // Re-triggers when the audio element's src changed (new song loaded).
     _ensureArc() {
       var A = (window.SWR && window.SWR.Audio) || null;
-      var el = A && (A.el || A._el);
+      var el = A && (A.el || A._el || A.audioEl); // engine transport exposes audioEl
       if (!window.SWR_AUTOMIX_ARC || !el) return;
       var analyze = (A && typeof A.analyzeFull === 'function')
         ? function () { return A.analyzeFull(); }
         : function () { return window.SWR_AUTOMIX_ARC.analyzeElement(el); };
       var srcKey = el.src || '';
       if (this._arcBuiltFor === srcKey) return;
+      // Song changed: flush the previous song's anchor usage into session
+      // memory (L4) before rebuilding the arc for the new one. Only hook
+      // that records — mic-only / no-element pages stay inert.
+      if (this._arcBuiltFor && window.SWR_AUTOMIX_SESSION) {
+        try {
+          window.SWR_AUTOMIX_SESSION.record(this._arcBuiltFor, this._sessionAnchors.slice(0, 8));
+        } catch (_) {}
+      }
+      this._sessionAnchors = [];
       this._arcBuiltFor = srcKey;
       var self = this;
       Promise.resolve()
@@ -309,6 +366,8 @@
       this.enabled = false;
       if (this.iv) { clearTimeout(this.iv); this.iv = null; }
       if (this.beatIv) { clearInterval(this.beatIv); this.beatIv = null; }
+      clearInterval(this.glideIv);
+      this.glideIv = null;
       if (window.SWR && window.SWR.Gradient && window.SWR.Gradient.setAutomixAnchor) {
         window.SWR.Gradient.setAutomixAnchor(null);
       }
@@ -444,22 +503,49 @@
         {
           id: 'arc', // L3 — owns the macro direction when the song arc exists
           apply: function (mix) {
-            var el = window.SWR && window.SWR.Audio && (window.SWR.Audio.el || window.SWR.Audio._el);
+            var el = window.SWR && window.SWR.Audio && (window.SWR.Audio.el || window.SWR.Audio._el || window.SWR.Audio.audioEl);
             if (!self.arc || !el) return mix; // passthrough — legacy path runs
             var arcSample = window.SWR_AUTOMIX_ARC.sampleAt(self.arc, el.currentTime || 0);
             if (!arcSample) return mix;
             self._lastArcSample = arcSample;
+            // Progress the baseline across the act (shared with the 1s
+            // glide clock): a static per-act preset converges within the
+            // 1s ramp and stays there — the displacement contract's
+            // "movement must be visible" died in the ramp. Lerping toward
+            // the next baseline (last act wraps to the first) turns the
+            // act-to-act displacement budget into inside-act motion; at
+            // the boundary the state is already on the next baseline, so
+            // the ramp is a no-op and the transition is seamless.
+            var preset = self._arcGlidePreset(arcSample);
             return {
               coords: arcSample.coords,
               anchors: [{ id: arcSample.anchorId, dist: 0, anchor: arcSample.coords }],
-              preset: arcSample.preset,
+              preset: preset,
               section: ctx.section,
               arc: { actIndex: arcSample.actIndex, actCount: arcSample.actCount, actName: arcSample.actName, actProgress: arcSample.actProgress },
             };
           },
         },
-        // Future layers slot here: { id: 'hue-bias', apply: ... }, session
-        // memory, transition-cadence — each one composes onto the mix.
+        {
+          id: 'session', // L4 — novelty: don't re-anchor where the previous songs went
+          apply: function (mix, feat, c) {
+            var sess = window.SWR_AUTOMIX_SESSION;
+            if (!mix || !mix.anchors[0] || !sess ||
+                !window.SWR_ANCHOR_MAP || !window.SWR_ANCHOR_MAP.neighbours) return mix;
+            var recent = sess.recent();
+            if (recent.indexOf(mix.anchors[0].id) === -1) return mix;
+            var nb = window.SWR_ANCHOR_MAP.neighbours(mix.coords, 4);
+            for (var i = 0; i < nb.length; i++) {
+              if (nb[i] && nb[i].anchor && nb[i].anchor.preset && recent.indexOf(nb[i].id) === -1) {
+                return { coords: mix.coords, anchors: [nb[i]], preset: nb[i].anchor.preset,
+                         section: c.section, arc: mix.arc, sessionRerouted: true };
+              }
+            }
+            return mix; // every nearby anchor is a repeat — keep the current one
+          },
+        },
+        // Future layers slot here: { id: 'hue-bias', apply: ... },
+        // transition-cadence — each one composes onto the mix.
       ];
 
       mixed = null;
@@ -502,14 +588,19 @@
         }
       }
 
-      var pill = $('synth-pill');
-      if (pill && mixed.anchors[0]) pill.textContent = 'auto · ' + mixed.anchors[0].id;
+      this._updatePill(mixed, section);
       if (SWR.Gradient && mixed.anchors[0]) {
         SWR.Gradient.setAutomixAnchor(mixed.anchors[0].id);
       }
 
       this._lastCoords = mixed.coords;
       this._lastAnchorId = mixed.anchors[0] ? mixed.anchors[0].id : null;
+
+      // L4 session memory — accumulate this song's used anchors; flushed to
+      // SWR_AUTOMIX_SESSION by _ensureArc() when the song changes.
+      if (this._lastAnchorId && this._sessionAnchors.indexOf(this._lastAnchorId) === -1) {
+        this._sessionAnchors.push(this._lastAnchorId);
+      }
 
       if (window.SWR_LAST_MIX) {
         window.SWR_LAST_MIX.save({
@@ -523,6 +614,19 @@
 
       this.tickCount += 1;
       this._emit('swr-automix-tick', { mixed: mixed, section: section });
+    },
+
+    // Pill copy: arc path carries act context (phase 3), legacy keeps the
+    // short form. Also called from the 1s glide clock, which has no fresh
+    // section — fall back to the last detected one.
+    _updatePill(mixed, section) {
+      var pill = $('synth-pill');
+      if (!pill || !mixed || !mixed.anchors[0]) return;
+      var sect = section || (this.sectionState && this.sectionState.current) || '';
+      pill.textContent = mixed.arc
+        ? 'auto · act ' + (mixed.arc.actIndex + 1) + '/' + mixed.arc.actCount +
+          ' · ' + sect + ' · ' + mixed.anchors[0].id
+        : 'auto · ' + mixed.anchors[0].id;
     },
 
     _findSceneChange(coords) {
@@ -632,7 +736,7 @@
       'automix    ' + (automix.enabled ? 'ON' : 'OFF') + (automix.frozen ? ' FROZEN' : '') + (automix.locked ? ' LOCKED' : ''),
       'song       ' + (function () {
         var A = window.SWR && window.SWR.Audio;
-        var el = A && (A.el || A._el);
+        var el = A && (A.el || A._el || A.audioEl); // engine transport exposes audioEl
         if (!el || !el.src) return 'not loaded';
         return (el.paused ? 'loaded (paused)' : 'playing') + ' · ' + Math.round(el.currentTime || 0) + 's';
       })(),
@@ -652,7 +756,7 @@
     if (fadeStr && fadeStr !== '0%') lines.unshift('FADE OUT  ' + fadeStr + '  (image going black — no sound detected)');
     else if (fadeStr) lines.unshift('image     visible');
     if (automix.arc && window.SWR_AUTOMIX_ARC) {
-      var posEl = (window.SWR && window.SWR.Audio && (window.SWR.Audio.el || window.SWR.Audio._el)) || null;
+      var posEl = (window.SWR && window.SWR.Audio && (window.SWR.Audio.el || window.SWR.Audio._el || window.SWR.Audio.audioEl)) || null;
       var pos = posEl ? (posEl.currentTime || 0) : 0;
       var s = window.SWR_AUTOMIX_ARC.sampleAt(automix.arc, pos);
       if (s) {
