@@ -94,6 +94,11 @@ self.onmessage = (e) => {
     case 'setPool':
       pool = (msg.ids || []).slice();
       recent = [];
+      // Config may have arrived before the pool was populated (boot
+      // order): scheduleNext bailed on the empty pool and the worker
+      // then sat idle FOREVER — no swaps, ever. Now the pool's arrival
+      // starts the timer if we're enabled and nothing is pending.
+      if (cfg.enabled && pool.length && !timer) scheduleNext();
       break;
     case 'addToPool':
       for (const id of (msg.ids || [])) {

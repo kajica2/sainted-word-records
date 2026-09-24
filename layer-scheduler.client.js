@@ -108,8 +108,28 @@
     const mediaP = (M && typeof M.getUserMedia === 'function') ? M.getUserMedia().catch(() => []) : Promise.resolve([]);
     mediaP.then(mItems => {
       mediaItems = (mItems || []).filter(it => it && it.id && it.blob);
-      const sig = items.map(it => it && it.id).join(',') + '|' + mediaItems.map(it => it.id).join(',');
+      const sig = items.map(it => it.id).join(',') + '|' + mediaItems.map(it => it.id).join(',');
       if (sig !== _poolSig) { _poolSig = sig; refreshPool(); }
+      // Watchdog: enabled with a populated pool but no swap for 60s+
+      // means the worker's timer chain died (observed once on film —
+      // cause unresolved). Re-posting config restarts the timer; the
+      // same-as-last guard in the callers prevents loops.
+      if (state.enabled && state.poolIds.length &&
+          state.lastSwapAt && (Date.now() - state.lastSwapAt) > 60000 &&
+          (Date.now() - (state._lastKick || 0)) > 15000) {
+        state._lastKick = Date.now();
+        post({
+          type: 'config',
+          cfg: {
+            enabled: true,
+            minMs: state.minSeconds * 1000,
+            maxMs: state.maxSeconds * 1000,
+            beatSync: state.beatSync,
+            bpm: (getAudio() && getAudio().bpm) || 120,
+            beatsPerSwap: 16,
+          },
+        });
+      }
     });
   }
   setInterval(pollPool, 5000);
