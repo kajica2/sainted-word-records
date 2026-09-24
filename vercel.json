@@ -868,6 +868,18 @@
       "destination": "/auth/verify.html"
     },
     {
+      "source": "/enhance",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/enhance/",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/video_single.html",
+      "destination": "/video_single.html"
+    },
+    {
       "source": "/personas/v/:id",
       "destination": "/personas/v/:id.html"
     },

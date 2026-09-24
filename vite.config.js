@@ -315,6 +315,12 @@ function copyStatic() {
     'ar-gif.html',
     'ar-gif.client.js',
     'sitemap.html',
+    // Pages the legacy /nav.client.js linked to that were never in site-map.json,
+    // so copy-static never shipped them and their routes 404'd. Kept out of the
+    // canonical nav (they are not top-level destinations) but built and routable.
+    'enhance.html',
+    'atlas.html',
+    'video_single.html',
     'site-map.json',
   ];
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
-  <title>Sainted Word Records — Audio-Reactive Engine</title>
+  <title>Sainted Word Records — Audio-reactive engine</title>
   <meta name="description" content="Algorithmic audio-reactive video engine. Drop in a song, drop in a library of clips, get a reactive layered composition." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%231a1028' stroke='%23ff3d92' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff3d92'/%3E%3Ccircle cx='16' cy='16' r='0.8' fill='%23fff'/%3E%3C/svg%3E" />
   <link rel="manifest" href="/manifest.webmanifest" />
@@ -1512,8 +1512,7 @@
       cursor: pointer;
     }
   </style>
-  <script src="/nav.client.js" defer></script>
-  <script src="/fx-background.client.js" defer></script>
+<script src="/fx-background.client.js" defer></script>
   <script src="/client/variant-switcher.client.js" defer></script>
   <script src="/client/default-library.client.js" defer></script>
 </head>
@@ -5516,6 +5515,8 @@
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
     }
   <\/script>
+  <swr-nav></swr-nav>
+  <script src="/lib/nav.client.js" defer></\/script>
 </body>
 </html>`;
             resolve(html);
