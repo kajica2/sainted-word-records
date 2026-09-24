@@ -48,14 +48,26 @@
     // layers (that's engine-only behaviour), so a user with clips in the
     // library but nothing on stage had NOTHING for the scheduler to
     // swap — the #1 cause of "automix isn't evolving my clips". Add up
-    // to 3 layers from the library, once per session.
+    // to 3 layers from EITHER store (engine Library or the '+ ADD'
+    // media store), once per session.
     var SWR = window.SWR;
     var Layers = SWR && SWR.Layers;
     var Library = SWR && SWR.Library;
-    if (Layers && Library && typeof Layers.add === 'function' &&
-        (!Layers.list || !Layers.list.length) && Library.items && Library.items.length) {
-      for (var li = 0; li < Math.min(3, Library.items.length); li++) {
-        try { Layers.add(Library.items[li]); } catch (_) {}
+    if (Layers && typeof Layers.add === 'function' &&
+        (!Layers.list || !Layers.list.length)) {
+      var engineItems = ((Library && Library.items) || []).filter(function (i) { return i && i.url; });
+      var mediaWraps = (window.__SWR_COMPOSITION_MEDIA || []).map(function (m) {
+        var url = null;
+        try { url = URL.createObjectURL(m.blob); } catch (_) {}
+        return url ? {
+          id: m.id, name: m.name,
+          type: (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image',
+          url: url, blob: m.blob,
+        } : null;
+      }).filter(Boolean);
+      var pool = engineItems.length ? engineItems : mediaWraps;
+      for (var li = 0; li < Math.min(3, pool.length); li++) {
+        try { Layers.add(pool[li]); } catch (_) {}
       }
     }
 
@@ -92,12 +104,37 @@
     return true;
   }
 
+  // Belt-and-braces fallback: act ticks may never emit (FX mix failing,
+  // arc missing) — clip evolution must not depend on them. When automix
+  // is enabled but nothing has been applied yet, apply the default
+  // profile on a slow poll. The arc, when it arrives, takes over.
+  setInterval(function () {
+    var am = window.automix;
+    if (!am || !am.enabled) return;
+    var M = window.SWR_MEDIA;
+    var mediaP = (M && typeof M.getUserMedia === 'function') ? M.getUserMedia().catch(function () { return []; }) : Promise.resolve([]);
+    mediaP.then(function (items) {
+      window.__SWR_COMPOSITION_MEDIA = (items || []).filter(function (it) { return it && it.id && it.blob; });
+      if (lastActIndex !== null) return; // act stream is driving
+      apply('lift', 'no-arc-fallback');
+    });
+  }, 10000);
+
   // The runtime's _emit dispatches on window (not document) — listen there.
   window.addEventListener('swr-automix-tick', function (ev) {
     var detail = ev.detail || {};
     var mixed = detail.mixed || {};
     var arc = mixed.arc;
-    if (!arc) return; // legacy path (no arc) — leave the scheduler alone
+    if (!arc) {
+      // Tick without arc (analysis pending/failed) — still drive the
+      // composition at the default profile so clips evolve regardless
+      // of the FX arc's state.
+      if (lastActIndex !== 'no-arc') {
+        lastActIndex = 'no-arc';
+        apply('lift', 'no-arc-default');
+      }
+      return;
+    }
     if (arc.actIndex === lastActIndex) return;
     lastActIndex = arc.actIndex;
     apply(arc.actName, 'act-change');

@@ -82,9 +82,18 @@
     const ids = items
       .filter(it => it && it.id && it.url)
       .map(it => it.id);
-    state.poolIds = ids;
-    post({ type: 'setPool', ids });
+    // Media-store items (the '+ ADD' flow on engine-style pages lives in
+    // window.SWR_MEDIA, NOT the engine Library) — merged so the scheduler
+    // can swap user-uploaded clips too.
+    const mediaIds = (mediaItems || []).map(it => it.id);
+    state.poolIds = ids.concat(mediaIds);
+    post({ type: 'setPool', ids: state.poolIds });
   }
+
+  // Media-store cache — refreshed alongside the pool poll (getUserMedia
+  // is async; the engine Library is sync). applySwap resolves assets
+  // against BOTH stores.
+  let mediaItems = [];
 
   // Pool auto-refresh: boot-time refresh (below) misses clips the user
   // adds afterwards — the scheduler then sat on a stale/empty pool and
@@ -94,8 +103,14 @@
   function pollPool() {
     const Library = getLibrary();
     const items = (Library && Library.items) || [];
-    const sig = items.map(it => it && it.id).join(',');
-    if (sig !== _poolSig) { _poolSig = sig; refreshPool(); }
+    // Pull the media store too (async) — refresh the pool when either changes.
+    const M = window.SWR_MEDIA;
+    const mediaP = (M && typeof M.getUserMedia === 'function') ? M.getUserMedia().catch(() => []) : Promise.resolve([]);
+    mediaP.then(mItems => {
+      mediaItems = (mItems || []).filter(it => it && it.id && it.blob);
+      const sig = items.map(it => it && it.id).join(',') + '|' + mediaItems.map(it => it.id).join(',');
+      if (sig !== _poolSig) { _poolSig = sig; refreshPool(); }
+    });
   }
   setInterval(pollPool, 5000);
 
@@ -115,7 +130,25 @@
     const Audio = getAudio();
     if (!Layers || !Library) return false;
     const items = Library.items || [];
-    const asset = items.find(i => i.id === assetId);
+    let asset = items.find(i => i.id === assetId);
+    if (!asset) {
+      // Not in the engine Library — resolve from the media store (the
+      // '+ ADD' flow). Build the engine layer-asset shape on the fly:
+      // a fresh blob URL per session (blob URLs from earlier pages die
+      // on reload — never reuse a stored url).
+      const m = mediaItems.find(i => i.id === assetId);
+      if (m && m.blob) {
+        let url = null;
+        try { url = URL.createObjectURL(m.blob); } catch (_) {}
+        if (url) {
+          asset = {
+            id: m.id, name: m.name,
+            type: (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image',
+            url: url, blob: m.blob,
+          };
+        }
+      }
+    }
     if (!asset) return false;
     const layer = findLayerByIndex(layerIndex === -1 ? -1 : layerIndex);
     if (!layer) return false;
