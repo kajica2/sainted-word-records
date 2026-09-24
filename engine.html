@@ -3711,6 +3711,11 @@
         } else {
           stageFlash.style.opacity = '0';
         }
+        // End-of-frame hook: the natural-look pass (trail + rotating mirror,
+        // lib/swr-natural.client.js) composites here so it always lands on the
+        // finished frame. Drawing it from its own rAF raced this loop's
+        // top-of-frame clear and left no pixels.
+        try { window.dispatchEvent(new CustomEvent('swr-frame-end')); } catch (_) {}
         requestAnimationFrame((tt) => this.loop(tt));
       },
       start() {
