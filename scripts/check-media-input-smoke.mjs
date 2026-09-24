@@ -58,6 +58,14 @@ const server = http.createServer((req, res) => {
     res.end(data);
   });
 });
+// A busy port used to hang the whole check:full chain SILENTLY: an
+// orphaned run from an earlier kill kept LISTEN alive, this process's
+// own listen failed without a handler, and the page then loaded from the
+// orphan — assertions never printed and nothing exited. Fail loudly.
+server.on('error', (err) => {
+  console.error('MEDIA-INPUT SMOKE: cannot bind port 5183 — ' + (err && err.code ? err.code : err));
+  process.exit(1);
+});
 server.listen(5183);
 
 const browser = await puppeteer.launch({
