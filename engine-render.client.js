@@ -373,6 +373,21 @@
         if (window.SWR_LFOS && typeof window.SWR_LFOS.apply === 'function') {
           r = window.SWR_LFOS.apply(dt, l, r);
         }
+        // Invisible layer (fully faded out — crossfade curtain, solo or
+        // mute): skip the offscreen render + blit entirely this frame and
+        // stop decoding a video nobody can see (checklist #5 — inactive
+        // clips). Placement AFTER the LFO merge uses the final visual
+        // opacity. Both lineages' drawLayer resume playback on
+        // reappearance (`playing && paused → play`), and the audio-hash
+        // in the version string guarantees a cache miss on the next
+        // visible frame — no stale blank can survive the skip.
+        if (r && r.opacity <= 0.004) {
+          const vEl = l.asset && l.asset._el;
+          if (vEl && vEl.tagName === 'VIDEO' && !vEl.paused) {
+            try { vEl.pause(); } catch (_) {}
+          }
+          continue;
+        }
         const assetId = l.asset ? l.asset.id : 'none';
         // Horizontal mirror flag — set per-swap by the layer scheduler's
         // mirror mode (consecutive clips alternate facing). Read onto the
