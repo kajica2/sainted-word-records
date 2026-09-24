@@ -604,9 +604,10 @@
     if (!body) return;
     var f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
     var last = automix.lastPreset || {};
-    var tickRate = automix.tickCount > 1
-      ? (automix.tickCount / ((Date.now() - (automix._firstTickTs || Date.now())) / 60000)).toFixed(1)
-      : '0.0';
+    var elapsedMin = automix._firstTickTs ? (Date.now() - automix._firstTickTs) / 60000 : 0;
+    var tickRate = (automix.tickCount > 1 && elapsedMin > 0.02)
+      ? (automix.tickCount / elapsedMin).toFixed(1)
+      : '\u2014';
     var coords = automix._lastCoords || { warmth: 0.5, intensity: 0.5 };
     var lines = [
       'section    ' + automix.sectionState.current + ' (' + ((f.sectionConfidence || 0).toFixed(2)) + ')',
@@ -618,6 +619,22 @@
       'preset     temp=' + (last.temp || 0).toFixed(2) + ' mut=' + (last.mut || 0).toFixed(2) + ' chroma=' + (last.chroma || 0).toFixed(2),
       '           glow=' + (last.glow || 0).toFixed(2) + ' grain=' + (last.grain || 0).toFixed(2) + ' sepia=' + (last.sepia || 0).toFixed(2),
     ];
+    // L3 arc strip — the song's trajectory with the current act marked.
+    if (automix.arc && window.SWR_AUTOMIX_ARC) {
+      var posEl = (window.SWR && window.SWR.Audio && (window.SWR.Audio.el || window.SWR.Audio._el)) || null;
+      var pos = posEl ? (posEl.currentTime || 0) : 0;
+      var s = window.SWR_AUTOMIX_ARC.sampleAt(automix.arc, pos);
+      if (s) {
+        var marks = automix.arc.acts.map(function (act, i) {
+          return (i === s.actIndex ? '\u25b6' : '\u00b7') + act.anchorId;
+        }).join(' ');
+        lines.push('arc        act ' + (s.actIndex + 1) + '/' + s.actCount + ' ' + s.actName +
+          ' (' + Math.round(s.actProgress * 100) + '%)');
+        lines.push('           ' + marks);
+      }
+    } else {
+      lines.push('arc        none (realtime-only mode)');
+    }
     body.textContent = lines.join('\n');
   }
 
