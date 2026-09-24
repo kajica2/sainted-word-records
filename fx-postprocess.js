@@ -488,8 +488,10 @@
       // element in the DOM (clip layers can carry the audible sound
       // themselves) — fading while the user hears music is a bug.
       function _audioActive() {
+        // GROUND TRUTH = element state ONLY. The page's A.playing flag
+        // goes stale (stop/ended paths don't all clear it) and once
+        // caused the fade to run INVERTED on the user's session.
         var _au = (window.SWR && window.SWR.Audio) || null;
-        if (_au && _au.playing === true) return true;
         var _els = [];
         if (_au) { _els.push(_au.el, _au._el); }
         try {
@@ -502,10 +504,17 @@
         }
         return false;
       }
-      if (typeof state.fade !== 'number') state.fade = _audioActive() ? 0 : 1;
-      const _dtFade = Math.min(0.1, (now - (state._lastFadeT || now)) / 1000);
-      state._lastFadeT = now;
-      state.fade += ((_audioActive() ? 0 : 1) - state.fade) * Math.min(1, _dtFade * (_audioActive() ? 3 : 0.35));
+      if (typeof state.fade !== 'number') state.fade = 0;
+      // Fading requires EVIDENCE of playback: if no element has ever
+      // played past 0.2s on this page, fade stays 0 — an idle page
+      // (no song, empty stage) must not go black; it goes dark only
+      // AFTER the music stops.
+      if (_audioActive()) state._everPlayed = true;
+      if (state._everPlayed) {
+        const _dtFade = Math.min(0.1, (now - (state._lastFadeT || now)) / 1000);
+        state._lastFadeT = now;
+        state.fade += ((_audioActive() ? 0 : 1) - state.fade) * Math.min(1, _dtFade * (_audioActive() ? 3 : 0.35));
+      }
 
       // Resize check (throttled)
       if (now - lastResize > 200) {
