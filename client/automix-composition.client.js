@@ -43,16 +43,33 @@
   function apply(actName, reason) {
     var sched = window.SWR_LAYER_SCHEDULER;
     if (!sched || typeof sched.setConfig !== 'function') return false;
+
+    // Auto-populate the stage: variants don't auto-add library items as
+    // layers (that's engine-only behaviour), so a user with clips in the
+    // library but nothing on stage had NOTHING for the scheduler to
+    // swap — the #1 cause of "automix isn't evolving my clips". Add up
+    // to 3 layers from the library, once per session.
+    var SWR = window.SWR;
+    var Layers = SWR && SWR.Layers;
+    var Library = SWR && SWR.Library;
+    if (Layers && Library && typeof Layers.add === 'function' &&
+        (!Layers.list || !Layers.list.length) && Library.items && Library.items.length) {
+      for (var li = 0; li < Math.min(3, Library.items.length); li++) {
+        try { Layers.add(Library.items[li]); } catch (_) {}
+      }
+    }
+
     var profile = PROFILES[actName] || DEFAULT_PROFILE;
     var minSeconds = profile.minSeconds;
     var maxSeconds = profile.maxSeconds;
     // Global invariant: a clip never stays visible longer than 8 bars.
     // Bars are tempo-dependent — 8 bars = 32 beats = 32·60/bpm seconds —
-    // so the cap is computed from the live BPM (analyzed or realtime;
-    // 120 fallback). At 115 BPM the cap is ~16.7s, which only bites the
-    // slow profiles (breakdown 20s); at 140 BPM it's ~13.7s.
-    var bpm = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat && window.SWR.Audio.feat.bpm) || 0;
-    if (!(bpm > 0)) bpm = 120;
+    // so the cap is computed from a SANITIZED bpm: the realtime beat
+    // estimator can produce garbage (e.g. 1000+ on synthetic tones),
+    // which once clamped every profile to 1s. Outside 30–250 BPM the
+    // value is not trusted and 120 is used.
+    var bpm = (SWR && SWR.Audio && SWR.Audio.feat && SWR.Audio.feat.bpm) || 0;
+    if (!(bpm >= 30 && bpm <= 250)) bpm = 120;
     var cap8 = (32 * 60 / bpm);
     if (maxSeconds > cap8) maxSeconds = cap8;
     if (minSeconds > maxSeconds) minSeconds = maxSeconds;
