@@ -134,50 +134,89 @@
   // ──────────────── estimateBPM ────────────────
   // Input: array of onset times in seconds (any order, will be sorted).
   // Output: BPM number (60-180 range, folded), or 0 if unclear/insufficient.
-  // The algorithm needs enough onsets to find a stable tempo:
-  //   - At least 4 onsets (3 intervals) for a tempo candidate.
-  //   - The peak interval must account for >= 40% of all in-range intervals
-  //     (confidence floor). If not, the input is "noisy" and we return 0.
+  //
+  // Three properties this has to get right on real recordings, which the
+  // previous implementation did not (see issue #76):
+  //
+  // 1. JITTER. Human performance and onset-detection error scatter the
+  //    inter-onset interval by roughly ±20-30ms. Binning those at 10ms and
+  //    then demanding that ONE bin hold >=50% of intervals means any real
+  //    material fails and returns 0. Measured before the fix:
+  //      240ms ±5ms -> 125 BPM, but 240ms ±15ms -> 0.
+  //    So candidates are scored over a tolerance window, not a single bin.
+  //
+  // 2. OCTAVE. Onsets at 120ms and 240ms both mean ~125 BPM (500/2 and
+  //    250/2). Histogramming raw intervals makes those separate peaks that
+  //    each fail the confidence floor. Folding each candidate into 60-180
+  //    BEFORE histogramming makes them reinforce one tempo instead.
+  //
+  // 3. DENSE ONSETS. The old 0.2s interval floor discarded anything faster
+  //    than 300 BPM before the fold ever ran, so dense passages contributed
+  //    nothing. The fold maps any tempo into range, so the floor only needs
+  //    to reject double-triggers, not fast material.
+  const BPM_FOLD_LO = 60;
+  const BPM_FOLD_HI = 180;
+  // Reject sub-80ms intervals as double-triggers (750 BPM pre-fold).
+  const MIN_INTERVAL_S = 0.08;
+  const MAX_INTERVAL_S = 2.0;
+  // Relative tolerance for the jitter window. 10% of the candidate tempo
+  // covers the ±13 BPM spread that ±25ms of jitter produces at 125 BPM.
+  const JITTER_TOLERANCE = 0.10;
+  // The winning window must still account for a majority of intervals, or
+  // there is no dominant tempo and reporting one would be a lie.
+  const CONFIDENCE_FLOOR = 0.5;
+
+  function foldBpm(bpm) {
+    if (!(bpm > 0)) return 0;
+    while (bpm < BPM_FOLD_LO) bpm *= 2;
+    while (bpm > BPM_FOLD_HI) bpm /= 2;
+    return bpm;
+  }
+
   function estimateBPM(onsetTimes) {
     if (!Array.isArray(onsetTimes) || onsetTimes.length < 4) return 0;
 
-    // Sort
     const times = onsetTimes.slice().sort((a, b) => a - b);
-    // Reject degenerate / out-of-range intervals. Allow 0.2s-2.0s
-    // (corresponds to 30-300 BPM before folding).
     const intervals = [];
     for (let i = 1; i < times.length; i++) {
       const iv = times[i] - times[i - 1];
-      if (iv >= 0.2 && iv <= 2.0) intervals.push(iv);
+      if (iv >= MIN_INTERVAL_S && iv <= MAX_INTERVAL_S) intervals.push(iv);
     }
     if (intervals.length < 3) return 0;
 
-    // Histogram (10ms buckets)
+    // Fold first: 120ms and 240ms must land on the same candidate tempo.
+    const folded = intervals.map((iv) => foldBpm(60 / iv)).filter((b) => b > 0);
+    if (folded.length < 3) return 0;
+
+    // 1 BPM buckets in folded space.
     const hist = new Map();
-    for (const iv of intervals) {
-      const bucket = Math.round(iv * 100);
+    for (const b of folded) {
+      const bucket = Math.round(b);
       hist.set(bucket, (hist.get(bucket) || 0) + 1);
     }
 
-    // Find peak bucket
-    let bestBucket = 0, bestCount = 0;
-    for (const [b, c] of hist) {
-      if (c > bestCount) { bestCount = c; bestBucket = b; }
+    // Score each candidate over a proportional tolerance window, so jitter
+    // contributes instead of splitting the vote.
+    let bestBpm = 0;
+    let bestScore = 0;
+    for (const bucket of hist.keys()) {
+      const lo = bucket * (1 - JITTER_TOLERANCE);
+      const hi = bucket * (1 + JITTER_TOLERANCE);
+      let score = 0;
+      for (let b = Math.floor(lo); b <= Math.ceil(hi); b++) score += hist.get(b) || 0;
+      // Ties -> prefer the faster candidate (lower bucket), which is the
+      // one a listener would tap.
+      if (score > bestScore || (score === bestScore && bestBpm && bucket < bestBpm)) {
+        bestScore = score;
+        bestBpm = bucket;
+      }
     }
-    if (bestBucket === 0) return 0;
+    if (!bestBpm || bestScore < 3) return 0;
 
-    // Confidence: the peak must represent at least 50% of all in-range
-    // intervals. Otherwise the input is "noisy" (no clear dominant tempo).
-    const confidence = bestCount / intervals.length;
-    if (confidence < 0.5) return 0;
-    // Also require at least 3 intervals at the peak for stability.
-    if (bestCount < 3) return 0;
+    const confidence = bestScore / folded.length;
+    if (confidence < CONFIDENCE_FLOOR) return 0;
 
-    let bpm = 60 / (bestBucket / 100);
-    // Fold into 60-180 range
-    while (bpm < 60) bpm *= 2;
-    while (bpm > 180) bpm /= 2;
-    return Math.round(bpm * 10) / 10;
+    return Math.round(foldBpm(bestBpm) * 10) / 10;
   }
 
   // ──────────────── estimateKey ────────────────
