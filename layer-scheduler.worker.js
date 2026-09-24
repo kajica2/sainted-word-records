@@ -17,6 +17,11 @@ let cfg = {
   bpm: 120,
   beatsPerSwap: 16,     // 4 bars at 4/4
 };
+// Glide-interpolated swap window (1s updates from the composition layer:
+// cuts accelerate into a peak, release into a breakdown). Consumed at
+// re-arm time only — a mid-window update must NEVER reschedule the
+// pending timer, or 10-20s waits would starve under 1s updates.
+let eff = { minMs: null, maxMs: null };
 let pool = [];           // asset ids eligible for random pick
 let recent = [];         // avoid immediate repeats
 let timer = null;
@@ -45,6 +50,8 @@ function scheduleNext() {
   if (!cfg.enabled || !pool.length) return;
 
   let delayMs;
+  const minMs = (eff.minMs != null) ? eff.minMs : cfg.minMs;
+  const maxMs = (eff.maxMs != null && eff.maxMs >= minMs) ? eff.maxMs : minMs;
   if (cfg.beatSync && cfg.bpm > 0) {
     // Random draw within the profile window, then snapped to the beat
     // grid (ceil → the cut lands ON a beat, never mid-beat). The old
@@ -52,10 +59,10 @@ function scheduleNext() {
     // — made every act cut at exactly the same rate and silently
     // defeated the automix composition profiles.
     const beatMs = 60000 / cfg.bpm;
-    delayMs = Math.max(beatMs, rand(cfg.minMs, cfg.maxMs));
+    delayMs = Math.max(beatMs, rand(minMs, maxMs));
     delayMs = Math.ceil(delayMs / beatMs) * beatMs;
   } else {
-    delayMs = rand(cfg.minMs, cfg.maxMs);
+    delayMs = rand(minMs, maxMs);
   }
   // Global invariant: a clip never stays visible longer than 8 bars
   // (32 beats), regardless of which config path set the interval —
@@ -79,6 +86,26 @@ function scheduleNext() {
 self.onmessage = (e) => {
   const msg = e.data || {};
   switch (msg.type) {
+    case 'progress': {
+      // Glide-cadence hint (composition layer, 1s): re-anchor the window
+      // for the NEXT re-arm without touching the pending timer. Cleared
+      // on the next config post (act change re-baselines the profile).
+      if (typeof msg.minMs === 'number' && msg.minMs > 0) eff.minMs = msg.minMs;
+      if (typeof msg.maxMs === 'number' && msg.maxMs > 0) {
+        eff.maxMs = Math.max(eff.minMs || msg.maxMs, msg.maxMs);
+      }
+      break;
+    }
+    case 'swapNow': {
+      // Act-boundary cut (composition layer): the composition changes
+      // WITH the music, not whenever the pending timer happens to fire.
+      if (cfg.enabled && pool.length) {
+        const assetId = pickAssetId();
+        if (assetId) postMessage({ type: 'swap', assetId, layerIndex: -1, tick: Date.now() });
+      }
+      scheduleNext(); // re-anchor the rhythm from now
+      break;
+    }
     case 'config': {
       const prevEnabled = cfg.enabled;
       // Reschedule ONLY when a timing-relevant parameter actually
@@ -87,6 +114,7 @@ self.onmessage = (e) => {
       // timer — swaps then aligned to act boundaries (~30-45s apart)
       // instead of the profile's rhythm.
       const before = { enabled: cfg.enabled, minMs: cfg.minMs, maxMs: cfg.maxMs, beatSync: cfg.beatSync, bpm: cfg.bpm };
+      eff = { minMs: null, maxMs: null }; // act change re-baselines the glide window
       Object.assign(cfg, msg.cfg || {});
       const timingChanged = before.minMs !== cfg.minMs || before.maxMs !== cfg.maxMs ||
         before.beatSync !== cfg.beatSync || before.bpm !== cfg.bpm;

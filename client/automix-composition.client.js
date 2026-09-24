@@ -121,23 +121,45 @@
   }, 10000);
 
   // The runtime's _emit dispatches on window (not document) — listen there.
+  // Tick events only carry the no-arc fallback: act boundaries are tracked
+  // on the 1s glide clock (tighter than the 8-20s tick cadence — cuts land
+  // on the section change, not whenever the next tick happens to fire).
   window.addEventListener('swr-automix-tick', function (ev) {
-    var detail = ev.detail || {};
-    var mixed = detail.mixed || {};
-    var arc = mixed.arc;
-    if (!arc) {
-      // Tick without arc (analysis pending/failed) — still drive the
-      // composition at the default profile so clips evolve regardless
-      // of the FX arc's state.
-      if (lastActIndex !== 'no-arc') {
-        lastActIndex = 'no-arc';
-        apply('lift', 'no-arc-default');
-      }
+    var arc = ((ev.detail || {}).mixed || {}).arc;
+    if (!arc && lastActIndex !== 'no-arc') {
+      lastActIndex = 'no-arc';
+      apply('lift', 'no-arc-default');
+    }
+  });
+
+  // 1s glide clock (runtime's _glideTick / music_video's graft): drives
+  // the within-act cutting envelope and act-boundary cuts.
+  window.addEventListener('swr-automix-glide', function (ev) {
+    var g = ev.detail || {};
+    if (typeof g.actIndex !== 'number') return;
+    var sched = window.SWR_LAYER_SCHEDULER;
+    if (g.actIndex !== lastActIndex) {
+      lastActIndex = g.actIndex;
+      apply(g.actName, 'act-change');
+      // Section boundary → the composition changes WITH the music. The
+      // swap flows through the normal applySwap path (crossfade +
+      // beat-snap), so the cut lands on the next downbeat.
+      if (sched && typeof sched.swapNow === 'function') sched.swapNow();
       return;
     }
-    if (arc.actIndex === lastActIndex) return;
-    lastActIndex = arc.actIndex;
-    apply(arc.actName, 'act-change');
+    // Within-act cadence envelope: interpolate this act's cutting window
+    // toward the next act's profile by actProgress — cuts tighten into a
+    // peak, release into a breakdown, settle in the outro, instead of
+    // stepping flat between per-act constants.
+    if (!sched || typeof sched.setProgress !== 'function') return;
+    var cur = PROFILES[g.actName] || DEFAULT_PROFILE;
+    var nextName = g.nextActName || null;
+    var nxt = (nextName && PROFILES[nextName]) || cur;
+    var p = Math.max(0, Math.min(1, g.actProgress || 0));
+    sched.setProgress(
+      cur.minSeconds + (nxt.minSeconds - cur.minSeconds) * p,
+      cur.maxSeconds + (nxt.maxSeconds - cur.maxSeconds) * p
+    );
   });
 
   // Re-apply when the arc rebuilds (new song) — resets act tracking.
