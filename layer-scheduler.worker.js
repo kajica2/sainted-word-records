@@ -81,11 +81,19 @@ self.onmessage = (e) => {
   switch (msg.type) {
     case 'config': {
       const prevEnabled = cfg.enabled;
+      // Reschedule ONLY when a timing-relevant parameter actually
+      // changed. No-op config posts (the composition layer re-applying
+      // the same profile, mirror-only updates) used to restart the
+      // timer — swaps then aligned to act boundaries (~30-45s apart)
+      // instead of the profile's rhythm.
+      const before = { enabled: cfg.enabled, minMs: cfg.minMs, maxMs: cfg.maxMs, beatSync: cfg.beatSync, bpm: cfg.bpm };
       Object.assign(cfg, msg.cfg || {});
+      const timingChanged = before.minMs !== cfg.minMs || before.maxMs !== cfg.maxMs ||
+        before.beatSync !== cfg.beatSync || before.bpm !== cfg.bpm;
       if (cfg.enabled !== prevEnabled) {
         if (cfg.enabled) scheduleNext();
         else if (timer) { clearTimeout(timer); timer = null; }
-      } else if (cfg.enabled) {
+      } else if (cfg.enabled && (timingChanged || !timer)) {
         // settings changed while running — restart timer with new params
         scheduleNext();
       }
