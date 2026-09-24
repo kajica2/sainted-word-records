@@ -291,7 +291,7 @@
         col += vec3(pearlEdge) * u_pearl * 0.6;
       }
 
-      gl_FragColor = vec4(clamp(col * u_fade, 0.0, 1.0), 1.0);
+      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `;
 
@@ -480,17 +480,11 @@
       const now = performance.now();
       state.time = (now - t0) / 1000;
 
-      // Silence fade — no sound (paused/ended/absent) → ease to BLACK
-      // over ~3s; sound returns → restore in ~1s. Multiplied at the frag
-      // output via u_fade so the stage disappears gracefully when the
-      // music stops. Active check is multi-source: the engine element,
-      // the stub element, the page's playing flag, OR any audio/video
-      // element in the DOM (clip layers can carry the audible sound
-      // themselves) — fading while the user hears music is a bug.
+      // Silence → fade the fx canvas to ALPHA (transparent), revealing
+      // the raw stage beneath — not black. Sound playing → opacity 1.
+      // Multi-source active check: engine/stub element state + any
+      // <audio>/<video> in the DOM (the A.playing flag goes stale).
       function _audioActive() {
-        // GROUND TRUTH = element state ONLY. The page's A.playing flag
-        // goes stale (stop/ended paths don't all clear it) and once
-        // caused the fade to run INVERTED on the user's session.
         var _au = (window.SWR && window.SWR.Audio) || null;
         var _els = [];
         if (_au) { _els.push(_au.el, _au._el); }
@@ -504,17 +498,11 @@
         }
         return false;
       }
-      if (typeof state.fade !== 'number') state.fade = 0;
-      // Fading requires EVIDENCE of playback: if no element has ever
-      // played past 0.2s on this page, fade stays 0 — an idle page
-      // (no song, empty stage) must not go black; it goes dark only
-      // AFTER the music stops.
-      if (_audioActive()) state._everPlayed = true;
-      if (state._everPlayed) {
-        const _dtFade = Math.min(0.1, (now - (state._lastFadeT || now)) / 1000);
-        state._lastFadeT = now;
-        state.fade += ((_audioActive() ? 0 : 1) - state.fade) * Math.min(1, _dtFade * (_audioActive() ? 3 : 0.35));
-      }
+      if (typeof state.fade !== 'number') state.fade = _audioActive() ? 0 : 1;
+      const _dtFade = Math.min(0.1, (now - (state._lastFadeT || now)) / 1000);
+      state._lastFadeT = now;
+      state.fade += ((_audioActive() ? 0 : 1) - state.fade) * Math.min(1, _dtFade * (_audioActive() ? 3 : 0.35));
+      out.style.opacity = String(1 - state.fade);
 
       // Resize check (throttled)
       if (now - lastResize > 200) {
@@ -609,7 +597,6 @@
       gl.uniform1f(u.liquid,    state.liquid * k);
       gl.uniform1f(u.pearl,     state.pearl * k);
       gl.uniform1f(u.glitch,    state.glitch * k);
-      gl.uniform1f(u.fade,      state.fade);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
