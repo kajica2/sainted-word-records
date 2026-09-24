@@ -361,7 +361,10 @@
     .why p { font-size: 15px; color: var(--ink-2); line-height: 1.65; margin: 0 0 12px; }
     .why p:last-child { margin-bottom: 0; }
   </style>
-  <script src="/nav.client.js" defer></script>
+  <!-- Nav loads once, below, via the canonical /lib/nav.client.js. This page
+       previously ALSO loaded the legacy root /nav.client.js here, registering
+       the custom element twice and double-fetching site-map.json. Per
+       AGENTS.md, lib/nav.client.js is the shared nav. -->
   <script src="/fx-background.client.js" defer></script>
   <!-- Persona demo mode: only loaded when ?id= is in the URL. Mounted by the
        boot script below which replaces the marketing chrome with the demo shell. -->
@@ -426,7 +429,7 @@
       app.innerHTML = ''
         + '<header>'
         +   '<span class="badge" id="badge">PERSONA <small id="cluster-label">\u2026</small></span>'
-        +   '<a class="tbtn" href="/personas" title="See all 11 personas">\u2190 ALL</a>'
+        +   '<a class="tbtn" href="/persona-library" title="See all 11 personas">\u2190 ALL</a>'
         +   '<span class="spacer"></span>'
         +   '<span class="pill live" id="status">LOADING</span>'
         + '</header>'
@@ -645,6 +648,14 @@
         </p>
       </div>
       <div class="footer__col">
+        <h4>Personas</h4>
+        <ul>
+          <li><a href="/personas/v">Variant gallery (24)</a></li>
+          <li><a href="/persona-library">Persona library</a></li>
+          <li><a href="./landing-personas-v11-zine.html">Zine register</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
         <h4>Product</h4>
         <ul>
           <li><a href="/engine">Open the engine</a></li>
@@ -657,7 +668,7 @@
         <h4>Business</h4>
         <ul>
           <li><a href="./campaign.html">Launch campaign</a></li>
-          <li><a href="https://github.com/">Source / GitHub</a></li>
+          <li><a href="https://github.com/kajica2/sainted-word-records">Source / GitHub</a></li>
         </ul>
       </div>
     </div>
@@ -681,7 +692,7 @@
   // Show a banner indicating demo mode
   const banner = document.createElement('div');
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--accent);color:white;padding:12px 20px;font-family:var(--font-mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;z-index:9999;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
-  banner.innerHTML = 'Persona demo: <strong>' + personaId + '</strong> · <a href="/personas" style="color:white;text-decoration:underline;">← back to all personas</a>';
+  banner.innerHTML = 'Persona demo: <strong>' + personaId + '</strong> · <a href="/persona-library" style="color:white;text-decoration:underline;">← back to all personas</a> · <a href="/personas/v" style="color:white;text-decoration:underline;">variant gallery</a>';
   document.body.appendChild(banner);
 
   // Load persona-runtime.client.js

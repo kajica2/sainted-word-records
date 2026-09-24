@@ -22,12 +22,12 @@
     "discoverPages": "Run: node scripts/generate-site-manifest.mjs --dry-run (auto-adds untracked HTML files)"
   },
   "_pathConventions": {
-    "root": "/page-name → /page-name.html",
-    "subdirectory": "/artists/foo → /artists/foo.html",
-    "gallery": "/gallery/music → /gallery-music.html (hyphenated)",
-    "withDotHtml": "/legal/privacy.html → /legal/privacy.html (as-is)",
-    "artistsIndex": "/artists → /artists/index.html",
-    "dynamic": "/s/:id → handled by share-view.html client-side"
+    "root": "/page-name \u2192 /page-name.html",
+    "subdirectory": "/artists/foo \u2192 /artists/foo.html",
+    "gallery": "/gallery/music \u2192 /gallery-music.html (hyphenated)",
+    "withDotHtml": "/legal/privacy.html \u2192 /legal/privacy.html (as-is)",
+    "artistsIndex": "/artists \u2192 /artists/index.html",
+    "dynamic": "/s/:id \u2192 handled by share-view.html client-side"
   },
   "nav": [
     {
@@ -139,7 +139,7 @@
         {
           "label": "Director Mode",
           "href": "/gallery/director-mode",
-          "description": "27 audio-reactive visual variants mapped on a warmth × intensity anchor grid"
+          "description": "27 audio-reactive visual variants mapped on a warmth \u00d7 intensity anchor grid"
         },
         {
           "label": "Albums",
@@ -195,7 +195,12 @@
     {
       "label": "Personas",
       "href": "/personas",
-      "description": "6 character presets"
+      "description": "Persona overview + archived design registers"
+    },
+    {
+      "label": "Persona Variants",
+      "href": "/personas/v",
+      "description": "24 engine-driven persona variants"
     },
     {
       "label": "Shop",
