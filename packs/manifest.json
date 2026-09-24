@@ -1,0 +1,33 @@
+{
+  "schema": "swr-library-packs/v1",
+  "generated_at": "2026-09-24T21:33:00+02:00",
+  "description": "Curated opt-in media packs shipped with the build (packs/ is tracked; library/ is gitignored and stripped). Paths are relative to this manifest's base.",
+  "base": "/packs/",
+  "packs": {
+    "dancers": [
+      "dancers/dancer-01.webp",
+      "dancers/dancer-02.webp",
+      "dancers/dancer-03.webp",
+      "dancers/dancer-04.webp",
+      "dancers/dancer-05.webp",
+      "dancers/dancer-06.webp",
+      "dancers/dancer-07.webp",
+      "dancers/dancer-08.webp"
+    ],
+    "dancer-video": [
+      "dancers-video/dance-01.mp4",
+      "dancers-video/dance-02.mp4",
+      "dancers-video/dance-03.mp4",
+      "dancers-video/dance-04.mp4",
+      "dancers-video/dance-05.mp4",
+      "dancers-video/dance-06.mp4",
+      "dancers-video/dance-07.mp4",
+      "dancers-video/dance-08.mp4",
+      "dancers-video/dance-09.mp4",
+      "dancers-video/dance-10.mp4",
+      "dancers-video/dance-11.mp4",
+      "dancers-video/dance-12.mp4",
+      "dancers-video/dance-13.mp4"
+    ]
+  }
+}

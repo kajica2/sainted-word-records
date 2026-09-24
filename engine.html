@@ -10,6 +10,11 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
   <meta name="theme-color" content="#f5a524" />
+  <!-- Device tier + adaptive frame-budget guard. Synchronous, first in head:
+       pages start their rAF loops during parse, so the tier must exist before
+       any page code runs. One shared file, not 23 inline copies. -->
+  <script src="/lib/tier-runtime.js"></script>
+  <script src="/lib/adaptive-guard.js" defer></script>
   <link rel="stylesheet" href="/video-fx.css" />
   <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/brandkit.css" />
@@ -3706,6 +3711,11 @@
         } else {
           stageFlash.style.opacity = '0';
         }
+        // End-of-frame hook: the natural-look pass (trail + rotating mirror,
+        // lib/swr-natural.client.js) composites here so it always lands on the
+        // finished frame. Drawing it from its own rAF raced this loop's
+        // top-of-frame clear and left no pixels.
+        try { window.dispatchEvent(new CustomEvent('swr-frame-end')); } catch (_) {}
         requestAnimationFrame((tt) => this.loop(tt));
       },
       start() {

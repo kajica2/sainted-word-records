@@ -9399,6 +9399,11 @@ recordTimer = setTimeout(() => {
       }
     })();
   </script>
+  <!-- swr-app ships its own keymap + help overlay (t/T, m/M, ?, /, z, c, s,
+       brackets). Opt out of the sitewide layer so the two cannot fight; this
+       is exactly what SWR_SITE_KEYS_DISABLE exists for. -->
+  <script>window.SWR_SITE_KEYS_DISABLE = true;</script>
+  <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

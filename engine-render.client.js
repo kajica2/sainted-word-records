@@ -457,6 +457,12 @@
     // frame's fit().
     autoAdjustDpr(performance.now() - now);
 
+    // End-of-frame hook: the natural-look pass (trail + rotating mirror,
+    // lib/swr-natural.client.js) composites here so it always lands on the
+    // finished frame. Its own rAF was order-dependent against each page's
+    // loop and the ghosts got wiped by the next top-of-frame clear.
+    try { window.dispatchEvent(new CustomEvent('swr-frame-end')); } catch (_) {}
+
     state.dirty = false;
   }
 

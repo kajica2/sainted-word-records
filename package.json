@@ -12,7 +12,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
-    "check": "npm run check:syntax && npm run check:bundle && npm run check:automix-unit && npm run check:automix-arc-unit && npm run check:automix-session-unit && npm run check:clip-evolution-unit && npm run check:gradient-dot-unit && npm run check:depth-blend-unit && npm run check:last-mix-unit && npm run check:get-preset-unit && npm run check:preset-cycle-unit && npm run check:preset-pick-unit && npm run check:layer-state-unit && npm run check:with-dist-unit && npm run check:auth-unit && npm run check:bpm-unit && npm run check:storage-blob-unit && npm run check:db-postgres && npm run verify:smtp && node scripts/test-api.mjs && npm run check:dashboard && npm run check:variant-switcher-unit && npm run check:variant-switcher-smoke && npm run check:media-input-unit && npm run check:spit-live-unit && npm run check:capture-unit && npm run check:photo-slideshow && npm run check:default-library",
+    "check": "npm run check:syntax && npm run check:bundle && npm run check:automix-unit && npm run check:automix-arc-unit && npm run check:automix-session-unit && npm run check:clip-evolution-unit && npm run check:site-keys-unit && npm run check:gradient-dot-unit && npm run check:depth-blend-unit && npm run check:last-mix-unit && npm run check:get-preset-unit && npm run check:preset-cycle-unit && npm run check:preset-pick-unit && npm run check:layer-state-unit && npm run check:with-dist-unit && npm run check:auth-unit && npm run check:bpm-unit && npm run check:storage-blob-unit && npm run check:db-postgres && npm run verify:smtp && node scripts/test-api.mjs && npm run check:dashboard && npm run check:variant-switcher-unit && npm run check:variant-switcher-smoke && npm run check:media-input-unit && npm run check:spit-live-unit && npm run check:capture-unit && npm run check:photo-slideshow && npm run check:default-library",
     "check:full": "npm run check && npm run check:verify && npm run check:automix-smoke && npm run check:storyboard && npm run verify:automix && npm run check:capture-smoke && npm run check:media-input-smoke && npm run check:spit-live-smoke",
     "check:syntax": "node scripts/check-syntax.mjs",
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
@@ -115,7 +115,9 @@
     "check:automix-arc-unit": "node scripts/check-automix-arc-unit.mjs",
     "check:automix-session-unit": "node scripts/check-automix-session-unit.mjs",
     "check:clip-evolution-unit": "node scripts/check-clip-evolution-unit.mjs",
-    "verify:automix-arc-displacement": "node verify-automix-arc-displacement.mjs"
+    "check:site-keys-unit": "node scripts/check-site-keys-unit.mjs",
+    "verify:automix-arc-displacement": "node verify-automix-arc-displacement.mjs",
+    "verify:tier-runtime": "node verify-tier-runtime.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",

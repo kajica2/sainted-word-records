@@ -29,7 +29,7 @@ function makeNat() {
     performance: { now: () => T },
     localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
     document: { getElementById: () => null, createElement: () => ({}) },
-    window: {},
+    window: { addEventListener: () => {}, removeEventListener: () => {} },
   };
   sb.globalThis = sb.window;
   vm.createContext(sb);
@@ -305,12 +305,74 @@ check('18. module is idempotent (second load returns same surface)', () => {
     requestAnimationFrame: () => 0, performance: { now: () => 1 },
     localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
     document: { getElementById: () => null, createElement: () => ({}) },
-    window: { SWR_NATURAL: NAT },
+    window: { SWR_NATURAL: NAT, addEventListener: () => {}, removeEventListener: () => {} },
   };
   sb.globalThis = sb.window;
   vm.createContext(sb);
   vm.runInContext(natSrc, sb);
   assert(sb.window.SWR_NATURAL === NAT, 're-execution must not rebuild the singleton');
+});
+
+// ---- Mirror axis (rotkey) -------------------------------------------------
+
+check('19. mirror mode cycles vertical -> horizontal -> off, default vertical', () => {
+  const { NAT } = makeNat();
+  assert(NAT.mirror() === 'vertical', 'default should be vertical, got ' + NAT.mirror());
+  assert(NAT.cycleMirror() === 'horizontal', 'cycle 1');
+  assert(NAT.cycleMirror() === 'off', 'cycle 2');
+  assert(NAT.cycleMirror() === 'vertical', 'cycle 3 wraps');
+  assert(NAT.mirror() === 'vertical', 'state after wrap');
+});
+
+check('20. setMirror rejects unknown modes and accepts the three valid ones', () => {
+  const { NAT } = makeNat();
+  assert(NAT.setMirror('diagonal') === 'vertical', 'unknown mode must be a no-op');
+  assert(NAT.setMirror('horizontal') === 'horizontal', 'horizontal');
+  assert(NAT.setMirror('off') === 'off', 'off');
+  assert(NAT.setMirror('vertical') === 'vertical', 'vertical');
+});
+
+check('21. mirror mode persists across module reloads (localStorage)', () => {
+  // Shared storage so the second load sees the first load's write.
+  const map = new Map();
+  const store = {
+    getItem: (k) => (map.has(k) ? map.get(k) : null),
+    setItem: (k, v) => { map.set(k, String(v)); },
+  };
+  function load() {
+    const sb = {
+      console: { log: () => {}, warn: () => {} },
+      Math, Object, Array, JSON, Date, Number, String, Promise, Proxy, Reflect,
+      requestAnimationFrame: () => 0, performance: { now: () => 1 },
+      localStorage: store,
+      document: { getElementById: () => null, createElement: () => ({}) },
+      window: { addEventListener: () => {}, removeEventListener: () => {} },
+    };
+    sb.globalThis = sb.window;
+    vm.createContext(sb);
+    vm.runInContext(natSrc, sb);
+    return sb.window.SWR_NATURAL;
+  }
+  const a = load();
+  a.setMirror('horizontal');
+  const b = load();
+  assert(b.mirror() === 'horizontal', 'reload should restore horizontal, got ' + b.mirror());
+});
+
+check('22. corrupt persisted mirror mode falls back to vertical', () => {
+  const sb = {
+    console: { log: () => {}, warn: () => {} },
+    Math, Object, Array, JSON, Date, Number, String, Promise, Proxy, Reflect,
+    requestAnimationFrame: () => 0, performance: { now: () => 1 },
+    localStorage: { getItem: () => 'sideways', setItem: () => {} },
+    document: { getElementById: () => null, createElement: () => ({}) },
+    window: { addEventListener: () => {}, removeEventListener: () => {} },
+  };
+  sb.globalThis = sb.window;
+  vm.createContext(sb);
+  vm.runInContext(natSrc, sb);
+  assert(sb.window.SWR_NATURAL.mirror() === 'vertical',
+    'corrupt value must fall back, got ' + sb.window.SWR_NATURAL.mirror());
 });
 
 console.log(results.join('\n'));

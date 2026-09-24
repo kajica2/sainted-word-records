@@ -9,10 +9,17 @@
 // `npm run build` pre-step is a friction point.
 //
 // Behaviour:
-//   ensureDist(): synchronously checks for dist/index.html. If
-//     missing, runs `npm run build` (which fires prebuild →
-//     scripts/fetch-library.mjs → vite build) and waits for it to
-//     finish. Skips if dist/ already exists (cheap stat, no rebuild).
+//   ensureDist(): cheap source-vs-dist freshness check, then
+//     `npm run build` (which fires prebuild → scripts/fetch-library.mjs →
+//     vite build) when dist is MISSING **or STALE**. Skips the build when
+//     dist is already current (~1ms of fs.stats).
+//
+// Why staleness matters: the original check only looked for dist's
+// existence. A dist built before the latest source change would be served
+// silently, so smokes tested OLD code — which is how a capture-smoke came to
+// hang on a dist that predated the frame-end hook, and why a whole
+// verification round was spent diagnosing the wrong layer. Comparing mtimes
+// is the cheap fix.
 //
 // Usage:
 //   import { ensureDist } from './with-dist.mjs';
@@ -23,12 +30,13 @@
 // prebuild hook (library fetch on Vercel) and the exact same build
 // pipeline the production deploy uses. No drift.
 //
-// Performance: skip path is ~1ms (one fs.statSync). Build path takes
-// 2-5s depending on the project — happens at most once per checkout.
+// Performance: skip path is ~1ms (one directory walk of the source set).
+// Build path takes 2-5s depending on the project — happens at most once
+// per source change.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { existsSync, statSync, readdirSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -45,9 +53,64 @@ export function hasDist() {
   }
 }
 
+// Source roots the build consumes. Kept deliberately narrow: directories the
+// copy-static table actually reads, plus the root-level scripts a page loads.
+const SOURCE_DIRS = ['lib', 'client', 'versions', 'packs', 'default-library', 'audios'];
+const SOURCE_FILES = [
+  'engine.html', 'fx-postprocess.js', 'versions-presets.js', 'video-fx.css',
+  'engine-render.client.js', 'engine-timing.client.js', 'engine-keys.client.js',
+  'layer-scheduler.client.js', 'layer-scheduler.worker.js', 'audio-analysis-v2.js',
+  'pwa-bootstrap.js', 'sw.js', 'manifest.webmanifest', 'vite.config.js',
+];
+
+// Newest mtime under SOURCE_DIRS/SOURCE_FILES, or 0 when nothing readable.
+// Directory walk is bounded (files only, no symlink chasing) and skips
+// node_modules/dist by construction — SOURCE_DIRS never contains them.
+function newestSourceMtime() {
+  let newest = 0;
+  const consider = (p) => {
+    try {
+      const st = statSync(p);
+      if (st.isFile() && st.mtimeMs > newest) newest = st.mtimeMs;
+      return st;
+    } catch (_) { return null; }
+  };
+  for (const f of SOURCE_FILES) consider(join(ROOT, f));
+  const walk = (dir, depth) => {
+    if (depth > 3) return;
+    let entries;
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    for (const e of entries) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p, depth + 1);
+      else if (e.isFile()) consider(p);
+    }
+  };
+  for (const d of SOURCE_DIRS) walk(join(ROOT, d), 0);
+  return newest;
+}
+
+/**
+ * Is dist behind the source tree?
+ * true  → a rebuild is warranted
+ * false → dist is current (or the check itself is inconclusive; we prefer
+ *         NOT rebuilding on error so a permissions quirk can't wedge CI)
+ */
+export function distIsStale() {
+  if (!hasDist()) return true;
+  try {
+    const distM = statSync(DIST_ENTRY).mtimeMs;
+    const srcM = newestSourceMtime();
+    return srcM > distM;
+  } catch (_) {
+    return false;
+  }
+}
+
 export function ensureDist(opts) {
-  if (hasDist()) return false;  // already built — nothing to do
-  console.log('[with-dist] dist/ missing — running npm run build…');
+  if (!distIsStale()) return false;  // current — nothing to do
+  const why = hasDist() ? 'dist/ is older than the source tree' : 'dist/ missing';
+  console.log(`[with-dist] ${why} — running npm run build…`);
   // Allow tests / wrappers to inject extra env (e.g. PATH pointing at
   // a fake npm binary). Production callers don't pass opts and get
   // the default behaviour.

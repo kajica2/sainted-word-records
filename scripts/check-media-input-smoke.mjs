@@ -58,6 +58,14 @@ const server = http.createServer((req, res) => {
     res.end(data);
   });
 });
+// A busy port used to hang the whole check:full chain SILENTLY: an
+// orphaned run from an earlier kill kept LISTEN alive, this process's
+// own listen failed without a handler, and the page then loaded from the
+// orphan — assertions never printed and nothing exited. Fail loudly.
+server.on('error', (err) => {
+  console.error('MEDIA-INPUT SMOKE: cannot bind port 5183 — ' + (err && err.code ? err.code : err));
+  process.exit(1);
+});
 server.listen(5183);
 
 const browser = await puppeteer.launch({
@@ -78,6 +86,30 @@ const FATAL_FILTER = /WebSocket.*ws:\/\/localhost:8787|404/;
 async function nav(page, url) {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
+  // Let a service-worker claim settle. The engine's pwa-bootstrap does
+  // skipWaiting + clients.claim, which force-reloads the page once on a
+  // fresh profile; an evaluate landing in that window dies with
+  // "Execution context was destroyed" and used to crash the whole chain.
+  await page.evaluate(() => navigator.serviceWorker && navigator.serviceWorker.ready)
+    .catch(() => {});
+  await new Promise((r) => setTimeout(r, 400));
+}
+
+// Reload-tolerant evaluate: retries when a navigation (SW claim / reload)
+// destroys the execution context mid-call. Same class of fix as
+// check-default-library-smoke's seed polling.
+async function ev(fn, arg) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await page.evaluate(fn, arg);
+    } catch (err) {
+      const msg = String(err && err.message || err);
+      if (!/Execution context was destroyed|Cannot find context|Target closed|detached/i.test(msg)) throw err;
+      await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+  return undefined;
 }
 
 const page = await browser.newPage();
@@ -95,7 +127,7 @@ page.on('response', (r) => {
 await nav(page, 'http://localhost:5183/engine');
 
 // Inject the 3 scripts. We catch 404s via the `loaded` response list.
-const injectResult = await page.evaluate(async () => {
+const injectResult = await ev(async () => {
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
@@ -119,12 +151,12 @@ if (fatalErrors.length === 0) ok('no console errors at boot');
 else bad('no console errors at boot', JSON.stringify(fatalErrors));
 
 // 2. SWR_MEDIA_INPUT defined with `create`.
-const hasMI = await page.evaluate(() => !!(window.SWR_MEDIA_INPUT && typeof window.SWR_MEDIA_INPUT.create === 'function'));
+const hasMI = await ev(() => !!(window.SWR_MEDIA_INPUT && typeof window.SWR_MEDIA_INPUT.create === 'function'));
 if (hasMI) ok('window.SWR_MEDIA_INPUT defined with create()');
 else bad('window.SWR_MEDIA_INPUT defined with create()', 'undefined');
 
 // 3. SWR_CAMERA_PREVIEW defined with mount + unmount.
-const hasCP = await page.evaluate(() => {
+const hasCP = await ev(() => {
   const cp = window.SWR_CAMERA_PREVIEW;
   return !!(cp && typeof cp.mount === 'function' && typeof cp.unmount === 'function');
 });
@@ -132,7 +164,7 @@ if (hasCP) ok('window.SWR_CAMERA_PREVIEW defined with mount + unmount');
 else bad('window.SWR_CAMERA_PREVIEW defined with mount + unmount', 'undefined');
 
 // 4. SWR_MIC_METER defined with mount + unmount.
-const hasMM = await page.evaluate(() => {
+const hasMM = await ev(() => {
   const mm = window.SWR_MIC_METER;
   return !!(mm && typeof mm.mount === 'function' && typeof mm.unmount === 'function');
 });
@@ -142,7 +174,7 @@ else bad('window.SWR_MIC_METER defined with mount + unmount', 'undefined');
 // 5. Factory call — create() returns an instance with the documented
 //    method surface. We can't actually start the camera/mic (no
 //    permissions in headless Chrome), but the instance + methods exist.
-const factoryOk = await page.evaluate(() => {
+const factoryOk = await ev(() => {
   try {
     const inst = window.SWR_MEDIA_INPUT.create();
     return !!(inst
@@ -160,7 +192,7 @@ else bad('factory surface', 'missing methods or threw');
 //    re-define window.SWR_MEDIA_INPUT (the guard short-circuits). The
 //    simplest signal: after a second inject, the original factory
 //    reference is unchanged (identity preserved).
-const guardOk = await page.evaluate(async () => {
+const guardOk = await ev(async () => {
   const before = window.SWR_MEDIA_INPUT;
   await new Promise((resolve, reject) => {
     const s = document.createElement('script');
