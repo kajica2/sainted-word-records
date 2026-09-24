@@ -46,12 +46,23 @@ function scheduleNext() {
 
   let delayMs;
   if (cfg.beatSync && cfg.bpm > 0) {
-    // Snap to nearest beat grid: 1 beat = 60000/bpm ms
+    // Random draw within the profile window, then snapped to the beat
+    // grid (ceil → the cut lands ON a beat, never mid-beat). The old
+    // behaviour here — delayMs = beatMs * beatsPerSwap, a FIXED interval
+    // — made every act cut at exactly the same rate and silently
+    // defeated the automix composition profiles.
     const beatMs = 60000 / cfg.bpm;
-    const beatsToWait = cfg.beatsPerSwap;
-    delayMs = beatMs * beatsToWait;
+    delayMs = Math.max(beatMs, rand(cfg.minMs, cfg.maxMs));
+    delayMs = Math.ceil(delayMs / beatMs) * beatMs;
   } else {
     delayMs = rand(cfg.minMs, cfg.maxMs);
+  }
+  // Global invariant: a clip never stays visible longer than 8 bars
+  // (32 beats), regardless of which config path set the interval —
+  // including manual panel values. Skipped when bpm is unknown (0).
+  if (cfg.bpm > 0) {
+    const cap8bars = 32 * (60000 / cfg.bpm);
+    if (delayMs > cap8bars) delayMs = cap8bars;
   }
 
   timer = setTimeout(() => {
