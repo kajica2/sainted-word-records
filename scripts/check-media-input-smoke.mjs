@@ -38,7 +38,18 @@ const server = http.createServer((req, res) => {
   let file = path.join(distDir, p);
   if (!file.startsWith(distDir)) { res.statusCode = 403; res.end(); return; }
   fs.readFile(file, (err, data) => {
-    if (err) { res.statusCode = 404; res.end(); return; }
+    if (err) {
+      // Mirrors the vercel rewrite: the flat build emits dist/engine.html /
+      // dist/spit.html for the extensionless /engine and /spit paths.
+      if (!path.extname(file)) {
+        return fs.readFile(file + '.html', (err2, data2) => {
+          if (err2) { res.statusCode = 404; res.end(); return; }
+          res.setHeader('Content-Type', 'text/html');
+          res.end(data2);
+        });
+      }
+      res.statusCode = 404; res.end(); return;
+    }
     const ext = path.extname(file);
     const mime = ext === '.html' ? 'text/html'
       : ext === '.js' ? 'text/javascript'
@@ -58,8 +69,11 @@ function ok(name) { results.push('  ✓ ' + name); }
 function bad(name, got) { results.push('  ✗ ' + name + ' (got: ' + got + ')'); process.exitCode = 1; }
 
 // Same FATAL_FILTER as check-capture-smoke.mjs — the dev-control WS
-// probe to ws://localhost:8787 is a known noisy failure on CI runners.
-const FATAL_FILTER = /WebSocket.*ws:\/\/localhost:8787/;
+// probe to ws://localhost:8787 is a known noisy failure on CI runners,
+// and the static server can't serve /api/* (nav.client's boot fetch of
+// /api/auth/session 404s), same convention as
+// verify-automix-cross-surface.mjs.
+const FATAL_FILTER = /WebSocket.*ws:\/\/localhost:8787|404/;
 
 async function nav(page, url) {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });

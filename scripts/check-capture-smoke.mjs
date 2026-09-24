@@ -39,7 +39,18 @@ const server = http.createServer((req, res) => {
   let file = path.join(distDir, p);
   if (!file.startsWith(distDir)) { res.statusCode = 403; res.end(); return; }
   fs.readFile(file, (err, data) => {
-    if (err) { res.statusCode = 404; res.end(); return; }
+    if (err) {
+      // Mirrors the vercel rewrite: the flat build emits dist/engine.html /
+      // dist/spit.html for the extensionless /engine and /spit paths.
+      if (!path.extname(file)) {
+        return fs.readFile(file + '.html', (err2, data2) => {
+          if (err2) { res.statusCode = 404; res.end(); return; }
+          res.setHeader('Content-Type', 'text/html');
+          res.end(data2);
+        });
+      }
+      res.statusCode = 404; res.end(); return;
+    }
     const ext = path.extname(file);
     const mime = ext === '.html' ? 'text/html'
       : ext === '.js' ? 'text/javascript'
@@ -84,8 +95,12 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await nav(page, 'http://localhost:5182/engine');
 
 // 1. No console errors at boot (excluding pre-existing dev-control WS
-//    probe to ws://localhost:8787, same filter as automix-smoke).
-const FATAL_FILTER = /WebSocket.*ws:\/\/localhost:8787/;
+//    probe to ws://localhost:8787, same filter as automix-smoke, and the
+//    static server's inability to serve /api/* — /api/auth/session 404s
+//    at boot on every suite that serves the source/dist tree without the
+//    swrc API middleware, same 404 convention as
+//    verify-automix-cross-surface.mjs).
+const FATAL_FILTER = /WebSocket.*ws:\/\/localhost:8787|404/;
 const fatalErrors = errors.filter((e) => !FATAL_FILTER.test(e));
 if (fatalErrors.length === 0) ok('no console errors at boot');
 else bad('no console errors at boot', JSON.stringify(fatalErrors));

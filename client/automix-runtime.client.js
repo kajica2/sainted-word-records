@@ -291,7 +291,12 @@
     },
 
     _glideTick() {
-      if (!this.enabled || this.frozen || !this.arc) return;
+      if (!this.enabled || this.frozen) return;
+      // The 1s clock is the right heartbeat to notice a new song (arc
+      // rebuild + session flush) — waiting for the next musical tick
+      // (8-20s at low feat energy) left the arc stale after a song change.
+      this._ensureArc();
+      if (!this.arc) return;
       var A = (window.SWR && window.SWR.Audio) || null;
       var el = A && (A.el || A._el || A.audioEl);
       if (!el || !el.src) return;
@@ -299,6 +304,17 @@
         window.SWR_AUTOMIX_ARC.sampleAt(this.arc, el.currentTime || 0);
       if (!arcSample) return;
       this._lastArcSample = arcSample;
+      // Composition coupling: the cutting rhythm follows the act on this
+      // 1s clock (boundary cuts + within-act cadence envelope). nextActName
+      // rides along so the composition never reaches into page internals
+      // (music_video's orchestrator is IIFE-private).
+      this._emit('swr-automix-glide', {
+        actIndex: arcSample.actIndex,
+        actCount: arcSample.actCount,
+        actName: arcSample.actName,
+        actProgress: arcSample.actProgress,
+        nextActName: (this.arc.acts[arcSample.actIndex + 1] || {}).name || null,
+      });
       var preset = this._arcGlidePreset(arcSample);
       // Only re-arm the ramp when the glide actually moved — a no-op write
       // would restart the 1s smoothstep on the same value every second.

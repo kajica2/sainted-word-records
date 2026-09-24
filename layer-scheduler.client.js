@@ -149,10 +149,40 @@
     const Layers = getLayers();
     const list = (Layers && Layers.list) || [];
     if (!list.length) return null;
+    if (idx === -1) {
+      // Round-robin: every layer takes its turn evolving. The old random
+      // pick let one layer churn while another never moved — the
+      // composition stopped reading as an evolving whole.
+      state._rr = ((state._rr == null ? -1 : state._rr) + 1) % list.length;
+      return list[state._rr];
+    }
     if (idx < 0 || idx >= list.length) {
       return list[Math.floor(Math.random() * list.length)];
     }
     return list[idx];
+  }
+
+  // Resolve an asset id against the engine Library, then the media store
+  // (the '+ ADD' flow — fresh blob URL per session; stored urls die on
+  // reload, never reuse one).
+  function resolveAsset(assetId) {
+    const Library = getLibrary();
+    const items = (Library && Library.items) || [];
+    const hit = items.find(i => i.id === assetId);
+    if (hit) return hit;
+    const m = mediaItems.find(i => i.id === assetId);
+    if (m && m.blob) {
+      let url = null;
+      try { url = URL.createObjectURL(m.blob); } catch (_) {}
+      if (url) {
+        return {
+          id: m.id, name: m.name,
+          type: (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image',
+          url: url, blob: m.blob,
+        };
+      }
+    }
+    return null;
   }
 
   function applySwap({ assetId, layerIndex }) {
@@ -160,29 +190,21 @@
     const Library = getLibrary();
     const Audio = getAudio();
     if (!Layers || !Library) return false;
-    const items = Library.items || [];
-    let asset = items.find(i => i.id === assetId);
-    if (!asset) {
-      // Not in the engine Library — resolve from the media store (the
-      // '+ ADD' flow). Build the engine layer-asset shape on the fly:
-      // a fresh blob URL per session (blob URLs from earlier pages die
-      // on reload — never reuse a stored url).
-      const m = mediaItems.find(i => i.id === assetId);
-      if (m && m.blob) {
-        let url = null;
-        try { url = URL.createObjectURL(m.blob); } catch (_) {}
-        if (url) {
-          asset = {
-            id: m.id, name: m.name,
-            type: (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image',
-            url: url, blob: m.blob,
-          };
-        }
-      }
-    }
+    let asset = resolveAsset(assetId);
     if (!asset) return false;
     const layer = findLayerByIndex(layerIndex === -1 ? -1 : layerIndex);
     if (!layer) return false;
+
+    // Natural-cut guard: never "swap" a layer to the clip it is already
+    // showing — a crossfade to itself reads as a stutter. Re-pick from
+    // the pool, excluding what's on screen; a pool of one stays put.
+    if (layer.asset && layer.asset.id === asset.id) {
+      const fresh = state.poolIds.filter(id => id !== asset.id);
+      if (!fresh.length) return false;
+      const alt = resolveAsset(fresh[Math.floor(Math.random() * fresh.length)]);
+      if (!alt) return false;
+      asset = alt;
+    }
 
     // Mirror mode: flip the layer's facing on each swap so consecutive
     // clips alternate — when disabled, clear any stale flag.
@@ -438,9 +460,10 @@
     });
 
     $('ls-swapnow').addEventListener('click', () => {
-      // Force a swap immediately by toggling the timer off+on with min/max=0
-      post({ type: 'config', cfg: { enabled: true, minMs: 50, maxMs: 50, beatSync: false } });
-      setTimeout(pushConfig, 200);  // restore normal config
+      // Direct swap request — the worker fires a swap now and re-anchors
+      // its rhythm. (Was a config off+on toggle hack that also reset the
+      // user's beat-sync preference for 200ms.)
+      post({ type: 'swapNow' });
     });
 
     function updateStats() {
@@ -469,7 +492,7 @@
       pushCurrentConfig();
     },
     swapNow() {
-      document.getElementById('ls-swapnow').click();
+      post({ type: 'swapNow' });
     },
     state,
     worker,
@@ -496,6 +519,14 @@
   // setConfig overrides the knob values AND pushes them to the worker,
   // keeping the panel inputs in sync so the UI never lies.
   window.SWR_LAYER_SCHEDULER = {
+    // Glide-cadence hint (within-act envelope). Forwarded as a
+    // non-rescheduling message: the new window applies when the worker's
+    // timer next re-arms, so 1s updates can't starve the pending swap.
+    setProgress(minSeconds, maxSeconds) {
+      const min = Math.max(0.5, Number(minSeconds) || 0) * 1000;
+      const max = Math.max(min, (Number(maxSeconds) || min) * 1000);
+      post({ type: 'progress', minMs: min, maxMs: max });
+    },
     setConfig(cfg) {
       if (!cfg || typeof cfg !== 'object') return;
       if (typeof cfg.minSeconds === 'number' && isFinite(cfg.minSeconds)) {

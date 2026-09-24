@@ -124,6 +124,16 @@ try {
   });
 
   await step('rotation OFF → scale reactor still applies (other targets unaffected)', async () => {
+    // lib/swr-natural.client.js smooths Audio.feat reads with an attack
+    // follower (~80ms τ) — settle it onto the driven rms value before
+    // asserting the exact reactor result.
+    await page.evaluate(async () => {
+      const t0 = performance.now();
+      while (performance.now() - t0 < 600) {
+        void window.SWR.Audio.feat.rms;
+        await new Promise((r) => setTimeout(r, 16));
+      }
+    });
     const r = await page.evaluate(() => {
       const l = window.SWR.Layers.list[0];
       l.baseScale = 1.0;
