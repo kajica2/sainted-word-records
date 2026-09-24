@@ -381,4 +381,53 @@
   } else {
     buildUI();
   }
+
+  // ---- Programmatic API (consumed by client/automix-composition.client.js) ----
+  // The composition layer drives the same config channel as the panel:
+  // setConfig overrides the knob values AND pushes them to the worker,
+  // keeping the panel inputs in sync so the UI never lies.
+  window.SWR_LAYER_SCHEDULER = {
+    setConfig(cfg) {
+      if (!cfg || typeof cfg !== 'object') return;
+      if (typeof cfg.minSeconds === 'number' && isFinite(cfg.minSeconds)) {
+        state.minSeconds = Math.max(1, cfg.minSeconds);
+      }
+      if (typeof cfg.maxSeconds === 'number' && isFinite(cfg.maxSeconds)) {
+        state.maxSeconds = Math.max(state.minSeconds, cfg.maxSeconds);
+      }
+      if (typeof cfg.beatSync === 'boolean') {
+        state.beatSync = cfg.beatSync;
+        state.beatSnap = cfg.beatSync;
+      }
+      if (typeof cfg.enabled === 'boolean') state.enabled = cfg.enabled;
+      // Keep the panel inputs honest with the programmatic state.
+      const minIn = document.getElementById('ls-min');
+      const maxIn = document.getElementById('ls-max');
+      const beatIn = document.getElementById('ls-beat');
+      const enable = document.getElementById('ls-enable');
+      if (minIn) minIn.value = String(state.minSeconds);
+      if (maxIn) maxIn.value = String(state.maxSeconds);
+      if (beatIn) beatIn.checked = state.beatSync;
+      if (enable) enable.checked = state.enabled;
+      post({
+        type: 'config',
+        cfg: {
+          enabled: state.enabled,
+          minMs: state.minSeconds * 1000,
+          maxMs: state.maxSeconds * 1000,
+          beatSync: state.beatSync,
+          bpm: (getAudio() && getAudio().bpm) || 120,
+          beatsPerSwap: 16,
+        },
+      });
+    },
+    config() {
+      return {
+        enabled: state.enabled,
+        minSeconds: state.minSeconds,
+        maxSeconds: state.maxSeconds,
+        beatSync: state.beatSync,
+      };
+    },
+  };
 })();
