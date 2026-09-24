@@ -137,6 +137,11 @@
     .release .sha { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
       margin-bottom: 12px; }
     .release .sha code { color: var(--ink-2); }
+    /* Long unbroken identifiers in list items set the page width:
+       a 702px <code> pushed documentElement.scrollWidth past the 375px
+       viewport. Let code wrap and list items shrink. */
+    li { min-width: 0; }
+    li code, p code, .schema-card .fields li { overflow-wrap: anywhere; word-break: break-word; }
     .release .blurb { color: var(--ink-2); line-height: 1.55; max-width: 760px; margin: 0 0 16px; }
     .release .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 10px 24px; }
