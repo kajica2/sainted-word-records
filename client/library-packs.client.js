@@ -40,6 +40,16 @@
   //   - 'placeholder'     → no curated source; users drag their own
   const PACKS = [
     {
+      id: 'dancers',
+      label: 'Dancers',
+      icon: '\u{1F57A}',
+      source: 'pack',
+      packKey: 'dancers',
+      folder: 'dancers',
+      emptyMsg: 'No dancer silhouettes in the pack manifest.',
+      description: '8 stage-lit dancer silhouettes (B&W, 1456\u00D7816)',
+    },
+    {
       id: 'photos',
       label: 'Photos',
       icon: '📸',
@@ -99,10 +109,22 @@
     return null;
   }
 
+  // Manifest resolution order:
+  //   1. /library/manifest.json  — local curated library (gitignored, stripped
+  //      from the build; present on dev boxes that have it)
+  //   2. /packs/manifest.json    — the SHIPPED packs (packs/ is tracked and
+  //      copied into dist, so this is the one that exists in production)
+  // The winning manifest's `base` field drives asset URL resolution.
+  const MANIFEST_FALLBACK_URL = '/packs/manifest.json';
   async function fetchManifest() {
-    const r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+    let r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+    if (!r.ok) r = await fetch(MANIFEST_FALLBACK_URL, { cache: 'no-cache' });
     if (!r.ok) throw new Error(`manifest ${r.status}`);
-    return r.json();
+    const m = await r.json();
+    // A manifest may declare where its listed paths live. Default keeps the
+    // historical /library/ behaviour.
+    manifestBase = (typeof m.base === 'string' && m.base) ? m.base : '/library/';
+    return m;
   }
 
   function fileSizeOrNull(url) {
@@ -113,10 +135,14 @@
     }).catch(() => null);
   }
 
-  // Convert relative manifest path → absolute URL.
+  // Convert relative manifest path → absolute URL. The base comes from the
+  // manifest (`base`), so a shipped pack can live under /packs/ while the
+  // legacy gitignored /library/ manifest keeps working unchanged.
+  let manifestBase = '/library/';
   function manifestUrl(rel) {
     if (!rel) return null;
-    return '/library/' + rel.replace(/^\/+/, '');
+    const r = rel.replace(/^\/+/, '');
+    return manifestBase + r;
   }
 
   // Build a synthetic File from a relative manifest path by fetching its bytes.
