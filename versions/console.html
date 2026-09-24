@@ -614,5 +614,13 @@ function loop(now) {
 requestAnimationFrame(loop);
 </script>
 
+<!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
+<div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
+    <button id="automix-debug-close" title="Close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; line-height:1;">×</button>
+  </div>
+  <div id="automix-debug-body" style="color:#aaa;">idle</div>
+</div>
 </body>
 </html>
