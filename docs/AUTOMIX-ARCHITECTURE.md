@@ -15,6 +15,7 @@ to `tick()`.
 |---|---|---|
 | `base` | legacy realtime pick / lock-mode | per tick (8 bars) |
 | `arc` | **macro direction** — replaces the mix when a song arc exists | whole song, 3–5 acts |
+| `session` | L4 novelty — reroutes to an unused neighbour when the picked anchor appears in recent songs | per song |
 
 `_lastMixedVia` reports `'arc'` or `'legacy'` for the debug panel.
 
@@ -26,6 +27,29 @@ duration/BPM/onset-count): 3–5 acts whose boundaries snap to onset-flux valley
 each act targeting an anchor region (≥0.25 anchor-map displacement enforced —
 "changes over time are visible") with a full-range baseline blended 50/50 with the
 anchor preset. Fallback: analysis failure or >15 min → realtime-only mode.
+
+**The glide.** A static per-act baseline converges inside the 1s ramp and stays
+there — measured Δ=0.000 over a 47s act. So the act baseline glides continuously
+toward the next act's baseline (last act wraps to the first — the outro drifts
+back toward the intro feel) on a **1s glide clock** (`_glideTick`), decoupled from
+`computeTickInterval`'s bars-based cadence: at low feat energy the tick cadence
+stretches to ~20s, which would teleport the whole act-to-act displacement into
+one invisible step. The ramp machinery smooths each 1s glide write.
+
+**Engine FX fast-path.** fx-postprocess's zero-FX skip (`!anyFxActive()`) must
+not skip while `SWR._fxOverride` is set: on zero-persona pages (engine.html)
+state can only become non-zero *through* the override-consumption block, so the
+skip would lock automix out forever. Variants never noticed (personas start
+non-zero).
+
+## L4 session memory
+
+`client/automix-session-store.client.js` keeps the last 5 songs' used anchors
+(`localStorage["swr.automix.session.v1"]`). The runtime accumulates anchors per
+tick and flushes them in `_ensureArc()` when `el.src` changes — the only
+recording hook, so mic-only/no-element pages stay inert. The `session` layer
+reroutes to the nearest unused neighbour when the picked anchor is in `recent()`;
+if every nearby anchor is a repeat, the current one stands.
 
 ## Composition coupling
 
@@ -66,6 +90,13 @@ refresh. Assets are stale-while-revalidate: one load to converge, offline intact
 
 - `scripts/check-automix-arc-unit.mjs` (node:vm, 9 checks) — determinism, movement
   budget, sampling, degenerate/null contracts. In `npm run check`.
+- `scripts/check-automix-session-unit.mjs` (node:vm, 20 checks) — store caps/corruption,
+  session-layer reroute/passthrough, pill format, song-change flush, glide math,
+  engine-shape `audioEl` transport. In `npm run check`.
+- `verify-automix-arc-displacement.mjs` — the runtime regression contract: samples
+  14 FX fields every 5s for 80–180s on engine.html and requires ≥0.3 absolute
+  movement of at least one field per fully-observed arc act, plus the pill's
+  act-context format. Sprint gate (too slow for check:full).
 - `verify-transitions.mjs` — 58 checks incl. `?diag=1` payload + intensity invariant
   (setIntensity never mutates `FX.state`).
 - `verify-automix-cross-surface.mjs` — 77 checks, three tiers: full (engine + 5
@@ -75,5 +106,4 @@ refresh. Assets are stale-while-revalidate: one load to converge, offline intact
 ## Parked (each is one layer object now)
 
 Hue-bias per act (warm acts pick warm clips — needs pool metadata in the worker),
-session memory (novelty across songs via last-mix-store), transition-cadence
-coupling (acts choose transition families).
+transition-cadence coupling (acts choose transition families).
