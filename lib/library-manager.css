@@ -169,6 +169,42 @@
   text-transform: uppercase;
 }
 
+/* cloud-mirror status line. `state` is set from getSyncState().status so the
+   states a user must notice (offline, error) can be emphasised without JS
+   touching inline styles.
+   Lives outside .lmp-toolbar on purpose — that container is display:none
+   when the library is empty, and the empty state is exactly when the user
+   needs to know whether uploads are being backed up. */
+.lmp-sync-bar {
+  padding: 0 0 6px;
+  min-height: 12px;
+}
+
+.lmp-sync {
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--muted, #ff44aa);
+  opacity: 0.8;
+}
+
+.lmp-sync:empty {
+  display: none;
+}
+
+.lmp-sync[data-state='error'] {
+  color: var(--danger, #ff5555);
+  opacity: 1;
+}
+
+.lmp-sync[data-state='offline'] {
+  opacity: 0.6;
+}
+
+.lmp-sync[data-state='syncing'] {
+  opacity: 1;
+}
+
 /* rows */
 
 .lmp-list {
