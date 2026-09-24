@@ -69,6 +69,14 @@ function generateRewrites(map) {
     } else if (cleanHref.startsWith('/artists/')) {
       // Artists subpages use direct paths: /artists/foo → /artists/foo.html
       htmlPath = `${cleanHref}.html`;
+    } else if (fs.existsSync(path.join(cleanHref.replace(/^\//, ''), 'index.html'))) {
+      // Directory-style routes are served by their index.html, NOT by
+      // <name>.html. /personas/v lives at personas/v/index.html, so the
+      // generic rule below would emit a rewrite to a non-existent
+      // personas/v.html — and because this loop runs before the explicit
+      // rules, that bad rewrite would shadow the correct one and make the
+      // whole gallery unreachable.
+      htmlPath = `${cleanHref}/index.html`;
     } else {
       htmlPath = `${cleanHref}.html`;
     }
@@ -104,11 +112,25 @@ function generateRewrites(map) {
     addPath('/auth/verify');
   }
 
-  // Special cases: /personas/:id → /personas?id=:id
-  rules.push({ source: '/personas/v/:id', destination: '/personas.html' });
-  rules.push({ source: '/personas/v/:id/', destination: '/personas.html' });
-  rules.push({ source: '/personas/v/index', destination: '/personas.html' });
-  rules.push({ source: '/personas/v/index/', destination: '/personas.html' });
+  // Persona variant gallery. Each /personas/v/<id> must resolve to its OWN
+  // page under personas/v/. These previously all mapped to /personas.html,
+  // which made the entire 24-page gallery unreachable in production — every
+  // URL silently served the marketing page instead, so the variants could
+  // not be visited even by typing the address.
+  //
+  // Declared before the /personas/:id catch-all below: that rule would
+  // otherwise shadow them (it matches /personas/v too).
+  rules.push({ source: '/personas/v/:id', destination: '/personas/v/:id.html' });
+  rules.push({ source: '/personas/v/:id/', destination: '/personas/v/:id.html' });
+  rules.push({ source: '/personas/v', destination: '/personas/v/index.html' });
+  rules.push({ source: '/personas/v/', destination: '/personas/v/index.html' });
+  rules.push({ source: '/personas/v/index', destination: '/personas/v/index.html' });
+  rules.push({ source: '/personas/v/index/', destination: '/personas/v/index.html' });
+
+  // Catch-all for the marketing personas page: /personas/<anything> renders
+  // the persona overview. Note this is a soft-404 (any unknown subpath shows
+  // this page) — deliberate for now, but it must stay LAST so it cannot
+  // shadow a real sub-path.
   rules.push({ source: '/personas/:id', destination: '/personas.html' });
   rules.push({ source: '/personas/:id/', destination: '/personas.html' });
 

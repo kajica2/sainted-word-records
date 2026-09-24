@@ -421,11 +421,11 @@
     },
     {
       "source": "/versions",
-      "destination": "/versions.html"
+      "destination": "/versions/index.html"
     },
     {
       "source": "/versions/",
-      "destination": "/versions.html"
+      "destination": "/versions/index.html"
     },
     {
       "source": "/make-video",
@@ -642,6 +642,14 @@
     {
       "source": "/personas/",
       "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/v",
+      "destination": "/personas/v/index.html"
+    },
+    {
+      "source": "/personas/v/",
+      "destination": "/personas/v/index.html"
     },
     {
       "source": "/shop",
@@ -861,19 +869,27 @@
     },
     {
       "source": "/personas/v/:id",
-      "destination": "/personas.html"
+      "destination": "/personas/v/:id.html"
     },
     {
       "source": "/personas/v/:id/",
-      "destination": "/personas.html"
+      "destination": "/personas/v/:id.html"
+    },
+    {
+      "source": "/personas/v",
+      "destination": "/personas/v/index.html"
+    },
+    {
+      "source": "/personas/v/",
+      "destination": "/personas/v/index.html"
     },
     {
       "source": "/personas/v/index",
-      "destination": "/personas.html"
+      "destination": "/personas/v/index.html"
     },
     {
       "source": "/personas/v/index/",
-      "destination": "/personas.html"
+      "destination": "/personas/v/index.html"
     },
     {
       "source": "/personas/:id",
