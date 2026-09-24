@@ -483,14 +483,29 @@
       // Silence fade — no sound (paused/ended/absent) → ease to BLACK
       // over ~3s; sound returns → restore in ~1s. Multiplied at the frag
       // output via u_fade so the stage disappears gracefully when the
-      // music stops.
-      const _au = (window.SWR && window.SWR.Audio) || null;
-      const _ael = _au && (_au.el || _au._el);
-      const _active = !!(_ael && !_ael.paused && (_ael.currentTime || 0) > 0.2);
-      if (typeof state.fade !== 'number') state.fade = _active ? 0 : 1;
+      // music stops. Active check is multi-source: the engine element,
+      // the stub element, the page's playing flag, OR any audio/video
+      // element in the DOM (clip layers can carry the audible sound
+      // themselves) — fading while the user hears music is a bug.
+      function _audioActive() {
+        var _au = (window.SWR && window.SWR.Audio) || null;
+        if (_au && _au.playing === true) return true;
+        var _els = [];
+        if (_au) { _els.push(_au.el, _au._el); }
+        try {
+          var _dom = document.querySelectorAll('audio, video');
+          for (var i = 0; i < _dom.length; i++) _els.push(_dom[i]);
+        } catch (_) {}
+        for (var j = 0; j < _els.length; j++) {
+          var _e = _els[j];
+          if (_e && !_e.paused && (_e.currentTime || 0) > 0.2 && !_e.muted) return true;
+        }
+        return false;
+      }
+      if (typeof state.fade !== 'number') state.fade = _audioActive() ? 0 : 1;
       const _dtFade = Math.min(0.1, (now - (state._lastFadeT || now)) / 1000);
       state._lastFadeT = now;
-      state.fade += ((_active ? 0 : 1) - state.fade) * Math.min(1, _dtFade * (_active ? 3 : 0.35));
+      state.fade += ((_audioActive() ? 0 : 1) - state.fade) * Math.min(1, _dtFade * (_audioActive() ? 3 : 0.35));
 
       // Resize check (throttled)
       if (now - lastResize > 200) {
