@@ -415,39 +415,58 @@
       var n = (window.HologramState && window.HologramState.neighbours) || 4;
       var mixed;
 
-      // L3 song arc — when a full-song analysis produced an arc, it OWNS
-      // the macro direction: the tick's anchor/preset come from the arc's
-      // current act (sampled at playback position), and the realtime
-      // section/beat layers act as flavour within the act. Without an arc
-      // (analysis pending/failed, or no media element) this is a
-      // passthrough and the legacy path below runs unchanged.
-      var arcSample = null;
-      if (this.arc && window.SWR && window.SWR.Audio && window.SWR.Audio.el) {
-        var pos = window.SWR.Audio.el.currentTime || 0;
-        arcSample = window.SWR_AUTOMIX_ARC.sampleAt(this.arc, pos);
-      } else if (this.arc && window.SWR && window.SWR.Audio && window.SWR.Audio._el) {
-        var posTape = window.SWR.Audio._el.currentTime || 0;
-        arcSample = window.SWR_AUTOMIX_ARC.sampleAt(this.arc, posTape);
-      }
+      // ---- Modulator layer chain (evolution plan phase 2) ----------------
+      // Each layer is a composable { id, apply(mix, feat, ctx) } — new
+      // evolution ideas become a layer object, not edits to tick(). The
+      // chain runs in priority order; each layer may return a replacement
+      // mix (arc OWNS the macro direction) or mutate the passing mix
+      // (flavour). ctx carries the per-tick context the layers share.
+      var ctx = { section: section, locked: this.locked, n: n, SWR: SWR };
+      var self = this;
 
-      if (arcSample) {
-        mixed = {
-          coords: arcSample.coords,
-          anchors: [{ id: arcSample.anchorId, dist: 0, anchor: arcSample.coords }],
-          preset: arcSample.preset,
-          section: section,
-          arc: { actIndex: arcSample.actIndex, actCount: arcSample.actCount, actName: arcSample.actName, actProgress: arcSample.actProgress },
-        };
-      } else if (this.locked) {
-        var coords = window.SWR_AUTOMIX.featuresToCoordsV2(feat);
-        var nn = (window.SWR_ANCHOR_MAP && window.SWR_ANCHOR_MAP.neighbours)
-          ? window.SWR_ANCHOR_MAP.neighbours(coords, 1) : [];
-        if (nn && nn[0]) {
-          mixed = { coords: coords, anchors: [nn[0]], preset: nn[0].anchor.preset, section: section };
-        }
-      } else {
-        mixed = window.SWR_AUTOMIX.mix(feat, n, { section: section });
+      var LAYERS = [
+        {
+          id: 'base', // legacy realtime pick — the floor every other layer modulates
+          apply: function (mix) {
+            if (mix) return mix;
+            if (ctx.locked) {
+              var coords = window.SWR_AUTOMIX.featuresToCoordsV2(feat);
+              var nn = (window.SWR_ANCHOR_MAP && window.SWR_ANCHOR_MAP.neighbours)
+                ? window.SWR_ANCHOR_MAP.neighbours(coords, 1) : [];
+              if (nn && nn[0]) {
+                return { coords: coords, anchors: [nn[0]], preset: nn[0].anchor.preset, section: ctx.section };
+              }
+              return null;
+            }
+            return window.SWR_AUTOMIX.mix(feat, ctx.n, { section: ctx.section });
+          },
+        },
+        {
+          id: 'arc', // L3 — owns the macro direction when the song arc exists
+          apply: function (mix) {
+            var el = window.SWR && window.SWR.Audio && (window.SWR.Audio.el || window.SWR.Audio._el);
+            if (!self.arc || !el) return mix; // passthrough — legacy path runs
+            var arcSample = window.SWR_AUTOMIX_ARC.sampleAt(self.arc, el.currentTime || 0);
+            if (!arcSample) return mix;
+            self._lastArcSample = arcSample;
+            return {
+              coords: arcSample.coords,
+              anchors: [{ id: arcSample.anchorId, dist: 0, anchor: arcSample.coords }],
+              preset: arcSample.preset,
+              section: ctx.section,
+              arc: { actIndex: arcSample.actIndex, actCount: arcSample.actCount, actName: arcSample.actName, actProgress: arcSample.actProgress },
+            };
+          },
+        },
+        // Future layers slot here: { id: 'hue-bias', apply: ... }, session
+        // memory, transition-cadence — each one composes onto the mix.
+      ];
+
+      mixed = null;
+      for (var li = 0; li < LAYERS.length; li++) {
+        mixed = LAYERS[li].apply(mixed, feat, ctx);
       }
+      this._lastMixedVia = self._lastArcSample ? 'arc' : 'legacy';
 
       if (!mixed || !mixed.preset) return;
 
