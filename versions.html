@@ -142,8 +142,15 @@
        viewport. Let code wrap and list items shrink. */
     li { min-width: 0; }
     li code, p code, .schema-card .fields li { overflow-wrap: anywhere; word-break: break-word; }
+    .features li { overflow-wrap: anywhere; word-break: break-word; }
     .release .blurb { color: var(--ink-2); line-height: 1.55; max-width: 760px; margin: 0 0 16px; }
-    .release .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    /* min(280px, 100%) keeps the 280px minimum where there is room but lets
+       the track collapse on a 375px viewport. A bare 280px min is wider than
+       the 239px available inside the padded ul, which pushed the page to 384.
+       Appending an overriding minmax(0, 1fr) also stops the overflow but
+       collapses the desktop multi-column layout. */
+    .release .features { display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
       gap: 10px 24px; }
     .release .features li { color: var(--ink-2); font-size: 14px; line-height: 1.5;
       list-style: none; padding-left: 18px; position: relative; }
