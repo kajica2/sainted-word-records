@@ -1342,4 +1342,8 @@ const PRESETS = {
     // you can still call applyPreset(key) with any key for the full list.
     SHORTCUT_PRESETS: ['pulse','neon','grid','eclipse','smoke','aurora','film','glitch','void'],
   };
+  // Diagnostic surface: the raw table (same pattern as __SWR_GET_PRESET /
+  // __SWR_BLEND_FX above). Lets unit tests assert against the table itself
+  // instead of pinning values the daily preset pipeline regenerates.
+  window.__SWR_PRESETS = PRESETS;
 })();

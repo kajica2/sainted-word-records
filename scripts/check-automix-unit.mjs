@@ -1020,9 +1020,11 @@ const VARIANT_NAMES = [
 }
 
 // Spot-check the disabled variants are flagged with enabled=false (so
-// runtime contract tests below can rely on this state).
+// runtime contract tests below can rely on this state). tape was enabled
+// once lib/media-feat closed its audio-feature gap (see AGENTS.md) —
+// echo-manifold is the sole remaining opt-out (no FX surface to drive).
 {
-  for (const name of ['echo-manifold', 'tape']) {
+  for (const name of ['echo-manifold']) {
     const raw = readFileSync(new URL('../variants/' + name + '.automix.json', import.meta.url), 'utf8');
     const json = JSON.parse(raw);
     assert.equal(json.enabled, false, name + ' config must have enabled:false');

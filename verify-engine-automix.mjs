@@ -6,7 +6,10 @@
 //
 // Asserts:
 //   1. engine.html loads with no console errors
-//   2. All 11 automix-stack scripts are present as <script> elements
+//   2. All 12 automix-stack scripts are present as <script> elements
+//      (engine.html never shipped track-analyzer.client.js — nothing on
+//      the page consumes SWR_TRACK_ANALYZE; music_video keeps its own.
+//      automix-arc.client.js was missed in the f582f56 rollout.)
 //   3. All 5 panels (#mood-overlay, #hook-panel, #hero-panel, toolbar
 //      buttons, #automix-debug-panel) are in the DOM
 //   4. window.SWR_AUTOMIX_STATE or equivalent global is exposed
@@ -51,14 +54,15 @@ const AUTOMIX_SCRIPTS = [
   'preset-anchor-map.client.js',
   'anchor-embed.js',
   'automix.client.js',
+  'automix-arc.client.js',
   'section-detector.client.js',
   'preset-cycle.client.js',
   'preset-pick-store.client.js',
   'layer-state-store.client.js',
   'last-mix-store.client.js',
+  'automix-session-store.client.js',
   'asset-curator.client.js',
   'library-packs.client.js',
-  'track-analyzer.client.js',
 ];
 
 const PANEL_IDS = [
@@ -85,6 +89,16 @@ const PANEL_IDS = [
 function ok(label) { console.log(`  \u2713 ${label}`); }
 function fail(label, msg) { console.log(`  \u2717 ${label}: ${msg}`); process.exitCode = 1; }
 
+// Filter pre-existing harmless errors — same convention as
+// verify-automix-cross-surface.mjs: the static server can't serve
+// /api/* handlers or Vercel rewrite paths (/engine), so those fetches
+// 404 here but succeed in production.
+function realErrors(errors) {
+  return errors.filter((e) =>
+    !e.includes('404') &&
+    !e.includes('ws://'));
+}
+
 async function run() {
   const server = await localServe();
   let browser;
@@ -100,8 +114,8 @@ async function run() {
     // 1. Load engine.html cleanly
     await page.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'networkidle2', timeout: 30000 });
     await new Promise(r => setTimeout(r, 1500));
-    if (errors.length === 0) ok('engine.html loads with no console errors');
-    else fail('engine.html loads with no console errors', errors.join('; '));
+    if (realErrors(errors).length === 0) ok('engine.html loads with no console errors');
+    else fail('engine.html loads with no console errors', realErrors(errors).join('; '));
 
     // 2. All 11 automix scripts are in the DOM
     const scriptStatus = await page.evaluate((scripts) => {
@@ -113,7 +127,7 @@ async function run() {
       return out;
     }, AUTOMIX_SCRIPTS);
     const missing = Object.entries(scriptStatus).filter(([, v]) => !v).map(([k]) => k);
-    if (missing.length === 0) ok('all 11 automix-stack scripts present in DOM');
+    if (missing.length === 0) ok(`all ${AUTOMIX_SCRIPTS.length} automix-stack scripts present in DOM`);
     else fail('automix-stack scripts present', `missing: ${missing.join(', ')}`);
 
     // 3. All 5 panels + their children in DOM
@@ -223,8 +237,8 @@ async function run() {
     if (cleanupOk) ok('cleanup: timers cleared + automix stopped');
     else fail('cleanup', 'cleanup threw');
 
-    if (errors.length === 0) ok('no console errors during full run');
-    else fail('no console errors', errors.join('; '));
+    if (realErrors(errors).length === 0) ok('no console errors during full run');
+    else fail('no console errors', realErrors(errors).join('; '));
   } finally {
     if (browser) await browser.close();
     server.close();

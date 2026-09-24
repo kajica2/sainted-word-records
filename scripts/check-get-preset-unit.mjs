@@ -57,14 +57,18 @@ function ok(name) { results.push('  ✓ ' + name); }
 function bad(name, got) { results.push('  ✗ ' + name + ' (got: ' + got + ')'); process.exitCode = 1; }
 
 // 1. Known preset (neon) returns the right fx_state values.
+//    Read the expected values from the PRESETS table itself rather than
+//    pinning literals — the preset pipeline regenerates these values
+//    daily, and a snapshot pin breaks on every regen without saying
+//    anything new about the helper.
 {
   const out = getPreset('neon');
+  const expected = sandbox.window.__SWR_PRESETS.neon;
   assert.ok(out, 'neon must resolve');
-  assert.strictEqual(out.temp, -0.3);
-  assert.strictEqual(out.mut, 0.55);
-  assert.strictEqual(out.chroma, 0.85);
-  assert.strictEqual(out.grain, 0.4);
-  ok('neon: 4 fields match PRESETS.neon');
+  for (const k of ['temp', 'mut', 'chroma', 'grain']) {
+    assert.strictEqual(out[k], expected[k], 'neon.' + k + ' must match PRESETS.neon');
+  }
+  ok('neon: 4 fields match PRESETS.neon (table-driven)');
 }
 
 // 2. All 19 named presets resolve without throwing.
