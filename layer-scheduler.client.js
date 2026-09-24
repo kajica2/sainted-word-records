@@ -86,6 +86,19 @@
     post({ type: 'setPool', ids });
   }
 
+  // Pool auto-refresh: boot-time refresh (below) misses clips the user
+  // adds afterwards — the scheduler then sat on a stale/empty pool and
+  // never swapped, which read as "automix isn't evolving my clips".
+  // Cheap signature poll (5s) — re-post only when the library changed.
+  let _poolSig = '';
+  function pollPool() {
+    const Library = getLibrary();
+    const items = (Library && Library.items) || [];
+    const sig = items.map(it => it && it.id).join(',');
+    if (sig !== _poolSig) { _poolSig = sig; refreshPool(); }
+  }
+  setInterval(pollPool, 5000);
+
   function findLayerByIndex(idx) {
     const Layers = getLayers();
     const list = (Layers && Layers.list) || [];
