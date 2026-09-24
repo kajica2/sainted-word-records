@@ -267,11 +267,41 @@
       this.lastChangeTs = now;
       this.flatSinceTs = now;
       this.lastAntiPatternTs = now;
+      this.arc = null;
+      this._ensureArc();
       this.tick();
       this._scheduleNext();
       this._startBeatPoll();
       this._updateUI('ON');
       try { localStorage.setItem('swr.automix.enabled', '1'); } catch (_) {}
+    },
+
+    // L3 song arc — build (or rebuild after a song change) from the
+    // full-song analysis. Async and best-effort: until the analysis lands
+    // the arc layer is a passthrough and the legacy realtime path runs.
+    // Re-triggers when the audio element's src changed (new song loaded).
+    _ensureArc() {
+      var A = (window.SWR && window.SWR.Audio) || null;
+      var el = A && (A.el || A._el);
+      if (!window.SWR_AUTOMIX_ARC || !el) return;
+      var analyze = (A && typeof A.analyzeFull === 'function')
+        ? function () { return A.analyzeFull(); }
+        : function () { return window.SWR_AUTOMIX_ARC.analyzeElement(el); };
+      var srcKey = el.src || '';
+      if (this._arcBuiltFor === srcKey) return;
+      this._arcBuiltFor = srcKey;
+      var self = this;
+      Promise.resolve()
+        .then(function () { return analyze(); })
+        .then(function (analysis) {
+          if (!analysis) return;
+          // analyzeFull mutates feat but returns the raw result; make sure
+          // duration + onsets are present for the arc builder.
+          if (!analysis.duration && A._el) analysis.duration = A._el.duration || 0;
+          self.arc = window.SWR_AUTOMIX_ARC.build(analysis);
+          self._emit('swr-automix-arc', self.arc ? { acts: self.arc.acts.length } : { acts: 0 });
+        })
+        .catch(function () { /* realtime-only fallback */ });
     },
 
     stop() {
@@ -368,6 +398,9 @@
       var SWR = window.SWR; if (!SWR || !SWR.Audio) return;
       var feat = SWR.Audio.feat || {};
 
+      // Song changed since the arc was built (or arc failed) → try again.
+      this._ensureArc();
+
       var sectionResult = window.SWR_AUTOMIX.tickSection(feat, this.sectionState);
       this.sectionState = sectionResult;
       var section = sectionResult.current;
@@ -382,7 +415,30 @@
       var n = (window.HologramState && window.HologramState.neighbours) || 4;
       var mixed;
 
-      if (this.locked) {
+      // L3 song arc — when a full-song analysis produced an arc, it OWNS
+      // the macro direction: the tick's anchor/preset come from the arc's
+      // current act (sampled at playback position), and the realtime
+      // section/beat layers act as flavour within the act. Without an arc
+      // (analysis pending/failed, or no media element) this is a
+      // passthrough and the legacy path below runs unchanged.
+      var arcSample = null;
+      if (this.arc && window.SWR && window.SWR.Audio && window.SWR.Audio.el) {
+        var pos = window.SWR.Audio.el.currentTime || 0;
+        arcSample = window.SWR_AUTOMIX_ARC.sampleAt(this.arc, pos);
+      } else if (this.arc && window.SWR && window.SWR.Audio && window.SWR.Audio._el) {
+        var posTape = window.SWR.Audio._el.currentTime || 0;
+        arcSample = window.SWR_AUTOMIX_ARC.sampleAt(this.arc, posTape);
+      }
+
+      if (arcSample) {
+        mixed = {
+          coords: arcSample.coords,
+          anchors: [{ id: arcSample.anchorId, dist: 0, anchor: arcSample.coords }],
+          preset: arcSample.preset,
+          section: section,
+          arc: { actIndex: arcSample.actIndex, actCount: arcSample.actCount, actName: arcSample.actName, actProgress: arcSample.actProgress },
+        };
+      } else if (this.locked) {
         var coords = window.SWR_AUTOMIX.featuresToCoordsV2(feat);
         var nn = (window.SWR_ANCHOR_MAP && window.SWR_ANCHOR_MAP.neighbours)
           ? window.SWR_ANCHOR_MAP.neighbours(coords, 1) : [];
