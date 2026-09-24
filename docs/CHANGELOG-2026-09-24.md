@@ -136,7 +136,7 @@ Verifier hygiene:
 
 ---
 
-# Session 2 — same day, later block (19 commits, `afa3239..e8cd282`)
+# Session 2 — same day, later block (20 commits, `afa3239..HEAD`)
 
 Continues on `fix/audit-critical-batch`. Started as the plan of record's
 remaining automix items; grew a look contract, a perf pass, a device-tier
@@ -401,36 +401,85 @@ than by re-pinning:
 | chain hung 30 min silently | orphan held :5182; `listen()` failed with no handler | `server.on('error')` → exit 1 with a message |
 | `media-input` crashed the chain | SW claim force-reload destroyed the evaluate context | wait for `serviceWorker.ready` + retrying evaluate wrapper |
 
+## Sitewide keyboard shortcuts
+
+Commit: (this batch)
+
+113 HTML pages, and only **5** had any keydown handler at all: 70 load
+`nav.client.js` and 56 use `<swr-nav>`, but there was no sitewide keyboard
+layer. `lib/site-keys.client.js` adds one, loaded next to the nav so every
+page that already has navigation gets it.
+
+Six bindings, deliberately no more:
+
+| Key | Action |
+|---|---|
+| `?` | show the shortcut list |
+| `Esc` | close it |
+| `/` | focus the nav search field (no-op on pages without one) |
+| `T` | toggle light/dark (`SWR_NAV.toggleTheme`) |
+| `G` then `H` | go home |
+| `G` then `M` | go to the music video engine |
+
+`G`-prefixed navigation rather than single letters: marketing pages are full
+of prose and a lone letter collides with the browser's find. The prefix also
+expires (1.2s), so a stray `G` cannot leave a page waiting for a second key.
+
+Conflict discipline, because this layer sits under 68 pages:
+
+- never fires inside `input`/`textarea`/`select`/`contentEditable`
+- never fires with Ctrl/Meta/Alt held
+- **defers to `engine-keys.client.js`**: if `window.SWR_KEYS` is present, any
+  key that registry claims is skipped here — read from its own `help()` list
+  so the two keymaps cannot drift (with `event.code`-style aliases, since
+  engine-keys registers `Slash`/`Space`/`Escape`)
+- `/` and the theme toggle yield when the page has no search field / no
+  `SWR_NAV`
+- `window.SWR_SITE_KEYS_DISABLE = true` makes the whole layer inert, so a page
+  with its own handlers can opt out without editing this module
+
+Rollout: 68 pages (every page loading `nav.client.js`). `engine.html` is
+intentionally excluded — its only `nav.client.js` hit is inside the
+self-contained-HTML export template string, and the engine surface already
+has the richer `engine-keys` keymap.
+
+Verified in a browser on a marketing page: module loads enabled with the 6
+rows; `?` opens the overlay and `Esc` closes it; `T` flips the theme; a `t`
+typed into a focused input does **not** toggle; `G H` navigates to `/` and
+`G M` to `/versions/music_video.html`; 0 pageerrors. 14 unit checks
+(`check:site-keys-unit`, in `npm run check`) cover the table, both guards,
+the deference path, prefix expiry, and the opt-out flag.
+
 ---
 
-## Stats (session 2)
-
-- **19 commits**, 81 files changed, **+3040 / −170**.
-- **4 new modules**: `client/automix-session-store.client.js`,
-  `lib/swr-natural.client.js`, `lib/tier-runtime.js`, `lib/adaptive-guard.js`
-  — plus 22 pack assets (`packs/manifest.json`, 8 webp, 13 mp4).
-- **4 new test artifacts**: `check-automix-session-unit.mjs` (20 checks),
-  `check-clip-evolution-unit.mjs` (22 checks),
-  `verify-automix-arc-displacement.mjs` (the displacement contract),
-  `verify-tier-runtime.mjs` (8 checks).
+- **20 commits**, 152 files changed, **+3200 / −170** (includes the 68-page
+  shortcut rollout).
+- **5 new modules**: `client/automix-session-store.client.js`,
+  `lib/swr-natural.client.js`, `lib/tier-runtime.js`, `lib/adaptive-guard.js`,
+  `lib/site-keys.client.js` — plus 22 pack assets (`packs/manifest.json`,
+  8 webp, 13 mp4).
+- **5 new test artifacts**: `check-automix-session-unit.mjs` (20 checks),
+  `check-clip-evolution-unit.mjs` (22 checks), `check-site-keys-unit.mjs`
+  (14 checks), `verify-automix-arc-displacement.mjs` (the displacement
+  contract), `verify-tier-runtime.mjs` (8 checks).
 - **6 product bugs found by writing the contract first**, not by reading code:
   engine missing the arc module; the FX fast-path self-lockout; static act
   baselines + teleporting cadence; `getStage()` returning a `<section>`; the
   mirror pass being wiped by an rAF ordering race; the overlay-off rung
   freezing the displacement signal.
 - **Media**: 26MB of source video → 2.0MB shipped (+2.5MB packs total).
-- Gates on the tip: `npm run check` exit 0 (0 failures); transitions 60 checks
+- Gates on the tip: `npm run check` exit 0 (0 failures); `check:full` exit 0
+  (0 failures across all stages); transitions 60 checks
   ALL CHECKS PASS; cross-surface 77/77; automix smoke 91/91; displacement
   contract exit 0; tier verifier 8/8.
 
 ### Known-open at session end
 
-- `scripts/with-dist.mjs` rebuilds only when `dist/` is **missing**, so a stale
-  dist silently tests old code (this cost a hang and a misdiagnosis). A
-  source-newer-than-dist staleness guard was next.
 - The 7 own-loop persona variants (tape, baroque, mosaic, phosphor, collage,
   spectrum, typography) do not consume the tier profile and do not dispatch
-  `swr-frame-end`; they rely on the module's fallback path.
-- A sitewide keyboard-shortcut layer (`lib/site-keys.client.js`) is planned but
-  not built — 113 HTML pages, 70 load `nav.client.js`, only 5 have any keydown
-  handler. Awaiting a decision on rollout scope and the `G`-prefix targets.
+  `swr-frame-end`; they rely on the natural-look module's rAF fallback path.
+- The sitewide shortcut layer covers the 68 nav pages. A page with its own
+  handlers can opt out via `window.SWR_SITE_KEYS_DISABLE = true`, but none has
+  been migrated to the shared layer yet.
+- Build budget headroom is now ~27MB of 130MB, and the dominant cost is still
+  `keyart/brutalist` (37MB of near-duplicate 2MB PNGs), not code (3%).
