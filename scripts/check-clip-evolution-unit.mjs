@@ -17,6 +17,28 @@ import vm from 'node:vm';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workerSrc = readFileSync(path.join(__dirname, '..', 'layer-scheduler.worker.js'), 'utf8');
 const compSrc = readFileSync(path.join(__dirname, '..', 'client', 'automix-composition.client.js'), 'utf8');
+const natSrc = readFileSync(path.join(__dirname, '..', 'lib', 'swr-natural.client.js'), 'utf8');
+
+// Natural-look module harness: controllable clock, inert DOM + rAF.
+function makeNat() {
+  let T = 1000;
+  const sb = {
+    console: { log: () => {}, warn: () => {} },
+    Math, Object, Array, JSON, Date, Number, String, Promise, Proxy, Reflect,
+    requestAnimationFrame: () => 0,
+    performance: { now: () => T },
+    localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+    document: { getElementById: () => null, createElement: () => ({}) },
+    window: {},
+  };
+  sb.globalThis = sb.window;
+  vm.createContext(sb);
+  vm.runInContext(natSrc, sb);
+  return { NAT: sb.window.SWR_NATURAL, advance: (ms) => { T += ms; } };
+}
+
+// Attack τ=80ms → 16ms step ≈ 0.18; release τ=420ms → 16ms step ≈ 0.037.
+function followerAudio(initial) { return { feat: Object.assign({}, initial) }; }
 
 const results = [];
 function check(name, fn) {
@@ -226,6 +248,69 @@ check('14. composition: missing scheduler degrades to no-op', () => {
   sb.self = sb;
   vm.createContext(sb);
   vm.runInContext(compSrc, sb); // must not throw without SWR_LAYER_SCHEDULER
+});
+
+// ---- Envelope follower (lib/swr-natural.client.js) -----------------------
+
+check('15. follower attack rises fast (~80ms τ), release slower (~420ms τ)', () => {
+  const { NAT, advance } = makeNat();
+  const A = followerAudio({ bass: 0 });
+  NAT.__wrap(A);
+  assert(Math.abs(A.feat.bass) < 1e-9, 'initial capture');
+  A.feat.bass = 1;                       // raw write (analyser side)
+  advance(16);
+  const up = A.feat.bass;                // one frame of attack
+  assert(up > 0.08 && up < 0.35, 'attack step should be ~0.18, got ' + up);
+  advance(250); A.feat.bass;             // step 1 (250ms clamp — tab-switch guard)
+  advance(250);                          // step 2
+  assert(A.feat.bass > 0.99, 'attack settles within 500ms, got ' + A.feat.bass);
+  A.feat.bass = 0;                       // raw release
+  advance(16);
+  const down = A.feat.bass;
+  assert(down < 0.99 && down > 0.85, 'release must be gradual, got ' + down);
+});
+
+check('16. bpm and out-of-window magnitudes pass through unsmoothed', () => {
+  const { NAT, advance } = makeNat();
+  const A = followerAudio({ bpm: 0, centroidVar: 0 });
+  NAT.__wrap(A);
+  A.feat.bpm = 136;
+  advance(16);
+  assert(A.feat.bpm === 136, 'bpm must not lag: ' + A.feat.bpm);
+  A.feat.centroidVar = 4;
+  advance(16);
+  assert(A.feat.centroidVar === 4, '>1.6 magnitude must pass raw: ' + A.feat.centroidVar);
+});
+
+check('17. setEnabled(false) bypasses the follower and clears the grade', () => {
+  const { NAT, advance } = makeNat();
+  const A = followerAudio({ beat: 0 });
+  NAT.__wrap(A);
+  assert(A.feat.beat === 0, 'priming read establishes follower state');
+  A.feat.beat = 1;
+  advance(16);
+  const smoothed = A.feat.beat;
+  assert(smoothed < 1, 'expected smoothing while enabled, got ' + smoothed);
+  NAT.setEnabled(false);
+  A.feat.beat = 0;
+  advance(16);
+  assert(A.feat.beat === 0, 'disabled: reads must pass raw through');
+});
+
+check('18. module is idempotent (second load returns same surface)', () => {
+  const { NAT } = makeNat();
+  const sb = {
+    console: { log: () => {}, warn: () => {} },
+    Math, Object, Array, JSON, Date, Number, String, Promise, Proxy, Reflect,
+    requestAnimationFrame: () => 0, performance: { now: () => 1 },
+    localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+    document: { getElementById: () => null, createElement: () => ({}) },
+    window: { SWR_NATURAL: NAT },
+  };
+  sb.globalThis = sb.window;
+  vm.createContext(sb);
+  vm.runInContext(natSrc, sb);
+  assert(sb.window.SWR_NATURAL === NAT, 're-execution must not rebuild the singleton');
 });
 
 console.log(results.join('\n'));

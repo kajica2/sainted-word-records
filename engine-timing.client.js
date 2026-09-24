@@ -48,7 +48,10 @@
     ease: 'smooth',       // 'linear' | 'smooth' | 'sharp'
 
     // Per-event timing for ops triggered by LayerScheduler / genops.
-    eventSwap:        { fadeOutMs: 600,  fadeInMs: 800  },
+    // eventSwap is the clip-dissolve window: ~2.2s total, crossfaded
+    // under an ease-in-out curve (step() below) — long enough to read as
+    // a dissolve, short enough to stay on the beat grid of a fast act.
+    eventSwap:        { fadeOutMs: 950,  fadeInMs: 1250 },
     eventCrossfade:   { fadeOutMs: 1200, fadeInMs: 1200 },
     eventMute:        { fadeOutMs: 400,  fadeInMs: 400  },
     eventUnmute:      { fadeOutMs: 400,  fadeInMs: 400  },
@@ -188,27 +191,26 @@
       if (cur !== tgt) layer._currentOpacity = tgt;
       return applyToR(r, tgt);
     }
-    // Use fadeInMs for rises, fadeOutMs for falls. Asymmetric = asymmetric
-    // perceived speed, which is closer to how music fades actually feel.
-    const goingUp = tgt > cur;
-    const ms = goingUp ? (layer.fadeInMs || cfg.fadeInMs)
-                       : (layer.fadeOutMs || cfg.fadeOutMs);
-    // Linear t toward target by ms, then ease(t) for the actual blend.
-    // At dt = 1/60s, fadeInMs = 800: 0.0208 raw → eased = 0.00126 → smooth.
-    const rawStep = ms > 0 ? (dt * 1000) / ms : 1;
-    // Don't clamp rawStep — we want to handle dt spikes (background tab).
-    // Instead, advance by min(rawStep, 1).
-    const adv = rawStep >= 1 ? 1 : rawStep;
-    const dir = goingUp ? +1 : -1;
-    const next = cur + dir * (Math.abs(tgt - cur)) * adv;
-    // Clamp to range and capture the eased value for the draw.
-    const clamped = tgt > cur ? Math.min(tgt, next) : Math.max(tgt, next);
-    layer._currentOpacity = clamped;
-    const draw = ease(layer.ease || cfg.ease,
-                      goingUp ? (clamped / (tgt || 1))
-                              : (1 - clamped / (tgt || 1)) * 0 + (1 - clamped / (tgt || 1)) /* unused */);
-    // The eased value above is for raw 0→1; for currentOpacity we just clamp.
-    return applyToR(r, clamped);
+    // Analytic ease-in-out segment: capture (from, t0, duration) when the
+    // target changes, then follow ease(t) across the FULL duration. The
+    // old form advanced a fraction of the remaining distance per frame —
+    // exponential, front-loaded: a dissolve popped at the start and crept
+    // through its tail. A symmetric smoothstep starts gently, crosses,
+    // and settles gently — the blend reads as a film dissolve.
+    if (layer._fadeTgt !== tgt) {
+      layer._fadeTgt = tgt;
+      layer._fadeFrom = cur;
+      layer._fadeT0 = performance.now();
+      // fadeInMs for rises, fadeOutMs for falls — asymmetric durations,
+      // symmetric curve (closer to how music fades actually feel).
+      layer._fadeMs = (tgt > cur) ? (layer.fadeInMs || cfg.fadeInMs)
+                                  : (layer.fadeOutMs || cfg.fadeOutMs);
+    }
+    const ms = layer._fadeMs || 0;
+    const p = ms > 0 ? Math.min(1, (performance.now() - layer._fadeT0) / ms) : 1;
+    const v = layer._fadeFrom + (tgt - layer._fadeFrom) * ease(layer.ease || cfg.ease, p);
+    layer._currentOpacity = p >= 1 ? tgt : v;
+    return applyToR(r, layer._currentOpacity);
   }
 
   function applyToR(r, opacity) {

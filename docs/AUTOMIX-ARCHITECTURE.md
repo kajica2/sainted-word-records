@@ -64,6 +64,25 @@ Watchdogs: the worker reschedules only on timing-param changes (no-op configs us
 to reset the timer); `setPool` starts the timer if enabled+populated; a 5s client
 poll re-posts stale pools and kicks a dead timer chain (>60s no swap).
 
+## Natural look (all versions)
+
+`lib/swr-natural.client.js` (engine + all 22 versions pages) enforces the
+look contract: (1) envelope followers on every numeric `Audio.feat` field
+(attack τ≈80ms, release τ≈420ms, Proxy read-side, frame-rate independent;
+bpm/beatInBar and |v|>1.6 pass raw, `beatPulse` stays crisp for beat-sync) —
+reactors breathe instead of twitching; (2) filmic grade — CSS filter
+`saturate(0.45) contrast(0.85) brightness(1.05)` on the TOPMOST visible
+canvas only (the fx-postprocess overlay when up, else the stage) — 55%
+desaturation, contrast pivoted at mid so blacks lift to soft gray and
+highlights roll off before clipping; (3) feedback trail — self-decaying echo
+buffer (0.82 decay, 0.30 feed, 0.22 out) blended under each frame; (4)
+rotating vertical-axis mirror — two ghost passes (±14°/±10° orbiting axes,
+soft-light 0.16 + screen 0.09) with the source re-angled inside the mirror.
+`SWR_NATURAL.setEnabled(false)` bypasses everything (persisted). Clip
+dissolves are ~2.2s ease-in-out: `engine-timing` `step()` tracks an analytic
+fade segment (from/t0/duration) through smoothstep instead of the old
+exponential approach, and `eventSwap` widened to 950/1250ms — no hard cuts.
+
 ## Preset pipeline
 
 23 presets in `versions-presets.js` (verified-write apply — JSON-serialized,
