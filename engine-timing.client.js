@@ -187,8 +187,12 @@
     const cur = layer._currentOpacity;
     const tgt = layer._targetOpacity;
     if (Math.abs(cur - tgt) < 1e-4) {
-      // Already at target — short-circuit.
+      // Already at target — short-circuit. The identity check avoids the
+      // per-frame shallow clone (layers × 60fps of young-gen garbage):
+      // with no fade in flight and no reactor touching opacity, r is
+      // already the exact value the draw needs.
       if (cur !== tgt) layer._currentOpacity = tgt;
+      if (r && r.opacity === tgt) return r;
       return applyToR(r, tgt);
     }
     // Analytic ease-in-out segment: capture (from, t0, duration) when the
