@@ -40,7 +40,18 @@ const server = http.createServer((req, res) => {
   let file = path.join(distDir, p);
   if (!file.startsWith(distDir)) { res.statusCode = 403; res.end(); return; }
   fs.readFile(file, (err, data) => {
-    if (err) { res.statusCode = 404; res.end(); return; }
+    if (err) {
+      // Mirrors the vercel rewrite: the flat build emits dist/engine.html /
+      // dist/spit.html for the extensionless /engine and /spit paths.
+      if (!path.extname(file)) {
+        return fs.readFile(file + '.html', (err2, data2) => {
+          if (err2) { res.statusCode = 404; res.end(); return; }
+          res.setHeader('Content-Type', 'text/html');
+          res.end(data2);
+        });
+      }
+      res.statusCode = 404; res.end(); return;
+    }
     const ext = path.extname(file);
     const mime = ext === '.html' ? 'text/html'
       : ext === '.js' ? 'text/javascript'
