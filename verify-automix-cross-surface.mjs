@@ -21,7 +21,7 @@
 //   dashboard.html           — read-only status tile only
 //
 // Expected per surface:
-//   - 11 automix-stack scripts (engine + 5 variants)
+//   - 12 automix-stack scripts (engine + 5 variants)
 //   - 5 runtime scripts (engine + 5 variants + dashboard)
 //   - 18 panel IDs (engine + 5 variants; dashboard only has the status tile)
 //   - All 5 extracted runtimes exposed on window
@@ -63,11 +63,13 @@ const AUTOMIX_SCRIPTS = [
   'preset-anchor-map.client.js',
   'anchor-embed.js',
   'automix.client.js',
+  'automix-arc.client.js',
   'section-detector.client.js',
   'preset-cycle.client.js',
   'preset-pick-store.client.js',
   'layer-state-store.client.js',
   'last-mix-store.client.js',
+  'automix-session-store.client.js',
   'asset-curator.client.js',
   'library-packs.client.js',
 ];
@@ -103,7 +105,7 @@ const PANEL_IDS = [
 ];
 
 // Each entry: [label, path, expectsStack]
-//   expectsStack=true  → expects 11 automix + 5 runtime scripts + 18 panel IDs
+//   expectsStack=true  → expects 12 automix + 5 runtime scripts + 18 panel IDs
 //   expectsStack=false → dashboard: expects only 5 runtime scripts + status tile
 //
 // Task 4 (cross-variant port) adds the 17 new variant pages that ship
