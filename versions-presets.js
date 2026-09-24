@@ -970,7 +970,7 @@ const PRESETS = {
         col += g;
       }
 
-      gl_FragColor = vec4(clamp(col * u_fade, 0.0, 1.0), 1.0);
+      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `;
 
@@ -1102,9 +1102,8 @@ const PRESETS = {
     sizeFx();
 
     let t0 = performance.now();
-    let silenceFade;     // silence fade — see render() u_fade
+    let silenceFade;     // silence alpha fade — see render()
     let _lastFrameT;
-    let _everPlayed = false;
     function render() {
       const now = performance.now();
       const t = (now - t0) / 1000;
@@ -1207,13 +1206,10 @@ const PRESETS = {
       gl.uniform1i(u.page,      pageIdx);
       gl.uniform3f(u.tint,      preset.tint[0], preset.tint[1], preset.tint[2]);
 
-      // Silence fade — no sound → ease to BLACK over ~3s; sound returns
-      // → restore in ~1s. Multi-source active check (engine element,
-      // stub element, playing flag, or ANY audio/video in the DOM —
-      // fading while the user hears music is a bug).
-      function _audioActiveS() {
-        // GROUND TRUTH = element state ONLY — the A.playing flag goes
-        // stale and once inverted the whole fade (see fx-postprocess.js).
+      // Silence → fade the fx canvas to ALPHA (transparent — reveals the
+      // raw stage), not black. Sound → opacity 1. Multi-source audio
+      // check (element state only — the A.playing flag goes stale).
+      function _audioActiveA() {
         var _au = (window.SWR && window.SWR.Audio) || null;
         var _els = [];
         if (_au) { _els.push(_au.el, _au._el); }
@@ -1227,18 +1223,11 @@ const PRESETS = {
         }
         return false;
       }
-      if (typeof silenceFade !== 'number') silenceFade = 0;
-      // Fading requires EVIDENCE of playback (see fx-postprocess.js):
-      // idle pages never go black — only after music that played stops.
-      if (_audioActiveS()) _everPlayed = true;
-      if (_everPlayed) {
-        const _dtS = Math.min(0.1, (now - (_lastFrameT || now)) / 1000);
-        _lastFrameT = now;
-        silenceFade += ((_audioActiveS() ? 0 : 1) - silenceFade) * Math.min(1, _dtS * (_audioActiveS() ? 3 : 0.35));
-      }
-      window.__SWR_SILENCE_FADE = silenceFade; // debug-panel visible
-      window.__SWR_SILENCE_FADE_DEBUG = { active: _audioActiveS(), ever: !!_everPlayed };
-      gl.uniform1f(u.fade, silenceFade);
+      if (typeof silenceFade !== 'number') silenceFade = _audioActiveA() ? 0 : 1;
+      const _dtS = Math.min(0.1, (now - (_lastFrameT || now)) / 1000);
+      _lastFrameT = now;
+      silenceFade += ((_audioActiveA() ? 0 : 1) - silenceFade) * Math.min(1, _dtS * (_audioActiveA() ? 3 : 0.35));
+      out.style.opacity = String(1 - silenceFade);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
