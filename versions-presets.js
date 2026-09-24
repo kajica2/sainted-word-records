@@ -512,6 +512,69 @@ const PRESETS = {
       0.78
     ]
   },
+    collage: {
+    "label": "COLLAGE",
+    "desc": "torn-paper polaroid frames drifting",
+    "temp": 0.1,
+    "mut": 0.1,
+    "mutAlgo": 0,
+    "posterize": 0.15,
+    "vignette": 0.35,
+    "chroma": 0.1,
+    "grain": 0.3,
+    "sepia": 0.15,
+    "glow": 0.1,
+    "grayscale": 0,
+    "blur": 0.1,
+    "effect": 1,
+    "tint": [
+      1,
+      0.95,
+      0.9
+    ]
+  },
+    spectrum: {
+    "label": "SPECTRUM",
+    "desc": "angular rainbow spectrum sweep",
+    "temp": -0.1,
+    "mut": 0.2,
+    "mutAlgo": 0,
+    "posterize": 0.1,
+    "vignette": 0.3,
+    "chroma": 0.35,
+    "grain": 0.15,
+    "sepia": 0,
+    "glow": 0.35,
+    "grayscale": 0,
+    "blur": 0,
+    "effect": 1,
+    "tint": [
+      1,
+      1,
+      1
+    ]
+  },
+    typography: {
+    "label": "TYPOGRAPHY",
+    "desc": "scrolling type columns + baseline grid",
+    "temp": 0,
+    "mut": 0.15,
+    "mutAlgo": 0,
+    "posterize": 0.2,
+    "vignette": 0.3,
+    "chroma": 0.05,
+    "grain": 0.2,
+    "sepia": 0,
+    "glow": 0.05,
+    "grayscale": 0.35,
+    "blur": 0,
+    "effect": 1,
+    "tint": [
+      1,
+      1,
+      1
+    ]
+  },
   };
 
   // ---- Fragment shader: same base as fx-postprocess + per-page effect ----
@@ -766,6 +829,43 @@ const PRESETS = {
     }
 
     // MTV: 90s retro CRT — scanlines + RGB chromatic shift + slight curvature tint
+    // COLLAGE: overlapping polaroid frames drifting — torn-paper collage
+    vec3 collageEffect(vec3 c, vec2 uv, float t) {
+      vec3 outc = c;
+      for (int i = 0; i < 3; i++) {
+        float fi = float(i);
+        vec2 size = vec2(0.30, 0.24);
+        vec2 center = vec2(0.30 + 0.22 * fi, 0.5 + 0.16 * sin(t * 0.45 + fi * 2.1));
+        vec2 d = abs(uv - center);
+        vec2 half_ = size * 0.5;
+        float inside = step(d.x, half_.x) * step(d.y, half_.y);
+        float edge = max(d.x / half_.x, d.y / half_.y);
+        float frame = inside * step(0.86, edge);
+        outc = mix(outc, outc * 0.85 + vec3(0.05), inside * 0.3);
+        outc = mix(outc, vec3(0.93), frame);
+      }
+      return outc;
+    }
+
+    // SPECTRUM: angular rainbow bands sweeping around center
+    vec3 spectrumEffect(vec3 c, vec2 uv, float t) {
+      float ang = atan(uv.y - 0.5, uv.x - 0.5) / 6.2831 + 0.5 + t * 0.04;
+      float band = floor(ang * 12.0);
+      vec3 hue = 0.5 + 0.5 * cos(band + vec3(0.0, 2.1, 4.2));
+      float lum = dot(c, vec3(0.299, 0.587, 0.114));
+      return mix(c, c * (0.7 + 0.55 * hue) + hue * 0.07 * step(0.45, lum), 0.55);
+    }
+
+    // TYPOGRAPHY: scrolling type columns + baseline grid
+    vec3 typographyEffect(vec3 c, vec2 uv, float t) {
+      vec2 col = fract(uv * vec2(8.0, 1.0));
+      float colLine = step(0.96, col.x);
+      float row = fract(uv.y * 14.0 + t * 0.35);
+      float glyph = step(0.4, fract(uv.x * 24.0)) * step(row, 0.5) * step(0.04, row);
+      float baseline = step(0.986, fract(uv.y * 14.0));
+      return c * (1.0 - 0.45 * colLine - 0.22 * glyph) + vec3(0.05) * baseline;
+    }
+
     vec3 mtvEffect(vec3 c, vec2 uv, float t) {
       // Scanlines (denser than filmEffect to read as CRT)
       float scan = 1.0 - 0.45 * step(0.5, fract(uv.y * 320.0));
@@ -802,6 +902,9 @@ const PRESETS = {
       else if (u_page == 17) e = phosphorEffect(c, uv, t);
       else if (u_page == 18) e = tapeEffect(c, uv, t);
       else if (u_page == 19) e = mtvEffect(c, uv, t);
+      else if (u_page == 20) e = collageEffect(c, uv, t);
+      else if (u_page == 21) e = spectrumEffect(c, uv, t);
+      else if (u_page == 22) e = typographyEffect(c, uv, t);
       return mix(c, e, u_effect);
     }
 
