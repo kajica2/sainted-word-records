@@ -70,24 +70,29 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     // reaches 5/7 textures then stalls before the final IDB writes
     // commit). Local runs typically complete in <3s; 45s gives CI
     // ~4× headroom without making local runs noticeably slower.
-    try {
-      await page.waitForFunction(() =>
-        window.Library && window.Library.items &&
-        window.Library.items.filter(i => {
-          const n = (i && i.name) || '';
-          return /\.webp$/i.test(n) || ['Wave', 'Grid', 'Bar', 'Dot', 'Line', 'Frame', 'Trace'].includes(n);
-        }).length >= 7,
-        { timeout: 45000 });
-      const names = await page.evaluate(() =>
-        window.Library.items.filter(i => {
-          const n = (i && i.name) || '';
-          return /\.webp$/i.test(n) || ['Wave', 'Grid', 'Bar', 'Dot', 'Line', 'Frame', 'Trace'].includes(n);
-        }).map(i => i.name));
-      pass(`library seeded with ${names.length} default textures`, names.slice(0, 3).join(','));
-    } catch (_) {
-      const n = await page.evaluate(() => (window.Library && window.Library.items || []).length).catch(() => -1);
-      fail('library did not seed to 7 within 45s', `items=${n}`);
+    // Manual polling, NOT waitForFunction: a service-worker claim on this
+    // fixed port (pwa-bootstrap skipWaiting + clients.claim) can
+    // force-reload the page mid-wait — waitForFunction rejects with an
+    // execution-context death, which previously read as "items=-1" and
+    // failed the suite (its two earlier timeout bumps treated the symptom,
+    // not the race). The next poll simply sees the reloaded page.
+    const SEED_COUNT = `(function () {
+      const L = window.Library;
+      const items = (L && L.items) || [];
+      return items.filter(i => {
+        const n = (i && i.name) || '';
+        return /\\.webp$/i.test(n) || ['Wave','Grid','Bar','Dot','Line','Frame','Trace'].includes(n);
+      }).length;
+    })()`;
+    let seeded = -1;
+    const seedT0 = Date.now();
+    while (Date.now() - seedT0 < 45000) {
+      seeded = await page.evaluate(SEED_COUNT).catch(() => -1);
+      if (seeded >= 7) break;
+      await new Promise(r => setTimeout(r, 250));
     }
+    if (seeded >= 7) pass(`library seeded with ${seeded} default textures`);
+    else fail('library did not seed to 7 within 45s', `items=${seeded}`);
 
     // 3. default song wired via Audio.loadFile — the engine paints the
     // current song's name into #song-name once loadFile completes.

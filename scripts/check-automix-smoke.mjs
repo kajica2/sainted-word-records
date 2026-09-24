@@ -992,45 +992,59 @@ else bad('Layers.cover API', JSON.stringify(coverApi));
 //     corners stay black. Sample at y=1 to avoid the row-0 scanline
 //     overlay drawn by drawFx. Use the actual stage cssW/cssH + dpr
 //     so the test is robust to viewport / dpr changes.
-const coverBox = await page.evaluate(async () => {
-  function readCornerCSS(cssX, cssY) {
-    const c = document.getElementById('render');
-    if (!c) return null;
-    const dpr = (window.SWR_RENDER && window.SWR_RENDER.dpr) || 1;
-    const px = Math.min(c.width - 1, Math.round(cssX * dpr));
-    const py = Math.min(c.height - 1, Math.round(cssY * dpr));
-    const d = c.getContext('2d').getImageData(px, py, 1, 1).data;
-    return [d[0], d[1], d[2], d[3]];
+function isNonBlack(px) { return Array.isArray(px) && px[0] > 30; }
+const coverBox = await (async () => {
+  const dims = await page.evaluate(() => ({
+    cssW: (window.SWR_RENDER && window.SWR_RENDER.cssW) || 640,
+    cssH: (window.SWR_RENDER && window.SWR_RENDER.cssH) || 360,
+  }));
+  const yMid = Math.min(dims.cssH - 2, 1);   // y=1 skips the row-0 drawFx scanline
+  const xMid = Math.max(2, dims.cssW - 2);
+  async function sample() {
+    return await page.evaluate((args) => {
+      const xMid = args[0], yMid = args[1], cssW = args[2], cssH = args[3];
+      function readCornerCSS(cssX, cssY) {
+        const c = document.getElementById('render');
+        if (!c) return null;
+        const dpr = (window.SWR_RENDER && window.SWR_RENDER.dpr) || 1;
+        const px = Math.min(c.width - 1, Math.round(cssX * dpr));
+        const py = Math.min(c.height - 1, Math.round(cssY * dpr));
+        const d = c.getContext('2d').getImageData(px, py, 1, 1).data;
+        return [d[0], d[1], d[2], d[3]];
+      }
+      return {
+        tl: readCornerCSS(1, yMid),
+        tr: readCornerCSS(xMid, yMid),
+        bl: readCornerCSS(1, cssH - 1),
+        br: readCornerCSS(xMid, cssH - 1),
+      };
+    }, [xMid, yMid, dims.cssW, dims.cssH]);
   }
-  const cssW = (window.SWR_RENDER && window.SWR_RENDER.cssW) || 640;
-  const cssH = (window.SWR_RENDER && window.SWR_RENDER.cssH) || 360;
-  // Wait a few frames so the new layer is rendered after the cache
-  // invalidation triggered by Layers.cover() / the layer push.
-  await new Promise(r => setTimeout(r, 250));
-  const yMid = Math.min(cssH - 2, 1);
-  const xMid = Math.min(cssW - 2, cssW - 2);
-  const coverTrue = {
-    tl: readCornerCSS(1, yMid),
-    tr: readCornerCSS(xMid, yMid),
-    bl: readCornerCSS(1, cssH - 1),
-    br: readCornerCSS(xMid, cssH - 1),
-  };
-  window.SWR.Layers.cover('CV1', false);
-  await new Promise(r => setTimeout(r, 250));
-  const coverFalse = {
-    tl: readCornerCSS(1, yMid),
-    tr: readCornerCSS(xMid, yMid),
-    bl: readCornerCSS(1, cssH - 1),
-    br: readCornerCSS(xMid, cssH - 1),
-  };
-  // Restore cover:true for any later tests.
-  window.SWR.Layers.cover('CV1', true);
-  return { cssW, cssH, coverTrue, coverFalse };
-});
+  // Poll the right-edge pixel until it reflects the cover flip (≤4s).
+  // The fixed 250ms wait was a timing budget: under CI/chain load the
+  // cache-invalidation re-render (Layers.cover() → next rAF) had not
+  // landed yet and the stale pre-cover frame failed the assertion.
+  // State polling asserts what the render loop guarantees eventually.
+  async function settle(wantFilled) {
+    const t0 = Date.now();
+    let box = await sample();
+    while (Date.now() - t0 < 4000) {
+      if (isNonBlack(box.tr) === !!wantFilled && isNonBlack(box.br) === !!wantFilled) break;
+      await new Promise(r => setTimeout(r, 60));
+      box = await sample();
+    }
+    return box;
+  }
+  await new Promise(r => setTimeout(r, 250));            // baseline settle
+  const coverTrue = await settle(true);
+  await page.evaluate(() => window.SWR.Layers.cover('CV1', false));
+  const coverFalse = await settle(false);
+  await page.evaluate(() => window.SWR.Layers.cover('CV1', true));  // restore
+  return { cssW: dims.cssW, cssH: dims.cssH, coverTrue, coverFalse };
+})();
 // "Non-black" = the pixel has visible color (red channel > 30).
 // cover:true with a 1x1 yellow image fills the stage → all 4 corners
 // have R > 30. cover:false fits inside → 3 corners are pure black.
-function isNonBlack(px) { return Array.isArray(px) && px[0] > 30; }
 const trueNonBlack = Object.values(coverBox.coverTrue).filter(isNonBlack).length;
 const falseNonBlack = Object.values(coverBox.coverFalse).filter(isNonBlack).length;
 if (trueNonBlack === 4 && (falseNonBlack === 1 || falseNonBlack === 0))
@@ -1687,9 +1701,9 @@ else bad('engine.html parity', JSON.stringify(engineParity));
 const ENABLED_VARIANTS = [
   'aurora', 'baroque', 'chrome', 'collage', 'eclipse',
   'fractal', 'glitch', 'kraft', 'mosaic', 'phosphor',
-  'pulse', 'spectrum', 'typography', 'void', 'watercolor',
+  'pulse', 'spectrum', 'tape', 'typography', 'void', 'watercolor',
 ];
-const DISABLED_VARIANTS = ['echo-manifold', 'tape'];
+const DISABLED_VARIANTS = ['echo-manifold']; // tape enabled since 26f9fdf (media-feat)
 
 async function variantEnabledCheck(name) {
   // Clear automix-related localStorage keys BEFORE navigating so the new
@@ -1760,9 +1774,17 @@ async function variantEnabledCheck(name) {
       return snap;
     }, FX_FIELDS);
   }
-  const snap1 = await snapshotFxOverride();          // t = +1s
+  let snap1 = await snapshotFxOverride();          // t = +1s
   await new Promise(r => setTimeout(r, 4000));       // wait 4s more → t = +5s
-  const snap2 = await snapshotFxOverride();          // t = +5s
+  let snap2 = await snapshotFxOverride();          // t = +5s
+  // Slow-cadence configs (8 bars/tick at low feat energy ⇒ 16-20s) may not
+  // tick twice inside the wall-clock window. The actual contract is "the
+  // runtime evolves _fxOverride PER TICK" — force a tick and re-compare.
+  if (snap1 && snap2 && JSON.stringify(snap1) === JSON.stringify(snap2)) {
+    await page.evaluate(() => { window.automix.tick(); });
+    await new Promise(r => setTimeout(r, 300));
+    snap2 = await snapshotFxOverride();
+  }
   const populated1 = snap1 && FX_FIELDS.every(k => typeof snap1[k] === 'number');
   const populated2 = snap2 && FX_FIELDS.every(k => typeof snap2[k] === 'number');
   // Tolerate variants that ship only the bare automix/automix-runtime
