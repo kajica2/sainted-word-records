@@ -41,6 +41,7 @@ import { promises as fs } from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, dirname, relative, sep } from 'node:path';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
+import { encryptSecret, decryptSecret } from './secret-box.js';
 
 // On Vercel serverless (/var/task is read-only), fall back to /tmp so module
 // evaluation doesn't crash on the top-level ensureDir() below. This root is
@@ -393,6 +394,82 @@ export async function linkAccount({ userId, provider, providerAccountId }) {
       accounts.push({ userId, provider, providerAccountId, linkedAt: new Date().toISOString() });
       await writeJson(ACCOUNTS_PATH, accounts);
     }
+  });
+}
+
+// ---- Provider OAuth tokens (YouTube etc.) ----------------------------
+//
+// The refresh token is the sensitive part: it is long-lived and can act on
+// the user's channel. It is sealed with AES-256-GCM before it ever reaches
+// the store, so the plaintext exists only in process memory. If
+// SWR_TOKEN_KEY is unset, encryptSecret() throws and we refuse the save
+// rather than persisting a credential in the clear.
+//
+// Tokens live on the accounts record that linkAccount() creates, keyed by
+// (userId, provider), so there is exactly one row per linked provider and
+// no second source of truth about what is connected.
+
+function _sealedToAccount(acct, { refreshToken, scope, tokenType }) {
+  if (refreshToken) acct.refreshTokenSealed = encryptSecret(refreshToken);
+  if (scope) acct.scope = scope;
+  if (tokenType) acct.tokenType = tokenType;
+  acct.tokenUpdatedAt = new Date().toISOString();
+}
+
+export async function saveProviderTokens({ userId, provider, providerAccountId, refreshToken, scope, tokenType }) {
+  if (!userId || !provider) throw new Error('saveProviderTokens: userId and provider are required');
+  return withLock(async () => {
+    const accounts = await readJson(ACCOUNTS_PATH, []);
+    let acct = accounts.find((a) => a.userId === userId && a.provider === provider);
+    if (!acct) {
+      acct = {
+        userId, provider,
+        providerAccountId: providerAccountId || null,
+        linkedAt: new Date().toISOString(),
+      };
+      accounts.push(acct);
+    }
+    if (providerAccountId && !acct.providerAccountId) acct.providerAccountId = providerAccountId;
+    _sealedToAccount(acct, { refreshToken, scope, tokenType });
+    await writeJson(ACCOUNTS_PATH, accounts);
+    return { provider: acct.provider, providerAccountId: acct.providerAccountId, hasRefreshToken: !!acct.refreshTokenSealed };
+  });
+}
+
+// Returns { provider, providerAccountId, scope, refreshToken } or null.
+// A record that exists but holds no refresh token still reports as linked,
+// with refreshToken null — that is a real state (the user granted access
+// without offline scope) and callers must handle it rather than assume.
+export async function getProviderTokens(userId, provider) {
+  if (!userId || !provider) return null;
+  const accounts = await readJson(ACCOUNTS_PATH, []);
+  const acct = accounts.find((a) => a.userId === userId && a.provider === provider);
+  if (!acct) return null;
+  let refreshToken = null;
+  if (acct.refreshTokenSealed) {
+    // A decrypt failure means the key rotated or the row was tampered with.
+    // Surface it as "no usable token" so the caller re-runs consent rather
+    // than crashing the request.
+    try { refreshToken = decryptSecret(acct.refreshTokenSealed); }
+    catch (_) { refreshToken = null; }
+  }
+  return {
+    provider: acct.provider,
+    providerAccountId: acct.providerAccountId || null,
+    scope: acct.scope || null,
+    tokenUpdatedAt: acct.tokenUpdatedAt || null,
+    refreshToken,
+  };
+}
+
+export async function deleteProviderTokens(userId, provider) {
+  if (!userId || !provider) return false;
+  return withLock(async () => {
+    const accounts = await readJson(ACCOUNTS_PATH, []);
+    const next = accounts.filter((a) => !(a.userId === userId && a.provider === provider));
+    if (next.length === accounts.length) return false;
+    await writeJson(ACCOUNTS_PATH, next);
+    return true;
   });
 }
 
