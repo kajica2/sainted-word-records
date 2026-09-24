@@ -67,7 +67,7 @@
   };
 
   // ---- Helpers ----
-  function post(msg) { worker.postMessage(msg); }
+  function post(msg) { worker.postMessage(msg); if (msg.type === 'config') window.__SCHED_POSTS = (window.__SCHED_POSTS || 0) + 1; }
 
   // The main app IIFE exposes its singletons as `window.SWR = { Audio, Library, Layers, Renderer, Recorder, UI }`.
   // Fall back to direct globals only if SWR is missing (older builds).
@@ -125,7 +125,7 @@
             minMs: state.minSeconds * 1000,
             maxMs: state.maxSeconds * 1000,
             beatSync: state.beatSync,
-            bpm: (getAudio() && getAudio().bpm) || 120,
+            bpm: currentBpm(),
             beatsPerSwap: 16,
           },
         });
@@ -133,6 +133,17 @@
     });
   }
   setInterval(pollPool, 5000);
+
+  // BPM for the worker's beat grid — GROUND TRUTH = feat.bpm (analyzed
+  // or realtime), sanitized 30–250. The engine's legacy A.bpm property
+  // holds garbage (~2) — snapping the beat grid to it produced exactly
+  // 30-second swaps regardless of the act profile.
+  function currentBpm() {
+    var A = getAudio();
+    var b = (A && A.feat && typeof A.feat.bpm === 'number' && A.feat.bpm > 0) ? A.feat.bpm : 0;
+    if (!(b >= 30 && b <= 250)) b = 120;
+    return b;
+  }
 
   function findLayerByIndex(idx) {
     const Layers = getLayers();
@@ -229,7 +240,11 @@
 
   worker.onmessage = (e) => {
     const msg = e.data || {};
-    if (msg.type === 'swap') applySwap(msg);
+    if (msg.type === 'swap') {
+      window.__SCHED_SWAPS = (window.__SCHED_SWAPS || 0) + 1;
+      window.__SCHED_LAST_SWAP_AT = Date.now();
+      applySwap(msg);
+    }
   };
 
   // ---- UI panel ----
@@ -404,7 +419,7 @@
           minMs: state.minSeconds * 1000,
           maxMs: state.maxSeconds * 1000,
           beatSync: state.beatSync,
-          bpm: (getAudio() && getAudio().bpm) || 120,
+          bpm: currentBpm(),
           beatsPerSwap: 16,
         },
       });
@@ -521,7 +536,7 @@
           minMs: state.minSeconds * 1000,
           maxMs: state.maxSeconds * 1000,
           beatSync: state.beatSync,
-          bpm: (getAudio() && getAudio().bpm) || 120,
+          bpm: currentBpm(),
           beatsPerSwap: 16,
         },
       });
