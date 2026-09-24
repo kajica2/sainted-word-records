@@ -382,6 +382,10 @@ try {
       // (manifest, session, persona, etc.) are noise.
       if (e.includes('CE: Failed to load resource') && e.includes('404')) return false;
       if (e.startsWith('404: ')) return false;
+      // Sandboxed iframes intentionally omit allow-same-origin (security
+      // fix ec137b5); their serviceWorker access throws a SecurityError
+      // that is expected engine behaviour, not a transitions regression.
+      if (/SecurityError.*'serviceWorker'/.test(e)) return false;
       return true;
     });
     if (real.length) throw new Error(`console errors:\n  ${real.join('\n  ')}`);
