@@ -3,7 +3,10 @@
 // Run: `node scripts/test-variant-picker.mjs`. Exit 0 on green.
 
 import assert from 'node:assert/strict';
-import { pick, bucketize, listKnownVariants } from '../lib/variant-picker.mjs';
+import { pick, bucketize } from '../lib/variant-picker.mjs';
+// listKnownVariants reads versions/*.html off disk, so it lives in a
+// Node-only companion — keeping the picker itself browser-loadable.
+import { listKnownVariants } from './variant-picker-variants.mjs';
 
 let passed = 0, failed = 0;
 function test(name, fn) {
