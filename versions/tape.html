@@ -176,15 +176,22 @@
       ctx.textAlign = 'center';
       ctx.fillText('PLAY', cx, cy + 24);
 
-      // Drive fake audio features for the shader
-      window.SWR = window.SWR || {};
-      window.SWR.Audio = window.SWR.Audio || {};
-      window.SWR.Audio.feat = {
-        bass: 0.4 + Math.sin(t * 1.5) * 0.3,
-        mid: 0.5 + Math.sin(t * 0.8) * 0.2,
-        treble: 0.3 + Math.abs(Math.sin(t * 4)) * 0.5,
-        beat: Math.max(0, Math.sin(t * 3) - 0.7) * 3,
-      };
+      // Drive audio features for the shader. When a real song is loaded the
+      // canonical extractor (lib/media-feat.client.js) samples the live
+      // analyser; the old synthesised features remain the no-audio fallback
+      // so the idle VHS demo still reacts.
+      if (featHandle) {
+        featHandle.sample();
+      } else {
+        window.SWR = window.SWR || {};
+        window.SWR.Audio = window.SWR.Audio || {};
+        window.SWR.Audio.feat = {
+          bass: 0.4 + Math.sin(t * 1.5) * 0.3,
+          mid: 0.5 + Math.sin(t * 0.8) * 0.2,
+          treble: 0.3 + Math.abs(Math.sin(t * 4)) * 0.5,
+          beat: Math.max(0, Math.sin(t * 3) - 0.7) * 3,
+        };
+      }
 
       requestAnimationFrame(paint);
     }
@@ -204,6 +211,10 @@
     // Audio stubs (so the SWR auto-start overlay can call .load() / .play())
     window.SWR.Audio.playing = false;
     window.SWR.Audio._el = null;
+    // Canonical feat extractor (lib/media-feat.client.js). Replaces the old
+    // fake Math.sin features when a real song is loaded; the fake writer in
+    // paint() stays as the no-audio fallback so the idle shader still moves.
+    var featHandle = null;
     window.SWR.Audio.load = function(file) {
       if (window.SWR.Audio._el) {
         try { window.SWR.Audio._el.pause(); } catch(e){}
@@ -212,11 +223,13 @@
           try { URL.revokeObjectURL(window.SWR.Audio._el.__swr_blob_url); } catch (_) {}
         }
       }
+      if (featHandle) { featHandle.detach(); featHandle = null; }
       var url = URL.createObjectURL(file);
       window.SWR.Audio._el = new Audio();
       window.SWR.Audio._el.__swr_blob_url = url;
       window.SWR.Audio._el.src = url;
       window.SWR.Audio._el.preload = 'auto';
+      if (window.SWR_MEDIA_FEAT) featHandle = window.SWR_MEDIA_FEAT.attach(window.SWR.Audio._el);
     };
     window.SWR.Audio.play = function() {
       if (window.SWR.Audio._el) {
@@ -257,6 +270,7 @@
     document.body.appendChild(fxScript);
   </script>
 <script src="./last-song.js"></script>
+  <script src="../lib/media-feat.client.js"></script>
   <script src="../lib/persist.client.js"></script>
   <script src="../lib/persist-fx.client.js"></script>
 
@@ -309,7 +323,9 @@
   </script>
 <script src="./temp-slider.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
-  <script src="../client/automix.client.js"></script>
-  <script src="../client/automix-runtime.client.js"></script>
+  <script src="../client/preset-anchor-map.client.js"></script>
+<script src="../client/anchor-embed.js"></script>
+<script src="../client/automix.client.js"></script>
+<script src="../client/automix-runtime.client.js"></script>
 </body>
 </html>

@@ -494,6 +494,31 @@
         state.beat = Audio.feat.beat || 0;
       }
 
+      // Consume the automix target (window.SWR._fxOverride — written by
+      // client/automix-runtime.client.js `_setTarget`). The 8 fx_state
+      // fields blend toward the target over the automix ramp, mirroring
+      // versions-presets.js so variants on the fx-postprocess pipeline
+      // (tape, mosaic, baroque, kraft, phosphor) react to automix exactly
+      // like the versions-presets variants do. When no override is set the
+      // page persona stands unchanged. Set/override smoothing mirrors
+      // blendFxOverride() in versions-presets.js: mixFx=1 (full target)
+      // after the ramp; before any override this block is skipped.
+      const ov = (window.SWR && window.SWR._fxOverride) || null;
+      if (ov) {
+        const ovFrom = (window.SWR && window.SWR._fxFrom) || null;
+        const t0 = (window.SWR && typeof window.SWR._fxT0 === 'number') ? window.SWR._fxT0 : 0;
+        const rampMs = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
+        const k = Math.max(0, Math.min(1, (performance.now() - t0) / rampMs));
+        const smooth = k * k * (3 - 2 * k); // smoothstep, matches versions-presets
+        const fxFields = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette',
+          'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch'];
+        for (const f of fxFields) {
+          const target = typeof ov[f] === 'number' ? ov[f] : (ov.preset && ov.preset[f]) || 0;
+          const from = (ovFrom && typeof ovFrom[f] === 'number') ? ovFrom[f] : state[f];
+          state[f] = from * (1 - smooth) + target * smooth;
+        }
+      }
+
       // Copy current #render pixels into the texture
       // Note: this is a GPU upload each frame. Fine up to 1920x1080.
       gl.activeTexture(gl.TEXTURE0);

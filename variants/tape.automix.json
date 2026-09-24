@@ -1,7 +1,7 @@
 {
   "version": 1,
   "variant": "tape",
-  "enabled": false,
+  "enabled": true,
   "defaultState": "off",
   "poolBias": {
     "intro":     { "warmth": [0.4, 0.6], "intensity": [0.0, 0.4] },
