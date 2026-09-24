@@ -21,7 +21,7 @@ const versionsData = {
 };
 
 for (const [v, d] of Object.entries(versionsData)) {
-  const p = `/Users/kajicadjuric/Documents/autodashboard/products/sainted-word-records/versions/${v}.html`;
+  const p = `${process.cwd()}/versions/${v}.html`;
   let html = fs.readFileSync(p, 'utf8');
   if (!html.includes(d.old)) {
     console.log(`  ${v}.html: pattern not found`);

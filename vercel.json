@@ -916,5 +916,17 @@
       "destination": "/personas.html",
       "statusCode": 301
     }
+  ],
+  "redirects": [
+    {
+      "source": "/login",
+      "destination": "/auth/login",
+      "permanent": true
+    },
+    {
+      "source": "/login/",
+      "destination": "/auth/login",
+      "permanent": true
+    }
   ]
 }
