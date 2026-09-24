@@ -145,6 +145,7 @@
     <span class="brand" style="color:var(--accent);font-weight:700;letter-spacing:0.16em;">MVM</span>
     <span class="version" style="color:var(--muted);font-size:9px;">v5 · music video maker</span>
     <button class="tbtn accent" id="pick-song">PICK SONG</button>
+    <button class="tbtn" id="auto-pick" title="Analyse the loaded song and open the engine variant that best fits it">AUTO-PICK STYLE</button>
     <button class="tbtn" id="manage-library">MANAGE LIBRARY</button>
     <span id="current-song" class="current-song" style="color:var(--muted);font-size:10px;letter-spacing:0.06em;">— no song —</span>
     <button class="tbtn" id="remove-song" style="display:none;">REMOVE</button>
@@ -242,6 +243,15 @@
 <script src="../lib/journey-state.client.js"></script>
 <script src="../lib/journey-effects.client.js"></script>
 <script src="../lib/alpha-layer.client.js"></script>
+<!-- Auto-pick hand-off. audio-analysis-v2.js is the same analyzer the batch
+     CLI uses; versions/last-song.js is the canonical song persister that every
+     variant page already auto-restores from, so the hand-off reuses existing
+     transport rather than inventing one. lib/auto-pick.client.js imports the
+     shared variant picker at call time (it is a plain ES module with no Node
+     imports, so it runs here unchanged). -->
+<script src="../audio-analysis-v2.js"></script>
+<script src="../versions/last-song.js"></script>
+<script src="../lib/auto-pick.client.js"></script>
 <script>
 const FORMATS = {
   '16:9': { w: 640, h: 360, label: '16:9 (YouTube)' },
@@ -295,6 +305,46 @@ function applyFormat(key) {
   } else {
     boot();
   }
+})();
+
+// ---- Auto-pick hand-off ------------------------------------------------
+// Analyses the loaded song, asks the shared variant picker which engine
+// variant fits it, then opens that variant with the song preserved.
+//
+// Reports every outcome through #status, including failures: the button must
+// never look like it worked when it did not.
+(function () {
+  'use strict';
+  const btn = document.getElementById('auto-pick');
+  const statusEl = document.getElementById('status');
+  if (!btn) return;
+
+  window.SWR_AUTO_PICK_STATUS = function (msg, kind) {
+    if (!statusEl) return;
+    statusEl.textContent = String(msg).toUpperCase();
+    statusEl.style.color = kind === 'err' ? 'var(--accent)'
+      : kind === 'ok' ? 'var(--green)'
+      : 'var(--muted)';
+  };
+
+  btn.addEventListener('click', async function () {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = 'ANALYSING…';
+    try {
+      if (!window.SWR_AUTO_PICK) throw new Error('auto-pick module not loaded');
+      // Not a dry run: on success the page navigates away.
+      await window.SWR_AUTO_PICK.handOff({});
+    } catch (e) {
+      window.SWR_AUTO_PICK_STATUS(String((e && e.message) || e), 'err');
+    } finally {
+      // Only reached when navigation did NOT happen (failure, or a browser
+      // that blocked it) — restore the button so the user can retry.
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  });
 })();
 </script>
 </body>
