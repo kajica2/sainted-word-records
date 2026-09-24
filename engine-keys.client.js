@@ -48,6 +48,10 @@
 //   Shift+A            cycle to next engine's recipe
 //   + / -              bump fadeInMs / fadeOutMs by 100ms for selected layer
 //   Shift+R            force auto-swap now    (LayerScheduler.swapNow)
+//   V                  mirror axis: vertical → horizontal → off
+//                        (SWR_NATURAL.cycleMirror; 'off' skips both ghost
+//                        passes — the cheapest manual perf rung)
+//   Shift+V            mirror axis: vertical (left/right reflection)
 //   Space (no audio)   bloom layers            (SWR_TIMING.staggeredFadeIn)
 //   ?                  show keymap help overlay
 //
@@ -221,6 +225,30 @@
         if (window.LayerScheduler && typeof window.LayerScheduler.swapNow === 'function') {
           window.LayerScheduler.swapNow();
         }
+      },
+    },
+    // ---- mirror axis (rotkey) ------------------------------------------
+    // One key, three states: vertical-axis mirror → horizontal-axis mirror
+    // → off. The off state is a real frame-time saving (both ghost passes
+    // are skipped), so this doubles as the cheapest manual perf rung.
+    cycleMirror: {
+      keys: 'V',
+      label: 'Mirror axis: vertical → horizontal → off',
+      action: function () {
+        const N = window.SWR_NATURAL;
+        if (!N || typeof N.cycleMirror !== 'function') return;
+        const mode = N.cycleMirror();
+        if (window.setStatus) window.setStatus('mirror: ' + mode, 'ok');
+      },
+    },
+    mirrorVertical: {
+      keys: 'Shift+V',
+      label: 'Mirror axis: vertical (left/right reflection)',
+      action: function () {
+        const N = window.SWR_NATURAL;
+        if (!N || typeof N.setMirror !== 'function') return;
+        N.setMirror('vertical');
+        if (window.setStatus) window.setStatus('mirror: vertical', 'ok');
       },
     },
     bloom: {
@@ -614,6 +642,7 @@
         case 'KeyS':            action = ACTIONS.openSettings; break;
         case 'KeyC':            action = ACTIONS.cycleBlend; break;
         case 'KeyY':            action = ACTIONS.duplicateLayer; break;
+        case 'KeyV':            action = ev.shiftKey ? ACTIONS.mirrorVertical : ACTIONS.cycleMirror; break;
         case 'KeyF':            action = ACTIONS.fullscreen; break;
         case 'ArrowUp':         action = ACTIONS.selectPrev; ev.preventDefault(); break;
         case 'ArrowDown':       action = ACTIONS.selectNext; ev.preventDefault(); break;
@@ -786,6 +815,8 @@
       { keys: 'B',              label: 'bloom layers (stagger fade-in)' },
       { keys: 'X',              label: 'crossfade all layers (A2 swap)' },
       { keys: 'Shift+R',        label: 'force auto-swap now' },
+      { keys: 'V',              label: 'mirror axis: vertical → horizontal → off' },
+      { keys: 'Shift+V',        label: 'mirror axis: vertical (left/right)' },
 
       // ---- Undo / Save ----
       { keys: 'Cmd+Z',          label: 'undo (Cmd/Ctrl+Z)' },
