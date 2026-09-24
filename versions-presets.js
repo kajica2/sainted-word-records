@@ -535,6 +535,7 @@ const PRESETS = {
     uniform float u_posterize, u_vignette, u_chroma, u_grain, u_sepia, u_glow;
     uniform float u_grayscale, u_blur;
     uniform float u_effect;        // 0..1 master mix
+    uniform float u_fade;          // 0=image, 1=black — silence fade
     uniform int   u_page;          // film, grid, neon, smoke, hallucination, eclipse, aurora, chrome, fractal, glitch, pulse, void, watercolor, baroque, gallery, kraft, mosaic, phosphor, tape
     uniform vec3  u_tint;
 
@@ -866,7 +867,7 @@ const PRESETS = {
         col += g;
       }
 
-      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+      gl_FragColor = vec4(clamp(col * u_fade, 0.0, 1.0), 1.0);
     }
   `;
 
@@ -977,6 +978,7 @@ const PRESETS = {
       grayscale: gl.getUniformLocation(prog, 'u_grayscale'),
       blur:      gl.getUniformLocation(prog, 'u_blur'),
       effect:    gl.getUniformLocation(prog, 'u_effect'),
+      fade:      gl.getUniformLocation(prog, 'u_fade'),
       page:      gl.getUniformLocation(prog, 'u_page'),
       tint:      gl.getUniformLocation(prog, 'u_tint'),
     };
@@ -997,6 +999,8 @@ const PRESETS = {
     sizeFx();
 
     let t0 = performance.now();
+    let silenceFade;     // silence fade — see render() u_fade
+    let _lastFrameT;
     function render() {
       const now = performance.now();
       const t = (now - t0) / 1000;
@@ -1098,6 +1102,19 @@ const PRESETS = {
       gl.uniform1f(u.effect,    preset.effect * _k);
       gl.uniform1i(u.page,      pageIdx);
       gl.uniform3f(u.tint,      preset.tint[0], preset.tint[1], preset.tint[2]);
+
+      // Silence fade — no sound (paused/ended/absent) → ease to BLACK
+      // over ~3s; sound returns → restore in ~1s. Same contract as
+      // fx-postprocess.js: audio is either SWR.Audio (variants) or
+      // window.Audio (pages that expose their own object).
+      const _auS = (window.SWR && window.SWR.Audio) || window.Audio || null;
+      const _aelS = _auS && (_auS.el || _auS._el);
+      const _active = !!(_aelS && !_aelS.paused && (_aelS.currentTime || 0) > 0.2);
+      if (typeof silenceFade !== 'number') silenceFade = _active ? 0 : 1;
+      const _dtS = Math.min(0.1, (now - (_lastFrameT || now)) / 1000);
+      _lastFrameT = now;
+      silenceFade += ((_active ? 0 : 1) - silenceFade) * Math.min(1, _dtS * (_active ? 3 : 0.35));
+      gl.uniform1f(u.fade, silenceFade);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);

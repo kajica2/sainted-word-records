@@ -52,6 +52,7 @@
     uniform float u_liquid;      // 0=off, 1=heavy fbm domain warp
     uniform float u_pearl;       // 0=off, 1=heavy Voronoi pearl cells
     uniform float u_glitch;      // 0=off, 1=heavy horizontal slice displacement
+    uniform float u_fade;        // 0=image, 1=black — silence fade
 
     // 2D hash for procedural noise
     float hash(vec2 p) {
@@ -290,7 +291,7 @@
         col += vec3(pearlEdge) * u_pearl * 0.6;
       }
 
-      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+      gl_FragColor = vec4(clamp(col * u_fade, 0.0, 1.0), 1.0);
     }
   `;
 
@@ -418,6 +419,7 @@
       liquid:   gl.getUniformLocation(prog, 'u_liquid'),
       pearl:    gl.getUniformLocation(prog, 'u_pearl'),
       glitch:   gl.getUniformLocation(prog, 'u_glitch'),
+      fade:     gl.getUniformLocation(prog, 'u_fade'),
     };
 
     // Texture from #render
@@ -477,6 +479,18 @@
       }
       const now = performance.now();
       state.time = (now - t0) / 1000;
+
+      // Silence fade — no sound (paused/ended/absent) → ease to BLACK
+      // over ~3s; sound returns → restore in ~1s. Multiplied at the frag
+      // output via u_fade so the stage disappears gracefully when the
+      // music stops.
+      const _au = (window.SWR && window.SWR.Audio) || null;
+      const _ael = _au && (_au.el || _au._el);
+      const _active = !!(_ael && !_ael.paused && (_ael.currentTime || 0) > 0.2);
+      if (typeof state.fade !== 'number') state.fade = _active ? 0 : 1;
+      const _dtFade = Math.min(0.1, (now - (state._lastFadeT || now)) / 1000);
+      state._lastFadeT = now;
+      state.fade += ((_active ? 0 : 1) - state.fade) * Math.min(1, _dtFade * (_active ? 3 : 0.35));
 
       // Resize check (throttled)
       if (now - lastResize > 200) {
@@ -571,6 +585,7 @@
       gl.uniform1f(u.liquid,    state.liquid * k);
       gl.uniform1f(u.pearl,     state.pearl * k);
       gl.uniform1f(u.glitch,    state.glitch * k);
+      gl.uniform1f(u.fade,      state.fade);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
