@@ -1206,17 +1206,29 @@ const PRESETS = {
       gl.uniform1i(u.page,      pageIdx);
       gl.uniform3f(u.tint,      preset.tint[0], preset.tint[1], preset.tint[2]);
 
-      // Silence fade — no sound (paused/ended/absent) → ease to BLACK
-      // over ~3s; sound returns → restore in ~1s. Same contract as
-      // fx-postprocess.js: audio is either SWR.Audio (variants) or
-      // window.Audio (pages that expose their own object).
-      const _auS = (window.SWR && window.SWR.Audio) || window.Audio || null;
-      const _aelS = _auS && (_auS.el || _auS._el);
-      const _active = !!(_aelS && !_aelS.paused && (_aelS.currentTime || 0) > 0.2);
-      if (typeof silenceFade !== 'number') silenceFade = _active ? 0 : 1;
+      // Silence fade — no sound → ease to BLACK over ~3s; sound returns
+      // → restore in ~1s. Multi-source active check (engine element,
+      // stub element, playing flag, or ANY audio/video in the DOM —
+      // fading while the user hears music is a bug).
+      function _audioActiveS() {
+        var _au = (window.SWR && window.SWR.Audio) || null;
+        if (_au && _au.playing === true) return true;
+        var _els = [];
+        if (_au) { _els.push(_au.el, _au._el); }
+        try {
+          var _dom = document.querySelectorAll('audio, video');
+          for (var i = 0; i < _dom.length; i++) _els.push(_dom[i]);
+        } catch (_) {}
+        for (var j = 0; j < _els.length; j++) {
+          var _e = _els[j];
+          if (_e && !_e.paused && (_e.currentTime || 0) > 0.2 && !_e.muted) return true;
+        }
+        return false;
+      }
+      if (typeof silenceFade !== 'number') silenceFade = _audioActiveS() ? 0 : 1;
       const _dtS = Math.min(0.1, (now - (_lastFrameT || now)) / 1000);
       _lastFrameT = now;
-      silenceFade += ((_active ? 0 : 1) - silenceFade) * Math.min(1, _dtS * (_active ? 3 : 0.35));
+      silenceFade += ((_audioActiveS() ? 0 : 1) - silenceFade) * Math.min(1, _dtS * (_audioActiveS() ? 3 : 0.35));
       gl.uniform1f(u.fade, silenceFade);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
