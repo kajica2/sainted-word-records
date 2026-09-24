@@ -610,6 +610,13 @@
       : '\u2014';
     var coords = automix._lastCoords || { warmth: 0.5, intensity: 0.5 };
     var lines = [
+      'automix    ' + (automix.enabled ? 'ON' : 'OFF') + (automix.frozen ? ' FROZEN' : '') + (automix.locked ? ' LOCKED' : ''),
+      'song       ' + (function () {
+        var A = window.SWR && window.SWR.Audio;
+        var el = A && (A.el || A._el);
+        if (!el || !el.src) return 'not loaded';
+        return (el.paused ? 'loaded (paused)' : 'playing') + ' · ' + Math.round(el.currentTime || 0) + 's';
+      })(),
       'section    ' + automix.sectionState.current + ' (' + ((f.sectionConfidence || 0).toFixed(2)) + ')',
       'coords     w=' + coords.warmth.toFixed(2) + ' i=' + coords.intensity.toFixed(2),
       'anchor     ' + (automix._lastAnchorId || '\u2014'),
