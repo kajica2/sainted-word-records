@@ -627,6 +627,11 @@
       '           glow=' + (last.glow || 0).toFixed(2) + ' grain=' + (last.grain || 0).toFixed(2) + ' sepia=' + (last.sepia || 0).toFixed(2),
     ];
     // L3 arc strip — the song's trajectory with the current act marked.
+    var fadeStr = (typeof (window.FX && window.FX.state && window.FX.state.fade) === 'number')
+      ? (window.FX.state.fade * 100).toFixed(0) + '%'
+      : (typeof window.__SWR_SILENCE_FADE === 'number' ? (window.__SWR_SILENCE_FADE * 100).toFixed(0) + '%' : null);
+    if (fadeStr && fadeStr !== '0%') lines.unshift('FADE OUT  ' + fadeStr + '  (image going black — no sound detected)');
+    else if (fadeStr) lines.unshift('image     visible');
     if (automix.arc && window.SWR_AUTOMIX_ARC) {
       var posEl = (window.SWR && window.SWR.Audio && (window.SWR.Audio.el || window.SWR.Audio._el)) || null;
       var pos = posEl ? (posEl.currentTime || 0) : 0;
