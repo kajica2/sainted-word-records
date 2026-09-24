@@ -54,7 +54,12 @@
       '  background: color-mix(in srgb, var(--accent, #d4af37) 8%, transparent);',
       '  color: var(--accent, #d4af37);',
       '}',
-      '.swr-dropzone__hint { display: block; font-size: 11px; opacity: 0.7; margin-top: 4px; letter-spacing: 0.04em; text-transform: none; }',
+      '.swr-dropzone__hint { display: block; font-size: 11px; opacity: 0.7; margin-top: 4px; letter-spacing: 0.04em; text-transform: none; ',
+      // The hint is `data-accept` + a suffix, and data-accept is a comma-
+      // separated MIME list with no spaces. Without an explicit break rule
+      // the longest token sets the page width: at 375px this pushed
+      // documentElement.scrollWidth to 661 on every page hosting a dropzone.
+      '  max-width: 100%; overflow-wrap: anywhere; word-break: break-word; min-width: 0; }',
       '.swr-dropzone__overlay {',
       '  position: absolute; inset: 0;',
       '  display: none; align-items: center; justify-content: center;',
