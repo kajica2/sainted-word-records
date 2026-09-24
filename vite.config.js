@@ -140,7 +140,13 @@ function copyStatic() {
     // Landing page (served via root rewrite in vercel.json)
     'landing.html',
     'personas.json',
-    'README.md', 'LICENSE', 'HOWTO-30s-VIDEO.md', 'og.png',
+    // HOWTO-30s-VIDEO.md deliberately NOT listed: it is a local runbook that
+    // embeds the developer's macOS home path and raw shell commands, and it
+    // shipped publicly (200) with no HTML wrapper. Removing it from the build
+    // makes its URL 404 -- see BUG-002/017 in the audit.
+    'README.md', 'LICENSE', 'og.png',
+    // SEO surface (BUG-018): both were 404 on the live site.
+    'robots.txt', 'sitemap.xml',
     'tutorial-30s.html',
     'swr-tutorial-30s.mp4',
     // /package.json — /tools/hf-publish fetches this at runtime to pre-fill
@@ -315,6 +321,12 @@ function copyStatic() {
     'ar-gif.html',
     'ar-gif.client.js',
     'sitemap.html',
+    // Pages the legacy /nav.client.js linked to that were never in site-map.json,
+    // so copy-static never shipped them and their routes 404'd. Kept out of the
+    // canonical nav (they are not top-level destinations) but built and routable.
+    'enhance.html',
+    'atlas.html',
+    'video_single.html',
     'site-map.json',
   ];
 

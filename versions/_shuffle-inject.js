@@ -33,7 +33,7 @@ const NEW_REMAP_GREEDY = `        // Pick from top-N candidates randomly so each
         });`;
 
 for (const v of versions) {
-  const p = `/Users/kajicadjuric/Documents/autodashboard/products/sainted-word-records/versions/${v}.html`;
+  const p = `${process.cwd()}/versions/${v}.html`;
   let html = fs.readFileSync(p, 'utf8');
   if (!html.includes(OLD_REMAP_GREEDY)) {
     console.log(`  ${v}.html: greedy pattern not found — manual fix needed`);

@@ -868,6 +868,18 @@
       "destination": "/auth/verify.html"
     },
     {
+      "source": "/enhance",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/enhance/",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/video_single.html",
+      "destination": "/video_single.html"
+    },
+    {
       "source": "/personas/v/:id",
       "destination": "/personas/v/:id.html"
     },
@@ -903,6 +915,18 @@
       "source": "/persona-demo.html",
       "destination": "/personas.html",
       "statusCode": 301
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/login",
+      "destination": "/auth/login",
+      "permanent": true
+    },
+    {
+      "source": "/login/",
+      "destination": "/auth/login",
+      "permanent": true
     }
   ]
 }

@@ -39,7 +39,11 @@
   70%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent); }
   100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
 }
-.swr-nav__links { display: flex; gap: 22px; margin-left: auto; align-items: center; }
+/* Overflow guard: at 768px the CTA sat at right:791 against a 768 viewport,
+   forcing horizontal scroll on EVERY page carrying the canonical nav. The row
+   wraps and items may shrink instead of exceeding the viewport. */
+.swr-nav__links { display: flex; gap: 22px; margin-left: auto; align-items: center;
+  flex-wrap: wrap; min-width: 0; }
 .swr-nav__links a {
   font-size: 13px; color: var(--ink-2); font-weight: 500;
   letter-spacing: 0.01em;
@@ -47,6 +51,7 @@
 }
 .swr-nav__links a:hover { color: var(--accent); }
 .swr-nav__cta {
+  flex-shrink: 0; max-width: 100%;
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 999px;
   background: var(--ink); color: var(--bg);

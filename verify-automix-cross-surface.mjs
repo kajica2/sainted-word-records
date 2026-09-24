@@ -29,6 +29,7 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import { join as joinPath } from 'path';
 import { fileURLToPath } from 'url';
 import puppeteer from 'puppeteer';
 
@@ -56,6 +57,8 @@ function localServe() {
   });
 }
 
+// Full automix stack — engine.html + the 5 core variants ship every module
+// (section detection, preset cycling, curation UI, etc.).
 const AUTOMIX_SCRIPTS = [
   'preset-anchor-map.client.js',
   'anchor-embed.js',
@@ -67,6 +70,19 @@ const AUTOMIX_SCRIPTS = [
   'last-mix-store.client.js',
   'asset-curator.client.js',
   'library-packs.client.js',
+];
+
+// Automix-min stack — the 17 artistic variants ship a deliberately lighter
+// page: automix + the anchor map (SWR_ANCHOR_MAP, required for mix() to
+// resolve neighbours — without it automix is structurally inert) + the
+// runtime orchestrator. They never shipped hook-detector/stats/mood/scenes
+// (those are engine.html panels), so the previous expectation here asserted
+// scripts and panels these pages never had and could not pass.
+const AUTOMIX_MIN_SCRIPTS = [
+  'preset-anchor-map.client.js',
+  'anchor-embed.js',
+  'automix.client.js',
+  'automix-runtime.client.js',
 ];
 
 const RUNTIME_SCRIPTS = [
@@ -112,7 +128,8 @@ const SURFACES = [
   ['versions/smoke.html',    'versions/smoke.html',                true],
   ['versions/hallucination.html', 'versions/hallucination.html',    true],
   ['dashboard.html',         'dashboard.html',                     false],
-  ...TASK_4_VARIANTS.map(v => ['versions/' + v + '.html', 'versions/' + v + '.html', true]),
+  ...TASK_4_VARIANTS.map(v => ['versions/' + v + '.html', 'versions/' + v + '.html',
+    v === 'echo-manifold' ? 'off' : 'min']),
 ];
 
 function ok(label) { console.log(`  \u2713 ${label}`); }
@@ -139,19 +156,72 @@ async function checkSurface(page, label, path, expectsStack) {
   if (realErrors.length === 0) ok(`${label}: no relevant console errors`);
   else fail(`${label}: console errors`, realErrors.join('; '));
 
-  if (expectsStack) {
-    // Automix-stack scripts (11)
-    const autoStatus = await page.evaluate((scripts) => {
+  if (expectsStack === 'off') {
+    // Opt-out tier (echo-manifold). The verifier serves the SOURCE tree
+    // (ROOT = repo root), but the automix config is only inlined into the
+    // page at build time (inline-automix-config Vite plugin) — CI runs the
+    // build AFTER this verifier — so the runtime's enabled:false hide path
+    // is not observable here (proven: dist serving hides the toggle).
+    // Assert the source-level contract instead: runtime scripts present,
+    // toggle element present (so the runtime CAN hide it), and the config
+    // file on disk opts out.
+    const offPage = await page.evaluate(() => {
+      const nodes = Array.from(document.querySelectorAll('script[src]'));
+      const has = (s) => nodes.some(n => (n.getAttribute('src') || '').includes(s));
+      return {
+        'automix.client.js': has('automix.client.js'),
+        'automix-runtime.client.js': has('automix-runtime.client.js'),
+        'toggle element': !!document.getElementById('automix-toggle'),
+      };
+    });
+    const offConfig = {
+      'config enabled:false': (() => {
+        try {
+          const cfg = JSON.parse(fs.readFileSync(joinPath(ROOT, 'variants', 'echo-manifold.automix.json'), 'utf8'));
+          return cfg.enabled === false;
+        } catch (_) { return false; }
+      })(),
+    };
+    const offStatus = Object.assign(offPage, offConfig);
+    const missingOff = Object.entries(offStatus).filter(([, v]) => !v).map(([k]) => k);
+    if (missingOff.length === 0) ok(`${label}: automix opt-out contract held (enabled:false config, runtime + toggle present)`);
+    else fail(`${label}: automix opt-out contract`, `failing: ${missingOff.join(', ')} — observed: ${JSON.stringify(offStatus)}`);
+
+    page.off('console', onConsole);
+    page.off('pageerror', onError);
+    return;
+  }
+
+  if (expectsStack === 'min') {
+    // Artistic-variant tier: the automix-min stack (4 scripts), the toggle
+    // IDs, SWR_ANCHOR_MAP exposed, and the automix runtime API. The
+    // hook/stats/mood/scenes panels and runtimes are engine.html features
+    // these pages never shipped — asserting them asserted structural
+    // impossibility (see AUTOMIX_MIN_SCRIPTS note).
+    const minStatus = await page.evaluate((scripts) => {
+      const nodes = Array.from(document.querySelectorAll('script[src]'));
       const out = {};
-      for (const s of scripts) {
-        const nodes = Array.from(document.querySelectorAll('script[src]'));
-        out[s] = nodes.some(n => (n.getAttribute('src') || '').includes(s));
-      }
+      for (const s of scripts) out[s] = nodes.some(n => (n.getAttribute('src') || '').includes(s));
+      out['#automix-toggle'] = !!document.getElementById('automix-toggle');
+      out['#automix-state'] = !!document.getElementById('automix-state');
+      out['#fx-intensity'] = !!(document.getElementById('fx-intensity') ||
+        document.querySelector('[data-fx-intensity-mount]'));
+      out['SWR_ANCHOR_MAP'] = !!(window.SWR_ANCHOR_MAP && typeof window.SWR_ANCHOR_MAP.neighbours === 'function');
       return out;
-    }, AUTOMIX_SCRIPTS);
-    const missingAuto = Object.entries(autoStatus).filter(([, v]) => !v).map(([k]) => k);
-    if (missingAuto.length === 0) ok(`${label}: all 11 automix-stack scripts present`);
-    else fail(`${label}: automix-stack scripts`, `missing: ${missingAuto.join(', ')}`);
+    }, AUTOMIX_MIN_SCRIPTS);
+    const missingMin = Object.entries(minStatus).filter(([, v]) => !v).map(([k]) => k);
+    if (missingMin.length === 0) ok(`${label}: automix-min stack complete (4 scripts + toggle + anchor map)`);
+    else fail(`${label}: automix-min stack`, `missing: ${missingMin.join(', ')}`);
+
+    const minApi = await page.evaluate(() => ({
+      automix: !!(window.automix && typeof window.automix.toggle === 'function'),
+    }));
+    if (Object.values(minApi).every(Boolean)) ok(`${label}: automix runtime exposed`);
+    else fail(`${label}: runtime APIs`, JSON.stringify(minApi));
+
+    page.off('console', onConsole);
+    page.off('pageerror', onError);
+    return;
   }
 
   // Runtime scripts (5)

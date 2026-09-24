@@ -61,8 +61,7 @@
     .dev-link.show { display: block; }
     .dev-link b { color: var(--accent); }
   </style>
-  <script src="/nav.client.js" defer></script>
-  <script src="/fx-background.client.js" defer></script>
+<script src="/fx-background.client.js" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -76,7 +75,7 @@
     <div class="card">
       <h2>Email magic link</h2>
       <div class="sub">We email you a one-time sign-in link. No password.</div>
-      <form id="login-form" autocomplete="on">
+      <form id="login-form" method="post" action="/api/auth/magic" autocomplete="on">
         <div class="row">
           <label for="email">Email</label>
           <input type="email" id="email" name="email" required placeholder="you@label.fm" />

@@ -423,8 +423,7 @@
       color: var(--muted); letter-spacing: 0.06em;
     }
   </style>
-  <script src="/nav.client.js" defer></script>
-  <script src="/fx-background.client.js" defer></script>
+<script src="/fx-background.client.js" defer></script>
 </head>
 <body>
 
@@ -515,10 +514,10 @@
         <p class="step__desc">Open a terminal and start the Vite dev server on port 5174. It serves the engine, the 5 versions, and the library.</p>
         <div class="code-wrap">
           <pre><span class="c"># from the project root</span>
-<span class="p">$ </span>cd /Users/kajicadjuric/Documents/autodashboard/products/sainted-word-records
+<span class="p">$ </span>git clone https://github.com/kai-djuric/sainted-word-records.git && cd sainted-word-records
 <span class="p">$ </span>nohup ./node_modules/.bin/vite <span class="k">--port</span> 5174 <span class="k">--host</span> 0.0.0.0 <span class="k">&gt;</span> /tmp/swr.log 2&gt;&amp;1 <span class="k">&amp;</span>
 <span class="ok">✓ Vite ready · http://localhost:5174/</span></pre>
-          <button class="copy-btn" data-copy="cd /Users/kajicadjuric/Documents/autodashboard/products/sainted-word-records && nohup ./node_modules/.bin/vite --port 5174 --host 0.0.0.0 > /tmp/swr.log 2>&1 &">Copy</button>
+          <button class="copy-btn" data-copy="git clone https://github.com/kai-djuric/sainted-word-records.git && cd sainted-word-records && npm install && nohup npx vite --port 5174 --host 0.0.0.0 > /tmp/swr.log 2>&1 &">Copy</button>
         </div>
         <button class="step__check" data-step="1">Mark done</button>
       </div>

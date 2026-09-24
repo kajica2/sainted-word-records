@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Dev/build surfaces that should never be indexed.
+Disallow: /_archive/
+Disallow: /out/
+Disallow: /docs/
+Disallow: /dist/
+Disallow: /node_modules/
+Disallow: /versions/_
+Disallow: /preset-pipeline/
+
+Sitemap: https://sainted-word-records.vercel.app/sitemap.xml

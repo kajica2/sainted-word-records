@@ -395,6 +395,7 @@
   <script src="../client/preset-anchor-map.client.js"></script>
   <script src="../client/anchor-embed.js"></script>
   <script src="../client/automix.client.js"></script>
+<script src="../lib/intensity-slider.client.js" defer></script>
   <script src="../client/section-detector.client.js" defer></script>
   <script src="../client/preset-cycle.client.js"></script>
   <script src="../client/preset-pick-store.client.js"></script>
@@ -512,6 +513,7 @@
       <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
       <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">
+        <span data-fx-intensity-mount></span>
         <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
         <button class="tbtn" id="automix-freeze" title="Freeze (F)" style="padding:3px 8px;font-size:9px;margin-left:6px;">Freeze</button>
         <button class="tbtn" id="automix-save" title="Save blend (B)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Save</button>

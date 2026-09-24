@@ -112,6 +112,14 @@ function generateRewrites(map) {
     addPath('/auth/verify');
   }
 
+  // Pages the legacy /nav.client.js linked to. They exist at the repo root but
+  // were never in site-map.json, so copy-static never shipped them and their
+  // routes 404'd from the header nav. Now built (see vite.config.js rootFiles)
+  // and routed here so the links resolve instead of being deleted.
+  rules.push({ source: '/enhance', destination: '/enhance.html' });
+  rules.push({ source: '/enhance/', destination: '/enhance.html' });
+  rules.push({ source: '/video_single.html', destination: '/video_single.html' });
+
   // Persona variant gallery. Each /personas/v/<id> must resolve to its OWN
   // page under personas/v/. These previously all mapped to /personas.html,
   // which made the entire 24-page gallery unreachable in production — every

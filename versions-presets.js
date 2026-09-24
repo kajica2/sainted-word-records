@@ -995,18 +995,27 @@ const PRESETS = {
       const _glow      = _hasOv ? _blend.glow      : preset.glow;
       const _grayscale = _hasOv ? _blend.grayscale : preset.grayscale;
       const _posterize = _hasOv ? _blend.posterize : preset.posterize;
-      gl.uniform1f(u.temp,      _temp);
-      gl.uniform1f(u.mut,       _mut);
+      // FX intensity master multiplier (0…1) — same contract as
+      // fx-postprocess.js: read window.FX.intensity when that module is
+      // loaded, else fall back to the shared localStorage key. Applied
+      // AFTER the smoothing/blend locals so dynamics are unchanged; never
+      // written back into the preset or blend objects.
+      var _k = (window.FX && typeof window.FX.intensity === 'number')
+        ? window.FX.intensity
+        : (typeof window.SWR_FX_INTENSITY === 'number' ? window.SWR_FX_INTENSITY : 1);
+      if (!(_k >= 0 && _k <= 1)) _k = 1;
+      gl.uniform1f(u.temp,      _temp * _k);
+      gl.uniform1f(u.mut,       _mut * _k);
       gl.uniform1f(u.mutAlgo,   preset.mutAlgo);
-      gl.uniform1f(u.posterize, _posterize);
-      gl.uniform1f(u.vignette,  preset.vignette);
-      gl.uniform1f(u.chroma,    _chroma);
-      gl.uniform1f(u.grain,     _grain);
-      gl.uniform1f(u.sepia,     _sepia);
-      gl.uniform1f(u.glow,      _glow);
-      gl.uniform1f(u.grayscale, _grayscale);
-      gl.uniform1f(u.blur,      preset.blur);
-      gl.uniform1f(u.effect,    preset.effect);
+      gl.uniform1f(u.posterize, _posterize * _k);
+      gl.uniform1f(u.vignette,  preset.vignette * _k);
+      gl.uniform1f(u.chroma,    _chroma * _k);
+      gl.uniform1f(u.grain,     _grain * _k);
+      gl.uniform1f(u.sepia,     _sepia * _k);
+      gl.uniform1f(u.glow,      _glow * _k);
+      gl.uniform1f(u.grayscale, _grayscale * _k);
+      gl.uniform1f(u.blur,      preset.blur * _k);
+      gl.uniform1f(u.effect,    preset.effect * _k);
       gl.uniform1i(u.page,      pageIdx);
       gl.uniform3f(u.tint,      preset.tint[0], preset.tint[1], preset.tint[2]);
 
