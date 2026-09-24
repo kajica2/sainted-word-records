@@ -161,11 +161,27 @@
         window.location.href = target;
       });
     });
-    modal.querySelector('[data-action="skip"]').addEventListener('click', () => {
-      // Mark as "skipped" so we don't re-prompt; user can reset via SWR_PERSONA.reset()
+    // One dismiss path, used by the skip button, Escape, and a backdrop click,
+    // so every route records the same "skipped" state and none of them can
+    // leave the overlay mounted.
+    function dismiss() {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: 'skipped', skippedAt: new Date().toISOString() })); } catch (e) {}
       modal.remove();
-    });
+      document.removeEventListener('keydown', onKey, true);
+    }
+    function onKey(e) {
+      // BUG-008: Escape must close any open onboarding panel. Previously the
+      // only escape hatch was the button, so a keyboard user (or anyone who
+      // did not notice it) was stuck behind a full-viewport overlay.
+      if (e.key === 'Escape') dismiss();
+    }
+    modal.querySelector('[data-action="skip"]').addEventListener('click', dismiss);
+    // CAPTURE phase: engine-keys.client.js attaches its own keydown handler on
+    // window and stopPropagation()s in places, so a bubble-phase listener here
+    // can be swallowed before it runs. Capture guarantees Escape reaches us.
+    document.addEventListener('keydown', onKey, true);
+    // Clicking the dimmed backdrop (but not the panel) dismisses too.
+    modal.addEventListener('click', (e) => { if (e.target === modal) dismiss(); });
     return true;
   }
 
