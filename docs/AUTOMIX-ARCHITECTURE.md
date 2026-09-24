@@ -83,6 +83,40 @@ dissolves are ~2.2s ease-in-out: `engine-timing` `step()` tracks an analytic
 fade segment (from/t0/duration) through smoothstep instead of the old
 exponential approach, and `eventSwap` widened to 950/1250ms — no hard cuts.
 
+## Device tier + adaptive guard
+
+Two small shared modules decide how much work the page asks for, in place of
+per-page quality switches:
+
+- **`lib/tier-runtime.js`** (synchronous, first in `<head>`, engine + the
+  variants that opt in) — a first-frame GUESS from `hardwareConcurrency`,
+  `deviceMemory`, `saveData`, `prefers-reduced-motion`. Three tiers
+  (low/medium/high) → a profile table: `renderScale`, `maxDPR`, `cssFilters`,
+  `feedbackRes`, `fftSize`, `analyserSmoothing`, `maxClips`, `minCutMs`.
+  `lib/audio.client.js` reads `fftSize`/`analyserSmoothing` before building
+  the AnalyserNode; `?tier=low|medium|high` overrides detection for QA.
+  Deliberately NOT included: GPU-string regexes (stale every release) and a
+  persisted "last good tier" (masks thermal throttling on the next visit).
+- **`lib/adaptive-guard.js`** — the correction. Watches rAF deltas; sustained
+  >40ms steps work down a ladder, sustained <20ms gives a rung back (at 2×
+  the window). Ladder, cheapest + least visible first: css filters off →
+  feedback resolution down → **overlay frame-skip** → fewer concurrent clips
+  → slower cut cadence → tier step down.
+
+The overlay rung is a frame-skip (`FX.setFrameSkip(n)`), never
+`FX.setEnabled(false)`: on engine the overlay IS the composite, so disabling
+it blanks the look and freezes `FX.state` — which is the automix displacement
+contract's signal (caught by `verify-automix-arc-displacement.mjs`, which went
+red the moment the ladder got that wrong). Frame-skip halves the GPU pass
+while `state` keeps advancing.
+
+`verify-tier-runtime.mjs` covers detection, the URL overrides, the real
+analyser wiring (`?tier=low` → `fftSize=512`), and the throttled step-down
+(CDP `Emulation.setCPUThrottlingRate`). Note the guard always fires in
+headless: off-screen Puppeteer rAF runs at ~10-30fps, so the budget looks
+blown by construction — which is exactly why every rung must be
+non-destructive.
+
 ## Preset pipeline
 
 23 presets in `versions-presets.js` (verified-write apply — JSON-serialized,

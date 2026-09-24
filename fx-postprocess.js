@@ -440,6 +440,10 @@
     // shader every RAF for no visible difference. Toggle the canvas off when
     // skipping so the compositor doesn't re-blit a transparent overlay.
     let overlayVisible = true;
+    // Overlay frame-skip counters (adaptive guard rung). Runtime-only —
+    // never persisted, so a reload always comes back at full rate.
+    let frameSkip = 1;
+    let frameCount = 0;
     function anyFxActive() {
       return state.temp !== 0 || state.mut !== 0 || state.posterize !== 0 ||
              state.vignette !== 0 || state.chroma !== 0 || state.grain !== 0 ||
@@ -449,6 +453,16 @@
     }
     function render() {
       if (!state.enabled) {
+        requestAnimationFrame(render);
+        return;
+      }
+      // Overlay frame-skip (adaptive guard rung): the GPU upload + shader
+      // pass run every Nth frame. Half the overlay cost, and `state` still
+      // advances on the frames that run, so automix/preset motion stays
+      // visible — this is the graceful way to cut overlay cost. Disabling
+      // the overlay outright (FX.setEnabled(false)) is NOT a cost rung on
+      // pages where the overlay is the composite: it removes the look.
+      if (frameSkip > 1 && (frameCount++ % frameSkip) !== 0) {
         requestAnimationFrame(render);
         return;
       }
@@ -667,6 +681,16 @@
         if (profile.glitch    !== undefined) state.glitch    = profile.glitch;
       },
       setEnabled(on) { state.enabled = !!on; },
+      // Adaptive-guard rung: run the overlay's GPU pass every Nth frame.
+      // Runtime-only; keeps the composite (unlike setEnabled(false)) while
+      // halving its cost. `state` still advances on frames that run.
+      setFrameSkip(n) {
+        const v = Math.max(1, Math.min(4, Math.floor(Number(n) || 1)));
+        frameSkip = v;
+        frameCount = 0;
+        return v;
+      },
+      get frameSkip() { return frameSkip; },
       outputCanvas: out,    // for recorder to captureStream()
     };
 

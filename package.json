@@ -115,7 +115,8 @@
     "check:automix-arc-unit": "node scripts/check-automix-arc-unit.mjs",
     "check:automix-session-unit": "node scripts/check-automix-session-unit.mjs",
     "check:clip-evolution-unit": "node scripts/check-clip-evolution-unit.mjs",
-    "verify:automix-arc-displacement": "node verify-automix-arc-displacement.mjs"
+    "verify:automix-arc-displacement": "node verify-automix-arc-displacement.mjs",
+    "verify:tier-runtime": "node verify-tier-runtime.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",
