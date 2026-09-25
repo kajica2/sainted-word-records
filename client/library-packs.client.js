@@ -106,7 +106,13 @@
 
   // ---------- helpers ----------
   function getLib() {
-    return window.SWR && window.SWR.Library;
+    // Two page lineages expose the library differently: variants set
+    // window.SWR = { Library, ... }, while engine.html attaches a bare
+    // window.Library (lib/library.client.js:818) and only assembles
+    // window.SWR later in boot. Reading only window.SWR.Library meant every
+    // pack load on engine failed with "SWR.Library not present" — the packs
+    // toolbar rendered but did nothing. Accept either.
+    return (window.SWR && window.SWR.Library) || window.Library || null;
   }
 
   function getCurator() {
