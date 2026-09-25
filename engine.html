@@ -339,6 +339,100 @@
       font-family: var(--font-mono);
     }
 
+    /* ---- Library packs toolbar (opt-in only — nothing auto-loads) ----
+       Same contract as versions/music_video.html: client/library-packs.client.js
+       renders into #packs. The cover rules below are what make a pack read as a
+       visual bundle (16:9 tile, label on a scrim) rather than a row of text. */
+    .packs {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .packs-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted, #9a8aaa);
+    }
+    .packs-title { font-weight: 600; }
+    .packs-hint { font-style: italic; opacity: 0.55; font-size: 8px; }
+    .packs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .pack-btn {
+      background: var(--bg-2, #111);
+      border: 1px solid var(--line, #2a1d3a);
+      color: var(--fg, #f5e9ff);
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-radius: 2px;
+      transition: background 120ms ease, border-color 120ms ease;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pack-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--line-2, #3a2a4a); }
+    .pack-btn.is-loaded {
+      background: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.55);
+      color: rgba(180, 240, 200, 1);
+    }
+    .pack-btn.is-error {
+      background: rgba(200, 80, 80, 0.12);
+      border-color: rgba(200, 80, 80, 0.5);
+    }
+    .pack-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* Cover art (manifest.covers[packKey]): the button becomes a 16:9 tile
+       with the label on a scrim at the bottom. Falls back to the emoji row
+       when a pack has no cover (the four legacy packs). */
+    .pack-btn.has-cover {
+      position: relative;
+      min-height: 54px;
+      justify-content: flex-end;
+      padding: 5px 6px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    }
+    .pack-btn.has-cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      /* Scrim only under the label. A full-height gradient crushed the cover
+         to near-black on engine's dark palette; the top of the art now
+         survives while the label keeps its contrast. */
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 34%, rgba(0,0,0,0) 62%);
+      pointer-events: none;
+    }
+    .pack-btn.has-cover > * { position: relative; }
+    .pack-btn.has-cover:hover { border-color: var(--accent, #ff3d92); filter: brightness(1.12); }
+    .pack-btn.has-cover.is-loaded {
+      background-color: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.7);
+    }
+    .packs-empty {
+      padding: 18px 12px;
+      text-align: center;
+      color: var(--muted, #9a8aaa);
+      font-size: 10px;
+    }
+
     /* ---- User Media library (SWR_MEDIA / IndexedDB) ----
        A separate, CRUD-able media store that lives across page
        reloads. Curated assets above; this is the user's own,
@@ -1680,6 +1774,10 @@
         </div>
       </div>
       <div class="panel-body">
+        <!-- Opt-in media packs. Nothing auto-loads; clicking a pack pulls its
+             assets in. Rendered by client/library-packs.client.js against this
+             id (same contract as versions/music_video.html). -->
+        <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
         <div class="sets-bar" style="display:flex; gap:6px; padding:6px 8px; border-bottom:1px solid var(--line);">
           <button class="tbtn ghost" id="save-set" style="padding:4px 10px; font-size:9px;">↓ Save Set</button>
           <button class="tbtn ghost" id="import-set" style="padding:4px 10px; font-size:9px;">↑ Import .swr-set</button>
@@ -1998,9 +2096,10 @@
               var Lib = window.Library;
               var engineItems = (Lib && Lib.items) || [];
               for (var i = 0; i < engineItems.length; i++) {
-                // Curated/pack folders stay in the engine's own grid (hidden),
-                // so they are not duplicated here.
-                if (engineItems[i] && engineItems[i].folder) continue;
+                // Includes pack + curated items: they carry a `folder` tag, and
+                // the engine's own grid is hidden, so skipping them would make
+                // a loaded pack invisible (verified: loading 13 clips left the
+                // grid empty). Everything the engine Library holds shows here.
                 var card = engineItemToCard(engineItems[i]);
                 if (card) merged.push(card);
               }
