@@ -477,6 +477,66 @@ the deference path, prefix expiry, and the opt-out flag.
   ALL CHECKS PASS; cross-surface 77/77; automix smoke 91/91; displacement
   contract exit 0; tier verifier 8/8.
 
+## Media library: pairing, one grid, and the load bugs behind "can't load anything"
+
+Commits: `4f562bb`, `034c48a`, `3fb0774`, `bf4f688`, `8c8cbf2`, `6b96060`
+
+Reported as "i cant load anything into it". Four separate defects, all
+pre-existing, plus two `packs/` items:
+
+**Cards did nothing on click.** `media-store.render()` only attaches the card
+click when `opts.onPick` is a function; engine's inline wire-up passed none,
+so every card rendered with `cursor:pointer` and then silently ignored the
+click. The engine now passes the same converter the variant pages get from
+`lib/user-media-mount.client.js`.
+
+**Drag-drop filled the library but never the stage** — the canvas stayed
+empty, so the drop looked broken. Drops now stage the newly added visual
+assets (capped at 3, so a 40-file drop does not become 40 layers). The
+folder-drop path had the same gap.
+
+**`#add-layer` always re-added `items[0]`** — it appeared to do nothing once
+the library held more than one asset. Now stages the newest visual asset.
+
+**Two libraries stacked in one panel.** `#library-grid` (engine Library:
+assets/songs/sets) and `#swr-user-media-grid` (media store: raw uploads)
+sat one above the other. The engine grid is now hidden and the single media
+grid renders both stores — both are kept, since they do different jobs. The
+grid re-renders on media-store changes and on a 1.5s engine-Library
+signature poll (the engine library has no change event).
+
+**Image-as-cover.** Uploading `clip.mp4` beside `clip.jpg` used to leave two
+entries: the video (with an auto poster frame) and the image floating loose.
+Now the image becomes the video's cover — `coverBlob`/`coverName` on the
+video, `pairedToId` on the image, both persisted, so it survives a reload.
+Matching is by filename stem and only fires when a stem has exactly one
+image and one video, so an unrelated image can never be silently attached.
+The grid draws the cover instead of the poster frame and hides paired
+images: one tile per piece of content. Plus the explicit gesture — drag an
+image onto a video card — for when the names differ;
+`SWR_MEDIA.setCover(videoId, coverItem)` is the programmatic path.
+
+**`/packs` browse page** (`packs.html`) — `packs/` had no `index.html` and
+Vercel serves no directory listing, so the packs had no discoverable home;
+the only way in was a button inside an engine library panel. The page
+renders one card per manifest pack (cover, description, asset count, and a
+thumbnail strip: images, or muted hover-to-play clips), reading the same
+manifest the engine does. Wired through the house pipeline: `site-map.json`
+→ `scripts/generate-vercel-rewrites.mjs` (210 rewrites, `/packs` →
+`packs.html`) → `vite.config.js` `rootFiles` (that list is explicit — an
+unlisted page simply never ships).
+
+**Generated covers** for both dancer packs, built from the packs' own assets
+so a cover cannot depict something the pack does not contain.
+
+Also in this block: `fetchManifest()` probed the dev-only
+`/library/manifest.json` before the shipped `/packs/manifest.json`, so every
+deployed page made a guaranteed-404 request — it broke
+`check-automix-smoke`'s boot assertion. Candidates are now ordered by
+likelihood and each response must actually contain a packs map.
+
+---
+
 ### Known-open at session end
 
 - The 7 own-loop persona variants (tape, baroque, mosaic, phosphor, collage,
