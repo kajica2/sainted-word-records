@@ -383,6 +383,19 @@
     .swr-media-card video {
       width: 100%; height: 100%; object-fit: cover; display: block;
     }
+    /* Drop an image here to make it this video's cover. */
+    .swr-media-card.is-cover-target {
+      outline: 2px solid var(--accent, #ff3d92);
+      outline-offset: -2px;
+    }
+    .swr-media-card.is-cover-target::after {
+      content: 'set cover';
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255, 61, 146, 0.35);
+      color: #fff; font-size: 9px; letter-spacing: 0.04em;
+      text-transform: uppercase; pointer-events: none;
+    }
     .swr-media-meta {
       position: absolute;
       bottom: 0; left: 0; right: 0;
@@ -1995,6 +2008,23 @@
             controller = window.SWR_MEDIA.render(grid, merged, {
               emptyText: 'No media yet. Click + Add to upload images or videos.',
               onPick: pickAsLayer,
+              // Drop an image onto a video card to set its cover. The renderer
+              // stops propagation so the page's own drop handler does not also
+              // stage the file as a new layer.
+              onCover: function (videoItem, imageFile) {
+                if (!window.SWR_MEDIA || typeof window.SWR_MEDIA.setCover !== 'function') return;
+                var coverItem = { id: 'cover-' + Date.now(), name: imageFile.name, mime: imageFile.type, blob: imageFile, size: imageFile.size };
+                window.SWR_MEDIA.setCover(videoItem.id, coverItem).then(function () {
+                  if (typeof window.setStatus === 'function') {
+                    window.setStatus('cover set: ' + imageFile.name, 'ok');
+                  }
+                  refresh();
+                }, function (err) {
+                  if (typeof window.setStatus === 'function') {
+                    window.setStatus('could not set cover: ' + ((err && err.message) || err), 'err');
+                  }
+                });
+              },
             });
           });
         }
