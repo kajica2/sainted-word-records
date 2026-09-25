@@ -378,8 +378,46 @@
   }
 
   // ---------- toolbar render ----------
+  // ---------- covers ----------
+  // A pack may ship a generated cover (manifest.covers[packKey]). The toolbar
+  // button uses it as a background so a pack reads as a visual bundle rather
+  // than a row of text. The emoji icon stays as the fallback when a pack has
+  // no cover (the four legacy packs) or before the manifest has landed.
+  function coverUrl(pack) {
+    const rel = pack && pack.cover;
+    if (!rel) return null;
+    return manifestUrl(rel);
+  }
+
+  // Resolve covers from whatever manifest fetchManifest() last read, then
+  // repaint the toolbar. Called once on init; failure is silent (buttons keep
+  // their emoji).
+  async function applyCovers() {
+    try {
+      const m = await fetchManifest();
+      const covers = (m && m.covers) || {};
+      for (const pack of PACKS) {
+        if (covers[pack.packKey]) pack.cover = covers[pack.packKey];
+      }
+      for (const pack of PACKS) {
+        const btn = document.querySelector(`[data-pack-id="${pack.id}"]`);
+        if (btn && coverUrl(pack)) {
+          btn.classList.add('has-cover');
+          btn.style.backgroundImage = `url("${coverUrl(pack)}")`;
+        }
+      }
+    } catch (_) { /* no covers — emoji-only toolbar */ }
+  }
+
   function paintButton(btn, pack, result) {
     btn.classList.remove('is-loaded', 'is-error');
+    // Labels sit over the cover image when one exists; a scrim keeps them
+    // legible. Paint the cover each time so an unload/reload cannot drop it.
+    const url = coverUrl(pack);
+    if (url) {
+      btn.classList.add('has-cover');
+      btn.style.backgroundImage = `url("${url}")`;
+    }
     if (result && result.loaded) {
       btn.classList.add('is-loaded');
       btn.textContent = `${pack.icon} ${pack.label} · ✓`;
@@ -390,7 +428,7 @@
       btn.title = `${result.error} — drag-drop your own instead.`;
     } else {
       btn.textContent = `${pack.icon} ${pack.label}`;
-      btn.title = `Load pack (opt-in only, nothing auto-loads)`;
+      btn.title = url ? `Load pack (${pack.description})` : `Load pack (opt-in only, nothing auto-loads)`;
     }
   }
 
@@ -461,6 +499,10 @@
     if (!toolbarEl) return;
     renderToolbar(toolbarEl);
     observeLibrary();
+    // Covers arrive from the manifest (a second fetch that may fall back to
+    // /packs/manifest.json); repaint when they land. Fire-and-forget so a
+    // missing manifest cannot delay the toolbar.
+    applyCovers();
   }
 
   // Expose API.
