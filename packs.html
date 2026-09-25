@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Packs · Sainted Word Records</title>
+  <meta name="description" content="Curated opt-in media packs for the SWR engine — dancer silhouettes and looping dance clips, ready to load into any engine page." />
+  <meta property="og:title" content="Packs · SWR" />
+  <meta property="og:description" content="Curated opt-in media packs for the SWR engine." />
+  <meta property="og:image" content="/packs/dancers/cover.webp" />
+  <link rel="icon" href="/favicon.ico" />
+
+  <!-- No-flash theme bootstrap (matches sitemap.html) -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('swr-theme');
+        var theme = saved || 'system';
+        var resolved = theme === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-pref', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/design-base.css">
+  <link rel="stylesheet" href="/lib/components.css">
+  <style>
+    /* === PACKS-SPECIFIC === */
+    .packs-hero { padding: 56px 0 28px; border-bottom: 1px solid var(--line); }
+    .packs-hero h1 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(34px, 5vw, 50px); line-height: 1.05;
+      letter-spacing: -0.02em; margin: 0 0 12px;
+    }
+    .packs-hero h1 em { font-style: italic; color: var(--accent); }
+    .packs-hero .lede {
+      font-size: 16px; color: var(--ink-2); max-width: 680px; line-height: 1.5; margin: 0 0 8px;
+    }
+    .packs-hero .note { font-size: 12px; color: var(--ink-3, #888); }
+
+    .pack-grid {
+      display: grid; gap: 20px; padding: 32px 0 64px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+    .pack-card {
+      border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+      background: var(--surface, rgba(255,255,255,0.02));
+      display: flex; flex-direction: column;
+    }
+    .pack-card__cover {
+      position: relative; aspect-ratio: 16 / 9; background: #06060a;
+      background-size: cover; background-position: center; display: block;
+    }
+    .pack-card__cover::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0) 60%);
+    }
+    .pack-card__body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .pack-card__title { font-size: 16px; font-weight: 600; margin: 0; }
+    .pack-card__desc { font-size: 13px; color: var(--ink-2); line-height: 1.45; margin: 0; flex: 1; }
+    .pack-card__meta { font-size: 11px; color: var(--ink-3, #888); font-family: var(--font-mono, monospace); }
+    .pack-card__actions { display: flex; gap: 8px; margin-top: 4px; }
+
+    .pack-thumbs {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+      gap: 6px; padding: 2px 0 4px;
+    }
+    .pack-thumbs img, .pack-thumbs video {
+      width: 100%; aspect-ratio: 16/9; object-fit: cover;
+      border-radius: 4px; background: #0a0a0f; display: block;
+    }
+    .packs-empty-state { padding: 40px 0; color: var(--ink-3, #888); font-size: 14px; }
+    .pack-badge {
+      display: inline-block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; color: var(--ink-3, #999);
+    }
+  </style>
+</head>
+<body>
+
+<swr-nav></swr-nav>
+
+<main class="container">
+  <section class="packs-hero">
+    <h1>Media <em>packs</em></h1>
+    <p class="lede">
+      Curated, opt-in asset bundles for the engine. Nothing loads automatically —
+      open an engine page and click a pack in the library to bring a set in.
+      Everything here is generated from the pack manifest, so this page and the
+      engine library can never disagree about what a pack contains.
+    </p>
+    <p class="note" id="packs-note">Loading manifest…</p>
+  </section>
+
+  <div class="pack-grid" id="pack-grid" aria-live="polite"></div>
+</main>
+
+<script type="module">
+  // Reads /packs/manifest.json (with the /library/ fallback the engine uses)
+  // and renders one card per pack. The cover is manifest.covers[packKey]; the
+  // thumbnail strip is the first few assets, so a pack shows what is inside
+  // without loading it.
+  const MANIFESTS = ['/packs/manifest.json', '/library/manifest.json'];
+  const TITLES = {
+    dancers: 'Dancer Silhouettes',
+    'dancer-video': 'Dance Clips',
+    photos: 'Photos',
+    'transparent-pngs': 'Transparent PNGs',
+    'audio-loops': 'Audio Loops',
+    animated_gifts: 'Animated Gifts',
+    'animated-gifts': 'Animated Gifts',
+  };
+  const DESCRIPTIONS = {
+    dancers: 'Eight stage-lit B&W dancer silhouettes — high-contrast plates that cut out cleanly over colour.',
+    'dancer-video': 'Thirteen five-second looping dance clips (B&W strobe), web-optimised for mid-song swapping.',
+  };
+  const PRETTY = {
+    dancers: 'Dancer silhouettes',
+    'dancer-video': 'Dance clips',
+    photos: 'Photos + video clips',
+    'transparent-pngs': 'Overlays, masks, persona cards',
+    'audio-loops': 'Demo WAV/MP3 loops',
+    'animated-gifts': 'Curated animated gifts',
+  };
+
+  async function loadManifest() {
+    for (const url of MANIFESTS) {
+      try {
+        const r = await fetch(url, { cache: 'no-cache' });
+        if (!r.ok) continue;
+        const m = await r.json();
+        if (m && m.packs) return { m, url };
+      } catch (_) { /* try the next */ }
+    }
+    return null;
+  }
+
+  const bytes = (n) => (n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB');
+
+  function isVideo(rel) { return /\.(mp4|webm|mov)$/i.test(rel); }
+
+  async function headSize(url) {
+    try {
+      const r = await fetch(url, { method: 'HEAD' });
+      if (!r.ok) return null;
+      return parseInt(r.headers.get('content-length') || '0', 10) || null;
+    } catch (_) { return null; }
+  }
+
+  function card(key, files, coverRel, base) {
+    const title = TITLES[key] || key;
+    const desc = DESCRIPTIONS[key] || PRETTY[key] || 'Curated media pack.';
+    const el = document.createElement('article');
+    el.className = 'pack-card';
+
+    const cover = document.createElement('div');
+    cover.className = 'pack-card__cover';
+    if (coverRel) cover.style.backgroundImage = `url("${base}${coverRel}")`;
+    el.appendChild(cover);
+
+    const body = document.createElement('div');
+    body.className = 'pack-card__body';
+    body.innerHTML =
+      `<h2 class="pack-card__title">${title}</h2>` +
+      `<p class="pack-card__desc">${desc}</p>` +
+      `<div class="pack-card__meta" data-size>${files.length} asset${files.length === 1 ? '' : 's'}</div>`;
+
+    // Thumbnail strip — first 6 assets. Videos get a muted looping <video>
+    // only when the pack is small enough that six decoders are reasonable;
+    // otherwise a poster frame is requested via preload="metadata".
+    const strip = document.createElement('div');
+    strip.className = 'pack-thumbs';
+    files.slice(0, 6).forEach((rel) => {
+      const url = base + rel;
+      if (isVideo(rel)) {
+        const v = document.createElement('video');
+        v.src = url; v.muted = true; v.loop = true; v.playsInline = true;
+        v.preload = 'metadata';
+        v.addEventListener('mouseenter', () => { v.play().catch(() => {}); });
+        v.addEventListener('mouseleave', () => { try { v.pause(); } catch (_) {} });
+        strip.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = url; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+        strip.appendChild(img);
+      }
+    });
+    body.appendChild(strip);
+
+    const actions = document.createElement('div');
+    actions.className = 'pack-card__actions';
+    const a = document.createElement('a');
+    a.className = 'btn btn--sm';
+    a.href = '/versions/music_video.html';
+    a.textContent = 'Open in engine';
+    actions.appendChild(a);
+    body.appendChild(actions);
+
+    el.appendChild(body);
+    void headSize;
+    return el;
+  }
+
+  (async () => {
+    const grid = document.getElementById('pack-grid');
+    const note = document.getElementById('packs-note');
+    const found = await loadManifest();
+    if (!found) {
+      note.textContent = 'Manifest unavailable.';
+      grid.innerHTML = '<p class="packs-empty-state">Could not load /packs/manifest.json.</p>';
+      return;
+    }
+    const { m, url } = found;
+    const base = typeof m.base === 'string' && m.base ? m.base : '/packs/';
+    const keys = Object.keys(m.packs || {});
+    if (!keys.length) {
+      note.textContent = 'No packs in the manifest.';
+      grid.innerHTML = '<p class="packs-empty-state">No packs defined.</p>';
+      return;
+    }
+    const covers = m.covers || {};
+    let total = 0;
+    keys.forEach((k) => { total += (m.packs[k] || []).length; });
+    note.textContent = `${keys.length} pack${keys.length === 1 ? '' : 's'} · ${total} assets · manifest ${url}`;
+
+    for (const k of keys) {
+      grid.appendChild(card(k, m.packs[k] || [], covers[k], base));
+    }
+
+    // Fill in real byte totals once HEADs settle (progressive, non-blocking).
+    let sum = 0;
+    const sizes = await Promise.all(
+      keys.flatMap((k) => (m.packs[k] || []).map((rel) => headSize(base + rel)))
+    );
+    sizes.forEach((s) => { if (s) sum += s; });
+    if (sum) note.textContent += ` · ~${bytes(sum)} total`;
+  })();
+</script>
+
+<script src="/lib/site-keys.client.js" defer></script>
+
+<script src="/lib/nav.client.js" defer></script>
+</body>
+</html>

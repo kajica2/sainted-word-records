@@ -788,6 +788,14 @@
       "destination": "/sitemap.html"
     },
     {
+      "source": "/packs",
+      "destination": "/packs.html"
+    },
+    {
+      "source": "/packs/",
+      "destination": "/packs.html"
+    },
+    {
       "source": "/ar-gif",
       "destination": "/ar-gif.html"
     },
@@ -915,18 +923,6 @@
       "source": "/persona-demo.html",
       "destination": "/personas.html",
       "statusCode": 301
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/login",
-      "destination": "/auth/login",
-      "permanent": true
-    },
-    {
-      "source": "/login/",
-      "destination": "/auth/login",
-      "permanent": true
     }
   ]
 }
