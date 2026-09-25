@@ -119,22 +119,31 @@
     return null;
   }
 
-  // Manifest resolution order:
-  //   1. /library/manifest.json  — local curated library (gitignored, stripped
-  //      from the build; present on dev boxes that have it)
-  //   2. /packs/manifest.json    — the SHIPPED packs (packs/ is tracked and
-  //      copied into dist, so this is the one that exists in production)
-  // The winning manifest's `base` field drives asset URL resolution.
-  const MANIFEST_FALLBACK_URL = '/packs/manifest.json';
+  // Manifest resolution. The SHIPPED packs manifest is probed first because
+  // it is the one that exists wherever the app is actually deployed (packs/
+  // is tracked and copied into dist). /library/manifest.json is a local dev
+  // convenience — it is gitignored and stripped from the build, so probing it
+  // first produced a guaranteed 404 on every deployed page and on every smoke
+  // that serves the source tree (console 404 → "no console errors at boot"
+  // failures). Ordering by likelihood removes the wasted request instead of
+  // filtering the error.
+  const MANIFEST_CANDIDATES = ['/packs/manifest.json', '/library/manifest.json'];
   async function fetchManifest() {
-    let r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
-    if (!r.ok) r = await fetch(MANIFEST_FALLBACK_URL, { cache: 'no-cache' });
-    if (!r.ok) throw new Error(`manifest ${r.status}`);
-    const m = await r.json();
-    // A manifest may declare where its listed paths live. Default keeps the
-    // historical /library/ behaviour.
-    manifestBase = (typeof m.base === 'string' && m.base) ? m.base : '/library/';
-    return m;
+    let lastErr = null;
+    for (const url of MANIFEST_CANDIDATES) {
+      let r;
+      try { r = await fetch(url, { cache: 'no-cache' }); }
+      catch (err) { lastErr = err; continue; }
+      if (!r.ok) { lastErr = new Error(`manifest ${r.status}`); continue; }
+      let m;
+      try { m = await r.json(); } catch (err) { lastErr = err; continue; }
+      if (!m || !m.packs) { lastErr = new Error('manifest has no packs'); continue; }
+      // A manifest may declare where its listed paths live. Default keeps the
+      // historical /library/ behaviour.
+      manifestBase = (typeof m.base === 'string' && m.base) ? m.base : '/library/';
+      return m;
+    }
+    throw lastErr || new Error('no manifest');
   }
 
   function fileSizeOrNull(url) {
