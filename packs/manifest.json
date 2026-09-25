@@ -1,7 +1,7 @@
 {
   "schema": "swr-library-packs/v1",
-  "generated_at": "2026-09-24T21:33:00+02:00",
-  "description": "Curated opt-in media packs shipped with the build (packs/ is tracked; library/ is gitignored and stripped). Paths are relative to this manifest's base.",
+  "generated_at": "2026-09-25T00:20:00+02:00",
+  "description": "Curated opt-in media packs shipped with the build (packs/ is tracked; library/ is gitignored and stripped). Paths are relative to this manifest's base. Each pack's `cover` is a generated 1280x720 webp used by the packs toolbar.",
   "base": "/packs/",
   "packs": {
     "dancers": [
@@ -29,5 +29,9 @@
       "dancers-video/dance-12.mp4",
       "dancers-video/dance-13.mp4"
     ]
+  },
+  "covers": {
+    "dancers": "dancers/cover.webp",
+    "dancer-video": "dancers-video/cover.webp"
   }
 }

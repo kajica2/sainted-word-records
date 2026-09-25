@@ -119,22 +119,31 @@
     return null;
   }
 
-  // Manifest resolution order:
-  //   1. /library/manifest.json  — local curated library (gitignored, stripped
-  //      from the build; present on dev boxes that have it)
-  //   2. /packs/manifest.json    — the SHIPPED packs (packs/ is tracked and
-  //      copied into dist, so this is the one that exists in production)
-  // The winning manifest's `base` field drives asset URL resolution.
-  const MANIFEST_FALLBACK_URL = '/packs/manifest.json';
+  // Manifest resolution. The SHIPPED packs manifest is probed first because
+  // it is the one that exists wherever the app is actually deployed (packs/
+  // is tracked and copied into dist). /library/manifest.json is a local dev
+  // convenience — it is gitignored and stripped from the build, so probing it
+  // first produced a guaranteed 404 on every deployed page and on every smoke
+  // that serves the source tree (console 404 → "no console errors at boot"
+  // failures). Ordering by likelihood removes the wasted request instead of
+  // filtering the error.
+  const MANIFEST_CANDIDATES = ['/packs/manifest.json', '/library/manifest.json'];
   async function fetchManifest() {
-    let r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
-    if (!r.ok) r = await fetch(MANIFEST_FALLBACK_URL, { cache: 'no-cache' });
-    if (!r.ok) throw new Error(`manifest ${r.status}`);
-    const m = await r.json();
-    // A manifest may declare where its listed paths live. Default keeps the
-    // historical /library/ behaviour.
-    manifestBase = (typeof m.base === 'string' && m.base) ? m.base : '/library/';
-    return m;
+    let lastErr = null;
+    for (const url of MANIFEST_CANDIDATES) {
+      let r;
+      try { r = await fetch(url, { cache: 'no-cache' }); }
+      catch (err) { lastErr = err; continue; }
+      if (!r.ok) { lastErr = new Error(`manifest ${r.status}`); continue; }
+      let m;
+      try { m = await r.json(); } catch (err) { lastErr = err; continue; }
+      if (!m || !m.packs) { lastErr = new Error('manifest has no packs'); continue; }
+      // A manifest may declare where its listed paths live. Default keeps the
+      // historical /library/ behaviour.
+      manifestBase = (typeof m.base === 'string' && m.base) ? m.base : '/library/';
+      return m;
+    }
+    throw lastErr || new Error('no manifest');
   }
 
   function fileSizeOrNull(url) {
@@ -378,8 +387,46 @@
   }
 
   // ---------- toolbar render ----------
+  // ---------- covers ----------
+  // A pack may ship a generated cover (manifest.covers[packKey]). The toolbar
+  // button uses it as a background so a pack reads as a visual bundle rather
+  // than a row of text. The emoji icon stays as the fallback when a pack has
+  // no cover (the four legacy packs) or before the manifest has landed.
+  function coverUrl(pack) {
+    const rel = pack && pack.cover;
+    if (!rel) return null;
+    return manifestUrl(rel);
+  }
+
+  // Resolve covers from whatever manifest fetchManifest() last read, then
+  // repaint the toolbar. Called once on init; failure is silent (buttons keep
+  // their emoji).
+  async function applyCovers() {
+    try {
+      const m = await fetchManifest();
+      const covers = (m && m.covers) || {};
+      for (const pack of PACKS) {
+        if (covers[pack.packKey]) pack.cover = covers[pack.packKey];
+      }
+      for (const pack of PACKS) {
+        const btn = document.querySelector(`[data-pack-id="${pack.id}"]`);
+        if (btn && coverUrl(pack)) {
+          btn.classList.add('has-cover');
+          btn.style.backgroundImage = `url("${coverUrl(pack)}")`;
+        }
+      }
+    } catch (_) { /* no covers — emoji-only toolbar */ }
+  }
+
   function paintButton(btn, pack, result) {
     btn.classList.remove('is-loaded', 'is-error');
+    // Labels sit over the cover image when one exists; a scrim keeps them
+    // legible. Paint the cover each time so an unload/reload cannot drop it.
+    const url = coverUrl(pack);
+    if (url) {
+      btn.classList.add('has-cover');
+      btn.style.backgroundImage = `url("${url}")`;
+    }
     if (result && result.loaded) {
       btn.classList.add('is-loaded');
       btn.textContent = `${pack.icon} ${pack.label} · ✓`;
@@ -390,7 +437,7 @@
       btn.title = `${result.error} — drag-drop your own instead.`;
     } else {
       btn.textContent = `${pack.icon} ${pack.label}`;
-      btn.title = `Load pack (opt-in only, nothing auto-loads)`;
+      btn.title = url ? `Load pack (${pack.description})` : `Load pack (opt-in only, nothing auto-loads)`;
     }
   }
 
@@ -461,6 +508,10 @@
     if (!toolbarEl) return;
     renderToolbar(toolbarEl);
     observeLibrary();
+    // Covers arrive from the manifest (a second fetch that may fall back to
+    // /packs/manifest.json); repaint when they land. Fire-and-forget so a
+    // missing manifest cannot delay the toolbar.
+    applyCovers();
   }
 
   // Expose API.
