@@ -1892,11 +1892,109 @@
         var clear = document.getElementById('swr-user-media-clear');
         if (!grid) return;
 
+        // ---- ONE library panel -------------------------------------------
+        // The engine has two stores behind this panel: the engine Library
+        // (IndexedDB assets/songs, curated + packs + sets) and the media
+        // store (swr-media, raw uploads). They are both kept — they do
+        // genuinely different jobs — but showing two separate grids made the
+        // panel read as two libraries. Instead this grid is the single
+        // surface: it renders media-store uploads AND engine-Library items
+        // (minus the Curated/pack folders, which the engine's own grid still
+        // lists) in one place. The engine grid is collapsed so there is one
+        // visible library.
+        var engineGrid = document.getElementById('library-grid');
+        if (engineGrid) engineGrid.hidden = true;
+
+        // ---- click a card -> put it on the stage ---------------------------
+        // media-store.render() only wires the card click when opts.onPick is a
+        // function (lib/media-store.client.js: card gets cursor:pointer and a
+        // click listener). This inline wire-up passed no onPick, so every card
+        // rendered as obviously clickable and then silently did nothing — the
+        // "I can't load anything into the engine" report. Variant pages get
+        // this from lib/user-media-mount.client.js; engine.html has its own
+        // inline wire-up (it needs the extra addMedia/deleteAll handling), so
+        // the converter lives here too, kept in the same shape.
+        function mediaItemToLayerAsset(item) {
+          var isVideo = !!(item.mime && item.mime.indexOf('video/') === 0);
+          var url;
+          try { url = URL.createObjectURL(item.blob); } catch (e) { url = null; }
+          if (!url) return null;
+          return {
+            id: item.id,
+            name: item.name,
+            type: isVideo ? 'video' : 'image',
+            blob: item.blob,
+            url: url,
+            thumb: item.thumb || null,
+            w: 0, h: 0, duration: 0,
+            rotation: 0,
+          };
+        }
+
+        // Engine-Library items are already in the layer-asset shape
+        // ({id,name,type,url,blob,...}) — they only need the media-store card
+        // fields the renderer reads (mime/size) so one grid can draw both.
+        function engineItemToCard(it) {
+          if (!it || !it.url) return null;
+          return {
+            id: it.id,
+            name: it.name,
+            mime: it.type === 'video' ? 'video/mp4' : 'image/png',
+            size: it.size || 0,
+            blob: it.blob || null,
+            url: it.url,
+            thumb: it.thumb || null,
+            _engine: true,
+          };
+        }
+
+        function pickAsLayer(item) {
+          if (!item) return;
+          if (!window.Layers || typeof window.Layers.add !== 'function') {
+            if (typeof window.setStatus === 'function') window.setStatus('layers not ready', 'err');
+            return;
+          }
+          // Engine-Library items are already layer-ready; only mint a blob URL
+          // for media-store uploads.
+          var asset = item._engine ? item
+            : item.blob ? mediaItemToLayerAsset(item) : null;
+          if (!asset || !asset.url) {
+            if (typeof window.setStatus === 'function') window.setStatus('could not load this item', 'err');
+            return;
+          }
+          try {
+            window.Layers.add(asset);
+            if (typeof window.setStatus === 'function') {
+              window.setStatus((item.name || 'media') + ' -> layer', 'ok');
+            }
+          } catch (err) {
+            if (!item._engine) { try { URL.revokeObjectURL(asset.url); } catch (_) {} }
+            console.error('[user-media] add-as-layer failed', err, item);
+            if (typeof window.setStatus === 'function') {
+              window.setStatus('could not load: ' + ((err && err.message) || err), 'err');
+            }
+          }
+        }
+
         function refresh() {
           if (!window.SWR_MEDIA) return;
           window.SWR_MEDIA.getUserMedia().then(function (items) {
-            controller = window.SWR_MEDIA.render(grid, items, {
-              emptyText: 'No media yet. Click + Add to upload images or videos.'
+            // Merge in engine-Library items so the single grid is complete.
+            var merged = (items || []).slice();
+            try {
+              var Lib = window.Library;
+              var engineItems = (Lib && Lib.items) || [];
+              for (var i = 0; i < engineItems.length; i++) {
+                // Curated/pack folders stay in the engine's own grid (hidden),
+                // so they are not duplicated here.
+                if (engineItems[i] && engineItems[i].folder) continue;
+                var card = engineItemToCard(engineItems[i]);
+                if (card) merged.push(card);
+              }
+            } catch (_) { /* engine library optional */ }
+            controller = window.SWR_MEDIA.render(grid, merged, {
+              emptyText: 'No media yet. Click + Add to upload images or videos.',
+              onPick: pickAsLayer,
             });
           });
         }
@@ -1914,6 +2012,15 @@
             window.SWR_MEDIA.addMedia(files).then(function (inserted) {
               input.value = ''; // allow re-picking the same file
               console.log('[user-media] added', inserted.length, 'files');
+              // Tell the user when an image was auto-attached as a video's
+              // cover, so the pairing is visible rather than silent.
+              var paired = (inserted || []).filter(function (r) {
+                return r && (r.coverBlob || r.pairedToId);
+              });
+              if (paired.length && typeof window.setStatus === 'function') {
+                window.setStatus(paired.length + ' cover' + (paired.length === 1 ? '' : 's') +
+                  ' paired automatically', 'ok');
+              }
               refresh();
             }, function (err) {
               console.warn('[user-media] addMedia failed', err);
@@ -1935,6 +2042,25 @@
             });
           });
         }
+
+        // Keep the single grid in step with BOTH stores. The engine Library
+        // has no change event, so it is polled with a cheap signature (count +
+        // last id) — the same trick the pack poller uses. The media store has
+        // a real subscription.
+        try {
+          if (window.SWR_MEDIA && window.SWR_MEDIA.onChange) {
+            window.SWR_MEDIA.onChange(function () { refresh(); });
+          }
+        } catch (_) {}
+        var lastSig = '';
+        setInterval(function () {
+          try {
+            var Lib = window.Library;
+            var items = (Lib && Lib.items) || [];
+            var sig = items.length + ':' + (items.length ? items[items.length - 1].id : '');
+            if (sig !== lastSig) { lastSig = sig; refresh(); }
+          } catch (_) {}
+        }, 1500);
 
         // Initial render — wait for SWR_MEDIA to be present (module load).
         function boot() {
@@ -4345,11 +4471,33 @@
             console.warn('[folder-drop] no image/video files in dropped folder');
             return;
           }
+          // Same contract as the single-file drop: library first, then stage
+          // the first few so the drop is visible on the canvas immediately.
+          const had = Library.items.length;
           await Library.addFiles(wanted);
+          const fresh = Library.items.slice(had).filter(
+            (it) => it && (it.type === 'image' || it.type === 'video'));
+          for (const it of fresh.slice(0, 3)) {
+            try { Layers.add(it); } catch (err) {
+              console.warn('[folder-drop] stage failed for', it && it.name, err);
+            }
+          }
+          if (fresh.length && typeof setStatus === 'function') {
+            setStatus(`folder: ${fresh.length} to library · staged first ${Math.min(3, fresh.length)}`, 'ok');
+          }
         }, true);  // capture phase so we get the drop before the existing window-level handler
-        // Layers
+        // Layers. "Add layer" should stage the most recent library item — the
+        // one the user just added or picked — not items[0], which re-added the
+        // same first asset forever and made the button look broken once the
+        // library held more than one thing.
         $('add-layer').addEventListener('click', () => {
-          if (Library.items.length) Layers.add(Library.items[0]);
+          if (!Library.items.length) {
+            if (typeof setStatus === 'function') setStatus('library is empty — drop a file first', 'warn');
+            return;
+          }
+          const visual = Library.items.filter((it) => it && (it.type === 'image' || it.type === 'video'));
+          const pool = visual.length ? visual : Library.items;
+          Layers.add(pool[pool.length - 1]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
         // Global sliders
@@ -4674,7 +4822,29 @@
             UI.showMp4Chooser(files[0]);
             return;
           }
+          // Visual assets (images/video, or a mixed batch) go to the library —
+          // and straight onto the stage. Dropping a clip and seeing an empty
+          // canvas was the other half of "I can't load anything in": the
+          // library filled up but nothing was ever staged, and #add-layer
+          // only ever re-added items[0]. Stage what was just added, capped so
+          // a 40-file drop does not become 40 layers.
+          const before = Library.items.length;
           await Library.addFiles(files);
+          const added = Library.items.slice(before).filter(
+            (it) => it && (it.type === 'image' || it.type === 'video'));
+          const STAGE_CAP = 3;
+          for (const it of added.slice(0, STAGE_CAP)) {
+            try { Layers.add(it); } catch (err) {
+              console.warn('[drop] stage failed for', it && it.name, err);
+            }
+          }
+          if (added.length && typeof setStatus === 'function') {
+            setStatus(
+              added.length > STAGE_CAP
+                ? `added ${added.length} to library · staged first ${STAGE_CAP}`
+                : `added ${added.length} to library + stage`,
+              'ok');
+          }
         });
         // Keyboard
         window.addEventListener('keydown', (e) => {
