@@ -72,6 +72,7 @@
     if (!missing.length) {
       // Images already present — still make sure the default song is loaded.
       await ensureSong(m.audio || []);
+      await ensureStarterLayers();
       return;
     }
 
@@ -89,6 +90,7 @@
       } catch (e) { console.warn('[default-library] addFiles failed:', e.message); }
     }
     await ensureSong(m.audio || []);
+    await ensureStarterLayers();
   }
 
   // Load (not play — autoplay needs a gesture) the default song when the
@@ -116,6 +118,33 @@
       A.loadFile(f);
       console.info('[default-library] song loaded:', f.name);
     } catch (e) { console.warn('[default-library] song load failed:', e.message); }
+  }
+
+  // Stage the seeded assets so the engine is not a blank canvas on first
+  // visit. The engine ships no auto-staging of its own: Library holds the
+  // assets but Layers stays empty until the user drops something or hits
+  // "+ LAYER"/"RE-MAP", so the canvas renders nothing while a song plays.
+  // Neon and the other variants avoid this by calling Layers.remap() on
+  // ready; engine has no equivalent call site.
+  //
+  // Layers.autoMap() is the right primitive: it scores every library asset
+  // for each of its six roles and rebuilds the layer list. It bails on an
+  // empty library and only runs when the stage is untouched, so a user's
+  // own composition is never clobbered.
+  async function ensureStarterLayers() {
+    let tries = 0;
+    while ((!window.Layers || typeof window.Layers.autoMap !== 'function') && tries < 50) {
+      await new Promise((res) => setTimeout(res, 200));
+      tries++;
+    }
+    const L = window.Layers;
+    if (!L || typeof L.autoMap !== 'function') return;
+    if (!window.Library || !(window.Library.items || []).length) return;
+    if ((L.list || []).length) return;   // user already has a composition
+    try {
+      L.autoMap();
+      console.info('[default-library] staged', (L.list || []).length, 'layers');
+    } catch (e) { console.warn('[default-library] autoMap failed:', e.message); }
   }
 
   window.SWR_DEFAULT_LIBRARY = { seed };
