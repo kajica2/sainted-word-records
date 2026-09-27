@@ -3,12 +3,12 @@
 # Idempotent: safe to run multiple times per day (generator appends,
 # git commit is a no-op if there's nothing to commit).
 #
-# Production runs are scheduled via .github/workflows/presets-daily.yml
-# in the kajica2/sainted-word-records GitHub repo. That workflow generates,
-# verifies, and opens a PR — once merged, Vercel auto-deploys.
+# This script is the only preset-pipeline entry point: it runs generate →
+# verify → commit → push on the dev box (LaunchAgent or crontab, below).
+# The GitHub Action that used to do this server-side (.github/workflows/
+# presets-daily.yml) was removed 2026-09-20, so .github/workflows/ now holds
+# only ci.yml.
 #
-# This script remains for local manual runs (e.g. testing the pipeline
-# before the GH Action is set up, or generating presets while offline).
 # It does NOT call `npx vercel deploy` — Vercel auto-deploys from the
 # new repo on push, so the manual deploy step is redundant.
 #
@@ -48,8 +48,7 @@ node verify.mjs
 cd "$REPO_ROOT"
 # Only commit + push if there are new/updated preset files. Vercel
 # auto-deploys from the new GitHub repo on push, so we don't call
-# `npx vercel deploy` here — the GH Action does the equivalent on the
-# server. This script is just a local fallback.
+# `npx vercel deploy` here.
 if git status --porcelain -- presets/ | grep -q .; then
   log "committing new presets"
   git add -- presets/ preset-pipeline/out/ 2>/dev/null || true
