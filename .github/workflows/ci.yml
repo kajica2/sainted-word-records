@@ -81,6 +81,19 @@ jobs:
         run: npm run check:full
         continue-on-error: true
 
+      - name: verify:automix-arc (the arc drives FX.state)
+        # Deliberately its OWN step, not a member of the check:full chain.
+        # check:full is an `&&` chain and the step above is
+        # continue-on-error: true, so the first failure inside it silently
+        # truncates everything after: check:verify aborting on
+        # rotation-enabled meant check:automix-smoke, check:automix-arc-smoke,
+        # check:storyboard, verify:automix, check:capture-smoke,
+        # check:media-input-smoke and check:spit-live-smoke never ran at all.
+        # This gate is deterministic (~9s, seek-based rather than realtime) and
+        # covers the automix wiring bugs that shipped silently three times, so
+        # it is a real blocker here.
+        run: npm run check:automix-arc-smoke
+
       - name: verify:transitions
         # Net-new as of 2026-09-12 — the transitions module didn't have a
         # CI gate before, which is why two regressions shipped to main.

@@ -164,10 +164,33 @@
       const VP = window.VersionsPresets;
       return !!(VP && Array.isArray(VP.SHORTCUT_PRESETS));
     },
+    // The layer MODEL is not the same on both page families. The variants'
+    // inline Layers creates layers carrying `alpha` and `mutate`
+    // (versions/*.html: `alpha: 1, mutate: 0`); lib/layers.client.js
+    // (engine.html) creates {blend, opacity, baseScale, hue, brightness,
+    // contrast, …} with no alpha and no mutate. nudgeLayer() bails when the
+    // field is not a number, so those keys were inert on engine while the
+    // help table still advertised them.
+    //
+    // Probe a live layer when one exists; otherwise fall back to the model
+    // marker — `sel` is the variant model's selection property and
+    // `selected` is engine's (see selectedOf below).
+    layerAlpha: function () { return layerHasField('alpha'); },
+    layerMutate: function () { return layerHasField('mutate'); },
   };
+
+  function layerHasField(field) {
+    const L = window.Layers || (window.SWR && window.SWR.Layers);
+    if (!L) return false;
+    if (Array.isArray(L.list) && L.list.length && L.list[0]) {
+      return typeof L.list[0][field] === 'number';
+    }
+    return ('sel' in L) && !('selected' in L);
+  }
   const host = {
     genops: false, automap: false, settings: false, engineRotate: false,
     engineAffordance: false, story: false, layerRemap: false, presets: false,
+    layerAlpha: false, layerMutate: false,
   };
   function getHost() {
     for (const k in hostFlags) {
@@ -590,14 +613,15 @@
   // KeyboardEvent plumbing.
   function nudgeLayer(field, delta, lo, hi) {
     const L = layers();
-    if (!L || !L.sel) return;
+    const sel = selectedOf(L);
+    if (!sel) return;
     const ev = window.__swrLastKeydown;
     const shift = ev && ev.shiftKey;
     const step = delta * (shift ? 4 : 1);
-    const before = L.sel[field];
+    const before = sel[field];
     if (typeof before !== 'number') return;
     const after = Math.max(lo, Math.min(hi, before + step));
-    L.sel[field] = after;
+    sel[field] = after;
     if (typeof L.render === 'function') L.render();
     if (window.setStatus) {
       window.setStatus(field + ': ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
@@ -605,60 +629,64 @@
   }
 
   function action_nudgeOpacityUp() {
-    // Bound to Shift+/ — Photoshop-style opacity nudge up
+    // Bound to '=' — Photoshop-style opacity nudge up
     const L = layers();
-    if (!L || !L.sel) return;
-    const before = L.sel.opacity;
+    const sel = selectedOf(L);
+    if (!sel) return;
+    const before = sel.opacity;
     const after = Math.max(0, Math.min(1, before + 0.05));
-    L.sel.opacity = after;
+    sel.opacity = after;
     if (typeof L.render === 'function') L.render();
     if (window.setStatus) window.setStatus('opacity: ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
   }
   function action_nudgeOpacityDown() {
     const L = layers();
-    if (!L || !L.sel) return;
-    const before = L.sel.opacity;
+    const sel = selectedOf(L);
+    if (!sel) return;
+    const before = sel.opacity;
     const after = Math.max(0, Math.min(1, before - 0.05));
-    L.sel.opacity = after;
+    sel.opacity = after;
     if (typeof L.render === 'function') L.render();
     if (window.setStatus) window.setStatus('opacity: ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
   }
 
   function cycleBlend() {
     const L = layers();
-    if (!L || !L.sel) return;
+    const sel = selectedOf(L);
+    if (!sel) return;
     const BLENDS = ['source-over','screen','lighter','multiply','overlay','difference','soft-light','lighten','darken'];
-    const cur = L.sel.blend || 'source-over';
+    const cur = sel.blend || 'source-over';
     const i = BLENDS.indexOf(cur);
-    L.sel.blend = BLENDS[(i + 1) % BLENDS.length];
+    sel.blend = BLENDS[(i + 1) % BLENDS.length];
     if (typeof L.render === 'function') L.render();
-    if (window.setStatus) window.setStatus('blend: ' + L.sel.blend, 'ok');
+    if (window.setStatus) window.setStatus('blend: ' + sel.blend, 'ok');
   }
 
   function duplicateLayer() {
     const L = layers();
-    if (!L || !L.sel || !L.list) return;
-    const src = L.sel;
+    const src = selectedOf(L);
+    if (!src || !L.list) return;
     const copy = JSON.parse(JSON.stringify(src));
     copy.id = 'L' + (Date.now() % 100000);
     copy.asset = src.asset;
     const idx = L.list.indexOf(src);
     L.list.splice(idx + 1, 0, copy);
-    L.sel = copy;
+    selectLayer(L, copy);
     if (typeof L.render === 'function') L.render();
     if (window.setStatus) window.setStatus('layer duplicated', 'ok');
   }
 
   function deleteSelectedLayer() {
     const L = layers();
-    if (!L || !L.sel || !L.list || !L.list.length) return;
+    const sel = selectedOf(L);
+    if (!sel || !L.list || !L.list.length) return;
     if (L.list.length <= 1) {
       if (window.setStatus) window.setStatus('cannot delete last layer', 'err');
       return;
     }
-    const id = L.sel.id;
+    const id = sel.id;
     L.list = L.list.filter(function (l) { return l.id !== id; });
-    L.sel = L.list[0] || null;
+    selectLayer(L, L.list[0] || null);
     if (typeof L.render === 'function') L.render();
     if (window.setStatus) window.setStatus('layer removed', 'ok');
   }
@@ -668,13 +696,37 @@
   function layers() { return window.SWR && window.SWR.Layers; }
   function audio()  { return window.SWR && window.SWR.Audio; }
 
+  // Layer selection is NOT uniform across the two page families that share
+  // this keymap:
+  //   - lib/layers.client.js (engine.html): the property is `selected`, and
+  //     the object exposes select(layer), which also repaints the layer card
+  //     and enables/disables the ↻ ROT button.
+  //   - the variants' Layers: the property is `sel`, and there is no select().
+  //
+  // Reading and writing only `sel` made the entire per-layer half of this
+  // keymap inert on engine.html — 1..9 / ↑ / ↓ / 0 selection, every nudge, C,
+  // Y and Del all operated on a property the page never reads. Verified live:
+  // after pressing "2", `sel` held the layer while `selected` stayed null, so
+  // nothing was visually selected and R fell through to RE-MAP. Always go
+  // through the page's own selection.
+  function selectedOf(L) {
+    if (!L) return null;
+    return (('selected' in L) ? L.selected : L.sel) || null;
+  }
+  function selectLayer(L, layer) {
+    if (!L) return;
+    if (typeof L.select === 'function') { L.select(layer); return; }   // repaints too
+    L.sel = layer;
+    if (typeof L.render === 'function') L.render();
+  }
+
   function cycleLayer(dir) {
     const L = layers();
     if (!L || !L.list || !L.list.length) return;
-    let idx = L.list.indexOf(L.sel);
+    let idx = L.list.indexOf(selectedOf(L));
     if (idx < 0) idx = dir > 0 ? -1 : L.list.length;
     idx = (idx + dir + L.list.length) % L.list.length;
-    L.sel = L.list[idx];
+    selectLayer(L, L.list[idx]);
     if (typeof L.render === 'function') L.render();
     if (typeof window.setStatus === 'function') {
       window.setStatus('layer: ' + (L.list[idx].id || ('#' + idx)) + ' (' + (idx + 1) + '/' + L.list.length + ')', 'ok');
@@ -684,8 +736,8 @@
   function bumpFade(delta, field) {
     const L = layers();
     const T = window.SWR_TIMING;
-    if (!L || !L.sel || !T) return;
-    const layer = L.sel;
+    const layer = selectedOf(L);
+    if (!layer || !T) return;
     const before = layer[field] || 0;
     const after  = Math.max(0, before + delta);
     if (typeof T.setFade === 'function') T.setFade(layer, field === 'fadeInMs' ? after : undefined, field === 'fadeOutMs' ? after : undefined);
@@ -862,7 +914,7 @@
         if (L && L.list && L.list.length) {
           const idx = parseInt(key, 10) - 1;
           if (idx < L.list.length) {
-            L.sel = L.list[idx];
+            selectLayer(L, L.list[idx]);
             if (typeof L.render === 'function') L.render();
             if (typeof window.setStatus === 'function') {
               window.setStatus('layer: ' + (L.list[idx].id || ('#' + idx)), 'ok');
@@ -932,7 +984,7 @@
       // switch above, where it is reachable.
       if (!action && key === '0' && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
         const L = layers();
-        if (L) L.sel = null;
+        if (L) selectLayer(L, null);
         if (typeof window.setStatus === 'function') window.setStatus('layer: —', 'ok');
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
           detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'deselect' }
@@ -1015,7 +1067,7 @@
       { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)', requires: 'presets' },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
-      { keys: '[ / ]',          label: '− / + alpha' },
+      { keys: '[ / ]',          label: '− / + alpha',                    requires: 'layerAlpha' },
       { keys: ', / .',          label: '− / + hue (±6°)' },
       { keys: "; / '",          label: '− / + scale' },
       { keys: '/',              label: '− opacity' },
@@ -1024,8 +1076,8 @@
       { keys: 'Shift+.',        label: '+ contrast' },
       { keys: 'Shift+;',        label: '− brightness' },
       { keys: "Shift+'",        label: '+ brightness' },
-      { keys: 'Shift+[',        label: '− mutate jitter' },
-      { keys: 'Shift+]',        label: '+ mutate jitter' },
+      { keys: 'Shift+[',        label: '− mutate jitter',               requires: 'layerMutate' },
+      { keys: 'Shift+]',        label: '+ mutate jitter',               requires: 'layerMutate' },
 
       // ---- Per-layer ops ----
       { keys: 'C',              label: 'cycle blend mode',             action: ACTIONS.cycleBlend },

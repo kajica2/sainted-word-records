@@ -52,10 +52,14 @@ function localServe() {
   });
 }
 
-// The 14 scaled pipeline fields (fixed list — fx-postprocess.js state).
+// The 13 scaled pipeline fields that actually exist in fx-postprocess.js
+// FX.state. ('effect' was listed here historically but no such field has ever
+// existed — grep fx-postprocess.js for "effect" and you get nothing, so it
+// contributed a permanent 0 and could never win. Dropped so this list matches
+// the state it claims to read.)
 const FIELDS = [
   'temp', 'mut', 'posterize', 'vignette', 'chroma', 'grain', 'sepia',
-  'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch', 'effect',
+  'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch',
 ];
 const DISPLACEMENT_MIN = 0.3;          // absolute, per act, at least one field
 const TRANSPORT_WAIT_MS = 60000;       // engine boot under static serve is slow (~25s)
