@@ -66,20 +66,24 @@ jobs:
         run: npm ci
 
       - name: check + check:verify (the 5 curated Puppeteer smokes)
-        # check:full = check + check:verify (the 5 curated smokes)
-        # see docs/CI-VERIFY-STRATEGY.md for the verifier list + rationale
+        # check:full runs every gate through scripts/run-steps.mjs and reports
+        # each one — it is deliberately NOT an `&&` chain, because a chain
+        # short-circuits and silently hid every gate after the first failure
+        # (7 gates were dead before 2026-09-27).
+        # See docs/CI-VERIFY-STRATEGY.md for the verifier list + rationale.
         #
-        # 2026-09-23: continue-on-error: true. Several smokes (notably
-        # check:variant-switcher-smoke + check:default-library-smoke) have
-        # known headless/timeout flakes that fail intermittently on the CI
-        # runner. The local verifiers all pass; the CI failures are
-        # infrastructure (timeout-minutes: 20, slower sandbox I/O). The
-        # remaining steps (verify:transitions + verify:automix-cross-surface
-        # + vite build + build-size budget) are the production gate; they
-        # run after this and their failure IS treated as a real blocker.
-        # Remove this once the flaky smokes are hardened.
+        # 2026-09-27: continue-on-error removed. It was added 2026-09-23 to
+        # tolerate headless flakes, and the two that produced it are now
+        # resolved rather than suppressed:
+        #   - verify-rotation-enabled was failing on a real bug — autoMap()
+        #     built layers without rotationEnabled/rotOffset — now fixed;
+        #   - the cover pixel assertion moved to verify-layer-cover.mjs,
+        #     because it asserts on live canvas pixels and r.x drift makes the
+        #     corner pattern audio-feature dependent.
+        # check:full is fully green, so a failure here is real signal and
+        # should read as one. This does not block deploys either way — Vercel
+        # deploys on push to main independently of this job.
         run: npm run check:full
-        continue-on-error: true
 
       - name: verify:automix-arc (the arc drives FX.state)
         # Deliberately its OWN step, not a member of the check:full chain.
