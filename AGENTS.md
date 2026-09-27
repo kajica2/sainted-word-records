@@ -79,7 +79,7 @@ To archive a page:
 ## Testing instructions
 
 - Quick gate: `npm run check` → runs `check:syntax` + `check:manifest` + `check:bundle` + `scripts/test-api.mjs`
-- Full pre-PR gate: `npm run check:full` → all of the above + `check:verify` (verify smoke)
+- Full pre-PR gate: `npm run check:full` → `scripts/run-check-full.mjs`, which runs each gate in turn and fails if ANY failed. It deliberately does **not** use an `&&` chain: a chain short-circuits, so a single failure silently skipped every later gate (CI run 36323771785: `check:verify` failing meant `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke` never ran, while the job still reported success). `CHECK_FULL_STEPS=a,b` runs a subset.
 - `check:capture-unit` — node:vm unit coverage for the periodic frame capture runtime (URL parse, localStorage, clamp, state machine, blob trigger). Runs as part of `npm run check`.
 - `check:capture-smoke` — Puppeteer smoke against built `dist/engine`. Toolbar mount, toggle flow, interval two-way binding, URL opt-in. Runs as part of `npm run check:full`.
 - `check:media-input-unit` — node:vm unit coverage for the live-camera-mic foundation (MediaInput factory + codec + audio features, Camera Preview + Mic Meter mount/unmount contracts). Runs as part of `npm run check`.
