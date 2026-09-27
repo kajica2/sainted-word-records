@@ -118,6 +118,7 @@
     "check:clip-evolution-unit": "node scripts/check-clip-evolution-unit.mjs",
     "check:site-keys-unit": "node scripts/check-site-keys-unit.mjs",
     "verify:automix-arc-displacement": "node verify-automix-arc-displacement.mjs",
+    "verify:layer-cover": "node verify-layer-cover.mjs",
     "verify:tier-runtime": "node verify-tier-runtime.mjs"
   },
   "devDependencies": {
