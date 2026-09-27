@@ -5,7 +5,7 @@
 | Layer        | Runner              | Pattern                              | Where                          |
 | ------------ | ------------------- | ------------------------------------ | ------------------------------ |
 | Syntax gate  | `node`              | parses every `.js` + inline scripts  | `scripts/check-syntax.mjs`     |
-| Manifest gate| `node`              | validates `site-map.json` invariants | `scripts/generate-site-manifest.mjs` |
+| IA / deploy gate | `node`          | every rewrite, link and site-map entry resolves in `dist/` | `scripts/check-dist-links.mjs` |
 | Bundle gate  | `node`              | smoke-build with dummy env           | `scripts/check-bundle.mjs`     |
 | API unit     | `node`              | per-route assertions, no Puppeteer   | `scripts/check-auth-unit.mjs`, etc. |
 | API smoke    | `node`              | hits running dev API                 | `scripts/test-api.mjs`         |
@@ -15,13 +15,36 @@
 
 ## Pre-PR Gates
 
-- **Quick gate** — `npm run check`
-  Runs: `check:syntax` + `check:manifest` + `check:bundle` + `scripts/test-api.mjs`.
-  Expected time: ~30s. **Always run before committing.**
+Grouped lists live in `scripts/run-steps.mjs` and are executed by
+`npm run check` / `check:storyboard` / `check:full`. They are deliberately not
+`&&` chains: a chain short-circuits, so the first failure used to hide every
+later step (CI run 36323771785 truncated `check:full` at `check:verify` and
+silently skipped seven suites). Counts as of 2026-09-27; verify with
+`node scripts/run-steps.mjs <group> --list` rather than trusting this table.
 
-- **Full gate** — `npm run check:full`
-  All of the above + `check:verify` (verify smoke).
-  Expected time: ~2min. **Run before opening a PR.**
+- **Quick gate** — `npm run check` (**40 steps**)
+  Syntax + bundle check + the unit suites (automix, narrative, storyboard
+  render/keys, auth, bpm, storage/db, capture, media-input, spit-live, …) +
+  `scripts/test-api.mjs` + the browser smokes that need no interaction.
+  Expected time: ~50s. **Always run before committing.**
+
+- **Full gate** — `npm run check:full` (**12 steps**)
+  `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` +
+  `check:storyboard` + `verify:automix` + `verify:genops` +
+  `verify:story-graph` + `check:capture-smoke` + `check:media-input-smoke` +
+  `check:spit-live-smoke` + `check:dist-links`. **Run before opening a PR.**
+
+- **`check:verify`** — the curated 5-verifier smoke that actually gates PRs, fixed
+  in `scripts/check-verify-smoke.mjs`: `cloud-auth`, `hf-publish`,
+  `rotation-enabled`, `autoplay`, `e2e-media-record`. Bootstraps a Vite dev
+  server on `:5175` with a temp `SWRC_DATA_DIR`; see
+  `docs/CI-VERIFY-STRATEGY.md`. Every other `verify-*.mjs` is a developer aid
+  run on demand (about half the npm scripts are in no gate at all).
+
+- **`check:dist-links`** — deploy-surface integrity (`scripts/check-dist-links.mjs`):
+  every `vercel.json` rewrite, every root-relative link in a shipped page, and
+  every `site-map.json` entry must resolve to something in `dist/`. Run it after
+  editing `vite.config.js` copy lists or `site-map.json`.
 
 - **Per-sprint E2E** — every non-trivial change should run the relevant
   `verify-*` script. **Typecheck + build do NOT catch runtime bugs** (Canvas/WebGL/PWA,
