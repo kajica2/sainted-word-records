@@ -728,13 +728,10 @@
         // (tooltip) and in the debug panel instead.
         lab.textContent = state;
         lab.style.color = state === 'OFF' ? 'var(--m)' : 'var(--g)';
-        // An "ON" state with no song is inert: the runtime has no element to
-        // sample features from, so no tick is ever scheduled (the debug panel
-        // shows "song not loaded", "tickRate —" and "arc none"). Say so on
-        // hover rather than in the token.
-        lab.title = (state === 'ON' && !_hasSong())
-          ? 'Automix is on, but no song is loaded — nothing can run yet. Load a song.'
-          : '';
+        // An "ON" state that cannot run is inert: either no song is loaded, or
+        // the page has no audio element at all. Say which, on hover — the
+        // token itself must stay bare because the smokes assert it exactly.
+        lab.title = _inertTitle(state === 'ON' || state === 'FROZEN' || state === 'LOCKED');
       }
     },
 
@@ -744,13 +741,47 @@
   };
 
   // ---- UI wiring ----------------------------------------------------------
-  // Is there an audio element with a song actually loaded? The runtime can only
-  // sample features — and therefore tick at all — when there is. Mirrors the
-  // element resolution used in _renderDebug (engine exposes `audioEl`).
-  function _hasSong() {
+  // Resolve the audio element the way every consumer does, and report WHY it
+  // is unusable when it is. Two distinct causes produce "automix is on but
+  // nothing runs", and conflating them is what made this confusing:
+  //   - no element at all: the page plays through WebAudio with a
+  //     BufferSource and never creates an <audio> (versions/phosphor.html).
+  //     There is genuinely nothing to sample.
+  //   - element present but no src: no song loaded yet.
+  // Mirrors the element resolution used in _renderDebug (engine's transport
+  // exposes `audioEl`; some variants keep it in a closure).
+  function _audioEl() {
     var A = window.SWR && window.SWR.Audio;
-    var el = A && (A.el || A._el || A.audioEl);
+    return (A && (A.el || A._el || A.audioEl)) || null;
+  }
+  function _hasSong() {
+    var el = _audioEl();
     return !!(el && el.src);
+  }
+  // Human-readable reason automix cannot run yet, or '' when it can.
+  //
+  // "no element" alone is not a diagnosis: some pages create their <audio>
+  // lazily on load (baroque), so a missing element usually just means nothing
+  // has been loaded yet. The one case worth naming separately is a page that
+  // plays through WebAudio with no element at all (phosphor) — there,
+  // automix can never sample and saying "no song loaded" would be a lie.
+  function _inertReason() {
+    if (_hasSong()) return '';
+    if (_audioEl()) return 'no song loaded';
+    var A = window.SWR && window.SWR.Audio;
+    if (A && (A.playing || A.source || A.ctx)) {
+      return 'this page plays without an audio element';
+    }
+    return 'no song loaded';
+  }
+
+  // Tooltip for the state label. Kept separate so the debug panel's periodic
+  // render can refresh it — otherwise a title set while nothing was loaded
+  // would stay stale after a song arrives.
+  function _inertTitle(enabled) {
+    if (!enabled) return '';
+    var why = _inertReason();
+    return why ? 'Automix is on, but ' + why + ' \u2014 nothing can run yet.' : '';
   }
 
   function _setBtnActive(btn, on) {
@@ -761,6 +792,11 @@
   function _renderDebug() {
     var body = $('automix-debug-body');
     if (!body) return;
+    // Refresh the state tooltip here too: this render runs periodically, so a
+    // title set while nothing was loaded does not stay stale once a song
+    // arrives (the label itself only repaints on state changes).
+    var lab = $('automix-state');
+    if (lab) lab.title = _inertTitle(automix.enabled);
     var f = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
     var last = automix.lastPreset || {};
     var elapsedMin = automix._firstTickTs ? (Date.now() - automix._firstTickTs) / 60000 : 0;
@@ -769,12 +805,11 @@
       : '\u2014';
     var coords = automix._lastCoords || { warmth: 0.5, intensity: 0.5 };
     var lines = [
-      'automix    ' + (automix.enabled ? 'ON' : 'OFF') + (automix.frozen ? ' FROZEN' : '') + (automix.locked ? ' LOCKED' : '') + ((automix.enabled && !_hasSong()) ? '  \u2190 no song: nothing can run yet' : ''),
+      'automix    ' + (automix.enabled ? 'ON' : 'OFF') + (automix.frozen ? ' FROZEN' : '') + (automix.locked ? ' LOCKED' : '') + (automix.enabled && _inertReason() ? '  \u2190 ' + _inertReason() + ': nothing can run yet' : ''),
       'song       ' + (function () {
-        var A = window.SWR && window.SWR.Audio;
-        var el = A && (A.el || A._el || A.audioEl); // engine transport exposes audioEl
+        var el = _audioEl();
         if (!el || !el.src) return 'not loaded';
-        return (el.paused ? 'loaded (paused)' : 'playing') + ' · ' + Math.round(el.currentTime || 0) + 's';
+        return (el.paused ? 'loaded (paused)' : 'playing') + ' \u00b7 ' + Math.round(el.currentTime || 0) + 's';
       })(),
       'section    ' + automix.sectionState.current + ' (' + ((f.sectionConfidence || 0).toFixed(2)) + ')',
       'coords     w=' + coords.warmth.toFixed(2) + ' i=' + coords.intensity.toFixed(2),

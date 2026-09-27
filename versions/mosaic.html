@@ -305,6 +305,13 @@
       audio.volume = 0.6;
       // Expose for the Recorder block (lives outside this IIFE).
       window.__mosaicAudio = audio;
+      // Also publish it at the conventional SWR.Audio.el. This page keeps its
+      // <audio> in a closure and only exposed the bespoke `__mosaicAudio`, so
+      // every consumer that resolves the element the standard way
+      // (automix-runtime: `A.el || A._el || A.audioEl`; this page's own
+      // Recorder.start(): `if (!A.el)`) saw nothing and reported "load a song
+      // first" / "song not loaded" while a song was in fact playing.
+      if (window.SWR && window.SWR.Audio) window.SWR.Audio.el = audio;
       var recBtn = document.getElementById('rec');
       if (recBtn) recBtn.disabled = false;
       audio.play().then(function() {
