@@ -116,6 +116,24 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
       !/default-library/.test(e));
     if (realErrs.length === 0) pass('no default-library JS errors');
     else fail(`${realErrs.length} errors`, realErrs.slice(0, 3).join(' | '));
+
+    // 5. The seeded assets must reach the STAGE, not just the Library. The
+    // engine has no auto-staging of its own, so before this was wired the
+    // canvas rendered a blank gradient while a song played and every asset
+    // sat unused in the sidebar. Assert Layers is populated so a regression
+    // to "seeds but never stages" fails here instead of shipping.
+    let staged = 0;
+    const stageT0 = Date.now();
+    while (Date.now() - stageT0 < 20000) {
+      staged = await page.evaluate(() => {
+        const L = window.Layers || (window.SWR && window.SWR.Layers);
+        return (L && (L.list || L.items) || []).length;
+      }).catch(() => 0);
+      if (staged > 0) break;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    if (staged > 0) pass(`default assets staged as ${staged} layers`);
+    else fail('library seeded but stage stayed empty (no layers)', `layers=${staged}`);
   } finally {
     await browser.close();
     if (server) try { server.kill('SIGTERM'); } catch (_) {}

@@ -254,6 +254,22 @@
 
   function renderDemo(p) {
     const demoRoot = $('r-demo');
+    const styleFile = (p && p.demo && p.demo.style) || '';
+    // The secondary CTA opened the generic engine, which discarded the one
+    // thing the random card had just picked — the style. Point it at that
+    // style's own standalone page instead, so "Open in Grid →" opens Grid.
+    // Falls back to /engine only when the manifest has no style for the pick.
+    const openEl = $('r-open');
+    if (openEl) {
+      if (styleFile) {
+        const id = styleFile.replace(/\.html$/, '');
+        openEl.href = '/versions/' + id;
+        openEl.textContent = 'Open in ' + (p.demo.style_name || id) + ' →';
+      } else {
+        openEl.href = '/engine';
+        openEl.textContent = 'Open in engine →';
+      }
+    }
     if (!demoRoot) return;
     if (!p.demo) {
       demoRoot.innerHTML = '';
