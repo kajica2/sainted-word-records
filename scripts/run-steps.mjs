@@ -55,6 +55,22 @@ const GROUPS = {
     'npm run check:preset-pick-unit',
     'npm run check:layer-state-unit',
     'npm run check:with-dist-unit',
+    // These were reachable from NO gate: six `check:*` unit suites plus
+    // check:unit's four members (check:unit itself is a `&&` chain, so its
+    // members are listed individually here — same short-circuit reasoning as
+    // the rest of this runner). All eleven were verified passing in ~8.7s
+    // combined before being added, i.e. this is coverage that already existed
+    // and simply never ran.
+    'npm run check:narrative-unit',
+    'npm run check:score-evolution-smoke',
+    'npm run check:mv-unit',
+    'npm run check:mv-ta-unit',
+    'npm run check:mv-render-unit',
+    'npm run check:mv-keys-unit',
+    'npm run test:generated-audio',
+    'npm run test:mascot-states',
+    'npm run test:asset-curator-unit',
+    'npm run test:asset-curator',
     'npm run check:auth-unit',
     'npm run check:bpm-unit',
     'npm run check:storage-blob-unit',
