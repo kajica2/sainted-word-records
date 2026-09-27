@@ -722,15 +722,19 @@
     _updateUI(state) {
       var lab = $('automix-state');
       if (lab) {
+        // `#automix-state` is a state TOKEN with a test contract — the smokes
+        // assert textContent === 'ON' / 'FROZEN' exactly, so it must stay the
+        // bare state. The "nothing can happen yet" caveat goes on the title
+        // (tooltip) and in the debug panel instead.
+        lab.textContent = state;
+        lab.style.color = state === 'OFF' ? 'var(--m)' : 'var(--g)';
         // An "ON" state with no song is inert: the runtime has no element to
         // sample features from, so no tick is ever scheduled (the debug panel
-        // shows "song not loaded", "tickRate —" and "arc none"). A bare "ON"
-        // there promises work that is not happening, which reads as "automix
-        // is on but nothing moves" instead of "load a song first".
-        var label = state;
-        if (state === 'ON' && !_hasSong()) label = 'ON \u00b7 no song';
-        lab.textContent = label;
-        lab.style.color = state === 'OFF' ? 'var(--m)' : 'var(--g)';
+        // shows "song not loaded", "tickRate —" and "arc none"). Say so on
+        // hover rather than in the token.
+        lab.title = (state === 'ON' && !_hasSong())
+          ? 'Automix is on, but no song is loaded — nothing can run yet. Load a song.'
+          : '';
       }
     },
 
@@ -765,7 +769,7 @@
       : '\u2014';
     var coords = automix._lastCoords || { warmth: 0.5, intensity: 0.5 };
     var lines = [
-      'automix    ' + (automix.enabled ? 'ON' : 'OFF') + (automix.frozen ? ' FROZEN' : '') + (automix.locked ? ' LOCKED' : ''),
+      'automix    ' + (automix.enabled ? 'ON' : 'OFF') + (automix.frozen ? ' FROZEN' : '') + (automix.locked ? ' LOCKED' : '') + ((automix.enabled && !_hasSong()) ? '  \u2190 no song: nothing can run yet' : ''),
       'song       ' + (function () {
         var A = window.SWR && window.SWR.Audio;
         var el = A && (A.el || A._el || A.audioEl); // engine transport exposes audioEl
