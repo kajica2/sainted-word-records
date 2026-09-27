@@ -10,8 +10,7 @@
 //
 // Behaviour:
 //   ensureDist(): cheap source-vs-dist freshness check, then
-//     `npm run build` (which fires prebuild → scripts/fetch-library.mjs →
-//     vite build) when dist is MISSING **or STALE**. Skips the build when
+//     `npm run build` (`vite build`) when dist is MISSING **or STALE**. Skips the build when
 //     dist is already current (~1ms of fs.stats).
 //
 // Why staleness matters: the original check only looked for dist's
@@ -27,7 +26,7 @@
 //   ...start your static server on dist/...
 //
 // Why not just run `vite build` directly: this preserves the
-// prebuild hook (library fetch on Vercel) and the exact same build
+// exact same build
 // pipeline the production deploy uses. No drift.
 //
 // Performance: skip path is ~1ms (one directory walk of the source set).
