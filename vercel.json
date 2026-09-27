@@ -400,6 +400,14 @@
       "destination": "/versions/console.html"
     },
     {
+      "source": "/versions",
+      "destination": "/versions.html"
+    },
+    {
+      "source": "/versions/",
+      "destination": "/versions.html"
+    },
+    {
       "source": "/",
       "destination": "/landing.html"
     },
@@ -420,12 +428,12 @@
       "destination": "/engine.html"
     },
     {
-      "source": "/versions",
-      "destination": "/versions/index.html"
+      "source": "/versions.html",
+      "destination": "/versions.html"
     },
     {
-      "source": "/versions/",
-      "destination": "/versions/index.html"
+      "source": "/versions.html/",
+      "destination": "/versions.html"
     },
     {
       "source": "/make-video",
