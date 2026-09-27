@@ -105,6 +105,7 @@ const GROUPS = {
     'npm run check:storyboard',
     'npm run verify:automix',
     'npm run verify:genops',
+    'npm run verify:story-graph',
     'npm run check:capture-smoke',
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
