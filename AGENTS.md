@@ -62,7 +62,7 @@ To archive a page:
 - `marketplace/curated/`, `portfolio/`, `press/`, `promo/`, `keyart/`, `icons/`, `legal/` — content
 - `scripts/` — build / test / dev scripts (`check-syntax.mjs`, `build-magenta-dsp-bundle.sh`, `dev-api.mjs`, `test-api.mjs`)
 - `tools/` — dev tools (`deploy-vercel.sh`, `hf-publish.html`, `dev-up.sh`/`dev-ps.sh`/`dev-down.sh`, `freq-bridge.js`, `agentic-set.mjs`)
-- `verify-*.mjs` — Puppeteer E2E suites at repo root (~110 files; the 8 automix verifies are one per surface plus a cross-surface run; the curated 5-smoke + transitions verifier are the CI gate; see `.kai/conventions/testing.md` for the full layering)
+- `verify-*.mjs` — Puppeteer E2E suites at repo root (124 files; 11 are automix-related — one per surface plus `verify-automix-cross-surface.mjs` and `verify-automix-arc-displacement.mjs`; the curated 5-smoke + transitions verifier are the CI gate; see `.kai/conventions/testing.md` for the full layering). Reachability is not obvious from the filename: 60 of the 112 npm scripts are invoked by no gate, and several `check:*` scripts were in none — audit with `node scripts/run-steps.mjs <group> --list` rather than assuming the `check:` prefix means membership.
 - `verify-screenshots/`, `out/`, `docs/` — research + audit artifacts
 - `vite.config.js` — custom `copy-static` + `swrc-api-middleware` + `strip-absolute-module-scripts` + `inline-automix-config` plugins
 - `vercel.json` — Vercel rewrites (`/` → `landing.html`, `/engine` → `engine.html`, etc.) + buildCommand
@@ -110,4 +110,4 @@ To archive a page:
   - `swrc_session` cookie: HttpOnly, SameSite=Lax, Secure in production; 30-day rolling TTL
   - Rate limits on `/api/auth/magic` (10/min/IP), `/api/storage/sign-upload` (60/min/user), `sign-download` (120/min/user), `/api/projects` writes (30/min/user) — return 429 with `Retry-After`
   - `TRUSTED_PROXIES` must be set if deploying outside Vercel, otherwise `x-forwarded-for` is spoofable and bypasses the per-IP rate limit
-- Vercel deploys are auto on push to `main`. Build size is ~114MB (was ~66MB after the 2026-09-13 curated demo library removal; grew to ~96MB file-content / ~114MB block-padded after the 2026-09-20 audit/keyart refresh; CI asserts ≤ 130MB budget).
+- Vercel deploys are auto on push to `main`. Build size: **measure it the way CI does** (`find dist -type f -printf '%s\n' | awk '{s+=$1} END {print s}'`) on a *clean* build — CI reports ~66MB byte-sum against a ≤130MB budget. A local `dist/` can be far larger (99.5MB byte-sum / 119MB block-padded measured 2026-09-27) because `keyart/` is gitignored (.gitignore:35) and so is present locally but absent from the CI/Vercel checkout. Do not quote a local `du` as the deployed size.
