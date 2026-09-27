@@ -213,8 +213,13 @@ function assert(cond, msg, detail) {
       () => window.SWR_NARRATIVE && window.SWR_NARRATIVE.state.age > 0.5,
       { timeout: 10000, polling: 100 }
     ).catch(() => null);
-    // Force the page's narrative into the middle of a song, then release.
-    await page.evaluate(() => {
+    // Set and read in ONE evaluate. Splitting these across two round-trips let
+    // a background narrative tick recompute releaseProgress from elapsed time
+    // in between, so the page returned the un-tapered middle value (0.996) and
+    // this failed as "release tapers driftAmp at 50%". The check is a
+    // pure-function assertion on the state it just set, so it must observe that
+    // state atomically. The assertion itself is unchanged.
+    const releaseMid = await page.evaluate(() => {
       const N = window.SWR_NARRATIVE;
       N.init(120, 100);
       N.state.age = 50;
@@ -222,9 +227,6 @@ function assert(cond, msg, detail) {
       N.state.drift.x = 0.3; N.state.drift.y = -0.2;
       N.beginRelease();
       N.state.releaseProgress = 0.5;
-    });
-    const releaseMid = await page.evaluate(() => {
-      const N = window.SWR_NARRATIVE;
       return {
         phase: N.phaseMultiplier(100),
         driftMag: Math.sqrt(N.state.drift.x ** 2 + N.state.drift.y ** 2),
