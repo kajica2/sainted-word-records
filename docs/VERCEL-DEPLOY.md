@@ -1,7 +1,9 @@
 # Deploying to Vercel
 
 The repo is already wired for Vercel: `vite.config.js` builds into `dist/`,
-`package.json` has a `build:vercel` script, `.vercel/project.json` links to
+`package.json`'s `build` script is `vite build` (there is no `build:vercel` —
+the library-fetch prebuild it once wrapped went away with `library/`),
+`.vercel/project.json` links to
 the existing `sainted-word-records` project (`team_KY5T7HVOj3wnX1ylM2x0g8o0`).
 
 This document is the deploy recipe. It assumes the local `vercel` CLI

@@ -66,20 +66,24 @@ jobs:
         run: npm ci
 
       - name: check + check:verify (the 5 curated Puppeteer smokes)
-        # check:full = check + check:verify (the 5 curated smokes)
-        # see docs/CI-VERIFY-STRATEGY.md for the verifier list + rationale
+        # check:full runs every gate through scripts/run-steps.mjs and reports
+        # each one — it is deliberately NOT an `&&` chain, because a chain
+        # short-circuits and silently hid every gate after the first failure
+        # (7 gates were dead before 2026-09-27).
+        # See docs/CI-VERIFY-STRATEGY.md for the verifier list + rationale.
         #
-        # 2026-09-23: continue-on-error: true. Several smokes (notably
-        # check:variant-switcher-smoke + check:default-library-smoke) have
-        # known headless/timeout flakes that fail intermittently on the CI
-        # runner. The local verifiers all pass; the CI failures are
-        # infrastructure (timeout-minutes: 20, slower sandbox I/O). The
-        # remaining steps (verify:transitions + verify:automix-cross-surface
-        # + vite build + build-size budget) are the production gate; they
-        # run after this and their failure IS treated as a real blocker.
-        # Remove this once the flaky smokes are hardened.
+        # 2026-09-27: continue-on-error removed. It was added 2026-09-23 to
+        # tolerate headless flakes, and the two that produced it are now
+        # resolved rather than suppressed:
+        #   - verify-rotation-enabled was failing on a real bug — autoMap()
+        #     built layers without rotationEnabled/rotOffset — now fixed;
+        #   - the cover pixel assertion moved to verify-layer-cover.mjs,
+        #     because it asserts on live canvas pixels and r.x drift makes the
+        #     corner pattern audio-feature dependent.
+        # check:full is fully green, so a failure here is real signal and
+        # should read as one. This does not block deploys either way — Vercel
+        # deploys on push to main independently of this job.
         run: npm run check:full
-        continue-on-error: true
 
       - name: verify:automix-arc (the arc drives FX.state)
         # Deliberately its OWN step, not a member of the check:full chain.
@@ -111,14 +115,18 @@ jobs:
         # hallucination/dashboard) are covered by this cross-surface
         # run, so we don't need to invoke them individually.
         #
-        # 2026-09-23: continue-on-error: true. The 17 cross-variant port
-        # pages (versions/aurora, baroque, chrome, ...) have never been
-        # fully wired to the automix stack — they show as pre-existing
-        # failures (baseline 50/118 pass). Task 4 cross-variant work is
-        # tracked separately; this CI gate shouldn't block deploys until
-        # that work ships.
+        # 2026-09-27: continue-on-error removed, and the rationale that put it
+        # there corrected rather than repeated. It claimed "the 17
+        # cross-variant port pages have never been fully wired to the automix
+        # stack — pre-existing failures, baseline 50/118 pass". Both halves are
+        # now wrong: the cross-variant wiring shipped, and the verifier passes
+        # locally with 0 failures. The CI failure that made the suppression
+        # look justified was a navigation timeout, not that baseline —
+        # checkSurface() waited on `networkidle2`, which does not reliably
+        # settle on GitHub runners (the same trap the sibling smokes already
+        # documented). It now navigates on domcontentloaded with a bounded wait
+        # for `complete`, and takes ~38s for the full sweep.
         run: npm run verify:automix-cross-surface
-        continue-on-error: true
 
       - name: vite build
         # Needed so we can measure dist/ size. Adds ~30s to CI but

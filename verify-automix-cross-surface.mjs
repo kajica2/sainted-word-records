@@ -146,7 +146,15 @@ async function checkSurface(page, label, path, expectsStack) {
   page.on('console', onConsole);
   page.on('pageerror', onError);
 
-  await page.goto(`http://localhost:${PORT}/${path}`, { waitUntil: 'networkidle2', timeout: 30000 });
+  // CI runner note: networkidle2 (like networkidle0) does not reliably settle
+  // on GitHub runners — some surface keeps a connection open (dev-control WS,
+  // keepalive), so the navigation burns the whole 30s and times out. That is
+  // what produced "TimeoutError: Navigation timeout of 30000 ms exceeded" at
+  // this line in run 36324431414. Same lesson the sibling smokes already
+  // recorded (scripts/check-automix-smoke.mjs:53): navigate on
+  // domcontentloaded, then give the page a bounded chance to reach `complete`.
+  await page.goto(`http://localhost:${PORT}/${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 1500));
 
   // Filter out pre-existing harmless errors that aren't from our changes

@@ -3059,6 +3059,26 @@
         state.evoSeed = r.evoSeed || 0xA17;
       }
 
+      // ---- bar clock with a nominal fallback --------------------------------
+      //
+      // The real bar clock only advances once BPM is locked (_tickBar returns
+      // early otherwise). When it is not locked, fall back to wall-clock
+      // nominal 4/4 bars so evolution and advance still run — without this, a
+      // quiet or free-tempo song sat motionless for its whole duration.
+      //
+      // NOTE: this was added in 6de8e25/ae88241, then silently dropped by merge
+      // 349d82c ("Merge feat/asset-curator into staging"), which resolved
+      // engine.html in favour of the parent that still had the `if (!bar) return
+      // false` bail. Restored here; verify-story-graph.mjs is the guard for it
+      // and had been failing since that merge.
+      const NOMINAL_BAR_MS = 2000;
+      function barsInChapter() {
+        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        if (bar) return bar;
+        if (!state.lastEnterAt) state.lastEnterAt = Date.now();
+        return Math.floor((Date.now() - state.lastEnterAt) / NOMINAL_BAR_MS);
+      }
+
       // ---- small RNG (mulberry32) for deterministic mutation ----
       function hashSeed(s) {
         let h = 2166136261;
@@ -3090,7 +3110,7 @@
         const preserveMappings = preserve.has('mappings');
         const preserveBlend = preserve.has('blend');
         // Build per-bar seed
-        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        const bar = barsInChapter();
         const baseSeed = (typeof opts.seed === 'number') ? opts.seed : state.evoSeed;
         const seed = hashSeed(String(baseSeed) + ':' + String(bar) + ':' + String(opts.tag || ''));
         const rng = mulberry32(seed);
@@ -3259,9 +3279,7 @@
       function evolve() {
         const node = STORY[state.current];
         if (!node || !node.evolve || !node.evolve.enabled) return false;
-        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
-        // Don't evolve if we don't have a beat clock yet (BPM unknown).
-        if (!bar) return false;
+        const bar = barsInChapter();
         const every = node.evolve.everyBars || 4;
         if (bar - state._lastEvoBar < every) return false;
         state._lastEvoBar = bar;
@@ -3285,7 +3303,8 @@
         const t = node.transition.when;
         if (!t) return false;
         const a = audio || (typeof window !== 'undefined' && window.Audio && window.Audio.feat) || {};
-        const tp = transport || { bar: Audio && Audio.bar, barsInNode: state._barsInNode };
+        const bars = barsInChapter();
+        const tp = transport || { bar: bars, barsInNode: state._barsInNode };
         let fired = false;
         if (t.type === 'energyAbove') {
           fired = (a.rms || 0) > t.value && (tp.barsInNode || 0) >= (t.holdBars || 0);
@@ -3304,9 +3323,9 @@
 
       // ---- tick() — called once per audio frame to advance internal counters ----
       function tick(audio, transport) {
-        // Mirror Audio.bar into our local counter so shouldAdvance() can
+        // Mirror the bar clock into our local counter so shouldAdvance() can
         // use barsInNode without the runtime needing to read Audio every time.
-        const bar = (Audio && typeof Audio.bar === 'number') ? Audio.bar : 0;
+        const bar = barsInChapter();
         if (bar > state._barsInNode) state._barsInNode = bar;
         // Run evolution if it's time
         evolve();

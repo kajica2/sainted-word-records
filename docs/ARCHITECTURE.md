@@ -584,8 +584,9 @@ exist on purpose — the project intentionally has no root index
 (see `PR-site-structure.md`).
 
 `npm run dev` → Vite dev server on `:5174`. `npm run preview` → static
-served from `dist/` on `:4173`. `npm run build:vercel` → same as
-`build` but with the library-fetch prebuild forced on.
+served from `dist/` on `:4173`. `npm run build` → `vite build`. (An older `build:vercel` variant that forced
+a library-fetch prebuild no longer exists — both it and `scripts/fetch-library.mjs`
+went away with the curated `library/` removal.)
 
 ---
 

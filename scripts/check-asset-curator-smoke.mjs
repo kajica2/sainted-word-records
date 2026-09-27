@@ -145,7 +145,15 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
       window.__SWR_HF_DISABLED = true;
     });
 
-    await page.goto(`${BASE}/${TARGET}`, { waitUntil: 'networkidle0', timeout: 15000 });
+    // CI runner note: networkidle0 never settles within the timeout on GitHub
+    // runners (the same condition that killed the photo-slideshow and
+    // e2e-media-record smokes, and recorded in scripts/check-automix-smoke.mjs).
+    // This smoke was gated nowhere until it joined the check group, so the trap
+    // went unnoticed until CI ran it: "TimeoutError: Navigation timeout of
+    // 15000 ms exceeded". Navigate on domcontentloaded, then give the page a
+    // bounded chance to reach the load event before checking.
+    await page.goto(`${BASE}/${TARGET}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
 
     // Curator module must have installed itself.
     const curatorReady = await page.evaluate(() => ({

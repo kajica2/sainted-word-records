@@ -4,7 +4,7 @@
 # Why this is a script and not auto-fired:
 #   - Vercel deployment requires auth (interactive login or VERCEL_TOKEN).
 #   - This repo's build is already verified (`npm run check` ALL GREEN;
-#     `npm run build:vercel` produces ~89 MB in dist/).
+#     `npm run build` produces dist/).
 #   - The recipe here: build, then `vercel deploy --yes` against the
 #     already-linked project at .vercel/project.json
 #     (team_KY5T7HVOj3wnX1ylM2x0g8o0, project sainted-word-records).
@@ -104,8 +104,13 @@ else
 fi
 
 # ---- 2. Build ---------------------------------------------------------
-echo "[2/3] npm run build:vercel …"
-npm run build:vercel
+# Was `npm run build:vercel`, which no longer exists: the curated-library
+# removal (.hermes/plans/remove-demo-library.md) deleted `prebuild`,
+# `build:vercel` and `scripts/fetch-library.mjs`, but this caller was never
+# migrated — so the deploy tool died here at step 2/3. `build` is `vite build`,
+# which is what `build:vercel` had degenerated to anyway.
+echo "[2/3] npm run build …"
+npm run build
 
 # Resolve scope once (the global Vercel CLI's currentTeam may point at a
 # team the project doesn't live under — known issue when the local CLI
