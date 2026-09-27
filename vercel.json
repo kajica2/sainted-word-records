@@ -829,11 +829,11 @@
     },
     {
       "source": "/s/:id",
-      "destination": "/s/:id.html"
+      "destination": "/share-view.html"
     },
     {
       "source": "/s/:id/",
-      "destination": "/s/:id.html"
+      "destination": "/share-view.html"
     },
     {
       "source": "/swr-app",
@@ -894,6 +894,78 @@
     {
       "source": "/video_single.html",
       "destination": "/video_single.html"
+    },
+    {
+      "source": "/atlas/200-steps",
+      "destination": "/atlas-200-steps.html"
+    },
+    {
+      "source": "/atlas/200-steps/",
+      "destination": "/atlas-200-steps.html"
+    },
+    {
+      "source": "/atlas/architect",
+      "destination": "/atlas-architect.html"
+    },
+    {
+      "source": "/atlas/architect/",
+      "destination": "/atlas-architect.html"
+    },
+    {
+      "source": "/atlas/checklist",
+      "destination": "/atlas-checklist.html"
+    },
+    {
+      "source": "/atlas/checklist/",
+      "destination": "/atlas-checklist.html"
+    },
+    {
+      "source": "/atlas/crisis",
+      "destination": "/atlas-crisis.html"
+    },
+    {
+      "source": "/atlas/crisis/",
+      "destination": "/atlas-crisis.html"
+    },
+    {
+      "source": "/atlas/final-insight",
+      "destination": "/atlas-final-insight.html"
+    },
+    {
+      "source": "/atlas/final-insight/",
+      "destination": "/atlas-final-insight.html"
+    },
+    {
+      "source": "/atlas/forge",
+      "destination": "/atlas-forge.html"
+    },
+    {
+      "source": "/atlas/forge/",
+      "destination": "/atlas-forge.html"
+    },
+    {
+      "source": "/atlas/integration",
+      "destination": "/atlas-integration.html"
+    },
+    {
+      "source": "/atlas/integration/",
+      "destination": "/atlas-integration.html"
+    },
+    {
+      "source": "/atlas/legacy",
+      "destination": "/atlas-legacy.html"
+    },
+    {
+      "source": "/atlas/legacy/",
+      "destination": "/atlas-legacy.html"
+    },
+    {
+      "source": "/atlas/life-stages",
+      "destination": "/atlas-life-stages.html"
+    },
+    {
+      "source": "/atlas/life-stages/",
+      "destination": "/atlas-life-stages.html"
     },
     {
       "source": "/personas/v/:id",

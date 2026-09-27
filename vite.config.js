@@ -193,8 +193,10 @@ function copyStatic() {
     'marketplace.html',
     'thanks.html',
     'make-video.html',
-    'weddings.html',
-    'weddings.css',
+    // (weddings.html / weddings.css were listed here until 2026-09-27. Both
+    // files were deleted in 4ee91f2 ("chore: remove weddings page and dead
+    // references") but these two build entries were missed — copy-static skips
+    // missing sources, so they only ever logged nothing.)
     'transition-harness.html',
     'swr-watermark-a.svg', 'swr-watermark-b.svg', 'swr-watermark-c.svg',
     'swr-watermark-a.png', 'swr-watermark-b.png', 'swr-watermark-c.png',
@@ -327,6 +329,19 @@ function copyStatic() {
     // canonical nav (they are not top-level destinations) but built and routable.
     'enhance.html',
     'atlas.html',
+    // The nine Atlas section pages linked from atlas.html's TOC as
+    // /atlas/<slug>. atlas.html shipped without them, so every TOC link
+    // 404'd in production (verified live 2026-09-27). Routes are declared in
+    // scripts/generate-vercel-rewrites.mjs (ATLAS_SLUGS).
+    'atlas-200-steps.html',
+    'atlas-architect.html',
+    'atlas-checklist.html',
+    'atlas-crisis.html',
+    'atlas-final-insight.html',
+    'atlas-forge.html',
+    'atlas-integration.html',
+    'atlas-legacy.html',
+    'atlas-life-stages.html',
     'video_single.html',
     'site-map.json',
   ];
@@ -404,6 +419,11 @@ function copyStatic() {
     // — Vodolajusta logo + character references, rendered as
     // card.images[] in shop.html's designs gallery.
     { src: 'shop-designs', dst: 'shop-designs' },
+    // Atlas section artwork (26 tracked files, 5.1 MB) referenced as
+    // /docs/atlas-assets/<name>.webp by atlas.html + the nine atlas-* section
+    // pages. Only this subtree of docs/ ships — the rest is internal plans,
+    // PRDs and audit notes that must stay out of the deploy.
+    { src: 'docs/atlas-assets', dst: 'docs/atlas-assets' },
   ];
   // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
   const styleThumbs = ['neon','film','grid','smoke','hallucination',
