@@ -88,6 +88,7 @@ const GROUPS = {
     'npm run check:automix-arc-smoke',
     'npm run check:storyboard',
     'npm run verify:automix',
+    'npm run verify:genops',
     'npm run check:capture-smoke',
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
