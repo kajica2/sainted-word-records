@@ -190,6 +190,10 @@ const specialPatterns = [
   // /versions/echo-manifold has no site-map entry but is reachable
   // from /versions.html style cards.
   /^\/versions\/echo-manifold\/?$/,
+  // Bare /versions opens versions.html (the shipped-versions page the nav
+  // links to). The auto-generator would map it to /versions/index.html
+  // because that directory exists, so preserve the explicit rule.
+  /^\/versions\/?$/,
   // /atlas exists as atlas.html but isn't in site-map; reachable from
   // the atlas-* exploratory pages.
   /^\/atlas\/?$/,

@@ -1,64 +1,82 @@
 // engine-keys.client.js — centralized keyboard navigation for the SWR engine.
 //
 // One document-level keydown handler that dispatches to a small set of
-// well-known actions (panel toggles, layer selection, auto-map cycling,
-// GENOPS remap/randomize, settings menu). The handler is no-op when the
-// active element is a form field (input/select/textarea/contentEditable) so
-// the user can type values into panel sliders without triggering shortcuts.
+// well-known actions (transport, panel toggles, layer selection, auto-map
+// cycling, GENOPS remap/randomize). The handler is no-op when the active
+// element is a form field (input/select/textarea/contentEditable) so the user
+// can type values into panel sliders without triggering shortcuts.
 //
 // Every keypress also dispatches a `swr-keys-press` CustomEvent with
 // detail = { key, code, mods, action } so the existing scripts (or future
 // ones) can react without re-registering their own listeners.
 //
+// ---- page-scoped keymap ----
+//
+// This module is shared by 16 pages that do not carry the same subsystems, so
+// an action declares what it needs (`requires`) and, optionally, an element it
+// needs (`panel`); the binder and the help table both consult actionAllowed().
+// A page therefore never binds or advertises a key it cannot honour. The
+// headline case is engine.html, which loads no GENOPS module and has no
+// AUTO-SWAP panel, so this whole family drops out there:
+//
+//   GENOPS family (requires: 'genops')  R-remap · N · Shift+N · Cmd+Z ·
+//                                       Cmd+Shift+Z · Cmd+Enter
+//   Shift+A / A   (requires: 'automap')
+//   Shift+M       (panel: 'ls-panel-swap' — no page builds it)
+//   Alt+1..6      (requires: 'layerRemap' — Layers.autoMapLayer is absent)
+//   Shift+1..9    (requires: 'story')
+//   Cmd+1..9      (requires: 'presets' — versions-presets.js is variant-only)
+//   L / D         (requires: 'engineAffordance' — #add-layer / #drag-mode)
+//
+// On the 15 versions/*.html pages every one of those stays live.
+//
 // Public API on window.SWR_KEYS:
-//   .help()            — returns the full keymap as an array of
-//                        {keys, label, action} rows (used by the help
-//                        panel and the test script)
+//   .help()            — the keymap for THIS page, as {keys, label} rows
+//                        (used by the help overlay and the test script)
 //   .setEnabled(bool)  — disable / re-enable the global handler
 //   .isEnabled()       — current state
 //   .simulate(key)     — programmatically fire a keydown for tests + macros
 //
-// Keymap (mod = shift / alt / ctrl as appropriate):
+// Keymap (mod = shift / alt / ctrl as appropriate; * = page-gated, see above):
 //
 //   Space              play / pause           (Audio.play or Audio.pause)
-//   R                  remap                  (SWR_GENOPS.remap)
-//   N                  randomize              (SWR_GENOPS.randomize)
-//   M                  toggle AUTO-SWAP panel
-//   T                  toggle TIMING panel
-//   L                  toggle LFOs panel
-//   S or ?             open settings menu      (SWR_SETTINGS.open)
-//                       Also reveals the ⚙ gear in the top-right so
-//                       the user has a persistent entry point after
-//                       first use.
-//   Esc                close settings menu    (SWR_SETTINGS.close)
+//   M                  toggle mute            (gain → 0, transport keeps going)
+//   R *                remap (GENOPS), or on engine.html: rotate the
+//                        selected clip 90° and fall back to RE-MAP when
+//                        nothing is selected
+//   N / Shift+N *      randomize / mutate     (SWR_GENOPS)
+//   A / Shift+A *      re-randomize auto-map (this engine) / next recipe
+//   Shift+M *          toggle AUTO-SWAP panel (no page builds that panel)
+//   Shift+T            toggle TIMING panel
+//   Shift+L / L *      toggle LFOs panel / add a layer (engine.html)
+//   D *                toggle AUTO DRIFT / manual drag
+//   Esc                close the help overlay
 //   ↑ / ↓              select prev / next layer
-//   1..9               select layer by index  (1-based; 0 = layer 0)
-//   Alt+1..6           per-layer remap (Phase 3 / H4) — re-maps just the
-//                        selected layer slot, fades old asset out + new
-//                        in. The other 5 layers stay put. Useful for
-//                        keeping a composition mostly intact and only
-//                        swapping one element.
-//   0                  deselect               (L.sel = null)
-//   Shift+1..9         advance story chapters (FRAGMENTS / SIGNAL / …)
-//   Cmd+1..9 / Ctrl+1..9  legacy FX palette preset (PULSE / NEON / …)
+//   1..9               select layer by index  (1-based; 0 = deselect)
+//   Alt+1..6 *         per-layer remap (swap one slot, others stay)
+//   Shift+1..9 *       advance story chapters (FRAGMENTS / SIGNAL / …)
+//   Cmd+1..9 *         legacy FX palette preset (PULSE / NEON / …)
 //                        Applies a known FX configuration (temp, vignette,
 //                        glow, …) to the running engine. The page stays put;
 //                        only the look changes.
-//   A                  cycle auto-map recipe (randomized) — within page
-//   Shift+A            cycle to next engine's recipe
 //   + / -              bump fadeInMs / fadeOutMs by 100ms for selected layer
 //   Shift+R            force auto-swap now    (LayerScheduler.swapNow)
 //   V                  mirror axis: vertical → horizontal → off
 //                        (SWR_NATURAL.cycleMirror; 'off' skips both ghost
 //                        passes — the cheapest manual perf rung)
 //   Shift+V            mirror axis: vertical (left/right reflection)
-//   Space (no audio)   bloom layers            (SWR_TIMING.staggeredFadeIn)
+//   B                  bloom layers            (SWR_TIMING.staggeredFadeIn)
+//   X                  crossfade all layers    (SWR_TIMING.crossfade)
+//   Cmd+S / Cmd+O      save / open project     (SWR_SETTINGS bridge)
+//   Cmd+R              start / stop recording  (#rec)
 //   ?                  show keymap help overlay
 //
 // Notes:
-// - Engine.html's existing Space + R behavior is preserved. The page-level
-//   handler runs first (during overlay dismissal), then SWR_KEYS picks up
-//   subsequent presses for the rest of the session.
+// - engine.html used to run a second, page-level keydown listener for
+//   Space / R / L / D. It has been removed: this module is now the single
+//   owner of every shortcut. R keeps its engine-specific meaning by calling
+//   window.SWR_KEYS_HOST_ROTATE, which engine.html publishes from its own boot
+//   (see rotateSelectedOrRemap there).
 // - The keydown listener is attached to `window` (not document) so it fires
 //   even when focus is on the canvas / a non-tabbable element.
 // - No hot-module pattern: SWR_KEYS is plain singleton, no events emitted
@@ -92,13 +110,94 @@
   // Bracket pattern (Photoshop-style nudges) maps to the most-used
   // per-layer knobs: alpha [ ], hue , ., scale ; '. The legacy "+/-"
   // stays for fadeIn/fadeOut bump but is supplemented by Shift+/Shift-.
+
+  // ---- page capabilities ---------------------------------------------
+  //
+  // This module is shared by 16 pages, but they do not carry the same
+  // subsystems: engine.html loads no GENOPS module (no undo stack, no
+  // remap/randomize/mutate/commit) and has no AUTO-SWAP panel, while the
+  // versions/*.html pages load GENOPS and do. Binding a key whose
+  // dependency is absent is what produced the dead-key report this gate
+  // fixes, so each action declares what it needs and the binder + help
+  // table both ask `actionAllowed()`.
+  //
+  // Resolved lazily rather than at parse time: this module is
+  // `type="module"` while the modules it probes install their globals from
+  // classic `defer` scripts (and engine.html publishes its rotate hook during
+  // its own boot), so a parse-time read can be early.
+  //
+  // A flag that reads false is re-probed on the next call instead of being
+  // latched, so a dependency that lands late is still picked up; once true it
+  // is never re-read. On engine.html `genops` stays false forever, which costs
+  // one global read per keystroke — cheaper and far more robust than latching a
+  // negative and silently disabling a key for the whole session.
+  const hostFlags = {
+    genops: function () { return !!window.SWR_GENOPS; },
+    // The recipe store lives on SWR_AUTOMAP (`_recipes`); there is no
+    // `SWR.RECIPES`. Both the picker and Shift+A need it.
+    automap: function () {
+      return !!(window.SWR_AUTOMAP && typeof window.SWR_AUTOMAP.list === 'function');
+    },
+    settings: function () {
+      return !!(window.SWR_SETTINGS && typeof window.SWR_SETTINGS.togglePanel === 'function');
+    },
+    engineRotate: function () { return typeof window.SWR_KEYS_HOST_ROTATE === 'function'; },
+    // Engine-only affordances: #add-layer / #drag-mode exist on engine.html
+    // alone, and these actions simply click those buttons.
+    engineAffordance: function () { return !!document.getElementById('add-layer'); },
+    // Story runtime (Shift+1..9) — engine.html only.
+    story: function () {
+      const S = window.SWR && window.SWR.Story;
+      return !!(S && Array.isArray(S.ORDER) && typeof S.enter === 'function');
+    },
+    // Per-slot remap (Alt+1..6). `Layers.autoMapLayer` is defined by
+    // engine-core.client.js, which none of these pages load — they use the
+    // page-local window.Layers — so this is false everywhere today and the
+    // row is correctly suppressed rather than advertised as a dead key.
+    layerRemap: function () {
+      const L = window.Layers;
+      return !!(L && typeof L.autoMapLayer === 'function');
+    },
+    // Cmd/Ctrl+1..9 FX-palette presets. versions-presets.js is loaded on
+    // every versions/*.html page but not on engine.html.
+    presets: function () {
+      const VP = window.VersionsPresets;
+      return !!(VP && Array.isArray(VP.SHORTCUT_PRESETS));
+    },
+  };
+  const host = {
+    genops: false, automap: false, settings: false, engineRotate: false,
+    engineAffordance: false, story: false, layerRemap: false, presets: false,
+  };
+  function getHost() {
+    for (const k in hostFlags) {
+      if (!host[k]) host[k] = hostFlags[k]();
+    }
+    return host;
+  }
+
+  // True when the action's dependencies exist on this page. Actions without
+  // a `requires` key are always allowed. `panel` additionally requires a
+  // specific element, since a page can carry the settings module without
+  // carrying every panel it knows how to toggle.
+  function actionAllowed(a) {
+    if (!a) return false;
+    if (a.requires && !getHost()[a.requires]) return false;
+    if (a.panel && !document.getElementById(a.panel)) return false;
+    return true;
+  }
+
   const ACTIONS = {
     play: {
       keys: 'Space',
       label: 'Play / pause',
       action: function () {
         const A = window.SWR && window.SWR.Audio;
-        if (!A || !A.el) return;
+        // The loaded element lives on `audioEl` (lib/audio.client.js); the
+        // older `el` / `_el` names are kept as fallbacks for pages that
+        // predate the rename. Reading only `el` made this action inert on
+        // engine.html, whose Audio exposes `audioEl` alone.
+        if (!A || !(A.el || A._el || A.audioEl)) return;
         try { A.playing ? A.pause() : A.play(); } catch (_) {}
       },
     },
@@ -118,6 +217,7 @@
     remap: {
       keys: 'R',
       label: 'Remap (GENOPS) — new assets, same patch',
+      requires: 'genops',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.remap === 'function') G.remap();
@@ -126,6 +226,7 @@
     randomize: {
       keys: 'N',
       label: 'Randomize (GENOPS) — full re-roll of the patch',
+      requires: 'genops',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.randomize === 'function') G.randomize();
@@ -134,44 +235,81 @@
     mutate: {
       keys: 'Shift+N',
       label: 'Mutate (GENOPS) — small perturbation (smaller than randomize)',
+      requires: 'genops',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.mutate === 'function') G.mutate();
       },
     },
+    // Engine-only: rotate the selected clip's sticky tilt (R on engine,
+    // where the GENOPS remap family does not exist). Falls through to
+    // RE-MAP when nothing is selected — see SWR_KEYS_HOST_ROTATE.
+    rotateClip: {
+      keys: 'R',
+      label: 'Rotate selected clip 90° (no selection → RE-MAP)',
+      requires: 'engineRotate',
+      action: function () {
+        try { window.SWR_KEYS_HOST_ROTATE(); } catch (_) {}
+      },
+    },
+    // Engine-only affordances: these two keys click buttons that exist on
+    // engine.html alone (#add-layer, #drag-mode).
+    addLayer: {
+      keys: 'L',
+      label: 'Add a layer',
+      requires: 'engineAffordance',
+      action: function () {
+        const btn = document.getElementById('add-layer');
+        if (btn) btn.click();
+      },
+    },
+    toggleDragMode: {
+      keys: 'D',
+      label: 'Toggle AUTO DRIFT / manual drag',
+      requires: 'engineAffordance',
+      action: function () {
+        const btn = document.getElementById('drag-mode');
+        if (btn) btn.click();
+      },
+    },
     toggleAutoSwap: {
       keys: 'Shift+M',
       label: 'Toggle AUTO-SWAP panel',
+      requires: 'settings',
+      // No page builds #ls-panel-swap — the AUTO-SWAP behaviour lives in
+      // #layer-scheduler-panel (a deliberately hidden dev panel). Gating on
+      // the element keeps this row out of the help table everywhere rather
+      // than advertising a key that cannot do anything.
+      panel: 'ls-panel-swap',
       action: function () {
-        if (window.SWR_SETTINGS) window.SWR_SETTINGS.togglePanel('ls-panel-swap');
+        window.SWR_SETTINGS.togglePanel('ls-panel-swap');
       },
     },
     toggleTiming: {
       keys: 'Shift+T',
       label: 'Toggle TIMING panel',
+      requires: 'settings',
+      panel: 'ls-panel-timing',
       action: function () {
-        if (window.SWR_SETTINGS) window.SWR_SETTINGS.togglePanel('ls-panel-timing');
+        window.SWR_SETTINGS.togglePanel('ls-panel-timing');
       },
     },
     toggleLfOs: {
       keys: 'Shift+L',
       label: 'Toggle LFOs panel',
+      requires: 'settings',
+      panel: 'ls-panel-lfo',
       action: function () {
-        if (window.SWR_SETTINGS) window.SWR_SETTINGS.togglePanel('ls-panel-lfo');
+        window.SWR_SETTINGS.togglePanel('ls-panel-lfo');
       },
     },
-    openSettings: {
-      keys: 'S',
-      label: 'Open settings menu',
-      action: function () {
-        if (window.SWR_SETTINGS) window.SWR_SETTINGS.open();
-      },
-    },
+    // "S" previously opened the gear menu, which has been removed: the
+    // module is now UI-free (see engine-settings.client.js). Esc keeps
+    // closing the help overlay.
     closeSettings: {
       keys: 'Esc',
-      label: 'Close settings menu / help overlay',
+      label: 'Close help overlay',
       action: function () {
-        if (window.SWR_SETTINGS) window.SWR_SETTINGS.close();
         hideHelp();
       },
     },
@@ -188,6 +326,7 @@
     cycleAutoMap: {
       keys: 'A',
       label: 'Re-randomize auto-map (this engine)',
+      requires: 'automap',
       action: function () {
         const M = window.SWR_AUTOMAP;
         if (!M) return;
@@ -198,6 +337,7 @@
     cycleNextRecipe: {
       keys: 'Shift+A',
       label: 'Apply next engine recipe (cross-page)',
+      requires: 'automap',
       action: function () {
         const M = window.SWR_AUTOMAP;
         if (!M) return;
@@ -282,6 +422,7 @@
     undo: {
       keys: 'Cmd+Z',
       label: 'Undo last GENOPS op (Cmd/Ctrl+Z)',
+      requires: 'genops',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.undo === 'function') G.undo();
@@ -290,6 +431,7 @@
     redo: {
       keys: 'Cmd+Shift+Z',
       label: 'Redo last undone op (Cmd/Ctrl+Shift+Z)',
+      requires: 'genops',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.redo === 'function') G.redo();
@@ -298,6 +440,7 @@
     commit: {
       keys: 'Cmd+Enter',
       label: 'Commit current GENOPS state to history',
+      requires: 'genops',
       action: function () {
         const G = window.SWR_GENOPS;
         if (G && typeof G.commit === 'function') G.commit();
@@ -307,6 +450,9 @@
       keys: 'Cmd+S',
       label: 'Save project (.swr-project download)',
       action: function () {
+        // engine.html exposes window.Project, versions/*.html exposes
+        // window.SWR_PROJECT; SWR_SETTINGS bridges both.
+        if (window.SWR_SETTINGS) { window.SWR_SETTINGS.saveProject(); return; }
         if (window.SWR_PROJECT && typeof window.SWR_PROJECT.save === 'function') {
           try { window.SWR_PROJECT.save(); } catch (_) {}
         }
@@ -316,6 +462,7 @@
       keys: 'Cmd+O',
       label: 'Open project (.swr-project file picker)',
       action: function () {
+        if (window.SWR_SETTINGS) { window.SWR_SETTINGS.openProject(); return; }
         if (window.SWR_PROJECT && typeof window.SWR_PROJECT.loadFromFile === 'function') {
           try { window.SWR_PROJECT.loadFromFile(); } catch (_) {}
         }
@@ -406,7 +553,9 @@
       action: function () { nudgeLayer('mutate', +0.05, 0, 1); },
     },
     nudgeOpacityUp: {
-      keys: 'Shift+/',
+      // The binding is '=' (see the Equal case in handle()); Shift+/ is the
+      // '?' help key. The old 'Shift+/' value was never a binding.
+      keys: '=',
       label: '+ opacity (selected layer, +0.05)',
       action: action_nudgeOpacityUp,
     },
@@ -625,21 +774,54 @@
         case 'KeyR': action = ACTIONS.toggleRecord; break;
         case 'Enter': action = ACTIONS.commit; break;
       }
+      // Cmd/Ctrl+1..9 — legacy FX palette presets
+      // (VersionsPresets.SHORTCUT_PRESETS). Keyed off `code` so it works on
+      // every layout, since Shift+DigitN yields a shifted glyph in `key`.
+      if (!action && !ev.shiftKey && /^Digit[1-9]$/.test(code || '')) {
+        const slot = parseInt(code.replace('Digit', ''), 10) - 1;
+        const VP = window.VersionsPresets;
+        if (VP && Array.isArray(VP.SHORTCUT_PRESETS)) {
+          const pageKey = VP.SHORTCUT_PRESETS[slot];
+          if (pageKey) {
+            const ok = VP.applyPreset(pageKey);
+            if (ok !== false) {
+              const label = (VP.PRESETS && VP.PRESETS[pageKey] && VP.PRESETS[pageKey].label) || pageKey.toUpperCase();
+              if (typeof window.setStatus === 'function') {
+                window.setStatus('fx preset: ' + label + ' (' + (slot + 1) + ')', 'ok');
+              }
+              try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+                detail: { key, code, mods: { meta: !!ev.metaKey, ctrl: !!ev.ctrlKey },
+                          action: 'fx-preset-' + pageKey }
+              })); } catch (_) {}
+              if (ev.preventDefault) ev.preventDefault();
+              return;
+            }
+          }
+        }
+      }
     }
 
     // ---- main keydown handler (no Ctrl/Meta) ----
     if (!action && !cmd && !ev.altKey) {
       switch (code) {
         case 'Space':           action = ACTIONS.play; break;
-        case 'KeyR':            action = ev.shiftKey ? ACTIONS.forceSwap : ACTIONS.remap; break;
+        // R is contextual: on GENOPS pages it belongs to the remap family;
+        // on engine.html (no GENOPS module) it rotates the selected clip and
+        // falls back to RE-MAP when nothing is selected. Exactly one of the
+        // two owners is ever allowed by actionAllowed().
+        case 'KeyR':            action = getHost().genops
+                                  ? (ev.shiftKey ? ACTIONS.forceSwap : ACTIONS.remap)
+                                  : ACTIONS.rotateClip; break;
         case 'KeyN':            action = ev.shiftKey ? ACTIONS.mutate : ACTIONS.randomize; break;
         case 'KeyA':            action = ev.shiftKey ? ACTIONS.cycleNextRecipe : ACTIONS.cycleAutoMap; break;
         case 'KeyM':            action = ev.shiftKey ? ACTIONS.toggleAutoSwap : ACTIONS.mute; break;
         case 'KeyT':            action = ev.shiftKey ? ACTIONS.toggleTiming : null; break;
-        case 'KeyL':            action = ev.shiftKey ? ACTIONS.toggleLfOs : null; break;
+        case 'KeyL':            action = ev.shiftKey ? ACTIONS.toggleLfOs : ACTIONS.addLayer; break;
+        case 'KeyD':            action = ACTIONS.toggleDragMode; break;
         case 'KeyB':            action = ACTIONS.bloom; break;
         case 'KeyX':            action = ACTIONS.crossfade; break;
-        case 'KeyS':            action = ACTIONS.openSettings; break;
+        // "S" is deliberately unbound: it used to open the gear menu, which
+        // no longer exists (engine-settings.client.js is UI-free now).
         case 'KeyC':            action = ACTIONS.cycleBlend; break;
         case 'KeyY':            action = ACTIONS.duplicateLayer; break;
         case 'KeyV':            action = ev.shiftKey ? ACTIONS.mirrorVertical : ACTIONS.cycleMirror; break;
@@ -672,8 +854,10 @@
       if (!action && (key === '?' || (ev.shiftKey && code === 'Slash'))) {
         action = ACTIONS.showHelp;
       }
-      // 1..9 to select layer 0..8; 0 to deselect
-      if (!action && !ev.shiftKey && /^[1-9]$/.test(key)) {
+      // 1..9 to select layer 0..8. The Cmd/Ctrl/Alt guards matter because
+      // this block keys off `key` alone: without them it would also fire on
+      // the Cmd+1..9 palette and Alt+1..6 remap combos and strand them.
+      if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && /^[1-9]$/.test(key)) {
         const L = layers();
         if (L && L.list && L.list.length) {
           const idx = parseInt(key, 10) - 1;
@@ -741,32 +925,12 @@
           return;
         }
       }
-      // Cmd/Ctrl+1..9 — legacy FX palette preset shortcuts (preserved
-      // verbatim from the previous behavior; uses VersionsPresets.SHORTCUT_PRESETS).
-      // Same DigitN handling so Cmd+2 works on every layout.
-      if (!action && (ev.metaKey || ev.ctrlKey) && !ev.shiftKey && !ev.altKey && /^Digit[1-9]$/.test(code || '')) {
-        const slot = parseInt(code.replace('Digit', ''), 10) - 1;
-        const VP = window.VersionsPresets;
-        if (VP && Array.isArray(VP.SHORTCUT_PRESETS)) {
-          const pageKey = VP.SHORTCUT_PRESETS[slot];
-          if (pageKey) {
-            const ok = VP.applyPreset(pageKey);
-            if (ok !== false) {
-              const label = (VP.PRESETS && VP.PRESETS[pageKey] && VP.PRESETS[pageKey].label) || pageKey.toUpperCase();
-              if (typeof window.setStatus === 'function') {
-                window.setStatus('fx preset: ' + label + ' (' + (slot + 1) + ')', 'ok');
-              }
-              try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
-                detail: { key, code, mods: { meta: !!ev.metaKey, ctrl: !!ev.ctrlKey },
-                          action: 'fx-preset-' + pageKey }
-              })); } catch (_) {}
-              if (ev.preventDefault) ev.preventDefault();
-              return;
-            }
-          }
-        }
-      }
-      if (!action && key === '0') {
+      // NOTE: the Cmd/Ctrl+1..9 FX-palette block used to live here. It sat
+      // inside this `if (!action && !cmd && !ev.altKey)` guard while testing
+      // `ev.metaKey || ev.ctrlKey`, so it could never run — its own condition
+      // contradicted the guard enclosing it. It now lives in the Cmd/Ctrl
+      // switch above, where it is reachable.
+      if (!action && key === '0' && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
         const L = layers();
         if (L) L.sel = null;
         if (typeof window.setStatus === 'function') window.setStatus('layer: —', 'ok');
@@ -776,6 +940,13 @@
         return;
       }
     }
+
+    // Single choke point for every dispatch path. An action whose
+    // dependencies are absent on this page never fires, whether it was
+    // selected by a `case`, a fallback branch, or a digit block. This is
+    // what keeps engine.html from advertising or running the GENOPS family
+    // while the versions/*.html pages keep all of it.
+    if (action && !actionAllowed(action)) action = null;
 
     if (!action) return;
 
@@ -796,50 +967,57 @@
 
   // ---- public --------------------------------------------------------
 
+  // The help table. Rows carrying an `action` are filtered through
+  // actionAllowed(), so a page never advertises a key it cannot honour — the
+  // GENOPS family (R-remap / N / Shift+N / Cmd+Z / Cmd+Shift+Z / Cmd+Enter)
+  // and the AUTO-SWAP toggle drop out on engine.html and stay on the
+  // versions/*.html pages. Rows without an `action` are pure documentation
+  // (key-range rows) and always show.
   function help() {
-    // Grouped by category. The render code looks for an optional `group`
-    // property to insert a section heading.
-    return [
+    const rows = [
       // ---- Transport ----
-      { keys: 'Space',          label: 'play / pause' },
-      { keys: 'M',              label: 'toggle mute' },
-      { keys: 'F',              label: 'fullscreen' },
-      { keys: 'Esc',            label: 'close settings / help overlay' },
+      { keys: 'Space',          label: 'play / pause',                 action: ACTIONS.play },
+      { keys: 'M',              label: 'toggle mute',                  action: ACTIONS.mute },
+      { keys: 'F',              label: 'fullscreen',                   action: ACTIONS.fullscreen },
+      { keys: 'Esc',            label: 'close help overlay',           action: ACTIONS.closeSettings },
 
       // ---- Generation ----
-      { keys: 'R',              label: 'remap (GENOPS — new assets)' },
-      { keys: 'N',              label: 'randomize (full re-roll)' },
-      { keys: 'Shift+N',        label: 'mutate (small perturbation)' },
-      { keys: 'A',              label: 're-randomize auto-map (this engine)' },
-      { keys: 'Shift+A',        label: 'cycle to next engine recipe' },
-      { keys: 'B',              label: 'bloom layers (stagger fade-in)' },
-      { keys: 'X',              label: 'crossfade all layers (A2 swap)' },
-      { keys: 'Shift+R',        label: 'force auto-swap now' },
-      { keys: 'V',              label: 'mirror axis: vertical → horizontal → off' },
-      { keys: 'Shift+V',        label: 'mirror axis: vertical (left/right)' },
+      { keys: 'R',              label: 'remap (GENOPS — new assets)',  action: ACTIONS.remap },
+      { keys: 'R',              label: 'rotate selected clip 90° (no selection → RE-MAP)', action: ACTIONS.rotateClip },
+      { keys: 'N',              label: 'randomize (full re-roll)',     action: ACTIONS.randomize },
+      { keys: 'Shift+N',        label: 'mutate (small perturbation)',  action: ACTIONS.mutate },
+      { keys: 'A',              label: 're-randomize auto-map (this engine)', action: ACTIONS.cycleAutoMap },
+      { keys: 'Shift+A',        label: 'cycle to next engine recipe',  action: ACTIONS.cycleNextRecipe },
+      { keys: 'B',              label: 'bloom layers (stagger fade-in)', action: ACTIONS.bloom },
+      { keys: 'X',              label: 'crossfade all layers (A2 swap)', action: ACTIONS.crossfade },
+      { keys: 'Shift+R',        label: 'force auto-swap now',          action: ACTIONS.forceSwap },
+      { keys: 'V',              label: 'mirror axis: vertical → horizontal → off', action: ACTIONS.cycleMirror },
+      { keys: 'Shift+V',        label: 'mirror axis: vertical (left/right)', action: ACTIONS.mirrorVertical },
 
       // ---- Undo / Save ----
-      { keys: 'Cmd+Z',          label: 'undo (Cmd/Ctrl+Z)' },
-      { keys: 'Cmd+Shift+Z',    label: 'redo (Cmd/Ctrl+Shift+Z)' },
-      { keys: 'Cmd+Enter',      label: 'commit current state to history' },
-      { keys: 'Cmd+S',          label: 'save project (.swr-project)' },
-      { keys: 'Cmd+O',          label: 'open project (.swr-project picker)' },
-      { keys: 'Cmd+R',          label: 'start / stop recording' },
+      { keys: 'Cmd+Z',          label: 'undo (Cmd/Ctrl+Z)',            action: ACTIONS.undo },
+      { keys: 'Cmd+Shift+Z',    label: 'redo (Cmd/Ctrl+Shift+Z)',      action: ACTIONS.redo },
+      { keys: 'Cmd+Enter',      label: 'commit current state to history', action: ACTIONS.commit },
+      { keys: 'Cmd+S',          label: 'save project (.swr-project)',  action: ACTIONS.saveProject },
+      { keys: 'Cmd+O',          label: 'open project (.swr-project picker)', action: ACTIONS.openProject },
+      { keys: 'Cmd+R',          label: 'start / stop recording',       action: ACTIONS.toggleRecord },
 
-      // ---- Layer selection ----
+      // ---- Layers (documentation-only rows; no single action) ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '1..9',           label: 'select layer by index (1-based)' },
       { keys: '0',              label: 'deselect layer' },
-      { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)' },
+      { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },
+      { keys: 'D',              label: 'toggle AUTO DRIFT / manual drag', action: ACTIONS.toggleDragMode },
+      { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)', requires: 'layerRemap' },
 
       // ---- Presets ----
-      { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)' },
-      { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)' },
+      { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)', requires: 'story' },
+      { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)', requires: 'presets' },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
       { keys: '[ / ]',          label: '− / + alpha' },
       { keys: ', / .',          label: '− / + hue (±6°)' },
-      { keys: "; / '",           label: '− / + scale' },
+      { keys: "; / '",          label: '− / + scale' },
       { keys: '/',              label: '− opacity' },
       { keys: '= / -',          label: '+ / − opacity  ·  Shift = bump fadeIn/fadeOut' },
       { keys: 'Shift+,',        label: '− contrast  ·  Shift = ×4 nudge' },
@@ -850,20 +1028,23 @@
       { keys: 'Shift+]',        label: '+ mutate jitter' },
 
       // ---- Per-layer ops ----
-      { keys: 'C',              label: 'cycle blend mode' },
-      { keys: 'Y',              label: 'duplicate selected layer' },
-      { keys: 'Del / Bksp',     label: 'remove selected layer' },
-      { keys: 'Shift+-',        label: 'bump fadeOutMs by 100ms' },
+      { keys: 'C',              label: 'cycle blend mode',             action: ACTIONS.cycleBlend },
+      { keys: 'Y',              label: 'duplicate selected layer',     action: ACTIONS.duplicateLayer },
+      { keys: 'Del / Bksp',     label: 'remove selected layer',        action: ACTIONS.deleteLayer },
+      { keys: 'Shift+-',        label: 'bump fadeOutMs by 100ms',      action: ACTIONS.bumpFadeOut },
 
       // ---- Panels ----
-      { keys: 'Shift+M',        label: 'toggle AUTO-SWAP panel' },
-      { keys: 'Shift+T',        label: 'toggle TIMING panel' },
-      { keys: 'Shift+L',        label: 'toggle LFOs panel' },
-      { keys: 'S',              label: 'open settings menu' },
+      { keys: 'Shift+M',        label: 'toggle AUTO-SWAP panel',       action: ACTIONS.toggleAutoSwap },
+      { keys: 'Shift+T',        label: 'toggle TIMING panel',          action: ACTIONS.toggleTiming },
+      { keys: 'Shift+L',        label: 'toggle LFOs panel',            action: ACTIONS.toggleLfOs },
 
       // ---- Help ----
-      { keys: '?',              label: 'show this help overlay' },
+      { keys: '?',              label: 'show this help overlay',       action: ACTIONS.showHelp },
     ];
+    return rows.filter(function (r) {
+      if (r.requires && !getHost()[r.requires]) return false;
+      return !r.action || actionAllowed(r.action);
+    });
   }
 
   window.SWR_KEYS = {

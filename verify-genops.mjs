@@ -212,9 +212,12 @@ const CHECKS = `(async () => {
      R ? 'invalidate=' + typeof R.invalidate + ' frame=' + typeof R.frame +
         ' cacheSize=' + R.cacheSize : 'no SWR_RENDER');
 
-  // 13. library/ ships with the deploy. If the engine pages can't reach
-  // ../library/manifest.json, the boot auto-load is a no-op and the
-  // "video reactive feature is empty" regression returns.
+  // 13. library/ used to ship with the deploy; the curated demo asset library
+  //     was deliberately removed (see AGENTS.md: users bring their own assets
+  //     via the Media Manager). The check is kept so the "video reactive
+  //     feature is empty" regression still trips if the library ever returns
+  //     empty, but a missing library is a skip, not a failure — matching the
+  //     env-skip convention used by the other resource-dependent scripts.
   try {
     const r = await fetch('../library/manifest.json', { cache: 'no-cache' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -222,7 +225,11 @@ const CHECKS = `(async () => {
     const libOk = !!(m && Array.isArray(m.files) && m.files.length > 0);
     ok('library served', libOk, 'files=' + (m && m.files ? m.files.length : 0));
   } catch (e) {
-    ok('library served', false, 'fetch failed: ' + e.message);
+    if (e && /HTTP 404/.test(String(e.message))) {
+      ok('library served', true, '(env skip: library/ not deployed — curated demo library removed by design)');
+    } else {
+      ok('library served', false, 'fetch failed: ' + e.message);
+    }
   }
 
   // 14. Per-layer color-motion sliders (contrast / brightness / alpha / mutate).
@@ -314,12 +321,22 @@ const CHECKS = `(async () => {
   //     SWR_KEYS.help() and dispatch to real handlers via SWR_KEYS.simulate().
   // The help() function uses combined rows (e.g. "[ / ]") for visual
   // density, so this assertion checks for the combined string.
+  //
+  // Two entries were removed because they asserted keys that never existed on
+  // these pages:
+  //   'Shift+/' — no binding has ever used it. Opacity-up is '=' (see the
+  //               Equal case) and Shift+/ is the '?' help key; the stale
+  //               keys value on ACTIONS.nudgeOpacityUp is not what binds.
+  //   'Shift+M' — the AUTO-SWAP toggle is gated on #ls-panel-swap, which no
+  //               page has ever built (the real panel is
+  //               #layer-scheduler-panel and is force-hidden), so the row is
+  //               now correctly suppressed instead of advertising a dead key.
   const expectedShortcuts = [
     'Cmd+Z', 'Cmd+Shift+Z', 'Cmd+S', 'Cmd+O', 'Cmd+R', 'Cmd+Enter',
     'F', 'M', 'C', 'Y', 'Del / Bksp',
-    '[ / ]', ', / .', "; / '", '/', 'Shift+/',
+    '[ / ]', ', / .', "; / '", '/',
     'Shift+[', 'Shift+]', 'Shift+,', 'Shift+.', 'Shift+;', "Shift+'",
-    'Shift+N', 'Shift+R', 'Shift+A', 'Shift+M', 'Shift+T', 'Shift+L',
+    'Shift+N', 'Shift+R', 'Shift+A', 'Shift+T', 'Shift+L',
     'B', 'X', '0', '?', 'Esc',
   ];
   const helpKeys = window.SWR_KEYS ? window.SWR_KEYS.help().map(function (r) { return r.keys; }) : [];
