@@ -210,7 +210,19 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
     const checkerPath = '/tmp/background_test.png';
     (await import('node:fs')).writeFileSync(checkerPath, checkerPng);
     await fileInput.uploadFile(checkerPath);
-    await new Promise(r => setTimeout(r, 800));
+    // Poll for the curator's async add instead of a fixed sleep: 800ms was
+    // enough locally but not on the CI runner, where this failed as
+    // "second asset not added (expected 2, got 1)". The assertion is unchanged
+    // — it still fails if the asset never lands.
+    {
+      const want = after1.itemsTotal + 1;
+      const deadline = Date.now() + 8000;
+      while (Date.now() < deadline) {
+        const n = await page.evaluate(() => document.querySelectorAll('.li').length);
+        if (n >= want) break;
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
 
     const after2 = await page.evaluate(() => ({
       itemsTotal: document.querySelectorAll('.li').length,

@@ -246,13 +246,24 @@ async function main() {
         }, i / 4);
         await new Promise((r) => setTimeout(r, 200));
       }
-      const after = await page.evaluate(() => Object.assign({}, window.SWR._fxOverride));
-      // blend should have moved at least one field by >0.05
-      let moved = false;
-      for (const k of Object.keys(after)) {
-        if (Math.abs((after[k] || 0) - (before[k] || 0)) > 0.05) { moved = true; break; }
+      // The forced ticks are synchronous, but the ramp that writes _fxOverride
+      // is not — on a slow runner 1s of waiting outran it and this failed as
+      // "blend did not move across 5 feature shifts". Poll until it moves
+      // (or the deadline passes) so the assertion measures the behaviour
+      // rather than the runner's speed. It still fails if nothing moves.
+      const movedEnough = (a, b) => {
+        for (const k of Object.keys(b)) {
+          if (Math.abs((b[k] || 0) - (a[k] || 0)) > 0.05) return true;
+        }
+        return false;
+      };
+      let after = await page.evaluate(() => Object.assign({}, window.SWR._fxOverride));
+      const deadline = Date.now() + 6000;
+      while (!movedEnough(before, after) && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 200));
+        after = await page.evaluate(() => Object.assign({}, window.SWR._fxOverride));
       }
-      if (!moved) throw new Error('blend did not move across 5 feature shifts');
+      if (!movedEnough(before, after)) throw new Error('blend did not move across 5 feature shifts');
     });
 
     // ---- 8. Freeze stops new ticks but keeps the blend ------------------
