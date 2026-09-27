@@ -147,9 +147,22 @@ refresh. Assets are stale-while-revalidate: one load to converge, offline intact
   session-layer reroute/passthrough, pill format, song-change flush, glide math,
   engine-shape `audioEl` transport. In `npm run check`.
 - `verify-automix-arc-displacement.mjs` — the runtime regression contract: samples
-  14 FX fields every 5s for 80–180s on engine.html and requires ≥0.3 absolute
+  13 FX fields every 5s for 80–180s on engine.html and requires ≥0.3 absolute
   movement of at least one field per fully-observed arc act, plus the pill's
   act-context format. Sprint gate (too slow for check:full).
+- `scripts/check-automix-arc-smoke.mjs` — **the CI gate** (in `check:full`). Same
+  contract, ~9s instead of ~85s: it seeks to each act's baseline rather than
+  waiting in realtime (the runtime derives the act from `el.currentTime` on its
+  1s glide clock, so a seek selects the same act the song would have reached —
+  and covers every act deterministically rather than whichever elapsed), then
+  requires consecutive acts to differ by ≥0.3 on at least one pipeline field.
+  This is the gate for the bug class that shipped silently three times — arc not
+  loaded on engine, fx-postprocess skipping override consumption, static act
+  baselines — all of which leave FX.state identical across acts, which is
+  invisible to a unit test of the builder's math and to `check-automix-smoke`
+  (which only asserts `_fxOverride` exists). It asserts only *consecutive* act
+  pairs: the final act's wrap back to the first baseline is deliberate drift, so
+  asserting it would be a false failure.
 - `verify-transitions.mjs` — 60 checks incl. `?diag=1` payload + intensity invariant
   (setIntensity never mutates `FX.state`).
 - `verify-automix-cross-surface.mjs` — 77 checks, three tiers: full (engine + 5
