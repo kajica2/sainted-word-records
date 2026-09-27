@@ -722,7 +722,14 @@
     _updateUI(state) {
       var lab = $('automix-state');
       if (lab) {
-        lab.textContent = state;
+        // An "ON" state with no song is inert: the runtime has no element to
+        // sample features from, so no tick is ever scheduled (the debug panel
+        // shows "song not loaded", "tickRate —" and "arc none"). A bare "ON"
+        // there promises work that is not happening, which reads as "automix
+        // is on but nothing moves" instead of "load a song first".
+        var label = state;
+        if (state === 'ON' && !_hasSong()) label = 'ON \u00b7 no song';
+        lab.textContent = label;
         lab.style.color = state === 'OFF' ? 'var(--m)' : 'var(--g)';
       }
     },
@@ -733,6 +740,15 @@
   };
 
   // ---- UI wiring ----------------------------------------------------------
+  // Is there an audio element with a song actually loaded? The runtime can only
+  // sample features — and therefore tick at all — when there is. Mirrors the
+  // element resolution used in _renderDebug (engine exposes `audioEl`).
+  function _hasSong() {
+    var A = window.SWR && window.SWR.Audio;
+    var el = A && (A.el || A._el || A.audioEl);
+    return !!(el && el.src);
+  }
+
   function _setBtnActive(btn, on) {
     if (!btn) return;
     btn.classList.toggle('active', !!on);
