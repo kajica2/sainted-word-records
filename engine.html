@@ -4975,34 +4975,16 @@
               'ok');
           }
         });
-        // Keyboard
-        window.addEventListener('keydown', (e) => {
-          if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-          if (e.code === 'Space') { e.preventDefault(); $('play').click(); }
-          if (e.key === 'r' || e.key === 'R') {
-            // Context-sensitive: rotate the selected clip's offset by ±90° if
-            // one is selected; otherwise trigger RE-MAP. The offset is the
-            // sticky per-clip tilt that survives audio-driven drift.
-            const sel = (window.Layers && window.Layers.selected) || null;
-            if (sel) {
-              const delta = e.shiftKey ? -90 : 90;
-              sel.rotOffset = (sel.rotOffset + delta + 360) % 360;
-              // Sync the layer card's rot slider + readout
-              const card = document.querySelector('.layer.selected');
-              if (card) {
-                const slider = card.querySelector('input[data-prop="rot"]');
-                const readout = card.querySelector('.rot-v');
-                if (slider) slider.value = sel.rotOffset;
-                if (readout) readout.textContent = `${Math.round(sel.rotOffset)}°`;
-              }
-              if (window.Layers && typeof window.Layers.render === 'function') window.Layers.render();
-            } else {
-              $('re-map').click();
-            }
-          }
-          if (e.key === 'l' || e.key === 'L') { $('add-layer').click(); }
-          if (e.key === 'd' || e.key === 'D') { $('drag-mode').click(); }
-        });
+        // Keyboard: engine.html no longer binds keys itself. Every shortcut
+        // is owned by engine-keys.client.js, which is the single keydown
+        // handler for this page. This block used to bind Space / R / L / D
+        // here as well, so each of those keys ran two handlers (the engine's
+        // and engine-keys') — and Space in particular toggled playback twice
+        // the moment engine-keys' own Space action started working (it read
+        // Audio.el, which engine does not expose, so the duplicate was
+        // silently inert). The rotate-selected-clip behaviour R needs on this
+        // page is published as window.SWR_KEYS_HOST_ROTATE below, where
+        // engine-keys can call it without a second listener.
         // Resize
         window.addEventListener('resize', () => Renderer.fit());
         // Drag mode toggle
@@ -5012,21 +4994,37 @@
         // Rotate selected clip button (Shift+click = -90°).
         // Mutates the per-clip rotOffset (sticky tilt), NOT pos.rot
         // (which is overwritten by audio every frame in auto drag mode).
+        //
+        // rotateSelectedOrRemap() is also published as
+        // window.SWR_KEYS_HOST_ROTATE so engine-keys.client.js can bind "R"
+        // to it. Key and button therefore share one implementation instead of
+        // each carrying their own copy plus a listener.
+        function rotateSelectedOrRemap(delta) {
+          const sel = (window.Layers && window.Layers.selected) || null;
+          if (!sel) {
+            // Nothing selected → the key means RE-MAP, matching the engine's
+            // own best-guess affordance.
+            const remap = $('re-map');
+            if (remap) remap.click();
+            return false;
+          }
+          sel.rotOffset = (sel.rotOffset + (delta || 90) + 360) % 360;
+          // Sync the layer card's rot slider + readout
+          const card = document.querySelector('.layer.selected');
+          if (card) {
+            const slider = card.querySelector('input[data-prop="rot"]');
+            const readout = card.querySelector('.rot-v');
+            if (slider) slider.value = sel.rotOffset;
+            if (readout) readout.textContent = `${Math.round(sel.rotOffset)}°`;
+          }
+          if (window.Layers && typeof window.Layers.render === 'function') window.Layers.render();
+          return true;
+        }
+        window.SWR_KEYS_HOST_ROTATE = function () { return rotateSelectedOrRemap(90); };
         const rotateBtn = $('rotate-sel');
         if (rotateBtn) {
           rotateBtn.addEventListener('click', (e) => {
-            const sel = (window.Layers && window.Layers.selected) || null;
-            if (!sel) return;
-            sel.rotOffset = (sel.rotOffset + (e.shiftKey ? -90 : 90) + 360) % 360;
-            // Sync the layer card's rot slider + readout
-            const card = document.querySelector('.layer.selected');
-            if (card) {
-              const slider = card.querySelector('input[data-prop="rot"]');
-              const readout = card.querySelector('.rot-v');
-              if (slider) slider.value = sel.rotOffset;
-              if (readout) readout.textContent = `${Math.round(sel.rotOffset)}°`;
-            }
-            if (window.Layers && typeof window.Layers.render === 'function') window.Layers.render();
+            rotateSelectedOrRemap(e.shiftKey ? -90 : 90);
           });
         }
         Renderer.setDragMode('auto');

@@ -1,35 +1,41 @@
-// engine-settings.client.js — floating ⚙ gear icon + dropdown menu that
-// provides a single entry point to every existing floating panel
-// (AUTO-SWAP, TIMING, LFOs) plus the new AUTO-MAP engine presets.
+// engine-settings.client.js — key-driven settings helpers for the engine pages.
 //
-// Renders:
-//   - A fixed 36×36 circular ⚙ button in the top-right corner.
-//   - On click, a dropdown menu appears below the gear with:
-//       [✓] AUTO-SWAP       (toggle visibility)
-//       [✓] TIMING          (toggle visibility)
-//       [✓] LFOs            (toggle visibility)
-//       ─────
-//       AUTO-MAP ▸          (submenu: every engine page with a recipe)
-//       AUTO-MAP RANDOMIZE  (randomized version of the current page's recipe)
-//       ─────
-//       RESET ALL PANELS    (clear localStorage positions)
+// Formerly the floating ⚙ gear + dropdown menu (AUTO-SWAP / TIMING / LFOs
+// toggles, AUTO-MAP recipe picker, SAVE / LOAD PROJECT, RESET ALL PANELS).
+// That surface was removed: the gear sat in the top-right corner over the
+// canvas, and its one "panel" toggle for AUTO-SWAP pointed at #ls-panel-swap,
+// an element no page has ever built (the real AUTO-SWAP panel is
+// #layer-scheduler-panel, force-hidden in layer-scheduler.client.js). Half the
+// menu was decoration over behaviour the keymap already owns.
 //
-// Panel visibility is a per-page setting persisted in localStorage so
-// the user's preferences survive reloads. AUTO-MAP calls
-// window.SWR_AUTOMAP.apply(pageId) (which is a separate module —
-// engine-automap.client.js — for cleanliness).
+// What remains is the non-UI half that engine-keys.client.js needs, so no page
+// carries a widget it does not need:
+//
+//   window.SWR_SETTINGS = {
+//     togglePanel(id)   — flip a floating panel's visibility (persisted)
+//     saveProject()     — download the current state as a .swr-project file
+//     openProject()     — file picker → restore a .swr-project
+//     resetPanels()     — clear every panel's saved position/visibility
+//   }
+//
+// Panel visibility is per-page state persisted in localStorage under
+// 'swr.settings.visible' so preferences survive reloads. Every helper degrades
+// to a no-op when its dependency module is absent, so the module is safe on any
+// page that loads it.
+//
+// Idempotent: loading twice keeps the first instance.
 
 (function () {
   'use strict';
   if (window.SWR_SETTINGS) return;
 
-  const GEAR_ID  = 'swr-settings-gear';
-  const MENU_ID  = 'swr-settings-menu';
   const LS_VIS   = 'swr.settings.visible';
+  // The floating panels this module owns the visibility of. AUTO-SWAP is
+  // deliberately absent: it has no element (see the header note), so toggling
+  // it would write a preference nothing reads.
   const PANELS = [
-    { id: 'ls-panel-swap',   label: 'AUTO-SWAP', store: 'swr.swapVisible'   },
-    { id: 'ls-panel-timing', label: 'TIMING',    store: 'swr.timingVisible' },
-    { id: 'ls-panel-lfo',    label: 'LFOs',      store: 'swr.lfoVisible'    },
+    { id: 'ls-panel-timing', label: 'TIMING', store: 'swr.timingVisible' },
+    { id: 'ls-panel-lfo',    label: 'LFOs',   store: 'swr.lfoVisible'    },
   ];
 
   function readVisibility() {
@@ -37,22 +43,12 @@
       const raw = localStorage.getItem(LS_VIS);
       const obj = raw ? JSON.parse(raw) : {};
       return {
-        // Gear + menu default HIDDEN. They come up only when the user
-        // presses the keyboard shortcut (S or ?). Once shown, the
-        // preference is remembered.
-        'swr-settings-gear': obj['swr-settings-gear'] === true,
-        'swr-settings-menu': obj['swr-settings-menu'] === true,
-        // Auto-swap stays visible by default (it's part of the core UI).
-        'ls-panel-swap':   obj['ls-panel-swap']   !== false,
         // Timing + LFO default HIDDEN — advanced, opt-in.
         'ls-panel-timing': obj['ls-panel-timing'] === true,
         'ls-panel-lfo':    obj['ls-panel-lfo']    === true,
       };
     } catch (_) {
       return {
-        'swr-settings-gear': false,
-        'swr-settings-menu': false,
-        'ls-panel-swap':   true,
         'ls-panel-timing': false,
         'ls-panel-lfo':    false,
       };
@@ -64,14 +60,6 @@
   }
 
   function applyVisibility(v) {
-    // Gear: respect the explicit gear preference.
-    const gear = document.getElementById(GEAR_ID);
-    if (gear) gear.style.display = v['swr-settings-gear'] ? '' : 'none';
-    // Menu is hidden by default; it only ever shows on user action
-    // (gear click or SWR_SETTINGS.open()), not from preferences.
-    const menu = document.getElementById(MENU_ID);
-    if (menu) menu.style.display = 'none';
-    // Panels: respect their preference.
     for (const p of PANELS) {
       const el = document.getElementById(p.id);
       if (!el) continue;
@@ -89,20 +77,14 @@
     }
   }
 
-  function resetAllPanels() {
-    for (const k of ['swr-layer-scheduler.pos', 'swr.timing-panel.pos', 'swr.lfo-panel.pos', LS_VIS]) {
+  function resetPanels() {
+    for (const k of ['swr-layer-scheduler-pos', 'swr-layer-scheduler.pos', 'swr.timing-panel.pos', 'swr.lfo-panel.pos', LS_VIS]) {
       try { localStorage.removeItem(k); } catch (_) {}
     }
-    // Reset visibility to defaults (advanced hidden, swap visible).
-    applyVisibility({
-      'swr-settings-gear': false,
-      'swr-settings-menu': false,
-      'ls-panel-swap':   true,
-      'ls-panel-timing': false,
-      'ls-panel-lfo':    false,
-    });
-    // Move panels back to their CSS default positions by clearing inline
-    // left/top/right/bottom.
+    // Reset visibility to defaults (advanced panels hidden).
+    applyVisibility({ 'ls-panel-timing': false, 'ls-panel-lfo': false });
+    // Move panels back to their CSS default positions by clearing inline box
+    // offsets.
     for (const p of PANELS) {
       const el = document.getElementById(p.id);
       if (!el) continue;
@@ -112,21 +94,18 @@
       el.style.bottom = '';
     }
     if (typeof window.setStatus === 'function') {
-      window.setStatus('settings: all panels reset to defaults', 'ok');
+      window.setStatus('settings: panels reset to defaults', 'ok');
     }
   }
 
-  // ---- menu rendering -------------------------------------------------
-
+  // ---- project save / load --------------------------------------------
   // Two project modules exist with overlapping but different APIs:
   //   - project.js (loaded on engine.html) exports window.Project =
   //     { download(), loadFile(file), ... }
   //   - project.client.js (loaded on versions/*.html) exports
   //     window.SWR_PROJECT = { save(), loadFromFile(file), ... }
-  // The menu has to work on both pages. Each helper returns the
-  // bound function for the module that's actually present (or null).
-  // Defined at IIFE scope so both buildMenu() and the file-input
-  // change handler (ensureFileInput) can reach them.
+  // Each helper returns the bound function for the module that is actually
+  // present (or null), so one caller works on both page families.
   function projectSave() {
     if (window.Project && typeof window.Project.download === 'function') {
       return window.Project.download.bind(window.Project);
@@ -146,190 +125,32 @@
     return null;
   }
 
-  function buildGear() {
-    if (document.getElementById(GEAR_ID)) return;
-    const btn = document.createElement('button');
-    btn.id = GEAR_ID;
-    btn.setAttribute('aria-label', 'Settings');
-    btn.title = 'Settings';
-    btn.style.cssText = [
-      'position:fixed', 'top:14px', 'right:14px', 'z-index:10001',
-      'width:36px', 'height:36px', 'border-radius:50%',
-      'background:rgba(15,15,20,0.92)', 'color:#ff3d92',
-      'border:1px solid #ff3d92', 'cursor:pointer', 'padding:0',
-      'font:18px/1 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
-      'box-shadow:0 4px 18px rgba(255,61,146,0.25)',
-      'transition:transform 0.15s ease, box-shadow 0.15s ease',
-    ].join(';');
-    btn.textContent = '⚙';
-    btn.addEventListener('mouseenter', () => { btn.style.transform = 'rotate(45deg)'; btn.style.boxShadow = '0 4px 22px rgba(255,61,146,0.45)'; });
-    btn.addEventListener('mouseleave', () => { btn.style.transform = ''; btn.style.boxShadow = '0 4px 18px rgba(255,61,146,0.25)'; });
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      toggleMenu();
-    });
-    document.body.appendChild(btn);
-  }
-
-  function buildMenu() {
-    if (document.getElementById(MENU_ID)) return;
-    const menu = document.createElement('div');
-    menu.id = MENU_ID;
-    menu.style.cssText = [
-      'position:fixed', 'top:58px', 'right:14px', 'z-index:10001',
-      'min-width:220px', 'max-width:280px',
-      'background:rgba(15,15,20,0.95)', 'color:#eee',
-      'border:1px solid #444', 'border-radius:8px',
-      'padding:6px 0', 'font:12px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
-      'box-shadow:0 8px 32px rgba(0,0,0,0.5)', 'display:none',
-      'user-select:none',
-    ].join(';');
-
-    const vis = readVisibility();
-
-    // Panel toggles
-    for (const p of PANELS) {
-      const row = makeRow(p.label, vis[p.id] ? '☑' : '☐', () => toggleVisibility(p.id));
-      menu.appendChild(row);
+  function saveProject() {
+    const fn = projectSave();
+    if (!fn) {
+      if (typeof window.setStatus === 'function') window.setStatus('project module not loaded', 'err');
+      return false;
     }
-
-    // Divider
-    menu.appendChild(makeDivider());
-
-    // AUTO-MAP header
-    const head = document.createElement('div');
-    head.style.cssText = 'padding:6px 12px 4px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#888;';
-    head.textContent = 'AUTO-MAP';
-    menu.appendChild(head);
-
-    // Per-engine auto-map buttons
-    if (window.SWR_AUTOMAP && window.SWR_AUTOMAP.list) {
-      const pageId = window.SWR_AUTOMAP.pageIdFromBody
-        ? window.SWR_AUTOMAP.pageIdFromBody() : null;
-      for (const entry of window.SWR_AUTOMAP.list()) {
-        const isCurrent = entry.id === pageId;
-        const label = isCurrent
-          ? entry.label + '   ✓'
-          : entry.label;
-        const row = makeRow(label, '→', () => {
-          if (window.SWR_AUTOMAP.apply(entry.id)) {
-            closeMenu();
-          }
-        });
-        if (isCurrent) row.style.color = '#7f7';
-        menu.appendChild(row);
+    try {
+      const ok = fn();
+      if (ok === false) {
+        if (typeof window.setStatus === 'function') window.setStatus('project save failed', 'err');
+        return false;
       }
-      // Randomize button
-      const randRow = makeRow('RANDOMIZE', '~', () => {
-        if (window.SWR_AUTOMAP.randomize(pageId)) closeMenu();
-      });
-      menu.appendChild(randRow);
-    } else {
-      const note = document.createElement('div');
-      note.style.cssText = 'padding:6px 12px;font-size:10px;color:#888;font-style:italic;';
-      note.textContent = '(automap module not loaded)';
-      menu.appendChild(note);
+      if (typeof window.setStatus === 'function') window.setStatus('project saved', 'ok');
+      return true;
+    } catch (e) {
+      if (typeof window.setStatus === 'function') window.setStatus('project save error: ' + e.message, 'err');
+      return false;
     }
-
-    // Divider + reset
-    menu.appendChild(makeDivider());
-
-    // PROJECT section: save / load the user's current state as JSON.
-    // Two project modules exist with overlapping but different APIs:
-    //   - project.js (loaded on engine.html) exports window.Project =
-    //     { download(), loadFile(file), get(), apply(p), ... }
-    //   - project.client.js (loaded on versions/*.html where a song is
-    //     playing) exports window.SWR_PROJECT =
-    //     { save(), loadFromFile(file), serialize(), apply(p), ... }
-    // The menu has to work on both pages. Use whichever is present.
-    menu.appendChild(makeRow('SAVE PROJECT', '↓', () => {
-      const fn = projectSave();
-      if (!fn) { setStatus('project module not loaded', 'err'); return; }
-      try {
-        const ok = fn();
-        if (ok || ok === undefined) {
-          if (typeof window.setStatus === 'function') window.setStatus('project saved', 'ok');
-          closeMenu();
-        } else {
-          if (typeof window.setStatus === 'function') window.setStatus('project save failed', 'err');
-        }
-      } catch (e) {
-        if (typeof window.setStatus === 'function') window.setStatus('project save error: ' + e.message, 'err');
-      }
-    }));
-    menu.appendChild(makeRow('LOAD PROJECT', '↑', () => {
-      // Don't pause the song — loadFile/loadFromFile either restore the
-      // project's embedded audio or leave the current track playing. The
-      // file-picker dialog is non-modal; it overlays the canvas but
-      // doesn't interrupt playback.
-      ensureFileInput();
-      fileInput.click();
-      closeMenu();
-    }));
-
-    menu.appendChild(makeDivider());
-    menu.appendChild(makeRow('RESET ALL PANELS', '×', () => { resetAllPanels(); closeMenu(); }, true));
-
-    document.body.appendChild(menu);
-
-    // Click outside closes the menu.
-    document.addEventListener('click', function (e) {
-      const menuEl = document.getElementById(MENU_ID);
-      const gearEl = document.getElementById(GEAR_ID);
-      if (!menuEl || !gearEl) return;
-      if (e.target === gearEl || gearEl.contains(e.target)) return;
-      if (menuEl.contains(e.target)) return;
-      closeMenu();
-    });
   }
 
-  function makeRow(label, glyph, onClick, destructive) {
-    const row = document.createElement('div');
-    row.style.cssText = [
-      'display:flex', 'align-items:center', 'gap:8px',
-      'padding:6px 12px', 'cursor:pointer',
-      'transition:background 0.08s ease',
-      destructive ? 'color:#ff7a3d;' : '',
-    ].join('');
-    const labelEl = document.createElement('span');
-    labelEl.style.cssText = 'flex:1;';
-    labelEl.textContent = label;
-    const glyphEl = document.createElement('span');
-    glyphEl.style.cssText = 'width:14px;text-align:center;color:#888;font-family:monospace;';
-    glyphEl.textContent = glyph;
-    row.appendChild(labelEl);
-    row.appendChild(glyphEl);
-    row.addEventListener('mouseenter', () => { row.style.background = 'rgba(255,61,146,0.10)'; });
-    row.addEventListener('mouseleave', () => { row.style.background = ''; });
-    row.addEventListener('click', onClick);
-    return row;
-  }
-
-  function makeDivider() {
-    const d = document.createElement('div');
-    d.style.cssText = 'height:1px;background:#2a1d3a;margin:4px 0;';
-    return d;
-  }
-
-  function toggleMenu() {
-    const m = document.getElementById(MENU_ID);
-    if (!m) return;
-    m.style.display = m.style.display === 'none' ? '' : 'none';
-  }
-  function closeMenu() {
-    const m = document.getElementById(MENU_ID);
-    if (m) m.style.display = 'none';
-  }
-
-  // ---- file picker for project.loadFile / project.loadFromFile -----
-  // Lazy-initialized: the <input type="file"> is appended once on
-  // first LOAD click, hidden, and reused. The change handler looks
-  // up the right loader at file-pick time because the page may have
-  // either project.js (window.Project) or project.client.js
-  // (window.SWR_PROJECT).
+  // Lazy-initialized <input type="file">, appended on first use, hidden,
+  // reused. The change handler resolves the right loader at file-pick time
+  // because the page may have either project module.
   let fileInput = null;
   function ensureFileInput() {
-    if (fileInput) return;
+    if (fileInput) return fileInput;
     fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'application/json,.json';
@@ -338,15 +159,20 @@
       const f = fileInput.files && fileInput.files[0];
       fileInput.value = '';  // reset so the same file can be picked again
       const loader = projectLoadFile();
-      if (!f || !loader) return;
+      if (!f || !loader) {
+        if (!loader && typeof window.setStatus === 'function') {
+          window.setStatus('project module not loaded', 'err');
+        }
+        return;
+      }
       try {
         const r = await loader(f);
         // Both modules return { ok, applied, missing, errors } but with
         // slightly different field names — handle both.
         if (r && r.ok !== false) {
-          if (typeof window.setStatus === 'function')
-            window.setStatus('project loaded (' + (r.applied || '?') + ' layers, ' +
-              (r.missing || 0) + ' missing)', 'ok');
+          if (typeof window.setStatus === 'function') {
+            window.setStatus('project loaded (' + (r.applied || '?') + ' layers, ' + (r.missing || 0) + ' missing)', 'ok');
+          }
         } else {
           const why = r && r.errors ? r.errors.join('; ') : 'unknown';
           if (typeof window.setStatus === 'function') window.setStatus('project load failed: ' + why, 'err');
@@ -356,45 +182,35 @@
       }
     });
     document.body.appendChild(fileInput);
+    return fileInput;
+  }
+
+  function openProject() {
+    const loader = projectLoadFile();
+    if (!loader) {
+      if (typeof window.setStatus === 'function') window.setStatus('project module not loaded', 'err');
+      return false;
+    }
+    ensureFileInput().click();
+    return true;
   }
 
   // ---- boot -----------------------------------------------------------
-
-  function boot() {
-    buildGear();
-    buildMenu();
-    applyVisibility(readVisibility());
-  }
-
+  // Deferred so the timing + LFO panel modules (loaded just before this one)
+  // have appended their panels to the DOM. Without this, applyVisibility()
+  // runs before those elements exist and the saved preference is a no-op for
+  // that load.
+  function boot() { applyVisibility(readVisibility()); }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 50); });
   } else {
-    // Defer so the timing + LFO panel modules (which load just before us
-    // via <script defer>) have appended their panels to the DOM. Without
-    // this, applyVisibility() runs before ls-panel-timing / ls-panel-lfo
-    // exist and the preference is a no-op for that load.
     setTimeout(boot, 50);
   }
 
-  // Public surface (testing + future extension).
   window.SWR_SETTINGS = {
-    open: function () {
-      // Reveal the gear (if it isn't already) and open the menu. The
-      // gear preference is remembered so it stays visible across reloads
-      // once the user has opened settings at least once.
-      const v = readVisibility();
-      if (!v['swr-settings-gear']) {
-        v['swr-settings-gear'] = true;
-        writeVisibility(v);
-      }
-      applyVisibility(v);
-      const m = document.getElementById(MENU_ID);
-      if (m) m.style.display = '';
-    },
-    close: closeMenu,
     togglePanel: toggleVisibility,
-    resetAll: resetAllPanels,
-    gearId: GEAR_ID,
-    menuId: MENU_ID,
+    saveProject: saveProject,
+    openProject: openProject,
+    resetPanels: resetPanels,
   };
 })();
