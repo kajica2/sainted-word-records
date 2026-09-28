@@ -1,0 +1,397 @@
+{
+  "version": "swr-targeting-ontology/v1",
+  "source": "marketing/personas/full/*.md",
+  "personas": [
+    {
+      "id": "ar-loop-poster",
+      "slug": "ar-loop-poster",
+      "label": "The AR Poster Maker",
+      "surfaces": [
+        "AR",
+        "recorder",
+        "library",
+        "presets"
+      ],
+      "oneLine": "A zine maker who turns 5-second WebM clips into shareable markerless AR stickers that print on demand.",
+      "file": "marketing/personas/full/001-ar-loop-poster.md"
+    },
+    {
+      "id": "storyboard-editor",
+      "slug": "storyboard-editor",
+      "label": "The Storyboard-First Editor",
+      "surfaces": [
+        "storyboard",
+        "library",
+        "audio-analysis",
+        "presets",
+        "auth"
+      ],
+      "oneLine": "A music video editor who treats bar-aligned auto-edits as a starting point and re-cuts the first chorus by hand.",
+      "file": "marketing/personas/full/002-storyboard-editor.md"
+    },
+    {
+      "id": "version-hopper",
+      "slug": "version-hopper",
+      "label": "The Variant Collector",
+      "surfaces": [
+        "versions",
+        "presets",
+        "transitions",
+        "recorder"
+      ],
+      "oneLine": "A creative coder who treats the 27 visual variants as a palette of moods and A/B tests them against a single track.",
+      "file": "marketing/personas/full/003-version-hopper.md"
+    },
+    {
+      "id": "fx-surgeon",
+      "slug": "fx-surgeon",
+      "label": "The FX Surgeon",
+      "surfaces": [
+        "FX",
+        "presets",
+        "audio-analysis",
+        "recorder"
+      ],
+      "oneLine": "A colorist who treats the 14-FX pipeline as a single WebGL fullscreen quad and pushes every uniform to its limit.",
+      "file": "marketing/personas/full/004-fx-surgeon.md"
+    },
+    {
+      "id": "transition-choreo",
+      "slug": "transition-choreo",
+      "label": "The Transition Choreographer",
+      "surfaces": [
+        "transitions",
+        "engine",
+        "library",
+        "recorder"
+      ],
+      "oneLine": "A motion designer who treats the 10 CSS transitions as a vocabulary and writes scene changes by hand on the bar grid.",
+      "file": "marketing/personas/full/005-transition-choreo.md"
+    },
+    {
+      "id": "recorder-renderer",
+      "slug": "recorder-renderer",
+      "label": "The Export-First Renderer",
+      "surfaces": [
+        "recorder",
+        "engine",
+        "versions",
+        "transitions",
+        "library"
+      ],
+      "oneLine": "A working animator who treats the engine as a render farm that outputs WebM via MediaRecorder and converts to MP4 with ffmpeg.",
+      "file": "marketing/personas/full/006-recorder-renderer.md"
+    },
+    {
+      "id": "anchor-curator",
+      "slug": "anchor-curator",
+      "label": "The Anchor-Map Curator",
+      "surfaces": [
+        "presets",
+        "library",
+        "FX",
+        "versions",
+        "audio-analysis"
+      ],
+      "oneLine": "A label A&R who curates the 19 anchor presets by hovering the (warmth × intensity) 2D embedding and re-tagging the library to match.",
+      "file": "marketing/personas/full/007-anchor-curator.md"
+    },
+    {
+      "id": "audio-theorist",
+      "slug": "audio-theorist",
+      "label": "The Audio Theorist",
+      "surfaces": [
+        "audio-analysis",
+        "engine",
+        "presets",
+        "FX"
+      ],
+      "oneLine": "A music theorist who reads the BPM, key, and chromagram as a sonification of theory and uses the engine to make the analysis visible.",
+      "file": "marketing/personas/full/008-audio-theorist.md"
+    },
+    {
+      "id": "tag-janitor",
+      "slug": "tag-janitor",
+      "label": "The Tag Janitor",
+      "surfaces": [
+        "library",
+        "audio-analysis",
+        "presets",
+        "storyboard"
+      ],
+      "oneLine": "A video editor who curates the library's tag schema so the ShotPicker stops returning traffic clips for tender songs.",
+      "file": "marketing/personas/full/009-tag-janitor.md"
+    },
+    {
+      "id": "auth-projects",
+      "slug": "auth-projects",
+      "label": "The Magic-Link Project Saver",
+      "surfaces": [
+        "projects/auth",
+        "engine",
+        "presets",
+        "storyboard",
+        "recorder"
+      ],
+      "oneLine": "A touring band's visualist who saves 30 named storyboards per tour via the magic-link login and never trusts a browser session.",
+      "file": "marketing/personas/full/010-auth-projects.md"
+    },
+    {
+      "id": "ar-poster-artist",
+      "slug": "ar-poster-artist",
+      "label": "The AR Poster Artist",
+      "surfaces": [
+        "engine",
+        "AR",
+        "recorder",
+        "presets",
+        "transitions"
+      ],
+      "oneLine": "A visual artist who makes AR posters of their own tracks by compositing a song into the engine, exporting a 5-second WebM, and dropping it into /ar-loop for markerless placement in galleries.",
+      "file": "marketing/personas/full/011-ar-poster-artist.md"
+    },
+    {
+      "id": "live-vj",
+      "slug": "live-vj",
+      "label": "The Live VJ",
+      "surfaces": [
+        "presets",
+        "transitions",
+        "recorder",
+        "engine",
+        "FX",
+        "versions"
+      ],
+      "oneLine": "A live VJ who builds hour-long sets from the 19 anchor presets and the 10 CSS transitions, recording each set as a WebM for the venue's archive.",
+      "file": "marketing/personas/full/012-live-vj.md"
+    },
+    {
+      "id": "film-composer",
+      "slug": "film-composer",
+      "label": "The Film Composer",
+      "surfaces": [
+        "storyboard",
+        "library",
+        "auth",
+        "presets",
+        "audio-analysis",
+        "engine"
+      ],
+      "oneLine": "A film composer who saves a storyboard per cue sheet via the magic-link login and reloads the bar-aligned cuts on every spotting session.",
+      "file": "marketing/personas/full/013-film-composer.md"
+    },
+    {
+      "id": "theory-sonifier",
+      "slug": "theory-sonifier",
+      "label": "The Theory Sonifier",
+      "surfaces": [
+        "audio-analysis",
+        "FX",
+        "versions",
+        "recorder",
+        "engine"
+      ],
+      "oneLine": "A music theorist who sonifies chord progressions by pushing the FX pipeline's chroma uniform on each chromagram peak and recording the visual as a WebM for a paper.",
+      "file": "marketing/personas/full/014-theory-sonifier.md"
+    },
+    {
+      "id": "ar-flashcards",
+      "slug": "ar-flashcards",
+      "label": "The AR Flashcard Educator",
+      "surfaces": [
+        "AR",
+        "recorder",
+        "transitions",
+        "engine",
+        "versions"
+      ],
+      "oneLine": "A high-school biology teacher who makes AR flashcards by recording 5-second WebMs of cell division, looping them via /ar-loop, and firing `whip-blur` between phases.",
+      "file": "marketing/personas/full/015-ar-flashcards.md"
+    },
+    {
+      "id": "short-film-scorer",
+      "slug": "short-film-scorer",
+      "label": "The Short-Film Scorer",
+      "surfaces": [
+        "engine",
+        "presets",
+        "storyboard",
+        "recorder",
+        "auth"
+      ],
+      "oneLine": "A short-film composer who authors a named storyboard per cue sheet, locks the variant per cue via the anchor map, and ships the temp reel as WebMs.",
+      "file": "marketing/personas/full/016-short-film-scorer.md"
+    },
+    {
+      "id": "touring-visualist",
+      "slug": "touring-visualist",
+      "label": "The Touring-Band Visualist",
+      "surfaces": [
+        "versions",
+        "FX",
+        "transitions",
+        "AR",
+        "presets"
+      ],
+      "oneLine": "A touring band's stage visualist who picks per-song variants from the 27, fires `glitch-block` on drops, and ships AR merch posters via /ar-loop at the merch table.",
+      "file": "marketing/personas/full/017-touring-visualist.md"
+    },
+    {
+      "id": "data-sonifier",
+      "slug": "data-sonifier",
+      "label": "The Research Data Sonifier",
+      "surfaces": [
+        "audio-analysis",
+        "FX",
+        "recorder",
+        "library",
+        "engine"
+      ],
+      "oneLine": "A research scientist who sonifies climate data by mapping temperature curves to the FX pipeline's chroma uniform and recording the visual as a WebM for a paper.",
+      "file": "marketing/personas/full/018-data-sonifier.md"
+    },
+    {
+      "id": "gallery-curator",
+      "slug": "gallery-curator",
+      "label": "The Gallery Curator",
+      "surfaces": [
+        "engine",
+        "AR",
+        "presets",
+        "recorder",
+        "library"
+      ],
+      "oneLine": "A museum curator who builds an audio-reactive exhibit by compositing ambient tracks into the engine, locking the variant via the anchor map, and shipping AR labels via /ar-loop.",
+      "file": "marketing/personas/full/019-gallery-curator.md"
+    },
+    {
+      "id": "podcast-visual-editor",
+      "slug": "podcast-visual-editor",
+      "label": "The Podcast Visual Editor",
+      "surfaces": [
+        "audio-analysis",
+        "library",
+        "recorder",
+        "FX",
+        "engine"
+      ],
+      "oneLine": "A podcast editor who makes 10-second visual hooks per episode by mapping the chromagram peaks to library stills and recording the WebM for YouTube Shorts.",
+      "file": "marketing/personas/full/020-podcast-visual.md"
+    },
+    {
+      "id": "music-therapist",
+      "slug": "music-therapist",
+      "label": "The Music Therapist",
+      "surfaces": [
+        "engine",
+        "presets",
+        "recorder",
+        "AR",
+        "library"
+      ],
+      "oneLine": "A music therapist with non-verbal clients who builds calming visual environments via the anchor map and ships take-home AR loops for the families.",
+      "file": "marketing/personas/full/021-music-therapist.md"
+    },
+    {
+      "id": "ad-creative-director",
+      "slug": "ad-creative-director",
+      "label": "The Ad Agency Creative Director",
+      "surfaces": [
+        "presets",
+        "transitions",
+        "engine",
+        "auth",
+        "versions",
+        "library"
+      ],
+      "oneLine": "An ad agency creative director who authors three anchor-locked variants per brief, fires `flash-cover` between them, and ships client review links via the magic-link login.",
+      "file": "marketing/personas/full/022-ad-creative-director.md"
+    },
+    {
+      "id": "online-music-teacher",
+      "slug": "online-music-teacher",
+      "label": "The Online Music Teacher",
+      "surfaces": [
+        "engine",
+        "versions",
+        "recorder",
+        "storyboard",
+        "presets"
+      ],
+      "oneLine": "A music teacher running an online course who builds lesson plans as bar-aligned storyboards, picks the variant per concept, and ships lesson WebMs.",
+      "file": "marketing/personas/full/023-online-music-teacher.md"
+    },
+    {
+      "id": "bedroom-producer",
+      "slug": "bedroom-producer",
+      "label": "The Bedroom Producer",
+      "surfaces": [
+        "engine",
+        "presets",
+        "library",
+        "recorder",
+        "versions"
+      ],
+      "oneLine": "A SoundCloud bedroom producer who picks an anchor per track, stacks two loop stills from the library, and records a 30-second WebM for the SoundCloud visual.",
+      "file": "marketing/personas/full/024-bedroom-producer.md"
+    },
+    {
+      "id": "choreographer",
+      "slug": "choreographer",
+      "label": "The Choreographer",
+      "surfaces": [
+        "engine",
+        "FX",
+        "AR",
+        "versions",
+        "audio-analysis",
+        "presets"
+      ],
+      "oneLine": "A choreographer who sonifies the dancers' movements by mapping the chromagram to the FX pipeline's chroma uniform and projecting an AR mirror in the studio.",
+      "file": "marketing/personas/full/025-choreographer.md"
+    },
+    {
+      "id": "wedding-videographer",
+      "slug": "wedding-videographer",
+      "label": "The Wedding Videographer",
+      "surfaces": [
+        "engine",
+        "presets",
+        "versions",
+        "recorder",
+        "library",
+        "transitions"
+      ],
+      "oneLine": "A wedding videographer who authors a 3-minute highlight reel per wedding by stacking ceremony clips, locking the variant via the anchor map, and recording a WebM for the couple.",
+      "file": "marketing/personas/full/026-wedding-videographer.md"
+    },
+    {
+      "id": "album-cover-designer",
+      "slug": "album-cover-designer",
+      "label": "The Album Cover Designer",
+      "surfaces": [
+        "versions",
+        "presets",
+        "FX",
+        "recorder",
+        "engine"
+      ],
+      "oneLine": "An album cover designer who picks the variant per track, freezes the cover frame at the chromagram peak, and records the still as a PNG.",
+      "file": "marketing/personas/full/027-album-cover-designer.md"
+    },
+    {
+      "id": "ar-storyboard-reviewer",
+      "slug": "ar-storyboard-reviewer",
+      "label": "The AR Storyboard Reviewer",
+      "surfaces": [
+        "AR",
+        "storyboard",
+        "recorder",
+        "auth",
+        "presets"
+      ],
+      "oneLine": "A film director who reviews the composer's storyboard as a markerless AR loop in the spotting session and records the AR scene as a WebM for the studio's archive.",
+      "file": "marketing/personas/full/028-ar-storyboard-reviewer.md"
+    }
+  ]
+}

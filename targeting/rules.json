@@ -1,0 +1,583 @@
+{
+  "version": "swr-targeting-rules/v1",
+  "variants": [
+    "neon",
+    "film",
+    "grid",
+    "smoke",
+    "hallucination"
+  ],
+  "transitions": [
+    "whip-blur",
+    "glitch-block",
+    "zoom-through",
+    "flash-cover",
+    "paint-stroke",
+    "chromatic-split",
+    "swivel",
+    "circle-wipe",
+    "warp-dissolve",
+    "lens-flare",
+    "fade-to-black",
+    "pure-crossfade",
+    "linear-wipe-lr",
+    "linear-wipe-tb",
+    "diagonal-wipe",
+    "iris-in",
+    "pixelation-ramp",
+    "chroma-burst",
+    "glitch-burst",
+    "glow-burst",
+    "liquid-burst",
+    "ripple-burst",
+    "kaleidoscope-burst",
+    "vignette-punch",
+    "snap-zoom",
+    "negative-pop",
+    "vhs-tracking",
+    "object-pass-through",
+    "particle-wipe"
+  ],
+  "personaSurfaces": {
+    "ar-loop-poster": [
+      "AR",
+      "REC",
+      "LIB",
+      "PST"
+    ],
+    "storyboard-editor": [
+      "STORY",
+      "LIB",
+      "AUD",
+      "PST",
+      "AAP"
+    ],
+    "version-hopper": [
+      "VER",
+      "PST",
+      "TX",
+      "REC"
+    ],
+    "fx-surgeon": [
+      "FX",
+      "PST",
+      "AUD",
+      "REC"
+    ],
+    "transition-choreo": [
+      "TX",
+      "ENG",
+      "LIB",
+      "REC"
+    ],
+    "recorder-renderer": [
+      "REC",
+      "ENG",
+      "VER",
+      "TX",
+      "LIB"
+    ],
+    "anchor-curator": [
+      "PST",
+      "LIB",
+      "FX",
+      "VER",
+      "AUD"
+    ],
+    "audio-theorist": [
+      "AUD",
+      "ENG",
+      "PST",
+      "FX"
+    ],
+    "tag-janitor": [
+      "LIB",
+      "AUD",
+      "PST",
+      "STORY"
+    ],
+    "auth-projects": [
+      "AAP",
+      "ENG",
+      "PST",
+      "STORY",
+      "REC"
+    ],
+    "ar-poster-artist": [
+      "ENG",
+      "AR",
+      "REC",
+      "PST",
+      "TX"
+    ],
+    "live-vj": [
+      "PST",
+      "TX",
+      "REC",
+      "ENG",
+      "FX",
+      "VER"
+    ],
+    "film-composer": [
+      "STORY",
+      "LIB",
+      "AAP",
+      "PST",
+      "AUD",
+      "ENG"
+    ],
+    "theory-sonifier": [
+      "AUD",
+      "FX",
+      "VER",
+      "REC",
+      "ENG"
+    ],
+    "ar-flashcards": [
+      "AR",
+      "REC",
+      "TX",
+      "ENG",
+      "VER"
+    ],
+    "short-film-scorer": [
+      "ENG",
+      "PST",
+      "STORY",
+      "REC",
+      "AAP"
+    ],
+    "touring-visualist": [
+      "VER",
+      "FX",
+      "TX",
+      "AR",
+      "PST"
+    ],
+    "data-sonifier": [
+      "AUD",
+      "FX",
+      "REC",
+      "LIB",
+      "ENG"
+    ],
+    "gallery-curator": [
+      "ENG",
+      "AR",
+      "PST",
+      "REC",
+      "LIB"
+    ],
+    "podcast-visual-editor": [
+      "AUD",
+      "LIB",
+      "REC",
+      "FX",
+      "ENG"
+    ],
+    "music-therapist": [
+      "ENG",
+      "PST",
+      "REC",
+      "AR",
+      "LIB"
+    ],
+    "ad-creative-director": [
+      "PST",
+      "TX",
+      "ENG",
+      "AAP",
+      "VER",
+      "LIB"
+    ],
+    "online-music-teacher": [
+      "ENG",
+      "VER",
+      "REC",
+      "STORY",
+      "PST"
+    ],
+    "bedroom-producer": [
+      "ENG",
+      "PST",
+      "LIB",
+      "REC",
+      "VER"
+    ],
+    "choreographer": [
+      "ENG",
+      "FX",
+      "AR",
+      "VER",
+      "AUD",
+      "PST"
+    ],
+    "wedding-videographer": [
+      "ENG",
+      "PST",
+      "VER",
+      "REC",
+      "LIB",
+      "TX"
+    ],
+    "album-cover-designer": [
+      "VER",
+      "PST",
+      "FX",
+      "REC",
+      "ENG"
+    ],
+    "ar-storyboard-reviewer": [
+      "AR",
+      "STORY",
+      "REC",
+      "AAP",
+      "PST"
+    ]
+  },
+  "banned": [
+    "ai-powered",
+    "cutting-edge",
+    "ecosystem",
+    "elevate",
+    "empower",
+    "game-changing",
+    "revolutionize",
+    "robust",
+    "seamless",
+    "synergy",
+    "unleash",
+    "unlock",
+    "we're excited to announce"
+  ],
+  "personaToVariants": {
+    "ar-loop-poster": [
+      "smoke",
+      "film",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "storyboard-editor": [
+      "film",
+      "smoke",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "version-hopper": [
+      "neon",
+      "film",
+      "grid",
+      "smoke",
+      "hallucination"
+    ],
+    "fx-surgeon": [
+      "film",
+      "smoke",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "transition-choreo": [
+      "neon",
+      "grid",
+      "film",
+      "smoke",
+      "hallucination"
+    ],
+    "recorder-renderer": [
+      "film",
+      "grid",
+      "neon",
+      "smoke",
+      "hallucination"
+    ],
+    "anchor-curator": [
+      "neon",
+      "film",
+      "grid",
+      "smoke",
+      "hallucination"
+    ],
+    "audio-theorist": [
+      "smoke",
+      "film",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "tag-janitor": [
+      "grid",
+      "film",
+      "neon",
+      "smoke",
+      "hallucination"
+    ],
+    "auth-projects": [
+      "film",
+      "grid",
+      "neon",
+      "smoke",
+      "hallucination"
+    ],
+    "ar-poster-artist": [
+      "smoke",
+      "hallucination",
+      "neon",
+      "film",
+      "grid"
+    ],
+    "live-vj": [
+      "hallucination",
+      "neon",
+      "film",
+      "grid",
+      "smoke"
+    ],
+    "film-composer": [
+      "film",
+      "smoke",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "theory-sonifier": [
+      "smoke",
+      "hallucination",
+      "neon",
+      "film",
+      "grid"
+    ],
+    "ar-flashcards": [
+      "grid",
+      "neon",
+      "film",
+      "smoke",
+      "hallucination"
+    ],
+    "short-film-scorer": [
+      "film",
+      "smoke",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "touring-visualist": [
+      "hallucination",
+      "neon",
+      "film",
+      "grid",
+      "smoke"
+    ],
+    "data-sonifier": [
+      "grid",
+      "hallucination",
+      "neon",
+      "film",
+      "smoke"
+    ],
+    "gallery-curator": [
+      "film",
+      "smoke",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "podcast-visual-editor": [
+      "film",
+      "grid",
+      "neon",
+      "smoke",
+      "hallucination"
+    ],
+    "music-therapist": [
+      "smoke",
+      "film",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "ad-creative-director": [
+      "neon",
+      "grid",
+      "film",
+      "smoke",
+      "hallucination"
+    ],
+    "online-music-teacher": [
+      "grid",
+      "film",
+      "neon",
+      "smoke",
+      "hallucination"
+    ],
+    "bedroom-producer": [
+      "neon",
+      "film",
+      "grid",
+      "smoke",
+      "hallucination"
+    ],
+    "choreographer": [
+      "neon",
+      "hallucination",
+      "film",
+      "grid",
+      "smoke"
+    ],
+    "wedding-videographer": [
+      "film",
+      "smoke",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "album-cover-designer": [
+      "film",
+      "smoke",
+      "neon",
+      "grid",
+      "hallucination"
+    ],
+    "ar-storyboard-reviewer": [
+      "grid",
+      "film",
+      "neon",
+      "smoke",
+      "hallucination"
+    ]
+  },
+  "personaToTransitions": {
+    "version-hopper": [
+      "whip-blur",
+      "snap-zoom",
+      "zoom-through",
+      "fade-to-black"
+    ],
+    "fx-surgeon": [
+      "chromatic-split",
+      "glitch-block",
+      "pure-crossfade",
+      "negative-pop"
+    ],
+    "transition-choreo": [
+      "whip-blur",
+      "zoom-through",
+      "swivel",
+      "circle-wipe",
+      "iris-in",
+      "warp-dissolve",
+      "kaleidoscope-burst"
+    ],
+    "recorder-renderer": [
+      "fade-to-black",
+      "pure-crossfade"
+    ],
+    "live-vj": [
+      "glitch-block",
+      "chromatic-split",
+      "chroma-burst",
+      "vhs-tracking",
+      "negative-pop",
+      "snap-zoom"
+    ],
+    "ar-flashcards": [
+      "iris-in",
+      "circle-wipe",
+      "pure-crossfade"
+    ],
+    "touring-visualist": [
+      "vhs-tracking",
+      "chromatic-split",
+      "chroma-burst",
+      "particle-wipe"
+    ],
+    "ad-creative-director": [
+      "flash-cover",
+      "snap-zoom",
+      "linear-wipe-lr",
+      "whip-blur"
+    ],
+    "choreographer": [
+      "swivel",
+      "circle-wipe",
+      "whip-blur",
+      "snap-zoom"
+    ],
+    "wedding-videographer": [
+      "pure-crossfade",
+      "fade-to-black",
+      "lens-flare",
+      "glow-burst"
+    ]
+  },
+  "personaToSegment": {
+    "ar-loop-poster": "video-creators",
+    "storyboard-editor": "video-creators",
+    "version-hopper": "video-creators",
+    "fx-surgeon": "music-creators",
+    "transition-choreo": null,
+    "recorder-renderer": "video-creators",
+    "anchor-curator": "music-creators",
+    "audio-theorist": "music-creators",
+    "tag-janitor": null,
+    "auth-projects": null,
+    "ar-poster-artist": "casual-creators",
+    "live-vj": null,
+    "film-composer": "video-creators",
+    "theory-sonifier": "music-creators",
+    "ar-flashcards": "casual-creators",
+    "short-film-scorer": "video-creators",
+    "touring-visualist": "video-creators",
+    "data-sonifier": "music-creators",
+    "gallery-curator": "casual-creators",
+    "podcast-visual-editor": "video-creators",
+    "music-therapist": "music-creators",
+    "ad-creative-director": "video-creators",
+    "online-music-teacher": "educators",
+    "bedroom-producer": "music-creators",
+    "choreographer": "video-creators",
+    "wedding-videographer": "video-creators",
+    "album-cover-designer": "music-creators",
+    "ar-storyboard-reviewer": "educators"
+  },
+  "personaToSurfaceHint": {
+    "ar-loop-poster": "/ar-loop",
+    "version-hopper": "/versions/",
+    "fx-surgeon": "/versions/film.html",
+    "ar-poster-artist": "/ar-loop",
+    "film-composer": "/versions/film.html",
+    "ar-flashcards": "/ar-loop"
+  },
+  "personaToNote": {
+    "ar-loop-poster": "Post it straight from your phone. Free, no signup.",
+    "storyboard-editor": "Scenes on a timeline, not a spreadsheet. Free, no signup.",
+    "version-hopper": "Twenty-nine looks, one song. Free, no signup.",
+    "fx-surgeon": "Your existing folder suddenly feels alive. Free, no signup.",
+    "transition-choreo": "Every transition waits for your hand. Free, no signup.",
+    "recorder-renderer": "Ten-second WebMs, straight to disk. Free, no signup.",
+    "anchor-curator": "Drop in your song and watch it move. Free, no signup.",
+    "audio-theorist": "BPM, key and chromagram, right on the panel. Free, no signup.",
+    "tag-janitor": "Tag-only mode is on. Free, no signup.",
+    "auth-projects": null,
+    "ar-poster-artist": "Make something cool in a minute. Free, no signup.",
+    "live-vj": "Build the set list. Free, no signup.",
+    "film-composer": "Drop in your clips and watch them move. Free, no signup.",
+    "theory-sonifier": "Drop in your song and watch it move. Free, no signup.",
+    "ar-flashcards": "Make something cool in a minute. Free, no signup.",
+    "short-film-scorer": "Drop in your clips and watch them move. Free, no signup.",
+    "touring-visualist": "Drop in your clips and watch them move. Free, no signup.",
+    "data-sonifier": "Drop in your song and watch it move. Free, no signup.",
+    "gallery-curator": "Everything stays on your machine. Free, no signup.",
+    "podcast-visual-editor": "Drop in your clips and watch them move. Free, no signup.",
+    "music-therapist": "Drop in your song and watch it move. Free, no signup.",
+    "ad-creative-director": "Drop in your clips and watch them move. Free, no signup.",
+    "online-music-teacher": "Your lecture finally has a pulse. Free, no signup.",
+    "bedroom-producer": "Reacts to your actual song, not templates. Free, no signup.",
+    "choreographer": "Drop in your clips and watch them move. Free, no signup.",
+    "wedding-videographer": "Drop in your clips and watch them move. Free, no signup.",
+    "album-cover-designer": "Drop in your song and watch it move. Free, no signup.",
+    "ar-storyboard-reviewer": "Your lecture finally has a pulse. Free, no signup."
+  }
+}

@@ -559,6 +559,14 @@
   }
 
   function fire(name, opts) {
+    // Targeted Engine signal: one place covers every caller (panel, keyboard,
+    // hotkey, auto-fire). Guarded so the engine works unchanged when the
+    // module is absent.
+    try {
+      if (window.SWR_TARGETING && window.SWR_TARGETING.signals) {
+        window.SWR_TARGETING.signals.record({ kind: 'transition', payload: { name: name, src: opts && opts._src ? opts._src : null } });
+      }
+    } catch (_) { /* never break a transition */ }
     if (SPECIAL.has(name)) {
       const job = () => {
         const r = name === 'frame-freeze-zoom' ? fireFrameFreezeZoom()

@@ -281,6 +281,15 @@
       opt.textContent = v.name;
       sel.appendChild(opt);
     }
+    // Targeted Engine hook: hand the select to window.SWR_TARGETING so a
+    // classified persona can reorder the options (most-relevant first). The
+    // module may not be loaded (preview pages) — then this is a no-op and the
+    // option order is exactly what it was before.
+    try {
+      if (window.SWR_TARGETING && typeof window.SWR_TARGETING.maybeReorderVariants === 'function') {
+        window.SWR_TARGETING.maybeReorderVariants(sel, VARIANTS.map((v) => v.id));
+      }
+    } catch (_) { /* never break the variant switcher */ }
     sel.addEventListener('change', () => {
       const v = sel.value;
       if (!v || v === 'off') window.SWR_VARIANTS.deactivate();

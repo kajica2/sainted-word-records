@@ -1,0 +1,23 @@
+{
+  "version": "swr-targeting-voice/v1",
+  "source": "marketing/scripts/README.md",
+  "banned": [
+    "ai-powered",
+    "cutting-edge",
+    "ecosystem",
+    "elevate",
+    "empower",
+    "game-changing",
+    "revolutionize",
+    "robust",
+    "seamless",
+    "synergy",
+    "unleash",
+    "unlock",
+    "we're excited to announce"
+  ],
+  "requiredIfCta": [
+    "free",
+    "no signup"
+  ]
+}

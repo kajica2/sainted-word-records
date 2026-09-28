@@ -1,0 +1,26 @@
+{
+  "version": "swr-targeting-segments/v1",
+  "source": "marketing/scripts/0N-*.md",
+  "segments": [
+    {
+      "id": "music-creators",
+      "label": "Music Creators",
+      "script": "marketing/scripts/01-music-creators.md"
+    },
+    {
+      "id": "video-creators",
+      "label": "Video Creators",
+      "script": "marketing/scripts/02-video-creators.md"
+    },
+    {
+      "id": "educators",
+      "label": "Educators",
+      "script": "marketing/scripts/03-educators.md"
+    },
+    {
+      "id": "casual-creators",
+      "label": "Casual Creators",
+      "script": "marketing/scripts/04-casual-creators.md"
+    }
+  ]
+}

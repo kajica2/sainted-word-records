@@ -1,6 +1,6 @@
 # CI verify strategy
 
-Date: 2026-08-25
+Date: 2026-09-28 (5th verifier — retry-once added to `verify-e2e-media-record`)
 
 ## The shape we picked
 
@@ -91,6 +91,32 @@ These have been replaced or superseded by something in the 5:
 If we want to physically move these into `verify-archive/` next, the
 migration is straightforward (rename + ignore update), but we deferred
 it to keep this PR focused on *wiring* CI rather than *renaming* files.
+
+## Notes
+
+### 2026-09-28 — `verify-e2e-media-record` flake hardened
+
+The 5th verifier failed twice in CI on PR #119 (`feat/targeted-engine`),
+each time at the `Recorder._save never fired` assertion. The flake is a
+known headless timing issue: the in-page `start()` call must produce a
+blob within a 5.5s wall budget, and a cold Chromium on the GitHub
+runner occasionally misses that window because GPU canvas capture +
+MediaRecorder warm-up haven't settled yet. The same script passes 3/3
+locally against the same Vercel URL the CI defaults to, minutes after
+the CI failure — so the flake is non-locality-bound.
+
+The fix is a single retry-once, scoped to the recording step: if
+`_save` never fires on the first attempt, reload the page, wait for
+`SWR.Layers` to populate, re-click `#swr-start` (autoplay policy
+requires a user gesture), and re-run the record cycle. The retry fires
+only on the `_save never fired` error — header-decode or size-assertion
+failures still throw immediately, because those mean a blob DID arrive
+and the payload is genuinely bad (which is more useful signal than
+masking it).
+
+Worst-case wall time on the retry path: original ~12s + reload +
+30s readiness poll + 2.5s audio wait + 5.5s record ≈ 51s, well inside
+the verifier's 60s per-script budget.
 
 ## Files added in this change
 

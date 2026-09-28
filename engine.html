@@ -1094,6 +1094,46 @@
     .swr-tx-rec-chip.secondary { opacity: 0.6; }
     .swr-tx-rec-chip.kind-css { border-color: var(--accent-2); }
     .swr-tx-rec-chip.kind-fx  { border-color: var(--accent-3); }
+    /* Targeted Engine banner (client/targeting.client.js) */
+    .swr-targeting-banner {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 9000;
+      max-width: 360px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--bg-1);
+      color: var(--fg);
+      border: 1px solid var(--line-2);
+      border-left: 2px solid var(--accent-2);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.45;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    }
+    .swr-targeting-banner[hidden] { display: none; }
+    .swr-targeting-banner__text { flex: 1; }
+    .swr-targeting-banner__cta {
+      color: var(--accent-2);
+      text-decoration: none;
+      white-space: nowrap;
+      border-bottom: 1px solid currentColor;
+    }
+    .swr-targeting-banner__close {
+      background: none;
+      border: 0;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .swr-targeting-banner__close:hover { color: var(--fg); }
+    #swr-tx-pick option[data-swr-pin="1"] { color: var(--accent-2); }
     .beat-led {
       width: 10px; height: 10px;
       border-radius: 50%;
@@ -1658,6 +1698,11 @@
     }
   </style>
 <script src="/fx-background.client.js" defer></script>
+  <!-- Targeted Engine. Must load BEFORE variant-switcher so
+       window.SWR_TARGETING exists when that module's wireUI() runs and asks
+       it to reorder the #variant options. Defer keeps it off the critical
+       path (NFR-5). -->
+  <script src="/client/targeting.client.js" defer></script>
   <script src="/client/variant-switcher.client.js" defer></script>
   <script src="/client/default-library.client.js" defer></script>
 </head>
@@ -2615,6 +2660,12 @@
       </div>
     </div>
   </div>
+
+  <!-- Targeted Engine banner (client/targeting.client.js). Hidden until the
+       session is classified into a persona with banner copy; dismissible, and
+       a dismissal suppresses that surface for 7 days. -->
+  <div id="swr-targeting-banner" class="swr-targeting-banner" role="status"
+       aria-live="polite" hidden></div>
 
   <!-- Daily Practice modal -->
   <div id="daily-modal" class="daily-modal" hidden>
@@ -5465,7 +5516,17 @@
       }
       // Wire preset dropdown
       const presetSel = document.getElementById('preset');
-      if (presetSel) presetSel.addEventListener('change', (e) => applyPreset(e.target.value));
+      if (presetSel) presetSel.addEventListener('change', (e) => {
+        // Targeted Engine signal (FR-3: preset changes are a classification
+        // input). Guarded so the engine works unchanged when the module is
+        // absent.
+        try {
+          if (window.SWR_TARGETING && window.SWR_TARGETING.signals) {
+            window.SWR_TARGETING.signals.record({ kind: 'preset', payload: { id: e.target.value } });
+          }
+        } catch (_) { /* never break the preset dropdown */ }
+        applyPreset(e.target.value);
+      });
       // Wire STORY controls (mode select, AUTO checkbox, action buttons).
       // The chapter pills inside #story-chapters are populated by Story.renderStrip()
       // itself (which has access to the private state closure).

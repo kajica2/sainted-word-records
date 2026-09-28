@@ -85,6 +85,15 @@ jobs:
         # deploys on push to main independently of this job.
         run: npm run check:full
 
+      - name: targeting:verify (targeting artifacts + voice lint)
+        # Own step, not folded into check:full: it is the NFR-2 size budget,
+        # the NFR-9 voice-lint drift gate (the banned-phrase list must still
+        # match marketing/scripts/README.md) and the FR-19 CTA contract on
+        # every banner note. Regenerating the artifacts from
+        # marketing/personas/full/ + marketing/scripts/ must reproduce the
+        # committed targeting/*.json byte-for-byte.
+        run: npm run targeting:verify
+
       - name: verify:automix-arc (the arc drives FX.state)
         # Deliberately its OWN step, not a member of the check:full chain.
         # check:full is an `&&` chain and the step above is

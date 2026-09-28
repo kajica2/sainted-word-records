@@ -84,6 +84,8 @@ const GROUPS = {
     'npm run check:dashboard',
     'npm run check:variant-switcher-unit',
     'npm run check:variant-switcher-smoke',
+    'npm run check:targeting-unit',
+    'npm run targeting:verify',
     'npm run check:media-input-unit',
     'npm run check:spit-live-unit',
     'npm run check:capture-unit',
@@ -111,6 +113,7 @@ const GROUPS = {
     'npm run verify:genops',
     'npm run verify:story-graph',
     'npm run check:capture-smoke',
+    'npm run check:targeting-smoke',
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
     // Needs a built dist/ (ensureDist builds when stale): asserts every

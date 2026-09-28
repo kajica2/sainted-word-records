@@ -112,6 +112,41 @@ function inlineAutomixConfig() {
   };
 }
 
+// Vite plugin: inline-targeting-rules — injects targeting/rules.json into
+// dist/engine.html as <script type="application/json"
+// id="swrc-targeting-rules"> immediately before </head>, so
+// client/targeting.client.js can read the persona→UI affinity table from the
+// DOM at boot and never depend on a runtime fetch.
+//
+// Why inline rather than fetch-only: /engine/ is the PWA entrypoint and the
+// targeting feature must keep working offline (NFR-15). sw.js precaches the
+// app shell; it does not precache a new /targeting/rules.json URL, so a
+// fetch-only implementation would silently degrade to no-targeting offline.
+// The runtime still falls back to fetching /targeting/rules.json when the
+// inline tag is absent (e.g. the dev server, where this plugin does not run).
+//
+// Runs on closeBundle, after copy-static has written dist/engine.html.
+function inlineTargetingRules() {
+  let outDir = 'dist';
+  return {
+    name: 'inline-targeting-rules',
+    configResolved(config) {
+      outDir = config.build.outDir || 'dist';
+    },
+    closeBundle() {
+      const rulesPath = resolve('targeting/rules.json');
+      const htmlPath = resolve(outDir, 'engine.html');
+      if (!existsSync(rulesPath) || !existsSync(htmlPath)) return;
+      const html = readFileSync(htmlPath, 'utf8');
+      if (html.includes('id="swrc-targeting-rules"')) return; // idempotent
+      const json = readFileSync(rulesPath, 'utf8');
+      const tag = `<script type="application/json" id="swrc-targeting-rules">${json}</script>`;
+      writeFileSync(htmlPath, html.replace('</head>', `${tag}\n</head>`));
+      process.stdout.write('[inline-targeting-rules] inlined targeting/rules.json\n');
+    },
+  };
+}
+
 // Vite plugin: copy ./versions/*, ./audios/*, and the GitHub project files
 // to the Vite-resolved outDir.
 //
@@ -368,6 +403,12 @@ function copyStatic() {
     { src: 'portfolio', dst: 'portfolio' },
     { src: 'keyart', dst: 'keyart' },
     { src: 'presets', dst: 'presets' },
+    // Targeting artifacts (targeting-pipeline/ output): ontology.json,
+    // segments.json, rules.json, voice-lint.json. Read at runtime by
+    // client/targeting.client.js; rules.json is ALSO inlined into
+    // engine.html by the inline-targeting-rules plugin so the targeting
+    // feature works offline (NFR-15) without the SW precaching a new URL.
+    { src: 'targeting', dst: 'targeting' },
     { src: 'press', dst: 'press' },
     { src: 'legal', dst: 'legal' },
     // marketplace/curated/ ships the starter .swr-set files. The
@@ -595,6 +636,7 @@ export default defineConfig(({ command, mode }) => {
         },
       },
       inlineAutomixConfig(),
+      inlineTargetingRules(),
     ],
     server: {
       port: 5174,

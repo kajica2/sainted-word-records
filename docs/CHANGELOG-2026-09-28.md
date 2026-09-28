@@ -204,3 +204,60 @@ ship (v1–v10 via `vite.config.js` rootFiles, v11 via site-map).
 
 Verified on `/personas/`: **17 register links, all HTTP 200**, no page failures;
 `check:dist-links` 4/4; `verify:site-nav` 13/13; `npm run check` 40 steps.
+
+---
+
+## Targeted Engine: client-side persona/segment classification that adapts `/engine`
+
+New `targeting-pipeline/` (mirrors `preset-pipeline/`) generates four artifacts
+from the existing marketing sources — nothing about the persona set is
+hand-maintained twice:
+
+| Artifact | Source | Size |
+|---|---|---|
+| `targeting/ontology.json` | `marketing/personas/full/*.md` (28 files) | 13.0 KB |
+| `targeting/segments.json` | `marketing/scripts/0N-*.md` (4 scripts) | 0.6 KB |
+| `targeting/rules.json` | ontology + segments + `client/variant-switcher.client.js` + `engine-transitions.client.js` | 11.4 KB |
+| `targeting/voice-lint.json` | `marketing/scripts/README.md` brand-voice bullets | 0.4 KB |
+
+`targeting-pipeline/verify.mjs` gates the set: exactly 28 personas, exactly 4
+segments, a total persona→segment mapping, variant orderings that are a
+permutation of the real `#variant` ids, 0 orphan variant/transition ids,
+voice-lint equality with a fresh README extraction (drift detection), the FR-19
+CTA contract on every banner note, and the NFR-2 combined ≤ 200 KB budget.
+
+`client/targeting.client.js` (`window.SWR_TARGETING`) is the runtime: a rolling
+200-signal window persisted to a **separate** IndexedDB DB (`swr-targeting`,
+nothing else reads it, nothing uploads it), a rule-based classifier (measured
+0.03 ms over a full window — NFR-1 is 50 ms), variant reordering, transition
+pinning, a dismissible banner, and a "Not me" correction that decays with a
+14-day half-life. Three invariants are enforced in code rather than by
+convention:
+
+- **FR-10** — `showBanner()` refuses any CTA whose `kind` is not
+  `magic-link`/`magic`/`verify`/`code`/`email`; an OAuth hint invalidates the
+  whole banner and no DOM is touched.
+- **FR-7** — pinning only adds `data-swr-pin` to `#swr-tx-pick` options; it
+  never calls `SWRTransitions.setAutoFire()`, so nothing auto-fires.
+- **NFR-10** — every public method is wrapped; a blocked IDB, a missing rules
+  table or a throwing classifier leaves the engine in its default untargeted
+  state.
+
+Wiring: one `defer` script tag in `engine.html` (before `variant-switcher`),
+one hook call in `client/variant-switcher.client.js`'s `wireUI()`, one
+transition signal inside `SWRTransitions.fire()` (covers every caller), and one
+preset signal on `#preset`'s change handler. `vite.config.js` gains a
+`targeting/` copy entry and an `inline-targeting-rules` plugin so the built
+`/engine/` carries the rules table inline and keeps working offline (NFR-15).
+
+Note on the plan's numbers: the repo's `#variant` select holds **five** variant
+ids (`neon, film, grid, smoke, hallucination`), not 27 — the 29 files under
+`versions/` are standalone pages; and the README's banned list is **13**
+phrases. Both the artifact build and the tests use the verified counts.
+
+Gates: `check:targeting-unit` (26 assertions incl. the UC-001…UC-007 signature
+rules and the tag-janitor precision case), `targeting:verify`, and
+`check:targeting-smoke` in `check:full`; `verify:targeting` drives a synthetic
+AR×2 + preset session through the live page and asserts the reorder plus the
+dismissal path. `npm run check` is now **42 steps**, all green;
+`check:dist-links` 4/4.
