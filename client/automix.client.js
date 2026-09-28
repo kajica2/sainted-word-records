@@ -1,26 +1,26 @@
 // client/automix.client.js
-// Self-evolving smart automixer for the music_video page.
+// Pure mix engine for the automix stack (window.SWR_AUTOMIX). Engine-agnostic:
+// loaded by engine.html, dashboard.html and all 24 versions/*.html pages, and
+// consumed by client/automix-runtime.client.js — the orchestrator that owns
+// window.SWR._fxOverride (this module never writes it).
 //
-// While enabled, periodically synthesizes a fresh fx_state preset by:
-//   1. Mapping the live audio features (bass/mid/treb/beat/rms/centroid/
+// Given live audio features + a section, mix() synthesizes a fresh fx_state:
+//   1. Maps the live audio features (bass/mid/treb/beat/rms/centroid/
 //      onset/bpm) into the same 2D (warmth, intensity) space as
 //      SWR_ANCHOR_MAP.
-//   2. (Phase 2) Filtering the anchor pool by the current song section
+//   2. (Phase 2) Filters the anchor pool by the current song section
 //      (intro/verse/chorus/etc) so chorus pulls a different blend than
 //      breakdown.
-//   3. Looking up the N nearest anchor presets.
-//   4. Returning a weighted blend of those anchors' fx_state values.
-//   5. (Phase 1.3) Applying beat-phased mutation drift on every detected
+//   3. Looks up the N nearest anchor presets.
+//   4. Returns a weighted blend of those anchors' fx_state values.
+//   5. (Phase 1.3) Applies beat-phased mutation drift on every detected
 //      downbeat so the visual evolves instead of locking.
 //   6. (Phase 3) Stuck detection + anti-pattern injection on flat audio.
 //
-// The page consumes the blended fx_state via window.SWR._fxOverride;
-// the GLSL render loop reads each frame and blends it on top of the
-// static page preset.
-//
-// (Phase 1.2) The render loop interpolates from the previous override
-// toward the new one with a smoothstep ramp over `RAMP_MS` so blends
-// evolve continuously instead of snapping.
+// The runtime hands the returned preset to window.SWR._fxOverride; the GLSL
+// render loop reads it each frame and blends it on top of the page preset,
+// interpolating from the previous override with a smoothstep ramp over
+// `RAMP_MS` so blends evolve continuously instead of snapping (Phase 1.2).
 //
 // Pure (no DOM, no audio reads outside the passed-in `features`
 // argument) so it can be unit-tested under Node without a browser.

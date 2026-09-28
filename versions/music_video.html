@@ -3727,6 +3727,12 @@
         try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch (_) {}
       },
     };
+    // Expose the inline orchestrator on window.automix. automix-composition
+    // .client.js (which this page loads) polls window.automix for its no-arc
+    // fallback; without this it is dead here. The real fix is migrating this
+    // page to client/automix-runtime.client.js, which sets window.automix
+    // itself — tracked separately.
+    window.automix = automix;
     const _toggleBtn = document.getElementById('automix-toggle');
     if (_toggleBtn) _toggleBtn.addEventListener('click', () => automix.toggle());
 

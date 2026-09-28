@@ -72,6 +72,10 @@ const AUTOMIX_SCRIPTS = [
   'automix-session-store.client.js',
   'asset-curator.client.js',
   'library-packs.client.js',
+  // Composition coupling (act-driven clip cutting). Shipped by engine.html
+  // and all 22 variants; without it the arc drives the colour grade but not
+  // the media cutting, and nothing asserted its presence.
+  'automix-composition.client.js',
 ];
 
 // Automix-min stack — the 17 artistic variants ship a deliberately lighter
@@ -85,6 +89,8 @@ const AUTOMIX_MIN_SCRIPTS = [
   'anchor-embed.js',
   'automix.client.js',
   'automix-runtime.client.js',
+  // All 17 artistic variants ship act-driven clip cutting too.
+  'automix-composition.client.js',
 ];
 
 const RUNTIME_SCRIPTS = [
@@ -248,6 +254,19 @@ async function checkSurface(page, label, path, expectsStack) {
   else fail(`${label}: runtime scripts`, `missing: ${missingRuntime.join(', ')}`);
 
   if (expectsStack) {
+    // Full automix stack (engine.html + the 5 core variants). AUTOMIX_SCRIPTS
+    // was previously declared but never asserted — which is exactly why
+    // engine.html's missing automix-composition.client.js went unnoticed.
+    const stackStatus = await page.evaluate((scripts) => {
+      const nodes = Array.from(document.querySelectorAll('script[src]'));
+      const out = {};
+      for (const s of scripts) out[s] = nodes.some(n => (n.getAttribute('src') || '').includes(s));
+      return out;
+    }, AUTOMIX_SCRIPTS);
+    const missingStack = Object.entries(stackStatus).filter(([, v]) => !v).map(([k]) => k);
+    if (missingStack.length === 0) ok(`${label}: full automix stack present (${AUTOMIX_SCRIPTS.length} scripts)`);
+    else fail(`${label}: automix stack`, `missing: ${missingStack.join(', ')}`);
+
     // Panel IDs (18)
     const panelStatus = await page.evaluate((ids) => {
       const out = {};

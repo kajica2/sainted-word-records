@@ -70,7 +70,8 @@ function makeWorker() {
 }
 
 // ---- Composition harness: event shim + scheduler stub --------------------
-function makeComposition() {
+function makeComposition(opts) {
+  opts = opts || {};
   const listeners = {};
   const sched = {
     configs: [], progress: [], swapNows: 0,
@@ -84,14 +85,18 @@ function makeComposition() {
     setInterval: () => 0, clearInterval: () => {},
     setTimeout: () => 0, clearTimeout: () => {},
     CustomEvent: function (type, opts) { this.type = type; this.detail = opts && opts.detail; },
+    URL: opts.url || { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} },
     window: {
       addEventListener: (t, fn) => { (listeners[t] = listeners[t] || []).push(fn); },
-      SWR: { Layers: { list: [] } }, // auto-populate is a no-op with an empty pool
+      // auto-populate runs when the stage is empty; `add` must exist for the
+      // media-pool path (mediaWraps) to be reached.
+      SWR: { Layers: { list: opts.layers || [], add: () => {} } },
       automix: {
         enabled: true,
         arc: { acts: [{ name: 'intro' }, { name: 'peak' }, { name: 'breakdown' }] },
       },
       SWR_LAYER_SCHEDULER: sched,
+      __SWR_COMPOSITION_MEDIA: opts.media || [],
     },
     document: { dispatchEvent: () => {} },
   };
@@ -100,6 +105,7 @@ function makeComposition() {
   vm.runInContext(compSrc, sb);
   return {
     sched,
+    win: sb.window,
     dispatch(type, detail) {
       (listeners[type] || []).forEach((fn) => fn({ detail }));
     },
@@ -373,6 +379,33 @@ check('22. corrupt persisted mirror mode falls back to vertical', () => {
   vm.runInContext(natSrc, sb);
   assert(sb.window.SWR_NATURAL.mirror() === 'vertical',
     'corrupt value must fall back, got ' + sb.window.SWR_NATURAL.mirror());
+});
+
+// 23. Media-pool object URLs are built once and revoked on change (the
+//     old apply() leaked one createObjectURL per item per act change).
+check('23. composition: media pool builds object URLs once and revokes on change', () => {
+  const created = [], revoked = [];
+  const url = {
+    createObjectURL: () => { const u = 'blob:u' + created.length; created.push(u); return u; },
+    revokeObjectURL: (u) => revoked.push(u),
+  };
+  const media = [
+    { id: 'm1', name: 'a', mime: 'image/png', blob: {} },
+    { id: 'm2', name: 'b', mime: 'video/mp4', blob: {} },
+  ];
+  const c = makeComposition({ layers: [], media, url });
+  c.dispatch('swr-automix-glide', { actIndex: 0, actName: 'intro', actProgress: 0 });
+  assert(created.length === 2, 'two URLs on first apply, got ' + created.length);
+  // Same contents, new array identity (the poll rebuilds the array) → cache hit.
+  c.win.__SWR_COMPOSITION_MEDIA = media.slice();
+  c.dispatch('swr-automix-glide', { actIndex: 1, actName: 'peak', actProgress: 0 });
+  assert(created.length === 2, 'no new URLs when the pool is unchanged, got ' + created.length);
+  assert(revoked.length === 0, 'nothing revoked while the pool is stable, got ' + revoked.length);
+  // Pool changes → old URLs revoked, new one created.
+  c.win.__SWR_COMPOSITION_MEDIA = [{ id: 'm3', name: 'c', mime: 'image/png', blob: {} }];
+  c.dispatch('swr-automix-glide', { actIndex: 2, actName: 'breakdown', actProgress: 0 });
+  assert(revoked.length === 2, 'old URLs revoked on pool change, got ' + revoked.length);
+  assert(created.length === 3, 'one URL for the new item, got ' + created.length);
 });
 
 console.log(results.join('\n'));

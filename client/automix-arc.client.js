@@ -117,6 +117,26 @@
     }
     bounds.push(dur);
 
+    // Snapped boundaries are chosen independently inside overlapping
+    // ±12%-of-duration windows, so two adjacent picks can cross and leave a
+    // zero/negative-span act — sampleAt then skips it and an act becomes
+    // unreachable. Sort the interior bounds and enforce a minimum span so the
+    // sequence is strictly increasing and ends exactly at `dur`.
+    var minSpan = dur / (nActs * 4);
+    var interior = bounds.slice(1, bounds.length - 1).sort(function (a, b) { return a - b; });
+    var seq = [0];
+    for (var m = 0; m < interior.length; m++) {
+      var lo = seq[seq.length - 1] + minSpan;
+      seq.push(interior[m] < lo ? lo : interior[m]);
+    }
+    // Degenerate overflow (every pick pushed past the end): fall back to equal
+    // fifths — still a valid strictly-increasing arc.
+    if (seq[seq.length - 1] >= dur) {
+      for (var q = 1; q < seq.length; q++) seq[q] = dur * q / seq.length;
+    }
+    seq.push(dur);
+    bounds = seq;
+
     // Act archetype order: deterministic shuffle of the canonical dramatic
     // arc — always starts intro-ish, always ends outro-ish, middle acts
     // permute lift/peak/breakdown.
@@ -225,18 +245,23 @@
     // loaded (variants don't ship it), fetches the element's src (blob
     // URL or path), decodes it, runs AudioAnalysisV2. Returns
     // { duration, bpm, onsets, key, scale, confidence } — the analysis
-    // shape build() consumes.
+    // shape build() consumes. Rejects when the analysis script cannot be
+    // loaded so callers can retry (see _ensureArc's bounded retry).
     analyzeElement: function (el) {
       if (!el || !el.src) return Promise.resolve(null);
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return Promise.resolve(null);
       var ensureV2 = (window.AudioAnalysisV2)
         ? Promise.resolve()
-        : new Promise(function (resolve) {
+        : new Promise(function (resolve, reject) {
             var s = document.createElement('script');
-            s.src = '../audio-analysis-v2.js';
+            // Absolute path: works from root pages and nested routes alike
+            // ('../' silently 404s on any page not exactly one level below
+            // the root). Reject on failure so _ensureArc's catch can retry
+            // instead of disabling the arc for the rest of the song.
+            s.src = '/audio-analysis-v2.js';
             s.onload = function () { resolve(); };
-            s.onerror = function () { resolve(); }; // null → fallback path
+            s.onerror = function () { reject(new Error('audio-analysis-v2.js failed to load')); };
             document.head.appendChild(s);
           });
       return ensureV2.then(function () {
