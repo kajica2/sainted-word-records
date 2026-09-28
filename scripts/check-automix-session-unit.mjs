@@ -411,6 +411,87 @@ check('20. arc preset progresses within an act (actProgress lerp)', () => {
   assert.ok(Math.abs(mixed.preset.mut - 0.15) < 1e-9, 'mut last-act wrap ' + mixed.preset.mut);
 });
 
+// ---- Lifecycle + bar-nudge regression tests -------------------------------
+
+// 21. A fresh start must clear a stale freeze. Before the fix, freeze →
+//     off → on left frozen=true while the state token read ON, and every
+//     loop early-returned — "on" with nothing running.
+check('21. start() clears a stale freeze (freeze → off → on is not stuck)', () => {
+  const sb = makeSandbox();
+  sb.automix.start();
+  sb.automix.freeze();
+  assert.strictEqual(sb.automix.frozen, true, 'freeze sets frozen');
+  sb.automix.stop();
+  assert.strictEqual(sb.automix.enabled, false);
+  sb.automix.start();
+  assert.strictEqual(sb.automix.enabled, true);
+  assert.strictEqual(sb.automix.frozen, false, 'start() must clear frozen');
+});
+
+// 22. The arc is a property of the song, not of the enabled flag: a
+//     stop → start on the same song must not silently drop back to the
+//     legacy realtime path.
+check('22. start() keeps the built arc across stop → start', () => {
+  const sb = makeSandbox();
+  sb.automix.start();
+  const arc = { acts: [{}, {}, {}] };
+  sb.automix.arc = arc;
+  sb.automix.stop();
+  sb.automix.start();
+  assert.strictEqual(sb.automix.arc, arc, 'arc must survive a stop → start');
+});
+
+// 23. Bar-nudge cadence is measured on a monotonic beat index. Before the
+//     fix it used `(beatInBar - last) % 4` (delta 0–3) against
+//     beatsPerNudge >= 4 (bpm >= ~105), so it never fired at any ordinary
+//     tempo — the documented micro-rotation was silently dead.
+check('23. bar-nudge fires at 120 BPM (monotonic beat index)', () => {
+  const sb = makeSandbox();
+  sb.automix.enabled = true;
+  sb.automix._lastAnchorId = null;
+  sb.win.SWR._fxOverride = { temp: 0.1, mut: 0.2 };
+  const feat = { bpm: 120, onset: 0.5 }; // beatsPerNudge = round(120/30) = 4
+  sb.automix._beatIndex = 1;
+  sb.automix._applyBarNudge(feat); // seeds the clock, no nudge
+  assert.strictEqual(sb.automix._lastNudgeBeat, 1);
+  const before = sb.win.SWR._fxOverride;
+  sb.automix._beatIndex = 4; // 3 beats < 4 → no nudge yet
+  sb.automix._applyBarNudge(feat);
+  assert.strictEqual(sb.win.SWR._fxOverride, before, 'no nudge before beatsPerNudge');
+  sb.automix._beatIndex = 5; // 4 beats → nudge
+  sb.automix._applyBarNudge(feat);
+  assert.notStrictEqual(sb.win.SWR._fxOverride, before, 'nudge must fire at beatsPerNudge');
+  assert.strictEqual(sb.automix._lastNudgeBeat, 5);
+});
+
+async function checkAsync(name, fn) {
+  try { await fn(); results.push('  \u2713 ' + name); }
+  catch (err) { results.push('  \u2717 ' + name + ' \u2014 ' + err.message); process.exitCode = 1; }
+}
+const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+
+// 24. Stale-async guard: an older song's analysis resolving late must not
+//     overwrite the live arc with the previous song's acts.
+await checkAsync('24. late analysis for the previous song cannot clobber the live arc', async () => {
+  const sb = makeSandbox();
+  const resolvers = [];
+  sb.win.SWR_AUTOMIX_ARC.build = (analysis) => ({ acts: [{ tag: analysis.tag }] });
+  sb.win.SWR.Audio.analyzeFull = () => new Promise((res) => resolvers.push(res));
+  sb.win.SWR.Audio.el.src = 'songA.mp3';
+  sb.automix._ensureArc();
+  sb.win.SWR.Audio.el.src = 'songB.mp3';
+  sb.automix._ensureArc();
+  await flush();
+  assert.strictEqual(resolvers.length, 2, 'both analyses started');
+  resolvers[1]({ tag: 'B', duration: 100, onsets: [] }); // B resolves first
+  await flush();
+  const arcB = sb.automix.arc;
+  assert.ok(arcB && arcB.acts[0].tag === 'B', 'B arc built');
+  resolvers[0]({ tag: 'A', duration: 100, onsets: [] }); // A resolves late
+  await flush();
+  assert.strictEqual(sb.automix.arc, arcB, 'late A analysis must not clobber the B arc');
+});
+
 console.log(results.join('\n'));
 if (process.exitCode) {
   console.log('\nSESSION UNIT: FAILURES ABOVE');

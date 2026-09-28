@@ -123,8 +123,19 @@
   //          in the 2D space. n defaults to 4.
   var ANCHORS = buildAnchorMap();
 
+  // Flat immutable lookup columns, derived once. ANCHORS never changes after
+  // boot, so neighbours() must not re-derive Object.keys + a fresh candidate
+  // object per anchor on every call: it is reached from the 33ms beat-poll
+  // path (_applyBarNudge), tick(), the session layer and _findSceneChange.
+  var IDS = Object.keys(ANCHORS);
+  var AX = IDS.map(function (id) { return ANCHORS[id].warmth; });
+  var AY = IDS.map(function (id) { return ANCHORS[id].intensity; });
+  // Reusable scratch (single-threaded, synchronous — no reentrancy).
+  var DIST2 = new Float64Array(IDS.length);
+  var PICKS = [];
+
   window.SWR_ANCHOR_MAP = {
-    list: function () { return Object.keys(PRESETS); },
+    list: function () { return IDS.slice(); },
     get: function (id) { return ANCHORS[id] || null; },
     embed: function (p) { return rawEmbed(p); },
     // Embed a fully-derived preset (raw fx_state values, not rank-blended)
@@ -135,17 +146,35 @@
     // the embedding raw and let the rank-bias live only on the anchors.
     rawEmbed: rawEmbed,
     neighbours: function (coords, n) {
-      n = n || 4;
-      var ids = Object.keys(ANCHORS);
-      var withDist = [];
-      for (var i = 0; i < ids.length; i++) {
-        var a = ANCHORS[ids[i]];
-        var dx = a.warmth - coords.warmth;
-        var dy = a.intensity - coords.intensity;
-        withDist.push({ id: ids[i], dist: Math.sqrt(dx * dx + dy * dy), anchor: a });
+      var count = n || 4;
+      if (count > IDS.length) count = IDS.length;
+      if (count < 1) count = 1;
+      var cx = coords.warmth, cy = coords.intensity;
+      var i;
+      for (i = 0; i < IDS.length; i++) {
+        var dx = AX[i] - cx, dy = AY[i] - cy;
+        DIST2[i] = dx * dx + dy * dy;
       }
-      withDist.sort(function (a, b) { return a.dist - b.dist; });
-      return withDist.slice(0, n);
+      // Partial selection of the `count` nearest, ascending. Squared
+      // distance preserves ordering, so sqrt runs only for the returned
+      // rows — no full 19-element sort, no per-candidate object.
+      PICKS.length = 0;
+      for (var p = 0; p < count; p++) {
+        var best = -1, bestD = Infinity;
+        for (i = 0; i < IDS.length; i++) {
+          var d = DIST2[i];
+          if (d < bestD) { bestD = d; best = i; }
+        }
+        if (best < 0) break;
+        DIST2[best] = Infinity; // exclude from later passes
+        PICKS.push(best, bestD);
+      }
+      var out = [];
+      for (i = 0; i < PICKS.length; i += 2) {
+        var idx = PICKS[i];
+        out.push({ id: IDS[idx], dist: Math.sqrt(PICKS[i + 1]), anchor: ANCHORS[IDS[idx]] });
+      }
+      return out;
     },
     // For tests + diagnostics
     _all: function () { return ANCHORS; },

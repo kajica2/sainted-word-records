@@ -251,7 +251,11 @@
     sectionState: { current: 'verse', pending: null, pendingCount: 0 },
     _fxFrom: null,
     _fxT0: 0,
-    _lastNudgeBeatInBar: null,
+    _lastNudgeBeat: null,
+    _beatIndex: 0,
+    _lastGlideKey: null,
+    _arcTries: 0,
+    _arcTriesKey: null,
     _lastCoords: null,
     _lastAnchorId: null,
     _firstTickTs: 0,
@@ -269,7 +273,18 @@
       this.lastChangeTs = now;
       this.flatSinceTs = now;
       this.lastAntiPatternTs = now;
-      this.arc = null;
+      // A fresh start clears a stale freeze and the bar-nudge clock. Without
+      // this, freeze → off → on leaves frozen=true while the state token
+      // reads ON, and every loop (tick/_scheduleNext/_onBeatPoll/_glideTick)
+      // early-returns — "on" with nothing running. The arc is a property of
+      // the loaded song, not of the enabled flag: keep it, so a stop→start on
+      // the same song does not silently drop back to the legacy path;
+      // _ensureArc() rebuilds only when the element src changed.
+      this.frozen = false;
+      this._lastNudgeBeat = null;
+      this._beatIndex = 0;
+      var freezeBtn = $('automix-freeze');
+      if (freezeBtn) _setBtnActive(freezeBtn, false);
       this._ensureArc();
       this.tick();
       this._scheduleNext();
@@ -307,14 +322,20 @@
       // Composition coupling: the cutting rhythm follows the act on this
       // 1s clock (boundary cuts + within-act cadence envelope). nextActName
       // rides along so the composition never reaches into page internals
-      // (music_video's orchestrator is IIFE-private).
-      this._emit('swr-automix-glide', {
-        actIndex: arcSample.actIndex,
-        actCount: arcSample.actCount,
-        actName: arcSample.actName,
-        actProgress: arcSample.actProgress,
-        nextActName: (this.arc.acts[arcSample.actIndex + 1] || {}).name || null,
-      });
+      // (music_video's orchestrator is IIFE-private). Skip the dispatch when
+      // the act and its progress are byte-identical (paused element): a
+      // no-op event still allocates a CustomEvent and runs every listener.
+      var glideKey = arcSample.actIndex + '|' + arcSample.actProgress;
+      if (this._lastGlideKey !== glideKey) {
+        this._lastGlideKey = glideKey;
+        this._emit('swr-automix-glide', {
+          actIndex: arcSample.actIndex,
+          actCount: arcSample.actCount,
+          actName: arcSample.actName,
+          actProgress: arcSample.actProgress,
+          nextActName: (this.arc.acts[arcSample.actIndex + 1] || {}).name || null,
+        });
+      }
       var preset = this._arcGlidePreset(arcSample);
       // Only re-arm the ramp when the glide actually moved — a no-op write
       // would restart the 1s smoothstep on the same value every second.
@@ -353,6 +374,11 @@
         : function () { return window.SWR_AUTOMIX_ARC.analyzeElement(el); };
       var srcKey = el.src || '';
       if (this._arcBuiltFor === srcKey) return;
+      // A failed analysis clears _arcBuiltFor so a later tick/glide retries;
+      // bound it so a permanently undecodable song does not re-run
+      // analyzeFull forever. Reset the counter whenever the song changes.
+      if (this._arcTriesKey !== srcKey) { this._arcTriesKey = srcKey; this._arcTries = 0; }
+      if (this._arcTries >= 3) return;
       // Song changed: flush the previous song's anchor usage into session
       // memory (L4) before rebuilding the arc for the new one. Only hook
       // that records — mic-only / no-element pages stay inert.
@@ -364,17 +390,28 @@
       this._sessionAnchors = [];
       this._arcBuiltFor = srcKey;
       var self = this;
+      var myKey = srcKey;
       Promise.resolve()
         .then(function () { return analyze(); })
         .then(function (analysis) {
+          // A newer song superseded this analysis while it was decoding —
+          // its promise resolving late must not clobber the live arc.
+          if (self._arcBuiltFor !== myKey) return;
           if (!analysis) return;
           // analyzeFull mutates feat but returns the raw result; make sure
-          // duration + onsets are present for the arc builder.
-          if (!analysis.duration && A._el) analysis.duration = A._el.duration || 0;
+          // duration + onsets are present for the arc builder. Use the
+          // RESOLVED element (A.el / A.audioEl), not just A._el.
+          if (!analysis.duration && el) analysis.duration = el.duration || 0;
           self.arc = window.SWR_AUTOMIX_ARC.build(analysis);
           self._emit('swr-automix-arc', self.arc ? { acts: self.arc.acts.length } : { acts: 0 });
         })
-        .catch(function () { /* realtime-only fallback */ });
+        .catch(function () {
+          // Transient failure (autoplay-policy decode rejection, analyze
+          // threw): clear the guard so a later tick/glide retries, instead
+          // of disabling the arc for the rest of the song.
+          if (self._arcBuiltFor === myKey) self._arcBuiltFor = null;
+          self._arcTries++;
+        });
     },
 
     stop() {
@@ -422,8 +459,9 @@
       var feat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
       var pulse = !!feat.beatPulse;
       if (pulse && !this.lastBeatPulse) {
+        this._beatIndex = (this._beatIndex || 0) + 1;
         this._applyBeatDrift(feat);
-        if (typeof feat.beatInBar === 'number') this._applyBarNudge(feat);
+        this._applyBarNudge(feat);
       }
       this.lastBeatPulse = pulse;
     },
@@ -437,26 +475,33 @@
 
     _applyBarNudge(feat) {
       if (!window.SWR || !window.SWR._fxOverride) return;
-      if (typeof feat.beatInBar !== 'number') return;
       if (typeof feat.bpm !== 'number' || feat.bpm <= 0) return;
       if (!window.SWR_ANCHOR_MAP || !window.SWR_ANCHOR_MAP.neighbours) return;
+      // Beats between nudges scales with tempo (~2s at any bpm). Measured on
+      // a monotonic beat index, not feat.beatInBar: beatInBar is 1–4, so the
+      // old `% 4` delta could never reach beatsPerNudge >= 4 (bpm >= ~105) and
+      // the nudge was silently dead at every ordinary tempo.
       var beatsPerNudge = Math.max(2, Math.round(feat.bpm / 30));
-      if (!this._lastNudgeBeatInBar || this._lastNudgeBeatInBar === 0) {
-        this._lastNudgeBeatInBar = feat.beatInBar;
+      if (this._lastNudgeBeat === null || this._lastNudgeBeat === undefined) {
+        this._lastNudgeBeat = this._beatIndex;
         return;
       }
-      var delta = ((feat.beatInBar - this._lastNudgeBeatInBar) % 4 + 4) % 4;
-      if (delta < beatsPerNudge) return;
+      if (this._beatIndex - this._lastNudgeBeat < beatsPerNudge) return;
       var coords = window.SWR_AUTOMIX.featuresToCoordsV2(feat);
       var nn = window.SWR_ANCHOR_MAP.neighbours(coords, 8);
       if (!nn || nn.length < 2) return;
-      var others = nn.filter(function (a) { return a.id !== this._lastAnchorId; }.bind(this));
-      var pool = (others.length > 0) ? others : nn;
-      var pick = pool[Math.floor(Math.random() * pool.length)];
+      // Random pick among the 8 nearest that is NOT the current dominant —
+      // without the old filter().bind() closure/array allocation.
+      var pick = nn[(Math.random() * nn.length) | 0];
+      if (this._lastAnchorId) {
+        for (var tries = 0; tries < 8 && pick && pick.id === this._lastAnchorId; tries++) {
+          pick = nn[(Math.random() * nn.length) | 0];
+        }
+      }
       if (!pick || !pick.anchor || !pick.anchor.preset) return;
       var lerped = window.SWR_AUTOMIX.lerpPreset(window.SWR._fxOverride, pick.anchor.preset, 0.25);
       this._setTarget(lerped);
-      this._lastNudgeBeatInBar = feat.beatInBar;
+      this._lastNudgeBeat = this._beatIndex;
     },
 
     _setTarget(preset) {
@@ -639,10 +684,14 @@
       var pill = $('synth-pill');
       if (!pill || !mixed || !mixed.anchors[0]) return;
       var sect = section || (this.sectionState && this.sectionState.current) || '';
-      pill.textContent = mixed.arc
+      var text = mixed.arc
         ? 'auto · act ' + (mixed.arc.actIndex + 1) + '/' + mixed.arc.actCount +
           ' · ' + sect + ' · ' + mixed.anchors[0].id
         : 'auto · ' + mixed.anchors[0].id;
+      // The 1s glide path re-renders the same text most seconds; a no-op
+      // textContent write still costs a style recalc.
+      if (pill.textContent === text) return;
+      pill.textContent = text;
     },
 
     _findSceneChange(coords) {
