@@ -185,3 +185,22 @@ prefix, not a static link.
 Verified at `/gallery/vintage` (rewrite-aware local server): **57/57 images
 load, 0 HTTP failures**; all aliased routes clean; `check:dist-links` 4/4;
 `verify:site-nav` 13/13; `npm run check` 40 steps.
+
+---
+
+## `/personas/`: link the design registers to their pages
+
+`personas.html` (served at `/personas` and `/personas/`) presented the six
+"archived design registers" as cards whose CTA was a `<span>` — **no link** — and
+its footer listed only one of the eleven `landing-personas-v*.html` pages that
+ship (v1–v10 via `vite.config.js` rootFiles, v11 via site-map).
+
+- The V1–V6 card CTAs are now real links to their pages:
+  `/landing-personas-v{1..6}-{editorial,dark,friendly,dashboard,brutalist,wireframe}.html`
+  (`.reg__cta` gains `text-decoration: none` so the anchor keeps the pill look).
+- The footer's Personas column lists **all 11** registers (adds Riso, Broadcast,
+  Cassette, Neon to the existing Zine).
+- Also normalised a malformed `href="/./versions.html"` → `/versions.html`.
+
+Verified on `/personas/`: **17 register links, all HTTP 200**, no page failures;
+`check:dist-links` 4/4; `verify:site-nav` 13/13; `npm run check` 40 steps.
