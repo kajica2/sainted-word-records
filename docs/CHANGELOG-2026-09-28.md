@@ -49,3 +49,26 @@ per-second allocation churn. All are fixed and covered by regression tests.
   `check:automix-session-unit` (24), `check:clip-evolution-unit` (22),
   `check:automix-smoke` (90 assertions), `check:automix-arc-smoke`,
   `verify:automix`, `verify:automix-cross-surface`.
+
+---
+
+## Automix: close the engine.html composition-coupling gap
+
+`engine.html` shipped the L3 arc but not `client/automix-composition.client.js`
+— the layer that turns an act into a *media* change (cutting cadence, boundary
+cuts). All 22 variant pages had it; engine was missed in the same rollout that
+originally omitted `automix-arc` (a note in the page already recorded that one).
+So on engine the arc drove the colour grade but never the clip cutting.
+
+- `engine.html` — load `automix-composition.client.js` after the runtime.
+- `verify-automix-cross-surface.mjs` — the full-tier check now asserts
+  `AUTOMIX_SCRIPTS`. That list was **declared but never asserted**, which is
+  precisely why the gap was invisible; it now includes
+  `automix-composition.client.js` (13 scripts) and also guards the 17 artistic
+  variants via `AUTOMIX_MIN_SCRIPTS`.
+
+Proven: with engine reverted, the verifier fails
+`engine.html: automix stack: missing: automix-composition.client.js`; after the
+fix it reports `full automix stack present (13 scripts)`. A runtime probe on
+engine confirms enabling automix now calls `SWR_LAYER_SCHEDULER.setConfig`
+(lift fallback → intro act profile).
