@@ -1,7 +1,7 @@
 // client/dashboard-presets.client.js — .SMR-SET save/load for the layer
 // accordion on the dashboard. Wired via <script src> defer.
 //
-// Public API on window.__SWR_PRESETS:
+// Public API on window.__SWR_LAYER_PRESETS:
 //   .get()         -> object  current layer state as a serializable obj
 //   .set(obj)      -> void    applies a preset to the live accordion
 //   .download()    -> void    triggers a download of the current preset
@@ -15,7 +15,7 @@
 //     "version": 1,
 //     "name": "My preset",
 //     "layers": [
-//       { "name": "SHARED", "open": true,
+//       { "name": "WAVEFORM", "open": true,
 //         "react": "bass-scale*0.68 . b64-opacity*0.48",
 //         "blend": "over",
 //         "opacity": 100, "base": 50, "scale": 100, "hue": 0, "rot": 0,
@@ -30,11 +30,11 @@
   const DEFAULT = {
     format: 'smr-set', version: 1, name: 'Default',
     layers: [
-      { name: 'SHARED', open: true,  react: 'bass-scale*0.68 . b64-opacity*0.48', blend: 'over',     opacity: 100, base: 50, scale: 100, hue: 0,  rot: 0, rotate: false },
-      { name: 'AURA',   open: false, react: 'mid-energy*0.72 . hue-drift*0.34',   blend: 'overlay',  opacity: 80,  base: 40, scale: 96,  hue: 12, rot: 0, rotate: false },
-      { name: 'GRAIN',  open: false, react: 'rms*0.30 . seed*42',                blend: 'screen',   opacity: 60,  base: 20, scale: 104, hue: 0,  rot: 0, rotate: false },
-      { name: 'HALO',   open: false, react: 'lfo*0.18 . radial*0.55',            blend: 'over',     opacity: 70,  base: 30, scale: 110, hue: 6,  rot: 0, rotate: false },
-      { name: 'MARKER', open: false, react: 'onset*0.90 . decay*0.20',           blend: 'multiply', opacity: 50,  base: 10, scale: 100, hue: 0,  rot: 0, rotate: false },
+      { name: 'WAVEFORM', open: true,  react: 'bass-scale*0.68 . b64-opacity*0.48', blend: 'over',     opacity: 100, base: 50, scale: 100, hue: 0,  rot: 0, rotate: false },
+      { name: 'SPECTRUM', open: false, react: 'mid-energy*0.72 . hue-drift*0.34',   blend: 'overlay',  opacity: 80,  base: 40, scale: 96,  hue: 12, rot: 0, rotate: false },
+      { name: 'LFO',      open: false, react: 'rms*0.30 . seed*42',                blend: 'screen',   opacity: 60,  base: 20, scale: 104, hue: 0,  rot: 0, rotate: false },
+      { name: 'KEY',      open: false, react: 'lfo*0.18 . radial*0.55',            blend: 'over',     opacity: 70,  base: 30, scale: 110, hue: 6,  rot: 0, rotate: false },
+      { name: 'METER',    open: false, react: 'onset*0.90 . decay*0.20',           blend: 'multiply', opacity: 50,  base: 10, scale: 100, hue: 0,  rot: 0, rotate: false },
     ],
   };
 
@@ -147,5 +147,5 @@
   }
   if (clearBtn) clearBtn.addEventListener('click', () => set(DEFAULT));
 
-  window.__SWR_PRESETS = { get, set, download, applyFile, DEFAULT };
+  window.__SWR_LAYER_PRESETS = { get, set, download, applyFile, DEFAULT };
 })();
