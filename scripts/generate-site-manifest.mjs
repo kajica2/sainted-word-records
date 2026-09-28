@@ -13,6 +13,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
@@ -64,7 +65,33 @@ function walkDir(dir, files = []) {
   return files;
 }
 
-const htmlFiles = walkDir('.');
+// Gitignored paths never deploy, so they must never be auto-added as
+// "discovered" pages. Without this, one run from a checkout that has any
+// worktree present injected 361 phantom entries (`.worktrees/*`) into
+// site-map.json and inflated meta.totalPages from 156 to 470.
+//
+// Ask git rather than maintaining a second copy of .gitignore: tracked files
+// whose directory is ignored (e.g. the 38 force-tracked keyart/ files) are
+// correctly reported as NOT ignored, because they do ship.
+function dropGitignored(files) {
+  if (!files.length) return files;
+  try {
+    const out = execFileSync('git', ['check-ignore', '--stdin'], {
+      input: files.join('\n'),
+      encoding: 'utf8',
+    });
+    const ignored = new Set(out.split('\n').filter(Boolean));
+    return files.filter((f) => !ignored.has(f));
+  } catch (e) {
+    // exit 1 = git ran fine and nothing is ignored; anything else (no git, not
+    // a repo) falls back to the SKIP_DIRS rules the walk already applied.
+    return e.status === 1
+      ? files
+      : files.filter((f) => !f.split(path.sep).some((seg) => SKIP_DIRS.includes(seg)));
+  }
+}
+
+const htmlFiles = dropGitignored(walkDir('.'));
 const discovered = [];
 for (const f of htmlFiles) {
   const rel = f.replace(/^\.\//, '');

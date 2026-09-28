@@ -76,6 +76,10 @@ const GROUPS = {
     'npm run check:storage-blob-unit',
     'npm run check:db-postgres',
     'npm run verify:smtp',
+    // The node:test suite for api/_lib/email.js (nodemailer is stubbed via a
+    // global, so it is hermetic and ~50ms). verify:smtp covers the transport
+    // over a running API; this covers the message assembly, which nothing ran.
+    'npm run test:smtp',
     'node scripts/test-api.mjs',
     'npm run check:dashboard',
     'npm run check:variant-switcher-unit',
@@ -109,6 +113,10 @@ const GROUPS = {
     'npm run check:capture-smoke',
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
+    // Needs a built dist/ (ensureDist builds when stale): asserts every
+    // vercel.json rewrite, every root-relative link in a shipped page, and
+    // every site-map entry resolves to a file that actually made it into dist.
+    'npm run check:dist-links',
   ],
 };
 

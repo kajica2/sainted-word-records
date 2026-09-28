@@ -66,6 +66,15 @@ function generateRewrites(map) {
       // Gallery subpages use hyphenated names: /gallery/music → /gallery-music.html
       const name = cleanHref.replace('/gallery/', '');
       htmlPath = `/gallery-${name}.html`;
+    } else if (cleanHref.startsWith('/s/')) {
+      // Share links. /s/<shareId> is resolved client-side by share-view.html,
+      // which reads the id from the path and fetches the shared project —
+      // swr-app.html builds `${location.origin}/s/${shareId}#s=…`. The generic
+      // rule below mapped it to /s/<shareId>.html, which nothing ever builds,
+      // so every share link 404'd in production (verified live 2026-09-27).
+      // site-map.json documents the intent: "handled by share-view.html
+      // client-side", and sitemap.html maps 's/:id' → 'share-view.html'.
+      htmlPath = '/share-view.html';
     } else if (cleanHref.startsWith('/artists/')) {
       // Artists subpages use direct paths: /artists/foo → /artists/foo.html
       htmlPath = `${cleanHref}.html`;
@@ -119,6 +128,20 @@ function generateRewrites(map) {
   rules.push({ source: '/enhance', destination: '/enhance.html' });
   rules.push({ source: '/enhance/', destination: '/enhance.html' });
   rules.push({ source: '/video_single.html', destination: '/video_single.html' });
+
+  // Atlas section pages. atlas.html's TOC links to /atlas/<slug> while the
+  // section files are hyphenated at the repo root (atlas-<slug>.html). Only
+  // /atlas itself was routed, so all nine TOC links 404'd in production
+  // (verified live 2026-09-27). Kept in sync with the atlas-*.html entries in
+  // vite.config.js rootFiles.
+  const ATLAS_SLUGS = [
+    '200-steps', 'architect', 'checklist', 'crisis', 'final-insight',
+    'forge', 'integration', 'legacy', 'life-stages',
+  ];
+  for (const slug of ATLAS_SLUGS) {
+    rules.push({ source: `/atlas/${slug}`, destination: `/atlas-${slug}.html` });
+    rules.push({ source: `/atlas/${slug}/`, destination: `/atlas-${slug}.html` });
+  }
 
   // Persona variant gallery. Each /personas/v/<id> must resolve to its OWN
   // page under personas/v/. These previously all mapped to /personas.html,
@@ -175,6 +198,9 @@ const specialPatterns = [
   /^\/api\//,
   /^\/tools\//,
   /^\/marketplace\/curated\//,
+  // These two are deliberate `statusCode: 404` guards (the runner page was
+  // archived on 2026-09-12 in f39cefa). Keep them: the URL must stay dead even
+  // if a file of that name reappears.
   /^\/_curator-runner\.html$/,
   /^\/curator-runner\.html$/,
   // /visual-languages maps to /versions/index.html because that file

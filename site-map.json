@@ -376,7 +376,6 @@
     "gallery-darkfuture.html",
     "gallery-generative.html",
     "gallery-glyphs.html",
-    "gallery-loops.html",
     "gallery-music.html",
     "gallery-photoexp.html",
     "gallery-point4brand.html",
@@ -456,7 +455,6 @@
     "versions/typography.html",
     "versions/void.html",
     "versions/watercolor.html",
-    "versions.html",
-    "weddings.html"
+    "versions.html"
   ]
 }
