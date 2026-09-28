@@ -21,11 +21,13 @@
 //  16. BPM/KEY readouts bound (canvas HUD + header) and live after a sample
 //  17. Beat flash: paints the overlay, decays within 200ms
 //  18. Layer presets: read → mutate → Clear restores the shipped default
-//  19. Base source: photo deck takes the slot, advances, clears
-//  20. Mobile: full-height stage, bottom-sheet rails (strips + one open at a time)
-//  21. prefers-reduced-motion: one static frame, no flash
-//  22. Mic/Cam: module present, clicks no-op without devices
-//  23. No console errors after the new interactions
+//  19. Layer presets: Save downloads the live rows; Load restores them via the picker
+//  20. Base source: photo deck takes the slot, advances, clears
+//  21. Mobile: full-height stage, bottom-sheet rails (strips + one open at a time)
+//  22. prefers-reduced-motion: one static frame, no flash
+//  23. Mic/Cam: module present, clicks no-op without devices
+//  24. Mic/Cam success path with Chromium's fake devices (live analyser + video base)
+//  25. No console errors after the new interactions
 //
 // Set BASE_URL to run the same gate against a deployed origin
 // (e.g. BASE_URL=https://sainted-word-records.vercel.app node scripts/check-dashboard.mjs).
@@ -33,6 +35,8 @@
 import puppeteer from 'puppeteer';
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const PORT = 53939;
 const BASE = process.env.BASE_URL || `http://127.0.0.1:${PORT}`;
@@ -264,7 +268,44 @@ try {
     presetCleared.opacity === 100 && presetCleared.base === 50 && presetCleared.scale === 100,
     JSON.stringify(presetCleared));
 
-  // 19. Base source — the photo deck takes the slot, advances, clears
+  // 19. Layer presets — the file path: Save writes the live rows to disk and
+  // Load restores them through the real file picker.
+  const downloadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'smr-set-'));
+  const cdp = await browser.target().createCDPSession();
+  await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true });
+  await page.evaluate(() => {
+    const el = document.querySelector('#layers-list > details input[type=range]');
+    el.value = 37;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.click('#lib-save');
+  let savedPath = null;
+  for (let i = 0; i < 50 && !savedPath; i += 1) {
+    await sleep(100);
+    const hit = fs.readdirSync(downloadDir).find((n) => n.endsWith('.smr-set.json'));
+    if (hit) savedPath = path.join(downloadDir, hit);
+  }
+  const savedJson = savedPath ? JSON.parse(fs.readFileSync(savedPath, 'utf8')) : null;
+  check('Save downloads a .smr-set.json of the live rows',
+    !!savedJson && savedJson.format === 'smr-set' && savedJson.layers.length === 5 && savedJson.layers[0].opacity === 37,
+    savedPath ? `${path.basename(savedPath)} opacity=${savedJson.layers[0].opacity}` : 'no file');
+  await page.evaluate(() => {
+    const el = document.querySelector('#layers-list > details input[type=range]');
+    el.value = 90;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  let loadedOpacity = null;
+  if (savedPath) {
+    const [chooser] = await Promise.all([page.waitForFileChooser(), page.click('#lib-load')]);
+    await chooser.accept([savedPath]);
+    await sleep(300);
+    loadedOpacity = await page.evaluate(() => window.__SWR_LAYER_PRESETS.get().layers[0].opacity);
+  }
+  check('Load restores the saved rows from the picked file', loadedOpacity === 37, `opacity=${loadedOpacity}`);
+  await cdp.detach();
+  fs.rmSync(downloadDir, { recursive: true, force: true });
+
+  // 20. Base source — the photo deck takes the slot, advances, clears
   const baseSource = await page.evaluate(() => {
     const e = window.__SWR_ENGINE;
     const out = { api: typeof e.setPhotos === 'function' };
@@ -283,7 +324,7 @@ try {
     baseSource.advanced === true && baseSource.index1 === 1, `index=${baseSource.index1}`);
   check('Empty deck clears the base source', baseSource.kindAfter === null);
 
-  // 20. Mobile — stage fills the viewport, sidebars are bottom sheets that
+  // 21. Mobile — stage fills the viewport, sidebars are bottom sheets that
   // boot as 32px strips (both toggles must stay hittable) and open one at a time.
   await page.setViewport({ width: 390, height: 844 });
   await page.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
@@ -336,7 +377,7 @@ try {
   check('Mobile: only one sheet is open at a time',
     mobileSwap.right === '0' && mobileSwap.left === '1', JSON.stringify(mobileSwap));
 
-  // 21. prefers-reduced-motion — one static frame, no animation, no flash
+  // 22. prefers-reduced-motion — one static frame, no animation, no flash
   const rmPage = await browser.newPage();
   const rmErrors = [];
   rmPage.on('pageerror', (e) => rmErrors.push('pageerror: ' + e.message));
@@ -362,7 +403,7 @@ try {
   check('Reduced motion: no page errors', rmErrors.length === 0, rmErrors.join('|'));
   await rmPage.close();
 
-  // 22. Mic / Cam — module wired; headless has no devices, so clicks stay inert
+  // 23. Mic / Cam — module wired; this browser has no devices, so clicks stay inert
   await page.setViewport({ width: 1280, height: 900 });
   await page.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
   await sleep(800);
@@ -382,7 +423,88 @@ try {
     mediaState.mic === null && mediaState.cam === null,
     `mic=${mediaState.mic}·${mediaState.micTitle} cam=${mediaState.cam}·${mediaState.camTitle}`);
 
-  // 23. No console errors after the new interactions (same filter as check 12)
+  // 24. Mic / Cam success path — a second browser that grants Chromium's fake
+  // devices (the primary one above runs with none, per check 23).
+  const devBrowser = await puppeteer.launch({
+    headless: 'new',
+    args: [
+      '--no-sandbox',
+      '--use-fake-device-for-media-stream',
+      '--use-fake-ui-for-media-stream',
+      '--autoplay-policy=no-user-gesture-required',
+    ],
+  });
+  const devPage = await devBrowser.newPage();
+  const devErrors = [];
+  devPage.on('pageerror', (e) => devErrors.push('pageerror: ' + e.message));
+  await devPage.setViewport({ width: 1280, height: 900 });
+  await devPage.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
+  await sleep(800);
+  // Mean brightness of a patch between the shader's waveform and its bars, so
+  // the base source (camera frame vs pure black) dominates the reading.
+  await devPage.evaluate(() => {
+    window.__regionMean = () => {
+      const src = document.getElementById('render-canvas');
+      const c = document.createElement('canvas');
+      c.width = src.width; c.height = src.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(src, 0, 0);
+      const data = ctx.getImageData(200, 440, 140, 120).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
+      return Math.round(sum / (data.length / 4) / 3);
+    };
+  });
+  const bgMean = await devPage.evaluate(() => window.__regionMean());
+  await devPage.click('#mic-btn');
+  await sleep(1200);
+  const micLive = await devPage.evaluate(() => ({
+    active: window.__SWR_ENGINE.micActive(),
+    flag: document.getElementById('mic-btn').dataset.active,
+    tint: document.getElementById('mic-btn').style.color,
+    level: Number(window.__SWR_ENGINE.features().level.toFixed(3)),
+  }));
+  check('Mic with a device: the stream becomes the engine analysis source',
+    micLive.active === true && micLive.flag === '1' && micLive.tint === 'var(--signal)',
+    JSON.stringify(micLive));
+  // Chromium's fake mic is only a tone where the host can open a capture
+  // backend (a Linux CI container delivers silence), so the level itself is
+  // asserted where it exists and reported as an env skip where it cannot be.
+  const micLevel = await devPage
+    .waitForFunction(() => window.__SWR_ENGINE.features().level > 0.02, { timeout: 5000 })
+    .then(() => true).catch(() => false);
+  if (micLevel) {
+    check('Mic with a device: the live analyser drives features()', true, `level=${micLive.level}`);
+  } else {
+    console.log('  (env skip: no audio capture backend — fake mic delivered silence)');
+  }
+  await devPage.click('#cam-btn');
+  await sleep(1500);
+  const camLive = await devPage.evaluate(() => ({
+    kind: window.__SWR_ENGINE.baseSourceKind(),
+    flag: document.getElementById('cam-btn').dataset.active,
+    videos: document.querySelectorAll('body > video').length,
+    mean: window.__regionMean(),
+  }));
+  check('Cam with a device: the camera frame becomes the canvas base',
+    camLive.kind === 'video' && camLive.flag === '1' && camLive.videos === 1 && camLive.mean > bgMean + 20,
+    `bgMean=${bgMean} ${JSON.stringify(camLive)}`);
+  await devPage.click('#cam-btn');
+  await devPage.click('#mic-btn');
+  await sleep(500);
+  const devOff = await devPage.evaluate(() => ({
+    mic: window.__SWR_ENGINE.micActive(),
+    kind: window.__SWR_ENGINE.baseSourceKind(),
+    videos: document.querySelectorAll('body > video').length,
+    mean: window.__regionMean(),
+  }));
+  check('Mic/Cam toggle back off cleanly',
+    devOff.mic === false && devOff.kind === null && devOff.videos === 0 && devOff.mean < camLive.mean,
+    JSON.stringify(devOff));
+  check('Fake-device run has no page errors', devErrors.length === 0, devErrors.join('|'));
+  await devBrowser.close();
+
+  // 25. No console errors after the new interactions (same filter as check 12)
   check('No console errors after new interactions',
     errors.length === 0, errors.length ? errors.slice(0, 3).join('|') : '');
 
