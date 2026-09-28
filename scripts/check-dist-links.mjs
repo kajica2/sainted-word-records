@@ -101,7 +101,9 @@ function paramGlob(destination) {
   const pages = htmlFiles(DIST);
   const broken = new Map();
   let skippedTemplates = 0;
-  const LINK_RE = /\b(?:href|src)\s*=\s*["'](\/[^"'#?\s]*)["']/g;
+  // Attributes only: a JS assignment like `img.src = '/shop-designs/' + file`
+  // is a URL *prefix*, not a static link, so `(?<![.\w])` excludes `.src=`/`.href=`.
+  const LINK_RE = /(?<![.\w])(?:href|src)\s*=\s*["'](\/[^"'#?\s]*)["']/g;
   for (const page of pages) {
     const src = fs.readFileSync(page, 'utf8');
     let m;
@@ -166,6 +168,45 @@ function paramGlob(destination) {
     for (const d of deadMapEntries.slice(0, 20)) console.log('   ', d);
   } else {
     pass('every site-map entry resolves in dist', `${hrefs.size} entries`);
+  }
+
+  // 4. relative refs in pages served at a NON-root path. A rewrite like
+  //    /gallery/vintage → /gallery-vintage.html serves the page from the
+  //    /gallery/ directory, so a "./x" ref resolves to /gallery/x — not /x.
+  //    gallery-vintage.html's "./gallery-vintage/*.webp" refs thus 404'd every
+  //    image on the deployed page while resolving fine at the canonical route.
+  const servedAt = new Map(); // dist-relative page → Set<served dir>
+  for (const r of rewrites) {
+    if (r.source.includes(':') || r.source.includes('*')) continue;
+    const dir = r.source.slice(0, r.source.lastIndexOf('/') + 1);
+    if (dir === '/') continue;
+    const dest = r.destination.replace(/^\/+/, '');
+    if (!dest.endsWith('.html')) continue;
+    if (!servedAt.has(dest)) servedAt.set(dest, new Set());
+    servedAt.get(dest).add(dir);
+  }
+  const REL_RE = /\b(?:href|src|data-audio|poster)\s*=\s*["'](\.\/[^"'#?\s]*)["']/g;
+  const relBroken = [];
+  for (const [page, dirs] of servedAt) {
+    const abs = path.join(DIST, page);
+    if (!isFile(abs)) continue;
+    const source = fs.readFileSync(abs, 'utf8');
+    let m;
+    REL_RE.lastIndex = 0;
+    while ((m = REL_RE.exec(source))) {
+      const rel = m[1].slice(2); // strip the leading "./"
+      for (const dir of dirs) {
+        if (resolvesInDist('/' + dir.replace(/^\/+/, '') + rel)) continue;
+        relBroken.push(`${m[1]}  ← ${page} (served at ${dir})`);
+      }
+    }
+  }
+  if (relBroken.length) {
+    const uniq = [...new Set(relBroken)];
+    fail('relative refs resolve from every served path', `${uniq.length} broken`);
+    for (const b of uniq.slice(0, 20)) console.log('   ', b);
+  } else {
+    pass('relative refs resolve from every served path', `${servedAt.size} aliased pages`);
   }
 
   const failed = checks.filter((c) => !c.ok).length;

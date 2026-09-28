@@ -96,10 +96,9 @@
 <body>
   <header>
     <h1>MAR<em>KET</em>PLACE</h1>
-    <a class="nav" href="./engine.html">→ engine</a>
-    <a class="nav" href="./landing.html">← home</a>
+    <a class="nav" href="/engine.html">→ engine</a>
+    <a class="nav" href="/landing.html">← home</a>
     <span class="spacer"></span>
-    <a class="nav" href="./marketplace/curated/" id="curated-link" style="display:none">→ curated sets (raw)</a>
   </header>
 
   <div class="container">
@@ -186,12 +185,12 @@
         // First try the manifest. If it doesn't exist, fall back to scanning
         // the curated directory via a known hardcoded list.
         const KNOWN = [
-          { file: 'marketplace/curated/neon-pulse.swr-set.json' },
-          { file: 'marketplace/curated/smoke-portrait.swr-set.json' },
-          { file: 'marketplace/curated/typography-loud.swr-set.json' },
-          { file: 'marketplace/curated/collage-mag.swr-set.json' },
-          { file: 'marketplace/curated/spectrum-bass.swr-set.json' },
-          { file: 'marketplace/curated/glitch-idm.swr-set.json' },
+          { file: '/marketplace/curated/neon-pulse.swr-set.json' },
+          { file: '/marketplace/curated/smoke-portrait.swr-set.json' },
+          { file: '/marketplace/curated/typography-loud.swr-set.json' },
+          { file: '/marketplace/curated/collage-mag.swr-set.json' },
+          { file: '/marketplace/curated/spectrum-bass.swr-set.json' },
+          { file: '/marketplace/curated/glitch-idm.swr-set.json' },
         ];
         const sets = [];
         for (const k of KNOWN) {
@@ -339,7 +338,7 @@
             // Pull doc from the curated grid by matching the name in the
             // card title
             const title = card.querySelector('h4')?.textContent;
-            const r = await fetch('marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            const r = await fetch('/marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
             if (r.ok) {
               const doc = await r.json();
               const ok = await installSet(doc);
@@ -351,7 +350,7 @@
             const card = btn.closest('.card');
             const title = card.querySelector('h4')?.textContent;
             // Try to find the curated set
-            const r = await fetch('marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            const r = await fetch('/marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
             if (r.ok) {
               const doc = await r.json();
               previewSet(doc);

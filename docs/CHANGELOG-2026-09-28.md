@@ -148,3 +148,40 @@ Also fixed a flake in `check-automix-arc-smoke.mjs` (in `check:full`): it
 tolerated only `/library/manifest.json` and `/api/` 404s, and intermittently saw
 0–4 `.../null` requests — a plain-static-server artifact — which failed the
 gate. `/null` is now matched by URL (5/5 clean runs after; was 1/3).
+
+---
+
+## Gallery/vintage: pages served at a nested alias broke every relative path
+
+Reported: `https://…/gallery/vintage#historical_photo` showed no photographs.
+
+**The photos were never missing.** `/gallery/vintage` is a rewrite to
+`gallery-vintage.html`, so the page is served from the `/gallery/` directory —
+but its 57 image refs were relative (`./gallery-vintage/x.webp`), resolving to
+`/gallery/gallery-vintage/x.webp` → 404. The same files returned **200** at the
+canonical `/gallery-vintage/…`.
+
+Fix: root-absolute refs in every page served at a non-root directory (nested or
+trailing-slash alias) — **54 files**, ~385 refs across `href`/`src`/`data-audio`/
+`poster` and JS-built prefixes:
+
+- `gallery-vintage.html` (58) and 12 sibling `gallery-*.html` pages.
+- `gallery.html`, `campaign.html`, `enhance.html`, `interactive-howto.html`,
+  `marketplace.html` (+ its curated-set `fetch` paths), `personas.html`,
+  `portfolio.html` (video `poster`s), `shop.html` (JS image prefix).
+- `versions/gallery.html` (13 sibling links), `versions/*.html`
+  (`last-song.js`/`temp-slider.js`), `versions/index.html` (`_shared.css`),
+  `tools/hf-publish.html`.
+
+Also removed a dead hidden link: `marketplace.html`'s `#curated-link`
+(`display:none`, referenced by nothing) pointed at `/marketplace/curated/` — a
+directory with no index.
+
+Guarded by a new check 4 in `scripts/check-dist-links.mjs`: **relative refs must
+resolve from every path a page is served at** (101 aliased pages). Check 2 was
+tightened to attributes only — a JS `img.src = '/prefix/' + file` is a URL
+prefix, not a static link.
+
+Verified at `/gallery/vintage` (rewrite-aware local server): **57/57 images
+load, 0 HTTP failures**; all aliased routes clean; `check:dist-links` 4/4;
+`verify:site-nav` 13/13; `npm run check` 40 steps.
