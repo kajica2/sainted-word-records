@@ -237,17 +237,17 @@
 <body>
   <nav class="nav">
     <div class="nav__inner">
-      <a class="nav__brand" href="./gallery-music.html">SWR</a>
+      <a class="nav__brand" href="/gallery-music.html">SWR</a>
       <div class="nav__links">
-        <a href="./gallery-music.html">Galleries</a>
-        <a href="./campaign.html">Pricing</a>
-        <a href="./engine.html">Engine</a>
+        <a href="/gallery-music.html">Galleries</a>
+        <a href="/campaign.html">Pricing</a>
+        <a href="/engine.html">Engine</a>
       </div>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         <span class="theme-toggle__label" id="theme-label">Auto</span>
       </button>
-      <a class="nav__cta" href="./gallery-music.html">Browse galleries →</a>
+      <a class="nav__cta" href="/gallery-music.html">Browse galleries →</a>
     </div>
   </nav>
 
@@ -302,7 +302,7 @@
     <span>Hand-printed on demand</span>
   </footer>
 
-  <script src="./client/shop-decorator.client.js" defer></script>
+  <script src="/client/shop-decorator.client.js" defer></script>
   <script>
     // shop.html page logic: read ?g=&c=, load card data, render the page.
     (function () {
@@ -703,7 +703,7 @@
         var variantIdx = 0;
         function setVariant(i) {
           variantIdx = (i + card.images.length) % card.images.length;
-          img.src = './shop-designs/' + card.images[variantIdx];
+          img.src = '/shop-designs/' + card.images[variantIdx];
           variantLabel.textContent = 'Variant ' + (variantIdx + 1) + ' / ' + card.images.length;
         }
         var variantLabel = document.createElement('div');
