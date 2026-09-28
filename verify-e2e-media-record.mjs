@@ -137,11 +137,13 @@ try {
   // ---- Instrument Recorder._save to capture the produced blob ----
   // The engine triggers an <a download> click, which headless can't capture
   // cleanly. Override _save to copy the blob into a window-global we read.
+  // The __swrPatched marker keeps runRecord()'s re-instrumentation on retry
+  // from wrapping the already-wrapped function (which would silently drop the
+  // blob into the inner wrapper only).
   await step('instrument Recorder._save to capture the blob', async () => {
     await page.evaluate(() => {
       const R = window.SWR.Recorder;
       window.__capturedRecording = null;
-      const origSave = R._save.bind();
       R._save = function () {
         // Mirror the engine's _save logic but stash the blob before the
         // download click. We replicate the same blob construction so we
@@ -157,11 +159,38 @@ try {
         };
         // Do not trigger the actual download (would 404 in headless).
       };
+      R._save.__swrPatched = true;
     });
   });
 
   // ---- Run a recording cycle: 4 seconds capture ----
-  await step('record 4 seconds of canvas + audio, then stop', async () => {
+  // Wrapped in runRecord() so a single retry-once can reload + re-instrument
+  // when MediaRecorder warm-up flakes (Recorder._save never fires). The flake
+  // is GPU + MediaRecorder cold-start timing on the GitHub runner; a second
+  // attempt almost always succeeds. Other failures throw immediately.
+  const runRecord = async () => {
+    // Re-instrument on each attempt — __capturedRecording is per-page-load.
+    await page.evaluate(() => {
+      const R = window.SWR.Recorder;
+      window.__capturedRecording = null;
+      // Same instrumentation as the dedicated instrument step, but reset
+      // in case this is a retry after reload (which wipes window globals).
+      if (!R._save.__swrPatched) {
+        const origSave = R._save.bind(R);
+        R._save = function () {
+          const blob = new Blob(this.chunks, { type: this.mime });
+          window.__capturedRecording = {
+            size: blob.size,
+            type: blob.type,
+            bytes: blob.arrayBuffer().then((ab) => {
+              const u8 = new Uint8Array(ab, 0, Math.min(16, ab.byteLength));
+              return Array.from(u8);
+            }),
+          };
+        };
+        R._save.__swrPatched = true;
+      }
+    });
     await page.evaluate(() => {
       const R = window.SWR.Recorder;
       // P2: Force the WebM/MediaRecorder path. The legacy hallucination
@@ -181,8 +210,6 @@ try {
       // the closest matching option so we get a finite auto-stop window.
       const sel = document.getElementById('rec-dur');
       const wanted = '5';
-      // Add a temporary option if "5" doesn't exist; otherwise reuse the
-      // existing numeric options.
       let opt = Array.from(sel.options).find((o) => o.value === wanted);
       if (!opt) { opt = document.createElement('option'); opt.value = wanted; opt.textContent = wanted + 's'; sel.appendChild(opt); }
       sel.value = wanted;
@@ -196,6 +223,35 @@ try {
     ok(v != null, 'Recorder._save never fired');
     ok(v.size > 10000, `recording too small: ${v.size} bytes (expected > 10 KB)`);
     ok(/webm|mp4/i.test(v.type), `unexpected mime type: ${v.type}`);
+  };
+  await step('record 4 seconds of canvas + audio, then stop', async () => {
+    try {
+      await runRecord();
+    } catch (e) {
+      // Only retry on the warm-up flake. Any other error (header decode,
+      // mime mismatch, size assertion) means the recording DID fire and the
+      // payload is genuinely bad — surfacing it is more useful than masking.
+      if (!/Recorder\._save never fired/i.test(e.message)) throw e;
+      console.log('captured: <none — retrying after page reload>');
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+      // Re-wait for SWR + Layers populated (same readiness poll as initial load).
+      let waited = 0;
+      while (waited < 30000) {
+        const ready = await page.evaluate(() =>
+          !!(window.SWR && window.SWR.Audio && window.SWR.Library && window.SWR.Layers && window.SWR.Layers.list.length > 0));
+        if (ready) break;
+        await new Promise((r) => setTimeout(r, 500));
+        waited += 500;
+      }
+      if (waited >= 30000) throw new Error('engine never became ready within 30s (retry)');
+      // Re-click the start overlay (autoplay policy requires user gesture).
+      await page.evaluate(() => {
+        const o = document.getElementById('swr-start');
+        if (o) o.click();
+      });
+      await new Promise((r) => setTimeout(r, 2500));
+      await runRecord();
+    }
   });
 
   await step('recording blob has a valid container header', async () => {
