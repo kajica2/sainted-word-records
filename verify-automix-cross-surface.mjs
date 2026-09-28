@@ -93,6 +93,18 @@ const AUTOMIX_MIN_SCRIPTS = [
   'automix-composition.client.js',
 ];
 
+// Shared-runtime tier — music_video.html and music_video_mtv.html used to carry
+// their own inlined orchestrator; they now load client/automix-runtime.client.js
+// (with SWR_AUTOMIX_NO_AUTOWIRE=1, keeping their own UI wiring).
+const SHARED_SCRIPTS = [
+  'client/automix.client.js',
+  'client/preset-anchor-map.client.js',
+  'client/automix-session-store.client.js',
+  'client/automix-runtime.client.js',
+  'client/automix-arc.client.js',
+  'client/automix-composition.client.js',
+];
+
 const RUNTIME_SCRIPTS = [
   'automix-runtime.client.js',
   'hook-detector.client.js',
@@ -136,6 +148,9 @@ const SURFACES = [
   ['versions/smoke.html',    'versions/smoke.html',                true],
   ['versions/hallucination.html', 'versions/hallucination.html',    true],
   ['dashboard.html',         'dashboard.html',                     false],
+  // Migrated off their inlined orchestrator onto the shared runtime.
+  ['versions/music_video.html', 'versions/music_video.html',       'shared'],
+  ['versions/music_video_mtv.html', 'versions/music_video_mtv.html', 'shared'],
   ...TASK_4_VARIANTS.map(v => ['versions/' + v + '.html', 'versions/' + v + '.html',
     v === 'echo-manifold' ? 'off' : 'min']),
 ];
@@ -202,6 +217,39 @@ async function checkSurface(page, label, path, expectsStack) {
     const missingOff = Object.entries(offStatus).filter(([, v]) => !v).map(([k]) => k);
     if (missingOff.length === 0) ok(`${label}: automix opt-out contract held (enabled:false config, runtime + toggle present)`);
     else fail(`${label}: automix opt-out contract`, `failing: ${missingOff.join(', ')} — observed: ${JSON.stringify(offStatus)}`);
+
+    page.off('console', onConsole);
+    page.off('pageerror', onError);
+    return;
+  }
+
+  if (expectsStack === 'shared') {
+    // pages migrated off their inlined orchestrator (music_video / mtv): they
+    // must load the shared runtime + its siblings, expose the runtime global,
+    // and window.automix must carry the API the page's own wiring drives.
+    const sharedStatus = await page.evaluate((scripts) => {
+      const nodes = Array.from(document.querySelectorAll('script[src]'));
+      const out = {};
+      for (const s of scripts) out[s] = nodes.some(n => (n.getAttribute('src') || '').includes(s));
+      out['#automix-toggle'] = !!document.getElementById('automix-toggle');
+      out['window.SWR_AUTOMIX_RUNTIME'] = !!window.SWR_AUTOMIX_RUNTIME;
+      return out;
+    }, SHARED_SCRIPTS);
+    const missingShared = Object.entries(sharedStatus).filter(([, v]) => !v).map(([k]) => k);
+    if (missingShared.length === 0) ok(`${label}: shared runtime stack present (${SHARED_SCRIPTS.length} scripts + runtime global)`);
+    else fail(`${label}: shared stack`, `missing: ${missingShared.join(', ')}`);
+
+    const sharedApi = await page.evaluate(() => {
+      const a = window.automix || {};
+      const out = {};
+      for (const m of ['toggle', 'start', 'stop', 'freeze', 'saveBlend', 'lockToNearest']) {
+        out[m] = typeof a[m] === 'function';
+      }
+      return out;
+    });
+    const missingApi = Object.entries(sharedApi).filter(([, v]) => !v).map(([k]) => k);
+    if (missingApi.length === 0) ok(`${label}: window.automix exposes the shared runtime API`);
+    else fail(`${label}: automix API`, `missing: ${missingApi.join(', ')}`);
 
     page.off('console', onConsole);
     page.off('pageerror', onError);
@@ -297,7 +345,11 @@ async function run() {
   const server = await localServe();
   let browser;
   try {
-    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox',
+      // music_video.html auto-loads and plays a demo song; without this the
+      // headless autoplay policy makes play() reject and logs a console error
+      // (the sibling smokes pass the same flag).
+      '--autoplay-policy=no-user-gesture-required'] });
     const page = await browser.newPage();
     for (const [label, path, expectsStack] of SURFACES) {
       await checkSurface(page, label, path, expectsStack);

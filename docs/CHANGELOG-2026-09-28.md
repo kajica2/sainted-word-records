@@ -107,3 +107,44 @@ New regression coverage, each **failing against the pre-fix code**:
 New regression coverage: `check-automix-session-unit` 26 (pagehide flush,
 fails pre-fix), `check-automix-unit` 1s (toggleShortcut validation, fails
 pre-fix when only that guard is reverted).
+
+---
+
+## Automix: music_video + music_video_mtv migrated onto the shared runtime
+
+Both pages inline-copied the orchestrator and had drifted from
+`client/automix-runtime.client.js`; the copies are gone.
+
+- **Removed** the inline `const automix = {…}` blocks (429 lines in
+  `music_video.html`, 311 in `music_video_mtv.html`). Both now load
+  `client/automix-runtime.client.js`; `mtv` additionally gains the L3 arc and
+  composition coupling it never had, and `music_video` gains the L4 session
+  memory and config loader its copy lacked.
+- **Autowire opt-out**: the pages keep their own button/key/debug wiring, so
+  they set `window.SWR_AUTOMIX_NO_AUTOWIRE = 1` before loading the runtime
+  (documented on `_boot()`), avoiding double-binding the same controls.
+- **`mtv` was entirely dead** — a pre-existing bug, present on `main`: an
+  unescaped `</script>` inside a JS template literal (the review-page generator)
+  terminated the inline bootstrap early, so `window.SWR` was never defined and
+  the whole page failed to boot (`SyntaxError: Unexpected end of input`). The
+  three terminators are now escaped (`<\/script>`), matching the sibling line.
+- **`check-syntax.mjs` could not catch that class** and was rewritten:
+  it ended an inline block only at a `</script>` it judged to be outside a JS
+  string, and when it skipped a `src=`/`type="module"` element it did not skip
+  its body — so a `<script>` token inside a later template literal was mistaken
+  for a real open. It now follows the HTML rule (the first `</script` ends the
+  element, and skipped elements are consumed whole). Verified: re-breaking `mtv`
+  fails `versions/music_video_mtv.html:746`; the fixed tree parses **162**
+  inline scripts (was 143).
+
+Guarded by a new `shared` tier in `verify-automix-cross-surface.mjs`, with both
+pages added to `SURFACES` (asserts the 6-script stack, the runtime global, the
+`window.automix` API, and no console errors). That verifier now launches with
+`--autoplay-policy=no-user-gesture-required` (as its sibling smokes already do):
+`music_video` auto-plays a demo song, and under the headless autoplay policy
+`play()` rejects and logs a console error.
+
+Also fixed a flake in `check-automix-arc-smoke.mjs` (in `check:full`): it
+tolerated only `/library/manifest.json` and `/api/` 404s, and intermittently saw
+0–4 `.../null` requests — a plain-static-server artifact — which failed the
+gate. `/null` is now matched by URL (5/5 clean runs after; was 1/3).

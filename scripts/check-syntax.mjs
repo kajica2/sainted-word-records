@@ -68,93 +68,45 @@ function walk(dir) {
 //   - JS string literals (', ", `)
 function collectInlineScripts(htmlPath) {
   const src = readFileSync(htmlPath, 'utf8');
-  const lines = src.split('\n');
-  // Build a per-character mask of "inside a comment or string" so the
-  // outer scanner can ignore <script> tokens inside them.
-  const inIgnore = new Uint8Array(src.length);
-  let i = 0;
-  const inScript = { active: false, start: 0 };
+  const lower = src.toLowerCase();
   const blocks = [];
+  let i = 0;
   while (i < src.length) {
-    const c = src[i];
-    const c2 = src[i + 1];
-    if (!inScript.active) {
-      // HTML comment
-      if (c === '<' && src.startsWith('<!--', i)) {
-        const end = src.indexOf('-->', i + 4);
-        const stop = end < 0 ? src.length : end + 3;
-        for (let k = i; k < stop; k++) inIgnore[k] = 1;
-        i = stop;
-        continue;
-      }
-      // <script ...>
-      const m = /<script(\s[^>]*)?>/.exec(src.slice(i));
-      if (m && (m.index === 0)) {
-        const tagStart = i;
-        const tag = src.slice(i, i + m[0].length);
-        i += m[0].length;
-        // Skip <script src="..."> tags entirely — those reference
-        // external files that are parsed independently by walk().
-        if (/\ssrc\s*=/.test(tag)) continue;
-        // Skip non-JS script blocks: type="application/json" (data
-        // islands, not executable) and type="module" without inline
-        // content (the actual code lives in src=, which we already
-        // skipped above). We only parse-check INLINE JS blocks.
-        if (/type\s*=\s*["']application\/(?:json|ld\+json)["']/.test(tag)) continue;
-        if (/type\s*=\s*["']module["']/.test(tag)) continue;
-        // Track the start line.
-        const before = src.slice(0, tagStart);
-        const startLine = before.split('\n').length;
-        inScript.active = true;
-        inScript.start = tagStart;
-        inScript.startLine = startLine;
-        continue;
-      }
-      i++;
-    } else {
-      // Inside <script>...</script>. Scan for </script> that isn't
-      // inside a JS comment or string.
-      if (c === '<' && src.startsWith('</script>', i)) {
-        const bodyEnd = i;
-        i += '</script>'.length;
-        const tagEnd = src.indexOf('>', inScript.start);
-        const body = src.slice(tagEnd + 1, bodyEnd);
-        if (body.trim()) {
-          blocks.push({ file: htmlPath, line: inScript.startLine, source: body });
-        }
-        inScript.active = false;
-        continue;
-      }
-      // Track JS comment + string context so the </script> check
-      // above doesn't false-positive on a literal.
-      if (c === '/' && c2 === '/') {
-        const eol = src.indexOf('\n', i);
-        const stop = eol < 0 ? src.length : eol;
-        for (let k = i; k < stop; k++) inIgnore[k] = 1;
-        i = stop;
-        continue;
-      }
-      if (c === '/' && c2 === '*') {
-        const end = src.indexOf('*/', i + 2);
-        const stop = end < 0 ? src.length : end + 2;
-        for (let k = i; k < stop; k++) inIgnore[k] = 1;
-        i = stop;
-        continue;
-      }
-      if (c === '\'' || c === '"' || c === '`') {
-        const quote = c;
-        let k = i + 1;
-        while (k < src.length) {
-          if (src[k] === '\\') { k += 2; continue; }
-          if (src[k] === quote) { k++; break; }
-          k++;
-        }
-        for (let n = i; n < k; n++) inIgnore[n] = 1;
-        i = k;
-        continue;
-      }
-      i++;
+    // HTML comments (a <script> token inside one is not a real tag).
+    if (src.startsWith('<!--', i)) {
+      const end = src.indexOf('-->', i + 4);
+      i = end < 0 ? src.length : end + 3;
+      continue;
     }
+    const m = /<script(\s[^>]*)?>/i.exec(src.slice(i));
+    if (m && m.index === 0) {
+      const tagStart = i;
+      const tag = m[0];
+      i += tag.length;
+      // Per the HTML spec a <script> element's content ends at the FIRST
+      // "</script" sequence, regardless of JS string/comment context: an
+      // unescaped </script> inside a template literal terminates the element
+      // in the browser (escaping it as <\/script> is the fix).
+      const close = lower.indexOf('</script', i);
+      if (close < 0) { i = src.length; break; }
+      // Skip external (src=), JSON data islands and modules — but still
+      // consume the WHOLE element. Skipping only the open tag left the
+      // scanner inside bodies whose template literals generate HTML with
+      // <script> tags, which it then mistook for real opens (engine.html).
+      const skip = /\ssrc\s*=/.test(tag) ||
+        /type\s*=\s*["']application\/(?:json|ld\+json)["']/.test(tag) ||
+        /type\s*=\s*["']module["']/.test(tag);
+      if (!skip) {
+        const body = src.slice(i, close);
+        if (body.trim()) {
+          blocks.push({ file: htmlPath, line: src.slice(0, tagStart).split('\n').length, source: body });
+        }
+      }
+      const gt = src.indexOf('>', close);
+      i = gt < 0 ? src.length : gt + 1;
+      continue;
+    }
+    i++;
   }
   for (const b of blocks) inlineScripts.push(b);
 }
