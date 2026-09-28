@@ -91,6 +91,47 @@
     /* Layer row details */
     details > summary { list-style: none; cursor: pointer; }
     details > summary::-webkit-details-marker { display: none; }
+
+    /* prefers-reduced-motion — the engine renders one static frame; this
+       stops every CSS transition/animation too (Console criterion 9). */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Mobile — stage takes the viewport, sidebars become bottom sheets.
+       Both rails are full-width sheets in the same band, so they start as
+       32px strips, stack (layers above library) and open one at a time.
+       The strips keep their z-index above an open sheet, so both toggles
+       stay reachable whichever sheet is open. */
+    @media (max-width: 860px) {
+      body.h-screen { height: auto; overflow: visible; }
+      body > div.flex { height: auto !important; }
+      header { height: auto !important; min-height: 56px; flex-wrap: wrap; row-gap: 6px; }
+      .versions, #top-wave, #time-readout { display: none; }
+      #canvas-wrap { min-height: 100vh; }
+      #canvas { inset: 0; border-radius: 0; }
+      #sidebar-l, #sidebar-r {
+        position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+        width: 100% !important; height: 44vh; z-index: 50;
+        border-radius: 12px 12px 0 0; border-top: 1px solid var(--line);
+        overflow: hidden;
+        transition: height 200ms ease;
+      }
+      /* Collapsed: a 32px strip. The layers strip parks above the library one,
+         and both strips out-rank an open sheet so their toggles stay reachable. */
+      #sidebar-l[data-collapsed="1"], #sidebar-r[data-collapsed="1"] { height: 32px; z-index: 55; }
+      #sidebar-r[data-collapsed="1"] { bottom: 32px; }
+      #toggle-l, #toggle-r { position: absolute; top: 6px !important; bottom: auto !important; left: auto !important; right: 10px; }
+      /* #toggle-r lives inside the Layers header, so the collapsed right sheet
+         must keep that header laid out (its contents invisible) to show it. */
+      #sidebar-r[data-collapsed="1"] > div { display: flex !important; visibility: hidden; }
+      #sidebar-r[data-collapsed="1"] #toggle-r { visibility: visible; }
+      #advanced-drawer { bottom: calc(44vh + 8px); }
+    }
   </style>
 </head>
 <body class="h-screen overflow-hidden">
@@ -130,17 +171,17 @@
       <div class="wave-bars w-32" id="top-wave" aria-hidden="true"></div>
       <div class="flex items-center gap-1.5 ml-2">
         <span class="micro">BPM</span>
-        <span class="text-xs tabular text-white font-medium">235</span>
+        <span class="text-xs tabular text-white font-medium" id="hdr-bpm">—</span>
       </div>
       <div class="flex items-center gap-1.5">
         <span class="micro">KEY</span>
-        <span class="text-xs tabular text-white font-medium">08</span>
+        <span class="text-xs tabular text-white font-medium" id="hdr-key">—</span>
       </div>
       <div class="w-px h-5 bg-line mx-2"></div>
       <button class="icon-btn" id="rec-btn" title="Record canvas (8s WebM)" style="color:#ff6a2c;"><i class="fa-solid fa-circle-dot text-xs"></i></button>
-      <button class="icon-btn" title="Mic"><i class="fa-solid fa-microphone text-xs"></i></button>
-      <button class="icon-btn" title="Cam"><i class="fa-solid fa-video text-xs"></i></button>
-      <button class="icon-btn" title="Load Song"><i class="fa-solid fa-folder-open text-xs"></i></button>
+      <button class="icon-btn" id="mic-btn" title="Mic"><i class="fa-solid fa-microphone text-xs"></i></button>
+      <button class="icon-btn" id="cam-btn" title="Cam"><i class="fa-solid fa-video text-xs"></i></button>
+      <button class="icon-btn" id="load-song-btn" title="Load Song"><i class="fa-solid fa-folder-open text-xs"></i></button>
       <div class="w-px h-5" style="background:var(--line)"></div>
       <button class="icon-btn" data-toggle-tab="enhance" title="Enhance — filter sliders" style="font-size:9px;font-weight:600;letter-spacing:0.06em;">ENH</button>
       <button class="icon-btn" data-toggle-tab="photo" title="Photo — drop images" style="font-size:9px;font-weight:600;letter-spacing:0.06em;">PHO</button>
@@ -188,10 +229,19 @@
         <div id="drop-zone" class="absolute inset-0 flex items-center justify-center z-20 cursor-pointer" style="background: rgba(10, 10, 11, 0.6);">
           <input type="file" id="audio-file" accept="audio/*" style="display:none" />
           <div class="text-center pointer-events-none">
-            <i class="fa-solid fa-wave-square text-3xl mb-3 block" style="color:var(--signal)"></i>
+            <!-- Static Console hero: the empty state should look like a
+                 switched-on oscilloscope waiting for input. The live BPM/K
+                 readouts sit in #canvas-hud above. -->
+            <svg id="empty-hero" viewBox="0 0 132 48" width="132" height="48" fill="none" stroke="#FF6B1A" aria-hidden="true" class="mb-3 inline-block">
+              <path d="M6 24 Q18 6 30 24 T54 24 T78 24 T102 24 T126 24" stroke-width="1"/>
+              <path d="M3 6 h6 M3 6 v6 M129 6 h-6 M129 6 v6 M3 42 h6 M3 42 v-6 M129 42 h-6 M129 42 v-6" stroke-width="1"/>
+              <rect x="20" y="34" width="3" height="8" fill="#FF6B1A"/><rect x="32" y="30" width="3" height="12" fill="#FF6B1A"/>
+              <rect x="44" y="36" width="3" height="6" fill="#FF6B1A"/><rect x="56" y="28" width="3" height="14" fill="#FF6B1A"/>
+              <rect x="68" y="33" width="3" height="9" fill="#FF6B1A"/>
+            </svg>
             <div class="micro" style="color:var(--fg)">Drop a song — or pick from the library</div>
             <div class="text-[10px] text-gray-500 mt-1">MP3 / WAV / M4A / OGG / FLAC</div>
-            <button id="try-sample" class="mt-3 px-3 h-7 rounded-md text-[11px] font-medium border" style="border-color:var(--signal);color:var(--signal);">Try a 30-second sample</button>
+            <button id="try-sample" class="mt-3 px-3 h-7 rounded-md text-[11px] font-medium border pointer-events-auto" style="border-color:var(--signal);color:var(--signal);">Try a 30-second sample</button>
           </div>
         </div>
         <!-- Tab placeholders -->
@@ -323,6 +373,10 @@
         <span class="micro">Layers</span>
         <div class="flex items-center gap-1">
           <button class="px-2 h-6 rounded text-[10px] uppercase tracking-wider border border-line text-gray-300 hover:bg-[#1e1e24] hover:text-white" title="Add layer">+ Layer</button>
+          <button class="px-2 h-6 rounded text-[10px] uppercase tracking-wider border border-line text-gray-300 hover:bg-[#1e1e24] hover:text-white" id="lib-save" title="Save layer set (.smr-set.json)">Save</button>
+          <button class="px-2 h-6 rounded text-[10px] uppercase tracking-wider border border-line text-gray-300 hover:bg-[#1e1e24] hover:text-white" id="lib-load" title="Load layer set (.smr-set.json)">Load</button>
+          <button class="px-2 h-6 rounded text-[10px] uppercase tracking-wider border border-line text-gray-300 hover:bg-[#1e1e24] hover:text-white" id="lib-clear" title="Reset the layer set to the shipped default">Clear</button>
+          <input type="file" id="lib-file" accept=".json,.smr-set.json" style="display:none" />
           <button class="icon-btn" title="3D"><span class="text-[10px] font-semibold">3D</span></button>
           <button class="icon-btn" title="Rotate"><i class="fa-solid fa-rotate text-[10px]"></i></button>
           <button class="icon-btn" id="remap-btn" title="Re-map (pulse transition)"><i class="fa-solid fa-arrows-rotate text-[10px]"></i></button>
@@ -375,11 +429,11 @@
     // (low-frequency modulator), Key (pitch-class overlay), Meter
     // (peak/RMS readout). See docs/console-spec/spec.md §Layer vocabulary.
     const LAYERS = [
-      { name: 'WAVEFORM', react: 'bass-scale*0.68 . b64-opacity*0.48', blend: 'over', opacity: 100, base: 0.50, scale: 1.00, hue: 0, rot: 0 },
-      { name: 'SPECTRUM', react: 'mid-energy*0.72 . hue-drift*0.34',   blend: 'overlay', opacity: 80,  base: 0.40, scale: 0.96, hue: 12, rot: 0 },
-      { name: 'LFO',      react: 'rms*0.30 . seed*42',                blend: 'screen',  opacity: 60,  base: 0.20, scale: 1.04, hue: 0, rot: 0 },
-      { name: 'KEY',      react: 'lfo*0.18 . radial*0.55',            blend: 'over',    opacity: 70,  base: 0.30, scale: 1.10, hue: 6, rot: 0 },
-      { name: 'METER',    react: 'onset*0.90 . decay*0.20',           blend: 'multiply',opacity: 50,  base: 0.10, scale: 1.00, hue: 0, rot: 0 },
+      { name: 'WAVEFORM', react: 'bass-scale*0.68 . b64-opacity*0.48', blend: 'over', opacity: 100, base: 50, scale: 100, hue: 0, rot: 0 },
+      { name: 'SPECTRUM', react: 'mid-energy*0.72 . hue-drift*0.34',   blend: 'overlay', opacity: 80,  base: 40, scale: 96, hue: 12, rot: 0 },
+      { name: 'LFO',      react: 'rms*0.30 . seed*42',                blend: 'screen',  opacity: 60,  base: 20, scale: 104, hue: 0, rot: 0 },
+      { name: 'KEY',      react: 'lfo*0.18 . radial*0.55',            blend: 'over',    opacity: 70,  base: 30, scale: 110, hue: 6, rot: 0 },
+      { name: 'METER',    react: 'onset*0.90 . decay*0.20',           blend: 'multiply',opacity: 50,  base: 10, scale: 100, hue: 0, rot: 0 },
     ];
     // Old-name aliases so any saved projects still load.
     const LAYER_ALIAS = { SHARED: 'WAVEFORM', AURA: 'SPECTRUM', GRAIN: 'LFO', HALO: 'KEY', MARKER: 'METER' };
@@ -451,28 +505,52 @@
     }, true);
 
     // ─── Sidebar collapse ─────────────────────────────────────────
+    // data-collapsed is the single source of truth: the desktop rail is a
+    // 48px strip, on mobile the sheet shrinks to its 32px strip.
     const sidebarL = document.getElementById('sidebar-l');
     const sidebarR = document.getElementById('sidebar-r');
-    document.getElementById('toggle-l').addEventListener('click', () => {
-      const collapsed = sidebarL.style.width === '48px';
-      sidebarL.style.width = collapsed ? '240px' : '48px';
-      // Hide content when collapsed
-      sidebarL.querySelectorAll(':scope > *').forEach(el => {
-        if (el.id !== 'toggle-l') el.style.display = collapsed ? '' : 'none';
+    const isMobileLayout = () => window.matchMedia('(max-width: 860px)').matches;
+
+    function applySidebarState(which, collapsed) {
+      const side = which === 'l' ? sidebarL : sidebarR;
+      const toggle = document.getElementById(which === 'l' ? 'toggle-l' : 'toggle-r');
+      side.dataset.collapsed = collapsed ? '1' : '0';
+      side.style.width = collapsed ? '48px' : (which === 'l' ? '240px' : '300px');
+      // Hide content when collapsed — the toggles themselves always survive,
+      // so a collapsed rail/sheet can be re-opened.
+      side.querySelectorAll(':scope > *').forEach((el) => {
+        if (el === toggle) return;
+        el.style.display = collapsed ? 'none' : '';
       });
-      // Move toggle to opposite edge
-      const btn = document.getElementById('toggle-l').firstElementChild;
-      btn.className = `fa-solid ${collapsed ? 'fa-chevron-left' : 'fa-chevron-right'} text-[10px]`;
-    });
-    document.getElementById('toggle-r').addEventListener('click', () => {
-      const collapsed = sidebarR.style.width === '48px';
-      sidebarR.style.width = collapsed ? '300px' : '48px';
-      sidebarR.querySelectorAll(':scope > *').forEach(el => {
-        if (el.id !== 'toggle-r') el.style.display = collapsed ? '' : 'none';
-      });
-      const btn = document.getElementById('toggle-r');
-      btn.innerHTML = `<i class="fa-solid ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'} text-[10px]"></i>`;
-    });
+      if (which === 'l') {
+        toggle.firstElementChild.className = `fa-solid ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'} text-[10px]`;
+      } else {
+        toggle.innerHTML = `<i class="fa-solid ${collapsed ? 'fa-chevron-left' : 'fa-chevron-right'} text-[10px]"></i>`;
+      }
+    }
+
+    function toggleSidebar(which) {
+      const side = which === 'l' ? sidebarL : sidebarR;
+      const collapsing = side.dataset.collapsed !== '1';
+      applySidebarState(which, collapsing);
+      // Mobile: both sheets share the same band of screen, so opening one
+      // closes the other — otherwise the open sheet would bury the strips.
+      if (!collapsing && isMobileLayout()) {
+        const other = which === 'l' ? 'r' : 'l';
+        const otherSide = other === 'l' ? sidebarL : sidebarR;
+        if (otherSide.dataset.collapsed !== '1') applySidebarState(other, true);
+      }
+    }
+
+    document.getElementById('toggle-l').addEventListener('click', () => toggleSidebar('l'));
+    document.getElementById('toggle-r').addEventListener('click', () => toggleSidebar('r'));
+
+    // Mobile boots with both sheets collapsed: the stage owns the viewport
+    // and the strips summon the library / layers on demand.
+    if (isMobileLayout()) {
+      applySidebarState('l', true);
+      applySidebarState('r', true);
+    }
 
     // ─── Drawer ──────────────────────────────────────────────────
     const drawer = document.getElementById('advanced-drawer');
@@ -569,6 +647,94 @@
       });
     }
 
+    // ─── Transport: Load Song / Mic / Cam ───────────────────────
+    // Load Song reuses the engine's own file input. Mic and Cam drive
+    // SWR_MEDIA_INPUT and hand the stream to the engine: the mic replaces
+    // the analysis source, the camera becomes the base source under the
+    // Console overlays.
+    const loadSongBtn = document.getElementById('load-song-btn');
+    if (loadSongBtn) {
+      loadSongBtn.addEventListener('click', () => {
+        const input = document.getElementById('audio-file');
+        if (input) input.click();
+      });
+    }
+    let mediaInput = null;
+    function getMediaInput() {
+      if (!mediaInput && window.SWR_MEDIA_INPUT && window.SWR_MEDIA_INPUT.create) {
+        mediaInput = window.SWR_MEDIA_INPUT.create();
+      }
+      return mediaInput;
+    }
+    const micBtn = document.getElementById('mic-btn');
+    if (micBtn) {
+      let micOn = false;
+      micBtn.addEventListener('click', async () => {
+        const mi = getMediaInput();
+        if (!mi) { micBtn.title = 'Mic — media input module not loaded'; return; }
+        const engine = window.__SWR_ENGINE;
+        if (micOn) {
+          mi.stopMic();
+          micOn = false;
+          delete micBtn.dataset.active;
+          micBtn.style.color = '';
+          if (engine && engine.setMicStream) engine.setMicStream(null);
+          return;
+        }
+        const res = await mi.startMic();
+        if (!res || !res.success) {
+          micBtn.title = 'Mic — ' + ((res && (res.message || res.error)) || 'unavailable');
+          return;
+        }
+        micOn = true;
+        micBtn.dataset.active = '1';
+        micBtn.style.color = 'var(--signal)';
+        if (engine && engine.setMicStream) engine.setMicStream(res.stream);
+      });
+    }
+    const camBtn = document.getElementById('cam-btn');
+    if (camBtn) {
+      let camOn = false;
+      let camVideo = null;
+      camBtn.addEventListener('click', async () => {
+        const mi = getMediaInput();
+        const engine = window.__SWR_ENGINE;
+        if (!mi) { camBtn.title = 'Cam — media input module not loaded'; return; }
+        if (camOn) {
+          mi.stopCamera();
+          if (engine && engine.setVideoSource) engine.setVideoSource(null);
+          if (camVideo) {
+            camVideo.pause();
+            camVideo.srcObject = null;
+            camVideo.remove();
+            camVideo = null;
+          }
+          camOn = false;
+          delete camBtn.dataset.active;
+          camBtn.style.color = '';
+          return;
+        }
+        const res = await mi.startCamera();
+        if (!res || !res.success) {
+          camBtn.title = 'Cam — ' + ((res && (res.message || res.error)) || 'unavailable');
+          return;
+        }
+        const v = document.createElement('video');
+        v.muted = true;
+        v.playsInline = true;
+        v.autoplay = true;
+        v.srcObject = res.stream;
+        v.style.display = 'none';
+        document.body.appendChild(v);
+        try { await v.play(); } catch (_) { /* refused autoplay; frames still land */ }
+        camVideo = v;
+        camOn = true;
+        camBtn.dataset.active = '1';
+        camBtn.style.color = 'var(--signal)';
+        if (engine && engine.setVideoSource) engine.setVideoSource(v);
+      });
+    }
+
     // ─── Engine / Enhance / Photo / Transitions toggle ──────────
     // The top bar now shows a version selector (Console spec). These four
     // toggles sit in the header's transport row. Engine shows the canvas;
@@ -659,6 +825,10 @@
       photoDeck.appendChild(tile);
       photos.push({ file, url });
       photoStatus.textContent = `${photos.length} photo${photos.length === 1 ? '' : 's'} loaded`;
+      // The deck is the engine's base source — it wins over a live camera.
+      if (window.__SWR_ENGINE && window.__SWR_ENGINE.setPhotos) {
+        window.__SWR_ENGINE.setPhotos(photos.map((p) => p.url));
+      }
     }
     if (photoDrop && photoFile) {
       photoDrop.addEventListener('click', () => photoFile.click());
@@ -675,6 +845,18 @@
       photoDrop.addEventListener('drop', (e) => {
         Array.from(e.dataTransfer.files || []).forEach(addPhoto);
       });
+    }
+    // "Advance on beat" (checked by default) — applies the deck's initial
+    // state too. DOMContentLoaded runs after the deferred engine script.
+    const photoAdvanceEl = document.getElementById('photo-advance');
+    if (photoAdvanceEl) {
+      const applyPhotoAdvance = () => {
+        if (window.__SWR_ENGINE && window.__SWR_ENGINE.setPhotoAdvance) {
+          window.__SWR_ENGINE.setPhotoAdvance(photoAdvanceEl.checked);
+        }
+      };
+      photoAdvanceEl.addEventListener('change', applyPhotoAdvance);
+      document.addEventListener('DOMContentLoaded', applyPhotoAdvance);
     }
 
     // ─── Transitions tab: enumerate engine presets + apply ───────
@@ -731,7 +913,9 @@
     });
   })();
   </script>
+  <script src="/client/swr-media-input.client.js" defer></script>
   <script src="/client/dashboard-engine.client.js" defer></script>
+  <script src="/client/dashboard-presets.client.js" defer></script>
 
   <!-- Phase 3: Music-video automix+curator runtimes (exposed for any
        future dashboard integration). Each script is wrapped in IIFE +

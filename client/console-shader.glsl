@@ -23,6 +23,11 @@ uniform vec3  u_signal;        // default #FF6B1A
 uniform vec3  u_bg;            // default #0A0A0B
 uniform float u_signalAlpha;   // line opacity, default 1.0
 
+// Base source — live camera / photo deck, cover-fit under the overlays.
+// u_baseAspect = source width/height; 0 means "no base" (pure black canvas).
+uniform sampler2D u_base;
+uniform float u_baseAspect;
+
 out vec4 fragColor;
 
 // -- helpers ----------------------------------------------------------------
@@ -53,24 +58,25 @@ float gridLine(vec2 uv, float spacing) {
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
-  vec2 p  = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
-  // p in approx [-0.5, 0.5] aspect-corrected
 
-  // 1. background — pure black
+  // 1. background — pure black, or the live base source (camera / photo deck)
+  // cover-fit: fill the canvas and crop the overflow, never letterbox
   vec3 col = u_bg;
+  if (u_baseAspect > 0.0) {
+    vec2 baseUV = uv;
+    float canvasAspect = u_resolution.x / u_resolution.y;
+    if (u_baseAspect > canvasAspect) baseUV.x = 0.5 + (uv.x - 0.5) * (canvasAspect / u_baseAspect);
+    else                             baseUV.y = 0.5 + (uv.y - 0.5) * (u_baseAspect / canvasAspect);
+    col = texture(u_base, baseUV).rgb;
+  }
 
   // 2. faint grid — only on canvas, never on UI
   float g = gridLine(uv, 32.0);
   col = mix(col, u_signal, g * 0.04);
 
-  // 3. BEAT PULSE — three concentric rings, hard 50ms in / 150ms out
-  if (u_beatPulse > 0.05) {
-    for (int i = 0; i < 3; i++) {
-      float r = (1.0 - u_beatPulse) * 0.9 + float(i) * 0.06;
-      float ring = smoothstep(0.005, 0.0, abs(length(p) - r));
-      col = mix(col, u_signal, ring * u_beatPulse * (1.0 - float(i) * 0.3) * 0.55);
-    }
-  }
+  // 3. BEAT PULSE — the flash itself is painted on the overlay canvas by the
+  // engine (single hard frame-wide flash per kick); u_beatPulse only widens
+  // the hero waveform below, so no rings here.
 
   // 4. HERO WAVEFORM — sine sum across the center, modulated by bands
   float waveAmp = 0.18 + u_beatPulse * 0.08;

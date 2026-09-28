@@ -9,8 +9,19 @@
 //   .loadFile(f)    — load an audio File into the engine
 //   .features()     — { bass, mid, high, rms, onset, level } (0..1)
 //   .bpm()          — rolling BPM estimate
-//   .stop()         — cancel the RAF loop
+//   .key()          — key label ('—' until audio with signal is analysed)
+//   .hudTargets()   — which BPM/KEY readouts are bound (canvas HUD + header)
+//   .flashLevel()   — current beat-flash level (1 hold → 0 after 150ms decay)
+//   .reducedMotion()— true when prefers-reduced-motion is set (no RAF loop)
+//   .setMicStream(s)— live mic replaces the song analyser (null clears it)
+//   .micActive()    — whether a mic stream is attached
+//   .setVideoSource(v) / .setPhotos(urls) / .setPhotoAdvance(on)
+//                   — base source under the overlays (camera or photo deck;
+//                     whichever was set last wins). .baseSourceKind() and
+//                     .photoIndex() read the live state.
+//   .stop()         — cancel the RAF loop (and the reduced-motion HUD tick)
 //   .mode           — 'gl' | '2d'
+//   ._debug         — pulseBeat() / advancePhoto() test hooks
 
 (function () {
   'use strict';
@@ -34,6 +45,23 @@
   let bands32 = new Float32Array(32);
   let signalRGB = new Float32Array([1, 0.4196, 0.1020]);   // #FF6B1A
   let bgRGB     = new Float32Array([0.0392, 0.0392, 0.0431]);// #0A0A0B
+  // CSS form of the accent. The overlay canvas exists before initGL() runs
+  // and the beat flash must work in '2d' mode too, so it can't come from hexVec3.
+  let signalCSS = '#FF6B1A';
+  try {
+    const sigCSS = getComputedStyle(document.documentElement).getPropertyValue('--signal').trim();
+    if (sigCSS) signalCSS = sigCSS;
+  } catch (_) { /* keep the literal fallback */ }
+
+  // Beat flash — Console spec: one full-frame flash per kick, 50ms hold then
+  // 150ms decay. Painted on the overlay canvas (shared by both render paths)
+  // rather than in the shader so GL and 2D flash identically.
+  const FLASH_HOLD_MS = 50;
+  const FLASH_DECAY_MS = 150;
+  let flashAt = -1e9;
+
+  // prefers-reduced-motion — render one static frame, keep the HUD ticking.
+  const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // Reserve the canvas for WebGL — if this succeeds the 2D fallback ctx
   // is never created (the overlay canvas covers transitions).
@@ -95,7 +123,7 @@
         gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
         // Uniform locations
-        const uNames = ['u_resolution','u_time','u_dt','u_bpm','u_beatPulse','u_signal','u_bg','u_signalAlpha'];
+        const uNames = ['u_resolution','u_time','u_dt','u_bpm','u_beatPulse','u_signal','u_bg','u_signalAlpha','u_base','u_baseAspect'];
         uNames.forEach(n => glLoc[n] = gl.getUniformLocation(glProg, n));
         glLoc.u_bands = gl.getUniformLocation(glProg, 'u_bands');
 
@@ -148,6 +176,80 @@
     analyser.connect(audioCtx.destination);
   }
 
+  // ─── Mic input (optional; replaces the song analyser while live) ──
+  // The mic graph terminates at its own AnalyserNode — never at
+  // audioCtx.destination, or the speakers would feed straight back in.
+  let micStream = null;
+  let micSource = null;
+  let micAnalyser = null;
+
+  function setMicStream(stream) {
+    ensureAudioGraph();
+    if (micSource) { try { micSource.disconnect(); } catch (_) { /* already detached */ } }
+    micSource = null;
+    micAnalyser = null;
+    micStream = stream || null;
+    if (!micStream) return null;
+    micSource = audioCtx.createMediaStreamSource(micStream);
+    micAnalyser = audioCtx.createAnalyser();
+    micAnalyser.fftSize = 1024;
+    micAnalyser.smoothingTimeConstant = 0.78;
+    micSource.connect(micAnalyser);
+    return micAnalyser;
+  }
+
+  // Whichever analyser is live feeds every features() consumer (dial, bands,
+  // automix bridge): the mic while it is on, the song otherwise.
+  function activeAnalyser() { return micAnalyser || analyser; }
+
+  // ─── Base source (camera or photo deck) ──────────────────────
+  // One slot for the picture that sits under the Console overlays. Camera
+  // and photo deck share it: whichever was set last wins, no reconciliation.
+  let baseEl = null;
+  let baseKind = null;
+  let baseTex = null;          // GL upload of the base element
+  let baseUseProxy = false;    // direct element upload refused → 2D-canvas copy
+  let baseBroken = false;      // neither upload path works → overlays only
+  let baseWarned = false;
+  let baseProxy, baseProxyCtx;
+  let photoUrls = [];
+  let photoIndex = 0;
+  let photoImg = null;
+  let photoAdvance = false;
+
+  function baseReady(el) {
+    if (!el) return false;
+    if (el.tagName === 'VIDEO') return el.readyState >= 2;
+    if (el.tagName === 'IMG') return !!(el.complete && el.naturalWidth);
+    return false;
+  }
+  function baseSize(el) {
+    return { w: el.videoWidth || el.naturalWidth || W, h: el.videoHeight || el.naturalHeight || H };
+  }
+  function resetBaseUpload() { baseUseProxy = false; baseBroken = false; baseWarned = false; }
+  function setVideoSource(v) {
+    baseEl = v || null;
+    baseKind = v ? 'video' : null;
+    resetBaseUpload();
+  }
+  function setPhotos(urls) {
+    photoUrls = (urls || []).slice();
+    photoIndex = 0;
+    if (!photoUrls.length) { baseEl = null; baseKind = null; return; }
+    if (!photoImg) photoImg = new Image();
+    photoImg.src = photoUrls[0];
+    baseEl = photoImg;
+    baseKind = 'photo';
+    resetBaseUpload();
+  }
+  function setPhotoAdvance(on) { photoAdvance = !!on; }
+  function advancePhoto() {
+    if (baseKind !== 'photo' || photoUrls.length < 2) return false;
+    photoIndex = (photoIndex + 1) % photoUrls.length;
+    photoImg.src = photoUrls[photoIndex];
+    return true;
+  }
+
   // ─── Features per frame ───────────────────────────────────
   const features = { bass: 0, mid: 0, high: 0, rms: 0, onset: 0, level: 0, _lastBass: 0 };
   let lastSpectrum = null;
@@ -156,8 +258,9 @@
   const beatTimes = [];
 
   function updateFeatures() {
-    if (!analyser) return;
-    analyser.getByteFrequencyData(freqData);
+    const an = activeAnalyser();
+    if (!an) return;
+    an.getByteFrequencyData(freqData);
     const n = freqData.length;
     let bass = 0, mid = 0, high = 0, sumSq = 0;
     const bassEnd = 8, midEnd = 40, highEnd = Math.min(120, n);
@@ -273,14 +376,17 @@
   });
 
   // ─── BPM / KEY display ───────────────────────────────────
-  const metricEls = document.querySelectorAll('span.tabular.text-white.font-medium');
-  const bpmEl = metricEls[0];
-  const keyEl = metricEls[1];
+  // One estimate, two readouts: the canvas HUD (#hud-bpm / #hud-key) and the
+  // header metrics (#hdr-bpm / #hdr-key). Both are written by updateHud().
+  const hudBpmEl = document.getElementById('hud-bpm');
+  const hudKeyEl = document.getElementById('hud-key');
+  const hdrBpmEl = document.getElementById('hdr-bpm');
+  const hdrKeyEl = document.getElementById('hdr-key');
   const KEY_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
   const chroma = new Float32Array(12);
   function estimateKey() {
     chroma.fill(0);
-    if (!freqData) return 0;
+    if (!freqData || !audio.src) return -1;
     const n = freqData.length;
     const sampleRate = audioCtx ? audioCtx.sampleRate : 44100;
     const binHz = sampleRate / 2 / n;
@@ -293,7 +399,20 @@
     }
     let max = 0, idx = 0;
     for (let i = 0; i < 12; i++) if (chroma[i] > max) { max = chroma[i]; idx = i; }
+    if (max <= 0) return -1;   // digital silence is not the key "C"
     return idx;
+  }
+  function keyLabel() {
+    return audio.src ? (KEY_NAMES[estimateKey()] || '—') : '—';
+  }
+  function updateHud() {
+    if (bpmEstimate > 0) {
+      if (hudBpmEl) hudBpmEl.textContent = bpmEstimate;
+      if (hdrBpmEl) hdrBpmEl.textContent = bpmEstimate;
+    }
+    const k = keyLabel();
+    if (hudKeyEl) hudKeyEl.textContent = k;
+    if (hdrKeyEl) hdrKeyEl.textContent = k;
   }
 
   // ─── Render loop ──────────────────────────────────────────
@@ -322,6 +441,47 @@
     transitionT = 0;
   }
 
+  // ---- GL base-source upload (camera / photo deck) ----
+  function uploadBase() {
+    if (baseBroken || !baseReady(baseEl)) return false;
+    if (!baseTex) {
+      baseTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, baseTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    } else {
+      gl.bindTexture(gl.TEXTURE_2D, baseTex);
+    }
+    let src = baseEl;
+    if (baseUseProxy) {
+      // This driver refused the element upload; a 2D-canvas copy is always
+      // accepted, so the picture still shows instead of the canvas going blank.
+      const s = baseSize(baseEl);
+      if (!baseProxy) { baseProxy = document.createElement('canvas'); baseProxyCtx = baseProxy.getContext('2d'); }
+      if (baseProxy.width !== s.w || baseProxy.height !== s.h) { baseProxy.width = s.w; baseProxy.height = s.h; }
+      try { baseProxyCtx.drawImage(baseEl, 0, 0, s.w, s.h); }
+      catch (e) { baseBroken = true; warnBaseUpload(e); return false; }
+      src = baseProxy;
+    }
+    try {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    } catch (e) {
+      baseUseProxy = true;
+      warnBaseUpload(e);
+      return false;
+    }
+    return true;
+  }
+
+  function warnBaseUpload(e) {
+    if (baseWarned) return;
+    baseWarned = true;
+    console.warn('[dashboard] base source upload failed — Console overlays only:', e && (e.message || e));
+  }
+
   // ---- GL render path ----
   function glRender() {
     gl.useProgram(glProg);
@@ -335,18 +495,36 @@
     gl.uniform3fv(glLoc.u_signal, signalRGB);
     gl.uniform3fv(glLoc.u_bg, bgRGB);
     gl.uniform1f(glLoc.u_signalAlpha, 1.0);
+
+    // Base layer — camera or photo deck, cover-fit under the overlays.
+    // u_baseAspect === 0 tells the shader to keep the pure-black background.
+    let baseAspect = 0;
+    if (baseEl && !baseBroken && baseReady(baseEl) && uploadBase()) {
+      const s = baseSize(baseEl);
+      baseAspect = s.w / s.h;
+    }
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(glLoc.u_base, 0);
+    gl.uniform1f(glLoc.u_baseAspect, baseAspect);
+
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
   // ---- 2D fallback render path ----
   function draw2d() {
+    if (baseReady(baseEl)) {
+      const s = baseSize(baseEl);
+      const cover = Math.max(W / s.w, H / s.h);
+      const dw = s.w * cover, dh = s.h * cover;
+      fbCtx.drawImage(baseEl, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    }
     fbCtx.fillStyle = 'rgba(10, 10, 11, 0.18)';
     fbCtx.fillRect(0, 0, W, H);
     const cx = W / 2, cy = H / 2;
     const glowR = 220 + features.bass * 180 + beatPulse * 80;
     const grad = fbCtx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
-    grad.addColorStop(0, 'rgba(120, 30, 50, ' + (0.35 + features.bass * 0.4) + ')');
-    grad.addColorStop(0.5, 'rgba(58, 13, 24, 0.25)');
+    grad.addColorStop(0, 'rgba(255, 107, 26, ' + (0.35 + features.bass * 0.4) + ')');
+    grad.addColorStop(0.5, 'rgba(120, 52, 12, 0.25)');
     grad.addColorStop(1, 'rgba(10, 10, 11, 0)');
     fbCtx.fillStyle = grad;
     fbCtx.beginPath();
@@ -360,7 +538,7 @@
     });
 
     if (features.onset > 0.04) {
-      fbCtx.strokeStyle = 'rgba(255, 138, 61, ' + Math.min(1, features.onset * 6) + ')';
+      fbCtx.strokeStyle = 'rgba(255, 107, 26, ' + Math.min(1, features.onset * 6) + ')';
       fbCtx.lineWidth = 1;
       const r = 60 + features.onset * 240;
       fbCtx.beginPath();
@@ -413,7 +591,7 @@
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       const r = 60 + mid * 200 * base + Math.sin(a * 3) * 20;
-      fbCtx.fillStyle = 'hsla(' + ((200 + hue + i * 30) % 360) + ', 70%, 55%, ' + (0.25 + mid * 0.3) + ')';
+      fbCtx.fillStyle = 'hsla(26, 80%, 55%, ' + (0.25 + mid * 0.3) + ')';
       fbCtx.beginPath();
       fbCtx.arc(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, 40 + mid * 80 * base, 0, Math.PI * 2);
       fbCtx.fill();
@@ -424,7 +602,7 @@
     for (let i = 0; i < n; i++) {
       const x = (Math.random() - 0.5) * W * 1.4;
       const y = (Math.random() - 0.5) * H * 1.4;
-      fbCtx.fillStyle = 'rgba(255, 255, 255, ' + (0.05 + Math.random() * 0.25) + ')';
+      fbCtx.fillStyle = 'rgba(255, 107, 26, ' + (0.05 + Math.random() * 0.25) + ')';
       fbCtx.fillRect(x, y, 1.5, 1.5);
     }
   }
@@ -439,7 +617,7 @@
   }
   function drawMarker2d(pulse, base) {
     const len = 30 + pulse * 60 * base;
-    fbCtx.strokeStyle = 'rgba(255, 255, 255, ' + (0.4 + pulse * 0.6) + ')';
+    fbCtx.strokeStyle = 'rgba(255, 107, 26, ' + (0.4 + pulse * 0.6) + ')';
     fbCtx.lineWidth = 2;
     const r = 100;
     for (let a = 0; a < 4; a++) {
@@ -455,24 +633,32 @@
   let lastFrameTs = 0;
   let beatGate = 0.6;
   let lastBeatPulseAt = 0;
+  let hudTimer = null;
+
+  // 1 during the 50ms hold, then a 150ms linear decay to 0.
+  function flashLevel(ts) {
+    const e = (ts == null ? performance.now() : ts) - flashAt;
+    if (e <= FLASH_HOLD_MS) return 1;
+    const a = 1 - (e - FLASH_HOLD_MS) / FLASH_DECAY_MS;
+    return a > 0 ? a : 0;
+  }
 
   function frame(ts) {
     updateFeatures();
     beatPulse *= 0.9;
 
-    // beat-driven transition
+    // beat-driven transition + flash
     if (audio && !audio.paused && features.onset > beatGate && prevFrame === null) {
       const now = performance.now();
       if (now - lastBeatPulseAt > 250) {
         lastBeatPulseAt = now;
+        flashAt = now;
+        if (photoAdvance) advancePhoto();
         triggerTransition();
       }
     }
 
-    if (beatCount++ % 10 === 0) {
-      if (bpmEl && bpmEstimate > 0) bpmEl.textContent = bpmEstimate;
-      if (keyEl) keyEl.textContent = audio.src ? KEY_NAMES[estimateKey()] : '08';
-    }
+    if (beatCount++ % 10 === 0) updateHud();
 
     render(ts);
     raf = requestAnimationFrame(frame);
@@ -520,7 +706,17 @@
       octx.clearRect(0, 0, W, H);
     }
 
-    // 2. Main content
+    // 2. Beat flash — Console spec: single hard full-frame flash per kick.
+    const fl = flashLevel(ts);
+    if (fl > 0) {
+      octx.save();
+      octx.globalAlpha = fl * 0.55;
+      octx.fillStyle = signalCSS;
+      octx.fillRect(0, 0, W, H);
+      octx.restore();
+    }
+
+    // 3. Main content
     if (mode === 'gl' && gl && glProg) {
       glRender();
     } else if (fbCtx) {
@@ -547,8 +743,14 @@
   (async function start() {
     if (!glReady) await new Promise(r => { const t = setInterval(() => { if (glReady) { clearInterval(t); r(); } }, 50); });
     if (raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(frame);
     applyFilters();
+    if (reduceMotion) {
+      // Static frame + a slow HUD tick: the readouts stay honest, nothing animates.
+      render(performance.now());
+      hudTimer = setInterval(updateHud, 1000);
+      return;
+    }
+    raf = requestAnimationFrame(frame);
   })();
 
   window.__SWR_ENGINE = {
@@ -556,10 +758,27 @@
     // mode flips 2d→gl asynchronously once the shader compiles — expose as
     // a getter so callers always read the live state.
     get mode() { return mode; },
+    key: () => keyLabel(),
+    hudTargets: () => ({ bpm: !!hudBpmEl, key: !!hudKeyEl, headerBpm: !!hdrBpmEl, headerKey: !!hdrKeyEl }),
+    flashLevel: () => flashLevel(),
+    reducedMotion: () => reduceMotion,
+    // mic: replaces the song analyser while live (page toggles it)
+    setMicStream,
+    micActive: () => !!micStream,
+    // base source: camera video element or photo deck (whichever was set last)
+    setVideoSource,
+    setPhotos,
+    setPhotoAdvance,
+    baseSourceKind: () => baseKind,
+    photoIndex: () => photoIndex,
     setTransition: (id) => { transition = String(id || 'cut'); return transition; },
     pulseTransition: () => { triggerTransition(); return transition; },
     remapLayers: () => remapLayers(),
     setBeatGate: (v) => { beatGate = Math.max(0, Math.min(1, Number(v) || 0.6)); return beatGate; },
+    _debug: {
+      pulseBeat: () => { flashAt = performance.now(); },
+      advancePhoto: () => advancePhoto(),
+    },
     setFilter: (key, value) => {
       if (!(key in filters)) return false;
       filters[key] = Number(value) || 0;
@@ -581,6 +800,9 @@
         }, durationMs);
       });
     },
-    stop: () => { if (raf) cancelAnimationFrame(raf); },
+    stop: () => {
+      if (raf) cancelAnimationFrame(raf);
+      if (hudTimer) { clearInterval(hudTimer); hudTimer = null; }
+    },
   };
 })();
