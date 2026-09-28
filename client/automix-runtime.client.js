@@ -1093,8 +1093,12 @@
   // a malformed config can never block the runtime from wiring up.
   try { loadConfig(); } catch (_) {}
 
-  // Auto-wire on DOMContentLoaded (or immediately if already past it)
-  function _boot() { wire(); }
+  // Auto-wire on DOMContentLoaded (or immediately if already past it).
+  // Pages that already own their automix UI wiring (music_video and
+  // music_video_mtv predate this extracted runtime and keep their own
+  // button/key/debug wiring) set window.SWR_AUTOMIX_NO_AUTOWIRE = 1 before
+  // loading this module, so wire() does not double-bind the same controls.
+  function _boot() { if (window.SWR_AUTOMIX_NO_AUTOWIRE) return; wire(); }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _boot);
   } else {
