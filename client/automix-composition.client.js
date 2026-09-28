@@ -39,6 +39,42 @@
 
   var lastActIndex = null;
   var lastApplied = null;
+  var lastProgress = null;
+
+  // Media-store pool wrappers are cached by content signature: apply() runs
+  // on every act boundary and on the 10s fallback, and building a fresh
+  // object URL per media item per call leaked one blob URL each time (the
+  // URLs were never revoked). Rebuild only when the store contents change,
+  // revoking the previous URLs first.
+  var mediaCache = { sig: null, wraps: [] };
+  function mediaSig(items) {
+    var s = '';
+    for (var i = 0; i < items.length; i++) s += items[i].id + ',';
+    return items.length + ':' + s;
+  }
+  function mediaWraps() {
+    var items = window.__SWR_COMPOSITION_MEDIA || [];
+    var sig = mediaSig(items);
+    if (mediaCache.sig === sig) return mediaCache.wraps;
+    for (var r = 0; r < mediaCache.wraps.length; r++) {
+      try { URL.revokeObjectURL(mediaCache.wraps[r].url); } catch (_) {}
+    }
+    var wraps = [];
+    for (var i = 0; i < items.length; i++) {
+      var m = items[i];
+      var url = null;
+      try { url = URL.createObjectURL(m.blob); } catch (_) {}
+      if (!url) continue;
+      wraps.push({
+        id: m.id, name: m.name,
+        type: (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image',
+        url: url, blob: m.blob,
+      });
+    }
+    mediaCache.sig = sig;
+    mediaCache.wraps = wraps;
+    return wraps;
+  }
 
   function apply(actName, reason) {
     var sched = window.SWR_LAYER_SCHEDULER;
@@ -56,16 +92,7 @@
     if (Layers && typeof Layers.add === 'function' &&
         (!Layers.list || !Layers.list.length)) {
       var engineItems = ((Library && Library.items) || []).filter(function (i) { return i && i.url; });
-      var mediaWraps = (window.__SWR_COMPOSITION_MEDIA || []).map(function (m) {
-        var url = null;
-        try { url = URL.createObjectURL(m.blob); } catch (_) {}
-        return url ? {
-          id: m.id, name: m.name,
-          type: (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image',
-          url: url, blob: m.blob,
-        } : null;
-      }).filter(Boolean);
-      var pool = engineItems.length ? engineItems : mediaWraps;
+      var pool = engineItems.length ? engineItems : mediaWraps();
       for (var li = 0; li < Math.min(3, pool.length); li++) {
         try { Layers.add(pool[li]); } catch (_) {}
       }
@@ -112,8 +139,11 @@
     var am = window.automix;
     if (!am || !am.enabled) return;
     var M = window.SWR_MEDIA;
-    var mediaP = (M && typeof M.getUserMedia === 'function') ? M.getUserMedia().catch(function () { return []; }) : Promise.resolve([]);
-    mediaP.then(function (items) {
+    var p;
+    try {
+      p = (M && typeof M.getUserMedia === 'function') ? Promise.resolve(M.getUserMedia()) : Promise.resolve([]);
+    } catch (_) { p = Promise.resolve([]); }
+    p.catch(function () { return []; }).then(function (items) {
       window.__SWR_COMPOSITION_MEDIA = (items || []).filter(function (it) { return it && it.id && it.blob; });
       if (lastActIndex !== null) return; // act stream is driving
       apply('lift', 'no-arc-fallback');
@@ -140,6 +170,7 @@
     var sched = window.SWR_LAYER_SCHEDULER;
     if (g.actIndex !== lastActIndex) {
       lastActIndex = g.actIndex;
+      lastProgress = null;
       apply(g.actName, 'act-change');
       // Section boundary → the composition changes WITH the music. The
       // swap flows through the normal applySwap path (crossfade +
@@ -156,16 +187,22 @@
     var nextName = g.nextActName || null;
     var nxt = (nextName && PROFILES[nextName]) || cur;
     var p = Math.max(0, Math.min(1, g.actProgress || 0));
-    sched.setProgress(
-      cur.minSeconds + (nxt.minSeconds - cur.minSeconds) * p,
-      cur.maxSeconds + (nxt.maxSeconds - cur.maxSeconds) * p
-    );
+    var pmin = cur.minSeconds + (nxt.minSeconds - cur.minSeconds) * p;
+    var pmax = cur.maxSeconds + (nxt.maxSeconds - cur.maxSeconds) * p;
+    // setProgress forwards a postMessage to the scheduler worker; skip it
+    // when the interpolated window has not moved enough to matter.
+    if (lastProgress &&
+        Math.abs(lastProgress[0] - pmin) < 0.05 &&
+        Math.abs(lastProgress[1] - pmax) < 0.05) return;
+    lastProgress = [pmin, pmax];
+    sched.setProgress(pmin, pmax);
   });
 
   // Re-apply when the arc rebuilds (new song) — resets act tracking.
   window.addEventListener('swr-automix-arc', function () {
     lastActIndex = null;
     lastApplied = null;
+    lastProgress = null;
   });
 
   // Manual API for the debug panel / power users.

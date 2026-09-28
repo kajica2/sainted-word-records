@@ -1117,4 +1117,56 @@ const VARIANT_NAMES = [
   restoreTuning(tuningSnap);
 }
 
-console.log('AUTOMIX UNIT: ALL GREEN (58 tests)');
+// ---- 1r: config hardening — a poolBias "__proto__" key must not pollute ----
+// JSON.parse keeps "__proto__" as an own property, and the merge loop used to
+// assign it straight into the shared POOL_BIAS, hitting the prototype setter
+// (localised prototype pollution). The loop now skips dangerous keys.
+{
+  const poolSnap = snapshotPoolBias();
+  // Raw JSON string: a JS object literal's '__proto__' key would set the
+  // literal's prototype instead of producing an own property, and vanish from
+  // JSON.stringify — only JSON.parse yields a real own "__proto__" key.
+  const cfgScript = { textContent: '{"version":1,"variant":"evil","enabled":true,' +
+    '"poolBias":{"__proto__":{"warmth":[0,1],"intensity":[0,1]},' +
+    '"intro":{"warmth":[0.1,0.2],"intensity":[0.3,0.4]}}}' };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  const origProto = Object.getPrototypeOf(A.POOL_BIAS);
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  try {
+    assert.ok(R._config(), 'config must be applied');
+    // A polluted prototype would surface warmth/intensity through the chain
+    // (the assignment target was POOL_BIAS itself). Cross-realm identity of
+    // Object.prototype is not comparable under vm, so assert the observable.
+    assert.equal(A.POOL_BIAS.warmth, undefined,
+      '__proto__ poolBias key must not leak warmth onto POOL_BIAS');
+    assert.equal(A.POOL_BIAS.intensity, undefined,
+      '__proto__ poolBias key must not leak intensity onto POOL_BIAS');
+    assert.equal(A.POOL_BIAS.intro.warmth[0], 0.1, 'the safe sibling key still applies');
+  } finally {
+    // If the guard regresses, undo the pollution so later scenarios stay isolated.
+    Object.setPrototypeOf(A.POOL_BIAS, origProto);
+    restorePoolBias(poolSnap);
+  }
+}
+
+// ---- 1s: toggleShortcut validation ----------------------------------------
+// A multi-character value can never match _onKey's single-character
+// comparison, and a value colliding with the fixed f/b/k/d handlers would
+// silently steal that key; both are rejected.
+{
+  const mk = (shortcut) => {
+    const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': { textContent:
+      JSON.stringify({ version: 1, variant: 'v', enabled: true, ui: { toggleShortcut: shortcut } }) } } });
+    runInContext(runtimeSrc, env.sandbox);
+    return env.sandbox.SWR_AUTOMIX_RUNTIME._toggleShortcut();
+  };
+  assert.equal(mk('m'), 'm', 'a free single character is accepted');
+  assert.equal(mk('f'), null, 'the reserved freeze key is rejected');
+  assert.equal(mk('b'), null, 'the reserved save key is rejected');
+  assert.equal(mk('k'), null, 'the reserved lock key is rejected');
+  assert.equal(mk('d'), null, 'the reserved debug key is rejected');
+  assert.equal(mk('am'), null, 'a multi-character value is rejected');
+}
+
+console.log('AUTOMIX UNIT: ALL GREEN (60 tests)');

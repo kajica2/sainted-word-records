@@ -166,5 +166,32 @@ check('9. no anchor map → null (realtime-only fallback contract)', () => {
   assert(ARC3.build(makeAnalysis()) === null, 'expected null without map');
 });
 
+// 10. Collapsed-act regression: boundaries are snapped independently inside
+//     overlapping ±12%-of-duration windows, so adjacent picks can land on top
+//     of each other. This real case (dur=211s, bpm=194, two quiet bands) left
+//     act 2 with a 0.2s span — invisible and effectively unreachable. The
+//     bounds are now sorted and enforced to a minimum span.
+check('10. snapped boundaries cannot collapse an act to a near-zero span', () => {
+  const dur = 211, bpm = 194;
+  const bands = [[188.60262021264182, 202.91737661274027], [60.58712103803974, 63.289214163687646]];
+  const period = 60 / bpm / 2;
+  const onsets = [];
+  for (let t = 0.1; t < dur; t += period) {
+    if (bands.some(([s, e]) => t >= s && t < e)) continue;
+    onsets.push(t);
+  }
+  const arc = ARC.build({ duration: dur, bpm, onsets, key: 'A' });
+  assert(arc && arc.acts.length === 5, 'expected 5 acts, got ' + (arc && arc.acts.length));
+  const minSpan = dur / (arc.acts.length * 4);
+  for (const a of arc.acts) {
+    assert(a.t1 - a.t0 >= minSpan - 1e-6,
+      `act span ${(a.t1 - a.t0).toFixed(3)}s < minSpan ${minSpan.toFixed(3)}s`);
+  }
+  for (let i = 1; i < arc.acts.length; i++) {
+    assert(arc.acts[i].t0 > arc.acts[i - 1].t0, `bound ${i} not strictly increasing`);
+  }
+  assert(arc.acts[arc.acts.length - 1].t1 === dur, 'last act must end at duration');
+});
+
 console.log(failures ? `\n${failures} CHECK(S) FAILED` : '\nALL ARC CHECKS PASS');
 process.exit(failures ? 1 : 0);
