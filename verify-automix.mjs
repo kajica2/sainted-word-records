@@ -88,7 +88,16 @@ async function main() {
     });
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err.message));
 
-    await page.goto(`http://localhost:${PORT}/versions/music_video.html`, { waitUntil: 'networkidle0', timeout: 30000 });
+    // Navigate on domcontentloaded, not networkidle0: this page streams the
+    // demo track and holds 3D canvas contexts open, so the network never goes
+    // idle and networkidle0 times out on CI runners (that is how run
+    // 36571461056 failed, retry included). Gate on the automix IIFE actually
+    // mounting instead — that is the precondition step 2 below needs.
+    await page.goto(`http://localhost:${PORT}/versions/music_video.html`, {
+      waitUntil: 'domcontentloaded', timeout: 60000,
+    });
+    await page.waitForFunction('typeof window.SWR_AUTOMIX !== "undefined"', { timeout: 20000 })
+      .catch(() => {});
     await new Promise((r) => setTimeout(r, 800));
 
     // ---- 1. Page loads clean -------------------------------------------
@@ -403,8 +412,12 @@ async function main() {
         } catch (_) {}
       });
       // Now reload so the URL-param handler reads clean localStorage.
+      // Same domcontentloaded rule as the boot navigation above: networkidle0
+      // never settles on this page. Wait for the automix IIFE to mount.
       await fresh.goto(`http://localhost:${PORT}/versions/music_video.html${query}`,
-                       { waitUntil: 'networkidle0', timeout: 30000 });
+                       { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await fresh.waitForFunction('typeof window.SWR_AUTOMIX !== "undefined"', { timeout: 20000 })
+        .catch(() => {});
       await new Promise((r) => setTimeout(r, 1200));
       return { fresh, errs, consoleErrs };
     }
