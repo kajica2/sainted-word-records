@@ -19,6 +19,9 @@
 //                   — base source under the overlays (camera or photo deck;
 //                     whichever was set last wins). .baseSourceKind() and
 //                     .photoIndex() read the live state.
+//   .setVJMode(on) / .vjMode()
+//                   — the camera composites only while VJ mode is on (C);
+//                     any composited base dims the grid
 //   .stop()         — cancel the RAF loop (and the reduced-motion HUD tick)
 //   .mode           — 'gl' | '2d'
 //   ._debug         — pulseBeat() / advancePhoto() test hooks
@@ -123,7 +126,7 @@
         gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
         // Uniform locations
-        const uNames = ['u_resolution','u_time','u_dt','u_bpm','u_beatPulse','u_signal','u_bg','u_signalAlpha','u_base','u_baseAspect'];
+        const uNames = ['u_resolution','u_time','u_dt','u_bpm','u_beatPulse','u_signal','u_bg','u_signalAlpha','u_base','u_baseAspect','u_gridDim'];
         uNames.forEach(n => glLoc[n] = gl.getUniformLocation(glProg, n));
         glLoc.u_bands = gl.getUniformLocation(glProg, 'u_bands');
 
@@ -217,6 +220,34 @@
   let photoImg = null;
   let photoAdvance = false;
 
+  // ─── VJ mode ────────────────────────────────────────────────
+  // The camera live feed is the one source that can break the Console's pure
+  // black canvas (spec rule 2), so it composites only when the operator
+  // explicitly goes live with C. The photo deck is an explicit content action
+  // from the Photo tab and composites either way. Any composited base dims the
+  // grid so the picture reads through the overlays.
+  let vjMode = false;
+  const VJ_GRID_DIM = 0.35;
+
+  function baseVisible() {
+    return !!baseEl && (baseKind !== 'video' || vjMode);
+  }
+  function baseComposited() {
+    return baseVisible() && baseReady(baseEl);
+  }
+
+  // Reduced motion renders a single frame, so state changes that alter the
+  // picture have to repaint it instead of waiting for a loop that isn't running.
+  function repaintOnce() {
+    if (reduceMotion) render(performance.now());
+  }
+
+  function setVJMode(on) {
+    vjMode = !!on;
+    repaintOnce();
+    return vjMode;
+  }
+
   function baseReady(el) {
     if (!el) return false;
     if (el.tagName === 'VIDEO') return el.readyState >= 2;
@@ -231,16 +262,26 @@
     baseEl = v || null;
     baseKind = v ? 'video' : null;
     resetBaseUpload();
+    // The first frame arrives after this call; with no RAF loop running
+    // (reduced motion) the picture would never appear without this.
+    if (baseEl && baseEl.addEventListener) baseEl.addEventListener('loadeddata', repaintOnce, { once: true });
+    repaintOnce();
   }
   function setPhotos(urls) {
     photoUrls = (urls || []).slice();
     photoIndex = 0;
-    if (!photoUrls.length) { baseEl = null; baseKind = null; return; }
-    if (!photoImg) photoImg = new Image();
+    if (!photoUrls.length) { baseEl = null; baseKind = null; repaintOnce(); return; }
+    if (!photoImg) {
+      photoImg = new Image();
+      // Fires again on every src change (deck advance), so the static
+      // reduced-motion frame tracks the deck.
+      photoImg.addEventListener('load', repaintOnce);
+    }
     photoImg.src = photoUrls[0];
     baseEl = photoImg;
     baseKind = 'photo';
     resetBaseUpload();
+    repaintOnce();
   }
   function setPhotoAdvance(on) { photoAdvance = !!on; }
   function advancePhoto() {
@@ -496,23 +537,27 @@
     gl.uniform3fv(glLoc.u_bg, bgRGB);
     gl.uniform1f(glLoc.u_signalAlpha, 1.0);
 
-    // Base layer — camera or photo deck, cover-fit under the overlays.
-    // u_baseAspect === 0 tells the shader to keep the pure-black background.
+    // Base layer — camera (VJ-gated) or photo deck, cover-fit under the
+    // overlays. u_baseAspect === 0 tells the shader to keep the pure-black
+    // background; u_gridDim quiets the grid while a base is under it.
     let baseAspect = 0;
-    if (baseEl && !baseBroken && baseReady(baseEl) && uploadBase()) {
+    let gridDim = 1;
+    if (baseComposited() && uploadBase()) {
       const s = baseSize(baseEl);
       baseAspect = s.w / s.h;
+      gridDim = VJ_GRID_DIM;
     }
     gl.activeTexture(gl.TEXTURE0);
     gl.uniform1i(glLoc.u_base, 0);
     gl.uniform1f(glLoc.u_baseAspect, baseAspect);
+    gl.uniform1f(glLoc.u_gridDim, gridDim);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
   // ---- 2D fallback render path ----
   function draw2d() {
-    if (baseReady(baseEl)) {
+    if (baseComposited()) {
       const s = baseSize(baseEl);
       const cover = Math.max(W / s.w, H / s.h);
       const dw = s.w * cover, dh = s.h * cover;
@@ -765,12 +810,15 @@
     // mic: replaces the song analyser while live (page toggles it)
     setMicStream,
     micActive: () => !!micStream,
-    // base source: camera video element or photo deck (whichever was set last)
+    // base source: camera (VJ-gated) or photo deck (whichever was set last)
     setVideoSource,
     setPhotos,
     setPhotoAdvance,
     baseSourceKind: () => baseKind,
     photoIndex: () => photoIndex,
+    // VJ mode: the camera only composites onto the canvas while it is on
+    setVJMode,
+    vjMode: () => vjMode,
     setTransition: (id) => { transition = String(id || 'cut'); return transition; },
     pulseTransition: () => { triggerTransition(); return transition; },
     remapLayers: () => remapLayers(),

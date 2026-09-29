@@ -22,12 +22,13 @@
 //  17. Beat flash: paints the overlay, decays within 200ms
 //  18. Layer presets: read → mutate → Clear restores the shipped default
 //  19. Layer presets: Save downloads the live rows; Load restores them via the picker
-//  20. Base source: photo deck takes the slot, advances, clears
-//  21. Mobile: full-height stage, bottom-sheet rails (strips + one open at a time)
-//  22. prefers-reduced-motion: one static frame, no flash
-//  23. Mic/Cam: module present, clicks no-op without devices
-//  24. Mic/Cam success path with Chromium's fake devices (live analyser + video base)
-//  25. No console errors after the new interactions
+//  20. Base source: deck composites, advances, clears; grid dims under it
+//  21. VJ mode: off by default, C toggles it, copy/typing shortcuts survive
+//  22. Mobile: full-height stage, bottom-sheet rails (strips + one open at a time)
+//  23. prefers-reduced-motion: one static frame, no flash
+//  24. Mic/Cam: module present, clicks no-op without devices
+//  25. Mic/Cam success path with Chromium's fake devices (analyser, VJ-gated video)
+//  26. No console errors after the new interactions
 //
 // Set BASE_URL to run the same gate against a deployed origin
 // (e.g. BASE_URL=https://sainted-word-records.vercel.app node scripts/check-dashboard.mjs).
@@ -68,6 +69,37 @@ function check(name, ok, detail) {
   if (ok) pass += 1; else fail += 1;
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// document.body.focus() does not blur a focused control — the keyboard checks
+// need a real blur, or the key lands in whatever field was last touched.
+const blurActive = (target) => target.evaluate(() => {
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+});
+
+// Canvas samplers injected into a page for the base-source / VJ / grid checks:
+// mean brightness and peak channel over a region of the render canvas.
+const injectSamplers = (target) => target.evaluate(() => {
+  const grab = () => {
+    const src = document.getElementById('render-canvas');
+    const c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(src, 0, 0);
+    return ctx;
+  };
+  window.__regionMean = (x, y, w, h) => {
+    const d = grab().getImageData(x, y, w, h).data;
+    let s = 0;
+    for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2];
+    return Math.round(s / (d.length / 4) / 3);
+  };
+  window.__regionMax = (x, y, w, h) => {
+    const d = grab().getImageData(x, y, w, h).data;
+    let m = 0;
+    for (let i = 0; i < d.length; i += 4) m = Math.max(m, d[i], d[i + 1], d[i + 2]);
+    return m;
+  };
+});
 
 const browser = await puppeteer.launch({
   headless: 'new',
@@ -305,26 +337,95 @@ try {
   await cdp.detach();
   fs.rmSync(downloadDir, { recursive: true, force: true });
 
-  // 20. Base source — the photo deck takes the slot, advances, clears
-  const baseSource = await page.evaluate(() => {
+  // 20. Base source — the photo deck takes the slot, advances, clears, and
+  // composites with VJ mode off (only the camera is gated, checked in 24).
+  await injectSamplers(page);
+  const baseSource = await page.evaluate(async () => {
     const e = window.__SWR_ENGINE;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const out = { api: typeof e.setPhotos === 'function' };
+    out.vjAtStart = e.vjMode();
+    out.bgMean = window.__regionMean(200, 440, 140, 120);
     e.setPhotos(['/icons/apple-touch-icon-180.png', '/favicon.svg']);
     out.kind = e.baseSourceKind();
     out.index0 = e.photoIndex();
     out.advanced = e._debug.advancePhoto();
     out.index1 = e.photoIndex();
+    // A bright photo must reach the canvas without VJ mode; a black one then
+    // lets the same pixels measure the grid dim (full vs dimmed).
+    const svg = (fill) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="${fill}"/></svg>`);
+    e.setPhotos([svg('#ffffff')]);
+    await wait(500);
+    out.photoMean = window.__regionMean(200, 440, 140, 120);
+    e.setPhotos([]);
+    await wait(400);
+    out.gridFull = window.__regionMax(100, 180, 340, 40);
+    e.setPhotos([svg('#000000')]);
+    await wait(500);
+    out.gridDim = window.__regionMax(100, 180, 340, 40);
     e.setPhotos([]);
     out.kindAfter = e.baseSourceKind();
     return out;
   });
   check('Photo deck becomes the base source',
-    baseSource.api && baseSource.kind === 'photo' && baseSource.index0 === 0, JSON.stringify(baseSource));
+    baseSource.api && baseSource.kind === 'photo' && baseSource.index0 === 0, JSON.stringify({ api: baseSource.api, kind: baseSource.kind, index0: baseSource.index0 }));
   check('Advance moves to the next photo',
     baseSource.advanced === true && baseSource.index1 === 1, `index=${baseSource.index1}`);
   check('Empty deck clears the base source', baseSource.kindAfter === null);
+  check('Photos composite with VJ mode off',
+    baseSource.vjAtStart === false && baseSource.photoMean > baseSource.bgMean + 20,
+    `bg=${baseSource.bgMean} photo=${baseSource.photoMean}`);
+  check('Grid dims under a composited base',
+    baseSource.gridFull >= 8 && baseSource.gridDim <= baseSource.gridFull * 0.5,
+    `full=${baseSource.gridFull} dim=${baseSource.gridDim}`);
 
-  // 21. Mobile — stage fills the viewport, sidebars are bottom sheets that
+  // 21. VJ mode — OFF by default, C toggles it, and the platform's copy
+  // shortcut plus typing in a field are left alone.
+  const vjDefault = await page.evaluate(() => ({
+    mode: window.__SWR_ENGINE.vjMode(),
+    chip: document.getElementById('hud-vj').textContent.trim(),
+    flag: document.getElementById('vj-btn').dataset.active || null,
+  }));
+  check('VJ mode is off by default',
+    vjDefault.mode === false && vjDefault.chip === 'OFF' && vjDefault.flag === null, JSON.stringify(vjDefault));
+  await blurActive(page);
+  await page.keyboard.press('c');
+  await sleep(200);
+  const vjOn = await page.evaluate(() => ({
+    mode: window.__SWR_ENGINE.vjMode(),
+    chip: document.getElementById('hud-vj').textContent.trim(),
+    flag: document.getElementById('vj-btn').dataset.active || null,
+    tint: document.getElementById('vj-btn').style.color,
+  }));
+  check('C turns VJ mode on (readout + button follow)',
+    vjOn.mode === true && vjOn.chip === 'ON' && vjOn.flag === '1' && vjOn.tint === 'var(--signal)',
+    JSON.stringify(vjOn));
+  await page.keyboard.down('Meta');
+  await page.keyboard.press('c');
+  await page.keyboard.up('Meta');
+  await sleep(150);
+  const afterMetaC = await page.evaluate(() => window.__SWR_ENGINE.vjMode());
+  check('Cmd/Ctrl+C stays with the platform', afterMetaC === true, `vj=${afterMetaC}`);
+  await page.evaluate(() => { const i = document.querySelector('#layers-list input:not([type])'); if (i) i.focus(); });
+  await page.keyboard.press('c');
+  await sleep(150);
+  const afterTyping = await page.evaluate(() => ({
+    vj: window.__SWR_ENGINE.vjMode(),
+    target: document.activeElement ? document.activeElement.tagName : null,
+  }));
+  check('C while typing in a field does not toggle VJ mode',
+    afterTyping.vj === true && afterTyping.target === 'INPUT', JSON.stringify(afterTyping));
+  await blurActive(page);
+  await page.keyboard.press('c');
+  await sleep(200);
+  const vjOff = await page.evaluate(() => ({
+    mode: window.__SWR_ENGINE.vjMode(),
+    chip: document.getElementById('hud-vj').textContent.trim(),
+  }));
+  check('C turns VJ mode back off', vjOff.mode === false && vjOff.chip === 'OFF', JSON.stringify(vjOff));
+
+  // 22. Mobile — stage fills the viewport, sidebars are bottom sheets that
   // boot as 32px strips (both toggles must stay hittable) and open one at a time.
   await page.setViewport({ width: 390, height: 844 });
   await page.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
@@ -377,7 +478,7 @@ try {
   check('Mobile: only one sheet is open at a time',
     mobileSwap.right === '0' && mobileSwap.left === '1', JSON.stringify(mobileSwap));
 
-  // 22. prefers-reduced-motion — one static frame, no animation, no flash
+  // 23. prefers-reduced-motion — one static frame, no animation, no flash
   const rmPage = await browser.newPage();
   const rmErrors = [];
   rmPage.on('pageerror', (e) => rmErrors.push('pageerror: ' + e.message));
@@ -400,10 +501,25 @@ try {
     return { level: e.flashLevel(), alpha: overlay ? overlay.getContext('2d').getImageData(4, 4, 1, 1).data[3] : 255 };
   });
   check('Reduced motion: the flash never paints', rmFlash.level === 0 && rmFlash.alpha === 0, JSON.stringify(rmFlash));
+  // State changes must repaint the single static frame — with no RAF loop, a
+  // photo dropped into the deck would otherwise never appear.
+  await injectSamplers(rmPage);
+  const rmRepaint = await rmPage.evaluate(async () => {
+    const svg = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="#ffffff"/></svg>');
+    const before = window.__regionMean(200, 440, 140, 120);
+    window.__SWR_ENGINE.setPhotos([svg]);
+    await new Promise((r) => setTimeout(r, 500));
+    const after = window.__regionMean(200, 440, 140, 120);
+    window.__SWR_ENGINE.setPhotos([]);
+    return { before, after };
+  });
+  check('Reduced motion: a base-source change still repaints the static frame',
+    rmRepaint.after > rmRepaint.before + 20, JSON.stringify(rmRepaint));
   check('Reduced motion: no page errors', rmErrors.length === 0, rmErrors.join('|'));
   await rmPage.close();
 
-  // 23. Mic / Cam — module wired; this browser has no devices, so clicks stay inert
+  // 24. Mic / Cam — module wired; this browser has no devices, so clicks stay inert
   await page.setViewport({ width: 1280, height: 900 });
   await page.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
   await sleep(800);
@@ -423,8 +539,9 @@ try {
     mediaState.mic === null && mediaState.cam === null,
     `mic=${mediaState.mic}·${mediaState.micTitle} cam=${mediaState.cam}·${mediaState.camTitle}`);
 
-  // 24. Mic / Cam success path — a second browser that grants Chromium's fake
-  // devices (the primary one above runs with none, per check 23).
+  // 25. Mic / Cam success path — a second browser that grants Chromium's fake
+  // devices (the primary one above runs with none, per check 24). The camera is
+  // VJ-gated, so the canvas must stay black until C composites the feed.
   const devBrowser = await puppeteer.launch({
     headless: 'new',
     args: [
@@ -440,22 +557,8 @@ try {
   await devPage.setViewport({ width: 1280, height: 900 });
   await devPage.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
   await sleep(800);
-  // Mean brightness of a patch between the shader's waveform and its bars, so
-  // the base source (camera frame vs pure black) dominates the reading.
-  await devPage.evaluate(() => {
-    window.__regionMean = () => {
-      const src = document.getElementById('render-canvas');
-      const c = document.createElement('canvas');
-      c.width = src.width; c.height = src.height;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(src, 0, 0);
-      const data = ctx.getImageData(200, 440, 140, 120).data;
-      let sum = 0;
-      for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
-      return Math.round(sum / (data.length / 4) / 3);
-    };
-  });
-  const bgMean = await devPage.evaluate(() => window.__regionMean());
+  await injectSamplers(devPage);
+  const bgMean = await devPage.evaluate(() => window.__regionMean(200, 440, 140, 120));
   await devPage.click('#mic-btn');
   await sleep(1200);
   const micLive = await devPage.evaluate(() => ({
@@ -480,15 +583,42 @@ try {
   }
   await devPage.click('#cam-btn');
   await sleep(1500);
-  const camLive = await devPage.evaluate(() => ({
+  const camGated = await devPage.evaluate(() => ({
     kind: window.__SWR_ENGINE.baseSourceKind(),
     flag: document.getElementById('cam-btn').dataset.active,
     videos: document.querySelectorAll('body > video').length,
-    mean: window.__regionMean(),
+    vj: window.__SWR_ENGINE.vjMode(),
+    chip: document.getElementById('hud-vj').textContent.trim(),
+    mean: window.__regionMean(200, 440, 140, 120),
   }));
-  check('Cam with a device: the camera frame becomes the canvas base',
-    camLive.kind === 'video' && camLive.flag === '1' && camLive.videos === 1 && camLive.mean > bgMean + 20,
+  check('Cam with a device: feed armed but off the canvas while VJ mode is off',
+    camGated.kind === 'video' && camGated.flag === '1' && camGated.videos === 1 &&
+    camGated.vj === false && camGated.mean <= bgMean + 8,
+    `bgMean=${bgMean} ${JSON.stringify(camGated)}`);
+  await blurActive(devPage);
+  await devPage.keyboard.press('c');
+  await sleep(600);
+  const camLive = await devPage.evaluate(() => ({
+    kind: window.__SWR_ENGINE.baseSourceKind(),
+    vj: window.__SWR_ENGINE.vjMode(),
+    chip: document.getElementById('hud-vj').textContent.trim(),
+    flag: document.getElementById('cam-btn').dataset.active,
+    title: document.getElementById('cam-btn').title,
+    mean: window.__regionMean(200, 440, 140, 120),
+  }));
+  check('C (VJ mode) composites the camera frame onto the canvas',
+    camLive.vj === true && camLive.chip === 'ON' && camLive.flag === '1' && camLive.mean > bgMean + 20,
     `bgMean=${bgMean} ${JSON.stringify(camLive)}`);
+  await devPage.keyboard.press('c');
+  await sleep(600);
+  const camReGated = await devPage.evaluate(() => ({
+    vj: window.__SWR_ENGINE.vjMode(),
+    videos: document.querySelectorAll('body > video').length,
+    mean: window.__regionMean(200, 440, 140, 120),
+  }));
+  check('Leaving VJ mode returns the canvas to pure black (stream still armed)',
+    camReGated.vj === false && camReGated.videos === 1 && camReGated.mean <= bgMean + 8,
+    `bgMean=${bgMean} ${JSON.stringify(camReGated)}`);
   await devPage.click('#cam-btn');
   await devPage.click('#mic-btn');
   await sleep(500);
@@ -496,15 +626,15 @@ try {
     mic: window.__SWR_ENGINE.micActive(),
     kind: window.__SWR_ENGINE.baseSourceKind(),
     videos: document.querySelectorAll('body > video').length,
-    mean: window.__regionMean(),
+    mean: window.__regionMean(200, 440, 140, 120),
   }));
   check('Mic/Cam toggle back off cleanly',
-    devOff.mic === false && devOff.kind === null && devOff.videos === 0 && devOff.mean < camLive.mean,
-    JSON.stringify(devOff));
+    devOff.mic === false && devOff.kind === null && devOff.videos === 0 && devOff.mean <= bgMean + 8,
+    `bgMean=${bgMean} ${JSON.stringify(devOff)}`);
   check('Fake-device run has no page errors', devErrors.length === 0, devErrors.join('|'));
   await devBrowser.close();
 
-  // 25. No console errors after the new interactions (same filter as check 12)
+  // 26. No console errors after the new interactions (same filter as check 12)
   check('No console errors after new interactions',
     errors.length === 0, errors.length ? errors.slice(0, 3).join('|') : '');
 

@@ -27,6 +27,7 @@ These are non-negotiable. Break one and it's not Console anymore.
 | Beat response = single hard flash | One full-frame orange flash on each kick, 50ms in, 150ms decay. No bloom, no smear. |
 | Max 3 layers visible | 1 hero element + 1 waveform + 1 number overlay. Restraint is the point. |
 | No atmospheric effects | No fog, no dust, no "energy". The canvas is a control surface, not a mood. |
+| Live input is opt-in | The camera feed is the only non-black source, so it composites onto the canvas only in **VJ mode** (`C`), which also dims the grid so the frame reads. The default canvas stays pure black. |
 
 ## Color tokens (pull into the engine's CSS root)
 
@@ -158,5 +159,6 @@ The current "music note icon" feels like every other generic editor. The Console
 - [ ] Library cards are named `Wave / Grid / Bar / Dot / Line / Frame / Trace / LFO` (or whatever you choose), matching the geometric aesthetic.
 - [ ] Layer types renamed to `Waveform / Spectrum / LFO / Key / Meter`.
 - [ ] Mobile: stage takes full viewport, sidebars become bottom-sheet drawers.
+- [ ] Camera feed composites only in VJ mode (`C`, which dims the grid); the deck composites either way.
 - [ ] `prefers-reduced-motion` opts out of the canvas animations.
 - [ ] Focus rings designed (orange, 2px, 2px offset), not browser default.
