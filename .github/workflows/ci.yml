@@ -51,7 +51,10 @@ jobs:
   ci:
     name: check + verify + build-size
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 30-minute budget. The chain ran 19m54s on 2026-09-29 (a 19-step group
+    # including check:automix-smoke 534s) and was cancelled by GitHub at step
+    # 9/13. 30 minutes gives the slowest single gate (check:verify at ~19m) the
+    # full safety margin without inflating the per-step allocations.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
