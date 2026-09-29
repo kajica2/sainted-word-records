@@ -1,0 +1,118 @@
+/* lib/engine-chrome.css — the engine's app-chrome contract, shared.
+ *
+ * The engine surface (engine.html) and its tools (make-video, photo, enhance)
+ * are the same product: a user drops a song, then a library, then makes a
+ * video. They used to be three palettes and three toolbar idioms, so moving
+ * between them felt like leaving the site. This file is the one place the
+ * tokens and the transport-bar idiom are written down — the values are copied
+ * from engine.html's own :root and #transport rules, so the tools borrow the
+ * engine's look instead of approximating it.
+ *
+ * Pages keep their own token names (--ink, --text-primary, …) — the aliases at
+ * the bottom map them onto the engine palette, so a page can adopt this file
+ * without rewriting its stylesheet.
+ */
+
+:root {
+  /* Engine palette (engine.html :root, verbatim) */
+  --bg-0: #050308;
+  --bg-1: #0d0918;
+  --bg-2: #1a1226;
+  --panel: #11091a;
+  --panel-2: #1a1028;
+  --line: #2a1d3a;
+  --line-2: #3a2a4a;
+  --fg: #f5e9ff;
+  --muted: #9a8aaa;
+  --dim: #5a4a6a;
+  --accent: #ff3d92;
+  --accent-2: #00e5ff;
+  --accent-3: #ffd24a;
+  --warn: #ff7a3d;
+  --ok: #00ffa3;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+
+  /* Aliases for the tool pages' own token names */
+  --bg: var(--bg-0);
+  --ink: var(--fg);
+  --green: var(--ok);
+  --yellow: var(--accent-3);
+  --bg-base: var(--bg-0);
+  --bg-elevated: var(--bg-1);
+  --bg-surface: var(--panel-2);
+  --bg-hover: var(--bg-2);
+  --text-primary: var(--fg);
+  --text-secondary: var(--muted);
+  --text-muted: var(--dim);
+  --border-subtle: var(--line);
+  --border-medium: var(--line-2);
+  --accent-warm: var(--accent);
+  --accent-amber: var(--accent);
+  --accent-cream: var(--fg);
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+}
+
+/* ---- Transport bar: engine.html's header#transport, as a class ---- */
+.swr-appbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  min-height: 56px;
+  background: linear-gradient(180deg, var(--bg-2), var(--panel));
+  border-bottom: 1px solid var(--line);
+  color: var(--fg);
+  font-family: var(--font-mono);
+}
+
+.swr-appbar .brand {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 14px;
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(255, 61, 146, 0.5);
+  white-space: nowrap;
+}
+.swr-appbar .brand small {
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  margin-left: 6px;
+}
+
+/* ---- Controls ---- */
+.tbtn {
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;   /* the bar packs controls on one row, like the engine */
+  transition: background 0.12s, border-color 0.12s;
+}
+.tbtn:hover { border-color: var(--accent); color: var(--fg); }
+.tbtn.accent:hover { background: var(--accent); color: #000; }
+.tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.tbtn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+.tbtn.accent { background: transparent; color: var(--accent); border-color: var(--accent); }
+.tbtn.ghost { background: transparent; border-color: var(--line); }
+.tbtn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+/* Micro label — the engine's uppercase mono caption used for panel heads. */
+.swr-micro {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}

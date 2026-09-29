@@ -3,6 +3,7 @@
 <head>
   <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/engine-chrome.css">
   <meta charset="utf-8" />
   <title>Camera Enhance · SWR · Clean Video Processing</title>
   <meta name="description" content="Stabilize, denoise, color-grade, and burn-in overlays for camera-shot footage. Browser-native, zero backend." />
@@ -15,30 +16,14 @@
   <meta property="og:title" content="Camera Enhance · SWR" />
   <meta property="og:description" content="Stabilize, denoise, color-grade, and burn-in overlays for camera-shot footage." />
   <meta property="og:url" content="https://sainted-word-records.vercel.app/enhance.html" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
   <meta name="twitter:card" content="summary_large_image">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root {
-      /* Warm/film palette — amber + cream, no neon except when 'Neon' look selected */
-      --bg-base: #0f0a06;
-      --bg-elevated: #1a1208;
-      --bg-surface: #261a0e;
-      --bg-hover: #2f2014;
-      --text-primary: #f5ead8;
-      --text-secondary: #d4b89a;
-      --text-muted: #8a7860;
-      --border-subtle: rgba(245, 234, 216, 0.08);
-      --border-medium: rgba(245, 234, 216, 0.16);
-      --accent-warm: #d4a04a;
-      --accent-amber: #f5b860;
-      --accent-cream: #efe2c8;
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
-      --radius-xl: 20px;
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --font-mono: 'SF Mono', 'JetBrains Mono', Monaco, monospace;
-    }
+  /* Palette comes from /lib/engine-chrome.css (the engine's surface). */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%;
@@ -72,15 +57,7 @@
     }
 
     /* === HEADER === */
-    .enhance-header {
-      grid-area: header;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      background: var(--bg-elevated);
-      border-bottom: 1px solid var(--border-subtle);
-    }
+  /* Transport bar — .swr-appbar provides the chrome. */
     .enhance-brand {
       display: flex; align-items: center; gap: 12px;
     }
@@ -580,17 +557,11 @@
   <swr-nav></swr-nav>
   <main class="enhance-app">
     <!-- HEADER -->
-    <header class="enhance-header">
-      <div class="enhance-brand">
-        <div class="enhance-logo">🎬</div>
-        <div>
-          <h1>Camera Enhance</h1>
-          <span>SWR · clean video processing</span>
-        </div>
-      </div>
+    <header class="enhance-header swr-appbar">
+      <span class="brand">ENHANCE <small>camera · clean video processing</small></span>
       <div class="enhance-actions">
-        <a class="btn btn-ghost" href="/engine.html">← engine</a>
-        <a class="btn btn-ghost" href="/photo.html">photo studio →</a>
+        <a class="tbtn" href="/engine.html">← ENGINE</a>
+        <a class="tbtn" href="/photo.html">PHOTO STUDIO →</a>
       </div>
     </header>
 
@@ -763,7 +734,7 @@
           </select>
         </div>
 
-        <button class="btn-export" id="exportBtn">⬇ Export Video</button>
+        <button class="tbtn primary btn-export" id="exportBtn">⬇ Export Video</button>
         <div class="export-meta" id="exportMeta">Estimated: 45 seconds · 340 MB</div>
       </div>
     </aside>

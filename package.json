@@ -92,6 +92,7 @@
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
     "check:dashboard": "node scripts/check-dashboard.mjs",
     "check:site-chrome": "node scripts/check-site-chrome.mjs",
+    "check:clip-poster-smoke": "node scripts/check-clip-poster-smoke.mjs",
     "verify:collage-loads": "node verify-collage-loads.mjs",
     "verify:overlay-failure": "node verify-overlay-failure.mjs",
     "verify:library-switcher": "node verify-library-switcher.mjs",
