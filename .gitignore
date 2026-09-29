@@ -124,3 +124,6 @@ _archive/
 # development, parallel sprints). Tracked by .git/worktrees/ but the working
 # trees themselves must never be committed.
 .worktrees/
+
+# PT license keys minted by scripts/generate-pt-keys.mjs (never commit: they are the product)
+pt-keys.local.txt
