@@ -13,12 +13,18 @@
 // after: the five core variants formed a closed loop and the two music-video
 // cuts had no <a> at all, so a visitor could not reach the site.
 //
+// Every checked page also carries exactly one absolute <link rel="canonical"> on the
+// route that actually serves it (scripts/lib/routes.mjs) — the alias trap is real:
+// /gallery/ai vs /gallery-ai.html, /landing.html vs /, /versions/music_video.html vs
+// /versions/music-video, and /artists/ vs /artists (Vercel 308s the slash form).
+//
 // Also asserts that every site-map.json redirect has its 301 rule in vercel.json.
 //
 // Run: node scripts/check-site-chrome.mjs [--verbose]
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { routeForFile, routeToFile } from './lib/routes.mjs';
 
 const VERBOSE = process.argv.includes('--verbose');
 
@@ -143,6 +149,28 @@ function checkOgImage(file, html) {
   }
 }
 
+// One canonical per page, on the URL that actually serves it. Before this gate
+// 24 of 136 checked pages carried one, and eight of those named their own alias
+// (/about.html, /landing.html, /changelog.html, /intro.html, /make-video.html,
+// /photo.html, /press.html, /status.html) instead of the served route. The route
+// comes from the one mapping in scripts/lib/routes.mjs, and routeToFile() proves
+// it resolves back to this very file (the same shape as checkOgImage(), which
+// proves its target exists).
+function checkCanonical(file, html) {
+  const found = [...html.matchAll(/<link\s+rel="canonical"\s+href="([^"]*)"[^>]*>/g)];
+  if (found.length === 0) { fail(file, 'no <link rel="canonical">'); return; }
+  if (found.length > 1) { fail(file, `${found.length} <link rel="canonical"> tags`); return; }
+  const url = found[0][1].trim();
+  const want = OG_BASE + routeForFile(file);
+  if (!url.startsWith(OG_BASE + '/')) { fail(file, `canonical must be an absolute ${OG_BASE} URL (${url})`); return; }
+  if (url.includes('?') || url.includes('#')) { fail(file, `canonical carries a query string or fragment (${url})`); return; }
+  if (url !== want) { fail(file, `canonical is ${url} — expected ${want}`); return; }
+  const target = routeToFile(url.slice(OG_BASE.length), { rewrites, exists: (p) => fs.existsSync(p) });
+  if (target !== file) fail(file, `canonical ${url} resolves to ${target || 'nothing'} in the repo, not ${file}`);
+}
+
+const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+const rewrites = (vercel.rewrites || []).filter(r => !r.statusCode || r.statusCode < 400);
 const pages = walk('.').sort();
 const siteMap = JSON.parse(fs.readFileSync('site-map.json', 'utf8'));
 
@@ -157,6 +185,7 @@ for (const file of pages) {
     headOnlyChecked++;
     checkViewport(file, html);
     checkOgImage(file, html);
+    checkCanonical(file, html);
     continue;
   }
   const isVersionRenderer = file.startsWith('versions/') && !VERSIONS_CONTENT.has(file.slice('versions/'.length));
@@ -170,6 +199,9 @@ for (const file of pages) {
     // App shells are the pages most likely to be opened on a phone; one of them
     // (dashboard.html) shipped without this and rendered at desktop width.
     checkViewport(file, html);
+    // Renderers are shipped pages too: each variant is its own URL in the
+    // sitemap and must name itself, not a sibling.
+    checkCanonical(file, html);
     continue;
   }
 
@@ -205,6 +237,7 @@ for (const file of pages) {
   if (!desc) fail(file, 'no meta description');
   checkViewport(file, html);
   checkOgImage(file, html);
+  checkCanonical(file, html);
 }
 
 // Unique titles across the checked set. The head-only pages are excluded: the
@@ -222,7 +255,6 @@ for (const [t, files] of byTitle) {
 }
 
 // Redirect map must be live in vercel.json
-const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
 const sources = new Set(vercel.rewrites.map(r => r.source));
 for (const r of (siteMap.redirects || [])) {
   const clean = r.from.replace(/^\//, '').replace(/\.html$/, '');
