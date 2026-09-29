@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TikTok Studio · SWR</title>
+  <meta name="description" content="Drop a track, pick a vibe, get a TikTok-ready vertical video: audio-reactive 9:16 stage, vibe presets, trim, and four export lengths." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/tiktok" />
+  <meta property="og:title" content="TikTok Studio · SWR">
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta property="og:description" content="Drop a track, pick a vibe, get a TikTok-ready vertical video: audio-reactive 9:16 stage, vibe presets, trim, and four export lengths.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0e0c0a" />
+  <meta name="author" content="Kai Djuric" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e0c0a'/%3E%3Cpath d='M13 7h4v12a4 4 0 1 1-4-4' fill='none' stroke='%23ff0050' stroke-width='2.4'/%3E%3Cpath d='M17 7c.6 3 2.6 4.6 5 5' fill='none' stroke='%2300f2ea' stroke-width='2.4'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <style>
+    /* TikTok Studio — page-local aliases onto lib/design-tokens.css, so the
+       page reads consistently and inherits both themes. Studio accents are
+       TikTok-native (pink/cyan) and deliberately do not restyle the nav. */
+    :root {
+      --tt-pink:  #ff0050;
+      --tt-cyan:  #00f2ea;
+      --tt-ink:   var(--ink);
+      --tt-muted: var(--muted);
+      --tt-line:  var(--line);
+      --tt-card:  var(--bg-2);
+      --tt-raise: var(--bg-3);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--tt-ink);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+    .tt-wrap { max-width: 1180px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+    .tt-head { margin-bottom: var(--space-5); }
+    .tt-eyebrow {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--tt-muted);
+    }
+    h1 { font-family: var(--font-display); font-size: clamp(28px, 5vw, 46px); line-height: 1.05; margin: var(--space-2) 0 var(--space-2); }
+    .tt-sub { color: var(--tt-muted); max-width: 54ch; line-height: 1.55; margin: 0; }
+    .tt-trust { display: flex; gap: var(--space-4); flex-wrap: wrap; margin-top: var(--space-3); font-family: var(--font-mono); font-size: 11px; color: var(--tt-muted); }
+    .tt-trust b { color: var(--tt-ink); font-weight: 600; }
+
+    .tt-grid { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: var(--space-6); align-items: start; }
+    @media (max-width: 900px) { .tt-grid { grid-template-columns: 1fr; } }
+
+    .tt-panel {
+      background: var(--tt-card); border: 1px solid var(--tt-line);
+      border-radius: var(--radius); padding: var(--space-4);
+    }
+    .tt-panel + .tt-panel { margin-top: var(--space-4); }
+    .tt-panel h2 {
+      font-family: var(--font-display); font-size: 18px; margin: 0 0 var(--space-3);
+      display: flex; align-items: center; gap: var(--space-2);
+    }
+    .tt-step { font-family: var(--font-mono); font-size: 10px; color: var(--tt-cyan); letter-spacing: .1em; }
+
+    /* upload */
+    .tt-drop {
+      border: 1.5px dashed var(--tt-line); border-radius: var(--radius);
+      padding: var(--space-6) var(--space-4); text-align: center; cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .tt-drop:hover, .tt-drop.is-over { border-color: var(--tt-pink); background: var(--tt-raise); }
+    .tt-drop strong { display: block; font-size: 15px; margin-bottom: 4px; }
+    .tt-drop span { color: var(--tt-muted); font-size: 13px; }
+    .tt-file { display: none; }
+    .tt-loaded { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); font-size: 13px; color: var(--tt-muted); }
+    .tt-loaded b { color: var(--tt-ink); font-weight: 600; font-family: var(--font-mono); }
+    .tt-chip {
+      display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px;
+      border: 1px solid var(--tt-line); border-radius: var(--radius-pill);
+      font-family: var(--font-mono); font-size: 11px; color: var(--tt-muted);
+    }
+    .tt-chip b { color: var(--tt-ink); }
+
+    /* vibe picker */
+    .tt-tabs { display: flex; gap: 6px; margin-bottom: var(--space-3); }
+    .tt-tab {
+      appearance: none; border: 1px solid var(--tt-line); background: transparent;
+      color: var(--tt-muted); font: inherit; font-size: 12px; padding: 5px 12px;
+      border-radius: var(--radius-pill); cursor: pointer; transition: all var(--transition);
+    }
+    .tt-tab[aria-selected="true"] { border-color: var(--tt-pink); color: var(--tt-ink); background: var(--tt-raise); }
+    .tt-vibes { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+    .tt-vibe {
+      appearance: none; text-align: left; border: 1px solid var(--tt-line);
+      background: var(--tt-raise); color: var(--tt-ink); font: inherit; font-size: 12px;
+      padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer;
+      display: flex; align-items: center; gap: 8px; transition: all var(--transition);
+    }
+    .tt-vibe:hover { border-color: var(--tt-cyan); }
+    .tt-vibe[aria-pressed="true"] { border-color: var(--tt-cyan); box-shadow: inset 0 0 0 1px var(--tt-cyan); }
+    .tt-swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; border: 1px solid rgba(255,255,255,.18); }
+
+    /* trim */
+    .tt-trim { display: grid; gap: 8px; }
+    .tt-trim-row { display: flex; align-items: center; gap: var(--space-3); font-family: var(--font-mono); font-size: 12px; }
+    .tt-trim input[type="range"] { width: 100%; accent-color: var(--tt-pink); }
+    .tt-trim-track { position: relative; height: 6px; border-radius: 3px; background: var(--tt-raise); overflow: hidden; margin: 2px 0; }
+    .tt-trim-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--tt-pink), var(--tt-cyan)); }
+
+    /* export */
+    .tt-exports { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    @media (max-width: 620px) { .tt-exports { grid-template-columns: repeat(2, 1fr); } }
+    .tt-export {
+      appearance: none; border: 1px solid var(--tt-line); background: var(--tt-raise);
+      color: var(--tt-ink); font: inherit; padding: 10px; border-radius: var(--radius-sm);
+      cursor: pointer; display: grid; gap: 2px; text-align: left; transition: all var(--transition);
+    }
+    .tt-export:hover:not(:disabled) { border-color: var(--tt-pink); }
+    .tt-export:disabled { opacity: .45; cursor: not-allowed; }
+    .tt-export b { font-size: 13px; }
+    .tt-export span { font-family: var(--font-mono); font-size: 10px; color: var(--tt-muted); }
+    .tt-status { font-family: var(--font-mono); font-size: 11px; color: var(--tt-muted); margin-top: var(--space-3); min-height: 16px; }
+    .tt-status.is-err { color: var(--hot); }
+    .tt-status.is-ok { color: var(--cool); }
+
+    /* stage */
+    .tt-preview { position: sticky; top: var(--space-4); }
+    .tt-stage-frame {
+      position: relative; width: 360px; max-width: 100%; aspect-ratio: 9 / 16;
+      margin: 0 auto; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--tt-line); background: #000; box-shadow: var(--shadow-2);
+    }
+    #tt-stage { display: block; width: 100%; height: 100%; }
+    .tt-badge {
+      position: absolute; left: 10px; top: 10px; z-index: 2;
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em;
+      padding: 3px 8px; border-radius: var(--radius-pill);
+      background: rgba(14,12,10,.55); color: #fff; backdrop-filter: blur(6px);
+    }
+    .tt-stage-meta { display: flex; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-3); font-family: var(--font-mono); font-size: 11px; color: var(--tt-muted); }
+    .tt-stage-meta b { color: var(--tt-ink); }
+    .tt-transport { display: flex; gap: 8px; margin-top: var(--space-3); }
+    .tt-transport button {
+      flex: 1; appearance: none; border: 1px solid var(--tt-line); background: var(--tt-raise);
+      color: var(--tt-ink); font: inherit; font-size: 12px; padding: 8px; border-radius: var(--radius-sm); cursor: pointer;
+    }
+    .tt-transport button:hover { border-color: var(--tt-cyan); }
+    .tt-note { font-size: 11px; color: var(--tt-muted); margin-top: var(--space-3); line-height: 1.5; }
+
+    /* pricing */
+    .tt-tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 700px) { .tt-tiers { grid-template-columns: 1fr; } }
+    .tt-tier { border: 1px solid var(--tt-line); border-radius: var(--radius-sm); padding: var(--space-3); background: var(--tt-raise); }
+    .tt-tier.is-hot { border-color: var(--tt-pink); }
+    .tt-tier h3 { margin: 0 0 2px; font-size: 14px; font-family: var(--font-display); }
+    .tt-tier .tt-price { font-family: var(--font-mono); font-size: 12px; color: var(--tt-muted); }
+    .tt-tier ul { margin: var(--space-2) 0 0; padding-left: 16px; font-size: 12px; color: var(--tt-muted); line-height: 1.6; }
+    .tt-tier a { color: var(--tt-cyan); text-decoration: none; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <main class="tt-wrap" data-tiktok-root>
+    <header class="tt-head">
+      <div class="tt-eyebrow">⚡ TikTok Studio · SWR</div>
+      <h1>Make your sound visible.</h1>
+      <p class="tt-sub">
+        Drop a track, pick a vibe, and export a vertical video that moves with your audio.
+        Everything renders in your browser — no upload, no account, no backend.
+      </p>
+      <div class="tt-trust">
+        <span><b>9:16</b> 1080×1920</span>
+        <span><b>4</b> export lengths</span>
+        <span><b>12</b> vibe presets</span>
+        <span><b>local-only</b> no upload</span>
+      </div>
+    </header>
+
+    <div class="tt-grid">
+      <div>
+        <!-- 01 · audio -->
+        <section class="tt-panel">
+          <h2><span class="tt-step">01</span> Your track</h2>
+          <div class="tt-drop" id="tt-drop" role="button" tabindex="0" aria-label="Choose an audio file or drop one here">
+            <strong>Drop an audio file</strong>
+            <span>or click to choose — mp3, wav, m4a, aiff</span>
+          </div>
+          <input class="tt-file" type="file" id="tt-file" accept="audio/*" />
+          <div class="tt-loaded" id="tt-loaded" hidden>
+            <span class="tt-chip">track <b id="tt-name">—</b></span>
+            <span class="tt-chip">bpm <b id="tt-bpm">—</b></span>
+            <span class="tt-chip">key <b id="tt-key">—</b></span>
+            <span class="tt-chip">hook <b id="tt-hook">—</b></span>
+          </div>
+        </section>
+
+        <!-- 02 · vibe -->
+        <section class="tt-panel">
+          <h2><span class="tt-step">02</span> Vibe</h2>
+          <div class="tt-tabs" id="tt-tabs" role="tablist" aria-label="Vibe category"></div>
+          <div class="tt-vibes" id="tt-vibes"></div>
+        </section>
+
+        <!-- 03 · trim -->
+        <section class="tt-panel tt-trim">
+          <h2><span class="tt-step">03</span> Trim</h2>
+          <div class="tt-trim-track"><div class="tt-trim-fill" id="tt-trim-fill"></div></div>
+          <div class="tt-trim-row">
+            <label for="tt-trim-start">start</label>
+            <input type="range" id="tt-trim-start" min="0" max="60" step="0.1" value="0" />
+            <b id="tt-trim-start-v">0:00</b>
+          </div>
+          <div class="tt-trim-row">
+            <label for="tt-trim-end">end</label>
+            <input type="range" id="tt-trim-end" min="0" max="60" step="0.1" value="60" />
+            <b id="tt-trim-end-v">1:00</b>
+          </div>
+        </section>
+
+        <!-- 04 · export -->
+        <section class="tt-panel">
+          <h2><span class="tt-step">04</span> Export</h2>
+          <div class="tt-exports">
+            <button class="tt-export" id="tt-export-teaser" data-type="teaser" disabled><b>Teaser</b><span>3s · the hook</span></button>
+            <button class="tt-export" id="tt-export-hook" data-type="hook" disabled><b>Hook</b><span>5s · hook + top</span></button>
+            <button class="tt-export" id="tt-export-clip" data-type="clip" disabled><b>Clip</b><span>15s · full chorus</span></button>
+            <button class="tt-export" id="tt-export-behind" data-type="behind" disabled><b>Behind</b><span>60s · full verse</span></button>
+          </div>
+          <div class="tt-status" id="tt-status">Waiting for a track.</div>
+        </section>
+
+        <!-- 05 · pricing -->
+        <section class="tt-panel" id="tt-pricing">
+          <h2><span class="tt-step">05</span> Pricing</h2>
+          <div class="tt-tiers">
+            <div class="tt-tier">
+              <h3>Free</h3>
+              <div class="tt-price">€0</div>
+              <ul>
+                <li>720p export</li>
+                <li>SWR watermark</li>
+                <li>all 12 vibes</li>
+              </ul>
+            </div>
+            <div class="tt-tier is-hot">
+              <h3>Creator</h3>
+              <div class="tt-price">€12 / mo</div>
+              <ul>
+                <li>1080p export</li>
+                <li>watermark-free</li>
+                <li>60s lengths</li>
+              </ul>
+            </div>
+            <div class="tt-tier">
+              <h3>Pro</h3>
+              <div class="tt-price">€29 / mo</div>
+              <ul>
+                <li>everything in Creator</li>
+                <li>batch exports</li>
+                <li>custom presets</li>
+              </ul>
+            </div>
+          </div>
+          <p class="tt-note">
+            Studio is free while it is in preview; every export carries the SWR mark.
+            Pricing above is the planned shape — <a href="/campaign.html#pt">see current pricing</a>.
+          </p>
+        </section>
+      </div>
+
+      <!-- preview -->
+      <aside class="tt-preview">
+        <div class="tt-panel">
+          <h2>Preview</h2>
+          <div class="tt-stage-frame">
+            <span class="tt-badge">1080 × 1920 · 9:16</span>
+            <canvas id="tt-stage" width="1080" height="1920" aria-label="Vertical preview stage"></canvas>
+          </div>
+          <div class="tt-stage-meta">
+            <span>state <b id="tt-state">idle</b></span>
+            <span>trim <b id="tt-trim-readout">0:00 – 0:00</b></span>
+          </div>
+          <div class="tt-transport">
+            <button id="tt-play" type="button">▶ Preview</button>
+            <button id="tt-pause" type="button">⏸ Pause</button>
+          </div>
+          <p class="tt-note">
+            The stage renders live in this browser. Exports record exactly what you see,
+            including the SWR mark.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="/audio-analysis-v2.js" defer></script>
+  <script src="/client/swr-tiktok-runtime.client.js" defer></script>
+  <script src="/client/swr-tiktok-export.client.js" defer></script>
+  <script>
+    // TikTok Studio — inline controller. Owns the page contract only: the DOM
+    // ids above wired to SWR_TIKTOK (renderer + state) and SWR_TIKTOK_EXPORT
+    // (recording). All audio-reactive behaviour lives in those two modules.
+    (function () {
+      'use strict';
+
+      // The 12 presets, in the page's own order. The runtime owns the actual
+      // palettes/motion and looks each id up; the grid renders from this table.
+      var VIBES = {
+        genre: [
+          { id: 'g-electronic', label: 'Electronic', swatch: 'linear-gradient(135deg,#00f2ea,#ff0050)' },
+          { id: 'g-hiphop',     label: 'Hip-hop',    swatch: 'linear-gradient(135deg,#ff7a00,#0e0c0a)' },
+          { id: 'g-indie',      label: 'Indie',      swatch: 'linear-gradient(135deg,#ffd9c7,#a7d8c9)' },
+          { id: 'g-pop',        label: 'Pop',        swatch: 'linear-gradient(135deg,#ff6ec7,#ffd166)' }
+        ],
+        mood: [
+          { id: 'm-hype',       label: 'Hype',       swatch: 'linear-gradient(135deg,#ff0050,#ffd400)' },
+          { id: 'm-chill',      label: 'Chill',      swatch: 'linear-gradient(135deg,#4aa3ff,#59d9a5)' },
+          { id: 'm-sad',        label: 'Sad',        swatch: 'linear-gradient(135deg,#8a6bd1,#8d8d8d)' },
+          { id: 'm-aggressive', label: 'Aggressive', swatch: 'linear-gradient(135deg,#0e0c0a,#ff2b2b)' }
+        ],
+        color: [
+          { id: 'c-sunset',     label: 'Sunset',     swatch: 'linear-gradient(135deg,#ff8a3d,#ff5c8a)' },
+          { id: 'c-ocean',      label: 'Ocean',      swatch: 'linear-gradient(135deg,#1f6feb,#00d4ff)' },
+          { id: 'c-neon',       label: 'Neon',       swatch: 'linear-gradient(135deg,#ff0050,#00f2ea)' },
+          { id: 'c-mono',       label: 'Mono',       swatch: 'linear-gradient(135deg,#ffffff,#0e0c0a)' }
+        ]
+      };
+      var TABS = [
+        { id: 'genre', label: 'Genre' },
+        { id: 'mood',  label: 'Mood' },
+        { id: 'color', label: 'Color' }
+      ];
+      var K = { vibe: 'swr.tiktok.lastVibe', audio: 'swr.tiktok.lastAudioName' };
+
+      var $ = function (id) { return document.getElementById(id); };
+      var stage = $('tt-stage');
+      var audio = new Audio();
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
+      audio.hidden = true;
+      document.body.appendChild(audio);
+
+      var state = { tab: 'genre', vibe: 'g-electronic', duration: 0, hook: 0, ready: false };
+      var rt = null;
+      var exporting = false;
+
+      function setStatus(text, kind) {
+        var el = $('tt-status');
+        el.textContent = text;
+        el.classList.toggle('is-err', kind === 'err');
+        el.classList.toggle('is-ok', kind === 'ok');
+      }
+      function fmt(sec) {
+        if (!isFinite(sec) || sec < 0) sec = 0;
+        var m = Math.floor(sec / 60);
+        var s = Math.floor(sec % 60);
+        return m + ':' + (s < 10 ? '0' : '') + s;
+      }
+
+      // ---- vibe grid -------------------------------------------------------
+      function renderTabs() {
+        var host = $('tt-tabs');
+        host.innerHTML = '';
+        TABS.forEach(function (t) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'tt-tab';
+          b.setAttribute('role', 'tab');
+          b.setAttribute('aria-selected', String(t.id === state.tab));
+          b.dataset.tab = t.id;
+          b.textContent = t.label;
+          b.addEventListener('click', function () { state.tab = t.id; renderTabs(); renderVibes(); });
+          host.appendChild(b);
+        });
+      }
+      function renderVibes() {
+        var host = $('tt-vibes');
+        host.innerHTML = '';
+        (VIBES[state.tab] || []).forEach(function (v) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'tt-vibe';
+          b.dataset.vibe = v.id;
+          b.setAttribute('aria-pressed', String(v.id === state.vibe));
+          var sw = document.createElement('span');
+          sw.className = 'tt-swatch';
+          sw.style.background = v.swatch;
+          b.appendChild(sw);
+          b.appendChild(document.createTextNode(v.label));
+          b.addEventListener('click', function () { pickVibe(state.tab, v.id); });
+          host.appendChild(b);
+        });
+      }
+      function pickVibe(tab, vibeId) {
+        state.tab = tab;
+        state.vibe = vibeId;
+        renderTabs();
+        renderVibes();
+        if (rt && rt.pickVibe) rt.pickVibe(tab, vibeId);
+        try { localStorage.setItem(K.vibe, JSON.stringify({ tab: tab, vibeId: vibeId })); } catch (e) {}
+        setStatus('Vibe: ' + vibeId.replace('-', ' ') + '.', 'ok');
+      }
+
+      // ---- trim ------------------------------------------------------------
+      function trimValues() {
+        var a = parseFloat($('tt-trim-start').value) || 0;
+        var b = parseFloat($('tt-trim-end').value) || 0;
+        if (b <= a) b = Math.min(state.duration || a + 1, a + 1);
+        return { start: a, end: b };
+      }
+      function renderTrim() {
+        var t = trimValues();
+        var dur = state.duration || 60;
+        var pct = Math.max(0, Math.min(100, (t.start / dur) * 100));
+        var pct2 = Math.max(0, Math.min(100, (t.end / dur) * 100));
+        $('tt-trim-fill').style.left = pct + '%';
+        $('tt-trim-fill').style.right = Math.max(0, 100 - pct2) + '%';
+        $('tt-trim-start-v').textContent = fmt(t.start);
+        $('tt-trim-end-v').textContent = fmt(t.end);
+        $('tt-trim-readout').textContent = fmt(t.start) + ' – ' + fmt(t.end);
+      }
+      function onTrimInput() {
+        var t = trimValues();
+        if (rt && rt.setTrim) rt.setTrim(t.start, t.end);
+        renderTrim();
+      }
+
+      // ---- audio load ------------------------------------------------------
+      function loadFile(file) {
+        if (!file) return;
+        if (!rt) { setStatus('Studio is still loading — try again in a second.', 'err'); return; }
+        state.ready = false;
+        setStatus('Reading ' + file.name + '…');
+        rt.loadAudio(file).then(function (info) {
+          state.ready = true;
+          state.duration = (info && info.duration) || audio.duration || 0;
+          $('tt-name').textContent = file.name;
+          $('tt-loaded').hidden = false;
+          try { localStorage.setItem(K.audio, file.name); } catch (e) {}
+          ['teaser', 'hook', 'clip', 'behind'].forEach(function (t) { $('tt-export-' + t).disabled = false; });
+          syncTrimRange();
+          setStatus('Track ready — ' + fmt(state.duration) + '. Pick a vibe, then export.', 'ok');
+        }).catch(function (err) {
+          setStatus('Could not read that file: ' + (err && err.message ? err.message : err), 'err');
+        });
+      }
+      function syncTrimRange() {
+        var dur = Math.max(1, state.duration || 60);
+        ['tt-trim-start', 'tt-trim-end'].forEach(function (id) {
+          var el = $(id);
+          el.max = String(Math.round(dur * 10) / 10);
+        });
+        $('tt-trim-start').value = '0';
+        $('tt-trim-end').value = String(Math.round(dur * 10) / 10);
+        onTrimInput();
+      }
+
+      // ---- export ----------------------------------------------------------
+      function runExport(type) {
+        if (exporting) return;
+        if (!state.ready) { setStatus('Load a track first.', 'err'); return; }
+        if (!window.SWR_TIKTOK_EXPORT) { setStatus('Export module not loaded.', 'err'); return; }
+        var t = trimValues();
+        exporting = true;
+        ['teaser', 'hook', 'clip', 'behind'].forEach(function (k) { $('tt-export-' + k).disabled = true; });
+        setStatus('Recording ' + type + '…');
+        window.SWR_TIKTOK_EXPORT.export(stage, audio, {
+          type: type,
+          startS: t.start,
+          endS: t.end,
+          hookTime: state.hook,
+          onProgress: function (p) {
+            var pct = Math.round((p && p.progress ? p.progress : 0) * 100);
+            setStatus('Recording ' + type + '… ' + pct + '%');
+          }
+        }).then(function (res) {
+          setStatus('Exported ' + type + ' · ' + (res.size / 1048576).toFixed(1) + ' MB · ' + fmt(res.duration), 'ok');
+        }).catch(function (err) {
+          setStatus('Export failed: ' + (err && err.message ? err.message : err), 'err');
+        }).then(function () {
+          exporting = false;
+          ['teaser', 'hook', 'clip', 'behind'].forEach(function (k) { $('tt-export-' + k).disabled = false; });
+        });
+      }
+
+      // ---- wiring ----------------------------------------------------------
+      function init() {
+        if (!window.SWR_TIKTOK || !stage) return;         // modules not loaded
+        rt = window.SWR_TIKTOK.create(stage, audio, {
+          onState: function (s) { $('tt-state').textContent = s; },
+          onFeatures: function (f) {
+            if (!f) return;
+            if (typeof f.bpm === 'number' && f.bpm > 0) $('tt-bpm').textContent = Math.round(f.bpm);
+            if (f.key) $('tt-key').textContent = f.key;
+          },
+          onHook: function (sec) {
+            state.hook = sec || 0;
+            $('tt-hook').textContent = state.hook ? fmt(state.hook) : '—';
+          },
+          onError: function (err) { setStatus('Studio: ' + (err && err.message ? err.message : err), 'err'); }
+        });
+
+        // restore last choices
+        try {
+          var savedVibe = JSON.parse(localStorage.getItem(K.vibe) || 'null');
+          if (savedVibe && savedVibe.vibeId) { state.tab = savedVibe.tab || state.tab; state.vibe = savedVibe.vibeId; }
+          var savedName = localStorage.getItem(K.audio);
+          if (savedName) { $('tt-name').textContent = savedName; $('tt-loaded').hidden = false; }
+        } catch (e) {}
+        renderTabs();
+        renderVibes();
+        if (rt.pickVibe) rt.pickVibe(state.tab, state.vibe);
+        renderTrim();
+
+        // upload
+        var drop = $('tt-drop');
+        var input = $('tt-file');
+        drop.addEventListener('click', function () { input.click(); });
+        drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+        input.addEventListener('change', function (e) { loadFile(e.target.files && e.target.files[0]); });
+        ['dragenter', 'dragover'].forEach(function (ev) {
+          drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('is-over'); });
+        });
+        ['dragleave', 'drop'].forEach(function (ev) {
+          drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('is-over'); });
+        });
+        drop.addEventListener('drop', function (e) {
+          var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          loadFile(f);
+        });
+
+        // trim
+        $('tt-trim-start').addEventListener('input', onTrimInput);
+        $('tt-trim-end').addEventListener('input', onTrimInput);
+
+        // export
+        ['teaser', 'hook', 'clip', 'behind'].forEach(function (t) {
+          $('tt-export-' + t).addEventListener('click', function () { runExport(t); });
+        });
+
+        // transport (preview only — never touches the recording path)
+        $('tt-play').addEventListener('click', function () { if (rt.play) rt.play(); });
+        $('tt-pause').addEventListener('click', function () { if (rt.pause) rt.pause(); });
+
+        setStatus('Waiting for a track.');
+        window.SWR_TIKTOK_PAGE = { state: state, rt: rt, loadFile: loadFile, pickVibe: pickVibe, runExport: runExport };
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+  </script>
+</body>
+</html>

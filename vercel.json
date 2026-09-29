@@ -644,6 +644,14 @@
       "destination": "/lab/media-input.html"
     },
     {
+      "source": "/tiktok",
+      "destination": "/tiktok.html"
+    },
+    {
+      "source": "/tiktok/",
+      "destination": "/tiktok.html"
+    },
+    {
       "source": "/spit",
       "destination": "/spit.html"
     },
