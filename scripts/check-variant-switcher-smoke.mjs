@@ -50,7 +50,11 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
 
   const browser = await puppeteer.launch({
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    // --autoplay-policy: engine.html calls Audio.play() during boot, which
+    // Chrome rejects without a gesture. The error filter below used to
+    // compensate for that, which also hid any genuine play() regression.
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+      '--autoplay-policy=no-user-gesture-required'],
   });
   try {
     const page = await browser.newPage();
@@ -66,8 +70,21 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
     // unlocks Audio. Filter before reporting.
     const isAutoplayError = (s) => /play\(\) failed because the user didn't interact|NotAllowedError: play/i.test(s);
 
-    await page.goto(`${BASE}/engine.html`, { waitUntil: 'networkidle0', timeout: 25000 });
-    await new Promise((r) => setTimeout(r, 2500));
+    // domcontentloaded + an explicit wait for the module under test.
+    // networkidle0 is unreliable on engine.html: the page holds long-lived
+    // audio/fetch connections, so it can fire before SWR_VARIANTS attaches
+    // (or not fire at all). Waiting on the module is the actual precondition
+    // the first assertion needs.
+    await page.goto(`${BASE}/engine.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForFunction('typeof window.SWR_VARIANTS !== "undefined"', { timeout: 20000 });
+    // wireUI() appends the options and then hands the select to
+    // SWR_TARGETING.maybeReorderVariants, which reorders *once its rules
+    // table has loaded* (it returns early and "init() re-applies" if not).
+    // Wait for the full option set so the assertion below never races the
+    // populate step; the order itself is deliberately not pinned (see the
+    // assertion) because the reorder is a supported behaviour.
+    await page.waitForFunction('document.querySelectorAll("#variant option").length >= 6', { timeout: 15000 });
+    await new Promise((r) => setTimeout(r, 1500));
 
     // 1. Module + select present with options
     const init = await page.evaluate(() => ({
@@ -80,11 +97,24 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
     else fail('window.SWR_VARIANTS missing', JSON.stringify(init));
     if (init.select) pass('#variant select found in transport');
     else fail('#variant select missing');
-    // Single #variant select (the console toolbar one carries the static
-    // "off" option first; the switcher appends the 5 variants).
-    const expected = ['off', 'neon', 'film', 'grid', 'smoke', 'hallucination'];
-    if (JSON.stringify(init.opts) === JSON.stringify(expected)) {
-      pass(`select populated with 5 variants (${init.opts.length} options)`);
+    // Single #variant select: the console toolbar carries the static "off"
+    // option first, the switcher appends the variants.
+    //
+    // The variant *order* is deliberately not asserted. wireUI() hands the
+    // select to SWR_TARGETING.maybeReorderVariants, which reorders the
+    // options most-relevant-first once its rules table loads — measured here
+    // as ['neon','grid','film',…] with the rules in and ['neon','film','grid',…]
+    // without, i.e. the same page yields two legitimate orders. Pinning one of
+    // them made this suite fail by timing. Assert the set, and report the
+    // order for visibility.
+    const expectedIds = ['neon', 'film', 'grid', 'smoke', 'hallucination'];
+    const got = init.opts.slice(1);                    // drop the static 'off'
+    const sameSet = got.length === expectedIds.length
+      && expectedIds.every((id) => got.includes(id))
+      && new Set(got).size === got.length;
+    if (init.opts[0] === 'off' && sameSet) {
+      pass(`select carries 'off' + all ${expectedIds.length} variants (${init.opts.length} options)`);
+      console.log(`  \x1b[33m·\x1b[0m option order: ${init.opts.join(', ')}`);
     } else {
       fail('select options mismatch', JSON.stringify(init.opts));
     }
