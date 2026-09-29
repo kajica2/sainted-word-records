@@ -659,7 +659,6 @@
       <div class="footer__col">
         <h4>Personas</h4>
         <ul>
-          <li><a href="/personas/v">Variant gallery (24)</a></li>
           <li><a href="/persona-library">Persona library</a></li>
           <li><a href="/landing-personas-v1-editorial.html">Editorial register</a></li>
           <li><a href="/landing-personas-v2-dark.html">Dark register</a></li>
@@ -706,7 +705,7 @@
   // Show a banner indicating demo mode
   const banner = document.createElement('div');
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--accent);color:white;padding:12px 20px;font-family:var(--font-mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;z-index:9999;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
-  banner.innerHTML = 'Persona demo: <strong>' + personaId + '</strong> · <a href="/persona-library" style="color:white;text-decoration:underline;">← back to all personas</a> · <a href="/personas/v" style="color:white;text-decoration:underline;">variant gallery</a>';
+  banner.innerHTML = 'Persona demo: <strong>' + personaId + '</strong> · <a href="/persona-library" style="color:white;text-decoration:underline;">← back to all personas</a>';
   document.body.appendChild(banner);
 
   // Load persona-runtime.client.js
