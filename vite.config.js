@@ -147,6 +147,58 @@ function inlineTargetingRules() {
   };
 }
 
+// Vite plugin: inline-footer-nav — inlines the site-map slice that
+// lib/footer.client.js reads (footerNav + legal + tools) into every built page
+// that mounts <swr-footer>, as
+// <script type="application/json" id="swr-footer-data"> immediately before
+// </head>. The footer then renders with no fetch at all, matching the
+// inline-automix-config / inline-targeting-rules approach and the PWA shell's
+// offline-first ethos. lib/footer.client.js still fetches /site-map.json when
+// the block is absent (the dev server, where this plugin does not run).
+//
+// Runs on closeBundle, after copy-static has written the copied pages to
+// dist/ (copy-static is registered before this plugin, so its closeBundle —
+// which re-copies root files over ./public/ staleness — finishes first and
+// our edits persist).
+function inlineFooterNav() {
+  let outDir = 'dist';
+  return {
+    name: 'inline-footer-nav',
+    configResolved(config) {
+      outDir = config.build.outDir || 'dist';
+    },
+    closeBundle() {
+      const map = JSON.parse(readFileSync('site-map.json', 'utf8'));
+      // Only the keys renderFooter() reads: the IA block, the legal links and
+      // the tools list it looks up the sitemap entry in.
+      const slice = JSON.stringify({
+        footerNav: map.footerNav,
+        legal: map.legal || [],
+        tools: map.tools || [],
+      });
+      const tag = `<script type="application/json" id="swr-footer-data">${slice}</script>`;
+      let inlined = 0;
+      const walk = (dir) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const p = resolve(dir, entry.name);
+          if (entry.isDirectory()) {
+            if (entry.name === 'node_modules') continue;
+            walk(p);
+          } else if (entry.name.endsWith('.html')) {
+            const html = readFileSync(p, 'utf8');
+            if (html.includes('id="swr-footer-data"')) continue; // idempotent
+            if (!html.includes('/lib/footer.client.js')) continue; // no footer here
+            writeFileSync(p, html.replace('</head>', `${tag}\n</head>`));
+            inlined++;
+          }
+        }
+      };
+      if (existsSync(outDir)) walk(resolve(outDir));
+      process.stdout.write('[inline-footer-nav] inlined into ' + inlined + ' page(s)\n');
+    },
+  };
+}
+
 // Vite plugin: copy ./versions/*, ./audios/*, and the GitHub project files
 // to the Vite-resolved outDir.
 //
@@ -629,6 +681,7 @@ export default defineConfig(({ command, mode }) => {
       },
       inlineAutomixConfig(),
       inlineTargetingRules(),
+      inlineFooterNav(),
     ],
     server: {
       port: 5174,

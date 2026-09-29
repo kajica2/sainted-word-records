@@ -19,6 +19,9 @@
 // Inline styles only: these pages carry their own stylesheets and must not
 // depend on lib/components.css.
 //
+// The dev tools under tools/ and the auth flow under auth/ get the same link
+// for the same reason: linked from the site, no way back to it.
+//
 // Idempotent: a page already carrying the SWR-SITE-EXIT marker is skipped.
 
 import fs from 'node:fs';
@@ -33,6 +36,17 @@ const PAGES = [
   'eclipse', 'film', 'fractal', 'glitch', 'grid', 'hallucination', 'kraft',
   'mosaic', 'neon', 'phosphor', 'pulse', 'smoke', 'spectrum', 'tape',
   'typography', 'void', 'watercolor', 'music_video', 'music_video_mtv',
+].map((name) => path.join('versions', `${name}.html`));
+
+// The dev tools and the auth flow are the same class of dead end: they are
+// linked from the site but carried no link back to it, so a visitor who landed
+// on one had only the browser back button. Repo-root-relative paths.
+const TOOL_PAGES = [
+  'tools/hf-publish.html',
+  'tools/manifest-editor.html',
+  'tools/mobile/index.html',
+  'auth/login.html',
+  'auth/verify.html',
 ];
 
 const MARKER = 'SWR-SITE-EXIT';
@@ -49,14 +63,14 @@ let patched = 0;
 let skipped = 0;
 const errors = [];
 
-for (const name of PAGES) {
-  const file = path.join(ROOT, 'versions', `${name}.html`);
-  if (!fs.existsSync(file)) { errors.push(`${name}.html not found`); continue; }
+for (const rel of [...PAGES, ...TOOL_PAGES]) {
+  const file = path.join(ROOT, rel);
+  if (!fs.existsSync(file)) { errors.push(`${rel} not found`); continue; }
   const html = fs.readFileSync(file, 'utf8');
   if (html.includes(MARKER)) { skipped++; continue; }
 
   const m = html.match(HEADER_RE) || html.match(BODY_RE);
-  if (!m) { errors.push(`${name}.html has no <header> or <body>`); continue; }
+  if (!m) { errors.push(`${rel} has no <header> or <body>`); continue; }
 
   const patchedHtml = html.replace(m[0], `${m[0]}\n      ${LINK}`);
   fs.writeFileSync(file, patchedHtml);
