@@ -9,6 +9,7 @@
   <meta name="description" content="Drone · ambient · tape decay — Ana builds long-form ambient from field recordings and tape loops. Her work treats silence as a first-class signal — every drone is shaped b" />
   <meta property="og:title" content="Ana Marić · SWR" />
   <meta property="og:description" content="Ana builds long-form ambient from field recordings and tape loops. Her work treats silence as a first-class signal — every drone is shaped by what it isn&#39;t. Two releases on the Sainted Word catalo" />
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#ff2d8a" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -91,6 +92,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   
     <audio id="track" loop preload="auto" crossorigin="anonymous">
       <source src="/audios/film.mp3" type="audio/mpeg" />
@@ -114,7 +116,7 @@
       .now-playing.playing .eq i { animation-play-state: running; }
       .now-playing.paused .eq i { animation-play-state: paused; }
     </style>
-  <div class="wrap">
+  <main class="wrap">
     <header class="top">
       <span class="badge">ARTIST · ANA MARIĆ</span>
       <span class="spacer"></span>
@@ -172,10 +174,8 @@
       <a class="link" href="https://bandcamp.com/" rel="noopener noreferrer" target="_blank">Bandcamp ↗</a><a class="link" href="https://instagram.com/" rel="noopener noreferrer" target="_blank">Instagram ↗</a>
     </div>
 
-    <footer class="foot">
-      ana-maric · <a href="/artists">see all artists →</a>
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
 
   <script>
     // Play-gate logic: most browsers block autoplay-with-sound. The first
@@ -218,5 +218,6 @@
     })();
   </script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

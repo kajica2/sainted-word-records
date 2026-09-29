@@ -9,6 +9,7 @@
   <meta name="description" content="A bio / neuro gallery of microscopic visuals — cortical layers, action potentials, dendritic arbors, and the neural firing patterns that look like music." />
   <meta property="og:title" content="Biological / Neuro — SWR Gallery" />
   <meta property="og:description" content="Cells, synapses, neural oscillations, and the firing patterns that look a lot like music." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -323,14 +324,14 @@
   <swr-nav></swr-nav>
 
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__kicker">MICROSCOPY · CONNECTOME</div>
       <h1 class="hero__title">Biological / <em>Neuro</em></h1>
       <p class="hero__lede">Cells, synapses, neural oscillations, and the firing patterns that look a lot like music.</p>
       <p class="hero__desc">
         A microscopy-driven aesthetic pulled from stained slices, electrode arrays, and computational neuro models. Every frame is a chamber of the brain — cortical columns, calcium waves, dendrites that branch like trees in winter. Built for producers who want their visuals to feel like they were made by a lab, not a designer.
       </p>
-    </div>
+    </main>
   </header>
 
   <section class="grid wrap">
@@ -424,12 +425,7 @@
     </article>
   </section>
 
-  <footer class="footer">
-    <div class="wrap">
-      <div class="footer__line"><span>Biological / Neuro</span> · SWR Galleries</div>
-    </div>
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -443,11 +439,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

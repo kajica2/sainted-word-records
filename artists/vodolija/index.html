@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vodolija — logo candidates · SWR</title>
   <meta name="description" content="34 logo candidates for the band Vodolija from Midjourney session 4, grouped by prompt session. Pick the one that should become the brand mark." />
+  <meta property="og:title" content="Vodolija — logo candidates · SWR">
+  <meta property="og:description" content="34 logo candidates for the band Vodolija from Midjourney session 4, grouped by prompt session. Pick the one that should become the brand mark.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0a0612" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -68,7 +72,8 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <swr-nav></swr-nav>
+  <main class="wrap">
     <header class="top">
       <span class="badge">VODOLIJA · LOGO CANDIDATES</span>
       <span class="spacer"></span>
@@ -397,10 +402,8 @@
         </div>
       </section>
 
-    <footer class="foot">
-      click any image to enlarge · copy button puts the filename on your clipboard
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
 
   <div id="lightbox" role="dialog" aria-label="Logo preview">
     <img id="lbImg" alt="" />
@@ -448,5 +451,6 @@
     })();
   </script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

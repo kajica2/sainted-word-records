@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HALLUCINATION · SWR persona</title>
   <meta name="description" content="RGB shift / scanline body. Every reactor maxed. RGB channel shift, lighter and difference blends, noise canvas overlay." />
+  <meta property="og:title" content="HALLUCINATION · SWR persona">
+  <meta property="og:description" content="RGB shift / scanline body. Every reactor maxed. RGB channel shift, lighter and difference blends, noise canvas overlay.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0a0612" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -111,7 +115,8 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <swr-nav></swr-nav>
+  <main class="wrap">
     <header class="top">
       <span class="badge">PERSONA · HALLUCINATION</span>
       <span class="cluster auditor">AUDITOR</span>
@@ -294,10 +299,9 @@
       </div>
     </div>
 
-    <footer class="foot">
-      Persona · HALLUCINATION · key: <code>hallucination</code> · values 0..1 except temp (-1..1) and mutAlgo (0..5)
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

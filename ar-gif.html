@@ -1,9 +1,14 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
   <meta charset="utf-8" />
   <title>AR GIF · Sainted Word Records</title>
   <meta name="description" content="Drop a GIF, get an AR composition. Camera-tracked 3D plane with your GIF as a rotating texture." />
+  <meta property="og:title" content="AR GIF · Sainted Word Records">
+  <meta property="og:description" content="Drop a GIF, get an AR composition. Camera-tracked 3D plane with your GIF as a rotating texture.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0a0610" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0610'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff2d8a' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff2d8a'/%3E%3C/svg%3E" />
@@ -74,7 +79,8 @@
   </style>
 </head>
 <body>
-  <div id="app">
+  <swr-nav></swr-nav>
+  <main id="app">
     <header>
       <span class="brand">AR·GIF<small>markerless · 3D texture</small></span>
       <span class="spacer"></span>
@@ -96,7 +102,7 @@
 
       <!-- GIF preview (before AR starts) -->
       <div class="empty" id="preview-state" style="display:none;">
-        <img id="preview-img" style="max-width:60%;max-height:60%;border:1px solid var(--line);border-radius:4px;" />
+        <img id="preview-img" alt="GIF preview" style="max-width:60%;max-height:60%;border:1px solid var(--line);border-radius:4px;" />
         <p id="preview-meta" style="margin-top:12px;"></p>
       </div>
 
@@ -122,7 +128,7 @@
       <span class="spacer"></span>
       <span class="meta" id="info-meta"></span>
     </footer>
-  </div>
+  </main>
 
   <!-- A-Frame + AR.js loaded on demand when user clicks START AR -->
   <script src="/ar-gif.client.js" defer></script>

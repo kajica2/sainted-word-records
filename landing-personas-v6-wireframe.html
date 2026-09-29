@@ -1,10 +1,16 @@
 <!doctype html>
 <html lang="en" data-register="wireframe" data-version="v6">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Personas · V6 Wireframe · Sainted Word Records</title>
   <meta name="description" content="The 8 personas of Sainted Word Records, rendered in the V6 Wireframe register — a 3D Three.js scene with cyan wireframe primitives, deep-space background, and monospaced geometry." />
+  <meta property="og:title" content="Personas · V6 Wireframe · Sainted Word Records">
+  <meta property="og:description" content="The 8 personas of Sainted Word Records, rendered in the V6 Wireframe register — a 3D Three.js scene with cyan wireframe primitives, deep-space background, and monospaced geometry.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="color-scheme" content="dark" />
   <meta name="author" content="Kai Djuric" />
   <meta name="theme-color" content="#050810" />
@@ -554,6 +560,7 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
+  <swr-nav></swr-nav>
 
   <!-- ============ INLINE PERSONAS DATA (single source of truth) ============ -->
   <script type="application/json" id="personas-data">
@@ -596,6 +603,7 @@
   </nav>
 
   <!-- ============ KICKER ============ -->
+  <main>
   <div class="wrap">
     <p class="kicker">
       <span class="accent">//</span> V6 · WIREFRAME · 2026-08-13 · <span class="green">[8 entries]</span> · <span class="amber">register=wireframe</span> · source=personas.json
@@ -832,6 +840,7 @@
       </div>
     </div>
   </section>
+  </main>
 
   <!-- ============ FOOTER ============ -->
   <footer class="foot">
@@ -1265,7 +1274,7 @@
     });
   })();
   </script>
-  <swr-nav></swr-nav>
+  
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

@@ -127,7 +127,6 @@ function generateRewrites(map) {
   // and routed here so the links resolve instead of being deleted.
   rules.push({ source: '/enhance', destination: '/enhance.html' });
   rules.push({ source: '/enhance/', destination: '/enhance.html' });
-  rules.push({ source: '/video_single.html', destination: '/video_single.html' });
 
   // Atlas section pages. atlas.html's TOC links to /atlas/<slug> while the
   // section files are hyphenated at the repo root (atlas-<slug>.html). Only
@@ -165,6 +164,22 @@ function generateRewrites(map) {
   rules.push({ source: '/personas/:id', destination: '/personas.html' });
   rules.push({ source: '/personas/:id/', destination: '/personas.html' });
 
+  // Declared redirects → 301, emitted BEFORE the archived 404s: rule order is
+  // match order, so a URL that is both archived and redirected must hit the
+  // redirect first.
+  if (Array.isArray(map.redirects)) {
+    const seen = new Set();
+    for (const r of map.redirects) {
+      if (!r || !r.from || !r.to) continue;
+      const clean = r.from.replace(/^\//, '').replace(/\.html$/, '').replace(/\/$/, '');
+      for (const source of [`/${clean}`, `/${clean}/`, `/${clean}.html`]) {
+        if (seen.has(source)) continue;
+        seen.add(source);
+        rules.push({ source, destination: r.to, statusCode: 301 });
+      }
+    }
+  }
+
   // Archived pages → 404
   if (Array.isArray(map.archived)) {
     for (const archived of map.archived) {
@@ -176,13 +191,6 @@ function generateRewrites(map) {
       });
     }
   }
-
-  // Special case: /persona-demo.html → redirect to /personas (merged)
-  rules.push({
-    source: '/persona-demo.html',
-    destination: '/personas.html',
-    statusCode: 301,
-  });
 
   return rules;
 }
@@ -223,6 +231,8 @@ const specialPatterns = [
   // /atlas exists as atlas.html but isn't in site-map; reachable from
   // the atlas-* exploratory pages.
   /^\/atlas\/?$/,
+  // /shotlist maps to /shotlist/index.html (directory + index).
+  /^\/shotlist\/?$/,
   // /artists/<name> → /artists/<name>.html for individual artist pages.
   // Not in site-map nav but linked from /artists/index.html cards.
   /^\/artists\/(ana-maric|dusan-popov|kira-lindqvist|marko-ilic|nina-volkova|vodolija)\/?$/,
@@ -251,8 +261,19 @@ const filteredGenerated = generatedRewrites.filter(
   r => !preservedSources.has(r.source)
 );
 
+// A rule whose destination is a concrete repo path that no longer exists
+// serves nothing — and a stale preserved rule can *shadow* the 301 that
+// replaced the page (first-match-wins). Rules carrying a statusCode are
+// deliberate (301 redirects, 404 guards) and always survive.
+const destinationExists = (dest) => {
+  if (!dest || !dest.startsWith('/') || dest.includes(':')) return true;
+  const p = dest.split('#')[0].split('?')[0].replace(/^\//, '');
+  return fs.existsSync(p) || fs.existsSync(`${p.replace(/\/$/, '')}/index.html`);
+};
+
 // Preserved rules go FIRST so they win on first-match.
-const finalRewrites = [...dedupedPreserved, ...filteredGenerated];
+const finalRewrites = [...dedupedPreserved, ...filteredGenerated]
+  .filter(r => r.statusCode || destinationExists(r.destination));
 
 if (VERBOSE) {
   console.log(`Generated ${generatedRewrites.length} rewrites from site-map`);

@@ -13,6 +13,7 @@
   <meta name="description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
   <meta property="og:title" content="Shop · SWR Galleries" />
   <meta property="og:description" content="Pick a design, pick a product, get it shipped. Logo tees, graphic tees, and mugs from every SWR gallery." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -235,6 +236,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   <nav class="nav">
     <div class="nav__inner">
       <a class="nav__brand" href="/gallery-music.html">SWR</a>
@@ -261,7 +263,7 @@
 
     <div class="notice" id="notice">
       <b>Stripe Payment Links not wired yet.</b>
-      To go live, create 3 products in your Stripe dashboard per <code>swr-stripe-setup.html</code> Step 1
+      To go live, create 3 products in your Stripe dashboard
       (Logo Tee €25 / Graphic Tee €25 / Mug €15), generate payment links with redirect to
       <code>/thanks.html</code>, then paste the <code>buy.stripe.com</code> URLs into
       <code>client/shop-decorator.client.js</code> at <code>PRODUCTS[*].stripeUrl</code>. The Buy
@@ -297,10 +299,7 @@
     </div>
   </main>
 
-  <footer class="footer">
-    <span>SWR Shop</span>
-    <span>Hand-printed on demand</span>
-  </footer>
+  <swr-footer></swr-footer>
 
   <script src="/client/shop-decorator.client.js" defer></script>
   <script>
@@ -792,5 +791,6 @@
   </script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

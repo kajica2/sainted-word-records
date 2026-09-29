@@ -9,6 +9,7 @@
   <meta name="description" content="Algorithmic composition — Perlin fields, reaction-diffusion, particle systems, emergent geometry. Eight procedural aesthetics rendered by the engine." />
   <meta property="og:title" content="Generative / Abstract — SWR Gallery" />
   <meta property="og:description" content="Algorithmic composition — Perlin fields, reaction-diffusion, particle systems, emergent geometry." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -329,10 +330,7 @@
     </div>
   </main>
 
-  <footer>
-    Generative / Abstract · SWR Galleries
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -346,11 +344,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

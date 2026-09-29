@@ -9,6 +9,7 @@
   <meta name="description" content="House · broken beat · dub — Dušan makes house that knows where the floor is and chooses not to stand on it. He builds his sets around 16-bar phrases and refuses any aut" />
   <meta property="og:title" content="Dušan Popov · SWR" />
   <meta property="og:description" content="Dušan makes house that knows where the floor is and chooses not to stand on it. He builds his sets around 16-bar phrases and refuses any auto-mix. Three Sainted Word visuals so far." />
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#00f0ff" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -91,6 +92,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   
     <audio id="track" loop preload="auto" crossorigin="anonymous">
       <source src="/audios/grid.mp3" type="audio/mpeg" />
@@ -114,7 +116,7 @@
       .now-playing.playing .eq i { animation-play-state: running; }
       .now-playing.paused .eq i { animation-play-state: paused; }
     </style>
-  <div class="wrap">
+  <main class="wrap">
     <header class="top">
       <span class="badge">ARTIST · DUŠAN POPOV</span>
       <span class="spacer"></span>
@@ -172,10 +174,8 @@
       <a class="link" href="https://soundcloud.com/" rel="noopener noreferrer" target="_blank">SoundCloud ↗</a><a class="link" href="https://ra.co/" rel="noopener noreferrer" target="_blank">Resident Advisor ↗</a>
     </div>
 
-    <footer class="foot">
-      dusan-popov · <a href="/artists">see all artists →</a>
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
 
   <script>
     // Play-gate logic: most browsers block autoplay-with-sound. The first
@@ -218,5 +218,6 @@
     })();
   </script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

@@ -9,6 +9,7 @@
   <meta name="description" content="Singer-songwriter · chamber pop — Kira writes songs that breathe in 8-bar phrases and exhale in 16. She uses the engine to find a visual for each track before she&#39;s recor" />
   <meta property="og:title" content="Kira Lindqvist · SWR" />
   <meta property="og:description" content="Kira writes songs that breathe in 8-bar phrases and exhale in 16. She uses the engine to find a visual for each track before she&#39;s recorded the master — the picture tells her when the song is done" />
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#fff04a" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -91,6 +92,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   
     <audio id="track" loop preload="auto" crossorigin="anonymous">
       <source src="/audios/aurora.mp3" type="audio/mpeg" />
@@ -114,7 +116,7 @@
       .now-playing.playing .eq i { animation-play-state: running; }
       .now-playing.paused .eq i { animation-play-state: paused; }
     </style>
-  <div class="wrap">
+  <main class="wrap">
     <header class="top">
       <span class="badge">ARTIST · KIRA LINDQVIST</span>
       <span class="spacer"></span>
@@ -164,10 +166,8 @@
       <a class="link" href="https://spotify.com/" rel="noopener noreferrer" target="_blank">Spotify ↗</a><a class="link" href="https://example.com/" rel="noopener noreferrer" target="_blank">Personal site ↗</a>
     </div>
 
-    <footer class="foot">
-      kira-lindqvist · <a href="/artists">see all artists →</a>
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
 
   <script>
     // Play-gate logic: most browsers block autoplay-with-sound. The first
@@ -210,5 +210,6 @@
     })();
   </script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

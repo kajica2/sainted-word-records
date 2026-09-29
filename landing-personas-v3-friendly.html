@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Member directory — Sainted Word Records</title>
@@ -8,6 +10,7 @@
   <meta property="og:title" content="Member directory — Sainted Word Records" />
   <meta property="og:description" content="A friendly directory of the 8 personas who actually use the Sainted Word Records audio-reactive video engine." />
   <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://sainted-word-records.vercel.app/landing-personas-v3-friendly.html" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23fdf6e8'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff6b6b' stroke-width='1.8'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23e6b34a'/%3E%3C/svg%3E" />
 
@@ -525,6 +528,7 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
+  <swr-nav></swr-nav>
 
   <!-- Two fan favorite badges render for: Indie musician + Belgrade / Serbian artist -->
   <!-- ============ EMBEDDED PERSONAS DATA ============ -->
@@ -834,7 +838,7 @@
       function escapeAttr(s) { return escapeHTML(s); }
     })();
   </script>
-  <swr-nav></swr-nav>
+  
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

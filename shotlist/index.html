@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shot list · SWR</title>
   <meta name="description" content="Director's shot list — drag camera-move reference frames into 5 slots, export as text or JSON for the engine." />
+  <meta property="og:title" content="Shot list · SWR">
+  <meta property="og:description" content="Director's shot list — drag camera-move reference frames into 5 slots, export as text or JSON for the engine.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0a0612" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -111,7 +115,8 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <swr-nav></swr-nav>
+  <main class="wrap">
     <header class="top">
       <span class="badge">SHOT LIST · 60 FRAMES</span>
       <span class="spacer"></span>
@@ -729,10 +734,8 @@
         </div>
       </section>
 
-    <footer class="foot">
-      60 candidates across 16 sessions · 5-slot timeline · localStorage auto-save
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
 
   <script>
     (function () {
@@ -934,5 +937,6 @@
     })();
   </script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

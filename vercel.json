@@ -200,6 +200,22 @@
       "destination": "/versions/music-video-gallery.html"
     },
     {
+      "source": "/shotlist",
+      "destination": "/shotlist/index.html"
+    },
+    {
+      "source": "/shotlist/",
+      "destination": "/shotlist/index.html"
+    },
+    {
+      "source": "/versions/music-video-mtv",
+      "destination": "/versions/music_video_mtv.html"
+    },
+    {
+      "source": "/versions/music-video-mtv/",
+      "destination": "/versions/music_video_mtv.html"
+    },
+    {
       "source": "/versions/neon",
       "destination": "/versions/neon.html"
     },
@@ -476,6 +492,14 @@
       "destination": "/photo.html"
     },
     {
+      "source": "/enhance",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/enhance/",
+      "destination": "/enhance.html"
+    },
+    {
       "source": "/gallery",
       "destination": "/gallery.html"
     },
@@ -562,14 +586,6 @@
     {
       "source": "/gallery/posters/",
       "destination": "/gallery-posters.html"
-    },
-    {
-      "source": "/gallery/director-mode",
-      "destination": "/gallery-director-mode.html"
-    },
-    {
-      "source": "/gallery/director-mode/",
-      "destination": "/gallery-director-mode.html"
     },
     {
       "source": "/gallery/albums",
@@ -892,10 +908,6 @@
       "destination": "/enhance.html"
     },
     {
-      "source": "/video_single.html",
-      "destination": "/video_single.html"
-    },
-    {
       "source": "/atlas/200-steps",
       "destination": "/atlas-200-steps.html"
     },
@@ -1000,8 +1012,153 @@
       "destination": "/personas.html"
     },
     {
+      "source": "/persona-demo",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/persona-demo/",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
       "source": "/persona-demo.html",
-      "destination": "/personas.html",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/gallery-director-mode",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/gallery-director-mode/",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/gallery-director-mode.html",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/gallery/director-mode",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/gallery/director-mode/",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/gallery/director-mode.html",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/engine-ar-loop",
+      "destination": "/ar-gif",
+      "statusCode": 301
+    },
+    {
+      "source": "/engine-ar-loop/",
+      "destination": "/ar-gif",
+      "statusCode": 301
+    },
+    {
+      "source": "/engine-ar-loop.html",
+      "destination": "/ar-gif",
+      "statusCode": 301
+    },
+    {
+      "source": "/video_single",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/video_single/",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/video_single.html",
+      "destination": "/versions",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-campaign-launch-plan",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-campaign-launch-plan/",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-campaign-launch-plan.html",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-dm-templates",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-dm-templates/",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-dm-templates.html",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-social-content",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-social-content/",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-social-content.html",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-stripe-setup",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-stripe-setup/",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-stripe-setup.html",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-watermark-plan",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-watermark-plan/",
+      "destination": "/swr-app",
+      "statusCode": 301
+    },
+    {
+      "source": "/swr-watermark-plan.html",
+      "destination": "/swr-app",
       "statusCode": 301
     }
   ]

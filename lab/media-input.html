@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Media Input Lab — SWR MediaInput primitive demo</title>
   <meta name="description" content="Live camera + mic demo for the SWRMediaInput primitive. Mounts a shared MediaInput through SWRCameraPreview and SWRMicMeter." />
+  <meta property="og:title" content="Media Input Lab — SWR MediaInput primitive demo">
+  <meta property="og:description" content="Live camera + mic demo for the SWRMediaInput primitive. Mounts a shared MediaInput through SWRCameraPreview and SWRMicMeter.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#0e0c0a" />
   <meta name="author" content="Kai Djuric" />
@@ -97,9 +101,7 @@
       </div>
     </section>
 
-    <footer class="lab-foot">
-      Modules: <code>/client/swr-media-input.client.js</code> · <code>/client/swr-camera-preview.client.js</code> · <code>/client/swr-mic-meter.client.js</code>
-    </footer>
+    <swr-footer></swr-footer>
   </main>
 
   <script src="/lib/nav.client.js" defer></script>
@@ -210,5 +212,6 @@
       }
     })();
   </script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

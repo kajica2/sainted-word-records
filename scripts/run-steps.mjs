@@ -92,6 +92,10 @@ const GROUPS = {
     'npm run check:photo-slideshow',
     'npm run check:default-library',
     'npm run check:grade-smoke',
+    // Static: every shipped page carries the shared header + footer, the
+    // shared styles, a unique title, a description and a <main> landmark
+    // (app surfaces must carry an exit link instead).
+    'npm run check:site-chrome',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.

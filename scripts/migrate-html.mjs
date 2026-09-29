@@ -24,6 +24,9 @@ const DRY_RUN = args.includes('--dry-run');
 const VERBOSE = args.includes('--verbose');
 const FORCE = args.includes('--force');
 const APPLY_NAV = args.includes('--apply-nav');
+const ADD_NAV = args.includes('--add-nav');
+const APPLY_FOOTER = args.includes('--apply-footer');
+const ADD_FOOTER = args.includes('--add-footer');
 const INCLUDE_APPS = args.includes('--include-apps');
 
 // Extract file arguments (non-flags)
@@ -103,9 +106,62 @@ const SHARED_CSS = [
   '<link rel="stylesheet" href="/lib/components.css">',
 ];
 const SHARED_JS = '<script src="/lib/nav.client.js" defer></script>';
+const SHARED_FOOTER_JS = '<script src="/lib/footer.client.js" defer></script>';
+const SHARED_FOOTER = '<swr-footer></swr-footer>';
+
+// Every destination the shared footer (lib/footer.client.js, fed by
+// site-map.json's footerNav) can serve. A bespoke footer is only replaced when
+// each of its links lands in this set — otherwise the page keeps its footer and
+// the run reports the links that would have been dropped.
+function normalizeHref(href) {
+  if (!href) return '';
+  const h = String(href).trim();
+  if (h.startsWith('#') || h.startsWith('mailto:') || h.startsWith('tel:') || h === '' ) return null;
+  const n = h.replace(/^https?:\/\/sainted-word-records\.vercel\.app/i, '')
+    .replace(/^\.\//, '')
+    .replace(/\.html$/, '')
+    .replace(/\/$/, '')
+    .replace(/^\/(.*)$/, '$1') || '/';
+  // /landing.html is the rewrite target for the site root.
+  return n === 'landing' ? '/' : n;
+}
+function sharedFooterTargets(map) {
+  const set = new Set(['/']);
+  const add = (href) => { const n = normalizeHref(href); if (n !== null) set.add(n); };
+  const fn = map.footerNav || {};
+  for (const col of (fn.columns || [])) for (const l of (col.links || [])) add(l.href);
+  for (const s of (fn.social || [])) add(s.href);
+  for (const l of (map.legal || [])) add(l.href);
+  for (const t of (map.tools || [])) add(t.href);
+  add('/sitemap');
+  return set;
+}
+const FOOTER_TARGETS = sharedFooterTargets(siteMap);
 
 // Theme bootstrap pattern to remove (duplicated from nav.client.js)
 const THEME_BOOTSTRAP_PATTERN = /<script>\s*\(function\s*\(\)\s*\{\s*try\s*\{[\s\S]*?matchMedia[\s\S]*?\}\s*catch\s*\(e\)\s*\{\}\s*\}\)\(\);\s*<\/script>\s*/g;
+
+// Ranges covered by <script>…</script>, so markup inside a template string
+// (engine.html builds an export document in JS) is never touched.
+function scriptRanges(html) {
+  const ranges = [];
+  const re = /<script[\s\S]*?<\/script>/gi;
+  let m;
+  while ((m = re.exec(html))) ranges.push([m.index, m.index + m[0].length]);
+  return ranges;
+}
+const inRanges = (ranges, idx) => ranges.some(([a, b]) => idx >= a && idx < b);
+
+function footerLinks(footerHtml) {
+  const hrefs = [];
+  const re = /href="([^"]*)"/gi;
+  let m;
+  while ((m = re.exec(footerHtml))) {
+    const norm = normalizeHref(m[1]);
+    if (norm !== null) hrefs.push({ raw: m[1], norm });
+  }
+  return hrefs;
+}
 
 function migratePage(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -160,6 +216,82 @@ function migratePage(filePath) {
       changes.push('+ /lib/nav.client.js');
       needsUpdate = true;
     }
+  }
+
+  // 3. Nav element placement — <swr-nav> renders where it sits, so a mount left
+  //    at the end of <body> paints the "sticky top nav" below the content.
+  //    Every mount moves to directly after <body>, exactly once.
+  const ranges = scriptRanges(html);
+  const navRe = /<swr-nav\b[^>]*>\s*<\/swr-nav>/g;
+  const navHits = [];
+  {
+    let m;
+    while ((m = navRe.exec(html))) {
+      if (!inRanges(ranges, m.index)) navHits.push([m.index, m.index + m[0].length]);
+    }
+  }
+  // The real <body> is the first one after </head> — a literal `<body>` can
+  // otherwise appear in a head comment or a JS string and hijack the match.
+  const headEnd = html.indexOf('</head>');
+  const bodySearchFrom = headEnd >= 0 ? headEnd : 0;
+  const bodyTagMatch = html.slice(bodySearchFrom).match(/<body[^>]*>/);
+  const bodyOpen = bodyTagMatch ? [bodyTagMatch[0]] : null;
+  const bodyOpenIndex = bodyTagMatch ? bodySearchFrom + bodyTagMatch.index : -1;
+  if (bodyOpen && navHits.length > 0) {
+    const bodyEnd = bodyOpenIndex + bodyOpen[0].length;
+    const alreadyTop = navHits.length === 1 && navHits[0][0] >= bodyEnd && navHits[0][0] < bodyEnd + 40;
+    if (!alreadyTop) {
+      // Remove every existing mount (last first, so indices stay valid), then
+      // insert one directly after <body>.
+      for (let i = navHits.length - 1; i >= 0; i--) {
+        html = html.slice(0, navHits[i][0]) + html.slice(navHits[i][1]);
+      }
+      html = html.slice(0, bodyEnd) + '\n  <swr-nav></swr-nav>' + html.slice(bodyEnd);
+      changes.push(`~ <swr-nav> moved to the top of <body>`);
+      needsUpdate = true;
+    }
+  } else if (bodyOpen && ADD_NAV && !/SWR_NAV\.mount/.test(html)) {
+    const bodyEnd = bodyOpenIndex + bodyOpen[0].length;
+    html = html.slice(0, bodyEnd) + '\n  <swr-nav></swr-nav>' + html.slice(bodyEnd);
+    changes.push(`+ <swr-nav> (page had no mount)`);
+    needsUpdate = true;
+  }
+
+  // 3b. Shared footer — replace a bespoke <footer> when every link it carries
+  //     is served by the shared footer; otherwise keep it and report the links
+  //     that would have been dropped (never silently lose a destination).
+  if (APPLY_FOOTER || ADD_FOOTER) {
+    const footRe = /<footer\b[\s\S]*?<\/footer>/gi;
+    let footMatch = footRe.exec(html);
+    while (footMatch && inRanges(scriptRanges(html), footMatch.index)) footMatch = footRe.exec(html);
+    if (footMatch) {
+      if (APPLY_FOOTER) {
+        const links = footerLinks(footMatch[0]);
+        const missing = links.filter(l => !FOOTER_TARGETS.has(l.norm));
+        if (missing.length === 0) {
+          html = html.slice(0, footMatch.index) + SHARED_FOOTER + html.slice(footMatch.index + footMatch[0].length);
+          changes.push(`~ footer → <swr-footer> (${links.length} links all served by the shared footer)`);
+          needsUpdate = true;
+        } else {
+          changes.push(`? footer kept — shared footer lacks: ${[...new Set(missing.map(m => m.raw))].join(', ')}`);
+        }
+      }
+    } else if (ADD_FOOTER) {
+      if (html.includes('<swr-footer')) {
+        // already mounted
+      } else if (html.includes('</body>')) {
+        html = html.replace('</body>', `  ${SHARED_FOOTER}\n</body>`);
+        changes.push(`+ <swr-footer> (page had no footer)`);
+        needsUpdate = true;
+      }
+    }
+  }
+
+  // 3c. Footer script, whenever the page mounts the component.
+  if (html.includes('<swr-footer') && !html.includes('/lib/footer.client.js')) {
+    html = html.replace('</body>', `  ${SHARED_FOOTER_JS}\n</body>`);
+    changes.push('+ /lib/footer.client.js');
+    needsUpdate = true;
   }
 
   // 4. Optionally replace <nav> blocks with <swr-nav>

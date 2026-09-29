@@ -7,23 +7,10 @@
   <meta name="description" content="Every page on sainted-word-records.vercel.app. 150+ routes, grouped by category, with live status and search." />
   <meta property="og:title" content="Sitemap · SWR" />
   <meta property="og:description" content="Every page on the site, with live status and search." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/favicon.ico" />
 
   <!-- No-flash theme bootstrap -->
-  <script>
-    (function() {
-      try {
-        var saved = localStorage.getItem('swr-theme');
-        var theme = saved || 'system';
-        var resolved = theme === 'system'
-          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : theme;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-pref', theme);
-      } catch (e) {}
-    })();
-  </script>
-
   <link rel="stylesheet" href="/lib/design-tokens.css">
   <link rel="stylesheet" href="/lib/design-base.css">
   <link rel="stylesheet" href="/lib/components.css">
@@ -429,5 +416,7 @@
   <script src="/lib/site-keys.client.js" defer></script>
 
   <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

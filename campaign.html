@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SWR Visualizers · The launch plan that turns songs into video revenue</title>
   <meta name="description" content="SWR Visualizers — audio-reactive music videos for independent artists. From €25, 48-hour turnaround. Service-first, browser-based, no software to learn." />
+  <meta property="og:title" content="SWR Visualizers · The launch plan that turns songs into video revenue">
+  <meta property="og:description" content="SWR Visualizers — audio-reactive music videos for independent artists. From €25, 48-hour turnaround. Service-first, browser-based, no software to learn.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
 
@@ -722,7 +726,7 @@
 
 <!-- ============================ HERO ============================ -->
 <header class="hero">
-  <div class="wrap">
+  <main class="wrap">
     <div class="hero__eyebrow">
       <span class="pulse"></span> Belgrade-based · €25 starting · 48-hour turnaround · in-person demos at KC Grad / Drugstore / Dot
     </div>
@@ -749,7 +753,7 @@
       <a class="btn btn--primary" href="#order">Send a song →</a>
       <a class="btn btn--ghost" href="#samples">See 5 sample videos</a>
     </div>
-  </div>
+  </main>
 </header>
 
 <!-- ============================ THESIS ============================ -->
@@ -2327,40 +2331,7 @@
 </section>
 
 <!-- ============================ FOOTER ============================ -->
-<footer class="footer">
-  <div class="wrap">
-    <div class="footer__grid">
-      <div>
-        <div class="footer__brand"><span class="dot"></span> SWR Visualizers · Belgrade</div>
-        <p class="footer__tag">
-          Audio-reactive music videos for independent artists. Built in a browser,
-          delivered in 48 hours, priced for solo releases. Belgrade-based —
-          in-person demos at KC Grad, Drugstore, or Dot.
-        </p>
-      </div>
-      <div class="footer__col">
-        <h4>Product</h4>
-        <ul>
-          <li><a href="/engine">Try the engine</a></li>
-          <li><a href="landing.html">Landing page</a></li>
-          <li><a href="interactive-howto.html">How-to walkthrough</a></li>
-          <li><a href="/versions.html">5 visual styles</a></li>
-        </ul>
-      </div>
-      <div class="footer__col">
-        <h4>Business</h4>
-        <ul>
-          <li><a href="campaign.html">Launch campaign</a></li>
-          <li><a href="https://github.com/kajica2/sainted-word-records">Source / GitHub</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer__bottom">
-      <span>© SWR · MIT-licensed source</span>
-      <span id="last-updated">Updated this week</span>
-    </div>
-  </div>
-</footer>
+<swr-footer></swr-footer>
 
 <!-- ============================ MODAL ============================ -->
 <div class="modal-backdrop" id="modal-backdrop">
@@ -2541,5 +2512,6 @@
   <script src="/lib/site-keys.client.js" defer></script>
 
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

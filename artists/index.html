@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Artists · SWR</title>
   <meta name="description" content="Artists using the SWR engine. Each page is a one-track loop + a list of their works. Pick a sound, hear the room." />
+  <meta property="og:title" content="Artists · SWR">
+  <meta property="og:description" content="Artists using the SWR engine. Each page is a one-track loop + a list of their works. Pick a sound, hear the room.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0a0612" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -54,7 +58,8 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <swr-nav></swr-nav>
+  <main class="wrap">
     <header class="top">
       <span class="badge">ARTIST · SHOWCASE</span>
       <span class="spacer"></span>
@@ -125,7 +130,9 @@
       </div>
     </a>
     </div>
-  </div>
+  </main>
   <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

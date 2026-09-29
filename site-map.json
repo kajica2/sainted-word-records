@@ -73,6 +73,11 @@
           "label": "Photo Studio",
           "href": "/photo",
           "description": "Beat-reactive photo slideshow + Ken Burns MP4 export"
+        },
+        {
+          "label": "Enhance",
+          "href": "/enhance",
+          "description": "Camera enhance — live grade + export"
         }
       ]
     },
@@ -135,11 +140,6 @@
           "label": "Posters",
           "href": "/gallery/posters",
           "description": "Poster designs"
-        },
-        {
-          "label": "Director Mode",
-          "href": "/gallery/director-mode",
-          "description": "27 audio-reactive visual variants mapped on a warmth × intensity anchor grid"
         },
         {
           "label": "Albums",
@@ -256,6 +256,11 @@
           "label": "Status",
           "href": "/status",
           "description": "System status"
+        },
+        {
+          "label": "Atlas",
+          "href": "/atlas",
+          "description": "The Atlas of the Awakened Life — a 10-part book"
         }
       ]
     }
@@ -277,6 +282,138 @@
       "description": "View shared compositions"
     }
   ],
+  "footerNav": {
+    "_comment": "Shared footer content for <swr-footer> (lib/footer.client.js). Columns are the site's own IA — keep hrefs in this file only so every page's footer matches. Tagline is brand copy; social links are external and carry rel=noopener.",
+    "tagline": "An audio-reactive video engine that ships as a single HTML file. Drop a song, drop a library, get a music video.",
+    "columns": [
+      {
+        "heading": "Engine",
+        "links": [
+          {
+            "label": "Main engine",
+            "href": "/engine"
+          },
+          {
+            "label": "All versions",
+            "href": "/versions.html"
+          },
+          {
+            "label": "Marketplace",
+            "href": "/marketplace"
+          },
+          {
+            "label": "Make a video",
+            "href": "/make-video"
+          },
+          {
+            "label": "Photo studio",
+            "href": "/photo"
+          },
+          {
+            "label": "Enhance",
+            "href": "/enhance"
+          }
+        ]
+      },
+      {
+        "heading": "Explore",
+        "links": [
+          {
+            "label": "Galleries",
+            "href": "/gallery"
+          },
+          {
+            "label": "Artists",
+            "href": "/artists/"
+          },
+          {
+            "label": "Personas",
+            "href": "/personas"
+          },
+          {
+            "label": "Persona variants",
+            "href": "/personas/v"
+          },
+          {
+            "label": "Shop",
+            "href": "/shop"
+          },
+          {
+            "label": "Media packs",
+            "href": "/packs"
+          }
+        ]
+      },
+      {
+        "heading": "Learn",
+        "links": [
+          {
+            "label": "Intro",
+            "href": "/intro"
+          },
+          {
+            "label": "30-second video",
+            "href": "/tutorial-30s"
+          },
+          {
+            "label": "How it works",
+            "href": "/interactive-howto"
+          },
+          {
+            "label": "Changelog",
+            "href": "/changelog"
+          },
+          {
+            "label": "Status",
+            "href": "/status"
+          },
+          {
+            "label": "Atlas",
+            "href": "/atlas"
+          }
+        ]
+      },
+      {
+        "heading": "Company",
+        "links": [
+          {
+            "label": "About",
+            "href": "/about"
+          },
+          {
+            "label": "Portfolio",
+            "href": "/portfolio"
+          },
+          {
+            "label": "Press",
+            "href": "/press"
+          },
+          {
+            "label": "Hire us",
+            "href": "/campaign"
+          }
+        ]
+      }
+    ],
+    "social": [
+      {
+        "label": "GitHub repo",
+        "href": "https://github.com/kajica2/sainted-word-records"
+      },
+      {
+        "label": "Report an issue",
+        "href": "https://github.com/kajica2/sainted-word-records/issues"
+      },
+      {
+        "label": "MIT license",
+        "href": "https://github.com/kajica2/sainted-word-records/blob/main/LICENSE"
+      },
+      {
+        "label": "@kai-djuric",
+        "href": "https://github.com/kai-djuric"
+      }
+    ]
+  },
   "auth": {
     "label": "Login",
     "href": "/login",
@@ -299,6 +436,11 @@
       "label": "Sitemap",
       "href": "/sitemap",
       "description": "Every page on the site, with search and filters"
+    },
+    {
+      "label": "Shot list",
+      "href": "/shotlist",
+      "description": "Director's beat-by-beat shot list editor"
     },
     {
       "label": "Packs",
@@ -341,10 +483,53 @@
       "description": "Glossary of Sainted Word Records terms"
     }
   ],
+  "redirects": [
+    {
+      "_comment": "Every URL here 301s (scripts/generate-vercel-rewrites.mjs emits from/without-slash/.html for each). Used for pages removed from the IA whose content still exists elsewhere — never a bare deletion. An entry is safe to revert: delete it and the page comes back if its file is restored from _archive/.",
+      "from": "/persona-demo",
+      "to": "/personas"
+    },
+    {
+      "from": "/gallery-director-mode",
+      "to": "/versions"
+    },
+    {
+      "from": "/gallery/director-mode",
+      "to": "/versions"
+    },
+    {
+      "from": "/engine-ar-loop",
+      "to": "/ar-gif"
+    },
+    {
+      "from": "/video_single",
+      "to": "/versions"
+    },
+    {
+      "from": "/swr-campaign-launch-plan",
+      "to": "/swr-app"
+    },
+    {
+      "from": "/swr-dm-templates",
+      "to": "/swr-app"
+    },
+    {
+      "from": "/swr-social-content",
+      "to": "/swr-app"
+    },
+    {
+      "from": "/swr-stripe-setup",
+      "to": "/swr-app"
+    },
+    {
+      "from": "/swr-watermark-plan",
+      "to": "/swr-app"
+    }
+  ],
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-09-22",
+    "lastUpdated": "2026-09-29",
     "totalPages": 109,
     "corePages": 108,
     "archivedPages": 0
@@ -359,7 +544,6 @@
     "artists/nina-volkova.html",
     "artists/vodolija/index.html",
     "artists/vodolija.html",
-    "gallery-director-mode.html",
     "auth/login.html",
     "auth/verify.html",
     "campaign.html",

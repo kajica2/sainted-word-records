@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Galleries — Sainted Word Records</title>
   <meta name="description" content="19 galleries · 226 pieces · audio-reactive visual systems, midjourney compositions, looping videos, baroque engines, jazz palettes. Each gallery page plays per-card preview audio on hover; this index is a silent directory." />
   <meta property="og:title" content="Galleries — SWR" />
   <meta property="og:description" content="19 galleries · 226 pieces · audio-reactive." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700;800&display=swap" />
@@ -229,6 +232,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
 
   <!-- ===== STATUS BAR ===== -->
   <div class="statusbar" role="status" aria-label="page status">
@@ -309,18 +313,18 @@
         </div>
       </a>
 
-      <div class="g-card" data-archived="true">
+      <a class="g-card" href="/versions/music-video-gallery" data-tags="video">
         <div class="g-card__head"><span class="num">03</span><span>LOOPS · VIDEO</span></div>
         <div class="g-card__body">
           <span class="g-card__chip">VIDEO</span>
-          <h2 class="g-card__name">Loops Gallery</h2>
-          <p class="g-card__desc">21 looping MP4s from midjourney session 2 · autoplay + muted + seamless · 10 sections.</p>
+          <h2 class="g-card__name">Looping music videos</h2>
+          <p class="g-card__desc">Flip through pre-rendered music videos with a 3D transition — the looping-video surface of the engine.</p>
           <div class="g-card__meta">
-            <span>21 cards</span>
+            <span>music-video gallery</span>
             <span class="is-video">VIDEO</span>
           </div>
         </div>
-      </div>
+      </a>
 
       <a class="g-card" href="/gallery-music.html" data-tags="audio jazz">
         <div class="g-card__head"><span class="num">04</span><span>MUSIC · JAZZ</span></div>
@@ -533,16 +537,7 @@
   </main>
 
   <!-- ===== STAMP FOOTER ===== -->
-  <footer class="stamp" role="contentinfo">
-    <div class="stamp__links">
-      <a href="/landing.html">▸ LANDING</a>
-      <a href="/portfolio.html">▸ PORTFOLIO</a>
-      <a href="/engine.html">▸ ENGINE</a>
-      <a href="/artists/">▸ ARTISTS</a>
-      <a href="/personas.html">▸ PERSONAS</a>
-    </div>
-    <div class="stamp__seal">19 GALLERIES · ONE INDEX · 2026</div>
-  </footer>
+  <swr-footer></swr-footer>
 
   <script>
     // Filter bar — pure DOM, no dependencies
@@ -563,5 +558,7 @@
       });
     });
   </script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Engine demos · Sainted Word Records</title>
   <meta name="description" content="Every engine preset, with a real-time thumb of each canvas. Click to open the engine and record." />
+  <meta property="og:title" content="Engine demos · Sainted Word Records">
+  <meta property="og:description" content="Every engine preset, with a real-time thumb of each canvas. Click to open the engine and record.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -115,7 +119,8 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <div class="container">
+  <swr-nav></swr-nav>
+  <main class="container">
     <header class="page">
       <h1>Engine <em>demos</em></h1>
       <div class="crumb">SWR · ALL PRESETS · LIVE</div>
@@ -139,7 +144,7 @@
     <div class="empty" id="empty" hidden>
       No engines match this filter.
     </div>
-  </div>
+  </main>
 
   <script>
     /* ---------- Engine metadata ----------
@@ -274,5 +279,7 @@
   </script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

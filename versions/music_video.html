@@ -423,6 +423,7 @@
 <body data-page="music_video">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header id="hdr">
+      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
 
       <div class="v">MUSIC VIDEO <small>v1</small></div>
       <span class="pill" id="status">idle</span>
@@ -3449,6 +3450,7 @@
       for (const e of best) {
         const img = document.createElement('img');
         img.src = e.dataURL;
+        img.alt = 'Hero frame preview';
         img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;border:1px solid var(--line);background:#000;';
         const score = (e.energy * 0.4 + e.contrast * 0.4 + e.comp * 0.2).toFixed(2);
         img.title = `score=${score} | E=${e.energy.toFixed(2)} C=${e.contrast.toFixed(2)} cmp=${e.comp.toFixed(2)}`;

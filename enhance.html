@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <title>Camera Enhance · SWR · Clean Video Processing</title>
   <meta name="description" content="Stabilize, denoise, color-grade, and burn-in overlays for camera-shot footage. Browser-native, zero backend." />
@@ -13,6 +15,7 @@
   <meta property="og:title" content="Camera Enhance · SWR" />
   <meta property="og:description" content="Stabilize, denoise, color-grade, and burn-in overlays for camera-shot footage." />
   <meta property="og:url" content="https://sainted-word-records.vercel.app/enhance.html" />
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -574,7 +577,8 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <div class="enhance-app">
+  <swr-nav></swr-nav>
+  <main class="enhance-app">
     <!-- HEADER -->
     <header class="enhance-header">
       <div class="enhance-brand">
@@ -763,7 +767,7 @@
         <div class="export-meta" id="exportMeta">Estimated: 45 seconds · 340 MB</div>
       </div>
     </aside>
-  </div>
+  </main>
 
   <div class="toast" id="toast"></div>
 
@@ -1232,7 +1236,6 @@
   applyBurnIns();
   showToast('drop a video to begin');
   </script>
-  <swr-nav></swr-nav>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

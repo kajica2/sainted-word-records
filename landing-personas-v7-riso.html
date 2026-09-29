@@ -1,10 +1,16 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SWR Personas · v7 RISO · Risograph print</title>
   <meta name="description" content="The 8 personas rendered as a 3-color risograph print. Spot-color halftones, off-register layers, paper grain." />
+  <meta property="og:title" content="SWR Personas · v7 RISO · Risograph print">
+  <meta property="og:description" content="The 8 personas rendered as a 3-color risograph print. Spot-color halftones, off-register layers, paper grain.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=DM+Serif+Display:ital@0;1&display=swap" />
@@ -136,7 +142,8 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <div class="page">
+  <swr-nav></swr-nav>
+  <main class="page">
     <header class="masthead">
       <div>
         <div class="masthead__kicker">▼ made for these people</div>
@@ -162,7 +169,7 @@
       <div>SPOT: TEAL · PINK · MARIGOLD <b>× 3</b></div>
       <div><a href="landing-personas-v1-editorial.html">← back to all 6 registers</a></div>
     </footer>
-  </div>
+  </main>
 
   <script type="application/json" id="personas-data">
   {
@@ -208,7 +215,7 @@
       document.getElementById('personas').innerHTML = html;
     })();
   </script>
-  <swr-nav></swr-nav>
+  
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

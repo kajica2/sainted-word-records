@@ -9,6 +9,7 @@
   <meta name="description" content="Vocal · processed · chamber — Nina records her own voice and runs it back through the engine&#39;s reactor chain. The result is a single voice, processed in real time, do" />
   <meta property="og:title" content="Nina Volkova · SWR" />
   <meta property="og:description" content="Nina records her own voice and runs it back through the engine&#39;s reactor chain. The result is a single voice, processed in real time, doubled against itself in the visual. She releases one piece p" />
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#00ffa3" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -91,6 +92,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   
     <audio id="track" loop preload="auto" crossorigin="anonymous">
       <source src="/audios/hallucination.mp3" type="audio/mpeg" />
@@ -114,7 +116,7 @@
       .now-playing.playing .eq i { animation-play-state: running; }
       .now-playing.paused .eq i { animation-play-state: paused; }
     </style>
-  <div class="wrap">
+  <main class="wrap">
     <header class="top">
       <span class="badge">ARTIST · NINA VOLKOVA</span>
       <span class="spacer"></span>
@@ -164,10 +166,8 @@
       <a class="link" href="https://example.com/" rel="noopener noreferrer" target="_blank">Personal site ↗</a>
     </div>
 
-    <footer class="foot">
-      nina-volkova · <a href="/artists">see all artists →</a>
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
 
   <script>
     // Play-gate logic: most browsers block autoplay-with-sound. The first
@@ -210,5 +210,6 @@
     })();
   </script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>
