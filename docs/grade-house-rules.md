@@ -16,7 +16,7 @@ the graphics should be what the viewer notices.
 | 2 | Contrast creates the clear look | **Engine** — `GRADE.contrast` / `GRADE.brightness` | Tone curve is one pivot-symmetric pair; the derived points are exposed as `GRADE.black` / `GRADE.white`. |
 | 2 | Lift blacks slightly, don't wash them out | **Engine** — `GRADE.black` = 0.030 | The old 0.85-contrast grade lifted blacks to 0.079 — this is the "washed out" case the rule warns about. |
 | 2 | Highlights just below clipping | **Engine** — `GRADE.white` = 0.930 | The rules' 90–95 IRE band for whites. |
-| 2 | Clarity/sharpen +5…+15 | **Finishing stage** | Needs a blurred copy; a full-res blur measured 8.6 fps on a variant page (see below). |
+| 2 | Clarity/sharpen +5…+15 | **Engine** — Console `Sharpness` slider, capped at 0.15 (= +15) | The Console caps the tap at the rule's ceiling. The variant pages still need a blurred copy of the upscaled stage — a full-res blur measured 8.6 fps there (see below) — so their clarity stays the finishing step. |
 | 3 | Selective colour, not global saturation | **Finishing stage** | Per-hue weights (boost blues/teals and reds, leave skin/orange/yellow alone). |
 | 3 | Don't grade the artist's face like the background | **Finishing stage** | Same reason. |
 | 4 | Grade graphics separately from footage | **Engine** — structural | The grade is applied to the footage canvas only (fx-postprocess overlay or stage); the DOM chrome, titles and watermark are never in that chain, and the dashboard's overlay canvas (beat flash, transitions) sits above it. |
@@ -24,6 +24,14 @@ the graphics should be what the viewer notices.
 | 4 | Keep whites white and blacks black | **Engine** — `GRADE.white` / `GRADE.black` | No tinting in the chain: `saturate`/`contrast`/`brightness` only. |
 | 5 | No clipping, whites 90–95 IRE | **Engine** — `GRADE.white` | |
 | 5 | Add ~5% film grain to hide banding | **Engine** — `GRADE.grain` = 0.05 | A 64px noise tile (±32 levels around mid grey) drawn as one `overlay` fill in the module's existing composite pass, so it costs one draw, not a pass. |
+
+The Console (`/dashboard`) is the one deliberate exception to the grain row: its
+spec forbids atmospheric effects and film grain — flat black, one accent, thin
+lines — and banding is not its failure mode (its base is footage plus
+primitives, not a graded photographic ramp). The 5% grain floor stays on the
+shared grade; the Console adds none. Its footage taps (Sharpness, Denoise,
+Vignette) run in the Console pixel shader on the base sample only, so the
+Console's own graphics stay ungraded, per rule 4.
 
 The spec constants live in `lib/swr-natural.client.js` (`GRADE`), and the
 applied CSS chain is derived from them (`SWR_NATURAL.gradeCSS`) — the numbers are
@@ -63,5 +71,9 @@ the rules' own software settings (Lumetri, Color Warper, CapCut) live anyway.
   rules' ranges, the chain is applied to exactly one canvas (never doubled), and
   the grain floor really lands in the stage pixels (A/B against
   `SWR_NATURAL.setEnabled(false)`).
+- `npm run check:dashboard` — the Console's Enhance path: slider 50 resolves to
+  the neutral `brightness(1) contrast(1) saturate(1)` chain, saturation clamps
+  to the rules' ±8% band, and Sharpness / Denoise / Vignette are proven to move
+  rendered pixels.
 - `npm run check:clip-evolution-unit` — the follower + `setEnabled` contract that
   the grade hangs off.

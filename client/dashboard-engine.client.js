@@ -24,6 +24,10 @@
 //                     any composited base dims the grid
 //   .stop()         — cancel the RAF loop (and the reduced-motion HUD tick)
 //   .mode           — 'gl' | '2d'
+//   .setFilter(k,v) / .grades()
+//                   — Enhance sliders: setFilter stores the 0..1 slider value,
+//                     grades() returns each value resolved through GRADE_RANGES
+//                     (neutral at 0.5; saturation spans the rules' ±8% band)
 //   ._debug         — pulseBeat() / advancePhoto() test hooks
 
 (function () {
@@ -126,7 +130,7 @@
         gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
         // Uniform locations
-        const uNames = ['u_resolution','u_time','u_dt','u_bpm','u_beatPulse','u_signal','u_bg','u_signalAlpha','u_base','u_baseAspect','u_gridDim'];
+        const uNames = ['u_resolution','u_time','u_dt','u_bpm','u_beatPulse','u_signal','u_bg','u_signalAlpha','u_base','u_baseAspect','u_gridDim','u_sharp','u_denoise','u_vignette'];
         uNames.forEach(n => glLoc[n] = gl.getUniformLocation(glProg, n));
         glLoc.u_bands = gl.getUniformLocation(glProg, 'u_bands');
 
@@ -465,11 +469,27 @@
   let TRANSITION_MS = 400;
   const filters = { brightness: 0.5, contrast: 0.5, saturation: 0.5, sharp: 0, denoise: 0, vignette: 0 };
 
+  // Slider 0..1 -> filter value. 0.5 is neutral for every control; saturation
+  // spans exactly the house rules' ±8% band (docs/grade-house-rules.md),
+  // brightness/contrast a symmetric ±20% for the manual control, and the
+  // footage taps stay under the rules' clarity ceiling (+15 -> 0.15).
+  const GRADE_RANGES = {
+    brightness: [0.80, 1.20],
+    contrast:   [0.80, 1.20],
+    saturation: [0.92, 1.08],
+    sharp:      [0, 0.15],
+    denoise:    [0, 1],
+    vignette:   [0, 1],
+  };
+  const gradeValue = (key, v) => {
+    const r = GRADE_RANGES[key];
+    return r ? r[0] + (Number(v) || 0) * (r[1] - r[0]) : (Number(v) || 0);
+  };
+
   function applyFilters() {
-    const b = 0.5 + filters.brightness;
-    const c = filters.contrast;
-    const s = filters.saturation;
-    canvasEl.style.filter = `brightness(${b.toFixed(2)}) contrast(${c.toFixed(2)}) saturate(${s.toFixed(2)})`;
+    canvasEl.style.filter = `brightness(${gradeValue('brightness', filters.brightness).toFixed(2)})`
+      + ` contrast(${gradeValue('contrast', filters.contrast).toFixed(2)})`
+      + ` saturate(${gradeValue('saturation', filters.saturation).toFixed(2)})`;
   }
 
   function triggerTransition() {
@@ -551,6 +571,9 @@
     gl.uniform1i(glLoc.u_base, 0);
     gl.uniform1f(glLoc.u_baseAspect, baseAspect);
     gl.uniform1f(glLoc.u_gridDim, gridDim);
+    gl.uniform1f(glLoc.u_sharp, gradeValue('sharp', filters.sharp));
+    gl.uniform1f(glLoc.u_denoise, gradeValue('denoise', filters.denoise));
+    gl.uniform1f(glLoc.u_vignette, gradeValue('vignette', filters.vignette));
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
@@ -805,6 +828,16 @@
     get mode() { return mode; },
     key: () => keyLabel(),
     hudTargets: () => ({ bpm: !!hudBpmEl, key: !!hudKeyEl, headerBpm: !!hdrBpmEl, headerKey: !!hdrKeyEl }),
+    // Enhance sliders: setFilter stores the 0..1 slider value; grades() folds
+    // each through GRADE_RANGES to the value the CSS chain / the shader sees.
+    grades: () => ({
+      brightness: gradeValue('brightness', filters.brightness),
+      contrast: gradeValue('contrast', filters.contrast),
+      saturation: gradeValue('saturation', filters.saturation),
+      sharp: gradeValue('sharp', filters.sharp),
+      denoise: gradeValue('denoise', filters.denoise),
+      vignette: gradeValue('vignette', filters.vignette),
+    }),
     flashLevel: () => flashLevel(),
     reducedMotion: () => reduceMotion,
     // mic: replaces the song analyser while live (page toggles it)
