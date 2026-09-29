@@ -31,7 +31,8 @@
 
     .pack-grid {
       display: grid; gap: 20px; padding: 32px 0 64px;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 420px));
+      justify-content: center;
     }
     .pack-card {
       border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
@@ -60,6 +61,9 @@
       width: 100%; aspect-ratio: 16/9; object-fit: cover;
       border-radius: 4px; background: #0a0a0f; display: block;
     }
+    .pack-thumbs audio {
+      grid-column: 1 / -1; width: 100%; height: 34px; display: block;
+    }
     .packs-empty-state { padding: 40px 0; color: var(--ink-3, #888); font-size: 14px; }
     .pack-badge {
       display: inline-block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
@@ -71,7 +75,7 @@
 
 <swr-nav></swr-nav>
 
-<main class="container">
+<main class="wrap">
   <section class="packs-hero">
     <h1>Media <em>packs</em></h1>
     <p class="lede">
@@ -95,19 +99,29 @@
   const TITLES = {
     dancers: 'Dancer Silhouettes',
     'dancer-video': 'Dance Clips',
+    'dream-sequence-video': 'Dream Sequence Clips',
+    'skaters': 'Skaters',
+    'cyber-synth': 'Cyber Synth',
     photos: 'Photos',
     'transparent-pngs': 'Transparent PNGs',
     'audio-loops': 'Audio Loops',
+    'cinematic-reel': 'Cinematic Reel',
     animated_gifts: 'Animated Gifts',
     'animated-gifts': 'Animated Gifts',
   };
   const DESCRIPTIONS = {
     dancers: 'Eight stage-lit B&W dancer silhouettes — high-contrast plates that cut out cleanly over colour.',
     'dancer-video': 'Thirteen five-second looping dance clips (B&W strobe), web-optimised for mid-song swapping.',
+    'dream-sequence-video': 'Four five-second looping dusk-and-rain clips (blur · haze · slow) — the Dream Sequence set in motion, web-optimised for layering.',
+    'skaters': 'Twelve five-second looping skate clips — handheld chase and low-angle fisheye at golden hour, web-optimised for mid-song swaps.',
+    'cyber-synth': 'Two five-second neon loops — a magenta synth waveform over dark water and a pulsing city of light bars, web-optimised for layering.',
+    'audio-loops': 'Demo audio for the engine — Tribalismo (3:54, 48 kHz stereo), loadable straight into any variant.',
+    'cinematic-reel': 'Sixteen five-second cinematic plates picked across the sets — neon church, morning haunt, system error, ethio-jazz and the reel-to-reel texture. Note: the Dream Sequence cuts ship separately in their own pack.',
   };
   const PRETTY = {
     dancers: 'Dancer silhouettes',
     'dancer-video': 'Dance clips',
+    'dream-sequence-video': 'Dream sequence clips',
     photos: 'Photos + video clips',
     'transparent-pngs': 'Overlays, masks, persona cards',
     'audio-loops': 'Demo WAV/MP3 loops',
@@ -129,6 +143,7 @@
   const bytes = (n) => (n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB');
 
   function isVideo(rel) { return /\.(mp4|webm|mov)$/i.test(rel); }
+  function isAudio(rel) { return /\.(mp3|wav|m4a|aac|ogg)$/i.test(rel); }
 
   async function headSize(url) {
     try {
@@ -170,6 +185,10 @@
         v.addEventListener('mouseenter', () => { v.play().catch(() => {}); });
         v.addEventListener('mouseleave', () => { try { v.pause(); } catch (_) {} });
         strip.appendChild(v);
+      } else if (isAudio(rel)) {
+        const a = document.createElement('audio');
+        a.src = url; a.controls = true; a.preload = 'metadata';
+        strip.appendChild(a);
       } else {
         const img = document.createElement('img');
         img.src = url; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';

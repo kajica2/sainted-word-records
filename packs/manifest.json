@@ -1,6 +1,6 @@
 {
   "schema": "swr-library-packs/v1",
-  "generated_at": "2026-09-25T00:20:00+02:00",
+  "generated_at": "2026-09-29T07:00:00+02:00",
   "description": "Curated opt-in media packs shipped with the build (packs/ is tracked; library/ is gitignored and stripped). Paths are relative to this manifest's base. Each pack's `cover` is a generated 1280x720 webp used by the packs toolbar.",
   "base": "/packs/",
   "packs": {
@@ -28,10 +28,60 @@
       "dancers-video/dance-11.mp4",
       "dancers-video/dance-12.mp4",
       "dancers-video/dance-13.mp4"
+    ],
+    "dream-sequence-video": [
+      "dream-sequence-video/clip-01.mp4",
+      "dream-sequence-video/clip-02.mp4",
+      "dream-sequence-video/clip-03.mp4",
+      "dream-sequence-video/clip-04.mp4"
+    ],
+    "skaters": [
+      "skaters/clip-01.mp4",
+      "skaters/clip-02.mp4",
+      "skaters/clip-03.mp4",
+      "skaters/clip-04.mp4",
+      "skaters/clip-05.mp4",
+      "skaters/clip-06.mp4",
+      "skaters/clip-07.mp4",
+      "skaters/clip-08.mp4",
+      "skaters/clip-09.mp4",
+      "skaters/clip-10.mp4",
+      "skaters/clip-11.mp4",
+      "skaters/clip-12.mp4"
+    ],
+    "cyber-synth": [
+      "cyber-synth/clip-01.mp4",
+      "cyber-synth/clip-02.mp4"
+    ],
+    "audio-loops": [
+      "audio-loops/tribalismo.mp3"
+    ],
+    "cinematic-reel": [
+      "cinematic-reel/clip-01.mp4",
+      "cinematic-reel/clip-02.mp4",
+      "cinematic-reel/clip-03.mp4",
+      "cinematic-reel/clip-04.mp4",
+      "cinematic-reel/clip-05.mp4",
+      "cinematic-reel/clip-06.mp4",
+      "cinematic-reel/clip-07.mp4",
+      "cinematic-reel/clip-08.mp4",
+      "cinematic-reel/clip-09.mp4",
+      "cinematic-reel/clip-10.mp4",
+      "cinematic-reel/clip-11.mp4",
+      "cinematic-reel/clip-12.mp4",
+      "cinematic-reel/clip-13.mp4",
+      "cinematic-reel/clip-14.mp4",
+      "cinematic-reel/clip-15.mp4",
+      "cinematic-reel/clip-16.mp4"
     ]
   },
   "covers": {
     "dancers": "dancers/cover.webp",
-    "dancer-video": "dancers-video/cover.webp"
+    "dancer-video": "dancers-video/cover.webp",
+    "dream-sequence-video": "dream-sequence-video/cover.webp",
+    "skaters": "skaters/cover.webp",
+    "cyber-synth": "cyber-synth/cover.webp",
+    "audio-loops": "audio-loops/cover.webp",
+    "cinematic-reel": "cinematic-reel/cover.webp"
   }
 }
