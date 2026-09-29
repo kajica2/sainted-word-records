@@ -181,6 +181,7 @@
       <button class="icon-btn" id="rec-btn" title="Record canvas (8s WebM)" style="color:#ff6a2c;"><i class="fa-solid fa-circle-dot text-xs"></i></button>
       <button class="icon-btn" id="mic-btn" title="Mic"><i class="fa-solid fa-microphone text-xs"></i></button>
       <button class="icon-btn" id="cam-btn" title="Cam"><i class="fa-solid fa-video text-xs"></i></button>
+      <button class="icon-btn" id="vj-btn" title="VJ mode — composite the camera feed (C)" style="font-size:9px;font-weight:600;letter-spacing:0.06em;">VJ</button>
       <button class="icon-btn" id="load-song-btn" title="Load Song"><i class="fa-solid fa-folder-open text-xs"></i></button>
       <div class="w-px h-5" style="background:var(--line)"></div>
       <button class="icon-btn" data-toggle-tab="enhance" title="Enhance — filter sliders" style="font-size:9px;font-weight:600;letter-spacing:0.06em;">ENH</button>
@@ -224,6 +225,7 @@
         <div class="absolute top-3 right-3 z-10 flex items-center gap-3 micro tabular" id="canvas-hud">
           <span><span style="color:var(--fg-faint)">BPM</span> <b id="hud-bpm" style="color:var(--signal)">—</b></span>
           <span><span style="color:var(--fg-faint)">KEY</span> <b id="hud-key" style="color:var(--signal)">—</b></span>
+          <span><span style="color:var(--fg-faint)">VJ</span> <b id="hud-vj" style="color:var(--fg-faint)">OFF</b></span>
         </div>
         <!-- Drop zone (visible until first audio loads) -->
         <div id="drop-zone" class="absolute inset-0 flex items-center justify-center z-20 cursor-pointer" style="background: rgba(10, 10, 11, 0.6);">
@@ -693,6 +695,10 @@
       });
     }
     const camBtn = document.getElementById('cam-btn');
+    // The camera never reaches the canvas on its own — VJ mode (C) composites
+    // it — so the button says which state it is in.
+    const CAM_TITLE_LIVE = 'Cam on — live in VJ mode (C to exit)';
+    const CAM_TITLE_WAITING = 'Cam on — press C for VJ mode';
     if (camBtn) {
       let camOn = false;
       let camVideo = null;
@@ -712,6 +718,7 @@
           camOn = false;
           delete camBtn.dataset.active;
           camBtn.style.color = '';
+          camBtn.title = 'Cam';
           return;
         }
         const res = await mi.startCamera();
@@ -731,9 +738,38 @@
         camOn = true;
         camBtn.dataset.active = '1';
         camBtn.style.color = 'var(--signal)';
+        camBtn.title = (engine && engine.vjMode && engine.vjMode()) ? CAM_TITLE_LIVE : CAM_TITLE_WAITING;
         if (engine && engine.setVideoSource) engine.setVideoSource(v);
       });
     }
+
+    // ─── VJ mode (C) ────────────────────────────────────────────
+    // The camera feed composites onto the canvas only in VJ mode, so the
+    // shipped look stays pure black unless the operator goes live; a
+    // composited base also dims the grid (engine + shader side).
+    const vjBtn = document.getElementById('vj-btn');
+    const vjReadout = document.getElementById('hud-vj');
+    function applyVJMode(on) {
+      const engine = window.__SWR_ENGINE;
+      if (!engine || !engine.setVJMode) return null;
+      const live = engine.setVJMode(on);
+      if (vjBtn) {
+        vjBtn.style.color = live ? 'var(--signal)' : '';
+        if (live) vjBtn.dataset.active = '1'; else delete vjBtn.dataset.active;
+        vjBtn.title = live ? 'VJ mode ON — camera composites (C)' : 'VJ mode — composite the camera feed (C)';
+      }
+      if (vjReadout) {
+        vjReadout.textContent = live ? 'ON' : 'OFF';
+        vjReadout.style.color = live ? 'var(--signal)' : 'var(--fg-faint)';
+      }
+      if (camBtn && camBtn.dataset.active) camBtn.title = live ? CAM_TITLE_LIVE : CAM_TITLE_WAITING;
+      return live;
+    }
+    function toggleVJMode() {
+      const engine = window.__SWR_ENGINE;
+      applyVJMode(!(engine && engine.vjMode && engine.vjMode()));
+    }
+    if (vjBtn) vjBtn.addEventListener('click', () => toggleVJMode());
 
     // ─── Engine / Enhance / Photo / Transitions toggle ──────────
     // The top bar now shows a version selector (Console spec). These four
@@ -905,11 +941,14 @@
 
     // ─── Keyboard shortcuts ─────────────────────────────────────
     document.addEventListener('keydown', (e) => {
-      // Ignore when typing in inputs/textareas/selects
+      // Ignore when typing in inputs/textareas/selects, and never take a
+      // shortcut away from the platform (Cmd/Ctrl+C is copy, Cmd+A is select-all)
       if (e.target.matches('input, textarea, select')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === '[') document.getElementById('toggle-l').click();
       if (e.key === ']') document.getElementById('toggle-r').click();
       if (e.key === 'a' || e.key === 'A') document.getElementById('drawer-toggle').click();
+      if (e.key === 'c' || e.key === 'C') toggleVJMode();
     });
   })();
   </script>

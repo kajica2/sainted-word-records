@@ -58,3 +58,34 @@ It also pins a 1280×900 desktop viewport (Puppeteer's 800×600 default is insid
 the mobile breakpoint) and accepts `BASE_URL=<origin>` to run the same gate
 against a deployed site (skipping the local static server).
 
+---
+
+## VJ mode: the camera is now opt-in
+
+The Console rules call for a pure black canvas, and the camera feed was the one
+source that broke it unconditionally. The camera now composites only in **VJ
+mode**, toggled with `C` (or the header's `VJ` button) and shown in the canvas
+HUD (`VJ OFF/ON`), so the shipped look stays pure black until the operator goes
+live. A composited base also dims the grid (`u_gridDim` 1.0 → 0.35) so the
+picture reads through the overlays; the photo deck stays ungated because
+dropping files into the Photo tab is already an explicit content action.
+
+- Engine: `setVJMode(on)` / `vjMode()`; the base-source test is now
+  `baseVisible()` (camera needs VJ mode, photos do not) and both render paths
+  (GL sampler + 2D `drawImage`) go through it. An armed-but-gated camera still
+  runs — leaving VJ mode restores the black canvas without killing the stream,
+  and the Cam button's title says which state it is in.
+- The `C` binding ignores modifiers, so `Cmd/Ctrl+C` stays copy (the same guard
+  now covers the existing `[`, `]`, `A` shortcuts, which previously fired on
+  `Cmd+A`).
+- Fixed on the way: with `prefers-reduced-motion` (no RAF loop) a base-source
+  change never repainted, so a photo or camera would never appear — the engine
+  now repaints that single frame on `setVJMode`/`setVideoSource`/`setPhotos`,
+  including when the image or first video frame arrives.
+
+Gate: 54 → 64 checks (VJ default/C toggle/`Cmd+C`/typing guards, photos
+composite while ungated, grid dim A/B on the same pixels, the reduced-motion
+repaint, and — with the fake camera — armed-but-off-canvas → `C` composites →
+leaving VJ returns to pure black while the stream stays armed; measured region
+mean 11 → 82 → 11).
+

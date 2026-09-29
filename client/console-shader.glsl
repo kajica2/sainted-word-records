@@ -27,6 +27,7 @@ uniform float u_signalAlpha;   // line opacity, default 1.0
 // u_baseAspect = source width/height; 0 means "no base" (pure black canvas).
 uniform sampler2D u_base;
 uniform float u_baseAspect;
+uniform float u_gridDim;       // grid strength multiplier (1.0, or dimmed under a base)
 
 out vec4 fragColor;
 
@@ -70,9 +71,9 @@ void main() {
     col = texture(u_base, baseUV).rgb;
   }
 
-  // 2. faint grid — only on canvas, never on UI
+  // 2. faint grid — only on canvas, never on UI (dimmer under a base source)
   float g = gridLine(uv, 32.0);
-  col = mix(col, u_signal, g * 0.04);
+  col = mix(col, u_signal, g * 0.04 * u_gridDim);
 
   // 3. BEAT PULSE — the flash itself is painted on the overlay canvas by the
   // engine (single hard frame-wide flash per kick); u_beatPulse only widens
@@ -123,6 +124,13 @@ void main() {
 //      const cs = getComputedStyle(document.documentElement);
 //      u_signal = hexToVec3(cs.getPropertyValue('--signal'));
 //      u_bg     = hexToVec3(cs.getPropertyValue('--bg'));
+//      u_gridDim = 1.0;      // uniforms default to 0 — the grid would vanish
+//      u_baseAspect = 0.0;   // 0 = no live base, pure-black background
+//
+// 1b. Optional live base (camera / photo deck). Upload the element into u_base
+//      with UNPACK_FLIP_Y_WEBGL, and set u_baseAspect = width/height so this
+//      shader can cover-fit it; it is sampled only while > 0. Set u_gridDim to
+//      0.35 while a base is composited so the overlays stay readable.
 //
 // 2. WebAudio: create AnalyserNode(fftSize=64) → getFrequencyData()
 //      Map 32 bins → u_bands normalized 0..1.
