@@ -61,6 +61,9 @@
       width: 100%; aspect-ratio: 16/9; object-fit: cover;
       border-radius: 4px; background: #0a0a0f; display: block;
     }
+    .pack-thumbs audio {
+      grid-column: 1 / -1; width: 100%; height: 34px; display: block;
+    }
     .packs-empty-state { padding: 40px 0; color: var(--ink-3, #888); font-size: 14px; }
     .pack-badge {
       display: inline-block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
@@ -111,6 +114,7 @@
     'dream-sequence-video': 'Four five-second looping dusk-and-rain clips (blur · haze · slow) — the Dream Sequence set in motion, web-optimised for layering.',
     'skaters': 'Twelve five-second looping skate clips — handheld chase and low-angle fisheye at golden hour, web-optimised for mid-song swaps.',
     'cyber-synth': 'Two five-second neon loops — a magenta synth waveform over dark water and a pulsing city of light bars, web-optimised for layering.',
+    'audio-loops': 'Demo audio for the engine — Tribalismo (3:54, 48 kHz stereo), loadable straight into any variant.',
   };
   const PRETTY = {
     dancers: 'Dancer silhouettes',
@@ -137,6 +141,7 @@
   const bytes = (n) => (n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB');
 
   function isVideo(rel) { return /\.(mp4|webm|mov)$/i.test(rel); }
+  function isAudio(rel) { return /\.(mp3|wav|m4a|aac|ogg)$/i.test(rel); }
 
   async function headSize(url) {
     try {
@@ -178,6 +183,10 @@
         v.addEventListener('mouseenter', () => { v.play().catch(() => {}); });
         v.addEventListener('mouseleave', () => { try { v.pause(); } catch (_) {} });
         strip.appendChild(v);
+      } else if (isAudio(rel)) {
+        const a = document.createElement('audio');
+        a.src = url; a.controls = true; a.preload = 'metadata';
+        strip.appendChild(a);
       } else {
         const img = document.createElement('img');
         img.src = url; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';

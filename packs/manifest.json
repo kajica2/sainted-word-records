@@ -1,6 +1,6 @@
 {
   "schema": "swr-library-packs/v1",
-  "generated_at": "2026-09-29T06:35:00+02:00",
+  "generated_at": "2026-09-29T06:40:00+02:00",
   "description": "Curated opt-in media packs shipped with the build (packs/ is tracked; library/ is gitignored and stripped). Paths are relative to this manifest's base. Each pack's `cover` is a generated 1280x720 webp used by the packs toolbar.",
   "base": "/packs/",
   "packs": {
@@ -52,6 +52,9 @@
     "cyber-synth": [
       "cyber-synth/clip-01.mp4",
       "cyber-synth/clip-02.mp4"
+    ],
+    "audio-loops": [
+      "audio-loops/tribalismo.mp3"
     ]
   },
   "covers": {
@@ -59,6 +62,7 @@
     "dancer-video": "dancers-video/cover.webp",
     "dream-sequence-video": "dream-sequence-video/cover.webp",
     "skaters": "skaters/cover.webp",
-    "cyber-synth": "cyber-synth/cover.webp"
+    "cyber-synth": "cyber-synth/cover.webp",
+    "audio-loops": "audio-loops/cover.webp"
   }
 }
