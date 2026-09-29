@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <title>Visual Versions · Sainted Word Records</title>
   <meta name="description" content="Stub preset — clean gallery-white tone (page-target only)" />
@@ -147,7 +149,8 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <swr-nav></swr-nav>
+  <main class="wrap">
     <div class="top">
       <span class="badge hot">SWR · v1</span>
       <span class="badge">12 visual versions</span>
@@ -404,7 +407,7 @@
       <span>drop in any song · any video/gif/image library · single-file html</span>
       <a href="/">sainted word records ↗</a>
     </div>
-  </div>
+  </main>
 <script src="../lib/persist.client.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
 <!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
@@ -415,5 +418,8 @@
   </div>
   <div id="automix-debug-body" style="color:#aaa;">idle</div>
 </div>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

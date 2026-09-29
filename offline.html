@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#050308">
@@ -10,6 +12,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWR">
 <title>Sainted Word Records — offline</title>
+<meta name="description" content="Sainted Word Records — offline — the Sainted Word Records app shell cached on this device. Reconnect to load the full engine.">
+  <meta property="og:title" content="Sainted Word Records — offline">
+  <meta property="og:description" content="Sainted Word Records — offline — the Sainted Word Records app shell cached on this device. Reconnect to load the full engine.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050308'/%3E%3Cpath d='M2 16 Q 6 6 10 16 T 18 16 T 26 16 T 30 16' stroke='%23f5a524' fill='none' stroke-width='2'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -136,6 +143,7 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
+  <swr-nav></swr-nav>
 <main class="card" role="main">
   <div class="icon" aria-hidden="true">
     <svg viewBox="0 0 32 32" fill="none">
@@ -151,7 +159,7 @@
   </div>
   <p class="footer">your projects stay on this device · no account needed</p>
 </main>
-  <swr-nav></swr-nav>
+
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

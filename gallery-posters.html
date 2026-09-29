@@ -9,6 +9,7 @@
   <meta name="description" content="18x24, 24x36, large format posters and canvas editions. Typographic hierarchies, photographic collages, fine-art wall compositions." />
   <meta property="og:title" content="Posters / Canvas — SWR Gallery" />
   <meta property="og:description" content="Wall compositions — typographic hierarchies, photographic collages, fine-art editions at any scale." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -242,7 +243,7 @@
   <swr-nav></swr-nav>
 
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__kicker">18x24 · 24x36 · LARGE FORMAT</div>
       <h1 class="hero__title">Posters / <em>Canvas</em></h1>
       <p class="hero__lede">
@@ -251,7 +252,7 @@
         from single-weight type to city-texture maps.
       </p>
       <a class="hero__cta" href="/campaign.html">Order a print run →</a>
-    </div>
+    </main>
   </header>
 
   <section class="wrap">
@@ -380,10 +381,7 @@
     </div>
   </section>
 
-  <footer class="footer">
-    Posters / Canvas · SWR Galleries
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -397,11 +395,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

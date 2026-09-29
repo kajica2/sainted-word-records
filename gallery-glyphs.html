@@ -9,6 +9,7 @@
   <meta name="description" content="Compact icon systems — sigils that compress meaning into one ink-line, one fold, one gesture." />
   <meta property="og:title" content="Glyphs / Sigils — SWR Gallery" />
   <meta property="og:description" content="Compact icon systems — sigils that compress meaning into one ink-line, one fold, one gesture." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -217,7 +218,7 @@
   <swr-nav></swr-nav>
 
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__kicker">Mark · Symbol · Tattoo</div>
       <h1 class="hero__title">Glyphs / Sigils — <em>SWR Gallery</em></h1>
       <p class="hero__lede">
@@ -226,7 +227,7 @@
       <p class="hero__desc">
         Each mark is drawn to be reproduced at any scale — read it from across the room, recognize it on the back of a hand. The engine isolates the silhouette, the negative space, the single stroke that does the work.
       </p>
-    </div>
+    </main>
   </header>
 
   <section class="grid wrap">
@@ -319,11 +320,7 @@
     </article>
   </section>
 
-  <footer class="footer">
-    <span>Glyphs / Sigils</span>
-    <a href="/gallery.html" style="color:var(--accent,#dc2626);text-decoration:none;font-weight:700;">◀ ALL GALLERIES</a>
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -337,11 +334,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

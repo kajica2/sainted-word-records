@@ -9,6 +9,7 @@
   <meta name="description" content="Counterpoint-reactive baroque visual engine — 4-voice spectrum split, figured-bass pulse, ornament corona. Drop a Bach piece, get a gold-on-velvet reactive composition." />
   <meta property="og:title" content="Bachdrop — SWR Gallery" />
   <meta property="og:description" content="Counterpoint-reactive baroque visual engine — 4-voice spectrum split, figured-bass pulse, ornament corona." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -262,7 +263,7 @@
   <swr-nav></swr-nav>
 
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__kicker">Counterpoint · Reactive · Baroque</div>
       <h1 class="hero__title">Bachdrop — <em>BWV 1 in C major</em></h1>
       <p class="hero__lede">
@@ -272,7 +273,7 @@
       <p class="hero__desc">
         The engine splits the spectrum into SATB bands — Soprano in the air, Alt in the upper mid, Tenor in the lower mid, Bass in the sub. Each voice becomes a flowing scroll of ornament stems. The bass voice triggers a figured-bass pulse on every kick. The whole composition breathes on the beat envelope. Built for counterpoint, lit by candlelight, recorded to MP4.
       </p>
-    </div>
+    </main>
   </header>
 
   <section class="grid wrap">
@@ -365,11 +366,7 @@
     </article>
   </section>
 
-  <footer class="footer">
-    <span>Bachdrop · SWR Gallery</span>
-    <a href="/gallery.html" style="color:var(--accent,#dc2626);text-decoration:none;font-weight:700;">◀ ALL GALLERIES</a>
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -383,12 +380,14 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/swr-build-id.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

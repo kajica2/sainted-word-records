@@ -169,7 +169,8 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-<div id="app">
+  <swr-nav></swr-nav>
+<main id="app">
   <header class="ps-head">
     <span style="color:var(--accent);font-weight:700;letter-spacing:0.16em;">PS</span>
     <span style="color:var(--muted);font-size:9px;">v1 · photo studio</span>
@@ -240,7 +241,7 @@
     <canvas id="stage" width="1080" height="1080" style="background:#0a0008;"></canvas>
     <div class="stage-hint" id="stage-hint">Drop an image to start</div>
   </section>
-</div>
+</main>
 
 <!-- Engine-agnostic WebCodecs recorder (no engine-* scripts on this page). -->
 <script src="../lib/recorder.client.js"></script>

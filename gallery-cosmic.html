@@ -9,6 +9,7 @@
   <meta name="description" content="Nebulae, galaxies, accretion disks, and the dark between — visual systems that breathe on timescales longer than songs." />
   <meta property="og:title" content="Cosmic — SWR Gallery" />
   <meta property="og:description" content="Nebulae, galaxies, accretion disks, and the dark between — visual systems that breathe on timescales longer than songs." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -238,7 +239,7 @@
   <swr-nav></swr-nav>
 
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__kicker">Deep Field · Star-forming regions</div>
       <h1 class="hero__title">Cosmic <em>gallery.</em></h1>
       <p class="hero__lede">
@@ -250,7 +251,7 @@
         slow particle drifts, and gradients that resolve over minutes instead of beats.
         Built for ambient, post-rock, drone, and any track that wants to feel infinite.
       </p>
-    </div>
+    </main>
   </header>
 
   <section class="grid wrap">
@@ -327,12 +328,7 @@
     </article>
   </section>
 
-  <footer class="footer">
-    <div class="wrap">
-      <div class="footer__line">Cosmic · <strong><a href="/gallery.html" style="color:inherit;text-decoration:none;font-weight:700;">◀ ALL GALLERIES</a></strong></div>
-    </div>
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -346,11 +342,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

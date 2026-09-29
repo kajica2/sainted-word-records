@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <title>Marketplace · Sainted Word Records</title>
   <meta name="description" content="SWR Marketplace — browse curated .swr-set templates, install to your engine, open in one click. Free for v1." />
@@ -11,6 +13,7 @@
   <meta property="og:title" content="Marketplace · Sainted Word Records" />
   <meta property="og:description" content="Curated music-video templates · one-click install · run in the browser" />
   <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -94,6 +97,7 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
+  <swr-nav></swr-nav>
   <header>
     <h1>MAR<em>KET</em>PLACE</h1>
     <a class="nav" href="/engine.html">→ engine</a>
@@ -101,7 +105,7 @@
     <span class="spacer"></span>
   </header>
 
-  <div class="container">
+  <main class="container">
     <div class="intro">
       <h2>Music-video templates for designers, musicians, and mixed-media creators.</h2>
       <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Drop a custom .swr-set file to add it to your library.</p>
@@ -133,7 +137,7 @@
         Install a curated set above, or drop a .swr-set file to get started.
       </div>
     </div>
-  </div>
+  </main>
 
   <div class="toast" id="toast"></div>
 
@@ -377,8 +381,9 @@
       })();
     })();
   </script>
-  <swr-nav></swr-nav>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

@@ -1,10 +1,16 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SWR Personas · v8 BROADCAST · TV network</title>
   <meta name="description" content="The 8 personas rendered as a TV broadcast: lower-thirds, scan lines, timecode, network bug." />
+  <meta property="og:title" content="SWR Personas · v8 BROADCAST · TV network">
+  <meta property="og:description" content="The 8 personas rendered as a TV broadcast: lower-thirds, scan lines, timecode, network bug.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&family=Oswald:wght@500;600;700&display=swap" />
@@ -155,7 +161,8 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <div class="viewport">
+  <swr-nav></swr-nav>
+  <main class="viewport">
     <div class="topbar">
       <span class="topbar__live">ON AIR</span>
       <span>SWR · CH-7</span>
@@ -187,7 +194,7 @@
       <div>FEED <b>HD-1080p · 60fps</b></div>
       <div><a href="landing-personas-v1-editorial.html">← all 6 registers</a></div>
     </footer>
-  </div>
+  </main>
 
   <div class="bug"><span>SWR<br><b>07</b></span></div>
 
@@ -247,7 +254,7 @@
       document.getElementById('personas').innerHTML = html;
     })();
   </script>
-  <swr-nav></swr-nav>
+  
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

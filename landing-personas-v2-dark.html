@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-register="dark" data-version="v2">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SWR · Personas · V2 Dark Mode</title>
@@ -492,6 +494,7 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
+  <swr-nav></swr-nav>
 
   <!-- ============ INLINE PERSONAS DATA (single source of truth) ============ -->
   <script type="application/json" id="personas-data">
@@ -580,7 +583,7 @@
 
   <!-- ============ HERO (terminal splash) ============ -->
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__splash">
         <div class="hero__splash-bar">
           <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
@@ -618,7 +621,7 @@
           <span>pid=<b>1337</b></span>
         </div>
       </div>
-    </div>
+    </main>
   </header>
 
   <!-- ============ ACTIVITY FEED (the 8 personas as log entries) ============ -->
@@ -819,7 +822,7 @@
       setInterval(tick, 1800);
     })();
   </script>
-  <swr-nav></swr-nav>
+  
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

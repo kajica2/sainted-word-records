@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Section III — The 200 Steps · Kai Djuric</title>
@@ -10,6 +12,7 @@
   <link rel="icon" href="/favicon.ico" />
   <meta property="og:title" content="Section III — The 200 Steps · Kai Djuric" />
   <meta property="og:description" content="Four phases of 50 steps each. The phases are not strictly sequential — but there is a general direction." />
+  <meta name="twitter:card" content="summary_large_image">
   <style>
     :root {
       --bg-0: #0a0d12; --bg-1: #111114; --bg-2: #16161b;
@@ -94,6 +97,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   <nav class="top">
     <a class="brand" href="/">SWR</a>
     <div>
@@ -220,5 +224,8 @@
     </nav>
 
   </main>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

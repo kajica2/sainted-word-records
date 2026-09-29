@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Console · Sainted Word Records</title>
@@ -8,6 +10,7 @@
 <meta property="og:title" content="Console — Sainted Word Records">
 <meta property="og:description" content="A precision oscilloscope aesthetic for audio-reactive video.">
 <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -147,6 +150,7 @@
 </style>
 </head>
 <body class="theme-console">
+  <swr-nav></swr-nav>
 
 <a class="sr" href="#main">Skip to content</a>
 
@@ -360,14 +364,7 @@
 
 </main>
 
-<footer style="max-width:1200px;margin:0 auto;padding:24px;border-top:1px solid var(--line);font:500 11px/1.4 var(--f-mono);color:var(--fg-faint);letter-spacing:0.06em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-  <span>CONSOLE · v1 · swr-version/v1 · MIT licensed</span>
-  <span>
-    <a href="/versions" style="color:var(--fg-mute);text-decoration:none;margin-right:16px;">All versions</a>
-    <a href="/engine" style="color:var(--fg-mute);text-decoration:none;margin-right:16px;">Engine</a>
-    <a href="/" style="color:var(--fg-mute);text-decoration:none;">Home</a>
-  </span>
-</footer>
+<swr-footer></swr-footer>
 
 <script>
 /* =========================================================================
@@ -622,5 +619,7 @@ requestAnimationFrame(loop);
   </div>
   <div id="automix-debug-body" style="color:#aaa;">idle</div>
 </div>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

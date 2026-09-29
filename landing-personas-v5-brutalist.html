@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PERSONAS.TXT — V5 · Brutalist · Sainted Word Records</title>
@@ -9,6 +11,7 @@
   <meta property="og:title" content="PERSONAS.TXT — V5 · Brutalist" />
   <meta property="og:description" content="Sainted Word Records persona file. Raw view. 8 entries." />
   <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23facc15'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='20' font-weight='900' text-anchor='middle' fill='%23000'%3E%24%3C/text%3E%3C/svg%3E" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -468,8 +471,10 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
+  <swr-nav></swr-nav>
 
 <!-- =================== STATUS BAR =================== -->
+<main>
 <div class="statusbar" role="status" aria-label="file status">
   <div class="statusbar__inner">
     <span class="ok">[OK]</span>
@@ -807,6 +812,7 @@
 <pre class="raw" id="raw-json" aria-label="raw personas json"></pre>
   </div>
 </section>
+</main>
 
 <!-- =================== FOOTER =================== -->
 <footer class="foot" role="contentinfo">
@@ -997,7 +1003,7 @@
 }
 </style>
 
-  <swr-nav></swr-nav>
+  
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
 </body>

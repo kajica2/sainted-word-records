@@ -9,6 +9,7 @@
   <meta name="description" content="Brand identity · in review — Vodolija is a working band identity. The 34 logo candidates on this page were generated in Midjourney session 4 across 8 prompt variants. Th" />
   <meta property="og:title" content="Vodolija · SWR" />
   <meta property="og:description" content="Vodolija is a working band identity. The 34 logo candidates on this page were generated in Midjourney session 4 across 8 prompt variants. The chosen mark becomes the artist&#39;s hero asset on the sho" />
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#00f0ff" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -91,6 +92,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   
     <audio id="track" loop preload="auto" crossorigin="anonymous">
       <source src="/audios/film.mp3" type="audio/mpeg" />
@@ -114,7 +116,7 @@
       .now-playing.playing .eq i { animation-play-state: running; }
       .now-playing.paused .eq i { animation-play-state: paused; }
     </style>
-  <div class="wrap">
+  <main class="wrap">
     <header class="top">
       <span class="badge">ARTIST · VODOLIJA</span>
       <span class="spacer"></span>
@@ -156,10 +158,8 @@
       <a class="link" href="/artists/vodolija" rel="noopener noreferrer" target="_blank">Logo candidates ↗</a>
     </div>
 
-    <footer class="foot">
-      vodolija · <a href="/artists">see all artists →</a>
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
 
   <script>
     // Play-gate logic: most browsers block autoplay-with-sound. The first
@@ -202,5 +202,6 @@
     })();
   </script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

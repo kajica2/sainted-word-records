@@ -1,10 +1,16 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>404 — Not found · Sainted Word Records</title>
   <meta name="description" content="That page isn't in the set. Head back to the splash or jump into the engine." />
+  <meta property="og:title" content="404 — Not found · Sainted Word Records">
+  <meta property="og:description" content="That page isn't in the set. Head back to the splash or jump into the engine.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="color-scheme" content="light dark" />
   <meta name="robots" content="noindex" />
   <link rel="icon" href="/favicon.ico" />
@@ -38,7 +44,8 @@
 <script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <div class="frame">
+  <swr-nav></swr-nav>
+  <main class="frame">
     <svg class="wave" viewBox="0 0 520 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M 10 40 Q 50 8, 100 40 T 200 40 T 300 40 T 400 40 T 510 40"
             stroke="#d4a24c" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.7"/>
@@ -61,8 +68,9 @@
       <a href="/press.html">Press</a>
     </div>
     <div class="small">If you got here from a link, the URL may have moved. Drop a line at kai [at] saintedwordrecords [dot] com.</div>
-  </div>
-  <swr-nav></swr-nav>
+  </main>
   <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

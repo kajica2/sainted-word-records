@@ -9,6 +9,7 @@
   <meta name="description" content="20 Midjourney raw compositions: 12 sheet-music-on-architectural-drawing variants, 8 KAI·Dj sunrise compositions. Concrete typography, hot red, no decoration." />
   <meta property="og:title" content="BRUTALIST.GALLERY — SWR" />
   <meta property="og:description" content="20 raw Midjourney compositions, brutalist layout, no decoration." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700;800&display=swap" />
@@ -256,6 +257,7 @@
 
 </head>
 <body>
+  <swr-nav></swr-nav>
 
   <!-- ===== STATUS BAR ===== -->
   <div class="statusbar" role="status" aria-label="page status">
@@ -278,7 +280,7 @@
       <p class="header__sub">
         20 raw compositions · sheet-music × architectural drawing · sunrise × end of night
       </p>
-      <swr-nav></swr-nav>
+      
     </div>
   </header>
 
@@ -367,16 +369,7 @@
   </main>
 
   <!-- ===== STAMP FOOTER ===== -->
-  <footer class="stamp" role="contentinfo">
-    <div class="totals">
-      <span><span class="totals__b">20</span> files</span>
-      <span><span class="totals__b">2</span> prompt families</span>
-      <span><span class="totals__b">36.9 MB</span> total</span>
-      <span><span class="totals__b">2026-09-11</span> build</span>
-    </div>
-    <div class="stamp__seal">RAW · UNTOUCHED · OFF-WHITE</div>
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -390,11 +383,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
 
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

@@ -9,6 +9,7 @@
   <meta name="description" content="Sleeve compositions — typography as image, single strong gesture, readable at thumbnail. 8 album-cover treatments in the SWR Gallery." />
   <meta property="og:title" content="Album Covers — SWR Gallery" />
   <meta property="og:description" content="Sleeve compositions — typography as image, single strong gesture, readable at thumbnail." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -212,7 +213,7 @@
   <swr-nav></swr-nav>
 
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__kicker">12x12 · 3000x3000 · SQUARE CROP</div>
       <h1 class="hero__title">Album <em>Covers.</em></h1>
       <p class="hero__lede">Sleeve compositions — typography as image, single strong gesture, readable at thumbnail.</p>
@@ -220,7 +221,7 @@
         Eight approaches to the same square frame: type-only lockups, single-photo portraits, abstract marks, and split compositions.
         Every sleeve must survive a 64-pixel thumbnail — one strong gesture, no clutter, the title legible at a glance.
       </p>
-    </div>
+    </main>
   </header>
 
   <section class="grid wrap">
@@ -305,12 +306,7 @@
     </article>
   </section>
 
-  <footer class="site-foot">
-    <div class="wrap">
-      <div class="site-foot__line">albums · SWR Galleries</div>
-    </div>
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -324,11 +320,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

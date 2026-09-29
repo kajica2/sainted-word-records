@@ -82,9 +82,14 @@
   </style>
 <script src="/fx-background.client.js" defer></script>
   <meta name="description" content="Record a 30-second audio-reactive video with the Sainted Word Records engine in under a minute." />
+  <meta property="og:title" content="SWR · 30s tutorial · How to use the engine">
+  <meta property="og:description" content="Record a 30-second audio-reactive video with the Sainted Word Records engine in under a minute.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
-  <div class="stage">
+  <swr-nav></swr-nav>
+  <main class="stage">
     <h1>SWR <em>30-second</em> tutorial</h1>
     <div class="stage-frame">
       <canvas id="c" width="720" height="1280"></canvas>
@@ -101,7 +106,7 @@
       <button id="record" class="secondary">⏺ Record MP4</button>
       <span class="status" id="status">ready · 30s</span>
     </div>
-  </div>
+  </main>
 
 <script>
 (() => {
@@ -617,5 +622,7 @@
 </script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

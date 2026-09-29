@@ -9,6 +9,7 @@
   <meta name="description" content="Stills from a moving picture — one frame per beat, one composition per chapter, one shot list per song." />
   <meta property="og:title" content="Music-Video Frames — SWR Gallery" />
   <meta property="og:description" content="Stills from a moving picture — one frame per beat, one composition per chapter, one shot list per song." />
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
@@ -217,7 +218,7 @@
   <swr-nav></swr-nav>
 
   <header class="hero">
-    <div class="wrap">
+    <main class="wrap">
       <div class="hero__kicker">Per-Frame · Time-Coded · Storyboard</div>
       <h1 class="hero__title">Music-Video Frames — <em>SWR Gallery</em></h1>
       <p class="hero__lede">
@@ -226,7 +227,7 @@
       <p class="hero__desc">
         Each frame is anchored to a timecode and a section — chorus, breakdown, outro. Pull the playhead, and the whole scene settles into the moment you asked for. Drop a lyric line and the composition lifts around it.
       </p>
-    </div>
+    </main>
   </header>
 
   <section class="grid wrap">
@@ -319,11 +320,7 @@
     </article>
   </section>
 
-  <footer class="footer">
-    <span>Music-Video Frames</span>
-    <a href="/gallery.html" style="color:var(--accent,#dc2626);text-decoration:none;font-weight:700;">◀ ALL GALLERIES</a>
-  
-  <!-- ============ BATCH DROPZONE (universal) ============ -->
+<!-- ============ BATCH DROPZONE (universal) ============ -->
   <section class="dropzone-strip" aria-label="Drag files to batch-upload">
     <details>
       <summary>
@@ -337,11 +334,13 @@
       </div>
     </details>
   </section>
-</footer>
+
+  <swr-footer></swr-footer>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

@@ -821,8 +821,8 @@
   </style>
 </head>
 <body>
-  <!-- ============ NAV ============ -->
   <swr-nav></swr-nav>
+  <!-- ============ NAV ============ -->
 
   <!-- ============ HERO ============ -->
   <header class="hero">
@@ -865,7 +865,7 @@
 
   <!-- ============ MUSIC VIDEO GALLERY (inlined from versions/music-video-gallery.html) ============ -->
   <section class="section home-gallery" id="music-video-gallery" aria-label="Music video gallery">
-    <div class="wrap">
+    <main class="wrap">
       <div class="section__head reveal">
         <span class="section__kicker">Music videos</span>
         <h2 class="section__title">Flip through the renders.</h2>
@@ -909,7 +909,7 @@
           <span class="arrow">→</span>
         </button>
       </nav>
-    </div>
+    </main>
   </section>
 
   <!-- ============ 3 PATHS (target personas) ============ -->
@@ -1728,44 +1728,7 @@
   </section>
 
   <!-- ============ FOOTER ============ -->
-  <footer class="footer">
-    <div class="wrap">
-      <div class="footer__grid">
-        <div>
-          <div class="footer__brand">
-            <span class="dot"></span>
-            Sainted Word Records
-          </div>
-          <p class="footer__tag">
-            An audio-reactive video engine that ships as a single HTML file. Drop a song, drop a library, get a music video.
-          </p>
-        </div>
-        <div class="footer__col">
-          <h4>Engine</h4>
-          <ul>
-            <li><a href="/engine">Main engine</a></li>
-            <li><a href="/versions">All versions</a></li>
-            <li><a href="./versions.html">5 visual versions</a></li>
-            <li><a href="./HOWTO-30s-VIDEO.md">How to · 30s</a></li>
-            <li><a href="#pages">All pages</a></li>
-          </ul>
-        </div>
-        <div class="footer__col">
-          <h4>Source</h4>
-          <ul>
-            <li><a href="https://github.com/kajica2/sainted-word-records" target="_blank" rel="noopener">GitHub repo</a></li>
-            <li><a href="https://github.com/kajica2/sainted-word-records/issues" target="_blank" rel="noopener">Report an issue</a></li>
-            <li><a href="https://github.com/kajica2/sainted-word-records/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a></li>
-            <li><a href="https://github.com/kai-djuric" target="_blank" rel="noopener">@kai-djuric</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer__bottom">
-        <span>© 2026 Kai Djuric · MIT licensed</span>
-        <span>v1 · Web Audio + MediaRecorder · Chrome 126+ / Safari 14.5+</span>
-      </div>
-    </div>
-  </footer>
+  <swr-footer></swr-footer>
 
   <!-- ============ ENGINE-MINI WEB COMPONENT ============ -->
   <script>
@@ -2302,5 +2265,6 @@
     }
   })();
   </script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>
