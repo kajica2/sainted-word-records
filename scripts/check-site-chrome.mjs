@@ -27,18 +27,25 @@ const IGNORED_DIRS = new Set(['node_modules', 'dist', 'dist-dev', '_archive', 's
 // Not deployed, not public, or deliberately chrome-free.
 //   tools/ + auth/     — internal/dev tools and the auth flow: noindex, no marketing chrome
 //   scripts/           — dev fixtures, never shipped (vite copyStatic skips scripts/)
-//   persona-library    — internal decision memo
 const IGNORED = [
-  /^tools\//, /^auth\//, /^scripts\//, /^legal\//, /^shotlist\//,
+  /^tools\//, /^auth\//, /^scripts\//,
 ];
 const IGNORED_FILES = new Set([
   'offline.html',            // PWA fallback, shown by sw.js with no network
   'login.html',              // meta-refresh stub → /auth/login
-  'persona-library.html',    // internal decision memo, not a public page
   'swr-intro-10s.html',      // render asset (bumper), not a page
   'market-study.html',       // deliberately not deployed (see AGENTS.md)
   'profit-plan.html',        // deliberately not deployed (see AGENTS.md)
 ]);
+
+// Public pages that carry no shared chrome by design (the legal texts, the shot
+// list tool, the persona-library explainer the owner decided to keep) but are
+// still shipped and linked from the nav. They are exempt from the header /
+// footer / landmark / unique-title assertions and still get the <head> checks —
+// they were the last four public pages without a social card.
+const HEAD_ONLY_DIRS = [/^legal\//, /^shotlist\//];
+const HEAD_ONLY_FILES = new Set(['persona-library.html']);
+const isHeadOnly = (file) => HEAD_ONLY_FILES.has(file) || HEAD_ONLY_DIRS.some((re) => re.test(file));
 
 // Full-viewport app surfaces: their own chrome, one exit link required.
 const APP_SURFACES = new Set([
@@ -145,10 +152,17 @@ const siteMap = JSON.parse(fs.readFileSync('site-map.json', 'utf8'));
 
 let checked = 0;
 let appChecked = 0;
+let headOnlyChecked = 0;
 
 for (const file of pages) {
   if (IGNORED.some(re => re.test(file)) || IGNORED_FILES.has(file)) continue;
   const html = fs.readFileSync(file, 'utf8');
+  if (isHeadOnly(file)) {
+    headOnlyChecked++;
+    checkViewport(file, html);
+    checkOgImage(file, html);
+    continue;
+  }
   const isVersionRenderer = file.startsWith('versions/') && !VERSIONS_CONTENT.has(file.slice('versions/'.length));
   const isApp = APP_SURFACES.has(file) || isVersionRenderer;
 
@@ -197,10 +211,12 @@ for (const file of pages) {
   checkOgImage(file, html);
 }
 
-// Unique titles across the checked set
+// Unique titles across the checked set. The head-only pages are excluded: the
+// uniqueness contract is part of the shared-chrome contract, and legal/terms.html
+// legitimately repeats the root terms.html title (both are shipped legal texts).
 const byTitle = new Map();
 for (const file of pages) {
-  if (IGNORED.some(re => re.test(file)) || IGNORED_FILES.has(file)) continue;
+  if (IGNORED.some(re => re.test(file)) || IGNORED_FILES.has(file) || isHeadOnly(file)) continue;
   const t = (fs.readFileSync(file, 'utf8').match(/<title>([^<]*)<\/title>/) || [, ''])[1].trim();
   if (!t) continue;
   byTitle.set(t, [...(byTitle.get(t) || []), file]);
@@ -219,7 +235,7 @@ for (const r of (siteMap.redirects || [])) {
   }
 }
 
-console.log(`${checked} content pages + ${appChecked} app surfaces checked`);
+console.log(`${checked} content pages + ${appChecked} app surfaces + ${headOnlyChecked} head-only pages checked`);
 console.log(`${failures.length === 0 ? '✓ all chrome checks passed' : '✗ ' + failures.length + ' problem(s)'}`);
 if (failures.length) {
   for (const f of failures) console.log('  ✗ ' + f);
