@@ -84,15 +84,23 @@ function assert(cond, msg, detail) {
   await new Promise(r => server.listen(PORT, r));
   console.log(`[score-evo-smoke] static server listening on :${PORT}`);
 
+  // --autoplay-policy=no-user-gesture-required: the page auto-plays audio;
+  // without this Chrome rejects play() with NotAllowedError, which is how
+  // this step failed CI on 2026-09-29.
   const browser = await puppeteer.launch({
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+      '--autoplay-policy=no-user-gesture-required'],
   });
   const page = await browser.newPage();
   page.on('pageerror', e => console.log('  [page error]', e.message));
 
+  // domcontentloaded + a bounded wait for the app's own ready signal —
+  // networkidle0 does not reliably settle here because music_video streams
+  // audio + holds 3D canvas contexts open. The waitForFunction below gates
+  // on the actual mount, not on the network.
   await page.goto(`http://localhost:${PORT}/versions/music_video.html`, {
-    waitUntil: 'networkidle0', timeout: 30000,
+    waitUntil: 'domcontentloaded', timeout: 60000,
   });
   // The narrative-state script is `<script defer>` so it runs after
   // document parsing but possibly before networkidle0 fires (music_video
