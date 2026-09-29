@@ -51,8 +51,9 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
   const browser = await puppeteer.launch({
     headless: 'new',
     // --autoplay-policy: engine.html calls Audio.play() during boot, which
-    // Chrome rejects without a gesture. The error filter below used to
-    // compensate for that, which also hid any genuine play() regression.
+    // Chrome otherwise rejects (NotAllowedError) because no gesture has
+    // happened yet. The flag is the fix, so these errors are no longer
+    // filtered out below: a play() regression now fails this suite.
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
       '--autoplay-policy=no-user-gesture-required'],
   });
@@ -62,13 +63,6 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
     const errs = [];
     page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error') errs.push('console.error: ' + m.text()); });
-
-    // Autoplay errors are a headless-only artifact: the engine tries to call
-    // Audio.play() during boot or in one of the variant test steps, and the
-    // browser rejects because no user interaction occurred. Not a real
-    // regression — the user clicks play in production and the gesture
-    // unlocks Audio. Filter before reporting.
-    const isAutoplayError = (s) => /play\(\) failed because the user didn't interact|NotAllowedError: play/i.test(s);
 
     // domcontentloaded + an explicit wait for the module under test.
     // networkidle0 is unreliable on engine.html: the page holds long-lived
@@ -182,11 +176,12 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
       fail('deep-link activation failed', JSON.stringify(deep));
     }
 
-    // 5. No variant-related JS errors (filter dev-server WebSocket noise
-    // + the headless-only NotAllowedError: play() autoplay reject).
+    // 5. No variant-related JS errors. Only dev-server WebSocket noise and
+    // 404s are filtered; autoplay/play() errors are deliberately NOT — the
+    // --autoplay-policy flag above prevents the headless-only
+    // NotAllowedError, so one surfacing here would be a real play() regression.
     const realErrs = errs.filter((e) =>
-      !/WebSocket|ws:\/\/|Failed to load resource/i.test(e) &&
-      !isAutoplayError(e)
+      !/WebSocket|ws:\/\/|Failed to load resource/i.test(e)
     );
     if (realErrs.length === 0) pass('no variant-related JS errors');
     else fail(`${realErrs.length} errors`, realErrs.slice(0, 3).join(' | '));
