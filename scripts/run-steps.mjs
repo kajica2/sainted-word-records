@@ -103,6 +103,10 @@ const GROUPS = {
     // Static: every landing-personas register's inlined personas-data node
     // still carries personas.json's 8 personas (canonical fields) in order.
     'npm run check:register-data',
+    // Static: sitemap.xml is the generated projection of the shipped surface
+    // (no drift, no 301/archived URL, no duplicate, every shipped content page
+    // exactly once). Needs a built dist/ — ensureDist() builds it on demand.
+    'npm run check:sitemap',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.

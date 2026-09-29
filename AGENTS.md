@@ -55,6 +55,8 @@ The project uses a single-source-of-truth IA in `site-map.json` and shared desig
 
 - `scripts/generate-site-manifest.mjs` — auto-discover HTML pages, populate `site-map.json`. Run with `--dry-run` to preview
 - `scripts/generate-vercel-rewrites.mjs` — generate `vercel.json` rewrites from `site-map.json`. Run after editing `site-map.json`
+- `scripts/generate-sitemap.mjs` — generate `sitemap.xml` from `site-map.json` + the shipped `dist/` (one `<loc>` per public content page, `lastmod` from the IA's `meta.lastUpdated`). Excludes `redirects`/`archived`/non-public/`noindex` pages; `npm run build:sitemap`. Run after adding or archiving a page
+- `scripts/check-sitemap.mjs` — the sitemap gate (in the `check` group, needs a built `dist/`): regenerates and diffs (drift fails), and asserts no redirected/archived URL, no duplicate, and every shipped content page exactly once
 - `scripts/archive-pages.mjs` — move pages in `site-map.json`'s `"archived"` array to `_archive/`. Run with `--dry-run` first
 - `scripts/migrate-html.mjs` — the chrome migration tool. Adds shared CSS/JS links to HTML pages, removes duplicate theme bootstrap scripts, and with flags: `--add-nav` (mount `<swr-nav>` as the first child of `<body>`, or move an existing mount there — fixes the "nav renders below the content" class), `--apply-footer` (replace a bespoke `<footer>` with `<swr-footer>` **only when every link that footer carries is served by the shared footer**; otherwise it prints the links that would have been dropped and leaves it alone), `--add-footer`. Idempotent; `--include-apps` covers the pages in its APP_PAGES skip list. Run it with `--dry-run` and an explicit file list first — with no file arguments it processes every site-map page.
 - `scripts/check-site-chrome.mjs` — the shared-chrome/IA gate (in the `check` group): every shipped content page mounts the nav at the top of `<body>`, mounts the footer (with a documented exception list), links the two shared stylesheets, has a non-empty unique `<title>`, a meta description and a `<main>` landmark; app surfaces must carry an exit link; every `site-map.json` redirect must have its 301 in `vercel.json`.
@@ -67,12 +69,14 @@ To add a new page:
 1. Add the page to the appropriate section in `site-map.json` (nav, footer, auth, legal, or tools)
 2. Run `node scripts/generate-vercel-rewrites.mjs` to update vercel.json
 3. Run `node scripts/migrate-html.mjs <page.html>` to add shared CSS/JS
+4. Run `npm run build:sitemap` — the sitemap gate fails until the new page is listed
 
 To archive a page:
 1. Add the filename to the `"archived"` array in `site-map.json`
 2. Run `node scripts/archive-pages.mjs --dry-run` to preview
 3. Run `node scripts/archive-pages.mjs` to move files to `_archive/`
 4. Run `node scripts/generate-vercel-rewrites.mjs` to update vercel.json
+5. Run `npm run build:sitemap` — the archived page's URL must leave the sitemap
 
 ### Repo contents & tooling
 
@@ -99,7 +103,7 @@ To archive a page:
 ## Testing instructions
 
 - `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **44 steps**, `storyboard` **5 steps**, `full` **14 steps**.
-- Quick gate: `npm run check` → the 45-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
+- Quick gate: `npm run check` → the 46-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
 - Full pre-PR gate: `npm run check:full` → the 14-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:media-input-smoke` + `check:spit-live-smoke` + `check:dist-links` + `verify:site-nav`
 - `check:verify` — the curated 5-verifier smoke that gates PRs. The 5 are fixed in `scripts/check-verify-smoke.mjs`: `cloud-auth`, `hf-publish`, `rotation-enabled`, `autoplay`, `e2e-media-record` (API · admin UI · engine mount · feature smoke · recorder cycle). It bootstraps a Vite dev server on `:5175` with a temp `SWRC_DATA_DIR`. Every other `verify-*.mjs` is a developer aid run on demand
 - `check:capture-unit` / `check:capture-smoke` — node:vm unit coverage and a Puppeteer smoke against built `dist/engine` for the periodic frame capture runtime (URL parse, localStorage, clamp, state machine, blob trigger; toolbar mount, toggle flow, interval two-way binding, URL opt-in). Unit in `check`; smoke in `check:full`
