@@ -725,7 +725,7 @@
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
       if (!_txOn) return out;
       for (const r of l.reactors) {
-        let v = A.feat[r.feature] ?? 0;
+        let v = ((window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp) ? SWR_AUDIO_DAMP.damp(A.feat[r.feature], 0.28, r) : A.feat[r.feature]) ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
@@ -783,7 +783,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
       const dx = (W - dw)/2 + r.x;
       const dy = (H - dh)/2 + r.y;
-      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
       if (Math.abs(r.rot) > 0.5) {
         ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
@@ -1312,5 +1314,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
   <script src="../lib/swr-natural.client.js"></script>
 <!-- SWR-WATERMARK-MARKER -->
 <script src="../lib/watermark.client.js"></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="../lib/gpu-grade.client.js"></script>
 </body>
 </html>

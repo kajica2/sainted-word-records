@@ -77,6 +77,7 @@ const GROUPS = {
     'npm run test:asset-curator',
     'npm run check:auth-unit',
     'npm run check:bpm-unit',
+    'npm run check:invite-unlock-unit',
     'npm run check:storage-blob-unit',
     'npm run check:db-postgres',
     'npm run verify:smtp',
@@ -129,6 +130,7 @@ const GROUPS = {
     // a deterministic failure still fails after the retry.
     { cmd: 'npm run check:automix-smoke', timeoutMs: 600000, retries: 1 },
     'npm run check:automix-arc-smoke',
+    'npm run check:invite-redemption-smoke',
     'npm run check:storyboard',
     // verify:automix timed out at 173s on a loaded CI runner (and failed the
     // whole run) while passing in ~30s locally. Give it a documented 180s

@@ -127,6 +127,8 @@
     "check:automix-arc-unit": "node scripts/check-automix-arc-unit.mjs",
     "check:automix-session-unit": "node scripts/check-automix-session-unit.mjs",
     "check:clip-evolution-unit": "node scripts/check-clip-evolution-unit.mjs",
+    "check:invite-unlock-unit": "node scripts/check-invite-unlock-unit.mjs",
+    "check:invite-redemption-smoke": "node scripts/check-invite-redemption-smoke.mjs",
     "check:site-keys-unit": "node scripts/check-site-keys-unit.mjs",
     "verify:automix-arc-displacement": "node verify-automix-arc-displacement.mjs",
     "verify:layer-cover": "node verify-layer-cover.mjs",
@@ -141,6 +143,7 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
+    "@vercel/kv": "^3.0.0",
     "nodemailer": "^10.0.8",
     "pg": "^8.23.0"
   }

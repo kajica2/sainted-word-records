@@ -23,6 +23,8 @@
   <script src="/lib/adaptive-guard.js" defer></script>
 <!-- SWR-WATERMARK-MARKER -->
 <script src="/lib/watermark.client.js" defer></script>
+<script src="/lib/invite-unlock.client.js" defer></script>
+<script src="/lib/invite-modal.client.js" defer></script>
   <link rel="stylesheet" href="/video-fx.css" />
   <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/brandkit.css" />
@@ -4463,11 +4465,56 @@
           if (!Audio.audioEl) return;
           if (Audio.playing) Audio.pause(); else Audio.play();
         });
-        $('rec').addEventListener('click', () => {
+        // Invite gate: pop the unlock modal before any record/export
+        // action unless the visitor has already redeemed a code. The
+        // modal dispatches 'swr-invite-unlocked' or 'swr-invite-skipped'
+        // and we resume the original action on either path so "Record
+        // anyway" is honored without second-guessing the user.
+        //
+        // A single document-level listener is registered on first use
+        // and reused for every subsequent gate call. It runs the
+        // action exactly once per click by tracking an "armed" promise.
+        function withInviteGate(fn) {
+          return function () {
+            var u = window.SWR_INVITE_UNLOCK;
+            if (u && typeof u.isUnlocked === 'function' && u.isUnlocked()) return fn();
+            if (!window.SWR_INVITE_MODAL || typeof window.SWR_INVITE_MODAL.show !== 'function') {
+              // No modal module loaded — degrade gracefully.
+              return fn();
+            }
+            window.SWR_INVITE_MODAL.show();
+            if (!window.__swrInviteGateHandler) {
+              window.__swrInviteGateHandler = function () {
+                var armed = window.__swrInviteArmed;
+                if (!armed) return;
+                window.__swrInviteArmed = null;
+                clearTimeout(armed.timeout);
+                armed.resolve();
+              };
+              document.addEventListener('swr-invite-unlocked', window.__swrInviteGateHandler);
+              document.addEventListener('swr-invite-skipped',   window.__swrInviteGateHandler);
+            }
+            // Race the gate events against a 5-minute safety timeout
+            // so a stuck modal doesn't trap the recorder forever.
+            if (window.__swrInviteArmed) window.__swrInviteArmed.resolve();
+            window.__swrInviteArmed = null;
+            return new Promise(function (resolve) {
+              var armed = {
+                resolve: resolve,
+                timeout: setTimeout(function () {
+                  if (window.__swrInviteArmed === armed) window.__swrInviteArmed = null;
+                  resolve();
+                }, 5 * 60 * 1000),
+              };
+              window.__swrInviteArmed = armed;
+            }).then(fn);
+          };
+        }
+        $('rec').addEventListener('click', withInviteGate(() => {
           if (Recorder.recording) Recorder.stop(); else Recorder.start();
-        });
+        }));
       // === Export video (one-click 30s WebM) ===
-      $('export-video').addEventListener('click', () => {
+      $('export-video').addEventListener('click', withInviteGate(() => {
         if (Recorder.recording) { Recorder.stop(); return; }
         if (!Audio.audioEl) { UI.setStatus && UI.setStatus('load a song first', 'warn'); return; }
         // Auto-play so the recording has audio, then stop after the song's
@@ -4488,7 +4535,7 @@
             }
           }, ms + 200);
         }
-      });
+      }));
       // Show "↓ last video" link after every recording stops
       const _origStop = Recorder.stop.bind(Recorder);
       Recorder.stop = function () {
