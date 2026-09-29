@@ -909,7 +909,12 @@
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
       if (!_txOn) return out;
       for (const r of l.reactors) {
-        let v = A.feat[r.feature] ?? 0;
+        let v = ((window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp) ? SWR_AUDIO_DAMP.damp(A.feat[r.feature], 0.28, r) : A.feat[r.feature]) ?? 0;
+        // Damped follower keyed by this reactor. A.feat.* are raw per-frame
+        // analyser values — they jitter even when nothing is changing — so an
+        // undamped feed made rot/hue/brightness/scale twitch on the spot
+        // (the "flicker / rapid rotating" report on this variant).
+        if (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp) v = SWR_AUDIO_DAMP.damp(v, 0.28, r);
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
         v = ease(r.ease, clamp(v,0,1)) * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
@@ -1003,16 +1008,17 @@
       for (let y=0; y<H; y+=3) ctx.fillRect(0, y, W, 1);
       ctx.restore();
       // beat flash
+        // Same damping as the vignette below: raw beat restrobed this wash
       if (A.feat.beat > 0.05) {
         ctx.save(); ctx.globalCompositeOperation = 'screen';
-        ctx.fillStyle = `rgba(255,45,138,${A.feat.beat*0.25})`;
+        ctx.fillStyle = `rgba(255,45,138,${((window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp) ? SWR_AUDIO_DAMP.damp(A.feat.beat, 0.35, (window.__neonBeatKey = window.__neonBeatKey || {})) : A.feat.beat)*0.25})`;
         ctx.fillRect(0,0,W,H); ctx.restore();
       }
       // Vignette glow pulse — radial gradient from the stage center
       // that breathes with the beat. Damped to avoid strobing on noisy
       // onset detection (smoothed via SWR_AUDIO_DAMP at 0.4s half-life).
       const pulse = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
-        ? SWR_AUDIO_DAMP.damp(A.feat.beat, 0.4)
+        ? SWR_AUDIO_DAMP.damp(A.feat.beat, 0.4, (window.__neonPulseKey = window.__neonPulseKey || {}))
         : A.feat.beat;
       if (pulse > 0.05) {
         const cx = W * 0.5, cy = H * 0.5;
@@ -1353,5 +1359,7 @@
   <script src="../lib/swr-natural.client.js"></script>
 <!-- SWR-WATERMARK-MARKER -->
 <script src="../lib/watermark.client.js"></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
 </body>
 </html>
