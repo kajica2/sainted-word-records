@@ -16,7 +16,7 @@ suites).
 
 | Command | Group | Steps |
 | --- | --- | --- |
-| `npm run check` | `check` | 44 |
+| `npm run check` | `check` | 45 |
 | `npm run check:full` | `full` | 13 |
 | `npm run check:storyboard` | `storyboard` | 5 |
 

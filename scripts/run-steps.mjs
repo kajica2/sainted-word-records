@@ -100,6 +100,9 @@ const GROUPS = {
     // shared styles, a unique title, a description and a <main> landmark
     // (app surfaces must carry an exit link instead).
     'npm run check:site-chrome',
+    // Static: every landing-personas register's inlined personas-data node
+    // still carries personas.json's 8 personas (canonical fields) in order.
+    'npm run check:register-data',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.

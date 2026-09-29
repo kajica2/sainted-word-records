@@ -129,7 +129,8 @@
     "verify:automix-arc-displacement": "node verify-automix-arc-displacement.mjs",
     "verify:layer-cover": "node verify-layer-cover.mjs",
     "verify:genops": "node verify-genops.mjs",
-    "verify:tier-runtime": "node verify-tier-runtime.mjs"
+    "verify:tier-runtime": "node verify-tier-runtime.mjs",
+    "check:register-data": "node scripts/check-register-data.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",
