@@ -10,7 +10,7 @@
 // The GLSL is a single shader with a switch on u_page; the JS side
 // sets both the persona-style FX uniforms and the u_effect value.
 //
-// 20 presets in total (indices 0..19).
+// 23 presets in total (indices 0..22).
     // u_page index mapping (must match Object.keys(PRESETS) order):
     //   0 = film
     //   1 = grid
@@ -32,6 +32,9 @@
     //   17 = phosphor
     //   18 = tape
     //   19 = mtv (music_video_mtv — 90s retro MTV/CRT/scanlines)
+    //   20 = collage
+    //   21 = spectrum
+    //   22 = typography
 
 (function () {
   if (window.VersionsPresets) return;  // idempotent
