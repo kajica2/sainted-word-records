@@ -68,7 +68,7 @@
             <div class="pt-title">Personal Tier</div>
             <div class="pt-sub">${lic
               ? `${escapeHtml(lic.tierName)} · ${lic.credits} of ${lic.creditsTotal} credits`
-              : 'Free engine — activate a license to remove watermark'}</div>
+              : 'Free engine — every export carries the SWR mark'}</div>
           </div>
           <button class="pt-btn ghost" id="pt-close" title="Close (esc)">✕</button>
         </div>
@@ -83,7 +83,7 @@
     panel.querySelector('#pt-close').addEventListener('click', closePanel);
     if (lic) {
       panel.querySelector('#pt-deactivate').addEventListener('click', () => {
-        if (!confirm('Deactivate PT license? Watermark will return and credits reset.')) return;
+        if (!confirm('Deactivate PT license? Credits reset. The SWR mark stays on every export.')) return;
         window.SWR_PT.deactivate();
         renderChip();
         closePanel();
