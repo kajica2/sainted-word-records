@@ -197,32 +197,42 @@
   <script>
     (async function() {
       'use strict';
-      // Map a repo filename to the URL that actually serves it. `cleanUrls` is
-      // false in vercel.json, so an extensionless URL is only served when a
-      // rewrite points at it — a bare stem with no rewrite is a live 404 even
-      // though <stem>.html exists in dist/. Four families are not served by a
+      // Map a repo filename to the URL that actually serves it. This is the
+      // browser-side copy of scripts/lib/routes.mjs (a page can import nothing)
+      // — when a rule changes there, change it here too. `cleanUrls` is false in
+      // vercel.json, so an extensionless URL is only served when a rewrite points
+      // at it — a bare stem with no rewrite is a live 404 even though
+      // <stem>.html exists in dist/. Four families are not served by a
       // rewrite of their stem (verified against production 2026-09-29):
       //   gallery-<name>.html  → /gallery/<name>   (the nav's canonical route)
       //   atlas-<slug>.html    → /atlas/<slug>     (the Atlas TOC's route; see
       //                          ATLAS_SLUGS in scripts/generate-vercel-rewrites.mjs)
-      //   <dir>/index.html     → /<dir>/           (the directory route)
+      //   <dir>/index.html     → /<dir>            (the directory route, no
+      //                          trailing slash: Vercel 308s /<dir>/ → /<dir>)
       //   index.html/landing   → /
       // and a handful of pages are only reachable at their real filename
-      // because no rewrite points at them.
-      const NO_REWRITE = /^(tools\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$)/;
+      // (NO_REWRITE) or at a preserved hand-written route (ROUTE_OVERRIDES)
+      // because no rewrite points at their stem.
+      const ROUTE_OVERRIDES = {
+        'versions/index.html': '/visual-languages',
+        'versions/music_video.html': '/versions/music-video',
+      };
+      const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|artists\/vodolija$)/;
       const ATLAS_SLUGS = [
         '200-steps', 'architect', 'checklist', 'crisis', 'final-insight',
         'forge', 'integration', 'legacy', 'life-stages',
       ];
       function routeForFile(file) {
-        const stem = file.replace(/\.html$/, '');
+        const f = String(file).replace(/^\.\//, '');
+        if (ROUTE_OVERRIDES[f]) return ROUTE_OVERRIDES[f];
+        const stem = f.replace(/\.html$/, '');
         if (stem === 'index' || stem === 'landing') return '/';
         if (/^gallery-/.test(stem)) return '/gallery/' + stem.replace(/^gallery-/, '');
         if (stem.startsWith('atlas-') && ATLAS_SLUGS.includes(stem.replace(/^atlas-/, ''))) {
           return '/atlas/' + stem.replace(/^atlas-/, '');
         }
-        if (/\/index$/.test(stem)) return '/' + stem.replace(/\/index$/, '') + '/';
-        if (NO_REWRITE.test(stem)) return '/' + file;
+        if (/\/index$/.test(stem)) return '/' + stem.replace(/\/index$/, '');
+        if (NO_REWRITE.test(stem)) return '/' + f;
         return '/' + stem;
       }
       

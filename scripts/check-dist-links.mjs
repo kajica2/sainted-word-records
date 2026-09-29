@@ -28,6 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ensureDist } from './with-dist.mjs';
+import { routeForFile } from './lib/routes.mjs';
 
 const DIST = 'dist';
 const checks = [];
@@ -67,25 +68,10 @@ function paramGlob(destination) {
   return new RegExp(re);
 }
 
-// Mirrors sitemap.html's routeForFile() — keep the two in sync. sitemap.html
-// renders every `discovered` entry with it, so the gate must validate the URL
-// the page actually links, not the raw stem.
-const NO_REWRITE = /^(tools\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$)/;
-const ATLAS_SLUGS = [
-  '200-steps', 'architect', 'checklist', 'crisis', 'final-insight',
-  'forge', 'integration', 'legacy', 'life-stages',
-];
-function routeForFile(file) {
-  const stem = String(file).replace(/\.html$/, '');
-  if (stem === 'index' || stem === 'landing') return '/';
-  if (/^gallery-/.test(stem)) return '/gallery/' + stem.replace(/^gallery-/, '');
-  if (stem.startsWith('atlas-') && ATLAS_SLUGS.includes(stem.replace(/^atlas-/, ''))) {
-    return '/atlas/' + stem.replace(/^atlas-/, '');
-  }
-  if (/\/index$/.test(stem)) return '/' + stem.replace(/\/index$/, '') + '/';
-  if (NO_REWRITE.test(stem)) return '/' + file;
-  return '/' + stem;
-}
+// routeForFile() (imported above) is the one file→route mapping, shared with
+// generate-sitemap.mjs / check-sitemap.mjs / check-site-chrome.mjs. sitemap.html
+// renders every `discovered` entry with its own browser-side copy, so the gate
+// must validate the URL the page actually links, not the raw stem.
 
 (async () => {
   await ensureDist();
