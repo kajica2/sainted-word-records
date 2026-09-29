@@ -23,6 +23,20 @@ const SITE_MAP = 'site-map.json';
 const SKIP_DIRS = ['node_modules', 'dist', 'dist-dev', '.vite', '_archive', '_candidates'];
 const SKIP_PREFIXES = ['_candidates'];
 
+// Tracked HTML that is deliberately NOT part of the deploy. `discovered` is
+// rendered by sitemap.html as a live link per entry, so anything here would
+// become a 404 the moment it appeared — these are the four AGENTS.md names.
+//   market-study.html / profit-plan.html — internal strategy documents with no
+//     public route (check-site-chrome.mjs lists them under IGNORED_FILES).
+//   engine-ar-loop.html — pulled from the build; /engine-ar-loop 301s to
+//     /ar-gif (site-map.json redirects).
+//   scripts/** — dev fixtures only. vite's copyStatic never copies scripts/,
+//     so scripts/_analyze-stub.html and scripts/_grade-smoke-fixture.html
+//     cannot resolve in dist/ even if they did ship.
+const NOT_DEPLOYED = new Set(['market-study.html', 'profit-plan.html', 'engine-ar-loop.html']);
+const NOT_DEPLOYED_PREFIXES = ['scripts/'];
+const isNotDeployed = (f) => NOT_DEPLOYED.has(f) || NOT_DEPLOYED_PREFIXES.some((p) => f.startsWith(p));
+
 // Load existing site-map.json
 let siteMap;
 try {
@@ -91,7 +105,7 @@ function dropGitignored(files) {
   }
 }
 
-const htmlFiles = dropGitignored(walkDir('.'));
+const htmlFiles = dropGitignored(walkDir('.')).filter((f) => !isNotDeployed(f.replace(/^\.\//, '')));
 const discovered = [];
 for (const f of htmlFiles) {
   const rel = f.replace(/^\.\//, '');
@@ -99,17 +113,16 @@ for (const f of htmlFiles) {
   discovered.push(rel);
 }
 
-// Initialize discovered array if needed
-if (!siteMap.discovered) siteMap.discovered = [];
-
-// Add new discoveries
-let added = 0;
-for (const f of discovered) {
-  if (!siteMap.discovered.includes(f)) {
-    siteMap.discovered.push(f);
-    added++;
-  }
-}
+// Rebuild `discovered` from the scan instead of appending to it. Appending
+// left stale entries behind forever (versions.html, whose route is already in
+// the nav, survived every run and rendered as a duplicate link in sitemap.html).
+// The bucket is derived data, so the scan is the whole truth.
+const previous = new Set(siteMap.discovered || []);
+const nextDiscovered = discovered.slice().sort();
+const added = nextDiscovered.filter((f) => !previous.has(f)).length;
+const prunedList = (siteMap.discovered || []).filter((f) => !nextDiscovered.includes(f));
+const pruned = prunedList.length;
+siteMap.discovered = nextDiscovered;
 
 // Update meta
 siteMap.meta = siteMap.meta || {};
@@ -120,23 +133,23 @@ siteMap.meta.corePages = siteMap.meta.totalPages - (siteMap.archived || []).leng
 siteMap.meta.archivedPages = (siteMap.archived || []).length;
 
 if (VERBOSE) {
-  console.log(`Scanned ${htmlFiles.length} HTML files`);
+  console.log(`Scanned ${htmlFiles.length} deployable HTML files (${NOT_DEPLOYED.size + NOT_DEPLOYED_PREFIXES.length} deny rules applied)`);
   console.log(`Known paths: ${knownPaths.size}`);
-  console.log(`Discovered: ${discovered.length} new pages`);
-  console.log(`Added: ${added}`);
+  console.log(`Discoverable: ${discovered.length}`);
+  console.log(`Added: ${added}, pruned: ${pruned}`);
 }
 
 if (DRY_RUN) {
-  console.log(`[dry-run] Would add ${added} pages to site-map.json:`);
-  for (const f of discovered.slice(0, 20)) console.log(`  - ${f}`);
-  if (discovered.length > 20) console.log(`  ...and ${discovered.length - 20} more`);
+  console.log(`[dry-run] ${discovered.length} discoverable pages (+${added} / -${pruned} vs ${SITE_MAP}):`);
+  for (const f of nextDiscovered.filter((f) => !previous.has(f)).slice(0, 20)) console.log(`  + ${f}`);
+  for (const f of prunedList.slice(0, 20)) console.log(`  - ${f}`);
   process.exit(0);
 }
 
 // Write back
 try {
   fs.writeFileSync(SITE_MAP, JSON.stringify(siteMap, null, 2) + '\n');
-  console.log(`✓ ${SITE_MAP} updated (+${added} pages, ${htmlFiles.length} total)`);
+  console.log(`✓ ${SITE_MAP} updated (discovered ${nextDiscovered.length}, +${added} / -${pruned}, ${htmlFiles.length} deployable pages)`);
 } catch (e) {
   console.error(`✗ Failed to write ${SITE_MAP}: ${e.message}`);
   process.exit(1);
