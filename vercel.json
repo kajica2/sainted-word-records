@@ -484,14 +484,6 @@
       "destination": "/personas.html"
     },
     {
-      "source": "/personas/v",
-      "destination": "/personas/v/index.html"
-    },
-    {
-      "source": "/personas/v/",
-      "destination": "/personas/v/index.html"
-    },
-    {
       "source": "/intro",
       "destination": "/intro.html"
     },

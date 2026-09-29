@@ -71,11 +71,7 @@
       "href": "/personas",
       "description": "Persona overview + archived design registers"
     },
-    {
-      "label": "Persona Variants",
-      "href": "/personas/v",
-      "description": "24 engine-driven persona variants"
-    },
+
     {
       "label": "Learn",
       "href": "/intro",
@@ -173,10 +169,6 @@
           {
             "label": "Personas",
             "href": "/personas"
-          },
-          {
-            "label": "Persona variants",
-            "href": "/personas/v"
           },
           {
             "label": "Media packs",
