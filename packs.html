@@ -31,7 +31,8 @@
 
     .pack-grid {
       display: grid; gap: 20px; padding: 32px 0 64px;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 420px));
+      justify-content: center;
     }
     .pack-card {
       border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
@@ -71,7 +72,7 @@
 
 <swr-nav></swr-nav>
 
-<main class="container">
+<main class="wrap">
   <section class="packs-hero">
     <h1>Media <em>packs</em></h1>
     <p class="lede">
