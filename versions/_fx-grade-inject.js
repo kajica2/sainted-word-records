@@ -38,8 +38,13 @@ for (const name of fs.readdirSync(DIR).filter((f) => f.endsWith('.html')).sort()
   let src = fs.readFileSync(file, 'utf8');
 
   const filterLines = [...src.matchAll(/^ *([\w.$]+)\.filter = `([^`]+)`;/gm)];
-  const plain = filterLines.filter((m) => /(^|\.)ctx$/.test(m[1]));
-  const privateOnes = filterLines.filter((m) => /_ctx$/.test(m[1]));
+  // A receiver counts as the page's grade when it is `ctx`, `X.ctx`, or the
+  // familiar `_ctx` alias — `const _ctx = c || ctx;` — used by grid/smoke/
+  // watercolor, where `c` is the stage unless a caller overrides it.
+  const alias = /_ctx = c \|\| ctx/.test(src);
+  const isMain = (recv) => /(^|\.)ctx$/.test(recv) || (alias && /^_ctx$/.test(recv));
+  const plain = filterLines.filter((m) => isMain(m[1]));
+  const privateOnes = filterLines.filter((m) => !isMain(m[1]));
   const blurs = plain.filter((m) => m[2].includes('blur('));
 
   if (plain.length !== 1 || privateOnes.length > 0 || blurs.length > 0) {
@@ -56,6 +61,9 @@ for (const name of fs.readdirSync(DIR).filter((f) => f.endsWith('.html')).sort()
   for (const m of chain.matchAll(CHAIN_RE)) {
     const fn = m[1].toLowerCase();
     const raw = m[2].trim().replace(/deg$/, '').trim().replace(/^\$\{/, '').replace(/\}$/, '').trim();
+    // grayscale(x) is saturate(1 - x) (CSS uses the same luma weights), so it maps
+    // onto the one saturation knob instead of being dropped.
+    if (fn === 'grayscale') { args.saturate = `(1 - (${raw}))`; seen++; continue; }
     const key = fn === 'hue-rotate' ? 'hue' : fn === 'saturate' ? 'saturate' : fn;
     if (!(key in args)) continue;
     args[key] = raw;

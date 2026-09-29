@@ -791,7 +791,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       if (ar > car) { dh = _H * _r.scale; dw = dh * ar; } else { dw = _W * _r.scale; dh = dw / ar; }
       const dx = (_W - dw)/2 + _r.x;
       const dy = (_H - dh)/2 + _r.y;
-      _ctx.filter = `hue-rotate(${_r.hue}deg) saturate(${1.2 + _r.contrast*0.4}) brightness(${_r.brightness}) contrast(${_r.contrast})`;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, _r.hue, _r.brightness, _r.contrast, 1.2 + _r.contrast*0.4);
       if (Math.abs(_r.rot) > 0.5) {
         _ctx.translate(_W/2, _H/2); _ctx.rotate(_r.rot * Math.PI/180); _ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
@@ -1336,5 +1338,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="../lib/watermark.client.js"></script>
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="../lib/gpu-grade.client.js"></script>
 </body>
 </html>
