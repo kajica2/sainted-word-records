@@ -35,10 +35,26 @@ criteria now hold and every control does something.
 
 ### Tests
 
-`scripts/check-dashboard.mjs` grew from 21 to 47 checks: HUD binding + live values
-after a sample, beat-flash paint/decay, presets round-trip, base-source switching,
-the 390px sheet layout (strips, reachable toggles, one open at a time), reduced
-motion, and inert-without-device Mic/Cam clicks. It also pins a 1280×900 desktop
-viewport (Puppeteer's 800×600 default is inside the mobile breakpoint) and accepts
-`BASE_URL=<origin>` to run the same gate against a deployed site (skipping the
-local static server).
+`scripts/check-dashboard.mjs` grew from 21 to 53 checks. Beyond HUD binding +
+live values after a sample, beat-flash paint/decay, presets, base-source
+switching, the 390px sheet layout (strips, reachable toggles, one open at a
+time), reduced motion and inert-without-device Mic/Cam clicks, the gate now
+covers the two paths that were only verifiable by hand before:
+
+- **Mic / Cam success path** — a second Puppeteer browser launched with
+  `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream` asserts the
+  granted stream becomes the engine's analysis source (`micActive()`, button
+  state), that the camera frame actually becomes the canvas base (region-mean
+  brightness) and that toggling off clears the stream, the `<video>` and the
+  base slot. The fake mic is only a tone where the host can open a capture
+  backend, so the `features().level > 0` assertion is reported as an
+  `(env skip: …)` on hosts that deliver silence (the Linux CI container) instead
+  of failing — the wiring assertions still run there.
+- **Layer-preset file path** — Save's download is captured through CDP and
+  parsed (format, 5 rows, the mutated value), then handed back through the real
+  `#lib-load` file picker to prove the file round-trips.
+
+It also pins a 1280×900 desktop viewport (Puppeteer's 800×600 default is inside
+the mobile breakpoint) and accepts `BASE_URL=<origin>` to run the same gate
+against a deployed site (skipping the local static server).
+
