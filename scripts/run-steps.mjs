@@ -33,7 +33,11 @@
 //     (developer subset override; also how the aggregation itself is tested)
 //
 // Each step is a full command string, run through the shell, so a group can mix
-// `npm run x` with a direct `node scripts/y.mjs`.
+// `npm run x` with a direct `node scripts/y.mjs`. A step may instead be an
+// object `{ cmd, timeoutMs, retries }` when it needs a bounded wall-clock
+// budget or an automatic re-run (see verify:automix below); `timeoutMs` kills
+// the child when it overruns, `retries` re-runs it that many times after a
+// failure — a run that fails every attempt still fails the group.
 
 import { spawnSync } from 'node:child_process';
 
@@ -114,7 +118,11 @@ const GROUPS = {
     'npm run check:automix-smoke',
     'npm run check:automix-arc-smoke',
     'npm run check:storyboard',
-    'npm run verify:automix',
+    // verify:automix timed out at 173s on a loaded CI runner (and failed the
+    // whole run) while passing in ~30s locally. Give it a documented 180s
+    // budget plus one automatic re-run; if it fails twice the group still
+    // fails, so a real regression cannot hide behind the retry.
+    { cmd: 'npm run verify:automix', timeoutMs: 180_000, retries: 1 },
     'npm run verify:genops',
     'npm run verify:story-graph',
     'npm run check:capture-smoke',
@@ -125,6 +133,9 @@ const GROUPS = {
     // vercel.json rewrite, every root-relative link in a shipped page, and
     // every site-map entry resolves to a file that actually made it into dist.
     'npm run check:dist-links',
+    // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
+    // pages 404, landing.html raises no JS errors. Was reachable from no gate.
+    'npm run verify:site-nav',
   ],
 };
 
@@ -135,9 +146,10 @@ if (!group || !GROUPS[group]) {
 }
 
 let steps = GROUPS[group];
+const cmdOf = (s) => (typeof s === 'string' ? s : s.cmd);
 if (process.env.STEPS_ONLY) {
   const only = process.env.STEPS_ONLY.split(',').map((s) => s.trim()).filter(Boolean);
-  steps = steps.filter((s) => only.some((o) => s.includes(o)));
+  steps = steps.filter((s) => only.some((o) => cmdOf(s).includes(o)));
   if (!steps.length) {
     console.error(`STEPS_ONLY matched nothing in group "${group}"`);
     process.exit(2);
@@ -146,18 +158,27 @@ if (process.env.STEPS_ONLY) {
 
 if (flags.includes('--list')) {
   console.log(`${group} (${steps.length} steps):`);
-  steps.forEach((s, i) => console.log(`  ${i + 1}. ${s}`));
+  steps.forEach((s, i) => console.log(`  ${i + 1}. ${cmdOf(s)}`));
   process.exit(0);
 }
 
 const results = [];
 for (const step of steps) {
-  process.stdout.write(`\n─── ${step} ───\n`);
+  const cmd = cmdOf(step);
+  const timeoutMs = typeof step === 'string' ? undefined : step.timeoutMs;
+  const retries = typeof step === 'string' ? 0 : (step.retries || 0);
   const t0 = Date.now();
-  const r = spawnSync(step, { shell: true, stdio: 'inherit', env: process.env });
-  // A null status means the child was killed by a signal; treat that as failure.
-  const code = r.status === null ? 1 : r.status;
-  results.push({ step, code, ms: Date.now() - t0 });
+  let code = 1;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    process.stdout.write(`\n─── ${cmd}${attempt ? ` ─── (retry ${attempt}/${retries})` : ' ───'}\n`);
+    const r = spawnSync(cmd, { shell: true, stdio: 'inherit', env: process.env, timeout: timeoutMs });
+    // A null status means the child was killed (by a signal, or by our
+    // timeout) — treat that as failure.
+    code = r.status === null ? 1 : r.status;
+    if (code === 0) break;
+    if (attempt < retries) process.stdout.write(`─── ${cmd} failed (attempt ${attempt + 1}) — retrying\n`);
+  }
+  results.push({ step: cmd, code, ms: Date.now() - t0 });
 }
 
 const failed = results.filter((r) => r.code !== 0);
