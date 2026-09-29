@@ -990,7 +990,9 @@
       if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
       const dx = (W - dw)/2 + r.x;
       const dy = (H - dh)/2 + r.y;
-      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${1.2 + r.contrast*0.4}) brightness(${r.brightness}) contrast(${r.contrast})`;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
       if (Math.abs(r.rot) > 0.5) {
         ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
@@ -1361,5 +1363,7 @@
 <script src="../lib/watermark.client.js"></script>
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="../lib/gpu-grade.client.js"></script>
 </body>
 </html>

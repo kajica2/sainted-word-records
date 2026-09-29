@@ -924,7 +924,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       ctx.save();
       ctx.globalCompositeOperation = l.blend || 'source-over';
       ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
-      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${0.55 + r.contrast*0.2}) brightness(${r.brightness}) contrast(${r.contrast})`;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 0.55 + r.contrast*0.2);
       ctx.translate(W/2, H/2);
       ctx.rotate(r.rot * Math.PI / 180);
       ctx.drawImage(src, -dw/2 + r.x, -dh/2 + r.y, dw, dh);
@@ -1122,5 +1124,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="../lib/watermark.client.js"></script>
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="../lib/gpu-grade.client.js"></script>
 </body>
 </html>
