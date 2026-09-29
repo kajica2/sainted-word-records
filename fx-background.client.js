@@ -33,6 +33,12 @@
   // Per-page gradient palette — the FX variation comes from the source
   // texture, not the FX knobs. We pick a palette from the active preset
   // (set via <body data-fx="neon"> or default 'warm').
+  //
+  // a — mid stop (60% of the radial), b — centre, c/d — the drifting orbs,
+  // z — the outer stop. `z` defaults to black: every palette here is a dark
+  // field, and the additive bloom below brightens it toward the centre. A
+  // light page needs `z` set to its own paper colour, otherwise the dark
+  // outer ring turns the background muddy (this is what `rose` fixes).
   const FX_PALETTES = {
     warm:      { a: '#3a1f0c', b: '#5a3a1c', c: '#d4a04a', d: '#f5b860' },
     neon:      { a: '#0a0414', b: '#1a0a2a', c: '#ff3d92', d: '#00e5ff' },
@@ -42,16 +48,40 @@
     hallucination: { a: '#0a0420', b: '#1f0a3a', c: '#a020f0', d: '#00e5ff' },
     broadcast: { a: '#080808', b: '#1f1f1f', c: '#ff2020', d: '#00d4ff' },
     cassette:  { a: '#1a1208', b: '#3a2410', c: '#ff8c1a', d: '#f5d4a8' },
+    // Light editorial: personas.html's paper + rose accent (#e6306b), with
+    // the terracotta rule colour (#ff8a3a) as the second orb. The additive
+    // bloom below is tuned for near-black fields — at full strength it
+    // saturates a paper-toned base straight to white — so this palette
+    // turns it down. Base sits just under the page paper (#faf7f2) so the
+    // orbs read as colour rather than as glare.
+    // `dark` overrides the same knobs when the document is on its dark
+    // theme. Only pages with a light/dark toggle need this (personas and the
+    // variant pages); everywhere else a static palette is correct.
+    rose:      {
+      a: '#f7efea', b: '#fbf7f3', z: '#f9f3ee', c: '#e6306b', d: '#ff8a3a', bloom: 0, orbAlpha: 0.3,
+      dark: { a: '#1a1210', b: '#241a16', z: '#120d0b', c: '#ff2d8a', d: '#ffaa3a', bloom: 1, orbAlpha: 1 },
+    },
   };
+
+  // True when the document is on its dark theme. <html data-theme> is the
+  // authoritative switch (the explicit toggle sets it); 'system' defers to
+  // the media query, same rule the page tokens use.
+  function isDarkTheme() {
+    const t = document.documentElement.getAttribute('data-theme');
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
 
   function pickPalette() {
     const body = document.body;
     const tag = (body && body.dataset && body.dataset.fx) || 'warm';
-    return FX_PALETTES[tag] || FX_PALETTES.warm;
+    const base = FX_PALETTES[tag] || FX_PALETTES.warm;
+    if (base.dark && isDarkTheme()) return Object.assign({}, base, base.dark);
+    return base;
   }
 
-  function paintSource(t) {
-    const p = pickPalette();
+  function paintSource(t, p) {
     const w = SRC_W, h = SRC_H;
     // Base radial
     const bg = sctx.createRadialGradient(
@@ -62,7 +92,9 @@
     );
     bg.addColorStop(0, p.b);
     bg.addColorStop(0.6, p.a);
-    bg.addColorStop(1, '#000');
+    // Default black keeps every dark palette byte-identical to before; a
+    // light palette opts out with `z` so the vignette does not go muddy.
+    bg.addColorStop(1, p.z || '#000');
     sctx.fillStyle = bg;
     sctx.fillRect(0, 0, w, h);
 
@@ -76,8 +108,11 @@
       const r = 120 + 60 * Math.sin(t * 0.4 + i);
       const g = sctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       const col = i % 2 ? p.c : p.d;
-      g.addColorStop(0, col + 'cc');
-      g.addColorStop(0.4, col + '44');
+      // orbAlpha attenuates the orbs for light palettes, where an 0.8-alpha
+      // wash would read as a stain on paper rather than as light.
+      const oa = p.orbAlpha == null ? 1 : p.orbAlpha;
+      g.addColorStop(0, col + Math.round(0xcc * oa).toString(16).padStart(2, '0'));
+      g.addColorStop(0.4, col + Math.round(0x44 * oa).toString(16).padStart(2, '0'));
       g.addColorStop(1, 'transparent');
       sctx.fillStyle = g;
       sctx.beginPath();
@@ -131,7 +166,15 @@
   let startedAt = performance.now();
   function tick() {
     const t = (performance.now() - startedAt) / 1000;
-    paintSource(t);
+    // Resolved once per frame and threaded into paintSource: the palette
+    // depends on the theme, and looking it up three times per frame was
+    // both wasteful and racy against the theme toggle.
+    const pal = pickPalette();
+    paintSource(t, pal);
+    // Bloom strength. Default 1 (byte-identical for every dark palette);
+    // a light palette attenuates it via `bloom` so the additive pass does
+    // not clip a paper-toned base to white.
+    const bl = pal.bloom == null ? 1 : pal.bloom;
     // Composite source → fx canvas. Apply a few CSS-style filters via
     // the canvas 2D context (these mimic what the shader does).
     fctx.save();
@@ -146,10 +189,10 @@
     // Bloom-ish: draw a blurred copy on top
     fctx.globalCompositeOperation = 'lighter';
     fctx.filter = 'blur(40px)';
-    fctx.globalAlpha = 0.35;
+    fctx.globalAlpha = 0.35 * bl;
     fctx.drawImage(src, 0, 0, w, h);
     fctx.filter = 'blur(8px)';
-    fctx.globalAlpha = 0.25;
+    fctx.globalAlpha = 0.25 * bl;
     fctx.drawImage(src, 0, 0, w, h);
     fctx.filter = 'none';
     fctx.globalAlpha = 1;
