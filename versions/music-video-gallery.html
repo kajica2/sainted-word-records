@@ -128,6 +128,49 @@
         transform: none !important;
       }
     }
+    .record-btn {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(10, 10, 16, 0.62);
+      color: #fff;
+      font: 600 12px/1 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+    }
+    .record-btn:hover { background: rgba(20, 20, 28, 0.78); border-color: rgba(255, 107, 26, 0.45); }
+    .record-btn:active { transform: scale(0.97); }
+    .record-btn .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #ff453a;
+      box-shadow: 0 0 8px rgba(255, 69, 58, 0.65);
+    }
+    .record-btn[data-state="recording"] {
+      background: rgba(255, 69, 58, 0.18);
+      border-color: rgba(255, 69, 58, 0.75);
+    }
+    .record-btn[data-state="recording"] .dot {
+      animation: record-pulse 900ms ease-in-out infinite;
+    }
+    .record-btn[data-state="saving"] { opacity: 0.7; cursor: progress; }
+    .record-btn[data-state="saving"] .dot { background: #ffb86b; box-shadow: none; animation: none; }
+    .record-btn[data-state="unsupported"] { display: none; }
+    @keyframes record-pulse {
+      0%, 100% { transform: scale(1);   box-shadow: 0 0 8px rgba(255,69,58,0.65); }
+      50%      { transform: scale(1.4); box-shadow: 0 0 14px rgba(255,69,58,0.95); }
+    }
   </style>
 </head>
 <body>
@@ -144,6 +187,10 @@
       <video controls playsinline>
         <source src="/videos/neon.mp4" type="video/mp4" />
       </video>
+      <button type="button" class="record-btn" aria-label="Record this video">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="record-btn__label">Record</span>
+      </button>
     </section>
 
     <section class="music-video" data-title="Grid">
@@ -151,6 +198,10 @@
       <video controls playsinline>
         <source src="/videos/grid.mp4" type="video/mp4" />
       </video>
+      <button type="button" class="record-btn" aria-label="Record this video">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="record-btn__label">Record</span>
+      </button>
     </section>
 
     <section class="music-video" data-title="Film">
@@ -158,6 +209,34 @@
       <video controls playsinline>
         <source src="/videos/film.mp4" type="video/mp4" />
       </video>
+      <button type="button" class="record-btn" aria-label="Record this video">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="record-btn__label">Record</span>
+      </button>
+    </section>
+
+    <section class="music-video" data-title="Reedbed — Watercolor">
+      <h2>Reedbed — Watercolor</h2>
+      <video autoplay loop muted playsinline poster="/videos/reedbed-watercolor.png">
+        <source src="/videos/reedbed-watercolor.mp4" type="video/mp4" />
+        <source src="/videos/reedbed-watercolor.webm" type="video/webm" />
+      </video>
+      <button type="button" class="record-btn" aria-label="Record this video">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="record-btn__label">Record</span>
+      </button>
+    </section>
+
+    <section class="music-video" data-title="Reedbed — Bokeh">
+      <h2>Reedbed — Bokeh</h2>
+      <video autoplay loop muted playsinline poster="/videos/reedbed-bokeh.png">
+        <source src="/videos/reedbed-bokeh.mp4" type="video/mp4" />
+        <source src="/videos/reedbed-bokeh.webm" type="video/webm" />
+      </video>
+      <button type="button" class="record-btn" aria-label="Record this video">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="record-btn__label">Record</span>
+      </button>
     </section>
 
   </main>
@@ -167,7 +246,7 @@
       <span class="arrow">←</span>
       <span class="label">Previous</span>
     </button>
-    <span class="counter"><span id="current-index">1</span> / <span id="total-count">3</span></span>
+    <span class="counter"><span id="current-index">1</span> / <span id="total-count">5</span></span>
     <button class="nav-next" type="button">
       <span class="label">Next</span>
       <span class="arrow">→</span>
@@ -268,6 +347,107 @@
       const target = Math.min(Math.max(parseInt(hashMatch[1], 10) - 1, 0), videos.length - 1);
       if (target !== current) show(target, target > current ? 'next' : 'prev');
     }
+  })();
+  </script>
+
+  <script>
+  // Per-tile recorder. Each <button class="record-btn"> captures the
+  // <video> in its <section> via captureStream() + MediaRecorder and
+  // downloads a WebM on stop. Only one recording is active at a time;
+  // starting another stops the previous one cleanly.
+  (function () {
+    if (typeof MediaRecorder === 'undefined') {
+      document.querySelectorAll('.record-btn').forEach(b => b.setAttribute('data-state', 'unsupported'));
+      return;
+    }
+
+    const supports = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : (MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm');
+
+    let active = null; // { btn, rec, chunks, name, stopped, downloadUrl }
+
+    function pickMimeForVideo(video) {
+      // captureStream() is widely supported on <video>; cross-origin media
+      // returns a CORS-tainted stream. These videos are same-origin (/videos/*),
+      // so captureStream() gives a clean stream.
+      if (typeof video.captureStream === 'function') return video.captureStream();
+      if (typeof video.mozCaptureStream === 'function') return video.mozCaptureStream();
+      return null;
+    }
+
+    function safeTitle(section) {
+      const t = (section.dataset.title || 'video').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      return t || 'video';
+    }
+
+    function stopActive(reason) {
+      if (!active) return;
+      const { rec, btn, name, downloadUrl } = active;
+      btn.setAttribute('data-state', 'saving');
+      btn.querySelector('.record-btn__label').textContent = 'Saving…';
+      try { rec.stop(); } catch (_) {}
+      // Finalise download on stop (handler below)
+      rec.addEventListener('stop', () => {
+        if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+        const blob = new Blob(active.chunks, { type: supports });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Revoke after a tick so Safari has the URL long enough
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        btn.setAttribute('data-state', '');
+        btn.querySelector('.record-btn__label').textContent = 'Record';
+        if (active === sessionStorage.getItem('__swrLastRecord')) active = null;
+        sessionStorage.removeItem('__swrLastRecord');
+      }, { once: true });
+      // safety timeout: clear if 'stop' never fires within 60s
+      setTimeout(() => { if (active && active.btn === btn) { active = null; btn.setAttribute('data-state', ''); btn.querySelector('.record-btn__label').textContent = 'Record'; } }, 60000);
+    }
+
+    function start(btn, section) {
+      const video = section.querySelector('video');
+      if (!video) return;
+      // Ensure playback is active so captureStream produces frames.
+      const wasPaused = video.paused;
+      if (wasPaused) video.play().catch(() => {});
+
+      const stream = pickMimeForVideo(video);
+      if (!stream) {
+        btn.setAttribute('data-state', 'unsupported');
+        return;
+      }
+      const rec = new MediaRecorder(stream, { mimeType: supports });
+      const chunks = [];
+      rec.addEventListener('dataavailable', e => { if (e.data && e.data.size) chunks.push(e.data); });
+
+      // Stop any prior recording first.
+      stopActive();
+
+      const name = safeTitle(section) + '-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      active = { rec, btn, chunks, name, downloadUrl: null };
+      sessionStorage.setItem('__swrLastRecord', JSON.stringify({ name }));
+
+      btn.setAttribute('data-state', 'recording');
+      btn.querySelector('.record-btn__label').textContent = 'Stop & Save';
+      rec.start(1000); // emit a chunk every 1s for bounded memory
+    }
+
+    document.querySelectorAll('.record-btn').forEach(btn => {
+      const section = btn.closest('.music-video');
+      if (!section) return;
+      btn.addEventListener('click', () => {
+        if (btn.getAttribute('data-state') === 'recording') {
+          stopActive();
+        } else if (btn.getAttribute('data-state') !== 'saving') {
+          start(btn, section);
+        }
+      });
+    });
   })();
   </script>
 <!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
