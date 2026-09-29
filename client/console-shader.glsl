@@ -29,6 +29,13 @@ uniform sampler2D u_base;
 uniform float u_baseAspect;
 uniform float u_gridDim;       // grid strength multiplier (1.0, or dimmed under a base)
 
+// Footage taps — the base is the footage (camera / photo deck); the Console's
+// own graphics stay outside them, per the rules' "grade graphics separately
+// from footage". u_sharp's cap (0.15) is the rules' clarity ceiling (+15).
+uniform float u_sharp;         // clarity — unsharp amount on the base, 0..0.15
+uniform float u_denoise;       // 4-neighbour box mix on the base, 0..1
+uniform float u_vignette;      // corner falloff over the composed frame, 0..1
+
 out vec4 fragColor;
 
 // -- helpers ----------------------------------------------------------------
@@ -68,7 +75,17 @@ void main() {
     float canvasAspect = u_resolution.x / u_resolution.y;
     if (u_baseAspect > canvasAspect) baseUV.x = 0.5 + (uv.x - 0.5) * (canvasAspect / u_baseAspect);
     else                             baseUV.y = 0.5 + (uv.y - 0.5) * (u_baseAspect / canvasAspect);
-    col = texture(u_base, baseUV).rgb;
+    vec3 base = texture(u_base, baseUV).rgb;
+    if (u_denoise > 0.0 || u_sharp > 0.0) {
+      vec2 texel = 1.0 / vec2(textureSize(u_base, 0));
+      vec3 blur = (texture(u_base, baseUV + vec2(texel.x, 0.0)).rgb
+                 + texture(u_base, baseUV - vec2(texel.x, 0.0)).rgb
+                 + texture(u_base, baseUV + vec2(0.0, texel.y)).rgb
+                 + texture(u_base, baseUV - vec2(0.0, texel.y)).rgb) * 0.25;
+      base = mix(base, blur, u_denoise);                       // Denoise
+      base = clamp(base + (base - blur) * u_sharp, 0.0, 1.0);  // Clarity (halo-guarded by the 0.15 cap)
+    }
+    col = base;
   }
 
   // 2. faint grid — only on canvas, never on UI (dimmer under a base source)
@@ -112,6 +129,12 @@ void main() {
       min(abs(corner.x), abs(corner.y))
   ))) * step(corner.x, 0.025) * step(corner.y, 0.025);
   col = mix(col, u_signal, cross * 0.5);
+
+  // 8. VIGNETTE — corner falloff over the composed frame (base + graphics)
+  if (u_vignette > 0.0) {
+    float vig = smoothstep(0.9, 0.3, distance(uv, vec2(0.5)) * 1.4142);
+    col *= mix(1.0, vig, u_vignette);
+  }
 
   fragColor = vec4(col, 1.0);
 }

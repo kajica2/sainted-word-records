@@ -29,6 +29,8 @@
 //  24. Mic/Cam: module present, clicks no-op without devices
 //  25. Mic/Cam success path with Chromium's fake devices (analyser, VJ-gated video)
 //  26. No console errors after the new interactions
+//  27. Console grade: slider 50 is neutral; the extremes stop at the rules' ceilings
+//  28. Console grade: Sharpness / Denoise / Vignette move real rendered pixels (gl)
 //
 // Set BASE_URL to run the same gate against a deployed origin
 // (e.g. BASE_URL=https://sainted-word-records.vercel.app node scripts/check-dashboard.mjs).
@@ -637,6 +639,120 @@ try {
   // 26. No console errors after the new interactions (same filter as check 12)
   check('No console errors after new interactions',
     errors.length === 0, errors.length ? errors.slice(0, 3).join('|') : '');
+
+  // 27. Console grade path — the Enhance sliders resolve through GRADE_RANGES:
+  // 50 is neutral for the CSS chain, and the extremes hit the house rules'
+  // ceilings (docs/grade-house-rules.md: ±8% saturation, +15 clarity). Check 22
+  // left the page reloaded at the mobile viewport, so this block boots its own
+  // desktop page and re-injects the canvas samplers.
+  const near = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
+  await page.setViewport({ width: 1280, height: 900 });
+  await page.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
+  await sleep(800);
+  const gradeBoot = await page.evaluate(() => ({
+    grades: window.__SWR_ENGINE.grades(),
+    filter: document.getElementById('render-canvas').style.filter,
+  }));
+  const bootNums = (gradeBoot.filter.match(/[\d.]+/g) || []).map(Number);
+  check('Enhance: slider 50 is the neutral grade at boot',
+    gradeBoot.grades.brightness === 1 && gradeBoot.grades.contrast === 1 &&
+    gradeBoot.grades.saturation === 1 && gradeBoot.grades.sharp === 0 &&
+    gradeBoot.grades.denoise === 0 && gradeBoot.grades.vignette === 0 &&
+    bootNums.length === 3 && bootNums.every((n) => near(n, 1)),
+    `filter=${gradeBoot.filter} grades=${JSON.stringify(gradeBoot.grades)}`);
+
+  const gradeExtremes = await page.evaluate(() => {
+    const ids = ['enh-sharp', 'enh-denoise', 'enh-bright', 'enh-contrast', 'enh-sat', 'enh-vignette'];
+    const set = (v) => ids.forEach((id) => {
+      const el = document.getElementById(id);
+      el.value = String(v);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const out = {};
+    set(0);   out.low = window.__SWR_ENGINE.grades();
+    set(100); out.high = window.__SWR_ENGINE.grades();
+    out.filterHigh = document.getElementById('render-canvas').style.filter;
+    set(50);
+    return out;
+  });
+  check('Enhance: slider 0 is the floor of every mapped range',
+    near(gradeExtremes.low.brightness, 0.80) && near(gradeExtremes.low.contrast, 0.80) &&
+    near(gradeExtremes.low.saturation, 0.92) && near(gradeExtremes.low.sharp, 0) &&
+    near(gradeExtremes.low.denoise, 0) && near(gradeExtremes.low.vignette, 0),
+    JSON.stringify(gradeExtremes.low));
+  check('Enhance: slider 100 stops at the rules\' ceilings (1.20 tone, 1.08 sat, 0.15 clarity)',
+    near(gradeExtremes.high.brightness, 1.20) && near(gradeExtremes.high.contrast, 1.20) &&
+    near(gradeExtremes.high.saturation, 1.08) && near(gradeExtremes.high.sharp, 0.15) &&
+    near(gradeExtremes.high.denoise, 1) && near(gradeExtremes.high.vignette, 1),
+    `${JSON.stringify(gradeExtremes.high)} filter=${gradeExtremes.filterHigh}`);
+
+  // 28. The three footage taps move real rendered pixels. Only the GL path has
+  // shader taps (the 2D fallback ignores sharp/denoise/vignette), so the pixel
+  // half is asserted where a shader exists and reported as an env skip where
+  // it cannot be.
+  await page.waitForFunction(() => window.__SWR_ENGINE && window.__SWR_ENGINE.mode === 'gl', { timeout: 5000 })
+    .catch(() => {});
+  const gradeMode = await page.evaluate(() => window.__SWR_ENGINE.mode);
+  if (gradeMode === 'gl') {
+    await injectSamplers(page);
+    const px = await page.evaluate(async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const set = (id, v) => {
+        const el = document.getElementById(id);
+        el.value = String(v);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      const svg = (inner) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600">${inner}</svg>`);
+      // 2px vertical stripes — every texel sees the opposite colour as its
+      // horizontal neighbour, so the 4-neighbour box halves the stripe contrast
+      // (Denoise) and the unsharp term lifts the peaks (Sharpness). Placed at
+      // y 200–240, well away from the waveform band (y≈337) and spectrum bars
+      // (y>574).
+      const stripes = Array.from({ length: 200 }, (_, i) =>
+        `<rect x="${i * 2}" y="0" width="2" height="600" fill="${i % 2 ? '#000000' : '#c8c8c8'}"/>`).join('');
+      const band = () => ({
+        mean: window.__regionMean(200, 200, 120, 40),
+        max: window.__regionMax(200, 200, 120, 40),
+      });
+      const out = {};
+      set('enh-sharp', 0); set('enh-denoise', 0); set('enh-vignette', 0);
+      window.__SWR_ENGINE.setPhotos([svg(stripes)]);
+      await wait(400);
+      out.flat = band();
+      set('enh-sharp', 100);
+      await wait(400);
+      out.sharp = band();
+      set('enh-sharp', 0); set('enh-denoise', 100);
+      await wait(400);
+      out.denoise = band();
+      set('enh-denoise', 0);
+      // Vignette needs non-black content, so it is measured on a flat white
+      // photo: the corner patch vs the centre patch.
+      window.__SWR_ENGINE.setPhotos([svg('<rect width="400" height="600" fill="#ffffff"/>')]);
+      await wait(400);
+      out.vig0 = { corner: window.__regionMean(10, 10, 60, 60), centre: window.__regionMean(240, 300, 60, 60) };
+      set('enh-vignette', 100);
+      await wait(400);
+      out.vig100 = { corner: window.__regionMean(10, 10, 60, 60), centre: window.__regionMean(240, 300, 60, 60) };
+      // Back to the shipped defaults for anything that runs after this block.
+      set('enh-sharp', 0); set('enh-denoise', 0); set('enh-bright', 50);
+      set('enh-contrast', 50); set('enh-sat', 50); set('enh-vignette', 0);
+      window.__SWR_ENGINE.setPhotos([]);
+      return out;
+    });
+    check('Sharpness is real: the base edge gains contrast',
+      px.sharp.max > px.flat.max,
+      `max flat=${px.flat.max} sharp=${px.sharp.max} (mean ${px.flat.mean} → ${px.sharp.mean})`);
+    check('Denoise is real: the stripe high frequency flattens',
+      (px.denoise.max - px.denoise.mean) < (px.flat.max - px.flat.mean) - 1,
+      `max−mean flat=${px.flat.max - px.flat.mean} denoise=${px.denoise.max - px.denoise.mean}`);
+    check('Vignette is real: the corner falls, the centre holds',
+      px.vig100.corner < px.vig0.corner - 10 && Math.abs(px.vig100.centre - px.vig0.centre) <= 8,
+      `corner ${px.vig0.corner} → ${px.vig100.corner}, centre ${px.vig0.centre} → ${px.vig100.centre}`);
+  } else {
+    console.log('  (env skip: no WebGL — 2D fallback has no shader taps)');
+  }
 
 } finally {
   await browser.close();
