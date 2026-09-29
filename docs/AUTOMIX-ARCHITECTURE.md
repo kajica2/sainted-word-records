@@ -70,11 +70,13 @@ poll re-posts stale pools and kicks a dead timer chain (>60s no swap).
 look contract: (1) envelope followers on every numeric `Audio.feat` field
 (attack τ≈80ms, release τ≈420ms, Proxy read-side, frame-rate independent;
 bpm/beatInBar and |v|>1.6 pass raw, `beatPulse` stays crisp for beat-sync) —
-reactors breathe instead of twitching; (2) filmic grade — CSS filter
-`saturate(0.45) contrast(0.85) brightness(1.05)` on the TOPMOST visible
-canvas only (the fx-postprocess overlay when up, else the stage) — 55%
-desaturation, contrast pivoted at mid so blacks lift to soft gray and
-highlights roll off before clipping; (3) feedback trail — self-decaying echo
+reactors breathe instead of twitching; (2) house grade — CSS filter chain
+derived from the house grading rules (`docs/grade-house-rules.md`:
+`saturate(0.92) contrast(0.9375) brightness(0.96)`) on the TOPMOST visible
+canvas only (the fx-postprocess overlay when up, else the stage) — blacks
+lifted 0.03, whites parked at 0.93, a ~8% filmic saturation trim instead of a
+blanket desaturation, plus a 5% grain floor drawn over the composite; (3)
+feedback trail — self-decaying echo
 buffer (0.82 decay, 0.30 feed, 0.22 out) blended under each frame; (4)
 rotating vertical-axis mirror — two ghost passes (±14°/±10° orbiting axes,
 soft-light 0.16 + screen 0.09) with the source re-angled inside the mirror.
