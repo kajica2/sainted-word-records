@@ -91,6 +91,7 @@ const GROUPS = {
     'npm run check:capture-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
+    'npm run check:grade-smoke',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.

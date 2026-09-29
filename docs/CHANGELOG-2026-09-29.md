@@ -89,3 +89,48 @@ repaint, and — with the fake camera — armed-but-off-canvas → `C` composite
 leaving VJ returns to pure black while the stream stays armed; measured region
 mean 11 → 82 → 11).
 
+---
+
+## House grade: the shared filmic grade now follows the grading rules
+
+The grade in `lib/swr-natural.client.js` (22 variants + `engine.html`) was a
+blanket 55% desaturation — `saturate(0.45) contrast(0.85) brightness(1.05)`.
+Measured on real frames it crushed saturation to ~28% of the source and lifted
+the black floor to 0.079, which is the "washed out" case the grading rules call
+out. It is now derived from one spec block (`GRADE`) that the applied CSS chain
+is built from:
+
+| Constant | Value | Rule it satisfies |
+|---|---|---|
+| `saturation` | 0.92 | the rules cap boosts at +8; the house keeps a ~8% trim ("if you notice the saturation, it's too high") |
+| `contrast` / `brightness` | 0.9375 / 0.96 | pivot-symmetric tone curve; the derived `GRADE.black` = 0.030 ("lift blacks slightly, don't wash them out") and `GRADE.white` = 0.930 (rules' 90–95 IRE whites) |
+| `grain` | 0.05 | 5% film grain to hide the banding the lift creates — one `overlay` fill of a 64px noise tile in the module's existing composite pass |
+
+`GRADE.black` / `.white` are computed from `contrast` + `brightness`, so the
+rules' tone targets cannot drift from what the browser applies. `SWR_NATURAL`
+now exposes the spec, the CSS chain and those points for consumers and tests.
+
+Measured on identical frames (canvas-2D `ctx.filter` over the same captured
+patch, so the comparison is content-independent):
+
+| Surface | Metric | Raw | Old grade | New grade |
+|---|---|---|---|---|
+| `versions/hallucination.html` (fx-canvas) | saturation | 90.1% | 31.4% | **71.7%** |
+| | black p2 | 4.5 | 23.8 | **10.1** |
+| | white p98 | 30.2 | 46.8 | **33.5** |
+| `engine.html` (render) | saturation | 77.3% | 25.1% | **59.6%** |
+| | black p2 | 8.2 | 26.7 | **13.6** |
+
+The rules' per-hue half — vibrance ordering, skin-tone protection, selective
+colour, clarity — stays a finishing-stage step, because it needs per-pixel work
+and the only presentational way to express it (an SVG filter chain) measured
+15 fps for the colour matrices alone, 8.6 with clarity and 6.7 with grain on a
+variant page, against 30 fps for the CSS chain and 59.9 unfiltered. The full
+rule → implementation map and those measurements are in
+`docs/grade-house-rules.md`.
+
+Gate: `npm run check:grade-smoke` (new, wired into the `check` group) asserts the
+spec sits inside the rules' ranges, the chain lands on exactly one canvas (never
+doubled), the grain floor really reaches the stage pixels (spatial HF energy 2.6
+on vs 0.0 off, inside a subtle amplitude band), and a real variant page grades
+exactly its topmost canvas.

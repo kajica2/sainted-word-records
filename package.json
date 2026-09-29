@@ -60,6 +60,7 @@
     "check:spit-live-smoke": "node scripts/check-spit-live-smoke.mjs",
     "check:photo-slideshow": "node scripts/check-photo-slideshow-smoke.mjs",
     "check:default-library": "node scripts/check-default-library-smoke.mjs",
+    "check:grade-smoke": "node scripts/check-grade-smoke.mjs",
     "check:dist-links": "node scripts/check-dist-links.mjs",
     "verify:mv-hologram": "node scripts/check-mv-f-smoke.mjs",
     "verify:cloud-auth": "node verify-cloud-auth.mjs",

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>House grade smoke fixture</title>
+  <style>
+    html, body { margin: 0; background: #101014; }
+    #stage { display: block; width: 480px; height: 360px; }
+  </style>
+</head>
+<body>
+  <!-- Fixture for scripts/check-grade-smoke.mjs: a flat field the test owns, so
+       the grain measurement is not swamped by a real variant's animation. The
+       module under test is the shipped lib/swr-natural.client.js, loaded by URL
+       exactly like the variant pages load it. -->
+  <canvas id="stage" width="480" height="360"></canvas>
+  <script src="/lib/swr-natural.client.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var stage = document.getElementById('stage');
+    var ctx = stage.getContext('2d');
+    window.__field = 96;   // flat mid-dark grey: the grade's lift + grain zone
+    window.__drawField = function () {
+      ctx.fillStyle = 'rgb(' + window.__field + ',' + window.__field + ',' + window.__field + ')';
+      ctx.fillRect(0, 0, stage.width, stage.height);
+    };
+    window.__drawField();
+    // Same end-of-frame hook the variant pages dispatch, so the module's
+    // composite pass (trail + mirror + grain) runs on a finished frame.
+    (function loop() {
+      requestAnimationFrame(loop);
+      window.dispatchEvent(new Event('swr-frame-end'));
+    })();
+  })();
+  </script>
+</body>
+</html>
