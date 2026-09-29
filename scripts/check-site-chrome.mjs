@@ -61,9 +61,10 @@ const VERSIONS_CONTENT = new Set(['index.html', 'console.html', 'gallery.html', 
 //     <footer> elements are transport rows inside the app, not page footers.
 //   ar-gif — its <footer> is the app grid's 44px status bar.
 //   share-view — a full-viewport viewer opened from a link.
-//   landing-personas-v* — the eleven persona landing registers cross-link each
-//     other in their own footer; the shared footer cannot serve those links, so
-//     they keep their bespoke one (the header is shared).
+//   landing-personas-v1..v6 — the six remaining persona landing registers
+//     cross-link each other in their own footer; the shared footer cannot serve
+//     those links, so they keep their bespoke one (the header is shared).
+//     v7..v11 were archived 2026-09-29 and 301 to /personas.
 const FOOTER_OPTIONAL = new Set([
   '404.html',
   'share-view.html',
@@ -79,11 +80,6 @@ const FOOTER_OPTIONAL = new Set([
   'landing-personas-v4-dashboard.html',
   'landing-personas-v5-brutalist.html',
   'landing-personas-v6-wireframe.html',
-  'landing-personas-v7-riso.html',
-  'landing-personas-v8-broadcast.html',
-  'landing-personas-v9-cassette.html',
-  'landing-personas-v10-neon.html',
-  'landing-personas-v11-zine.html',
 ]);
 
 function walk(dir, out = []) {

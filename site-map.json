@@ -524,14 +524,34 @@
     {
       "from": "/swr-watermark-plan",
       "to": "/swr-app"
+    },
+    {
+      "from": "/landing-personas-v7-riso",
+      "to": "/personas"
+    },
+    {
+      "from": "/landing-personas-v8-broadcast",
+      "to": "/personas"
+    },
+    {
+      "from": "/landing-personas-v9-cassette",
+      "to": "/personas"
+    },
+    {
+      "from": "/landing-personas-v10-neon",
+      "to": "/personas"
+    },
+    {
+      "from": "/landing-personas-v11-zine",
+      "to": "/personas"
     }
   ],
   "archived": [],
   "meta": {
     "version": "1.0.0",
     "lastUpdated": "2026-09-29",
-    "totalPages": 144,
-    "corePages": 144,
+    "totalPages": 139,
+    "corePages": 139,
     "archivedPages": 0
   },
   "discovered": [
@@ -588,16 +608,11 @@
     "intro.html",
     "lab/media-input.html",
     "landing-personas-v1-editorial.html",
-    "landing-personas-v10-neon.html",
-    "landing-personas-v11-zine.html",
     "landing-personas-v2-dark.html",
     "landing-personas-v3-friendly.html",
     "landing-personas-v4-dashboard.html",
     "landing-personas-v5-brutalist.html",
     "landing-personas-v6-wireframe.html",
-    "landing-personas-v7-riso.html",
-    "landing-personas-v8-broadcast.html",
-    "landing-personas-v9-cassette.html",
     "landing.html",
     "login.html",
     "make-video.html",

@@ -1160,6 +1160,81 @@
       "source": "/swr-watermark-plan.html",
       "destination": "/swr-app",
       "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v7-riso",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v7-riso/",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v7-riso.html",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v8-broadcast",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v8-broadcast/",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v8-broadcast.html",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v9-cassette",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v9-cassette/",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v9-cassette.html",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v10-neon",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v10-neon/",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v10-neon.html",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v11-zine",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v11-zine/",
+      "destination": "/personas",
+      "statusCode": 301
+    },
+    {
+      "source": "/landing-personas-v11-zine.html",
+      "destination": "/personas",
+      "statusCode": 301
     }
   ]
 }
