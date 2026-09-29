@@ -21,6 +21,8 @@
        any page code runs. One shared file, not 23 inline copies. -->
   <script src="/lib/tier-runtime.js"></script>
   <script src="/lib/adaptive-guard.js" defer></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="/lib/watermark.client.js" defer></script>
   <link rel="stylesheet" href="/video-fx.css" />
   <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/brandkit.css" />
@@ -1750,8 +1752,7 @@
         <option value="60">60s</option>
         <option value="song">song</option>
       </select>
-      <select id="rec-wm" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Watermark for the exported MP4/WebM">
-        <option value="none">no watermark</option>
+      <select id="rec-wm" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Watermark for the exported MP4/WebM — always applied">
         <option value="a" selected>SWR monogram</option>
         <option value="b">Sainted Word wordmark</option>
         <option value="c">icon + SWR</option>
@@ -4156,59 +4157,10 @@
       progressTimer: null,
       progressEl: null,
       startedAt: 0,
-      watermarkImg: null,  // preloaded HTMLImageElement (or null)
-      watermarkKey: 'none',// 'a' | 'b' | 'c' | 'none'
-      _watermarkFrame: 0,  // throttle to ~30fps inside rAF
+      // No watermark state lives here: the mark is composited into the recorded
+      // stream by lib/watermark.client.js, so the engine keeps no image copy.
 
-      // Preload watermark image based on the current #rec-wm selector value.
-      _loadWatermark(key) {
-        if (key === 'none' || !key) {
-          this.watermarkImg = null;
-          this.watermarkKey = 'none';
-          return;
-        }
-        const img = new Image();
-        // Use the PNG render (engine bundles same path as the SVG fallback).
-        // CrossOrigin anonymous to avoid tainting the canvas during captureStream.
-        img.crossOrigin = 'anonymous';
-        img.src = `./swr-watermark-${key}.png`;
-        img.onload = () => {
-          this.watermarkImg = img;
-          this.watermarkKey = key;
-        };
-        img.onerror = () => {
-          // Fallback: try SVG
-          const svg = new Image();
-          svg.crossOrigin = 'anonymous';
-          svg.src = `./swr-watermark-${key}.svg`;
-          svg.onload = () => { this.watermarkImg = svg; this.watermarkKey = key; };
-        };
-      },
 
-      // Draw watermark on the capture canvas (called every frame during recording).
-      // Placed bottom-right with safe-area margins; opacity 0.6 to read on any background.
-      // PT-licensed users: watermark is suppressed (consumes 1 credit/min).
-      _drawWatermark(ctx, w, h) {
-        // PT license suppresses the watermark — the user paid for the watermark removal
-        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
-          return;
-        }
-        if (!this.watermarkImg || !this.watermarkImg.complete || this.watermarkImg.naturalWidth === 0) return;
-        const img = this.watermarkImg;
-        // Scale: 18% of frame width (per swr-watermark-plan.md), preserving aspect ratio.
-        // Watermarks: A=720x240 (3:1), B=1440x400 (3.6:1), C=720x960 (3:4)
-        const targetW = Math.round(w * 0.18);
-        const aspect = img.naturalHeight / img.naturalWidth;
-        const targetH = Math.round(targetW * aspect);
-        // Position: bottom-right with 24px margin (out of 720p frame), scaled proportionally
-        const margin = Math.round(Math.min(w, h) * 0.033);  // ~24px @ 720p
-        const x = w - targetW - margin;
-        const y = h - targetH - margin;
-        ctx.save();
-        ctx.globalAlpha = 0.6;
-        ctx.drawImage(img, x, y, targetW, targetH);
-        ctx.restore();
-      },
       start() {
         if (!Audio.audioEl) return;
         // Compute auto-stop deadline from #rec-dur selector
@@ -4309,34 +4261,8 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload the watermark image based on the user's selector choice
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
-        this._loadWatermark(wmSel);
-        // PT watermark-free status indicator (no credit consumed at start —
-        // the engine charges the renderer on stop, with a final cost based
-        // on actual duration; for 'song' mode we know it up front).
-        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
-          const lic = window.SWR_PT.load();
-          setStatus(`recording · watermark removed · ${lic.credits} credits left`, 'live');
-          if (window.SWR_PT_Panel && window.SWR_PT_Panel.renderChip) window.SWR_PT_Panel.renderChip();
-        }
-        // Start a dedicated rAF that draws the watermark on the capture canvas every frame.
-        // This is decoupled from the engine's main render loop so watermark style can be
-        // changed per-render without touching the FX/Stage code.
-        if (this._wmRaf) cancelAnimationFrame(this._wmRaf);
-        const drawOne = () => {
-          if (!this.recording) return;
-          if (this.watermarkImg && this.watermarkImg.complete) {
-            try {
-              const ctx = captureCanvas.getContext('2d');
-              if (ctx) this._drawWatermark(ctx, captureCanvas.width, captureCanvas.height);
-            } catch (e) {
-              // captureStream may have failed; silently skip
-            }
-          }
-          this._wmRaf = requestAnimationFrame(drawOne);
-        };
-        this._wmRaf = requestAnimationFrame(drawOne);
+        // The mark itself is composited into the recorded stream by
+        // lib/watermark.client.js — nothing to preload or repaint here.
         const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
         const totalSec = durMs > 0 ? Math.round(durMs / 1000) : 0;
         // Initial status
@@ -4419,15 +4345,6 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
-        // Preload watermark
-        const wmSel = $('rec-wm') ? $('rec-wm').value : 'none';
-        this._loadWatermark(wmSel);
-        // PT license chip
-        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
-          const lic = window.SWR_PT.load();
-          setStatus(`recording · WebCodecs · watermark removed · ${lic.credits} credits left`, 'live');
-          if (window.SWR_PT_Panel && window.SWR_PT_Panel.renderChip) window.SWR_PT_Panel.renderChip();
-        }
         // Live progress ticker (size unknown until stop; show duration only)
         if (this.progressTimer) clearInterval(this.progressTimer);
         this.progressTimer = setInterval(() => {
@@ -4456,7 +4373,6 @@
         if (this._wcActive) {
           if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
           if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
-          if (this._wmRaf) { cancelAnimationFrame(this._wmRaf); this._wmRaf = null; }
           this._wcActive = false;
           this.recording = false;
           $('rec').classList.remove('live');
@@ -4477,7 +4393,6 @@
         if (!this.rec) return;
         if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
         if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
-        if (this._wmRaf) { cancelAnimationFrame(this._wmRaf); this._wmRaf = null; }
         try {
           this.rec.stop();
         } catch (err) {
@@ -4527,20 +4442,10 @@
         a.remove();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
         const mb = (blob.size / (1024 * 1024)).toFixed(1);
-        // Charge PT credits for the export (1 credit / minute at 1080p).
-        // Free users pay nothing — they just get the watermark.
-        if (window.SWR_PT && window.SWR_PT.isActive && window.SWR_PT.isActive()) {
-          const durationSec = Math.max(1, Math.round((Date.now() - this.startedAt) / 1000));
-          const res = window.SWR_PT.consumeForRender(durationSec, '1080p');
-          if (res.ok) {
-            setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB · ${res.creditsAfter} credits left`, 'ok');
-          } else {
-            setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB · ${res.error || 'credit error'}`, 'warn');
-          }
-          if (window.SWR_PT_Panel && window.SWR_PT_Panel.renderChip) window.SWR_PT_Panel.renderChip();
-        } else {
-          setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB`, 'ok');
-        }
+        // No credit is charged on export: credits bought the removal of the
+        // watermark, and the watermark is now forced for everyone (see
+        // lib/watermark.client.js). The PT chip still reflects the licence.
+        setStatus(`exported · ${ext.toUpperCase()} · ${mb} MB`, 'ok');
       },
     };
 

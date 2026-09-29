@@ -4,8 +4,8 @@
 //   1. Anonymous engine access (no brandkit auth wall)
 //   2. PT chip + panel in the header
 //   3. License activation flow (paste key, validates, stores)
-//   4. Watermark suppression when PT is active
-//   5. Credit consumption on render
+//   4. The mark stays forced while PT is active (there is no suppression path)
+//   5. Credit consumption accounting (the export path no longer charges)
 //   6. thanks.html?type=pt path
 //   7. campaign.html#pt pricing section
 //
@@ -17,7 +17,7 @@ import puppeteer from 'puppeteer';
 
 const URL = process.env.FX_VERIFIER_URL || 'https://sainted-word-records.vercel.app/engine';
 // Site root (for fetching /campaign.html, /thanks.html, etc. from the engine)
-const ROOT = URL.replace(/\/engine\/?$/, '');
+const ROOT = process.env.SITE_ROOT || URL.replace(/\/engine(\.html)?\/?$/, '');
 
 const checks = [];
 const pass = (m) => { checks.push({ ok: true, msg: m }); console.log('✓', m); };
@@ -72,15 +72,31 @@ const fail = (m) => { checks.push({ ok: false, msg: m }); console.log('✗', m);
     const isActive = await page.evaluate(() => window.SWR_PT.isActive());
     isActive ? pass('SWR_PT.isActive() === true after activate') : fail('isActive() false');
 
-    // 6. Watermark is suppressed when PT is active
-    // The _drawWatermark function checks SWR_PT.isActive() and returns early.
-    // We can't easily test the actual canvas pixels without a song loaded,
-    // but we can verify the function is wired:
-    const watermarkCheck = await page.evaluate(() => {
-      // Rec is the Recorder. Check it has the _drawWatermark method.
-      return typeof window.SWR === 'object' && typeof window.SWR?.Recorder?._drawWatermark === 'function';
+    // 6. The mark stays forced while PT is active — there is no suppression path
+    const forcedWithPt = await page.evaluate(async () => {
+      const src = document.createElement('canvas');
+      src.width = 1280; src.height = 720;
+      src.style.cssText = 'position:fixed;left:-2000px;top:0';
+      const sctx = src.getContext('2d');
+      sctx.fillStyle = '#000'; sctx.fillRect(0, 0, 1280, 720);
+      document.body.appendChild(src);
+      const hasForcing = typeof window.SWR_WATERMARK?.frameSource === 'function';
+      const comp = hasForcing ? window.SWR_WATERMARK.frameSource(src) : null;
+      if (!comp) { src.remove(); return { hasForcing, marked: false, bright: 0, ptActive: window.SWR_PT.isActive() }; }
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const w = comp.width, h = comp.height;
+      const targetW = Math.round(w * 0.18);
+      const margin = Math.round(Math.min(w, h) * 0.033);
+      const data = comp.getContext('2d').getImageData(w - targetW - margin, h - 240 - margin, targetW, 240).data;
+      let bright = 0;
+      for (let i = 0; i < data.length; i += 4) if (data[i] + data[i + 1] + data[i + 2] > 90) bright++;
+      src.remove();
+      return { hasForcing, marked: bright > 50, bright, ptActive: window.SWR_PT.isActive() };
     });
-    watermarkCheck ? pass('Recorder._drawWatermark exists (will check PT at render time)') : fail('Recorder._drawWatermark not found');
+    forcedWithPt.ptActive ? pass('PT is active during the watermark check') : fail('PT not active (check 3 activates it)');
+    forcedWithPt.hasForcing && forcedWithPt.marked
+      ? pass(`mark still forced with PT active (${forcedWithPt.bright} px on the captured surface)`)
+      : fail(`mark missing with PT active (forcing=${forcedWithPt.hasForcing}, bright=${forcedWithPt.bright})`);
 
     // 7. Credit consumption
     const consumeResult = await page.evaluate(() => {
@@ -129,8 +145,9 @@ const fail = (m) => { checks.push({ ok: false, msg: m }); console.log('✗', m);
     const ptPath = /PT license|Activate your key|engine is waiting|swr-band/i.test(thanksContent);
     ptPath ? pass('thanks.html?type=pt renders PT path') : fail('thanks.html did not render PT path');
 
-    // 11. No console errors (filter pre-existing brandkit library 404s)
-    const knownPreExisting404 = (u) => /\/library\/p_\d+\.jpg/.test(u) || /\/library\/p\d+\.jpg/.test(u);
+    // 11. No console errors (filter pre-existing brandkit library 404s, and the
+    // routes only the deployed site answers — /api/auth/session, /null)
+    const knownPreExisting404 = (u) => /\/library\/p_\d+\.jpg/.test(u) || /\/library\/p\d+\.jpg/.test(u) || /\/api\//.test(u) || /\/null$/.test(u);
     const new404s = responses404.filter((u) => !knownPreExisting404(u));
     // Dedupe console errors that correspond to known 404s
     const newConsoleErrors = new404s.length === 0 ? consoleErrors.filter((e) => !/Failed to load resource/.test(e)) : consoleErrors;
