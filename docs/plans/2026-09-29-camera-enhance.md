@@ -151,3 +151,29 @@ This is **PR 4 of 4** in the user's chosen sequence:
 - ✅ PR 2 — Spit Live (`/spit`) (#102)
 - ✅ PR 3 — TikTok Studio (`/tiktok`) (#163)
 - 🚧 PR 4 — Camera Enhance (`/camera-enhance`) — this PR — **closes the sequence**
+
+---
+
+## Close-out — 2026-09-29
+
+| Acceptance criterion | Result |
+|---|---|
+| `/camera-enhance` loads cleanly in dev + built `dist/` | PASS — smoke **27/27** against built `dist/camera-enhance.html` |
+| Upload shows resolution / duration / type / size + poster | PASS — `1280 × 720`, `0:06`, `14.6 MB · camera-fixture.mp4`, `mp4`; thumbnail sampled non-black |
+| 8 looks + Custom sliders change the preview (measured) | PASS — same-frame samples: mono channel spread **0.3**, warm r−b **11.0** vs clean **7.8**, cool r−b **−1.4**; 9 custom sliders asserted in the smoke |
+| All 4 fixes change measured frame statistics | PASS — auto-exposure readout live (`+25.0 %` → `+0.6 %` as the frame brightened); stabiliser counter-move bounded (**−1.4 … +1.2 cells** across 1.4 s); denoise adds `blur(0.4px)` to the grade string; smooth motion blends the previous frame |
+| Overlay modes ≤ 30 % opacity, audio-reactive | PASS — `overlayAlpha` peaks 0.18 / 0.26 / 0.30 (unit); Subtle / Mood / Energy / Off asserted in the smoke |
+| Export → real `.webm` with format + burn-ins + mark + audio | PASS — vp9+opus **720×1280**, 1.5 MB; frames show title, subtitle, date, location, logo and the `SWR · enhance` mark; YAVG **112.6 → 87.6** under the film look |
+| `check:camera-enhance-unit` ≥ 30 assertions | PASS — **63 assertions** |
+| `npm run check` stays green with the new step | PASS — **all 49 steps**, `check:camera-enhance-unit` among them (0.4 s) |
+| `check:syntax` / `check:dist-links` / `check:site-chrome` / `check:sitemap` | PASS — 448 files + 131 inline scripts; 4/4 dist-link checks; 102 content pages; 130 URLs |
+| CHANGELOG + AGENTS.md updated | PASS |
+| Commits authored as `Kajica Djuric <kai.djuric@gmail.com>` | PASS |
+| Deployed verification on production | PENDING — this PR's deploy |
+
+**Four defects the verification caught after the first checks were already green** (each fixed;
+three now pinned by assertions): `smoothPath` re-summed an already-cumulative path, so the
+stabiliser's counter-move ran away to hundreds of cells and sat pinned at the draw clamp; the
+burn-in stack and the forced mark shared the bottom-right corner and printed over each other;
+`burnText` had no `date` key, so the page's own date write was silently dropped; and the
+checked-on-load title box never reached the runtime, so the "on" burn-in did not paint.

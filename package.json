@@ -61,6 +61,8 @@
     "check:spit-live-smoke": "node scripts/check-spit-live-smoke.mjs",
     "check:tiktok-unit": "node scripts/check-tiktok-unit.mjs",
     "check:tiktok-smoke": "node scripts/check-tiktok-smoke.mjs",
+    "check:camera-enhance-unit": "node scripts/check-camera-enhance-unit.mjs",
+    "check:camera-enhance-smoke": "node scripts/check-camera-enhance-smoke.mjs",
     "check:photo-slideshow": "node scripts/check-photo-slideshow-smoke.mjs",
     "check:default-library": "node scripts/check-default-library-smoke.mjs",
     "check:grade-smoke": "node scripts/check-grade-smoke.mjs",

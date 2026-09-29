@@ -94,6 +94,7 @@ const GROUPS = {
     'npm run check:media-input-unit',
     'npm run check:spit-live-unit',
     'npm run check:tiktok-unit',
+    'npm run check:camera-enhance-unit',
     'npm run check:capture-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
@@ -145,6 +146,7 @@ const GROUPS = {
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
     'npm run check:tiktok-smoke',
+    'npm run check:camera-enhance-smoke',
     // Needs a built dist/ (ensureDist builds when stale): asserts every
     // vercel.json rewrite, every root-relative link in a shipped page, and
     // every site-map entry resolves to a file that actually made it into dist.
