@@ -196,6 +196,24 @@
   <script>
     (async function() {
       'use strict';
+      // Map a repo filename to the URL that actually serves it. Most pages are
+      // served by a rewrite of their stem, but three families are not, and
+      // linking the bare stem there produced live 404s (verified 2026-09-29):
+      //   gallery-<name>.html  → /gallery/<name>   (the nav's canonical route)
+      //   <dir>/index.html     → /<dir>/           (the directory route)
+      //   index.html/landing   → /
+      // and a handful of pages are only reachable at their real filename
+      // because no rewrite points at them.
+      const NO_REWRITE = /^(tools\/|landing-personas-v\d+|swr-intro-10s$)/;
+      function routeForFile(file) {
+        const stem = file.replace(/\.html$/, '');
+        if (stem === 'index' || stem === 'landing') return '/';
+        if (/^gallery-/.test(stem)) return '/gallery/' + stem.replace(/^gallery-/, '');
+        if (/\/index$/.test(stem)) return '/' + stem.replace(/\/index$/, '') + '/';
+        if (NO_REWRITE.test(stem)) return '/' + file;
+        return '/' + stem;
+      }
+      
 
       let siteMap = null;
       let allEntries = [];
@@ -279,7 +297,7 @@
         const knownHrefs = new Set(entries.map(e => e.href));
         if (Array.isArray(m.discovered)) {
           for (const file of m.discovered) {
-            const href = '/' + file.replace(/\.html$/, '');
+            const href = routeForFile(file);
             if (knownHrefs.has(href)) continue;
             const basename = file.split('/').pop().replace(/\.html$/, '');
             entries.push({
