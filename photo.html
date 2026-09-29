@@ -3,6 +3,7 @@
 <head>
   <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/engine-chrome.css">
 <meta charset="utf-8" />
 <title>Photo Studio · Sainted Word Records</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -26,19 +27,7 @@
 <link rel="canonical" href="https://sainted-word-records.vercel.app/photo.html" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23140010'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff0066' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff0066'/%3E%3C/svg%3E" />
 <style>
-  :root {
-    --bg: #000000;
-    --bg-2: #0a0008;
-    --panel: #14000a;
-    --panel-2: #1f0010;
-    --ink: #ffffff;
-    --muted: #ff44aa;
-    --line: #330022;
-    --accent: #ff0066;
-    --accent-2: #00ccff;
-    --green: #00ff66;
-    --yellow: #ffff00;
-  }
+  /* Palette comes from /lib/engine-chrome.css (the engine's surface). */
   html, body { margin: 0; padding: 0; height: 100%; }
   body {
     background: var(--bg);
@@ -56,15 +45,7 @@
     height: 100vh;
     width: 100vw;
   }
-  header.ps-head {
-    grid-area: head;
-    background: var(--panel);
-    border-bottom: 1px solid var(--line);
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    gap: 10px;
-  }
+  header.ps-head { grid-area: head; }   /* chrome: .swr-appbar */
   .side-col {
     grid-area: side;
     background: var(--panel);
@@ -145,16 +126,7 @@
   }
 
   /* Buttons */
-  .tbtn {
-    background: transparent;
-    color: var(--ink);
-    border: 1px solid var(--line);
-    font: 10px ui-monospace, monospace;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 6px 10px;
-    cursor: pointer;
-  }
+  /* Controls: .tbtn from lib/engine-chrome.css */
   .tbtn:hover { border-color: var(--accent-2); color: var(--accent-2); }
   .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
   .tbtn.accent { border-color: var(--accent); color: var(--accent); }
@@ -171,9 +143,8 @@
 <body>
   <swr-nav></swr-nav>
 <main id="app">
-  <header class="ps-head">
-    <span style="color:var(--accent);font-weight:700;letter-spacing:0.16em;">PS</span>
-    <span style="color:var(--muted);font-size:9px;">v1 · photo studio</span>
+  <header class="ps-head swr-appbar">
+    <span class="brand">PHOTO-STUDIO <small>v1 · photo studio</small></span>
     <span style="flex:1"></span>
     <span id="status" style="color:var(--green);font-size:10px;letter-spacing:0.06em;">READY</span>
   </header>
