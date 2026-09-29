@@ -1,6 +1,6 @@
 # CI verify strategy
 
-Date: 2026-09-28 (5th verifier — retry-once added to `verify-e2e-media-record`)
+Date: 2026-09-29 (5th verifier — recording cycle made poll-driven; retry-once kept)
 
 ## The shape we picked
 
@@ -22,7 +22,7 @@ Run by `npm run check:verify` and `.github/workflows/ci.yml#full`:
 | 2 | `verify-hf-publish.mjs` | `/tools/hf-publish` admin UI mounts + bundle dry-run prints the canonical `hf upload` command |
 | 3 | `verify-rotation-enabled.mjs` | Per-layer ROTATE toggle gates `applyR().rot` on every engine page |
 | 4 | `verify-autoplay.mjs` | Engine auto-plays last loaded song on reload (headless autoplay granted) |
-| 5 | `verify-e2e-media-record.mjs` | Engine bootstrap → all layers decoded → 4s `MediaRecorder` cycle → valid MP4 header |
+| 5 | `verify-e2e-media-record.mjs` | Engine bootstrap → all layers decoded → chunk-driven `MediaRecorder` cycle → valid container header |
 
 Total budget: ~15s locally, ~30s in CI on `ubuntu-latest`.
 
@@ -117,6 +117,45 @@ masking it).
 Worst-case wall time on the retry path: original ~12s + reload +
 30s readiness poll + 2.5s audio wait + 5.5s record ≈ 51s, well inside
 the verifier's 60s per-script budget.
+
+### 2026-09-29 — `verify-e2e-media-record` made poll-driven (retry-once kept)
+
+The retry-once above treated the symptom. Reading the page the verifier actually
+drives (`versions/hallucination.html` — it ships its own inline `A` + `Recorder`,
+not `engine-core.client.js`'s) shows two real budgets baked into the old step:
+
+- `Recorder.start()` has **silent no-op exits** — `if (!A.el) { setStatus(...);
+  return; }` before anything is armed, and the MediaRecorder/WebCodecs arm sites
+  can throw before the auto-stop timer exists. In every one of those cases the
+  old step could only report `Recorder._save never fired`, because a fixed 5.5s
+  sleep cannot tell "nothing was armed" from "not finished yet".
+- The stop that triggers `_save()` comes from the page's own 5s `setTimeout`.
+  A backgrounded/occluded renderer clamps timers, and rAF (which feeds
+  `canvas.captureStream`) is throttled with it — so on a cold runner the cycle
+  can take arbitrarily longer than any fixed wall budget.
+
+The step now: waits for the audio graph `start()` requires (`SWR.Audio.el/ctx/
+gain`, resuming a suspended context), asserts the `#rec-dur`/`#rec-format`
+assignments actually took (a `<select>` silently ignores an unknown value, and
+`#rec-format` is what keeps `start()` out of the WebCodecs path), calls
+`start()` and reads the engine's arming state back (`recording`, MediaRecorder
+`state`, `mime`, `autoStopAt`, status text) — so a no-op exit fails with the
+engine's own reason instead of a mystery — then waits for **real encoded chunks**
+(250ms timeslice, ≥8), stops the recorder itself, and polls for the captured
+blob. The retry-once is now in-place (no reload, no re-readiness poll) and is
+scoped to the arming/no-chunks/no-save class; payload assertions still throw
+immediately.
+
+Launch args gained `--disable-background-timer-throttling`,
+`--disable-backgrounding-occluded-windows` and `--disable-renderer-backgrounding`
+(headless Chromium's timer/rAF clamping is the flake's environment).
+
+Wall time: ~4.5s green locally (was ~10s), ~19s when the injected no-op failure
+path runs both attempts, worst case ≈ 8s arming + 25s chunks + 15s save ≈ 48s +
+retry inside the 60s budget. Verified: 3/3 green, plus a forced failure
+(`Recorder.start` stubbed to a no-op) that reported
+`Recorder.start() never armed a session — {"recording":false,…,"status":"ready"}`
+and exited non-zero.
 
 ## Files added in this change
 
