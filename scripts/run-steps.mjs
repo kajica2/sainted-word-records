@@ -132,6 +132,8 @@ const GROUPS = {
     // Needs a built dist/ (ensureDist builds when stale): asserts every
     // vercel.json rewrite, every root-relative link in a shipped page, and
     // every site-map entry resolves to a file that actually made it into dist.
+    // Browser: clip posters are captured frames, which no static check can see.
+    'npm run check:clip-poster-smoke',
     'npm run check:dist-links',
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.
