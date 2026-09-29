@@ -452,14 +452,6 @@
       "destination": "/versions.html"
     },
     {
-      "source": "/make-video",
-      "destination": "/make-video.html"
-    },
-    {
-      "source": "/make-video/",
-      "destination": "/make-video.html"
-    },
-    {
       "source": "/marketplace",
       "destination": "/marketplace.html"
     },
@@ -484,182 +476,6 @@
       "destination": "/dashboard.html"
     },
     {
-      "source": "/photo",
-      "destination": "/photo.html"
-    },
-    {
-      "source": "/photo/",
-      "destination": "/photo.html"
-    },
-    {
-      "source": "/enhance",
-      "destination": "/enhance.html"
-    },
-    {
-      "source": "/enhance/",
-      "destination": "/enhance.html"
-    },
-    {
-      "source": "/gallery",
-      "destination": "/gallery.html"
-    },
-    {
-      "source": "/gallery/",
-      "destination": "/gallery.html"
-    },
-    {
-      "source": "/gallery",
-      "destination": "/gallery.html"
-    },
-    {
-      "source": "/gallery/",
-      "destination": "/gallery.html"
-    },
-    {
-      "source": "/gallery/music",
-      "destination": "/gallery-music.html"
-    },
-    {
-      "source": "/gallery/music/",
-      "destination": "/gallery-music.html"
-    },
-    {
-      "source": "/gallery/generative",
-      "destination": "/gallery-generative.html"
-    },
-    {
-      "source": "/gallery/generative/",
-      "destination": "/gallery-generative.html"
-    },
-    {
-      "source": "/gallery/cosmic",
-      "destination": "/gallery-cosmic.html"
-    },
-    {
-      "source": "/gallery/cosmic/",
-      "destination": "/gallery-cosmic.html"
-    },
-    {
-      "source": "/gallery/bio",
-      "destination": "/gallery-bio.html"
-    },
-    {
-      "source": "/gallery/bio/",
-      "destination": "/gallery-bio.html"
-    },
-    {
-      "source": "/gallery/ai",
-      "destination": "/gallery-ai.html"
-    },
-    {
-      "source": "/gallery/ai/",
-      "destination": "/gallery-ai.html"
-    },
-    {
-      "source": "/gallery/glyphs",
-      "destination": "/gallery-glyphs.html"
-    },
-    {
-      "source": "/gallery/glyphs/",
-      "destination": "/gallery-glyphs.html"
-    },
-    {
-      "source": "/gallery/vr",
-      "destination": "/gallery-vr.html"
-    },
-    {
-      "source": "/gallery/vr/",
-      "destination": "/gallery-vr.html"
-    },
-    {
-      "source": "/gallery/tshirts",
-      "destination": "/gallery-tshirts.html"
-    },
-    {
-      "source": "/gallery/tshirts/",
-      "destination": "/gallery-tshirts.html"
-    },
-    {
-      "source": "/gallery/posters",
-      "destination": "/gallery-posters.html"
-    },
-    {
-      "source": "/gallery/posters/",
-      "destination": "/gallery-posters.html"
-    },
-    {
-      "source": "/gallery/albums",
-      "destination": "/gallery-albums.html"
-    },
-    {
-      "source": "/gallery/albums/",
-      "destination": "/gallery-albums.html"
-    },
-    {
-      "source": "/gallery/videofx",
-      "destination": "/gallery-videofx.html"
-    },
-    {
-      "source": "/gallery/videofx/",
-      "destination": "/gallery-videofx.html"
-    },
-    {
-      "source": "/gallery/photoexp",
-      "destination": "/gallery-photoexp.html"
-    },
-    {
-      "source": "/gallery/photoexp/",
-      "destination": "/gallery-photoexp.html"
-    },
-    {
-      "source": "/gallery/point4brand",
-      "destination": "/gallery-point4brand.html"
-    },
-    {
-      "source": "/gallery/point4brand/",
-      "destination": "/gallery-point4brand.html"
-    },
-    {
-      "source": "/gallery/artist",
-      "destination": "/gallery-artist.html"
-    },
-    {
-      "source": "/gallery/artist/",
-      "destination": "/gallery-artist.html"
-    },
-    {
-      "source": "/gallery/darkfuture",
-      "destination": "/gallery-darkfuture.html"
-    },
-    {
-      "source": "/gallery/darkfuture/",
-      "destination": "/gallery-darkfuture.html"
-    },
-    {
-      "source": "/gallery/bachdrop",
-      "destination": "/gallery-bachdrop.html"
-    },
-    {
-      "source": "/gallery/bachdrop/",
-      "destination": "/gallery-bachdrop.html"
-    },
-    {
-      "source": "/gallery/brutalist",
-      "destination": "/gallery-brutalist.html"
-    },
-    {
-      "source": "/gallery/brutalist/",
-      "destination": "/gallery-brutalist.html"
-    },
-    {
-      "source": "/gallery/vintage",
-      "destination": "/gallery-vintage.html"
-    },
-    {
-      "source": "/gallery/vintage/",
-      "destination": "/gallery-vintage.html"
-    },
-    {
       "source": "/personas",
       "destination": "/personas.html"
     },
@@ -674,14 +490,6 @@
     {
       "source": "/personas/v/",
       "destination": "/personas/v/index.html"
-    },
-    {
-      "source": "/shop",
-      "destination": "/shop.html"
-    },
-    {
-      "source": "/shop/",
-      "destination": "/shop.html"
     },
     {
       "source": "/intro",
@@ -874,6 +682,190 @@
     {
       "source": "/terms.html/",
       "destination": "/terms.html"
+    },
+    {
+      "source": "/make-video",
+      "destination": "/make-video.html"
+    },
+    {
+      "source": "/make-video/",
+      "destination": "/make-video.html"
+    },
+    {
+      "source": "/photo",
+      "destination": "/photo.html"
+    },
+    {
+      "source": "/photo/",
+      "destination": "/photo.html"
+    },
+    {
+      "source": "/enhance",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/enhance/",
+      "destination": "/enhance.html"
+    },
+    {
+      "source": "/gallery",
+      "destination": "/gallery.html"
+    },
+    {
+      "source": "/gallery/",
+      "destination": "/gallery.html"
+    },
+    {
+      "source": "/shop",
+      "destination": "/shop.html"
+    },
+    {
+      "source": "/shop/",
+      "destination": "/shop.html"
+    },
+    {
+      "source": "/gallery/music",
+      "destination": "/gallery-music.html"
+    },
+    {
+      "source": "/gallery/music/",
+      "destination": "/gallery-music.html"
+    },
+    {
+      "source": "/gallery/generative",
+      "destination": "/gallery-generative.html"
+    },
+    {
+      "source": "/gallery/generative/",
+      "destination": "/gallery-generative.html"
+    },
+    {
+      "source": "/gallery/cosmic",
+      "destination": "/gallery-cosmic.html"
+    },
+    {
+      "source": "/gallery/cosmic/",
+      "destination": "/gallery-cosmic.html"
+    },
+    {
+      "source": "/gallery/bio",
+      "destination": "/gallery-bio.html"
+    },
+    {
+      "source": "/gallery/bio/",
+      "destination": "/gallery-bio.html"
+    },
+    {
+      "source": "/gallery/ai",
+      "destination": "/gallery-ai.html"
+    },
+    {
+      "source": "/gallery/ai/",
+      "destination": "/gallery-ai.html"
+    },
+    {
+      "source": "/gallery/glyphs",
+      "destination": "/gallery-glyphs.html"
+    },
+    {
+      "source": "/gallery/glyphs/",
+      "destination": "/gallery-glyphs.html"
+    },
+    {
+      "source": "/gallery/vr",
+      "destination": "/gallery-vr.html"
+    },
+    {
+      "source": "/gallery/vr/",
+      "destination": "/gallery-vr.html"
+    },
+    {
+      "source": "/gallery/tshirts",
+      "destination": "/gallery-tshirts.html"
+    },
+    {
+      "source": "/gallery/tshirts/",
+      "destination": "/gallery-tshirts.html"
+    },
+    {
+      "source": "/gallery/posters",
+      "destination": "/gallery-posters.html"
+    },
+    {
+      "source": "/gallery/posters/",
+      "destination": "/gallery-posters.html"
+    },
+    {
+      "source": "/gallery/albums",
+      "destination": "/gallery-albums.html"
+    },
+    {
+      "source": "/gallery/albums/",
+      "destination": "/gallery-albums.html"
+    },
+    {
+      "source": "/gallery/videofx",
+      "destination": "/gallery-videofx.html"
+    },
+    {
+      "source": "/gallery/videofx/",
+      "destination": "/gallery-videofx.html"
+    },
+    {
+      "source": "/gallery/photoexp",
+      "destination": "/gallery-photoexp.html"
+    },
+    {
+      "source": "/gallery/photoexp/",
+      "destination": "/gallery-photoexp.html"
+    },
+    {
+      "source": "/gallery/point4brand",
+      "destination": "/gallery-point4brand.html"
+    },
+    {
+      "source": "/gallery/point4brand/",
+      "destination": "/gallery-point4brand.html"
+    },
+    {
+      "source": "/gallery/artist",
+      "destination": "/gallery-artist.html"
+    },
+    {
+      "source": "/gallery/artist/",
+      "destination": "/gallery-artist.html"
+    },
+    {
+      "source": "/gallery/darkfuture",
+      "destination": "/gallery-darkfuture.html"
+    },
+    {
+      "source": "/gallery/darkfuture/",
+      "destination": "/gallery-darkfuture.html"
+    },
+    {
+      "source": "/gallery/bachdrop",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
+      "source": "/gallery/bachdrop/",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
+      "source": "/gallery/brutalist",
+      "destination": "/gallery-brutalist.html"
+    },
+    {
+      "source": "/gallery/brutalist/",
+      "destination": "/gallery-brutalist.html"
+    },
+    {
+      "source": "/gallery/vintage",
+      "destination": "/gallery-vintage.html"
+    },
+    {
+      "source": "/gallery/vintage/",
+      "destination": "/gallery-vintage.html"
     },
     {
       "source": "/login",
