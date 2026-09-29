@@ -150,6 +150,14 @@ const GROUPS = {
     // every site-map entry resolves to a file that actually made it into dist.
     // Browser: clip posters are captured frames, which no static check can see.
     'npm run check:clip-poster-smoke',
+    // verify:engine-boot was reachable from no group. It is the only gate
+    // that asserts the engine's transport row stays on-screen: #transport is
+    // a nowrap flex row of ~44 controls (~2900px natural width), and when it
+    // overflowed its fixed 56px grid row the ● REC and 🎬 Export video
+    // controls sat outside the viewport, clipped by body{overflow-x:hidden}
+    // and unhittable by mouse at every width — while the page still looked
+    // healthy and check:syntax passed. The budget covers its ~9s runtime.
+    { cmd: 'npm run verify:engine-boot', timeoutMs: 300000, retries: 1 },
     'npm run check:dist-links',
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.

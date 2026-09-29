@@ -66,7 +66,15 @@
     /* === LAYOUT === */
     #app {
       display: grid;
-      grid-template-rows: 56px 1fr 48px;
+      /* The transport row is `auto`, not a fixed 56px: it carries ~44
+         controls (chips, transport, meter, BPM/key pills, the three
+         recorder selects, and the panel buttons) whose natural width is
+         ~2900px. Pinned to one 56px line the row overflowed, and because
+         body sets overflow-x:hidden the tail — including ● REC and
+         🎬 Export video — was clipped and unreachable at every viewport
+         (measured: #rec at x=2761 in a 1440px window). `auto` lets the row
+         grow when flex-wrap pushes controls onto a second line. */
+      grid-template-rows: auto 1fr 48px;
       grid-template-columns: 240px 1fr 280px;
       grid-template-areas:
         "transport transport transport"
@@ -88,7 +96,9 @@
       background: linear-gradient(180deg, var(--bg-2), var(--panel));
       display: flex;
       align-items: center;
-      padding: 0 16px;
+      flex-wrap: wrap;          /* single-line nowrap clipped the tail — see #app above */
+      row-gap: 6px;
+      padding: 6px 16px;
       gap: 12px;
     }
     .brand {
