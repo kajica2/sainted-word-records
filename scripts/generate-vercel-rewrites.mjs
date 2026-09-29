@@ -114,6 +114,13 @@ function generateRewrites(map) {
   processItems(map.legal);
   processItems(map.tools);
 
+  // Unlisted pages: shipped and reachable, deliberately absent from the
+  // navigation. Their pretty routes must keep working (sitemap.html renders
+  // them, and inbound links exist), so they get the same rewrite treatment.
+  for (const href of (Array.isArray(map.unlisted) ? map.unlisted : [])) {
+    if (typeof href === 'string') addPath(href);
+  }
+
   // Auth
   if (map.auth) {
     addPath(map.auth.href);
