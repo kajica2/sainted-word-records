@@ -77,6 +77,7 @@ const GROUPS = {
     'npm run test:asset-curator',
     'npm run check:auth-unit',
     'npm run check:bpm-unit',
+    'npm run check:invite-unlock-unit',
     'npm run check:storage-blob-unit',
     'npm run check:db-postgres',
     'npm run verify:smtp',
@@ -92,6 +93,7 @@ const GROUPS = {
     'npm run targeting:verify',
     'npm run check:media-input-unit',
     'npm run check:spit-live-unit',
+    'npm run check:tiktok-unit',
     'npm run check:capture-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
@@ -122,8 +124,14 @@ const GROUPS = {
   full: [
     'npm run check',
     'npm run check:verify',
-    'npm run check:automix-smoke',
+    // { retries, timeoutMs }: the same treatment verify:automix got. This step
+    // failed four CI runs in a row on 2026-09-29 (autoplay NotAllowedError,
+    // fixed by the flag in the smoke itself); a single retry keeps a
+    // navigation-timeout on a loaded runner from failing the whole gate, while
+    // a deterministic failure still fails after the retry.
+    { cmd: 'npm run check:automix-smoke', timeoutMs: 600000, retries: 1 },
     'npm run check:automix-arc-smoke',
+    'npm run check:invite-redemption-smoke',
     'npm run check:storyboard',
     // verify:automix timed out at 173s on a loaded CI runner (and failed the
     // whole run) while passing in ~30s locally. Give it a documented 180s
@@ -136,6 +144,7 @@ const GROUPS = {
     'npm run check:targeting-smoke',
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
+    'npm run check:tiktok-smoke',
     // Needs a built dist/ (ensureDist builds when stale): asserts every
     // vercel.json rewrite, every root-relative link in a shipped page, and
     // every site-map entry resolves to a file that actually made it into dist.

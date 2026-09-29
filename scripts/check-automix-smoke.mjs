@@ -44,7 +44,15 @@ const server = http.createServer((req, res) => {
 });
 server.listen(5181);
 
-const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
+// --autoplay-policy: the pages this suite drives call play() on the demo track.
+// Without the flag Chrome rejects it ("NotAllowedError: play() failed because
+// the user didn't interact with the document first"), which is how this step
+// failed four CI runs in a row on 2026-09-29 while passing locally. Eight other
+// scripts here already pass the flag, including check-automix-arc-smoke.
+const browser = await puppeteer.launch({
+  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+    '--autoplay-policy=no-user-gesture-required'],
+});
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));

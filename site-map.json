@@ -46,11 +46,6 @@
           "description": "5+ visual variants"
         },
         {
-          "label": "Make Video",
-          "href": "/make-video",
-          "description": "Music video maker"
-        },
-        {
           "label": "Marketplace",
           "href": "/marketplace",
           "description": "Curated .swr-set templates"
@@ -68,127 +63,6 @@
         {
           "href": "/dashboard",
           "label": "Dashboard"
-        },
-        {
-          "label": "Photo Studio",
-          "href": "/photo",
-          "description": "Beat-reactive photo slideshow + Ken Burns MP4 export"
-        },
-        {
-          "label": "Enhance",
-          "href": "/enhance",
-          "description": "Camera enhance — live grade + export"
-        }
-      ]
-    },
-    {
-      "label": "Galleries",
-      "href": "/gallery",
-      "description": "20 curated galleries",
-      "children": [
-        {
-          "label": "All Galleries",
-          "href": "/gallery",
-          "description": "Gallery directory"
-        },
-        {
-          "label": "Artists",
-          "href": "/artists",
-          "description": "Featured artists"
-        },
-        {
-          "label": "Music",
-          "href": "/gallery/music",
-          "description": "Music gallery"
-        },
-        {
-          "label": "Generative",
-          "href": "/gallery/generative",
-          "description": "Generative gallery"
-        },
-        {
-          "label": "Cosmic",
-          "href": "/gallery/cosmic",
-          "description": "Cosmic gallery"
-        },
-        {
-          "label": "Bio",
-          "href": "/gallery/bio",
-          "description": "Bio gallery"
-        },
-        {
-          "label": "AI",
-          "href": "/gallery/ai",
-          "description": "AI gallery"
-        },
-        {
-          "label": "Glyphs",
-          "href": "/gallery/glyphs",
-          "description": "Glyphs gallery"
-        },
-        {
-          "label": "VR",
-          "href": "/gallery/vr",
-          "description": "VR gallery"
-        },
-        {
-          "label": "T-Shirts",
-          "href": "/gallery/tshirts",
-          "description": "T-shirt designs"
-        },
-        {
-          "label": "Posters",
-          "href": "/gallery/posters",
-          "description": "Poster designs"
-        },
-        {
-          "label": "Albums",
-          "href": "/gallery/albums",
-          "description": "Album art"
-        },
-        {
-          "label": "Video FX",
-          "href": "/gallery/videofx",
-          "description": "Video FX showcase"
-        },
-        {
-          "label": "Photo Exp",
-          "href": "/gallery/photoexp",
-          "description": "Photo experiments"
-        },
-        {
-          "label": "Point4Brand",
-          "href": "/gallery/point4brand",
-          "description": "Point4Brand gallery"
-        },
-        {
-          "label": "Artist",
-          "href": "/gallery/artist",
-          "description": "Artist gallery"
-        },
-        {
-          "label": "Dark Future",
-          "href": "/gallery/darkfuture",
-          "description": "Dark future gallery"
-        },
-        {
-          "label": "Bachdrop",
-          "href": "/gallery/bachdrop",
-          "description": "Bachdrop gallery"
-        },
-        {
-          "label": "Brutalist",
-          "href": "/gallery/brutalist",
-          "description": "Brutalist gallery"
-        },
-        {
-          "label": "Vintage",
-          "href": "/gallery/vintage",
-          "description": "Vintage compositions"
-        },
-        {
-          "href": "/versions/music-video-gallery",
-          "label": "Music videos"
         }
       ]
     },
@@ -201,11 +75,6 @@
       "label": "Persona Variants",
       "href": "/personas/v",
       "description": "24 engine-driven persona variants"
-    },
-    {
-      "label": "Shop",
-      "href": "/shop",
-      "description": "SWR merchandise"
     },
     {
       "label": "Learn",
@@ -256,11 +125,6 @@
           "label": "Status",
           "href": "/status",
           "description": "System status"
-        },
-        {
-          "label": "Atlas",
-          "href": "/atlas",
-          "description": "The Atlas of the Awakened Life — a 10-part book"
         }
       ]
     }
@@ -300,18 +164,6 @@
           {
             "label": "Marketplace",
             "href": "/marketplace"
-          },
-          {
-            "label": "Make a video",
-            "href": "/make-video"
-          },
-          {
-            "label": "Photo studio",
-            "href": "/photo"
-          },
-          {
-            "label": "Enhance",
-            "href": "/enhance"
           }
         ]
       },
@@ -319,24 +171,12 @@
         "heading": "Explore",
         "links": [
           {
-            "label": "Galleries",
-            "href": "/gallery"
-          },
-          {
-            "label": "Artists",
-            "href": "/artists/"
-          },
-          {
             "label": "Personas",
             "href": "/personas"
           },
           {
             "label": "Persona variants",
             "href": "/personas/v"
-          },
-          {
-            "label": "Shop",
-            "href": "/shop"
           },
           {
             "label": "Media packs",
@@ -366,10 +206,6 @@
           {
             "label": "Status",
             "href": "/status"
-          },
-          {
-            "label": "Atlas",
-            "href": "/atlas"
           }
         ]
       },
@@ -456,6 +292,11 @@
       "label": "Media Input Lab",
       "href": "/lab/media-input",
       "description": "Live camera + mic demo for the SWRMediaInput primitive"
+    },
+    {
+      "label": "TikTok Studio",
+      "href": "/tiktok",
+      "description": "Vertical 9:16 studio: drop a track, pick a vibe, export four lengths"
     },
     {
       "label": "Spit Live",
@@ -546,12 +387,41 @@
       "to": "/personas"
     }
   ],
+  "unlisted": [
+    "_comment: shipped pages deliberately kept OUT of the navigation (owner request, 2026-09-29). They still resolve — scripts/generate-vercel-rewrites.mjs emits a rewrite for every entry here, so the pretty route survives without a nav item. Add an entry here rather than deleting a nav child when a page should stay reachable but unlisted.",
+    "/make-video",
+    "/photo",
+    "/enhance",
+    "/atlas",
+    "/gallery",
+    "/artists",
+    "/shop",
+    "/gallery/music",
+    "/gallery/generative",
+    "/gallery/cosmic",
+    "/gallery/bio",
+    "/gallery/ai",
+    "/gallery/glyphs",
+    "/gallery/vr",
+    "/gallery/tshirts",
+    "/gallery/posters",
+    "/gallery/albums",
+    "/gallery/videofx",
+    "/gallery/photoexp",
+    "/gallery/point4brand",
+    "/gallery/artist",
+    "/gallery/darkfuture",
+    "/gallery/bachdrop",
+    "/gallery/brutalist",
+    "/gallery/vintage",
+    "/versions/music-video-gallery"
+  ],
   "archived": [],
   "meta": {
     "version": "1.0.0",
     "lastUpdated": "2026-09-29",
-    "totalPages": 139,
-    "corePages": 139,
+    "totalPages": 140,
+    "corePages": 140,
     "archivedPages": 0
   },
   "discovered": [
@@ -657,6 +527,7 @@
     "swr-app.html",
     "swr-intro-10s.html",
     "thanks.html",
+    "tiktok.html",
     "tools/hf-publish.html",
     "tools/manifest-editor.html",
     "tools/mobile/index.html",

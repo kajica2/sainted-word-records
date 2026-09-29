@@ -408,6 +408,48 @@ check('23. composition: media pool builds object URLs once and revokes on change
   assert(created.length === 3, 'one URL for the new item, got ' + created.length);
 });
 
+// Regression guards for the follower's read path. Both are cheap, and both
+// failed before the fix: the getter used to advance on every property read
+// (hundreds per frame) and installFollower re-wrapped Audio.feat on every call,
+// stacking proxies. A CPU profile of versions/hallucination put 94% of samples
+// in that getter, with `get` as its own top caller, and frames fell from 20 to
+// 8 fps as the stack grew; after the fix the same page holds 60 fps.
+
+check('24. follower reads inside one frame are coalesced', () => {
+  const { NAT, advance } = makeNat();
+  const A = followerAudio({ bass: 0 });
+  NAT.__wrap(A);
+  A.feat.bass;                    // prime the follower at 0, then jump the target
+  A.feat.bass = 1;
+  advance(16);
+  const first = A.feat.bass;      // one attack step for this frame
+  const second = A.feat.bass;     // same frame: must not advance again
+  const third = A.feat.bass;
+  assert(first > 0 && first < 1, 'the read after the jump must be a partial step, got ' + first);
+  assert(first === second && second === third,
+    'reads within a frame must return the same value, got ' + [first, second, third].join('/'));
+  advance(16);
+  const next = A.feat.bass;
+  assert(next > first, 'the next frame must still advance the follower (first=' + first + ' next=' + next + ')');
+});
+
+check('25. re-installing the follower never stacks proxies', () => {
+  const { NAT, advance } = makeNat();
+  const A = followerAudio({ bass: 0 });
+  NAT.__wrap(A);
+  const firstWrap = A.feat;
+  for (let i = 0; i < 25; i++) NAT.__wrap(A);   // every re-install must be a no-op
+  assert(A.feat === firstWrap, 'Audio.feat was re-wrapped (proxy stacking)');
+  A.feat.bass;                    // prime, then jump
+  A.feat.bass = 1;
+  advance(16);
+  const v1 = A.feat.bass;
+  advance(16);
+  const v2 = A.feat.bass;
+  assert(v1 > 0 && v1 < 1, 'expected a partial step after the jump, got ' + v1);
+  assert(v2 > v1, 'the follower must keep advancing after repeated installs (v1=' + v1 + ' v2=' + v2 + ')');
+});
+
 console.log(results.join('\n'));
 if (process.exitCode) {
   console.log('\nCLIP EVOLUTION UNIT: FAILURES ABOVE');

@@ -94,7 +94,15 @@ surfaces must carry an exit link. Every declared redirect must exist in
    column; `Enhance` added to the Engine nav dropdown and footer; `Shot list`
    added to Tools (with its missing rewrite); the `director-mode` nav child
    removed with the page; `/versions.html` now indexes every shipped page.
-9. **SEO metadata** — every shipped page now carries `og:title`,
+9. **Navigation trim (2026-09-29, after the audit)** — the owner removed
+   *Make a video*, *Photo studio*, *Enhance*, *Atlas*, *Galleries* (with its 21
+   children), *Artists* and *Shop* from the navigation. They are **unlisted, not
+   removed**: \`site-map.json\` gained an \`unlisted\` array that both
+   \`scripts/generate-vercel-rewrites.mjs\` (so the pretty routes keep working)
+   and \`vite.config.js\`'s rootFiles (so the files still reach \`dist/\`) read.
+   Nav now reads Engine · Personas · Persona Variants · Learn. The pages stay
+   in \`sitemap.xml\` (128 URLs) and every one still returns 200.
+10. **SEO metadata** — every shipped page now carries `og:title`,
    `og:description`, `og:type` and `twitter:card` derived verbatim from its
    own title/description (59 pages gained the full block, 50 gained the missing
    card line), the images created at runtime for hero frames and the AR preview

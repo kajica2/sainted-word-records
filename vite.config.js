@@ -30,6 +30,16 @@ try {
   collect(siteMap.footer);
   collect(siteMap.legal);
   collect(siteMap.tools);
+  // Unlisted pages: shipped and reachable but deliberately absent from the
+  // navigation. Without this they would keep a rewrite (generated from the same
+  // array) while never being copied into dist/ — a rewrite to a missing file,
+  // which check-dist-links catches. Entries are paths, not { href } objects.
+  for (const href of (Array.isArray(siteMap.unlisted) ? siteMap.unlisted : [])) {
+    if (typeof href !== 'string' || !href.startsWith('/')) continue;
+    const clean = href.replace(/^\//, '').replace(/\/$/, '');
+    if (!clean) continue;
+    paths.add(clean.endsWith('.html') ? clean : clean + '.html');
+  }
   if (siteMap.auth && siteMap.auth.href) {
     const clean = siteMap.auth.href.replace(/^\//, '').replace(/\/$/, '');
     if (clean) paths.add(clean + '.html');
