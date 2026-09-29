@@ -122,7 +122,12 @@ const GROUPS = {
   full: [
     'npm run check',
     'npm run check:verify',
-    'npm run check:automix-smoke',
+    // { retries, timeoutMs }: the same treatment verify:automix got. This step
+    // failed four CI runs in a row on 2026-09-29 (autoplay NotAllowedError,
+    // fixed by the flag in the smoke itself); a single retry keeps a
+    // navigation-timeout on a loaded runner from failing the whole gate, while
+    // a deterministic failure still fails after the retry.
+    { cmd: 'npm run check:automix-smoke', timeoutMs: 600000, retries: 1 },
     'npm run check:automix-arc-smoke',
     'npm run check:storyboard',
     // verify:automix timed out at 173s on a loaded CI runner (and failed the
