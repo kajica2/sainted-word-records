@@ -37,7 +37,14 @@ export const ATLAS_SLUGS = [
 // "withDotHtml"), `terms` (the glossary; /terms has no rewrite), and
 // `artists/vodolija` (the preserved `/artists/vodolija → …/index.html` rewrite
 // serves the showcase page, not the artist profile).
-export const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|artists\/vodolija$)/;
+//
+// `versions` is the same trap one level up: vercel.json DOES rewrite
+// /versions → /versions.html, but a shipped directory index beats a rewrite —
+// Vercel resolves the filesystem first, so /versions serves versions/index.html
+// (the "Visual languages" page, measured live 2026-09-29) and versions.html is
+// only reachable at /versions.html. `servesFile()` below encodes that rule
+// rather than trusting the rewrite table, so a new page cannot reintroduce it.
+export const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|versions$|artists\/vodolija$)/;
 
 // Pages served at a preserved hand-written route that the stem rule cannot
 // express. Both routes exist in vercel.json and are what the site links to:
@@ -129,10 +136,17 @@ export function rewriteForRoute(route, rewrites) {
 // Is `route` served by a rewrite that lands on `file`, or is `file` itself
 // reachable as a static file / directory index? `files` is the set of built
 // files in dist (relative paths).
+//
+// The directory-index check runs FIRST and is not a detail: Vercel resolves the
+// filesystem before user rewrites, so a shipped `<route>/index.html` shadows the
+// rewrite for `<route>` (measured live: /versions serves versions/index.html
+// even though vercel.json rewrites /versions → /versions.html). A route is only
+// accepted when it lands on `file`.
 export function servesFile(route, file, { rewrites = [], files = new Set() } = {}) {
+  const rel = String(route).replace(/^\/+/, '').replace(/\/$/, '');
+  if (rel && files.has(rel + '/index.html')) return rel + '/index.html' === file;
   const hit = rewriteForRoute(route, rewrites);
   if (hit) return destinationServesFile(hit.destination, route, file);
-  const rel = String(route).replace(/^\/+/, '').replace(/\/$/, '');
   if (!rel) return false;
-  return files.has(rel) || files.has(rel + '/index.html');
+  return files.has(rel);
 }

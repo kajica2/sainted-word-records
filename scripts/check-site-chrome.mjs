@@ -167,6 +167,14 @@ function checkCanonical(file, html) {
   if (url !== want) { fail(file, `canonical is ${url} — expected ${want}`); return; }
   const target = routeToFile(url.slice(OG_BASE.length), { rewrites, exists: (p) => fs.existsSync(p) });
   if (target !== file) fail(file, `canonical ${url} resolves to ${target || 'nothing'} in the repo, not ${file}`);
+  // A shipped directory index beats a rewrite (Vercel resolves the filesystem
+  // first): /versions serves versions/index.html even though vercel.json
+  // rewrites /versions → /versions.html, so a canonical of /versions on
+  // versions.html named a different page (measured live 2026-09-29).
+  const rel = url.slice(OG_BASE.length + 1);
+  if (rel && !rel.endsWith('/') && path.join(rel, 'index.html') !== file && fs.existsSync(path.join(rel, 'index.html'))) {
+    fail(file, `canonical ${url} is shadowed by ${rel}/index.html — that URL serves a different page`);
+  }
 }
 
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
