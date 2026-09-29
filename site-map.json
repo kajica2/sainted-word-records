@@ -66,7 +66,6 @@
         }
       ]
     },
-    
     {
       "label": "Personas",
       "href": "/personas",
@@ -77,7 +76,6 @@
       "href": "/personas/v",
       "description": "24 engine-driven persona variants"
     },
-    
     {
       "label": "Learn",
       "href": "/intro",
@@ -296,6 +294,11 @@
       "description": "Live camera + mic demo for the SWRMediaInput primitive"
     },
     {
+      "label": "TikTok Studio",
+      "href": "/tiktok",
+      "description": "Vertical 9:16 studio: drop a track, pick a vibe, export four lengths"
+    },
+    {
       "label": "Spit Live",
       "href": "/spit",
       "description": "One-take freestyle studio for hip-hop MCs"
@@ -417,8 +420,8 @@
   "meta": {
     "version": "1.0.0",
     "lastUpdated": "2026-09-29",
-    "totalPages": 139,
-    "corePages": 139,
+    "totalPages": 140,
+    "corePages": 140,
     "archivedPages": 0
   },
   "discovered": [
@@ -524,6 +527,7 @@
     "swr-app.html",
     "swr-intro-10s.html",
     "thanks.html",
+    "tiktok.html",
     "tools/hf-publish.html",
     "tools/manifest-editor.html",
     "tools/mobile/index.html",
