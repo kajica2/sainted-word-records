@@ -99,7 +99,13 @@ surfaces must carry an exit link. Every declared redirect must exist in
    own title/description (59 pages gained the full block, 50 gained the missing
    card line), the images created at runtime for hero frames and the AR preview
    gained `alt` text, and every page has a `<main>` landmark for its skip link.
-10. **Broken/leaky links** — `shop.html`'s runbook reference reworded,
+10. **`sitemap.html` route mapping** — the DISCOVERED list was rendered by
+   stripping `.html` from each filename, which 404s for three families
+   (`gallery-ai.html` is served at `/gallery/ai`, `artists/vodolija/index.html`
+   at `/artists/vodolija/`, `landing.html`/`index.html` at `/`) and for pages
+   with no rewrite at all. Measured live: 25 of the page's 144 links 404'd. All
+   105 discovered entries now map to a route that resolves.
+11. **Broken/leaky links** — `shop.html`'s runbook reference reworded,
    `landing.html`'s dead `HOWTO-30s-VIDEO.md` link replaced with
    `/tutorial-30s`, `gallery.html`'s dead "Loops Gallery" card (no `href`)
    replaced with the live music-video gallery, `share-view.html` gained a meta
@@ -326,3 +332,18 @@ variants, artist profiles).
 | `/scripts/_analyze-stub` | `scripts/_analyze-stub.html` | none | none | — | shared header |
 | `/scripts/_grade-smoke-fixture` | `scripts/_grade-smoke-fixture.html` | none | none | — | shared header |
 
+
+## QA results (production, after deploy)
+
+| Check | Result |
+|---|---|
+| Live redirects (`/persona-demo`, `/gallery-director-mode`, `/gallery/director-mode`, `/engine-ar-loop`, `/video_single`, `/swr-stripe-setup`, `/swr-dm-templates`) | **7/7 301** to their declared targets |
+| Live chrome on 10 routes across every family (`/gallery`, `/atlas`, `/shop`, `/gallery-ai.html`, `/versions.html`, `/versions/console.html`, `/landing.html`, `/personas/v/raw.html`, `/sitemap.html`, `/legal/privacy.html`) | **10/10** — nav rendered at the top of `<body>`, 6 nav links, 29 footer links, OG tags, 0 page errors |
+| Renderer exit link (`/versions/hallucination.html`) | present, `← Site` → `/` |
+| Mobile drawer live at 390px (`/gallery`) | burger visible, drawer opens with 46 links, no horizontal overflow |
+| `npm run check` (44 steps, includes `check:site-chrome`) | 44/44 |
+| `npm run check:dist-links` | 4/4 (257 rewrites) |
+| `npm run verify:site-nav` | 13/13 |
+| Browser sweep, 18 pages × every family, desktop + 390px | 18/18 |
+| Skip link + keyboard dropdown (browser) | first tab stop is "Skip to content" → `#main`; focus opens the Galleries dropdown (`aria-expanded`), Escape closes it |
+| `verify:automix` | all green locally (a CI run of the same commit timed out on a loaded runner; the sibling run on that commit passed and the local re-run passed in 30s) |
