@@ -207,7 +207,6 @@ function copyStatic() {
     'engine-settings.client.js',
     'persona-onboarding.js',
     'persona-runtime.client.js',
-    'persona-demo.html',
     'swr-mascot-camera.svg',
     'swr-mascot-camera.client.js',
     'gallery-audio.client.js',
@@ -288,13 +287,12 @@ function copyStatic() {
     'press.html',
     'about.html',
     'status.html',
-    // reel-player is loaded by video_single.html via ../reel-player.client.js
-    // (browser resolves ../ at root → /reel-player.client.js).
-    'reel-player.client.js',
+    // reel-player.client.js no longer ships: its only loader, video_single.html,
+    // was archived 2026-09-29 (see site-map.json redirects). The module stays in
+    // the repo so restoring the page from _archive/ needs no rebuild of this list.
     'versions.html',
     'portfolio.html',
     'gallery-music.html',
-    'gallery-director-mode.html',
     'gallery-generative.html',
     'gallery-cosmic.html',
     'gallery-bio.html',
@@ -318,11 +316,6 @@ function copyStatic() {
     'swr-onboarding-hf.client.js',
     'shop.html',
     'engine-demos.html',
-    'swr-campaign-launch-plan.html',
-    'swr-dm-templates.html',
-    'swr-social-content.html',
-    'swr-stripe-setup.html',
-    'swr-watermark-plan.html',
     'auth/login.html',
     'auth/login.client.js',
     'auth/verify.html',
@@ -377,7 +370,6 @@ function copyStatic() {
     'atlas-integration.html',
     'atlas-legacy.html',
     'atlas-life-stages.html',
-    'video_single.html',
     'site-map.json',
   ];
 
