@@ -13,9 +13,16 @@
 // Assertions:
 //   1. Every rewrite in vercel.json that is not an error status resolves to a
 //      file in dist/ (a `:param` destination must match at least one file).
-//   2. Every root-relative href/src in a shipped page resolves to a file in
-//      dist/, to a built <path>.html, to a built <path>/index.html, or to a
-//      non-error rewrite whose destination resolves.
+//   2. Every root-relative href/src in a shipped page is served by dist/:
+//      an exact file, a built <path>/index.html, or a non-error rewrite whose
+//      destination resolves. A bare `<path>.html` does NOT count for an
+//      extensionless URL — vercel.json sets `cleanUrls: false`, so Vercel does
+//      not apply that fallback (see servedInDist()).
+//   3. Every site-map entry, using the URL sitemap.html actually renders
+//      (routeForFile()), is served the same way. This is the check that caught
+//      /sitemap's 13 dead links (2026-09-29).
+//   4. Every relative ref in a page served from a non-root path resolves from
+//      that path.
 //
 // Run: node scripts/check-dist-links.mjs
 import fs from 'node:fs';
@@ -60,6 +67,26 @@ function paramGlob(destination) {
   return new RegExp(re);
 }
 
+// Mirrors sitemap.html's routeForFile() — keep the two in sync. sitemap.html
+// renders every `discovered` entry with it, so the gate must validate the URL
+// the page actually links, not the raw stem.
+const NO_REWRITE = /^(tools\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$)/;
+const ATLAS_SLUGS = [
+  '200-steps', 'architect', 'checklist', 'crisis', 'final-insight',
+  'forge', 'integration', 'legacy', 'life-stages',
+];
+function routeForFile(file) {
+  const stem = String(file).replace(/\.html$/, '');
+  if (stem === 'index' || stem === 'landing') return '/';
+  if (/^gallery-/.test(stem)) return '/gallery/' + stem.replace(/^gallery-/, '');
+  if (stem.startsWith('atlas-') && ATLAS_SLUGS.includes(stem.replace(/^atlas-/, ''))) {
+    return '/atlas/' + stem.replace(/^atlas-/, '');
+  }
+  if (/\/index$/.test(stem)) return '/' + stem.replace(/\/index$/, '') + '/';
+  if (NO_REWRITE.test(stem)) return '/' + file;
+  return '/' + stem;
+}
+
 (async () => {
   await ensureDist();
   if (!fs.existsSync(DIST)) {
@@ -77,6 +104,24 @@ function paramGlob(destination) {
       if (e.isDirectory()) walk(p); else allFiles.push(p.replace(/^dist[\\/]/, ''));
     }
   })(DIST);
+
+  // What production actually serves. vercel.json sets `cleanUrls: false`, so an
+  // extensionless URL is served only when a rewrite (or a directory index)
+  // matches it: `<path>.html` is NOT a fallback Vercel applies. Accepting that
+  // fallback was the blind spot that let /sitemap render 13 live 404s — the
+  // atlas section pages, /offline, /404, /director-mode-sainted-word and
+  // /versions/music_video_mtv (found 2026-09-29 against the deployed site).
+  const sourceRe = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/:[A-Za-z_]+/g, '[^/]+') + '$');
+  function servedInDist(url) {
+    const rel = String(url).replace(/^\/+/, '');
+    if (!rel) return true;
+    if (isFile(path.join(DIST, rel))) return true;
+    if (isFile(path.join(DIST, rel, 'index.html'))) return true;
+    const hit = rewrites.find((r) => sourceRe(r.source).test(url));
+    if (!hit || !hit.destination || !hit.destination.startsWith('/')) return false;
+    if (hit.destination.includes(':')) return allFiles.some((f) => paramGlob(hit.destination).test(f));
+    return resolvesInDist(hit.destination);
+  }
 
   // 1. rewrite destinations
   const brokenRewrites = [];
@@ -111,12 +156,7 @@ function paramGlob(destination) {
       const url = m[1];
       if (url.startsWith('//')) continue;
       if (url.includes('${')) { skippedTemplates++; continue; } // runtime-templated
-      if (resolvesInDist(url)) continue;
-      const hit = rewrites.find((r) => {
-        const re = new RegExp('^' + r.source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/:[A-Za-z_]+/g, '[^/]+') + '$');
-        return re.test(url);
-      });
-      if (hit && resolvesInDist(hit.destination)) continue;
+      if (servedInDist(url)) continue;
       if (!broken.has(url)) broken.set(url, new Set());
       broken.get(url).add(page.replace(/^dist\//, ''));
     }
@@ -149,18 +189,12 @@ function paramGlob(destination) {
   collectHrefs(siteMap.tools, 'tools');
   if (siteMap.auth && siteMap.auth.href) hrefs.set(siteMap.auth.href, 'auth');
   for (const file of siteMap.discovered || []) {
-    if (typeof file === 'string') hrefs.set('/' + file.replace(/\.html$/, ''), 'discovered');
+    if (typeof file === 'string') hrefs.set(routeForFile(file), 'discovered');
   }
   const deadMapEntries = [];
   for (const [href, where] of hrefs) {
     if (!href.startsWith('/')) continue;
-    if (resolvesInDist(href)) continue;
-    if (!/\.[a-z0-9]{2,5}$/i.test(href) && resolvesInDist(`${href}.html`)) continue;
-    const hit = rewrites.find((r) => {
-      const re = new RegExp('^' + r.source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/:[A-Za-z_]+/g, '[^/]+') + '$');
-      return re.test(href);
-    });
-    if (hit && resolvesInDist(hit.destination)) continue;
+    if (servedInDist(href)) continue;
     deadMapEntries.push(`${href}  (site-map ${where})`);
   }
   if (deadMapEntries.length) {
