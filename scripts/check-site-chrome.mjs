@@ -114,6 +114,32 @@ function countOutsideScripts(html, re) {
   return count;
 }
 
+// A phone renders the page at desktop width without this. Three shipped pages
+// (versions/music-video-gallery.html, dashboard.html, login.html) had none.
+function checkViewport(file, html) {
+  const m = html.match(/<meta\s+[^>]*name="viewport"[^>]*content="([^"]*)"/);
+  if (!m || !m[1].trim()) fail(file, 'no <meta name="viewport">');
+}
+
+// Social cards need an absolute og:image that resolves to a file we actually
+// ship. Both failure modes were live: 24 pages used a relative path and four
+// pointed at /og.png, a file that has never existed in the repo (/keyart/
+// music_video.png, same). Resolution is against the repo root, which is what
+// every og:image directory (keyart/, press/, docs/atlas-assets/, packs/) is
+// copied from at build time.
+const OG_BASE = 'https://sainted-word-records.vercel.app';
+function checkOgImage(file, html) {
+  const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+  const url = m ? m[1].trim() : '';
+  if (!url) { fail(file, 'no <meta property="og:image">'); return; }
+  const rel = url.startsWith(OG_BASE) ? url.slice(OG_BASE.length) : null;
+  if (!rel || !rel.startsWith('/')) {
+    fail(file, `og:image must be an absolute ${OG_BASE} URL (${url})`);
+  } else if (!fs.existsSync(path.join('.', rel))) {
+    fail(file, `og:image target does not exist in the repo (${rel})`);
+  }
+}
+
 const pages = walk('.').sort();
 const siteMap = JSON.parse(fs.readFileSync('site-map.json', 'utf8'));
 
@@ -131,6 +157,9 @@ for (const file of pages) {
     const hasExit = html.includes('swr-site-exit') ||
       /<a[^>]+href="(\/|\.\.\/|\.\.\/versions\.html|\/engine)"[^>]*>/i.test(html);
     if (!hasExit) fail(file, 'app surface has no exit link back to the site');
+    // App shells are the pages most likely to be opened on a phone; one of them
+    // (dashboard.html) shipped without this and rendered at desktop width.
+    checkViewport(file, html);
     continue;
   }
 
@@ -164,6 +193,8 @@ for (const file of pages) {
   if (!title) fail(file, 'empty <title>');
   const desc = (html.match(/<meta\s+name="description"\s+content="([^"]*)"/) || [, ''])[1].trim();
   if (!desc) fail(file, 'no meta description');
+  checkViewport(file, html);
+  checkOgImage(file, html);
 }
 
 // Unique titles across the checked set
