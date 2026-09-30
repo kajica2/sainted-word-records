@@ -2,10 +2,13 @@
 //
 // Integration guide for wiring Directors into Spit runtime.
 //
+// STATUS (HIGH-001): NOT APPLIED — this module is current unit-test-only
+// groundwork. It is not loaded by any page and no user-facing surface
+// selects a director. See the HIGH-001 note at the bottom of this file.
+//
 // STEP 1: Load the directors module
-// Add to spit.html after swr-spit-runtime.client.js:
-// <script src="/client/engine-directors.client.js" defer></script>
-// <script src="/client/engine-directors.types.js" defer></script>
+// NOT APPLIED — see HIGH-001 note. (Original steps kept below for when a
+// surface actually consumes director output.)
 //
 // STEP 2: Initialize director in Spit runtime
 // In swr-spit-runtime.client.js, after _beatInfo is set:
@@ -137,3 +140,20 @@
 //
 //   var palette = keyToPalette[ctx.audio.key] || defaultPalette;
 //   ctx.layers.forEach(function(l) { l.palette = palette; });
+//
+// HIGH-001 — WHY NOT APPLIED
+// ==========================
+// Wiring was rejected after reading client/swr-spit-runtime.client.js and
+// spit.html: the runtime has no natural place to drive a director. The RAF
+// loop (_tick → _drawBackground) paints a hardcoded gradient + waveform and
+// never reads ctx.layers or continuous FX slots. The runtime keeps no
+// _layers, _fxStack or _audioFeatures state — the STEP 3 helper above
+// references fields that do not exist (this._layers, this._fxStack, and the
+// audio element is this._audioEl, not this._audio). Spit's FX module
+// (swr-spit-fx.client.js) is event-driven trigger(name, ctx) — punch-in
+// effects, not continuous intensity slots — so the director's
+// ctx.fx[k].intensity mirroring would drive nothing. Driving a director here
+// would mean fabricating ctx state with no consumer (a half-wired call site)
+// or changing observable beat/recording/export behavior. Revisit when the
+// runtime — or a new surface — actually consumes layered output or a
+// continuous FX intensity.

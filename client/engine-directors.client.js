@@ -4,6 +4,11 @@
 // (Short 30-60s, Medium 60-120s, Long 2-5min).
 // Each returns a Director object with setup() and update().
 // Context includes real AudioFeatures from audio-analysis-v2.
+//
+// STATUS (HIGH-001): unit-test-only groundwork. No page loads this module
+// and no user-facing surface selects a director — see
+// client/engine-directors.integration.js for why. Do not ship integration
+// code that assumes this runs in production.
 
 (function () {
   'use strict';
@@ -151,7 +156,9 @@
     var baseLayers = config.baseLayers || [];
     // An unknown template falls back to the default arc — and the name must
     // report the arc actually in use, not the one that was asked for.
-    var effective = arcs[template] ? template : opts.defaultTemplate;
+    // Own-property + array check: a prototype key like 'constructor' would
+    // otherwise pass a truthy lookup and throw on arc[0].at.
+    var effective = (Object.prototype.hasOwnProperty.call(arcs, template) && Array.isArray(arcs[template])) ? template : opts.defaultTemplate;
     var arc = arcs[effective];
     var span = arc.length ? arc[arc.length - 1].at : 0;
     // Arc checkpoints declare section *starts*, so the closing section would
@@ -222,10 +229,14 @@
 
         ctx.section = seg.name;
 
-        // Apply the final energy to FX intensity
-        if (ctx.fx) {
+        // The director owns `intensity` on FX slots: energy is mirrored onto
+        // every slot here, so callers must not write ctx.fx[k].intensity
+        // themselves.
+        if (Array.isArray(ctx.fx)) {
           for (var k = 0; k < ctx.fx.length; k++) {
-            ctx.fx[k].intensity = ctx.energy;
+            if (ctx.fx[k]) {
+              ctx.fx[k].intensity = ctx.energy;
+            }
           }
         }
       }
@@ -235,13 +246,9 @@
   // ---------------------------------------------------------------------------
   // Short Director — 30-60s structured narrative
   // ---------------------------------------------------------------------------
-  /**
-   * @param {Object} config
-   * @param {number} [config.bars=20] - Target bars (clamped to 30-60s)
-   * @param {string} [config.template='hook-build-drop-outro'] - Arc template
-   * @param {Array} config.baseLayers - Base layer stack
-   * @returns {Director}
-   */
+  // NOTE: every arc's `at` values must be strictly ascending — the segment
+  // lookup and the closing-section `tail` math in structuredDirector both
+  // depend on it.
   var SHORT_ARCS = {
     'hook-build-drop-outro': [
       { at: 0, name: 'intro', energy: 0.3 },
@@ -264,6 +271,13 @@
     ]
   };
 
+  /**
+   * @param {Object} config
+   * @param {number} [config.bars=20] - Target bars (clamped to 30-60s)
+   * @param {string} [config.template='hook-build-drop-outro'] - Arc template
+   * @param {Array} config.baseLayers - Base layer stack
+   * @returns {Director}
+   */
   function shortDirector(config) {
     return structuredDirector(config, {
       kind: 'short',
@@ -277,13 +291,6 @@
   // ---------------------------------------------------------------------------
   // Medium Director — 60-120s structured narrative
   // ---------------------------------------------------------------------------
-  /**
-   * @param {Object} config
-   * @param {number} [config.bars=40] - Target bars (clamped to 60-120s)
-   * @param {string} [config.template='verse-chorus-bridge-outro'] - Arc template
-   * @param {Array} config.baseLayers - Base layer stack
-   * @returns {Director}
-   */
   var MEDIUM_ARCS = {
     'verse-chorus-bridge-outro': [
       { at: 0, name: 'intro', energy: 0.3 },
@@ -314,6 +321,13 @@
     ]
   };
 
+  /**
+   * @param {Object} config
+   * @param {number} [config.bars=40] - Target bars (clamped to 60-120s)
+   * @param {string} [config.template='verse-chorus-bridge-outro'] - Arc template
+   * @param {Array} config.baseLayers - Base layer stack
+   * @returns {Director}
+   */
   function mediumDirector(config) {
     return structuredDirector(config, {
       kind: 'medium',
@@ -327,13 +341,6 @@
   // ---------------------------------------------------------------------------
   // Long Director — 2-5min structured narrative
   // ---------------------------------------------------------------------------
-  /**
-   * @param {Object} config
-   * @param {number} [config.bars=120] - Target bars (clamped to 2-5min)
-   * @param {string} [config.template='full-song'] - Arc template
-   * @param {Array} config.baseLayers - Base layer stack
-   * @returns {Director}
-   */
   var LONG_ARCS = {
     'full-song': [
       { at: 0, name: 'intro', energy: 0.25 },
@@ -371,6 +378,13 @@
     ]
   };
 
+  /**
+   * @param {Object} config
+   * @param {number} [config.bars=120] - Target bars (clamped to 2-5min)
+   * @param {string} [config.template='full-song'] - Arc template
+   * @param {Array} config.baseLayers - Base layer stack
+   * @returns {Director}
+   */
   function longDirector(config) {
     return structuredDirector(config, {
       kind: 'long',
