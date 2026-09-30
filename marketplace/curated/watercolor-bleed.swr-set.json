@@ -1,37 +1,37 @@
 {
   "schemaVersion": 1,
-  "id": "00000000-0000-4000-8000-000000000003",
-  "name": "Type · Loud",
+  "id": "00000000-0000-4000-8000-000000000010",
+  "name": "Watercolor · Bleed",
   "author": "SWR",
-  "description": "Bold Archivo Black typography with beat-synced weight and scale. Drop in your own copy via the engine UI. Best for social clips, lyric videos, brand motion.",
+  "description": "Soft liquid bleed with heavy pearl highlights. Folk, shoegaze and gentle pop — the edges stay open and the colour does the work.",
   "tags": [
-    "typography",
-    "bold",
-    "social",
-    "lyric-video"
+    "watercolor",
+    "soft",
+    "pearl",
+    "folk"
   ],
-  "createdAt": "2026-08-24T00:00:00Z",
-  "engine": "typography",
+  "createdAt": "2026-09-30T00:00:00Z",
+  "engine": "watercolor",
   "audio": {
-    "name": "kraft.mp3",
+    "name": "watercolor.mp3",
     "mimeType": "audio/mpeg",
-    "size": 233542,
-    "url": "/audios/kraft.mp3"
+    "size": 239302,
+    "url": "/audios/watercolor.mp3"
   },
   "fx": {
-    "temp": 0,
-    "mut": 0,
+    "temp": 0.75,
+    "mut": 0.1,
     "mutAlgo": 0,
     "posterize": 0,
-    "vignette": 0,
-    "chroma": 0,
-    "grain": 0,
-    "sepia": 0,
-    "glow": 0,
+    "vignette": 0.2,
+    "chroma": 0.3,
+    "grain": 0.12,
+    "sepia": 0.15,
+    "glow": 0.55,
     "grayscale": 0,
-    "blur": 0,
-    "liquid": 0,
-    "pearl": 0,
+    "blur": 0.35,
+    "liquid": 0.55,
+    "pearl": 0.6,
     "glitch": 0
   },
   "layers": [
@@ -61,8 +61,8 @@
     }
   ],
   "settings": {
-    "bpm": 124,
-    "key": "C",
+    "bpm": 104,
+    "key": "F",
     "scale": "major"
   }
 }

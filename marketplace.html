@@ -156,6 +156,11 @@
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.id = set.id || set.name;
+        // Carry the real source path so install/preview never have to guess
+        // the filename from the display title. Title slugs are not unique:
+        // "Type · Loud" is stored as typography-loud.swr-set.json, so
+        // deriving the filename from the name 404s on it.
+        if (opts.file) card.dataset.file = opts.file;
         const tags = (set.tags || []).slice(0, 4);
         const persona = (set.tags && set.tags[0]) || 'curated';
         card.innerHTML = `
@@ -180,42 +185,47 @@
         return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       }
 
-      // Load curated set metadata from marketplace/curated/index.json
-      // (built by build step OR hardcoded fallback below)
+      // Load curated set metadata. marketplace/curated/index.json is the
+      // source of truth — adding a set is a data change, not an HTML edit.
+      // The list below is only the fallback for when the manifest is absent.
+      const KNOWN = [
+        'aurora-drift', 'collage-mag', 'eclipse-veil', 'fractal-maze',
+        'glitch-idm', 'neon-pulse', 'smoke-portrait', 'spectrum-bass',
+        'typography-loud', 'void-bloom', 'watercolor-bleed',
+      ].map(s => '/marketplace/curated/' + s + '.swr-set.json');
+
       async function loadCurated() {
-        // First try the manifest. If it doesn't exist, fall back to scanning
-        // the curated directory via a known hardcoded list.
-        const KNOWN = [
-          { file: '/marketplace/curated/neon-pulse.swr-set.json' },
-          { file: '/marketplace/curated/smoke-portrait.swr-set.json' },
-          { file: '/marketplace/curated/typography-loud.swr-set.json' },
-          { file: '/marketplace/curated/collage-mag.swr-set.json' },
-          { file: '/marketplace/curated/spectrum-bass.swr-set.json' },
-          { file: '/marketplace/curated/glitch-idm.swr-set.json' },
-        ];
-        const sets = [];
-        for (const k of KNOWN) {
-          try {
-            const r = await fetch(k.file, { cache: 'no-cache' });
-            if (r.ok) {
-              const doc = await r.json();
-              sets.push(doc);
+        let files = KNOWN;
+        try {
+          const idx = await fetch('/marketplace/curated/index.json', { cache: 'no-cache' });
+          if (idx.ok) {
+            const manifest = await idx.json();
+            if (Array.isArray(manifest.sets) && manifest.sets.length) {
+              files = manifest.sets.map(s => (typeof s === 'string' ? s : s.file)).filter(Boolean);
             }
+          }
+        } catch (e) { /* fall back to KNOWN */ }
+
+        const entries = [];
+        for (const file of files) {
+          try {
+            const r = await fetch(file, { cache: 'no-cache' });
+            if (r.ok) entries.push({ doc: await r.json(), file });
           } catch (e) { /* skip */ }
         }
-        return sets;
+        return entries;
       }
 
-      function renderCuratedGrid(sets) {
+      function renderCuratedGrid(entries) {
         const grid = document.getElementById('curated-grid');
         const count = document.getElementById('curated-count');
-        count.textContent = sets.length + ' available';
-        if (!sets.length) {
+        count.textContent = entries.length + ' available';
+        if (!entries.length) {
           grid.innerHTML = '<div class="empty"><strong>No curated sets found</strong>The marketplace/curated/ folder is empty.</div>';
           return;
         }
         grid.innerHTML = '';
-        for (const s of sets) grid.appendChild(renderCard(s, { installed: false }));
+        for (const e of entries) grid.appendChild(renderCard(e.doc, { installed: false, file: e.file }));
       }
 
       async function loadInstalled() {
@@ -334,12 +344,11 @@
           const id = btn.dataset.id;
           if (action === 'install') {
             const card = btn.closest('.card');
-            // Find the curated set by id
-            const allCards = Array.from(document.querySelectorAll('.card'));
-            // Pull doc from the curated grid by matching the name in the
-            // card title
-            const title = card.querySelector('h4')?.textContent;
-            const r = await fetch('/marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            // Read the source path the card was rendered with — never derive
+            // it from the title (see renderCard).
+            const file = card && card.dataset.file;
+            if (!file) { toast('Install failed: source not found', true); return; }
+            const r = await fetch(file, { cache: 'no-cache' });
             if (r.ok) {
               const doc = await r.json();
               const ok = await installSet(doc);
@@ -349,9 +358,9 @@
             }
           } else if (action === 'preview') {
             const card = btn.closest('.card');
-            const title = card.querySelector('h4')?.textContent;
-            // Try to find the curated set
-            const r = await fetch('/marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            const file = card && card.dataset.file;
+            if (!file) return;
+            const r = await fetch(file, { cache: 'no-cache' });
             if (r.ok) {
               const doc = await r.json();
               previewSet(doc);

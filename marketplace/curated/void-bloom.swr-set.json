@@ -1,38 +1,38 @@
 {
   "schemaVersion": 1,
-  "id": "00000000-0000-4000-8000-000000000006",
-  "name": "Glitch · IDM",
+  "id": "00000000-0000-4000-8000-000000000009",
+  "name": "Void · Bloom",
   "author": "SWR",
-  "description": "Heavy glitch engine with onset micro-shakes. Best for IDM, breakcore, experimental electronic, anything with sharp transients.",
+  "description": "Near-monochrome, crushed blacks and a slow liquid bloom. Minimal techno, drone and anything that wants to sit in negative space.",
   "tags": [
-    "glitch",
-    "experimental",
-    "idm",
-    "breakcore"
+    "void",
+    "monochrome",
+    "drone",
+    "minimal"
   ],
-  "createdAt": "2026-08-24T00:00:00Z",
-  "engine": "glitch",
+  "createdAt": "2026-09-30T00:00:00Z",
+  "engine": "void",
   "audio": {
-    "name": "glitch.mp3",
+    "name": "void.mp3",
     "mimeType": "audio/mpeg",
-    "size": 264070,
-    "url": "/audios/glitch.mp3"
+    "size": 216838,
+    "url": "/audios/void.mp3"
   },
   "fx": {
-    "temp": 0,
-    "mut": 0,
-    "mutAlgo": 0,
-    "posterize": 0,
-    "vignette": 0.4,
-    "chroma": 0.4,
+    "temp": 0.2,
+    "mut": 0.2,
+    "mutAlgo": 2,
+    "posterize": 0.1,
+    "vignette": 0.85,
+    "chroma": 0.15,
     "grain": 0.3,
     "sepia": 0,
-    "glow": 0.4,
-    "grayscale": 0.2,
-    "blur": 0.05,
-    "liquid": 0,
-    "pearl": 0,
-    "glitch": 0
+    "glow": 0.35,
+    "grayscale": 0.6,
+    "blur": 0.2,
+    "liquid": 0.15,
+    "pearl": 0.1,
+    "glitch": 0.1
   },
   "layers": [
     {
@@ -61,8 +61,8 @@
     }
   ],
   "settings": {
-    "bpm": 174,
-    "key": "C",
+    "bpm": 124,
+    "key": "A",
     "scale": "minor"
   }
 }
