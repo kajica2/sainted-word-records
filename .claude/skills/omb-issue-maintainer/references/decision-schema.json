@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OMB Issue Maintainer Decision v1",
+  "description": "Structural mirror of hook.issue_maintainer.schema.Decision. Python strict JSON decoding and domain/coordinator validation are authoritative for cross-field, snapshot, ownership, evidence, and semantic constraints. UTF-8 JSON input is bounded to 8 MiB and depth 32; duplicate keys and nonfinite numbers are rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation_id",
+    "generation",
+    "plan_revision",
+    "snapshot_digests",
+    "canonical_issue",
+    "sources",
+    "priority",
+    "category",
+    "title",
+    "body_addition",
+    "evidence",
+    "requirement_coverage",
+    "rationale",
+    "human_conflicts",
+    "branch_scopes",
+    "merge_kind",
+    "completion_condition"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "default": 1
+    },
+    "operation_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,199}$"
+    },
+    "generation": {
+      "$ref": "#/$defs/positiveInteger"
+    },
+    "continuation_capability": {
+      "type": "string",
+      "maxLength": 512,
+      "writeOnly": true,
+      "description": "Private one-shot value from prepare/resume. Omitted or empty only for redacted stored Decisions; coordinator requires the issued value for a new apply."
+    },
+    "plan_revision": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,17}$"
+    },
+    "snapshot_digests": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[1-9][0-9]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "description": "Exactly the canonical/source issue number keys and their fresh complete snapshot digests."
+    },
+    "canonical_issue": {
+      "$ref": "#/$defs/positiveInteger"
+    },
+    "sources": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/positiveInteger"
+      },
+      "description": "Excludes canonical_issue; configured source limit may be smaller."
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "p0",
+        "p1",
+        "p2",
+        "p3"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "python",
+        "fastapi",
+        "pydantic",
+        "typescript",
+        "nextjs",
+        "langchain",
+        "langgraph",
+        "deepagents",
+        "mcp",
+        "postgresql",
+        "tortoise-orm",
+        "aerich",
+        "redis",
+        "arq",
+        "rabbitmq",
+        "s3",
+        "efs",
+        "docker",
+        "kubernetes",
+        "github-actions",
+        "langfuse",
+        "prometheus",
+        "sentry",
+        "pytest",
+        "ruff",
+        "security",
+        "other"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\[p[0-3]\\]\\[(python|fastapi|pydantic|typescript|nextjs|langchain|langgraph|deepagents|mcp|postgresql|tortoise-orm|aerich|redis|arq|rabbitmq|s3|efs|docker|kubernetes|github-actions|langfuse|prometheus|sentry|pytest|ruff|security|other)\\] [^\\n\\u0000]{1,200}$",
+      "description": "Runtime requires the exact chosen priority/category prefix; descriptive text is Korean."
+    },
+    "body_addition": {
+      "type": "string",
+      "maxLength": 65536,
+      "pattern": "^[^\\u0000]*$",
+      "description": "Korean addition only; empty preserves an already sufficient original. Never includes owned body markers."
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "requirement_coverage": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/requirementCoverage"
+      }
+    },
+    "rationale": {
+      "$ref": "#/$defs/nonemptyText"
+    },
+    "human_conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/humanConflict"
+      }
+    },
+    "branch_scopes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/branch"
+      }
+    },
+    "issue_branch_scopes": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[1-9][0-9]*$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "$ref": "#/$defs/branch"
+        }
+      },
+      "description": "If supplied, exactly all target issue keys. Required for merges with missing snapshot branch metadata. Every declared branch is in branch_scopes and backed by Evidence; cannot contradict known snapshot scopes."
+    },
+    "merge_kind": {
+      "type": "string",
+      "enum": [
+        "none",
+        "same_problem",
+        "single_solution"
+      ]
+    },
+    "completion_condition": {
+      "$ref": "#/$defs/nonemptyText"
+    },
+    "unified_backport": {
+      "type": "boolean",
+      "default": false,
+      "description": "Differing effective issue branch scopes require true plus explicit common completion naming every branch and verified Evidence for every branch."
+    }
+  },
+  "$defs": {
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "nonemptyText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536,
+      "pattern": "^[^\\u0000]+$"
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Must also pass runtime Git branch validation; no traversal, ref expressions, whitespace, or invalid ref characters."
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "branch",
+        "commit_sha",
+        "path",
+        "line_start",
+        "line_end",
+        "blob_sha",
+        "quoted_text",
+        "observed_fact",
+        "confidence"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$"
+        },
+        "branch": {
+          "$ref": "#/$defs/branch"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Canonical relative POSIX regular-file path; no absolute path, traversal, backslash, symlink, or submodule."
+        },
+        "line_start": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "line_end": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "blob_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "quoted_text": {
+          "$ref": "#/$defs/nonemptyText"
+        },
+        "observed_fact": {
+          "$ref": "#/$defs/nonemptyText"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "confirmed",
+            "hypothesis"
+          ]
+        }
+      }
+    },
+    "requirementCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_issue",
+        "source_quote",
+        "canonical_quote"
+      ],
+      "properties": {
+        "source_issue": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "source_quote": {
+          "$ref": "#/$defs/nonemptyText"
+        },
+        "canonical_quote": {
+          "$ref": "#/$defs/nonemptyText"
+        }
+      }
+    },
+    "humanConflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issue",
+        "comment_id",
+        "quoted_text",
+        "reason"
+      ],
+      "properties": {
+        "issue": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "comment_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/positiveInteger"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quoted_text": {
+          "$ref": "#/$defs/nonemptyText"
+        },
+        "reason": {
+          "$ref": "#/$defs/nonemptyText"
+        }
+      }
+    }
+  }
+}

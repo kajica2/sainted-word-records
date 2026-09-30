@@ -1,0 +1,12 @@
+{
+  "template": "fastapi",
+  "project_name": "sample-fastapi",
+  "project_purpose": "FastAPI backend for order management.",
+  "project_hard_rules": [
+    "- [HARD] Route all database calls through the async SQLAlchemy session factory"
+  ],
+  "project_slot_label": "DB migrate",
+  "project_slot_cmd": "alembic upgrade head",
+  "documentation_language": "en",
+  "proceed": false
+}

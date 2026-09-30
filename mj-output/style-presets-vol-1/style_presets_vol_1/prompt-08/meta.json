@@ -1,0 +1,16 @@
+{
+  "index": 8,
+  "prompt": "Abstract study rendered with an orthogonal grid ruled across the frame, modular composition, precise alignment, blueprint restraint — CROSS GRID study --style raw --s 250 --ar 16:9",
+  "taskId": "9c256df7-35ff-425f-a885-61836a6af7e3",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/9c256df7-35ff-425f-a885-61836a6af7e3/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/9c256df7-35ff-425f-a885-61836a6af7e3/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/9c256df7-35ff-425f-a885-61836a6af7e3/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/9c256df7-35ff-425f-a885-61836a6af7e3/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:23:07.896Z",
+  "complete": true
+}

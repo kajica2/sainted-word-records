@@ -1,0 +1,16 @@
+{
+  "index": 1,
+  "prompt": "Abstract study rendered as a minimal-intervention, pure-layer, light-hue-only composition, clean music-video look, no chromatic noise — CROSS RAW study --style raw --s 250 --ar 16:9",
+  "taskId": "25a47f89-87c9-4608-b8d4-dc35d8184cb7",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/25a47f89-87c9-4608-b8d4-dc35d8184cb7/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/25a47f89-87c9-4608-b8d4-dc35d8184cb7/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/25a47f89-87c9-4608-b8d4-dc35d8184cb7/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/25a47f89-87c9-4608-b8d4-dc35d8184cb7/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:22:34.864Z",
+  "complete": true
+}

@@ -1,0 +1,12 @@
+{
+  "template": "fullstack",
+  "project_name": "sample-fullstack",
+  "project_purpose": "Sample fullstack app for smoke testing the omb-setup v2 CLAUDE.md generator.",
+  "project_hard_rules": [
+    "- [HARD] Route all DB calls through the async session factory"
+  ],
+  "project_slot_label": "DB migrate",
+  "project_slot_cmd": "alembic upgrade head",
+  "documentation_language": "en",
+  "proceed": false
+}

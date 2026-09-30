@@ -1,0 +1,21 @@
+{
+  "index": 1,
+  "prompt": "Vintage black and white photograph of a cluttered Belgrade student apartment, late 1940s, books stacked on every surface, a worn wooden table with a candle, two young men reading by candlelight, soft directional light, mid-century bohemian academic atmosphere, museum artifact, candid and intimate  --v 8.2 --style raw --no text signature --ar 2:3",
+  "taskId": "64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_3_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_2.jpeg",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_0_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_1_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_2_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_3_384_N.webp?method=shortest&qst=6&quality=15"
+  ],
+  "imageCount": 9,
+  "submittedAt": "2026-09-30T00:58:17.454Z",
+  "complete": true
+}
