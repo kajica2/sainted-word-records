@@ -134,6 +134,14 @@
         Install a curated set above, or drop a .swr-set file to get started.
       </div>
     </div>
+
+    <div class="section-head">
+      <h3>Harmonic Study Engine Packages</h3>
+      <span class="count" id="hse-count">— loading…</span>
+    </div>
+    <div class="grid" id="hse-grid">
+      <div class="empty"><strong>Loading…</strong></div>
+    </div>
   </main>
 
   <div class="toast" id="toast"></div>
@@ -370,11 +378,64 @@
       wireActions(document.getElementById('curated-grid'));
       wireActions(document.getElementById('installed-grid'));
 
+      // === HSE packages (MP3 + MIDI from the harmonic-study-engine repo) ===
+      const HSE_REPO = 'kajica2/harmonic-study-engine';
+      const HSE_BRANCH = 'main';
+      const HSE_DIR = 'marketplace';
+      const hseGrid = document.getElementById('hse-grid');
+      const hseCount = document.getElementById('hse-count');
+
+      function hseSlugTitle(slug) {
+        return slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+
+      async function loadHsePackages() {
+        try {
+          const r = await fetch(
+            `https://api.github.com/repos/${HSE_REPO}/contents/${HSE_DIR}?ref=${HSE_BRANCH}`,
+            { headers: { Accept: 'application/vnd.github+json' } },
+          );
+          if (!r.ok) throw new Error('GitHub API ' + r.status);
+          const files = await r.json();
+          const mp3 = new Map();
+          const mid = new Map();
+          for (const f of files) {
+            const m = /^(.+)\.(mp3|mid)$/.exec(f.name || '');
+            if (!m) continue;
+            if (m[2] === 'mp3') mp3.set(m[1], f.download_url);
+            else mid.set(m[1], f.download_url);
+          }
+          const slugs = [...new Set([...mp3.keys(), ...mid.keys()])].sort();
+          hseCount.textContent = slugs.length + ' packages';
+          if (slugs.length === 0) {
+            hseGrid.innerHTML = '<div class="empty"><strong>No packages yet</strong>The harmonic-study-engine marketplace/ folder is empty.</div>';
+            return;
+          }
+          hseGrid.innerHTML = slugs.map((slug) => {
+            const audio = mp3.get(slug);
+            const midi = mid.get(slug);
+            const title = hseSlugTitle(slug);
+            return `<div class="card">
+              <div class="card-title" style="font:800 15px/1.2 'Archivo Black',sans-serif;letter-spacing:-0.01em">${title}</div>
+              <div class="desc" style="font-size:12px;color:var(--muted);line-height:1.5">MP3 + MIDI package from the Harmonic Study Engine.</div>
+              <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                ${audio ? `<a class="dl" href="${audio}" download style="font:500 11px/1 'Space Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;padding:8px 12px;background:var(--accent);color:#fff;border-radius:3px;text-decoration:none">MP3</a>` : ''}
+                ${midi ? `<a class="dl" href="${midi}" download style="font:500 11px/1 'Space Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;padding:8px 12px;background:var(--accent-2);color:#fff;border-radius:3px;text-decoration:none">MIDI</a>` : ''}
+              </div>
+            </div>`;
+          }).join('');
+        } catch (err) {
+          hseCount.textContent = 'unavailable';
+          hseGrid.innerHTML = `<div class="empty"><strong>Could not load packages</strong>${escapeHtml(String(err.message || err))}</div>`;
+        }
+      }
+
       // === Init ===
       (async function init() {
         const curated = await loadCurated();
         renderCuratedGrid(curated);
         await refreshInstalled();
+        await loadHsePackages();
       })();
     })();
   </script>
