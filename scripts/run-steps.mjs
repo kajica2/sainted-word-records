@@ -95,6 +95,7 @@ const GROUPS = {
     'npm run check:directors-unit',
     'npm run check:spit-live-unit',
     'npm run check:tiktok-unit',
+    'npm run check:glyphs-layers-unit',
     'npm run check:capture-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
