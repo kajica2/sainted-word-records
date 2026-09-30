@@ -217,6 +217,8 @@ These surfaces override the wrap with `100vh`, install their own chrome, and **d
 - `enhance.html`
 - `photo.html`
 - `ar-gif.html`
+- `tiktok.html`
+- `swr-app.html`
 
 ### Mobile
 
@@ -267,14 +269,17 @@ These surfaces override the wrap with `100vh`, install their own chrome, and **d
 
 ### No Emojis as UI Chrome
 
-- Codebase uses 🌊/👊/🏄 as **labelled radio option icons only** inside `.spit-reaction-mode`, never as buttons, headings, or status
-- Dropzone 🥁 is the **one terminal affordance exception**
+- Codebase uses 🌊/👊/🏄 as **labelled radio option icons only** inside `.spit-reaction-mode` and `.spit-fx-btn`, never as buttons, headings, or status
+- Dropzone 🥁 is the **one terminal affordance exception** (`.spit-drop-icon`)
+- Enhance page fix-icons 🌊 also follow this pattern — labelled radio option icons in any reactive-mode control set; not buttons, headings, or status
 - Ban emoji elsewhere — use SVG or text
 
 ### No Inter Font
 
 - Explicitly banned in design tokens (`'Geist', ui-sans-serif, system-ui` chain)
 - system-ui is fallback, not primary
+- **Exception**: `dashboard.html`, `marketplace.html`, `swr-app.html` are third-party-vibe surfaces that ship with Tailwind + Inter as primary; do not propagate that pattern to a new page.
+- **Exception**: the `personas.html` index imports 9 families (Fraunces + Geist + Geist Mono + Space Grotesk + DM Serif Display + DM Sans + Geist + JetBrains Mono + Archivo Black) for the persona-fixture displays; not a model for new pages.
 
 ### No Pure Black `#000000`
 
@@ -285,7 +290,7 @@ These surfaces override the wrap with `100vh`, install their own chrome, and **d
 
 - Shadows in tokens are tinted to ink hue at 4–12% opacity
 - No `0 0 20px var(--accent)` exists in the codebase
-- Verified: grep for `0 0 .*var\(--accent\)` returns only the brand pulse (a contained box-shadow, not an outer glow)
+- **Indicator LEDs** ≤10px diameter with `box-shadow: 0 0 8px var(--accent)` are sanctioned on engine.html, artists/*.html, personas/v/*.html, and versions/*.html; no other outer-glow use is permitted
 
 ### No Oversaturated Accents
 
