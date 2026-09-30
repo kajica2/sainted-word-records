@@ -409,7 +409,8 @@
     "/gallery/bachdrop",
     "/gallery/brutalist",
     "/gallery/vintage",
-    "/versions/music-video-gallery"
+    "/versions/music-video-gallery",
+    "/slots-admin"
   ],
   "archived": [],
   "meta": {

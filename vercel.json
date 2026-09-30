@@ -868,6 +868,14 @@
       "destination": "/gallery-vintage.html"
     },
     {
+      "source": "/slots-admin",
+      "destination": "/slots-admin.html"
+    },
+    {
+      "source": "/slots-admin/",
+      "destination": "/slots-admin.html"
+    },
+    {
       "source": "/login",
       "destination": "/login.html"
     },

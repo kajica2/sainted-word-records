@@ -402,6 +402,11 @@ function copyStatic() {
     'api/_lib/http.js',
     'api/_lib/session.js',
     'api/_lib/email.js',
+    // Video-slot ledger (authoritative payment-side quota for pt.client.js).
+    'api/slots/grant.js',
+    'api/slots/index.js',
+    'api/slots/[userId].js',
+    'api/_lib/slots.js',
     'versions.client.js',
     'director-mode-sainted-word.html',
     'intro.html',

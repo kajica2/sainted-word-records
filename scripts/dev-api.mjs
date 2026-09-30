@@ -52,6 +52,13 @@ function pickHandlerPath(urlPath) {
   if (segs[1] === 'users' && segs[2] && /^[a-f0-9-]{8,40}$/i.test(segs[2])) {
     return '../api/users/[id].js';
   }
+  // Video-slot ledger: /api/slots/grant (admin), /api/slots/<userId>
+  // (state + register), /api/slots (the PT panel sync endpoint).
+  if (segs[1] === 'slots') {
+    if (segs[2] === 'grant') return '../api/slots/grant.js';
+    if (segs[2]) return '../api/slots/[userId].js';
+    return '../api/slots/index.js';
+  }
   if (segs[1] === 'health') return HANDLER_PATHS['manifest'];
   if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files + ?action=health
   return null;

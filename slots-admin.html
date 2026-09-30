@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Slot Admin · Sainted Word Records</title>
+  <meta name="description" content="Operator-only: grant video slots to PT users. Server-side slot ledger for Sainted Word Records." />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/slots-admin" />
+  <meta property="og:title" content="Video Slot Admin · Sainted Word Records" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta property="og:description" content="Operator tool: server-side video-slot ledger for the PT panel." />
+  <style>
+    :root { --bg:#000; --ink:#fff; --muted:#888; --accent:#E6306B; --warn:#ffae42; --ok:#7ee787; --err:#ff6b6b; --line:#222; }
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px ui-sans-serif, system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 48px 24px 96px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.01em; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .warn {
+      background: #2a1e0a;
+      border: 1px solid var(--warn);
+      color: var(--warn);
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+    .card {
+      background: #0d0d0d;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    input[type=text], input[type=email], select {
+      width: 100%;
+      background: #000;
+      color: var(--ink);
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 10px 12px;
+      font: inherit;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    input:focus, select:focus { border-color: var(--accent); outline: none; }
+    .row { display: grid; grid-template-columns: 1fr 180px; gap: 12px; align-items: end; }
+    .btn {
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 4px;
+      padding: 12px 20px;
+      font: inherit;
+      font-weight: 600;
+    }
+    .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+    .btn.block { width: 100%; margin-top: 12px; }
+    .out {
+      margin-top: 16px;
+      padding: 12px;
+      background: #000;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 240px;
+      overflow: auto;
+    }
+    .out .err { color: var(--err); }
+    .out .ok  { color: var(--ok); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .empty { color: var(--muted); padding: 16px 0 0; font-size: 13px; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .hint a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main class="wrap">
+    <h1>Video Slot Admin</h1>
+    <p class="sub">Server-side slot ledger for the PT panel. Grants are written <code>paid: false</code> — Stripe collection is not wired yet.</p>
+
+    <div class="warn">
+      <strong>Operator only.</strong> This endpoint is gated by <code>SWR_ADMIN_EMAILS</code> (server env) against your
+      signed-in session. If the grant fails with <em>unauthorized</em>, sign in first:
+      <a href="/auth/login" style="color:inherit">→ login</a>.
+    </div>
+
+    <div class="card">
+      <form id="grant-form">
+        <div class="row">
+          <div>
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="customer@example.com" required autocomplete="off" />
+          </div>
+          <div>
+            <label for="slots">Slots</label>
+            <select id="slots" name="slots">
+              <option value="10">10 — PT Solo (€120)</option>
+              <option value="30" selected>30 — PT Band (€280)</option>
+              <option value="50">50 — PT Label (€600)</option>
+            </select>
+          </div>
+        </div>
+        <label for="note" style="margin-top:12px">Note (optional, ≤ 200 chars)</label>
+        <input type="text" id="note" name="note" placeholder="e.g. invoice #42" maxlength="200" autocomplete="off" />
+        <button type="submit" class="btn block" id="grant-btn">Grant slots</button>
+        <div class="out" id="grant-out" hidden></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 12px;font-size:15px">Recent grants</h2>
+      <div id="recent-wrap"><p class="empty">No grants issued from this browser yet.</p></div>
+      <table id="recent-table" hidden>
+        <thead><tr><th>When</th><th>Email</th><th>Slots</th><th>Note</th><th>Total now</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="hint">Grant history is stored in this browser (localStorage); the ledger on the server is the
+        source of truth.</p>
+    </div>
+  </main>
+
+  <swr-footer></swr-footer>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="/slots-admin.client.js" defer></script>
+</body>
+</html>

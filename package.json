@@ -138,7 +138,12 @@
     "verify:layer-cover": "node verify-layer-cover.mjs",
     "verify:genops": "node verify-genops.mjs",
     "verify:tier-runtime": "node verify-tier-runtime.mjs",
-    "check:register-data": "node scripts/check-register-data.mjs"
+    "check:register-data": "node scripts/check-register-data.mjs",
+    "check:grant-invite-batch-unit": "node scripts/check-grant-invite-batch-unit.mjs",
+    "check:pt-unit": "node scripts/check-pt-unit.mjs",
+    "check:zip-reader-unit": "node scripts/check-zip-reader-unit.mjs",
+    "check:slots-unit": "node scripts/check-slots-unit.mjs",
+    "check:slots-api-smoke": "node scripts/check-slots-api-smoke.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",

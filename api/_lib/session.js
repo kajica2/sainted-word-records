@@ -27,13 +27,26 @@ export async function requireUser(req, res) {
   return { user, session };
 }
 
-// Admin gate: same auth as requireUser, plus the user's email must appear in
-// the SWR_ADMIN_EMAILS allow-list (comma-separated, server-side env).
+// Admin allow-list check (pure predicate). Same env + case rules as
+// requireAdmin below. Exported so handlers that accept "self OR admin"
+// (api/slots/[userId].js) share the one gate definition.
 //
 // Env:
 //   SWR_ADMIN_EMAILS — comma-separated, case-insensitive, e.g.
 //                       "kai.djuric@gmail.com,ops@example.com"
 //                      Unset / empty => no one is admin (fail-closed).
+export function isAdminUser(user) {
+  const allow = (process.env.SWR_ADMIN_EMAILS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (allow.length === 0) return false;
+  const email = user && user.email ? String(user.email).toLowerCase() : '';
+  return !!email && allow.includes(email);
+}
+
+// Admin gate: same auth as requireUser, plus the user's email must appear in
+// the SWR_ADMIN_EMAILS allow-list (comma-separated, server-side env).
 //
 // Behaviour:
 //   - Missing env:  503 { error: 'admin_disabled' }
@@ -53,8 +66,7 @@ export async function requireAdmin(req, res) {
     res.end(JSON.stringify({ error: 'admin_disabled', hint: 'SWR_ADMIN_EMAILS env not configured' }));
     return null;
   }
-  const email = (auth.user && auth.user.email ? String(auth.user.email) : '').toLowerCase();
-  if (!email || !allow.includes(email)) {
+  if (!isAdminUser(auth.user)) {
     res.statusCode = 403;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.end(JSON.stringify({ error: 'forbidden' }));

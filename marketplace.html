@@ -105,15 +105,15 @@
   <main class="container">
     <div class="intro">
       <h2>Music-video templates for designers, musicians, and mixed-media creators.</h2>
-      <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Drop a custom .swr-set file to add it to your library.</p>
+      <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Drop a custom .swr-set file — or a .zip media pack — to add it to your library.</p>
     </div>
 
     <div class="drop-zone" id="drop-zone">
-      <strong>Drop a .swr-set file here</strong>
+      <strong>Drop a .swr-set or media pack (.zip) here</strong>
       <span>Or click to browse · installs to your local engine library</span>
       <br />
       <button id="browse-btn">Choose file…</button>
-      <input type="file" id="set-input" accept=".swr-set,.json,application/json" style="display:none" />
+      <input type="file" id="set-input" accept=".swr-set,.json,.zip,application/json,application/zip" style="display:none" />
     </div>
 
     <div class="section-head">
@@ -139,6 +139,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="/swr-sets.js"></script>
+  <script src="/lib/zip-reader.client.js"></script>
   <script>
     (function () {
       const toast = (msg, isError) => {
@@ -256,12 +257,54 @@
           return false;
         }
         try {
-          await window.SWR_SETS.saveInstalled(doc);
+          await saveSetInstalled(doc);
           return true;
         } catch (e) {
           toast('install failed: ' + e.message, true);
           return false;
         }
+      }
+
+      // Save an installed set. Prefers the engine's Library.db (what the
+      // engine reads on boot); on the standalone marketplace page there is
+      // no Library, so fall back to opening the same origin IndexedDB
+      // directly — the set still installs and shows up once the engine
+      // initializes its Library.
+      async function saveSetInstalled(doc) {
+        try {
+          return await window.SWR_SETS.saveInstalled(doc);
+        } catch (e) {
+          if (window.Library) throw e; // real Library error — surface it
+          return standaloneSaveInstalled(doc);
+        }
+      }
+
+      // Mirrors lib/library.client.js's upgrade shape so the 'sets' store
+      // created here is readable by the engine later (same DB + version).
+      function standaloneSaveInstalled(doc) {
+        if (typeof indexedDB === 'undefined' || !doc || !doc.id) {
+          throw new Error('IndexedDB unavailable');
+        }
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open('sainted-word-records', 4);
+          req.onupgradeneeded = (ev) => {
+            const db = ev.target.result;
+            if (!db.objectStoreNames.contains('assets')) {
+              const s = db.createObjectStore('assets', { keyPath: 'id' });
+              s.createIndex('added', 'added');
+            }
+            if (!db.objectStoreNames.contains('songs')) db.createObjectStore('songs', { keyPath: 'id' });
+            if (!db.objectStoreNames.contains('sets')) db.createObjectStore('sets', { keyPath: 'id' });
+          };
+          req.onsuccess = (ev) => {
+            const db = ev.target.result;
+            const tx = db.transaction('sets', 'readwrite');
+            tx.objectStore('sets').put({ id: doc.id, doc: doc, installedAt: Date.now() });
+            tx.oncomplete = () => { db.close(); resolve(doc.id); };
+            tx.onerror = () => { db.close(); reject(tx.error); };
+          };
+          req.onerror = () => reject(req.error);
+        });
       }
 
       async function removeInstalled(id) {
@@ -311,6 +354,10 @@
       });
 
       async function installFile(file) {
+        if (isZipFile(file)) {
+          await installZipPack(file);
+          return;
+        }
         try {
           const text = await file.text();
           const set = await window.SWR_SETS.importSet(text);
@@ -327,6 +374,70 @@
           }
         } catch (e) {
           toast('Install failed: ' + e.message, true);
+        }
+      }
+
+      function isZipFile(file) {
+        const n = String((file && file.name) || '').toLowerCase();
+        const t = String((file && file.type) || '');
+        return n.endsWith('.zip') || t === 'application/zip' || t === 'application/x-zip-compressed';
+      }
+
+      // Media-pack zip: decompress, find every *.swr-set.json, parse + install
+      // each, hydrate media from sidecar entries when the file names match,
+      // and automap the set's audio/video Files into the Library when it is
+      // present (the marketplace page itself may not host it).
+      async function installZipPack(file) {
+        try {
+          if (!window.ZIP_READER) throw new Error('zip reader not loaded');
+          const buf = await file.arrayBuffer();
+          const entries = window.ZIP_READER.read(buf);
+          const setEntries = entries.filter(e => /\.swr-set\.json$/i.test(e.name));
+          if (!setEntries.length) throw new Error('no .swr-set.json found in this zip');
+
+          // Sidecar media lookups: exact name + lowercase variant.
+          const mediaByName = {};
+          for (const e of entries) {
+            const f = new File([e.data], e.name, { type: e.mime || '' });
+            mediaByName[e.name] = f;
+            mediaByName[String(e.name).toLowerCase()] = f;
+          }
+
+          const decoder = new TextDecoder();
+          const done = [];
+          let mediaTotal = 0;
+          for (const se of setEntries) {
+            const text = decoder.decode(se.data);
+            const doc = JSON.parse(text);
+            const set = await window.SWR_SETS.importSetWithMedia(text, mediaByName);
+            const ok = await installSet(doc);
+            if (!ok) continue;
+            // Automap into Library when hosted (non-fatal when absent).
+            let added = 0;
+            if (window.Library && typeof window.Library.addFiles === 'function') {
+              const files = [];
+              if (set.audio) files.push(set.audio);
+              for (const l of (set.layers || [])) if (l && l.asset) files.push(l.asset);
+              if (files.length) {
+                try {
+                  await window.Library.addFiles(files);
+                  added = files.length;
+                } catch (e2) {
+                  console.warn('zip install: library automap failed', e2);
+                }
+              }
+            }
+            mediaTotal += added;
+            done.push({ name: doc.name, added });
+          }
+          if (!done.length) throw new Error('no sets could be installed from this zip');
+          const names = done.map(d => d.name).join(' · ');
+          toast(mediaTotal
+            ? `Installed ${names} (${mediaTotal} media files added to your library)`
+            : `Installed ${names}`);
+          await refreshInstalled();
+        } catch (e) {
+          toast('Zip install failed: ' + e.message, true);
         }
       }
 

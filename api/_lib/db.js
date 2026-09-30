@@ -281,6 +281,12 @@ const withLock = USE_PG ? pgWithLock : fileWithLock;
 const readJson = USE_PG ? pgReadJson : fileReadJson;
 const writeJson = USE_PG ? pgWriteJson : fileWriteJson;
 
+// Exposed for sibling stores (api/_lib/slots.js) that need the same
+// backend-transparent read/modify/write under one mutex. Handlers never touch
+// these directly — they go through the store module, same as everywhere else.
+export const DATA_ROOT = ROOT;
+export { readJson, writeJson, withLock };
+
 // ---- ID helpers ----
 export function uuid() {
   return randomUUID();
