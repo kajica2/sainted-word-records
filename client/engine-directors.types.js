@@ -33,8 +33,11 @@
  * @property {number} energy - 0-1, drives FX intensity
  * @property {number} time - Current time in seconds
  * @property {AudioFeatures} audio - Real audio features
+ * @property {object[]} [fx] - FX slots whose intensity mirrors ctx.energy
  * @property {object} [meta] - Director-specific metadata
  * @property {string} [_cur] - Current scene/segment ID
+ * @property {number} [_bars] - Effective bar budget after duration clamping
+ * @property {Array} [arc] - Active narrative arc (structured directors)
  * @property {number} [phase] - Loop phase 0-1
  * @property {boolean} [seam] - True if at loop seam
  * @property {string} [section] - Current section name

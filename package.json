@@ -57,6 +57,7 @@
     "check:capture-smoke": "node scripts/check-capture-smoke.mjs",
     "check:media-input-unit": "node scripts/check-media-input-unit.mjs",
     "check:media-input-smoke": "node scripts/check-media-input-smoke.mjs",
+    "check:directors-unit": "node scripts/check-directors-unit.mjs",
     "check:spit-live-unit": "node scripts/check-spit-live-unit.mjs",
     "check:spit-live-smoke": "node scripts/check-spit-live-smoke.mjs",
     "check:tiktok-unit": "node scripts/check-tiktok-unit.mjs",

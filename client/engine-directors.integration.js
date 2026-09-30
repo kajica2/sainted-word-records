@@ -89,12 +89,31 @@
 //     seamFade: 0.05     // 5% fade at loop boundaries
 //   });
 //
-// 3. Short Director:
+// 3. Short Director (30-60s):
 //   var director = SWR_DIRECTORS.createDirector('short', {
-//     bars: 20,                        // scales to 30-60s based on BPM
+//     bars: 20,                        // clamped to the 30-60s window
 //     template: 'hook-build-drop-outro', // arc template
 //     baseLayers: [layerMain]
 //   });
+//
+// 4. Medium Director (60-120s):
+//   var director = SWR_DIRECTORS.createDirector('medium', {
+//     bars: 40,                              // clamped to the 60-120s window
+//     template: 'verse-chorus-bridge-outro', // or 'slow-build', 'triple-drop'
+//     baseLayers: [layerMain]
+//   });
+//
+// 5. Long Director (2-5min):
+//   var director = SWR_DIRECTORS.createDirector('long', {
+//     bars: 120,               // clamped to the 120-300s window
+//     template: 'full-song',   // or 'epic-build', 'dj-mix'
+//     baseLayers: [layerMain]
+//   });
+//
+// The three narrative directors share one arc engine: the authored arc is
+// normalized onto the bar budget, so the whole narrative — including the
+// closing section — plays out inside the duration window at any BPM. Unknown
+// template ids fall back to the default arc rather than throwing.
 //
 // BEAT-QUANTIZED TRANSITIONS
 // ==========================

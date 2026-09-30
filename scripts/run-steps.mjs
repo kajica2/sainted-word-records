@@ -92,6 +92,7 @@ const GROUPS = {
     'npm run check:targeting-unit',
     'npm run targeting:verify',
     'npm run check:media-input-unit',
+    'npm run check:directors-unit',
     'npm run check:spit-live-unit',
     'npm run check:tiktok-unit',
     'npm run check:capture-unit',
