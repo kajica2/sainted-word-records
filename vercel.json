@@ -660,6 +660,14 @@
       "destination": "/spit.html"
     },
     {
+      "source": "/camera-enhance",
+      "destination": "/camera-enhance.html"
+    },
+    {
+      "source": "/camera-enhance/",
+      "destination": "/camera-enhance.html"
+    },
+    {
       "source": "/s/:id",
       "destination": "/share-view.html"
     },

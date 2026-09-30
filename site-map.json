@@ -304,6 +304,11 @@
       "description": "One-take freestyle studio for hip-hop MCs"
     },
     {
+      "label": "Camera Enhance",
+      "href": "/camera-enhance",
+      "description": "Camera-first cleanup: fix exposure, grain, shake and judder, grade, burn in, export"
+    },
+    {
       "label": "Share View",
       "href": "/s/:id",
       "description": "View shared composition"
@@ -420,8 +425,8 @@
   "meta": {
     "version": "1.0.0",
     "lastUpdated": "2026-09-29",
-    "totalPages": 140,
-    "corePages": 140,
+    "totalPages": 141,
+    "corePages": 141,
     "archivedPages": 0
   },
   "discovered": [
@@ -448,6 +453,7 @@
     "atlas.html",
     "auth/login.html",
     "auth/verify.html",
+    "camera-enhance.html",
     "campaign.html",
     "changelog.html",
     "dashboard.html",
