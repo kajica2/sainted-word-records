@@ -44,7 +44,7 @@ The M1 backend adds:
 3. **Signed URLs** — all storage operations go through `/api/storage/sign-upload` + `/api/storage/sign-download`, which scope every key under `userId/...`. The handler also re-checks the prefix on every request to defend against tampered queries.
 4. **Path traversal** — `safeKey()` rejects keys containing `..`, leading `/`, or any `\`. Tested in `scripts/test-api.mjs`.
 5. **Cross-user scope** — verified end-to-end (see `verify-cloud-auth.mjs`). A user requesting `/api/storage/object?key=<otherUserId>/...` returns 403.
-6. **Rate limits** — per-IP on `/api/auth/magic` (10/min), per-user on `/api/storage/sign-upload` (60/min) and `sign-download` (120/min), per-user on `/api/projects` writes (30/min). All return 429 with `Retry-After`.
+6. **Rate limits** — per-IP on `/api/auth/magic` (10/min), per-user on `/api/storage/sign-upload` (60/min) and `sign-download` (120/min), per-user on `/api/projects` writes (30/min), per-user on `/api/connect` create (10/min) and onboard-link (30/min), per-user on `/api/catalogue` create (30/min), update (60/min) and delete (30/min). All return 429 with `Retry-After`.
 7. **Project ownership** — `getProject(userId, id)` returns null unless the project belongs to that user. Tested in `scripts/test-api.mjs`.
 8. **Storage backend** — two interchangeable backends, selected by env:
    - **Vercel Blob** (`BLOB_READ_WRITE_TOKEN` set — production): blobs persist on Vercel's CDN. Written with `access: 'public'`, so the CDN URL is unauthenticated. The pathname embeds the user's UUID (`<userId>/<key>`), so URLs aren't enumerable in practice — but anyone with the URL can read the blob. **Deferred:** `access: 'private'` + signed URLs for defence-in-depth; requires re-signing on every read.

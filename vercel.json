@@ -884,6 +884,14 @@
       "destination": "/slots-admin.html"
     },
     {
+      "source": "/connect",
+      "destination": "/connect.html"
+    },
+    {
+      "source": "/connect/",
+      "destination": "/connect.html"
+    },
+    {
       "source": "/login",
       "destination": "/login.html"
     },

@@ -71,6 +71,7 @@ ensureDir(ROOT);
 try { ensureDir(join(ROOT, 'auth')); } catch (_) {}
 try { ensureDir(join(ROOT, 'projects')); } catch (_) {}
 try { ensureDir(join(ROOT, 'storage')); } catch (_) {}
+try { ensureDir(join(ROOT, 'connect')); } catch (_) {}
 
 // ---- Naive file lock (process-local; sufficient for Vercel single-lambda) ----
 let lockChain = Promise.resolve();
@@ -384,6 +385,94 @@ export async function setMembershipTier(userId, tier) {
     throw new Error(`invalid tier: ${tier}`);
   }
   return updateUser(userId, { membershipTier: tier });
+}
+
+// =====================================================================
+// CONNECT (Stripe marketplace pilot) — per-user connected accounts
+// =====================================================================
+//
+// Each joining seller gets ONE Stripe connected account (type: express),
+// stored as user.connect: { accountId, status, chargesEnabled,
+// payoutsEnabled, createdAt, updatedAt, ... }. Status values used by the
+// pilot:
+//   pending  — account created, onboarding not completed
+//   active   — details_submitted == true (verified, can be charged)
+//   revoked  — account.application.deauthorized or payouts disabled
+//
+// The reverse lookup (accountId -> user) is what the webhook receiver uses
+// to route account.updated events back to the right seller.
+
+export async function getConnectAccount(userId) {
+  if (!userId) return null;
+  const user = await getUser(userId);
+  return (user && user.connect) || null;
+}
+
+export async function saveConnectAccount(userId, patch) {
+  const cur = (await getConnectAccount(userId)) || {};
+  const next = { ...cur, ...patch, updatedAt: new Date().toISOString() };
+  const user = await updateUser(userId, { connect: next });
+  return (user && user.connect) || next;
+}
+
+export async function findUserByConnectAccount(accountId) {
+  if (!accountId) return null;
+  const users = await readJson(USERS_PATH, []);
+  return Array.isArray(users)
+    ? users.find((u) => u && u.connect && u.connect.accountId === accountId) || null
+    : null;
+}
+
+// Count of sellers that hold a connected account. Used by the pilot gate
+// (SWR_CONNECT_PILOT_LIMIT) in /api/connect. Reads the whole user list —
+// fine at human scale; swap for a SQL COUNT on Postgres if this ever grows.
+export async function countConnectAccounts() {
+  const users = await readJson(USERS_PATH, []);
+  if (!Array.isArray(users)) return 0;
+  return users.filter(
+    (u) => u && u.connect && typeof u.connect.accountId === 'string' && u.connect.accountId
+  ).length;
+}
+
+// =====================================================================
+// CONNECT EVENT LEDGER (Stripe webhook idempotency + reconciliation)
+// =====================================================================
+//
+// Append-only ledger of received webhook events. The primary job is
+// IDEMPOTENCY: Stripe redelivers webhooks (usually hours later when
+// acknowledgements 404), so the receiver must never process the same event
+// twice. The secondary job is pilot reconciliation: the owner can read the
+// ledger to see which payments/checkouts/payouts actually landed, without
+// building a full payouts UI yet. Mirror of the slots/ ledger pattern
+// (index file under SWRC_DATA_DIR, same key space on Postgres).
+
+const CONNECT_LOG_PATH = join(ROOT, 'connect', 'events.json');
+
+export async function findConnectEvent(eventId) {
+  if (!eventId) return null;
+  const all = await readJson(CONNECT_LOG_PATH, []);
+  return Array.isArray(all) ? all.find((e) => e && e.id === eventId) || null : null;
+}
+
+// Idempotent append: replays of the same event id return the existing row.
+export async function recordConnectEvent({ id, type, data = null }) {
+  if (!id || !type) throw new TypeError('id and type required');
+  return withLock(async () => {
+    const existing = await findConnectEvent(id);
+    if (existing) return existing;
+    const all = (await readJson(CONNECT_LOG_PATH, [])) || [];
+    const row = { id, type, receivedAt: new Date().toISOString(), data };
+    all.push(row);
+    await writeJson(CONNECT_LOG_PATH, all);
+    return row;
+  });
+}
+
+// Newest first, capped (pilot reconciliation view, not a full query API).
+export async function listConnectEvents({ limit = 200 } = {}) {
+  const all = await readJson(CONNECT_LOG_PATH, []);
+  if (!Array.isArray(all)) return [];
+  return all.slice(-limit).reverse();
 }
 
 // =====================================================================

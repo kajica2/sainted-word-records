@@ -83,6 +83,7 @@ const GROUPS = {
     'npm run check:zip-reader-unit',
     'npm run check:slots-unit',
     'npm run check:slots-api-smoke',
+    'npm run check:webm-clips-unit',
     'npm run check:storage-blob-unit',
     'npm run check:db-postgres',
     'npm run verify:smtp',
