@@ -265,7 +265,7 @@
 
   function validBundleRefs(item) {
     return state.items.filter(function (x) {
-      return !x.deletedAt && x.id !== item;
+      return !x.deletedAt && x.id !== (item && item.id);
     });
   }
 
@@ -372,10 +372,10 @@
     var type = $('cat-type') ? $('cat-type').value : 'song';
     var tags = ($('cat-tags') ? $('cat-tags').value : '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     var live = $('cat-live') ? $('cat-live').checked : false;
-    var bundleOf = Array.prototype.map.call(
-      rootEl.querySelectorAll('#cat-form input[type=checkbox][value][checked]') || [],
-      function (c) { return c.value; }
-    );
+    var bundleOf = Array.prototype.filter.call(
+      rootEl.querySelectorAll('#cat-form input[type=checkbox][value]') || [],
+      function (c) { return c.checked; }
+    ).map(function (c) { return c.value; });
 
     if (!title) { alert('Give the listing a title.'); return; }
     if (!priceEuro || priceEuro < 0.5) { alert('Set a price of at least €0.50.'); return; }

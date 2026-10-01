@@ -176,7 +176,7 @@
       }
       if (!chosen) chosen = nn[nn.length - 1]; // farthest of the 6
       if (!chosen || !chosen.anchor) return null;
-      prev = { coords: chosen.anchor };
+      prev = { coords: { ...chosen.anchor } };
 
       // Baseline: anchor preset pulled toward the archetype's full-range
       // targets (50/50) — louder acts genuinely reach the top of the dial.
