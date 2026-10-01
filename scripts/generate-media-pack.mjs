@@ -70,6 +70,13 @@ const DEFAULT_CLIP_MAX_SEC = 15;
 // and LICENSE.txt. Spec: packs/covers/pack-spec.md.
 const COVER_ANIM_SRC = path.join(ROOT, 'packs', 'covers', 'hyperframe-cover.html');
 
+// Local FLUX.2 cover renderer (digital_twin's lib/flux2-renderer). Paths can
+// be overridden with FLUX2_RENDERER / FLUX2_PYTHON. Running on Apple MPS
+// takes ~1–3 min per 832×468 cover. Declared here (top level) so the CLI
+// guard below can reference them without a TDZ error.
+const DEFAULT_FLUX2_RENDERER = path.join(ROOT, '..', 'digital_twin', 'lib', 'flux2-renderer', 'render.py');
+const DEFAULT_FLUX2_PYTHON = path.join(ROOT, '..', 'digital_twin', 'lib', 'flux2-renderer', '.venv', 'bin', 'python');
+
 // === main =================================================================
 // Guarded with the render-full-song.mjs convention so scripts/check-
 // webm-clips-unit.mjs can import the pure helpers (parse/validate/normalize)
@@ -227,17 +234,38 @@ async function runMain() {
     stats.setFile = path.relative(ROOT, setPath);
     console.log(`  [${pack.id}] wrote ${pack.id}.swr-set.json (${(fs.statSync(setPath).size / 1024 / 1024).toFixed(1)}MB, ${clipCount} video layers)`);
 
-    // --- c. cover.webp from the rendered MP4's first frame ----------------
-    // This ffmpeg build lacks a webp encoder, so extract a PNG first frame,
-    // then transcode with cwebp when present; fall back to shipping the PNG
-    // (nft.image then points at cover.png). In webm-only clips mode there is
-    // no MP4 — the cover comes from the FIRST normalized clip instead.
+    // --- c. cover.webp ----------------------------------------------------
+    // Two backends:
+    //   'frame' (default) — first frame of the rendered MP4 (or first
+    //       normalized clip in webm-only clips mode) via ffmpeg → png →
+    //       cwebp → webp. cwebp missing → ship the PNG.
+    //   'flux2' — render a fresh, bespoke cover with the local FLUX.2
+    //       renderer (digital_twin's lib/flux2-renderer). Necessarily slower
+    //       (a full diffusion pass) but gives every pack a unique, prompt-
+    //       authored cover independent of the video frames.
     const coverPngPath = path.join(packDir, 'cover.png');
     let coverName = null;
     const coverSource = mp4Present
       ? mp4Path
       : (isClipPack && pack.normalized.length ? pack.normalized[0].path : null);
-    if (coverSource) {
+    if (args.coverBackend === 'flux2') {
+      const prompt = args.coverPrompt || coverPromptFor(pack.title);
+      console.log(`  [${pack.id}] flux2 cover: "${prompt.slice(0, 72)}${prompt.length > 72 ? '…' : ''}" (~${flux2RenderMinutes().toFixed(1)}m est.)`);
+      const ok = renderFlux2Cover({ prompt, destPath: coverPngPath, title: pack.title });
+      if (ok) {
+        const webpPath = path.join(packDir, 'cover.webp');
+        const cw = spawnSync('cwebp', ['-quiet', coverPngPath, '-o', webpPath], { stdio: ['ignore', 'ignore', 'pipe'] });
+        if (cw.status === 0 && fs.existsSync(webpPath) && fs.statSync(webpPath).size > 0) {
+          coverName = 'cover.webp';
+        } else {
+          coverName = 'cover.png';
+          console.warn(`  [${pack.id}] flux2 cover: cwebp unavailable — shipping cover.png`);
+        }
+      } else {
+        console.warn(`  [${pack.id}] flux2 cover failed — falling back to frame extraction`);
+      }
+    }
+    if (!coverName && coverSource) {
       const fr = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', coverSource, '-frames:v', '1', coverPngPath], { stdio: ['ignore', 'ignore', 'pipe'] });
       if (fr.status === 0 && fs.existsSync(coverPngPath) && fs.statSync(coverPngPath).size > 0) {
         const webpPath = path.join(packDir, 'cover.webp');
@@ -408,6 +436,13 @@ function printUsage() {
   --fps N               render fps (default: 12)
   --width N --height N  render resolution (default: 640x360)
   --skip-render         reuse an existing rendered <pack>.mp4 instead of rendering
+  --cover-backend <b>   cover source: 'frame' (first frame of rendered MP4 /
+                        first normalized clip — default) or 'flux2' (render a
+                        fresh cover with the local FLUX.2 renderer, file)
+                        optionally followed by a prompt, e.g. --cover-backend
+                        flux2 --cover-prompt "warm aerial view…"
+  --cover-prompt <txt>  text prompt used when --cover-backend flux2 (a pack
+                        default is derived from the pack title if omitted)
   --help                show this help`);
 }
 
@@ -427,6 +462,8 @@ export function parseArgs(argv) {
     else if (a === '--width') out.width = parseInt(argv[++i], 10);
     else if (a === '--height') out.height = parseInt(argv[++i], 10);
     else if (a === '--skip-render') out.skipRender = true;
+    else if (a === '--cover-backend') out.coverBackend = argv[++i];
+    else if (a === '--cover-prompt') out.coverPrompt = argv[++i];
     else if (a === '--help' || a === '-h') out.help = true;
     else if (a.startsWith('--')) { console.error(`unknown flag: ${a}`); process.exit(2); }
     else if (!out.audio) out.audio = a;
@@ -492,6 +529,57 @@ function resolvePacks(packsArg) {
 
 function packTitle(id) {
   return id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+// Derive a cover prompt for a pack when --cover-backend flux2 is used without
+// an explicit --cover-prompt. Kept deliberately close to the pack's vibe.
+function coverPromptFor(title) {
+  return `${title} — album-cover still, cinematic 16:9 frame, moody atmosphere, editorial lighting, film grain, high detail --ar 16:9`;
+}
+
+// Local FLUX.2 renderer. Paths resolve from env: FLUX2_RENDERER (render.py)
+// and FLUX2_PYTHON (the venv interpreter); defaults point at the sibling
+// digital_twin install (declared at the top of this file). Falls back to the
+// codebase's own python3 when the venv is absent so the failure is a clear
+// missing-dependency message, not a crash.
+function flux2Python() {
+  const explicit = process.env.FLUX2_PYTHON;
+  if (explicit) return path.resolve(explicit);
+  if (fs.existsSync(DEFAULT_FLUX2_PYTHON)) return DEFAULT_FLUX2_PYTHON;
+  return 'python3'; // missing venv → renderer will error with a clear message
+}
+
+function renderFlux2Cover({ prompt, destPath, title }) {
+  const renderer = process.env.FLUX2_RENDERER
+    ? path.resolve(process.env.FLUX2_RENDERER)
+    : DEFAULT_FLUX2_RENDERER;
+  if (!fs.existsSync(renderer)) {
+    console.warn(`  flux2 renderer not found: ${renderer} (set FLUX2_RENDERER)`);
+    return false;
+  }
+  const py = flux2Python();
+  const r = spawnSync(py, [
+    renderer,
+    '--prompt', prompt,
+    '--out', destPath,
+    '--width', '832',
+    '--height', '468',
+    '--steps', '12',
+    '--json',
+  ], { encoding: 'utf8', timeout: 8 * 60 * 1000 });
+  if (r.status === 0 && fs.existsSync(destPath) && fs.statSync(destPath).size > 0) {
+    try {
+      const meta = JSON.parse((r.stdout || '').trim().split('\n').pop());
+      console.log(`  flux2 cover done (${meta.totalSeconds || '?'}s, seed ${meta.seed})`);
+    } catch (_) { /* non-json stdout is fine */ }
+    return true;
+  }
+  console.warn(`  flux2 render failed: ${(r.stderr || '').toString().split('\n').slice(-1)[0] || 'unknown error'}`);
+  return false;
+}
+
+function flux2RenderMinutes() {
+  return 2.5; // observed ~130s for an 832x468 @ 12 steps once the model is warm
 }
 
 function requireExec(cmd, args) {
