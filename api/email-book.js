@@ -6,17 +6,15 @@
 //   -> { ok: true, transport: 'resend' } on success
 //   -> 503 if RESEND_API_KEY unset, 400 if no to=, 500 on send failure
 //
-// Uses the same Resend transport as api/_lib/email.js but adds the
-// attachments field (the shared lib's resendDeliver doesn't carry
-// attachments yet).
+// ESM (the repo package.json has "type": "module").
 
-const fs = require('fs');
-const path = require('path');
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const FROM = process.env.SWR_FROM_EMAIL || 'SWR <noreply@saintedwordrecords.com>';
 const REPLY_TO = process.env.SWR_REPLY_TO_EMAIL || '';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // CORS for the storefront origin.
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -33,8 +31,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const pdfPath = path.join(process.cwd(), 'books', 'beginner-trumpet-vol1.pdf');
-    const pdfBytes = fs.readFileSync(pdfPath);
+    const pdfPath = join(process.cwd(), 'books', 'beginner-trumpet-vol1.pdf');
+    const pdfBytes = readFileSync(pdfPath);
     const payload = {
       from: FROM,
       to,
