@@ -341,10 +341,21 @@ export async function createUser({ email, name = null, image = null, provider = 
   }
   return withLock(async () => {
     const users = await readJson(USERS_PATH, []);
-    if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
-      const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    // Race branch: another request created this user between the unlocked
+    // findUserByEmail() above and this lock acquisition. We are already
+    // holding withLock, so update in place here — calling updateUser()
+    // would re-enter withLock() and deadlock the single-promise lock chain.
+    const existingIdx = users.findIndex((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (existingIdx !== -1) {
+      const found = users[existingIdx];
       if (!found.membershipTier) {
-        return updateUser(found.id, { membershipTier: 'free' });
+        users[existingIdx] = {
+          ...found,
+          membershipTier: 'free',
+          updatedAt: new Date().toISOString(),
+        };
+        await writeJson(USERS_PATH, users);
+        return users[existingIdx];
       }
       return found;
     }
