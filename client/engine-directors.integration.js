@@ -1,0 +1,159 @@
+// client/engine-directors.integration.js
+//
+// Integration guide for wiring Directors into Spit runtime.
+//
+// STATUS (HIGH-001): NOT APPLIED — this module is current unit-test-only
+// groundwork. It is not loaded by any page and no user-facing surface
+// selects a director. See the HIGH-001 note at the bottom of this file.
+//
+// STEP 1: Load the directors module
+// NOT APPLIED — see HIGH-001 note. (Original steps kept below for when a
+// surface actually consumes director output.)
+//
+// STEP 2: Initialize director in Spit runtime
+// In swr-spit-runtime.client.js, after _beatInfo is set:
+//
+// Inside the SpitRuntime class, add:
+//
+//   this._director = null;
+//
+// After beat loads (around line 384):
+//
+//   if (options.director) {
+//     this._director = window.SWR_DIRECTORS.createDirector(options.director.type, options.director.config);
+//     this._director.setup(this._directorCtx());
+//   }
+//
+// STEP 3: Create director context helper
+// Add method to SpitRuntime:
+//
+//   _directorCtx: function() {
+//     var beat = this._beatInfo;
+//     var bpm = beat && beat.bpm || 120;
+//     var beatsPerBar = 4;
+//     var currentTime = this._audio && this._audio.currentTime || 0;
+//     var currentBar = Math.floor(currentTime * bpm / 60 / beatsPerBar);
+//     var beatInBar = Math.floor((currentTime * bpm / 60) % beatsPerBar);
+//     var beatPhase = (currentTime * bpm / 60) % 1;
+//
+//     return {
+//       layers: this._layers || [],
+//       bar: currentBar,
+//       beat: beatInBar,
+//       beatPhase: beatPhase,
+//       energy: 0.5, // default, updated by director
+//       time: currentTime,
+//       audio: this._audioFeatures || { bpm: bpm, bass: 128, mid: 128, treble: 128, beat: 0, rms: 128 },
+//       fx: this._fxStack || [],
+//       meta: {}
+//     };
+//   },
+//
+// STEP 4: Hook director update into the RAF loop
+// In the main animation loop (around where beat features update):
+//
+//   if (this._director) {
+//     var ctx = this._directorCtx();
+//     this._director.update(ctx);
+//     // Apply director output to layers/FX
+//     this._layers = ctx.layers;
+//   }
+//
+// STEP 5: Wire real-time audio features
+// In the audio update callback (where Audio.feat is updated):
+//
+//   this._audioFeatures = {
+//     bpm: this._beatInfo.bpm,
+//     bass: Audio.feat.bass,
+//     mid: Audio.feat.mid,
+//     treble: Audio.feat.treble,
+//     beat: Audio.feat.beat,
+//     rms: Audio.feat.rms,
+//     key: this._beatInfo.key,
+//     scale: this._beatInfo.scale
+//   };
+//
+// USAGE EXAMPLES
+// ==============
+//
+// 1. Scene Director:
+//   var director = SWR_DIRECTORS.createDirector('scene', {
+//     scenes: [
+//       { id: 'intro', startBar: 0, bars: 4, layers: [layerA, layerB] },
+//       { id: 'verse', startBar: 4, bars: 8, layers: [layerC], transitionIn: crossfade },
+//       { id: 'chorus', startBar: 12, bars: 8, layers: [layerD, layerE] }
+//     ]
+//   });
+//
+// 2. Loop Director:
+//   var director = SWR_DIRECTORS.createDirector('loop', {
+//     bars: 4,           // 4 bar loop
+//     layers: [layerA, layerB, layerC],
+//     seamFade: 0.05     // 5% fade at loop boundaries
+//   });
+//
+// 3. Short Director (30-60s):
+//   var director = SWR_DIRECTORS.createDirector('short', {
+//     bars: 20,                        // clamped to the 30-60s window
+//     template: 'hook-build-drop-outro', // arc template
+//     baseLayers: [layerMain]
+//   });
+//
+// 4. Medium Director (60-120s):
+//   var director = SWR_DIRECTORS.createDirector('medium', {
+//     bars: 40,                              // clamped to the 60-120s window
+//     template: 'verse-chorus-bridge-outro', // or 'slow-build', 'triple-drop'
+//     baseLayers: [layerMain]
+//   });
+//
+// 5. Long Director (2-5min):
+//   var director = SWR_DIRECTORS.createDirector('long', {
+//     bars: 120,               // clamped to the 120-300s window
+//     template: 'full-song',   // or 'epic-build', 'dj-mix'
+//     baseLayers: [layerMain]
+//   });
+//
+// The three narrative directors share one arc engine: the authored arc is
+// normalized onto the bar budget, so the whole narrative — including the
+// closing section — plays out inside the duration window at any BPM. Unknown
+// template ids fall back to the default arc rather than throwing.
+//
+// BEAT-QUANTIZED TRANSITIONS
+// ==========================
+//
+// Use SWR_DIRECTORS.onBeat(ctx, threshold) for transitions that snap to beat:
+//
+//   if (SWR_DIRECTORS.onBeat(ctx, 0.1) && ctx.bar >= nextSceneStartBar) {
+//     ctx.layers = nextSceneLayers;
+//   }
+//
+// KEY-AWARE PALETTE (optional)
+// ===========================
+//
+// Map detected key to complementary palette:
+//
+//   var keyToPalette = {
+//     'C':  { primary: '#ff6b6b', secondary: '#4ecdc4', accent: '#ffe66d' },
+//     'G':  { primary: '#96ceb4', secondary: '#ff6b6b', accent: '#4ecdc4' },
+//     // ... etc
+//   };
+//
+//   var palette = keyToPalette[ctx.audio.key] || defaultPalette;
+//   ctx.layers.forEach(function(l) { l.palette = palette; });
+//
+// HIGH-001 — WHY NOT APPLIED
+// ==========================
+// Wiring was rejected after reading client/swr-spit-runtime.client.js and
+// spit.html: the runtime has no natural place to drive a director. The RAF
+// loop (_tick → _drawBackground) paints a hardcoded gradient + waveform and
+// never reads ctx.layers or continuous FX slots. The runtime keeps no
+// _layers, _fxStack or _audioFeatures state — the STEP 3 helper above
+// references fields that do not exist (this._layers, this._fxStack, and the
+// audio element is this._audioEl, not this._audio). Spit's FX module
+// (swr-spit-fx.client.js) is event-driven trigger(name, ctx) — punch-in
+// effects, not continuous intensity slots — so the director's
+// ctx.fx[k].intensity mirroring would drive nothing. Driving a director here
+// would mean fabricating ctx state with no consumer (a half-wired call site)
+// or changing observable beat/recording/export behavior. Revisit when the
+// runtime — or a new surface — actually consumes layered output or a
+// continuous FX intensity.

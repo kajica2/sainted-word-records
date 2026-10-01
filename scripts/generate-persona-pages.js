@@ -8,7 +8,7 @@
 //
 // Run from project root:  node scripts/generate-persona-pages.js
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -108,6 +108,23 @@ function previewCss(p) {
   return lines.join(' ');
 }
 
+// Deterministic PRNG seeded from the persona key. previewOverlays used
+// Math.random() for glitch slices, so every regeneration churned all 23
+// pages even when nothing actually changed.
+function seedRand(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return function () {
+    h |= 0; h = (h + 0x6D2B79F5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function previewOverlays(p) {
   // Returns markup for stacked overlays: grain (svg noise), chroma (rgb
   // shadows), glitch (horizontal slice), vignette, posterize, glow.
@@ -129,12 +146,13 @@ function previewOverlays(p) {
 
   // Glitch — horizontal slice band
   if (p.glitch > 0.1) {
+    const rnd = seedRand(p.key || p.label || 'glitch');
     const slices = Math.min(8, Math.max(2, Math.round(p.glitch * 8)));
     let s = '';
     for (let i = 0; i < slices; i++) {
-      const top = (i / slices) * 100 + (Math.random() * 4);
-      const h = (100 / slices) * (0.4 + Math.random() * 0.6);
-      const dx = (Math.random() - 0.5) * p.glitch * 60;
+      const top = (i / slices) * 100 + (rnd() * 4);
+      const h = (100 / slices) * (0.4 + rnd() * 0.6);
+      const dx = (rnd() - 0.5) * p.glitch * 60;
       s += `<div class="ov-glitch-slice" style="top:${top}%;height:${h}%;transform:translateX(${dx}px)"></div>`;
     }
     overlays.push(`<div class="ov-glitch">${s}</div>`);
@@ -175,13 +193,29 @@ function pageHTML(p) {
   const previewBaseCss = previewCss(p);
   const overlays = previewOverlays(p);
   const cluster = clusterOf(p);
+  // Prefer persona-specific keyart when it exists; fall back to the generic
+  // hero card so we never emit an og:image that 404s. A couple of personas
+  // map to keyart named after their version rather than their own key.
+  const KEYART_ALIAS = { filmfilm: 'film' };
+  const artKey = KEYART_ALIAS[p.key] || p.key;
+  const ogImage = existsSync(resolve(ROOT, 'keyart', `${artKey}.png`))
+    ? `keyart/${artKey}.png`
+    : 'press/hero.png';
   return `<!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${esc(p.label)} · SWR persona</title>
   <meta name="description" content="${esc(p.desc)}" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/personas/v/${p.key}" />
+  <meta property="og:title" content="${esc(p.label)} · SWR persona">
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/${ogImage}" />
+  <meta property="og:description" content="${esc(p.desc)}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0a0612" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -286,7 +320,8 @@ function pageHTML(p) {
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <swr-nav></swr-nav>
+  <main class="wrap">
     <header class="top">
       <span class="badge">PERSONA · ${esc(p.label)}</span>
       <span class="cluster ${cluster}">${esc(cluster.toUpperCase())}</span>
@@ -314,17 +349,17 @@ function pageHTML(p) {
       </div>
 
       <div class="panel">
-        <h2>FX uniforms (15)</h2>
+        <h2>FX uniforms (${FIELDS.length})</h2>
         <div class="gauges">
           ${fields}
         </div>
       </div>
     </div>
 
-    <footer class="foot">
-      Persona · ${esc(p.label)} · key: <code>${esc(p.key)}</code> · values 0..1 except temp (-1..1) and mutAlgo (0..5)
-    </footer>
-  </div>
+    <swr-footer></swr-footer>
+  </main>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>
 `;
@@ -355,97 +390,116 @@ for (const key of order) {
   count++;
 }
 
-// index: grid of all 23
+// Deterministic preview overlays for index cards (glitch uses Math.random
+// in previewOverlays, so the gallery keeps only the stable layers).
+function cardOverlays(p) {
+  const out = [];
+  if (p.grain > 0.05) out.push(`<div class="pv-grain" style="opacity:${(p.grain * 0.6).toFixed(2)}"></div>`);
+  if (p.vignette > 0.05) out.push(`<div class="pv-vignette" style="opacity:${(p.vignette * 0.9).toFixed(2)}"></div>`);
+  if (p.glow > 0.1) out.push(`<div class="pv-glow" style="opacity:${(p.glow * 0.5).toFixed(2)}"></div>`);
+  return out.join('');
+}
+
+// index: gallery of all personas
 const cards = order.map(k => {
   const p = personas[k];
   if (!p) return '';
   const c = clusterOf(p);
   return `
-    <a class="card cluster-${c}" href="/personas/v/${k}">
-      <div class="card-eyebrow">${esc(c.toUpperCase())}</div>
-      <div class="card-title">${esc(p.label)}</div>
-      <div class="card-desc">${esc(p.desc)}</div>
-      <div class="card-foot">view demo →</div>
-    </a>`;
+        <a class="tile persona persona--${c}" href="/personas/v/${k}">
+          <div class="persona__pv" style="${previewCss(p)}" aria-hidden="true">${cardOverlays(p)}</div>
+          <div class="persona__body">
+            <h3 class="tile__title">${esc(p.label)}</h3>
+            <p class="tile__desc">${esc(p.desc)}</p>
+            <div class="tile__meta">
+              <span class="pill persona__tag persona__tag--${c}">${esc(c)}</span>
+              <span class="pill persona__key">${esc(p.key)}</span>
+            </div>
+          </div>
+        </a>`;
 }).join('\n');
 
 const indexHTML = `<!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Persona demos · SWR engine</title>
-  <meta name="description" content="All 23 SWR engine personas — one demo page per persona, with a static visual preview and full FX uniform readout." />
-  <meta name="theme-color" content="#0a0612" />
+  <meta name="description" content="All ${count} SWR engine personas — one demo page per persona, with a visual preview and full FX uniform readout." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/personas/v" />
+  <meta property="og:title" content="Persona demos · SWR engine">
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/hero.png" />
+  <meta property="og:description" content="All ${count} SWR engine personas — one demo page per persona, with a visual preview and full FX uniform readout.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0e0c0a" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
-    :root {
-      --bg: #0a0612; --bg-2: #150b22; --panel: #1a0f30; --panel-2: #221540;
-      --ink: #f5e9ff; --ink-2: #c8b5e0; --muted: #8a7aa0; --line: #2a1d3e;
-      --c: #00f0ff; --m: #ff2d8a; --y: #fff04a; --g: #00ffa3;
-      --c-warm: #ff6b3a; --c-cool: #00bfff;
+    .wrap { padding: 0 32px 96px; }
+    .hero { padding: 72px 0 44px; max-width: 720px; }
+    .hero__lede { max-width: 620px; }
+    .hero__lede code { font-family: var(--font-mono); font-size: 0.86em; background: var(--bg-2); padding: 1px 6px; border-radius: var(--radius-sm); }
+
+    .gallery { padding: 0; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
+    .legend .pill { background: var(--bg-2); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 16px; }
+
+    .persona { padding: 0; gap: 0; overflow: hidden; }
+    .persona__pv { position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; }
+    .persona__body { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px; flex: 1; }
+    .persona .tile__desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .persona:hover { border-color: var(--line-2); transform: translateY(-2px); }
+
+    .persona__tag { background: var(--bg-2); }
+    .persona__tag--auditor { color: var(--cool); }
+    .persona__tag--practitioner { color: var(--ok); }
+    .persona__tag--broker { color: var(--accent-2); }
+    .persona__tag--cross { color: var(--accent); }
+    .persona__key { background: var(--bg-2); color: var(--muted); }
+
+    .pv-grain, .pv-vignette, .pv-glow { position: absolute; inset: 0; pointer-events: none; }
+    .pv-grain { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"); background-size: 160px 160px; mix-blend-mode: overlay; }
+    .pv-vignette { background: radial-gradient(ellipse at center, transparent 32%, rgba(0,0,0,0.82) 100%); }
+    .pv-glow { background: radial-gradient(circle at 30% 40%, rgba(255,80,180,0.5), transparent 60%), radial-gradient(circle at 70% 60%, rgba(80,200,255,0.5), transparent 60%); mix-blend-mode: screen; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tile, .btn { transition: none !important; }
+      .persona:hover { transform: none; }
     }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    a { color: inherit; text-decoration: none; }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 18px 80px; }
-    header.top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    header.top .badge { display: inline-flex; align-items: center; gap: 8px;
-      padding: 5px 12px; border: 1px solid var(--m); border-radius: 999px;
-      color: var(--m); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; }
-    header.top .spacer { flex: 1; }
-    header.top a.back { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-      padding: 6px 12px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); }
-    h1 { font-size: 30px; font-weight: 700; margin: 0 0 6px; letter-spacing: 0.04em; }
-    .lede { color: var(--ink-2); font-size: 13px; font-style: italic; max-width: 720px;
-      margin: 0 0 28px; }
-    .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; font-size: 10px;
-      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
-    .legend .sw { display: inline-flex; align-items: center; gap: 6px; }
-    .legend .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px; }
-    .card { display: block; background: var(--panel); border: 1px solid var(--line);
-      border-radius: 8px; padding: 16px; transition: border-color 0.2s, transform 0.2s; }
-    .card:hover { border-color: var(--m); transform: translateY(-2px); }
-    .card-eyebrow { font-size: 9px; letter-spacing: 0.18em; color: var(--muted);
-      text-transform: uppercase; margin-bottom: 4px; }
-    .card-title { font-size: 15px; font-weight: 700; color: var(--ink);
-      letter-spacing: 0.04em; margin-bottom: 6px; }
-    .card-desc { font-size: 11px; color: var(--ink-2); line-height: 1.5;
-      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-      overflow: hidden; margin-bottom: 10px; }
-    .card-foot { font-size: 10px; color: var(--c); letter-spacing: 0.14em;
-      text-transform: uppercase; }
-    .card.cluster-auditor .card-eyebrow { color: var(--c); }
-    .card.cluster-practitioner .card-eyebrow { color: var(--g); }
-    .card.cluster-broker .card-eyebrow { color: var(--y); }
-    .card.cluster-cross .card-eyebrow { color: var(--m); }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="top">
-      <span class="badge">PERSONA · LIBRARY</span>
-      <span class="spacer"></span>
-      <a class="back" href="/personas">← ALL</a>
+  <swr-nav></swr-nav>
+  <main class="wrap">
+    <header class="hero">
+      <p class="hero__eyebrow">Persona library</p>
+      <h1 class="hero__title">${count} looks, one page each</h1>
+      <p class="hero__lede">Every persona in <code>personas.js</code>, rendered as a static preview with its full FX uniform readout — no engine, no WebGL. Open one in the engine to hear what the uniforms do to a track.</p>
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="/engine">Open the engine</a>
+        <a class="btn btn--ghost" href="/personas">All personas</a>
+      </div>
     </header>
 
-    <h1>${count} personas · one page each</h1>
-    <p class="lede">A static, forkable demo for every persona in <code>personas.js</code>. Each page shows the persona's full FX uniform readout and a CSS-only approximation of the look — no engine dependency, no WebGL. Open it in the engine to hear what the uniforms do to a real track.</p>
-
-    <div class="legend">
-      <span class="sw"><span class="dot" style="background:var(--c)"></span> Auditor</span>
-      <span class="sw"><span class="dot" style="background:var(--g)"></span> Practitioner</span>
-      <span class="sw"><span class="dot" style="background:var(--y)"></span> Broker</span>
-      <span class="sw"><span class="dot" style="background:var(--m)"></span> Cross</span>
-    </div>
-
-    <div class="grid">
-      ${cards}
-    </div>
-  </div>
+    <section class="section gallery">
+      <div class="legend">
+        <span class="pill persona__tag--auditor">Auditor</span>
+        <span class="pill persona__tag--practitioner">Practitioner</span>
+        <span class="pill persona__tag--broker">Broker</span>
+        <span class="pill persona__tag--cross">Cross</span>
+      </div>
+      <div class="grid">
+        ${cards}
+      </div>
+    </section>
+  </main>
+  <swr-footer></swr-footer>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>
 `;

@@ -1,0 +1,10 @@
+{
+  "template": "react",
+  "project_name": "sample-react",
+  "project_purpose": "React SPA for admin dashboard.",
+  "project_hard_rules": [],
+  "project_slot_label": null,
+  "project_slot_cmd": null,
+  "documentation_language": "en",
+  "proceed": false
+}

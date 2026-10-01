@@ -402,6 +402,22 @@ function copyStatic() {
     'api/_lib/http.js',
     'api/_lib/session.js',
     'api/_lib/email.js',
+    // Video-slot ledger (authoritative payment-side quota for pt.client.js).
+    'api/slots/grant.js',
+    'api/slots/index.js',
+    'api/slots/[userId].js',
+    'api/_lib/slots.js',
+    // Seller catalogue (songs / videos / media packs + the ledger).
+    'api/catalogue/index.js',
+    'api/catalogue/[id].js',
+    'api/_lib/catalogue.js',
+    // Slot-ledger admin surface (unlisted route /slots-admin).
+    'slots-admin.html',
+    'slots-admin.client.js',
+    // Stripe Connect seller surface (unlisted route /connect).
+    'connect.html',
+    // Seller catalogue controller (loaded by connect.html).
+    'seller.client.js',
     'versions.client.js',
     'director-mode-sainted-word.html',
     'intro.html',

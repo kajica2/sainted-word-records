@@ -1,0 +1,16 @@
+{
+  "index": 3,
+  "prompt": "Abstract study rendered under hard club strobe flashes on a dark floor, frozen silhouettes, high-energy contrast, motion caught mid-beat — AUDITOR CLUB STROBE study --style raw --s 250 --ar 16:9",
+  "taskId": "c444ddd5-55f1-4b90-bf00-0302247f77a6",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/c444ddd5-55f1-4b90-bf00-0302247f77a6/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/c444ddd5-55f1-4b90-bf00-0302247f77a6/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/c444ddd5-55f1-4b90-bf00-0302247f77a6/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/c444ddd5-55f1-4b90-bf00-0302247f77a6/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:24:24.802Z",
+  "complete": true
+}

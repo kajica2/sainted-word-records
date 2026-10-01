@@ -18,6 +18,8 @@
 //     tierName: "PT Band",            // display name
 //     credits: 150,                   // remaining
 //     creditsTotal: 150,              // initial grant
+//     videoSlots: 30,                 // video registration quota for this tier
+//     videosRegistered: 0,            // videos registered against the quota
 //     activatedAt: 1786618680000,
 //     lastDecrementAt: 1786618680000,
 //   }
@@ -28,13 +30,15 @@
 
   const STORAGE_KEY = 'swr.license';
   const TIERS = {
-    solo:  { name: 'PT Solo',  credits: 50,  price: '€120' },
-    band:  { name: 'PT Band',  credits: 150, price: '€280' },
-    label: { name: 'PT Label', credits: 500, price: '€600' },
+    solo:  { name: 'PT Solo',  credits: 50,  price: '€120', videoSlots: 10 },
+    band:  { name: 'PT Band',  credits: 150, price: '€280', videoSlots: 30 },
+    label: { name: 'PT Label', credits: 500, price: '€600', videoSlots: 50 },
   };
   // Credits per minute of rendered video (1080p baseline)
   const CREDITS_PER_MIN_1080P = 1;
   const CREDITS_PER_MIN_4K    = 2;
+  // Registration batches allowed per call (in videos).
+  const REGISTER_BATCHES = [10, 30, 50];
 
   function load() {
     try {
@@ -87,6 +91,7 @@
         key: parsed.key,
         credits: (existing.credits || 0) + t.credits,
         creditsTotal: (existing.creditsTotal || 0) + t.credits,
+        videoSlots: (existing.videoSlots || 0) + t.videoSlots,
         lastDecrementAt: Date.now(),
       });
     } else {
@@ -96,6 +101,8 @@
         tierName: t.name,
         credits: t.credits,
         creditsTotal: t.credits,
+        videoSlots: t.videoSlots,
+        videosRegistered: 0,
         activatedAt: Date.now(),
         lastDecrementAt: Date.now(),
       };
@@ -127,9 +134,30 @@
     return { ok: true, creditsAfter: lic.credits, cost, tier: lic.tier };
   }
 
+  // Register videos against the license's slot quota. `count` must be one of
+  // the allowed batches (10 / 30 / 50). Returns { ok, remaining, error? }.
+  function registerVideos(count) {
+    const lic = load();
+    if (!lic) return { ok: false, error: 'no license' };
+    const batches = REGISTER_BATCHES.map(String);
+    if (!batches.includes(String(count))) {
+      return { ok: false, error: 'invalid batch: ' + count + ' (allowed: ' + REGISTER_BATCHES.join(', ') + ')' };
+    }
+    const used = lic.videosRegistered || 0;
+    const total = lic.videoSlots || 0;
+    if (used + count > total) {
+      return { ok: false, error: 'no slots left', needed: count, remaining: total - used };
+    }
+    lic.videosRegistered = used + count;
+    save(lic);
+    try { window.dispatchEvent(new CustomEvent('swr-pt-changed', { detail: lic })); } catch (_) { /* noop */ }
+    return { ok: true, registered: count, remaining: total - lic.videosRegistered, total };
+  }
+
   // Public API on window
   window.SWR_PT = {
     TIERS,
+    REGISTER_BATCHES,
     load,
     save,
     clear,
@@ -137,8 +165,11 @@
     activate,
     deactivate,
     consumeForRender,
+    registerVideos,
     isActive() { return !!load(); },
     getTier() { const l = load(); return l ? l.tier : null; },
     getCredits() { const l = load(); return l ? l.credits : 0; },
+    getVideoSlots() { const l = load(); return l ? (l.videoSlots || 0) : 0; },
+    getVideosRegistered() { const l = load(); return l ? (l.videosRegistered || 0) : 0; },
   };
 })();

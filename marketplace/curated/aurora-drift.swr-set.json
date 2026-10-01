@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000007",
+  "name": "Aurora · Drift",
+  "author": "SWR",
+  "description": "Slow chromatic drift with a soft liquid shimmer. Built for ambient, dream pop and downtempo tracks that want colour rather than impact.",
+  "tags": [
+    "ambient",
+    "aurora",
+    "drift",
+    "downtempo"
+  ],
+  "createdAt": "2026-09-30T00:00:00Z",
+  "engine": "aurora",
+  "audio": {
+    "name": "aurora.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 211654,
+    "url": "/audios/aurora.mp3"
+  },
+  "fx": {
+    "temp": 0.6,
+    "mut": 0.15,
+    "mutAlgo": 1,
+    "posterize": 0,
+    "vignette": 0.35,
+    "chroma": 0.25,
+    "grain": 0.1,
+    "sepia": 0.1,
+    "glow": 0.8,
+    "grayscale": 0,
+    "blur": 0.1,
+    "liquid": 0.3,
+    "pearl": 0.45,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-6.webp",
+        "mimeType": "image/webp",
+        "size": 184704,
+        "url": "/default-library/holo-6.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 96,
+    "key": "D",
+    "scale": "major"
+  }
+}

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Become a seller · Sainted Word Records</title>
+  <meta name="description" content="Join Sainted Word Records and start selling your songs, video files, and media packs. We handle every transaction for you — payments, receipts, and payouts to your bank." />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/connect" />
+  <meta property="og:title" content="Become a seller · Sainted Word Records" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/og.png" />
+  <meta property="og:description" content="Join once, we run the money. Sell songs, videos, and media packs — individually or as bundles." />
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <style>
+    :root { --bg:#0A0A0B; --panel:#111114; --panel-2:#16161B; --line:#20202a; --fg:#E5E5E7; --muted:#8A8A92; --faint:#5A5A62; --accent:#FF6B1A; --accent-soft:#FF6B1A22; --ok:#7ee787; --err:#ff6b6b; --warn:#ffae42; }
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { background: var(--bg); color: var(--fg); font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif; min-height: 100vh; }
+    main { padding: 64px 24px 120px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 10px; }
+    h2 { font-size: 15px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); margin: 0 0 18px; }
+    .sub { color: var(--muted); margin: 0 0 40px; max-width: 620px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 28px; margin-bottom: 18px; }
+    .kicker { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; font-weight: 600; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 700px) { .grid3 { grid-template-columns: 1fr; } }
+    .tile { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    .tile h3 { margin: 0 0 6px; font-size: 15px; }
+    .tile p { margin: 0; color: var(--muted); font-size: 13.5px; }
+    .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .btn { cursor: pointer; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); border-radius: 8px; padding: 12px 20px; font: inherit; font-weight: 600; }
+    .btn:hover { border-color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #0a0a0b; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .meter { height: 8px; border-radius: 4px; background: #1c1c22; border: 1px solid var(--line); overflow: hidden; margin: 10px 0 6px; }
+    .meter i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .3s ease; }
+    .mini { font-size: 12.5px; color: var(--muted); }
+    .status { display: none; border-radius: 8px; padding: 12px 16px; font-size: 13.5px; margin-bottom: 18px; }
+    .status.show { display: block; }
+    .status.ok { background: #0f2416; border: 1px solid #1d5c33; color: var(--ok); }
+    .status.warn { background: #2a1e0a; border: 1px solid #6b4a12; color: var(--warn); }
+    .status.err { background: #2a0f0f; border: 1px solid #6b1d1d; color: var(--err); }
+    .fee { display: inline-flex; align-items: center; gap: 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid #FF6B1A44; border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+    .muted { color: var(--muted); }
+    .hidden { display: none; }
+    #connect-actions { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .state-label { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main id="main">
+    <div class="wrap">
+      <h1>Become a seller. We run the money.</h1>
+      <p class="sub">Join once and the site handles every transaction for you — payments, receipts, and payouts to your bank. You upload your music, your videos, your packs; we take care of the selling.</p>
+
+      <div id="toast" class="status" role="status" aria-live="polite"></div>
+
+      <div class="card">
+        <p class="kicker">Your account, your store</p>
+        <h2>Your account, your store</h2>
+        <p class="muted" style="margin-top:-6px">
+          When you join, we register you as a seller and set up your payment system for you.
+          The only thing you'll ever need to do is verify your identity and connect your bank once —
+          a secure one-time step. After that, every sale is handled by us, end to end.
+        </p>
+        <div class="grid3" style="margin-top:20px">
+          <div class="tile">
+            <h3>Songs</h3>
+            <p>Upload the audio that drives every remix. Your files stay yours.</p>
+          </div>
+          <div class="tile">
+            <h3>Video files</h3>
+            <p>Footage, loops, and clips — registered to you the moment they land.</p>
+          </div>
+          <div class="tile">
+            <h3>Media packs</h3>
+            <p>Import-ready bundles of visuals and textures, ready to sell as a set.</p>
+          </div>
+        </div>
+        <p style="margin:18px 0 0">
+          <strong>Sell them together or separately.</strong>
+          <span class="muted"> Price each item on its own or group them into bundles — a song plus its video plus a matching pack. Buyers take a single track or the whole kit. You choose.</span>
+        </p>
+        <p style="margin:8px 0 0" class="muted">
+          Every purchase is a license to remix: buyers pull your songs, videos, and packs into the engine and build new compositions.
+          When a sale happens we process the payment and send 100% of your price straight to your bank — buyers add a small service fee at checkout, so creators never pay to sell.
+        </p>
+      </div>
+
+      <div class="card" id="seller-card">
+        <p class="kicker">Selling status</p>
+        <div class="row">
+          <span class="fee" id="fee-pill">Free for creators · you keep 100%</span>
+          <span class="mini" id="pilot-note"></span>
+        </div>
+        <div class="meter" id="pilot-meter-wrap"><i id="pilot-meter" style="width:0%"></i></div>
+        <p class="mini" id="pilot-line"></p>
+
+        <div id="connect-actions" class="row">
+          <span id="state-label" class="state-label">Loading your selling status…</span>
+          <span style="flex:1"></span>
+          <button id="btn-join" class="btn primary hidden">Become a seller</button>
+          <button id="btn-onboard" class="btn hidden">Complete onboarding</button>
+          <a id="btn-login" class="btn hidden" href="/auth/login">Sign in to become a seller</a>
+        </div>
+      </div>
+
+      <!-- Seller catalogue (rendered by seller.client.js; unlocks when the
+           connected account is active). -->
+      <section id="seller-catalogue" style="margin-top:24px"></section>
+    </div>
+  </main>
+  <swr-footer></swr-footer>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="/seller.client.js" defer></script>
+  <script>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      var toast = $('toast');
+      var status_ = null;
+
+      function showToast(kind, msg) {
+        toast.className = 'status show ' + kind;
+        toast.textContent = msg;
+      }
+      function clearToast() { toast.className = 'status'; toast.textContent = ''; }
+
+      function api(path, opts) {
+        opts = opts || {};
+        return fetch(path, {
+          method: opts.method || 'GET',
+          credentials: 'same-origin',
+          headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+        }).then(function (r) {
+          return r.json().then(function (json) {
+            return { status: r.status, json: json };
+          }).catch(function () {
+            return { status: r.status, json: null };
+          });
+        });
+      }
+
+      function render() {
+        var connect = status_.connect;
+        var pilot = status_.pilot;
+
+        // Fee pill — the platform is always free for creators: sellers
+        // keep 100% of their price; buyers add a small service fee at
+        // checkout (feePercent is that buyer-side surcharge, not a cut).
+        $('fee-pill').textContent = 'Free for creators · you keep 100%';
+
+        // Pilot meter.
+        var used = pilot ? pilot.used : 0;
+        var limit = pilot ? pilot.limit : 0;
+        var pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+        $('pilot-meter').style.width = pct + '%';
+        $('pilot-line').textContent = limit > 0
+          ? used + ' of ' + limit + ' pilot seller spots claimed'
+          : 'Pilot is open';
+
+        if (!connect) {
+          $('state-label').textContent = 'Not a seller yet';
+          $('btn-join').classList.remove('hidden');
+          $('btn-onboard').classList.add('hidden');
+          $('btn-login').classList.add('hidden');
+          if (limit > 0 && used >= limit) {
+            $('btn-join').disabled = true;
+            $('btn-join').textContent = 'Pilot full';
+            $('pilot-line').textContent = 'All ' + limit + ' pilot spots are taken. Sign up for the next wave.';
+          } else {
+            $('btn-join').disabled = false;
+            $('btn-join').textContent = 'Become a seller';
+          }
+          return;
+        }
+
+        var label = 'Seller · ';
+        if (connect.status === 'active') label += 'active — payments on';
+        else if (connect.status === 'revoked') label += 'revoked — contact us';
+        else label += 'onboarding incomplete';
+        if (connect.payoutsEnabled) label += ' · payouts on';
+        $('state-label').textContent = label;
+
+        $('btn-join').classList.add('hidden');
+        $('btn-login').classList.add('hidden');
+        if (connect.status === 'active') {
+          $('btn-onboard').classList.add('hidden');
+        } else {
+          $('btn-onboard').classList.remove('hidden');
+          $('btn-onboard').textContent = connect.status === 'pending' ? 'Complete onboarding' : 'Retry onboarding';
+        }
+      }
+
+      function refresh() {
+        return api('/api/connect').then(function (r) {
+          if (r.status === 401) {
+            $('state-label').textContent = 'You need to sign in first';
+            $('btn-login').classList.remove('hidden');
+            $('btn-join').classList.add('hidden');
+            $('btn-onboard').classList.add('hidden');
+            return;
+          }
+          if (r.status !== 200 || !r.json) {
+            showToast('err', 'Could not load your selling status. Try again shortly.');
+            return;
+          }
+          clearToast();
+          status_ = r.json;
+          render();
+        }).catch(function () {
+          showToast('err', 'Network error — could not reach the API.');
+        });
+      }
+
+      function join() {
+        $('btn-join').disabled = true;
+        return api('/api/connect', { method: 'POST', body: { action: 'create' } }).then(function (r) {
+          if (r.json && r.json.ok) {
+            showToast('ok', 'Seller account created. Now finish the one-time setup.');
+            return onboard();
+          }
+          if (r.json && r.json.error === 'pilot_limit_reached') {
+            showToast('warn', r.json.message || 'The pilot is full right now.');
+            $('btn-join').disabled = false;
+            refresh();
+            return;
+          }
+          showToast('err', (r.json && r.json.message) || 'Could not create the seller account.');
+          $('btn-join').disabled = false;
+        }).catch(function () {
+          showToast('err', 'Network error — could not create the seller account.');
+          $('btn-join').disabled = false;
+        });
+      }
+
+      function onboard() {
+        $('btn-onboard').disabled = true;
+        return api('/api/connect', { method: 'POST', body: { action: 'onboard' } }).then(function (r) {
+          if (r.json && r.json.url) {
+            showToast('ok', 'One-time setup opened in a new tab — verify your identity and connect your bank.');
+            window.open(r.json.url, '_blank');
+          } else {
+            showToast('err', (r.json && r.json.message) || 'Could not start onboarding.');
+          }
+          $('btn-onboard').disabled = false;
+          refresh();
+        }).catch(function () {
+          showToast('err', 'Network error — could not start onboarding.');
+          $('btn-onboard').disabled = false;
+        });
+      }
+
+      $('btn-join').addEventListener('click', join);
+      $('btn-onboard').addEventListener('click', onboard);
+
+      // Return-from-Stripe notices (?onboarding=done|refresh)
+      var q = new URLSearchParams(window.location.search);
+      if (q.get('onboarding') === 'done') showToast('ok', 'Onboarding submitted — your status updates automatically when Stripe confirms it.');
+      else if (q.get('onboarding') === 'refresh') showToast('warn', 'Onboarding was not completed — you can start over whenever you are ready.');
+
+      refresh();
+    })();
+  </script>
+</body>
+</html>

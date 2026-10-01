@@ -1,0 +1,16 @@
+{
+  "index": 1,
+  "prompt": "1940s sepia portrait photograph of a young Serbian family, two generations posed in front of a modest rural house in Slavonia, parents and young children in winter clothing, soft natural daylight, slightly grainy period photographic style, museum artifact, dignified  --v 8.2 --style raw --no text signature --ar 2:3",
+  "taskId": "f490869d-c0d1-4e11-9d79-a2da4d95ca4a",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/f490869d-c0d1-4e11-9d79-a2da4d95ca4a/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f490869d-c0d1-4e11-9d79-a2da4d95ca4a/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f490869d-c0d1-4e11-9d79-a2da4d95ca4a/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f490869d-c0d1-4e11-9d79-a2da4d95ca4a/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-30T00:55:14.632Z",
+  "complete": true
+}

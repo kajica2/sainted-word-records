@@ -1,0 +1,16 @@
+{
+  "index": 2,
+  "prompt": "Abstract study rendered with heavy posterization, color reduction to a 6-tone palette, high contrast, no chromatic noise, graphic-design layout — CROSS POSTER study --style raw --s 250 --ar 16:9",
+  "taskId": "0e99d162-51ce-47cd-994c-e901d9fe48fa",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/0e99d162-51ce-47cd-994c-e901d9fe48fa/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0e99d162-51ce-47cd-994c-e901d9fe48fa/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0e99d162-51ce-47cd-994c-e901d9fe48fa/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0e99d162-51ce-47cd-994c-e901d9fe48fa/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:22:41.303Z",
+  "complete": true
+}

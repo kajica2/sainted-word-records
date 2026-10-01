@@ -1,0 +1,16 @@
+{
+  "index": 6,
+  "prompt": "Abstract study rendered in a neon signage palette, saturated magenta and cyan over deep night blue, wet reflective surfaces, glowing edge light — AUDITOR NEON study --style raw --s 250 --ar 16:9",
+  "taskId": "caf89691-fe9e-4704-b067-6b9d838ccf70",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/caf89691-fe9e-4704-b067-6b9d838ccf70/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/caf89691-fe9e-4704-b067-6b9d838ccf70/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/caf89691-fe9e-4704-b067-6b9d838ccf70/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/caf89691-fe9e-4704-b067-6b9d838ccf70/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:22:57.433Z",
+  "complete": true
+}

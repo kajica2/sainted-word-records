@@ -1,0 +1,20 @@
+{
+  "index": 8,
+  "prompt": "Byzantine fresco of the Nemanjić dynasty tree, c. 1330, from the Patriarchate of Peć, multiple crowned figures with halos arranged in a genealogical tree, deep earth tones and faded gold, monumental iconographic composition, photographed in soft natural light  --v 8.2 --style raw --no text signature --ar 2:3",
+  "taskId": "4231b972-3a2f-4123-81cc-cae24beeb54c",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_3_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_0_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_1_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_2_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/4231b972-3a2f-4123-81cc-cae24beeb54c/0_3_384_N.webp?method=shortest&qst=6&quality=15"
+  ],
+  "imageCount": 8,
+  "submittedAt": "2026-09-30T00:57:21.879Z",
+  "complete": true
+}

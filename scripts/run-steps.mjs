@@ -78,6 +78,12 @@ const GROUPS = {
     'npm run check:auth-unit',
     'npm run check:bpm-unit',
     'npm run check:invite-unlock-unit',
+    'npm run check:grant-invite-batch-unit',
+    'npm run check:pt-unit',
+    'npm run check:zip-reader-unit',
+    'npm run check:slots-unit',
+    'npm run check:slots-api-smoke',
+    'npm run check:webm-clips-unit',
     'npm run check:storage-blob-unit',
     'npm run check:db-postgres',
     'npm run verify:smtp',
@@ -92,8 +98,10 @@ const GROUPS = {
     'npm run check:targeting-unit',
     'npm run targeting:verify',
     'npm run check:media-input-unit',
+    'npm run check:directors-unit',
     'npm run check:spit-live-unit',
     'npm run check:tiktok-unit',
+    'npm run check:glyphs-layers-unit',
     'npm run check:camera-enhance-unit',
     'npm run check:capture-unit',
     'npm run check:photo-slideshow',
@@ -152,6 +160,14 @@ const GROUPS = {
     // every site-map entry resolves to a file that actually made it into dist.
     // Browser: clip posters are captured frames, which no static check can see.
     'npm run check:clip-poster-smoke',
+    // verify:engine-boot was reachable from no group. It is the only gate
+    // that asserts the engine's transport row stays on-screen: #transport is
+    // a nowrap flex row of ~44 controls (~2900px natural width), and when it
+    // overflowed its fixed 56px grid row the ● REC and 🎬 Export video
+    // controls sat outside the viewport, clipped by body{overflow-x:hidden}
+    // and unhittable by mouse at every width — while the page still looked
+    // healthy and check:syntax passed. The budget covers its ~9s runtime.
+    { cmd: 'npm run verify:engine-boot', timeoutMs: 300000, retries: 1 },
     'npm run check:dist-links',
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.

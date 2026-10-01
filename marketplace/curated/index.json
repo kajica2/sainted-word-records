@@ -1,0 +1,73 @@
+{
+  "schema": "swr-marketplace-index/v1",
+  "generatedAt": "2026-09-30T04:15:40.167Z",
+  "count": 11,
+  "sets": [
+    {
+      "file": "/marketplace/curated/aurora-drift.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "Aurora · Drift",
+      "engine": "aurora"
+    },
+    {
+      "file": "/marketplace/curated/collage-mag.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "Collage · Mag",
+      "engine": "collage"
+    },
+    {
+      "file": "/marketplace/curated/eclipse-veil.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000008",
+      "name": "Eclipse · Veil",
+      "engine": "eclipse"
+    },
+    {
+      "file": "/marketplace/curated/fractal-maze.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "Fractal · Maze",
+      "engine": "fractal"
+    },
+    {
+      "file": "/marketplace/curated/glitch-idm.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "Glitch · IDM",
+      "engine": "glitch"
+    },
+    {
+      "file": "/marketplace/curated/neon-pulse.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "Neon Pulse",
+      "engine": "neon"
+    },
+    {
+      "file": "/marketplace/curated/smoke-portrait.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "Smoke Portrait",
+      "engine": "smoke"
+    },
+    {
+      "file": "/marketplace/curated/spectrum-bass.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "Spectrum · Bass",
+      "engine": "spectrum"
+    },
+    {
+      "file": "/marketplace/curated/typography-loud.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "Type · Loud",
+      "engine": "typography"
+    },
+    {
+      "file": "/marketplace/curated/void-bloom.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000009",
+      "name": "Void · Bloom",
+      "engine": "void"
+    },
+    {
+      "file": "/marketplace/curated/watercolor-bleed.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": "Watercolor · Bleed",
+      "engine": "watercolor"
+    }
+  ]
+}

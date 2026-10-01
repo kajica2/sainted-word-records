@@ -72,11 +72,6 @@
       "description": "Persona overview + archived design registers"
     },
     {
-      "label": "Persona Variants",
-      "href": "/personas/v",
-      "description": "24 engine-driven persona variants"
-    },
-    {
       "label": "Learn",
       "href": "/intro",
       "description": "Tutorials and docs",
@@ -419,7 +414,9 @@
     "/gallery/bachdrop",
     "/gallery/brutalist",
     "/gallery/vintage",
-    "/versions/music-video-gallery"
+    "/versions/music-video-gallery",
+    "/slots-admin",
+    "/connect"
   ],
   "archived": [],
   "meta": {

@@ -1,0 +1,16 @@
+{
+  "index": 3,
+  "prompt": "Reverse of an aged Byzantine leather-bound book cover, deep oxblood-red leather, central pale parchment cartouche framed in thin gold lines, faded manuscript-style ornamental corner pieces in dark gold, breathing parchment-cream negative space, soft directional candlelight from upper left, museum artifact, restrained ornament, no text, no signature  --v 8.2 --style raw --no text signature watermark --style raw --s 250 --ar 2:3",
+  "taskId": "6b1f1762-717d-453a-ae1b-2e851900ee67",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/6b1f1762-717d-453a-ae1b-2e851900ee67/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/6b1f1762-717d-453a-ae1b-2e851900ee67/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/6b1f1762-717d-453a-ae1b-2e851900ee67/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/6b1f1762-717d-453a-ae1b-2e851900ee67/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T22:40:11.601Z",
+  "complete": true
+}

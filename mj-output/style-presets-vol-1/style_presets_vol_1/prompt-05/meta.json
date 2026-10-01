@@ -1,0 +1,16 @@
+{
+  "index": 5,
+  "prompt": "Abstract study rendered with a heavy color-grade pass, split-tone shadows, crushed blacks, one saturated hue through a desaturated field — BROKER FILTER study --style raw --s 250 --ar 16:9",
+  "taskId": "7b9b9b2b-192c-4adc-8562-119d1a018ac6",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/7b9b9b2b-192c-4adc-8562-119d1a018ac6/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/7b9b9b2b-192c-4adc-8562-119d1a018ac6/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/7b9b9b2b-192c-4adc-8562-119d1a018ac6/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/7b9b9b2b-192c-4adc-8562-119d1a018ac6/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:22:55.818Z",
+  "complete": true
+}

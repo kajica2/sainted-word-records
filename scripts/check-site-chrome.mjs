@@ -28,13 +28,19 @@ import { routeForFile, routeToFile } from './lib/routes.mjs';
 
 const VERBOSE = process.argv.includes('--verbose');
 
-const IGNORED_DIRS = new Set(['node_modules', 'dist', 'dist-dev', '_archive', 'score-app', '.git', '.worktrees', 'public', 'gallery-vintage']);
+const IGNORED_DIRS = new Set(['node_modules', 'dist', 'dist-dev', '_archive', 'score-app', '.git', '.worktrees', 'public', 'gallery-vintage', 'out']);
 
 // Not deployed, not public, or deliberately chrome-free.
 //   tools/ + auth/     — internal/dev tools and the auth flow: noindex, no marketing chrome
 //   scripts/           — dev fixtures, never shipped (vite copyStatic skips scripts/)
 const IGNORED = [
   /^tools\//, /^auth\//, /^scripts\//,
+  // Generated cover animations (media-pack / NFT cover art): standalone
+  // paused-timeline render assets, not navigable pages. Same category as the
+  // swr-intro-10s.html bumper below — chrome-free by design. out/ is likewise
+  // scratch output (media-pack regenerates cover-anim.html there), so it is
+  // dropped in IGNORED_DIRS.
+  /^packs\/covers\//,
 ];
 const IGNORED_FILES = new Set([
   'offline.html',            // PWA fallback, shown by sw.js with no network

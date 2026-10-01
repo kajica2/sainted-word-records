@@ -1,0 +1,16 @@
+{
+  "index": 1,
+  "prompt": "Abstract study rendered as a coarse train stage 1 base pass, low-frequency structure and broad shapes only, no fine detail — CROSS TRAIN STAGE 1 study --style raw --s 250 --ar 16:9",
+  "taskId": "0d462113-e8db-4c05-a7d7-b20fc724a00b",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/0d462113-e8db-4c05-a7d7-b20fc724a00b/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0d462113-e8db-4c05-a7d7-b20fc724a00b/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0d462113-e8db-4c05-a7d7-b20fc724a00b/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0d462113-e8db-4c05-a7d7-b20fc724a00b/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:28:41.182Z",
+  "complete": true
+}

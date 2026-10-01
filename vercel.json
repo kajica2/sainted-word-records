@@ -484,14 +484,6 @@
       "destination": "/personas.html"
     },
     {
-      "source": "/personas/v",
-      "destination": "/personas/v/index.html"
-    },
-    {
-      "source": "/personas/v/",
-      "destination": "/personas/v/index.html"
-    },
-    {
       "source": "/intro",
       "destination": "/intro.html"
     },
@@ -882,6 +874,22 @@
     {
       "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
+    },
+    {
+      "source": "/slots-admin",
+      "destination": "/slots-admin.html"
+    },
+    {
+      "source": "/slots-admin/",
+      "destination": "/slots-admin.html"
+    },
+    {
+      "source": "/connect",
+      "destination": "/connect.html"
+    },
+    {
+      "source": "/connect/",
+      "destination": "/connect.html"
     },
     {
       "source": "/login",

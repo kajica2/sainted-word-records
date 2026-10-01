@@ -1,0 +1,16 @@
+{
+  "index": 2,
+  "prompt": "Tall narrow vertical book spine, deep oxblood-red leather, vertical gold stamped Cyrillic text, faint aged grain texture, hardback binding, slight 3D perspective with depth showing top edge of pages, candlelight, museum artifact, refined craft, no other objects  --v 8.2 --style raw --style raw --s 250 --ar 1:4",
+  "taskId": "f08a9536-0bce-4744-900f-920f99fd0029",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/f08a9536-0bce-4744-900f-920f99fd0029/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f08a9536-0bce-4744-900f-920f99fd0029/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f08a9536-0bce-4744-900f-920f99fd0029/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f08a9536-0bce-4744-900f-920f99fd0029/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T22:40:11.111Z",
+  "complete": true
+}

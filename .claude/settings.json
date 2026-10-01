@@ -1,0 +1,235 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" PostToolUse",
+            "timeout": 30,
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" PreToolUse",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" PreToolUse",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit"
+      },
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" PreToolUse",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Agent"
+      },
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" PreToolUse",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Glob|Grep"
+      },
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" PreToolUse",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "ExitPlanMode"
+      },
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" PreToolUse",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Skill"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" SessionStart",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" Stop",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Agent"
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" SubagentStart",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" SubagentStop",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" TaskCompleted",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" TaskCreated",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/omb/omb-hook.sh\" TeammateIdle",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "OMB_DOCUMENTATION_LANGUAGE": "ko",
+    "OMB_USE_CODEX": "1",
+    "OMB_ORM_BACKEND": "tortoise",
+    "OMB_SUBAGENT_WATCHDOG": "true",
+    "OMB_SUBAGENT_POLL_SLICE_S": "30",
+    "OMB_SUBAGENT_STARTUP_GRACE_S": "120",
+    "OMB_SUBAGENT_SOFT_INACTIVITY_S": "120",
+    "OMB_SUBAGENT_INACTIVITY_S": "300",
+    "OMB_SUBAGENT_HARD_CEILING_S": "900",
+    "OMB_SUBAGENT_RETRY_MAX": "1",
+    "OMB_HERDR_SYNC_WAIT_S": "900",
+    "OMB_HERDR_POLL_S": "60",
+    "OMB_HERDR_ASYNC_CEILING_S": "7200",
+    "OMB_PR_WATCH_IGNORED_CHECKS": "sonar*",
+    "OMB_PR_WATCH_POLL_S": "120",
+    "OMB_PR_WATCH_POLL_MAX_S": "600",
+    "OMB_PR_WATCH_CEILING_S": "7200",
+    "OMB_PR_WATCH_NO_PROGRESS_MAX": "3",
+    "OMB_PR_WATCH_CODEX_WAIT_S": "600",
+    "OMB_PR_WATCH_TRUSTED_BOTS": "chatgpt-codex-connector[bot],copilot-pull-request-reviewer[bot]",
+    "OMB_PR_WATCH_LOG_MAX_BYTES": "65536",
+    "OMB_PR_WATCH_ALLOW_NO_CHECKS": "false"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bash .claude/bin/omb-cli.sh pr-watch:*)",
+      "Bash(gh search:*)",
+      "Bash(git blame:*)",
+      "Bash(git diff:*)",
+      "Bash(git grep:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git show:*)",
+      "Bash(git status:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(mypy:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(printenv:*)",
+      "Bash(pyright:*)",
+      "Bash(pytest:*)",
+      "Bash(python3 .claude/skills/omb-architect/scripts/architect_inventory.py:*)",
+      "Bash(python3 .claude/skills/omb-herdr/scripts/herdr_isolation.py:*)",
+      "Bash(rg:*)",
+      "Bash(ruff:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(wc:*)",
+      "Edit(.claude/agent-memory/**)",
+      "Edit(.omb/**)",
+      "Glob",
+      "Grep",
+      "Read",
+      "Skill"
+    ],
+    "ask": [
+      "Bash(python3 .claude/skills/omb-herdr/scripts/herdr_isolation.py cwd-lock release --force:*)",
+      "ExitPlanMode"
+    ],
+    "defaultMode": "default"
+  },
+  "attribution": {
+    "commit": "",
+    "sessionUrl": false
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "\"$CLAUDE_PROJECT_DIR/.claude/statusline-omb.sh\"",
+    "padding": 1
+  },
+  "respectGitignore": true
+}
