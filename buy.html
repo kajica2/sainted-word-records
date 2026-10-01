@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buy · Remix the catalogue · Sainted Word Records</title>
+  <meta name="description" content="Browse songs, video files, and media packs from the Sainted Word Records marketplace. Every purchase is a remix license — you keep the files, we run the payments." />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/buy" />
+  <meta property="og:title" content="Buy · Remix the catalogue · Sainted Word Records" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta property="og:description" content="Songs, videos, and media packs — sold individually or as bundles. Buyers add a small service fee; creators keep 100%." />
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <style>
+    :root { --bg:#0A0A0B; --panel:#111114; --panel-2:#16161B; --line:#20202a; --fg:#E5E5E7; --muted:#8A8A92; --faint:#5A5A62; --accent:#FF6B1A; --accent-soft:#FF6B1A22; --ok:#7ee787; --err:#ff6b6b; }
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { background: var(--bg); color: var(--fg); font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif; min-height: 100vh; }
+    main { padding: 56px 24px 120px; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 32px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .sub { color: var(--muted); margin: 0 0 32px; max-width: 640px; }
+    .notice { display: none; border-radius: 8px; padding: 12px 16px; font-size: 13.5px; margin-bottom: 18px; }
+    .notice.show { display: block; }
+    .notice.ok { background: #0f2416; border: 1px solid #1d5c33; color: var(--ok); }
+    .notice.err { background: #2a0f0f; border: 1px solid #6b1d1d; color: var(--err); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .card .kind { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+    .card h3 { margin: 0; font-size: 16px; line-height: 1.3; }
+    .card .desc { color: var(--muted); font-size: 13.5px; margin: 0; min-height: 2.6em; }
+    .card .meta { color: var(--faint); font-size: 12.5px; }
+    .price-row { display: flex; align-items: center; justify-content: space-between; margin-top: auto; flex-wrap: wrap; gap: 10px; }
+    .price { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .price .fee { display: block; font-size: 11px; font-weight: 400; color: var(--faint); }
+    .btn { cursor: pointer; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); border-radius: 8px; padding: 10px 18px; font: inherit; font-weight: 600; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #0a0a0b; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty { color: var(--muted); text-align: center; padding: 60px 0; }
+    .fee-line { display: flex; gap: 8px; align-items: center; background: var(--accent-soft); color: var(--accent); border: 1px solid #FF6B1A44; border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; width: fit-content; margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main id="main">
+    <div class="wrap">
+      <h1>Buy the raw material. Make it yours.</h1>
+      <p class="sub">Songs, video files, and media packs from the marketplace — sold individually or as bundles. Every purchase is a license to remix: drop what you buy into the engine and build something new.</p>
+      <div class="fee-line">Free for creators — you only pay the platform service fee at checkout</div>
+      <div id="notice" class="notice" role="status" aria-live="polite"></div>
+      <div id="shop-grid" class="grid"><p class="empty">Loading the catalogue…</p></div>
+    </div>
+  </main>
+  <swr-footer></swr-footer>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="/shop.client.js" defer></script>
+</body>
+</html>

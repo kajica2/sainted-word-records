@@ -411,6 +411,10 @@ function copyStatic() {
     'api/catalogue/index.js',
     'api/catalogue/[id].js',
     'api/_lib/catalogue.js',
+    // Buyer checkout (public browse + Checkout Session + order ledger).
+    'api/catalogue/public.js',
+    'api/checkout/index.js',
+    'api/_lib/orders.js',
     // Slot-ledger admin surface (unlisted route /slots-admin).
     'slots-admin.html',
     'slots-admin.client.js',
@@ -418,6 +422,8 @@ function copyStatic() {
     'connect.html',
     // Seller catalogue controller (loaded by connect.html).
     'seller.client.js',
+    // Buyer browse/checkout controller (loaded by buy.html).
+    'shop.client.js',
     'versions.client.js',
     'director-mode-sainted-word.html',
     'intro.html',

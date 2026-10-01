@@ -48,10 +48,15 @@ Env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PLATFORM_FEE_PERCENT`
   route) to: create → onboard → show status (GET `/api/connect`). Seller
   completes onboarding; webhook flips status to `active`. Owner reconciles
   via `connect/events.json` (or `listConnectEvents()`).
-- **Phase 2 (charging).** Buyer Checkout with `transfer_data.destination` +
-  `application_fee_amount`. Charge creation is the one Stripe call not yet
-  scaffolded — decide fixed-price (one product per listing) vs amount-based
-  at onboarding.
+- **Phase 2 (charging).** **DONE.** Buyer Checkout: `POST /api/checkout`
+  creates a Stripe Checkout Session from a live listing (bundle refs
+  resolved server-side), charging the buyer price + buyer-side service fee
+  (`STRIPE_PLATFORM_FEE_PERCENT`), transferring 100% of the price to the
+  seller's connected account (`application_fee_amount` = fee, so sellers
+  keep everything). Orders are recorded platform-side
+  (`api/_lib/orders.js`, status `pending` → `paid` via the
+  `checkout.session.completed` webhook). Public browse: `/api/catalogue/public`
+  + `/buy`.
 - **Phase 3 (scale to 100).** Raise `SWR_CONNECT_PILOT_LIMIT`; add an admin
   reconciliation view; revisit the Firestore option only if Google
   integration becomes a product requirement. Watch Vercel Postgres usage;

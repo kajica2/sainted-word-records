@@ -19,6 +19,7 @@ process.env.SWRC_DATA_DIR = TMP;
 // Dynamic import so the env var takes effect.
 const db = await import('../api/_lib/db.js');
 const cat = await import('../api/_lib/catalogue.js');
+const orders = await import('../api/_lib/orders.js');
 
 let failed = 0;
 function test(name, fn) {
@@ -372,6 +373,91 @@ await test('featured media — at most one, video-only, survives roundtrip', asy
   // Roundtrip through a fresh read keeps the flag.
   const got = await cat.getCatalogItem(u.id, item.id);
   assert.equal((got.media || []).filter((m) => m.featured).length, 1);
+});
+
+// --- Buyer checkout (pilot) ---
+await test('computeOrderTotals math — fee is buyer-side, seller keeps 100%', () => {
+  assert.deepEqual(orders.computeOrderTotals({ priceMinor: 500, feePercent: 10 }), { priceMinor: 500, feeMinor: 50, totalMinor: 550 });
+  assert.deepEqual(orders.computeOrderTotals({ priceMinor: 100, feePercent: 0 }), { priceMinor: 100, feeMinor: 0, totalMinor: 100 });
+  assert.deepEqual(orders.computeOrderTotals({ priceMinor: 333, feePercent: 10 }), { priceMinor: 333, feeMinor: 33, totalMinor: 366 });
+  assert.throws(() => orders.computeOrderTotals({ priceMinor: -5, feePercent: 10 }), /priceMinor/);
+  assert.throws(() => orders.computeOrderTotals({ priceMinor: 100, feePercent: 150 }), /feePercent/);
+});
+
+await test('createOrder + markOrderPaidBySession (idempotent)', async () => {
+  const buyer = await db.createUser({ email: `buyer-${Date.now()}@x.com` });
+  const seller = await db.createUser({ email: `seller-${Date.now()}@x.com` });
+  const order = await orders.createOrder({
+    buyerUserId: buyer.id,
+    buyerEmail: buyer.email,
+    sellerUserId: seller.id,
+    sellerAccountId: 'acct_seller_1',
+    items: [
+      { listingId: '11111111-1111-1111-1111-111111111111', type: 'song', title: 'A', priceMinor: 400 },
+      { listingId: '22222222-2222-2222-2222-222222222222', type: 'pack', title: 'B', priceMinor: 600 },
+    ],
+    feePercent: 10,
+  });
+  assert.equal(order.status, 'pending');
+  assert.equal(order.priceMinor, 1000);
+  assert.equal(order.feeMinor, 100);
+  assert.equal(order.totalMinor, 1100);
+
+  const bySession = await orders.findOrderBySession('cs_test_1');
+  assert.equal(bySession, null);
+  await orders.updateOrder(order.id, { sessionId: 'cs_test_1' });
+  assert.equal((await orders.findOrderBySession('cs_test_1')).id, order.id);
+
+  const paid = await orders.markOrderPaidBySession('cs_test_1', { paymentIntentId: 'pi_1' });
+  assert.equal(paid.status, 'paid');
+  // Idempotent: replay does not double-flip or error.
+  const again = await orders.markOrderPaidBySession('cs_test_1', { paymentIntentId: 'pi_1' });
+  assert.equal(again.status, 'paid');
+});
+
+await test('listOrdersForUser covers buyer AND seller scope', async () => {
+  const buyer = await db.createUser({ email: `o2-buyer-${Date.now()}@x.com` });
+  const seller = await db.createUser({ email: `o2-seller-${Date.now()}@x.com` });
+  await orders.createOrder({
+    buyerUserId: buyer.id,
+    buyerEmail: buyer.email,
+    sellerUserId: seller.id,
+    sellerAccountId: 'acct_x',
+    items: [{ listingId: '33333333-3333-3333-3333-333333333333', type: 'video', title: 'V', priceMinor: 200 }],
+    feePercent: 10,
+  });
+  assert.equal((await orders.listOrdersForUser(buyer.id)).length, 1);
+  assert.equal((await orders.listOrdersForUser(seller.id)).length, 1);
+  const other = await db.createUser({ email: `o2-out-${Date.now()}@x.com` });
+  assert.equal((await orders.listOrdersForUser(other.id)).length, 0);
+});
+
+await test('listLiveCatalog exposes only live items in buyer shape', async () => {
+  const u = await db.createUser({ email: `live-${Date.now()}@x.com` });
+  await cat.createCatalogItem({ userId: u.id, input: { type: 'song', title: 'Live one', priceMinor: 500, status: 'live', tags: ['a'] } });
+  await cat.createCatalogItem({ userId: u.id, input: { type: 'song', title: 'Draft one', priceMinor: 500, status: 'draft' } });
+  const live = await cat.listLiveCatalog();
+  assert.equal(live.length, 1);
+  assert.equal(live[0].title, 'Live one');
+  assert.equal(live[0].sellerUserId, undefined, 'seller identity must be stripped');
+  assert.equal(live[0].media, undefined, 'media keys must be stripped');
+});
+
+await test('resolveSellableItems resolves bundle members filtered to live/same-seller', async () => {
+  const seller = await db.createUser({ email: `rs-${Date.now()}@x.com` });
+  const song = await cat.createCatalogItem({ userId: seller.id, input: { type: 'song', title: 'S', priceMinor: 300, status: 'live' } });
+  const pack = await cat.createCatalogItem({ userId: seller.id, input: { type: 'pack', title: 'P', priceMinor: 900, status: 'live', bundleOf: [song.id] } });
+  const items = await cat.resolveSellableItems(pack.id);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].id, pack.id);
+  assert.equal(items[1].id, song.id);
+  assert.equal((await cat.resolveSellableItems(song.id)).length, 1);
+  // Draft root (not sellable) and draft bundle member both drop.
+  const draft = await cat.createCatalogItem({ userId: seller.id, input: { type: 'pack', title: 'D', priceMinor: 100, status: 'draft', bundleOf: [song.id] } });
+  assert.deepEqual(await cat.resolveSellableItems(draft.id), []);
+  await cat.updateCatalogItem({ userId: seller.id, id: song.id, patch: { status: 'draft' } });
+  const after = await cat.resolveSellableItems(pack.id);
+  assert.equal(after.length, 1, 'draft bundle member must be dropped');
 });
 
 // --- health ---
