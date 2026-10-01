@@ -634,7 +634,12 @@ export async function upsertProject(userId, id, doc) {
   return withLock(async () => {
     const idx = await readJson(PROJECTS_INDEX, []);
     const now = new Date().toISOString();
-    const existing = idx.find((p) => p.id === id);
+    // Ownership guard: match on id AND userId. A project whose id belongs
+    // to another user must never be adopted, renamed, or overwritten —
+    // without this, any authenticated caller who knew a project id could
+    // PUT to /api/projects/<id> and hijack it.
+    const existing = idx.find((p) => p.id === id && p.userId === userId);
+    if (!existing && idx.some((p) => p.id === id)) return null;
     const meta = {
       id,
       userId,
