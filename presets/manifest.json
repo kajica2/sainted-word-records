@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-14T09:00:00+00:00",
+  "updated_at": "2026-10-01T19:13:52.953349+00:00",
   "presets": [
     {
       "id": "swr-preset-2026-08-14-midsommar-voronoi-lateral",
@@ -2397,7 +2397,325 @@
         "advance": "beat",
         "holdBars": 1
       }
+    },
+    {
+      "id": "swr-preset-2026-09-30-annihilation-ascii-clean",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-30T12:00:00.000000+00:00",
+      "name": "Annihilation Ascii \u2014 Clean",
+      "family": "GENERATIVE",
+      "description": "Annihilation Ascii \u2014 Clean: Sharp monospace cells with high-end commercial look. No grain, clear edges.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "ascii-rain",
+          "weight": 0.55
+        },
+        {
+          "kind": "palette_ref",
+          "name": "annihilation-aurora",
+          "weight": 0.35
+        },
+        {
+          "kind": "motion_ref",
+          "name": "snap-pan-y",
+          "weight": 0.1
+        }
+      ],
+      "variant": "clean",
+      "fx_state": {
+        "liquid": 0.25,
+        "pearl": 0.35,
+        "glitch": 0.05,
+        "grain": 0.0,
+        "chroma": 0.2,
+        "bloom": 0.3,
+        "vignette": 0.15,
+        "sepia": 0.0,
+        "glow": 0.4,
+        "grayscale": 0.9,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 0
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.3
+      },
+      "palette": {
+        "primary": "#d462a4",
+        "secondary": "#4cd4d4",
+        "accent": "#d4a24c",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "posterize"
+        ],
+        "mid": [
+          "pearl"
+        ],
+        "treble": [
+          "glitch"
+        ],
+        "onset": [
+          "scale_pulse",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0a0c\"/><circle cx=\"40\" cy=\"40\" r=\"28\" fill=\"#d462a4\" opacity=\"0.9\"/><circle cx=\"28\" cy=\"29\" r=\"6\" fill=\"#4cd4d4\" opacity=\"0.8\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#d4a24c\"/></svg>",
+        "tags": [
+          "ascii",
+          "annihilation",
+          "clean",
+          "commercial"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-30-annihilation-ascii-film",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-30T12:00:00.000000+00:00",
+      "name": "Annihilation Ascii \u2014 Film",
+      "family": "GENERATIVE",
+      "description": "Annihilation Ascii \u2014 Film: Grainy, faded monospace cells with film emulation. Mood, texture, character.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "ascii-rain",
+          "weight": 0.55
+        },
+        {
+          "kind": "palette_ref",
+          "name": "annihilation-aurora",
+          "weight": 0.35
+        },
+        {
+          "kind": "motion_ref",
+          "name": "snap-pan-y",
+          "weight": 0.1
+        }
+      ],
+      "variant": "film",
+      "fx_state": {
+        "liquid": 0.1,
+        "pearl": 0.1,
+        "glitch": 0.15,
+        "grain": 0.25,
+        "chroma": 0.5,
+        "bloom": 0.2,
+        "vignette": 0.35,
+        "sepia": 0.1,
+        "glow": 0.15,
+        "grayscale": 0.85,
+        "blur": 0.05,
+        "mut": 0.1,
+        "mutAlgo": 0.0,
+        "temp": 0.05,
+        "posterize": 0.15
+      },
+      "motion": {
+        "rotation_speed": 0.0,
+        "scale_pulse": 0.0,
+        "pan_x": 0.0,
+        "pan_y": 0.25
+      },
+      "palette": {
+        "primary": "#d462a4",
+        "secondary": "#4cd4d4",
+        "accent": "#d4a24c",
+        "bg": "#0a0a0c"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "posterize"
+        ],
+        "mid": [
+          "grain"
+        ],
+        "treble": [
+          "glitch"
+        ],
+        "onset": [
+          "scale_pulse",
+          "pan_y"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#12101a\"/><circle cx=\"40\" cy=\"40\" r=\"28\" fill=\"#d462a4\" opacity=\"0.7\"/><circle cx=\"28\" cy=\"29\" r=\"6\" fill=\"#4cd4d4\" opacity=\"0.5\"/><circle cx=\"40\" cy=\"40\" r=\"3\" fill=\"#d4a24c\" opacity=\"0.6\"/><rect width=\"80\" height=\"80\" fill=\"url(#grain)\"/><defs><filter id=\"grain\"><feTurbulence baseFrequency=\"0.9\" numOctaves=\"3\" stitchTiles=\"stitch\"/><feColorMatrix type=\"saturate\" values=\"0\"/><feBlend in=\"SourceGraphic\" mode=\"overlay\" opacity=\"0.3\"/></filter></defs></svg>",
+        "tags": [
+          "ascii",
+          "annihilation",
+          "film",
+          "grain",
+          "vintage"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-30-blade-plasma-clean",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-30T12:00:00.000000+00:00",
+      "name": "Blade Plasma \u2014 Clean",
+      "family": "GENERATIVE",
+      "description": "Blade Plasma \u2014 Clean: High-end cyberpunk plasma with sharp edges. Commercial, vibrant, no grain.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "plasma",
+          "weight": 0.6
+        },
+        {
+          "kind": "palette_ref",
+          "name": "blade-rainbow",
+          "weight": 0.3
+        },
+        {
+          "kind": "motion_ref",
+          "name": "slow-drift-orbit",
+          "weight": 0.1
+        }
+      ],
+      "variant": "clean",
+      "fx_state": {
+        "liquid": 0.3,
+        "pearl": 0.4,
+        "glitch": 0.0,
+        "grain": 0.0,
+        "chroma": 0.25,
+        "bloom": 0.5,
+        "vignette": 0.1,
+        "sepia": 0.0,
+        "glow": 0.5,
+        "grayscale": 0.0,
+        "blur": 0.0,
+        "mut": 0.0,
+        "mutAlgo": 0.0,
+        "temp": 0.0,
+        "posterize": 0
+      },
+      "motion": {
+        "rotation_speed": 0.05,
+        "scale_pulse": 0.1,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#ff3d92",
+        "secondary": "#00e5ff",
+        "accent": "#ffd24a",
+        "bg": "#050308"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "bloom",
+          "glow"
+        ],
+        "mid": [
+          "chroma"
+        ],
+        "treble": [
+          "pearl"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#050308\"/><circle cx=\"40\" cy=\"40\" r=\"30\" fill=\"url(#plasma)\"/><defs><radialGradient id=\"plasma\"><stop offset=\"0%\" stop-color=\"#ff3d92\"/><stop offset=\"50%\" stop-color=\"#00e5ff\"/><stop offset=\"100%\" stop-color=\"#ffd24a\"/></radialGradient></defs></svg>",
+        "tags": [
+          "plasma",
+          "blade",
+          "clean",
+          "cyberpunk"
+        ]
+      }
+    },
+    {
+      "id": "swr-preset-2026-09-30-blade-plasma-film",
+      "schema": "swr-preset/v1",
+      "created_at": "2026-09-30T12:00:00.000000+00:00",
+      "name": "Blade Plasma \u2014 Film",
+      "family": "GENERATIVE",
+      "description": "Blade Plasma \u2014 Film: Retro cyberpunk plasma with grain and fade. Moody, nostalgic, analog feel.",
+      "inspiration": [
+        {
+          "kind": "shader_ref",
+          "name": "plasma",
+          "weight": 0.6
+        },
+        {
+          "kind": "palette_ref",
+          "name": "blade-rainbow",
+          "weight": 0.3
+        },
+        {
+          "kind": "motion_ref",
+          "name": "slow-drift-orbit",
+          "weight": 0.1
+        }
+      ],
+      "variant": "film",
+      "fx_state": {
+        "liquid": 0.1,
+        "pearl": 0.1,
+        "glitch": 0.08,
+        "grain": 0.3,
+        "chroma": 0.45,
+        "bloom": 0.25,
+        "vignette": 0.35,
+        "sepia": 0.12,
+        "glow": 0.2,
+        "grayscale": 0.0,
+        "blur": 0.08,
+        "mut": 0.15,
+        "mutAlgo": 0.0,
+        "temp": 0.08,
+        "posterize": 0.12
+      },
+      "motion": {
+        "rotation_speed": 0.03,
+        "scale_pulse": 0.05,
+        "pan_x": 0.0,
+        "pan_y": 0.0
+      },
+      "palette": {
+        "primary": "#ff3d92",
+        "secondary": "#00e5ff",
+        "accent": "#ffd24a",
+        "bg": "#0a0812"
+      },
+      "audio_reactivity": {
+        "bass": [
+          "bloom",
+          "glow"
+        ],
+        "mid": [
+          "chroma"
+        ],
+        "treble": [
+          "grain"
+        ],
+        "onset": [
+          "scale_pulse"
+        ]
+      },
+      "preview": {
+        "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#0a0812\"/><circle cx=\"40\" cy=\"40\" r=\"30\" fill=\"url(#plasma)\" opacity=\"0.8\"/><rect width=\"80\" height=\"80\" fill=\"#000\" opacity=\"0.15\"/><defs><radialGradient id=\"plasma\"><stop offset=\"0%\" stop-color=\"#ff3d92\"/><stop offset=\"50%\" stop-color=\"#00e5ff\" opacity=\"0.7\"/><stop offset=\"100%\" stop-color=\"#ffd24a\" opacity=\"0.5\"/></radialGradient></defs></svg>",
+        "tags": [
+          "plasma",
+          "blade",
+          "film",
+          "retro",
+          "grain"
+        ]
+      }
     }
   ],
-  "count": 28
+  "count": 32
 }

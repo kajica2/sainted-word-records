@@ -57,6 +57,9 @@ const GROUPS = {
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
     'npm run check:preset-pick-unit',
+    // Preset spec gate: manifest.json + presets/*.json against swr-preset/v1.
+    // Also its own CI step (npm run preset-pipeline:verify) after check:full.
+    'npm run check:preset-smoke',
     'npm run check:layer-state-unit',
     'npm run check:with-dist-unit',
     // These were reachable from NO gate: six `check:*` unit suites plus

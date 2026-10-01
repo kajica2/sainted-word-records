@@ -50,6 +50,7 @@
     "check:variant-switcher-smoke": "node scripts/check-variant-switcher-smoke.mjs",
     "targeting:build": "node targeting-pipeline/parse-personas.mjs && node targeting-pipeline/parse-scripts.mjs && node targeting-pipeline/build-rules.mjs && node targeting-pipeline/build-voice-lint.mjs",
     "targeting:verify": "node targeting-pipeline/verify.mjs",
+    "preset-pipeline:verify": "node preset-pipeline/verify.mjs",
     "check:targeting-unit": "node scripts/check-targeting-unit.mjs",
     "check:targeting-smoke": "node scripts/check-targeting-smoke.mjs",
     "verify:targeting": "node verify-targeting.mjs",
@@ -146,7 +147,8 @@
     "verify:layer-cover": "node verify-layer-cover.mjs",
     "verify:genops": "node verify-genops.mjs",
     "verify:tier-runtime": "node verify-tier-runtime.mjs",
-    "check:register-data": "node scripts/check-register-data.mjs"
+    "check:register-data": "node scripts/check-register-data.mjs",
+    "check:preset-smoke": "node preset-pipeline/verify.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",
