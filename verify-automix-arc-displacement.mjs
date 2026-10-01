@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // verify-automix-arc-displacement.mjs — the regression contract for
 // "changes over time are visible" (evolution plan; see
-// docs/AUTOMIX-ARCHITECTURE.md).
+// docs/automix-architecture.md).
 //
 //   node verify-automix-arc-displacement.mjs
 //

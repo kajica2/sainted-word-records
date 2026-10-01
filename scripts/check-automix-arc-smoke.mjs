@@ -10,7 +10,7 @@
 // samples in realtime for 80-180s and is therefore deliberately excluded from
 // check:full. The consequence was that automix had NO automated gate in CI, and
 // three runtime-wiring bugs shipped silently (all recorded in
-// docs/AUTOMIX-ARCHITECTURE.md):
+// docs/automix-architecture.md):
 //
 //   1. engine.html never loaded automix-arc.client.js — the L3 layer was a
 //      permanent passthrough on the *primary* surface.
