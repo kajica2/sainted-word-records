@@ -942,30 +942,6 @@
     .panel__title small { color: var(--text-mute); font-family: var(--mono); }
 
     /* Preset cards */
-    .presets {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-    .preset-card {
-      position: relative;
-      aspect-ratio: 1 / 1;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: var(--ink-2);
-      cursor: pointer;
-      overflow: hidden;
-      transition: transform 0.25s var(--ease), border-color 0.25s var(--ease);
-      padding: 0;
-    }
-    .preset-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.2); }
-    .preset-card.is-active { border-color: var(--lime); box-shadow: 0 0 0 2px rgba(215,255,61,0.18); }
-    .preset-card--imported {
-      box-shadow: inset 0 0 0 1px rgba(138, 76, 255, 0.4);
-    }
-    .preset-card--imported.is-active {
-      box-shadow: 0 0 0 2px var(--lime), inset 0 0 0 1px rgba(138, 76, 255, 0.5);
-    }
     .gallery-card--imported {
       box-shadow: inset 0 0 0 1px rgba(138, 76, 255, 0.4);
     }
@@ -1071,28 +1047,6 @@
     .generative-btn--mutate.is-flashing   { box-shadow: 0 0 0 4px rgba(196,255,61,0.30); }
     .generative-btn--evolve.is-flashing   { box-shadow: 0 0 0 4px rgba(168,85,247,0.30); }
     .generative-btn--randomize.is-flashing { box-shadow: 0 0 0 4px rgba(255,90,31,0.30); }
-
-    .preset-card__art {
-      position: absolute;
-      inset: 0;
-    }
-    .preset-card__name {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      right: 8px;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text);
-      padding: 4px 8px;
-      background: var(--glass-strong);
-      border-radius: 6px;
-      backdrop-filter: blur(6px);
-      display: inline-block;
-      width: fit-content;
-    }
 
     /* Layer stack */
     .layer {
@@ -3137,7 +3091,7 @@
               <label class="transport__file" title="Load audio file">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                 Load Audio
-                <input type="file" id="audioFile" accept="audio/*" />
+                <input type="file" id="audioFile" accept="audio/*,video/*" />
               </label>
               <button class="transport__mic" id="btnMic" aria-pressed="false" aria-label="Toggle microphone input">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
@@ -3166,7 +3120,8 @@
                       <span class="preset-sync__text">Sync presets</span>
                     </button>
                   </div>
-                  <div class="presets" id="presetGrid" role="radiogroup" aria-label="Visual presets"></div>
+                  <label class="panel__title" for="presetSelect" style="gap:8px;">Visual Presets</label>
+                  <select id="presetSelect" aria-label="Visual preset" style="width:100%; padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:#111; color:#eee;"></select>
                 </div>
 
                 <!-- P2.3 — generative discovery. Three buttons that
@@ -3283,7 +3238,7 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
                         Add Audio File
                       </button>
-                      <input type="file" id="audioFileInput" accept="audio/*" multiple hidden />
+                      <input type="file" id="audioFileInput" accept="audio/*,video/*" multiple hidden />
                     </div>
                     <div class="audio-list" id="audioList"></div>
                     <div class="audio-hint" id="audioHint">Audio bytes are not persisted — adding a track saves its name, size, and duration. Re-select the file on reload to load it back into transport.</div>
@@ -4282,6 +4237,7 @@
     // slower for no benefit once the getImageData() pass was deleted.
     const stageCtx = stageCanvas.getContext('2d');
 
+    const presetSelect = $('#presetSelect');
     const presetGrid = $('#presetGrid');
     const marketingPresets = $('#marketingPresets');
     const layerStack = $('#layerStack');
@@ -4402,25 +4358,37 @@
       return `linear-gradient(135deg, ${c[0]} 0%, ${c[1]} 55%, ${c[2]} 100%)`;
     }
 
-    function renderPresetGrid() {
-      presetGrid.innerHTML = '';
-      const all = PRESETS.concat(importedPresets);
-      all.forEach((p) => {
-        const btn = document.createElement('button');
-        btn.className = 'preset-card' + (p.id === state.preset ? ' is-active' : '');
-        if (p._import) btn.classList.add('preset-card--imported');
-        btn.setAttribute('role', 'radio');
-        btn.setAttribute('aria-checked', p.id === state.preset ? 'true' : 'false');
-        btn.setAttribute('data-preset', p.id);
-        btn.title = p._import ? `Imported · ${p._import.description || p.name}` : `Load ${p.name} preset`;
-        btn.innerHTML = `
-          <div class="preset-card__art" style="background: ${presetArtData(p)};"></div>
-          <span class="preset-card__name">${p.name}${p._import ? ' <span style="color:var(--ultraviolet-soft);font-size:8px;">★</span>' : ''}</span>
-        `;
-        btn.addEventListener('click', () => selectPreset(p.id));
-        presetGrid.appendChild(btn);
-      });
+    function renderPresetDropdown() {
+      if (!presetSelect) return;
+      presetSelect.innerHTML = '';
+      const all = PRESETS.concat(importedPresets || []);
+      const built = all.filter(p => !p._import);
+      const imported = all.filter(p => p._import);
+      if (built.length) {
+        const og = document.createElement('optgroup');
+        og.label = 'Built-in';
+        built.forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          og.appendChild(opt);
+        });
+        presetSelect.appendChild(og);
+      }
+      if (imported.length) {
+        const og = document.createElement('optgroup');
+        og.label = 'Imported ★';
+        imported.forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          og.appendChild(opt);
+        });
+        presetSelect.appendChild(og);
+      }
+      presetSelect.value = state.preset;
     }
+    const renderPresetGrid = renderPresetDropdown;
 
     function renderMarketingPresets() {
       marketingPresets.innerHTML = '';
@@ -4484,11 +4452,9 @@
       const all = PRESETS.concat(importedPresets);
       if (!all.find(p => p.id === id)) return;
       state.preset = id;
-      $$('.preset-card').forEach((el) => {
-        const active = el.getAttribute('data-preset') === id;
-        el.classList.toggle('is-active', active);
-        el.setAttribute('aria-checked', active ? 'true' : 'false');
-      });
+      if (presetSelect) {
+        presetSelect.value = id;
+      }
       const p = all.find(p => p.id === id);
       if (p && p.defaults) {
         Object.keys(p.defaults).forEach((k) => {
@@ -4508,6 +4474,11 @@
     }
 
     // P2.1 — alias for clarity when applied from the beat-quantized queue
+    if (presetSelect) {
+      presetSelect.addEventListener('change', (e) => {
+        selectPreset(e.target.value);
+      });
+    }
     function applyPresetChange(id) { selectPresetImmediate(id); }
 
     /* ============================================================
@@ -5479,6 +5450,13 @@
         [...videos, ...images].forEach(handleLibraryFile);
         count += videos.length + images.length;
       }
+      if (videos.length) {
+        // Dual role: a video's music track is also a first-class audio
+        // source. The same file joins the audio-track list (its audio
+        // drives the analyser) while the clip stays muted in the visual
+        // mix alongside the other videos.
+        await handleAudioFiles(videos);
+      }
       if (count === 0) {
         showToast('No supported files. Accepted: mp3, mp4, mpg, png, gif, jpg.');
         return;
@@ -5486,6 +5464,7 @@
       showToast(`Imported ${count} file${count === 1 ? '' : 's'}.`);
       // Close the modal once files land
       dismissOnboarding();
+      setTimeout(() => { autoplayRandomTrack().catch(() => {}); }, 0);
     }
 
     /* ============================================================
@@ -6365,18 +6344,25 @@
     }
 
     async function handleAudioFiles(fileList) {
-      const files = Array.from(fileList || []).filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac)$/i.test(f.name));
+      // Accept plain audio AND video-with-audio: the video's music track is
+      // used as an audio source while the same clip stays in the visual mix
+      // (dual role — see handleOnboardingFiles).
+      const files = Array.from(fileList || []).filter(f =>
+        f.type.startsWith('audio/') || f.type.startsWith('video/') ||
+        /\.(mp3|wav|ogg|m4a|flac|mp4|webm|mov|m4v|mpg|mpeg)$/i.test(f.name));
       if (!files.length) { showToast('No audio files selected.'); return; }
       for (const file of files) {
         const id = 'aud-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '-' + files.indexOf(file);
         const duration = await probeAudioDuration(file);
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|mpg|mpeg)$/i.test(file.name);
         const item = {
           id: id,
           name: file.name.replace(/\.[^.]+$/, ''),
           ext: (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase(),
           size: file.size,
-          type: file.type || 'audio/' + (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase(),
+          type: file.type || (isVideo ? 'video/' : 'audio/') + (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase(),
           duration: duration,
+          kind: isVideo ? 'video' : 'audio',
           added: Date.now()
         };
         state.audioTracks.items.unshift(item);
@@ -6437,6 +6423,7 @@
     }
 
     audioAddBtn.addEventListener('click', () => audioFileInput.click());
+    audioFileInput.setAttribute('accept', 'audio/*,video/*');
     audioFileInput.addEventListener('change', (e) => {
       handleAudioFiles(e.target.files);
       e.target.value = '';
@@ -6465,6 +6452,7 @@
               <span>${(t.ext || '').toUpperCase()}</span>
               <span>${fmtBytes(t.size)}</span>
               <span>${fmtSec(t.duration)}</span>
+              ${t.kind === 'video' ? '<span class="audio-track__badge">VIDEO</span>' : ''}
               <span class="audio-track__badge ${t.hasBytes ? 'is-loaded' : ''}">${t.hasBytes ? 'In memory' : 'Re-import'}</span>
             </div>
           </div>
@@ -8545,10 +8533,10 @@
           // EXCEPTION: if the presets tab is active, arrow keys cycle
           // presets instead (more natural than browsing layers when
           // the user is looking at the preset gallery).
-          if (key === 'ArrowLeft' && !shift && !alt) {
+          if ((key === 'ArrowLeft' && !shift && !alt) || (key === 'ArrowLeft' && shift)) {
             e.preventDefault();
             const activeTab = (document.querySelector('.tab.is-active') || {}).dataset?.tab;
-            if (activeTab === 'presets') {
+            if (activeTab === 'presets' || shift) {
               _cyclePreset(-1);
               return;
             }
@@ -8559,10 +8547,10 @@
             _setLayerFocus(next, 'LAYER');
             return;
           }
-          if (key === 'ArrowRight' && !shift && !alt) {
+          if ((key === 'ArrowRight' && !shift && !alt) || (key === 'ArrowRight' && shift)) {
             e.preventDefault();
             const activeTab = (document.querySelector('.tab.is-active') || {}).dataset?.tab;
-            if (activeTab === 'presets') {
+            if (activeTab === 'presets' || shift) {
               _cyclePreset(1);
               return;
             }
@@ -8571,6 +8559,20 @@
             const cur = visible.indexOf(state.layers.findIndex(l => l.id === state.activeLayer));
             const next = visible[(cur + 1) % visible.length];
             _setLayerFocus(next, 'LAYER');
+            return;
+          }
+          // P = focus preset dropdown
+          if ((key === 'p' || key === 'P') && !shift && !alt) {
+            e.preventDefault();
+            if (presetSelect) {
+              const activeTab = (document.querySelector('.tab.is-active') || {}).dataset?.tab;
+              if (activeTab !== 'presets') {
+                const tabBtn = document.querySelector('.tab[data-tab="presets"]');
+                if (tabBtn) tabBtn.click();
+              }
+              presetSelect.focus();
+              presetSelect.select();
+            }
             return;
           }
           // 1..4 = direct layer select (we have 4 layers)
@@ -8721,6 +8723,7 @@
         showToast('Audio decode failed in this browser.');
       }
     });
+    if (audioFile) audioFile.setAttribute('accept', 'audio/*,video/*');
 
     volumeInput.addEventListener('input', (e) => {
       state.audio.volume = (+e.target.value) / 100;
@@ -8773,6 +8776,85 @@
       const btn = e.target.closest('.export-dur');
       if (btn) setDuration(+btn.getAttribute('data-sec'));
     });
+
+    const DEMO_AUDIO_TRACKS = [
+      'aurora.mp3','bachdrop.mp3','baroque.mp3','chrome.mp3','eclipse.mp3','endless-tomorrow.mp3','film.mp3','fractal.mp3','gallery.mp3','glitch.mp3','grid.mp3','hallucination.mp3','kraft.mp3','mosaic.mp3','neon.mp3'
+    ];
+
+    function showUnmuteHint(text) {
+      try {
+        showToast(text || 'Tap to unmute');
+      } catch (e) {}
+    }
+
+    async function loadDemoAudioTrack(url, name) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('fetch failed');
+        const blob = await res.blob();
+        const id = 'demo-aud-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+        const item = {
+          id: id,
+          name: name.replace(/\.mp3$/,''),
+          ext: 'mp3',
+          size: blob.size,
+          type: blob.type || 'audio/mpeg',
+          duration: 0,
+          kind: 'audio',
+          added: Date.now(),
+          hasBytes: true
+        };
+        state.audioTracks.items.unshift(item);
+        audioBlobCache[id] = URL.createObjectURL(blob);
+        try { const d = await probeAudioDuration(blob); item.duration = d; } catch (e) {}
+        saveState();
+        renderAudioList();
+        return id;
+      } catch (e) { return null; }
+    }
+
+    async function autoplayRandomTrack() {
+      const tracks = state.audioTracks.items || [];
+      let trackId = null;
+      if (tracks.length) {
+        trackId = tracks[Math.floor(Math.random() * tracks.length)].id;
+      } else {
+        const pick = DEMO_AUDIO_TRACKS[Math.floor(Math.random() * DEMO_AUDIO_TRACKS.length)];
+        trackId = await loadDemoAudioTrack('/audios/' + pick, pick);
+      }
+      if (!trackId) return;
+      const track = state.audioTracks.items.find(t => t.id === trackId);
+      if (!track) return;
+      const blobUrl = audioBlobCache[track.id];
+      if (!blobUrl) return;
+      detachMic();
+      state.audioTracks.items.forEach(t => t.hasBytes = false);
+      if (track) track.hasBytes = true;
+      audioEl.src = blobUrl;
+      state.audio.src = blobUrl;
+      state.audio.loaded = true;
+      state.audio.name = track.name;
+      state.audioTracks.currentTrackId = track.id;
+      renderAudioList();
+      try {
+        attachMediaElement();
+      } catch (e) {}
+      try {
+        await audioEl.play();
+        showUnmuteHint('Playing "' + track.name + '"');
+        state.audio.playing = true;
+      } catch (e) {
+        try {
+          audioEl.muted = true;
+          await audioEl.play();
+          audioEl.muted = false;
+          showUnmuteHint('Playing "' + track.name + '" (muted — tap for sound)');
+          state.audio.playing = true;
+        } catch (e2) {
+          showUnmuteHint('Tap to play "' + track.name + '"');
+        }
+      }
+    }
 
     // P3.1 — export mode toggle. Switches between single-preset Loop
     // recording and multi-fragment Music Video recording.
@@ -9441,7 +9523,8 @@ recordTimer = setTimeout(() => {
         <div><kbd>Z</kbd> undo · <kbd>Shift</kbd>+<kbd>Z</kbd> redo</div>
         <div><kbd>C</kbd> commit</div>
         <div><kbd>S</kbd> new seed · <kbd>Shift</kbd>+<kbd>S</kbd> copy seed</div>
-        <div><kbd>←</kbd> <kbd>→</kbd> prev / next layer focus (or preset, when Presets tab is open)</div>
+        <div><kbd>←</kbd> <kbd>→</kbd> layer focus · <kbd>Shift</kbd>+<kbd>←</kbd> <kbd>Shift</kbd>+<kbd>→</kbd> prev/next preset</div>
+        <div><kbd>P</kbd> focus preset dropdown</div>
         <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> direct layer select</div>
         <div><kbd>?</kbd> toggle this overlay · <kbd>Esc</kbd> dismiss</div>
       </div>
@@ -9473,6 +9556,17 @@ recordTimer = setTimeout(() => {
         go();
       }
     })();
+
+  // Try to autoplay a random track on every page load (gesture after onboarding
+  // is handled in dismiss). Browsers block audible autoplay without gesture;
+  // we fall back to muted-start + unmute hint.
+  if (document.readyState === 'complete') {
+    setTimeout(() => { autoplayRandomTrack().catch(() => {}); }, 120);
+  } else {
+    window.addEventListener('load', () => {
+      setTimeout(() => { autoplayRandomTrack().catch(() => {}); }, 120);
+    });
+  }
   </script>
   <!-- swr-app ships its own keymap + help overlay (t/T, m/M, ?, /, z, c, s,
        brackets). Opt out of the sitewide layer so the two cannot fight; this
