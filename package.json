@@ -64,6 +64,7 @@
     "check:tiktok-unit": "node scripts/check-tiktok-unit.mjs",
     "check:tiktok-smoke": "node scripts/check-tiktok-smoke.mjs",
     "check:glyphs-layers-unit": "node scripts/check-glyphs-layers-unit.mjs",
+    "check:glyph-forge-unit": "node scripts/check-glyph-forge-unit.mjs",
     "check:camera-enhance-unit": "node scripts/check-camera-enhance-unit.mjs",
     "check:camera-enhance-smoke": "node scripts/check-camera-enhance-smoke.mjs",
     "check:photo-slideshow": "node scripts/check-photo-slideshow-smoke.mjs",

@@ -908,6 +908,14 @@
       "destination": "/buy.html"
     },
     {
+      "source": "/fonts",
+      "destination": "/fonts.html"
+    },
+    {
+      "source": "/fonts/",
+      "destination": "/fonts.html"
+    },
+    {
       "source": "/login",
       "destination": "/login.html"
     },

@@ -105,6 +105,7 @@ const GROUPS = {
     'npm run check:spit-live-unit',
     'npm run check:tiktok-unit',
     'npm run check:glyphs-layers-unit',
+    'npm run check:glyph-forge-unit',
     'npm run check:camera-enhance-unit',
     'npm run check:capture-unit',
     'npm run check:photo-slideshow',
