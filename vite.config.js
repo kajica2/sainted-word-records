@@ -357,6 +357,11 @@ function copyStatic() {
     'gallery-bio.html',
     'gallery-ai.html',
     'gallery-glyphs.html',
+    // Flat root file behind a nested route (/gallery/dingbats). The site-map
+    // derivation only strips the LEADING slash, so it yields
+    // `gallery/dingbats.html` — a path that does not exist here — and the copy
+    // loop skips it silently. Same reason gallery-glyphs.html is listed.
+    'gallery-dingbats.html',
     'gallery-vr.html',
     'gallery-tshirts.html',
     'gallery-posters.html',
