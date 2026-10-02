@@ -485,7 +485,7 @@
              state.vignette !== 0 || state.chroma !== 0 || state.grain !== 0 ||
              state.sepia !== 0 || state.glow !== 0 || state.grayscale !== 0 ||
              state.blur !== 0 || state.liquid !== 0 || state.pearl !== 0 ||
-             state.glitch !== 0;
+             state.glitch !== 0 || state.sharp !== 0 || state.cinematic !== 0;
     }
     function render() {
       if (!state.enabled) {
@@ -592,7 +592,7 @@
         const k = Math.max(0, Math.min(1, (performance.now() - t0) / rampMs));
         const smooth = k * k * (3 - 2 * k); // smoothstep, matches versions-presets
         const fxFields = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette',
-          'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch'];
+          'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch', 'sharp', 'cinematic'];
         for (const f of fxFields) {
           // Only blend fields the automix preset actually carries — absent
           // fields (vignette, glitch, blur, …) keep the page persona's
@@ -652,6 +652,8 @@
       gl.uniform1f(u.liquid,    state.liquid * k);
       gl.uniform1f(u.pearl,     state.pearl * k);
       gl.uniform1f(u.glitch,    state.glitch * k);
+      gl.uniform1f(u.sharp,     state.sharp * k);
+      gl.uniform1f(u.cinematic, state.cinematic * k);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
@@ -701,7 +703,7 @@
       setSharp(v)     { state.sharp     = Math.max(0, Math.min(1, v)); },
       setCinematic(v) { state.cinematic = Math.max(0, Math.min(1, v)); },
       setPersona(profile) {
-        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch}
+        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch, sharp, cinematic}
         if (!profile) return;
         if (profile.temp      !== undefined) state.temp      = profile.temp;
         if (profile.mut       !== undefined) state.mut       = profile.mut;
@@ -717,6 +719,8 @@
         if (profile.liquid    !== undefined) state.liquid    = profile.liquid;
         if (profile.pearl     !== undefined) state.pearl     = profile.pearl;
         if (profile.glitch    !== undefined) state.glitch    = profile.glitch;
+        if (profile.sharp     !== undefined) state.sharp     = profile.sharp;
+        if (profile.cinematic !== undefined) state.cinematic = profile.cinematic;
       },
       setEnabled(on) { state.enabled = !!on; },
       // Adaptive-guard rung: run the overlay's GPU pass every Nth frame.

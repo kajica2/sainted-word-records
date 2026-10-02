@@ -108,6 +108,7 @@ const GROUPS = {
     'npm run check:glyph-forge-unit',
     'npm run check:camera-enhance-unit',
     'npm run check:capture-unit',
+    'npm run check:reel-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
     'npm run check:grade-smoke',

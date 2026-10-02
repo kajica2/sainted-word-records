@@ -263,6 +263,9 @@ function copyStatic() {
     'engine-timing-panel.client.js',
     'engine-lfos.client.js',
     'swr-sets.js',
+    // Auto-advance demo-reel player (window.SWR_REEL) — loaded by engine.html
+    // next to swr-sets.js; consumes SWR_SETS.importSet/applySet.
+    'engine-reel.client.js',
     'engine-lfo-panel.client.js',
     'engine-panel-visibility.client.js',
     'engine-automap.client.js',
