@@ -892,6 +892,14 @@
       "destination": "/connect.html"
     },
     {
+      "source": "/buy",
+      "destination": "/buy.html"
+    },
+    {
+      "source": "/buy/",
+      "destination": "/buy.html"
+    },
+    {
       "source": "/login",
       "destination": "/login.html"
     },

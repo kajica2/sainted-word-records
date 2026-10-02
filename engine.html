@@ -4765,6 +4765,15 @@
           const bpmInp = $('swr-tx-bpm');
           const autoBtn = $('swr-tx-auto-toggle');
           const countV = $('swr-tx-count');
+          // Preset-aware recommendations elements. Declared with the other
+          // lookups (NOT inline after renderRecs): populate() calls
+          // renderRecs() synchronously below, and a `const` declared later
+          // in the same scope would throw a TDZ ReferenceError
+          // ('Cannot access "recListEl" before initialization') whenever the
+          // transitions module is already loaded — a page-load race.
+          const recPresetEl = $('swr-tx-rec-preset');
+          const recListEl = $('swr-tx-rec-list');
+          const recRationaleEl = $('swr-tx-rec-rationale');
           if (!toggleBtn || !panel || !pick) return;
 
           // Populate dropdown once module is ready (poll briefly, then give up).
@@ -4875,9 +4884,6 @@
           // key matches one in data/preset-transitions.json), paint the
           // recommended transitions as clickable chips above the picker.
           // Click a chip = select in the dropdown + fire immediately.
-          const recPresetEl = $('swr-tx-rec-preset');
-          const recListEl = $('swr-tx-rec-list');
-          const recRationaleEl = $('swr-tx-rec-rationale');
           function getActivePresetKey() {
             // window._activePreset is set by applyPreset() in the engine
             // body — it carries the full preset object, not the key.

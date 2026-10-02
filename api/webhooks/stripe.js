@@ -30,6 +30,7 @@ import {
   findUserByConnectAccount,
   saveConnectAccount,
 } from '../_lib/connect-store.js';
+import { markOrderPaidBySession } from '../_lib/orders.js';
 
 export default async function handler(req, res) {
   setCors(res, req.headers.origin);
@@ -103,6 +104,14 @@ export default async function handler(req, res) {
       currency: obj.currency,
       payment_intent: obj.payment_intent || null,
     };
+    // Fulfilment: flip the platform-side order to 'paid' (idempotent).
+    const orderId = (obj.metadata && obj.metadata.order_id) || null;
+    if (orderId) {
+      const paid = await markOrderPaidBySession(obj.id, {
+        paymentIntentId: obj.payment_intent || null,
+      });
+      summary.order_id = (paid && paid.id) || orderId;
+    }
   } else if (event.type === 'payment_intent.succeeded' && obj) {
     summary = {
       payment_intent: obj.id,

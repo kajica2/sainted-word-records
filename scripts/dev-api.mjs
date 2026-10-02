@@ -56,11 +56,15 @@ function pickHandlerPath(urlPath) {
   // the signed webhook receiver.
   if (segs[1] === 'connect' && !segs[2]) return '../api/connect/index.js';
   if (segs[1] === 'webhooks' && segs[2] === 'stripe') return '../api/webhooks/stripe.js';
-  // Seller catalogue: /api/catalogue (list/create) + /api/catalogue/<id>.
+  // Seller catalogue: /api/catalogue (list/create) + /api/catalogue/<id> +
+  // public browse (no auth).
   if (segs[1] === 'catalogue') {
+    if (segs[2] === 'public') return '../api/catalogue/public.js';
     if (segs[2] && /^[a-f0-9-]{8,40}$/i.test(segs[2])) return '../api/catalogue/[id].js';
     return '../api/catalogue/index.js';
   }
+  // Buyer checkout: /api/checkout starts a Stripe Checkout Session.
+  if (segs[1] === 'checkout' && !segs[2]) return '../api/checkout/index.js';
   // Video-slot ledger: /api/slots/grant (admin), /api/slots/<userId>
   // (state + register), /api/slots (the PT panel sync endpoint).
   if (segs[1] === 'slots') {

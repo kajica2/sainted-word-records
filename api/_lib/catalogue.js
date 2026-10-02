@@ -166,6 +166,46 @@ export async function findCatalogItemById(id) {
   return item || null;
 }
 
+// PUBLIC browse view: live listings across all sellers, shaped for buyers
+// (seller identity, media keys and internal fields are stripped).
+export async function listLiveCatalog() {
+  const all = await readJson(catalogueIndexPath(), []);
+  if (!Array.isArray(all)) return [];
+  return all
+    .filter((r) => r && r.status === 'live' && !r.deletedAt)
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+    .map((r) => ({
+      id: r.id,
+      type: r.type,
+      title: r.title,
+      description: r.description || '',
+      priceMinor: r.priceMinor,
+      currency: r.currency || DEFAULT_CURRENCY,
+      tags: r.tags || [],
+      bundleOf: r.bundleOf || [],
+      mediaCount: Array.isArray(r.media) ? r.media.length : 0,
+      updatedAt: r.updatedAt,
+      createdAt: r.createdAt,
+    }));
+}
+
+// Resolve a listing to its sellable items (a bundle of one → the listing;
+// a bundle with refs → the listing plus its same-seller bundle members),
+// keeping only LIVE, non-deleted items. Used by the checkout handler so
+// bundle pricing is computed server-side, never trusted from the client.
+export async function resolveSellableItems(listingId) {
+  if (!LISTING_ID_RE.test(listingId)) return [];
+  const root = await findCatalogItemById(listingId);
+  if (!root || root.status !== 'live' || root.deletedAt) return [];
+  const out = [{ id: root.id, type: root.type, title: root.title, priceMinor: root.priceMinor }];
+  for (const refId of (root.bundleOf || [])) {
+    const ref = await findCatalogItemById(refId);
+    if (!ref || ref.status !== 'live' || ref.deletedAt || ref.sellerUserId !== root.sellerUserId) continue;
+    out.push({ id: ref.id, type: ref.type, title: ref.title, priceMinor: ref.priceMinor });
+  }
+  return out;
+}
+
 // ---- writes (every mutation is one withLock) ----
 
 // Every mutation updates BOTH the index row (queryable on Postgres, which
