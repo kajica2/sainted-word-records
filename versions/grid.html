@@ -8,6 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/versions/grid" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Sainted Word Records" />
   <meta property="og:title" content="GRID · SWR engine" />
@@ -1062,7 +1063,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       _ctx.save();
       _ctx.globalCompositeOperation = l.blend || 'multiply';
       _ctx.globalAlpha = clamp(rr.opacity * (l.alpha ?? 1), 0, 1);
-      _ctx.filter = `grayscale(1) contrast(${rr.contrast}) brightness(${rr.brightness}) hue-rotate(${rr.hue}deg)`;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, rr.hue, rr.brightness, rr.contrast, (1 - (1)));
       _ctx.drawImage(src, dx, dy, dw, dh);
       _ctx.filter = 'none';
       // Hard edge frame
@@ -1448,5 +1451,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="../lib/variant-curator-wiring.client.js" defer></script>
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="../lib/swr-natural.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="../lib/gpu-grade.client.js"></script>
 </body>
 </html>

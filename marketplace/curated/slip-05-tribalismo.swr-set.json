@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000016",
+  "name": "Tribalismo",
+  "author": "SWR",
+  "description": "Percussive, polyrhythmic and primal. The grid engine’s hard cells and posterize lock straight to the downbeat.",
+  "tags": [
+    "percussion",
+    "tribal",
+    "rhythmic",
+    "grid",
+    "slip-sets-1"
+  ],
+  "createdAt": "2026-10-02T00:00:00Z",
+  "engine": "grid",
+  "audio": {
+    "name": "slip-05-tribalismo.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 4906570,
+    "url": "/audios/slip-sets-1/slip-05-tribalismo.mp3"
+  },
+  "fx": {
+    "temp": 0.44,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0.32,
+    "vignette": 0.42,
+    "chroma": 0.26,
+    "grain": 0.16,
+    "sepia": 0,
+    "glow": 0.4,
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero clip",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-4.webp",
+        "mimeType": "image/webp",
+        "size": 0,
+        "url": "/default-library/holo-4.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 162,
+    "key": "C",
+    "scale": "major"
+  }
+}

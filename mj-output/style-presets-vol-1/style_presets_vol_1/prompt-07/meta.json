@@ -1,0 +1,16 @@
+{
+  "index": 7,
+  "prompt": "Abstract study rendered as analog film emulation, halation, grain, soft gate weave, warm tungsten highlights against muted teal shadows — BROKER FILM study --style raw --s 250 --ar 16:9",
+  "taskId": "1c1f1902-949e-42bb-a6f1-dc51afbe65f0",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/1c1f1902-949e-42bb-a6f1-dc51afbe65f0/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/1c1f1902-949e-42bb-a6f1-dc51afbe65f0/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/1c1f1902-949e-42bb-a6f1-dc51afbe65f0/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/1c1f1902-949e-42bb-a6f1-dc51afbe65f0/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:23:00.248Z",
+  "complete": true
+}

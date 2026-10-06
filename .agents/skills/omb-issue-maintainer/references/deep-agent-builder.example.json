@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "repositories": ["braincrew-lab/deep-agent-builder"],
+  "language": "ko",
+  "coordinator_host": "REPLACE_WITH_COORDINATOR_HOSTNAME",
+  "state_dir": "/REPLACE_WITH_PRIVATE_LOCAL_STATE/issue-maintainer",
+  "writer_login": "REPLACE_WITH_GITHUB_WRITER_LOGIN",
+  "transport": "local",
+  "ssh_host": null,
+  "executable": ["omb", "issue-maintainer", "gateway"],
+  "limits": {
+    "read_timeout": 30,
+    "write_timeout": 60,
+    "retries": 3,
+    "run_timeout": 1800,
+    "heartbeat": 60,
+    "liveness": 300,
+    "issues": 1000,
+    "prs": 1000,
+    "related": 50,
+    "sources": 20,
+    "comments": 1000
+  }
+}

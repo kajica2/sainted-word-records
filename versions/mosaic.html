@@ -8,6 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/versions/mosaic" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Sainted Word Records" />
   <meta property="og:title" content="MOSAIC · SWR engine" />
@@ -36,8 +37,7 @@
     header { display: flex; align-items: center; gap: 14px; padding: 0 18px;
       background: var(--bg); border-bottom: 1px solid var(--line); }
     .v { font-weight: 700; font-size: 20px; letter-spacing: 0.04em;
-      background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3), var(--c4));
-      -webkit-background-clip: text; background-clip: text; color: transparent;
+      color: var(--c1);
       text-transform: uppercase; }
     .v small { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--muted);
       margin-left: 8px; letter-spacing: 0.1em; font-weight: 500; }
@@ -538,5 +538,9 @@
 </div>
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="../lib/swr-natural.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
 </body>
 </html>

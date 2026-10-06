@@ -1,0 +1,20 @@
+{
+  "index": 10,
+  "prompt": "Group photograph of artists and art historians at an exhibition opening in Belgrade, 1982, soft interior light, men and women in mid-century formal attire, candid and friendly, museum artifact, slightly grainy period photographic style  --v 8.2 --style raw --no text signature --ar 2:3",
+  "taskId": "6eac54ee-d7bc-41be-997c-63790eaf3c8f",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_3_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_0_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_1_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_2_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/6eac54ee-d7bc-41be-997c-63790eaf3c8f/0_3_384_N.webp?method=shortest&qst=6&quality=15"
+  ],
+  "imageCount": 8,
+  "submittedAt": "2026-09-30T00:57:49.313Z",
+  "complete": true
+}

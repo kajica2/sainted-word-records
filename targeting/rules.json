@@ -449,6 +449,8 @@
     ]
   },
   "personaToTransitions": {
+    "ar-loop-poster": [],
+    "storyboard-editor": [],
     "version-hopper": [
       "whip-blur",
       "snap-zoom",
@@ -474,6 +476,11 @@
       "fade-to-black",
       "pure-crossfade"
     ],
+    "anchor-curator": [],
+    "audio-theorist": [],
+    "tag-janitor": [],
+    "auth-projects": [],
+    "ar-poster-artist": [],
     "live-vj": [
       "glitch-block",
       "chromatic-split",
@@ -482,23 +489,32 @@
       "negative-pop",
       "snap-zoom"
     ],
+    "film-composer": [],
+    "theory-sonifier": [],
     "ar-flashcards": [
       "iris-in",
       "circle-wipe",
       "pure-crossfade"
     ],
+    "short-film-scorer": [],
     "touring-visualist": [
       "vhs-tracking",
       "chromatic-split",
       "chroma-burst",
       "particle-wipe"
     ],
+    "data-sonifier": [],
+    "gallery-curator": [],
+    "podcast-visual-editor": [],
+    "music-therapist": [],
     "ad-creative-director": [
       "flash-cover",
       "snap-zoom",
       "linear-wipe-lr",
       "whip-blur"
     ],
+    "online-music-teacher": [],
+    "bedroom-producer": [],
     "choreographer": [
       "swivel",
       "circle-wipe",
@@ -510,7 +526,9 @@
       "fade-to-black",
       "lens-flare",
       "glow-burst"
-    ]
+    ],
+    "album-cover-designer": [],
+    "ar-storyboard-reviewer": []
   },
   "personaToSegment": {
     "ar-loop-poster": "video-creators",

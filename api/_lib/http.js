@@ -86,6 +86,35 @@ export async function readJsonBody(req, { maxBytes = 1_000_000 } = {}) {
   });
 }
 
+// Raw request body as a Buffer, for handlers that need the EXACT bytes
+// (e.g. Stripe webhook signature verification — re-stringifying a parsed
+// body would break the HMAC). In the Vite dev middleware (dev-api.mjs) the
+// body is pre-buffered as a utf8 string on req.body; on Vercel it may be a
+// Buffer, a string, or unparsed on the stream — all three are handled.
+// An object on req.body (a framework that already JSON-parsed) cannot be
+// trusted for signatures, so we fall through to the stream in that case.
+export function readRawBody(req, { maxBytes = 2_000_000 } = {}) {
+  const b = req.body;
+  if (b !== undefined && (Buffer.isBuffer(b) || typeof b === 'string')) {
+    return Promise.resolve(Buffer.isBuffer(b) ? b : Buffer.from(b, 'utf8'));
+  }
+  return new Promise((resolve) => {
+    const chunks = [];
+    let total = 0;
+    req.on('data', (c) => {
+      total += c.length;
+      if (total > maxBytes) {
+        req.destroy();
+        resolve(Buffer.alloc(0));
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', () => resolve(Buffer.alloc(0)));
+  });
+}
+
 export function setCors(res, origin) {
   // Tight CORS: same-origin by default (return no ACAO header so the
   // browser refuses any cross-origin attempt). When an explicit Origin

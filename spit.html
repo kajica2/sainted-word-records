@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spit Live · SWR Freestyle Studio</title>
   <meta name="description" content="One-take hip-hop freestyle studio: drop a beat, switch on the mic, hit record — visuals react to both beat and voice." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/spit" />
   <meta property="og:title" content="Spit Live · SWR Freestyle Studio">
   <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
   <meta property="og:description" content="One-take hip-hop freestyle studio: drop a beat, switch on the mic, hit record — visuals react to both beat and voice.">
@@ -359,6 +360,7 @@
         <span class="spit-pill" id="beat-status">No Beat</span>
         <span class="spit-pill" id="mic-status">Mic Off</span>
         <span class="spit-pill is-recording is-hidden" id="rec-status">● REC</span>
+        <span class="spit-pill" id="save-mode-badge" title="Save destination">Local</span>
         <button class="spit-btn" id="btn-load-beat" type="button">Load Beat</button>
         <button class="spit-btn" id="btn-mic-check" type="button">Mic Check</button>
         <button class="spit-btn is-rec" id="btn-rec" type="button">● REC</button>
@@ -512,10 +514,10 @@
     </footer>
   </main>
 
-  <!-- Foundation + Spit runtime wiring. The spit-runtime + spit-fx modules
-       don't exist yet — Tasks 2 and 3 will add them. Until then the page
-       boots clean and the canvas stays empty. -->
+  <!-- Foundation + Spit runtime -->
   <script src="/audio-analysis-v2.js" defer></script>
+  <script src="/lib/auth.client.js"></script>
+  <script src="/lib/storage.client.js"></script>
   <script src="/client/swr-media-input.client.js"></script>
   <script src="/client/swr-camera-preview.client.js"></script>
   <script src="/client/swr-mic-meter.client.js"></script>

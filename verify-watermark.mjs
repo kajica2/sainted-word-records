@@ -1,17 +1,20 @@
-// Verifier for SWR watermark integration in the engine
-// 1. Loads the engine
-// 2. Verifies #rec-wm selector exists with 4 options (none / a / b / c)
-// 3. For each watermark (A, B, C), selects it, starts a recording, captures
-//    a frame from the canvas, and verifies the watermark is visible
-// 4. Verifies thanks.html is live and renders correctly
+// Verifier for the SWR forced watermark in the engine
+// 1. Verifies thanks.html is live and renders correctly
+// 2. Loads the engine and verifies #rec-wm offers the three marks and no
+//    "none" — the mark is forced for everyone, there is no opt-out
+// 3. For each mark (a, b, c), drives the compositor the recorder captures
+//    from (SWR_WATERMARK.frameSource — what canvas.captureStream is wrapped to
+//    hand back) and verifies the mark's pixels are on the captured surface
 //
 // Usage: node verify-watermark.mjs
+//        ENGINE_URL=http://127.0.0.1:5203/engine.html node verify-watermark.mjs
 
 import puppeteer from 'puppeteer-core';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 
-const ENGINE = 'https://sainted-word-records.vercel.app/engine';
-const THANKS = 'https://sainted-word-records.vercel.app/thanks.html';
+const ROOT = process.env.SITE_ROOT || 'https://sainted-word-records.vercel.app';
+const ENGINE = process.env.ENGINE_URL || `${ROOT}/engine`;
+const THANKS = process.env.THANKS_URL || `${ROOT}/thanks.html`;
 const OUT = './verify-screenshots/watermark-live';
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 
@@ -22,7 +25,7 @@ const log = (name, ok, info) => {
 };
 
 const browser = await puppeteer.launch({
-  executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   headless: 'new',
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--autoplay-policy=no-user-gesture-required'],
   defaultViewport: { width: 1400, height: 900 },
@@ -45,155 +48,106 @@ try {
   await thanksPage.screenshot({ path: `${OUT}/thanks.png`, fullPage: true });
   await thanksPage.close();
 
-  // --- Part 2: Verify watermark integration in engine ---
+  // --- Part 2: Verify the forced watermark in the engine ---
   const page = await browser.newPage();
   const errors = [];
+  const responses404 = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push('console.error: ' + m.text()); });
+  page.on('response', (r) => { if (r.status() === 404) responses404.push(r.url()); });
 
   const resp = await page.goto(ENGINE, { waitUntil: 'networkidle0', timeout: 30000 });
   log('engine HTTP 200', resp.status() === 200, `(${resp.status()})`);
   await page.evaluate(() => document.fonts.ready);
   await new Promise((r) => setTimeout(r, 800));
 
-  // Check 1: #rec-wm selector exists with 4 options
+  // Check 1: #rec-wm offers a/b/c and no "none"
   const wmSelector = await page.evaluate(() => {
     const sel = document.querySelector('#rec-wm');
     if (!sel) return { exists: false };
-    return {
-      exists: true,
-      options: Array.from(sel.options).map((o) => o.value),
-    };
+    return { exists: true, options: Array.from(sel.options).map((o) => o.value) };
   });
   log('rec-wm selector exists', wmSelector.exists);
-  log('rec-wm has 4 options', wmSelector.options.length === 4, wmSelector.options.join(','));
-  log('rec-wm includes "none"', wmSelector.options.includes('none'));
-  log('rec-wm includes "a", "b", "c"', wmSelector.options.includes('a') && wmSelector.options.includes('b') && wmSelector.options.includes('c'));
+  log('rec-wm has 3 options', wmSelector.options?.length === 3, wmSelector.options?.join(','));
+  log('rec-wm has no "none" option (mark is forced)', !wmSelector.options?.includes('none'));
+  log('rec-wm includes "a", "b", "c"', ['a', 'b', 'c'].every((k) => wmSelector.options?.includes(k)));
 
-  // Check 2: each watermark file is reachable from the engine
+  // Check 2: each mark asset is reachable
   for (const wm of ['a', 'b', 'c']) {
     const status = await page.evaluate(async (key) => {
       try {
-        const r = await fetch(`./swr-watermark-${key}.png`, { method: 'HEAD' });
+        const r = await fetch(`./swr-watermark-${key}.svg`, { method: 'HEAD' });
         return r.status;
       } catch (e) { return 0; }
     }, wm);
-    log(`watermark ${wm} PNG reachable`, status === 200, `(${status})`);
+    log(`watermark ${wm} SVG reachable`, status === 200, `(${status})`);
   }
 
-  // Check 3: Recorder._loadWatermark loads each image
-  for (const wm of ['a', 'b', 'c']) {
-    const result = await page.evaluate(async (key) => {
-      return new Promise((resolve) => {
-        // Trigger the same code path the recorder uses
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = `./swr-watermark-${key}.png`;
-        const timeout = setTimeout(() => resolve({ ok: false, reason: 'timeout' }), 5000);
-        img.onload = () => {
-          clearTimeout(timeout);
-          resolve({ ok: true, w: img.naturalWidth, h: img.naturalHeight });
-        };
-        img.onerror = () => {
-          clearTimeout(timeout);
-          resolve({ ok: false, reason: 'error' });
-        };
-      });
-    }, wm);
-    log(`watermark ${wm} loads in browser`, result.ok, `${result.w}×${result.h}`);
-  }
+  // Check 3: the forcing layer is installed (captureStream is wrapped)
+  const forcing = await page.evaluate(() => ({
+    present: typeof window.SWR_WATERMARK?.frameSource === 'function',
+    wrapped: window.HTMLCanvasElement.prototype.captureStream.__swrForced === true,
+  }));
+  log('SWR_WATERMARK.frameSource present', forcing.present);
+  log('captureStream wrapped (every capture goes through the compositor)', forcing.wrapped);
 
-  // Check 4: draw each watermark on an offscreen canvas (live render canvas is
-  // cleared every frame by the engine, so we can't sample it after a draw).
-  // The offscreen test confirms the asset itself is valid + scales correctly.
+  // Check 4: for each mark, the captured surface carries the mark's pixels.
+  // Synthetic black source canvas → the compositor the recorder captures from
+  // → sample the mark box the same way drawMark places it (18% width, 3.3% margin).
   for (const wm of ['a', 'b', 'c']) {
-    // Set the selector to trigger any side effects
     await page.evaluate((key) => {
       const sel = document.querySelector('#rec-wm');
       if (sel) { sel.value = key; sel.dispatchEvent(new Event('change')); }
     }, wm);
 
-    const drawnOk = await page.evaluate(async (key) => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = `./swr-watermark-${key}.png`;
-        img.onload = () => {
-          // Use a fresh offscreen canvas to avoid the live render's clear-on-frame loop
-          const off = document.createElement('canvas');
-          off.width = 1280;
-          off.height = 720;
-          const ctx = off.getContext('2d');
-          // Black background so the white watermark shows up clearly
-          ctx.fillStyle = '#000';
-          ctx.fillRect(0, 0, off.width, off.height);
-          // Apply the same draw logic as Recorder._drawWatermark
-          const w = off.width, h = off.height;
-          const targetW = Math.round(w * 0.18);
-          const aspect = img.naturalHeight / img.naturalWidth;
-          const targetH = Math.round(targetW * aspect);
-          const margin = Math.round(Math.min(w, h) * 0.033);
-          const x = w - targetW - margin;
-          const y = h - targetH - margin;
-          ctx.save();
-          ctx.globalAlpha = 0.6;
-          ctx.drawImage(img, x, y, targetW, targetH);
-          ctx.restore();
-          // Sample the entire watermark region for non-bg pixels
-          const data = ctx.getImageData(x, y, targetW, targetH);
-          let nonBg = 0;
-          for (let i = 0; i < data.data.length; i += 4) {
-            const r = data.data[i], g = data.data[i + 1], b = data.data[i + 2];
-            if (r > 30 || g > 30 || b > 30) nonBg++;
-          }
-          resolve({ ok: true, nonBg, totalPx: targetW * targetH, w: targetW, h: targetH, x, y });
-        };
-        img.onerror = () => resolve({ ok: false, reason: 'img error' });
-      });
-    }, wm);
-    const fillRatio = drawnOk.totalPx ? (drawnOk.nonBg / drawnOk.totalPx) : 0;
-    log(`watermark ${wm} draws cleanly`, drawnOk.ok && drawnOk.nonBg > 50, `${drawnOk.nonBg} px non-bg (${(fillRatio * 100).toFixed(1)}% of ${drawnOk.w}×${drawnOk.h})`);
+    const result = await page.evaluate(async () => {
+      const src = document.createElement('canvas');
+      src.width = 1280;
+      src.height = 720;
+      src.style.cssText = 'position:fixed;left:-2000px;top:0';
+      const sctx = src.getContext('2d');
+      sctx.fillStyle = '#000';
+      sctx.fillRect(0, 0, src.width, src.height);
+      document.body.appendChild(src);
 
-    // Snapshot the offscreen test canvas
-    const snap = await page.evaluate(async (key) => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = `./swr-watermark-${key}.png`;
-        img.onload = () => {
-          const off = document.createElement('canvas');
-          off.width = 1280;
-          off.height = 720;
-          const ctx = off.getContext('2d');
-          ctx.fillStyle = '#000';
-          ctx.fillRect(0, 0, off.width, off.height);
-          const w = off.width, h = off.height;
-          const targetW = Math.round(w * 0.18);
-          const aspect = img.naturalHeight / img.naturalWidth;
-          const targetH = Math.round(targetW * aspect);
-          const margin = Math.round(Math.min(w, h) * 0.033);
-          ctx.globalAlpha = 0.6;
-          ctx.drawImage(img, w - targetW - margin, h - targetH - margin, targetW, targetH);
-          resolve(off.toDataURL('image/png'));
-        };
-        img.onerror = () => resolve(null);
-      });
-    }, wm);
-    if (snap) {
-      const buf = Buffer.from(snap.split(',')[1], 'base64');
-      writeFileSync(`${OUT}/preview-watermark-${wm}.png`, buf);
+      const comp = window.SWR_WATERMARK.frameSource(src);
+      if (!comp) { src.remove(); return { ok: false, reason: 'no compositor' }; }
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      const w = comp.width, h = comp.height;
+      const targetW = Math.round(w * 0.18);
+      const targetH = Math.round(targetW * (comp.height / comp.width)); // any aspect: sample the band
+      const margin = Math.round(Math.min(w, h) * 0.033);
+      const box = { x: w - targetW - margin, y: h - Math.min(targetH, 240) - margin, w: targetW, h: Math.min(targetH, 240) };
+      const data = comp.getContext('2d').getImageData(box.x, Math.max(0, box.y), box.w, box.h).data;
+      let bright = 0;
+      for (let i = 0; i < data.length; i += 4) if (data[i] + data[i + 1] + data[i + 2] > 90) bright++;
+      const snap = comp.toDataURL('image/png');
+      src.remove();
+      return { ok: true, bright, box, snap };
+    });
+
+    const ok = result.ok && result.bright > 50;
+    log(`mark ${wm} lands on the captured surface`, ok, result.ok ? `${result.bright} px bright in ${result.box.w}×${result.box.h}` : result.reason);
+    if (result.snap) {
+      writeFileSync(`${OUT}/captured-${wm}.png`, Buffer.from(result.snap.split(',')[1], 'base64'));
     }
   }
 
-  // Check 5: no NEW console errors (filter out the pre-existing VERT bug that
-  // fires when the engine starts with no real audio file loaded)
+  // Check 5: no NEW console errors. Resource-load messages carry no URL, so
+  // 404s are counted from the response stream instead — filtering the routes
+  // only the deployed site answers (the static preview cannot).
+  const knownStaticRoute = (u) => /\/api\//.test(u) || /\/null$/.test(u);
+  const new404s = responses404.filter((u) => !knownStaticRoute(u));
   const newErrors = errors.filter((e) =>
     !e.includes('VERT is not defined') &&
     !e.includes('drawImage') &&
     !e.includes('setStatus') &&
-    !e.includes('InvalidStateError')
+    !e.includes('InvalidStateError') &&
+    !/Failed to load resource/.test(e)
   );
-  log('No new console errors (pre-existing bugs ignored)', newErrors.length === 0, newErrors.length ? newErrors.slice(0, 2).join('; ') : `(${errors.length} pre-existing ignored)`);
+  const errTotal = newErrors.length + new404s.length;
+  log('No new console errors', errTotal === 0, errTotal ? [...newErrors, ...new404s].slice(0, 3).join('; ') : `(${errors.length} console msgs, ${responses404.length} static-route 404s ignored)`);
 
   const passed = checks.filter((c) => c.ok).length;
   const total = checks.length;

@@ -1,0 +1,16 @@
+{
+  "index": 4,
+  "prompt": "Abstract study rendered with signal-processing artifacts as texture, scanline smear, chroma bloom, dub-delay ghosting, an animated frame — AUDITOR FX study --style raw --s 250 --ar 16:9",
+  "taskId": "c9618ad7-0344-4a95-9d56-2e61aa7aaa9a",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/c9618ad7-0344-4a95-9d56-2e61aa7aaa9a/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/c9618ad7-0344-4a95-9d56-2e61aa7aaa9a/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/c9618ad7-0344-4a95-9d56-2e61aa7aaa9a/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/c9618ad7-0344-4a95-9d56-2e61aa7aaa9a/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:22:55.383Z",
+  "complete": true
+}

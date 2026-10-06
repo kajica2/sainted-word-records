@@ -8,6 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/versions/eclipse" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Sainted Word Records" />
   <meta property="og:title" content="ECLIPSE · SWR engine" />
@@ -866,7 +867,7 @@
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
       if (!_txOn) return out;
       for (const r of l.reactors) {
-        let v = A.feat[r.feature] ?? 0;
+        let v = ((window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp) ? SWR_AUDIO_DAMP.damp(A.feat[r.feature], 0.28, r) : A.feat[r.feature]) ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
         // Master rotation toggle gate: when the user has turned rotation
@@ -923,7 +924,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       ctx.save();
       ctx.globalCompositeOperation = l.blend || 'source-over';
       ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
-      ctx.filter = `hue-rotate(${r.hue}deg) saturate(${0.55 + r.contrast*0.2}) brightness(${r.brightness}) contrast(${r.contrast})`;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 0.55 + r.contrast*0.2);
       ctx.translate(W/2, H/2);
       ctx.rotate(r.rot * Math.PI / 180);
       ctx.drawImage(src, -dw/2 + r.x, -dh/2 + r.y, dw, dh);
@@ -1117,5 +1120,11 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 </div>
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="../lib/swr-natural.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="../lib/gpu-grade.client.js"></script>
 </body>
 </html>

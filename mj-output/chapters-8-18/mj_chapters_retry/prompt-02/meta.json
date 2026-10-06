@@ -1,0 +1,20 @@
+{
+  "index": 2,
+  "prompt": "Renaissance altarpiece by Lovro Dobričević, 1452, the icon of Our Lady of Škrpjela, gold-leaf background with deep ultramarine, Byzantine Catholic hybrid style, traditional triptych panel structure, devotional and luminous, painted on wood, warm candlelight reflection  --v 8.2 --style raw --no text signature watermark --ar 2:3",
+  "taskId": "64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_3_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_0_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_1_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_2_384_N.webp?method=shortest&qst=6&quality=15",
+    "https://cdn.midjourney.com/64ed1f1c-f2e0-4ed3-b222-a5a8c2eb7700/0_3_384_N.webp?method=shortest&qst=6&quality=15"
+  ],
+  "imageCount": 8,
+  "submittedAt": "2026-09-30T00:58:23.952Z",
+  "complete": true
+}

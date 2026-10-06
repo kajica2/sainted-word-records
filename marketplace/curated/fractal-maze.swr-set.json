@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000011",
+  "name": "Fractal · Maze",
+  "author": "SWR",
+  "description": "Tight posterization with a chromatic split and onset flicker. Breaks, jungle and high-BPM tracks that need the frame to fracture on the beat.",
+  "tags": [
+    "fractal",
+    "breaks",
+    "chroma",
+    "high-bpm"
+  ],
+  "createdAt": "2026-09-30T00:00:00Z",
+  "engine": "fractal",
+  "audio": {
+    "name": "fractal.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 238150,
+    "url": "/audios/fractal.mp3"
+  },
+  "fx": {
+    "temp": 0.5,
+    "mut": 0.25,
+    "mutAlgo": 1,
+    "posterize": 0.15,
+    "vignette": 0.45,
+    "chroma": 0.35,
+    "grain": 0.15,
+    "sepia": 0,
+    "glow": 0.6,
+    "grayscale": 0.1,
+    "blur": 0.05,
+    "liquid": 0.2,
+    "pearl": 0.3,
+    "glitch": 0.15
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-4.webp",
+        "mimeType": "image/webp",
+        "size": 186800,
+        "url": "/default-library/holo-4.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 168,
+    "key": "E",
+    "scale": "minor"
+  }
+}

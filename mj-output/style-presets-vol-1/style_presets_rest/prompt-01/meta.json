@@ -1,0 +1,16 @@
+{
+  "index": 1,
+  "prompt": "Abstract study rendered as refractive liquid glass volumes, caustics, chromatic dispersion, fluid highlights on a dark ground — PRACTITIONER LIQUID GLASS study --style raw --s 250 --ar 16:9",
+  "taskId": "d5fd1598-cea0-4ea2-946f-f2d5f2610267",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/d5fd1598-cea0-4ea2-946f-f2d5f2610267/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/d5fd1598-cea0-4ea2-946f-f2d5f2610267/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/d5fd1598-cea0-4ea2-946f-f2d5f2610267/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/d5fd1598-cea0-4ea2-946f-f2d5f2610267/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:24:11.927Z",
+  "complete": true
+}

@@ -10,6 +10,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/x-icon" href="/favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/marketplace" />
   <meta property="og:title" content="Marketplace · Sainted Word Records" />
   <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
   <meta property="og:description" content="Curated music-video templates · one-click install · run in the browser" />
@@ -104,15 +105,15 @@
   <main class="container">
     <div class="intro">
       <h2>Music-video templates for designers, musicians, and mixed-media creators.</h2>
-      <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Drop a custom .swr-set file to add it to your library.</p>
+      <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Drop a custom .swr-set file — or a .zip media pack — to add it to your library.</p>
     </div>
 
     <div class="drop-zone" id="drop-zone">
-      <strong>Drop a .swr-set file here</strong>
+      <strong>Drop a .swr-set or media pack (.zip) here</strong>
       <span>Or click to browse · installs to your local engine library</span>
       <br />
       <button id="browse-btn">Choose file…</button>
-      <input type="file" id="set-input" accept=".swr-set,.json,application/json" style="display:none" />
+      <input type="file" id="set-input" accept=".swr-set,.json,.zip,application/json,application/zip" style="display:none" />
     </div>
 
     <div class="section-head">
@@ -133,11 +134,20 @@
         Install a curated set above, or drop a .swr-set file to get started.
       </div>
     </div>
+
+    <div class="section-head">
+      <h3>Harmonic Study Engine Packages</h3>
+      <span class="count" id="hse-count">— loading…</span>
+    </div>
+    <div class="grid" id="hse-grid">
+      <div class="empty"><strong>Loading…</strong></div>
+    </div>
   </main>
 
   <div class="toast" id="toast"></div>
 
   <script src="/swr-sets.js"></script>
+  <script src="/lib/zip-reader.client.js"></script>
   <script>
     (function () {
       const toast = (msg, isError) => {
@@ -155,6 +165,11 @@
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.id = set.id || set.name;
+        // Carry the real source path so install/preview never have to guess
+        // the filename from the display title. Title slugs are not unique:
+        // "Type · Loud" is stored as typography-loud.swr-set.json, so
+        // deriving the filename from the name 404s on it.
+        if (opts.file) card.dataset.file = opts.file;
         const tags = (set.tags || []).slice(0, 4);
         const persona = (set.tags && set.tags[0]) || 'curated';
         card.innerHTML = `
@@ -179,42 +194,47 @@
         return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       }
 
-      // Load curated set metadata from marketplace/curated/index.json
-      // (built by build step OR hardcoded fallback below)
+      // Load curated set metadata. marketplace/curated/index.json is the
+      // source of truth — adding a set is a data change, not an HTML edit.
+      // The list below is only the fallback for when the manifest is absent.
+      const KNOWN = [
+        'aurora-drift', 'collage-mag', 'eclipse-veil', 'fractal-maze',
+        'glitch-idm', 'neon-pulse', 'smoke-portrait', 'spectrum-bass',
+        'typography-loud', 'void-bloom', 'watercolor-bleed',
+      ].map(s => '/marketplace/curated/' + s + '.swr-set.json');
+
       async function loadCurated() {
-        // First try the manifest. If it doesn't exist, fall back to scanning
-        // the curated directory via a known hardcoded list.
-        const KNOWN = [
-          { file: '/marketplace/curated/neon-pulse.swr-set.json' },
-          { file: '/marketplace/curated/smoke-portrait.swr-set.json' },
-          { file: '/marketplace/curated/typography-loud.swr-set.json' },
-          { file: '/marketplace/curated/collage-mag.swr-set.json' },
-          { file: '/marketplace/curated/spectrum-bass.swr-set.json' },
-          { file: '/marketplace/curated/glitch-idm.swr-set.json' },
-        ];
-        const sets = [];
-        for (const k of KNOWN) {
-          try {
-            const r = await fetch(k.file, { cache: 'no-cache' });
-            if (r.ok) {
-              const doc = await r.json();
-              sets.push(doc);
+        let files = KNOWN;
+        try {
+          const idx = await fetch('/marketplace/curated/index.json', { cache: 'no-cache' });
+          if (idx.ok) {
+            const manifest = await idx.json();
+            if (Array.isArray(manifest.sets) && manifest.sets.length) {
+              files = manifest.sets.map(s => (typeof s === 'string' ? s : s.file)).filter(Boolean);
             }
+          }
+        } catch (e) { /* fall back to KNOWN */ }
+
+        const entries = [];
+        for (const file of files) {
+          try {
+            const r = await fetch(file, { cache: 'no-cache' });
+            if (r.ok) entries.push({ doc: await r.json(), file });
           } catch (e) { /* skip */ }
         }
-        return sets;
+        return entries;
       }
 
-      function renderCuratedGrid(sets) {
+      function renderCuratedGrid(entries) {
         const grid = document.getElementById('curated-grid');
         const count = document.getElementById('curated-count');
-        count.textContent = sets.length + ' available';
-        if (!sets.length) {
+        count.textContent = entries.length + ' available';
+        if (!entries.length) {
           grid.innerHTML = '<div class="empty"><strong>No curated sets found</strong>The marketplace/curated/ folder is empty.</div>';
           return;
         }
         grid.innerHTML = '';
-        for (const s of sets) grid.appendChild(renderCard(s, { installed: false }));
+        for (const e of entries) grid.appendChild(renderCard(e.doc, { installed: false, file: e.file }));
       }
 
       async function loadInstalled() {
@@ -245,12 +265,54 @@
           return false;
         }
         try {
-          await window.SWR_SETS.saveInstalled(doc);
+          await saveSetInstalled(doc);
           return true;
         } catch (e) {
           toast('install failed: ' + e.message, true);
           return false;
         }
+      }
+
+      // Save an installed set. Prefers the engine's Library.db (what the
+      // engine reads on boot); on the standalone marketplace page there is
+      // no Library, so fall back to opening the same origin IndexedDB
+      // directly — the set still installs and shows up once the engine
+      // initializes its Library.
+      async function saveSetInstalled(doc) {
+        try {
+          return await window.SWR_SETS.saveInstalled(doc);
+        } catch (e) {
+          if (window.Library) throw e; // real Library error — surface it
+          return standaloneSaveInstalled(doc);
+        }
+      }
+
+      // Mirrors lib/library.client.js's upgrade shape so the 'sets' store
+      // created here is readable by the engine later (same DB + version).
+      function standaloneSaveInstalled(doc) {
+        if (typeof indexedDB === 'undefined' || !doc || !doc.id) {
+          throw new Error('IndexedDB unavailable');
+        }
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open('sainted-word-records', 4);
+          req.onupgradeneeded = (ev) => {
+            const db = ev.target.result;
+            if (!db.objectStoreNames.contains('assets')) {
+              const s = db.createObjectStore('assets', { keyPath: 'id' });
+              s.createIndex('added', 'added');
+            }
+            if (!db.objectStoreNames.contains('songs')) db.createObjectStore('songs', { keyPath: 'id' });
+            if (!db.objectStoreNames.contains('sets')) db.createObjectStore('sets', { keyPath: 'id' });
+          };
+          req.onsuccess = (ev) => {
+            const db = ev.target.result;
+            const tx = db.transaction('sets', 'readwrite');
+            tx.objectStore('sets').put({ id: doc.id, doc: doc, installedAt: Date.now() });
+            tx.oncomplete = () => { db.close(); resolve(doc.id); };
+            tx.onerror = () => { db.close(); reject(tx.error); };
+          };
+          req.onerror = () => reject(req.error);
+        });
       }
 
       async function removeInstalled(id) {
@@ -300,6 +362,10 @@
       });
 
       async function installFile(file) {
+        if (isZipFile(file)) {
+          await installZipPack(file);
+          return;
+        }
         try {
           const text = await file.text();
           const set = await window.SWR_SETS.importSet(text);
@@ -319,6 +385,70 @@
         }
       }
 
+      function isZipFile(file) {
+        const n = String((file && file.name) || '').toLowerCase();
+        const t = String((file && file.type) || '');
+        return n.endsWith('.zip') || t === 'application/zip' || t === 'application/x-zip-compressed';
+      }
+
+      // Media-pack zip: decompress, find every *.swr-set.json, parse + install
+      // each, hydrate media from sidecar entries when the file names match,
+      // and automap the set's audio/video Files into the Library when it is
+      // present (the marketplace page itself may not host it).
+      async function installZipPack(file) {
+        try {
+          if (!window.ZIP_READER) throw new Error('zip reader not loaded');
+          const buf = await file.arrayBuffer();
+          const entries = window.ZIP_READER.read(buf);
+          const setEntries = entries.filter(e => /\.swr-set\.json$/i.test(e.name));
+          if (!setEntries.length) throw new Error('no .swr-set.json found in this zip');
+
+          // Sidecar media lookups: exact name + lowercase variant.
+          const mediaByName = {};
+          for (const e of entries) {
+            const f = new File([e.data], e.name, { type: e.mime || '' });
+            mediaByName[e.name] = f;
+            mediaByName[String(e.name).toLowerCase()] = f;
+          }
+
+          const decoder = new TextDecoder();
+          const done = [];
+          let mediaTotal = 0;
+          for (const se of setEntries) {
+            const text = decoder.decode(se.data);
+            const doc = JSON.parse(text);
+            const set = await window.SWR_SETS.importSetWithMedia(text, mediaByName);
+            const ok = await installSet(doc);
+            if (!ok) continue;
+            // Automap into Library when hosted (non-fatal when absent).
+            let added = 0;
+            if (window.Library && typeof window.Library.addFiles === 'function') {
+              const files = [];
+              if (set.audio) files.push(set.audio);
+              for (const l of (set.layers || [])) if (l && l.asset) files.push(l.asset);
+              if (files.length) {
+                try {
+                  await window.Library.addFiles(files);
+                  added = files.length;
+                } catch (e2) {
+                  console.warn('zip install: library automap failed', e2);
+                }
+              }
+            }
+            mediaTotal += added;
+            done.push({ name: doc.name, added });
+          }
+          if (!done.length) throw new Error('no sets could be installed from this zip');
+          const names = done.map(d => d.name).join(' · ');
+          toast(mediaTotal
+            ? `Installed ${names} (${mediaTotal} media files added to your library)`
+            : `Installed ${names}`);
+          await refreshInstalled();
+        } catch (e) {
+          toast('Zip install failed: ' + e.message, true);
+        }
+      }
+
       async function refreshInstalled() {
         const records = await loadInstalled();
         renderInstalledGrid(records);
@@ -333,12 +463,11 @@
           const id = btn.dataset.id;
           if (action === 'install') {
             const card = btn.closest('.card');
-            // Find the curated set by id
-            const allCards = Array.from(document.querySelectorAll('.card'));
-            // Pull doc from the curated grid by matching the name in the
-            // card title
-            const title = card.querySelector('h4')?.textContent;
-            const r = await fetch('/marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            // Read the source path the card was rendered with — never derive
+            // it from the title (see renderCard).
+            const file = card && card.dataset.file;
+            if (!file) { toast('Install failed: source not found', true); return; }
+            const r = await fetch(file, { cache: 'no-cache' });
             if (r.ok) {
               const doc = await r.json();
               const ok = await installSet(doc);
@@ -348,9 +477,9 @@
             }
           } else if (action === 'preview') {
             const card = btn.closest('.card');
-            const title = card.querySelector('h4')?.textContent;
-            // Try to find the curated set
-            const r = await fetch('/marketplace/curated/' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.swr-set.json');
+            const file = card && card.dataset.file;
+            if (!file) return;
+            const r = await fetch(file, { cache: 'no-cache' });
             if (r.ok) {
               const doc = await r.json();
               previewSet(doc);
@@ -369,11 +498,64 @@
       wireActions(document.getElementById('curated-grid'));
       wireActions(document.getElementById('installed-grid'));
 
+      // === HSE packages (MP3 + MIDI from the harmonic-study-engine repo) ===
+      const HSE_REPO = 'kajica2/harmonic-study-engine';
+      const HSE_BRANCH = 'main';
+      const HSE_DIR = 'marketplace';
+      const hseGrid = document.getElementById('hse-grid');
+      const hseCount = document.getElementById('hse-count');
+
+      function hseSlugTitle(slug) {
+        return slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+
+      async function loadHsePackages() {
+        try {
+          const r = await fetch(
+            `https://api.github.com/repos/${HSE_REPO}/contents/${HSE_DIR}?ref=${HSE_BRANCH}`,
+            { headers: { Accept: 'application/vnd.github+json' } },
+          );
+          if (!r.ok) throw new Error('GitHub API ' + r.status);
+          const files = await r.json();
+          const mp3 = new Map();
+          const mid = new Map();
+          for (const f of files) {
+            const m = /^(.+)\.(mp3|mid)$/.exec(f.name || '');
+            if (!m) continue;
+            if (m[2] === 'mp3') mp3.set(m[1], f.download_url);
+            else mid.set(m[1], f.download_url);
+          }
+          const slugs = [...new Set([...mp3.keys(), ...mid.keys()])].sort();
+          hseCount.textContent = slugs.length + ' packages';
+          if (slugs.length === 0) {
+            hseGrid.innerHTML = '<div class="empty"><strong>No packages yet</strong>The harmonic-study-engine marketplace/ folder is empty.</div>';
+            return;
+          }
+          hseGrid.innerHTML = slugs.map((slug) => {
+            const audio = mp3.get(slug);
+            const midi = mid.get(slug);
+            const title = hseSlugTitle(slug);
+            return `<div class="card">
+              <div class="card-title" style="font:800 15px/1.2 'Archivo Black',sans-serif;letter-spacing:-0.01em">${title}</div>
+              <div class="desc" style="font-size:12px;color:var(--muted);line-height:1.5">MP3 + MIDI package from the Harmonic Study Engine.</div>
+              <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                ${audio ? `<a class="dl" href="${audio}" download style="font:500 11px/1 'Space Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;padding:8px 12px;background:var(--accent);color:#fff;border-radius:3px;text-decoration:none">MP3</a>` : ''}
+                ${midi ? `<a class="dl" href="${midi}" download style="font:500 11px/1 'Space Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;padding:8px 12px;background:var(--accent-2);color:#fff;border-radius:3px;text-decoration:none">MIDI</a>` : ''}
+              </div>
+            </div>`;
+          }).join('');
+        } catch (err) {
+          hseCount.textContent = 'unavailable';
+          hseGrid.innerHTML = `<div class="empty"><strong>Could not load packages</strong>${escapeHtml(String(err.message || err))}</div>`;
+        }
+      }
+
       // === Init ===
       (async function init() {
         const curated = await loadCurated();
         renderCuratedGrid(curated);
         await refreshInstalled();
+        await loadHsePackages();
       })();
     })();
   </script>

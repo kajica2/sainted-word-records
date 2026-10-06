@@ -68,13 +68,13 @@
             <div class="pt-title">Personal Tier</div>
             <div class="pt-sub">${lic
               ? `${escapeHtml(lic.tierName)} · ${lic.credits} of ${lic.creditsTotal} credits`
-              : 'Free engine — activate a license to remove watermark'}</div>
+              : 'Free engine — every export carries the SWR mark'}</div>
           </div>
           <button class="pt-btn ghost" id="pt-close" title="Close (esc)">✕</button>
         </div>
         ${lic ? renderActive(lic) : renderInactive()}
         <div class="pt-foot">
-          <div class="pt-foot-note">Keys are issued by the operator after payment. Stored locally; no server call.</div>
+          <div class="pt-foot-note">Keys are issued by the operator after payment. Stored locally; the server ledger syncs when signed in.</div>
         </div>
       </div>
     `;
@@ -83,7 +83,7 @@
     panel.querySelector('#pt-close').addEventListener('click', closePanel);
     if (lic) {
       panel.querySelector('#pt-deactivate').addEventListener('click', () => {
-        if (!confirm('Deactivate PT license? Watermark will return and credits reset.')) return;
+        if (!confirm('Deactivate PT license? Credits reset. The SWR mark stays on every export.')) return;
         window.SWR_PT.deactivate();
         renderChip();
         closePanel();
@@ -91,6 +91,8 @@
           window.setStatus('PT deactivated', 'warn');
         }
       });
+      wireRegisterButtons(panel);
+      syncServerSlots(panel); // server ledger is authoritative when reachable — best-effort
     } else {
       const keyInput = panel.querySelector('#pt-key-input');
       const activateBtn = panel.querySelector('#pt-activate-btn');
@@ -105,6 +107,13 @@
   }
 
   function renderActive(lic) {
+    const used = lic.videosRegistered || 0;
+    const total = lic.videoSlots || 0;
+    const left = Math.max(0, total - used);
+    const rows = (window.SWR_PT && window.SWR_PT.REGISTER_BATCHES) || [10, 30, 50];
+    const btn = (n) => `
+      <button class="pt-btn ghost" data-register="${n}" ${left < n ? 'disabled' : ''}>+ ${n}</button>
+    `;
     return `
       <div class="pt-card">
         <div class="pt-card-label">Active license</div>
@@ -112,7 +121,14 @@
         <div class="pt-meta">
           Activated ${new Date(lic.activatedAt).toLocaleDateString()}<br>
           Tier: <b>${escapeHtml(lic.tierName)}</b> · Credits: <b>${lic.credits} / ${lic.creditsTotal}</b><br>
+          Videos registered: <b>${used} / ${total}</b> (${left} slots left)<br>
           ${lic.lastDecrementAt ? `Last render: ${new Date(lic.lastDecrementAt).toLocaleString()}` : ''}
+          <div class="pt-server-ledger" data-server-ledger style="margin-top:6px;color:var(--accent,#f5a524);"></div>
+        </div>
+        <div class="pt-register">
+          <div class="pt-register-label">Register videos (10 / 30 / 50 per credit load)</div>
+          <div class="pt-register-row">${rows.map(btn).join('')}</div>
+          <div class="pt-register-error" data-register-err role="alert"></div>
         </div>
         <div class="pt-actions">
           <button class="pt-btn ghost" id="pt-deactivate">Deactivate</button>
@@ -120,6 +136,55 @@
         </div>
       </div>
     `;
+  }
+
+  // Wire the 10/30/50 register buttons. Safe to call again after a body
+  // re-render (listeners are per-node).
+  function wireRegisterButtons(panel) {
+    panel.querySelectorAll('[data-register]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const err = panel.querySelector('[data-register-err]');
+        err.textContent = '';
+        const n = Number(b.dataset.register);
+        const res = window.SWR_PT.registerVideos(n);
+        if (!res.ok) {
+          err.textContent = res.error + (res.remaining !== undefined ? ` (${res.remaining} slots left)` : '');
+          return;
+        }
+        renderChip();
+        // Re-render the panel body so the new counts and disabled states show.
+        const body = panel.querySelector('.pt-card');
+        const next = renderActive(window.SWR_PT.load());
+        if (body) {
+          body.outerHTML = next;
+          wireRegisterButtons(panel); // re-wire on the fresh nodes
+          syncServerSlots(panel);     // the fresh .pt-card has a new server-ledger slot
+        }
+        if (typeof window.setStatus === 'function') {
+          window.setStatus(`Registered ${res.registered} videos · ${res.remaining} slots left`, 'ok');
+        }
+      });
+    });
+  }
+
+  // Best-effort server-ledger sync (GET /api/slots — api/slots/index.js). The
+  // server ledger is the authoritative payment record; the local wallet stays
+  // the offline runtime. On any failure (not signed in, network, server error)
+  // this silently keeps the local-only view — local is the fallback by design.
+  function syncServerSlots(panel) {
+    if (!panel || typeof fetch !== 'function') return;
+    const target = panel.querySelector('[data-server-ledger]');
+    if (!target) return;
+    fetch('/api/slots', { headers: { Accept: 'application/json' } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data || typeof data.totalSlots !== 'number') return;
+        target.textContent =
+          `Server ledger: ${data.registered} / ${data.totalSlots} registered` +
+          (typeof data.remaining === 'number' ? ` (${data.remaining} free)` : '') +
+          ' — authoritative when signed in.';
+      })
+      .catch(() => { /* offline/local fallback — silent by design */ });
   }
 
   function renderInactive() {

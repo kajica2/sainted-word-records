@@ -12,6 +12,9 @@
 //   4. every persona has a variant ordering that is a permutation of the
 //      canonical #variant ids read from client/variant-switcher.client.js
 //   5. every pinned transition id exists in engine-transitions.client.js
+//   5b. personaToTransitions is total over the ontology: every persona has an
+//      array entry, and an empty array is the explicit "no pins, default
+//      order" fallback (no persona is silently uncovered)
 //   6. every variant/transition referenced anywhere exists (0 orphans)
 //   7. voice-lint.banned equals a fresh extraction from
 //      marketing/scripts/README.md (drift detection, NFR-9)
@@ -89,6 +92,16 @@ function main() {
   const orphanTransitions = Object.values(rules.personaToTransitions)
     .flat().filter((t) => !canonicalTransitions.has(t));
   check(orphanTransitions.length === 0, '0 orphan transitions', [...new Set(orphanTransitions)].join(', '));
+
+  console.log('\n=== 4b. transition coverage (total, explicit fallback) ===');
+  const missingTx = ontology.personas.filter((p) => !(p.id in rules.personaToTransitions)).map((p) => p.id);
+  check(missingTx.length === 0, 'every persona has a transition entry', missingTx.join(', '));
+  const badTxShape = Object.entries(rules.personaToTransitions).filter(([, v]) => !Array.isArray(v));
+  check(badTxShape.length === 0, 'every transition entry is an array (empty = default order)',
+    badTxShape.map(([k]) => k).join(', '));
+  const pinnedCount = Object.values(rules.personaToTransitions).filter((v) => v.length > 0).length;
+  check(pinnedCount >= 1, '≥1 persona pins transitions',
+    `${pinnedCount} pinned, ${EXPECTED_PERSONAS - pinnedCount} use the empty default`);
 
   console.log('\n=== 7. voice-lint drift ===');
   const fresh = buildVoiceLint();

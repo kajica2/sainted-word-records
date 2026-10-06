@@ -8,6 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/versions/watercolor" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Sainted Word Records" />
   <meta property="og:title" content="WATERCOLOR · SWR engine" />
@@ -724,7 +725,7 @@
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
       if (!_txOn) return out;
       for (const r of l.reactors) {
-        let v = A.feat[r.feature] ?? 0;
+        let v = ((window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp) ? SWR_AUDIO_DAMP.damp(A.feat[r.feature], 0.28, r) : A.feat[r.feature]) ?? 0;
         if (r.feature === 'centroid') v = v; else if (r.feature === 'beat' || r.feature === 'onset') v = v;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
         if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
@@ -790,7 +791,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       if (ar > car) { dh = _H * _r.scale; dw = dh * ar; } else { dw = _W * _r.scale; dh = dw / ar; }
       const dx = (_W - dw)/2 + _r.x;
       const dy = (_H - dh)/2 + _r.y;
-      _ctx.filter = `hue-rotate(${_r.hue}deg) saturate(${1.2 + _r.contrast*0.4}) brightness(${_r.brightness}) contrast(${_r.contrast})`;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, _r.hue, _r.brightness, _r.contrast, 1.2 + _r.contrast*0.4);
       if (Math.abs(_r.rot) > 0.5) {
         _ctx.translate(_W/2, _H/2); _ctx.rotate(_r.rot * Math.PI/180); _ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
@@ -1331,5 +1334,11 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 </div>
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="../lib/swr-natural.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="../lib/gpu-grade.client.js"></script>
 </body>
 </html>

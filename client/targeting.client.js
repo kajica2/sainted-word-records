@@ -7,6 +7,11 @@
 // <select>, pins transitions in the #swr-tx-pick <select>, and offers a
 // dismissible banner.
 //
+// rules.personaToTransitions is total over the 28 personas (see
+// targeting-pipeline/build-rules.mjs): a persona with no transition affinity
+// maps to an explicit empty list, which resets #swr-tx-pick to its default
+// order. There is no "uncovered persona" state.
+//
 // PRIVACY CONTRACT (NFR-3, FR-14): nothing leaves the device. Every signal,
 // correction and dismissal lives in the IndexedDB database `swr-targeting`,
 // which nothing else reads and no code ever uploads. There is no network call
@@ -408,8 +413,12 @@
     var order = orderFor(state.result.personaId);
     if (order && state.variantSelect) applyVariantOrder(state.variantSelect, order);
     if (state.rules && state.result.personaId) {
-      var pins = state.rules.personaToTransitions && state.rules.personaToTransitions[state.result.personaId];
-      if (pins) applyTransitionPins(pins);
+      // personaToTransitions is total over the ontology (build-rules.mjs): a
+      // persona with no transition affinity maps to an explicit empty list, so
+      // applying it always resets #swr-tx-pick to the default order instead of
+      // leaving pins from a previously classified persona behind.
+      var pins = (state.rules.personaToTransitions && state.rules.personaToTransitions[state.result.personaId]) || [];
+      applyTransitionPins(pins);
     }
     return state.result;
   }

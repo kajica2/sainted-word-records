@@ -134,3 +134,71 @@ spec sits inside the rules' ranges, the chain lands on exactly one canvas (never
 doubled), the grain floor really reaches the stage pixels (spatial HF energy 2.6
 on vs 0.0 off, inside a subtle amplitude band), and a real variant page grades
 exactly its topmost canvas.
+---
+
+### TikTok Studio (`/tiktok`)
+
+PR 3 of 4 in the studio sequence (live-camera-mic → spit-live → **tiktok** → camera-enhance),
+built from `docs/plans/2026-09-24-tiktok-studio.md`.
+
+- **`tiktok.html`** — hero + upload (picker or drop), 3-tab vibe picker (12 presets), trim bar,
+  four export buttons, a Free/Creator/Pro card, and a sticky 1080×1920 preview.
+- **`client/swr-tiktok-runtime.client.js`** — state machine (idle → loading → ready →
+  previewing/exporting), the audio graph, the six-layer 9:16 renderer (gradient ground, bass
+  rings, mid waveform ribbon, treble particles, hook burst, and the always-on `SWR · tiktok`
+  mark), plus buffer analysis: the hook is the strongest energy rise in the first 60 s, and
+  BPM/key come from the repo's `audio-analysis-v2.js`.
+- **`client/swr-tiktok-export.client.js`** — teaser 3 s / hook 5 s / clip 15 s / behind 60 s via
+  `canvas.captureStream` + `MediaRecorder`, audio routed through a single shared `AudioContext`
+  graph (the runtime's, so `createMediaElementSource` is called once per element), handed off as
+  `sainted-word-tiktok-<type>-<timestamp>.webm`. The recorder starts one frame after the stream,
+  because a canvas capture sampled in the same task can hand the encoder a pre-paint frame.
+- **Wiring** — `/tiktok` nav entry + the two rewrites, the sitemap URL, and the site-map tool entry.
+- **Tests** — `check:tiktok-unit` (node:vm, 48 assertions: presets, factory, state, persistence,
+  trim, the analysis over a synthetic 120 BPM click track with a 12 s lift, and the export
+  pipeline against a stubbed recorder) and `check:tiktok-smoke` (13 Puppeteer checks against
+  built `dist/tiktok.html`). Unit in `check`, smoke in `check:full`.
+
+**Measured on the synthetic signal**: hook detection lands at 11.98 s for a lift at 12 s, and BPM
+reads 117 for a 120 BPM click train. Both are heuristics — best-effort on clean signals, as the
+plan says; no ML-grade accuracy is claimed.
+
+**Known-open**: the 12 presets are subjective (user-uploadable presets are a future PR); batch
+export (7 clips from one song), trending sounds and direct upload need a backend and stay out of
+scope per the plan.
+
+---
+
+## Camera Enhance (`/camera-enhance`)
+
+PR 4 of 4 in the studio sequence (live-camera-mic → spit-live → tiktok → **camera-enhance**),
+built from `docs/prds/camera-enhance.md` and `docs/plans/2026-09-29-camera-enhance.md`.
+
+- **`camera-enhance.html`** — the §3 layout (source · stage · look · export): dropzone with
+  metadata + poster thumbnail, a preview stage with frame guides and transport, 8 look cards with
+  9 custom sliders, 4 overlay modes with intensity, and export controls (5 formats, 2 qualities,
+  5 burn-ins, 3 audio modes).
+- **`client/swr-camera-enhance.client.js`** — the runtime. One per-frame renderer feeds both the
+  stage and the exporter, so the preview *is* the export: the grade is one CSS-filter string, grain
+  and vignette are painted layers, the reactive overlay composites with `screen`, and the burn-ins
+  plus the forced `SWR · enhance` mark are painted last.
+- **`client/swr-camera-enhance-export.client.js`** — `canvas.captureStream` + `MediaRecorder` at the
+  chosen format/quality, audio from the source element or a decoded music file, handed off as
+  `sainted-word-camera-enhance-<WxH>-<timestamp>.webm`.
+- **The fixes are real passes, not switches**: auto exposure reads live luma statistics and biases
+  the grade (with a bias readout in the panel); stabilize runs a coarse-grid translation estimate
+  through a smoothed virtual path and counter-moves inside a crop; denoise mixes two blur radii;
+  smooth motion blends the previous frame.
+- **Wiring** — `/camera-enhance` nav entry + the two rewrites, the sitemap URL, the site-map entry.
+- **Tests** — `check:camera-enhance-unit` (node:vm, **62 assertions**) and
+  `check:camera-enhance-smoke` (**26 Puppeteer checks** against built `dist/camera-enhance.html`).
+  Unit in `check`; smoke in `check:full`.
+
+**Two defects caught before the browser saw them**: §5 names a preset's first parameter
+`brightness` while §4.3 names the slider `exposure` — every look's brightness contribution was
+being dropped until the mapping was made explicit; and the look *panel* shared the `.ce-look`
+class with the look *cards*, so a card selector matched nine elements.
+
+**Honest limits** (recorded in the plan): smooth motion is a temporal blend, not optical flow;
+denoise is an edge-preserving soften, not a bilateral pass; MediaRecorder records realtime, so a
+60 s clip takes about 60 s to export.

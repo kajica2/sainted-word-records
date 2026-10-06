@@ -103,7 +103,7 @@
       lyricOverlay: e('lyric-overlay'), punchFx: e('punch-fx'),
       spitPrev: e('spit-prev'), spitBack: e('spit-back'), spitPlay: e('spit-play'),
       spitForward: e('spit-forward'), spitNext: e('spit-next'),
-      spitTime: e('spit-time'), spitSave: e('spit-save'),
+      spitTime: e('spit-time'), spitSave: e('spit-save'), saveModeBadge: e('save-mode-badge'),
     };
     if (!this._stageCanvas && this._els.canvas) this._stageCanvas = this._els.canvas;
   };
@@ -321,12 +321,7 @@
     if (els.micVocalEnhance) this._on(els.micVocalEnhance, 'change', function () { self._vocalEnhance = !!els.micVocalEnhance.checked; });
     if (els.btnRec) this._on(els.btnRec, 'click', function () { self._toggleRecording(); });
     if (els.btnRecTransport) this._on(els.btnRecTransport, 'click', function () { self._toggleRecording(); });
-    if (els.spitSave) this._on(els.spitSave, 'click', function () {
-      if (self._lastSavedBlob && self._lastSavedBlob.url) {
-        var a = document.createElement('a'); a.href = self._lastSavedBlob.url; a.download = 'spit-' + Date.now() + '.webm';
-        if (document.body) document.body.appendChild(a); a.click(); _rm(a);
-      } else self._emitError('NoRecording', 'no recording available to save');
-    });
+    if (els.spitSave) this._on(els.spitSave, 'click', function () { self._handleSave(); });
 
     if (typeof document !== 'undefined') {
       var fxBtns = document.querySelectorAll('.spit-fx-btn');
@@ -583,6 +578,78 @@
     var prev = this._state; this._state = n;
     if (this._options.onStateChange) { try { this._options.onStateChange(prev, n); } catch (e) { _warn('swr-spit: onStateChange threw', e); } }
   };
+  SpitRuntime.prototype._handleSave = function () {
+    var self = this;
+    if (!this._lastSavedBlob || !this._lastSavedBlob.url) { this._emitError('NoRecording', 'no recording available to save'); return; }
+
+    var timestamp = Date.now();
+
+    // Check auth state via SWR_AUTH.session() - pass { force: false } to use cache
+    var checkAuth = window.SWR_AUTH && window.SWR_AUTH.session ? window.SWR_AUTH.session({ force: false }) : Promise.resolve(null);
+    checkAuth.then(function (user) {
+      if (user && user.id && window.SWR_STORAGE && typeof window.SWR_STORAGE.uploadFile === 'function') {
+        // Signed in: upload to cloud
+        var fileName = 'spit-' + timestamp + '.webm';
+        var file = new File([self._lastSavedBlob.blob], fileName, { type: 'video/webm' });
+        return window.SWR_STORAGE.uploadFile(file, 'spit/' + timestamp);
+      } else {
+        // Signed out: local download + prompt
+        var a = document.createElement('a');
+        a.href = self._lastSavedBlob.url;
+        a.download = 'spit-' + timestamp + '.webm';
+        if (document.body) document.body.appendChild(a);
+        a.click();
+        a.remove();
+        self._showSignInPrompt();
+        return Promise.resolve({ key: null, local: true });
+      }
+    }).then(function (result) {
+      if (result && result.key) {
+        // Upload succeeded - update badge
+        if (self._els.saveModeBadge) {
+          self._els.saveModeBadge.textContent = '☁ Saved';
+          self._els.saveModeBadge.title = 'Saved to cloud: ' + result.key;
+        }
+      }
+    }).catch(function (err) {
+      self._emitError('SaveFailed', String(err && err.message || err));
+      // Fallback to local download on error
+      var a = document.createElement('a');
+      a.href = self._lastSavedBlob.url;
+      a.download = 'spit-' + timestamp + '.webm';
+      if (document.body) document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+  };
+
+  SpitRuntime.prototype._showSignInPrompt = function () {
+    // Create and show a sign-in prompt modal
+    var existing = document.getElementById('spit-signin-prompt');
+    if (existing) existing.remove();
+    var div = document.createElement('div');
+    div.id = 'spit-signin-prompt';
+    div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    div.innerHTML = '<div style="background:var(--bg-surface, #1a1612);border:1px solid var(--border-medium);border-radius:12px;padding:24px;max-width:360px;text-align:center;">' +
+      '<h3 style="margin:0 0 12px;color:var(--text-primary);">Sign in to save to cloud</h3>' +
+      '<p style="margin:0 0 20px;color:var(--text-secondary);font-size:0.9rem;">Your take was saved locally. Sign in to save to your library.</p>' +
+      '<a href="/login.html" style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#ff6b00,#ff0050);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Sign In</a>' +
+      '<button onclick="this.parentElement.parentElement.remove()" style="display:block;margin:16px auto 0;background:none;border:none;color:var(--text-muted);cursor:pointer;">Close</button>' +
+      '</div>';
+    if (document.body) document.body.appendChild(div);
+  };
+
+  SpitRuntime.prototype._updateSaveModeBadge = function (mode) {
+    if (!this._els.saveModeBadge) return;
+    if (mode === 'cloud') {
+      this._els.saveModeBadge.textContent = '☁ Cloud';
+      this._els.saveModeBadge.title = 'Will save to cloud';
+    } else {
+      this._els.saveModeBadge.textContent = 'Local';
+      this._els.saveModeBadge.title = 'Will save locally';
+    }
+  };
+
   SpitRuntime.prototype._emitError = function (code, message) {
     this._lastError = { code: code, message: message, t: Date.now() };
     if (this._options.onError) { try { this._options.onError(this._lastError); } catch (_) {} }
@@ -617,6 +684,22 @@
     this._initReactiveCanvas();
     this._wireUIHandlers();
     this._setState(STATES.READY);
+    // Check auth state and update badge accordingly
+    this._checkAuthAndUpdateBadge();
+  };
+
+  SpitRuntime.prototype._checkAuthAndUpdateBadge = function () {
+    var self = this;
+    var checkAuth = window.SWR_AUTH && window.SWR_AUTH.session ? window.SWR_AUTH.session({ force: false }) : Promise.resolve(null);
+    checkAuth.then(function (user) {
+      if (user && user.id) {
+        self._updateSaveModeBadge('cloud');
+      } else {
+        self._updateSaveModeBadge('local');
+      }
+    }).catch(function () {
+      self._updateSaveModeBadge('local');
+    });
   };
   function create(stageCanvas, options) {
     var rt = new SpitRuntime(stageCanvas, options || {});

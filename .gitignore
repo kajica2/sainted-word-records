@@ -23,6 +23,9 @@ __pycache__/
 .hermes/
 .hermes-plans/
 
+# superpowers skill state (per-sprint sdd progress logs)
+.superpowers/
+
 # Build / source shadows. Vite copies public/* into dist on every build via
 # copyPublicDir, then copyStatic() re-copies the canonical root files in
 # closeBundle, so root wins. public/ is therefore stale and shadowed by root.

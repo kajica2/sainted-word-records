@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sitemap · Sainted Word Records</title>
   <meta name="description" content="Every page on sainted-word-records.vercel.app. 150+ routes, grouped by category, with live status and search." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/sitemap" />
   <meta property="og:title" content="Sitemap · SWR" />
   <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
   <meta property="og:description" content="Every page on the site, with live status and search." />
@@ -212,12 +213,14 @@
       //   index.html/landing   → /
       // and a handful of pages are only reachable at their real filename
       // (NO_REWRITE) or at a preserved hand-written route (ROUTE_OVERRIDES)
-      // because no rewrite points at their stem.
+      // because no rewrite points at their stem — or, for versions.html,
+      // because the shipped versions/index.html shadows the /versions rewrite
+      // (Vercel resolves the filesystem first).
       const ROUTE_OVERRIDES = {
         'versions/index.html': '/visual-languages',
         'versions/music_video.html': '/versions/music-video',
       };
-      const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|artists\/vodolija$)/;
+      const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|versions$|artists\/vodolija$)/;
       const ATLAS_SLUGS = [
         '200-steps', 'architect', 'checklist', 'crisis', 'final-insight',
         'forge', 'integration', 'legacy', 'life-stages',

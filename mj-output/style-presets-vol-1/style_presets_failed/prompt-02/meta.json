@@ -1,0 +1,16 @@
+{
+  "index": 2,
+  "prompt": "Abstract study rendered as a train stage 2 mid-pass refinement, texture and mid-frequency detail building over the stage 1 base, contrast tightening — AUDITOR TRAIN STAGE 2 study --style raw --s 250 --ar 16:9",
+  "taskId": "2a235a47-730e-484a-9a79-6f82be2ae427",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/2a235a47-730e-484a-9a79-6f82be2ae427/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/2a235a47-730e-484a-9a79-6f82be2ae427/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/2a235a47-730e-484a-9a79-6f82be2ae427/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/2a235a47-730e-484a-9a79-6f82be2ae427/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:28:47.653Z",
+  "complete": true
+}

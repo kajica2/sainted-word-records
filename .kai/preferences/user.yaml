@@ -1,6 +1,6 @@
 # User Preferences
 # Owner: kajica2 <kai.djuric@gmail.com>
-# Last updated: 2026-09-20 (Kai first-run init)
+# Last updated: 2026-09-30 (delivery prefs confirmed; first-run init 2026-09-20)
 
 workflow:
   # Default checkpoint behavior. Per AGENTS.md, default is auto-proceed through
@@ -37,6 +37,15 @@ commit:
   no_verify: ask_first
   # Conventional commits. Auto-detect scope from changed files.
   conventional: true
+
+delivery:
+  # Confirmed 2026-09-30.
+  # Pushing to the feature branch already in flight is fine (CI runs on
+  # non-main pushes). Opening a PR is the outward-facing step — ask first.
+  push_existing_feature_branch: true
+  open_prs: ask
+  # Commit only once the relevant gate passes; never commit red.
+  commit_when: gated
 
 tools:
   # The user is on macOS with zsh. Path quoting is important for spaces.

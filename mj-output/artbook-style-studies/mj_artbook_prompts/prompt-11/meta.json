@@ -1,0 +1,16 @@
+{
+  "index": 11,
+  "prompt": "Byzantine-style sacred geometry, an aged illuminated manuscript cover with deep oxblood-red leather binding, faded gold leaf geometric ornament, central nemanjić dynasty tree-of-life loza in thin gold lines, asymmetric composition with breathing parchment-cream negative space, soft candlelight from upper left, no figures, no text, no signature, museum-quality craftsmanship reminiscent of medieval Serbian monastic bindings, intricate but restrained ornament, the product of countless hours by a master craftsman — rendered as refractive liquid glass volumes, caustics, chromatic dispersion, fluid highlights on a dark ground — PRACTITIONER LIQUID GLASS study  --v 8.2 --style raw --no text signature watermark --ar 2:3",
+  "taskId": "8c7fdc64-0824-4c47-ac06-26e7c8f03302",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/8c7fdc64-0824-4c47-ac06-26e7c8f03302/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/8c7fdc64-0824-4c47-ac06-26e7c8f03302/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/8c7fdc64-0824-4c47-ac06-26e7c8f03302/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/8c7fdc64-0824-4c47-ac06-26e7c8f03302/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-30T00:53:22.642Z",
+  "complete": true
+}

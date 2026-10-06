@@ -1,0 +1,72 @@
+{
+  "schema": "swr-reel/v1",
+  "id": "00000000-0000-4000-8000-000000000019",
+  "name": "Slip Sets 1",
+  "description": "A seven-track demo reel that auto-advances through the Slip Sets 1 collection. Each track brings its own engine look (smoke / film / tape / grid / aurora / neon) and swaps the audio as it goes — hands-off, start to finish.",
+  "createdAt": "2026-10-02T00:00:00Z",
+  "author": "SWR",
+  "tags": [
+    "demo",
+    "reel",
+    "slip-sets-1"
+  ],
+  "loop": true,
+  "tracks": [
+    {
+      "setFile": "/marketplace/curated/slip-01-bebop-blue.swr-set.json",
+      "setId": "00000000-0000-4000-8000-000000000012",
+      "name": "Bebop Blue",
+      "engine": "smoke",
+      "audio": "/audios/slip-sets-1/slip-01-bebop-blue.mp3",
+      "durationSeconds": 137.8
+    },
+    {
+      "setFile": "/marketplace/curated/slip-02-bebop-blue-take2.swr-set.json",
+      "setId": "00000000-0000-4000-8000-000000000013",
+      "name": "Bebop Blue · Take 2",
+      "engine": "smoke",
+      "audio": "/audios/slip-sets-1/slip-02-bebop-blue-take2.mp3",
+      "durationSeconds": 147.3
+    },
+    {
+      "setFile": "/marketplace/curated/slip-03-bebop-in-f-long.swr-set.json",
+      "setId": "00000000-0000-4000-8000-000000000014",
+      "name": "Bebop in F · Long Cut",
+      "engine": "film",
+      "audio": "/audios/slip-sets-1/slip-03-bebop-in-f-long.mp3",
+      "durationSeconds": 479.4
+    },
+    {
+      "setFile": "/marketplace/curated/slip-04-bebop-in-f-take2.swr-set.json",
+      "setId": "00000000-0000-4000-8000-000000000015",
+      "name": "Bebop in F · Take 2",
+      "engine": "tape",
+      "audio": "/audios/slip-sets-1/slip-04-bebop-in-f-take2.mp3",
+      "durationSeconds": 158.1
+    },
+    {
+      "setFile": "/marketplace/curated/slip-05-tribalismo.swr-set.json",
+      "setId": "00000000-0000-4000-8000-000000000016",
+      "name": "Tribalismo",
+      "engine": "grid",
+      "audio": "/audios/slip-sets-1/slip-05-tribalismo.mp3",
+      "durationSeconds": 204.4
+    },
+    {
+      "setFile": "/marketplace/curated/slip-06-sunlit-room.swr-set.json",
+      "setId": "00000000-0000-4000-8000-000000000017",
+      "name": "Sunlit Room",
+      "engine": "aurora",
+      "audio": "/audios/slip-sets-1/slip-06-sunlit-room.mp3",
+      "durationSeconds": 106.4
+    },
+    {
+      "setFile": "/marketplace/curated/slip-07-low-light.swr-set.json",
+      "setId": "00000000-0000-4000-8000-000000000018",
+      "name": "Low Light",
+      "engine": "neon",
+      "audio": "/audios/slip-sets-1/slip-07-low-light.mp3",
+      "durationSeconds": 194.8
+    }
+  ]
+}

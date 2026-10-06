@@ -22,7 +22,7 @@
   <meta name="twitter:title" content="Sainted Word Records — Audio-reactive video engine" />
   <meta name="twitter:description" content="Drop a song, drop a library, get a music video. Browser-based, single-file, MP4 export." />
   <meta name="twitter:image" content="https://sainted-word-records.vercel.app/press/hero.png" />
-  <link rel="canonical" href="https://sainted-word-records.vercel.app/landing.html" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
 
   <!-- No-flash theme bootstrap -->
@@ -876,24 +876,27 @@
       </div>
       <div class="music-video-stage reveal">
 
-        <section class="music-video is-active" data-title="Neon">
-          <h3>Neon</h3>
-          <video controls playsinline preload="metadata">
-            <source src="/videos/neon.mp4" type="video/mp4" />
+        <section class="music-video is-active" data-title="Stage">
+          <h3>Stage</h3>
+          <video controls playsinline preload="none" width="1024" height="574"
+                 poster="/videos/stage.jpg">
+            <source src="/videos/stage.mp4" type="video/mp4" />
           </video>
         </section>
 
-        <section class="music-video" data-title="Grid">
-          <h3>Grid</h3>
-          <video controls playsinline preload="metadata">
-            <source src="/videos/grid.mp4" type="video/mp4" />
+        <section class="music-video" data-title="Meadow">
+          <h3>Meadow</h3>
+          <video controls playsinline preload="none" width="1024" height="554"
+                 poster="/videos/meadow.jpg">
+            <source src="/videos/meadow.mp4" type="video/mp4" />
           </video>
         </section>
 
-        <section class="music-video" data-title="Film">
-          <h3>Film</h3>
-          <video controls playsinline preload="metadata">
-            <source src="/videos/film.mp4" type="video/mp4" />
+        <section class="music-video" data-title="Light trails">
+          <h3>Light trails</h3>
+          <video controls playsinline preload="none" width="1024" height="574"
+                 poster="/videos/lights.jpg">
+            <source src="/videos/lights.mp4" type="video/mp4" />
           </video>
         </section>
 
@@ -2122,7 +2125,7 @@
   <script>
     class ThemeToggle extends HTMLElement {
       connectedCallback() {
-        this.innerHTML = `<button aria-label="Toggle theme" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;">
+        this.innerHTML = `<button aria-label="Toggle theme" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         </button>`;
         this.querySelector('button').addEventListener('click', () => {

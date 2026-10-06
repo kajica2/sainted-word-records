@@ -1,0 +1,16 @@
+{
+  "index": 14,
+  "prompt": "Byzantine-style sacred geometry, an aged illuminated manuscript cover with deep oxblood-red leather binding, faded gold leaf geometric ornament, central nemanjić dynasty tree-of-life loza in thin gold lines, asymmetric composition with breathing parchment-cream negative space, soft candlelight from upper left, no figures, no text, no signature, museum-quality craftsmanship reminiscent of medieval Serbian monastic bindings, intricate but restrained ornament, the product of countless hours by a master craftsman — rendered as VHS emulation, tracking noise, tape warp, timestamp burn-in, low-res chroma smear — CROSS VHS VIBE study  --v 8.2 --style raw --no text signature watermark --ar 2:3",
+  "taskId": "0b4eea48-57f4-4a1e-9c2c-c87f9252ffd6",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/0b4eea48-57f4-4a1e-9c2c-c87f9252ffd6/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0b4eea48-57f4-4a1e-9c2c-c87f9252ffd6/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0b4eea48-57f4-4a1e-9c2c-c87f9252ffd6/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0b4eea48-57f4-4a1e-9c2c-c87f9252ffd6/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-30T00:53:24.121Z",
+  "complete": true
+}

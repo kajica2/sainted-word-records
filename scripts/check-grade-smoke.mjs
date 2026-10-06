@@ -18,7 +18,6 @@ import puppeteer from 'puppeteer';
 import http from 'node:http';
 import fs from 'node:fs';
 
-const PORT = 53997;
 const ROOT = process.cwd();
 
 const MIME = {
@@ -38,7 +37,13 @@ const server = http.createServer((req, res) => {
   res.setHeader('Content-Type', MIME[fullPath.slice(fullPath.lastIndexOf('.'))] || 'application/octet-stream');
   res.end(fs.readFileSync(fullPath));
 });
-await new Promise((r) => server.listen(PORT, r));
+// Ephemeral port on loopback. A hardcoded port can already be held by an
+// unrelated local app on 127.0.0.1 while Node's default `::` bind still
+// succeeds — the listen looks fine but the page loads silently reach the
+// other server, so the module never appears. Same pattern as
+// check-p35-smoke.mjs.
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const PORT = server.address().port;
 
 let pass = 0;
 let fail = 0;

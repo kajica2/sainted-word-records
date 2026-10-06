@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Glyphs / Sigils — SWR Gallery</title>
   <meta name="description" content="Compact icon systems — sigils that compress meaning into one ink-line, one fold, one gesture." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/gallery/glyphs" />
   <meta property="og:title" content="Glyphs / Sigils — SWR Gallery" />
   <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/chrome.png" />
   <meta property="og:description" content="Compact icon systems — sigils that compress meaning into one ink-line, one fold, one gesture." />
@@ -185,8 +186,21 @@
     }
   </style>
 
-    <style>
-      .dropzone-strip { padding: 14px 0; border-top: 2px solid var(--line, rgba(255,255,255,0.18)); margin-top: 24px; }
+  <style>
+    /* Pointer to the lab that used to live here — now its own page. */
+    .lab-link {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px;
+      margin: 28px 0 4px; padding: 14px 18px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    }
+    .lab-link a {
+      font-family: var(--font-mono); font-size: 12px;
+      letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+      white-space: nowrap;
+    }
+    .lab-link span { font-size: 13px; color: var(--ink-2); }
+
+    .dropzone-strip { padding: 14px 0; border-top: 2px solid var(--line, rgba(255,255,255,0.18)); margin-top: 24px; }
       .dropzone-strip summary {
         list-style: none; cursor: pointer;
         display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
@@ -230,6 +244,11 @@
       </p>
     </main>
   </header>
+
+  <p class="lab-link">
+    <a href="/gallery/dingbats">Animated Dingbat Stack →</a>
+    <span>Twelve ornament glyphs as a full-frame contact sheet, displaced under evolving SVG noise.</span>
+  </p>
 
   <section class="grid wrap">
     <article class="gallery-card gallery-card--featured" data-audio="/audios/chrome.mp3" data-label="Sigil Series">
