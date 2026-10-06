@@ -127,7 +127,7 @@ To archive a page:
 - Branch from `main`; never push to it directly
 - Conventional commits (`feat:` / `fix:` / `refactor:` / `docs:` / `chore:`); recent examples: `fix(hallucination): surface auto-loaded song`, `fix(deploy): capture stderr from vercel ls`
 - Repo-local git config is unset — assistant commits ship as the global user (`kajica2 <kai.djuric@gmail.com>`). If you ever set a repo-local `user.name`/`user.email`, unset it (or pass `-c user.name=… -c user.email=…` on the commit) — Vercel blocks deploys whose GitHub committer identity is unknown
-- GitHub Actions: `.github/workflows/ci.yml` is the only workflow. It runs on PRs against `main` and pushes to **non-main** branches (`branches-ignore: main`, so a direct push to main does not trigger it), with `timeout-minutes: 20`. Steps: `npm ci` → `npm run check:full` → `npm run check:automix-arc-smoke` (its own step) → `npm run verify:transitions` → `npm run verify:automix-cross-surface` → `npm run build` → build-size budget `≤ 130MB` (136,314,880 bytes, counted with `find dist -type f -printf '%s\n' | awk '{s+=$1}'`). Preset pipeline is local-only (`./preset-pipeline/cron.sh`)
+- GitHub Actions: `.github/workflows/ci.yml` is the only workflow. It runs on PRs against `main` and pushes to **non-main** branches (`branches-ignore: main`, so a direct push to main does not trigger it), with `timeout-minutes: 20`. Steps: `npm ci` → `npm run check:full` → `npm run check:automix-arc-smoke` (its own step) → `npm run verify:transitions` → `npm run verify:automix-cross-surface` → `npm run build` → build-size budget `≤ 155MB` (162,529,280 bytes, counted with `find dist -type f -printf '%s\n' | awk '{s+=$1}'`). Preset pipeline is local-only (`./preset-pipeline/cron.sh`)
 
 ## Security
 
