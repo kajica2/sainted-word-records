@@ -7,7 +7,7 @@
 // the demo's appearance and audio response.
 //
 // Why engine-free?
-//   engine-core.client.js requires 8+ panel DOM elements (load-song, lib,
+//   engine.html's inline engine requires 8+ panel DOM elements (load-song, lib,
 //   layer-list, etc.) to boot; we don't want to clone the full engine
 //   chrome into persona-demo.html. A persona demo should demonstrate what
 //   that persona CARES ABOUT — usually a 3D primitive, audio reactivity,

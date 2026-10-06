@@ -1,6 +1,6 @@
 // engine-3d.client.js — vanilla WebGL primitive renderer.
 //
-// INTEGRATION (read me before touching engine-core / render loop)
+// INTEGRATION (read me before touching the inline engine in engine.html / render loop)
 // =================================================================
 // engine-3d.client.js registers window.SWR_3D with four built-in primitives
 // (sphere, cube, torus, icosahedron) and a createLayer(primitiveId) factory
@@ -20,7 +20,7 @@
 //      regular <canvas> and the engine treats it like any other 2D asset
 //      via ctx.drawImage(layer._el, ...).
 //
-// Minimal render-loop integration (drop into engine-core.client.js /
+// Minimal render-loop integration (drop into engine.html's inline Renderer /
 // engine-render.client.js):
 //
 //   function renderFrame(t, A) {
