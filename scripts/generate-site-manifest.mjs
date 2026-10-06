@@ -33,8 +33,14 @@ const SKIP_PREFIXES = ['_candidates'];
 //   scripts/** — dev fixtures only. vite's copyStatic never copies scripts/,
 //     so scripts/_analyze-stub.html and scripts/_grade-smoke-fixture.html
 //     cannot resolve in dist/ even if they did ship.
+//   packs/covers/** — hyperframe-cover.html is the cover-animation SOURCE
+//     TEMPLATE that scripts/generate-media-pack.mjs reads and parameterizes
+//     into per-pack copies (packs/covers/<pack>-cover-anim.html). It is a
+//     standalone paused-timeline render asset with no page chrome
+//     (check-site-chrome.mjs ignores the dir for that reason) and it does not
+//     ship, so listing it would only add a dead link to sitemap.html.
 const NOT_DEPLOYED = new Set(['market-study.html', 'profit-plan.html', 'engine-ar-loop.html']);
-const NOT_DEPLOYED_PREFIXES = ['scripts/'];
+const NOT_DEPLOYED_PREFIXES = ['scripts/', 'packs/covers/'];
 const isNotDeployed = (f) => NOT_DEPLOYED.has(f) || NOT_DEPLOYED_PREFIXES.some((p) => f.startsWith(p));
 
 // Load existing site-map.json

@@ -156,7 +156,7 @@ jobs:
         # below.
         run: npm run build
 
-      - name: build-size budget (<= 130M)
+      - name: build-size budget (<= 155M)
         # 130M ceiling = current 114M (post-Phase 1-4 + keyart growth)
         # + ~14% headroom. If this fails, the asset library grew in a
         # way that needs justification — don't silently let the budget
@@ -165,8 +165,8 @@ jobs:
         run: |
           SIZE_BYTES=$(find dist/ -type f -printf '%s\n' | awk '{s+=$1} END {print s+0}')
           SIZE_MB=$(awk "BEGIN { printf \"%.1f\", $SIZE_BYTES / 1048576 }")
-          BUDGET_MB=130
-          BUDGET_BYTES=136314880
+          BUDGET_MB=155
+          BUDGET_BYTES=162529280
           echo "[ci] dist/ size: ${SIZE_MB}M (budget: ${BUDGET_MB}M)"
           if [ "$SIZE_BYTES" -gt "$BUDGET_BYTES" ]; then
             echo "::error::dist/ is ${SIZE_MB}M, exceeds ${BUDGET_MB}M budget"

@@ -780,6 +780,14 @@
       "destination": "/gallery-glyphs.html"
     },
     {
+      "source": "/gallery/dingbats",
+      "destination": "/gallery-dingbats.html"
+    },
+    {
+      "source": "/gallery/dingbats/",
+      "destination": "/gallery-dingbats.html"
+    },
+    {
       "source": "/gallery/vr",
       "destination": "/gallery-vr.html"
     },
@@ -898,6 +906,14 @@
     {
       "source": "/buy/",
       "destination": "/buy.html"
+    },
+    {
+      "source": "/fonts",
+      "destination": "/fonts.html"
+    },
+    {
+      "source": "/fonts/",
+      "destination": "/fonts.html"
     },
     {
       "source": "/login",

@@ -1880,6 +1880,17 @@
           <button class="tbtn ghost" id="import-set" style="padding:4px 10px; font-size:9px;">↑ Import .swr-set</button>
           <input type="file" id="set-input" accept=".swr-set,application/json" style="display:none" />
         </div>
+        <!-- Demo reel player — wired by /engine-reel.client.js to
+             window.SWR_REEL. Selecting a curated reel plays it as a
+             hands-off playlist: each track applies its own .swr-set
+             (FX + hero layer) + audio and auto-advances on track end. -->
+        <div class="sets-bar" id="reel-bar" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 8px; border-bottom:1px solid var(--line);">
+          <select id="reel-select" class="tbtn ghost" style="padding:4px 6px; font-size:9px; max-width:130px;" title="Curated demo reels — plays every track hands-off"></select>
+          <button class="tbtn ghost" id="reel-prev" title="Previous track" style="padding:4px 8px; font-size:9px;">⏮</button>
+          <button class="tbtn primary" id="reel-play" title="Play / pause the reel" style="padding:4px 10px; font-size:9px;">▶ Play</button>
+          <button class="tbtn ghost" id="reel-next" title="Next track" style="padding:4px 8px; font-size:9px;">⏭</button>
+          <span id="reel-status" style="font-size:9px; opacity:.75;">no reel</span>
+        </div>
         <div id="songs-list" class="songs-list">
           <div class="songs-empty">Loading bundled songs…</div>
         </div>
@@ -2757,6 +2768,7 @@
 
   <script src="/audio-analysis-v2.js" defer></script>
   <script src="/swr-sets.js" defer></script>
+  <script src="/engine-reel.client.js" defer></script>
   <script src="/persona-onboarding.js" defer></script>
   <!-- Audio / Library / Layers subsystems extracted into standalone libs
        (see the file headers in lib/audio.client.js, lib/library.client.js,

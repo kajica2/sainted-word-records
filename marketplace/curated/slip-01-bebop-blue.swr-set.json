@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000012",
+  "name": "Bebop Blue",
+  "author": "SWR",
+  "description": "Classic bebop blues head — smoky, walking-bass energy. The smoke engine’s halation and vignette keep the jazz-club mood. Take 1.",
+  "tags": [
+    "jazz",
+    "bebop",
+    "blues",
+    "smoke",
+    "slip-sets-1"
+  ],
+  "createdAt": "2026-10-02T00:00:00Z",
+  "engine": "smoke",
+  "audio": {
+    "name": "slip-01-bebop-blue.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 3307877,
+    "url": "/audios/slip-sets-1/slip-01-bebop-blue.mp3"
+  },
+  "fx": {
+    "temp": 0.42,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.58,
+    "chroma": 0.1,
+    "grain": 0.28,
+    "sepia": 0.14,
+    "glow": 0.52,
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero clip",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-0.webp",
+        "mimeType": "image/webp",
+        "size": 0,
+        "url": "/default-library/holo-0.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 136,
+    "key": "C",
+    "scale": "minor"
+  }
+}

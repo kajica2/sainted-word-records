@@ -187,93 +187,19 @@
   </style>
 
   <style>
-    /* ---- Animated dingbat stack (SWR_GLYPHS) ---- */
-    .glyph-lab {
-      margin: 24px 0 8px;
-      padding: 26px 26px 22px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 14px;
+    /* Pointer to the lab that used to live here — now its own page. */
+    .lab-link {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px;
+      margin: 28px 0 4px; padding: 14px 18px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
     }
-    .glyph-lab__head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-    .glyph-lab__head h2 {
-      font-family: var(--font-display); font-weight: 500;
-      font-size: 26px; letter-spacing: -0.02em; margin: 0; color: var(--ink);
-    }
-    .glyph-lab__head .spec {
-      font-family: var(--font-mono); font-size: 11px;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
-    }
-    .glyph-lab__desc {
-      font-size: 14px; line-height: 1.65; color: var(--ink-2);
-      max-width: 720px; margin: 10px 0 0;
-    }
-    .glyph-lab__desc code {
+    .lab-link a {
       font-family: var(--font-mono); font-size: 12px;
-      background: color-mix(in srgb, var(--ink) 8%, transparent);
-      padding: 1px 5px; border-radius: 4px;
+      letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+      white-space: nowrap;
     }
-    .glyph-stage {
-      position: relative;
-      aspect-ratio: 16 / 9;
-      margin-top: 16px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      overflow: hidden;
-      background: #0a0907;
-    }
-    .glyph-stage .swr-glyph-stage { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .swr-glyph-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .swr-glyph-layer svg { width: 100%; height: 100%; display: block; }
-    .swr-glyph-layer use { stroke: currentColor; stroke-width: 2.2; vector-effect: non-scaling-stroke; }
-    .swr-glyph-stage-bg { fill: #0a0907; }
-    /* Per-layer palette: magenta / amber / green / ink, front layer crisper */
-    .glyph-stage .swr-glyph-layer:nth-child(2) { color: color-mix(in srgb, var(--accent) 78%, #fff); }
-    .glyph-stage .swr-glyph-layer:nth-child(3) { color: var(--accent-2); }
-    .glyph-stage .swr-glyph-layer:nth-child(4) { color: var(--accent-3); }
-    .glyph-stage .swr-glyph-layer:nth-child(5) { color: #c0b29c; }
-    .glyph-stage .swr-glyph-layer:nth-child(6) { color: #8a7a66; }
-    .glyph-lab__controls {
-      display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
-      margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
-    }
-    .glyph-lab__controls label {
-      font-family: var(--font-mono); font-size: 11px;
-      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    .glyph-lab__controls input[type="range"] {
-      width: 130px; accent-color: var(--accent);
-    }
-    .glyph-lab__controls select {
-      font-family: var(--font-mono); font-size: 11px;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      background: var(--panel-2); color: var(--ink);
-      border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
-    }
-    .glyph-btn {
-      font-family: var(--font-mono); font-size: 11px;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      padding: 7px 14px; border-radius: 999px; cursor: pointer;
-      background: var(--accent); color: var(--bg);
-      border: 1px solid var(--accent); transition: background 0.15s, color 0.15s;
-    }
-    .glyph-btn:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-    .glyph-btn.ghost {
-      background: transparent; color: var(--ink-2);
-      border: 1px solid var(--line);
-    }
-    .glyph-btn.ghost:hover { color: var(--accent); border-color: var(--accent); background: transparent; }
-    .glyph-lab__readout {
-      font-family: var(--font-mono); font-size: 11px;
-      letter-spacing: 0.08em; color: var(--muted); margin-left: auto;
-    }
-    @media (max-width: 720px) {
-      .glyph-lab__readout { margin-left: 0; }
-    }
-  </style>
+    .lab-link span { font-size: 13px; color: var(--ink-2); }
 
-  <style>
     .dropzone-strip { padding: 14px 0; border-top: 2px solid var(--line, rgba(255,255,255,0.18)); margin-top: 24px; }
       .dropzone-strip summary {
         list-style: none; cursor: pointer;
@@ -319,50 +245,10 @@
     </main>
   </header>
 
-  <section class="glyph-lab wrap" aria-labelledby="glyph-lab-title">
-    <div class="glyph-lab__head">
-      <h2 id="glyph-lab-title">Animated Dingbat Stack</h2>
-      <span class="spec">SVG pattern layers · noise displacement</span>
-    </div>
-    <p class="glyph-lab__desc">
-      Twelve stroke-based ornament glyphs laid out as a full-frame <strong>contact sheet</strong> — a 9×3 grid of rows across the video canvas with margin spacing between cells (flip to fewer rows / more columns, or to stacked pattern layers). The whole sheet rolls through the glyph series one step at a time (<code>x+1</code>), while an SVG <code>feTurbulence</code>&nbsp;→&nbsp;<code>feDisplacementMap</code> pipeline displaces the sheet under evolving noise, so the pattern morphs and never repeats. Pick a glyph, change the rows/columns, push the displacement.
-    </p>
-    <div class="glyph-stage" id="glyph-stage" role="img"
-         aria-label="Animated stack of ornament glyphs displacing under evolving noise"></div>
-    <div class="glyph-lab__controls">
-      <button class="glyph-btn" id="glyph-play" type="button">Pause</button>
-      <button class="glyph-btn ghost" id="glyph-shuffle" type="button">Shuffle</button>
-      <button class="glyph-btn ghost" id="glyph-mode" type="button">Mode: Contact sheet</button>
-      <label>
-        Glyph
-        <select id="glyph-pick"></select>
-      </label>
-      <label>
-        Layers / Rows
-        <select id="glyph-rows" title="Rows (7th row) or stacked pattern layers">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3" selected>3</option>
-          <option value="4">4</option>
-          <option value="6">6</option>
-          <option value="9">9</option>
-        </select>
-      </label>
-      <label>
-        Cols
-        <input type="range" id="glyph-cols" min="3" max="12" step="1" value="9" />
-      </label>
-      <label>
-        Displacement
-        <input type="range" id="glyph-disp" min="0" max="80" step="1" value="26" />
-      </label>
-      <label>
-        Speed
-        <input type="range" id="glyph-speed" min="0.25" max="2" step="0.05" value="1" />
-      </label>
-      <span class="glyph-lab__readout" id="glyph-readout">–</span>
-    </div>
-  </section>
+  <p class="lab-link">
+    <a href="/gallery/dingbats">Animated Dingbat Stack →</a>
+    <span>Twelve ornament glyphs as a full-frame contact sheet, displaced under evolving SVG noise.</span>
+  </p>
 
   <section class="grid wrap">
     <article class="gallery-card gallery-card--featured" data-audio="/audios/chrome.mp3" data-label="Sigil Series">
@@ -470,98 +356,11 @@
   </section>
 
   <swr-footer></swr-footer>
-  <script src="/client/gallery-glyphs.client.js" defer></script>
   <script src="/client/gallery-audio.client.js" defer></script>
   <script src="/client/dropzone.client.js" defer></script>
   <script src="/client/shop-decorator.client.js" defer></script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
-  <script>
-    // Wire the animated glyph lab. Runs after the deferred SWR_GLYPHS module.
-    document.addEventListener('DOMContentLoaded', () => {
-      const G = window.SWR_GLYPHS;
-      const stage = document.getElementById('glyph-stage');
-      if (!G || !stage) return;
-
-      let ctl = G.mount(stage);
-      if (!ctl) return;
-
-      // Glyph picker: rotate the leading glyph of the stack/sheet.
-      const pick = document.getElementById('glyph-pick');
-      G.GLYPHS.forEach((g) => {
-        const opt = document.createElement('option');
-        opt.value = g.id;
-        opt.textContent = g.name;
-        pick.appendChild(opt);
-      });
-      pick.value = G.GLYPHS[0].id;
-
-      const readout = document.getElementById('glyph-readout');
-      const rowsSel = document.getElementById('glyph-rows');
-      const colsRange = document.getElementById('glyph-cols');
-      const modeBtn = document.getElementById('glyph-mode');
-
-      const fmt = (c) => {
-        if (c.mode === 'sheet') {
-          const layout = G.sheetLayout(c);
-          return `${c.cols}×${c.rows} sheet · ${layout.cells.length} cells · glyph ${pick.value} · disp ${c.displacement} · ×${c.speed}`;
-        }
-        return `${c.layers} layers · glyph ${pick.value} · disp ${c.displacement} · ×${c.speed}`;
-      };
-
-      const playBtn = document.getElementById('glyph-play');
-      playBtn.addEventListener('click', () => {
-        const playing = ctl.toggle();
-        playBtn.textContent = playing ? 'Pause' : 'Play';
-      });
-
-      document.getElementById('glyph-shuffle').addEventListener('click', () => {
-        const cur = G.GLYPHS.findIndex((g) => g.id === pick.value);
-        pick.value = G.GLYPHS[(cur + 1) % G.GLYPHS.length].id;
-        ctl.rebuild({ ...ctl.cfg, offset: ctl.cfg.offset + 1 });
-        readout.textContent = fmt(ctl.cfg);
-      });
-
-      pick.addEventListener('change', () => {
-        const idx = G.GLYPHS.findIndex((g) => g.id === pick.value);
-        ctl.rebuild({ ...ctl.cfg, offset: idx });
-        readout.textContent = fmt(ctl.cfg);
-      });
-
-      modeBtn.addEventListener('click', () => {
-        const next = ctl.cfg.mode === 'sheet' ? 'stack' : 'sheet';
-        ctl.rebuild({ ...ctl.cfg, mode: next,
-          layers: Number(rowsSel.value), rows: Number(rowsSel.value), cols: Number(colsRange.value) });
-        modeBtn.textContent = 'Mode: ' + (next === 'sheet' ? 'Contact sheet' : 'Stack');
-        readout.textContent = fmt(ctl.cfg);
-      });
-
-      rowsSel.addEventListener('change', (e) => {
-        const v = Number(e.target.value);
-        if (ctl.cfg.mode === 'sheet') {
-          ctl.rebuild({ ...ctl.cfg, rows: v });
-        } else {
-          ctl.rebuild({ ...ctl.cfg, layers: v });
-        }
-        readout.textContent = fmt(ctl.cfg);
-      });
-
-      colsRange.addEventListener('input', (e) => {
-        ctl.rebuild({ ...ctl.cfg, cols: Number(e.target.value) });
-        readout.textContent = fmt(ctl.cfg);
-      });
-
-      document.getElementById('glyph-disp').addEventListener('input', (e) => {
-        ctl.rebuild({ ...ctl.cfg, displacement: Number(e.target.value) });
-        readout.textContent = fmt(ctl.cfg);
-      });
-      document.getElementById('glyph-speed').addEventListener('input', (e) => {
-        ctl.rebuild({ ...ctl.cfg, speed: Number(e.target.value) });
-        readout.textContent = fmt(ctl.cfg);
-      });
-      readout.textContent = fmt(ctl.cfg);
-    });
-  </script>
 </body>
 </html>

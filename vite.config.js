@@ -263,6 +263,9 @@ function copyStatic() {
     'engine-timing-panel.client.js',
     'engine-lfos.client.js',
     'swr-sets.js',
+    // Auto-advance demo-reel player (window.SWR_REEL) — loaded by engine.html
+    // next to swr-sets.js; consumes SWR_SETS.importSet/applySet.
+    'engine-reel.client.js',
     'engine-lfo-panel.client.js',
     'engine-panel-visibility.client.js',
     'engine-automap.client.js',
@@ -357,6 +360,11 @@ function copyStatic() {
     'gallery-bio.html',
     'gallery-ai.html',
     'gallery-glyphs.html',
+    // Flat root file behind a nested route (/gallery/dingbats). The site-map
+    // derivation only strips the LEADING slash, so it yields
+    // `gallery/dingbats.html` — a path that does not exist here — and the copy
+    // loop skips it silently. Same reason gallery-glyphs.html is listed.
+    'gallery-dingbats.html',
     'gallery-vr.html',
     'gallery-tshirts.html',
     'gallery-posters.html',

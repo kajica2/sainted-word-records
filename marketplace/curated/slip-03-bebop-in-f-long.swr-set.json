@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000014",
+  "name": "Bebop in F · Long Cut",
+  "author": "SWR",
+  "description": "An extended bebop workout in F — nearly eight minutes of chorus trading. The film engine’s warm sepia grain suits the vintage feel. Long cut.",
+  "tags": [
+    "jazz",
+    "bebop",
+    "film",
+    "extended",
+    "slip-sets-1"
+  ],
+  "createdAt": "2026-10-02T00:00:00Z",
+  "engine": "film",
+  "audio": {
+    "name": "slip-03-bebop-in-f-long.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 11507609,
+    "url": "/audios/slip-sets-1/slip-03-bebop-in-f-long.mp3"
+  },
+  "fx": {
+    "temp": 0.55,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.5,
+    "chroma": 0.08,
+    "grain": 0.32,
+    "sepia": 0.3,
+    "glow": 0.34,
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero clip",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-2.webp",
+        "mimeType": "image/webp",
+        "size": 0,
+        "url": "/default-library/holo-2.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 152,
+    "key": "F",
+    "scale": "major"
+  }
+}
