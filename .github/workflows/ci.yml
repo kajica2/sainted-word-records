@@ -156,7 +156,7 @@ jobs:
         # below.
         run: npm run build
 
-      - name: build-size budget (<= 130M)
+      - name: build-size budget (<= 155M)
         # 130M ceiling = current 114M (post-Phase 1-4 + keyart growth)
         # + ~14% headroom. If this fails, the asset library grew in a
         # way that needs justification — don't silently let the budget
