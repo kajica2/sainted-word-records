@@ -16,6 +16,13 @@
 // are validated for totality by verify.mjs — a persona that exists in
 // ontology.json but is missing from SEGMENT_BY_PERSONA fails the build.
 //
+// TRANSITION_PINS is the same kind of authored table but intentionally
+// partial: only personas with a documented transition affinity are listed.
+// buildRules() still emits a personaToTransitions entry for all 28 personas,
+// using an explicit empty array for the rest, so the runtime fallback ("no
+// pins, default order") is total and documented rather than implied by a
+// missing key. verify.mjs check 5b enforces that totality.
+//
 // NOTE (repo reality, verified 2026-09-28): the engine's #variant <select> is
 // populated by client/variant-switcher.client.js with exactly five variant ids
 // — neon, film, grid, smoke, hallucination. The 29 files under versions/ are
@@ -111,8 +118,12 @@ const VARIANT_AFFINITY = {
   'ar-storyboard-reviewer': ['grid', 'film'],
 };
 
-// persona id → pinned transition ids (highest-interest first). Optional: a
-// persona absent from this table gets no transition pins.
+// persona id → pinned transition ids (highest-interest first). Only personas
+// with a documented transition affinity appear here. A persona absent from
+// this table is NOT missing coverage: buildRules() emits an explicit empty
+// array for it, meaning "no pins — leave the #swr-tx-pick order at its
+// default". This keeps personaToTransitions total over the 28 personas while
+// preserving the runtime fallback (see verify.mjs check 4b).
 const TRANSITION_PINS = {
   'live-vj': ['glitch-block', 'chromatic-split', 'chroma-burst', 'vhs-tracking', 'negative-pop', 'snap-zoom'],
   'transition-choreo': ['whip-blur', 'zoom-through', 'swivel', 'circle-wipe', 'iris-in', 'warp-dissolve', 'kaleidoscope-burst'],
@@ -230,12 +241,14 @@ export function buildRules() {
     }
     personaToSegment[id] = seg;
 
-    if (TRANSITION_PINS[id]) {
-      for (const t of TRANSITION_PINS[id]) {
-        if (!transitionSet.has(t)) throw new Error(`persona ${id}: transition "${t}" not in engine-transitions.client.js`);
-      }
-      personaToTransitions[id] = TRANSITION_PINS[id];
+    // Total coverage: a persona with no authored affinity gets an explicit
+    // empty pin list rather than an absent key, so the runtime can tell
+    // "fall back to the default order" apart from "rules table is stale".
+    const pins = TRANSITION_PINS[id] || [];
+    for (const t of pins) {
+      if (!transitionSet.has(t)) throw new Error(`persona ${id}: transition "${t}" not in engine-transitions.client.js`);
     }
+    personaToTransitions[id] = pins.slice();
     if (SURFACE_HINT[id]) personaToSurfaceHint[id] = SURFACE_HINT[id];
     personaToNote[id] = PERSONA_NOTES[id] || (seg ? SEGMENT_NOTES[seg] : null);
   }

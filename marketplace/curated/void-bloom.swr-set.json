@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000009",
+  "name": "Void · Bloom",
+  "author": "SWR",
+  "description": "Near-monochrome, crushed blacks and a slow liquid bloom. Minimal techno, drone and anything that wants to sit in negative space.",
+  "tags": [
+    "void",
+    "monochrome",
+    "drone",
+    "minimal"
+  ],
+  "createdAt": "2026-09-30T00:00:00Z",
+  "engine": "void",
+  "audio": {
+    "name": "void.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 216838,
+    "url": "/audios/void.mp3"
+  },
+  "fx": {
+    "temp": 0.2,
+    "mut": 0.2,
+    "mutAlgo": 2,
+    "posterize": 0.1,
+    "vignette": 0.85,
+    "chroma": 0.15,
+    "grain": 0.3,
+    "sepia": 0,
+    "glow": 0.35,
+    "grayscale": 0.6,
+    "blur": 0.2,
+    "liquid": 0.15,
+    "pearl": 0.1,
+    "glitch": 0.1
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-5.webp",
+        "mimeType": "image/webp",
+        "size": 227220,
+        "url": "/default-library/holo-5.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 124,
+    "key": "A",
+    "scale": "minor"
+  }
+}

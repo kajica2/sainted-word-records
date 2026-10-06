@@ -1,0 +1,16 @@
+{
+  "index": 6,
+  "prompt": "Abstract study rendered as a stable morpha anchor form holding the center while the surroundings morph, identity preserved through transformation — CROSS MORPHA ANCHOR study --style raw --s 250 --ar 16:9",
+  "taskId": "0c4dc7f0-163d-4e13-8808-aef7356dda34",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/0c4dc7f0-163d-4e13-8808-aef7356dda34/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0c4dc7f0-163d-4e13-8808-aef7356dda34/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0c4dc7f0-163d-4e13-8808-aef7356dda34/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0c4dc7f0-163d-4e13-8808-aef7356dda34/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:25:14.868Z",
+  "complete": true
+}

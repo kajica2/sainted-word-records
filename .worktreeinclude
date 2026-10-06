@@ -1,0 +1,25 @@
+# BEGIN OMB WORKTREE INCLUDE
+# Local Codex-managed worktrees: copy ignored OMB skills and support files.
+# Project config.toml/hooks.json are copied in full, including user entries.
+# Keep user exclusions below this block to override these patterns.
+/.agents/skills/omb/
+/.agents/skills/omb-*/
+/.claude/skills/omb/
+/.claude/skills/omb-*/
+/.claude/agents/omb/
+/.claude/hooks/omb/
+/.claude/bin/
+/.claude/rules/*
+!/.claude/rules/custom/
+/.claude/commands/omb/
+/.claude/statusline-omb.sh
+/.[Cc]odex/rules/*
+!/.[Cc]odex/rules/custom/
+/.[Cc]odex/agents/omb/
+/.[Cc]odex/bin/
+/.[Cc]odex/hooks/omb/
+/.[Cc]odex/agents/omb-*.toml
+/.[Cc]odex/config.toml
+/.[Cc]odex/hooks.json
+/.omb/compat/codex-manifest.json
+# END OMB WORKTREE INCLUDE

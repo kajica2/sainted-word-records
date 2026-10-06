@@ -3066,8 +3066,12 @@
       applySuggestion() {
         if (!this.lastAnalysis) return false;
         const s = this.lastAnalysis.suggestion;
+        // `depth` is deliberately NOT applied: it is the hologram's 3D
+        // tilt/perspective, and the suggestion snaps it to an extreme
+        // (0.0/1.0) which visibly rotated the angle on every mood press.
+        // Mood sets feel (gate/decay/sens); the angle stays where the user
+        // left it.
         const sliders = [
-          ['depth', s.depth],
           ['gate', s.gate],
           ['decay', s.decay],
           ['sens', s.sens],
@@ -3664,10 +3668,10 @@
       sg.innerHTML = '<span style="color:var(--muted);">temperature:</span> ' + s.warmth
         + ' · <span style="color:var(--muted);">contrast:</span> ' + s.contrast
         + ' · <span style="color:var(--muted);">saturation:</span> ' + s.saturation
-        + '<br><span style="color:var(--muted);">→</span> depth=' + s.depth.toFixed(2)
-        + ' gate=' + s.gate.toFixed(2)
+        + '<br><span style="color:var(--muted);">→</span> gate=' + s.gate.toFixed(2)
         + ' decay=' + s.decay.toFixed(2)
-        + ' sens=' + s.sens.toFixed(2);
+        + ' sens=' + s.sens.toFixed(2)
+        + ' <span style="color:var(--muted);">· depth untouched — angle held</span>';
       modal.querySelector('#mood-result').style.display = 'block';
     }
     const _moodBtn = document.getElementById('mood-btn');

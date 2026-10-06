@@ -1,0 +1,13 @@
+{
+  "template": "fullstack-ai",
+  "project_name": "sample-fullstack-ai",
+  "project_purpose": "LangGraph AI agent + React dashboard.",
+  "project_hard_rules": [
+    "- [HARD] Route all LangGraph state mutations through typed reducer functions",
+    "- [HARD] Never expose raw LLM responses to the frontend — always validate and sanitize"
+  ],
+  "project_slot_label": "LangGraph dev",
+  "project_slot_cmd": "cd apps/ai && langgraph dev",
+  "documentation_language": "en",
+  "proceed": false
+}

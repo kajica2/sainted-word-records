@@ -4,20 +4,25 @@
   "name": "Smoke Portrait",
   "author": "SWR",
   "description": "Atmospheric smoke-overlay portrait treatment. Cinematic, slow. Best for vocals, ballads, indie folk.",
-  "tags": ["smoke", "portrait", "cinematic", "indie"],
+  "tags": [
+    "smoke",
+    "portrait",
+    "cinematic",
+    "indie"
+  ],
   "createdAt": "2026-08-24T00:00:00Z",
   "engine": "smoke",
   "audio": {
-    "name": "loop-drone.wav",
-    "mimeType": "audio/wav",
-    "size": 924000,
-    "url": "library/audio/loop-drone.wav"
+    "name": "smoke.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 219142,
+    "url": "/audios/smoke.mp3"
   },
   "fx": {
     "temp": -0.2,
-    "mut": 0.0,
+    "mut": 0,
     "mutAlgo": 0,
-    "posterize": 0.0,
+    "posterize": 0,
     "vignette": 0.75,
     "chroma": 0.1,
     "grain": 0.25,
@@ -25,9 +30,9 @@
     "glow": 0.6,
     "grayscale": 0.3,
     "blur": 0.1,
-    "liquid": 0.0,
-    "pearl": 0.0,
-    "glitch": 0.0
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
   },
   "layers": [
     {
@@ -35,21 +40,29 @@
       "name": "Subject",
       "blend": "source-over",
       "opacity": 1,
-      "baseScale": 1.0,
+      "baseScale": 1,
       "hue": 0,
       "brightness": 1,
       "contrast": 1.05,
-      "pos": { "x": 0, "y": 0, "rot": 0 },
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
       "rotOffset": 0,
       "reactors": [],
       "modulators": [],
       "asset": {
-        "name": "p03.jpg",
-        "mimeType": "image/jpeg",
-        "size": 102400,
-        "url": "library/p03.jpg"
+        "name": "holo-1.webp",
+        "mimeType": "image/webp",
+        "size": 177674,
+        "url": "/default-library/holo-1.webp"
       }
     }
   ],
-  "settings": { "bpm": 92, "key": "F", "scale": "major" }
+  "settings": {
+    "bpm": 92,
+    "key": "F",
+    "scale": "major"
+  }
 }

@@ -470,9 +470,12 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="don't write anything, just print")
     args = ap.parse_args()
     rng = random.Random(args.seed)
-    PRESETS_DIR.mkdir(parents=True, exist_ok=True)
     manifest = load_manifest()
-    used_ids = {p["id"] for p in manifest.get("presets", [])}
+    # Generation is deterministic in --seed alone, so a re-run with the same
+    # day+seed produces the same presets. pick_seed therefore only has to avoid
+    # ids produced in *this* run; ids already recorded in the manifest are
+    # skipped at write time below, which makes the re-run a no-op.
+    used_ids: set[str] = set()
     new_presets: list[dict[str, Any]] = []
     for _ in range(args.count):
         seed = pick_seed(rng, used_ids)
@@ -485,13 +488,26 @@ def main() -> int:
             return 1
         used_ids.add(p["id"])
         new_presets.append(p)
-    for p in new_presets:
-        path = PRESETS_DIR / f"{p['id'].split('swr-preset-')[1]}.json"
-        with path.open("w") as f:
-            json.dump(p, f, indent=2)
-        manifest.setdefault("presets", []).append(p)
-        print(f"  wrote {path.name}")
+    existing = {p["id"] for p in manifest.get("presets", [])}
     if not args.dry_run:
+        PRESETS_DIR.mkdir(parents=True, exist_ok=True)
+    written = 0
+    for p in new_presets:
+        if p["id"] in existing:
+            continue
+        path = PRESETS_DIR / f"{p['id'].split('swr-preset-')[1]}.json"
+        if args.dry_run:
+            print(f"  would write {path.name}")
+        else:
+            with path.open("w") as f:
+                json.dump(p, f, indent=2)
+            manifest.setdefault("presets", []).append(p)
+            print(f"  wrote {path.name}")
+        existing.add(p["id"])
+        written += 1
+    if args.dry_run:
+        print(f"dry-run: {written} preset(s) would be written; no files changed")
+    else:
         write_manifest(manifest)
         print(f"manifest now has {manifest['count']} preset(s)")
     return 0

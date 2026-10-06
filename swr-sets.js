@@ -400,6 +400,45 @@
     };
   }
 
+  // === Import a set whose media may live alongside the document ===
+  // Marketplace media packs ship the .swr-set.json next to the referenced
+  // files inside a zip. When a matching entry exists in mediaByName (map of
+  // file name -> Blob/File), the returned set uses those Files instead of
+  // decoding the embedded dataUrls. Falls back to dataUrl decoding when no
+  // sidecar matches (e.g. the pack audio is only embedded).
+  async function importSetWithMedia(jsonString, mediaByName) {
+    if (typeof jsonString !== 'string') {
+      throw new Error('importSetWithMedia expects a .swr-set JSON string');
+    }
+    const doc = JSON.parse(jsonString);
+    const set = await importSet(jsonString);
+    mediaByName = mediaByName || {};
+
+    if (doc.audio && set.audio) {
+      const m = mediaByName[doc.audio.name] || mediaByName[String(doc.audio.name).toLowerCase()];
+      if (m) {
+        set.audio = m instanceof File
+          ? m
+          : new File([m], doc.audio.name, { type: doc.audio.mimeType || m.type || 'audio/wav' });
+      }
+    }
+
+    if (doc.layers && set.layers) {
+      for (let i = 0; i < doc.layers.length && i < set.layers.length; i++) {
+        const ld = doc.layers[i];
+        const sl = set.layers[i];
+        if (!ld.asset || !sl.asset) continue;
+        const m = mediaByName[ld.asset.name] || mediaByName[String(ld.asset.name).toLowerCase()];
+        if (m) {
+          sl.asset = m instanceof File
+            ? m
+            : new File([m], ld.asset.name, { type: ld.asset.mimeType || m.type || 'application/octet-stream' });
+        }
+      }
+    }
+    return set;
+  }
+
   // === Download a .swr-set document as a file ===
   function download(doc, filename) {
     const json = JSON.stringify(doc, null, 2);
@@ -559,6 +598,7 @@
     dataUrlToBlob,
     exportState,
     importSet,
+    importSetWithMedia,
     applySet,
     download,
     saveInstalled,

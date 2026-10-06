@@ -4,31 +4,40 @@
   "name": "Spectrum · Bass",
   "author": "SWR",
   "description": "Pure audio-reactive spectrum visualizer. No footage needed. 128-bin FFT, gradient blue→pink, beat-pulse ring. Drop any track and play.",
-  "tags": ["spectrum", "visualizer", "pure-audio", "minimal"],
+  "tags": [
+    "spectrum",
+    "visualizer",
+    "pure-audio",
+    "minimal"
+  ],
   "createdAt": "2026-08-24T00:00:00Z",
   "engine": "spectrum",
   "audio": {
-    "name": "loop-demo.wav",
-    "mimeType": "audio/wav",
-    "size": 412000,
-    "url": "library/audio/loop-demo.wav"
+    "name": "pulse.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 172486,
+    "url": "/audios/pulse.mp3"
   },
   "fx": {
-    "temp": 0.0,
-    "mut": 0.0,
+    "temp": 0,
+    "mut": 0,
     "mutAlgo": 0,
-    "posterize": 0.0,
-    "vignette": 0.0,
-    "chroma": 0.0,
-    "grain": 0.0,
-    "sepia": 0.0,
+    "posterize": 0,
+    "vignette": 0,
+    "chroma": 0,
+    "grain": 0,
+    "sepia": 0,
     "glow": 0.7,
-    "grayscale": 0.0,
-    "blur": 0.0,
-    "liquid": 0.0,
-    "pearl": 0.0,
-    "glitch": 0.0
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
   },
   "layers": [],
-  "settings": { "bpm": null, "key": null, "scale": null }
+  "settings": {
+    "bpm": null,
+    "key": null,
+    "scale": null
+  }
 }

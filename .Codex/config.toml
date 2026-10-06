@@ -1,0 +1,180 @@
+# BEGIN OMB CODEX COMPAT
+# Compatibility artifacts are generated only; Codex enablement stays local via OMB_USE_CODEX.
+
+agents."omb-ai-architect".description = "Architect LangChain/LangGraph/Deep Agents systems — framework selection, component topology, data flow, integration boundaries, project structure, and scalability strategy. Use PROACTIVELY for AI system architecture and project scaffolding. MUST INVOKE when: AI architecture, framework selection, multi-agent topology, LangGraph project structure, langgraph.json, system-level AI design, scalability strategy, agent orchestration design."
+agents."omb-ai-architect".config_file = "agents/omb-ai-architect.toml"
+
+agents."omb-ai-design".description = "Design LangGraph workflows, state graphs, tool definitions, prompt chains, RAG pipelines, and agent architectures."
+agents."omb-ai-design".config_file = "agents/omb-ai-design.toml"
+
+agents."omb-ai-explorer".description = "AI/ML exploration — LangGraph workflows, LangChain chains, agent definitions, tools, prompts, RAG pipelines, and embedding configurations."
+agents."omb-ai-explorer".config_file = "agents/omb-ai-explorer.toml"
+
+agents."omb-ai-implement".description = "AI/LLM pipeline implementation. Use for LangGraph agents, tool definitions, prompt templates, RAG chains, embeddings, and LLM orchestration logic."
+agents."omb-ai-implement".config_file = "agents/omb-ai-implement.toml"
+
+agents."omb-ai-prompt-engineer".description = "Review, evaluate, and improve prompts in AI service code: LangChain/LangGraph prompt templates, system messages, and chain compositions in Python files. This agent ONLY operates on application code prompts — never on harness .md files."
+agents."omb-ai-prompt-engineer".config_file = "agents/omb-ai-prompt-engineer.toml"
+
+agents."omb-ai-verify".description = "Verify AI/ML pipeline implementations via type checks, linting, tests, and LangGraph state validation. Read-only — does not modify code."
+agents."omb-ai-verify".config_file = "agents/omb-ai-verify.toml"
+
+agents."omb-api-design".description = "Design API endpoints, request/response schemas, middleware, and auth flows for FastAPI, Express, or Fastify services."
+agents."omb-api-design".config_file = "agents/omb-api-design.toml"
+
+agents."omb-api-explorer".description = "API/Backend exploration — routes, handlers, middleware, request/response schemas, auth flows, and endpoint patterns."
+agents."omb-api-explorer".config_file = "agents/omb-api-explorer.toml"
+
+agents."omb-api-implement".description = "FastAPI/Express/Fastify backend implementation. Use for API routes, Pydantic models, middleware, auth handlers, and endpoint logic."
+agents."omb-api-implement".config_file = "agents/omb-api-implement.toml"
+
+agents."omb-api-verify".description = "Verify API implementations via type checking, linting, tests, and smoke tests. Read-only — does not modify code."
+agents."omb-api-verify".config_file = "agents/omb-api-verify.toml"
+
+agents."omb-code-debug".description = "Diagnose test failures and bugs by tracing root causes. Read-only — does not implement fixes."
+agents."omb-code-debug".config_file = "agents/omb-code-debug.toml"
+
+agents."omb-code-review".description = "Review code changes for correctness, security, performance, and convention adherence. Read-only — does not modify code."
+agents."omb-code-review".config_file = "agents/omb-code-review.toml"
+
+agents."omb-code-test".description = "Write test files: pytest for Python, vitest for TypeScript. Test-first patterns, mocks, and fixtures."
+agents."omb-code-test".config_file = "agents/omb-code-test.toml"
+
+agents."omb-core-critique".description = "Challenge plans, designs, or architecture decisions before execution. The final gate — approval costs 10x more than rejection."
+agents."omb-core-critique".config_file = "agents/omb-core-critique.toml"
+
+agents."omb-core-explore".description = "Fast read-only codebase exploration. Use when you need to find files, symbols, routes, or trace dependencies across the codebase."
+agents."omb-core-explore".config_file = "agents/omb-core-explore.toml"
+
+agents."omb-db-design".description = "Design database schemas, ORM models, migrations, indexing strategies, and query optimization for Postgres and Redis."
+agents."omb-db-design".config_file = "agents/omb-db-design.toml"
+
+agents."omb-db-explorer".description = "Database exploration — ORM models, migrations, schemas, queries, indexes, relationships, and data access patterns."
+agents."omb-db-explorer".config_file = "agents/omb-db-explorer.toml"
+
+agents."omb-db-implement".description = "Database implementation. Use for Tortoise ORM models (default per common/stack-selection.md) or SQLAlchemy 2.0 (when OMB_ORM_BACKEND=sqlalchemy), Alembic migrations, Redis operations, queries, connection pooling, and data access layers."
+agents."omb-db-implement".config_file = "agents/omb-db-implement.toml"
+
+agents."omb-db-verify".description = "Verify database migrations, schema consistency, and data layer tests. Read-only — does not modify code."
+agents."omb-db-verify".config_file = "agents/omb-db-verify.toml"
+
+agents."omb-doc-explorer".description = "Documentation exploration — docs/ folder, README, architecture docs, API docs, database docs, ADRs, feature specs, and CLAUDE.md."
+agents."omb-doc-explorer".config_file = "agents/omb-doc-explorer.toml"
+
+agents."omb-doc-writer".description = "Documentation Specialist. Use PROACTIVELY for writing and updating service documentation in docs/ (excluding openwiki/ — the main host uses official OpenWiki). MUST INVOKE when: API docs, database schema docs, architecture docs, feature specs, ADRs, deployment guides, integration docs, security docs, convention docs."
+agents."omb-doc-writer".config_file = "agents/omb-doc-writer.toml"
+
+agents."omb-electron-design".description = "Design Electron main/renderer architecture, IPC protocols, preload scripts, window management, and security boundaries."
+agents."omb-electron-design".config_file = "agents/omb-electron-design.toml"
+
+agents."omb-electron-explorer".description = "Electron/Desktop exploration — main process, renderer process, IPC handlers, preload scripts, window management, and native integrations."
+agents."omb-electron-explorer".config_file = "agents/omb-electron-explorer.toml"
+
+agents."omb-electron-implement".description = "Electron desktop app implementation. Use for main/renderer process code, IPC handlers, preload scripts, native integrations, and window management."
+agents."omb-electron-implement".config_file = "agents/omb-electron-implement.toml"
+
+agents."omb-electron-verify".description = "Verify Electron app implementations via type checks, security audit, and tests. Read-only — does not modify code."
+agents."omb-electron-verify".config_file = "agents/omb-electron-verify.toml"
+
+agents."omb-feedback-analyzer".description = "Analyze human feedback on recent omb:run output. Identify WHICH methodology step was skipped or underspecified. Propose reinforcement with strict priority workflow-rule > agent-prompt > wiki-lesson/gotcha. Never modify files."
+agents."omb-feedback-analyzer".config_file = "agents/omb-feedback-analyzer.toml"
+
+agents."omb-fix-architect".description = "Design the bug-fix strategy — minimal reproduction procedure, decomposition of rules/wiki/harness reinforcement work across domains. Read-only; produces a fix-architecture artifact, not code."
+agents."omb-fix-architect".config_file = "agents/omb-fix-architect.toml"
+
+agents."omb-fix-history".description = "Git history archaeology for bug investigation — uses git blame, log, bisect, and show to identify the introducing commit, adjacent changes, author, and prior similar fixes. Read-only."
+agents."omb-fix-history".config_file = "agents/omb-fix-history.toml"
+
+agents."omb-fix-triage".description = "Normalize bug reports — expected vs actual, known vs unknown facts, scope, severity, and acceptance criteria. Read-only."
+agents."omb-fix-triage".config_file = "agents/omb-fix-triage.toml"
+
+agents."omb-fix-writer".description = "Write bug-fix plans to .omb/plans/ in the standard 8-section omb-plan format, oriented around reproduction, git history findings, root-cause hypotheses, minimal patch scope, systemic reinforcement (rules/wiki/harness fixes), and explicit regression coverage."
+agents."omb-fix-writer".config_file = "agents/omb-fix-writer.toml"
+
+agents."omb-general-explorer".description = "General codebase exploration — project structure, config files, entry points, dependency graph, and cross-cutting patterns."
+agents."omb-general-explorer".config_file = "agents/omb-general-explorer.toml"
+
+agents."omb-git-commit".description = "Create conventional commits with branch validation, lint checks, and structured commit messages. In PR mode, also pushes and creates GitHub PRs with labels. Never force-pushes."
+agents."omb-git-commit".config_file = "agents/omb-git-commit.toml"
+
+agents."omb-harness-design".description = "Design Claude Code harness configurations — agent definitions, skill structures, hook setups, rule files, CLAUDE.md updates, settings.json changes, permission configs, and MCP server configurations."
+agents."omb-harness-design".config_file = "agents/omb-harness-design.toml"
+
+agents."omb-harness-explorer".description = "Claude Code harness exploration — discover and catalog settings.json, CLAUDE.md, .claude/rules/, .claude/skills/, .claude/agents/, .claude/hooks/, .mcp.json, and permission configurations."
+agents."omb-harness-explorer".config_file = "agents/omb-harness-explorer.toml"
+
+agents."omb-harness-implement".description = "Claude Code harness implementation. Use for creating/modifying agent .md files, SKILL.md files, rule .md files, settings.json, hook scripts, CLAUDE.md, and .mcp.json."
+agents."omb-harness-implement".config_file = "agents/omb-harness-implement.toml"
+
+agents."omb-harness-prompt-engineer".description = "Review, evaluate, and improve prompts in Claude Code harness files (.claude/ directory .md files only): agents, skills, rules, and CLAUDE.md. This agent ONLY operates on harness .md files — never on application code prompts."
+agents."omb-harness-prompt-engineer".config_file = "agents/omb-harness-prompt-engineer.toml"
+
+agents."omb-harness-verify".description = "Verify Claude Code harness configurations for correctness, completeness, and consistency. Validates agent definitions, skills, hooks, rules, CLAUDE.md, settings.json, permissions, and MCP configs against Claude Code documentation patterns. Read-only — does not modify files."
+agents."omb-harness-verify".config_file = "agents/omb-harness-verify.toml"
+
+agents."omb-infra-cloud".description = "Cloud architecture review: service selection, cost analysis, compliance, and multi-cloud considerations. Read-only."
+agents."omb-infra-cloud".config_file = "agents/omb-infra-cloud.toml"
+
+agents."omb-infra-critique".description = "Review infrastructure designs for security, cost, scalability, and single points of failure. Read-only — does not modify code."
+agents."omb-infra-critique".config_file = "agents/omb-infra-critique.toml"
+
+agents."omb-infra-design".description = "Design Docker configurations, CI/CD pipelines, Kubernetes manifests, Terraform modules, and cloud architecture."
+agents."omb-infra-design".config_file = "agents/omb-infra-design.toml"
+
+agents."omb-infra-explorer".description = "Infrastructure exploration — Docker, CI/CD workflows, Kubernetes manifests, Terraform modules, environment configs, and deployment pipelines."
+agents."omb-infra-explorer".config_file = "agents/omb-infra-explorer.toml"
+
+agents."omb-infra-implement".description = "Infrastructure and DevOps implementation. Use for Dockerfiles, docker-compose, GitHub Actions, Kubernetes manifests, Terraform modules, and CI/CD pipelines."
+agents."omb-infra-implement".config_file = "agents/omb-infra-implement.toml"
+
+agents."omb-infra-k8s".description = "Kubernetes manifest analysis: resource limits, security contexts, network policies, and rollout strategies. Read-only."
+agents."omb-infra-k8s".config_file = "agents/omb-infra-k8s.toml"
+
+agents."omb-infra-verify".description = "Verify infrastructure configs via Terraform validate, Dockerfile linting, CI checks, and Docker build dry-runs. Read-only — does not modify code."
+agents."omb-infra-verify".config_file = "agents/omb-infra-verify.toml"
+
+agents."omb-mermaid-drawer".description = "Mermaid Diagram Specialist. Creates architecture diagrams, flow charts, dependency graphs, LangGraph visualizations, timelines, ER diagrams, and all Mermaid visualizations in markdown files. MUST INVOKE when: system diagrams, sequence flows, ER diagrams, gantt charts, state machines, LangGraph state graphs, C4 views, or any Mermaid visualization is needed."
+agents."omb-mermaid-drawer".config_file = "agents/omb-mermaid-drawer.toml"
+
+agents."omb-ops-leak-audit".description = "Scan for leaked secrets, API keys, credentials, and PII in code and git history. Read-only — does not modify code."
+agents."omb-ops-leak-audit".config_file = "agents/omb-ops-leak-audit.toml"
+
+agents."omb-plan-evaluator".description = "Evaluates implementation plan quality using evidence-anchored binary rubric scoring. Produces quantitative score sheet and P0-P3 issue tickets."
+agents."omb-plan-evaluator".config_file = "agents/omb-plan-evaluator.toml"
+
+agents."omb-plan-improver".description = "Improves implementation plans based on evaluation tickets. Diagnoses root causes, applies targeted fixes, and produces regression diff table."
+agents."omb-plan-improver".config_file = "agents/omb-plan-improver.toml"
+
+agents."omb-plan-writer".description = "Writes compact code-location-first implementation plans with verified repository evidence, concrete change shapes, exact tests, and executable task handoffs."
+agents."omb-plan-writer".config_file = "agents/omb-plan-writer.toml"
+
+agents."omb-security-audit".description = "OWASP Top 10 audit, auth flow review, secret exposure check, and dependency vulnerability scan. Read-only — does not modify code."
+agents."omb-security-audit".config_file = "agents/omb-security-audit.toml"
+
+agents."omb-security-implement".description = "Security implementation. Use for auth middleware, RBAC/ABAC, JWT handling, input sanitization, CORS, rate limiting, secret rotation, and OWASP compliance."
+agents."omb-security-implement".config_file = "agents/omb-security-implement.toml"
+
+agents."omb-ui-design".description = "Design React component trees, hook APIs, state management, Tailwind theming, accessibility, and responsive layouts."
+agents."omb-ui-design".config_file = "agents/omb-ui-design.toml"
+
+agents."omb-ui-explorer".description = "UI/Frontend exploration — React components, hooks, pages, layouts, styles, state management, and design patterns."
+agents."omb-ui-explorer".config_file = "agents/omb-ui-explorer.toml"
+
+agents."omb-ui-implement".description = "React/TypeScript frontend implementation. Use for components, hooks, pages, Tailwind styling, state management, and client-side logic."
+agents."omb-ui-implement".config_file = "agents/omb-ui-implement.toml"
+
+agents."omb-ui-verify".description = "Verify frontend implementations via TypeScript checks, linting, tests, and accessibility audits. Read-only — does not modify code."
+agents."omb-ui-verify".config_file = "agents/omb-ui-verify.toml"
+
+agents."omb-wiki-linter".description = "Read-only native OpenWiki structure and evidence validation."
+agents."omb-wiki-linter".config_file = "agents/omb-wiki-linter.toml"
+
+agents."omb-wiki-reader".description = "Read-only progressive retrieval from native OpenWiki."
+agents."omb-wiki-reader".config_file = "agents/omb-wiki-reader.toml"
+
+agents."omb-wiki-reviewer".description = "Read-only semantic Wiki reviewer. Evaluates native OpenWiki claims against actual cited source spans and returns an APPROVE or REJECT verdict with an explicit review outcome."
+agents."omb-wiki-reviewer".config_file = "agents/omb-wiki-reviewer.toml"
+
+agents."omb-wiki-writer".description = "Read-only compatibility handoff; native OpenWiki writing belongs to the main host."
+agents."omb-wiki-writer".config_file = "agents/omb-wiki-writer.toml"
+# END OMB CODEX COMPAT

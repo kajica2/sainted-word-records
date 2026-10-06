@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000018",
+  "name": "Low Light",
+  "author": "SWR",
+  "description": "Moody downtempo in F minor — darker, dynamic, late-night. The neon engine’s chroma and glow bring the haze.",
+  "tags": [
+    "downtempo",
+    "moody",
+    "minor",
+    "neon",
+    "slip-sets-1"
+  ],
+  "createdAt": "2026-10-02T00:00:00Z",
+  "engine": "neon",
+  "audio": {
+    "name": "slip-07-low-light.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 4677111,
+    "url": "/audios/slip-sets-1/slip-07-low-light.mp3"
+  },
+  "fx": {
+    "temp": 0.28,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.6,
+    "chroma": 0.42,
+    "grain": 0.18,
+    "sepia": 0,
+    "glow": 0.82,
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero clip",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-6.webp",
+        "mimeType": "image/webp",
+        "size": 0,
+        "url": "/default-library/holo-6.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 99,
+    "key": "F",
+    "scale": "minor"
+  }
+}

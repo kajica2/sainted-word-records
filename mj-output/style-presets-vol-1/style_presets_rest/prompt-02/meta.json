@@ -1,0 +1,16 @@
+{
+  "index": 2,
+  "prompt": "Abstract study rendered with an iridescent pearl sheen through soft haze, pastel nacre gradients, low-contrast bloom — PRACTITIONER PEARL HAZE study --style raw --s 250 --ar 16:9",
+  "taskId": "272f4a85-5f3d-45ed-ba69-038cab9a33dc",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/272f4a85-5f3d-45ed-ba69-038cab9a33dc/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/272f4a85-5f3d-45ed-ba69-038cab9a33dc/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/272f4a85-5f3d-45ed-ba69-038cab9a33dc/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/272f4a85-5f3d-45ed-ba69-038cab9a33dc/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:24:18.361Z",
+  "complete": true
+}

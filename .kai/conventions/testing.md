@@ -16,8 +16,8 @@ suites).
 
 | Command | Group | Steps |
 | --- | --- | --- |
-| `npm run check` | `check` | 46 |
-| `npm run check:full` | `full` | 13 |
+| `npm run check` | `check` | 49 |
+| `npm run check:full` | `full` | 18 |
 | `npm run check:storyboard` | `storyboard` | 5 |
 
 - `npm run check` — the quick gate. `check:syntax`, `check:bundle`, the
@@ -27,10 +27,12 @@ suites).
   `check:sitemap`, …).
   Run it before every commit.
 - `npm run check:full` — `check` plus `check:verify`, `check:automix-smoke`,
-  `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`,
-  `verify:genops`, `verify:story-graph`, `check:capture-smoke`,
-  `check:targeting-smoke`, `check:media-input-smoke`, `check:spit-live-smoke`
-  and `check:dist-links`. Run it before opening a PR.
+  `check:automix-arc-smoke`, `check:invite-redemption-smoke`,
+  `check:storyboard`, `verify:automix`, `verify:genops`, `verify:story-graph`,
+  `check:capture-smoke`, `check:targeting-smoke`, `check:media-input-smoke`,
+  `check:spit-live-smoke`, `check:tiktok-smoke`, `check:clip-poster-smoke`,
+  `verify:engine-boot`, `check:dist-links` and `verify:site-nav`.
+  Run it before opening a PR.
 - `npm run check:storyboard` — the five `scripts/check-storyboard-*.mjs`
   (song, structure, transitions, shots, e2e).
 - `STEPS_ONLY=check:syntax,check:bpm-unit node scripts/run-steps.mjs check`

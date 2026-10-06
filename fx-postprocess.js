@@ -52,6 +52,8 @@
     uniform float u_liquid;      // 0=off, 1=heavy fbm domain warp
     uniform float u_pearl;       // 0=off, 1=heavy Voronoi pearl cells
     uniform float u_glitch;      // 0=off, 1=heavy horizontal slice displacement
+    uniform float u_sharp;       // 0=off, 1=extra sharpness (unsharp-like)
+    uniform float u_cinematic;   // 0=off, 1=cinematic look (contrast/vignette/tone)
     uniform float u_fade;        // 0=image, 1=black — silence fade
 
     // 2D hash for procedural noise
@@ -291,6 +293,35 @@
         col += vec3(pearlEdge) * u_pearl * 0.6;
       }
 
+      // Extra sharpness (unsharp-like, subtle)
+      if (u_sharp > 0.001) {
+        vec2 px = vec2(1.0 / 1280.0, 1.0 / 720.0);
+        float s = u_sharp * 0.5;
+        vec3 c = col;
+        vec3 lap = -4.0 * c
+          + texture2D(u_tex, uv + vec2(px.x, 0.0)).rgb
+          + texture2D(u_tex, uv + vec2(-px.x, 0.0)).rgb
+          + texture2D(u_tex, uv + vec2(0.0, px.y)).rgb
+          + texture2D(u_tex, uv + vec2(0.0, -px.y)).rgb;
+        col = clamp(c + lap * s, 0.0, 1.0);
+      }
+
+      // Cinematic look: contrast lift, deeper blacks, soft vignette boost, subtle saturation tweak
+      if (u_cinematic > 0.001) {
+        float c = u_cinematic;
+        // contrast S-curve
+        col = mix(col, col * col * (3.0 - 2.0 * col), c * 0.25);
+        // deeper blacks
+        col = pow(col, vec3(1.0 + c * 0.15));
+        // soft vignette
+        vec2 v2 = v_uv - 0.5;
+        float v2g = 1.0 - dot(v2, v2) * (0.4 + c * 1.2);
+        col *= max(v2g, 0.0);
+        // slight saturation
+        float lc = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(vec3(lc), col, 1.0 + c * 0.08);
+      }
+
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `;
@@ -316,6 +347,9 @@
     liquid: 0,
     pearl: 0,
     glitch: 0,
+    // Additional post FX
+    sharp: 0,
+    cinematic: 0,
   };
 
   // ---- Init ----
@@ -419,6 +453,8 @@
       liquid:   gl.getUniformLocation(prog, 'u_liquid'),
       pearl:    gl.getUniformLocation(prog, 'u_pearl'),
       glitch:   gl.getUniformLocation(prog, 'u_glitch'),
+      sharp:    gl.getUniformLocation(prog, 'u_sharp'),
+      cinematic:gl.getUniformLocation(prog, 'u_cinematic'),
       fade:     gl.getUniformLocation(prog, 'u_fade'),
     };
 
@@ -449,7 +485,7 @@
              state.vignette !== 0 || state.chroma !== 0 || state.grain !== 0 ||
              state.sepia !== 0 || state.glow !== 0 || state.grayscale !== 0 ||
              state.blur !== 0 || state.liquid !== 0 || state.pearl !== 0 ||
-             state.glitch !== 0;
+             state.glitch !== 0 || state.sharp !== 0 || state.cinematic !== 0;
     }
     function render() {
       if (!state.enabled) {
@@ -556,7 +592,7 @@
         const k = Math.max(0, Math.min(1, (performance.now() - t0) / rampMs));
         const smooth = k * k * (3 - 2 * k); // smoothstep, matches versions-presets
         const fxFields = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette',
-          'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch'];
+          'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch', 'sharp', 'cinematic'];
         for (const f of fxFields) {
           // Only blend fields the automix preset actually carries — absent
           // fields (vignette, glitch, blur, …) keep the page persona's
@@ -616,6 +652,8 @@
       gl.uniform1f(u.liquid,    state.liquid * k);
       gl.uniform1f(u.pearl,     state.pearl * k);
       gl.uniform1f(u.glitch,    state.glitch * k);
+      gl.uniform1f(u.sharp,     state.sharp * k);
+      gl.uniform1f(u.cinematic, state.cinematic * k);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
@@ -662,8 +700,10 @@
       setLiquid(v)    { state.liquid    = Math.max(0, Math.min(1, v)); },
       setPearl(v)     { state.pearl     = Math.max(0, Math.min(1, v)); },
       setGlitch(v)    { state.glitch    = Math.max(0, Math.min(1, v)); },
+      setSharp(v)     { state.sharp     = Math.max(0, Math.min(1, v)); },
+      setCinematic(v) { state.cinematic = Math.max(0, Math.min(1, v)); },
       setPersona(profile) {
-        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch}
+        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch, sharp, cinematic}
         if (!profile) return;
         if (profile.temp      !== undefined) state.temp      = profile.temp;
         if (profile.mut       !== undefined) state.mut       = profile.mut;
@@ -679,6 +719,8 @@
         if (profile.liquid    !== undefined) state.liquid    = profile.liquid;
         if (profile.pearl     !== undefined) state.pearl     = profile.pearl;
         if (profile.glitch    !== undefined) state.glitch    = profile.glitch;
+        if (profile.sharp     !== undefined) state.sharp     = profile.sharp;
+        if (profile.cinematic !== undefined) state.cinematic = profile.cinematic;
       },
       setEnabled(on) { state.enabled = !!on; },
       // Adaptive-guard rung: run the overlay's GPU pass every Nth frame.

@@ -263,6 +263,9 @@ function copyStatic() {
     'engine-timing-panel.client.js',
     'engine-lfos.client.js',
     'swr-sets.js',
+    // Auto-advance demo-reel player (window.SWR_REEL) — loaded by engine.html
+    // next to swr-sets.js; consumes SWR_SETS.importSet/applySet.
+    'engine-reel.client.js',
     'engine-lfo-panel.client.js',
     'engine-panel-visibility.client.js',
     'engine-automap.client.js',
@@ -357,6 +360,11 @@ function copyStatic() {
     'gallery-bio.html',
     'gallery-ai.html',
     'gallery-glyphs.html',
+    // Flat root file behind a nested route (/gallery/dingbats). The site-map
+    // derivation only strips the LEADING slash, so it yields
+    // `gallery/dingbats.html` — a path that does not exist here — and the copy
+    // loop skips it silently. Same reason gallery-glyphs.html is listed.
+    'gallery-dingbats.html',
     'gallery-vr.html',
     'gallery-tshirts.html',
     'gallery-posters.html',
@@ -402,6 +410,28 @@ function copyStatic() {
     'api/_lib/http.js',
     'api/_lib/session.js',
     'api/_lib/email.js',
+    // Video-slot ledger (authoritative payment-side quota for pt.client.js).
+    'api/slots/grant.js',
+    'api/slots/index.js',
+    'api/slots/[userId].js',
+    'api/_lib/slots.js',
+    // Seller catalogue (songs / videos / media packs + the ledger).
+    'api/catalogue/index.js',
+    'api/catalogue/[id].js',
+    'api/_lib/catalogue.js',
+    // Buyer checkout (public browse + Checkout Session + order ledger).
+    'api/catalogue/public.js',
+    'api/checkout/index.js',
+    'api/_lib/orders.js',
+    // Slot-ledger admin surface (unlisted route /slots-admin).
+    'slots-admin.html',
+    'slots-admin.client.js',
+    // Stripe Connect seller surface (unlisted route /connect).
+    'connect.html',
+    // Seller catalogue controller (loaded by connect.html).
+    'seller.client.js',
+    // Buyer browse/checkout controller (loaded by buy.html).
+    'shop.client.js',
     'versions.client.js',
     'director-mode-sainted-word.html',
     'intro.html',

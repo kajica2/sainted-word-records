@@ -1,0 +1,16 @@
+{
+  "index": 20,
+  "prompt": "Byzantine-style sacred geometry, an aged illuminated manuscript cover with deep oxblood-red leather binding, faded gold leaf geometric ornament, central nemanjić dynasty tree-of-life loza in thin gold lines, asymmetric composition with breathing parchment-cream negative space, soft candlelight from upper left, no figures, no text, no signature, museum-quality craftsmanship reminiscent of medieval Serbian monastic bindings, intricate but restrained ornament, the product of countless hours by a master craftsman — rendered as morpha echo, a form repeating in decaying afterimages, temporal echo trail, ghosted duplicates — BROKER MORPHA ECHO study  --v 8.2 --style raw --no text signature watermark --ar 2:3",
+  "taskId": "e383c756-5938-41da-aa74-1d3227a2cbee",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/e383c756-5938-41da-aa74-1d3227a2cbee/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/e383c756-5938-41da-aa74-1d3227a2cbee/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/e383c756-5938-41da-aa74-1d3227a2cbee/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/e383c756-5938-41da-aa74-1d3227a2cbee/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-30T00:53:27.055Z",
+  "complete": true
+}

@@ -45,9 +45,13 @@ const DIST = 'dist';
 
 // Surfaces that ship but are not public pages. The first two are the chrome
 // gate's documented "internal/dev tools and the auth flow" (noindex, no
-// marketing chrome); the files are the PWA shell, the meta-refresh login stub,
-// the intro render bumper and the two deliberately-not-deployed pages.
-const NON_PUBLIC_DIRS = [/^tools\//, /^auth\//, /^scripts\//];
+// marketing chrome); `packs/covers/` is the chrome gate's other documented
+// non-public surface — standalone paused-timeline cover animations (media-pack
+// / NFT cover art) that `packs/` ships wholesale from SOURCE_DIRS but that are
+// render assets, not navigable pages, exactly like the intro bumper; the files
+// are the PWA shell, the meta-refresh login stub, the intro render bumper and
+// the two deliberately-not-deployed pages.
+const NON_PUBLIC_DIRS = [/^tools\//, /^auth\//, /^scripts\//, /^packs\/covers\//];
 const NON_PUBLIC_FILES = new Set([
   'offline.html',
   'login.html',

@@ -15,18 +15,36 @@ project:
   deploy_target: Vercel (auto on push to main)
 
 memory_version: "1.0"
-last_updated: 2026-09-20
-total_pipeline_runs: 0
+last_updated: 2026-09-30
+total_pipeline_runs: 1
 initialized_by: Kai (orchestrator first-run setup)
 
 flags:
   has_conventions: true
-  has_decisions: false
+  has_decisions: true
   has_postmortems: false
   has_tech_debt: true
   has_preferences: true
 
-active_prevention_rules: []
+# Pre-flight rules matched against the task before a pipeline starts.
+# Referenced by id in the load context; append new rules, never renumber.
+# Env var NAMES only — never values.
+active_prevention_rules:
+  - id: "PM-2026-001"
+    when: "Checking whether .kai/ (or any dotfile/dotdir) exists, before acting on a 'first run'"
+    action: >-
+      Do NOT trust a glob for existence checks — glob skips dot-directories by default
+      (hidden: false), so `.kai/**` returns nothing even when the directory is fully
+      populated. Use `ls -a .kai` or `git ls-files .kai/`. Acting on the false
+      "first run" signal on 2026-09-30 overwrote 6 tracked .kai files with a fresh
+      scaffold (recovered via git checkout, nothing lost). Read + merge existing
+      .kai content; never scaffold over it.
+  - id: "PM-2026-002"
+    when: "Ambiguous go-commands ('continue', 'go', 'keep going') with no stated target"
+    action: >-
+      preferences/user.yaml sets clarify_ambiguous: true — ASK which in-progress work to
+      resume instead of guessing from git status. If the working tree does point at obvious
+      in-flight work, confirm the read of it in one short question before writing code.
 
 # Auto-detected on 2026-09-20 from AGENTS.md, .editorconfig, package.json, vite.config.js.
 # Update via @postmortem when failures generate rules; update via @refactor-advisor when

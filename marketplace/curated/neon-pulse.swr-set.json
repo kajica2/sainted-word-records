@@ -4,30 +4,35 @@
   "name": "Neon Pulse",
   "author": "SWR",
   "description": "Pure neon-engine music video. High-energy bass-reactive kicks with a slow LFO hue drift. Best for electronic / synthwave / EDM tracks.",
-  "tags": ["synthwave", "neon", "electronic", "music-video"],
+  "tags": [
+    "synthwave",
+    "neon",
+    "electronic",
+    "music-video"
+  ],
   "createdAt": "2026-08-24T00:00:00Z",
   "engine": "neon",
   "audio": {
-    "name": "loop-bass.wav",
-    "mimeType": "audio/wav",
-    "size": 678000,
-    "url": "library/audio/loop-bass.wav"
+    "name": "neon.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 247942,
+    "url": "/audios/neon.mp3"
   },
   "fx": {
     "temp": 0.4,
-    "mut": 0.0,
+    "mut": 0,
     "mutAlgo": 0,
-    "posterize": 0.0,
+    "posterize": 0,
     "vignette": 0.55,
     "chroma": 0.3,
     "grain": 0.15,
-    "sepia": 0.0,
+    "sepia": 0,
     "glow": 0.85,
-    "grayscale": 0.0,
-    "blur": 0.0,
-    "liquid": 0.0,
-    "pearl": 0.0,
-    "glitch": 0.0
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
   },
   "layers": [
     {
@@ -35,21 +40,29 @@
       "name": "Hero clip",
       "blend": "source-over",
       "opacity": 1,
-      "baseScale": 1.0,
+      "baseScale": 1,
       "hue": 0,
       "brightness": 1,
       "contrast": 1,
-      "pos": { "x": 0, "y": 0, "rot": 0 },
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
       "rotOffset": 0,
       "reactors": [],
       "modulators": [],
       "asset": {
-        "name": "c01-rooftop.mp4",
-        "mimeType": "video/mp4",
-        "size": 2400000,
-        "url": "library/c01-rooftop.mp4"
+        "name": "holo-0.webp",
+        "mimeType": "image/webp",
+        "size": 182078,
+        "url": "/default-library/holo-0.webp"
       }
     }
   ],
-  "settings": { "bpm": 128, "key": "Am", "scale": "minor" }
+  "settings": {
+    "bpm": 128,
+    "key": "Am",
+    "scale": "minor"
+  }
 }

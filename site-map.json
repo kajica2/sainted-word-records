@@ -72,11 +72,6 @@
       "description": "Persona overview + archived design registers"
     },
     {
-      "label": "Persona Variants",
-      "href": "/personas/v",
-      "description": "24 engine-driven persona variants"
-    },
-    {
       "label": "Learn",
       "href": "/intro",
       "description": "Tutorials and docs",
@@ -304,6 +299,11 @@
       "description": "One-take freestyle studio for hip-hop MCs"
     },
     {
+      "label": "Camera Enhance",
+      "href": "/camera-enhance",
+      "description": "Camera-first cleanup: fix exposure, grain, shake and judder, grade, burn in, export"
+    },
+    {
       "label": "Share View",
       "href": "/s/:id",
       "description": "View shared composition"
@@ -402,6 +402,7 @@
     "/gallery/bio",
     "/gallery/ai",
     "/gallery/glyphs",
+    "/gallery/dingbats",
     "/gallery/vr",
     "/gallery/tshirts",
     "/gallery/posters",
@@ -414,14 +415,18 @@
     "/gallery/bachdrop",
     "/gallery/brutalist",
     "/gallery/vintage",
-    "/versions/music-video-gallery"
+    "/versions/music-video-gallery",
+    "/slots-admin",
+    "/connect",
+    "/buy",
+    "/fonts"
   ],
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-09-29",
-    "totalPages": 140,
-    "corePages": 140,
+    "lastUpdated": "2026-10-02",
+    "totalPages": 146,
+    "corePages": 146,
     "archivedPages": 0
   },
   "discovered": [
@@ -448,13 +453,17 @@
     "atlas.html",
     "auth/login.html",
     "auth/verify.html",
+    "buy.html",
+    "camera-enhance.html",
     "campaign.html",
     "changelog.html",
+    "connect.html",
     "dashboard.html",
     "director-mode-sainted-word.html",
     "engine-demos.html",
     "engine.html",
     "enhance.html",
+    "fonts.html",
     "gallery-ai.html",
     "gallery-albums.html",
     "gallery-artist.html",
@@ -463,6 +472,7 @@
     "gallery-brutalist.html",
     "gallery-cosmic.html",
     "gallery-darkfuture.html",
+    "gallery-dingbats.html",
     "gallery-generative.html",
     "gallery-glyphs.html",
     "gallery-music.html",
@@ -522,6 +532,7 @@
     "shop.html",
     "shotlist/index.html",
     "sitemap.html",
+    "slots-admin.html",
     "spit.html",
     "status.html",
     "swr-app.html",

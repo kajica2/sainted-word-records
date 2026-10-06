@@ -1,0 +1,16 @@
+{
+  "index": 10,
+  "prompt": "Abstract study rendered as morpha echo, a form repeating in decaying afterimages, temporal echo trail, ghosted duplicates — BROKER MORPHA ECHO study --style raw --s 250 --ar 16:9",
+  "taskId": "13c1f0c0-e77f-41b0-a99c-6cc8d44c9479",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/13c1f0c0-e77f-41b0-a99c-6cc8d44c9479/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/13c1f0c0-e77f-41b0-a99c-6cc8d44c9479/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/13c1f0c0-e77f-41b0-a99c-6cc8d44c9479/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/13c1f0c0-e77f-41b0-a99c-6cc8d44c9479/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:25:58.760Z",
+  "complete": true
+}

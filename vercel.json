@@ -484,14 +484,6 @@
       "destination": "/personas.html"
     },
     {
-      "source": "/personas/v",
-      "destination": "/personas/v/index.html"
-    },
-    {
-      "source": "/personas/v/",
-      "destination": "/personas/v/index.html"
-    },
-    {
       "source": "/intro",
       "destination": "/intro.html"
     },
@@ -660,6 +652,14 @@
       "destination": "/spit.html"
     },
     {
+      "source": "/camera-enhance",
+      "destination": "/camera-enhance.html"
+    },
+    {
+      "source": "/camera-enhance/",
+      "destination": "/camera-enhance.html"
+    },
+    {
       "source": "/s/:id",
       "destination": "/share-view.html"
     },
@@ -780,6 +780,14 @@
       "destination": "/gallery-glyphs.html"
     },
     {
+      "source": "/gallery/dingbats",
+      "destination": "/gallery-dingbats.html"
+    },
+    {
+      "source": "/gallery/dingbats/",
+      "destination": "/gallery-dingbats.html"
+    },
+    {
       "source": "/gallery/vr",
       "destination": "/gallery-vr.html"
     },
@@ -874,6 +882,38 @@
     {
       "source": "/gallery/vintage/",
       "destination": "/gallery-vintage.html"
+    },
+    {
+      "source": "/slots-admin",
+      "destination": "/slots-admin.html"
+    },
+    {
+      "source": "/slots-admin/",
+      "destination": "/slots-admin.html"
+    },
+    {
+      "source": "/connect",
+      "destination": "/connect.html"
+    },
+    {
+      "source": "/connect/",
+      "destination": "/connect.html"
+    },
+    {
+      "source": "/buy",
+      "destination": "/buy.html"
+    },
+    {
+      "source": "/buy/",
+      "destination": "/buy.html"
+    },
+    {
+      "source": "/fonts",
+      "destination": "/fonts.html"
+    },
+    {
+      "source": "/fonts/",
+      "destination": "/fonts.html"
     },
     {
       "source": "/login",
