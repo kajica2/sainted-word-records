@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000017",
+  "name": "Sunlit Room",
+  "author": "SWR",
+  "description": "A bright, mid-tempo major-key groove — airy and unhurried. The aurora engine’s soft glow matches the light.",
+  "tags": [
+    "ambient",
+    "bright",
+    "groove",
+    "aurora",
+    "slip-sets-1"
+  ],
+  "createdAt": "2026-10-02T00:00:00Z",
+  "engine": "aurora",
+  "audio": {
+    "name": "slip-06-sunlit-room.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 2555550,
+    "url": "/audios/slip-sets-1/slip-06-sunlit-room.mp3"
+  },
+  "fx": {
+    "temp": 0.52,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.34,
+    "chroma": 0.2,
+    "grain": 0.12,
+    "sepia": 0,
+    "glow": 0.72,
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero clip",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-5.webp",
+        "mimeType": "image/webp",
+        "size": 0,
+        "url": "/default-library/holo-5.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 129,
+    "key": "D",
+    "scale": "major"
+  }
+}
