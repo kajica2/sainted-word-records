@@ -28,7 +28,7 @@ The whole thing runs in the browser. No upload, no install, no server. Export th
 ## How to try it
 
 1. Open https://sainted-word-records.vercel.app/landing.html
-2. Click **OPEN ENGINE**
+2. Click **Open the engine**
 3. Drop a song file
 4. Drop a folder of clips (or use the seeded library)
 5. Hit play
@@ -40,17 +40,16 @@ No login, no signup, no install. Works offline once loaded.
 - **Live demo:** https://sainted-word-records.vercel.app/
 - **Marketing page:** https://sainted-word-records.vercel.app/landing.html
 - **30-second how-to:** https://sainted-word-records.vercel.app/interactive-howto.html
-- **Market study:** https://sainted-word-records.vercel.app/market-study.html
-- **Source:** https://github.com/kajica2/rnn (monorepo, sainted-word-records/ subdirectory)
-- **Open Graph image:** https://sainted-word-records.vercel.app/og.png
+- **Source:** https://github.com/kajica2/sainted-word-records
+- **Open Graph image:** https://sainted-word-records.vercel.app/press/og-card.png
 
 ## Tech
 
-Single-file Vite + vanilla JS + Web Audio API + WebGL fragment shader. 51 KB bundle. No framework dependencies.
+Vite + vanilla JS + Web Audio API + WebGL fragment shader. No framework dependencies. The landing page ships ~96 KB of JS; the engine loads its subsystems as separate deferred scripts.
 
 ## Pricing
 
-Free. No paid tier yet.
+The engine is free — no login, no signup, no paywall to use it. There is also a [shop](https://sainted-word-records.vercel.app/shop.html) selling ready-made design artwork with Stripe checkout, plus free [packs](https://sainted-word-records.vercel.app/packs.html).
 
 ## Categories (suggest)
 
@@ -66,11 +65,14 @@ Kai Djuric. Solo developer. Email: kajicadjuric at the usual domains.
 
 ## Assets for the submission
 
-- **Hero / OG image (1200×630):** https://sainted-word-records.vercel.app/og.png
-- **Full-page screenshot (1440×4794):** `landing-full.png` (in repo)
-- **Light + dark screenshots:** `landing-light.png`, `landing-dark.png`
-- **Catalog views:** `landing-catalog.png`, `landing-catalog-dark.png`
+- **Hero / OG image (1200×630):** https://sainted-word-records.vercel.app/press/og-card.png
+- **Full-page screenshot (1440×11458):** `landing-full.png` (repo root)
+- **Light + dark screenshots (1440×900):** `landing-light.png`, `landing-dark.png` (landing page)
+- **Catalog views (1440×900):** `landing-catalog.png`, `landing-catalog-dark.png` (`/marketplace.html`)
 - **30-second how-to walkthrough:** `interactive-howto.html`
+
+The five screenshots are generated, not built — regenerate them with
+`node scripts/_capture-launch-shots.mjs` (writes to the repo root).
 
 ## Submission form fields (copy/paste ready)
 

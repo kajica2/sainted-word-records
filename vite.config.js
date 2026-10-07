@@ -241,7 +241,7 @@ function copyStatic() {
     // embeds the developer's macOS home path and raw shell commands, and it
     // shipped publicly (200) with no HTML wrapper. Removing it from the build
     // makes its URL 404 -- see BUG-002/017 in the audit.
-    'README.md', 'LICENSE', 'og.png',
+    'README.md', 'LICENSE',
     // SEO surface (BUG-018): both were 404 on the live site.
     'robots.txt', 'sitemap.xml',
     'tutorial-30s.html',
@@ -343,7 +343,6 @@ function copyStatic() {
     'persona-preview.client.js',
     'favicon.ico',
     'favicon.svg',
-    'og.png',
     '404.html',
     'changelog.html',
     'press.html',
