@@ -1737,7 +1737,7 @@
       <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
       <span class="pill" id="status-pill">idle</span>
       <button class="tbtn ghost" id="load-song">Load song</button>
-      <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv" />
+      <input type="file" id="song-input" accept="audio/*,video/*,.mp3,.wav,.mp4,.m4a,.ogg,.flac,.webm,.mov,.mkv,.mid,.midi" />
       <span class="song-name" id="song-name">No song loaded</span>
       <button class="tbtn ghost nav-arrow" id="nav-prev" title="Previous preset (←)" aria-label="Previous preset" style="padding:4px 8px; font-size:14px; line-height:1;">←</button>
       <button class="tbtn ghost nav-arrow" id="nav-next" title="Next preset (→)" aria-label="Next preset" style="padding:4px 8px; font-size:14px; line-height:1;">→</button>
@@ -2793,6 +2793,8 @@
        script tag must evaluate before the engine IIFE body references
        the corresponding global, and the later libs depend on the earlier
        ones (Library reads Audio; Layers reads Library + Audio). -->
+  <!-- MIDI song source: window.SWR_MIDI_FEAT, consumed by audio.client.js for .mid/.midi. -->
+  <script src="/lib/midi-feat.client.js" defer></script>
   <script src="/lib/audio.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>

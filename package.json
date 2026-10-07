@@ -20,6 +20,7 @@
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
     "check:auth-unit": "node scripts/check-auth-unit.mjs",
     "check:bpm-unit": "node scripts/check-bpm-unit.mjs",
+    "check:midi-feat-unit": "node scripts/check-midi-feat-unit.mjs",
     "check:storage-blob-unit": "node scripts/check-storage-blob-unit.mjs",
     "check:db-postgres": "node scripts/check-db-postgres-unit.mjs",
     "check:unit": "npm run test:generated-audio && npm run test:mascot-states && node scripts/check-asset-curator-unit.mjs && node scripts/check-narrative-unit.mjs && npm run test:asset-curator",
