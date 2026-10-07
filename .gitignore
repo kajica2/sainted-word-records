@@ -127,3 +127,9 @@ _archive/
 # development, parallel sprints). Tracked by .git/worktrees/ but the working
 # trees themselves must never be committed.
 .worktrees/
+
+# Ruflo local secrets and runtime data
+.env.*.local
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/

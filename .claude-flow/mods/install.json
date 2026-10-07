@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "installedAt": "2026-10-07T02:01:22.105Z",
+  "files": {
+    "/Users/kaidejuricmasscmbook/Documents/sainted-word-records/.claude/settings.json": {
+      "plugins": [
+        "ruflo-mods@ruflo",
+        "ruflo-swarm@ruflo",
+        "ruflo-console@ruflo"
+      ],
+      "marketplace": true,
+      "env": true,
+      "claudeInstalled": []
+    }
+  }
+}
