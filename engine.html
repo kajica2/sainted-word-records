@@ -2832,7 +2832,11 @@
     // ---------- DOM refs ----------
     const $ = (id) => document.getElementById(id);
     const stageCanvas = $('render');
-    const stageCtx = stageCanvas.getContext('2d', { alpha: false, willReadFrequently: true });
+    // willReadFrequently is deliberately NOT set: the stage is drawn every
+    // frame and only read back at snapshot time (toDataURL ~L5683), so a
+    // CPU/Skia-backed canvas would tax every draw to speed up a rare read.
+    // It also breaks canvas.captureStream() in headless (black frames).
+    const stageCtx = stageCanvas.getContext('2d', { alpha: false });
     const meterCanvas = $('meter');
     const meterCtx = meterCanvas.getContext('2d');
     const stageEmpty = $('stage-empty');
@@ -3742,12 +3746,41 @@
         // load; naturalWidth > 0 means the decode succeeded (not an
         // error result).
         if (a.type === 'image' && (!a._el.complete || !a._el.naturalWidth)) return;
+        // Downscale cache: drawImage re-samples a full-resolution photo down to
+        // stage size on EVERY frame, and that cost scales with the photo's
+        // megapixels. Cap the working bitmap at ~2x the stage once per asset so
+        // the per-frame draw stops paying for the camera's resolution. Aspect
+        // ratio is preserved, so the cover-fit math below is unchanged; the
+        // original full-res element stays on a._el.
+        let scaledW = 0, scaledH = 0;
+        if (a.type === 'image') {
+          if (!a._scaled) {
+            const iw = src.naturalWidth || src.width;
+            const ih = src.naturalHeight || src.height;
+            const cap = Math.max(cx.canvas.width, cx.canvas.height) * 2;
+            if (iw > cap || ih > cap) {
+              const s = Math.min(cap / iw, cap / ih);
+              const c = document.createElement('canvas');
+              c.width = Math.max(1, Math.round(iw * s));
+              c.height = Math.max(1, Math.round(ih * s));
+              c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+              a._scaled = c;
+            } else {
+              a._scaled = src;
+            }
+          }
+          src = a._scaled;
+          scaledW = src.width; scaledH = src.height;
+        }
         // Apply the asset's intrinsic rotation (0/90/180/270) to a scratch surface
         // before the layer's reactor-driven draw. CSS/HTML don't honor tkhd or EXIF
         // orientation so we have to compensate here and in _buildThumb().
         let drawSrc = src;
-        let drawW = a.w || src.naturalWidth || src.videoWidth || 1;
-        let drawH = a.h || src.naturalHeight || src.videoHeight || 1;
+        // For images prefer the working bitmap's dims (same aspect ratio as the
+        // original) so the rotation cache below is sized to that bitmap instead
+        // of the camera's full resolution.
+        let drawW = scaledW || a.w || src.naturalWidth || src.videoWidth || 1;
+        let drawH = scaledH || a.h || src.naturalHeight || src.videoHeight || 1;
         if (a.rotation && (a.rotation === 90 || a.rotation === 270)) {
           // Swap w/h so downstream cover-fit math uses the rotated footprint.
           const tmp = drawW; drawW = drawH; drawH = tmp;
@@ -3769,8 +3802,8 @@
             rc.rotate(a.rotation * Math.PI / 180);
             // drawImage uses the ORIGINAL source dimensions because that's the
             // un-rotated intrinsic content; rotation happens around the center.
-            const ow = src.naturalWidth || src.videoWidth || drawH;
-            const oh = src.naturalHeight || src.videoHeight || drawW;
+            const ow = src.naturalWidth || src.videoWidth || src.width || drawH;
+            const oh = src.naturalHeight || src.videoHeight || src.height || drawW;
             rc.drawImage(src, -ow / 2, -oh / 2);
             a._rotated = { deg: a.rotation, canvas: r };
           }

@@ -399,8 +399,11 @@ async function main() {
       });
       // Clear localStorage flags before each fresh load so deep-link
       // tests don't inherit state from earlier pages in this browser.
+      // 60s for the same reason as the main navigation above: this page
+      // streams the demo track and holds 3D canvas contexts open, so CI
+      // runners can exceed 30s to DOMContentLoaded on a loaded box.
       await fresh.goto(`http://localhost:${PORT}/versions/music_video.html${query}`,
-                       { waitUntil: 'domcontentloaded', timeout: 30000 });
+                       { waitUntil: 'domcontentloaded', timeout: 60000 });
       await fresh.evaluate(() => {
         try {
           localStorage.removeItem('swr.automix.enabled');
