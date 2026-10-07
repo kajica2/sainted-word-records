@@ -480,12 +480,24 @@
     // never persisted, so a reload always comes back at full rate.
     let frameSkip = 1;
     let frameCount = 0;
+    // Life coupling gate: while the song plays and there is audible signal,
+    // the liquid surface stays alive even when every knob is 0 (see the
+    // u_liquid feed below). Silent stretches fall back to the cheap
+    // fast-path — no GPU upload for a motionless frame.
+    function lifeLiquidActive() {
+      var L = window.SWR_LIFE;
+      if (!L || !L.__loaded) return false;
+      var A = window.SWR && window.SWR.Audio;
+      if (!A || !A.playing) return false;
+      return L.energy > 0.03 || L.pulse > 0.05;
+    }
     function anyFxActive() {
       return state.temp !== 0 || state.mut !== 0 || state.posterize !== 0 ||
              state.vignette !== 0 || state.chroma !== 0 || state.grain !== 0 ||
              state.sepia !== 0 || state.glow !== 0 || state.grayscale !== 0 ||
              state.blur !== 0 || state.liquid !== 0 || state.pearl !== 0 ||
-             state.glitch !== 0 || state.sharp !== 0 || state.cinematic !== 0;
+             state.glitch !== 0 || state.sharp !== 0 || state.cinematic !== 0 ||
+             lifeLiquidActive();
     }
     function render() {
       if (!state.enabled) {
@@ -649,7 +661,18 @@
       gl.uniform1f(u.glow,      state.glow * k);
       gl.uniform1f(u.grayscale, state.grayscale * k);
       gl.uniform1f(u.blur,      state.blur * k);
-      gl.uniform1f(u.liquid,    state.liquid * k);
+      // Liquid surface: the knob + a life coupling (lib/swr-life.client.js).
+      // SWR_LIFE adds a moving floor — energy swells, beat pulses ring, a
+      // tide never stops — so the surface reads as water rather than a static
+      // warp. The effective value is exposed on state._liquidEff for probes;
+      // the master intensity k still scales the whole look.
+      var _lifeV = (window.SWR_LIFE && window.SWR_LIFE.__loaded) ? window.SWR_LIFE.values() : null;
+      var _liquidEff = _lifeV
+        ? state.liquid + _lifeV.energy * 0.30 + _lifeV.pulse * 0.55 + _lifeV.tide * 0.06
+        : state.liquid;
+      _liquidEff = Math.max(0, Math.min(1.2, _liquidEff));
+      state._liquidEff = _liquidEff;
+      gl.uniform1f(u.liquid,    _liquidEff * k);
       gl.uniform1f(u.pearl,     state.pearl * k);
       gl.uniform1f(u.glitch,    state.glitch * k);
       gl.uniform1f(u.sharp,     state.sharp * k);

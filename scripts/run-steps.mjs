@@ -80,6 +80,7 @@ const GROUPS = {
     'npm run test:asset-curator',
     'npm run check:auth-unit',
     'npm run check:bpm-unit',
+    'npm run check:life-unit',
     'npm run check:midi-feat-unit',
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
