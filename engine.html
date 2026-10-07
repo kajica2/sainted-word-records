@@ -4821,6 +4821,15 @@
           const recRationaleEl = $('swr-tx-rec-rationale');
           if (!toggleBtn || !panel || !pick) return;
 
+          // Transitions are switched OFF engine-side. Nothing in the engine
+          // fires them any more: the FIRE button, the recommended chips, the
+          // 1-9 number keys and AUTO-FIRE are all gated on this flag, and the
+          // controls that can only fire are disabled so the UI does not lie.
+          // The module and panel stay wired (dropdown, toggle, BPM hook) so
+          // verify-transitions.mjs keeps exercising window.SWRTransitions
+          // directly. Flip this to true to bring the engine wiring back.
+          const TRANSITIONS_ENABLED = false;
+
           // Populate dropdown once module is ready (poll briefly, then give up).
           let attempts = 0;
           const populate = () => {
@@ -4875,7 +4884,10 @@
 
           // Fire button.
           if (fireBtn) {
+            fireBtn.disabled = !TRANSITIONS_ENABLED;
+            fireBtn.title = TRANSITIONS_ENABLED ? 'Fire this transition' : 'Transitions are disabled';
             fireBtn.addEventListener('click', () => {
+              if (!TRANSITIONS_ENABLED) return;
               if (!window.SWRTransitions) return;
               const name = pick.value;
               const peak = parseFloat(peakInp.value);
@@ -4899,7 +4911,13 @@
           // Auto-fire toggle.
           let autoLive = false;
           if (autoBtn) {
+            autoBtn.disabled = !TRANSITIONS_ENABLED;
+            if (!TRANSITIONS_ENABLED) {
+              autoBtn.textContent = 'AUTO-FIRE DISABLED';
+              autoBtn.title = 'Transitions are disabled';
+            }
             autoBtn.addEventListener('click', () => {
+              if (!TRANSITIONS_ENABLED) return;
               if (!window.SWRTransitions) return;
               if (autoLive) {
                 window.SWRTransitions.setAutoFire(null);
@@ -4977,6 +4995,7 @@
               chip.textContent = name;
               chip.title = (cfg ? cfg.family + ' · ' + cfg.duration + 'ms · ' + cfg.kind : name);
               chip.addEventListener('click', () => {
+                if (!TRANSITIONS_ENABLED) return;
                 if (pick) pick.value = name;
                 window.SWRTransitions.fire(name);
               });
@@ -5048,6 +5067,7 @@
             if (idx >= opts.length) return;
             const opt = opts[idx];
             if (!opt) return;
+            if (!TRANSITIONS_ENABLED) return;
             e.preventDefault();
             window.SWRTransitions.fire(opt.value);
           });
