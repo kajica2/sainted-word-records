@@ -10,7 +10,9 @@
 //   account.updated                  → flip the seller's status (pending →
 //                                      active when details_submitted), plus
 //                                      charges/payouts capability flags
-//   checkout.session.completed      → record the sale (reconciliation)
+//   checkout.session.completed      → record the sale (reconciliation) +
+//                                      fulfil PT purchases (grant paid slots,
+//                                      mint the license key)
 //   payment_intent.succeeded        → record the payment (reconciliation)
 //   payout.paid / payout.failed     → record the payout (reconciliation)
 //   account.application.deauthorized→ mark the seller revoked
@@ -31,6 +33,7 @@ import {
   saveConnectAccount,
 } from '../_lib/connect-store.js';
 import { markOrderPaidBySession } from '../_lib/orders.js';
+import { fulfillPtPurchase } from '../_lib/pt-keys.js';
 
 export default async function handler(req, res) {
   setCors(res, req.headers.origin);
@@ -105,13 +108,32 @@ export default async function handler(req, res) {
       payment_intent: obj.payment_intent || null,
     };
     // Fulfilment: flip the platform-side order to 'paid' (idempotent).
-    const orderId = (obj.metadata && obj.metadata.order_id) || null;
-    if (orderId) {
-      const paid = await markOrderPaidBySession(obj.id, {
-        paymentIntentId: obj.payment_intent || null,
-      });
-      summary.order_id = (paid && paid.id) || orderId;
-    }
+      const orderId = (obj.metadata && obj.metadata.order_id) || null;
+      if (orderId) {
+        const paid = await markOrderPaidBySession(obj.id, {
+          paymentIntentId: obj.payment_intent || null,
+        });
+        summary.order_id = (paid && paid.id) || orderId;
+      }
+      // PT tier purchase: the session carries { pt_tier, user_id } instead of
+      // an order_id (api/pt/checkout.js). Fulfilment grants paid video slots
+      // and mints the license key — idempotent by session, so a redelivery
+      // is a no-op.
+      const ptTier = (obj.metadata && obj.metadata.pt_tier) || null;
+      const ptUserId = (obj.metadata && obj.metadata.user_id) || null;
+      if (ptTier && ptUserId) {
+        const pt = await fulfillPtPurchase({
+          tier: ptTier,
+          userId: ptUserId,
+          email: obj.customer_email || null,
+          sessionId: obj.id,
+        });
+        if (pt && pt.key) {
+          summary.pt_tier = ptTier;
+          summary.pt_key = pt.key;
+          summary.pt_slots = pt.slots;
+        }
+      }
   } else if (event.type === 'payment_intent.succeeded' && obj) {
     summary = {
       payment_intent: obj.id,

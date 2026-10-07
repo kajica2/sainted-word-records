@@ -1,9 +1,9 @@
 // api/slots/grant.js — POST /api/slots/grant (admin-only).
 //
 // Grants video slots to a user by email. Slot amounts are the same batches
-// the client wallet knows (10 / 30 / 50). Payment collection is explicitly
-// out of scope: grants are written `paid: false` and the ledger's
-// registration path stays in `trial: true` mode until Stripe is wired.
+// the client wallet knows (10 / 30 / 50). Grants issued here are
+// payment-verified comps (`paid: true`) — the registration wall only lets
+// paid grants back videos (see the TOGGLE in api/_lib/slots.js).
 //
 // Admin gate decision: we reuse requireAdmin() (an SWR_ADMIN_EMAILS
 // allow-list over the magic-link session) instead of inventing a parallel
@@ -53,13 +53,14 @@ export default async function handler(req, res) {
   // createUser is the get-or-create: it returns the existing record when the
   // email is already known (idempotent, same as auth sign-in).
   const user = await createUser({ email });
-  const result = await grantSlots({
-    userId: user.id,
-    email,
-    slots,
-    source: 'admin-grant',
-    note: typeof body.note === 'string' ? body.note : null,
-  });
+    const result = await grantSlots({
+      userId: user.id,
+      email,
+      slots,
+      source: 'admin-grant',
+      paid: true,
+      note: typeof body.note === 'string' ? body.note : null,
+    });
 
   return sendJson(res, 200, {
     ok: true,

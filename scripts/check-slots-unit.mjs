@@ -27,6 +27,7 @@ process.env.SWRC_DATA_DIR = TMP;
 
 const db = await import('../api/_lib/db.js');
 const slots = await import('../api/_lib/slots.js');
+const pt = await import('../api/_lib/pt-keys.js');
 
 let failed = 0;
 function test(name, fn) {
@@ -132,23 +133,23 @@ await test('userId guard: path builders reject traversal-shaped ids', async () =
 });
 
 // --- register flow ---
-await test('register flow: 30-slot grant registers 30, registration is trial:true', async () => {
+await test('register flow: a paid 30-slot grant registers 30, registration is trial:false', async () => {
   const user = await db.createUser({ email: 'erin@example.com' });
-  await slots.grantSlots({ userId: user.id, email: 'erin@example.com', slots: 30 });
+    await slots.grantSlots({ userId: user.id, email: 'erin@example.com', slots: 30, paid: true });
   const { registration, state } = await slots.registerVideos({ userId: user.id, count: 30 });
 
   assert.equal(state.registered, 30);
   assert.equal(state.totalSlots, 30);
   assert.equal(state.granted, 1);
   assert.equal(registration.count, 30);
-  assert.equal(registration.trial, true, 'registrations are trial-marked until Stripe lands');
+    assert.equal(registration.trial, false, 'payment-verified — the TOGGLE is closed');
   const audit = join(TMP, 'slots', 'registrations', user.id, `${registration.id}.json`);
   assert.ok(existsSync(audit), 'audit registration file should exist');
 });
 
 await test('register flow: two batches accumulate in registered', async () => {
   const user = await db.createUser({ email: 'frank@example.com' });
-  await slots.grantSlots({ userId: user.id, email: 'frank@example.com', slots: 50 });
+    await slots.grantSlots({ userId: user.id, email: 'frank@example.com', slots: 50, paid: true });
   await slots.registerVideos({ userId: user.id, count: 10 });
   const { state } = await slots.registerVideos({ userId: user.id, count: 30 });
   assert.equal(state.registered, 40, '10 + 30 registered');
@@ -157,7 +158,7 @@ await test('register flow: two batches accumulate in registered', async () => {
 
 await test('quota wall: over-quota registration is rejected and state is untouched', async () => {
   const user = await db.createUser({ email: 'grace@example.com' });
-  await slots.grantSlots({ userId: user.id, email: 'grace@example.com', slots: 30 });
+    await slots.grantSlots({ userId: user.id, email: 'grace@example.com', slots: 30, paid: true });
   await slots.registerVideos({ userId: user.id, count: 10 });
   await assert.rejects(
     () => slots.registerVideos({ userId: user.id, count: 30 }),
@@ -188,16 +189,16 @@ await test('register only enforces quota server-side (a client count is never tr
   const user = await db.createUser({ email: 'iris@example.com' });
   await assert.rejects(() => slots.registerVideos({ userId: user.id, count: 999 }), /invalid count/);
   const user2 = await db.createUser({ email: 'iris2@example.com' });
-  await slots.grantSlots({ userId: user2.id, email: 'iris2@example.com', slots: 10 });
+    await slots.grantSlots({ userId: user2.id, email: 'iris2@example.com', slots: 10, paid: true });
   await assert.rejects(() => slots.registerVideos({ userId: user2.id, count: 50 }), slots.SlotQuotaError);
 });
 
 // --- listing + sync payload ---
 await test('listGrants / listRegistrations return newest-first per user', async () => {
   const user = await db.createUser({ email: 'jane@example.com' });
-  await slots.grantSlots({ userId: user.id, email: 'jane@example.com', slots: 10 });
+    await slots.grantSlots({ userId: user.id, email: 'jane@example.com', slots: 10, paid: true });
   await new Promise((r) => setTimeout(r, 5)); // distinct createdAt ordering
-  await slots.grantSlots({ userId: user.id, email: 'jane@example.com', slots: 30 });
+    await slots.grantSlots({ userId: user.id, email: 'jane@example.com', slots: 30, paid: true });
   await slots.registerVideos({ userId: user.id, count: 10 });
   await new Promise((r) => setTimeout(r, 5));
   await slots.registerVideos({ userId: user.id, count: 10 });
@@ -215,7 +216,7 @@ await test('listGrants / listRegistrations return newest-first per user', async 
 
 await test('syncPayload returns the PT-panel contract', async () => {
   const user = await db.createUser({ email: 'kai@example.com' });
-  await slots.grantSlots({ userId: user.id, email: 'kai@example.com', slots: 30 });
+    await slots.grantSlots({ userId: user.id, email: 'kai@example.com', slots: 30, paid: true });
   await slots.registerVideos({ userId: user.id, count: 10 });
   const payload = await slots.syncPayload(user);
   assert.deepEqual(
@@ -230,7 +231,8 @@ await test('syncPayload returns the PT-panel contract', async () => {
     { email: 'kai@example.com', totalSlots: 30, granted: 1, registered: 10, remaining: 20, grantsLen: 1 },
     'sync payload shape'
   );
-  assert.equal(payload.grants[0].paid, false, 'grants carry paid:false until Stripe');
+    assert.equal(payload.grants[0].paid, true, 'paid grant');
+    assert.equal(payload.paidSlots, 30, 'paidSlots is exposed');
 });
 
 await test('state defaults to zeros for a user with no grants', async () => {
@@ -245,8 +247,87 @@ await test('state defaults to zeros for a user with no grants', async () => {
   assert.deepEqual(payload.grants, []);
 });
 
-// Cleanup
-rmSync(TMP, { recursive: true, force: true });
+  // --- PT entitlement wiring (D4: the closed TOGGLE + webhook fulfilment) ---
+  await test('toggle closed: unpaid grants never back a registration', async () => {
+    const user = await db.createUser({ email: 'paula@example.com' });
+    await slots.grantSlots({ userId: user.id, email: 'paula@example.com', slots: 30 });
+    await assert.rejects(
+      () => slots.registerVideos({ userId: user.id, count: 10 }),
+      (e) => {
+        assert.ok(e instanceof slots.SlotQuotaError, 'expected SlotQuotaError');
+        assert.equal(e.state.paidSlots, 0, 'unpaid balance does not count');
+        return true;
+      }
+    );
+    await slots.grantSlots({ userId: user.id, email: 'paula@example.com', slots: 10, paid: true });
+    const { registration, state } = await slots.registerVideos({ userId: user.id, count: 10 });
+    assert.equal(registration.trial, false);
+    assert.equal(state.paidSlots, 10);
+    assert.equal(state.registered, 10);
+    assert.equal(state.totalSlots, 40, 'the unpaid balance stays on the books');
+  });
+
+  await test('syncPayload exposes paidSlots alongside totalSlots', async () => {
+    const user = await db.createUser({ email: 'quinn@example.com' });
+    await slots.grantSlots({ userId: user.id, email: 'quinn@example.com', slots: 10 });
+    await slots.grantSlots({ userId: user.id, email: 'quinn@example.com', slots: 30, paid: true });
+    const payload = await slots.syncPayload(user);
+    assert.equal(payload.totalSlots, 40);
+    assert.equal(payload.paidSlots, 30);
+    assert.equal(payload.remaining, 30);
+  });
+
+  await test('mintPtKey: format + unambiguous alphabet, tier-scoped', () => {
+    const solo = pt.mintPtKey('solo');
+    assert.match(solo, pt.PT_KEY_RE);
+    assert.ok(solo.startsWith('swr-solo-'));
+    const seen = new Set();
+    for (let i = 0; i < 50; i++) seen.add(pt.mintPtKey('band'));
+    assert.equal(seen.size, 50, 'keys are unique');
+    assert.throws(() => pt.mintPtKey('pro'), /unknown tier/);
+  });
+
+  await test('fulfillPtPurchase: grants PAID slots + mints a key; replay is idempotent', async () => {
+    const user = await db.createUser({ email: 'rita@example.com' });
+    const first = await pt.fulfillPtPurchase({
+      tier: 'solo', userId: user.id, email: 'rita@example.com', sessionId: 'cs_test_rita_1',
+    });
+    assert.ok(first && first.key && pt.PT_KEY_RE.test(first.key));
+    assert.equal(first.slots, 10);
+
+    const grants = await slots.listGrants(user.id);
+    assert.equal(grants.length, 1, 'exactly one grant');
+    assert.equal(grants[0].paid, true);
+    assert.equal(grants[0].slots, 10);
+    assert.equal(grants[0].orderId, 'cs_test_rita_1');
+    assert.equal(grants[0].ptKey, first.key);
+
+    const { state } = await slots.registerVideos({ userId: user.id, count: 10 });
+    assert.equal(state.registered, 10, 'the paid grant backs the registration');
+
+    const again = await pt.fulfillPtPurchase({
+      tier: 'solo', userId: user.id, email: 'rita@example.com', sessionId: 'cs_test_rita_1',
+    });
+    assert.equal(again.key, first.key, 'replay returns the same key');
+    assert.equal((await slots.listGrants(user.id)).length, 1, 'no second grant');
+    assert.equal((await pt.listPtKeysForUser(user.id)).length, 1, 'no second key row');
+  });
+
+  await test('fulfillPtPurchase: unknown tier / unresolvable email → null, nothing written', async () => {
+    const user = await db.createUser({ email: 'sam@example.com' });
+    assert.equal(
+      await pt.fulfillPtPurchase({ tier: 'pro', userId: user.id, email: 'sam@example.com', sessionId: 'cs_x' }),
+      null
+    );
+    assert.equal(
+      await pt.fulfillPtPurchase({ tier: 'solo', userId: 'deadbeefdeadbeef', email: null, sessionId: 'cs_y' }),
+      null
+    );
+    assert.equal((await slots.listGrants(user.id)).length, 0);
+  });
+
+  // Cleanup
+  rmSync(TMP, { recursive: true, force: true });
 
 console.log(failed === 0 ? '\nALL GREEN' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);
