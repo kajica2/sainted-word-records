@@ -28,7 +28,7 @@ The whole thing runs in the browser. No upload, no install, no server. Export th
 ## How to try it
 
 1. Open https://sainted-word-records.vercel.app/landing.html
-2. Click **OPEN ENGINE**
+2. Click **Open the engine**
 3. Drop a song file
 4. Drop a folder of clips (or use the seeded library)
 5. Hit play
