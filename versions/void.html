@@ -773,7 +773,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       }
       if (a.type==='video' && src.readyState<2) return;
       if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
-      const r = applyR(l);
+      const r = SWR_RENDER.imageEvolve(l, applyR(l));
       ctx.save();
       ctx.globalCompositeOperation = l.blend || 'screen';
       ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);

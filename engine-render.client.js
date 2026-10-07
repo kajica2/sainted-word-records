@@ -293,10 +293,45 @@
   //                  using CSS-pixel coordinates (we already scaled)
   //   bgColor      — optional override; falls back to state.bgColor
   //   extraDraws   — array of () => {} called after layers but before meter
+  // Image evolution — stills drift like video layers play. A seeded Ken Burns
+  // (zoom + pan) applied to every image layer's reactive result; the clock
+  // accumulates only while the song plays, so a paused song freezes photos
+  // exactly like it pauses a video. Phase is a name hash — stacked photos
+  // never drift in lockstep. Pure math on numbers the draw already uses.
+  function imageEvolve(l, r) {
+    const a = l && l.asset;
+    if (!a || a.type !== 'image' || !r) return r;
+    const now = performance.now();
+    const playing = !!(window.SWR && window.SWR.Audio && window.SWR.Audio.playing);
+    if (playing) {
+      a._kbT = (a._kbT || 0) + (now - (a._kbLast == null ? now : a._kbLast)) / 1000;
+    }
+    a._kbLast = now;
+    if (a._kbSeed == null) {
+      const key = String(a.name || a.url || 'img');
+      let h = 2166136261;
+      for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = (h * 16777619) >>> 0; }
+      a._kbSeed = (h % 6283) / 1000; // 0..2π
+    }
+    const ph = a._kbSeed;
+    const tt = a._kbT || 0;
+    const z = 1 + 0.045 * (0.5 + 0.5 * Math.sin(tt * 0.10 + ph));
+    const px = 0.020 * Math.sin(tt * 0.061 + ph * 1.7);
+    const py = 0.014 * Math.cos(tt * 0.083 + ph * 2.3);
+    const sw = (state._stage && state._stage.width) || 1280;
+    const sh = (state._stage && state._stage.height) || 720;
+    return Object.assign({}, r, {
+      scale: (r.scale || 1) * z,
+      x: (r.x || 0) + px * sw,
+      y: (r.y || 0) + py * sh,
+    });
+  }
+
   function frame(stage, ctx, layers, applyR, drawToCtx, opts) {
     opts = opts || {};
     const bg = opts.bgColor || state.bgColor;
-    if (state.dirty) fit(stage);
+      if (state.dirty) fit(stage);
+      state._stage = stage;
 
     // Clear in device pixels (ctx may have a transform from last frame).
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -336,7 +371,7 @@
     for (let i = 0; i < layers.length; i++) {
       try {
         const l = layers[i];
-        let r = applyR(l);
+          let r = imageEvolve(l, applyR(l));
         // Fade stepper: if a crossfade is in flight and currentOpacity has
         // crossed below the midpoint threshold, swap the asset under the
         // curtain. The fade continues drawing the new asset at rising
@@ -469,6 +504,8 @@
   // ---- public ----------------------------------------------------------
 
   window.SWR_RENDER = {
+    // Seeded Ken Burns drift for image layers — see imageEvolve().
+    imageEvolve,
     fit, frame, invalidate, setBackground, setDprCap, setAutoDpr, devicePixelRatio,
     get dpr() { return state.dpr; },
     get cssW() { return state.cssW; },

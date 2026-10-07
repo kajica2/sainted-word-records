@@ -3945,7 +3945,27 @@
         }
         cx.restore();
       },
-      drawPaletteOverlay(cx) {
+        // Beat-advance for photo sets (see the loop). Finds the featured
+        // (top) layer; if it is an image and the library holds 2+ images,
+        // swaps to the next photo with the engine's crossfade.
+        advancePhotoSet() {
+          const L = window.Layers;
+          if (!L || !Array.isArray(L.list) || !L.list.length) return;
+          const top = L.list.slice().sort((a, b) => (a.z || 0) - (b.z || 0)).pop();
+          if (!top || !top.asset || top.asset.type !== 'image') return;
+          const lib = (window.Library && Array.isArray(window.Library.items)) ? window.Library.items : [];
+          const images = lib.filter((it) => it && it.type === 'image' && it.url);
+          if (images.length < 2) return;
+          let idx = images.findIndex((it) => it.id === top.asset.id);
+          idx = (idx + 1) % images.length;
+          const next = images[idx];
+          const timing = window.SWR_TIMING;
+          if (timing && typeof timing.crossfade === 'function') {
+            timing.crossfade(top, next, { fadeOutMs: 300, fadeInMs: 380 });
+            if (typeof L.render === 'function') L.render();
+          }
+        },
+        drawPaletteOverlay(cx) {
         // Soft vignette + palette tint based on centroid
         const c = Audio.feat.centroid;
         const w = cx.canvas.width, h = cx.canvas.height;
@@ -4228,12 +4248,22 @@
         if (Recorder.recording) {
           this.drawRecordingOverlay(cx);
         }
-        // DOM flash
-        if (Audio.feat.beat > 0.3) {
-          stageFlash.style.opacity = String(Audio.feat.beat * 0.4);
-        } else {
-          stageFlash.style.opacity = '0';
-        }
+          // DOM flash
+          if (Audio.feat.beat > 0.3) {
+            stageFlash.style.opacity = String(Audio.feat.beat * 0.4);
+          } else {
+            stageFlash.style.opacity = '0';
+          }
+          // Photo sets evolve like video sets: with 2+ image assets in the
+          // library and an image on top, each beat advances the featured clip
+          // to the next photo with the engine's own crossfade — a dropped set
+          // plays through like a video does. Videos/cameras are never
+          // hijacked; a paused song never advances.
+          const beatNow = !!(Audio.feat && Audio.feat.beatPulse);
+          if (Audio.playing && beatNow && !this._lastBeatPulse) {
+            try { this.advancePhotoSet(); } catch (_) {}
+          }
+          this._lastBeatPulse = beatNow;
         // End-of-frame hook: the natural-look pass (trail + rotating mirror,
         // lib/swr-natural.client.js) composites here so it always lands on the
         // finished frame. Drawing it from its own rAF raced this loop's
@@ -5298,7 +5328,7 @@
         });
         stageCanvas.addEventListener('pointerup', updateCursor);
       },
-      onSongEnd() {
+        onSongEnd() {
         Audio.pause();
       },
       updateTime() {
