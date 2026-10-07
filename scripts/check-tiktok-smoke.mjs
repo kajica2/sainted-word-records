@@ -74,7 +74,12 @@ try {
   page.on('console', (m) => { if (m.type() === 'error' && FATAL_FILTER(m.text())) consoleErrors.push(m.text()); });
   page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 
-  const resp = await page.goto(`http://127.0.0.1:${PORT}/tiktok.html`, { waitUntil: 'networkidle0', timeout: 30000 });
+  // domcontentloaded + an explicit wait for the stage, not networkidle0:
+  // networkidle0 needs zero in-flight requests for 500ms, and this page's
+  // media work keeps the network busy past the timeout on CI runners (the
+  // condition that made verify-automix / check:automix-smoke flaky).
+  const resp = await page.goto(`http://127.0.0.1:${PORT}/tiktok.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForSelector('#tt-stage', { timeout: 10000 }).catch(() => {});
   check('page loads', resp.status() === 200, `(${resp.status()})`);
   await new Promise((r) => setTimeout(r, 1200));
 
