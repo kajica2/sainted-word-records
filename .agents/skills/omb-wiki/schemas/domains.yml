@@ -1,0 +1,455 @@
+schema_version: 1
+sot_domains:
+  access-control:
+    subtypes: [reference]
+    path_segments: [access-control]
+    required_sections:
+      reference: [개요, 범위와 행위자, 리소스, 권한 및 capability 목록, 평가 및 강제 경로, 허용·거부·실패 정책, 코드 및 스키마 근거, 관련 API와 데이터]
+    features:
+      persistence:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [DB 스키마와 관계]}
+        evidence_fields: [document_features, sources]
+      composite_policy:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [우선순위와 충돌 규칙]}
+        evidence_fields: [document_features, sources]
+      mutation:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [감사와 회수]}
+        evidence_fields: [document_features, sources]
+      compatibility_change:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [마이그레이션]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      reference: [role/privilege/capability literals, resource names, policy symbols, table/column names, API paths]
+  api:
+    subtypes: [contract]
+    path_segments: [api]
+    required_sections:
+      contract: [개요, 엔드포인트 목록, 목적, 인증 및 인가, 경로·쿼리·헤더, 요청 본문, 성공 응답, 오류 응답, 구현 근거, 관련 시나리오와 데이터]
+    features:
+      pagination:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [페이지네이션]}
+        evidence_fields: [document_features, sources]
+      idempotency:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [멱등성]}
+        evidence_fields: [document_features, sources]
+      streaming:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [스트림 수명주기와 종료 오류]}
+        evidence_fields: [document_features, sources]
+      webhook:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [서명·재시도·순서]}
+        evidence_fields: [document_features, sources]
+      rate_limit:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [호출 제한]}
+        evidence_fields: [document_features, sources]
+      transaction:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [부수 효과와 트랜잭션]}
+        evidence_fields: [document_features, sources]
+      file_upload:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [파일 제한과 검증]}
+        evidence_fields: [document_features, sources]
+      s2s:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [서비스 경계]}
+        evidence_fields: [document_features, sources]
+      deprecation:
+        allowed_subtypes: [contract]
+        required_sections: {contract: [호환성과 폐기 일정]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      contract: [paths, methods, status codes, headers, JSON/schema fields, auth scopes, symbols]
+  architecture:
+    subtypes: [component, flow, overview]
+    path_segments: [architecture]
+    required_sections:
+      component: [역할, 책임 범위, 기술 구성, 인바운드, 아웃바운드, 상태와 데이터, 실패 경계, 사용 및 비사용 조건, 코드 근거, 관련 컴포넌트]
+      flow: [요약, 참여 컴포넌트, 선행 조건, 정상 흐름, 오류 흐름, 종료 조건, 시퀀스, 코드 근거]
+      overview: [목적과 범위, 시스템 컨텍스트, 컴포넌트 맵, 데이터 흐름, 배포 관점, 신뢰 경계, 핵심 불변식, 근거와 관련 문서]
+    features:
+      deployment:
+        allowed_subtypes: [component]
+        required_sections: {component: [배포 토폴로지]}
+        evidence_fields: [document_features, sources]
+      scaling:
+        allowed_subtypes: [component]
+        required_sections: {component: [확장과 한계]}
+        evidence_fields: [document_features, sources]
+      security_boundary:
+        allowed_subtypes: [component]
+        required_sections: {component: [신뢰 경계]}
+        evidence_fields: [document_features, sources]
+      streaming:
+        allowed_subtypes: [flow]
+        required_sections: {flow: [스트림 수명주기]}
+        evidence_fields: [document_features, sources]
+      retry:
+        allowed_subtypes: [flow]
+        required_sections: {flow: [재시도와 중복]}
+        evidence_fields: [document_features, sources]
+      interrupt:
+        allowed_subtypes: [flow]
+        required_sections: {flow: [중단과 재개]}
+        evidence_fields: [document_features, sources]
+      transaction:
+        allowed_subtypes: [flow]
+        required_sections: {flow: [일관성 경계]}
+        evidence_fields: [document_features, sources]
+      multi_region:
+        allowed_subtypes: [overview]
+        required_sections: {overview: [리전 경계]}
+        evidence_fields: [document_features, sources]
+      disaster_recovery:
+        allowed_subtypes: [overview]
+        required_sections: {overview: [복구 목표]}
+        evidence_fields: [document_features, sources]
+      legacy_bridge:
+        allowed_subtypes: [overview]
+        required_sections: {overview: [호환 경계]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      component: [component/service/package names, protocols, ports, symbols, paths, metrics]
+      flow: [flow IDs, component names, event names, protocols, status literals, symbols]
+      overview: [system/component names, protocols, stores, queues, regions, symbols]
+  db:
+    subtypes: [schema]
+    path_segments: [db]
+    required_sections:
+      schema: [개요와 활용처, 스키마 및 테이블 목록, 목적, 컬럼, 제약 조건, 인덱스, 관계, 읽기·쓰기 사용처, DDL·마이그레이션·ORM 근거]
+    features:
+      partitioning:
+        allowed_subtypes: [schema]
+        required_sections: {schema: [파티셔닝]}
+        evidence_fields: [document_features, sources]
+      retention:
+        allowed_subtypes: [schema]
+        required_sections: {schema: [보존 및 삭제]}
+        evidence_fields: [document_features, sources]
+      migration:
+        allowed_subtypes: [schema]
+        required_sections: {schema: [적용·롤백]}
+        evidence_fields: [document_features, sources]
+      lifecycle:
+        allowed_subtypes: [schema]
+        required_sections: {schema: [상태 수명주기]}
+        evidence_fields: [document_features, sources]
+      pii:
+        allowed_subtypes: [schema]
+        required_sections: {schema: [PII 및 암호화]}
+        evidence_fields: [document_features, sources]
+      query_pattern:
+        allowed_subtypes: [schema]
+        required_sections: {schema: [주요 쿼리와 인덱스 근거]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      schema: [schema/table/column/constraint/index names, SQL types, enum literals, ORM symbols, migration IDs]
+  environment:
+    subtypes: [reference]
+    path_segments: [environment]
+    required_sections:
+      reference: [관리 계약, 우선순위, 변수 목록, 이름, 목적, 타입과 허용값, 필수 여부, 기본값, 적용 서비스, 정의·소비 코드, 비밀 여부, 검증 및 실패 동작]
+    features:
+      secret:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [보안 및 회전]}
+        evidence_fields: [document_features, sources]
+      migration:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [이름 변경과 호환]}
+        evidence_fields: [document_features, sources]
+      environment_override:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [환경별 오버라이드]}
+        evidence_fields: [document_features, sources]
+      deprecated:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [폐기 일정]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      reference: [env var names, literal values, service names, config symbols, secret-store keys]
+  infrastructure:
+    subtypes: [reference]
+    path_segments: [infrastructure]
+    required_sections:
+      reference: [목적과 범위, 리소스 및 토폴로지, 설정 계약, 배포 순서, 상태와 영속성, 네트워크 및 보안 경계, 관측 지표, 장애 및 복구, IaC 근거]
+    features:
+      backup:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [백업과 복원]}
+        evidence_fields: [document_features, sources]
+      scaling:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [용량과 확장]}
+        evidence_fields: [document_features, sources]
+      migration:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [전환과 롤백]}
+        evidence_fields: [document_features, sources]
+      cost:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [비용 제약]}
+        evidence_fields: [document_features, sources]
+      multi_environment:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [환경별 차이]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      reference: [resource IDs, image/chart/module names, ports, paths, commands, env vars, metrics]
+  operations:
+    subtypes: [runbook]
+    path_segments: [operations]
+    required_sections:
+      runbook: [목적, 발동 조건, 사전 조건과 권한, 탐지, 대응 절차, 검증, 에스컬레이션, 롤백 또는 중단, 관련 대시보드와 코드]
+    features:
+      data_mutation:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [감사와 승인]}
+        evidence_fields: [document_features, sources]
+      destructive:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [백업과 복구]}
+        evidence_fields: [document_features, sources]
+      scheduled:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [일정과 소유자]}
+        evidence_fields: [document_features, sources]
+      customer_impact:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [사용자 공지]}
+        evidence_fields: [document_features, sources]
+      security_incident:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [증거 보존]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      runbook: [commands, queue/job names, alert/metric names, service/resource IDs, status literals]
+  redis:
+    subtypes: [reference, runbook]
+    path_segments: [redis]
+    required_sections:
+      reference: [목적, 키·채널·스트림 목록, 패턴, 자료형, 소유자, 생산자, 소비자, TTL·보존, 크기·카디널리티, 실패 정책, 코드 근거, 금지 사항]
+      runbook: [목적, 발동 조건, 접속 전제, 진단, 조치, 데이터 안전성, 검증, 롤백과 에스컬레이션, 근거]
+    features:
+      replay:
+        allowed_subtypes: [reference, runbook]
+        required_sections: {reference: [재생 범위], runbook: [재생과 중복 방지]}
+        evidence_fields: [document_features, sources]
+      cluster:
+        allowed_subtypes: [reference, runbook]
+        required_sections: {reference: [해시 슬롯과 클러스터], runbook: [노드별 절차]}
+        evidence_fields: [document_features, sources]
+      pii:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [민감정보]}
+        evidence_fields: [document_features, sources]
+      migration:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [키 버전 전환]}
+        evidence_fields: [document_features, sources]
+      destructive:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [백업과 승인]}
+        evidence_fields: [document_features, sources]
+      failover:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [장애 조치]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      reference: [key patterns, channel/stream/group names, command names, TTL literals, symbols]
+      runbook: [commands, key patterns, endpoints, node IDs, metrics, queue/stream names]
+  scenarios:
+    subtypes: [specification]
+    path_segments: [scenarios]
+    required_sections:
+      specification: [범위, 행위자와 권한, 선행 조건, ID, 유형, Given, When, Then, 오류·엣지 결과, 관련 API·화면·데이터, 근거, 추적성]
+    features:
+      async:
+        allowed_subtypes: [specification]
+        required_sections: {specification: [대기와 완료]}
+        evidence_fields: [document_features, sources]
+      retry:
+        allowed_subtypes: [specification]
+        required_sections: {specification: [재시도]}
+        evidence_fields: [document_features, sources]
+      resume:
+        allowed_subtypes: [specification]
+        required_sections: {specification: [중단과 재개]}
+        evidence_fields: [document_features, sources]
+      permission_denied:
+        allowed_subtypes: [specification]
+        required_sections: {specification: [권한 거부]}
+        evidence_fields: [document_features, sources]
+      data_loss_risk:
+        allowed_subtypes: [specification]
+        required_sections: {specification: [입력 보존]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      specification: [scenario IDs, route names, API paths, source-literal UI labels, role/capability names, status literals]
+  security:
+    subtypes: [policy, architecture, runbook, reference]
+    path_segments: [security]
+    required_sections:
+      policy: [개요, 보호 자산, 위협과 적용 범위, 정책, 강제 지점, 허용·거부·장애 정책, 감사, 검증 근거, 예외와 확인 필요 사항]
+      architecture: [개요, 신뢰 경계, 행위자와 자산, 인증 흐름, 인가 흐름, 토큰·세션 수명주기, 실패 정책, 감사, 코드 근거, 관련 위협]
+      runbook: [목적, 발동 조건, 증거 보존, 격리, 조사, 복구, 검증, 공지와 에스컬레이션, 근거]
+      reference: [목적, 보안 제어 목록, 설정, 강제 지점, 실패 동작, 관측과 감사, 검증 근거, 관련 정책]
+    features:
+      rate_limit:
+        allowed_subtypes: [policy]
+        required_sections: {policy: [호출 제한]}
+        evidence_fields: [document_features, sources]
+      encryption:
+        allowed_subtypes: [policy]
+        required_sections: {policy: [암호화와 키 관리]}
+        evidence_fields: [document_features, sources]
+      cors:
+        allowed_subtypes: [policy]
+        required_sections: {policy: [Origin 정책]}
+        evidence_fields: [document_features, sources]
+      token:
+        allowed_subtypes: [policy]
+        required_sections: {policy: [토큰 수명주기]}
+        evidence_fields: [document_features, sources]
+      pii:
+        allowed_subtypes: [policy]
+        required_sections: {policy: [개인정보]}
+        evidence_fields: [document_features, sources]
+      s2s:
+        allowed_subtypes: [architecture]
+        required_sections: {architecture: [서비스 인증]}
+        evidence_fields: [document_features, sources]
+      rotation:
+        allowed_subtypes: [architecture]
+        required_sections: {architecture: [회전]}
+        evidence_fields: [document_features, sources]
+      federation:
+        allowed_subtypes: [architecture]
+        required_sections: {architecture: [외부 IdP]}
+        evidence_fields: [document_features, sources]
+      recovery:
+        allowed_subtypes: [architecture]
+        required_sections: {architecture: [복구 경로]}
+        evidence_fields: [document_features, sources]
+      credential_compromise:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [자격 증명 폐기]}
+        evidence_fields: [document_features, sources]
+      data_exposure:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [노출 범위]}
+        evidence_fields: [document_features, sources]
+      active_attack:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [차단]}
+        evidence_fields: [document_features, sources]
+      forensics:
+        allowed_subtypes: [runbook]
+        required_sections: {runbook: [증거 체인]}
+        evidence_fields: [document_features, sources]
+      dependency:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [버전과 취약점]}
+        evidence_fields: [document_features, sources]
+      header:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [보안 헤더]}
+        evidence_fields: [document_features, sources]
+      input_validation:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [입력 경계]}
+        evidence_fields: [document_features, sources]
+      secret:
+        allowed_subtypes: [reference]
+        required_sections: {reference: [비밀 관리]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      policy: [auth scopes, roles, headers, algorithms, claims, secret/env names, symbols]
+      architecture: [claims, scopes, algorithms, headers, token/session fields, service names, symbols]
+      runbook: [commands, incident IDs, log fields, secret names, service/resource IDs, metrics]
+      reference: [control IDs, config keys, headers, algorithms, package names/versions, symbols]
+governance_schemas:
+  governance:
+    subtypes: [adr, lesson, constraint, feature, note]
+    path_segments: [adrs, lessons, constraints, features, notes]
+    required_sections:
+      adr: [요약, 상태, 맥락, 결정, 근거, 결과, 검증 가능한 출처]
+      lesson: [요약, 발생 조건, 관찰된 증상, 근본 원인, 재발 방지 계약, 적용 범위, 검증 가능한 출처]
+      constraint: [요약, 적용 범위, 제약, 근거, 허용 예외, 검증 방법, 관련 구현]
+      feature: [요약, 사용자 결과, 범위, 동작 계약, 실패 동작, 구현 근거, 검증]
+      note: [요약, 목적, 확인된 사실, 확인 필요 사항, 출처]
+    features:
+      supersedes:
+        allowed_subtypes: [adr]
+        required_sections: {adr: [대체 대상]}
+        evidence_fields: [document_features, sources]
+      deferred:
+        allowed_subtypes: [adr]
+        required_sections: {adr: [재검토 조건]}
+        evidence_fields: [document_features, sources]
+      migration:
+        allowed_subtypes: [adr]
+        required_sections: {adr: [전환과 롤백]}
+        evidence_fields: [document_features, sources]
+      module_gotcha:
+        allowed_subtypes: [lesson]
+        required_sections: {lesson: [대상 모듈]}
+        evidence_fields: [document_features, sources]
+      cross_cutting:
+        allowed_subtypes: [lesson]
+        required_sections: {lesson: [적용 워크플로]}
+        evidence_fields: [document_features, sources]
+      failed_approach:
+        allowed_subtypes: [lesson]
+        required_sections: {lesson: [피해야 할 접근]}
+        evidence_fields: [document_features, sources]
+      security:
+        allowed_subtypes: [constraint]
+        required_sections: {constraint: [위협과 강제 지점]}
+        evidence_fields: [document_features, sources]
+      compatibility:
+        allowed_subtypes: [constraint]
+        required_sections: {constraint: [호환 경계]}
+        evidence_fields: [document_features, sources]
+      temporary:
+        allowed_subtypes: [constraint]
+        required_sections: {constraint: [만료와 재검토]}
+        evidence_fields: [document_features, sources]
+      breaking_change:
+        allowed_subtypes: [feature]
+        required_sections: {feature: [호환성과 전환]}
+        evidence_fields: [document_features, sources]
+      configuration:
+        allowed_subtypes: [feature]
+        required_sections: {feature: [설정 계약]}
+        evidence_fields: [document_features, sources]
+      workflow:
+        allowed_subtypes: [feature]
+        required_sections: {feature: [상태 전이]}
+        evidence_fields: [document_features, sources]
+      research:
+        allowed_subtypes: [note]
+        required_sections: {note: [검토 범위와 결론]}
+        evidence_fields: [document_features, sources]
+      feedback:
+        allowed_subtypes: [note]
+        required_sections: {note: [제안과 승인 상태]}
+        evidence_fields: [document_features, sources]
+      scratch:
+        allowed_subtypes: [note]
+        required_sections: {note: [폐기 조건]}
+        evidence_fields: [document_features, sources]
+    protected_identifier_classes:
+      adr: [ADR IDs, status literals, paths, symbols, commands]
+      lesson: [paths, symbols, error/status literals, commands]
+      constraint: [rule IDs, paths, symbols, enum literals, commands]
+      feature: [feature/status IDs, paths, symbols, env vars, API/CLI literals]
+      note: [paths, symbols, product names, command/output literals]

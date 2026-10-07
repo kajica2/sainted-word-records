@@ -105,3 +105,19 @@ export async function writeInvite(code, value) {
 export async function deleteInvite(code) {
   return kvDel(inviteKey(code));
 }
+
+// Email → code index. Batch grants write one entry per email so a re-run of
+// the same list is idempotent (the existing code is reused instead of a new
+// one being minted). The schema marker covers the invite *entry* shape only;
+// this index key is additive and does not change that shape.
+export function emailIndexKey(email) {
+  return `invite:email:${String(email).trim().toLowerCase()}`;
+}
+
+export async function readEmailIndex(email) {
+  return kvGet(emailIndexKey(email));
+}
+
+export async function writeEmailIndex(email, code) {
+  return kvSet(emailIndexKey(email), code);
+}

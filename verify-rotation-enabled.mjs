@@ -65,7 +65,11 @@ try {
   browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
   const page = await browser.newPage();
   page.on('pageerror', (err) => process.stderr.write(`[page error] ${err.message}\n`));
-  await page.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'networkidle0', timeout: 30000 });
+  // domcontentloaded, not networkidle0: engine.html auto-loads and streams
+  // its demo track, so the network never idles — the condition that made
+  // verify-automix / check:automix-smoke flaky on CI runners. The
+  // waitForFunction below is the real readiness gate.
+  await page.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
   // Wait until the engine has attached window.SWR with the Renderer + Layers.
   await page.waitForFunction(

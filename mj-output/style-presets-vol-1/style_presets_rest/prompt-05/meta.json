@@ -1,0 +1,16 @@
+{
+  "index": 5,
+  "prompt": "Abstract study rendered in a broad neon wash flooding the frame, magenta-to-cyan gradient bloom, soft glow, no hard lines — PRACTITIONER NEON WASH study --style raw --s 250 --ar 16:9",
+  "taskId": "0629f99f-3e71-40a8-9f57-bb083d63b8d0",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/0629f99f-3e71-40a8-9f57-bb083d63b8d0/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0629f99f-3e71-40a8-9f57-bb083d63b8d0/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0629f99f-3e71-40a8-9f57-bb083d63b8d0/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/0629f99f-3e71-40a8-9f57-bb083d63b8d0/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:24:50.902Z",
+  "complete": true
+}

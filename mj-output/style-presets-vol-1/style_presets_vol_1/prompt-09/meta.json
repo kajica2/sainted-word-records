@@ -1,0 +1,16 @@
+{
+  "index": 9,
+  "prompt": "Abstract study rendered with atmospheric smoke and haze, volumetric light shafts, soft diffusion, low contrast — CROSS SMOKE study --style raw --s 250 --ar 16:9",
+  "taskId": "8aa100c4-4657-4e65-8297-9d15450a3aa7",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/8aa100c4-4657-4e65-8297-9d15450a3aa7/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/8aa100c4-4657-4e65-8297-9d15450a3aa7/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/8aa100c4-4657-4e65-8297-9d15450a3aa7/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/8aa100c4-4657-4e65-8297-9d15450a3aa7/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:23:15.539Z",
+  "complete": true
+}

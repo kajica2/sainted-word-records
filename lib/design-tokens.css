@@ -22,6 +22,8 @@
   --accent-3: #1c8c64;
   --hot: #e6306b;
   --cool: #0085b3;
+  --warn: #d97706;
+  --ok: #1c8c64;
 
   /* Code/terminal palette */
   --code-bg: #1a1612;
@@ -78,6 +80,8 @@
   --accent-3: #00ffa3;
   --hot: #ff2d8a;
   --cool: #00e5ff;
+  --warn: #ffaa3a;
+  --ok: #00ffa3;
   --code-bg: #0a0805;
   --code-ink: #f5ead8;
   --code-line: #1d1815;
@@ -85,6 +89,39 @@
   --code-key: #ffaa3a;
   --code-str: #00ffa3;
   --code-fn: #ff2d8a;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
+  --shadow-3: 0 4px 16px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+/* === STUDIO THEME — full-viewport apps (engine, dashboard, enhance, photo, make-video, spit, ar-gif, tiktok, swr-app) === */
+[data-theme="studio"] {
+  --bg: #050308;
+  --bg-2: #0d0918;
+  --bg-3: #1a1028;
+  --panel: #11091a;
+  --panel-2: #1a1028;
+  --line: #2a1d3a;
+  --line-2: #3a2a4a;
+  --ink: #f5e9ff;
+  --ink-2: #d4c5e8;
+  --muted: #9a8aaa;
+  --dim: #5a4a6a;
+  --accent: #ff3d92;
+  --accent-2: #00e5ff;
+  --accent-3: #ffd24a;
+  --warn: #ff7a3d;
+  --ok: #00ffa3;
+  --hot: #ff3d92;
+  --cool: #00e5ff;
+  --code-bg: #050308;
+  --code-ink: #f5e9ff;
+  --code-line: #1a1028;
+  --code-comment: #6a5d8a;
+  --code-key: #00e5ff;
+  --code-str: #00ffa3;
+  --code-fn: #ff3d92;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
   --shadow-3: 0 4px 16px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.6);

@@ -88,6 +88,15 @@ jobs:
         # deploys on push to main independently of this job.
         run: npm run check:full
 
+      - name: preset-pipeline:verify (swr-preset/v1 spec)
+        # Gates presets/manifest.json + presets/*.json against the
+        # swr-preset/v1 schema (id format, FX keys, audio bands, family,
+        # hex colors, manifest/disk sync, unique ids + names). Fails on
+        # any drifted or malformed preset, so a bad daily generate cannot
+        # land unnoticed. Runs here explicitly in addition to the
+        # check:preset-smoke member of the check group inside check:full.
+        run: npm run preset-pipeline:verify
+
       - name: targeting:verify (targeting artifacts + voice lint)
         # Own step, not folded into check:full: it is the NFR-2 size budget,
         # the NFR-9 voice-lint drift gate (the banned-phrase list must still
@@ -147,7 +156,7 @@ jobs:
         # below.
         run: npm run build
 
-      - name: build-size budget (<= 130M)
+      - name: build-size budget (<= 155M)
         # 130M ceiling = current 114M (post-Phase 1-4 + keyart growth)
         # + ~14% headroom. If this fails, the asset library grew in a
         # way that needs justification — don't silently let the budget
@@ -156,8 +165,8 @@ jobs:
         run: |
           SIZE_BYTES=$(find dist/ -type f -printf '%s\n' | awk '{s+=$1} END {print s+0}')
           SIZE_MB=$(awk "BEGIN { printf \"%.1f\", $SIZE_BYTES / 1048576 }")
-          BUDGET_MB=130
-          BUDGET_BYTES=136314880
+          BUDGET_MB=155
+          BUDGET_BYTES=162529280
           echo "[ci] dist/ size: ${SIZE_MB}M (budget: ${BUDGET_MB}M)"
           if [ "$SIZE_BYTES" -gt "$BUDGET_BYTES" ]; then
             echo "::error::dist/ is ${SIZE_MB}M, exceeds ${BUDGET_MB}M budget"

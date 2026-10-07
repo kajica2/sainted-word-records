@@ -18,6 +18,9 @@
 //     bpm, onset count — a song's arc is its signature, not a random walk).
 //   arc.sampleAt(currentTime) → { actIndex, actProgress, anchorId, coords,
 //                                 preset, rampMs } | null
+//   arc.tick(currentTime) → same shape as sampleAt(); the stateful entry the
+//     runtime glide clock calls. Fires the inter-act transition
+//     (window.SWRTransitions.fire) the first tick an act boundary is crossed.
 //   arc.acts → [{ t0, t1, anchorId, coords, preset, rampMs }]
 //
 // Movement budget: consecutive acts must differ by ≥ ARC_MIN_DISPLACEMENT
@@ -28,6 +31,18 @@
   'use strict';
 
   if (window.SWR_AUTOMIX_ARC && window.SWR_AUTOMIX_ARC.__loaded) return;
+
+  // Load transitions module — act-boundary transitions reuse the same
+  // vocabulary the manual transition panel fires. Idempotent (the module
+  // self-guards) and deferred, so a page that never advances an act never
+  // pays for it. Absolute path: works from root pages and nested routes
+  // alike (matches the /audio-analysis-v2.js convention below).
+  if (typeof window !== 'undefined' && typeof document !== 'undefined' && !window.SWRTransitions) {
+    var txScript = document.createElement('script');
+    txScript.src = '/engine-transitions.client.js';
+    txScript.defer = true;
+    document.head.appendChild(txScript);
+  }
 
   // Deterministic PRNG (mulberry32) — tiny, seedable, no deps.
   function mulberry32(seed) {
@@ -176,7 +191,7 @@
       }
       if (!chosen) chosen = nn[nn.length - 1]; // farthest of the 6
       if (!chosen || !chosen.anchor) return null;
-      prev = { coords: chosen.anchor };
+      prev = { coords: { ...chosen.anchor } };
 
       // Baseline: anchor preset pulled toward the archetype's full-range
       // targets (50/50) — louder acts genuinely reach the top of the dial.
@@ -235,11 +250,62 @@
     return { actIndex: acts.length - 1, actCount: acts.length, actName: last.name, actProgress: 1, anchorId: last.anchorId, coords: last.coords, preset: last.preset, rampMs: last.rampMs };
   }
 
+  // ---- Act-boundary transitions ---------------------------------------
+  // sampleAt() stays a pure read (the debug HUD and the arc unit tests call
+  // it); tick() is the stateful entry the runtime glide clock drives. It
+  // samples, and the first tick an act boundary is crossed fires the
+  // inter-act transition. Tracking lives on the arc object, so a rebuilt
+  // arc (new song) arms fresh with no extra bookkeeping.
+  function pickTransition(warmth, intensity) {
+    if (warmth < 0.3 || intensity < 0.3) {
+      var subtle = ['fade-to-black', 'cross-dissolve', 'warp-dissolve'];
+      return subtle[Math.floor(Math.random() * subtle.length)];
+    }
+    var dynamic = ['glitch-burst', 'chromatic-split', 'circle-wipe', 'linear-wipe-lr', 'vhs-tracking'];
+    return dynamic[Math.floor(Math.random() * dynamic.length)];
+  }
+
+  // The plan's picker names 'cross-dissolve'; the shipped vocabulary calls
+  // the same beat 'pure-crossfade'. Normalize so a subtle pick never
+  // resolves to an unknown name (fire() rejects those).
+  var TRANSITION_ALIASES = { 'cross-dissolve': 'pure-crossfade' };
+
+  function fireActTransition(sample) {
+    var tx = (typeof window !== 'undefined') && window.SWRTransitions;
+    if (!tx || typeof tx.fire !== 'function') return;
+    var coords = sample.coords || {};
+    var name = pickTransition(coords.warmth, coords.intensity);
+    if (TRANSITION_ALIASES[name]) name = TRANSITION_ALIASES[name];
+    var catalog = tx._TRANSITIONS;
+    if (catalog && !catalog[name]) return; // unknown → skip, never reject
+    try {
+      // fire() serializes its own queue; a missing asset or unknown name
+      // must never break the arc tick.
+      var p = tx.fire(name, { _src: 'automix-arc' });
+      if (p && typeof p.catch === 'function') p.catch(function () {});
+    } catch (_) { /* ignore */ }
+  }
+
+  function tick(arc, currentTime) {
+    var sample = sampleAt(arc, currentTime);
+    if (!sample) return sample;
+    if (arc._lastActIndex == null) {
+      arc._lastActIndex = sample.actIndex; // first sample arms tracking
+      return sample;
+    }
+    if (sample.actIndex !== arc._lastActIndex) {
+      arc._lastActIndex = sample.actIndex;
+      fireActTransition(sample);
+    }
+    return sample;
+  }
+
   window.SWR_AUTOMIX_ARC = {
     __loaded: true,
     ARC_MIN_DISPLACEMENT: ARC_MIN_DISPLACEMENT,
     build: build,
     sampleAt: sampleAt,
+    tick: tick,
     // Generic analysis for pages whose Audio object lacks .analyzeFull
     // (the variant stubs, e.g. tape). Ensures audio-analysis-v2.js is
     // loaded (variants don't ship it), fetches the element's src (blob

@@ -1,0 +1,16 @@
+{
+  "index": 8,
+  "prompt": "Abstract study rendered as morpha fracture, a form shattering into suspended faceted shards mid-morph, broken symmetry — AUDITOR MORPHA FRACTURE study --style raw --s 250 --ar 16:9",
+  "taskId": "f6f47d96-3776-45a3-9180-9e8de5f38903",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/f6f47d96-3776-45a3-9180-9e8de5f38903/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f6f47d96-3776-45a3-9180-9e8de5f38903/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f6f47d96-3776-45a3-9180-9e8de5f38903/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/f6f47d96-3776-45a3-9180-9e8de5f38903/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:25:44.628Z",
+  "complete": true
+}

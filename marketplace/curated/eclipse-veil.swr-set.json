@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "00000000-0000-4000-8000-000000000008",
+  "name": "Eclipse · Veil",
+  "author": "SWR",
+  "description": "Deep vignette and warm grain over a heavy bloom. For slow builds, dark techno and anything that wants to feel lit from behind.",
+  "tags": [
+    "dark",
+    "eclipse",
+    "grain",
+    "slow-build"
+  ],
+  "createdAt": "2026-09-30T00:00:00Z",
+  "engine": "eclipse",
+  "audio": {
+    "name": "eclipse.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 238150,
+    "url": "/audios/eclipse.mp3"
+  },
+  "fx": {
+    "temp": 0.3,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.7,
+    "chroma": 0.2,
+    "grain": 0.25,
+    "sepia": 0.25,
+    "glow": 0.5,
+    "grayscale": 0.15,
+    "blur": 0.15,
+    "liquid": 0,
+    "pearl": 0.2,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-3.webp",
+        "mimeType": "image/webp",
+        "size": 104188,
+        "url": "/default-library/holo-3.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 88,
+    "key": "B",
+    "scale": "minor"
+  }
+}

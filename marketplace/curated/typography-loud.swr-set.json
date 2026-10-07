@@ -4,31 +4,65 @@
   "name": "Type · Loud",
   "author": "SWR",
   "description": "Bold Archivo Black typography with beat-synced weight and scale. Drop in your own copy via the engine UI. Best for social clips, lyric videos, brand motion.",
-  "tags": ["typography", "bold", "social", "lyric-video"],
+  "tags": [
+    "typography",
+    "bold",
+    "social",
+    "lyric-video"
+  ],
   "createdAt": "2026-08-24T00:00:00Z",
   "engine": "typography",
   "audio": {
-    "name": "loop-pulse.wav",
-    "mimeType": "audio/wav",
-    "size": 412000,
-    "url": "library/audio/loop-pulse.wav"
+    "name": "kraft.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 233542,
+    "url": "/audios/kraft.mp3"
   },
   "fx": {
-    "temp": 0.0,
-    "mut": 0.0,
+    "temp": 0,
+    "mut": 0,
     "mutAlgo": 0,
-    "posterize": 0.0,
-    "vignette": 0.0,
-    "chroma": 0.0,
-    "grain": 0.0,
-    "sepia": 0.0,
-    "glow": 0.0,
-    "grayscale": 0.0,
-    "blur": 0.0,
-    "liquid": 0.0,
-    "pearl": 0.0,
-    "glitch": 0.0
+    "posterize": 0,
+    "vignette": 0,
+    "chroma": 0,
+    "grain": 0,
+    "sepia": 0,
+    "glow": 0,
+    "grayscale": 0,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
   },
-  "layers": [],
-  "settings": { "bpm": 124, "key": "C", "scale": "major" }
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Hero",
+      "blend": "source-over",
+      "opacity": 1,
+      "baseScale": 1,
+      "hue": 0,
+      "brightness": 1,
+      "contrast": 1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "holo-2.webp",
+        "mimeType": "image/webp",
+        "size": 146100,
+        "url": "/default-library/holo-2.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 124,
+    "key": "C",
+    "scale": "major"
+  }
 }

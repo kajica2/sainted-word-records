@@ -36,8 +36,16 @@ function validate(p) {
   for (const k of FX_KEYS) {
     if (!(k in fx)) errs.push(`fx_state missing ${k}`);
   }
-  if (fx.posterize !== undefined && !(fx.posterize >= 1 && fx.posterize <= 16)) {
-    errs.push(`posterize out of [1,16]: ${fx.posterize}`);
+  // posterize is consumed by the engine as a 0..1 intensity
+  // (client/preset-anchor-map.client.js). The legacy pipeline
+  // (preset-pipeline/generate.py) emitted an integer 1..16 cell count, so
+  // accept both conventions instead of rejecting either generation.
+  if (fx.posterize !== undefined) {
+    const inEngineUnit = fx.posterize >= 0 && fx.posterize <= 1;
+    const inLegacyUnit = Number.isInteger(fx.posterize) && fx.posterize >= 1 && fx.posterize <= 16;
+    if (!inEngineUnit && !inLegacyUnit) {
+      errs.push(`posterize out of [0,1] (engine) / [1,16] (legacy): ${fx.posterize}`);
+    }
   }
   for (const [k, v] of Object.entries(fx)) {
     if (k === 'posterize') continue;

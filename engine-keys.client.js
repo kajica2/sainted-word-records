@@ -151,7 +151,7 @@
       return !!(S && Array.isArray(S.ORDER) && typeof S.enter === 'function');
     },
     // Per-slot remap (Alt+1..6). `Layers.autoMapLayer` is defined by
-    // engine-core.client.js, which none of these pages load — they use the
+    // engine.html's inline engine, which these pages do not load — they use the
     // page-local window.Layers — so this is false everywhere today and the
     // row is correctly suppressed rather than advertised as a dead key.
     layerRemap: function () {

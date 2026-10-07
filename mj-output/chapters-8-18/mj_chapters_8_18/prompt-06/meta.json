@@ -1,0 +1,16 @@
+{
+  "index": 6,
+  "prompt": "Byzantine icon of the Theotokos Pelagonitisa by the monk-painter Makarije Zograf, painted on wood panel, 1422, deep gold-leaf background, the Virgin in tender maternal pose, soft modeling of the face, museum artifact, devotional and luminous  --v 8.2 --style raw --no text signature --ar 2:3",
+  "taskId": "1e309bf2-f416-4ccf-9f0c-8deb19a723e8",
+  "matchedBy": "prompt-text",
+  "isNewestTask": true,
+  "imageUrls": [
+    "https://cdn.midjourney.com/1e309bf2-f416-4ccf-9f0c-8deb19a723e8/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/1e309bf2-f416-4ccf-9f0c-8deb19a723e8/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/1e309bf2-f416-4ccf-9f0c-8deb19a723e8/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/1e309bf2-f416-4ccf-9f0c-8deb19a723e8/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-30T00:57:08.977Z",
+  "complete": true
+}

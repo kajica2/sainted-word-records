@@ -1,0 +1,115 @@
+{
+  "schema": "swr-marketplace-index/v1",
+  "generatedAt": "2026-10-02T03:25:23.800Z",
+  "count": 18,
+  "sets": [
+    {
+      "file": "/marketplace/curated/aurora-drift.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "Aurora · Drift",
+      "engine": "aurora"
+    },
+    {
+      "file": "/marketplace/curated/slip-01-bebop-blue.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000012",
+      "name": "Bebop Blue",
+      "engine": "smoke"
+    },
+    {
+      "file": "/marketplace/curated/slip-02-bebop-blue-take2.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000013",
+      "name": "Bebop Blue · Take 2",
+      "engine": "smoke"
+    },
+    {
+      "file": "/marketplace/curated/slip-03-bebop-in-f-long.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000014",
+      "name": "Bebop in F · Long Cut",
+      "engine": "film"
+    },
+    {
+      "file": "/marketplace/curated/slip-04-bebop-in-f-take2.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000015",
+      "name": "Bebop in F · Take 2",
+      "engine": "tape"
+    },
+    {
+      "file": "/marketplace/curated/collage-mag.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "Collage · Mag",
+      "engine": "collage"
+    },
+    {
+      "file": "/marketplace/curated/eclipse-veil.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000008",
+      "name": "Eclipse · Veil",
+      "engine": "eclipse"
+    },
+    {
+      "file": "/marketplace/curated/fractal-maze.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "Fractal · Maze",
+      "engine": "fractal"
+    },
+    {
+      "file": "/marketplace/curated/glitch-idm.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "Glitch · IDM",
+      "engine": "glitch"
+    },
+    {
+      "file": "/marketplace/curated/slip-07-low-light.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000018",
+      "name": "Low Light",
+      "engine": "neon"
+    },
+    {
+      "file": "/marketplace/curated/neon-pulse.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "Neon Pulse",
+      "engine": "neon"
+    },
+    {
+      "file": "/marketplace/curated/smoke-portrait.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "Smoke Portrait",
+      "engine": "smoke"
+    },
+    {
+      "file": "/marketplace/curated/spectrum-bass.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "Spectrum · Bass",
+      "engine": "spectrum"
+    },
+    {
+      "file": "/marketplace/curated/slip-06-sunlit-room.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000017",
+      "name": "Sunlit Room",
+      "engine": "aurora"
+    },
+    {
+      "file": "/marketplace/curated/slip-05-tribalismo.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "Tribalismo",
+      "engine": "grid"
+    },
+    {
+      "file": "/marketplace/curated/typography-loud.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "Type · Loud",
+      "engine": "typography"
+    },
+    {
+      "file": "/marketplace/curated/void-bloom.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000009",
+      "name": "Void · Bloom",
+      "engine": "void"
+    },
+    {
+      "file": "/marketplace/curated/watercolor-bleed.swr-set.json",
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": "Watercolor · Bleed",
+      "engine": "watercolor"
+    }
+  ]
+}

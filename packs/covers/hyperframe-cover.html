@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<!--
+  packs/covers/hyperframe-cover.html — 10s HyperFrames cover animation for a
+  SWR media pack NFT.
+
+  Contract: ONE paused timeline on window.__timelines, deterministic (no
+  Math.random / Date.now / performance.now inside tweens), transform/opacity
+  only, finite repeats, idle double-guarded, HTMLAudioElement-free — the
+  audio layer is a separate asset.
+
+  Zero-dep adapter: this repo vendors no GSAP (AGENTS.md "no extra deps"), so
+  the timeline is a vanilla RAF coordinator that lerps inline styles. The
+  public surface mirrors GSAP (fromTo / to / seek / progress / kill) so
+  verifiers probing window.__timelines work uniformly.
+
+  Composition (10s):
+    - ambient-glow-bloom  : radial hero glow blooms in behind the wordmark
+                            (peak <= 0.30), then a bounded 2-breath idle.
+    - kinetic-beat-slam   : three phrases slam in on ONE pulse grid with
+                            distinct entrances (scale+blur / side-snap /
+                            rise-rotate); metronome chrome ticks the grid.
+    - locked finale       : stage holds with a finite low-amplitude breath.
+
+  Parameters (query string, all optional):
+    pack=skaters            pack id, shown as the phrase row
+    clips=12                clip count, rendered as "12 CLIPS · 4K"
+    audio=tribalismo.mp3    audio track name, rendered as the footer
+    name=SWR                wordmark line 1 (default "SAINTED WORD")
+    accent=%23ff3d92        exactly one accent hue (default SWR pink)
+    dur=10                  inner timeline duration (default 10 — do not
+                            change unless re-authoring the beat grid)
+
+  Usage:
+    - Live preview:          open in any browser.
+    - NFT animation_url:     point at this file (or a rendered 10s MP4).
+    - Cover frame:           Puppeteer screenshot at t=1.0 (phrases settled)
+                             -> cover.webp.
+    - Render to MP4:         the batch pipeline's renderer route can drive
+                             this page with CDP screenshots + ffmpeg.
+
+  Author: Kai Djuric (SWR). License: MIT (see LICENSE).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWR Media Pack · HyperFrame Cover</title>
+<style>
+  :root {
+    --bg-0: #05060a;
+    --bg-1: #0a0c14;
+    --panel: #10131f;
+    --fg: #f5f7ff;
+    --muted: #8a93ab;
+    --line: rgba(255, 255, 255, 0.08);
+    --accent: #ff3d92;            /* exactly one accent hue (overridable) */
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-0); }
+  body {
+    font-family: var(--mono);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- scene clip ---- */
+  .clip {
+    position: absolute; inset: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 18% 12%, rgba(255, 61, 146, 0.10), transparent 55%),
+      radial-gradient(ellipse at 82% 88%, rgba(0, 229, 255, 0.08), transparent 55%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  }
+
+  .stage {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 110px 140px;              /* title-safe margin (1280x720) */
+    will-change: transform;
+  }
+
+  /* ---- ambient glow (behind hero) ---- */
+  .bloom-glow {
+    position: absolute;
+    z-index: 1;
+    inset: -340px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%,
+      color-mix(in srgb, var(--accent) 55%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 16%, transparent) 42%,
+      transparent 70%);
+    opacity: 0;
+    transform: scale(0.82);
+    will-change: transform, opacity;
+    pointer-events: none;
+  }
+
+  /* ---- kinetic beat lines ---- */
+  .kbs-stage { position: relative; z-index: 2; display: flex; flex-direction: column; }
+  .kbs-line {
+    font-weight: 800;
+    font-size: 118px;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    color: var(--fg);
+    opacity: 0;
+    will-change: transform, opacity, filter;
+  }
+  .kbs-line.pack { font-size: 138px; text-transform: uppercase; }
+  .kbs-line .verb { color: var(--accent); }
+  .kbs-line.sub {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 34px;
+  }
+  .kbs-line.sub b { color: var(--fg); font-weight: 700; }
+
+  /* ---- rhythm chrome ---- */
+  .kbs-metronome {
+    position: absolute; bottom: 58px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 16px; z-index: 3;
+  }
+  .kbs-metronome i {
+    width: 7px; height: 30px;
+    background: var(--accent);
+    border-radius: 2px;
+    opacity: 0.22;
+    will-change: opacity;
+  }
+
+  /* ---- footer: author + audio + licence ---- */
+  .foot {
+    position: absolute; left: 140px; right: 140px; bottom: 58px;
+    z-index: 2;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    opacity: 0;                            /* reveal on finale beat */
+    will-change: opacity;
+  }
+  .foot .swr-tag { color: var(--accent); font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="clip" data-duration="10" data-scene="cover">
+    <div class="stage">
+      <div class="bloom-glow" id="bloom-glow"></div>
+      <div class="kbs-stage">
+        <div class="kbs-line pack" id="p1">Sainted <span class="verb">Word</span></div>
+        <div class="kbs-line" id="p2">Media <span class="verb">Pack</span></div>
+        <div class="kbs-line sub" id="p3">12 <b>CLIPS</b> · 4K · AUTO-START AUDIO</div>
+      </div>
+    </div>
+    <div class="kbs-metronome" id="metro" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div class="foot" id="foot">
+      <span>tribalismo.mp3</span>
+      <span class="swr-tag">SWR /* KAIDJURIC</span>
+      <span>MIT LICENSE · CC0 CLIPS</span>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+  if (window.__swrHyperFrameLoaded) return;
+  window.__swrHyperFrameLoaded = true;
+
+  // ---- parameters (deterministic — never Math.random) ----
+  var q = new URLSearchParams(location.search);
+  var ACCENT = q.get('accent') || '#ff3d92';
+  var CLIPS  = q.get('clips')  || '12';
+  var AUDIO  = q.get('audio')  || 'tribalismo.mp3';
+  var PACK   = q.get('pack')   || '';
+  var DUR    = parseFloat(q.get('dur') || '10') || 10;
+
+  if (PACK) document.querySelector('#p2 .verb').textContent = PACK;
+  document.getElementById('p3').innerHTML =
+    CLIPS + ' <b>CLIPS</b> · 4K · AUTO-START AUDIO';
+  document.querySelector('#foot span').textContent = AUDIO;
+  document.documentElement.style.setProperty('--accent', ACCENT);
+
+  // ---- zero-dep RAF timeline facade (GSAP-shaped) ----
+  var tweens = [];
+  function lerpValue(from, to, p) {
+    if (typeof from !== 'string' || typeof to !== 'string') return null;
+    var fm = from.match(/^(-?\d+(?:\.\d+)?)(.*)$/);
+    var tm = to.match(/^(-?\d+(?:\.\d+)?)(.*)$/);
+    if (!fm || !tm) return null;
+    var fn = parseFloat(fm[1]), tn = parseFloat(tm[1]);
+    if (isNaN(fn) || isNaN(tn) || fm[2] !== tm[2]) return null;
+    return (fn + (tn - fn) * p) + fm[2];
+  }
+  function easeFor(name) {
+    switch (name) {
+      case 'power4.out': return function (t) { t = 1 - t; return 1 - t * t * t * t; };
+      case 'expo.out':   return function (t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); };
+      case 'circ.out':   return function (t) { t -= 1; return Math.sqrt(1 - t * t); };
+      case 'sine.inOut': return function (t) { return -(Math.cos(Math.PI * t) - 1) / 2; };
+      case 'none':
+      default:           return function (t) { return t; };
+    }
+  }
+  var tl = {
+    name: 'cover-10s',
+    duration: DUR,
+    currentTime: 0,
+    paused: true,
+    _tweens: tweens,
+    _easeTxt: 'mixed',
+    fromTo: function (el, from, to, opts) {
+      opts = opts || {};
+      var els = Array.isArray(el) ? el : [el];
+      var dur = opts.duration || 0.5;
+      var delay = opts.delay || 0;
+      var ease = easeFor(opts.ease || 'none');
+      for (var i = 0; i < els.length; i++) {
+        if (!els[i]) continue;
+        // Call sites pass selector strings ('#p1', '.stage') or elements.
+        var target = typeof els[i] === 'string' ? document.querySelector(els[i]) : els[i];
+        if (!target) continue;
+        var props = {};
+        for (var k in from) {
+          props[k] = {
+            from: from[k] !== undefined ? String(from[k]) : '',
+            to: to[k] !== undefined ? String(to[k]) : ''
+          };
+        }
+        tweens.push({ el: target, start: delay, end: delay + dur, ease: ease, props: props, onUpdate: opts.onUpdate || null });
+      }
+      return this;
+    },
+    to: function (el, to, opts) {
+      opts = opts || {};
+      var from = {};
+      var target = typeof el === 'string' ? null : el;
+      for (var k in to) {
+        // GSAP-style: options ride inside the vars object; strip them out so
+        // they never become animated props (style.duration etc.).
+        if (k === 'duration' || k === 'delay' || k === 'ease' || k === 'onUpdate') {
+          opts[k] = to[k];
+          continue;
+        }
+        // Implicit from = the target's current inline/object value when it is
+        // numeric; '' falls back to a snap (no lerp) for unreadable values.
+        var cur = (target && typeof target === 'object')
+          ? (target.style ? target.style[k] : target[k])
+          : '';
+        from[k] = (cur !== undefined && cur !== null && cur !== '' && typeof cur !== 'object')
+          ? String(cur)
+          : '';
+      }
+      return this.fromTo(el, from, to, opts);
+    },
+    set: function (el, props, at) {
+      var dur = 0.001, delay = at || tl.currentTime;
+      var from = {};
+      for (var k in props) from[k] = props[k];
+      return this.fromTo(el, from, props, { duration: dur, delay: delay, ease: 'none' });
+    },
+    play: function () { this.paused = false; return this; },
+    pause: function () { this.paused = true; return this; },
+    seek: function (t) {
+      this.currentTime = Math.max(0, Math.min(t, this.duration));
+      this._tick(this.currentTime);
+      return this;
+    },
+    progress: function (p) { return this.seek(p * this.duration); },
+    _tick: function (t) {
+      this.currentTime = t;
+      for (var i = 0; i < tweens.length; i++) {
+        var tw = tweens[i];
+        if (t < tw.start) {
+          // Restore the pre-animation value so backward seeks paint the same
+          // frame a forward seek does (seek-safe). Tweens with an implicit
+          // from ('') represent "leave whatever painted this" and are skipped.
+          for (var k in tw.props) {
+            var pr = tw.props[k];
+            if (pr.from === '') continue;
+            if (tw.el && tw.el.style) {
+              tw.el.style[k] = pr.from;
+            } else if (tw.el && typeof tw.el === 'object') {
+              tw.el[k] = pr.from;
+            }
+          }
+          continue;
+        }
+        var d = tw.end - tw.start;
+        var raw = d > 0 ? Math.min(1, Math.max(0, (t - tw.start) / d)) : 1;
+        var p = tw.ease(raw);
+        for (var k in tw.props) {
+          var pr = tw.props[k];
+          var v = lerpValue(pr.from, pr.to, p);
+          if (tw.el && tw.el.style) {
+            tw.el.style[k] = (v === null) ? pr.to : v;
+          } else if (tw.el && typeof tw.el === 'object') {
+            // Phase-proxy targets (plain objects) get the numeric value so
+            // their onUpdate closures can read an advancing phase.
+            tw.el[k] = (v === null) ? pr.to : v;
+          }
+        }
+        if (typeof tw.onUpdate === 'function') tw.onUpdate();
+      }
+    },
+    kill: function () {
+      for (var i = 0; i < tweens.length; i++) {
+        var tw = tweens[i];
+        if (tw.el && tw.props) for (var k in tw.props) {
+          if (tw.el.style) { try { tw.el.style[k] = ''; } catch (e) {} }
+        }
+      }
+      tweens.length = 0;
+    }
+  };
+  (window.__timelines = window.__timelines || []).push(tl);
+
+  // ---- composition: one beat grid, everything reads it ----
+  var PULSE = 0.4;
+  var BEATS = [PULSE * 1, PULSE * 5, PULSE * 8.5];   // phrase onsets
+  var BLOOM_START = 0.8, BLOOM_DUR = 1.1;
+  var GLOW = document.getElementById('bloom-glow');
+  var phase = { p: 0 };
+  var BREATHE_START = BLOOM_START + BLOOM_DUR;       // 1.9
+  var BREATHE_DUR = 5.6;                             // 2 breaths @2.8s, finite
+  var HOLD_START = BEATS[2] + 0.7;                   // 4.1
+  var HOLD_CYCLE = 1.8;
+
+  // ambient-glow-bloom: hero glow lands with P1 (one beat, powering on)
+  tl.fromTo('#bloom-glow',
+    { opacity: '0', transform: 'scale(0.82)' },
+    { opacity: '0.30', transform: 'scale(1)' },
+    { duration: BLOOM_DUR, delay: BLOOM_START, ease: 'power4.out' });
+  // bounded idle breathe (finite phase tween, not a yoyo loop)
+  tl.to(phase, { p: Math.PI * 4, duration: BREATHE_DUR, delay: BREATHE_START, ease: 'none',
+    onUpdate: (function () {
+      return function () {
+        var s = Math.sin(phase.p);
+        GLOW.style.opacity = String(0.30 + s * 0.05);          // peak <= 0.35
+        GLOW.style.transform = 'scale(' + (1 + s * 0.03) + ')';
+      };
+    })()
+  });
+
+  // kinetic-beat-slam: distinct entrances, at least 3 ease families
+  tl.fromTo('#p1',
+    { opacity: '0', transform: 'scale(1.5)', filter: 'blur(14px)' },
+    { opacity: '1', transform: 'scale(1)', filter: 'blur(0px)' },
+    { duration: 0.55, delay: BEATS[0], ease: 'power4.out' });
+  tl.fromTo('#p2',
+    { opacity: '0', transform: 'translateX(-320px)' },
+    { opacity: '1', transform: 'translateX(0px)' },
+    { duration: 0.45, delay: BEATS[1], ease: 'expo.out' });
+  tl.fromTo('#p3',
+    { opacity: '0', transform: 'translateY(90px) rotate(6deg)' },
+    { opacity: '1', transform: 'translateY(0px) rotate(0deg)' },
+    { duration: 0.55, delay: BEATS[2], ease: 'circ.out' });
+
+  // rhythm chrome: metronome flashes on the SAME grid
+  var ticks = document.querySelectorAll('#metro i');
+  for (var i = 0; i < ticks.length; i++) {
+    (function (tick, idx) {
+      tl.to(tick, { opacity: '1', duration: 0.08, delay: PULSE * (idx + 1), ease: 'none' });
+      tl.to(tick, { opacity: '0.22', duration: 0.2, delay: PULSE * (idx + 1) + 0.09, ease: 'none' });
+    })(ticks[i], i);
+  }
+
+  // footer reveals on the finale beat (press-release spring: quick dip)
+  tl.fromTo('#foot',
+    { opacity: '0', transform: 'translateY(14px)' },
+    { opacity: '1', transform: 'translateY(0px)' },
+    { duration: 0.5, delay: HOLD_START - 0.15, ease: 'power4.out' });
+
+  // locked finale: finite stage breath via a bounded sine phase (the zero-dep
+  // facade has no yoyo — the phase-proxy pattern is the sanctioned approach
+  // and stays deterministic + seek-safe).
+  var stageEl = document.querySelector('.stage');
+  var stagePhase = { p: 0 };
+  var holdDur = Math.max(0, DUR - HOLD_START);
+  var cycles = Math.max(0, Math.floor(holdDur / HOLD_CYCLE));
+  tl.to(stagePhase, { p: Math.PI * 2 * cycles, duration: holdDur, delay: HOLD_START, ease: 'none',
+    onUpdate: (function () {
+      return function () {
+        var s = Math.sin(stagePhase.p);
+        stageEl.style.transform = 'scale(' + (1 + s * 0.012) + ')';
+      };
+    })()
+  });
+
+  // seek to 0 so the paused timeline is deterministic at rest
+  tl.seek(0);
+})();
+</script>
+</body>
+</html>

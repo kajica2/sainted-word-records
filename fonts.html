@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Type Specimen — Display Variants · SWR</title>
+  <meta name="description" content="Every typeface Sainted Word ships, set live — variable weight, optical size and slant axes pushed across their full range, with a specimen of each face at its display sizes." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/fonts" />
+  <meta property="og:title" content="Type Specimen — Display Variants · SWR" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/chrome.png" />
+  <meta property="og:description" content="Every typeface Sainted Word ships, set live — variable weight, optical size and slant axes across their full range." />
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!--
+    The union of every face fonts.html showcases, in one request. Axis order
+    matters: Google Fonts requires lowercase axes alphabetically, then
+    uppercase (SOFT last). Fraunces is the only face with SOFT.
+    Keep in sync with FONTS in client/font-variants.client.js.
+  -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=DM+Serif+Display:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300..800&family=JetBrains+Mono:wght@400..800&family=Space+Grotesk:wght@300..700&family=Space+Mono:wght@400;700&family=Special+Elite&display=swap" />
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+    .hero { padding: 68px 0 20px; }
+    .hero__kicker {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .hero__title {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(34px, 5vw, 50px); line-height: 1.05;
+      letter-spacing: -0.025em; margin: 0 0 14px;
+    }
+    .hero__lede {
+      font-size: 16px; color: var(--ink-2); max-width: 660px; margin: 0 0 26px; line-height: 1.6;
+    }
+    .hero__lede code {
+      font-family: var(--font-mono); font-size: 13px;
+      background: color-mix(in srgb, var(--ink) 8%, transparent);
+      padding: 1px 5px; border-radius: 4px;
+    }
+
+    /* ---- live specimen ---- */
+    .live {
+      margin: 0 0 34px; padding: 22px 24px 18px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    }
+    .fv__live-line {
+      font-family: var(--font-display);
+      line-height: 1.02; letter-spacing: -0.02em;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+      min-height: 1em;
+    }
+    .fv__live-meta {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.08em; color: var(--muted);
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+    }
+    .fv__controls {
+      display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+      margin-top: 14px;
+    }
+    .fv__controls label {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .fv__controls input[type="range"] { width: 118px; accent-color: var(--accent); }
+    .fv__controls select, .fv__controls input[type="text"] {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      background: var(--panel-2); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
+    }
+    .fv__controls input[type="text"] { text-transform: none; letter-spacing: 0; min-width: 170px; }
+    .fv__controls input[type="checkbox"] { accent-color: var(--accent); }
+
+    /* ---- specimen cards ---- */
+    .fv__grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 20px; padding: 8px 0 40px;
+    }
+    @media (max-width: 900px) { .fv__grid { grid-template-columns: 1fr; } }
+
+    .fv__card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; padding: 20px 22px 18px;
+      min-width: 0;
+    }
+    .fv__head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .fv__name {
+      font-weight: 400; font-size: 27px; letter-spacing: -0.02em;
+      margin: 0; color: var(--ink);
+    }
+    .fv__role {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--accent); white-space: nowrap;
+    }
+    .fv__axes {
+      font-family: var(--font-mono); font-size: 10.5px;
+      letter-spacing: 0.06em; color: var(--muted); margin-top: 4px;
+    }
+    .fv__note {
+      font-size: 13px; color: var(--ink-2); margin: 8px 0 0; line-height: 1.55;
+    }
+    .fv__ladder {
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+    }
+    .fv__ladder-row {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 3px 0; overflow: hidden;
+    }
+    .fv__w {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--muted); width: 30px; flex: none; text-align: right;
+    }
+    .fv__sample {
+      font-size: 30px; line-height: 1.18; letter-spacing: -0.01em;
+      color: var(--ink); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .fv__sample--italic { font-style: italic; }
+    .fv__para {
+      font-size: 14px; line-height: 1.6; color: var(--ink-2); margin: 14px 0 0;
+    }
+    .fv__stack {
+      display: inline-block; margin-top: 12px;
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--muted);
+      background: var(--panel-2); border: 1px solid var(--line);
+      border-radius: 4px; padding: 2px 6px;
+    }
+
+    /* Big display line per card, set in the face itself — the "showcase" cut. */
+    .fv__display {
+      font-size: clamp(34px, 5.2vw, 58px); line-height: 1.02;
+      letter-spacing: -0.03em; margin: 10px 0 0; color: var(--ink);
+      word-break: break-word;
+    }
+
+    /* ---------- Glyph fill: characters land one by one until the frame is full ---------- */
+    .gff {
+      margin: 54px 0 0; padding: 26px 0 0; border-top: 1px solid var(--line);
+    }
+    .gff__head {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+      margin: 0 0 4px;
+    }
+    .gff__head h2 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+    .gff__lede {
+      font-size: 13.5px; color: var(--ink-2); margin: 0 0 18px;
+      max-width: 62ch; line-height: 1.6;
+    }
+    .gff__stage {
+      position: relative; width: 100%;
+      aspect-ratio: 16 / 9;
+      background: var(--panel-2);
+      border: 1px solid var(--line); border-radius: 8px;
+      overflow: hidden; color: var(--ink);
+    }
+    .gff-svg { display: block; width: 100%; height: 100%; }
+    .gff__badge {
+      position: absolute; left: 10px; top: 10px;
+      font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em;
+      color: var(--muted); background: color-mix(in srgb, var(--panel-2) 78%, transparent);
+      border: 1px solid var(--line); border-radius: 4px; padding: 3px 7px;
+      pointer-events: none; text-transform: uppercase;
+    }
+    .gff__hint {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+      color: var(--muted); text-transform: uppercase; pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .gff__stage.is-playing .gff__hint { opacity: 0; }
+    .gff__controls {
+      display: flex; flex-wrap: wrap; align-items: end; gap: 14px;
+      margin-top: 16px;
+    }
+    .gff__controls label {
+      display: flex; flex-direction: column; gap: 5px;
+      font-family: var(--font-mono); font-size: 10.5px;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    }
+    .gff__controls input[type="range"] { width: 132px; }
+    .gff__controls select, .gff__controls input[type="number"] {
+      background: var(--panel-2); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 4px;
+      padding: 4px 6px; font-family: var(--font-mono); font-size: 11px;
+    }
+    .gff__controls input[type="number"] { width: 64px; }
+    .gff__row { display: flex; gap: 8px; align-items: end; }
+    .gff__btn {
+      background: var(--panel-2); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 4px;
+      padding: 6px 12px; font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+    }
+    .gff__btn:hover { border-color: var(--accent); color: var(--accent); }
+    .gff__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .gff__readout {
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--muted);
+      letter-spacing: 0.06em; margin: 14px 0 0;
+    }
+    @media (max-width: 720px) {
+      .gff__stage { aspect-ratio: 4 / 5; }
+      .gff__controls input[type="range"] { width: 104px; }
+    }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <main class="wrap">
+    <header class="hero">
+      <div class="hero__kicker">Type · Weight · Optical size</div>
+      <h1 class="hero__title">Type Specimen — <em style="font-style:italic;color:var(--accent)">Display Variants</em></h1>
+      <p class="hero__lede">
+        Every typeface this site ships, set live. No font files live in the repo — all thirteen
+        faces load from Google Fonts, and the heavier ones are variable, so weight, optical size
+        and slant are continuous rather than a handful of fixed cuts. Push the line below across
+        its full range, then work down the ladder: each card sets its face at display size, across
+        the weights it actually resolves, with the axis readout underneath.
+      </p>
+    </header>
+
+    <section class="live" aria-labelledby="live-title">
+      <h2 id="live-title" class="micro" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">Live display specimen</h2>
+      <div id="fv-live"></div>
+      <div class="fv__controls">
+        <label>
+          Face
+          <select id="fv-font"></select>
+        </label>
+        <label>
+          Size
+          <input type="range" id="fv-size" min="28" max="180" step="1" value="96" />
+        </label>
+        <label>
+          Weight
+          <input type="range" id="fv-weight" min="100" max="900" step="1" value="400" />
+        </label>
+        <label id="fv-opsz-wrap">
+          Optical size
+          <input type="range" id="fv-opsz" min="9" max="144" step="1" value="72" />
+        </label>
+        <label id="fv-soft-wrap">
+          SOFT
+          <input type="range" id="fv-soft" min="0" max="100" step="1" value="0" />
+        </label>
+        <label>
+          Tracking
+          <input type="range" id="fv-track" min="-6" max="24" step="1" value="0" />
+        </label>
+        <label>
+          Slant
+          <input type="checkbox" id="fv-italic" />
+        </label>
+        <label>
+          Set
+          <input type="text" id="fv-text" value="Sainted Word" aria-label="Specimen text" />
+        </label>
+      </div>
+    </section>
+
+    <section class="fv__grid" id="fv-grid" aria-label="Specimen ladder"></section>
+
+    <!--
+      Glyph fill. Not a font specimen but the same idea one level out: the 12
+      dingbat characters from the Glyphs gallery arriving one at a time, each
+      with a tone, until the frame is full. Reads as the site's voiceover
+      counting the cast in. Audio needs a gesture, so Play arms the context.
+    -->
+    <section class="gff" aria-labelledby="gff-title">
+      <div class="gff__head">
+        <h2 id="gff-title">Glyph Fill</h2>
+        <span class="micro">One at a time · until full</span>
+      </div>
+      <p class="gff__lede">
+        Every character is generated, not drawn from a set — a seeded ornament
+        algorithm mints a different stroke figure for each cell, so all
+        <span id="gff-count">84</span> are unique. They land one at a time, each
+        followed by a note that climbs the scale as the sheet fills. Sound needs a
+        click first, so the stage starts silent. Regenerate to roll a new sheet.
+      </p>
+      <div class="gff__stage" id="gff-stage">
+        <span class="gff__badge" id="gff-badge">0 / 84</span>
+        <span class="gff__hint" id="gff-hint">Press play · one character, one note</span>
+      </div>
+      <div class="gff__controls">
+        <div class="gff__row">
+          <button class="gff__btn" id="gff-play" type="button">Play</button>
+          <button class="gff__btn" id="gff-replay" type="button">Replay</button>
+          <button class="gff__btn" id="gff-regen" type="button">Regenerate</button>
+          <button class="gff__btn" id="gff-mute" type="button" aria-pressed="false">Sound on</button>
+        </div>
+        <label>
+          Speed
+          <input type="range" id="gff-rate" min="2" max="40" step="1" value="14" />
+        </label>
+        <label>
+          Columns
+          <input type="number" id="gff-cols" min="1" max="40" step="1" value="12" />
+        </label>
+        <label>
+          Rows
+          <input type="number" id="gff-rows" min="1" max="40" step="1" value="7" />
+        </label>
+        <label>
+          Spacing
+          <input type="range" id="gff-space" min="0" max="1.2" step="0.05" value="0.18" />
+        </label>
+        <label>
+          Size
+          <input type="range" id="gff-size" min="10" max="100" step="1" value="90" />
+        </label>
+      </div>
+      <p class="gff__readout" id="gff-readout"></p>
+    </section>
+  </main>
+
+  <swr-footer></swr-footer>
+  <script src="/client/font-variants.client.js" defer></script>
+  <script src="/client/glyph-forge.client.js" defer></script>
+  <script src="/client/glyph-fill.client.js" defer></script>
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script>
+    // Render the ladder + wire the live specimen. Runs after the deferred
+    // SWR_FONTS module.
+    document.addEventListener('DOMContentLoaded', () => {
+      const F = window.SWR_FONTS;
+      if (!F) return;
+
+      // --- ladder ---
+      const grid = document.getElementById('fv-grid');
+      grid.innerHTML = F.FONTS.map(F.renderSpecimen).join('');
+
+      // A big display line per card, in that card's own face.
+      F.FONTS.forEach((f) => {
+        const card = document.getElementById('f-' + f.id);
+        if (!card) return;
+        const d = document.createElement('div');
+        d.className = 'fv__display';
+        d.style.fontFamily = f.stack;
+        d.style.fontVariationSettings = F.fvs(f, { weight: f.variable ? 600 : 400 });
+        d.textContent = f.name;
+        const axes = card.querySelector('.fv__axes');
+        axes.parentNode.insertBefore(d, axes.nextSibling);
+      });
+
+      // --- live specimen ---
+      const fontSel = document.getElementById('fv-font');
+      F.FONTS.forEach((f) => {
+        const o = document.createElement('option');
+        o.value = f.id;
+        o.textContent = f.name + (f.mono ? ' (mono)' : '');
+        fontSel.appendChild(o);
+      });
+
+      const sizeR = document.getElementById('fv-size');
+      const weightR = document.getElementById('fv-weight');
+      const opszR = document.getElementById('fv-opsz');
+      const opszWrap = document.getElementById('fv-opsz-wrap');
+      const softR = document.getElementById('fv-soft');
+      const softWrap = document.getElementById('fv-soft-wrap');
+      const trackR = document.getElementById('fv-track');
+      const italC = document.getElementById('fv-italic');
+      const textI = document.getElementById('fv-text');
+
+      const ctl = F.mountSpecimen(document.getElementById('fv-live'));
+      if (!ctl) return;
+
+      // Only expose the axis controls a face actually has — a SOFT slider on
+      // a face without SOFT is a lie about what the type can do.
+      function syncAxes(f) {
+        opszWrap.style.display = f.opsz ? '' : 'none';
+        softWrap.style.display = f.soft ? '' : 'none';
+        weightR.min = f.wght ? f.wght[0] : (f.weight ? f.weight[0] : 100);
+        weightR.max = f.wght ? f.wght[1] : (f.weight ? f.weight[f.weight.length - 1] : 900);
+        if (f.opsz) {
+          opszR.min = f.opsz[0];
+          opszR.max = f.opsz[1];
+          opszR.value = Math.min(ctl.state.opsz != null ? ctl.state.opsz : f.opsz[1], f.opsz[1]);
+        }
+      }
+
+      fontSel.addEventListener('change', () => {
+        const f = F.FONTS.find((x) => x.id === fontSel.value);
+        ctl.set({ fontId: f.id });
+        syncAxes(f);
+        ctl.paint();
+      });
+
+      sizeR.addEventListener('input', (e) => ctl.set({ size: Number(e.target.value) }));
+      weightR.addEventListener('input', (e) => ctl.set({ weight: Number(e.target.value) }));
+      opszR.addEventListener('input', (e) => ctl.set({ opsz: Number(e.target.value) }));
+      softR.addEventListener('input', (e) => ctl.set({ soft: Number(e.target.value) }));
+      trackR.addEventListener('input', (e) => ctl.set({ tracking: Number(e.target.value) }));
+      italC.addEventListener('change', (e) => ctl.set({ italic: e.target.checked }));
+      textI.addEventListener('input', (e) => ctl.set({ text: e.target.value }));
+
+      syncAxes(F.FONTS[0]);
+      ctl.paint();
+
+      mountGlyphFill();
+    });
+
+    // Glyph fill. Kept separate from the specimen block above: it needs the
+    // SWR_GLYPH_FILL module (a later defer script), so it can only run after
+    // every deferred script has executed.
+    function mountGlyphFill() {
+      const G = window.SWR_GLYPH_FILL;
+      const stage = document.getElementById('gff-stage');
+      if (!G || !stage) return;
+
+      const $ = (id) => document.getElementById(id);
+      const playBtn = $('gff-play');
+      const replayBtn = $('gff-replay');
+      const regenBtn = $('gff-regen');
+      const muteBtn = $('gff-mute');
+      const badge = $('gff-badge');
+      const readout = $('gff-readout');
+      const rateR = $('gff-rate');
+      const colsN = $('gff-cols');
+      const rowsN = $('gff-rows');
+      const spaceR = $('gff-space');
+      const sizeR = $('gff-size');
+      const countEl = $('gff-count');
+
+      let ctl = null;
+      let muted = false;
+      let seed = 1;
+
+      function readCfg() {
+        return {
+          rate: Number(rateR.value),
+          cols: Number(colsN.value),
+          rows: Number(rowsN.value),
+          spacing: Number(spaceR.value),
+          sizeScale: Number(sizeR.value) / 100,
+        };
+      }
+
+      // A rebuild or a regenerate returns a NEW controller when the cell count
+      // changes, so every call site re-reads `ctl` rather than assuming identity.
+      function apply(patch) {
+        const next = ctl.rebuild(Object.assign(readCfg(), patch || {}));
+        if (next !== ctl) {
+          ctl = next;
+          if (muted) ctl.setMuted(true);
+        }
+        paint();
+      }
+
+      function paint() {
+        const n = ctl.layout.count;
+        const filled = ctl.filledCount();
+        badge.textContent = filled + ' / ' + n;
+        // Prove the claim: count the distinct generated paths, not the cells.
+        const distinct = new Set(ctl.glyphs.map((g) => g.d)).size;
+        readout.textContent =
+          n + ' cells · ' + ctl.layout.cols + '×' + ctl.layout.rows +
+          ' · ' + distinct + ' unique · ' + ctl.cfg.rate.toFixed(0) +
+          ' chars/s · gap ' + (ctl.cfg.spacing * 100).toFixed(0) + '% of cell' +
+          ' · seed ' + ctl.seed;
+        if (countEl) countEl.textContent = String(n);
+        stage.classList.toggle('is-playing', ctl.playing);
+        playBtn.textContent = ctl.playing ? 'Pause' : 'Play';
+      }
+
+      ctl = G.mount(stage, readCfg(), seed);
+      if (!ctl) {
+        readout.textContent = 'Glyph generator unavailable.';
+        return;
+      }
+
+      // The click that starts playback is also the gesture browsers require
+      // before an AudioContext may run — arm here, never on load.
+      function start() {
+        ctl.arm();
+        if (!ctl.playing) ctl.play();
+        paint();
+      }
+
+      playBtn.addEventListener('click', () => {
+        ctl.arm();
+        ctl.toggle();
+        paint();
+      });
+      replayBtn.addEventListener('click', () => {
+        ctl.arm();
+        ctl.replay();
+        paint();
+      });
+      // A new seed mints a brand-new set of ornaments — still one per cell.
+      regenBtn.addEventListener('click', () => {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        ctl.arm();
+        const next = ctl.regenerate(seed);
+        if (next) {
+          ctl = next;
+          if (muted) ctl.setMuted(true);
+          ctl.replay();
+        }
+        paint();
+      });
+      muteBtn.addEventListener('click', () => {
+        muted = !muted;
+        ctl.setMuted(muted);
+        muteBtn.textContent = muted ? 'Sound off' : 'Sound on';
+        muteBtn.setAttribute('aria-pressed', String(muted));
+      });
+
+      rateR.addEventListener('input', () => apply());
+      spaceR.addEventListener('input', () => apply());
+      sizeR.addEventListener('input', () => apply());
+      colsN.addEventListener('change', () => apply());
+      rowsN.addEventListener('change', () => apply());
+
+      // Enter/Space on the stage also starts it, so the stage is keyboard-usable.
+      stage.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          start();
+        }
+      });
+      stage.tabIndex = 0;
+      stage.setAttribute('role', 'button');
+
+      // Keep the badge and button state live without the module emitting
+      // events. Throttled to ~12Hz — repainting every frame would rebuild the
+      // readout string 60 times a second for a number the eye cannot read.
+      let lastPaint = 0;
+      (function tick(now) {
+        requestAnimationFrame(tick);
+        if (!ctl || now - lastPaint < 80) return;
+        lastPaint = now;
+        paint();
+      })(performance.now());
+    }
+  </script>
+</body>
+</html>

@@ -54,8 +54,13 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error') errs.push('console.error: ' + m.text()); });
 
-    await page.goto(`${BASE}/engine.html`, { waitUntil: 'networkidle0', timeout: 25000 });
-    await page.waitForFunction('!!window.SWR_TARGETING', { timeout: 15000 }).catch(() => {});
+    // domcontentloaded, not networkidle0: engine.html auto-loads and streams
+    // its demo track, so the network never goes idle and networkidle0 either
+    // resolves early or times out — the same condition that made
+    // verify-automix and check:automix-smoke flaky on CI runners. Gate on
+    // domcontentloaded, then on the module this smoke actually asserts.
+    await page.goto(`${BASE}/engine.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForFunction('!!window.SWR_TARGETING', { timeout: 20000 }).catch(() => {});
     await new Promise((r) => setTimeout(r, 1500));
 
     const init = await page.evaluate(() => {

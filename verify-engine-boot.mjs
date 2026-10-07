@@ -119,6 +119,62 @@ try {
   else fail('duplicate id shadowed by a hidden element', hijack.hijack.join(', '));
   if (hijack.dupes.length)
     console.log(`  \x1b[33m!\x1b[0m ${hijack.dupes.length} duplicate id(s) in the document: ${hijack.dupes.join(', ')}`);
+
+  // 5. the transport row must not overflow its own box.
+  //
+  // Regression this catches: header#transport is a single nowrap flex row of
+  // ~44 controls whose natural width is ~2900px. Pinned to the fixed 56px
+  // grid row it overflowed, and body{overflow-x:hidden} clipped the tail —
+  // ● REC and 🎬 Export video sat at x=2761 in a 1440px window, unreachable
+  // by mouse (hit-testing the button's centre returned the dialog behind it).
+  // check:syntax passes and the page looks healthy, so nothing caught it.
+  // The row must instead wrap: no horizontal overflow, and the record and
+  // export controls must be inside the viewport and hit-testable.
+  const transport = await page.evaluate(() => {
+    const t = document.getElementById('transport');
+    if (!t) return { missing: true };
+    // First-run dialogs sit above the transport and would fail the hit-test
+    // for the wrong reason. They are dismissible by design, so hide them
+    // before probing: this assertion is about the row's own geometry.
+    for (const id of ['persona-onboarding-modal', 'swr-onboard']) {
+      const el = document.getElementById(id);
+      if (el) { el.hidden = true; el.style.display = 'none'; }
+    }
+    const probe = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return { id, missing: true };
+      const r = el.getBoundingClientRect();
+      const cx = r.x + r.width / 2;
+      const cy = r.y + r.height / 2;
+      const hit = document.elementFromPoint(cx, cy);
+      return {
+        id,
+        x: Math.round(r.x),
+        right: Math.round(r.right),
+        w: Math.round(r.width),
+        inViewport: r.width > 0 && r.height > 0 && r.right <= window.innerWidth + 1 && r.x >= -1,
+        hitTestable: !!hit && (hit === el || el.contains(hit)),
+      };
+    };
+    return {
+      overflowPx: Math.max(0, t.scrollWidth - t.clientWidth),
+      winW: window.innerWidth,
+      rec: probe('rec'),
+      exportVideo: probe('export-video'),
+    };
+  });
+  if (transport.missing) {
+    fail('transport row present');
+  } else {
+    if (transport.overflowPx === 0) pass('transport row does not overflow horizontally');
+    else fail('transport row overflows its box', `${transport.overflowPx}px past ${transport.winW}px viewport`);
+    for (const key of ['rec', 'exportVideo']) {
+      const p = transport[key];
+      if (p.missing) { fail(`#${key} present`); continue; }
+      if (p.inViewport && p.hitTestable) pass(`#${p.id} is inside the viewport and hit-testable`);
+      else fail(`#${p.id} is unreachable`, `x=${p.x} right=${p.right} inViewport=${p.inViewport} hitTestable=${p.hitTestable}`);
+    }
+  }
 } finally {
   if (browser) await browser.close();
   server.kill();

@@ -1,0 +1,16 @@
+{
+  "index": 4,
+  "prompt": "Abstract study rendered as VHS emulation, tracking noise, tape warp, timestamp burn-in, low-res chroma smear — CROSS VHS VIBE study --style raw --s 250 --ar 16:9",
+  "taskId": "239ccf7a-23b8-44c4-9822-81396bc9d266",
+  "matchedBy": "prompt-text",
+  "isNewestTask": false,
+  "imageUrls": [
+    "https://cdn.midjourney.com/239ccf7a-23b8-44c4-9822-81396bc9d266/0_0_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/239ccf7a-23b8-44c4-9822-81396bc9d266/0_1_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/239ccf7a-23b8-44c4-9822-81396bc9d266/0_2_640_N.webp?method=shortest",
+    "https://cdn.midjourney.com/239ccf7a-23b8-44c4-9822-81396bc9d266/0_3_640_N.webp?method=shortest"
+  ],
+  "imageCount": 4,
+  "submittedAt": "2026-09-29T23:24:31.238Z",
+  "complete": true
+}

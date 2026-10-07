@@ -185,7 +185,17 @@ function loadSiteMap() {
       }
 
       // 5. Puppeteer checks on landing.html
-      await page.goto(ROOT, { waitUntil: 'networkidle0', timeout: 15000 });
+      //
+      // waitUntil: 'load' — NOT 'networkidle0'. That strategy needs ZERO
+      // in-flight requests for 500ms, so any slow or stalled third-party
+      // request fails the step regardless of the page being fine: the landing
+      // page pulls a Google Fonts stylesheet, and while the homepage's three
+      // demo videos were fetched eagerly the step timed out at 15s in CI and
+      // locally (twice) while every assertion below was passing. 'load' fires
+      // when the document and its own subresources are done, which is all the
+      // assertions need. The nav mount is awaited explicitly instead.
+      await page.goto(ROOT, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForSelector('swr-nav nav.swr-nav', { timeout: 8000 }).catch(() => {});
 
       // Check that landing.html has the shared CSS links
       const hasSharedCSS = await page.evaluate(() => {

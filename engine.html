@@ -66,7 +66,15 @@
     /* === LAYOUT === */
     #app {
       display: grid;
-      grid-template-rows: 56px 1fr 48px;
+      /* The transport row is `auto`, not a fixed 56px: it carries ~44
+         controls (chips, transport, meter, BPM/key pills, the three
+         recorder selects, and the panel buttons) whose natural width is
+         ~2900px. Pinned to one 56px line the row overflowed, and because
+         body sets overflow-x:hidden the tail — including ● REC and
+         🎬 Export video — was clipped and unreachable at every viewport
+         (measured: #rec at x=2761 in a 1440px window). `auto` lets the row
+         grow when flex-wrap pushes controls onto a second line. */
+      grid-template-rows: auto 1fr 48px;
       grid-template-columns: 240px 1fr 280px;
       grid-template-areas:
         "transport transport transport"
@@ -88,7 +96,9 @@
       background: linear-gradient(180deg, var(--bg-2), var(--panel));
       display: flex;
       align-items: center;
-      padding: 0 16px;
+      flex-wrap: wrap;          /* single-line nowrap clipped the tail — see #app above */
+      row-gap: 6px;
+      padding: 6px 16px;
       gap: 12px;
     }
     .brand {
@@ -1870,6 +1880,17 @@
           <button class="tbtn ghost" id="import-set" style="padding:4px 10px; font-size:9px;">↑ Import .swr-set</button>
           <input type="file" id="set-input" accept=".swr-set,application/json" style="display:none" />
         </div>
+        <!-- Demo reel player — wired by /engine-reel.client.js to
+             window.SWR_REEL. Selecting a curated reel plays it as a
+             hands-off playlist: each track applies its own .swr-set
+             (FX + hero layer) + audio and auto-advances on track end. -->
+        <div class="sets-bar" id="reel-bar" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 8px; border-bottom:1px solid var(--line);">
+          <select id="reel-select" class="tbtn ghost" style="padding:4px 6px; font-size:9px; max-width:130px;" title="Curated demo reels — plays every track hands-off"></select>
+          <button class="tbtn ghost" id="reel-prev" title="Previous track" style="padding:4px 8px; font-size:9px;">⏮</button>
+          <button class="tbtn primary" id="reel-play" title="Play / pause the reel" style="padding:4px 10px; font-size:9px;">▶ Play</button>
+          <button class="tbtn ghost" id="reel-next" title="Next track" style="padding:4px 8px; font-size:9px;">⏭</button>
+          <span id="reel-status" style="font-size:9px; opacity:.75;">no reel</span>
+        </div>
         <div id="songs-list" class="songs-list">
           <div class="songs-empty">Loading bundled songs…</div>
         </div>
@@ -2747,6 +2768,7 @@
 
   <script src="/audio-analysis-v2.js" defer></script>
   <script src="/swr-sets.js" defer></script>
+  <script src="/engine-reel.client.js" defer></script>
   <script src="/persona-onboarding.js" defer></script>
   <!-- Audio / Library / Layers subsystems extracted into standalone libs
        (see the file headers in lib/audio.client.js, lib/library.client.js,
@@ -2810,7 +2832,11 @@
     // ---------- DOM refs ----------
     const $ = (id) => document.getElementById(id);
     const stageCanvas = $('render');
-    const stageCtx = stageCanvas.getContext('2d', { alpha: false, willReadFrequently: true });
+    // willReadFrequently is deliberately NOT set: the stage is drawn every
+    // frame and only read back at snapshot time (toDataURL ~L5683), so a
+    // CPU/Skia-backed canvas would tax every draw to speed up a rare read.
+    // It also breaks canvas.captureStream() in headless (black frames).
+    const stageCtx = stageCanvas.getContext('2d', { alpha: false });
     const meterCanvas = $('meter');
     const meterCtx = meterCanvas.getContext('2d');
     const stageEmpty = $('stage-empty');
@@ -3720,12 +3746,41 @@
         // load; naturalWidth > 0 means the decode succeeded (not an
         // error result).
         if (a.type === 'image' && (!a._el.complete || !a._el.naturalWidth)) return;
+        // Downscale cache: drawImage re-samples a full-resolution photo down to
+        // stage size on EVERY frame, and that cost scales with the photo's
+        // megapixels. Cap the working bitmap at ~2x the stage once per asset so
+        // the per-frame draw stops paying for the camera's resolution. Aspect
+        // ratio is preserved, so the cover-fit math below is unchanged; the
+        // original full-res element stays on a._el.
+        let scaledW = 0, scaledH = 0;
+        if (a.type === 'image') {
+          if (!a._scaled) {
+            const iw = src.naturalWidth || src.width;
+            const ih = src.naturalHeight || src.height;
+            const cap = Math.max(cx.canvas.width, cx.canvas.height) * 2;
+            if (iw > cap || ih > cap) {
+              const s = Math.min(cap / iw, cap / ih);
+              const c = document.createElement('canvas');
+              c.width = Math.max(1, Math.round(iw * s));
+              c.height = Math.max(1, Math.round(ih * s));
+              c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+              a._scaled = c;
+            } else {
+              a._scaled = src;
+            }
+          }
+          src = a._scaled;
+          scaledW = src.width; scaledH = src.height;
+        }
         // Apply the asset's intrinsic rotation (0/90/180/270) to a scratch surface
         // before the layer's reactor-driven draw. CSS/HTML don't honor tkhd or EXIF
         // orientation so we have to compensate here and in _buildThumb().
         let drawSrc = src;
-        let drawW = a.w || src.naturalWidth || src.videoWidth || 1;
-        let drawH = a.h || src.naturalHeight || src.videoHeight || 1;
+        // For images prefer the working bitmap's dims (same aspect ratio as the
+        // original) so the rotation cache below is sized to that bitmap instead
+        // of the camera's full resolution.
+        let drawW = scaledW || a.w || src.naturalWidth || src.videoWidth || 1;
+        let drawH = scaledH || a.h || src.naturalHeight || src.videoHeight || 1;
         if (a.rotation && (a.rotation === 90 || a.rotation === 270)) {
           // Swap w/h so downstream cover-fit math uses the rotated footprint.
           const tmp = drawW; drawW = drawH; drawH = tmp;
@@ -3747,8 +3802,8 @@
             rc.rotate(a.rotation * Math.PI / 180);
             // drawImage uses the ORIGINAL source dimensions because that's the
             // un-rotated intrinsic content; rotation happens around the center.
-            const ow = src.naturalWidth || src.videoWidth || drawH;
-            const oh = src.naturalHeight || src.videoHeight || drawW;
+            const ow = src.naturalWidth || src.videoWidth || src.width || drawH;
+            const oh = src.naturalHeight || src.videoHeight || src.height || drawW;
             rc.drawImage(src, -ow / 2, -oh / 2);
             a._rotated = { deg: a.rotation, canvas: r };
           }
@@ -4755,7 +4810,25 @@
           const bpmInp = $('swr-tx-bpm');
           const autoBtn = $('swr-tx-auto-toggle');
           const countV = $('swr-tx-count');
+          // Preset-aware recommendations elements. Declared with the other
+          // lookups (NOT inline after renderRecs): populate() calls
+          // renderRecs() synchronously below, and a `const` declared later
+          // in the same scope would throw a TDZ ReferenceError
+          // ('Cannot access "recListEl" before initialization') whenever the
+          // transitions module is already loaded — a page-load race.
+          const recPresetEl = $('swr-tx-rec-preset');
+          const recListEl = $('swr-tx-rec-list');
+          const recRationaleEl = $('swr-tx-rec-rationale');
           if (!toggleBtn || !panel || !pick) return;
+
+          // Transitions are switched OFF engine-side. Nothing in the engine
+          // fires them any more: the FIRE button, the recommended chips, the
+          // 1-9 number keys and AUTO-FIRE are all gated on this flag, and the
+          // controls that can only fire are disabled so the UI does not lie.
+          // The module and panel stay wired (dropdown, toggle, BPM hook) so
+          // verify-transitions.mjs keeps exercising window.SWRTransitions
+          // directly. Flip this to true to bring the engine wiring back.
+          const TRANSITIONS_ENABLED = false;
 
           // Populate dropdown once module is ready (poll briefly, then give up).
           let attempts = 0;
@@ -4811,7 +4884,10 @@
 
           // Fire button.
           if (fireBtn) {
+            fireBtn.disabled = !TRANSITIONS_ENABLED;
+            fireBtn.title = TRANSITIONS_ENABLED ? 'Fire this transition' : 'Transitions are disabled';
             fireBtn.addEventListener('click', () => {
+              if (!TRANSITIONS_ENABLED) return;
               if (!window.SWRTransitions) return;
               const name = pick.value;
               const peak = parseFloat(peakInp.value);
@@ -4835,7 +4911,13 @@
           // Auto-fire toggle.
           let autoLive = false;
           if (autoBtn) {
+            autoBtn.disabled = !TRANSITIONS_ENABLED;
+            if (!TRANSITIONS_ENABLED) {
+              autoBtn.textContent = 'AUTO-FIRE DISABLED';
+              autoBtn.title = 'Transitions are disabled';
+            }
             autoBtn.addEventListener('click', () => {
+              if (!TRANSITIONS_ENABLED) return;
               if (!window.SWRTransitions) return;
               if (autoLive) {
                 window.SWRTransitions.setAutoFire(null);
@@ -4865,9 +4947,6 @@
           // key matches one in data/preset-transitions.json), paint the
           // recommended transitions as clickable chips above the picker.
           // Click a chip = select in the dropdown + fire immediately.
-          const recPresetEl = $('swr-tx-rec-preset');
-          const recListEl = $('swr-tx-rec-list');
-          const recRationaleEl = $('swr-tx-rec-rationale');
           function getActivePresetKey() {
             // window._activePreset is set by applyPreset() in the engine
             // body — it carries the full preset object, not the key.
@@ -4916,6 +4995,7 @@
               chip.textContent = name;
               chip.title = (cfg ? cfg.family + ' · ' + cfg.duration + 'ms · ' + cfg.kind : name);
               chip.addEventListener('click', () => {
+                if (!TRANSITIONS_ENABLED) return;
                 if (pick) pick.value = name;
                 window.SWRTransitions.fire(name);
               });
@@ -4987,6 +5067,7 @@
             if (idx >= opts.length) return;
             const opt = opts[idx];
             if (!opt) return;
+            if (!TRANSITIONS_ENABLED) return;
             e.preventDefault();
             window.SWRTransitions.fire(opt.value);
           });
@@ -7038,7 +7119,6 @@
   <script type="module" src="/engine-transitions.client.js"></script>
   <script type="module" src="/wizard.js"></script>
   <script type="module" src="/personas.js"></script>
-  <script type="module" src="/engine-transitions.client.js"></script>
   <script type="module" src="/project.js"></script>
   <script type="module" src="/mic-input.client.js"></script>
   <script type="module" src="/camera.client.js"></script>

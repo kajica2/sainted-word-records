@@ -324,8 +324,13 @@
       var A = (window.SWR && window.SWR.Audio) || null;
       var el = A && (A.el || A._el || A.audioEl);
       if (!el || !el.src) return;
+      // tick() (not sampleAt()) so the act-boundary side effect — firing the
+      // inter-act transition — happens exactly once per boundary on this
+      // clock. sampleAt() stays pure for the HUD/unit tests.
       var arcSample = window.SWR_AUTOMIX_ARC &&
-        window.SWR_AUTOMIX_ARC.sampleAt(this.arc, el.currentTime || 0);
+        (typeof window.SWR_AUTOMIX_ARC.tick === 'function'
+          ? window.SWR_AUTOMIX_ARC.tick(this.arc, el.currentTime || 0)
+          : window.SWR_AUTOMIX_ARC.sampleAt(this.arc, el.currentTime || 0));
       if (!arcSample) return;
       this._lastArcSample = arcSample;
       // Composition coupling: the cutting rhythm follows the act on this
