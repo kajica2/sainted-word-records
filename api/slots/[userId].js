@@ -64,13 +64,14 @@ export default async function handler(req, res) {
       listRegistrations(id),
       getUser(id),
     ]);
-    return sendJson(res, 200, {
-      user: user ? { id: user.id, email: user.email } : { id },
-      state,
-      grants: grants.slice(0, 100),
-      registrations: registrations.slice(0, 100),
-      remaining: (state.totalSlots || 0) - (state.registered || 0),
-    });
+      const paidSlots = grants.reduce((s, g) => s + (g && g.paid ? g.slots || 0 : 0), 0);
+      return sendJson(res, 200, {
+        user: user ? { id: user.id, email: user.email } : { id },
+        state: { ...state, paidSlots },
+        grants: grants.slice(0, 100),
+        registrations: registrations.slice(0, 100),
+        remaining: Math.max(0, paidSlots - (state.registered || 0)),
+      });
   }
 
   if (req.method === 'PUT') {
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
         ok: true,
         registration: result.registration,
         state: result.state,
-        remaining: (result.state.totalSlots || 0) - (result.state.registered || 0),
+          remaining: Math.max(0, (result.state.paidSlots || 0) - (result.state.registered || 0)),
       });
     } catch (e) {
       if (e instanceof SlotQuotaError) {

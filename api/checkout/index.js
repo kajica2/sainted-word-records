@@ -20,16 +20,9 @@ import { getConnectAccount } from '../_lib/connect-store.js';
 import { resolveSellableItems, findCatalogItemById } from '../_lib/catalogue.js';
 import { createOrder, updateOrder } from '../_lib/orders.js';
 import { getStripe, stripeConfigured, PLATFORM_FEE_PERCENT } from '../_lib/stripe.js';
-import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
+import { readJsonBody, sendJson, setCors, appOrigin } from '../_lib/http.js';
 
 const LISTING_RE = /^[a-f0-9-]{8,40}$/i;
-
-function appOrigin(req) {
-  const proto = (req.headers['x-forwarded-proto'] || 'http').toString();
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  if (host) return `${proto}://${host}`;
-  return process.env.SWRC_APP_ORIGIN || `http://localhost:5174`;
-}
 
 export default async function handler(req, res) {
   setCors(res, req.headers.origin);

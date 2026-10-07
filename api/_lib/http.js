@@ -136,3 +136,12 @@ export function methodNotAllowed(res, allowed) {
   res.setHeader('Allow', allowed.join(', '));
   send(res, 405, { error: 'method_not_allowed', allowed });
 }
+
+// Resolve the public origin of a request (x-forwarded-* first, then host,
+// then SWRC_APP_ORIGIN / localhost) — shared by the checkout handlers.
+export function appOrigin(req) {
+  const proto = (req.headers['x-forwarded-proto'] || 'http').toString();
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  if (host) return `${proto}://${host}`;
+  return process.env.SWRC_APP_ORIGIN || `http://localhost:5174`;
+}

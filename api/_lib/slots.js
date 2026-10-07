@@ -1,13 +1,12 @@
-// api/_lib/slots.js — server-side video-slot ledger (payment collection pending).
+// api/_lib/slots.js — server-side video-slot ledger (Stripe-wired).
 //
 // This is the authoritative payment-side counterpart to the client's local
 // wallet (pt.client.js). The client stays the runtime wallet (offline-first);
-// this ledger records, per user, the slots the operator has GRANTED and the
-// videos REGISTERED against that quota. Stripe wiring is explicitly out of
-// scope: grants are written with `paid: false` and registrations carry
-// `trial: true`. When Stripe lands, a webhook flips grant.paid to true and
-// registerVideos() must require paid grants before allowing registration —
-// see the TOGGLE marker inside registerVideos().
+// this ledger records, per user, the slots GRANTED and the videos REGISTERED
+// against that quota. Payment wiring: a paid Stripe checkout (PT tiers via
+// api/pt/checkout.js → api/webhooks/stripe.js → api/_lib/pt-keys.js) writes
+// grants with `paid: true`, and registerVideos() backs registrations with
+// PAID grants only — the TOGGLE is closed.
 //
 // Store layout. The same key space works on every backend (JSON files under
 // SWRC_DATA_DIR locally, `kv` table rows with the same relative key on
@@ -133,7 +132,7 @@ export async function listAllGrants() {
 // Append a grant line item and bump the running state. Returns
 // { grant, state }. A second grant for the same user ACCUMULATES (see the
 // module header for why that is the intended semantic).
-export async function grantSlots({ userId, email, slots, source = 'admin-grant', note = null }) {
+export async function grantSlots({ userId, email, slots, source = 'admin-grant', note = null, paid = false, orderId = null, ptKey = null }) {
   assertUserId(userId);
   const normalized = normalizeEmail(email);
   if (!normalized) throw new TypeError('invalid email');
@@ -148,9 +147,15 @@ export async function grantSlots({ userId, email, slots, source = 'admin-grant',
       slots: n,
       source,
       note: typeof note === 'string' && note ? String(note).slice(0, 200) : null,
-      createdAt: new Date().toISOString(),
-      paid: false, // Stripe wiring is out of scope; a webhook flips this true.
-    };
+        createdAt: new Date().toISOString(),
+        // paid:true grants are payment-verified (Stripe checkout + webhook
+        // fulfilment) — only they back registrations (see registerVideos).
+        // orderId links a webhook-fulfilled grant to its checkout session;
+        // ptKey carries the license key minted for a PT purchase.
+        paid: paid === true,
+        orderId: typeof orderId === 'string' && orderId ? orderId : null,
+        ptKey: typeof ptKey === 'string' && ptKey ? ptKey : null,
+      };
     const index = await readJson(grantsIndexPath(), []);
     index.push(grant);
     await writeJson(grantsIndexPath(), index);
@@ -186,38 +191,41 @@ export async function registerVideos({ userId, count }) {
   assertUserId(userId);
   const n = normalizeSlots(count);
   if (!n) throw new TypeError('invalid count');
-  return withLock(async () => {
-    const state = await getSlotState(userId);
-    const total = state.totalSlots || 0;
-    const used = state.registered || 0;
-    if (used + n > total) {
-      throw new SlotQuotaError('no slots left', { ...state, remaining: total - used });
-    }
-    const registration = {
-      id: uuid(),
-      userId,
-      count: n,
-      createdAt: new Date().toISOString(),
-      // Trial mode: grants are not payment-verified yet (Stripe is not wired),
-      // so paid:false grants still register — but every registration is marked
-      // trial so the books cannot pretend the money moved.
-      //
-      // TOGGLE WHEN STRIPE LANDS: gate registration on paid grants — read the
-      // grants index, sum the paid grant slots, and reject when the unpaid
-      // balance would back this registration. Then write trial:false here and
-      // stop accepting paid:false grants through the admin surface.
-      trial: true,
-    };
+      return withLock(async () => {
+        const state = await getSlotState(userId);
+        // TOGGLE (closed): registration is backed by PAID grants only. The
+        // unpaid balance can never back a registration; unpaid grants stay on
+        // the ledger for the books.
+        const grants = await listGrants(userId);
+        const paidSlots = grants.reduce((s, g) => s + (g && g.paid ? g.slots || 0 : 0), 0);
+        const used = state.registered || 0;
+        if (used + n > paidSlots) {
+          throw new SlotQuotaError('no paid slots left', {
+            ...state,
+            paidSlots,
+            remaining: Math.max(0, paidSlots - used),
+          });
+        }
+        const registration = {
+          id: uuid(),
+          userId,
+          count: n,
+          createdAt: new Date().toISOString(),
+          // Payment-verified: the wall above only lets PAID grants back a
+          // registration, so this row is no longer a trial.
+          trial: false,
+        };
     const index = await readJson(registrationsIndexPath(), []);
     index.push(registration);
     await writeJson(registrationsIndexPath(), index);
     await writeJson(registrationRecordPath(userId, registration.id), registration);
-    const next = {
-      ...state,
-      userId,
-      registered: used + n,
-      updatedAt: registration.createdAt,
-    };
+      const next = {
+        ...state,
+        userId,
+        paidSlots,
+        registered: used + n,
+        updatedAt: registration.createdAt,
+      };
     await writeJson(slotStatePath(userId), next);
     return { registration, state: next };
   });
@@ -228,15 +236,17 @@ export async function registerVideos({ userId, count }) {
 export async function syncPayload(user) {
   if (!user || !user.id) throw new TypeError('user required');
   assertUserId(user.id);
-  const state = await getSlotState(user.id);
-  const grants = await listGrants(user.id);
-  return {
-    email: user.email || null,
-    userId: user.id,
-    totalSlots: state.totalSlots || 0,
-    granted: state.granted || 0,
-    registered: state.registered || 0,
-    remaining: (state.totalSlots || 0) - (state.registered || 0),
-    grants: grants.slice(0, 50),
-  };
+    const state = await getSlotState(user.id);
+    const grants = await listGrants(user.id);
+    const paidSlots = grants.reduce((s, g) => s + (g && g.paid ? g.slots || 0 : 0), 0);
+    return {
+      email: user.email || null,
+      userId: user.id,
+      totalSlots: state.totalSlots || 0,
+      paidSlots,
+      granted: state.granted || 0,
+      registered: state.registered || 0,
+      remaining: Math.max(0, paidSlots - (state.registered || 0)),
+      grants: grants.slice(0, 50),
+    };
 }

@@ -55,7 +55,28 @@
     if (!grid) return;
 
     var q = new URLSearchParams(window.location.search);
-    if (q.get('status') === 'paid') {
+    if (q.get('pt') === 'paid') {
+      showNotice('ok', 'Payment received — activating your PT licence…');
+      (function pollKey(attempt) {
+        fetch('/api/slots', { headers: { Accept: 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            var g = d && d.grants ? d.grants.find(function (x) { return x && x.ptKey; }) : null;
+            if (g) {
+              showNotice('ok', 'Licence active — your key is ' + g.ptKey + '. Paste it into the PT panel in the engine.');
+            } else if (attempt < 5) {
+              setTimeout(function () { pollKey(attempt + 1); }, 2500);
+            } else {
+              showNotice('ok', 'Payment received. Your licence will appear in the PT panel shortly — refresh if needed.');
+            }
+          })
+          .catch(function () {
+            if (attempt < 5) setTimeout(function () { pollKey(attempt + 1); }, 2500);
+          });
+      })(0);
+    } else if (q.get('pt') === 'cancelled') {
+      showNotice('err', 'Checkout cancelled — no charge was made.');
+    } else if (q.get('status') === 'paid') {
       showNotice('ok', 'Payment successful — your remix license is live. Check your email for the receipt and access.');
     } else if (q.get('status') === 'cancelled') {
       showNotice('err', 'Checkout cancelled — you were not charged. Come back any time.');

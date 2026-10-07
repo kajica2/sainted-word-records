@@ -99,6 +99,36 @@
       const errEl = panel.querySelector('#pt-error');
       keyInput.focus();
       activateBtn.addEventListener('click', () => doActivate(keyInput.value, errEl));
+
+      // D4: buy buttons — start a Stripe Checkout Session for the tier.
+      panel.querySelectorAll('[data-buy-tier]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const tier = btn.getAttribute('data-buy-tier');
+          errEl.textContent = '';
+          btn.disabled = true;
+          try {
+            const res = await fetch('/api/pt/checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ tier }),
+            });
+            const json = await res.json().catch(() => null);
+            if (res.status === 401) {
+              errEl.textContent = 'Sign in first to buy a license.';
+            } else if (res.status === 503) {
+              errEl.textContent = 'Payments are not configured yet.';
+            } else if (res.ok && json && json.url) {
+              window.location.href = json.url;
+              return;
+            } else {
+              errEl.textContent = (json && json.error) || 'Could not start checkout.';
+            }
+          } catch (_) {
+            errEl.textContent = 'Could not reach the server.';
+          }
+          btn.disabled = false;
+        });
+      });
       keyInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') doActivate(keyInput.value, errEl);
       });
@@ -196,11 +226,11 @@
           <button class="pt-btn primary" id="pt-activate-btn">Activate</button>
         </div>
         <div class="pt-error" id="pt-error" role="alert"></div>
-        <div class="pt-tiers">
-          <div class="pt-tier"><b>PT Solo</b> €120 — 50 credits</div>
-          <div class="pt-tier"><b>PT Band</b> €280 — 150 credits</div>
-          <div class="pt-tier"><b>PT Label</b> €600 — 500 credits</div>
-        </div>
+          <div class="pt-tiers">
+            <div class="pt-tier"><b>PT Solo</b> €120 — 50 credits <button class="pt-btn" data-buy-tier="solo">Buy</button></div>
+            <div class="pt-tier"><b>PT Band</b> €280 — 150 credits <button class="pt-btn" data-buy-tier="band">Buy</button></div>
+            <div class="pt-tier"><b>PT Label</b> €600 — 500 credits <button class="pt-btn" data-buy-tier="label">Buy</button></div>
+          </div>
         <div class="pt-hint">
           No license? <a href="/campaign.html#pt" target="_blank" rel="noopener">See pricing on the campaign page →</a>
         </div>

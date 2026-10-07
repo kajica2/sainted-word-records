@@ -26,6 +26,9 @@ import { join } from 'node:path';
 const TMP = mkdtempSync(join(tmpdir(), 'swrc-slots-api-'));
 process.env.SWRC_DATA_DIR = TMP;
 process.env.SWR_ADMIN_EMAILS = 'kadmin@saintedwordrecords.com';
+// Deterministic Stripe state: the PT-checkout 503 test needs it unconfigured.
+delete process.env.STRIPE_SECRET_KEY;
+delete process.env.STRIPE_WEBHOOK_SECRET;
 
 // Import AFTER the env is set — db.js picks its root at module load.
 const { handleApi } = await import('./dev-api.mjs');
@@ -104,7 +107,7 @@ await test('admin grants 30 slots to alice → 200 with state + grant', async ()
   assert.equal(r.json.state.granted, 1);
   assert.equal(r.json.state.registered, 0);
   assert.equal(r.json.grant.slots, 30);
-  assert.equal(r.json.grant.paid, false);
+    assert.equal(r.json.grant.paid, true, 'admin grants are payment-verified comps');
   assert.equal(r.json.grant.note, 'smoke grant');
 });
 
@@ -121,7 +124,19 @@ await test('grant validation: bad slots → 400 invalid_slots', async () => {
   assert.deepEqual(r.json.allowed, [10, 30, 50]);
 });
 
-// --- panel sync ---
+  // --- PT checkout (D4) ---
+  await test('POST /api/pt/checkout without a session → 401', async () => {
+    const r = await req('POST', '/api/pt/checkout', { body: { tier: 'solo' } });
+    assert.equal(r.status, 401, JSON.stringify(r.json));
+  });
+
+  await test('POST /api/pt/checkout with Stripe unconfigured → 503', async () => {
+    const r = await req('POST', '/api/pt/checkout', { body: { tier: 'solo' }, cookie: aliceCookie });
+    assert.equal(r.status, 503, JSON.stringify(r.json));
+    assert.equal(r.json.error, 'stripe_not_configured');
+  });
+
+  // --- panel sync ---
 await test('GET /api/slots (panel sync) for alice → full contract', async () => {
   const r = await req('GET', '/api/slots', { cookie: aliceCookie });
   assert.equal(r.status, 200, JSON.stringify(r.json));
@@ -131,7 +146,7 @@ await test('GET /api/slots (panel sync) for alice → full contract', async () =
   assert.equal(r.json.registered, 0);
   assert.equal(r.json.remaining, 30);
   assert.equal(r.json.grants.length, 1);
-  assert.equal(r.json.grants[0].paid, false);
+    assert.equal(r.json.grants[0].paid, true);
 });
 
 await test('GET /api/slots without a session → 401', async () => {
@@ -146,7 +161,7 @@ await test('PUT /api/slots/<alice> register 30 → 200, remaining 0', async () =
   assert.equal(r.json.state.registered, 30);
   assert.equal(r.json.remaining, 0);
   assert.equal(r.json.registration.count, 30);
-  assert.equal(r.json.registration.trial, true, 'registers under the trial marker until Stripe');
+    assert.equal(r.json.registration.trial, false, 'payment-verified — the trial marker is retired');
 });
 
 await test('PUT register over quota → 422 quota_exceeded, state unchanged', async () => {
@@ -177,7 +192,7 @@ await test('GET /api/slots/<alice> (self) → state + grants + registrations', a
   assert.equal(r.json.remaining, 0);
   assert.equal(r.json.grants.length, 1);
   assert.equal(r.json.registrations.length, 1);
-  assert.equal(r.json.registrations[0].trial, true);
+    assert.equal(r.json.registrations[0].trial, false);
 });
 
 await test('GET /api/slots/<alice> as admin → allowed (view, not mutate)', async () => {
