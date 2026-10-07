@@ -344,7 +344,24 @@ try {
   await injectSamplers(page);
   const baseSource = await page.evaluate(async () => {
     const e = window.__SWR_ENGINE;
-    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // Wait for a sampled region to SETTLE (two identical consecutive samples)
+    // instead of assuming a fixed delay is enough. On a loaded CI runner the
+    // composite can miss a flat 500ms, and the sample then reads the previous
+    // frame — which is how "Grid dims under a composited base" produced
+    // dim=164 (brighter than full=20) on run 37570453591 while passing 70/70
+    // locally. This waits for the render to stop changing; it does not wait
+    // for the assertion to pass, so the check keeps its teeth.
+    const settle = async (fn, timeout = 5000, step = 120) => {
+      let prev = fn();
+      const t0 = Date.now();
+      while (Date.now() - t0 < timeout) {
+        await new Promise((r) => setTimeout(r, step));
+        const now = fn();
+        if (now === prev) return now;
+        prev = now;
+      }
+      return prev;
+    };
     const out = { api: typeof e.setPhotos === 'function' };
     out.vjAtStart = e.vjMode();
     out.bgMean = window.__regionMean(200, 440, 140, 120);
@@ -358,14 +375,11 @@ try {
     const svg = (fill) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="${fill}"/></svg>`);
     e.setPhotos([svg('#ffffff')]);
-    await wait(500);
-    out.photoMean = window.__regionMean(200, 440, 140, 120);
+    out.photoMean = await settle(() => window.__regionMean(200, 440, 140, 120));
     e.setPhotos([]);
-    await wait(400);
-    out.gridFull = window.__regionMax(100, 180, 340, 40);
+    out.gridFull = await settle(() => window.__regionMax(100, 180, 340, 40));
     e.setPhotos([svg('#000000')]);
-    await wait(500);
-    out.gridDim = window.__regionMax(100, 180, 340, 40);
+    out.gridDim = await settle(() => window.__regionMax(100, 180, 340, 40));
     e.setPhotos([]);
     out.kindAfter = e.baseSourceKind();
     return out;
