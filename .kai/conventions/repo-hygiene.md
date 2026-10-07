@@ -27,6 +27,40 @@ Procedure:
    → `^branch`), `main`, and every open PR head (`gh pr list --state open`).
 4. Re-check the count immediately before each delete, then `git branch -D`.
 
+## Second-level redundancy — the `git cherry` pass
+
+`git rev-list --count origin/main..<branch>` = 0 proves ancestor-merged content.
+Branches that landed via **rebase or cherry-pick** keep the same content with
+different SHAs, so the ancestor test reports them as "unique work" forever.
+The patch-equivalence test resolves them:
+
+```bash
+git cherry <ref> <branch> | grep -c '^+'     # 0 = every commit's patch is in <ref>
+```
+
+Measured 2026-10-07 (second pass): 9 of 17 "unmerged" branches came back 0 —
+`fix/bpm-jitter-tolerance`, `fix/persona-pages-linking`,
+`refactor/picker-browser-safe`, `auto/ia-judgement-rebase` among them — all
+deletable despite `rev-list` reporting 1–3 unique commits each.
+
+For `backup/*` branches, compare against their **counterpart** before main:
+
+```bash
+# backup/feat-one-page-app-20260919  ->  feat/one-page-app
+base=$(printf '%s' "$b" | sed -E 's#^backup/##; s#-[0-9]{8}$##; s#^(feat|fix|chore|docs|refactor|perf)-#\1/#')
+```
+
+11 of 13 backups were patch-contained in their counterpart or in main; 2
+carried real unique work (`feat-agent-key-nudger`,
+`fix-desktop-overflow-tabs-fit`) and were kept. **Do not delete a `backup/*`
+on the name alone** — the name suggests redundancy; the content sometimes
+disagrees.
+
+macOS `sed` notes: BSD sed has no `\|` alternation in basic regex, and `|`
+cannot be both the delimiter and an alternation character. Use
+`sed -E 's#...#...#; s#^(feat|fix|chore|docs|refactor|perf)-#\1/#'`.
+
+
 ## Worktree cleanup — three conditions, all required
 
 A worktree is safe to remove only when it is **merged + clean + stale**:
@@ -66,3 +100,33 @@ Check with `[ -L <wt>/node_modules ]` before counting a worktree's cost.
   Compare absolute paths against `git worktree list --porcelain`.
 - **Dot-directories are invisible to `glob`** (hidden: false) — `.kai/**`
   returned nothing while `.kai/` was fully populated.
+
+## The OMB post-checkout hook — rebases that refuse to start
+
+`.git/hooks/post-checkout` is the `OMB_POST_CHECKOUT_DISPATCHER_V1` (managed by
+oh-my-braincrew). On every **branch** checkout it regenerates
+`.omb/compat/codex-manifest.json`, leaving the worktree dirty *between the
+rebase's own internal checkouts* — so `git rebase` aborts with
+`error: cannot rebase: You have unstaged changes` even after you clean the
+file, because the next internal checkout re-dirties it.
+
+Bypass the hook for a single invocation (never edit or remove the hook):
+
+```bash
+mkdir -p /tmp/empty-hooks
+git -c core.hooksPath=/tmp/empty-hooks rebase origin/main
+```
+
+The same trick cleans the file without re-triggering the hook:
+
+```bash
+git -c core.hooksPath=/tmp/empty-hooks checkout -- .omb/compat/codex-manifest.json
+```
+
+Related: an interrupted rebase leaves `.git/worktrees/<wt>/rebase-merge`
+behind, and git then refuses with "I am stopping in case you still have
+something valuable there". Inspect it first (`cat rebase-merge/head-name`,
+`onto`) — if the worktree is clean and the branch tip still matches origin,
+remove the directory and rebase again. Do **not** `rebase --abort` a stale
+directory blind: it resets the branch to an old ORIG_HEAD.
+
