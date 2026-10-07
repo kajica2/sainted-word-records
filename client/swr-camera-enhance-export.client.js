@@ -13,6 +13,12 @@
  *
  * MediaRecorder is realtime: a 40 s clip takes ~40 s. The page says so.
  *
+ * Failure is typed, never silent: `music` mode without a decodable file fails
+ * (`music_file_missing` / `audio_decode_failed` / `no_webaudio`) rather than
+ * falling back to the source audio, format/quality are frozen for the run
+ * (`state_changed` aborts if they move), and any throw after captureStream stops
+ * every track before returning `{ ok: false, error }`.
+ *
  * Public API: window.SWR_CAMERA_ENHANCE_EXPORT.export(runtime, options)
  *   -> Promise<{ ok, name?, bytes?, error? }>
  */
@@ -38,6 +44,13 @@
     return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   }
 
+  // Typed export failure: the page maps the code to readable text.
+  function fail(code) {
+    const e = new Error(code);
+    e.code = code;
+    return e;
+  }
+
   function downloadBlob(blob, name) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -51,15 +64,24 @@
 
   async function buildAudioTracks(video, mode, musicFile) {
     if (mode === 'mute') return { tracks: [], cleanup: () => {} };
-    if (mode === 'music' && musicFile) {
+    if (mode === 'music') {
+      // never silently fall back to the source audio: a missing/undecodable
+      // music file is a hard failure the page can explain.
+      if (!musicFile) throw fail('music_file_missing');
       const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return { tracks: [], cleanup: () => {} };
+      if (!AC) throw fail('no_webaudio');
       const ctx = new AC();
+      let decoded;
+      try {
+        const buf = await musicFile.arrayBuffer();
+        decoded = await new Promise((resolve, reject) => {
+          ctx.decodeAudioData(buf.slice(0), resolve, reject);
+        });
+      } catch (e) {
+        try { ctx.close(); } catch (e2) { /* fine */ }
+        throw fail('audio_decode_failed');
+      }
       const dest = ctx.createMediaStreamDestination();
-      const buf = await musicFile.arrayBuffer();
-      const decoded = await new Promise((resolve, reject) => {
-        ctx.decodeAudioData(buf.slice(0), resolve, reject);
-      });
       const src = ctx.createBufferSource();
       src.buffer = decoded;
       src.connect(dest);
@@ -90,9 +112,13 @@
     if (mime === null) return { ok: false, error: 'no_mediarecorder' };
 
     const duration = Number(video.duration) || 0;
-    if (duration < 0.2) return { ok: false, error: 'too_short' };
+    if (duration < 0.5) return { ok: false, error: 'too_short' };
 
     const onProgress = typeof o.onProgress === 'function' ? o.onProgress : () => {};
+
+    // Freeze the geometry for the whole export: the canvas size and the stream
+    // must never disagree with the painted rect.
+    const frozen = { format: st.format, quality: st.quality };
 
     // Output canvas at the state's format + quality, then render through the
     // runtime so the frame is identical to the stage's.
@@ -109,63 +135,82 @@
 
     const fps = Math.min(60, Math.max(24, Math.round(1000 / 33)));
     const stream = canvas.captureStream(fps);
-    const audio = await buildAudioTracks(video, o.audioMode || 'original', o.musicFile);
-    audio.tracks.forEach((t) => stream.addTrack(t));
-
-    let rec;
+    let audio = { tracks: [], cleanup: () => {} };
+    let wasPlaying = false;
     try {
-      rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      audio = await buildAudioTracks(video, o.audioMode || 'original', o.musicFile);
+      audio.tracks.forEach((t) => stream.addTrack(t));
+
+      let rec;
+      try {
+        rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      } catch (e) {
+        return { ok: false, error: 'recorder_failed' };
+      }
+
+      const chunks = [];
+      rec.addEventListener('dataavailable', (e) => { if (e.data && e.data.size) chunks.push(e.data); });
+
+      const done = new Promise((resolve) => {
+        rec.addEventListener('stop', () => resolve(new Blob(chunks, { type: (mime || 'video/webm').split(';')[0] })));
+      });
+
+      wasPlaying = !video.paused;
+      runtime.pause();
+      try { video.currentTime = 0; } catch (e) { /* fine */ }
+      await new Promise((r) => setTimeout(r, 120));
+
+      let raf = 0;
+      let lastProgress = -1;
+      let stopReason = null;
+      const stop = (reason) => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        if (reason && !stopReason) stopReason = reason;
+        try { if (rec.state !== 'inactive') rec.stop(); } catch (e) { /* already stopped */ }
+      };
+      const draw = () => {
+        const now = runtime.getState ? runtime.getState() : null;
+        if (now && (now.format !== frozen.format || now.quality !== frozen.quality)) {
+          stop('state_changed');
+          return;
+        }
+        // deterministic clock: the stateful fixes advance here, at export
+        // resolution, exactly as they do on the preview tick
+        if (runtime.advanceFixes) runtime.advanceFixes();
+        runtime.renderFrame(ctx, {});
+        const t = video.currentTime || 0;
+        const p = duration ? Math.min(1, t / duration) : 0;
+        if (p - lastProgress > 0.01) { lastProgress = p; onProgress(p); }
+        if (t < duration - 0.03 && !video.ended) raf = requestAnimationFrame(draw);
+        else stop();
+      };
+
+      rec.start(250);
+      if (audio.start) { try { audio.start(); } catch (e) { /* silent failure is acceptable */ } }
+      try { await video.play(); } catch (e) { /* muted autoplay should be fine */ }
+      raf = requestAnimationFrame(draw);
+
+      // hard stop a beat after the clip ends in case 'ended' never fires
+      const guard = setTimeout(stop, Math.ceil((duration + 2) * 1000));
+
+      const blob = await done;
+      clearTimeout(guard);
+
+      if (stopReason) return { ok: false, error: stopReason };
+      if (!blob || !blob.size) return { ok: false, error: 'empty_recording' };
+      const name = 'sainted-word-camera-enhance-' + outW + 'x' + outH + '-' + stamp() + '.webm';
+      downloadBlob(blob, name);
+      return { ok: true, name, bytes: blob.size, width: outW, height: outH, mime: mime || 'video/webm' };
     } catch (e) {
-      audio.cleanup();
-      return { ok: false, error: 'recorder_failed' };
+      return { ok: false, error: (e && e.code) || 'export_failed' };
+    } finally {
+      try { audio.cleanup(); } catch (e) { /* fine */ }
+      if (!wasPlaying && runtime.pause) runtime.pause();
+      // stop every track, whoever ended the export
+      stream.getTracks().forEach((t) => { try { t.stop(); } catch (e) {} });
+      audio.tracks.forEach((t) => { try { t.stop(); } catch (e) {} });
     }
-
-    const chunks = [];
-    rec.addEventListener('dataavailable', (e) => { if (e.data && e.data.size) chunks.push(e.data); });
-
-    const done = new Promise((resolve) => {
-      rec.addEventListener('stop', () => resolve(new Blob(chunks, { type: (mime || 'video/webm').split(';')[0] })));
-    });
-
-    const wasPlaying = !video.paused;
-    runtime.pause();
-    try { video.currentTime = 0; } catch (e) { /* fine */ }
-    await new Promise((r) => setTimeout(r, 120));
-
-    let raf = 0;
-    let lastProgress = -1;
-    const draw = () => {
-      runtime.renderFrame(ctx, {});
-      const t = video.currentTime || 0;
-      const p = duration ? Math.min(1, t / duration) : 0;
-      if (p - lastProgress > 0.01) { lastProgress = p; onProgress(p); }
-      if (t < duration - 0.03 && !video.ended) raf = requestAnimationFrame(draw);
-      else stop();
-    };
-    const stop = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-      try { if (rec.state !== 'inactive') rec.stop(); } catch (e) { /* already stopped */ }
-    };
-
-    rec.start(250);
-    if (audio.start) { try { audio.start(); } catch (e) { /* silent failure is acceptable */ } }
-    try { await video.play(); } catch (e) { /* muted autoplay should be fine */ }
-    raf = requestAnimationFrame(draw);
-
-    // hard stop a beat after the clip ends in case 'ended' never fires
-    const guard = setTimeout(stop, Math.ceil((duration + 2) * 1000));
-
-    const blob = await done;
-    clearTimeout(guard);
-    audio.cleanup();
-    if (!wasPlaying) runtime.pause();
-    stream.getTracks().forEach((t) => { try { t.stop(); } catch (e) {} });
-
-    if (!blob || !blob.size) return { ok: false, error: 'empty_recording' };
-    const name = 'sainted-word-camera-enhance-' + outW + 'x' + outH + '-' + stamp() + '.webm';
-    downloadBlob(blob, name);
-    return { ok: true, name, bytes: blob.size, width: outW, height: outH, mime: mime || 'video/webm' };
   }
 
   window.SWR_CAMERA_ENHANCE_EXPORT = { export: exportVideo, pickMime };

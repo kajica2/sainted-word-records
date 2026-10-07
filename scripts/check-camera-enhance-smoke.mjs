@@ -153,6 +153,24 @@ try {
   check('5 burn-in toggles', exporter.burns === 5, String(exporter.burns));
   check('export starts disabled', exporter.disabled === true);
 
+  // The stage canvas must take the renderer's own geometry, or a 1-2 px
+  // rounding disagreement leaves an unpainted band.
+  const geometry = await page.evaluate(() => {
+    const CE = window.SWR_CAMERA_ENHANCE;
+    const sel = document.getElementById('ceFormat');
+    const c = document.getElementById('ceStage');
+    return [...sel.options].map((o) => {
+      sel.value = o.value;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      const r = CE.formatRect(o.value, 1920, 1080, 720);
+      return { format: o.value, w: c.width, h: c.height, outW: r.outW, outH: r.outH };
+    });
+  });
+  const geometryBad = geometry.filter((g) => g.w !== g.outW || g.h !== g.outH);
+  check('all 5 formats size the stage from formatRect', geometryBad.length === 0,
+    geometryBad.length ? geometryBad.map((g) => `${g.format} ${g.w}x${g.h} vs ${g.outW}x${g.outH}`).join(' | ')
+      : geometry.map((g) => `${g.format} ${g.w}x${g.h}`).join(', '));
+
   const globals = await page.evaluate(() => ({
     runtime: typeof (window.SWR_CAMERA_ENHANCE && window.SWR_CAMERA_ENHANCE.create),
     exporter: typeof (window.SWR_CAMERA_ENHANCE_EXPORT && window.SWR_CAMERA_ENHANCE_EXPORT.export),

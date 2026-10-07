@@ -24,8 +24,11 @@
  *
  * Public API:
  *   window.SWR_CAMERA_ENHANCE.create(options) -> instance
+ *     instance.advanceFixes()  sample once + advance the stateful fixes (the
+ *                              preview tick and the export draw loop both call it)
  *   pure helpers exported alongside for tests: LOOKS, buildFilter,
- *   autoExposureBias, formatRect, estimateShift, smoothPath, overlayAlpha.
+ *   autoExposureBias, formatRect, estimateShift, smoothPath, stabilizerOffset,
+ *   audioFeatures, overlayAlpha.
  */
 (function () {
   'use strict';
@@ -72,7 +75,13 @@
   }
 
   function buildFilter(params) {
-    const p = params || {};
+    let p = params || {};
+    // A raw preset object (LOOKS.warm) names exposure `brightness`; map it here
+    // too, so buildFilter(LOOKS.x) is honest without going through
+    // effectiveParams first.
+    if (typeof p.brightness === 'number' && p.exposure === undefined) {
+      p = Object.assign({}, p, { exposure: p.brightness });
+    }
     const n = (k) => Number(p[k] || 0);
     const brightness = clamp(1 + (n('exposure') + 0.4 * n('shadows') + 0.2 * n('highlights')) / 100, 0.2, 3);
     const contrast = clamp(1 + (n('contrast') + 0.3 * n('highlights') - 0.3 * n('shadows')) / 100, 0.2, 3);
@@ -158,6 +167,15 @@
     return out;
   }
 
+  // The draw offset that cancels the camera's deviation from the virtual path.
+  // `raw` accumulates the content's leftward displacement (estimateShift's
+  // convention), so the correction is raw − smoothed. Positive = draw right.
+  function stabilizerOffset(rawSeries, alpha) {
+    if (!rawSeries || !rawSeries.length) return 0;
+    const s = smoothPath(rawSeries, alpha === undefined ? 0.12 : alpha);
+    return rawSeries[rawSeries.length - 1] - s[s.length - 1];
+  }
+
   // ------------------------------------------------------------- geometry
   // Cover-crop the source into the target aspect and scale to the output box.
   function formatRect(format, srcW, srcH, outLongEdge) {
@@ -192,11 +210,49 @@
     return peak === undefined ? 0 : peak * i;
   }
 
+  // ------------------------------------------------------------ audio bands
+  // The overlay reads { energy, bass, mid, high }. A page may hand the runtime a
+  // raw AnalyserNode instead (camera-enhance.html does), so derive the bands from
+  // the frequency data when the named fields are absent. Always returns finite
+  // 0..1 values — a half-wired audio source must never paint NaN.
+  const audioBandCache = new WeakMap();
+  function audioFeatures(audio) {
+    if (!audio) return null;
+    if (Number.isFinite(Number(audio.energy)) || Number.isFinite(Number(audio.bass))) {
+      return {
+        energy: clamp01(Number(audio.energy) || 0),
+        bass: clamp01(Number(audio.bass) || 0),
+        mid: clamp01(Number(audio.mid) || 0),
+        high: clamp01(Number(audio.high) || 0),
+      };
+    }
+    if (typeof audio.getByteFrequencyData !== 'function') return null;
+    let entry = audioBandCache.get(audio);
+    if (!entry) {
+      entry = { freq: new Uint8Array(Math.max(8, Number(audio.frequencyBinCount) || 128)) };
+      audioBandCache.set(audio, entry);
+    }
+    try { audio.getByteFrequencyData(entry.freq); } catch (e) { return null; }
+    const f = entry.freq;
+    const band = (a, b) => {
+      let sum = 0;
+      let count = 0;
+      for (let i = a; i < b && i < f.length; i++) { sum += f[i]; count++; }
+      return count ? (sum / count) / 255 : 0;
+    };
+    const n = f.length;
+    const bass = band(0, Math.floor(n * 0.08));
+    const mid = band(Math.floor(n * 0.08), Math.floor(n * 0.35));
+    const high = band(Math.floor(n * 0.35), Math.floor(n * 0.8));
+    return { energy: clamp01((bass + mid + high) / 3), bass, mid, high };
+  }
+
   function drawOverlay(ctx, mode, intensity, w, h, audio, timeMs) {
     const alpha = overlayAlpha(mode, intensity);
     if (!alpha) return;
     const t = (timeMs || 0) / 1000;
-    const energy = audio ? audio.energy : 0.3;
+    const feat = audioFeatures(audio);
+    const energy = feat ? feat.energy : 0.3;
     ctx.save();
     if (mode === 'subtle') {
       const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.8);
@@ -204,7 +260,7 @@
       grad.addColorStop(1, `rgba(0,0,0,${(alpha * (0.4 + energy * 0.6)).toFixed(3)})`);
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
-      const size = w * (0.12 + (audio ? audio.bass * 0.06 : 0));
+      const size = w * (0.12 + (feat ? feat.bass * 0.06 : 0));
       const accent = ctx.createLinearGradient(w - size, 0, w, size);
       accent.addColorStop(0, 'rgba(0,0,0,0)');
       accent.addColorStop(1, `rgba(245,158,11,${(alpha * 0.8).toFixed(3)})`);
@@ -231,7 +287,7 @@
       const bars = 4;
       const bandW = w / bars;
       const maxH = h * 0.15;
-      const levels = audio ? [audio.bass, audio.mid, audio.high, audio.energy] : [0.3, 0.3, 0.3, 0.3];
+      const levels = feat ? [feat.bass, feat.mid, feat.high, feat.energy] : [0.3, 0.3, 0.3, 0.3];
       for (let i = 0; i < bars; i++) {
         const bh = clamp01(levels[i]) * maxH * (alpha / 0.3);
         const grad = ctx.createLinearGradient(0, h, 0, h - bh);
@@ -240,8 +296,8 @@
         ctx.fillStyle = grad;
         ctx.fillRect(i * bandW + bandW * 0.2, h - bh, bandW * 0.6, bh);
       }
-      if (audio) {
-        const cross = 20 + audio.bass * 30 * (alpha / 0.3);
+      if (feat) {
+        const cross = w * 0.03 * (1 + feat.bass);
         ctx.strokeStyle = `rgba(255,255,255,${(alpha * 0.4).toFixed(3)})`;
         ctx.lineWidth = Math.max(1, w / 1080);
         ctx.beginPath();
@@ -408,8 +464,11 @@
     let pathRawY = [];
     let pathX = 0;
     let pathY = 0;
-    let smoothPrev = null;
-    let smoothPrevCtx = null;
+    // Previous-frame caches for the smooth-motion blend, keyed by output size so
+    // the preview (720) and the export (up to 4K) stop invalidating each other.
+    const smoothCaches = new Map();
+    const SMOOTH_CACHE_MAX = 2;
+    let objectUrl = null;
 
     function sampleFrame() {
       if (!video || !video.videoWidth) return null;
@@ -442,31 +501,38 @@
       state.autoBias = autoExposureBias(stats);
     }
 
-    // Cumulative camera path (raw) vs the smoothed virtual path. The
-    // counter-move is (smoothed - raw): a steady pan passes through untouched,
-    // jitter gets pulled back toward the virtual trajectory.
-    function refreshStabilizer() {
-      if (!state.fixes.stabilize) {
-        gridPrev = null;
-        pathRawX = [];
-        pathRawY = [];
-        pathX = 0;
-        pathY = 0;
-        return;
-      }
+    // One frame's worth of stateful fix work: sample the frame ONCE, advance
+    // the stabiliser path, and refresh the auto-exposure bias on a frame counter.
+    // The preview tick and the export draw loop both call this, so the help the
+    // fixes give is identical in both.
+    let advanceCount = 0;
+    function advanceFixes() {
+      if (!state.ready || !video) return null;
       const stats = sampleFrame();
-      if (!stats) return;
-      if (gridPrev) {
-        const d = estimateShift(gridPrev, stats.grid, stats.w, stats.h, 3);
-        pathRawX.push(pathRawX.length ? pathRawX[pathRawX.length - 1] + d.dx : d.dx);
-        pathRawY.push(pathRawY.length ? pathRawY[pathRawY.length - 1] + d.dy : d.dy);
-        if (pathRawX.length > 90) { pathRawX.shift(); pathRawY.shift(); }
-        const sx = smoothPath(pathRawX, 0.12);
-        const sy = smoothPath(pathRawY, 0.12);
-        pathX = sx.length ? sx[sx.length - 1] - pathRawX[pathRawX.length - 1] : 0;
-        pathY = sy.length ? sy[sy.length - 1] - pathRawY[pathRawY.length - 1] : 0;
+      if (stats) {
+        state.lastStats = { mean: stats.mean, low: stats.low, high: stats.high };
+        if (state.fixes.stabilize) {
+          if (gridPrev) {
+            const d = estimateShift(gridPrev, stats.grid, stats.w, stats.h, 3);
+            pathRawX.push(pathRawX.length ? pathRawX[pathRawX.length - 1] + d.dx : d.dx);
+            pathRawY.push(pathRawY.length ? pathRawY[pathRawY.length - 1] + d.dy : d.dy);
+            if (pathRawX.length > 90) { pathRawX.shift(); pathRawY.shift(); }
+            pathX = stabilizerOffset(pathRawX, 0.12);
+            pathY = stabilizerOffset(pathRawY, 0.12);
+          }
+          gridPrev = stats.grid;
+        } else {
+          gridPrev = null;
+          pathRawX = [];
+          pathRawY = [];
+          pathX = 0;
+          pathY = 0;
+        }
       }
-      gridPrev = stats.grid;
+      advanceCount += 1;
+      if (!state.fixes.expose) state.autoBias = 0;
+      else if (stats && advanceCount % 10 === 0) state.autoBias = autoExposureBias(stats);
+      return stats;
     }
 
     function currentFilter() {
@@ -512,23 +578,34 @@
 
       ctx.imageSmoothingQuality = 'high';
       // smooth motion: the previous graded frame underneath, current at 55% over
-      const blending = state.fixes.smooth && smoothPrev && smoothPrev.width === outW && smoothPrev.height === outH;
-      if (blending) ctx.drawImage(smoothPrev, 0, 0);
+      const cacheKey = outW + 'x' + outH;
+      const prevFrame = smoothCaches.get(cacheKey);
+      const blending = state.fixes.smooth && !!prevFrame;
+      if (blending) ctx.drawImage(prevFrame.canvas, 0, 0);
       ctx.filter = currentFilter();
       if (blending) ctx.globalAlpha = 0.55;
       ctx.drawImage(video, rect.sx, rect.sy, rect.sw, rect.sh, dx, dy, drawW, drawH);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
 
-      // grain + vignette (painted layers)
+      // grain + vignette (painted layers). Both scale with the frame: the grain
+      // tile is painted through a patch proportional to the output, so a 4K
+      // export gets the same grain *size* as the 720 stage.
       const gA = grainAlpha(state.params);
       if (gA > 0) {
         const tile = getGrainTile();
         const pattern = ctx.createPattern(tile, 'repeat');
+        const jitter = 128;
+        const jx = Math.round(Math.random() * jitter);
+        const jy = Math.round(Math.random() * jitter);
         ctx.globalAlpha = gA;
         ctx.globalCompositeOperation = 'overlay';
         ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, outW, outH);
+        ctx.save();
+        ctx.translate(jx, jy);           // reseeded every frame so the tile is not frozen
+        ctx.scale(outW / 720, outH / 720);
+        ctx.fillRect(-jitter, -jitter, 720 + jitter * 2, 720 + jitter * 2);
+        ctx.restore();
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
@@ -554,23 +631,27 @@
 
       ctx.restore();
 
-      // cache this graded frame for the next blend (best-effort)
+      // cache this graded frame for the next blend (best-effort, per size)
       if (state.fixes.smooth) {
         try {
-          if (!smoothPrev) smoothPrev = document.createElement('canvas');
-          if (smoothPrev.width !== outW || smoothPrev.height !== outH) {
-            smoothPrev.width = outW;
-            smoothPrev.height = outH;
-            smoothPrevCtx = null;
+          let entry = smoothCaches.get(cacheKey);
+          if (!entry) {
+            const canvas = document.createElement('canvas');
+            canvas.width = outW;
+            canvas.height = outH;
+            entry = { canvas, ctx: canvas.getContext('2d') };
+            smoothCaches.set(cacheKey, entry);
+            while (smoothCaches.size > SMOOTH_CACHE_MAX) {
+              const oldest = smoothCaches.keys().next().value;
+              smoothCaches.delete(oldest);
+            }
           }
-          if (!smoothPrevCtx) smoothPrevCtx = smoothPrev.getContext('2d');
-          smoothPrevCtx.filter = currentFilter();
-          smoothPrevCtx.drawImage(video, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, outW, outH);
-          smoothPrevCtx.filter = 'none';
+          entry.ctx.filter = currentFilter();
+          entry.ctx.drawImage(video, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, outW, outH);
+          entry.ctx.filter = 'none';
         } catch (e) { /* frame cache is best-effort */ }
-      } else if (smoothPrev) {
-        smoothPrev = null;
-        smoothPrevCtx = null;
+      } else if (smoothCaches.size) {
+        smoothCaches.clear();
       }
 
       return { rect, outW, outH, filter: currentFilter(), zoom, tx, ty, autoBias: state.autoBias };
@@ -599,13 +680,23 @@
 
     async function loadFile(file) {
       if (!file || !video) return { ok: false, error: 'no_file' };
+      // one clip per page load: drop the previous object URL before replacing it
+      if (objectUrl) { try { URL.revokeObjectURL(objectUrl); } catch (e) { /* fine */ } objectUrl = null; }
       const url = URL.createObjectURL(file);
+      objectUrl = url;
       video.src = url;
       try {
         await new Promise((resolve, reject) => {
-          const done = () => resolve();
-          video.addEventListener('loadedmetadata', done, { once: true });
-          video.addEventListener('error', () => reject(new Error('decode_failed')), { once: true });
+          const onMeta = () => { cleanup(); resolve(); };
+          const onErr = () => { cleanup(); reject(new Error('decode_failed')); };
+          // named handlers, removed on settle, so a failed decode leaves no
+          // stale loadedmetadata/error listeners behind for the next load
+          function cleanup() {
+            video.removeEventListener('loadedmetadata', onMeta);
+            video.removeEventListener('error', onErr);
+          }
+          video.addEventListener('loadedmetadata', onMeta);
+          video.addEventListener('error', onErr);
         });
       } catch (e) {
         state.ready = false;
@@ -629,8 +720,7 @@
     function tick() {
       if (!state.ready || !video) return;
       if (video.paused) state.playing = false;
-      refreshStabilizer();
-      if (state.fixes.expose && Math.random() < 0.06) refreshAutoExposure();
+      advanceFixes();
       state.lastRender = renderFrame(state.previewCtx, { longEdge: 720 });
     }
 
@@ -665,14 +755,22 @@
       state.ready = false;
       if (video) {
         try { video.pause(); } catch (e) { /* fine */ }
-        video.removeAttribute('src');
+        try { video.removeAttribute('src'); } catch (e) { /* fine */ }
+        try { video.load(); } catch (e) { /* fine */ }  // drops the decoded frame
       }
+      if (objectUrl) { try { URL.revokeObjectURL(objectUrl); } catch (e) { /* fine */ } objectUrl = null; }
       gridPrev = null;
-      denoisePrev = null;
+      pathRawX = [];
+      pathRawY = [];
+      pathX = 0;
+      pathY = 0;
+      smoothCaches.clear();
+      state.previewCtx = null;
+      state.audio = null;
     }
 
     return {
-      loadFile, tick, attachPreview, renderFrame,
+      loadFile, tick, attachPreview, renderFrame, advanceFixes,
       setLook, setParam, setFix, setOverlayMode, setOverlayIntensity,
       setFormat, setQuality, setBurnIn, setBurnText, setAudio,
       play, pause, toggle, seekTo, seekBy, getState, destroy,
@@ -696,6 +794,8 @@
     vignetteAlpha,
     estimateShift,
     smoothPath,
+    stabilizerOffset,
+    audioFeatures,
     formatRect,
     outputLongEdge,
     overlayAlpha,
