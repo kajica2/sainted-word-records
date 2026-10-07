@@ -3945,7 +3945,7 @@
         }
         cx.restore();
       },
-        // Beat-advance for photo sets (see the loop). Finds the featured
+        // Per-bar advance for photo sets (see the loop). Finds the featured
         // (top) layer; if it is an image and the library holds 2+ images,
         // swaps to the next photo with the engine's crossfade.
         advancePhotoSet() {
@@ -4255,13 +4255,18 @@
             stageFlash.style.opacity = '0';
           }
           // Photo sets evolve like video sets: with 2+ image assets in the
-          // library and an image on top, each beat advances the featured clip
-          // to the next photo with the engine's own crossfade — a dropped set
-          // plays through like a video does. Videos/cameras are never
-          // hijacked; a paused song never advances.
+          // library and an image on top, the featured clip advances to the
+          // next photo with the engine's own crossfade — a dropped set plays
+          // through like a video does. Cadence is per BAR (4/4 nominal, the
+          // same meter the story system assumes): one photo per bar, counted
+          // off the beat edges, so the pacing breathes instead of strobing.
+          // Videos/cameras are never hijacked; a paused song never advances.
           const beatNow = !!(Audio.feat && Audio.feat.beatPulse);
           if (Audio.playing && beatNow && !this._lastBeatPulse) {
-            try { this.advancePhotoSet(); } catch (_) {}
+            this._beatCount = (this._beatCount || 0) + 1;
+            if (this._beatCount % 4 === 0) {
+              try { this.advancePhotoSet(); } catch (_) {}
+            }
           }
           this._lastBeatPulse = beatNow;
         // End-of-frame hook: the natural-look pass (trail + rotating mirror,

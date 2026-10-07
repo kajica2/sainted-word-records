@@ -576,7 +576,16 @@ try {
   await injectSamplers(devPage);
   const bgMean = await devPage.evaluate(() => window.__regionMean(200, 440, 140, 120));
   await devPage.click('#mic-btn');
-  await sleep(1200);
+  // Arming is async (getUserMedia + the analysis-source swap); under a loaded
+  // CI runner it can exceed any fixed sleep, so poll until the button reports
+  // armed (CI flake: run 37679978337 read active:false after the old 1200ms
+  // wait while the same commit's parallel run passed). The assertion below is
+  // still the reporter if it never arms.
+  await devPage.waitForFunction(
+    () => window.__SWR_ENGINE && window.__SWR_ENGINE.micActive() === true
+      && document.getElementById('mic-btn').dataset.active === '1',
+    { timeout: 8000, polling: 200 }
+  ).catch(() => {});
   const micLive = await devPage.evaluate(() => ({
     active: window.__SWR_ENGINE.micActive(),
     flag: document.getElementById('mic-btn').dataset.active,
@@ -598,7 +607,12 @@ try {
     console.log('  (env skip: no audio capture backend — fake mic delivered silence)');
   }
   await devPage.click('#cam-btn');
-  await sleep(1500);
+  // Same async arming as the mic — poll until the feed is armed.
+  await devPage.waitForFunction(
+    () => window.__SWR_ENGINE && window.__SWR_ENGINE.baseSourceKind() === 'video'
+      && document.getElementById('cam-btn').dataset.active === '1',
+    { timeout: 8000, polling: 200 }
+  ).catch(() => {});
   const camGated = await devPage.evaluate(() => ({
     kind: window.__SWR_ENGINE.baseSourceKind(),
     flag: document.getElementById('cam-btn').dataset.active,
