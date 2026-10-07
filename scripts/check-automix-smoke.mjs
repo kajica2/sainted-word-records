@@ -63,7 +63,12 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 // e2e-media-record smokes). Navigate on domcontentloaded, then give the
 // page a bounded chance to reach the load event before checks run.
 async function nav(url) {
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  // 60s, not 30s: this page streams the demo track and holds 3D canvas
+  // contexts open, and on CI runners it can take well past 30s to reach
+  // DOMContentLoaded — the suite passes at 568s end-to-end on a good run and
+  // fails at 30s with "Navigation timeout" on a bad one. verify-automix.mjs
+  // landed on the same 60s for the same page for the same reason.
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
 }
 
