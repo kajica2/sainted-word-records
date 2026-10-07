@@ -4502,6 +4502,11 @@
         } catch (err) {
           setStatus(`recorder stop failed: ${err.message || err}`, 'err');
         }
+        // Release the watermark compositor: its tick copies the full frame (and
+        // reads back a WebGL source) every frame, and nothing else stops it once
+        // captureStream() has been wrapped, so one recording would leave that
+        // cost running for the life of the page.
+        try { window.SWR_WATERMARK && window.SWR_WATERMARK.stopCompositors && window.SWR_WATERMARK.stopCompositors(); } catch (_) {}
         this.recording = false;
         $('rec').classList.remove('live');
         $('rec').textContent = '● REC';
