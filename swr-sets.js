@@ -453,12 +453,33 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
-  // === Save a .swr-set to IndexedDB (for "Installed Sets") ===
+  // === Installed-sets storage ===
+  // Prefer the engine's Library connection (the same DB the engine reads), but
+  // fall back to opening it directly so install/list/remove also work on pages
+  // that never load lib/library.client.js — the marketplace, where install
+  // used to save successfully and then list as empty. Mirrors the upgrade
+  // shape in lib/library.client.js so both paths see the same 'sets' store.
+  function setsDb() {
+    if (window.Library && window.Library.db) return Promise.resolve(window.Library.db);
+    if (typeof indexedDB === 'undefined') return Promise.reject(new Error('IndexedDB unavailable'));
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('sainted-word-records', 4);
+      req.onupgradeneeded = (ev) => {
+        const db = ev.target.result;
+        if (!db.objectStoreNames.contains('assets')) {
+          const s = db.createObjectStore('assets', { keyPath: 'id' });
+          s.createIndex('added', 'added');
+        }
+        if (!db.objectStoreNames.contains('songs')) db.createObjectStore('songs', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('sets')) db.createObjectStore('sets', { keyPath: 'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
   async function saveInstalled(doc) {
-    if (!window.Library || !window.Library.db) {
-      throw new Error('Library.db not available; install via engine.html first');
-    }
-    const db = window.Library.db;
+    const db = await setsDb();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('sets', 'readwrite');
       const store = tx.objectStore('sets');
@@ -473,8 +494,8 @@
   }
 
   async function listInstalled() {
-    if (!window.Library || !window.Library.db) return [];
-    const db = window.Library.db;
+    let db;
+    try { db = await setsDb(); } catch (_) { return []; }
     return new Promise((resolve, reject) => {
       const tx = db.transaction('sets', 'readonly');
       const req = tx.objectStore('sets').getAll();
@@ -484,8 +505,8 @@
   }
 
   async function removeInstalled(id) {
-    if (!window.Library || !window.Library.db) return false;
-    const db = window.Library.db;
+    let db;
+    try { db = await setsDb(); } catch (_) { return false; }
     return new Promise((resolve, reject) => {
       const tx = db.transaction('sets', 'readwrite');
       const req = tx.objectStore('sets').delete(id);

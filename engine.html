@@ -2167,7 +2167,7 @@
           };
         }
 
-        function pickAsLayer(item) {
+        function pickAsLayer(item, ev) {
           if (!item) return;
           if (!window.Layers || typeof window.Layers.add !== 'function') {
             if (typeof window.setStatus === 'function') window.setStatus('layers not ready', 'err');
@@ -2182,6 +2182,23 @@
             return;
           }
           try {
+            // Selecting media REPLACES the currently playing clip with a
+            // crossfade when something is already on stage; with an empty
+            // stage it adds. Hold Alt/Shift to force add-as-new-layer, so a
+            // stack is still buildable from the same grid.
+            const list = (window.Layers && Array.isArray(window.Layers.list)) ? window.Layers.list : [];
+            const timing = window.SWR_TIMING;
+            const forceAdd = !!(ev && (ev.altKey || ev.shiftKey));
+            if (!forceAdd && list.length && timing && typeof timing.crossfade === 'function') {
+              const top = list.slice().sort((a, b) => (a.z || 0) - (b.z || 0)).pop();
+              if (top && timing.crossfade(top, asset, { fadeOutMs: 260, fadeInMs: 340 })) {
+                if (typeof window.setStatus === 'function') {
+                  window.setStatus((item.name || 'media') + ' -> replacing clip', 'ok');
+                }
+                if (typeof window.Layers.render === 'function') window.Layers.render();
+                return;
+              }
+            }
             window.Layers.add(asset);
             if (typeof window.setStatus === 'function') {
               window.setStatus((item.name || 'media') + ' -> layer', 'ok');
@@ -3690,6 +3707,34 @@
         return out;
       },
       drawLayer(layer, cx, w, h) {
+        const TIMING = window.SWR_TIMING;
+        // Crossfade state. Lazily initialised at the layer's own opacity so
+        // adding a layer behaves exactly as before (no surprise fade-in);
+        // only SWR_TIMING.crossfade() sets _targetOpacity=0 to drive a
+        // dissolve, and the asset is swapped under the curtain at the
+        // midpoint. Mirrors engine-render.client.js:344-358, the only other
+        // consumer of this machinery.
+        if (TIMING) {
+          if (typeof layer._currentOpacity !== 'number') {
+            layer._currentOpacity = layer.opacity != null ? layer.opacity : 1;
+            layer._targetOpacity = layer._currentOpacity;
+          }
+          if (layer._swapPending && layer._currentOpacity < (layer.opacity || 1) * 0.5) {
+            const pending = layer._swapPending;
+            layer.asset = pending.newAsset;
+            layer._currentOpacity = layer._targetOpacity != null ? layer._targetOpacity : 0;
+            if (layer._morphFrom) {
+              layer.baseScale  = layer._morphFrom.baseScale;
+              layer.hue        = layer._morphFrom.hue;
+              layer.brightness = layer._morphFrom.brightness;
+              layer.contrast   = layer._morphFrom.contrast;
+              layer._morphFrom = null;
+            }
+            layer._targetOpacity = layer.opacity != null ? layer.opacity : 1;
+            if (pending.fadeInMs) layer.fadeInMs = pending.fadeInMs;
+            layer._swapPending = null;
+          }
+        }
         const a = layer.asset;
         if (!a) return;
         let src;
@@ -3809,7 +3854,9 @@
           }
           drawSrc = a._rotated.canvas;
         }
-        const r = this.applyReactors(layer);
+        let r = this.applyReactors(layer);
+        // Advance the crossfade and let the eased opacity drive globalAlpha.
+        if (TIMING && typeof TIMING.step === 'function') r = TIMING.step(0, layer, r);
         cx.save();
         cx.globalCompositeOperation = layer.blend || 'source-over';
         cx.globalAlpha = clamp(r.opacity, 0, 1);
@@ -4230,10 +4277,14 @@
           durMs = parseInt(durSel) * 1000;
         }
         this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
-        // ---- WebCodecs path (off by default; opt in with SWR_RECORDER_WORKER=1)
-        // The encode moves to a Web Worker; the main thread keeps producing
-        // rAF frames via VideoFrame. Video-only for now; audio lands in a
-        // follow-up. Falls back to the MediaRecorder path on any failure.
+        // ---- WebCodecs path (the DEFAULT when supported; see
+        // lib/recorder.client.js, which flips SWR_RECORDER_WORKER on unless
+        // localStorage['swr.recorder.worker'] is '0'). The encode moves to a
+        // Web Worker; the main thread produces one VideoFrame per rendered
+        // frame with an explicit timestamp, so capture is frame-locked rather
+        // than sampled off a wall-clock stream, plus AudioData pulled from the
+        // analyser. Falls back to the MediaRecorder path below on any failure,
+        // and for browsers without WebCodecs (Firefox).
         if (window.SWR_RECORDER_WORKER && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs()) {
           return this._startWebCodecs();
         }
@@ -4346,10 +4397,12 @@
           }, Math.max(50, this.autoStopAt - Date.now()));
         }
       },
-      // ---- WebCodecs recording path (P2) -------------------------------
-      // Encode runs in a Web Worker; the main thread sends VideoFrame
-      // objects per rAF. The orchestrator resolves with a single MP4
-      // blob on stop. Audio is not yet wired — this path is video-only.
+      // ---- WebCodecs recording path ------------------------------------
+      // Encode runs in a Web Worker; the main thread sends one VideoFrame per
+      // rendered frame (explicit timestamp — frame-locked, so a stalled frame
+      // becomes one long frame in the file rather than a duplicated or dropped
+      // one) plus AudioData chunks. The orchestrator resolves with a single
+      // blob on stop. See lib/recorder.client.js + lib/recorder-worker.js.
       async _startWebCodecs() {
         const sizeKey = $('rec-size') ? $('rec-size').value : 'landscape';
         const preset = (window.SIZE_PRESETS && window.SIZE_PRESETS[sizeKey]) || window.SIZE_PRESETS.landscape;
@@ -4455,6 +4508,11 @@
         } catch (err) {
           setStatus(`recorder stop failed: ${err.message || err}`, 'err');
         }
+        // Release the watermark compositor: its tick copies the full frame (and
+        // reads back a WebGL source) every frame, and nothing else stops it once
+        // captureStream() has been wrapped, so one recording would leave that
+        // cost running for the life of the page.
+        try { window.SWR_WATERMARK && window.SWR_WATERMARK.stopCompositors && window.SWR_WATERMARK.stopCompositors(); } catch (_) {}
         this.recording = false;
         $('rec').classList.remove('live');
         $('rec').textContent = '● REC';

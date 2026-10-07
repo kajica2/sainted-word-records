@@ -15,8 +15,8 @@ project:
   deploy_target: Vercel (auto on push to main)
 
 memory_version: "1.0"
-last_updated: 2026-09-30
-total_pipeline_runs: 1
+last_updated: 2026-10-07
+total_pipeline_runs: 2
 initialized_by: Kai (orchestrator first-run setup)
 
 flags:
@@ -45,6 +45,18 @@ active_prevention_rules:
       preferences/user.yaml sets clarify_ambiguous: true — ASK which in-progress work to
       resume instead of guessing from git status. If the working tree does point at obvious
       in-flight work, confirm the read of it in one short question before writing code.
+  - id: "PM-2026-003"
+    when: "Working in a repo where parallel agents/sessions may be active"
+    action: >-
+      Confirm branch ownership before writing. Between 2026-09-30 and 2026-10-07 the
+      working branch moved four times (fix/engine-transport-wrap -> feat/buyer-checkout ->
+      chore/engine-dead-code-cleanup -> fix/dashboard-grid-flake); commits made in one
+      session were swept into another agent's commit under the shared identity, a
+      gitignored scratch probe was force-added and committed, and earlier commit hashes
+      were rebased away (content survived, hashes did not). Mitigations: work on a branch
+      you own (kai/*); stage with explicit pathspecs (git add <file>, never -A); re-check
+      `git status --short` immediately before committing so foreign staged files are not
+      swept in; verify work by CONTENT (`grep` the tree), not by commit hash.
 
 # Auto-detected on 2026-09-20 from AGENTS.md, .editorconfig, package.json, vite.config.js.
 # Update via @postmortem when failures generate rules; update via @refactor-advisor when

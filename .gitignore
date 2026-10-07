@@ -8,8 +8,8 @@ library
 .env
 .env.local
 verify-screenshots/
-_probe_*.mjs
-_smoke_*.mjs
+_probe[-_]*.mjs
+_smoke[-_]*.mjs
 # Local dev artifacts
 data/auth/
 _vinyl-sample/
@@ -84,8 +84,8 @@ verify-watermark.png
 _gen_*.py
 
 # Throwaway smoke/probe scripts (debug on demand, not part of the JS build)
-_probe_*.mjs
-_smoke_*.mjs
+_probe[-_]*.mjs
+_smoke[-_]*.mjs
 .env*
 
 # Throwaway Puppeteer-driven Vercel debug sessions (manual Chrome
@@ -118,8 +118,9 @@ personas_extracted.json
 artists.json
 
 # Throwaway debug/audit scripts at repo root (no underscore prefix).
-# The _probe-*.mjs rules above already cover underscored names; these
-# cover the bare-prefixed probes.
+# The _probe[-_]*.mjs / _smoke[-_]*.mjs rules above cover the underscored
+# names in both spellings (_probe-a.mjs and _probe_a.mjs); these cover the
+# bare-prefixed probes.
 probe-*.mjs
 _archive/
 
