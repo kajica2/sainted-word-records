@@ -16,6 +16,7 @@
     "check": "node scripts/run-steps.mjs check",
     "check:full": "node scripts/run-steps.mjs full",
     "check:syntax": "node scripts/check-syntax.mjs",
+    "keys:pt": "node scripts/generate-pt-keys.mjs",
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
     "check:auth-unit": "node scripts/check-auth-unit.mjs",
     "check:bpm-unit": "node scripts/check-bpm-unit.mjs",
