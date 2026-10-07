@@ -3856,9 +3856,40 @@
           }
           drawSrc = a._rotated.canvas;
         }
-        let r = this.applyReactors(layer);
-        // Advance the crossfade and let the eased opacity drive globalAlpha.
-        if (TIMING && typeof TIMING.step === 'function') r = TIMING.step(0, layer, r);
+          let r = this.applyReactors(layer);
+          // Advance the crossfade and let the eased opacity drive globalAlpha.
+          if (TIMING && typeof TIMING.step === 'function') r = TIMING.step(0, layer, r);
+          // Image evolution — stills must evolve like video layers do. A video
+          // layer plays its content; an image layer gets a slow, seeded Ken
+          // Burns drift (zoom + pan) so photo-driven compositions move with
+          // the song instead of sitting frozen. The phase comes from a name
+          // hash, and the clock accumulates only while the song plays — so
+          // stacked photos never drift in lockstep, and a paused song freezes
+          // them exactly like a paused video. Pure math: no extra draw cost,
+          // it only shifts the cover-fit numbers the paths below already use.
+          if (a.type === 'image') {
+            const kbNow = performance.now();
+            if (Audio && Audio.playing) {
+              a._kbT = (a._kbT || 0) + (kbNow - (a._kbLast == null ? kbNow : a._kbLast)) / 1000;
+            }
+            a._kbLast = kbNow;
+            if (a._kbSeed == null) {
+              const kbKey = String(a.name || a.url || 'img');
+              let kbH = 2166136261;
+              for (let i = 0; i < kbKey.length; i++) { kbH ^= kbKey.charCodeAt(i); kbH = (kbH * 16777619) >>> 0; }
+              a._kbSeed = (kbH % 6283) / 1000; // 0..2π
+            }
+            const kbPh = a._kbSeed;
+            const kbTt = a._kbT || 0;
+            const kbZ = 1 + 0.045 * (0.5 + 0.5 * Math.sin(kbTt * 0.10 + kbPh));
+            const kbX = 0.020 * Math.sin(kbTt * 0.061 + kbPh * 1.7);
+            const kbY = 0.014 * Math.cos(kbTt * 0.083 + kbPh * 2.3);
+            r = Object.assign({}, r, {
+              scale: (r.scale || 1) * kbZ,
+              x: (r.x || 0) + kbX * cx.canvas.width,
+              y: (r.y || 0) + kbY * cx.canvas.height,
+            });
+          }
         cx.save();
         cx.globalCompositeOperation = layer.blend || 'source-over';
         cx.globalAlpha = clamp(r.opacity, 0, 1);
