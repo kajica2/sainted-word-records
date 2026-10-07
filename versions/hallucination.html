@@ -1082,7 +1082,7 @@ const a=l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a (l
       }
       if (a.type==='video' && src.readyState<2) return;
       if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
-      const r=applyR(l);
+      const r = SWR_RENDER.imageEvolve(l, applyR(l));
       // RGB shift: offset color channels
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;
