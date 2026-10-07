@@ -161,8 +161,8 @@ This is **PR 4 of 4** in the user's chosen sequence:
 | `/camera-enhance` loads cleanly in dev + built `dist/` | PASS — smoke **27/27** against built `dist/camera-enhance.html` |
 | Upload shows resolution / duration / type / size + poster | PASS — `1280 × 720`, `0:06`, `14.6 MB · camera-fixture.mp4`, `mp4`; thumbnail sampled non-black |
 | 8 looks + Custom sliders change the preview (measured) | PASS — same-frame samples: mono channel spread **0.3**, warm r−b **11.0** vs clean **7.8**, cool r−b **−1.4**; 9 custom sliders asserted in the smoke |
-| All 4 fixes change measured frame statistics | PASS — auto-exposure readout live (`+25.0 %` → `+0.6 %` as the frame brightened); stabiliser counter-move bounded (**−1.4 … +1.2 cells** across 1.4 s); denoise adds `blur(0.4px)` to the grade string; smooth motion blends the previous frame |
-| Overlay modes ≤ 30 % opacity, audio-reactive | PASS — `overlayAlpha` peaks 0.18 / 0.26 / 0.30 (unit); Subtle / Mood / Energy / Off asserted in the smoke |
+| All 4 fixes change measured frame statistics | PASS — auto-exposure readout live (`+25.0 %` → `+0.6 %` as the frame brightened); stabiliser counter-move bounded (**−1.4 … +1.2 cells** across 1.4 s) and, after the sign fix, pinned by the unit's variance-reduction assertion (`var(raw)` **0.5000** → `var(net)` **0.0041**, **121×**); denoise adds `blur(0.4px)` to the grade string; smooth motion blends the previous frame |
+| Overlay modes ≤ 30 % opacity, audio-reactive | PASS — `overlayAlpha` peaks 0.18 / 0.26 / 0.30 (unit); Subtle / Mood / Energy / Off asserted in the smoke. Reactivity is wired through a `createMediaElementSource` → `AnalyserNode` graph built on the first user gesture (never connected to `destination`, so the stage stays muted) and the runtime derives `{energy, bass, mid, high}` from the analyser's frequency data; with no WebAudio — or a source that cannot be read — `state.audio` stays `null`/yields `null` and the overlays idle at the base level. Because the element stays muted, a muted source's bands sit near zero, so the overlay reads as "idle", not as "live meter" |
 | Export → real `.webm` with format + burn-ins + mark + audio | PASS — vp9+opus **720×1280**, 1.5 MB; frames show title, subtitle, date, location, logo and the `SWR · enhance` mark; YAVG **112.6 → 87.6** under the film look |
 | `check:camera-enhance-unit` ≥ 30 assertions | PASS — **63 assertions** |
 | `npm run check` stays green with the new step | PASS — **all 49 steps**, `check:camera-enhance-unit` among them (0.4 s) |
@@ -177,3 +177,93 @@ stabiliser's counter-move ran away to hundreds of cells and sat pinned at the dr
 burn-in stack and the forced mark shared the bottom-right corner and printed over each other;
 `burnText` had no `date` key, so the page's own date write was silently dropped; and the
 checked-on-load title box never reached the runtime, so the "on" burn-in did not paint.
+
+## Post-review fixes — 2026-09-29
+
+An adversarial review of the sprint raised 17 findings (one blocker). All are fixed; the diff is
+the runtime, the exporter, the page, the two check scripts and this documentation. No behaviour
+outside the findings was touched.
+
+**The blocker — the stabiliser sign.** `refreshStabilizer` set `pathX = smoothed − raw`, but the
+draw offset only *adds* to the content, which already carries its own displacement from the source
+frame. The net painted position was therefore `smoothed − 2·raw`: shake was doubled, not cancelled,
+and the offset ran to the draw clamp. The correction is now the pure helper `stabilizerOffset(raw,
+alpha) = raw − smoothed` (exported beside `smoothPath`), used for both axes. The unit section for it
+asserts the sign on a rightward juke, that the rendered-excursion variance drops by more than 2×
+(measured **0.5000 → 0.0041**, 121×) and that an empty series yields 0.
+
+**Corrected rows above.** The stabiliser row now names the variance-reduction assertion rather than
+only the observed clamp bounds; the overlay row now says reactivity is wired through an element
+analyser from the first user gesture (never connected to `destination`) and idles at the base level
+when WebAudio is unavailable.
+
+**The other fixes, by finding:**
+
+- *Export never advanced the stateful fixes.* `exportVideo`'s draw loop now calls
+  `runtime.advanceFixes()` before `renderFrame`, so stabilise and auto-exposure run at export
+  resolution on a deterministic clock instead of only on the preview tick. `advanceFixes()` samples
+  the frame once and refreshes the auto bias on a frame counter — the `Math.random()` gate in
+  `tick()` is gone, so the preview is reproducible too.
+- *The stage canvas was 1–2 px off the paint geometry.* `applyPreviewSize()` now takes its dimensions
+  from `formatRect(format, 1920, 1080, 720)` (the renderer's own rounding) instead of re-deriving
+  them, which removes the unpainted band on 9:16 / 16:9 / 2.39:1. Pinned by a smoke check that walks
+  all 5 formats and compares the canvas to `formatRect`.
+- *`destroy()` crashed.* It referenced a `denoisePrev` binding that no longer existed — a
+  `ReferenceError` under `'use strict'`, so teardown was dead. It now revokes the tracked object URL,
+  pauses and clears the video, and nulls the frame caches and `state.previewCtx`. `loadFile` revokes
+  the previous URL at the start and removes its `loadedmetadata`/`error` handlers once the load
+  settles, so a failed decode leaves nothing behind.
+- *Smooth-motion cache thrash.* The previous-frame cache was a single canvas keyed by nothing, so the
+  720 stage and the up-to-4K export invalidated each other every frame. It is now a `Map` keyed
+  `${outW}x${outH}` holding at most 2 entries.
+- *Music mode failed silently.* `audioMode === 'music'` with no file returned the *source* audio, and
+  a decode failure did the same — the opposite of what the mode promises. Both are now hard failures
+  (`music_file_missing`, `audio_decode_failed`, plus `no_webaudio` when there is no AudioContext),
+  and the page maps them to readable status text.
+- *Export could not fail safely.* Everything after `captureStream` is now inside try/catch/finally:
+  any failure stops every track (canvas and audio) and returns `{ ok: false, error }`. The page
+  wraps its handler in try/finally and locks the format, quality, audio and burn-in controls while
+  an export runs.
+- *Geometry could drift mid-export.* Format and quality are snapshotted at the start; if either
+  changes, the export stops cleanly with `state_changed` rather than letting the stream disagree
+  with the painted rect.
+- *`buildFilter(LOOKS.warm)` dropped the preset's brightness.* `buildFilter` now maps a raw preset's
+  `brightness` key onto `exposure` itself, so calling it with a preset object is honest without
+  going through `effectiveParams`. The unit routes every preset filter through `effectiveParams` and
+  asserts warm is brighter than clean.
+- *Paint did not scale with resolution.* The grain tile is now painted through a patch proportional
+  to the output (`scale(outW/720, outH/720)`) with its translate reseeded each frame, so a 4K export
+  gets stage-sized grain rather than a frozen tile; the `energy` crosshair is sized from `w` instead
+  of a hardcoded 20 px.
+- *The stage box was always phone-shaped.* Its `aspect-ratio` now follows the chosen format
+  (`height: auto; max-height: 604px`), so wide formats stop letterboxing inside it.
+- *Audio reactivity was wired to an object the runtime could not read.* The page hands the runtime a
+  live `AnalyserNode`, but the overlay maths reads `{ energy, bass, mid, high }` — a DOM node has
+  none of those, so every read was `undefined` and the derived alpha was `NaN`. `addColorStop` then
+  threw a `SyntaxError` DOMException, which killed the *export* at its very first probe frame (every
+  export failed with a bare numeric code) and raised a pageerror on the stage. The runtime now
+  derives the bands from the analyser's frequency data (`audioFeatures(audio)`, exported and
+  unit-tested: features object passes through, analyser is read into finite 0..1 bands, a throwing or
+  bandless source yields `null` instead of `NaN`).
+- *Smaller cleanups:* the export rejects clips under 0.5 s (`too_short`); `#ceVideo` is no longer
+  `loop` (a clip that loops under the scrubber reads as a live preview); and the stale comment above
+  the old `refreshStabilizer` ("a steady pan passes through untouched") is gone — a steady ramp
+  leaves a constant offset, which is what `stabilizerOffset` returns.
+
+**Limits this round made explicit.** There is no codec or bitrate readout — the browser does not
+expose the encoder's choice, and the panel's "Type" is the *container* hint from the file, not the
+output codec. There is no export cancellation: once recording starts the UI is locked until the clip
+ends. And it is still one clip per page load — the object URL is revoked on the next load, but the
+page has no "replace clip" affordance beyond reloading.
+
+**Test counts after this round.** `check:camera-enhance-unit` is now **86 assertions** (was 63) and
+`check:camera-enhance-smoke` **29 checks** (was 28 — the added one pins all 5 formats' stage
+geometry). The close-out table above records the counts as they stood at close-out.
+
+**One test deviation, recorded.** The review specified the variance assertion as
+`var(raw + offset)`; that expression double-counts the camera's own displacement (the content's
+motion is already in the source frame), so it grows the variance rather than cutting it. The
+assertion therefore measures the net painted excursion, `raw − offset`, which is the quantity that
+actually lands on screen — and it is the corrected-sign helper that makes it collapse. The measured
+numbers are printed in the run.
+

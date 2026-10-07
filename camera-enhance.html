@@ -213,8 +213,8 @@
       <section class="ce-panel ce-stage">
         <div class="ce-phead">Preview</div>
         <div class="ce-pbody">
-          <div class="ce-stagebox">
-            <video id="ceVideo" playsinline loop muted></video>
+          <div class="ce-stagebox" id="ceStageBox">
+            <video id="ceVideo" playsinline muted></video>
             <canvas id="ceStage" width="720" height="405"></canvas>
             <div class="ce-guides" id="ceGuides">
               <i class="h" style="top:33.33%"></i><i class="h" style="top:66.66%"></i>
@@ -351,13 +351,26 @@
     const fmtSize = (b) => (b > 1073741824 ? (b / 1073741824).toFixed(2) + ' GB' : (b / 1048576).toFixed(1) + ' MB');
 
     // ---------------------------------------------------------- preview size
+    // The canvas takes the renderer's OWN geometry (formatRect), never a second
+    // rounding of our own — a 1-2 px disagreement leaves an unpainted band on
+    // 9:16 / 16:9 / 2.39:1.
     function applyPreviewSize() {
       const st = RT.getState();
-      const aspect = window.SWR_CAMERA_ENHANCE.FORMAT_ASPECT[st.format] || (16 / 9);
-      const long = 720;
+      const r = window.SWR_CAMERA_ENHANCE.formatRect(st.format, 1920, 1080, 720);
       const c = $('ceStage');
-      if (aspect >= 1) { c.width = long; c.height = Math.round(long / aspect / 2) * 2; }
-      else { c.height = long; c.width = Math.round(long * aspect / 2) * 2; }
+      c.width = r.outW;
+      c.height = r.outH;
+      applyStageAspect(st.format);
+    }
+    // The stage box follows the chosen format too, so a wide format stops
+    // letterboxing inside a phone-shaped box.
+    function applyStageAspect(format) {
+      const box = $('ceStageBox');
+      if (!box) return;
+      const aspect = window.SWR_CAMERA_ENHANCE.FORMAT_ASPECT[format] || (16 / 9);
+      box.style.aspectRatio = String(aspect);
+      box.style.height = 'auto';
+      box.style.maxHeight = '604px';
     }
 
     // ------------------------------------------------------------- load flow
@@ -414,8 +427,40 @@
       }, 1200);
     }
 
+    // ------------------------------------------------------ audio reactivity
+    // Built lazily on the first user gesture. Deliberately never connected to
+    // actx.destination: the analyser sees the audio, the stage stays muted. With
+    // no WebAudio the runtime keeps state.audio === null and the overlays idle
+    // at the base level.
+    let audioWired = false;
+    function ensureAudio() {
+      if (audioWired) return;
+      audioWired = true;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        const actx = new AC();
+        const src = actx.createMediaElementSource($('ceVideo'));
+        const analyser = actx.createAnalyser();
+        analyser.fftSize = 256;
+        src.connect(analyser);
+        RT.setAudio(analyser);
+      } catch (e) { /* no WebAudio → overlays idle at the base level */ }
+    }
+
+    function exportErrorText(code) {
+      const map = {
+        music_file_missing: 'Choose a music file for that audio mode',
+        audio_decode_failed: 'That audio file could not be decoded',
+        state_changed: 'Export cancelled: settings changed',
+        no_webaudio: 'WebAudio is unavailable in this browser',
+        too_short: 'That clip is too short to export',
+      };
+      return map[code] || ('Export failed: ' + (code || 'unknown'));
+    }
+
     // ------------------------------------------------------------- dropzone
-    $('ceDrop').addEventListener('click', () => $('ceFile').click());
+    $('ceDrop').addEventListener('click', () => { ensureAudio(); $('ceFile').click(); });
     $('ceFile').addEventListener('change', (e) => handleFile(e.target.files[0]));
     ['dragover', 'dragenter'].forEach((ev) => $('ceDrop').addEventListener(ev, (e) => { e.preventDefault(); $('ceDrop').classList.add('drag-over'); }));
     ['dragleave', 'drop'].forEach((ev) => $('ceDrop').addEventListener(ev, (e) => { e.preventDefault(); $('ceDrop').classList.remove('drag-over'); }));
@@ -490,16 +535,28 @@
     $('ceExport').addEventListener('click', async () => {
       const st = RT.getState();
       if (!st.ready) return;
-      $('ceExport').disabled = true;
+      ensureAudio();
+      const btn = $('ceExport');
+      const locked = [$('ceFormat'), $('ceQuality'), $('ceAudio')].concat(
+        Array.prototype.slice.call(document.querySelectorAll('.ce-burn input[data-burn]')),
+      );
+      btn.disabled = true;
+      locked.forEach((el) => { if (el) el.disabled = true; });
       setStatus('Exporting — recording realtime, keep this tab visible…');
-      const res = await window.SWR_CAMERA_ENHANCE_EXPORT.export(RT, {
-        audioMode: $('ceAudio').value,
-        musicFile: $('ceMusic').files[0] || null,
-        onProgress: (p) => setStatus(`Exporting — ${Math.round(p * 100)}%`),
-      });
-      $('ceExport').disabled = false;
-      if (res.ok) setStatus(`Exported ${res.name} · ${fmtSize(res.bytes)}`);
-      else setStatus('Export failed: ' + (res.error || 'unknown'), true);
+      try {
+        const res = await window.SWR_CAMERA_ENHANCE_EXPORT.export(RT, {
+          audioMode: $('ceAudio').value,
+          musicFile: $('ceMusic').files[0] || null,
+          onProgress: (p) => setStatus(`Exporting — ${Math.round(p * 100)}%`),
+        });
+        if (res.ok) setStatus(`Exported ${res.name} · ${fmtSize(res.bytes)}`);
+        else setStatus(exportErrorText(res.error), true);
+      } catch (e) {
+        setStatus(exportErrorText(e && e.code), true);
+      } finally {
+        btn.disabled = false;
+        locked.forEach((el) => { if (el) el.disabled = false; });
+      }
     });
 
     // ----------------------------------------------------------------- loop

@@ -202,3 +202,50 @@ class with the look *cards*, so a card selector matched nine elements.
 **Honest limits** (recorded in the plan): smooth motion is a temporal blend, not optical flow;
 denoise is an edge-preserving soften, not a bilateral pass; MediaRecorder records realtime, so a
 60 s clip takes about 60 s to export.
+
+**Post-review fixes** (adversarial review of the sprint, 17 findings). No behaviour outside the
+findings changed:
+
+- **The blocker: the stabiliser's counter-move had the wrong sign.** `pathX = smoothed − raw` *added*
+  to content that already carries its own displacement, so shake was doubled and the offset pinned at
+  the draw clamp. The correction is now the exported pure helper `stabilizerOffset(raw, alpha)` =
+  `raw − smoothed`, on both axes.
+- **The stage canvas was 1–2 px off the painted geometry** on 9:16 / 16:9 / 2.39:1, leaving an
+  unpainted band. `applyPreviewSize()` now takes the canvas size from the renderer's own
+  `formatRect(...)`, and a smoke check walks all 5 formats and compares.
+- **The export never advanced the stateful fixes** — stabilise and auto-exposure only ran on the
+  preview tick, so the export's frames were not the stage's. The draw loop now calls the new
+  `runtime.advanceFixes()`; the `Math.random()` exposure gate in `tick()` is gone with it.
+- **`destroy()` threw.** It referenced a removed `denoisePrev` binding (`ReferenceError` under
+  `'use strict'`). It now revokes the tracked object URL, clears the video and nulls the caches;
+  `loadFile` revokes the previous URL and removes its load listeners on settle.
+- **Music-mode export failed silently**, falling back to the *source* audio when the file was missing
+  or undecodable. Both are now hard failures (`music_file_missing`, `audio_decode_failed`), the page
+  maps them to readable text, and the whole post-`captureStream` body is try/catch/finally so any
+  failure stops every track. Format/quality are snapshotted for the run (`state_changed` aborts if
+  they move), clips under 0.5 s are refused, and the page locks its controls while recording.
+- Smaller: the smooth-motion frame cache is now per output size (the 720 stage and a 4K export
+  stopped invalidating each other); grain is painted through a resolution-proportional patch instead
+  of frozen at tile size, and the `energy` crosshair scales with the frame; the stage box follows the
+  chosen format's aspect ratio; `buildFilter(LOOKS.x)` maps a raw preset's `brightness` onto
+  `exposure`; `#ceVideo` is no longer `loop`.
+- **The audio wiring the review specified did not match the runtime's contract** — the page hands
+  over a live `AnalyserNode`, but the overlay reads `{energy, bass, mid, high}`, so every read was
+  `undefined` and the derived alpha `NaN`. `addColorStop` then threw a `SyntaxError` DOMException,
+  which killed *every* export at its first probe frame and raised a pageerror on the stage. A new
+  `audioFeatures(audio)` derives the bands from the analyser's frequency data (and returns `null`
+  rather than `NaN` for a source it cannot read), so both the stage and the export composite the
+  overlay with real, finite levels.
+
+**New assertions**: `stabilizerOffset` sign + variance reduction (measured **0.5000 → 0.0041**,
+121×), `audioFeatures` (features object, live analyser, throwing analyser → `null`), raw-preset
+filter mapping, a tighter `smoothPath` spike bound, a `renderFrame` geometry test (drawn source rect
+vs `formatRect` for 9:16 and 16:9), and a smoke check pinning the canvas geometry across all 5
+formats. `check:camera-enhance-unit` is **86 assertions** (was 63); the smoke is **29 checks** (was
+28).
+
+**Export path proved at runtime** (throwaway Puppeteer pass against the built page): `music` with no
+file reports "Choose a music file for that audio mode" and re-enables the controls; a `mute` export
+completes as `sainted-word-camera-enhance-1280x720-<ts>.webm · 0.9 MB`; changing the format mid-export
+reports "Export cancelled: settings changed"; controls are locked for the duration; 0 console
+errors.
