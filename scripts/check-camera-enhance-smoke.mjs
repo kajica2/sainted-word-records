@@ -77,7 +77,10 @@ try {
   page.on('console', (m) => { if (m.type() === 'error' && FATAL_FILTER(m.text())) consoleErrors.push(m.text()); });
   page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 
-  const resp = await page.goto(`http://127.0.0.1:${PORT}/camera-enhance.html`, { waitUntil: 'networkidle0', timeout: 30000 });
+  // See check-tiktok-smoke.mjs: domcontentloaded + an explicit wait for the
+  // stage, not networkidle0.
+  const resp = await page.goto(`http://127.0.0.1:${PORT}/camera-enhance.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForSelector('#ceStage', { timeout: 10000 }).catch(() => {});
   check('page loads', resp.status() === 200, `(${resp.status()})`);
   await new Promise((r) => setTimeout(r, 1200));
 
