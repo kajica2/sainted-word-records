@@ -329,9 +329,19 @@
           toast('storage full — could not queue set', true);
           return;
         }
-        // Open the engine on the right page
-        const engine = (set.engine || 'neon') + '.html';
-        window.location.href = '/versions/' + engine;
+        // Send the user to the page that can actually consume a set.
+        // /engine reads swr.pending-set and applies it via SWR_SETS.applySet;
+        // the /versions/<engine>.html pages never read it (and applySet needs
+        // window.Library/window.Layers, which only /engine exposes — variants
+        // publish window.SWR.Library), so a set opened there was silently
+        // dropped. Pass ?variant= when the switcher knows the look so the
+        // engine matches the set as well as applying it.
+        const VARIANT_SUPPORTED = ['neon', 'film', 'grid', 'smoke', 'hallucination'];
+        const engine = String(set.engine || '').toLowerCase();
+        const q = VARIANT_SUPPORTED.indexOf(engine) !== -1
+          ? '?variant=' + encodeURIComponent(engine)
+          : '';
+        window.location.href = '/engine' + q;
       }
 
       function previewSet(set) {
