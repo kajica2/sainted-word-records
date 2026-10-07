@@ -62,13 +62,42 @@ async function step(name, fn) {
 const server = await serve();
 let browser;
 try {
-  browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+  browser = await puppeteer.launch({
+    headless: 'new',
+    args: [
+      '--no-sandbox',
+      // Disable service workers: pwa-bootstrap reloads the page on the SW
+      // 'controllerchange' event (first-visit install + claim). With
+      // domcontentloaded that reload lands mid-test and kills the execution
+      // context -- "Execution context was destroyed, most likely because of a
+      // navigation" -- which networkidle0 used to mask by waiting through it.
+      // Same fix, and the same symptom, as verify-presets.mjs and
+      // verify-transitions.mjs. This verify covers rotation, not the PWA shell.
+      '--disable-features=ServiceWorker,ServiceWorkerOnUI',
+    ],
+  });
   const page = await browser.newPage();
+  // Neutralise the service worker registration for the whole run. The launch
+  // flag above is not enough on its own: Chrome still reports
+  // navigator.serviceWorker.controller, pwa-bootstrap still fires its
+  // 'controllerchange' handler, and the page still reloads ~160ms in — which
+  // destroys the execution context mid-test. Stubbing register() is the
+  // approach verify-transitions.mjs uses for the same reason: this verify
+  // covers rotation, not the PWA shell.
+  await page.evaluateOnNewDocument(() => {
+    if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+      navigator.serviceWorker.register = () => new Promise(() => {});
+    }
+  });
   page.on('pageerror', (err) => process.stderr.write(`[page error] ${err.message}\n`));
   // domcontentloaded, not networkidle0: engine.html auto-loads and streams
   // its demo track, so the network never idles — the condition that made
   // verify-automix / check:automix-smoke flaky on CI runners. The
   // waitForFunction below is the real readiness gate.
+  //
+  // The service worker is disabled in launch args above. networkidle0 used to
+  // absorb the PWA's controllerchange reload by waiting through it; without
+  // that wait the reload lands mid-test and destroys the execution context.
   await page.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
   // Wait until the engine has attached window.SWR with the Renderer + Layers.
