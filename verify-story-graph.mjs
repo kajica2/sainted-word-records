@@ -87,14 +87,20 @@ try {
   // make the headless server's networkidle hang.
   let waited = 0;
   while (waited < 30000) {
-    const v = await page.evaluate(() => ({
-      hasSWR: !!window.SWR,
-      hasStory: !!window.Story,
-      hasSTORY: !!(window.Story && window.Story.STORY),
-      hasFragments: !!(window.Story && window.Story.STORY && window.Story.STORY.fragments),
-      domReady: document.readyState,
-      bodyChildren: document.body ? document.body.children.length : 0,
-    }));
+    // A boot-time navigation (first-visit migration / SW refresh) can destroy
+    // the execution context mid-evaluate — treat that as "not ready yet" and
+    // keep polling instead of crashing the suite.
+    let v = { hasFragments: false };
+    try {
+      v = await page.evaluate(() => ({
+        hasSWR: !!window.SWR,
+        hasStory: !!window.Story,
+        hasSTORY: !!(window.Story && window.Story.STORY),
+        hasFragments: !!(window.Story && window.Story.STORY && window.Story.STORY.fragments),
+        domReady: document.readyState,
+        bodyChildren: document.body ? document.body.children.length : 0,
+      }));
+    } catch (_) { /* context swap in flight — retry next tick */ }
     if (v.hasFragments) break;
     await new Promise((r) => setTimeout(r, 500));
     waited += 500;
@@ -104,14 +110,30 @@ try {
   // Wipe any persisted story state so we always start fresh. The initial
   // boot may not finish setting window.SWR if a sibling module races; a
   // reload + wait reliably reaches the steady state.
+  // The engine's boot can itself navigate (first-visit migration / service
+  // worker refresh). Every interaction in this helper is retried when the
+  // execution context is destroyed mid-call, so a navigation in flight is a
+  // delay, not a suite failure (CI flake: "Execution context was destroyed"
+  // at this helper's first evaluate, run 37662971802).
+  const retryOnNav = async (fn, tries = 6) => {
+    for (let i = 0; i < tries; i++) {
+      try { return await fn(); }
+      catch (e) {
+        if (!/Execution context was destroyed|Cannot find context|Target closed|navigat/i.test(String((e && e.message) || e))) throw e;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+    throw new Error('still navigating after retries');
+  };
+
   const reloadFresh = async () => {
-    await page.evaluate(() => { try { localStorage.removeItem('swr.story'); } catch (_) {} });
-    await page.reload({ waitUntil: 'load' });
-    await page.waitForFunction(
+    await retryOnNav(() => page.evaluate(() => { try { localStorage.removeItem('swr.story'); } catch (_) {} }));
+    await retryOnNav(() => page.reload({ waitUntil: 'load' }));
+    await retryOnNav(() => page.waitForFunction(
       () => !!(window.SWR && window.SWR.Story && window.SWR.Story.STORY && window.SWR.Story.STORY.fragments),
       { timeout: 20000, polling: 500 }
-    );
-    await seedLayer();
+    ));
+    await retryOnNav(() => seedLayer());
   };
 
   // Seed a minimal layer so applyPreset / enter has something to apply to.
