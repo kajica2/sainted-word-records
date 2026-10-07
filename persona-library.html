@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Persona Library — Explainer &amp; Decision Memo</title>
-<meta name="description" content="28 workflow personas and 14 strategic typologies written against the SWR engine's real surface area — routes, presets, transitions and limits. An explainer and decision memo for project planners.">
+<meta name="description" content="Internal research: 28 workflow personas and 14 strategic typologies written against the SWR engine's real surface area — routes, presets, transitions and limits. The engine markets 23 personas and 22 visual styles. An explainer and decision memo for project planners.">
   <link rel="canonical" href="https://sainted-word-records.vercel.app/persona-library" />
   <meta property="og:title" content="Persona Library — Explainer &amp; Decision Memo">
   <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
@@ -14,7 +14,7 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 
-  <meta property="og:description" content="Workflow personas and strategic typologies written against the SWR engine's real surface area — routes, presets, transitions and limits. An explainer and decision memo for project planners.">
+  <meta property="og:description" content="Internal research: workflow personas and strategic typologies written against the SWR engine's real surface area — routes, presets, transitions and limits. The engine markets 23 personas and 22 visual styles. An explainer and decision memo for project planners.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
 <meta name="color-scheme" content="dark">
@@ -235,6 +235,13 @@ tailwind.config = { theme: { extend: {
     </div>
   </div>
 </header>
+<!-- Resolution banner — canonical counts (D1/D2, 2026-10-07) -->
+<div class="max-w-[1180px] mx-auto px-5 md:px-8 -mt-2 mb-2">
+  <div class="card card--still p-5 md:p-6" style="border-color:color-mix(in srgb,var(--accent) 35%,transparent)">
+    <p class="text-[13.5px] leading-[1.6] mb-0"><span class="font-mono text-[11px] tracking-[.14em] uppercase" style="color:var(--accent)">Resolved · 2026-10-07</span><br>
+    One canonical marketed count: <span class="text-slate-300">23 engine personas</span>. The 28 workflow personas and 14 strategic typologies are <span class="text-slate-300">internal research</span> and are not numbered in marketing copy. Styles split <span class="text-slate-300">Looks vs Surfaces</span> — the shipped count is <span class="text-slate-300">22 visual styles</span>; the AR loop, Photo Studio, Dashboard, ECHO and Hologram are surfaces, not styles. The analysis below predates this resolution.</p>
+  </div>
+</div>
 
 <div class="strip py-7">
   <div class="max-w-[1180px] mx-auto px-5 md:px-8 flex justify-around gap-5 flex-wrap">
@@ -630,12 +637,7 @@ tailwind.config = { theme: { extend: {
         <div><div class="font-mono text-[10.5px] text-teal-400 mb-3 tracking-[.14em] uppercase">Looks — sensible to count as styles</div><div id="lookTags" class="flex flex-wrap gap-1.5"></div></div>
         <div>
           <div class="font-mono text-[10.5px] mb-3 tracking-[.14em] uppercase" style="color:var(--accent)">Surfaces — not styles at all</div>
-          <div class="space-y-2.5">
-            <div class="text-[12.5px] leading-[1.55]"><span class="text-slate-300">AR Animation Loop</span> — drop a GIF, see it loop in your space via markerless AR. One-click 5s WebM capture.</div>
-            <div class="text-[12.5px] leading-[1.55]"><span class="text-slate-300">Photo Studio</span> — drop photos, each beat advances with a crossfade, Ken Burns per shot.</div>
-            <div class="text-[12.5px] leading-[1.55]"><span class="text-slate-300">Engine Dashboard</span> — production dashboard with the engine behind the canvas, three-column layout.</div>
-            <div class="text-[12.5px] leading-[1.55]"><span class="text-slate-300">ECHO · Manifold 5.0</span> — 30 generative formulas, 5 modes, WebAudio only, no library and no media.</div>
-            <div class="text-[12.5px] leading-[1.55]"><span class="text-slate-300">Hologram</span> — music-video hologram branch, arrow/digit keyboard cycling.</div>
+          <div class="space-y-2.5" id="surfaceList"></div>
           </div>
           <p class="text-[12px] leading-[1.55] mt-4 pt-4 border-t border-ink-600 text-slate-500">Read against the persona library, that count is not cosmetic: <span class="text-slate-400">"the variants stay peers"</span> is a documented abandonment condition for several personas. A planner cannot scope "keep the variants" until the set has one definition.</p>
         </div>
@@ -938,28 +940,36 @@ const VERSIONS = [
   { k:'05', n:'Hallucination', d:'Every reactor maxed. RGB channel shift, lighter + difference blends, noise canvas overlay.' }
 ];
 
-const LOOKS = [
-  { n:'neon', c:'linear-gradient(135deg,#ff2d8a,#00e5ff)', extra:'' },
-  { n:'film', c:'linear-gradient(135deg,#a0784f,#3a2a1c)', extra:'sw-grain' },
-  { n:'grid', c:'#161310', extra:'sw-grid' },
-  { n:'smoke', c:'linear-gradient(135deg,#f1ebe1,#b3a390)', extra:'' },
-  { n:'hallucination', c:'linear-gradient(135deg,#ff2d8a,#00ffa3,#00e5ff)', extra:'sw-scan' },
-  { n:'glitch', c:'linear-gradient(90deg,#ff2d8a,#00e5ff,#ffaa3a)', extra:'sw-scan' },
-  { n:'aurora', c:'linear-gradient(135deg,#00ffa3,#0085b3,#ff2d8a)', extra:'' },
-  { n:'pulse', c:'radial-gradient(circle at 50% 50%,#ff2d8a,#0e0c0a 70%)', extra:'' },
-  { n:'void', c:'radial-gradient(circle at 50% 50%,#1d1815,#0a0805 75%)', extra:'' },
-  { n:'chrome', c:'linear-gradient(135deg,#f5ead8,#8a7a66,#3a3022)', extra:'' },
-  { n:'watercolor', c:'linear-gradient(135deg,#66eeff,#ff6fae,#f5ead8)', extra:'' },
-  { n:'fractal', c:'conic-gradient(from 0deg,#ff2d8a,#ffaa3a,#00ffa3,#00e5ff,#ff2d8a)', extra:'' },
-  { n:'eclipse', c:'radial-gradient(circle at 50% 45%,#0a0805 38%,#ffaa3a 42%,#ff2d8a 48%,#0e0c0a 60%)', extra:'' },
-  { n:'baroque', c:'linear-gradient(135deg,#8a5a2b,#f5ead8,#3a3022)', extra:'' },
-  { n:'gallery', c:'#faf7f2', extra:'' },
-  { n:'kraft', c:'linear-gradient(135deg,#c9a26b,#8a6b3a)', extra:'sw-grain' },
-  { n:'mosaic', c:'conic-gradient(from 45deg,#ff2d8a 0 25%,#ffaa3a 0 50%,#00ffa3 0 75%,#00e5ff 0)', extra:'' },
-  { n:'phosphor', c:'#00ffa3', extra:'' },
-  { n:'spectrum', c:'linear-gradient(90deg,#ff2d8a,#ffaa3a,#00ffa3,#00e5ff)', extra:'' },
-  { n:'tape', c:'linear-gradient(135deg,#7a6a55,#2c2419)', extra:'sw-scan' },
-  { n:'typography', c:'linear-gradient(135deg,#0e0c0a,#f5ead8)', extra:'' }
+const TOOL_SURFACES = [
+    { kind:'surface', n:'AR Animation Loop', d:'drop a GIF, see it loop in your space via markerless AR. One-click 5s WebM capture.' },
+    { kind:'surface', n:'Photo Studio', d:'drop photos, each beat advances with a crossfade, Ken Burns per shot.' },
+    { kind:'surface', n:'Engine Dashboard', d:'production dashboard with the engine behind the canvas, three-column layout.' },
+    { kind:'surface', n:'ECHO · Manifold 5.0', d:'30 generative formulas, 5 modes, WebAudio only, no library and no media.' },
+    { kind:'surface', n:'Hologram', d:'music-video hologram branch, arrow/digit keyboard cycling.' }
+  ];
+
+  const LOOKS = [
+  { kind:'look', n:'neon', c:'linear-gradient(135deg,#ff2d8a,#00e5ff)', extra:'' },
+  { kind:'look', n:'film', c:'linear-gradient(135deg,#a0784f,#3a2a1c)', extra:'sw-grain' },
+  { kind:'look', n:'grid', c:'#161310', extra:'sw-grid' },
+  { kind:'look', n:'smoke', c:'linear-gradient(135deg,#f1ebe1,#b3a390)', extra:'' },
+  { kind:'look', n:'hallucination', c:'linear-gradient(135deg,#ff2d8a,#00ffa3,#00e5ff)', extra:'sw-scan' },
+  { kind:'look', n:'glitch', c:'linear-gradient(90deg,#ff2d8a,#00e5ff,#ffaa3a)', extra:'sw-scan' },
+  { kind:'look', n:'aurora', c:'linear-gradient(135deg,#00ffa3,#0085b3,#ff2d8a)', extra:'' },
+  { kind:'look', n:'pulse', c:'radial-gradient(circle at 50% 50%,#ff2d8a,#0e0c0a 70%)', extra:'' },
+  { kind:'look', n:'void', c:'radial-gradient(circle at 50% 50%,#1d1815,#0a0805 75%)', extra:'' },
+  { kind:'look', n:'chrome', c:'linear-gradient(135deg,#f5ead8,#8a7a66,#3a3022)', extra:'' },
+  { kind:'look', n:'watercolor', c:'linear-gradient(135deg,#66eeff,#ff6fae,#f5ead8)', extra:'' },
+  { kind:'look', n:'fractal', c:'conic-gradient(from 0deg,#ff2d8a,#ffaa3a,#00ffa3,#00e5ff,#ff2d8a)', extra:'' },
+  { kind:'look', n:'eclipse', c:'radial-gradient(circle at 50% 45%,#0a0805 38%,#ffaa3a 42%,#ff2d8a 48%,#0e0c0a 60%)', extra:'' },
+  { kind:'look', n:'baroque', c:'linear-gradient(135deg,#8a5a2b,#f5ead8,#3a3022)', extra:'' },
+  { kind:'look', n:'gallery', c:'#faf7f2', extra:'' },
+  { kind:'look', n:'kraft', c:'linear-gradient(135deg,#c9a26b,#8a6b3a)', extra:'sw-grain' },
+  { kind:'look', n:'mosaic', c:'conic-gradient(from 45deg,#ff2d8a 0 25%,#ffaa3a 0 50%,#00ffa3 0 75%,#00e5ff 0)', extra:'' },
+  { kind:'look', n:'phosphor', c:'#00ffa3', extra:'' },
+  { kind:'look', n:'spectrum', c:'linear-gradient(90deg,#ff2d8a,#ffaa3a,#00ffa3,#00e5ff)', extra:'' },
+  { kind:'look', n:'tape', c:'linear-gradient(135deg,#7a6a55,#2c2419)', extra:'sw-scan' },
+  { kind:'look', n:'typography', c:'linear-gradient(135deg,#0e0c0a,#f5ead8)', extra:'' }
 ];
 
 const SETS = [
@@ -1146,6 +1156,7 @@ q('lookGrid').innerHTML = LOOKS.map(l => `
   </div>`).join('');
 
 q('lookTags').innerHTML = LOOKS.map((l,i) => `<span class="tpill ${i<14?'tpill--cool':''}">${l.n}</span>`).join('');
+  q('surfaceList').innerHTML = TOOL_SURFACES.map(s => `<div class="text-[12.5px] leading-[1.55]"><span class="text-slate-300">${s.n}</span> — ${s.d}</div>`).join('');
 
 q('setGrid').innerHTML = SETS.map(s => `
   <div class="card card--still overflow-hidden">

@@ -56,6 +56,10 @@
           "description": "Live engine demos"
         },
         {
+          "label": "AR GIF",
+          "href": "/ar-gif"
+        },
+        {
           "label": "Visual Languages",
           "href": "/visual-languages",
           "description": "6 visual languages (neon, film, grid, smoke, hallucination, console)"

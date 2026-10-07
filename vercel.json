@@ -468,6 +468,14 @@
       "destination": "/engine-demos.html"
     },
     {
+      "source": "/ar-gif",
+      "destination": "/ar-gif.html"
+    },
+    {
+      "source": "/ar-gif/",
+      "destination": "/ar-gif.html"
+    },
+    {
       "source": "/dashboard",
       "destination": "/dashboard.html"
     },
