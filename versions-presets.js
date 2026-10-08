@@ -68,6 +68,7 @@ function blendFxOverride(preset, ovFx, depth) {
     grain:     preset.grain     * (1 - mixFx) + (ovFx ? (ovFx.grain     || 0) : 0) * mixFx,
     glow:      preset.glow      * (1 - mixFx) + (ovFx ? (ovFx.glow      || 0) : 0) * mixFx,
     grayscale: preset.grayscale * (1 - mixFx) + (ovFx ? (ovFx.grayscale || 0) : 0) * mixFx,
+    tone:      (preset.tone || 0) * (1 - mixFx) + (ovFx ? (ovFx.tone || 0) : 0) * mixFx,
     posterize: preset.posterize * (1 - mixFx) + (ovFx ? (ovFx.posterize || 0) : 0) * mixFx,
   };
 }
@@ -89,6 +90,7 @@ function getPresetAsOverride(pageKey) {
     grain:     preset.grain,
     glow:      preset.glow,
     grayscale: preset.grayscale,
+    tone:      preset.tone || 0,
     posterize: preset.posterize,
   };
 }
@@ -600,6 +602,7 @@ const PRESETS = {
     uniform float u_temp, u_mut, u_mutAlgo;
     uniform float u_posterize, u_vignette, u_chroma, u_grain, u_sepia, u_glow;
     uniform float u_grayscale, u_blur;
+    uniform float u_tone;      // 0..1 tone/desaturation grade (warm highs, cool shadows)
     uniform float u_effect;        // 0..1 master mix
     uniform float u_fade;          // 0=image, 1=black — silence fade
     uniform int   u_page;          // film, grid, neon, smoke, hallucination, eclipse, aurora, chrome, fractal, glitch, pulse, void, watercolor, baroque, gallery, kraft, mosaic, phosphor, tape
@@ -966,6 +969,17 @@ const PRESETS = {
 
       // Per-page effect (after vignette, so it dominates)
       col = applyPageEffect(col, uv, u_time);
+      // Tone / desaturation (u_tone): the final grade — applied AFTER the
+      // page effect so the mood knob reads on the finished look instead of
+      // being re-saturated by it (neon's chroma shift, etc.). 0 = untouched.
+      if (u_tone > 0.001) {
+        float lt = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+        vec3 desat = mix(col.rgb, vec3(lt), 0.85 * u_tone);
+        vec3 warm = vec3(1.06, 1.00, 0.92);
+        vec3 cool = vec3(0.94, 0.99, 1.07);
+        vec3 split = desat * mix(cool, warm, smoothstep(0.15, 0.85, lt));
+        col.rgb = mix(col.rgb, split, u_tone);
+      }
 
       // Grain last (on top of everything)
       if (u_grain > 0.001) {
@@ -1082,6 +1096,7 @@ const PRESETS = {
       sepia:     gl.getUniformLocation(prog, 'u_sepia'),
       glow:      gl.getUniformLocation(prog, 'u_glow'),
       grayscale: gl.getUniformLocation(prog, 'u_grayscale'),
+      tone:      gl.getUniformLocation(prog, 'u_tone'),
       blur:      gl.getUniformLocation(prog, 'u_blur'),
       effect:    gl.getUniformLocation(prog, 'u_effect'),
       fade:      gl.getUniformLocation(prog, 'u_fade'),
@@ -1185,6 +1200,9 @@ const PRESETS = {
       const _glow      = _hasOv ? _blend.glow      : preset.glow;
       const _grayscale = _hasOv ? _blend.grayscale : preset.grayscale;
       const _posterize = _hasOv ? _blend.posterize : preset.posterize;
+      // Tone feed priority: the manual slider (SWR_FX_TONE) wins, then the
+      // automix blend, then the page preset. Undefined slider → preset value.
+      const _tone      = (typeof window.SWR_FX_TONE === 'number') ? window.SWR_FX_TONE : (_hasOv ? (_blend.tone || 0) : (preset.tone || 0));
       // FX intensity master multiplier (0…1) — same contract as
       // fx-postprocess.js: read window.FX.intensity when that module is
       // loaded, else fall back to the shared localStorage key. Applied
@@ -1204,6 +1222,7 @@ const PRESETS = {
       gl.uniform1f(u.sepia,     _sepia * _k);
       gl.uniform1f(u.glow,      _glow * _k);
       gl.uniform1f(u.grayscale, _grayscale * _k);
+      gl.uniform1f(u.tone,      _tone * _k);
       gl.uniform1f(u.blur,      preset.blur * _k);
       gl.uniform1f(u.effect,    preset.effect * _k);
       gl.uniform1i(u.page,      pageIdx);

@@ -15,6 +15,11 @@ const FX_KEYS = [
   'liquid','pearl','glitch','grain','chroma','bloom','vignette','sepia',
   'glow','grayscale','blur','mut','mutAlgo','temp','posterize',
 ];
+// Optional fx_state keys — never required (older presets predate them);
+// when present they are range-checked like every other key. `tone` is the
+// tone/desaturation grade consumed by fx-postprocess.js (u_tone) and
+// versions-presets.js (u_tone).
+const OPTIONAL_FX_KEYS = ['tone'];
 const AUDIO_BANDS = ['bass','mid','treble','onset'];
 const FAMILIES = ['GENERATIVE','MORPHA','TRAIN','CSSFX'];
 const ID_RE = /^swr-preset-\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/;
@@ -48,9 +53,14 @@ function validate(p) {
     }
   }
   for (const [k, v] of Object.entries(fx)) {
-    if (k === 'posterize') continue;
+    if (k === 'posterize' || OPTIONAL_FX_KEYS.includes(k)) continue;
     const n = Number(v);
     if (Number.isNaN(n) || n < 0 || n > 1) errs.push(`fx_state.${k}=${v} not in [0,1]`);
+  }
+  for (const k of OPTIONAL_FX_KEYS) {
+    if (!(k in fx)) continue;
+    const n = Number(fx[k]);
+    if (Number.isNaN(n) || n < 0 || n > 1) errs.push(`fx_state.${k}=${fx[k]} not in [0,1]`);
   }
   const pal = p.palette || {};
   for (const k of ['primary','secondary','accent','bg']) {
