@@ -320,11 +320,29 @@
     const py = 0.014 * Math.cos(tt * 0.083 + ph * 2.3);
     const sw = (state._stage && state._stage.width) || 1280;
     const sh = (state._stage && state._stage.height) || 720;
-    return Object.assign({}, r, {
+    r = Object.assign({}, r, {
       scale: (r.scale || 1) * z,
       x: (r.x || 0) + px * sw,
       y: (r.y || 0) + py * sh,
     });
+    // Flow dissolve (see engine-timing crossfade): during the crossfade
+    // window the photo slides — outgoing along (+x,+y), incoming from
+    // (-x,-y). Offsets exposed for probes.
+    if (l._flowUntil && now < l._flowUntil) {
+      const fb = (l.opacity != null ? l.opacity : 1) || 1;
+      const fp = Math.min(1, Math.max(0, (l._currentOpacity || 0) / fb));
+      const famp = (l._flowAmp || 0.085) * sw;
+      const fdir = l._swapPending ? 1 : -1;
+      const ft = l._swapPending ? Math.min(1, (1 - fp) * 2) : (1 - fp);
+      const fe = ft * ft * (3 - 2 * ft);
+      l._flowOffX = fdir * (l._flowX || 1) * famp * fe;
+      l._flowOffY = fdir * (l._flowY || 0.35) * famp * fe;
+      r = Object.assign({}, r, { x: (r.x || 0) + l._flowOffX, y: (r.y || 0) + l._flowOffY });
+    } else {
+      l._flowOffX = 0;
+      l._flowOffY = 0;
+    }
+    return r;
   }
 
   function frame(stage, ctx, layers, applyR, drawToCtx, opts) {
@@ -376,10 +394,18 @@
         // crossed below the midpoint threshold, swap the asset under the
         // curtain. The fade continues drawing the new asset at rising
         // currentOpacity. See engine-timing.client.js crossfade().
-        if (T && l && l._swapPending && l._currentOpacity < (l.opacity || 1) * 0.5) {
-          const pending = l._swapPending;
-          l.asset = pending.newAsset;
-          l._currentOpacity = l._targetOpacity != null ? l._targetOpacity : 0;
+          if (T && l && l._swapPending && l._currentOpacity < (l.opacity || 1) * 0.5) {
+            const pending = l._swapPending;
+            const _kbPrev = l.asset;
+            l.asset = pending.newAsset;
+            // Camera continuity: the incoming photo inherits the outgoing
+            // photo's drift state, so a set reads as one continuous move.
+            if (_kbPrev && l.asset && _kbPrev.type === 'image' && l.asset.type === 'image') {
+              if (_kbPrev._kbSeed != null) l.asset._kbSeed = _kbPrev._kbSeed;
+              if (_kbPrev._kbT != null) l.asset._kbT = _kbPrev._kbT;
+              if (_kbPrev._kbLast != null) l.asset._kbLast = _kbPrev._kbLast;
+            }
+            l._currentOpacity = l._targetOpacity != null ? l._targetOpacity : 0;
           // Inherit the outgoing layer's visual signature (A2 morph).
           if (l._morphFrom) {
             l.baseScale   = l._morphFrom.baseScale;
