@@ -90,7 +90,6 @@ function getPresetAsOverride(pageKey) {
     grain:     preset.grain,
     glow:      preset.glow,
     grayscale: preset.grayscale,
-    tone:      preset.tone || 0,
     posterize: preset.posterize,
   };
 }
