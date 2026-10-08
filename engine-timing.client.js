@@ -264,8 +264,21 @@
     } : null;
     // Kick off fadeOut. The render loop's step() will swap at the midpoint
     // via _swapPending; see step().
-    layer._swapPending = { newAsset, fadeOutMs: o.fadeOutMs, fadeInMs: o.fadeInMs };
-    layer._targetOpacity = 0;
+      layer._swapPending = { newAsset, fadeOutMs: o.fadeOutMs, fadeInMs: o.fadeInMs };
+      layer._targetOpacity = 0;
+      // Flow dissolve (slice 2): a seeded direction + window for the draw
+      // path. The outgoing photo slides out along (+x,+y) while fading; the
+      // incoming one slides in from (-x,-y). Amplitude rides life.pulse at
+      // the moment of the swap (lib/swr-life.client.js).
+      const _fk = String((newAsset && (newAsset.name || newAsset.url)) || 'flow');
+      let _fh = 2166136261;
+      for (let i = 0; i < _fk.length; i++) { _fh ^= _fk.charCodeAt(i); _fh = (_fh * 16777619) >>> 0; }
+      const _LP = window.SWR_LIFE;
+      const _kick = (_LP && _LP.__loaded) ? Math.min(1, _LP.pulse) : 0.5;
+      layer._flowX = (_fh & 1) ? 1 : -1;
+      layer._flowY = ((_fh >> 1) & 1) ? 0.35 : -0.35;
+      layer._flowAmp = 0.085 * (0.75 + 0.5 * _kick);
+      layer._flowUntil = performance.now() + (o.fadeOutMs || 260) + (o.fadeInMs || 340) + 80;
     if (o.fadeOutMs) layer.fadeOutMs = o.fadeOutMs;
     try {
       window.dispatchEvent(new CustomEvent('swr-timing-swap', {
