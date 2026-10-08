@@ -119,7 +119,23 @@ assert(Number.isFinite(v.energy) && Number.isFinite(v.pulse) && v.dt <= 0.1,
   'a huge clock jump clamps dt (no teleport, still finite)', `dt=${v.dt.toFixed(3)}`);
 assert(v.tide >= 0 && v.tide <= 1, 'tide stays bounded after the jump', `tide=${v.tide.toFixed(3)}`);
 
-// ---- 6. Singleton -------------------------------------------------------
+// ---- 6. Wave propagation ------------------------------------------------
+
+console.log('SWR_LIFE: wave');
+feat.beatPulse = true; feat.beat = 1;
+step(16);                          // the spike lands in the history
+feat.beatPulse = false;
+const w0now = life.wave(0);
+const w2now = life.wave(2);
+for (let i = 0; i < 12; i++) { feat.beat *= 0.7; step(16); } // ~190ms later
+const w2later = life.wave(2);
+assert(w0now > 0.9, 'wave(0) sees the beat immediately', `w0=${w0now.toFixed(2)}`);
+assert(w2now < 0.2, 'wave(2) is still pre-beat at the hit (delayed)', `w2=${w2now.toFixed(2)}`);
+assert(w2later > 0.9, 'wave(2) feels the beat ~190ms later — the ripple travels', `w2=${w2later.toFixed(2)}`);
+assert(life.wave(0, 90) >= 0 && life.wave(0, 90) <= 1, 'wave output bounded');
+assert(life.wave(-1) === life.wave(0), 'wave guards negative indices');
+
+// ---- 7. Singleton -------------------------------------------------------
 
 console.log('SWR_LIFE: singleton');
 vm.runInContext(fs.readFileSync(SRC, 'utf8'), sandbox, { filename: 'swr-life.client.js' });
