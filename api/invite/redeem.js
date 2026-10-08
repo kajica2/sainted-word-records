@@ -11,9 +11,9 @@
 // unlock. There is no per-user ledger; this is a license, not a
 // single-use token. Disabling a code means flipping enabled to false.
 //
-// KV env: KV_REST_API_URL + KV_REST_API_TOKEN. If either is missing, the
-// endpoint returns 503 with a clear error so the operator can fix it
-// instead of leaking a generic 500.
+// KV env: UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN. If either is
+// missing, the endpoint returns 503 with a clear error so the operator can
+// fix it instead of leaking a generic 500.
 
 import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
 import { rateLimit } from '../_lib/db.js';

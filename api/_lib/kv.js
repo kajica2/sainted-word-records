@@ -1,19 +1,41 @@
-// api/_lib/kv.js — thin wrapper around @vercel/kv for invite-code storage.
+// api/_lib/kv.js — thin wrapper around @upstash/redis for invite-code storage.
 //
-// We use @vercel/kv directly (not the local FS / Postgres abstraction in
-// db.js) because invite codes are an admin-issued, low-write, high-read
-// workload that pairs naturally with a managed KV store, and because we
-// want a clean migration story: when Vercel deprecates @vercel/kv and
-// routes new projects to Upstash via Marketplace, the only thing that
-// changes is the import line below — the kvGet/kvSet/kvDel surface here
-// stays identical.
+// Vercel KV was sunset Dec 2024; all stores migrated to Upstash Redis.
+// We now use @upstash/redis (HTTP-based) which reads UPSTASH_REDIS_REST_URL
+// and UPSTASH_REDIS_REST_TOKEN from process.env.
 //
-// Env: @vercel/kv reads KV_REST_API_URL + KV_REST_API_TOKEN from
-// process.env automatically. If either is missing, calls fail with a
-// clear error and the API returns 503 — the operator must provision a KV
-// store before this endpoint is usable.
+// Env:
+//   UPSTASH_REDIS_REST_URL   — https://{db-id}.upstash.io
+//   UPSTASH_REDIS_REST_TOKEN — the Upstash REST token
+// If either is missing, all kv* calls fail with a clear error so the operator
+// can fix it instead of leaking a generic 500.
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const MISSING_URL = !process.env.UPSTASH_REDIS_REST_URL;
+const MISSING_TOKEN = !process.env.UPSTASH_REDIS_REST_TOKEN;
+
+function redisClient() {
+  if (MISSING_URL || MISSING_TOKEN) {
+    const missing = [
+      MISSING_URL && 'UPSTASH_REDIS_REST_URL',
+      MISSING_TOKEN && 'UPSTASH_REDIS_REST_TOKEN',
+    ].filter(Boolean);
+    throw new Error(`kv: missing env vars: ${missing.join(', ')}`);
+  }
+  return new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+}
+
+function isUpstashError(msg) {
+  return (
+    /KV_REST_API|KV_|@vercel\/kv|@upstash|upstash|ECONNREFUSED|ENOTFOUND|fetch failed/i.test(
+      String(msg)
+    )
+  );
+}
 
 // Schema marker. Bump if the invite-code shape changes incompatibly;
 // redeem.js refuses codes stored under a different schemaVersion.
@@ -24,9 +46,19 @@ let schemaReady = null;
 async function ensureSchema() {
   if (schemaReady) return schemaReady;
   schemaReady = (async () => {
-    const current = await kv.get(SCHEMA_KEY);
+    const client = redisClient();
+    let current;
+    try {
+      current = await client.get(SCHEMA_KEY);
+    } catch (e) {
+      const msg = String(e && e.message || e);
+      if (isUpstashError(msg)) {
+        throw Object.assign(new Error('kv_unavailable'), { cause: e });
+      }
+      throw e;
+    }
     if (current == null) {
-      await kv.set(SCHEMA_KEY, String(SCHEMA_VERSION));
+      await client.set(SCHEMA_KEY, String(SCHEMA_VERSION));
       return SCHEMA_VERSION;
     }
     const parsed = Number.parseInt(String(current), 10);
@@ -47,21 +79,48 @@ export function _resetSchemaCache() {
 
 export async function kvGet(key) {
   await ensureSchema();
-  return kv.get(key);
+  const client = redisClient();
+  try {
+    return await client.get(key);
+  } catch (e) {
+    const msg = String(e && e.message || e);
+    if (isUpstashError(msg)) {
+      throw Object.assign(new Error('kv_unavailable'), { cause: e });
+    }
+    throw e;
+  }
 }
 
-export async function kvSet(key, value, opts) {
+export async function kvSet(key, value) {
   await ensureSchema();
-  return kv.set(key, value, opts);
+  const client = redisClient();
+  try {
+    return await client.set(key, value);
+  } catch (e) {
+    const msg = String(e && e.message || e);
+    if (isUpstashError(msg)) {
+      throw Object.assign(new Error('kv_unavailable'), { cause: e });
+    }
+    throw e;
+  }
 }
 
 export async function kvDel(key) {
   await ensureSchema();
-  return kv.del(key);
+  const client = redisClient();
+  try {
+    return await client.del(key);
+  } catch (e) {
+    const msg = String(e && e.message || e);
+    if (isUpstashError(msg)) {
+      throw Object.assign(new Error('kv_unavailable'), { cause: e });
+    }
+    throw e;
+  }
 }
 
 // Invite-code helpers. The key shape and value shape are owned here
-// only — api/invite/redeem.js and scripts/grant-invite.mjs both go
+// only — api/invite/redeem.js and api/invite/register.js both go
 // through these.
 
 const CODE_RE = /^[A-Z0-9]{4,8}(?:-[A-Z0-9]{4,8}){1,3}$/;

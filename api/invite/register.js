@@ -56,7 +56,8 @@ export default async function handler(req, res) {
     return sendJson(res, 200, { ok: true, code: normalized });
   } catch (e) {
     const msg = String(e && e.message || e);
-    if (/KV_REST_API|KV_|@vercel\/kv|@upstash/i.test(msg)) {
+    // kv_unavailable is thrown directly by kv.js when Upstash is unreachable.
+    if (msg === 'kv_unavailable' || /KV_REST_API|KV_|@vercel\/kv|@upstash|upstash|ECONNREFUSED/i.test(msg)) {
       return sendJson(res, 503, { error: 'kv_unavailable' });
     }
     return sendJson(res, 500, { error: 'registration_failed', detail: msg });
