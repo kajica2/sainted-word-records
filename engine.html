@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="/video-fx.css" />
   <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/brandkit.css" />
+  <link rel="stylesheet" href="/lib/drive-modal.css" />
   <style>
     :root {
       --bg-0: #050308;
@@ -1907,6 +1908,9 @@
                    class="swr-user-media-input"
                    title="Add images or videos to your library" />
             <label for="swr-user-media-input" class="tbtn ghost swr-user-media-add">+ Add</label>
+            <button type="button" id="swr-drive-btn"
+                    class="tbtn ghost"
+                    title="Import from Google Drive">Drive</button>
             <button type="button" id="swr-user-media-clear"
                     class="tbtn ghost swr-user-media-clear"
                     title="Remove all media from your library">Clear</button>
@@ -2336,6 +2340,14 @@
             if (sig !== lastSig) { lastSig = sig; refresh(); }
           } catch (_) {}
         }, 1500);
+
+        // Listen for Drive import events and refresh the grid.
+        try {
+          var driveGrid = document.getElementById('swr-user-media-grid');
+          if (driveGrid) {
+            driveGrid.addEventListener('swr-media-refresh', function () { refresh(); });
+          }
+        } catch (_) {}
 
         // Initial render — wait for SWR_MEDIA to be present (module load).
         function boot() {
@@ -7173,6 +7185,8 @@
   <script type="module" src="/engine-settings.client.js"></script>
   <script src="/lib/intensity-slider.client.js" defer></script>
   <script src="/lib/tone-slider.client.js" defer></script>
+  <script src="/lib/google-drive.client.js" defer></script>
+  <script src="/lib/drive-modal.client.js" defer></script>
   <script type="module" src="/engine-keys.client.js"></script>
   <script type="module" src="/project.client.js"></script>
   <script type="module">
@@ -7879,5 +7893,92 @@
   </script>
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="/lib/swr-natural.client.js"></script>
+  <script>
+    // Google Drive import — engine integration.
+    // Wire: Drive button → modal → refresh media grid on import.
+    (function () {
+      var driveBtn = document.getElementById('swr-drive-btn');
+      if (!driveBtn) return;
+
+      function getDriveState() {
+        return window.SWR_AUTH
+          ? window.SWR_AUTH.session()
+          : Promise.resolve(null);
+      }
+
+      function updateBtnState(user) {
+        if (!driveBtn) return;
+        if (!user) {
+          driveBtn.title = 'Sign in to import from Google Drive';
+          driveBtn.style.opacity = '0.4';
+        } else if (!user.googleDriveLinkedAt) {
+          driveBtn.title = 'Connect Google Drive to import files';
+          driveBtn.style.opacity = '0.7';
+        } else {
+          driveBtn.title = 'Import from Google Drive';
+          driveBtn.style.opacity = '1';
+        }
+      }
+
+      // Bootstrap: check session and listen for auth changes.
+      if (window.SWR_AUTH) {
+        getDriveState().then(updateBtnState);
+        window.SWR_AUTH.onChange(updateBtnState);
+      } else {
+        // SWR_AUTH not loaded — button is decorative.
+        driveBtn.title = 'Sign in to import from Google Drive';
+        driveBtn.style.opacity = '0.4';
+      }
+
+      driveBtn.addEventListener('click', function () {
+        getDriveState().then(function (user) {
+          if (!user) {
+            // Not logged in → redirect to login with return path.
+            var returnTo = encodeURIComponent(location.pathname);
+            location.href = '/auth/login?redirect=' + returnTo;
+            return;
+          }
+          if (!user.googleDriveLinkedAt) {
+            // Drive not linked → initiate OAuth in popup.
+            window.SWR_GDRIVE && window.SWR_GDRIVE.link(location.pathname)
+              .then(function () { updateBtnState(Object.assign({}, user, { googleDriveLinkedAt: new Date().toISOString() })); })
+              .catch(function (e) {
+                if (e.message !== 'popup_blocked' && e.message !== 'oauth_timeout') {
+                  console.warn('[drive] link error:', e);
+                }
+              });
+            return;
+          }
+          // Drive linked → open browser modal.
+          if (window.SWR_DRIVE_MODAL) {
+            window.SWR_DRIVE_MODAL.show();
+          }
+        });
+      });
+
+      // When an import completes, refresh the media grid.
+      if (window.SWR_DRIVE_MODAL) {
+        window.SWR_DRIVE_MODAL.onImport(function (_a) {
+          // Dispatch a custom event so the media grid refreshes.
+          document.dispatchEvent(new CustomEvent('swr-drive-imported'));
+          if (typeof window.setStatus === 'function') {
+            window.setStatus('File imported from Drive', 'ok');
+          }
+        });
+      }
+
+      // Also listen for the raw event (in case onImport wasn't called yet).
+      document.addEventListener('swr-drive-imported', function () {
+        // Trigger a media grid refresh if SWR_MEDIA is available.
+        if (window.SWR_MEDIA && typeof window.SWR_MEDIA.getUserMedia === 'function') {
+          // Find and call the refresh function. The user-media controller
+          // is initialised inline in the script near #swr-user-media.
+          // We signal a refresh by dispatching a custom event on the grid.
+          var grid = document.getElementById('swr-user-media-grid');
+          if (grid) grid.dispatchEvent(new CustomEvent('swr-media-refresh'));
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

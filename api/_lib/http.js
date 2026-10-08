@@ -4,6 +4,12 @@
 
 export const COOKIE_NAME = 'swrc_session';
 
+// 302 redirect — call as `return redirect(res, url)`.
+export function redirect(res, url, status = 302) {
+  res.writeHead(status, { Location: String(url) });
+  res.end();
+}
+
 export function setSessionCookie(res, token, maxAgeSec = 30 * 24 * 60 * 60) {
   const flags = [
     `${COOKIE_NAME}=${token}`,

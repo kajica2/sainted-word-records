@@ -27,6 +27,8 @@ export default async function handler(req, res) {
         // boot without a follow-up /api/users/[id] round-trip.
         membershipTier: user.membershipTier || 'free',
         joinedAt: user.joinedAt || user.createdAt || null,
+        // Google Drive link status — present when Drive is connected.
+        googleDriveLinkedAt: user.googleDrive?.linkedAt || null,
       },
     });
   }

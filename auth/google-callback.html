@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Connecting Google Drive…</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0d0d12;
+    color: #e8e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 12px;
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(255,255,255,0.15);
+    border-top-color: #a78bfa;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  p { font-size: 14px; opacity: 0.7; }
+  .error { color: #f87171; opacity: 1; font-size: 13px; max-width: 320px; }
+</style>
+</head>
+<body>
+<div class="spinner" id="spinner"></div>
+<p id="message">Connecting your Google Drive…</p>
+<p class="error" id="error" style="display:none"></p>
+
+<script>
+// Read the OAuth code from the URL fragment (Google redirects here with the code
+// as a query param). Exchange it server-side and signal the opener via postMessage.
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state') || '{}';
+  const error = params.get('error');
+
+  if (error) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('error').textContent = `Google said: ${params.get('error_description') || error}`;
+    document.getElementById('error').style.display = 'block';
+    // Notify opener of failure.
+    try {
+      window.opener.postMessage({ type: 'swr-google-oauth-callback', error }, '*');
+    } catch (_) {}
+    return;
+  }
+
+  if (!code) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('error').textContent = 'No authorization code received.';
+    document.getElementById('error').style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // send session cookie
+      body: JSON.stringify({ code, state }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'link_failed');
+
+    // Notify opener of success.
+    try {
+      window.opener.postMessage({
+        type: 'swr-google-oauth-callback',
+        linkedAt: data.linkedAt,
+        redirect: data.redirect || '/',
+      }, '*');
+    } catch (_) {}
+
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('message').textContent = '✓ Google Drive connected!';
+    setTimeout(() => window.close(), 1200);
+  } catch (e) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('error').textContent = e && e.message || 'Something went wrong.';
+    document.getElementById('error').style.display = 'block';
+    try {
+      window.opener.postMessage({ type: 'swr-google-oauth-callback', error: e && e.message }, '*');
+    } catch (_) {}
+  }
+})();
+</script>
+</body>
+</html>
