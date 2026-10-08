@@ -2386,6 +2386,11 @@
         <button class="tbtn ghost" id="add-3d" style="padding:4px 8px; font-size:9px;" title="Add a 3D primitive as a layer (sphere, cube, torus, icosahedron)">+ 3D</button>
         <button class="tbtn" id="rotate-sel" disabled title="Rotate selected clip 90° (R / Shift+R for -90°)" style="padding:4px 8px; font-size:9px; opacity:0.4; cursor:not-allowed;">↻ ROT</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
+        <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
+          <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
+          <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
+          <button class="tbtn ghost" id="layer-count-inc" style="padding:4px 6px; font-size:9px;">+</button>
+        </span>
       </div>
       <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);">
         <div class="ph">
@@ -4295,9 +4300,15 @@
         const cx = stageCtx;
         cx.fillStyle = '#000';
         cx.fillRect(0, 0, cx.canvas.width, cx.canvas.height);
-        // Draw layers in z order
+        // Draw layers in z order. Fewer layers (host cap): when activeCount
+        // is set, only the TOP N draw — the featured clip stays, the deepest
+        // background layers drop first (see lib/layers.client.js).
         const sorted = Layers.list.slice().sort((a, b) => a.z - b.z);
-        for (const l of sorted) this.drawLayer(l, cx, cx.canvas.width, cx.canvas.height);
+        const _activeCap = (Layers && Layers.activeCount) || 0;
+        const _drawFrom = _activeCap > 0 ? Math.max(0, sorted.length - _activeCap) : 0;
+        for (let i = _drawFrom; i < sorted.length; i++) {
+          this.drawLayer(sorted[i], cx, cx.canvas.width, cx.canvas.height);
+        }
         // Selection outline (in manual mode, when a layer is being dragged)
         if (this.dragMode === 'manual' && this.selectedLayer) {
           this.drawSelection(cx, this.selectedLayer);
@@ -4961,6 +4972,45 @@
           Layers.add(pool[pool.length - 1]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
+
+        // Fewer layers: a stepper trims how many layers DRAW, counted from
+        // the top (the featured clip stays; deep background drops first).
+        // Persisted as swr.layers.active; restored once the stack seeds.
+        (function () {
+          const dec = $('layer-count-dec');
+          const inc = $('layer-count-inc');
+          const val = $('layer-count-val');
+          function sync() {
+            const total = Layers.list.length || 0;
+            const n = (Layers.activeCount > 0 ? Layers.activeCount : total) || 0;
+            if (val) val.textContent = String(n || '–');
+            if (dec) dec.disabled = !(n > 1);
+            if (inc) inc.disabled = !(total && n < total);
+          }
+          function setCount(n) {
+            const total = Layers.list.length || 0;
+            if (!total) return;
+            const next = Math.max(1, Math.min(total, n));
+            Layers.setActiveCount(next >= total ? 0 : next);
+            try { localStorage.setItem('swr.layers.active', String(next)); } catch (_) {}
+            sync();
+          }
+          if (dec) dec.addEventListener('click', () => setCount((Layers.activeCount || Layers.list.length) - 1));
+          if (inc) inc.addEventListener('click', () => setCount((Layers.activeCount || Layers.list.length) + 1));
+          // Restore once the default library seeds the stack (async).
+          let tries = 0;
+          const iv = setInterval(() => {
+            tries += 1;
+            if (Layers.list.length) {
+              clearInterval(iv);
+              let saved = 0;
+              try { saved = parseInt(localStorage.getItem('swr.layers.active') || '0', 10) || 0; } catch (_) {}
+              if (saved >= 1 && saved < Layers.list.length) Layers.setActiveCount(saved);
+              sync();
+            } else if (tries > 120) { clearInterval(iv); sync(); }
+          }, 250);
+          sync();
+        })();
         // Global sliders
         for (const id of ['sensitivity', 'beat-gate', 'decay', 'temperature', 'mutations', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur']) {
           const inp = $(id);
