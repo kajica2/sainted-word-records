@@ -29,6 +29,12 @@ const HANDLER_PATHS = {
   // P3.8 — health probe merged into /api/manifest?action=health
   // (Vercel Hobby 12-function cap). Routed below via 'manifest'.
   'manifest': '../api/manifest.js',
+  // Invite-code store: redeem is the public endpoint the modal posts to;
+  // register is the admin-secret endpoint the invite-codes workflow posts to.
+  // Production routes these by filesystem (Vercel), so this table only
+  // affects `npm run dev` and the hermetic API smokes.
+  'invite/redeem': '../api/invite/redeem.js',
+  'invite/register': '../api/invite/register.js',
 };
 
 function pickHandlerPath(urlPath) {
@@ -74,6 +80,12 @@ function pickHandlerPath(urlPath) {
     if (segs[2] === 'grant') return '../api/slots/grant.js';
     if (segs[2]) return '../api/slots/[userId].js';
     return '../api/slots/index.js';
+  }
+  // Invite codes: /api/invite/redeem (public, rate-limited) and
+  // /api/invite/register (INVITE_ADMIN_SECRET-gated batch registration).
+  if (segs[1] === 'invite') {
+    if (segs[2] === 'redeem') return HANDLER_PATHS['invite/redeem'];
+    if (segs[2] === 'register') return HANDLER_PATHS['invite/register'];
   }
   if (segs[1] === 'health') return HANDLER_PATHS['manifest'];
   if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files + ?action=health

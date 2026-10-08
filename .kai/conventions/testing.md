@@ -16,13 +16,14 @@ suites).
 
 | Command | Group | Steps |
 | --- | --- | --- |
-| `npm run check` | `check` | 49 |
-| `npm run check:full` | `full` | 18 |
+| `npm run check` | `check` | 63 |
+| `npm run check:full` | `full` | 19 |
 | `npm run check:storyboard` | `storyboard` | 5 |
 
 - `npm run check` — the quick gate. `check:syntax`, `check:bundle`, the
-  `check:*-unit.mjs` / `test:*` suites, `scripts/test-api.mjs`, and the browser
-  smokes that need no interaction (`check:dashboard`,
+  `check:*-unit.mjs` / `test:*` suites, `scripts/test-api.mjs`, the HTTP-level
+  API smokes (`check:invite-api-smoke`, `check:slots-api-smoke`), and the
+  browser smokes that need no interaction (`check:dashboard`,
   `check:variant-switcher-smoke`, `check:grade-smoke`, `check:site-chrome`,
   `check:sitemap`, …).
   Run it before every commit.
