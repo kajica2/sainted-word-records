@@ -297,9 +297,13 @@ function copyStatic() {
     'swr-intro-10s-voice.mp4',
     'marketplace.html',
     'thanks.html',
-    // Admin scripts (API-adjacent, deploy with the app).
-    'scripts/register-codes.mjs',
     'make-video.html',
+    // (scripts/register-codes.mjs was listed here until 2026-10-08. It was
+    // deleted in 6fad9b4 — without --api it printed OK for every code while
+    // doing no network call at all, and with --api it posted to
+    // /api/invite/redeem. Registration is the invite-codes workflow's job
+    // now. copy-static skips missing sources, so this entry only ever logged
+    // nothing — same as the weddings entries below.)
     // (weddings.html / weddings.css were listed here until 2026-09-27. Both
     // files were deleted in 4ee91f2 ("chore: remove weddings page and dead
     // references") but these two build entries were missed — copy-static skips
