@@ -356,6 +356,8 @@
     .lib-item:not(:has(.lib-rot-badge)) .lib-del { top: 4px; }
     .lib-item:hover .lib-del { opacity: 1; }
     .lib-del:hover { background: #ff2d8a; color: #fff; }
+    /* Drag-to-set-cover: same visual affordance as My Media (swr-media-card). */
+    .lib-item.is-cover-target { outline: 2px solid var(--accent, #ff3d92); outline-offset: -2px; }
     /* Touch / no-hover environments: always visible so a tap-target is reachable. */
     @media (hover: none) { .lib-del { opacity: 1; } }
     .lib-empty {
