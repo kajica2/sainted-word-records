@@ -387,9 +387,14 @@
     // decoded-image error) can't freeze the render loop. Without this guard,
     // the first failure aborts the for-loop AND the per-layer draw try/catch
     // never wraps the applyR/step/LFO work — silent freeze.
+    // Fewer layers (host cap): how many layers DRAW, counted from the top of
+    // the stack (the featured clip stays; deep background drops first).
+    // window.SWR.Layers.activeCount — 0/unset = no cap.
+    const _activeCap = (window.SWR && window.SWR.Layers && window.SWR.Layers.activeCount) || 0;
     for (let i = 0; i < layers.length; i++) {
       try {
         const l = layers[i];
+        if (_activeCap > 0 && i < layers.length - _activeCap) continue;
           let r = imageEvolve(l, applyR(l));
           // Wave propagation (slice 3): the beat ripples through the stack —
           // layer i reacts to the beat delayed by i*90ms. Exposed as _waveVal.
