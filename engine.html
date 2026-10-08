@@ -3895,6 +3895,20 @@
           let r = this.applyReactors(layer);
           // Advance the crossfade and let the eased opacity drive globalAlpha.
           if (TIMING && typeof TIMING.step === 'function') r = TIMING.step(0, layer, r);
+          // Wave propagation (slice 3): one beat ripples THROUGH the stack —
+          // layer i reacts to the beat delayed by i*90ms, so the hit travels
+          // instead of landing everywhere at once. Exposed as _waveVal.
+          if (window.SWR_LIFE && typeof window.SWR_LIFE.wave === 'function') {
+            const _wi = (window.Layers && Array.isArray(window.Layers.list)) ? window.Layers.list.indexOf(layer) : 0;
+            const _wv = window.SWR_LIFE.wave(_wi < 0 ? 0 : _wi);
+            layer._waveVal = _wv;
+            if (_wv > 0.01) {
+              r = Object.assign({}, r, {
+                opacity: Math.min(1, (r.opacity || 0) * (1 + 0.09 * _wv)),
+                scale: (r.scale || 1) * (1 + 0.012 * _wv),
+              });
+            }
+          }
           // Image evolution — stills must evolve like video layers do. A video
           // layer plays its content; an image layer gets a slow, seeded Ken
           // Burns drift (zoom + pan) so photo-driven compositions move with
@@ -3905,9 +3919,10 @@
           // it only shifts the cover-fit numbers the paths below already use.
           if (a.type === 'image') {
             const kbNow = performance.now();
-            if (Audio && Audio.playing) {
-              a._kbT = (a._kbT || 0) + (kbNow - (a._kbLast == null ? kbNow : a._kbLast)) / 1000;
-            }
+            // Tidal floor (slice 3): a paused song holds the photos at a slow
+            // drift instead of freezing them — the composition stays alive.
+            const kbDt = (kbNow - (a._kbLast == null ? kbNow : a._kbLast)) / 1000;
+            a._kbT = (a._kbT || 0) + kbDt * ((Audio && Audio.playing) ? 1 : 0.25);
             a._kbLast = kbNow;
             if (a._kbSeed == null) {
               const kbKey = String(a.name || a.url || 'img');

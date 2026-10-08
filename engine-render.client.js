@@ -303,9 +303,10 @@
     if (!a || a.type !== 'image' || !r) return r;
     const now = performance.now();
     const playing = !!(window.SWR && window.SWR.Audio && window.SWR.Audio.playing);
-    if (playing) {
-      a._kbT = (a._kbT || 0) + (now - (a._kbLast == null ? now : a._kbLast)) / 1000;
-    }
+    // Tidal floor (slice 3): a paused song holds the photos at a slow drift
+    // instead of freezing them — the composition stays alive at rest.
+    const kbDt = (now - (a._kbLast == null ? now : a._kbLast)) / 1000;
+    a._kbT = (a._kbT || 0) + kbDt * (playing ? 1 : 0.25);
     a._kbLast = now;
     if (a._kbSeed == null) {
       const key = String(a.name || a.url || 'img');
@@ -390,6 +391,18 @@
       try {
         const l = layers[i];
           let r = imageEvolve(l, applyR(l));
+          // Wave propagation (slice 3): the beat ripples through the stack —
+          // layer i reacts to the beat delayed by i*90ms. Exposed as _waveVal.
+          if (window.SWR_LIFE && typeof window.SWR_LIFE.wave === 'function') {
+            const wv = window.SWR_LIFE.wave(i);
+            l._waveVal = wv;
+            if (wv > 0.01) {
+              r = Object.assign({}, r, {
+                opacity: Math.min(1, (r.opacity || 0) * (1 + 0.09 * wv)),
+                scale: (r.scale || 1) * (1 + 0.012 * wv),
+              });
+            }
+          }
         // Fade stepper: if a crossfade is in flight and currentOpacity has
         // crossed below the midpoint threshold, swap the asset under the
         // curtain. The fade continues drawing the new asset at rising
