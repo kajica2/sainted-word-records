@@ -2451,6 +2451,12 @@
         <b id="fx-intensity-v">1.00</b>
       </span>
       <span class="separator"></span>
+      <span class="gctrl" title="Tone / desaturation — warm highlights, cool shadows">
+        tone
+        <input type="range" id="fx-tone" min="0" max="1" step="0.05" value="0" />
+        <b id="fx-tone-v">0.00</b>
+      </span>
+      <span class="separator"></span>
       <span class="gctrl">
         temp
         <input type="range" id="temperature" min="-1" max="1" step="0.02" value="0" />
@@ -4973,6 +4979,16 @@
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
 
+        // Tone / desaturation readout (the slider module owns the binding).
+        (function () {
+          const tv = $('fx-tone-v');
+          if (!tv) return;
+          if (window.SWR_TONE_SLIDER) tv.textContent = window.SWR_TONE_SLIDER.get().toFixed(2);
+          document.addEventListener('fx-tone-change', (e) => {
+            if (e && e.detail) tv.textContent = Number(e.detail.value).toFixed(2);
+          });
+        })();
+
         // Fewer layers: a stepper trims how many layers DRAW, counted from
         // the top (the featured clip stays; deep background drops first).
         // Persisted as swr.layers.active; restored once the stack seeds.
@@ -7156,6 +7172,7 @@
   <script defer src="/lib/generated-audio.client.js"></script>
   <script type="module" src="/engine-settings.client.js"></script>
   <script src="/lib/intensity-slider.client.js" defer></script>
+  <script src="/lib/tone-slider.client.js" defer></script>
   <script type="module" src="/engine-keys.client.js"></script>
   <script type="module" src="/project.client.js"></script>
   <script type="module">

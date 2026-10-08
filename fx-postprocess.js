@@ -35,6 +35,7 @@
     uniform float u_treble;   // 0..1
     uniform float u_beat;     // 0..1 envelope
     uniform float u_temp;     // -1..1 (cold..warm)
+    uniform float u_tone;     // 0..1 tone/desaturation grade (warm highs, cool shadows)
     uniform float u_mut;      // 0..1 mutation amount
     uniform float u_mutAlgo;  // 0..5 (selects mutation algorithm)
 
@@ -246,6 +247,17 @@
         float l = dot(col, vec3(0.299, 0.587, 0.114));
         col = mix(col, vec3(l), u_grayscale);
       }
+      // Tone / desaturation (u_tone): one mood knob — pulls saturation down
+      // while split-toning (warm highlights, cool shadows), the way a film
+      // stock reads. 0 = untouched.
+      if (u_tone > 0.001) {
+        float lt = dot(col, vec3(0.299, 0.587, 0.114));
+        vec3 desat = mix(col, vec3(lt), 0.85 * u_tone);
+        vec3 warm = vec3(1.06, 1.00, 0.92);
+        vec3 cool = vec3(0.94, 0.99, 1.07);
+        vec3 split = desat * mix(cool, warm, smoothstep(0.15, 0.85, lt));
+        col = mix(col, split, u_tone);
+      }
 
       // Sepia (warm brown monochrome tint) — applied before posterize so
       // posterization steps the sepia rather than the original color
@@ -342,6 +354,7 @@
     sepia: 0,
     glow: 0,
     grayscale: 0,
+    tone: 0,             // 0..1 — desaturate + split-tone grade (see u_tone)
     blur: 0,
     // Distortion uniforms (from flexible-smart-videomaker preset system)
     liquid: 0,
@@ -449,6 +462,7 @@
       sepia:    gl.getUniformLocation(prog, 'u_sepia'),
       glow:     gl.getUniformLocation(prog, 'u_glow'),
       grayscale:gl.getUniformLocation(prog, 'u_grayscale'),
+      tone:     gl.getUniformLocation(prog, 'u_tone'),
       blur:     gl.getUniformLocation(prog, 'u_blur'),
       liquid:   gl.getUniformLocation(prog, 'u_liquid'),
       pearl:    gl.getUniformLocation(prog, 'u_pearl'),
@@ -495,6 +509,7 @@
       return state.temp !== 0 || state.mut !== 0 || state.posterize !== 0 ||
              state.vignette !== 0 || state.chroma !== 0 || state.grain !== 0 ||
              state.sepia !== 0 || state.glow !== 0 || state.grayscale !== 0 ||
+             state.tone !== 0 ||
              state.blur !== 0 || state.liquid !== 0 || state.pearl !== 0 ||
              state.glitch !== 0 || state.sharp !== 0 || state.cinematic !== 0 ||
              lifeLiquidActive();
@@ -660,6 +675,7 @@
       gl.uniform1f(u.sepia,     state.sepia * k);
       gl.uniform1f(u.glow,      state.glow * k);
       gl.uniform1f(u.grayscale, state.grayscale * k);
+      gl.uniform1f(u.tone,      state.tone * k);
       gl.uniform1f(u.blur,      state.blur * k);
       // Liquid surface: the knob + a life coupling (lib/swr-life.client.js).
       // SWR_LIFE adds a moving floor — energy swells, beat pulses ring, a
@@ -692,10 +708,14 @@
     // Closure-private so it can only change via FX.setIntensity (which
     // clamps + persists). Read per-frame by the uniform-write block.
     var FX_INTENSITY = 1;
-    try {
-      var savedInt = parseFloat(localStorage.getItem('swr.fx.intensity'));
-      if (isFinite(savedInt)) FX_INTENSITY = Math.max(0, Math.min(1, savedInt));
-    } catch (_) {}
+      try {
+        var savedInt = parseFloat(localStorage.getItem('swr.fx.intensity'));
+        if (isFinite(savedInt)) FX_INTENSITY = Math.max(0, Math.min(1, savedInt));
+      } catch (_) {}
+      try {
+        var savedTone = parseFloat(localStorage.getItem('swr.fx.tone'));
+        if (isFinite(savedTone)) state.tone = Math.max(0, Math.min(1, savedTone));
+      } catch (_) {}
 
     // Expose for the wizard
     window.FX = {
@@ -718,7 +738,9 @@
       setGrain(v)     { state.grain     = Math.max(0, Math.min(1, v)); },
       setSepia(v)     { state.sepia     = Math.max(0, Math.min(1, v)); },
       setGlow(v)      { state.glow      = Math.max(0, Math.min(1, v)); },
-      setGrayscale(v) { state.grayscale = Math.max(0, Math.min(1, v)); },
+        setGrayscale(v) { state.grayscale = Math.max(0, Math.min(1, v)); },
+        setTone(v)      { state.tone      = Math.max(0, Math.min(1, v)); },
+        get tone()      { return state.tone; },
       setBlur(v)      { state.blur      = Math.max(0, Math.min(1, v)); },
       setLiquid(v)    { state.liquid    = Math.max(0, Math.min(1, v)); },
       setPearl(v)     { state.pearl     = Math.max(0, Math.min(1, v)); },
