@@ -748,7 +748,7 @@
       setSharp(v)     { state.sharp     = Math.max(0, Math.min(1, v)); },
       setCinematic(v) { state.cinematic = Math.max(0, Math.min(1, v)); },
       setPersona(profile) {
-        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch, sharp, cinematic}
+        // profile = {temp, mut, mutAlgo, posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch, tone, sharp, cinematic}
         if (!profile) return;
         if (profile.temp      !== undefined) state.temp      = profile.temp;
         if (profile.mut       !== undefined) state.mut       = profile.mut;
@@ -764,6 +764,7 @@
         if (profile.liquid    !== undefined) state.liquid    = profile.liquid;
         if (profile.pearl     !== undefined) state.pearl     = profile.pearl;
         if (profile.glitch    !== undefined) state.glitch    = profile.glitch;
+        if (profile.tone      !== undefined) state.tone      = profile.tone;
         if (profile.sharp     !== undefined) state.sharp     = profile.sharp;
         if (profile.cinematic !== undefined) state.cinematic = profile.cinematic;
       },
