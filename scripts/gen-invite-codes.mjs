@@ -60,7 +60,8 @@ async function main() {
     process.stderr.write(`saved ${count} code(s) to ${csvPath}\n`);
   } else {
     process.stderr.write(`generated ${count} code(s) — pass --save to persist to data/invite-codes.csv\n`);
-    process.stderr.write(`register with: KV_REST_API_URL=... KV_REST_API_TOKEN=... node scripts/grant-invite.mjs create --code CODE --label "${label}"\n`);
+    process.stderr.write(`  --save: .github/workflows/invite-codes.yml registers every CSV row on push to main\n`);
+    process.stderr.write(`  one-off: node scripts/grant-invite.mjs create --code CODE --label "${label}"\n`);
   }
 }
 

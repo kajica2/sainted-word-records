@@ -211,6 +211,25 @@ thing underneath it:
 | v2 | `@upstash/redis` + `UPSTASH_REDIS_REST_*` | An agent-provisioned Upstash database is deleted in days unless an account claims it, and claiming needs a human login. Not a durable home for codes people redeem months later. |
 | v3 | `db.js` JSON store → Postgres (`kv` table) | Nothing to claim, no second vendor, no invite-specific env vars. It is the same store that already holds users, sessions and projects — so it is as durable as signing in is. |
 
+### Follow-up due 2026-10-11: drop the Upstash env vars
+
+`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are still set in
+Production, Preview and Development. Nothing in the code reads them anymore
+(`grep -rn UPSTASH_REDIS_REST api/ scripts/ lib/ client/` returns nothing) —
+they are kept **deliberately as the rollback path**, because the pre-v3
+deployment (`58bcc88`) still does, and a revert before that date would need
+invite redemption to keep working.
+
+The `KV_REST_API_URL` / `TOKEN` / `KV_REST_API_REDIS_URL` trio was already
+deleted on 2026-10-08: Vercel KV was sunset in Dec 2024, so those pointed at a
+service that no longer exists and had zero rollback value.
+
+**Delete the Upstash pair once that database lapses on 2026-10-11.** The 10
+codes in `data/invite-codes.csv` are already in Postgres and were verified
+redeeming 10/10 against deployment `4ea9e3c`, whose code path cannot read
+anything but Postgres. If they are still present after that date, they are
+dead credentials — remove them from all three environments.
+
 Evidence that v3 is live: `curl /api/manifest?action=health` reports
 `"store":"postgres"`. If that ever says `"filesystem"`, `DATABASE_URL`
 is missing and invite codes will not survive a cold start.
