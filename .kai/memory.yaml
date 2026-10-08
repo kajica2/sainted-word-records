@@ -15,8 +15,8 @@ project:
   deploy_target: Vercel (auto on push to main)
 
 memory_version: "1.0"
-last_updated: 2026-10-07
-total_pipeline_runs: 2
+last_updated: 2026-10-08
+total_pipeline_runs: 3
 initialized_by: Kai (orchestrator first-run setup)
 
 flags:
@@ -57,6 +57,18 @@ active_prevention_rules:
       you own (kai/*); stage with explicit pathspecs (git add <file>, never -A); re-check
       `git status --short` immediately before committing so foreign staged files are not
       swept in; verify work by CONTENT (`grep` the tree), not by commit hash.
+  - id: "PM-2026-004"
+    when: "Writing or editing a GitHub Actions `run:` block that counts per-item results and fails at the end"
+    action: >-
+      Never count inside a `… | while … done` pipeline — the loop body runs in a subshell,
+      so REGISTERED/FAILED reset to 0 in the parent shell and the trailing
+      `if [ $FAILED -gt 0 ]; then exit 1; fi` can never fire. The invite-codes workflow
+      printed "Registered: 0 / 0" and exited 0 on every run, including total failures —
+      found 2026-10-08 while moving the invite store. Use process substitution
+      (`done < <(…)`), and test the script locally against a stubbed `curl`/`gh` across the
+      success path AND each failure path before trusting a green run. Related trap in the
+      same block: `head -n -1` is GNU-only, so a script using it cannot be tested on macOS —
+      `sed '$d'` is portable.
 
 # Auto-detected on 2026-09-20 from AGENTS.md, .editorconfig, package.json, vite.config.js.
 # Update via @postmortem when failures generate rules; update via @refactor-advisor when
