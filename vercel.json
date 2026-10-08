@@ -924,6 +924,14 @@
       "destination": "/fonts.html"
     },
     {
+      "source": "/auth/google-callback",
+      "destination": "/auth/google-callback.html"
+    },
+    {
+      "source": "/auth/google-callback/",
+      "destination": "/auth/google-callback.html"
+    },
+    {
       "source": "/login",
       "destination": "/login.html"
     },

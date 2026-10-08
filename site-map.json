@@ -419,7 +419,8 @@
     "/slots-admin",
     "/connect",
     "/buy",
-    "/fonts"
+    "/fonts",
+    "/auth/google-callback"
   ],
   "archived": [],
   "meta": {

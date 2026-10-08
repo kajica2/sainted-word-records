@@ -1,0 +1,106 @@
+name: Register Invite Codes
+
+# Run manually after merging a PR that adds invite codes, or automatically
+# after a push to main. KV is only reachable from inside Vercel's network,
+# so this workflow calls the deployed /api/invite/redeem endpoint on the
+# latest production deployment.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — list codes without registering'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches:
+      - main
+
+jobs:
+  register:
+    name: register invite codes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read data/invite-codes.csv
+        id: read_codes
+        run: |
+          if [ ! -f data/invite-codes.csv ]; then
+            echo "No data/invite-codes.csv found — nothing to register."
+            echo "codes=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "codes=$(cat data/invite-codes.csv)" >> $GITHUB_OUTPUT
+
+      - name: Register codes (production)
+        if: ${{ fromJSON(steps.read_codes.outputs.codes || '[]').length > 0 }}
+        env:
+          # The Vercel CLI token (vcp_ config token) is stored as a GitHub Secret.
+          # It is scoped to this repository and has read access to deployments.
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+
+          # Fetch the latest production deployment URL.
+          DEPLOYMENTS=$(curl -s "https://api.vercel.com/v6/deployments?project=$VERCEL_PROJECT_ID&team=$VERCEL_ORG_ID&target=production&limit=1" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H 'Content-Type: application/json')
+          URL=$(echo "$DEPLOYMENTS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['url'] if d.get('deployments') else '')")
+
+          if [ -z "$URL" ]; then
+            echo "::error::Could not find latest production deployment."
+            exit 1
+          fi
+
+          echo "Latest production deployment: https://$URL"
+          BASE="https://$URL"
+
+          # Read and register each code.
+          REGISTERED=0
+          FAILED=0
+
+          if [ '${{ github.event.inputs.dry_run }}' = 'true' ]; then
+            echo "=== DRY RUN — no codes will be registered ==="
+          fi
+
+          while IFS=',' read -r code label createdAt; do
+            # Skip header
+            if [ "$code" = "code" ]; then continue; fi
+            # Skip empty lines
+            if [ -z "$code" ]; then continue; fi
+
+            echo -n "  $code ... "
+
+            if [ '${{ github.event.inputs.dry_run }}' = 'true' ]; then
+              echo "OK (dry run)"
+              continue
+            fi
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+              "$BASE/api/invite/redeem" \
+              -H 'Content-Type: application/json' \
+              -d "{\"code\": \"$code\"}")
+
+            BODY=$(echo "$RESPONSE" | head -n -1)
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "OK"
+              REGISTERED=$((REGISTERED + 1))
+            else
+              echo "FAIL (HTTP $HTTP_CODE): $BODY"
+              FAILED=$((FAILED + 1))
+            fi
+          done < <(tail -n +2 data/invite-codes.csv)
+
+          echo ""
+          echo "Registered: $REGISTERED / $((REGISTERED + FAILED))"
+
+          if [ $FAILED -gt 0 ]; then
+            exit 1
+          fi

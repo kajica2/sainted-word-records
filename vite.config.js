@@ -291,6 +291,8 @@ function copyStatic() {
     'swr-intro-10s-voice.mp4',
     'marketplace.html',
     'thanks.html',
+    // Admin scripts (API-adjacent, deploy with the app).
+    'scripts/register-codes.mjs',
     'make-video.html',
     // (weddings.html / weddings.css were listed here until 2026-09-27. Both
     // files were deleted in 4ee91f2 ("chore: remove weddings page and dead
@@ -392,10 +394,15 @@ function copyStatic() {
     'lib/design-tokens.css',
     'lib/design-base.css',
     'lib/components.css',
+    'lib/drive-modal.css',
     'lib/nav.client.js',
     'api/auth/session.js',
     'api/auth/magic.js',
     'api/auth/verify.js',
+    'api/auth/google.js',
+    'api/drive/files.js',
+    'api/drive/import.js',
+    'api/drive/unlink.js',
     'api/storage/sign-upload.js',
     'api/storage/sign-download.js',
     'api/storage/object.js',
@@ -409,6 +416,7 @@ function copyStatic() {
     'api/_lib/http.js',
     'api/_lib/session.js',
     'api/_lib/email.js',
+    'api/_lib/kv.js',
     // Video-slot ledger (authoritative payment-side quota for pt.client.js).
     'api/slots/grant.js',
     'api/slots/index.js',
