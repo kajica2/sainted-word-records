@@ -1,64 +1,124 @@
-// api/_lib/kv.js — thin wrapper around @upstash/redis for invite-code storage.
+// api/_lib/kv.js — the invite-code store.
 //
-// Vercel KV was sunset Dec 2024; all stores migrated to Upstash Redis.
-// We now use @upstash/redis (HTTP-based) which reads UPSTASH_REDIS_REST_URL
-// and UPSTASH_REDIS_REST_TOKEN from process.env.
+// Backing store history, because two sunsets got us here:
+//   Vercel KV   → sunset Dec 2024, everything migrated to Upstash Redis.
+//   Upstash     → an agent-provisioned database is deleted in days unless
+//                 an account claims it, and claiming needs a human login.
+// Neither is a durable home for codes people are meant to redeem months
+// later, so the store now goes through the same backend-transparent JSON
+// layer that already holds auth, sessions, projects and the slot ledger
+// (api/_lib/db.js):
 //
-// Env:
-//   UPSTASH_REDIS_REST_URL   — https://{db-id}.upstash.io
-//   UPSTASH_REDIS_REST_TOKEN — the Upstash REST token
-// If either is missing, all kv* calls fail with a clear error so the operator
-// can fix it instead of leaking a generic 500.
+//   DATABASE_URL set → Postgres, the `kv` table. This is what production
+//                      and preview run — confirm with one GET:
+//                        curl /api/manifest?action=health  → "store":"postgres"
+//   else             → JSON files under SWRC_DATA_DIR (./data locally;
+//                      /tmp on Vercel, which is per-instance and dies with
+//                      the instance — correct for local dev and the test
+//                      suite, never the production path).
+//
+// No new env vars, no new account, nothing to claim before it expires.
+//
+// Key shape and value shape are owned here and only here —
+// api/invite/redeem.js, api/invite/register.js and scripts/grant-invite.mjs
+// all go through these helpers. Keys map onto paths under
+// <ROOT>/invite-store/, and every path segment is encodeURIComponent'd so
+// the mapping is reversible and can never contain a separator (`invite:`
+// keys are validated by normalizeCode before they get here, but path
+// builders never trust their input):
+//
+//   invite:<CODE>        → invite-store/codes/<CODE>.json
+//   invite:email:<addr>  → invite-store/emails/<addr>.json
+//   schemaVersion:invite → invite-store/schema.json
+//
+// Failure mode: a store-level outage (Postgres unreachable, disk error)
+// throws Error('kv_unavailable'), which the invite handlers map to 503 —
+// deliberately distinct from "code not found" (404) so an operator can
+// tell a broken store from a bad code in their logs.
 
-import { Redis } from '@upstash/redis';
+import { join } from 'node:path';
+import { readJson, writeJson, deleteJson, DATA_ROOT } from './db.js';
 
-const MISSING_URL = !process.env.UPSTASH_REDIS_REST_URL;
-const MISSING_TOKEN = !process.env.UPSTASH_REDIS_REST_TOKEN;
+const INVITE_PREFIX = 'invite:';
+const EMAIL_PREFIX = 'invite:email:';
+const STORE_ROOT = join(DATA_ROOT, 'invite-store');
 
-function redisClient() {
-  if (MISSING_URL || MISSING_TOKEN) {
-    const missing = [
-      MISSING_URL && 'UPSTASH_REDIS_REST_URL',
-      MISSING_TOKEN && 'UPSTASH_REDIS_REST_TOKEN',
-    ].filter(Boolean);
-    throw new Error(`kv: missing env vars: ${missing.join(', ')}`);
-  }
-  return new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-}
-
-function isUpstashError(msg) {
-  return (
-    /KV_REST_API|KV_|@vercel\/kv|@upstash|upstash|ECONNREFUSED|ENOTFOUND|fetch failed/i.test(
-      String(msg)
-    )
-  );
-}
-
-// Schema marker. Bump if the invite-code shape changes incompatibly;
+// Schema marker. Bump if the invite-entry shape changes incompatibly;
 // redeem.js refuses codes stored under a different schemaVersion.
 const SCHEMA_VERSION = 1;
 const SCHEMA_KEY = 'schemaVersion:invite';
+
+function storePath(key) {
+  // Order matters: an email key also starts with INVITE_PREFIX.
+  if (key === SCHEMA_KEY) return join(STORE_ROOT, 'schema.json');
+  if (key.startsWith(EMAIL_PREFIX)) {
+    return join(STORE_ROOT, 'emails', encodeURIComponent(key.slice(EMAIL_PREFIX.length)) + '.json');
+  }
+  if (key.startsWith(INVITE_PREFIX)) {
+    return join(STORE_ROOT, 'codes', encodeURIComponent(key.slice(INVITE_PREFIX.length)) + '.json');
+  }
+  return join(STORE_ROOT, encodeURIComponent(key) + '.json');
+}
+
+// Transport-level failures only. A corrupt document (JSON parse error) or a
+// schema mismatch must NOT be reported as "unavailable" — those are real
+// errors the operator needs to see, not a retry-later condition.
+const UNAVAILABLE_RE = new RegExp(
+  [
+    'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ETIMEDOUT', 'ECONNRESET', 'EPIPE',
+    'getaddrinfo', 'Connection terminated', 'Connection refused', 'Connection ended',
+    'timeout expired', 'no pg_hba', 'password authentication failed',
+    'Client has encountered a connection error', 'closed the connection unexpectedly',
+    'fetch failed', 'EACCES', 'EROFS', 'ENOSPC',
+  ].join('|'),
+  'i'
+);
+
+function mapStoreError(e) {
+  const msg = String((e && e.message) || e);
+  if (msg === 'kv_unavailable') return e;
+  if (UNAVAILABLE_RE.test(msg)) {
+    return Object.assign(new Error('kv_unavailable'), { cause: e });
+  }
+  return e;
+}
+
+// Raw single-key ops — no schema guard, so ensureSchema() itself can use them.
+async function storeGet(key) {
+  try {
+    return await readJson(storePath(key), null);
+  } catch (e) {
+    throw mapStoreError(e);
+  }
+}
+
+async function storeSet(key, value) {
+  try {
+    // One write, one atomic step on either backend: a single upsert on
+    // Postgres, tmp+rename on the filesystem. No withLock() — see the note
+    // on db.js's export for why a nested lock would deadlock the max:1 pool.
+    await writeJson(storePath(key), value);
+    return value;
+  } catch (e) {
+    throw mapStoreError(e);
+  }
+}
+
+async function storeDel(key) {
+  try {
+    return await deleteJson(storePath(key));
+  } catch (e) {
+    throw mapStoreError(e);
+  }
+}
 
 let schemaReady = null;
 async function ensureSchema() {
   if (schemaReady) return schemaReady;
   schemaReady = (async () => {
-    const client = redisClient();
-    let current;
-    try {
-      current = await client.get(SCHEMA_KEY);
-    } catch (e) {
-      const msg = String(e && e.message || e);
-      if (isUpstashError(msg)) {
-        throw Object.assign(new Error('kv_unavailable'), { cause: e });
-      }
-      throw e;
-    }
+    const current = await storeGet(SCHEMA_KEY);
     if (current == null) {
-      await client.set(SCHEMA_KEY, String(SCHEMA_VERSION));
+      await storeSet(SCHEMA_KEY, String(SCHEMA_VERSION));
       return SCHEMA_VERSION;
     }
     const parsed = Number.parseInt(String(current), 10);
@@ -68,7 +128,12 @@ async function ensureSchema() {
       );
     }
     return parsed;
-  })();
+  })().catch((e) => {
+    // Do not cache a failed migration — the next request should retry,
+    // and a cold start must not be poisoned by one transient outage.
+    schemaReady = null;
+    throw e;
+  });
   return schemaReady;
 }
 
@@ -79,49 +144,20 @@ export function _resetSchemaCache() {
 
 export async function kvGet(key) {
   await ensureSchema();
-  const client = redisClient();
-  try {
-    return await client.get(key);
-  } catch (e) {
-    const msg = String(e && e.message || e);
-    if (isUpstashError(msg)) {
-      throw Object.assign(new Error('kv_unavailable'), { cause: e });
-    }
-    throw e;
-  }
+  return storeGet(key);
 }
 
 export async function kvSet(key, value) {
   await ensureSchema();
-  const client = redisClient();
-  try {
-    return await client.set(key, value);
-  } catch (e) {
-    const msg = String(e && e.message || e);
-    if (isUpstashError(msg)) {
-      throw Object.assign(new Error('kv_unavailable'), { cause: e });
-    }
-    throw e;
-  }
+  return storeSet(key, value);
 }
 
 export async function kvDel(key) {
   await ensureSchema();
-  const client = redisClient();
-  try {
-    return await client.del(key);
-  } catch (e) {
-    const msg = String(e && e.message || e);
-    if (isUpstashError(msg)) {
-      throw Object.assign(new Error('kv_unavailable'), { cause: e });
-    }
-    throw e;
-  }
+  return storeDel(key);
 }
 
-// Invite-code helpers. The key shape and value shape are owned here
-// only — api/invite/redeem.js and api/invite/register.js both go
-// through these.
+// Invite-code helpers.
 
 const CODE_RE = /^[A-Z0-9]{4,8}(?:-[A-Z0-9]{4,8}){1,3}$/;
 
@@ -133,11 +169,11 @@ export function normalizeCode(raw) {
 }
 
 export function inviteKey(code) {
-  return `invite:${code}`;
+  return `${INVITE_PREFIX}${code}`;
 }
 
-// One-shot random code in the canonical shape (XXXX-XXXX-XXXX).
-// Uses crypto.randomBytes for the entropy; the alphabet strips 0/O/1/I
+// One-shot random code in the canonical shape (XXXXX-XXXXX-XXXXX).
+// Uses crypto.getRandomValues for the entropy; the alphabet strips 0/O/1/I
 // so codes are copy-paste safe.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 chars
 function randomBlock(len) {
@@ -170,7 +206,7 @@ export async function deleteInvite(code) {
 // one being minted). The schema marker covers the invite *entry* shape only;
 // this index key is additive and does not change that shape.
 export function emailIndexKey(email) {
-  return `invite:email:${String(email).trim().toLowerCase()}`;
+  return `${INVITE_PREFIX}email:${String(email).trim().toLowerCase()}`;
 }
 
 export async function readEmailIndex(email) {
