@@ -113,6 +113,18 @@ async function fileWriteJson(path, obj) {
   await fs.rename(tmp, path);
 }
 
+// Single-key delete. Returns true when something was removed, false when
+// the key was already absent, so callers can tell "deleted" from "gone".
+async function fileDeleteJson(path) {
+  try {
+    await fs.unlink(path);
+    return true;
+  } catch (e) {
+    if (e.code === 'ENOENT') return false;
+    throw e;
+  }
+}
+
 // =====================================================================
 // POSTGRES BACKEND (durable)
 // =====================================================================
@@ -235,6 +247,16 @@ async function pgWriteJson(path, obj) {
   );
 }
 
+// Single-key delete, the counterpart to pgWriteJson above. rowCount is 0
+// for an already-absent key, which is the "false" half of the contract.
+async function pgDeleteJson(path) {
+  await ensureSchema();
+  const key = kvKey(path);
+  const client = txStore.getStore() || (await getPool());
+  const res = await client.query('DELETE FROM kv WHERE key = $1', [key]);
+  return (res.rowCount ?? 0) > 0;
+}
+
 // Advisory-lock key. One global lock, matching the previous single-chain
 // semantics (all mutations serialised). Fine at this volume; per-store
 // locks are a trivial follow-up if contention ever matters.
@@ -281,12 +303,18 @@ if (!USE_PG && process.env.NODE_ENV !== 'test' && process.env.VERCEL) {
 const withLock = USE_PG ? pgWithLock : fileWithLock;
 const readJson = USE_PG ? pgReadJson : fileReadJson;
 const writeJson = USE_PG ? pgWriteJson : fileWriteJson;
+const deleteJson = USE_PG ? pgDeleteJson : fileDeleteJson;
 
 // Exposed for sibling stores (api/_lib/slots.js) that need the same
 // backend-transparent read/modify/write under one mutex. Handlers never touch
 // these directly — they go through the store module, same as everywhere else.
+// api/_lib/kv.js (the invite-code store) uses readJson/writeJson/deleteJson
+// WITHOUT withLock: a single key write is already atomic on both backends
+// (one upsert on Postgres, tmp+rename on the filesystem), so it takes no
+// transaction — which matters because the pool is max:1, so a nested
+// withLock() would deadlock waiting for the connection it already holds.
 export const DATA_ROOT = ROOT;
-export { readJson, writeJson, withLock };
+export { readJson, writeJson, withLock, deleteJson };
 
 // ---- ID helpers ----
 export function uuid() {

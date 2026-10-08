@@ -11,9 +11,11 @@
 // unlock. There is no per-user ledger; this is a license, not a
 // single-use token. Disabling a code means flipping enabled to false.
 //
-// KV env: UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN. If either is
-// missing, the endpoint returns 503 with a clear error so the operator can
-// fix it instead of leaking a generic 500.
+// Store backend: the same durable JSON store as auth/projects (Postgres in
+// production when DATABASE_URL is set, local files otherwise — see
+// api/_lib/kv.js). A store-level outage returns 503 with a clear error so
+// the operator can fix it instead of leaking a generic 500, and is kept
+// distinct from the 404 that means "no such code".
 
 import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
 import { rateLimit } from '../_lib/db.js';
@@ -55,10 +57,15 @@ export default async function handler(req, res) {
   try {
     entry = await readInvite(code);
   } catch (e) {
-    // KV missing / misconfigured — distinct from "code not found" so the
-    // operator can tell the two apart in their logs.
-    const msg = String(e && e.message || e);
-    if (/KV_REST_API|KV_|@vercel\/kv|@upstash/i.test(msg)) {
+    // Store missing / misconfigured / unreachable — distinct from "code not
+    // found" so the operator can tell the two apart in their logs. kv.js
+    // throws Error('kv_unavailable'); older builds threw the raw client
+    // error, so both are matched.
+    const msg = String((e && e.message) || e);
+    const cause = String((e && e.cause && (e.cause.message || e.cause)) || '');
+    if (msg === 'kv_unavailable' ||
+        /KV_REST_API|KV_|@vercel\/kv|@upstash/i.test(msg) ||
+        /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|fetch failed/i.test(cause)) {
       return sendJson(res, 503, { error: 'invite_store_unavailable' });
     }
     return sendJson(res, 500, { error: 'internal_error' });

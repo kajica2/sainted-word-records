@@ -33,7 +33,7 @@ is purely a license, not a token.
               │    └── if !unlocked: pop modal
               │       └── on unlock:  POST /api/invite/redeem
               │       │     │
-              │       │     └── reads invite:<CODE> from Vercel KV
+              │       │     └── reads invite:<CODE> from the invite store
               │       │            │
               │       │            └── { ok: true } | 404
               │       │
@@ -47,36 +47,50 @@ is purely a license, not a token.
 
 ## Env
 
-The redeem endpoint reads invite codes from Vercel KV. Provision a
-store via the Vercel dashboard and set:
+Invite codes live in the app's own durable store (`api/_lib/kv.js`,
+the same backend-transparent JSON layer that holds auth, sessions,
+projects and the slot ledger):
 
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
+- `DATABASE_URL` set → **Postgres**, the `kv` table. This is what
+  production and preview run; confirm it with one GET:
+  `curl /api/manifest?action=health` → `"store":"postgres"`.
+- otherwise → JSON files under `SWRC_DATA_DIR` (`./data` locally;
+  `/tmp` on Vercel, which is per-instance and dies with it — never the
+  production path).
 
-The endpoint returns `503 { error: "invite_store_unavailable" }` if
-either is missing.
+No invite-specific env vars, and nothing to claim or renew before it
+expires. The endpoint returns `503 { error: "invite_store_unavailable" }`
+when the store itself is unreachable — kept distinct from the `404`
+that means "no such code", so an outage and a bad code never look the
+same in the logs.
 
 ## Admin: issuing / revoking codes
 
 ```bash
 # Generate a random code (XXXXX-XXXXX-XXXXX, no 0/O/1/I for copy-paste safety)
-KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-  node scripts/grant-invite.mjs create
+node scripts/grant-invite.mjs create
 
 # Issue a specific code (e.g. for a launch recipient)
-KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-  node scripts/grant-invite.mjs create --code ABCDE-FGHJK-LMNOP --label "alice launch"
+node scripts/grant-invite.mjs create --code ABCDE-FGHJK-LMNOP --label "alice launch"
 
 # Revoke / re-enable
-KV_REST_API_URL=... KV_REST_API_TOKEN=... node scripts/grant-invite.mjs disable ABCDE-FGHJK-LMNOP
-KV_REST_API_URL=... KV_REST_API_TOKEN=... node scripts/grant-invite.mjs enable  ABCDE-FGHJK-LMNOP
+node scripts/grant-invite.mjs disable ABCDE-FGHJK-LMNOP
+node scripts/grant-invite.mjs enable  ABCDE-FGHJK-LMNOP
 
 # Inspect
-KV_REST_API_URL=... KV_REST_API_TOKEN=... node scripts/grant-invite.mjs inspect ABCDE-FGHJK-LMNOP
+node scripts/grant-invite.mjs inspect ABCDE-FGHJK-LMNOP
 
 # Delete entirely
-KV_REST_API_URL=... KV_REST_API_TOKEN=... node scripts/grant-invite.mjs delete ABCDE-FGHJK-LMNOP
+node scripts/grant-invite.mjs delete ABCDE-FGHJK-LMNOP
 ```
+
+To point the CLI at the production store rather than local files, run
+`vercel env pull .env` first so `DATABASE_URL` resolves. Batch
+registration from `data/invite-codes.csv` does not use this CLI: it
+goes through the deployed `/api/invite/register` endpoint, driven by
+`.github/workflows/invite-codes.yml`, which registers every code and
+then reads each one back through `/api/invite/redeem` to prove it
+persisted.
 
 Stored shape:
 
@@ -137,23 +151,24 @@ SWR_INVITE_MODAL.hide() -> void
 
 ## Local development
 
-`scripts/grant-invite.mjs` reads the same `KV_REST_API_URL` /
-`KV_REST_API_TOKEN` env vars. Without them it fails clearly.
+With no `DATABASE_URL` in the environment, `scripts/grant-invite.mjs`
+and the API fall back to `./data/invite-store/*.json` — zero setup,
+and the files are gitignored (the CSV is the source of truth).
 
-`api/invite/redeem.js` returns 503 if the env vars are missing, so
+`api/invite/redeem.js` returns 503 when the store is unreachable, so
 the modal shows "Code not recognized." and the visitor can still record
 with the watermark — no degraded-but-broken state.
 
 The unit + smoke tests stub `fetch` for `POST /api/invite/redeem` and
-do not need a real KV store to pass.
+do not need a real store to pass.
 
 ## Files touched
 
 | Path | What |
 |---|---|
-| `package.json` | adds `@vercel/kv` runtime dep |
-| `api/_lib/kv.js` | thin KV wrapper + code shape |
-| `api/invite/redeem.js` | POST endpoint, rate-limited, 503 on no-KV |
+| `package.json` | no invite-specific dep — the store reuses `pg` + Node built-ins |
+| `api/_lib/kv.js` | invite store: key shape, code shape, path mapping |
+| `api/invite/redeem.js` | POST endpoint, rate-limited, 503 when the store is down |
 | `lib/watermark.client.js` | adds `setEnabled(bool)` / `isEnabled()` |
 | `lib/invite-unlock.client.js` | owns the flag + watermark toggle |
 | `lib/invite-modal.client.js` | the modal |
@@ -180,13 +195,25 @@ npm run check:full                      # the smoke is in this group
   second KV key written on each `POST /api/invite/redeem`.
 - **No per-code usage counter.** A code with `enabled: true` is reusable.
   Flipping that to "N redemptions then disabled" is a one-line check.
-- **No multi-tier fallback to Postgres / local-FS.** User chose KV-only;
-  if the env vars are unset the API returns 503 by design.
+- **No cross-key transaction.** Each key write is atomic (one upsert /
+  one atomic rename), but a read-modify-write spanning two keys — the
+  batch CLI's "look up the email index, then mint" — is not. Harmless
+  at admin-invite volume: two writers never race on the same code.
 
 ## Migration / deprecation notes
 
-`@vercel/kv@3` is marked deprecated by Vercel (2025); existing stores
-still work, new projects are routed to Upstash via the Vercel
-Marketplace. Both speak the same REST protocol and use the same env
-vars (`KV_REST_API_URL` / `KV_REST_API_TOKEN`), so swapping the
-import to `@upstash/redis` is a one-line change in `api/_lib/kv.js`.
+The store has moved twice, both times because the platform retired the
+thing underneath it:
+
+| Era | Backend | Why it ended |
+|---|---|---|
+| v1 | `@vercel/kv` + `KV_REST_API_*` | Vercel KV was sunset Dec 2024; stores migrated to Upstash. |
+| v2 | `@upstash/redis` + `UPSTASH_REDIS_REST_*` | An agent-provisioned Upstash database is deleted in days unless an account claims it, and claiming needs a human login. Not a durable home for codes people redeem months later. |
+| v3 | `db.js` JSON store → Postgres (`kv` table) | Nothing to claim, no second vendor, no invite-specific env vars. It is the same store that already holds users, sessions and projects — so it is as durable as signing in is. |
+
+Evidence that v3 is live: `curl /api/manifest?action=health` reports
+`"store":"postgres"`. If that ever says `"filesystem"`, `DATABASE_URL`
+is missing and invite codes will not survive a cold start.
+
+Both `@vercel/kv` and `@upstash/redis` were removed from `package.json`;
+`api/_lib/kv.js` now imports only `api/_lib/db.js`.

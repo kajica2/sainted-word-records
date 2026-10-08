@@ -84,6 +84,7 @@ const GROUPS = {
     'npm run check:midi-feat-unit',
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
+    'npm run check:invite-api-smoke',
     'npm run check:pt-unit',
     'npm run check:zip-reader-unit',
     'npm run check:slots-unit',

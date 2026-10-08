@@ -55,8 +55,10 @@ export default async function handler(req, res) {
     await writeInvite(normalized, entry);
     return sendJson(res, 200, { ok: true, code: normalized });
   } catch (e) {
-    const msg = String(e && e.message || e);
-    // kv_unavailable is thrown directly by kv.js when Upstash is unreachable.
+    const msg = String((e && e.message) || e);
+    // kv_unavailable is thrown by kv.js when the store (Postgres / files)
+    // is unreachable — a transient outage, worth a 503 so the workflow
+    // retries rather than recording a permanent failure.
     if (msg === 'kv_unavailable' || /KV_REST_API|KV_|@vercel\/kv|@upstash|upstash|ECONNREFUSED/i.test(msg)) {
       return sendJson(res, 503, { error: 'kv_unavailable' });
     }

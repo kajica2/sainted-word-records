@@ -1,24 +1,25 @@
 #!/usr/bin/env node
 // scripts/grant-invite.mjs — admin CLI for the invite-code store.
 //
+// The store is the app's own (api/_lib/kv.js): Postgres when DATABASE_URL
+// is set — which is what production and preview run — and JSON files under
+// ./data otherwise. To manage production codes from a terminal, run
+// `vercel env pull .env` first so DATABASE_URL points at the real store;
+// batch registration from data/invite-codes.csv goes through the deployed
+// /api/invite/register endpoint instead (see .github/workflows/invite-codes.yml).
+// No KV env vars, no separate database account.
+//
 // Usage:
-//   KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-//     node scripts/grant-invite.mjs create                # generates and prints a code
-//   KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-//     node scripts/grant-invite.mjs create --code FOO-BAR-BAZ --label "alice launch"
-//   KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-//     node scripts/grant-invite.mjs batch --emails "a@x.com, b@y.com, c@z.com"
+//   node scripts/grant-invite.mjs create                # generates and prints a code
+//   node scripts/grant-invite.mjs create --code FOO-BAR-BAZ --label "alice launch"
+//   node scripts/grant-invite.mjs batch --emails "a@x.com, b@y.com, c@z.com"
 //   #   one code per email (XXXXX-XXXXX-XXXXX), label = email, CSV on stdout;
 //   #   --emails accepts commas AND newlines; re-running reuses existing grants;
-//   #   --dry-run prints the CSV without writing to KV.
-//   KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-//     node scripts/grant-invite.mjs disable FOO-BAR-BAZ
-//   KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-//     node scripts/grant-invite.mjs enable  FOO-BAR-BAZ
-//   KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-//     node scripts/grant-invite.mjs delete  FOO-BAR-BAZ
-//   KV_REST_API_URL=... KV_REST_API_TOKEN=... \
-//     node scripts/grant-invite.mjs inspect FOO-BAR-BAZ
+//   #   --dry-run prints the CSV without writing to the store.
+//   node scripts/grant-invite.mjs disable FOO-BAR-BAZ
+//   node scripts/grant-invite.mjs enable  FOO-BAR-BAZ
+//   node scripts/grant-invite.mjs delete  FOO-BAR-BAZ
+//   node scripts/grant-invite.mjs inspect FOO-BAR-BAZ
 //
 // The store key shape and value shape live in api/_lib/kv.js — this CLI
 // imports from there so the two cannot drift.
@@ -65,7 +66,7 @@ export function normalizeEmail(email) {
   return EMAIL_RE.test(e) ? e : null;
 }
 
-// Build the batch plan without touching KV: for each email, decide
+// Build the batch plan without touching the store: for each email, decide
 // create | reuse and the code (existing code when reuse; a fresh one when
 // create). Pure — callers inspect `plan[].action` and write where needed.
 // `existing` is a Map<email, code> the caller pre-fills from the index.
@@ -133,7 +134,7 @@ async function main() {
       for (const row of plan) {
         console.log(`${row.email},${row.code},${row.action}`);
       }
-      console.error(`batch: dry-run — ${plan.length} ${plan.length === 1 ? 'grant' : 'grants'} printed; nothing written to KV`);
+      console.error(`batch: dry-run — ${plan.length} ${plan.length === 1 ? 'grant' : 'grants'} printed; nothing written to the store`);
       if (invalid.length) console.error(`batch: skipped ${invalid.length} invalid: ${invalid.join(', ')}`);
       return;
     }

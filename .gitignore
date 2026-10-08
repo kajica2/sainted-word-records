@@ -12,6 +12,9 @@ _probe[-_]*.mjs
 _smoke[-_]*.mjs
 # Local dev artifacts
 data/auth/
+# Local invite-code store (the CSV above is the source of truth; the store
+# itself is runtime state and lives in Postgres in production)
+data/invite-store/
 _vinyl-sample/
 .vercel
 

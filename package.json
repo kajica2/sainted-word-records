@@ -142,6 +142,7 @@
     "check:clip-evolution-unit": "node scripts/check-clip-evolution-unit.mjs",
     "check:invite-unlock-unit": "node scripts/check-invite-unlock-unit.mjs",
     "check:grant-invite-batch-unit": "node scripts/check-grant-invite-batch-unit.mjs",
+    "check:invite-api-smoke": "node scripts/check-invite-api-smoke.mjs",
     "check:pt-unit": "node scripts/check-pt-unit.mjs",
     "check:zip-reader-unit": "node scripts/check-zip-reader-unit.mjs",
     "check:slots-unit": "node scripts/check-slots-unit.mjs",
@@ -163,7 +164,6 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
-    "@vercel/kv": "^3.0.0",
     "nodemailer": "^10.0.8",
     "pg": "^8.23.0",
     "stripe": "^22.6.2"

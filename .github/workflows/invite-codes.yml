@@ -1,9 +1,11 @@
 name: Register Invite Codes
 
 # Run manually after merging a PR that adds invite codes, or automatically
-# after a push to main. KV is only reachable from inside Vercel's network,
-# so this workflow calls the deployed /api/invite/redeem endpoint on the
-# latest production deployment.
+# after a push to main. The invite store is the app's own durable store
+# (Postgres via DATABASE_URL — see api/_lib/kv.js), which is only reachable
+# from inside Vercel's network, so this workflow calls the deployed
+# /api/invite/register endpoint on the production deployment and then reads
+# each code back through /api/invite/redeem to prove it persisted.
 on:
   workflow_dispatch:
     inputs:
@@ -30,7 +32,7 @@ jobs:
         run: |
           if [ ! -f data/invite-codes.csv ]; then
             echo "No data/invite-codes.csv found — nothing to register."
-            echo "count=0" >> $GITHUB_OUTPUT
+            echo "csv_b64=" >> $GITHUB_OUTPUT
             exit 0
           fi
           # Base64-encode to avoid GHA output format issues with commas/newlines.
@@ -43,50 +45,72 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "$CSV_B64" ]; then
+          if [ -z "${CSV_B64:-}" ]; then
             echo "No codes to register."
             exit 0
           fi
 
           REGISTERED=0
           FAILED=0
-
+          # Inputs only exist on workflow_dispatch; empty on a push event.
+          DRY='false'
           if [ '${{ github.event.inputs.dry_run }}' = 'true' ]; then
+            DRY='true'
+          fi
+
+          if [ "$DRY" = "true" ]; then
             echo "=== DRY RUN ==="
           fi
 
-          # Iterate each CSV row (skip header).
-          echo "$CSV_B64" | base64 -d | tail -n +2 | while IFS=',' read -r code label createdAt; do
-            if [ -z "$code" ]; then continue; fi
+          # Process substitution (< <(…)) rather than a pipe: a pipe would
+          # run the loop in a subshell, so REGISTERED/FAILED would be lost
+          # and the failure check below could never fire.
+          while IFS=',' read -r code label createdAt; do
+            [ -z "$code" ] && continue
 
             echo -n "  $code ... "
 
-            if [ '${{ github.event.inputs.dry_run }}' = 'true' ]; then
+            if [ "$DRY" = "true" ]; then
               echo "OK (dry run)"
+              REGISTERED=$((REGISTERED + 1))
               continue
             fi
 
             RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
               "https://sainted-word-records.vercel.app/api/invite/register" \
               -H 'Content-Type: application/json' \
-              -H "x-invite-secret: $INVITE_ADMIN_SECRET" \
               -d "{\"secret\": \"$INVITE_ADMIN_SECRET\", \"code\": \"$code\", \"label\": \"$label\"}")
 
-            BODY=$(echo "$RESPONSE" | head -n -1)
+            # sed '$d' (drop the last line) rather than `head -n -1`, which is
+            # GNU-only — this keeps the script runnable for a local dry test.
+            BODY=$(echo "$RESPONSE" | sed '$d')
             HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
 
             if [ "$HTTP_CODE" = "200" ]; then
-              echo "OK"
-              REGISTERED=$((REGISTERED + 1))
+              echo -n "registered ... "
+              # Read it back through the public endpoint: a 200 here means the
+              # code is actually redeemable, not just that the write returned OK.
+              REDEEM_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "https://sainted-word-records.vercel.app/api/invite/redeem" \
+                -H 'Content-Type: application/json' \
+                -d "{\"code\": \"$code\"}")
+              if [ "$REDEEM_CODE" = "200" ]; then
+                echo "OK"
+                REGISTERED=$((REGISTERED + 1))
+              else
+                echo "FAIL (redeem HTTP $REDEEM_CODE)"
+                FAILED=$((FAILED + 1))
+              fi
             else
               echo "FAIL (HTTP $HTTP_CODE): $BODY"
               FAILED=$((FAILED + 1))
             fi
-          done
+          done < <(echo "$CSV_B64" | base64 -d | tail -n +2)
 
           echo ""
           echo "Registered: $REGISTERED / $((REGISTERED + FAILED))"
 
-          if [ $FAILED -gt 0 ]; then
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::$FAILED invite code(s) failed to register or redeem."
             exit 1
           fi

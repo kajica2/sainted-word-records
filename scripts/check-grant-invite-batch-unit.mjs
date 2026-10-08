@@ -1,11 +1,11 @@
 // scripts/check-grant-invite-batch-unit.mjs — unit coverage for the batch
 // grant helpers in scripts/grant-invite.mjs.
 //
-// Pure helpers only (parseEmails / normalizeEmail / planBatch) — no KV, no
-// I/O. grant-invite.mjs imports api/_lib/kv.js → @vercel/kv; that import is
-// lazy (env read happens at call time), so loading the module for its exports
-// is safe even without KV_REST_API_URL/TOKEN. The module's own main() is
-// guarded by an entry-point check so importing it never executes the CLI.
+// Pure helpers only (parseEmails / normalizeEmail / planBatch) — no store, no
+// I/O. grant-invite.mjs imports api/_lib/kv.js, which resolves its store from
+// db.js at call time (DATABASE_URL → Postgres, else ./data files), so loading
+// the module for its exports is safe with no env set. The module's own main()
+// is guarded by an entry-point check so importing it never executes the CLI.
 //
 // Asserts:
 //  - parseEmails splits on commas AND newlines, trims, lowercases, drops

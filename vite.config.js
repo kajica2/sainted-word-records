@@ -66,6 +66,12 @@ function copyDirRecursive(src, dst) {
     // Skip _archive/ directory — gitignored experimental pages (see
     // scripts/archive-pages.mjs).
     if (f === '_archive') continue;
+    // Skip the invite-code store. data/ ships wholesale because
+    // data/preset-transitions.json and friends are runtime assets, but
+    // data/invite-store/ is runtime STATE (gitignored — the CSV is the
+    // source of truth) and its email index can hold real addresses.
+    // Only reachable from a local build; a git-push deploy never has it.
+    if (f === 'invite-store') continue;
     const sp = join(src, f);
     const dp = join(dst, f);
     const st = statSync(sp);
