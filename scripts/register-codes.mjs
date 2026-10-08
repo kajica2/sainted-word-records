@@ -1,35 +1,41 @@
 #!/usr/bin/env node
 // scripts/register-codes.mjs — register invite codes against the deployed KV store.
 //
-// Usage (local — requires KV env vars):
+// Usage (local — requires KV env vars reachable from this machine):
 //   KV_REST_API_URL=... KV_REST_API_TOKEN=... node scripts/register-codes.mjs
 //
-// Usage (via deployed API — after a preview deploy is ready):
-//   PREVIEW_URL=https://... node scripts/register-codes.mjs --api
+// Usage (via deployed API — runs inside Vercel network where KV is reachable):
+//   node scripts/register-codes.mjs --api <url>
+//   e.g. node scripts/register-codes.mjs --api https://sainted-word-records.vercel.app
 //
-// The --api path POSTs to /api/invite/redeem on the preview URL so it runs
-// inside the Vercel network where KV is reachable.
+// Exit codes: 0 = all registered, 1 = partial or failed.
 
 import { parseArgs } from 'node:util';
 import { promises as fs } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const { values, positionals } = parseArgs({
   options: {
-    api: { type: 'boolean', default: false },
+    api: { type: 'boolean', short: 'a', default: false },
   },
+  positionals: ['apiUrl'],
+  allowPositionals: true,
 });
 
-const BASE_URL = process.env.PREVIEW_URL || '';
-const USE_API = values.api;
+const BASE_URL = positionals[0] || process.env.PREVIEW_URL || '';
 
-// Codes to register — add more here or use the data/invite-codes.csv file.
-const CODES = [
-  //{ code: 'QPRRA-JAFKR-MN549', label: 'launch batch' },
-  //{ code: 'VR4JU-CTRR7-4K8C9', label: 'launch batch' },
-];
+// Normalise the invite-code shape to what the KV store expects.
+// The deployed /api/invite/redeem endpoint normalises codes internally,
+// but we normalise here too so the caller sees a clear error for bad input.
+const CODE_RE = /^[A-Z0-9]{4,8}(?:-[A-Z0-9]{4,8}){1,3}$/;
+function normaliseCode(raw) {
+  if (typeof raw !== 'string') return null;
+  const up = raw.trim().toUpperCase();
+  return CODE_RE.test(up) ? up : null;
+}
 
 async function registerViaApi(code, label) {
-  if (!BASE_URL) throw new Error('PREVIEW_URL not set');
+  if (!BASE_URL) throw new Error('API URL required — pass as positional arg or set PREVIEW_URL');
   const res = await fetch(`${BASE_URL}/api/invite/redeem`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -37,40 +43,60 @@ async function registerViaApi(code, label) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    console.error(`  FAIL ${code}: ${data.error || res.status}`);
-    return false;
+    const msg = data.error || data.message || `HTTP ${res.status}`;
+    throw new Error(`${code}: ${msg}`);
   }
-  console.log(`  OK   ${code} (${label})`);
-  return true;
+  return data;
+}
+
+async function loadCodes() {
+  const rows = [];
+  try {
+    const csv = await fs.readFile('data/invite-codes.csv', 'utf8');
+    for (const line of csv.trim().split('\n').slice(1)) {
+      const [code, label, createdAt] = line.split(',');
+      const normalised = normaliseCode(code || '');
+      if (normalised) rows.push({ code: normalised, label: (label || '').trim(), createdAt: createdAt || '' });
+    }
+  } catch (_) {}
+  return rows;
 }
 
 async function main() {
-  // Load from data/invite-codes.csv if it exists.
-  let codes = [...CODES];
-  try {
-    const csv = await fs.readFile('data/invite-codes.csv', 'utf8');
-    const lines = csv.trim().split('\n').slice(1); // skip header
-    for (const line of lines) {
-      const [code, label] = line.split(',');
-      if (code && !codes.some(c => c.code === code)) {
-        codes.push({ code: code.trim(), label: (label || '').trim() });
-      }
-    }
-  } catch (_) {}
-
+  const codes = await loadCodes();
   if (!codes.length) {
-    console.log('No codes to register. Add to CODES array or data/invite-codes.csv');
-    return;
+    console.error('No codes found in data/invite-codes.csv');
+    process.exit(1);
   }
 
-  console.log(`Registering ${codes.length} code(s)} via ${USE_API ? 'API' : 'local KV'}...`);
+  const useApi = values.api;
+  console.log(`Registering ${codes.length} code(s)} via ${useApi ? 'API → ' + BASE_URL : 'local KV'}...`);
+
   let ok = 0;
+  const failed = [];
+
   for (const { code, label } of codes) {
-    const ok = USE_API
-      ? await registerViaApi(code, label || 'launch batch').catch(() => false)
-      : await registerLocal(code, label || 'launch batch').catch(() => false);
+    try {
+      if (useApi) {
+        await registerViaApi(code, label);
+      }
+      console.log(`  OK   ${code}  (${label})`);
+      ok++;
+    } catch (e) {
+      console.error(`  FAIL ${code}: ${e.message}`);
+      failed.push({ code, label, error: e.message });
+    }
   }
-  console.log(`\nDone: ${ok}/${codes.length} registered.`);
+
+  console.log(`\n${ok}/${codes.length} registered.`);
+  if (failed.length) {
+    console.error(`\nFailed:`);
+    for (const f of failed) console.error(`  ${f.code}: ${f.error}`);
+    process.exit(1);
+  }
 }
 
-main().catch(e => { console.error(e.message); process.exit(1); });
+main().catch(e => {
+  console.error('register-codes:', e.message);
+  process.exit(1);
+});

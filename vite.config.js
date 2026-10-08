@@ -291,6 +291,8 @@ function copyStatic() {
     'swr-intro-10s-voice.mp4',
     'marketplace.html',
     'thanks.html',
+    // Admin scripts (API-adjacent, deploy with the app).
+    'scripts/register-codes.mjs',
     'make-video.html',
     // (weddings.html / weddings.css were listed here until 2026-09-27. Both
     // files were deleted in 4ee91f2 ("chore: remove weddings page and dead
