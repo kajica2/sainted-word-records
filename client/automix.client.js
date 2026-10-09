@@ -142,16 +142,36 @@
   // ---- Anchor read --------------------------------------------------------
   // We re-read SWR_ANCHOR_MAP.neighbours() each tick so the map stays
   // in sync if the page loads more presets in the future. No caching.
+
+  // Style pool filter (client/automix-style.client.js). When a style is
+  // active, only its anchors are eligible. Null / empty = every anchor,
+  // which is the historical behaviour.
+  //
+  // Kept as a closure var with a public setter rather than a config read per
+  // tick: the filter is checked on every blend, and an object-property read
+  // of a mutable module var is cheaper than re-deriving it, while still
+  // letting a style switch take effect on the very next tick.
+  var ANCHOR_POOL = null;   // null | { [anchorId]: true }
+
+  function _poolAllows(id) {
+    if (!ANCHOR_POOL) return true;
+    return ANCHOR_POOL[id] === true;
+  }
+
   function nearestAnchors(coords, n, options) {
     if (!window.SWR_ANCHOR_MAP || !window.SWR_ANCHOR_MAP.neighbours) return [];
     // Phase 2.2: optional section-bias filtering.
     if (options && options.section && POOL_BIAS[options.section]) {
       var bias = POOL_BIAS[options.section];
-      // Ask the map for more neighbours than we need, then filter.
+      // Ask the map for more neighbours than we need, then filter. The pool
+      // is applied here too so a style restricts the pool BEFORE the section
+      // bias narrows it further — otherwise a style could be silently undone
+      // by an unfiltered fallback path below.
       var expanded = window.SWR_ANCHOR_MAP.neighbours(coords, Math.max(n * 4, 16));
       var filtered = [];
       for (var i = 0; i < expanded.length; i++) {
         var a = expanded[i];
+        if (!_poolAllows(a.id)) continue;
         // Need the anchor's coords; the map returns { id, dist, anchor }
         var w = (a.anchor && typeof a.anchor.warmth === 'number') ? a.anchor.warmth : null;
         var inten = (a.anchor && typeof a.anchor.intensity === 'number') ? a.anchor.intensity : null;
@@ -163,6 +183,29 @@
       }
       // If filtering leaves us with < 2 candidates, fall back to unfiltered.
       if (filtered.length >= 2) return filtered.slice(0, n);
+      // The section bias over-constrained the style pool. Retry with the
+      // pool still applied but no section bias, so a style is never bypassed
+      // by the fallback. Only if THAT is also too narrow do we drop the
+      // filter entirely (pool had no anchors near these coords at all).
+      if (ANCHOR_POOL) {
+        var poolOnly = [];
+        var wide = window.SWR_ANCHOR_MAP.neighbours(coords, Math.max(n * 4, 16));
+        for (var j = 0; j < wide.length; j++) {
+          if (_poolAllows(wide[j].id)) poolOnly.push(wide[j]);
+        }
+        if (poolOnly.length >= 2) return poolOnly.slice(0, n);
+      }
+    }
+    // Unfiltered path still honours the style pool.
+    if (ANCHOR_POOL) {
+      var allowed = [];
+      var all = window.SWR_ANCHOR_MAP.neighbours(coords, Math.max(n * 4, 16));
+      for (var k = 0; k < all.length; k++) {
+        if (_poolAllows(all[k].id)) allowed.push(all[k]);
+      }
+      if (allowed.length >= 2) return allowed.slice(0, n);
+      // Style pool too small near these coords — mix() returning null would
+      // freeze the visual, so widen to the full map rather than go dark.
     }
     return window.SWR_ANCHOR_MAP.neighbours(coords, n);
   }
@@ -421,6 +464,22 @@
     // of carrying a local mirror that duplicates the formula.
     _setTuning: _setTuning,
     _getTuning: _getTuning,
+    // Style pool. `setAnchorPool(ids | null)` restricts which anchors a
+    // blend may draw from; null restores the full 19-anchor map. Applied to
+    // the next tick — no restart, and no re-blend of the current frame
+    // (the runtime's ramp handles the transition).
+    setAnchorPool: function (ids) {
+      if (ids == null) { ANCHOR_POOL = null; return; }
+      if (!Array.isArray(ids) || !ids.length) { ANCHOR_POOL = null; return; }
+      var set = Object.create(null);
+      for (var i = 0; i < ids.length; i++) set[ids[i]] = true;
+      ANCHOR_POOL = set;
+    },
+    getAnchorPool: function () {
+      if (!ANCHOR_POOL) return null;
+      return Object.keys(ANCHOR_POOL);
+    },
+    anchorAllowed: _poolAllows,
     // Phase 2: musical intelligence
     featuresToCoords: featuresToCoords,
     featuresToCoordsV2: featuresToCoordsV2,

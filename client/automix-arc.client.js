@@ -179,17 +179,42 @@
         warmth: Math.max(0, Math.min(1, 0.5 + arch.warmthBias + (rng() - 0.5) * 0.3)),
         intensity: Math.max(0, Math.min(1, 0.5 + arch.intensityBias + (rng() - 0.5) * 0.2)),
       };
-      var nn = map.neighbours(targetCoords, 6);
+      // Query MORE candidates than we need. `neighbours(coords, 6)` returns
+      // the 6 globally nearest, which under an active style pool can contain
+      // zero allowed anchors (the style's anchors may all sit further out).
+      // Filtering that short list would fall through to the unfiltered
+      // fallback and quietly ignore the style, so widen first and narrow
+      // after. The full map is small (~19) so asking for all of it is cheap
+      // and removes any dependence on how far a style's region sits.
+      var nn = map.neighbours(targetCoords, map.list().length);
+      // Style pool (client/automix-style.client.js). When a style is
+      // active, the arc's per-act anchor choice must respect it — the arc
+      // supplies the preset the runtime actually applies, so an
+      // unfiltered pick here would override the pool that nearestAnchors()
+      // enforces on the legacy path, and a style would have almost no
+      // visible effect. Falls back to the full candidate list when the
+      // pool cannot satisfy this act (better a slightly-off look than an
+      // act with no anchor at all).
+      var pool = window.SWR_AUTOMIX && typeof window.SWR_AUTOMIX.anchorAllowed === 'function'
+        ? window.SWR_AUTOMIX.anchorAllowed : null;
+      var candidates = nn;
+      if (pool) {
+        var allowed = [];
+        for (var pj = 0; pj < nn.length; pj++) {
+          if (nn[pj] && pool(nn[pj].id)) allowed.push(nn[pj]);
+        }
+        if (allowed.length) candidates = allowed;
+      }
       var chosen = null;
-      for (var c = 0; c < nn.length; c++) {
-        var cand = nn[c];
+      for (var c = 0; c < candidates.length; c++) {
+        var cand = candidates[c];
         if (!cand.anchor) continue;
         if (!prev) { chosen = cand; break; }
         var dx = cand.anchor.warmth - prev.coords.warmth;
         var dy = cand.anchor.intensity - prev.coords.intensity;
         if (Math.sqrt(dx * dx + dy * dy) >= ARC_MIN_DISPLACEMENT) { chosen = cand; break; }
       }
-      if (!chosen) chosen = nn[nn.length - 1]; // farthest of the 6
+      if (!chosen) chosen = candidates[candidates.length - 1]; // farthest of the candidates
       if (!chosen || !chosen.anchor) return null;
       prev = { coords: { ...chosen.anchor } };
 
