@@ -299,6 +299,45 @@
       50% { transform: translateX(4px); opacity: 0.6; }
       100% { transform: translateX(0); opacity: 1; } }
 
+    /* ===== RANDOM CARD — redesigned Q121 ===== */
+    .rand-id { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .rand-id code { color: var(--accent-2); }
+    .rand-id .rand-sep { color: var(--line-2); }
+    .rand-id-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); }
+
+    /* Audio mapping section */
+    .r-audio-section { margin: 16px 0; }
+    .r-audio-label { font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .r-audio-map { display: flex; flex-wrap: wrap; gap: 6px; }
+    .r-audio-band { display: flex; align-items: center; gap: 5px;
+      background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px;
+      padding: 4px 10px; font-family: var(--font-mono); font-size: 11px; }
+    .r-audio-band .band-name { color: var(--accent-2); font-weight: 500; }
+    .r-audio-band .band-arrow { color: var(--muted); }
+    .r-audio-band .band-effect { color: var(--ink); }
+
+    /* Meta row (FX / Shader / Palette / Motion) */
+    .rand-meta-row { display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      margin: 16px 0; }
+    .rand-meta-item { display: flex; flex-direction: column; gap: 3px;
+      min-width: 80px; }
+    .rand-meta-label { font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .rand-meta-val { font-family: var(--font-mono); font-size: 13px; color: var(--ink-2); }
+    .rand-meta-val.sh { color: var(--gold); }
+
+    /* Screen-reader only */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0;
+      margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    /* Focus visible — keyboard navigation */
+    :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+    button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
+
     .rand-demo { display: flex; align-items: center; gap: 14px;
       font-family: var(--font-mono); font-size: 12px; flex-wrap: wrap;
       padding: 12px 0; border-top: 1px dashed var(--line); margin-top: 14px; }
@@ -356,32 +395,66 @@
     </header>
 
     <!-- ============ RANDOMIZE CARD (hidden until clicked) ============ -->
-    <div class="rand-card" id="rand-card" aria-live="polite">
+    <div class="rand-card" id="rand-card" aria-live="polite" role="region" aria-label="Selected preset">
       <div class="rand-head">
         <span class="rand-picknum" id="r-picknum">pick #—</span>
         <h3 id="r-name">—</h3>
         <div class="rand-nav">
-          <button type="button" id="r-prev" title="Previous preset" aria-label="Previous">←</button>
-          <button type="button" id="r-next" title="Next preset" aria-label="Next">→</button>
+          <button type="button" id="r-prev" title="Previous preset" aria-label="Previous preset">←</button>
+          <button type="button" id="r-next" title="Next preset" aria-label="Next preset">→</button>
         </div>
       </div>
-      <div class="rand-id">id <code id="r-id">—</code> · created <span id="r-created">—</span></div>
-      <p class="rand-desc" id="r-desc">—</p>
-      <div class="rand-grid">
-        <div><div class="lbl">Family</div><div class="val fam" id="r-fam">—</div></div>
-        <div><div class="lbl">Shader</div><div class="val sh" id="r-shader">—</div></div>
-        <div><div class="lbl">Palette</div><div class="val" id="r-palette-name">—</div></div>
-        <div><div class="lbl">Motion</div><div class="val" id="r-motion">—</div></div>
-        <div><div class="lbl">FX keys</div><div class="val" id="r-fxkeys">—</div></div>
-        <div><div class="lbl">Audio bias</div><div class="val" id="r-audio">—</div></div>
+      <div class="rand-id">
+        <span class="rand-id-label">ID</span>
+        <code id="r-id">—</code>
+        <span class="rand-sep">·</span>
+        <span class="rand-id-label">Created</span>
+        <span id="r-created">—</span>
       </div>
+      <p class="rand-desc" id="r-desc">—</p>
+
+      <!-- Audio mapping — clear band → effect breakdown -->
+      <div class="r-audio-section" id="r-audio-section">
+        <div class="r-audio-label">♪ Audio mapping</div>
+        <div class="r-audio-map" id="r-audio-map"></div>
+      </div>
+
+      <!-- FX + metadata row -->
+      <div class="rand-meta-row">
+        <div class="rand-meta-item">
+          <span class="rand-meta-label">FX</span>
+          <span class="rand-meta-val" id="r-fxkeys">—</span>
+        </div>
+        <div class="rand-meta-item">
+          <span class="rand-meta-label">Shader</span>
+          <span class="rand-meta-val sh" id="r-shader">—</span>
+        </div>
+        <div class="rand-meta-item">
+          <span class="rand-meta-label">Palette</span>
+          <span class="rand-meta-val" id="r-palette-name">—</span>
+        </div>
+        <div class="rand-meta-item">
+          <span class="rand-meta-label">Motion</span>
+          <span class="rand-meta-val" id="r-motion">—</span>
+        </div>
+      </div>
+
+      <!-- Swatches -->
       <div class="rand-palette" id="r-swatches"></div>
+
+      <!-- Demo links -->
       <div class="rand-demo" id="r-demo"></div>
+
+      <!-- Tags -->
       <div class="rand-tags" id="r-tags"></div>
+
+      <!-- Screen-reader live region for copy confirmation -->
+      <div aria-live="polite" aria-atomic="true" class="sr-only" id="r-copy-announce"></div>
+
       <div class="rand-actions">
-        <button type="button" class="rbtn" id="r-again">↻ Pick another</button>
+        <button type="button" class="rbtn" id="r-again" aria-label="Pick another random preset">↻ Pick another</button>
         <a class="rbtn rbtn--primary" id="r-open" href="/engine">Open in engine →</a>
-        <button type="button" class="rbtn" id="r-copy" data-copy-target="r-id">Copy id</button>
+        <button type="button" class="rbtn" id="r-copy" data-copy-target="r-id" aria-label="Copy preset ID to clipboard">Copy ID</button>
       </div>
     </div>
 
@@ -394,13 +467,13 @@
       </div>
       <div class="live-grid" id="live-grid">
         <div class="live-cell"><div class="l">Engine</div><div class="v green" id="l-engine">v1.0</div><div class="sub">self-evolving</div></div>
-        <div class="live-cell"><div class="l">Preset schema</div><div class="v cyan" id="l-schema">swr-preset/v1</div><div class="sub">stable</div></div>
-        <div class="live-cell"><div class="l">Daily pipeline</div><div class="v gold" id="l-pipe">2 / day</div><div class="sub" id="l-pipe-sub">10 shaders × 8 palettes × 7 motions</div></div>
-        <div class="live-cell"><div class="l">Manifest</div><div class="v" id="l-count">—</div><div class="sub" id="l-count-sub">presets</div></div>
+        <div class="live-cell"><div class="l">Preset schema</div><div class="v cyan" id="l-schema">swr-preset/v1</div><div class="sub">schema v1 · stable</div></div>
+        <div class="live-cell"><div class="l">Daily pipeline</div><div class="v gold" id="l-pipe">2 new presets/day</div><div class="sub" id="l-pipe-sub">10 shaders × 8 palettes × 7 motions</div></div>
+        <div class="live-cell"><div class="l">Manifest</div><div class="v" id="l-count">—</div><div class="sub" id="l-count-sub">presets · loading…</div></div>
         <div class="live-cell"><div class="l">Latest preset</div><div class="v" id="l-latest">—</div><div class="sub" id="l-latest-sub">—</div></div>
-        <div class="live-cell"><div class="l">Production</div><div class="v" style="font-size:14px;">sainted-word-records.vercel.app</div><div class="sub"><span id="l-http">200</span> · <span id="l-region">iad1</span></div></div>
+        <div class="live-cell"><div class="l">Production</div><div class="v" style="font-size:15px;">Live</div><div class="sub"><span id="l-http">200</span> <span id="l-http-ok" aria-label="ok">✓</span> · <span id="l-region">iad1</span></div></div>
         <div class="live-cell"><div class="l">Visual styles</div><div class="v" id="l-styles">22</div><div class="sub">per-page GLSL</div></div>
-        <div class="live-cell"><div class="l">On-device variants</div><div class="v" id="l-variants">∞</div><div class="sub">per user · 3-use threshold</div></div>
+        <div class="live-cell"><div class="l">On-device variants</div><div class="v" id="l-variants">Unlimited</div><div class="sub">personal variants · unlocked after 3 uses</div></div>
       </div>
     </section>
 
@@ -1085,7 +1158,126 @@
   <!-- ============ FOOTER ============ -->
   <swr-footer></swr-footer>
 
-  <script src="/versions.client.js"></script>
+  <script src="/versions.client.js" onerror="/* versions.client.js may be absent in preview deploys */"></script>
+  <script>
+  // Patch: rewrite l-count-sub after versions.client.js finishes loading
+  // Changes "swr-preset/v1 · 6ms" → "28 presets · schema v1 · 6ms load"
+  (function () {
+    function patchCountSub() {
+      var sub = document.getElementById('l-count-sub');
+      var count = document.getElementById('l-count');
+      if (!sub || !count) return;
+      var text = sub.textContent.trim();
+      if (!text || text === 'presets · loading…') return;
+      // e.g. "swr-preset/v1 · 6ms" → "schema v1 · 6ms load"
+      var cleaned = text.replace(/^swr-preset\/v[\d.]+\s*·\s*/i, 'schema v1 · ').replace(/\s*ms$/, 'ms load');
+      var n = count.textContent || '';
+      sub.textContent = n ? n + ' presets · ' + cleaned : cleaned;
+    }
+    function tryPatch() {
+      patchCountSub();
+      // If init hasn't run yet, wait a bit
+      if (document.getElementById('l-refresh') && document.getElementById('l-refresh').textContent === 'Probing…') {
+        setTimeout(patchCountSub, 1200);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', tryPatch);
+    } else {
+      tryPatch();
+    }
+  })();
+
+  // Override renderPick to fill the redesigned card (quick win #2 from issue #121)
+  (function () {
+    // Patch versions.client.js renderPick if it exists
+    if (typeof renderPick === 'undefined') return;
+    var _origRenderPick = renderPick;
+    window.renderPick = function (p, pickNum) {
+      var card = document.getElementById('rand-card');
+      if (!card) return;
+
+      // Rolling animation
+      card.classList.add('is-rolling');
+      setTimeout(function () { card.classList.remove('is-rolling'); }, 500);
+
+      // Inspiration refs
+      var ins = p.inspiration || [];
+      var shader = (ins.find(function (i) { return i.kind === 'shader_ref'; }) || {}).name || '—';
+      var palette = (ins.find(function (i) { return i.kind === 'palette_ref'; }) || {}).name || '—';
+      var motion = (ins.find(function (i) { return i.kind === 'motion_ref'; }) || {}).name || '—';
+
+      // Audio mapping bands
+      var audio = p.audio_reactivity || {};
+      var audioMap = document.getElementById('r-audio-map');
+      if (audioMap) {
+        var bandRows = [];
+        var BAND_LABELS = { bass: 'Bass', mid: 'Mid', treble: 'Treble', sub: 'Sub', air: 'Air' };
+        Object.keys(audio).forEach(function (band) {
+          var effects = audio[band];
+          if (!effects || !effects.length) return;
+          var label = BAND_LABELS[band] || band;
+          effects.forEach(function (ef) {
+            bandRows.push(
+              '<span class="r-audio-band">' +
+                '<span class="band-name">' + label + '</span>' +
+                '<span class="band-arrow">→</span>' +
+                '<span class="band-effect">' + ef + '</span>' +
+              '</span>'
+            );
+          });
+        });
+        audioMap.innerHTML = bandRows.length
+          ? bandRows.join('')
+          : '<span style="color:var(--muted);font-size:12px;font-family:var(--font-mono);">none</span>';
+      }
+
+      // FX keys: "15 of 15" → "15/15 FX active"
+      var fx = p.fx_state || {};
+      var fxKeys = Object.keys(fx).length;
+      var fxEl = document.getElementById('r-fxkeys');
+      if (fxEl) fxEl.textContent = fxKeys + '/15 FX active';
+
+      // Meta row
+      function setMeta(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = val || '—';
+      }
+      setMeta('r-shader', shader);
+      setMeta('r-palette-name', palette);
+      setMeta('r-motion', motion);
+
+      // Swatches
+      var swRoot = document.getElementById('r-swatches');
+      if (swRoot && p.palette) {
+        swRoot.innerHTML = ['primary', 'secondary', 'accent', 'bg']
+          .filter(function (k) { return p.palette[k]; })
+          .map(function (k) {
+            return '<span class="sw" style="background:' + p.palette[k] + '" title="' + k + ': ' + p.palette[k] + '"></span>';
+          })
+          .join('') + ' <span style="margin-left:8px;">' + (p.palette.primary || '') + ' · ' + (p.palette.secondary || '') + '</span>';
+      }
+
+      // Tags
+      var tags = (p.preview && p.preview.tags) || [];
+      var tagsRoot = document.getElementById('r-tags');
+      if (tagsRoot) {
+        tagsRoot.innerHTML = tags.map(function (t) { return '<span class="tag">' + t + '</span>'; }).join('');
+      }
+
+      // Show card
+      card.classList.add('show');
+      setTimeout(function () { card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
+
+      // Demo links
+      if (typeof renderDemo === 'function') renderDemo(p);
+
+      // Announce for screen readers
+      var announce = document.getElementById('r-copy-announce');
+      if (announce) announce.textContent = 'Preset loaded: ' + (p.name || p.id || '');
+    };
+  })();
+  </script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
