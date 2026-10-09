@@ -142,16 +142,36 @@
   // ---- Anchor read --------------------------------------------------------
   // We re-read SWR_ANCHOR_MAP.neighbours() each tick so the map stays
   // in sync if the page loads more presets in the future. No caching.
+
+  // Style pool filter (client/automix-style.client.js). When a style is
+  // active, only its anchors are eligible. Null / empty = every anchor,
+  // which is the historical behaviour.
+  //
+  // Kept as a closure var with a public setter rather than a config read per
+  // tick: the filter is checked on every blend, and an object-property read
+  // of a mutable module var is cheaper than re-deriving it, while still
+  // letting a style switch take effect on the very next tick.
+  var ANCHOR_POOL = null;   // null | { [anchorId]: true }
+
+  function _poolAllows(id) {
+    if (!ANCHOR_POOL) return true;
+    return ANCHOR_POOL[id] === true;
+  }
+
   function nearestAnchors(coords, n, options) {
     if (!window.SWR_ANCHOR_MAP || !window.SWR_ANCHOR_MAP.neighbours) return [];
     // Phase 2.2: optional section-bias filtering.
     if (options && options.section && POOL_BIAS[options.section]) {
       var bias = POOL_BIAS[options.section];
-      // Ask the map for more neighbours than we need, then filter.
+      // Ask the map for more neighbours than we need, then filter. The pool
+      // is applied here too so a style restricts the pool BEFORE the section
+      // bias narrows it further — otherwise a style could be silently undone
+      // by an unfiltered fallback path below.
       var expanded = window.SWR_ANCHOR_MAP.neighbours(coords, Math.max(n * 4, 16));
       var filtered = [];
       for (var i = 0; i < expanded.length; i++) {
         var a = expanded[i];
+        if (!_poolAllows(a.id)) continue;
         // Need the anchor's coords; the map returns { id, dist, anchor }
         var w = (a.anchor && typeof a.anchor.warmth === 'number') ? a.anchor.warmth : null;
         var inten = (a.anchor && typeof a.anchor.intensity === 'number') ? a.anchor.intensity : null;
@@ -163,6 +183,29 @@
       }
       // If filtering leaves us with < 2 candidates, fall back to unfiltered.
       if (filtered.length >= 2) return filtered.slice(0, n);
+      // The section bias over-constrained the style pool. Retry with the
+      // pool still applied but no section bias, so a style is never bypassed
+      // by the fallback. Only if THAT is also too narrow do we drop the
+      // filter entirely (pool had no anchors near these coords at all).
+      if (ANCHOR_POOL) {
+        var poolOnly = [];
+        var wide = window.SWR_ANCHOR_MAP.neighbours(coords, Math.max(n * 4, 16));
+        for (var j = 0; j < wide.length; j++) {
+          if (_poolAllows(wide[j].id)) poolOnly.push(wide[j]);
+        }
+        if (poolOnly.length >= 2) return poolOnly.slice(0, n);
+      }
+    }
+    // Unfiltered path still honours the style pool.
+    if (ANCHOR_POOL) {
+      var allowed = [];
+      var all = window.SWR_ANCHOR_MAP.neighbours(coords, Math.max(n * 4, 16));
+      for (var k = 0; k < all.length; k++) {
+        if (_poolAllows(all[k].id)) allowed.push(all[k]);
+      }
+      if (allowed.length >= 2) return allowed.slice(0, n);
+      // Style pool too small near these coords — mix() returning null would
+      // freeze the visual, so widen to the full map rather than go dark.
     }
     return window.SWR_ANCHOR_MAP.neighbours(coords, n);
   }
@@ -192,16 +235,37 @@
   function featuresToCoordsV2(features) {
     if (!features) return { warmth: 0.5, intensity: 0.5 };
     var bass = features.bass || 0;
-    var mid  = features.mid  || 0;
+    var mid = features.mid || 0;
     var treb = features.treb || 0;
     var centroid = (typeof features.centroid === 'number') ? features.centroid : 0;
     var rms = (typeof features.rms === 'number') ? features.rms : 0;
-    // Richer embedding: warmth now also leans on spectral centroid
-    // (bright tracks lean cooler than bass alone would suggest).
-    var warmth = Math.max(0, Math.min(1, 0.5 + (bass - treb) * 0.4 + centroid * 0.2));
-    // Intensity combines mid + treble + a small RMS floor (always some
-    // motion even on quiet songs).
-    var intensity = Math.max(0, Math.min(1, mid * 0.6 + treb * 0.3 + rms * 0.2));
+
+    // The previous formula spanned only warmth≈0.35..0.65 and
+    // intensity≈0.1..0.9, so six of the nineteen anchors sat permanently
+    // out of reach: grid, fractal, pulse, void, gallery, phosphor. Measured
+    // before this change: 13/19 anchors reachable from any audio. The
+    // range, not the anchor definitions, was the limit — so widen the
+    // mapping rather than move the anchors (moving them would shift the
+    // gradient canvas users already know).
+    //
+    // Warmth spreads the full 0..1 across the spectral tilt. `contrast`
+    // (bass vs treb) dominates because that is what the ear reads as
+    // "warm"; centroid adds a smaller independent push so a bright-but-
+    // bassy track is not pinned to the same warmth as a dark one. Real
+    // audio rarely reaches the extremes, so the gain is >1 to guarantee
+    // the corners are reachable.
+    var contrast = (bass - treb) * 0.5 + (mid - 0.5) * 0.2;
+    var warmth = Math.max(0, Math.min(1, 0.5 + contrast * 1.35 + (centroid - 0.5) * 0.45));
+
+    // Intensity adds a "busyness" term — onset density separates a sparse
+    // ballad from a busy drum track at the same band energies, and it was
+    // entirely unused. That term is what opens the high-intensity corner
+    // (hallucination, glitch, grid).
+    var energy = mid * 0.45 + treb * 0.25 + bass * 0.30;
+    var busyness = (typeof features.onset === 'number') ? features.onset : 0;
+    var intensity = Math.max(0, Math.min(1,
+      energy * 0.72 + rms * 0.18 + busyness * 0.22 + 0.12));
+
     return { warmth: warmth, intensity: intensity };
   }
 
@@ -227,25 +291,80 @@
   }
 
   // ---- Mutation drift (Phase 1.3 + 3.1) -----------------------------------
-  // Tiny bounded random walk on the blended values. Phase 1.3: callers
-  // invoke drift() on every detected beat rather than every tick; the
-  // beat-phase step is then visual-evolution that breathes with the
-  // song's tempo. Amplitude scales linearly with beat:
-  //   beat = 0   → step ±DRIFT_BASE         (gentle, no rhythmic anchor)
-  //   beat = 1   → step ±(DRIFT_BASE + DRIFT_BEAT_BONUS)  (visual breathes with tempo)
-  //   beat undefined / omitted → step ±DRIFT_BASE  (backward-compat default)
+  // Bounded evolution on the blended values, layered so it reads as
+  // intentional rather than as sensor noise:
+  //
+  //   1. BREATH (new) — a per-field sine whose phase advances with the
+  //      number of detected beats. This is the part the user actually sees:
+  //      a slow, periodic swell on top of the anchor blend. The old
+  //      implementation was a flat random walk with std-dev ~0.011 on a
+  //      0..1 field — about 1%, below the perceptual floor, so the whole
+  //      mutation layer did essentially nothing.
+  //   2. JITTER (old behaviour, kept) — a small random walk so successive
+  //      cycles never look identical. The random walk alone was too small to
+  //      read; combined with the breath it now supplies texture without
+  //      being the only signal.
+  //
+  // Amplitude scales with beat, exactly as before:
+  //   beat = 0   → ±DRIFT_BASE        (gentle, no rhythmic anchor)
+  //   beat = 1   → ±(DRIFT_BASE + DRIFT_BEAT_BONUS)
+  //   beat omitted → ±DRIFT_BASE      (backward-compat default)
   // Each field is clamped to [-1, 1] so the visual stays in its safe range.
   // Amplitudes are closure-private vars that the runtime config-loader
   // mutates via _setDriftAmplitude() (per Task 1 fix round 1).
+
+  // Phase counter + per-field offsets. Advances once per detected beat, so
+  // the breath is locked to the song's tempo rather than to wall-clock time
+  // (which would drift against the music the moment the BPM changed).
+  var DRIFT_PHASE = 0;
+  // Stable per-field offsets so every field breathes on its own phase —
+  // otherwise all eight move in lockstep and read as a single global
+  // brightness pump rather than as organic drift.
+  var DRIFT_FIELD_OFFSETS = (function () {
+    var offsets = {};
+    var keys = ['temp', 'mut', 'mutAlgo', 'sepia', 'chroma', 'grain', 'glow',
+                'grayscale', 'posterize'];
+    for (var i = 0; i < keys.length; i++) {
+      offsets[keys[i]] = (i * 0.7) % (Math.PI * 2);
+    }
+    return offsets;
+  })();
+  // One full breath cycle every N beats. 16 beats ≈ 4 bars at 120 BPM: long
+  // enough to read as a swell, short enough that a listener notices the
+  // change happening.
+  var DRIFT_BREATH_BEATS = 16;
+  // The amplitude is a TOTAL per-step budget shared between the two terms.
+  // They must sum to 1 so the peak step never exceeds what the old
+  // single-term random walk could produce.
+  var BREATH_SHARE = 0.72;
+  var JITTER_SHARE = 0.28;
+
+  // Test/diagnostic hook: reset the breath phase so a caller can compare
+  // two presets from the same starting point.
+  function _resetDriftPhase() { DRIFT_PHASE = 0; }
+  function _getDriftPhase() { return DRIFT_PHASE; }
+
   function drift(preset, beat) {
     if (!preset) return preset;
     var b = (typeof beat === 'number' && isFinite(beat)) ? Math.max(0, Math.min(1, beat)) : 0;
     var amplitude = DRIFT_BASE + DRIFT_BEAT_BONUS * b;
+    DRIFT_PHASE++;
     var out = {};
     for (var k in preset) {
       if (!Object.prototype.hasOwnProperty.call(preset, k)) continue;
-      var delta = (Math.random() - 0.5) * 2 * amplitude;
-      out[k] = Math.max(-1, Math.min(1, preset[k] + delta));
+      // Breath: full sine cycle per DRIFT_BREATH_BEATS, scaled by the same
+      // beat-gated amplitude so it swells with the music instead of moving
+      // constantly. This is the dominant, visible term.
+      var offset = Object.prototype.hasOwnProperty.call(DRIFT_FIELD_OFFSETS, k)
+        ? DRIFT_FIELD_OFFSETS[k] : 0;
+      var angle = (DRIFT_PHASE / DRIFT_BREATH_BEATS) * Math.PI * 2 + offset;
+      var breath = Math.sin(angle) * amplitude * BREATH_SHARE;
+      // Jitter: the original random walk, held to its share of the budget.
+      // Adding the two terms instead of splitting the amplitude would double
+      // the peak step and break the "cold drift step ≤ 0.012" contract
+      // asserted by scripts/check-automix-unit.mjs.
+      var jitter = (Math.random() - 0.5) * 2 * amplitude * JITTER_SHARE;
+      out[k] = Math.max(-1, Math.min(1, preset[k] + breath + jitter));
     }
     return out;
   }
@@ -414,6 +533,11 @@
     // current values.
     _setDriftAmplitude: _setDriftAmplitude,
     _getDriftAmplitude: _getDriftAmplitude,
+    // Breath-phase hooks. Exposed so tests can align two comparisons and so
+    // the debug panel can show where in the breath cycle the visual sits.
+    _resetDriftPhase: _resetDriftPhase,
+    _getDriftPhase: _getDriftPhase,
+    DRIFT_BREATH_BEATS: DRIFT_BREATH_BEATS,
     // Task 1 fix round 2 — runtime config-loader replaces the closure-
     // private tick-interval bounds in place. Mirrors the driftAmplitude
     // shape (mutator + read accessor) so the runtime can apply
@@ -421,6 +545,22 @@
     // of carrying a local mirror that duplicates the formula.
     _setTuning: _setTuning,
     _getTuning: _getTuning,
+    // Style pool. `setAnchorPool(ids | null)` restricts which anchors a
+    // blend may draw from; null restores the full 19-anchor map. Applied to
+    // the next tick — no restart, and no re-blend of the current frame
+    // (the runtime's ramp handles the transition).
+    setAnchorPool: function (ids) {
+      if (ids == null) { ANCHOR_POOL = null; return; }
+      if (!Array.isArray(ids) || !ids.length) { ANCHOR_POOL = null; return; }
+      var set = Object.create(null);
+      for (var i = 0; i < ids.length; i++) set[ids[i]] = true;
+      ANCHOR_POOL = set;
+    },
+    getAnchorPool: function () {
+      if (!ANCHOR_POOL) return null;
+      return Object.keys(ANCHOR_POOL);
+    },
+    anchorAllowed: _poolAllows,
     // Phase 2: musical intelligence
     featuresToCoords: featuresToCoords,
     featuresToCoordsV2: featuresToCoordsV2,

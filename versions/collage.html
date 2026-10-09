@@ -124,6 +124,7 @@
       <span data-fx-intensity-mount></span>
       <button class="tbtn" id="automix-debug" title="Automix debug (D)" style="padding:3px 8px;font-size:9px;margin-left:6px;background:none;border:1px solid #444;border-radius:6px;color:#ccc;cursor:pointer;">Debug</button>
       <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
+      <select id="automix-style" title="How the visuals evolve (anchor pool · cadence · drift · cutting)" style="font-size:9px;padding:2px 4px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:3px;font:9px ui-monospace;max-width:104px;margin-left:6px;"></select>
       <button class="tbtn" id="rec" disabled>● REC</button>
     </footer>
   </div>
@@ -825,6 +826,7 @@
 <script src="../client/automix-session-store.client.js"></script>
 <script src="../client/automix-runtime.client.js"></script>
 <script src="../client/automix-composition.client.js" defer></script>
+<script src="../client/automix-style.client.js" defer></script>
 <script src="/versions/temp-slider.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
 <!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
@@ -842,5 +844,25 @@
 <script src="../lib/watermark.client.js"></script>
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
+<script>
+  // Mount the automix style dropdown. Deferred so it runs after the
+  // automix modules that expose SWR_AUTOMIX / SWR_ANCHOR_MAP.
+  (function () {
+    function __swr_mount_automix_style() {
+      var sel = document.getElementById('automix-style');
+      var S = window.SWR_AUTOMIX_STYLE;
+      if (!sel || !S) return false;
+      S.mount(sel);
+      // Apply the stored style so a returning session keeps its look.
+      S.apply(S.get());
+      return true;
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __swr_mount_automix_style, { once: true });
+    } else if (!__swr_mount_automix_style()) {
+      setTimeout(__swr_mount_automix_style, 300);
+    }
+  })();
+</script>
 </body>
 </html>
