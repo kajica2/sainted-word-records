@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SIMPLE · SWR</title>
+  <meta name="description" content="Minimal audio-reactive visualizer — drop a song, get a spectrum.">
+  <meta name="theme-color" content="#0a0d18">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg: #050811; --panel: #0a0d1c; --line: #1a2040;
+      --ink: #a8d0ff; --muted: #5060a0;
+      --accent: #ff6090;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font-family: system-ui, sans-serif; }
+    #app { display: grid; grid-template-rows: 1fr 56px; height: 100vh; }
+    canvas { display: block; width: 100%; height: 100%; }
+    footer {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; background: var(--bg); border-top: 1px solid var(--line);
+      font: 10px/1 ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    }
+    .btn {
+      background: none; border: 1px solid var(--line); color: var(--ink);
+      padding: 6px 14px; cursor: pointer; font: 10px/1 ui-monospace; letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.rec { border-color: #ff3333; color: #ff3333; }
+    .btn.rec.on { background: #ff3333; color: #000; }
+    .spacer { flex: 1; }
+    .drop-zone {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(5,8,17,0.92); backdrop-filter: blur(12px);
+      cursor: pointer; transition: opacity 0.3s;
+    }
+    .drop-zone.hide { opacity: 0; pointer-events: none; }
+    .drop-zone-box {
+      text-align: center; padding: 40px 60px; border: 1px solid var(--accent);
+      background: rgba(20,12,32,0.7); color: #fff;
+    }
+    .drop-zone-box .icon { font-size: 48px; line-height: 1; margin-bottom: 16px; }
+    .drop-zone-box .label { font-size: 16px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+    .drop-zone-box .sub { margin-top: 12px; font: 11px/1.4 ui-monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="render" width="1920" height="1080"></canvas>
+    <footer>
+      <span id="song-name">—</span>
+      <span class="spacer"></span>
+      <button class="btn" id="play-btn">▶ Play</button>
+      <button class="btn rec" id="rec-btn">● REC</button>
+    </footer>
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <div class="drop-zone-box">
+      <div class="icon">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub">mp3 · wav · aac · ogg</div>
+    </div>
+  </div>
+  <input type="file" id="file-input" accept="audio/*">
+
+  <script>
+  (function(){
+    'use strict';
+    var canvas = document.getElementById('render');
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    var dropZone = document.getElementById('drop-zone');
+    var fileInput = document.getElementById('file-input');
+    var playBtn = document.getElementById('play-btn');
+    var recBtn = document.getElementById('rec-btn');
+    var songName = document.getElementById('song-name');
+
+    var audioCtx = null;
+    var analyser = null;
+    var sourceNode = null;
+    var audioEl = null;
+    var fftData = null;
+    var waveform = null;
+    var playing = false;
+    var recording = false;
+    var mediaRecorder = null;
+    var recChunks = [];
+
+    function initAudio() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      fftData = new Uint8Array(analyser.frequencyBinCount);
+      waveform = new Uint8Array(analyser.fftSize);
+      analyser.connect(audioCtx.destination);
+    }
+
+    function loadAudioFile(file) {
+      initAudio();
+      if (audioEl) { audioEl.pause(); audioEl.src = ''; }
+      audioEl = new Audio();
+      audioEl.crossOrigin = 'anonymous';
+      audioEl.src = URL.createObjectURL(file);
+      audioEl.addEventListener('loadedmetadata', function() {
+        if (sourceNode) sourceNode.disconnect();
+        sourceNode = audioCtx.createMediaElementSource(audioEl);
+        sourceNode.connect(analyser);
+      });
+      audioEl.addEventListener('ended', function() {
+        playing = false;
+        playBtn.textContent = '▶ Play';
+        if (recording) stopRec();
+      });
+      songName.textContent = file.name;
+      dropZone.classList.add('hide');
+    }
+
+    function togglePlay() {
+      if (!audioEl) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (playing) { audioEl.pause(); playing = false; playBtn.textContent = '▶ Play'; }
+      else { audioEl.play(); playing = true; playBtn.textContent = '❚❚ Pause'; }
+    }
+
+    function startRec() {
+      if (!audioEl || !audioEl.src) return;
+      recChunks = [];
+      var stream = canvas.captureStream(30);
+      var audioStreamDest = audioCtx.createMediaStreamDestination().stream;
+      var combined = new MediaStream([...stream.getTracks(), ...audioStreamDest.getTracks()]);
+      var mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+      mediaRecorder = new MediaRecorder(combined, { mimeType: mime });
+      mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) recChunks.push(e.data); };
+      mediaRecorder.onstop = saveRec;
+      mediaRecorder.start(100);
+      recording = true;
+      recBtn.classList.add('on');
+      recBtn.textContent = '■ Stop';
+    }
+
+    function stopRec() {
+      if (!recording) return;
+      mediaRecorder.stop();
+      recording = false;
+      recBtn.classList.remove('on');
+      recBtn.textContent = '● REC';
+    }
+
+    function saveRec() {
+      var mime = mediaRecorder.mimeType;
+      var ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      var blob = new Blob(recChunks, { type: mime });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'simple-' + Date.now() + '.' + ext;
+      a.click();
+      setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
+    }
+
+    dropZone.addEventListener('click', function() { fileInput.click(); });
+    fileInput.addEventListener('change', function(e) {
+      if (e.target.files[0]) loadAudioFile(e.target.files[0]);
+    });
+    dropZone.addEventListener('dragover', function(e) { e.preventDefault(); });
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      var f = e.dataTransfer.files[0];
+      if (f && f.type.startsWith('audio/')) loadAudioFile(f);
+      else if (f) dropZone.querySelector('.sub').textContent = 'Not an audio file';
+    });
+    playBtn.addEventListener('click', togglePlay);
+    recBtn.addEventListener('click', function() {
+      if (recording) stopRec();
+      else startRec();
+    });
+
+    var BANDS = 64;
+    var BAR_W, HUE_BASE = 280;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 56;
+      BAR_W = canvas.width / BANDS;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function draw() {
+      requestAnimationFrame(draw);
+      var W = canvas.width, H = canvas.height;
+      ctx.fillStyle = '#050811';
+      ctx.fillRect(0, 0, W, H);
+      if (!analyser) return;
+      analyser.getByteFrequencyData(fftData);
+      analyser.getByteTimeDomainData(waveform);
+      var bandCount = Math.min(BANDS, fftData.length);
+      for (var i = 0; i < bandCount; i++) {
+        var v = fftData[i] / 255;
+        var barH = v * H * 0.85;
+        var x = i * BAR_W;
+        var hue = HUE_BASE + (i / bandCount) * 60 - v * 30;
+        var sat = 80 + v * 20;
+        var light = 50 + v * 30;
+        ctx.fillStyle = 'hsl(' + hue + ',' + sat + '%,' + light + '%)';
+        ctx.fillRect(x + 1, H - barH, BAR_W - 2, barH);
+        if (v > 0.3) {
+          ctx.shadowColor = 'hsl(' + hue + ',100%,60%)';
+          ctx.shadowBlur = 8;
+          ctx.fillRect(x + 1, H - barH, BAR_W - 2, 4);
+          ctx.shadowBlur = 0;
+        }
+      }
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      var sliceW = W / waveform.length;
+      for (var j = 0; j < waveform.length; j++) {
+        var y = ((waveform[j] - 128) / 128) * H * 0.15 + H * 0.5;
+        if (j === 0) ctx.moveTo(j * sliceW, y);
+        else ctx.lineTo(j * sliceW, y);
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
+      ctx.stroke();
+    }
+    requestAnimationFrame(draw);
+  })();
+  </script>
+</body>
+</html>
