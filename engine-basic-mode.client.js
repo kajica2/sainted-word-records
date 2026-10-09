@@ -118,6 +118,22 @@
     if (overlay) overlay.classList.add('hidden');
   }
 
+  function initWelcomeOverlay() {
+    var startBtn = document.getElementById('welcome-start-btn');
+    var advancedBtn = document.getElementById('welcome-advanced-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', handleWelcomeStart);
+    }
+    if (advancedBtn) {
+      advancedBtn.addEventListener('click', handleWelcomeAdvanced);
+    }
+    // Show overlay on first run in basic mode
+    if (isFirstRun()) {
+      var overlay = document.getElementById('welcome-overlay');
+      if (overlay) overlay.classList.remove('hidden');
+    }
+  }
+
   // ─────────────────────────────────────────────
   // Basic Mode — Song Upload
   // ─────────────────────────────────────────────

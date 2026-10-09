@@ -41,7 +41,7 @@
     .pill { font: 9px/1 ui-monospace; padding: 4px 8px; border: 1px solid var(--r); color: var(--r); letter-spacing: 0.14em; text-transform: uppercase; background: #1a000a; }
     .pill.ok { color: var(--g); border-color: var(--g); background: #001a08; }
     .pill.live { color: var(--y); border-color: var(--y); background: #1a1a00; animation: blink 0.3s infinite alternate; }
-    @keyframes blink { from { opacity: 0.4; } to { opacity: 1; } }
+    @keyframes blink { from { opacity: 0.8; } to { opacity: 1; } }
     .tbtn { background: #000; color: var(--ink); border: 1px solid var(--ink); font: 10px/1 ui-monospace;
       letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 12px; cursor: pointer; }
     .tbtn:hover { background: var(--r); color: #000; border-color: var(--r); }
@@ -78,7 +78,7 @@
     .l .react { font: 8px/1.3 ui-monospace; color: var(--y); margin-top: 3px; letter-spacing: 0.04em; }
     section.stage { position: relative; background: #000; overflow: hidden; }
     canvas { display: block; width: 100%; height: 100%; }
-    #noise { position: absolute; inset: 0; pointer-events: none; opacity: 0.3; mix-blend-mode: difference; }
+    #noise { position: absolute; inset: 0; pointer-events: none; opacity: 0.55; mix-blend-mode: difference; }
     footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 0 14px;
       background: var(--bg-2); border-top: 2px solid var(--g); font: 9px/1 ui-monospace; color: var(--ink); letter-spacing: 0.08em; }
     .gc input { width: 70px; accent-color: var(--r); }
@@ -237,7 +237,7 @@
       bottom: 16px;
       right: 16px;
       width: min(8vw, 80px);
-      opacity: 0.25;
+      opacity: 0.55;
       pointer-events: none;
       z-index: 9999;
       mix-blend-mode: screen;
@@ -251,33 +251,33 @@
     }
     @keyframes heartbeat {
       0% {
-        opacity: 0.2;
-        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(220,220,220,0.2));
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
         transform: scale(1);
       }
       12% {
-        opacity: 0.35;
-        filter: drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(200,200,200,0.7));
-        transform: scale(1.12);
+        opacity: 0.8;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(160,160,160,0.7));
+        transform: scale(1.08);
       }
       24% {
-        opacity: 0.2;
-        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(220,220,220,0.2));
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
         transform: scale(1);
       }
       36% {
-        opacity: 0.35;
-        filter: drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(200,200,200,0.7));
-        transform: scale(1.12);
+        opacity: 0.8;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(160,160,160,0.7));
+        transform: scale(1.08);
       }
       50% {
-        opacity: 0.2;
-        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(220,220,220,0.2));
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
         transform: scale(1);
       }
       100% {
-        opacity: 0.2;
-        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(220,220,220,0.2));
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
         transform: scale(1);
       }
     }
@@ -402,7 +402,7 @@
       animation: story-fade-kf 400ms ease-out;
     }
     @keyframes story-fade-kf {
-      0%   { opacity: 0.4; }
+      0%   { opacity: 0.8; }
       100% { opacity: 1.0; }
     }
     section.stage.story-morph {
