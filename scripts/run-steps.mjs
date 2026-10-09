@@ -100,6 +100,11 @@ const GROUPS = {
     'npm run check:dashboard',
     'npm run check:variant-switcher-unit',
     'npm run check:variant-switcher-smoke',
+    // Full 16-variant switcher coverage: every entry in
+    // client/variant-switcher.client.js's VARIANTS array compiles and runs
+    // against a vm sandbox, with a guarded A.feat that fails on a future
+    // drawFx that reads a feature the contract mock does not provide.
+    'npm run check:variants-unit',
     'npm run check:targeting-unit',
     'npm run targeting:verify',
     'npm run check:media-input-unit',
@@ -175,6 +180,14 @@ const GROUPS = {
     // and unhittable by mouse at every width — while the page still looked
     // healthy and check:syntax passed. The budget covers its ~9s runtime.
     { cmd: 'npm run verify:engine-boot', timeoutMs: 300000, retries: 1 },
+    // Full 16-variant switcher coverage in the real browser: walks every
+    // entry in SWR_VARIANTS.list(), activates it, loads the variant's
+    // default song, samples the engine render canvas and asserts the
+    // frame is not black. Catches a drawFx that compiles but produces a
+    // black frame, or an activate that throws mid-frame. ensureDist()
+    // builds dist/ if missing or stale. The 90s budget covers the
+    // 16×~1.6s variant walk plus harness boot.
+    { cmd: 'npm run check:variants-smoke', timeoutMs: 120000, retries: 1 },
     'npm run check:dist-links',
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.
