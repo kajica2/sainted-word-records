@@ -113,9 +113,11 @@ try {
   const CONSOLE_ERR_FILTER = /favicon|AudioContext|Failed to load resource/i;
   // HTTP 4xx/5xx: /api/* is the static server's noise (no swrc
   // middleware). /null is pre-existing engine noise when no song is
-  // initially loaded. Anything else is a real regression — a missing
-  // /versions/<id>.html, /audios/<id>.mp3, etc.
-  const HTTP_API_FILTER = /\/api\/|\/null$/i;
+  // initially loaded; the engine may append a cache-busting query
+  // string (e.g. /null?t=123), so match /null at the end of the path
+  // or immediately before a query string. Anything else is a real
+  // regression — a missing /versions/<id>.html, /audios/<id>.mp3, etc.
+  const HTTP_API_FILTER = /\/api\/|\/null(\?|$)/i;
   const realPageErrors = pageErrors.filter((m) => !PAGE_ERR_FILTER.test(m));
   const realConsoleErrors = consoleErrors.filter((m) => !CONSOLE_ERR_FILTER.test(m));
   // Cross-check console errors that look like 404s against the URL list:
