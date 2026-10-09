@@ -940,6 +940,14 @@
       "destination": "/booking.html"
     },
     {
+      "source": "/bookings",
+      "destination": "/bookings.html"
+    },
+    {
+      "source": "/bookings/",
+      "destination": "/bookings.html"
+    },
+    {
       "source": "/fonts",
       "destination": "/fonts.html"
     },
