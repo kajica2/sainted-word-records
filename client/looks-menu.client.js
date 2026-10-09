@@ -174,16 +174,42 @@
     return true;
   }
 
-  function apply(id) {
+  // Accepts either a group-qualified key ("grade:film") from the dropdown
+  // or a bare id from `apply(id)` programmatic callers. The bare-id form
+  // is only unambiguous when the id is unique across the catalogues; for
+  // collisions (film, grid, neon, smoke, hallucination + 8 others appear
+  // in both Variant and Grade), callers MUST pass the group-qualified
+  // form. The UI handler in wire() always does; programmatic callers can
+  // reach for `applyIn(gid, id)` if they know the group.
+  function apply(idOrQualified) {
+    const { group, id } = splitKey(idOrQualified);
+    if (!id) return null;
+    if (group) return applyIn(group, id);
+    // Bare id — find the first group that owns it. Order matters: variant
+    // is checked first, then grade, then motion. Programmatic callers
+    // that need a specific group must use applyIn.
     for (const g of buildGroups()) {
-      if (!g.items.some((it) => it.id === id)) continue;
-      let ok = false;
-      if (g.id === GROUP_VARIANT) ok = applyVariant(id);
-      else if (g.id === GROUP_GRADE) ok = applyGrade(id);
-      else if (g.id === GROUP_MOTION) ok = applyMotion(id);
-      return ok ? g.id : null;
+      if (g.items.some((it) => it.id === id)) return applyIn(g.id, id);
     }
     return null;
+  }
+
+  function applyIn(group, id) {
+    let ok = false;
+    if (group === GROUP_VARIANT) ok = applyVariant(id);
+    else if (group === GROUP_GRADE) ok = applyGrade(id);
+    else if (group === GROUP_MOTION) ok = applyMotion(id);
+    return ok ? group : null;
+  }
+
+  // Parse the group-qualified option value. Returns `{ group, id }`; if
+  // the input has no group prefix (bare id), group is null and id is the
+  // input itself.
+  function splitKey(raw) {
+    const s = String(raw || '');
+    const idx = s.indexOf(':');
+    if (idx < 0) return { group: null, id: s };
+    return { group: s.slice(0, idx), id: s.slice(idx + 1) };
   }
 
   function current() {
@@ -240,10 +266,13 @@
     sel.addEventListener('change', () => {
       const raw = sel.value;
       if (!raw || raw === 'off') return;
-      const idx = raw.indexOf(':');
-      if (idx < 0) return;
-      const id = raw.slice(idx + 1);
-      apply(id);
+      // Pass the group-qualified key ("grade:film", "motion:pulse",
+      // "variant:aurora") straight through to apply() so a colliding
+      // id ("film" exists in both Variant and Grade) routes to the
+      // group the user actually picked. Bare ids fall through apply()'s
+      // first-match scan; this UI handler never produces a bare id.
+      if (raw.indexOf(':') < 0) return;
+      apply(raw);
     });
   }
 
