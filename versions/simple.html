@@ -44,6 +44,7 @@
     .gc b { color: var(--c); min-width: 22px; text-align: right; }
     .sel { color: var(--ink); }
     .sel:focus { outline: none; border-color: var(--accent); }
+    #stage { position: relative; background: #000; }
     canvas { display: block; width: 100%; height: 100%; }
     footer {
       display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -105,8 +106,17 @@
         <option value="song">song</option>
       </select>
       <button class="tbtn" id="rec-btn" disabled style="color:#ff3333;border-color:#ff3333;">● REC</button>
+      <button class="tbtn" id="brand-btn" title="Branding options">⚙</button>
     </header>
-    <canvas id="render"></canvas>
+    <div id="stage">
+      <canvas id="render"></canvas>
+      <div id="watermark" style="position:absolute;bottom:14px;right:14px;width:80px;opacity:0.4;pointer-events:none;mix-blend-mode:screen;">
+        <svg viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg" fill="none">
+          <text x="0" y="18" font-family="ui-monospace,monospace" font-size="11" font-weight="700" letter-spacing="4" fill="#ff6090">SWR</text>
+          <text x="0" y="32" font-family="ui-monospace,monospace" font-size="8" letter-spacing="2" fill="#a8d0ff" opacity="0.8">RECORDS</text>
+        </svg>
+      </div>
+    </div>
     <footer>
       <span class="gc">sens <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1.2"> <b id="sens-v">1.20</b></span>
       <span class="gc">gate <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.4"> <b id="gate-v">1.40</b></span>
@@ -121,6 +131,30 @@
       <div class="icon">▶</div>
       <div class="label">Drop a song</div>
       <div class="sub">mp3 · wav · aac · ogg</div>
+    </div>
+  </div>
+
+  <!-- Branding modal -->
+  <div id="brand-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;">
+    <div style="background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:24px 28px;min-width:260px;max-width:320px;color:var(--ink);font:11px/1.5 ui-monospace,monospace;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <span style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink);">Branding</span>
+        <button id="brand-modal-close" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;">×</button>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label id="brand-toggle-wrap" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <div id="brand-indicator" style="width:36px;height:20px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;position:relative;transition:background 0.2s;">
+            <div id="brand-knob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--accent);border-radius:50%;transition:left 0.2s;"></div>
+          </div>
+          <span id="brand-label" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);">SWR Watermark — ON</span>
+        </label>
+        <input type="checkbox" id="brand-checkbox" style="display:none;">
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px;">
+        <p style="color:var(--muted);font-size:9px;letter-spacing:0.08em;line-height:1.6;margin:0;">
+          SWR watermark adds a small monogram to the bottom-right of recordings and the live canvas.
+        </p>
+      </div>
     </div>
   </div>
 
@@ -159,6 +193,16 @@
     var startedAt = 0;
     var tickTimer = null;
     var _rnd = Math.random;
+    var showWatermark = true;
+    var brandBtn = document.getElementById('brand-btn');
+    var brandModal = document.getElementById('brand-modal');
+    var brandModalClose = document.getElementById('brand-modal-close');
+    var brandToggleWrap = document.getElementById('brand-toggle-wrap');
+    var brandCheckbox = document.getElementById('brand-checkbox');
+    var brandIndicator = document.getElementById('brand-indicator');
+    var brandKnob = document.getElementById('brand-knob');
+    var brandLabel = document.getElementById('brand-label');
+    var watermark = document.getElementById('watermark');
 
     var params = { sens: 1.2, gate: 1.4, decay: 0.85 };
     var feat = { bass: 0, mid: 0, treble: 0, air: 0, rms: 0, beat: 0, onset: 0, centroid: 0 };
@@ -353,6 +397,36 @@
     }
     window.addEventListener('resize', resize);
     resize();
+
+    function updateBrandUI() {
+      if (showWatermark) {
+        brandIndicator.style.background = 'var(--panel-2)';
+        brandKnob.style.left = '20px';
+        brandLabel.textContent = 'SWR Watermark — ON';
+        watermark.style.display = '';
+      } else {
+        brandIndicator.style.background = 'var(--bg)';
+        brandKnob.style.left = '2px';
+        brandLabel.textContent = 'SWR Watermark — OFF';
+        watermark.style.display = 'none';
+      }
+    }
+    updateBrandUI();
+
+    brandBtn.addEventListener('click', function() {
+      brandModal.style.display = 'flex';
+    });
+    brandModalClose.addEventListener('click', function() {
+      brandModal.style.display = 'none';
+    });
+    brandModal.addEventListener('click', function(e) {
+      if (e.target === brandModal) brandModal.style.display = 'none';
+    });
+    brandToggleWrap.addEventListener('click', function() {
+      showWatermark = !showWatermark;
+      brandCheckbox.checked = showWatermark;
+      updateBrandUI();
+    });
 
     function drawMeter() {
       var m = meterCtx;
