@@ -892,6 +892,14 @@
       "destination": "/gallery-vintage.html"
     },
     {
+      "source": "/versions/temple-of-control",
+      "destination": "/versions/temple-of-control.html"
+    },
+    {
+      "source": "/versions/temple-of-control/",
+      "destination": "/versions/temple-of-control.html"
+    },
+    {
       "source": "/slots-admin",
       "destination": "/slots-admin.html"
     },

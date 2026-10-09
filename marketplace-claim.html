@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marketplace Claim · Creative Assets</title>
+  <meta name="description" content="Browse and claim limited-edition creative assets from motion designers, graphics designers, and creators." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/marketplace-claim" />
+  <meta property="og:title" content="Marketplace Claim · Creative Assets" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta property="og:description" content="Browse and claim limited-edition creative assets from motion designers, graphics designers, and creators." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1612'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23E6306B' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23E6306B'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" />
+
+  <style>
+    /* === MARKETPLACE PAGE STYLES === */
+    .marketplace {
+      padding: 32px 0;
+    }
+
+    /* Ticker Strip */
+    .ticker {
+      background: var(--ink);
+      color: var(--code-ink);
+      padding: 16px 0;
+      position: sticky;
+      top: 60px;
+      z-index: 90;
+      border-bottom: 1px solid var(--accent);
+    }
+
+    .ticker__inner {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .ticker__item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ticker__label {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .ticker__value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--accent-2);
+    }
+
+    .ticker__value--claimed {
+      color: var(--accent);
+    }
+
+    .ticker__pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-3);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.2); }
+    }
+
+    /* Category Filters */
+    .filters {
+      display: flex;
+      gap: 12px;
+      padding: 24px 0;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-btn {
+      padding: 8px 18px;
+      border: 1px solid var(--line-2);
+      border-radius: var(--radius-pill);
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-2);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .filter-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .filter-btn--active {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    .filter-btn--active:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* Asset Grid */
+    .assets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      padding: 24px 0 48px;
+    }
+
+    .asset-card {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .asset-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-2);
+    }
+
+    .asset-card--claimed {
+      opacity: 0.7;
+      border-color: var(--accent-3);
+    }
+
+    .asset-card--expired {
+      opacity: 0.5;
+      border-color: var(--warn);
+    }
+
+    .asset-card--expired .asset__lifespan {
+      color: var(--warn);
+    }
+
+    .asset__preview {
+      height: 160px;
+      background: var(--bg-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .asset__preview img,
+    .asset__preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .asset__preview-placeholder {
+      font-size: 48px;
+      opacity: 0.3;
+    }
+
+    .asset__type-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 4px 10px;
+      background: var(--ink);
+      color: var(--bg);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-radius: var(--radius-sm);
+    }
+
+    .asset__quantity-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 10px;
+      background: var(--accent-3);
+      color: white;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      border-radius: var(--radius-sm);
+    }
+
+    .asset__quantity-badge--low {
+      background: var(--warn);
+    }
+
+    .asset__quantity-badge--out {
+      background: var(--accent);
+    }
+
+    .asset__body {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .asset__title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 8px;
+      line-height: 1.3;
+    }
+
+    .asset__creator {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .asset__creator-type {
+      padding: 2px 8px;
+      background: var(--bg-2);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-2);
+    }
+
+    .asset__meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .asset__remaining {
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+
+    .asset__remaining strong {
+      color: var(--accent-3);
+      font-family: var(--font-mono);
+    }
+
+    .asset__remaining--low strong {
+      color: var(--warn);
+    }
+
+    .asset__remaining--out strong {
+      color: var(--accent);
+    }
+
+    .asset__lifespan {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .asset__lifespan svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .claim-btn {
+      width: 100%;
+      padding: 12px 16px;
+      margin-top: 16px;
+      background: var(--ink);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .claim-btn:hover:not(:disabled) {
+      background: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .claim-btn:disabled {
+      background: var(--line-2);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    .claim-btn--claimed {
+      background: var(--accent-3);
+      color: white;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--muted);
+    }
+
+    .empty-state__icon {
+      font-size: 64px;
+      opacity: 0.3;
+      margin-bottom: 16px;
+    }
+
+    .empty-state__title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    /* My Library Section */
+    .my-library {
+      padding: 32px 0;
+      border-top: 1px solid var(--line);
+      margin-top: 32px;
+    }
+
+    .my-library__title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .my-library__count {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      background: var(--accent);
+      color: white;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+    }
+
+    .library-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .library-item {
+      background: var(--bg-2);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .library-item__thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      background: var(--line);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .library-item__thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .library-item__info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .library-item__title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .library-item__type {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 720px) {
+      .ticker__inner {
+        gap: 16px;
+      }
+      .ticker__value {
+        font-size: 18px;
+      }
+      .assets-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body data-fx="rose">
+  <swr-nav></swr-nav>
+
+  <!-- Ticker -->
+  <div class="ticker">
+    <div class="wrap ticker__inner">
+      <div class="ticker__item">
+        <span class="ticker__pulse"></span>
+        <span class="ticker__label">Available</span>
+        <span class="ticker__value" id="ticker-available">247</span>
+      </div>
+      <div class="ticker__item">
+        <span class="ticker__label">Claimed</span>
+        <span class="ticker__value ticker__value--claimed" id="ticker-claimed">1,893</span>
+      </div>
+      <div class="ticker__item">
+        <span class="ticker__label">Active Claims</span>
+        <span class="ticker__value" id="ticker-active">12</span>
+      </div>
+      <div class="ticker__item">
+        <span class="ticker__label">Expires Soon</span>
+        <span class="ticker__value" id="ticker-expiring">3</span>
+      </div>
+    </div>
+  </div>
+
+  <main class="wrap marketplace">
+    <!-- Header -->
+    <header style="padding: 48px 0 24px;">
+      <h1 style="font-family: var(--font-display); font-size: 42px; margin: 0 0 12px; color: var(--ink);">
+        Creative Assets
+      </h1>
+      <p style="font-size: 18px; color: var(--ink-2); max-width: 600px; line-height: 1.6;">
+        Browse limited-edition assets from motion designers, graphics designers, and creators. Claim your favorites before they're gone.
+      </p>
+    </header>
+
+    <!-- Category Filters -->
+    <div class="filters">
+      <button class="filter-btn filter-btn--active" data-category="all">All Assets</button>
+      <button class="filter-btn" data-category="logos">Logos</button>
+      <button class="filter-btn" data-category="images">Images</button>
+      <button class="filter-btn" data-category="clips">Clips</button>
+      <button class="filter-btn" data-category="music_clips">Music Clips</button>
+    </div>
+
+    <!-- Assets Grid -->
+    <div class="assets-grid" id="assets-grid">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- My Library -->
+    <section class="my-library" id="my-library" hidden>
+      <h2 class="my-library__title">
+        My Library
+        <span class="my-library__count" id="library-count">0</span>
+      </h2>
+      <div class="library-grid" id="library-grid">
+        <!-- Populated by JavaScript -->
+      </div>
+    </section>
+  </main>
+
+  <swr-footer></swr-footer>
+
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+
+  <script>
+    // Sample asset data
+    const assets = [
+      {
+        id: 1,
+        type: 'logos',
+        title: 'Geometric Phoenix Logo Pack',
+        creator: 'Motion Studio',
+        creatorType: 'motion designer',
+        quantity: 15,
+        maxQuantity: 50,
+        lifespan: null,
+        preview: null
+      },
+      {
+        id: 2,
+        type: 'images',
+        title: 'Neon Desert Series',
+        creator: 'Luna Graphics',
+        creatorType: 'graphics designer',
+        quantity: 8,
+        maxQuantity: 25,
+        lifespan: null,
+        preview: null
+      },
+      {
+        id: 3,
+        type: 'clips',
+        title: 'Glitch Transition Pack Vol.3',
+        creator: 'Kai Djuric',
+        creatorType: 'creator',
+        quantity: 23,
+        maxQuantity: 100,
+        lifespan: 172800, // 48 hours in seconds
+        preview: null
+      },
+      {
+        id: 4,
+        type: 'music_clips',
+        title: 'Ambient Loop Collection',
+        creator: 'Wave Forms',
+        creatorType: 'motion designer',
+        quantity: 42,
+        maxQuantity: 75,
+        lifespan: null,
+        preview: null
+      },
+      {
+        id: 5,
+        type: 'logos',
+        title: 'Minimalist Wordmark Set',
+        creator: 'Type Foundry',
+        creatorType: 'graphics designer',
+        quantity: 3,
+        maxQuantity: 30,
+        lifespan: null,
+        preview: null
+      },
+      {
+        id: 6,
+        type: 'clips',
+        title: 'Film Grain Overlays',
+        creator: 'Retro Vision',
+        creatorType: 'motion designer',
+        quantity: 67,
+        maxQuantity: 200,
+        lifespan: 43200, // 12 hours
+        preview: null
+      },
+      {
+        id: 7,
+        type: 'images',
+        title: 'Abstract Texture Collection',
+        creator: 'Pixel Artistry',
+        creatorType: 'creator',
+        quantity: 0,
+        maxQuantity: 40,
+        lifespan: null,
+        preview: null
+      },
+      {
+        id: 8,
+        type: 'music_clips',
+        title: 'Bass Drop Stingers',
+        creator: 'Beat Lab',
+        creatorType: 'creator',
+        quantity: 19,
+        maxQuantity: 50,
+        lifespan: null,
+        preview: null
+      },
+      {
+        id: 9,
+        type: 'logos',
+        title: 'Animated Logo Reveals',
+        creator: 'Motion Works',
+        creatorType: 'motion designer',
+        quantity: 12,
+        maxQuantity: 35,
+        lifespan: 86400, // 24 hours
+        preview: null
+      },
+      {
+        id: 10,
+        type: 'clips',
+        title: 'RGB Split Effects',
+        creator: 'Chrome Dreams',
+        creatorType: 'graphics designer',
+        quantity: 5,
+        maxQuantity: 60,
+        lifespan: 259200, // 72 hours
+        preview: null
+      },
+      {
+        id: 11,
+        type: 'images',
+        title: 'Cinematic Light Leaks',
+        creator: 'Film Stock Co',
+        creatorType: 'creator',
+        quantity: 31,
+        maxQuantity: 80,
+        lifespan: null,
+        preview: null
+      },
+      {
+        id: 12,
+        type: 'music_clips',
+        title: 'Drone Texture Soundscapes',
+        creator: 'Sound Forge',
+        creatorType: 'motion designer',
+        quantity: 9,
+        maxQuantity: 45,
+        lifespan: null,
+        preview: null
+      }
+    ];
+
+    // User's claimed assets
+    const claimedAssets = new Set();
+
+    // State
+    let currentCategory = 'all';
+
+    // Format time remaining
+    function formatTimeRemaining(seconds) {
+      if (seconds <= 0) return 'Expired';
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        return `${days}d ${hours % 24}h`;
+      }
+      return `${hours}h ${minutes}m`;
+    }
+
+    // Get preview placeholder based on type
+    function getTypeIcon(type) {
+      const icons = {
+        logos: '◆',
+        images: '◈',
+        clips: '▶',
+        music_clips: '♪'
+      };
+      return icons[type] || '◯';
+    }
+
+    // Render asset card
+    function renderAssetCard(asset) {
+      const isClaimed = claimedAssets.has(asset.id);
+      const isExpired = asset.lifespan !== null && asset.lifespan <= 0;
+      const quantityPercent = (asset.quantity / asset.maxQuantity) * 100;
+      const isLow = quantityPercent <= 20 && asset.quantity > 0;
+      const isOut = asset.quantity === 0;
+
+      let quantityClass = '';
+      if (isOut) quantityClass = 'asset__quantity-badge--out';
+      else if (isLow) quantityClass = 'asset__quantity-badge--low';
+
+      let remainingClass = '';
+      if (isOut) remainingClass = 'asset__remaining--out';
+      else if (isLow) remainingClass = 'asset__remaining--low';
+
+      const typeLabels = {
+        logos: 'Logo',
+        images: 'Image',
+        clips: 'Clip',
+        music_clips: 'Music'
+      };
+
+      return `
+        <article class="asset-card ${isClaimed ? 'asset-card--claimed' : ''} ${isExpired ? 'asset-card--expired' : ''}" data-id="${asset.id}" data-type="${asset.type}">
+          <div class="asset__preview">
+            <span class="asset__preview-placeholder">${getTypeIcon(asset.type)}</span>
+            <span class="asset__type-badge">${typeLabels[asset.type]}</span>
+            <span class="asset__quantity-badge ${quantityClass}">${asset.quantity}/${asset.maxQuantity}</span>
+          </div>
+          <div class="asset__body">
+            <h3 class="asset__title">${asset.title}</h3>
+            <p class="asset__creator">
+              ${asset.creator}
+              <span class="asset__creator-type">${asset.creatorType}</span>
+            </p>
+            <div class="asset__meta">
+              <span class="asset__remaining ${remainingClass}">
+                <strong>${asset.quantity}</strong> remaining
+              </span>
+              ${asset.lifespan ? `
+                <span class="asset__lifespan">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                  </svg>
+                  <span data-lifespan="${asset.id}">${formatTimeRemaining(asset.lifespan)}</span>
+                </span>
+              ` : ''}
+            </div>
+            <button class="claim-btn ${isClaimed ? 'claim-btn--claimed' : ''}" 
+                    data-id="${asset.id}"
+                    ${isClaimed || isOut || isExpired ? 'disabled' : ''}>
+              ${isClaimed ? '✓ In Library' : isOut ? 'Sold Out' : isExpired ? 'Expired' : 'Claim to Library'}
+            </button>
+          </div>
+        </article>
+      `;
+    }
+
+    // Render assets grid
+    function renderAssets() {
+      const grid = document.getElementById('assets-grid');
+      const filtered = currentCategory === 'all' 
+        ? assets 
+        : assets.filter(a => a.type === currentCategory);
+      
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-state__icon">◇</div>
+            <h3 class="empty-state__title">No assets found</h3>
+            <p>Try selecting a different category.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(renderAssetCard).join('');
+      
+      // Add event listeners to claim buttons
+      grid.querySelectorAll('.claim-btn').forEach(btn => {
+        btn.addEventListener('click', handleClaim);
+      });
+    }
+
+    // Render library
+    function renderLibrary() {
+      const library = document.getElementById('my-library');
+      const grid = document.getElementById('library-grid');
+      const count = document.getElementById('library-count');
+      
+      const claimed = assets.filter(a => claimedAssets.has(a.id));
+      
+      if (claimed.length === 0) {
+        library.hidden = true;
+        return;
+      }
+
+      library.hidden = false;
+      count.textContent = claimed.length;
+      
+      grid.innerHTML = claimed.map(asset => `
+        <div class="library-item">
+          <div class="library-item__thumb">
+            <span style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 20px; opacity: 0.3;">
+              ${getTypeIcon(asset.type)}
+            </span>
+          </div>
+          <div class="library-item__info">
+            <div class="library-item__title">${asset.title}</div>
+            <div class="library-item__type">${asset.type.replace('_', ' ')}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Handle claim
+    function handleClaim(e) {
+      const btn = e.target;
+      const id = parseInt(btn.dataset.id);
+      
+      if (claimedAssets.has(id)) return;
+      
+      const asset = assets.find(a => a.id === id);
+      if (!asset || asset.quantity <= 0) return;
+      
+      claimedAssets.add(id);
+      asset.quantity--;
+      
+      // Update UI
+      renderAssets();
+      renderLibrary();
+      updateTicker();
+    }
+
+    // Update ticker
+    function updateTicker() {
+      const totalAvailable = assets.reduce((sum, a) => sum + a.quantity, 0);
+      const totalClaimed = assets.reduce((sum, a) => sum + (a.maxQuantity - a.quantity), 0) + claimedAssets.size;
+      const expiringCount = assets.filter(a => a.lifespan !== null && a.lifespan > 0 && a.lifespan <= 43200).length;
+      
+      document.getElementById('ticker-available').textContent = totalAvailable;
+      document.getElementById('ticker-claimed').textContent = totalClaimed.toLocaleString();
+      document.getElementById('ticker-expiring').textContent = expiringCount;
+    }
+
+    // Category filter
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
+        btn.classList.add('filter-btn--active');
+        currentCategory = btn.dataset.category;
+        renderAssets();
+      });
+    });
+
+    // Lifespan countdown for clips
+    function tickLifespans() {
+      assets.forEach(asset => {
+        if (asset.lifespan !== null && asset.lifespan > 0) {
+          asset.lifespan--;
+          const span = document.querySelector(`[data-lifespan="${asset.id}"]`);
+          if (span) {
+            span.textContent = formatTimeRemaining(asset.lifespan);
+          }
+        }
+      });
+      
+      // Update ticker
+      updateTicker();
+    }
+
+    // Initialize
+    renderAssets();
+    renderLibrary();
+    updateTicker();
+
+    // Start lifespan ticker
+    setInterval(tickLifespans, 1000);
+  </script>
+  <script src="/marketplace-claim.client.js" defer></script>
+</body>
+</html>
