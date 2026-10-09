@@ -1,0 +1,82 @@
+{
+  "id": "swr-preset-2026-10-09-bollywood-cinema",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-10-09T09:10:00.000000+00:00",
+  "name": "Bollywood Cinema",
+  "family": "BOLLYWOOD",
+  "description": "Rich warm palette, heavy bloom, gold accents — for Bollywood-inspired music, Indian pop, and cinematic desi visuals. Screen blend layers glow like stage lights. Best with full-mix mastered tracks.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "bloom-halo",
+      "weight": 0.5
+    },
+    {
+      "kind": "palette_ref",
+      "name": "bollywood-gold",
+      "weight": 0.35
+    },
+    {
+      "kind": "motion_ref",
+      "name": "slow-drift",
+      "weight": 0.15
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.15,
+    "pearl": 0.3,
+    "glitch": 0.0,
+    "grain": 0.08,
+    "chroma": 0.05,
+    "bloom": 0.75,
+    "vignette": 0.2,
+    "sepia": 0.15,
+    "glow": 0.6,
+    "grayscale": 0.0,
+    "blur": 0.1,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": 0.35,
+    "posterize": 0
+  },
+  "motion": {
+    "rotation_speed": 0.04,
+    "scale_pulse": 0.2,
+    "pan_x": 0.2,
+    "pan_y": 0.15
+  },
+  "palette": {
+    "primary": "#ff9933",
+    "secondary": "#bb0022",
+    "accent": "#ffd700",
+    "bg": "#1a0a05"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "pan_x",
+      "scale_pulse"
+    ],
+    "mid": [
+      "bloom",
+      "glow"
+    ],
+    "treble": [
+      "pearl"
+    ],
+    "onset": [
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#1a0a05\"/><ellipse cx=\"40\" cy=\"40\" rx=\"30\" ry=\"25\" fill=\"#ff9933\" opacity=\"0.5\"/><ellipse cx=\"40\" cy=\"40\" rx=\"20\" ry=\"15\" fill=\"#ffd700\" opacity=\"0.4\"/><circle cx=\"40\" cy=\"35\" r=\"8\" fill=\"#bb0022\" opacity=\"0.5\"/></svg>",
+    "tags": [
+      "bollywood",
+      "desi",
+      "indian",
+      "gold",
+      "cinema",
+      "warm",
+      "bloom"
+    ]
+  }
+}
