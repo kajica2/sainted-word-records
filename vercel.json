@@ -924,6 +924,14 @@
       "destination": "/buy.html"
     },
     {
+      "source": "/booking",
+      "destination": "/booking.html"
+    },
+    {
+      "source": "/booking/",
+      "destination": "/booking.html"
+    },
+    {
       "source": "/fonts",
       "destination": "/fonts.html"
     },
