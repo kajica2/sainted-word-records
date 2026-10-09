@@ -95,7 +95,7 @@ function makeMockCtx(W, H) {
 // with a ReferenceError — the implementer should add the new feature here
 // AND to the plan's Assumptions section so the contract stays visible.
 //
-// Union of `A.feat.<x>` reads across all 16 wired drawFx bodies:
+// Union of `A.feat.<x>` reads across all 14 wired drawFx bodies:
 //   bass, beat, beatPulse, centroid, mid, onset, rms, treble
 // (`air` is read inside drawMeter, NOT drawFx — Meter is a separate
 //  optional surface and is not invoked by the engine render loop the

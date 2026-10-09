@@ -1,20 +1,25 @@
 #!/usr/bin/env node
-// scripts/check-variants-smoke.mjs — full 16-variant switcher browser smoke.
+// scripts/check-variants-smoke.mjs — full 14-variant switcher browser smoke.
 //
 // Companion to check-variants-unit.mjs. The unit test catches unbound names,
 // drawFx bodies that throw, and missing drawFx declarations in the sandbox.
-// This smoke catches what the unit cannot: a drawFx that compiles but produces
-// a black frame, an activate that throws mid-frame, a targeting rules drift,
-// or a missing audios/<id>.mp3 referenced by a new song: field.
+// This smoke catches what the unit cannot: a drawFx that compiles but is
+// never called, a drawFx that runs without throwing but produces nothing,
+// an activate that throws mid-frame, a targeting rules drift, or a missing
+// audios/<id>.mp3 referenced by a new song: field.
 //
 // Boots the real built dist/engine.html on its own static server, walks every
-// id in window.SWR_VARIANTS.list(), activates each one, samples 60×34 pixels
-// of the engine render canvas, and asserts the frame is not black.
+// id in window.SWR_VARIANTS.list(), activates each one, loads the variant's
+// audios/<id>.mp3 via window.Audio.loadFile() + play() (audio features must
+// move — void multiplies the canvas to near-black when audio is silent),
+// then wraps state.fx.run with a counter and a before/after pixel sample:
+// the drawFx must be invoked at least twice in two rAFs AND must write to
+// the canvas (a no-op drawFx — compiles, runs, but produces nothing — leaves
+// the 200-pixel random sample bit-identical before vs. after the call and
+// fails the gate with "drawFx ran but did not change any sampled pixel").
 //
 // The variant id list comes from window.SWR_VARIANTS.list() at runtime —
-// future entries are auto-covered. The non-black threshold (nonBlackPct > 10)
-// is loose enough to cover legitimate "quiet pre-roll" rendering (the current
-// 16 all clear 38%+).
+// future entries are auto-covered.
 //
 // Run: node scripts/check-variants-smoke.mjs
 // Exit 0 on full pass, 1 otherwise.
@@ -36,69 +41,6 @@ function ok(name) { results.push('  ✓ ' + name); }
 function bad(name, got) {
   results.push('  ✗ ' + name + ' (got: ' + got + ')');
   process.exitCode = 1;
-}
-
-// Sample 60×34 pixels of the engine render canvas (#render is a 2D
-// canvas; the engine's draw loop paints it directly each frame, then the
-// FX pipeline composites its WebGL output on a separate #fx-canvas above).
-// We read the 2D pixels directly via getImageData, NOT via drawImage
-// into a scratch — drawImage would copy the WebGL-backed #fx-canvas too
-// (or fail to, depending on the preserveDrawingBuffer state) and confuse
-// the diff signal with the FX output that has nothing to do with the
-// variant postFx under test. The variant postFx runs against the SAME
-// 2D ctx #render uses, so reading its pixels is the correct surface.
-//
-// The pixel buffer is sent to Node as a plain Array (not ArrayBuffer):
-// page.evaluate's structured-clone serializer does not preserve
-// ArrayBuffer.detach semantics, and returning a TypedArray is unreliable
-// across Puppeteer versions. A 60×34×4 = 8160-element Array is ~32KB
-// JSON, fine for one sample per variant.
-async function sampleFrame(page) {
-  return page.evaluate(() => {
-    const stage = document.getElementById('render');
-    if (!stage) return { error: 'no #render canvas' };
-    const ctx = stage.getContext('2d');
-    if (!ctx) return { error: 'no 2D context on #render' };
-    const W = 60, H = 34;
-    let d;
-    try { d = ctx.getImageData(0, 0, W, H).data; }
-    catch (e) { return { error: 'getImageData failed: ' + e.message }; }
-    let sum = 0, nonBlack = 0;
-    for (let i = 0; i < d.length; i += 4) {
-      const lum = d[i] + d[i + 1] + d[i + 2];
-      sum += lum;
-      if (lum > 24) nonBlack += 1;
-    }
-    const px = W * H;
-    return {
-      data: Array.from(d),
-      avgLum: sum / (px * 3),
-      nonBlackPct: (nonBlack / px) * 100,
-      totalPx: px,
-    };
-  });
-}
-
-// Fraction of pixels whose RGB sum differs between two consecutive
-// samples. Used as the drawFx-aliveness signal: a real (animating)
-// drawFx produces a high diff between two samples 80ms apart, a no-op
-// drawFx (state.fx.run replaced with () => {}) produces a low diff
-// because only the engine's audio jitter remains.
-function pixelDiffPct(a, b) {
-  if (!a || !b) return 0;
-  if (!a.data || !b.data) return 0;
-  const x = a.data;
-  const y = b.data;
-  const n = Math.min(x.length, y.length);
-  let diff = 0, total = 0;
-  for (let i = 0; i < n; i += 4) {
-    const dr = Math.abs(x[i] - y[i]);
-    const dg = Math.abs(x[i + 1] - y[i + 1]);
-    const db = Math.abs(x[i + 2] - y[i + 2]);
-    if (dr + dg + db > 0) diff += 1;
-    total += 1;
-  }
-  return total === 0 ? 0 : (diff / total) * 100;
 }
 
 let browser;
