@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "Zone for the local dev nameserver (tools/local-dns.mjs).",
+    ".test is reserved by RFC 6761 and never resolves on the public internet,",
+    "so nothing here can leak a real query or shadow a real site.",
+    "sainted-word.test -> the Vite dev server, so http://sainted-word.test:5174/",
+    "mirrors production, where / is rewritten to /landing.html.",
+    "Port 5354 rather than 53: binding 53 needs root, and macOS resolver",
+    "files take a per-client `port`, so an unprivileged server is fine — see",
+    "tools/local-dns-system.sh.",
+    "upstream: empty means auto-detect the machine's own resolvers (scutil,",
+    "then /etc/resolv.conf) at boot. Pin it here to override, e.g. [\"1.1.1.1\"]."
+  ],
+  "host": "127.0.0.1",
+  "port": 5354,
+  "zone": "sainted-word.test",
+  "ttl": 60,
+  "records": {
+    "sainted-word.test": "127.0.0.1",
+    "www.sainted-word.test": "127.0.0.1",
+    "app.sainted-word.test": "127.0.0.1",
+    "engine.sainted-word.test": "127.0.0.1",
+    "api.sainted-word.test": "127.0.0.1",
+    "*.sainted-word.test": "127.0.0.1"
+  },
+  "upstream": []
+}
