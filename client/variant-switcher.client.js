@@ -46,12 +46,13 @@
     { id: 'film',         name: 'Film',         desc: 'Per-pixel grain · projector flicker · warm overlay · vignette', song: 'audios/film.mp3',
       accent: { r: 0xc8, g: 0xa8, b: 0x78 }, accent2: { r: 0x8a, g: 0x6a, b: 0x3a }, accent3: { r: 0xf5, g: 0xe8, b: 0xc8 } },
     // grid's visual identity is its DOM overlays (#grid lines + #flash
-    // beat-pulse), which client/variant-switcher.client.js's
-    // ensureOverlays() manages. Its drawFx body is intentionally a
-    // no-op (versions/grid.html:1079 — "Legacy flash/pulse retired —
-    // engine.html's console drives #flash/#grid now. Kept as an
-    // extractable no-op: the variant switcher compiles this source."),
-    // so a drawFx-painted-pixels smoke check would falsely fail it.
+    // beat-pulse), which versions/grid.html drives itself. Its drawFx body
+    // is intentionally a no-op (versions/grid.html:1079 — "Legacy flash/
+    // pulse retired — engine.html's console drives #flash/#grid now. Kept
+    // as an extractable no-op: the variant switcher compiles this
+    // source."), so a drawFx-painted-pixels smoke check would falsely fail
+    // it — and the overlays the engine would need to create are the page's
+    // own, not the switcher's.
     // grid stays reachable as a standalone page at /versions/grid.html
     // but is not wired into the engine dropdown. (mirrors baroque.)
     { id: 'smoke',        name: 'Smoke',        desc: 'Warm haze · amber chromatic-aberration ghost', song: 'audios/smoke.mp3',
@@ -94,7 +95,7 @@
     // carries a canvas drawFx written for the variant contract, but is
     // intentionally not listed here — baroque is reachable as a standalone
     // page at /versions/baroque.html and the engine does not wire it.
-    // versions/baroque.html still ships; SWR_VARIANTS.list() returns 15.
+    // versions/baroque.html still ships; SWR_VARIANTS.list() returns 14.
 
     // NOT variant-switchable, deliberately:
     //   versions/music-video-gallery.html — a VIDEO PLAYER page (eight
@@ -106,13 +107,14 @@
     //   versions/baroque.html — has a drawFx, but is intentionally NOT
     //     wired into the engine: it stays a standalone page at
     //     /versions/baroque.html. (The page still ships; the dropdown just
-    //     doesn't surface it.) The 16-entry switcher was reverted to 15
-    //     by request.
+    //     doesn't surface it.) baroque was the first of two ids removed
+    //     from the switcher; d8f6390 removed grid as well. Both remain
+    //     reachable as standalone pages, so the list is 14.
     //   versions/grid.html — has a drawFx (intentionally a no-op), but
-    //     its visual identity is the #grid + #flash DOM overlays that
-    //     client/variant-switcher.client.js's ensureOverlays() manages.
-    //     A canvas drawFx would be redundant and a no-op drawFx would
-    //     fail a "painted pixels" smoke check. Page still ships as
+    //     its visual identity is the #grid + #flash DOM overlays, which
+    //     versions/grid.html drives itself — the engine does not create
+    //     them. A canvas drawFx would be redundant and a no-op drawFx
+    //     would fail a "painted pixels" smoke check. Page still ships as
     //     /versions/grid.html; the engine doesn't wire it.
     //   kraft, mosaic, phosphor, spectrum, tape, typography, collage —
     //   still bespoke render loops with no drawFx. Adding them means
@@ -226,6 +228,11 @@
     if (!stage) return;
     if (getComputedStyle(stage).position === 'static') stage.style.position = 'relative';
     const have = (sel) => stage.querySelector(sel);
+    // Whatever the incoming variant is, its overlays are exclusive: a
+    // film → neon switch never calls deactivate(), so the previous
+    // variant's overlay has to be dropped here or it stays painted over
+    // the new one.
+    removeOverlays();
     if (id === 'film' && !have('#vignette')) {
       const el = document.createElement('div');
       el.id = 'vignette';
@@ -233,6 +240,16 @@
       el.style.zIndex = '9';
       stage.appendChild(el);
     }
+  }
+
+  // Inverse of ensureOverlays(). Only ever touches nodes inside #stage, so
+  // the #vignette-fx slider (which lives in the toolbar, outside #stage)
+  // can never be matched by this.
+  function removeOverlays() {
+    const stage = document.getElementById('stage');
+    if (!stage) return;
+    const overlay = stage.querySelector('#vignette');
+    if (overlay) overlay.remove();
   }
 
   const state = {
@@ -308,6 +325,11 @@
     state.active = null;
     state.fx = null;
     if (typeof window.SWR_VARIANTS_UI === 'function') window.SWR_VARIANTS_UI(null);
+    // Drop the DOM overlay ensureOverlays() appended to #stage. Without
+    // this the film vignette's 0.7-alpha radial mask stays painted over
+    // every later variant — a sibling overlay div, so the
+    // drawFx-painted-pixels smoke (which samples #render) cannot see it.
+    removeOverlays();
   }
 
   // Engine render-loop hook. Strict no-op when no variant is active.
