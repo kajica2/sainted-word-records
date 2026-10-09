@@ -354,6 +354,9 @@ function copyStatic() {
     'engine-panel-visibility.client.js',
     'engine-automap.client.js',
     'engine-settings.client.js',
+    // Dual-mode engine: Basic (default for first-timers) and Advanced.
+    // Basic mode: minimal UI, floating controls, library drawer.
+    'engine-basic-mode.client.js',
     'persona-onboarding.js',
     'persona-runtime.client.js',
     'swr-mascot-camera.svg',
