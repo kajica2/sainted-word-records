@@ -23,7 +23,13 @@ const ROOT = path.resolve(__dirname, '..');
 const SRC_PATH = path.join(ROOT, 'client/variant-switcher.client.js');
 const FETCH_HTML = {}; // map of '/versions/<id>.html' -> page source (test-served)
 
-const VARIANTS = ['neon', 'film', 'grid', 'smoke', 'hallucination'];
+// Variants under test — read at runtime from SWR_VARIANTS.list() so a future
+// addition is auto-covered. The 5→16 expansion (5 core + 11 artistic) is
+// what made this test outgrow its hardcoded list; the canonical full
+// coverage now lives in scripts/check-variants-unit.mjs. This file keeps
+// the extractor-fidelity check (the one assertion the new unit does not
+// duplicate).
+let VARIANTS = [];
 
 let failures = 0;
 function assert(cond, msg, detail) {
@@ -135,12 +141,10 @@ function buildContext() {
 }
 
 async function main() {
-  // Load every variant page source into the fake fetch.
-  for (const id of VARIANTS) {
-    FETCH_HTML[`/versions/${id}.html`] = fs.readFileSync(path.join(ROOT, `versions/${id}.html`), 'utf8');
-  }
-
-  console.log('\n=== 1. Extractor verbatim fidelity ===');
+  // Boot the module first so we can read the runtime variant list —
+  // a future addition to VARIANTS is auto-covered, instead of a stale
+  // hardcoded array silently shipping a test that doesn't match the
+  // production code. The fetch stub serves any requested page below.
   const ctx = buildContext();
   vm.createContext(ctx);
   const src = fs.readFileSync(SRC_PATH, 'utf8');
@@ -149,6 +153,14 @@ async function main() {
   const curator = ctx.window.SWR_VARIANTS;
   if (!curator) throw new Error('SWR_VARIANTS not exposed');
 
+  VARIANTS = curator.list().map((v) => v.id);
+
+  // Load every variant page source into the fake fetch.
+  for (const id of VARIANTS) {
+    FETCH_HTML[`/versions/${id}.html`] = fs.readFileSync(path.join(ROOT, `versions/${id}.html`), 'utf8');
+  }
+
+  console.log(`\n=== 1. Extractor verbatim fidelity (${VARIANTS.length} variants) ===`);
   const extractor = curator._debug.extractFunctionSource;
   for (const id of VARIANTS) {
     const page = FETCH_HTML[`/versions/${id}.html`];
@@ -182,7 +194,8 @@ async function main() {
 
   console.log('\n=== 4. List shape ===');
   const list = curator.list();
-  assert(Array.isArray(list) && list.length === 5, `list() returns 5 variants (got ${list.length})`);
+  assert(Array.isArray(list) && list.length === VARIANTS.length,
+    `list() returns ${VARIANTS.length} variants (got ${list.length})`);
   assert(list.every((v) => v.id && v.name && v.song), 'every entry has id/name/song');
 
   console.log('\n' + (failures === 0

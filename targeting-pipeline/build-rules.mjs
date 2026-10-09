@@ -198,7 +198,10 @@ export function surfaceCodes() { return { ...SURFACE_CODE }; }
 
 export function readVariantIds() {
   const src = fs.readFileSync(path.join(ROOT, 'client/variant-switcher.client.js'), 'utf8');
-  const ids = [...src.matchAll(/\bid:\s*'([a-z0-9-]+)'/g)].map((m) => m[1]);
+  // Includes underscores — `music_video_mtv` would otherwise drop out of the
+  // canonical list and surface as a "variant" not in the switcher, breaking
+  // the permutation check in verify.mjs.
+  const ids = [...src.matchAll(/\bid:\s*'([a-z0-9_-]+)'/g)].map((m) => m[1]);
   return [...new Set(ids)];
 }
 
@@ -232,8 +235,14 @@ export function buildRules() {
     personaSurfaces[id] = (surfaces || []).map(function (w) { return SURFACE_CODE[w]; }).filter(Boolean);
 
     const affinity = VARIANT_AFFINITY[id] || [];
-    const rest = canonicalVariants.filter((v) => !affinity.includes(v));
-    personaToVariants[id] = [...affinity, ...rest];
+    // Filter affinity to canonical variants: baroque and grid were in
+    // earlier versions of the switcher but have been removed (baroque
+    // is a standalone page, grid's identity is the DOM overlays). The
+    // persona files may still name them in affinity lists; that
+    // information is preserved as a no-op for those ids.
+    const filteredAffinity = affinity.filter((v) => canonicalVariants.includes(v));
+    const rest = canonicalVariants.filter((v) => !filteredAffinity.includes(v));
+    personaToVariants[id] = [...filteredAffinity, ...rest];
 
     const seg = SEGMENT_BY_PERSONA[id];
     if (seg !== null && !segmentIds.has(seg)) {

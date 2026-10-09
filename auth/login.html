@@ -303,5 +303,16 @@
 
   <script type="module" src="/auth/login.client.js"></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/early-access-modal.client.js" defer></script>
+  <script>
+    // Replace waitlist link with early access modal
+    document.addEventListener('DOMContentLoaded', function() {
+      var waitlistLink = document.querySelector('a[href*="tally.so"]');
+      if (waitlistLink) {
+        waitlistLink.href = 'javascript:SWR_EARLY_ACCESS.show()';
+        waitlistLink.textContent = 'Request Early Access →';
+      }
+    });
+  </script>
 </body>
 </html>

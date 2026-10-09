@@ -300,9 +300,9 @@
 <script src="../client/automix-session-store.client.js"></script>
 <script src="../client/automix-runtime.client.js"></script>
 <script src="../client/automix-composition.client.js" defer></script>
-<script src="../client/automix-style.client.js" defer></script>
 <link rel="stylesheet" href="../engine-genops.css" />
   <link rel="stylesheet" href="../lib/user-media.css">
+  <link rel="stylesheet" href="/lib/drive-modal.css" />
 </head>
 <body data-page="aurora">
   <div id="app">
@@ -311,6 +311,7 @@
       <div class="v">AURORA <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
+      <button type="button" id="swr-drive-btn" class="tbtn ghost" title="Import from Google Drive">Drive</button>
       <input type="file" id="song-input" accept="audio/*" />
       <button class="tbtn primary" id="play" disabled data-icon="▶">▶</button>
       <span id="time" style="font-size:10px;color:var(--muted);">0:00 / 0:00</span>
@@ -377,7 +378,6 @@
       <span data-fx-tone-mount></span>
       <button class="tbtn" id="automix-debug" title="Automix debug (D)" style="padding:3px 8px;font-size:9px;margin-left:6px;background:none;border:1px solid #444;border-radius:6px;color:#ccc;cursor:pointer;">Debug</button>
       <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
-      <select id="automix-style" title="How the visuals evolve (anchor pool · cadence · drift · cutting)" style="font-size:9px;padding:2px 4px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:3px;font:9px ui-monospace;max-width:104px;margin-left:6px;"></select>
       <span class="spacer" style="flex:1"></span>
       <span id="fps" style="color:var(--m);">— fps</span>
     </footer>
@@ -1335,25 +1335,69 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="../lib/audio-damp.client.js"></script>
 <!-- SWR-FX-GRADE-MARKER -->
 <script src="../lib/gpu-grade.client.js"></script>
-<script>
-  // Mount the automix style dropdown. Deferred so it runs after the
-  // automix modules that expose SWR_AUTOMIX / SWR_ANCHOR_MAP.
-  (function () {
-    function __swr_mount_automix_style() {
-      var sel = document.getElementById('automix-style');
-      var S = window.SWR_AUTOMIX_STYLE;
-      if (!sel || !S) return false;
-      S.mount(sel);
-      // Apply the stored style so a returning session keeps its look.
-      S.apply(S.get());
-      return true;
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', __swr_mount_automix_style, { once: true });
-    } else if (!__swr_mount_automix_style()) {
-      setTimeout(__swr_mount_automix_style, 300);
-    }
-  })();
-</script>
+<script src="/lib/auth.client.js" defer></script>
+<script src="/lib/google-drive.client.js" defer></script>
+  <script src="/lib/drive-modal.client.js" defer></script>
+
+  <script>
+    (function() {
+      var driveBtn = document.getElementById('swr-drive-btn');
+      if (!driveBtn) return;
+
+      function getDriveState() {
+        return window.SWR_AUTH ? window.SWR_AUTH.get() : Promise.resolve(null);
+      }
+
+      function updateBtnState(user) {
+        if (!user) {
+          driveBtn.title = 'Sign in to import from Google Drive';
+          driveBtn.style.opacity = '0.4';
+        } else if (!user.googleDriveLinkedAt) {
+          driveBtn.title = 'Connect Google Drive to import files';
+          driveBtn.style.opacity = '0.7';
+        } else {
+          driveBtn.title = 'Import from Google Drive';
+          driveBtn.style.opacity = '1';
+        }
+      }
+
+      // Bootstrap: check session and listen for auth changes.
+      if (window.SWR_AUTH) {
+        getDriveState().then(updateBtnState);
+        window.SWR_AUTH.onChange(updateBtnState);
+      } else {
+        driveBtn.title = 'Sign in to import from Google Drive';
+        driveBtn.style.opacity = '0.4';
+      }
+
+      driveBtn.addEventListener('click', function() {
+        getDriveState().then(function(user) {
+          if (!user) {
+            // Not logged in → redirect to login with return path.
+            var returnTo = encodeURIComponent(location.pathname);
+            location.href = '/auth/login?redirect=' + returnTo;
+            return;
+          }
+          if (!user.googleDriveLinkedAt) {
+            // Drive not linked → initiate OAuth in popup.
+            if (window.SWR_GDRIVE) {
+              window.SWR_GDRIVE.link(location.pathname)
+                .then(function() { updateBtnState(Object.assign({}, user, { googleDriveLinkedAt: new Date().toISOString() })); })
+                .catch(function(e) {
+                  if (e.message !== 'popup_blocked' && e.message !== 'oauth_timeout') {
+                    console.warn('[drive] link error:', e);
+                  }
+                });
+            }
+            return;
+          }
+          // Drive linked → open browser modal.
+          if (window.SWR_DRIVE_MODAL) {
+            window.SWR_DRIVE_MODAL.show();
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

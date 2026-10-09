@@ -6,7 +6,10 @@
 Created by potrace 1.16, written by Peter Selinger 2001-2019
 </metadata>
 <g transform="translate(0.000000,1024.000000) scale(0.100000,-0.100000)"
-fill="#ffffff" stroke="none">
+fill="#ffffff"
+stroke="rgba(0,0,0,0.85)"
+stroke-width="1"
+vector-effect="non-scaling-stroke">
 <path d="M2350 8758 c-198 -8 -256 -18 -377 -63 -181 -68 -287 -136 -419 -271
 -200 -202 -305 -405 -370 -714 l-29 -135 0 -2325 0 -2325 28 -140 c32 -165 55
 -238 110 -360 89 -197 215 -347 417 -497 89 -66 152 -99 265 -138 128 -46 214
