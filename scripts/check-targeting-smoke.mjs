@@ -5,8 +5,9 @@
 //   1. window.SWR_TARGETING is installed with the documented API surface.
 //   2. targeting/rules.json is loaded (via the fetch path — the inline
 //      <script id="swrc-targeting-rules"> tag only exists in a built dist).
-//   3. #variant carries the 6 options (off + the 5 variant ids) and the
-//      order is the unmodified canonical one on a cold session.
+//   3. #variant carries 'off' plus every canonical variant id (read at
+//      runtime from SWR_VARIANTS.list()). Option order is not pinned —
+//      maybeReorderVariants is free to reorder the select.
 //   4. the banner host exists and is hidden.
 //   5. nothing on the prove path threw a page error.
 //
@@ -71,6 +72,10 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
         rulesLoaded: !!(T && T._debug && T._debug.state && T._debug.state.rules),
         rulesVersion: T && T._debug && T._debug.state && T._debug.state.rules ? T._debug.state.rules.version : null,
         variantOpts: Array.from(document.querySelectorAll('#variant option')).map((o) => o.value),
+        // list() is the canonical source for the expected set — read at
+        // runtime so variant additions/removals (grid's removal, the 9
+        // artistic variants) are covered without editing this file.
+        variantIds: window.SWR_VARIANTS ? window.SWR_VARIANTS.list().map((v) => v.id) : [],
         banner: !!document.getElementById('swr-targeting-banner'),
         bannerHidden: (() => { const b = document.getElementById('swr-targeting-banner'); return b ? b.hidden : null; })(),
       };
@@ -84,9 +89,24 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     if (init.rulesLoaded && init.rulesVersion === 'swr-targeting-rules/v1') pass('targeting/rules.json loaded', init.rulesVersion);
     else fail('rules not loaded', JSON.stringify(init.rulesVersion));
 
-    const expected = ['off', 'neon', 'film', 'grid', 'smoke', 'hallucination'];
-    if (JSON.stringify(init.variantOpts) === JSON.stringify(expected)) pass('#variant canonical order (6 options)');
-    else fail('#variant options mismatch', JSON.stringify(init.variantOpts));
+    // Expected set is derived at runtime from SWR_VARIANTS.list() (canonical)
+    // with the static <option value="off"> the console toolbar carries first.
+    //
+    // The variant *order* is deliberately not asserted: wireUI() hands the
+    // select to SWR_TARGETING.maybeReorderVariants, which reorders the
+    // options most-relevant-first once its rules table loads, so the same
+    // page legitimately yields two orders. Assert the set, and report the
+    // order for visibility.
+    const expected = ['off', ...init.variantIds];
+    const sameSet = init.variantOpts.length === expected.length
+      && expected.every((id) => init.variantOpts.includes(id))
+      && new Set(init.variantOpts).size === init.variantOpts.length;
+    if (sameSet) {
+      pass(`#variant carries 'off' + all ${expected.length - 1} variants (${init.variantOpts.length} options)`);
+      console.log(`  \x1b[33m·\x1b[0m option order: ${init.variantOpts.join(', ')}`);
+    } else {
+      fail('#variant options mismatch', JSON.stringify({ got: init.variantOpts, expected }));
+    }
 
     if (init.banner && init.bannerHidden === true) pass('banner host present and hidden');
     else fail('banner host', JSON.stringify({ present: init.banner, hidden: init.bannerHidden }));
