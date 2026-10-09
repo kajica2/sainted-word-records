@@ -1,0 +1,83 @@
+{
+  "id": "swr-preset-2026-10-09-glitch-abstract",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-10-09T08:58:00.000000+00:00",
+  "name": "Glitch Abstract",
+  "family": "GLITCH",
+  "description": "Controlled chaos. Heavy chroma aberration, block glitch, and mut-oscillation. For IDM, experimental electronic, and avant-garde visuals. Layers offset to create RGB fringe depth.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "glitch-blocks",
+      "weight": 0.6
+    },
+    {
+      "kind": "palette_ref",
+      "name": "neon-danger",
+      "weight": 0.25
+    },
+    {
+      "kind": "motion_ref",
+      "name": "chaos-sync",
+      "weight": 0.15
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.9,
+    "grain": 0.25,
+    "chroma": 0.7,
+    "bloom": 0.2,
+    "vignette": 0.3,
+    "sepia": 0.0,
+    "glow": 0.0,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.6,
+    "mutAlgo": 0.9,
+    "temp": 0.3,
+    "posterize": 6
+  },
+  "motion": {
+    "rotation_speed": 0.8,
+    "scale_pulse": 0.5,
+    "pan_x": 1.0,
+    "pan_y": 0.7
+  },
+  "palette": {
+    "primary": "#ff0044",
+    "secondary": "#00ff88",
+    "accent": "#4400ff",
+    "bg": "#000000"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "pan_x",
+      "pan_y"
+    ],
+    "mid": [
+      "glitch",
+      "chroma"
+    ],
+    "treble": [
+      "mut",
+      "grain"
+    ],
+    "onset": [
+      "rotation_speed",
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><rect x=\"5\" y=\"15\" width=\"30\" height=\"50\" fill=\"#ff0044\" opacity=\"0.5\"/><rect x=\"20\" y=\"10\" width=\"30\" height=\"50\" fill=\"#00ff88\" opacity=\"0.3\"/><rect x=\"35\" y=\"20\" width=\"30\" height=\"50\" fill=\"#4400ff\" opacity=\"0.4\"/><rect x=\"0\" y=\"30\" width=\"80\" height=\"4\" fill=\"#ffffff\" opacity=\"0.2\"/><rect x=\"0\" y=\"50\" width=\"80\" height=\"2\" fill=\"#ffffff\" opacity=\"0.15\"/></svg>",
+    "tags": [
+      "glitch",
+      "abstract",
+      "idm",
+      "experimental",
+      "chroma",
+      "chaos"
+    ]
+  }
+}
