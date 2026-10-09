@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// scripts/check-variants-unit.mjs — full 16-variant switcher unit test.
+// scripts/check-variants-unit.mjs — full 14-variant switcher unit test.
 //
-// The variant switcher grew from 5 (neon/film/grid/smoke/hallucination) to 16
-// across this session: 5 core + 11 artistic + utility passes (music_video,
-// glitch, aurora, pulse, void, chrome, watercolor, fractal, music_video_mtv,
-// eclipse, baroque). Each new entry required a `function drawFx(` body in its
-// versions/<id>.html page; eclipse + baroque had to be authored from scratch.
+// The variant switcher grew from 5 (neon/film/smoke/hallucination) to 16
+// across this session, then was reduced to 14 when grid and baroque were
+// removed (d8f6390 and the gate's initial commit). Each wired entry
+// required a `function drawFx(` body in its versions/<id>.html page;
+// eclipse and baroque got author passes before their eventual removal,
+// and grid's drawFx was always a no-op (`function drawFx()` in
+// versions/grid.html:1079).
 //
 // Two latent bugs were caught and fixed during the work:
 //   - `proc` / `pcx` were unbound in compileFx (aurora/glitch/chrome/
@@ -184,8 +186,8 @@ async function main() {
   if (!variants) throw new Error('SWR_VARIANTS not exposed');
 
   // Read the variant list at runtime — a future change to the VARIANTS
-  // array is auto-covered. Pinning the count to 16 here would make the
-  // test silently out-of-date the next time someone adds a 17th.
+  // array is auto-covered. Pinning the count to 14 here would make the
+  // test silently out-of-date the next time someone adds a 15th.
   const list = variants.list();
   const ids = list.map((v) => v.id);
   console.log(`\n=== 1. Variant list shape (${ids.length} entries) ===`);
