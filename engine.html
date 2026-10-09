@@ -1721,6 +1721,495 @@
       font-size: 12px; color: rgba(245,234,216,0.7);
       cursor: pointer;
     }
+
+    /* ============================================= */
+    /* MODE TOGGLE                                  */
+    /* ============================================= */
+    .mode-toggle {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-1);
+      padding: 3px;
+      border-radius: 6px;
+      margin: 0 12px;
+    }
+    .mode-toggle button {
+      padding: 5px 12px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .mode-toggle button.active {
+      background: var(--panel-2);
+      color: var(--fg);
+    }
+    .mode-toggle button:not(.active):hover { color: var(--fg); }
+
+    /* ============================================= */
+    /* BASIC MODE STYLES                            */
+    /* ============================================= */
+    body.engine-basic-mode #app,
+    body.engine-basic-mode header#transport,
+    body.engine-basic-mode aside#library,
+    body.engine-basic-mode footer#global { display: none; }
+
+    body.engine-basic-mode #basic-mode-ui { display: flex !important; }
+    body.engine-advanced-mode #basic-mode-ui { display: none !important; }
+
+    #basic-mode-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: linear-gradient(180deg, var(--bg-2), var(--panel));
+      border-bottom: 1px solid var(--line);
+    }
+    body.engine-basic-mode #basic-mode-header { display: flex !important; }
+    body.engine-advanced-mode #basic-mode-header { display: none !important; }
+
+    .basic-brand {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+    }
+    .basic-brand small { color: var(--muted); font-weight: 400; }
+
+    #basic-stage {
+      display: none;
+      flex: 1;
+      background: #000;
+      position: relative;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    body.engine-basic-mode #basic-stage { display: flex !important; }
+    body.engine-advanced-mode #basic-stage { display: none !important; }
+
+    #basic-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 32px;
+      text-align: center;
+    }
+    #basic-empty-state.hidden { display: none; }
+    #basic-empty-state h3 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--fg);
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    #basic-empty-state p {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 400px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .basic-upload-zone {
+      border: 2px dashed var(--line-2);
+      border-radius: 14px;
+      padding: 36px 52px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+      background: rgba(255,255,255,0.02);
+      max-width: 460px;
+    }
+    .basic-upload-zone:hover {
+      border-color: var(--accent);
+      background: rgba(255,61,146,0.05);
+    }
+    .basic-upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(255,61,146,0.1);
+    }
+    .basic-upload-zone input { display: none; }
+    .basic-upload-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 14px;
+      background: rgba(255,61,146,0.12);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .basic-upload-zone h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+    .basic-upload-zone p { font-size: 12px; color: var(--muted); }
+
+    #basic-clips-bar {
+      display: none;
+      padding: 16px 20px;
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+    }
+    body.engine-basic-mode #basic-clips-bar { display: block !important; }
+    body.engine-advanced-mode #basic-clips-bar { display: none !important; }
+
+    .basic-clips-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .basic-clips-grid {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .basic-clip {
+      width: 90px;
+      aspect-ratio: 1;
+      background: var(--bg-1);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: 0.15s;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .basic-clip:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .basic-clip img, .basic-clip video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .basic-clip .name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 3px 5px;
+      font-size: 9px;
+      font-family: var(--font-mono);
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .basic-clip .add-btn {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      opacity: 0;
+      transition: 0.15s;
+    }
+    .basic-clip:hover .add-btn { opacity: 1; }
+
+    #basic-controls {
+      display: none;
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      align-items: center;
+      gap: 6px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 6px 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+      z-index: 50;
+    }
+    body.engine-basic-mode #basic-controls { display: flex !important; }
+    body.engine-advanced-mode #basic-controls { display: none !important; }
+
+    .basic-song-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      background: var(--bg-1);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font-size: 10px;
+      max-width: 140px;
+    }
+    .basic-song-badge.hidden { display: none; }
+    .basic-song-badge .icon { font-size: 13px; }
+    .basic-song-badge .title {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 80px;
+    }
+    .basic-song-badge .artist { color: var(--muted); font-size: 9px; }
+
+    .basic-layers {
+      display: flex;
+      gap: 4px;
+    }
+    .basic-layer-pill {
+      width: 26px;
+      height: 26px;
+      border-radius: 5px;
+      background: var(--bg-1);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+    .basic-layer-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .basic-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--line);
+    }
+
+    .basic-ctrl {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--fg);
+      font-size: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s;
+    }
+    .basic-ctrl:hover { background: var(--bg-2); border-color: var(--accent); }
+    .basic-ctrl.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-size: 16px;
+    }
+    .basic-ctrl.primary:hover { background: #ff5fa3; }
+    .basic-ctrl.recording {
+      background: #ff4444;
+      border-color: #ff4444;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    #pro-banner {
+      display: none;
+      position: fixed;
+      top: 64px;
+      right: 16px;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 1px solid rgba(255,77,146,0.3);
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      z-index: 40;
+    }
+    body.engine-basic-mode #pro-banner { display: flex !important; }
+    body.engine-advanced-mode #pro-banner { display: none !important; }
+
+    #pro-banner span { color: var(--accent); font-weight: 600; }
+    #pro-banner button {
+      padding: 5px 10px;
+      background: var(--accent);
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    #pro-banner button:hover { background: #ff6aa3; }
+
+    #basic-library-drawer {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg-0);
+      z-index: 100;
+      flex-direction: column;
+    }
+    #basic-library-drawer.open { display: flex; }
+    body.engine-advanced-mode #basic-library-drawer { display: none !important; }
+
+    .basic-library-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .basic-library-header h2 { font-size: 14px; font-weight: 600; }
+    .basic-library-header button {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--fg);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .basic-library-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .basic-library-upload {
+      border: 2px dashed var(--line-2);
+      border-radius: 10px;
+      padding: 28px;
+      text-align: center;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+    .basic-library-upload:hover { border-color: var(--accent); }
+    .basic-library-section { margin-bottom: 20px; }
+    .basic-library-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    #welcome-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 3, 8, 0.92);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+    #welcome-overlay.hidden { display: none; }
+    body.engine-advanced-mode #welcome-overlay { display: none !important; }
+
+    .welcome-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 36px;
+      max-width: 460px;
+      text-align: center;
+    }
+    .welcome-card h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .welcome-card > p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 22px;
+    }
+    .welcome-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .welcome-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-1);
+      border-radius: 7px;
+    }
+    .welcome-step-num {
+      width: 26px;
+      height: 26px;
+      background: rgba(255,61,146,0.15);
+      color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .welcome-step-text { font-size: 12px; }
+    .welcome-step-text strong { color: var(--fg); display: block; margin-bottom: 1px; }
+    .welcome-step-text span { color: var(--muted); font-size: 11px; }
+    .welcome-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .welcome-btn {
+      padding: 10px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+      border: none;
+    }
+    .welcome-btn.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .welcome-btn.primary:hover { background: #ff5fa3; }
+    .welcome-btn.secondary {
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--muted);
+    }
+    .welcome-btn.secondary:hover { border-color: var(--accent); color: var(--fg); }
   </style>
 <script src="/fx-background.client.js" defer></script>
   <!-- Targeted Engine. Must load BEFORE variant-switcher so
@@ -1732,11 +2221,153 @@
   <script src="/client/default-library.client.js" defer></script>
 </head>
 <body>
+  <!-- BASIC MODE UI -->
+  <div id="basic-mode-ui" style="display:none; flex-direction:column; height:100vh;">
+
+    <!-- Basic header (hidden when advanced) -->
+    <div id="basic-mode-header">
+      <div class="basic-brand">SAINTED-WORD <small>/ Audio Engine</small></div>
+      <div class="mode-toggle" id="basic-mode-toggle">
+        <button class="active" id="mode-basic-btn">Basic</button>
+        <button id="mode-advanced-btn">Advanced</button>
+      </div>
+    </div>
+
+    <!-- Basic stage -->
+    <div id="basic-stage">
+      <canvas id="basic-canvas"></canvas>
+      <div id="basic-empty-state">
+        <h3>Ready to create</h3>
+        <p>Drop in a song, add some clips, and watch them come alive with your audio.</p>
+        <div class="basic-upload-zone" id="basic-upload-zone">
+          <input type="file" accept="audio/*" id="basic-song-input">
+          <div class="basic-upload-icon">♪</div>
+          <h3>Drop your song here</h3>
+          <p>MP3, WAV, FLAC — any format works</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick clips bar -->
+    <div id="basic-clips-bar">
+      <div class="basic-clips-label">Or grab some clips to get started</div>
+      <div class="basic-clips-grid" id="basic-clips-grid">
+        <div class="basic-clip" data-name="Abstract 01">
+          <img src="https://picsum.photos/seed/clip1/200" alt="">
+          <div class="name">Abstract 01</div>
+          <div class="add-btn">+</div>
+        </div>
+        <div class="basic-clip" data-name="City Lights">
+          <img src="https://picsum.photos/seed/clip2/200" alt="">
+          <div class="name">City Lights</div>
+          <div class="add-btn">+</div>
+        </div>
+        <div class="basic-clip" data-name="Nature Loop">
+          <img src="https://picsum.photos/seed/clip3/200" alt="">
+          <div class="name">Nature Loop</div>
+          <div class="add-btn">+</div>
+        </div>
+        <div class="basic-clip" data-name="Neon Glow">
+          <img src="https://picsum.photos/seed/clip4/200" alt="">
+          <div class="name">Neon Glow</div>
+          <div class="add-btn">+</div>
+        </div>
+        <div class="basic-clip" data-name="Ocean Waves">
+          <img src="https://picsum.photos/seed/clip5/200" alt="">
+          <div class="name">Ocean Waves</div>
+          <div class="add-btn">+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating controls -->
+    <div id="basic-controls">
+      <div class="basic-song-badge hidden" id="basic-song-badge">
+        <div class="icon">♪</div>
+        <div>
+          <div class="title" id="basic-song-title">—</div>
+          <div class="artist" id="basic-song-artist">No song</div>
+        </div>
+      </div>
+      <div class="basic-layers" id="basic-layers"></div>
+      <div class="basic-divider"></div>
+      <button class="basic-ctrl" id="basic-library-btn" title="My Library">📁</button>
+      <button class="basic-ctrl" id="basic-play-btn" title="Play">▶</button>
+      <button class="basic-ctrl primary" id="basic-record-btn" title="Record">⏺</button>
+      <button class="basic-ctrl" id="basic-effects-btn" title="Effects">✨</button>
+    </div>
+
+    <!-- Pro banner -->
+    <div id="pro-banner">
+      <span>Advanced controls</span> for power users
+      <button id="pro-banner-upgrade-btn">Try Pro →</button>
+    </div>
+
+    <!-- Library drawer -->
+    <div id="basic-library-drawer">
+      <div class="basic-library-header">
+        <h2>My Library</h2>
+        <button id="basic-library-close">×</button>
+      </div>
+      <div class="basic-library-body">
+        <div class="basic-library-upload">
+          <p>Drop images or video clips here to add them</p>
+        </div>
+        <div class="basic-library-section">
+          <div class="basic-library-label">Your Clips</div>
+          <div class="basic-clips-grid" id="basic-my-clips">
+            <!-- User's clips appear here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Welcome overlay -->
+  <div id="welcome-overlay">
+    <div class="welcome-card">
+      <h2>Welcome to the Audio Engine</h2>
+      <p>Create stunning audio-reactive videos in three simple steps.</p>
+      <div class="welcome-steps">
+        <div class="welcome-step">
+          <div class="welcome-step-num">1</div>
+          <div class="welcome-step-text">
+            <strong>Drop in a song</strong>
+            <span>Any audio format — we'll handle the rest</span>
+          </div>
+        </div>
+        <div class="welcome-step">
+          <div class="welcome-step-num">2</div>
+          <div class="welcome-step-text">
+            <strong>Add your clips</strong>
+            <span>Images or video — drag them in or pick from the library</span>
+          </div>
+        </div>
+        <div class="welcome-step">
+          <div class="welcome-step-num">3</div>
+          <div class="welcome-step-text">
+            <strong>Hit record</strong>
+            <span>Watch your visuals react to the music in real-time</span>
+          </div>
+        </div>
+      </div>
+      <div class="welcome-actions">
+        <button class="welcome-btn secondary" id="welcome-advanced-btn">Show me everything</button>
+        <button class="welcome-btn primary" id="welcome-start-btn">Let's go →</button>
+      </div>
+    </div>
+  </div>
+
   <main id="app">
     <header id="transport">
       <a class="tbtn ghost nav-arrow" id="nav-home" href="/" title="Back to home" aria-label="Home" style="padding:4px 8px; font-size:14px; text-decoration:none; line-height:1;">←</a>
       <button class="tbtn ghost" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="padding:4px 10px; font-size:14px; line-height:1; margin:0 8px;">?</button>
       <div class="brand">SAINTED-WORD <small>records</small></div>
+      <div class="mode-toggle" id="mode-toggle">
+        <button class="active" id="mode-basic-btn">Basic</button>
+        <button id="mode-advanced-btn">Advanced</button>
+      </div>
       <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
       <button class="tbtn ghost nav-arrow" id="nav-ver-prev" title="Previous visual version (Shift+←)" aria-label="Previous version" style="padding:4px 8px; font-size:11px; line-height:1;">← ver</button>
       <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
@@ -7984,5 +8615,7 @@
       });
     })();
   </script>
+  <!-- Basic mode controller -->
+  <script src="/engine-basic-mode.client.js" defer></script>
 </body>
 </html>
