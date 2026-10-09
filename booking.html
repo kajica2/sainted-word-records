@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Artist Booking · SWR</title>
+  <meta name="description" content="Book a session with Sainted Word Records artists.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230e0c0a'/><rect x='4' y='18' width='3' height='10' fill='%23e6306b'/><rect x='9' y='12' width='3' height='16' fill='%23e6306b'/><rect x='14' y='8' width='3' height='20' fill='%23e6306b'/><rect x='19' y='14' width='3' height='14' fill='%23e6306b'/><rect x='24' y='20' width='3' height='8' fill='%23e6306b'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Yellowtail&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0e0c0a;
+      --bg-2: #1a1612;
+      --bg-3: #221e1a;
+      --ink: #f5ead8;
+      --ink-2: #a09585;
+      --muted: #6a5d4a;
+      --line: rgba(245,234,216,0.1);
+      --line-2: rgba(245,234,216,0.06);
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #4ea6f4;
+      --radius-pill: 40px;
+      --radius-card: 16px;
+      --radius-lg: 24px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── NAV ─────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(14,12,10,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line-2);
+      height: 72px;
+      display: flex; align-items: center;
+    }
+    nav .inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 40px;
+      width: 100%; display: flex; align-items: center; gap: 32px;
+    }
+    .logo {
+      font-family: 'Yellowtail', cursive;
+      font-size: 28px; color: var(--ink);
+      text-decoration: none; letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .logo span { color: var(--accent); }
+    .nav-links {
+      display: flex; gap: 28px; list-style: none; flex: 1;
+    }
+    .nav-links a {
+      color: var(--ink-2); text-decoration: none;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; transition: color 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--ink); }
+    .nav-cta { display: flex; gap: 10px; flex-shrink: 0; }
+
+    /* ─── BUTTONS ─────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 22px; border-radius: var(--radius-pill);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+      border: 1px solid transparent; text-decoration: none;
+      font-family: inherit;
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+    .btn-outline:hover { background: rgba(245,234,216,0.07); border-color: rgba(245,234,216,0.25); }
+    .btn-primary {
+      background: var(--accent);
+      color: #000; border-color: var(--accent);
+    }
+    .btn-primary:hover { background: #f0407a; border-color: #f0407a; }
+    .btn-blue {
+      background: var(--accent-3);
+      color: #000; border-color: var(--accent-3);
+    }
+    .btn-blue:hover { background: #65b4f5; border-color: #65b4f5; }
+
+    /* ─── PAGE WRAP ───────────────────────────────────────── */
+    .page {
+      max-width: 1280px; margin: 0 auto; padding: 0 40px;
+    }
+
+    /* ─── HERO ───────────────────────────────────────────── */
+    .hero {
+      padding: 80px 0 60px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: start;
+    }
+    .hero-text { padding-top: 16px; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .eyebrow::before {
+      content: ''; display: block; width: 24px; height: 2px;
+      background: var(--accent);
+    }
+    .hero h1 {
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 900; letter-spacing: -0.02em; line-height: 1.05;
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .hero h1 em {
+      font-style: normal; color: var(--accent);
+      font-family: 'Yellowtail', cursive;
+      font-weight: 400; font-size: 1.1em;
+      text-transform: none; letter-spacing: 0;
+    }
+    .hero-desc {
+      font-size: 15px; color: var(--ink-2); line-height: 1.7;
+      max-width: 480px; margin-bottom: 36px;
+    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* genre tags */
+    .genre-grid {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      padding-top: 16px;
+    }
+    .genre-tag {
+      display: flex; flex-direction: column;
+      padding: 14px 22px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      min-width: 130px;
+    }
+    .genre-tag .g-name {
+      font-size: 15px; font-weight: 700; color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .genre-tag .g-sub {
+      font-size: 10px; font-weight: 400;
+      color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    /* ─── SECTION HEADER ──────────────────────────────────── */
+    .section-head {
+      display: flex; align-items: flex-end;
+      justify-content: space-between; margin-bottom: 40px;
+      padding-bottom: 20px; border-bottom: 1px solid var(--line-2);
+    }
+    .section-head h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 900; letter-spacing: -0.02em;
+      text-transform: uppercase;
+    }
+    .section-head a {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent-3);
+      text-decoration: none; display: flex; align-items: center; gap: 6px;
+    }
+    .section-head a:hover { color: #65b4f5; }
+
+    /* ─── ARTISTS GRID ───────────────────────────────────── */
+    .section { padding: 80px 0; }
+    .artists-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 32px;
+    }
+    .artist-card {
+      display: flex; flex-direction: column;
+      align-items: center; text-align: center; gap: 10px;
+      text-decoration: none; color: inherit;
+    }
+    .artist-avatar {
+      width: 140px; height: 140px; border-radius: 50%;
+      overflow: hidden; border: 2px solid var(--line-2);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .artist-avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+      filter: saturate(0.7) contrast(1.1);
+      transition: filter 0.2s;
+    }
+    .artist-card:hover .artist-avatar {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+    }
+    .artist-card:hover .artist-avatar img { filter: saturate(1) contrast(1); }
+    .artist-name {
+      font-size: 13px; font-weight: 700; color: var(--ink);
+    }
+    .artist-meta {
+      font-size: 11px; color: var(--muted); letter-spacing: 0.06em;
+    }
+
+    /* ─── FEATURE CARD ────────────────────────────────────── */
+    .feature-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: grid; grid-template-columns: 45% 55%;
+    }
+    .feature-img {
+      position: relative; overflow: hidden;
+      min-height: 460px;
+    }
+    .feature-img img {
+      width: 100%; height: 100%; object-fit: cover;
+      position: absolute; inset: 0;
+    }
+    .feature-body {
+      padding: 64px 72px 64px 64px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .feature-script {
+      font-family: 'Yellowtail', cursive;
+      font-size: clamp(36px, 4vw, 56px);
+      color: var(--ink); line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .feature-desc {
+      font-size: 15px; color: var(--ink-2); line-height: 1.7;
+      margin-bottom: 36px;
+    }
+    .stats-row {
+      display: flex; gap: 48px; margin-bottom: 40px;
+    }
+    .stat { display: flex; flex-direction: column; }
+    .stat-n {
+      font-size: 44px; font-weight: 900; color: var(--ink);
+      line-height: 1; letter-spacing: -0.02em;
+    }
+    .stat-l {
+      font-size: 11px; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .feature-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* ─── SERVICES ─────────────────────────────────────────── */
+    .services-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .service-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      padding: 32px 28px;
+      transition: border-color 0.2s;
+    }
+    .service-card:hover { border-color: var(--accent); }
+    .service-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: rgba(230,48,107,0.12);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px; font-size: 20px;
+    }
+    .service-card h3 {
+      font-size: 16px; font-weight: 700; margin-bottom: 10px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .service-card p {
+      font-size: 13px; color: var(--ink-2); line-height: 1.6;
+    }
+    .service-card .price {
+      margin-top: 18px; font-size: 22px; font-weight: 900;
+      color: var(--accent);
+    }
+    .service-card .price small {
+      font-size: 11px; color: var(--muted); font-weight: 400;
+    }
+
+    /* ─── CONTACT ──────────────────────────────────────────── */
+    .contact-section {
+      background: var(--bg-2);
+      border-top: 1px solid var(--line);
+      padding: 80px 0;
+    }
+    .contact-inner {
+      max-width: 640px; margin: 0 auto; text-align: center;
+    }
+    .contact-inner h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 900; text-transform: uppercase;
+      letter-spacing: -0.02em; margin-bottom: 16px;
+    }
+    .contact-inner p {
+      font-size: 15px; color: var(--ink-2); margin-bottom: 36px;
+      line-height: 1.7;
+    }
+    .contact-form {
+      display: flex; flex-direction: column; gap: 14px; text-align: left;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .form-group label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px; color: var(--ink);
+      font-family: inherit;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-group textarea { resize: vertical; min-height: 120px; }
+    .form-group select { cursor: pointer; }
+    .form-submit { margin-top: 8px; }
+    .form-submit .btn { width: 100%; justify-content: center; padding: 14px; font-size: 13px; }
+
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--line-2);
+      padding: 40px 0;
+    }
+    footer .inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 40px;
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 20px;
+    }
+    .footer-brand {
+      font-family: 'Yellowtail', cursive; font-size: 22px;
+      color: var(--ink);
+    }
+    .footer-brand span { color: var(--accent); }
+    footer p {
+      font-size: 11px; color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a {
+      font-size: 11px; color: var(--muted); text-decoration: none;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--ink); }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .artists-grid { grid-template-columns: repeat(3, 1fr); }
+      .services-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      nav .inner { padding: 0 20px; }
+      .nav-links { display: none; }
+      .page { padding: 0 20px; }
+      .hero { grid-template-columns: 1fr; gap: 40px; padding: 48px 0 40px; }
+      .artists-grid { grid-template-columns: repeat(2, 1fr); }
+      .feature-card { grid-template-columns: 1fr; }
+      .feature-img { min-height: 260px; }
+      .feature-body { padding: 36px 28px; }
+      .stats-row { gap: 28px; }
+      .services-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      footer .inner { flex-direction: column; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+    @media (max-width: 480px) {
+      .artists-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .artist-avatar { width: 110px; height: 110px; }
+      .genre-grid { gap: 8px; }
+      .genre-tag { min-width: 110px; padding: 10px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── NAV ─────────────────────────────────────── -->
+  <nav>
+    <div class="inner">
+      <a href="#" class="logo">SWR <span>·</span> Booking</a>
+      <ul class="nav-links">
+        <li><a href="#artists" class="active">Artists</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="#contact" class="btn btn-outline">Book a Session</a>
+        <a href="#" class="btn btn-primary">Newsletter</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── HERO ─────────────────────────────────────── -->
+  <div class="page">
+    <section class="hero">
+      <div class="hero-text">
+        <div class="eyebrow">Sainted Word Records</div>
+        <h1>Book an <em>Artist</em></h1>
+        <p class="hero-desc">
+          From intimate studio sessions to full-scale live productions —
+          SWR connects you with vetted electronic music artists across
+          House, Techno, Ambient, and Experimental genres.
+        </p>
+        <div class="hero-actions">
+          <a href="#artists" class="btn btn-primary">Browse Artists</a>
+          <a href="#contact" class="btn btn-outline">Submit a Brief</a>
+        </div>
+      </div>
+      <div class="genre-grid">
+        <div class="genre-tag">
+          <span class="g-name">House</span>
+          <span class="g-sub">1984 · Chicago</span>
+        </div>
+        <div class="genre-tag">
+          <span class="g-name">Techno</span>
+          <span class="g-sub">1989 · Detroit</span>
+        </div>
+        <div class="genre-tag">
+          <span class="g-name">Ambient</span>
+          <span class="g-sub">1996 · Berlin</span>
+        </div>
+        <div class="genre-tag">
+          <span class="g-name">Experimental</span>
+          <span class="g-sub">2001 · London</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ─── ARTISTS ───────────────────────────────────── -->
+  <section class="section" id="artists">
+    <div class="page">
+      <div class="section-head">
+        <h2>Les Plus Joués</h2>
+        <a href="#">5,211 Artists →</a>
+      </div>
+      <div class="artists-grid">
+        <a href="#" class="artist-card">
+          <div class="artist-avatar">
+            <img src="https://picsum.photos/seed/dj1/280/280" alt="Sebb Junior">
+          </div>
+          <span class="artist-name">Sebb Junior</span>
+          <span class="artist-meta">67 sessions</span>
+        </a>
+        <a href="#" class="artist-card">
+          <div class="artist-avatar">
+            <img src="https://picsum.photos/seed/dj2/280/280" alt="Ana Maric">
+          </div>
+          <span class="artist-name">Ana Maric</span>
+          <span class="artist-meta">54 sessions</span>
+        </a>
+        <a href="#" class="artist-card">
+          <div class="artist-avatar">
+            <img src="https://picsum.photos/seed/dj3/280/280" alt="Dusan Popov">
+          </div>
+          <span class="artist-name">Dusan Popov</span>
+          <span class="artist-meta">43 sessions</span>
+        </a>
+        <a href="#" class="artist-card">
+          <div class="artist-avatar">
+            <img src="https://picsum.photos/seed/dj4/280/280" alt="Kira Lindqvist">
+          </div>
+          <span class="artist-name">Kira Lindqvist</span>
+          <span class="artist-meta">38 sessions</span>
+        </a>
+        <a href="#" class="artist-card">
+          <div class="artist-avatar">
+            <img src="https://picsum.photos/seed/dj5/280/280" alt="Marko Ilic">
+          </div>
+          <span class="artist-name">Marko Ilic</span>
+          <span class="artist-meta">31 sessions</span>
+        </a>
+        <a href="#" class="artist-card">
+          <div class="artist-avatar">
+            <img src="https://picsum.photos/seed/dj6/280/280" alt="Nina Volkova">
+          </div>
+          <span class="artist-name">Nina Volkova</span>
+          <span class="artist-meta">29 sessions</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FEATURE ───────────────────────────────────── -->
+  <div class="page">
+    <div class="feature-card" id="about">
+      <div class="feature-img">
+        <img src="https://picsum.photos/seed/studio1/900/700" alt="Studio session">
+      </div>
+      <div class="feature-body">
+        <div class="feature-script">A studio, a story.</div>
+        <p class="feature-desc">
+          Every session at SWR begins with a conversation. We match your
+          project's sonic vision with the right artist — whether it's a
+          late-night club session, a broadcast-ready stream, or a fully
+          produced release.
+        </p>
+        <div class="stats-row">
+          <div class="stat">
+            <span class="stat-n">610</span>
+            <span class="stat-l">Sessions</span>
+          </div>
+          <div class="stat">
+            <span class="stat-n">5,211</span>
+            <span class="stat-l">Artists</span>
+          </div>
+          <div class="stat">
+            <span class="stat-n">30+</span>
+            <span class="stat-l">Years Active</span>
+          </div>
+        </div>
+        <div class="feature-actions">
+          <a href="#contact" class="btn btn-primary">Book a Session</a>
+          <a href="#" class="btn btn-outline">View Roster</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SERVICES ────────────────────────────────────── -->
+  <section class="section" id="services">
+    <div class="page">
+      <div class="section-head">
+        <h2>Services</h2>
+        <a href="#">All Services →</a>
+      </div>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-icon">🎛️</div>
+          <h3>Live Session</h3>
+          <p>60-minute studio session with multi-track recording, real-time mixing, and a final mastered mix delivered within 48 hours.</p>
+          <div class="price">€800 <small>/ session</small></div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">📡</div>
+          <h3>Stream Production</h3>
+          <p>Full broadcast setup — multi-camera, live-switched stream with SWR branding, chat integration, and VOD delivery.</p>
+          <div class="price">€1,400 <small>/ event</small></div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">🎹</div>
+          <h3>Track Production</h3>
+          <p>End-to-end track production from concept to release — arrangement, mixing, mastering, and distribution-ready stems.</p>
+          <div class="price">€2,200 <small>/ track</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CONTACT ─────────────────────────────────────── -->
+  <div class="contact-section" id="contact">
+    <div class="contact-inner page">
+      <h2>Get in Touch</h2>
+      <p>Tell us about your project — we'll match you with the right artist and have a session booked within 24 hours.</p>
+      <form class="contact-form" onsubmit="event.preventDefault(); alert('Demo — form submission would send to SWR booking team.');">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" placeholder="Your name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="you@example.com" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="service">Service</label>
+            <select id="service">
+              <option value="">Select a service</option>
+              <option>Live Session</option>
+              <option>Stream Production</option>
+              <option>Track Production</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="budget">Budget</label>
+            <select id="budget">
+              <option value="">Select range</option>
+              <option>Under €1,000</option>
+              <option>€1,000 – €3,000</option>
+              <option>€3,000 – €10,000</option>
+              <option>€10,000+</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="message">Project Brief</label>
+          <textarea id="message" placeholder="Describe your project, timeline, and any specific requirements..."></textarea>
+        </div>
+        <div class="form-submit">
+          <button type="submit" class="btn btn-primary">Send Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── FOOTER ─────────────────────────────────────── -->
+  <footer>
+    <div class="inner">
+      <span class="footer-brand">SWR <span>·</span> Records</span>
+      <p>© 2026 Sainted Word Records. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Press</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
