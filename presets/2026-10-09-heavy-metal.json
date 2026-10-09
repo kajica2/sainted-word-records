@@ -1,0 +1,84 @@
+{
+  "id": "swr-preset-2026-10-09-heavy-metal",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-10-09T09:13:00.000000+00:00",
+  "name": "Heavy Metal",
+  "family": "METAL",
+  "description": "High-contrast black-and-white burst on kick hits, chromatic aberration pulses on cymbals. For metal,core, death metal, and heavy riff culture. Fast rotation snap on the downbeat.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "glitch-blocks",
+      "weight": 0.45
+    },
+    {
+      "kind": "palette_ref",
+      "name": "metal-chrome",
+      "weight": 0.35
+    },
+    {
+      "kind": "motion_ref",
+      "name": "blast-beat-sync",
+      "weight": 0.2
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.0,
+    "pearl": 0.0,
+    "glitch": 0.55,
+    "grain": 0.3,
+    "chroma": 0.4,
+    "bloom": 0.25,
+    "vignette": 0.6,
+    "sepia": 0.0,
+    "glow": 0.0,
+    "grayscale": 0.0,
+    "blur": 0.0,
+    "mut": 0.5,
+    "mutAlgo": 0.85,
+    "temp": -0.3,
+    "posterize": 8
+  },
+  "motion": {
+    "rotation_speed": 1.8,
+    "scale_pulse": 0.75,
+    "pan_x": 0.9,
+    "pan_y": 0.6
+  },
+  "palette": {
+    "primary": "#e0e0e0",
+    "secondary": "#000000",
+    "accent": "#ff0000",
+    "bg": "#000000"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "pan_x",
+      "pan_y"
+    ],
+    "mid": [
+      "glitch",
+      "chroma"
+    ],
+    "treble": [
+      "mut",
+      "grain"
+    ],
+    "onset": [
+      "rotation_speed",
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#000000\"/><polygon points=\"0,0 80,40 0,80\" fill=\"#e0e0e0\" opacity=\"0.9\"/><rect x=\"55\" y=\"0\" width=\"25\" height=\"80\" fill=\"#ff0000\" opacity=\"0.3\"/></svg>",
+    "tags": [
+      "metal",
+      "heavy",
+      "doom",
+      "death",
+      "chrome",
+      "black",
+      "aggressive"
+    ]
+  }
+}
