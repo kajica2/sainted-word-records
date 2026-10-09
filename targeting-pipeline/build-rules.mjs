@@ -235,8 +235,14 @@ export function buildRules() {
     personaSurfaces[id] = (surfaces || []).map(function (w) { return SURFACE_CODE[w]; }).filter(Boolean);
 
     const affinity = VARIANT_AFFINITY[id] || [];
-    const rest = canonicalVariants.filter((v) => !affinity.includes(v));
-    personaToVariants[id] = [...affinity, ...rest];
+    // Filter affinity to canonical variants: baroque and grid were in
+    // earlier versions of the switcher but have been removed (baroque
+    // is a standalone page, grid's identity is the DOM overlays). The
+    // persona files may still name them in affinity lists; that
+    // information is preserved as a no-op for those ids.
+    const filteredAffinity = affinity.filter((v) => canonicalVariants.includes(v));
+    const rest = canonicalVariants.filter((v) => !filteredAffinity.includes(v));
+    personaToVariants[id] = [...filteredAffinity, ...rest];
 
     const seg = SEGMENT_BY_PERSONA[id];
     if (seg !== null && !segmentIds.has(seg)) {

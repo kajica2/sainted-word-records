@@ -3,7 +3,6 @@
   "variants": [
     "neon",
     "film",
-    "grid",
     "smoke",
     "hallucination",
     "music_video",
@@ -265,7 +264,6 @@
       "smoke",
       "film",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -282,7 +280,6 @@
       "film",
       "smoke",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -298,7 +295,6 @@
     "version-hopper": [
       "neon",
       "film",
-      "grid",
       "smoke",
       "hallucination",
       "music_video",
@@ -316,7 +312,6 @@
       "film",
       "smoke",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -331,7 +326,6 @@
     ],
     "transition-choreo": [
       "neon",
-      "grid",
       "film",
       "smoke",
       "hallucination",
@@ -348,7 +342,6 @@
     ],
     "recorder-renderer": [
       "film",
-      "grid",
       "neon",
       "smoke",
       "hallucination",
@@ -366,7 +359,6 @@
     "anchor-curator": [
       "neon",
       "film",
-      "grid",
       "smoke",
       "hallucination",
       "music_video",
@@ -384,7 +376,6 @@
       "smoke",
       "film",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -398,7 +389,6 @@
       "eclipse"
     ],
     "tag-janitor": [
-      "grid",
       "film",
       "neon",
       "smoke",
@@ -416,7 +406,6 @@
     ],
     "auth-projects": [
       "film",
-      "grid",
       "neon",
       "smoke",
       "hallucination",
@@ -436,7 +425,6 @@
       "hallucination",
       "neon",
       "film",
-      "grid",
       "music_video",
       "glitch",
       "aurora",
@@ -452,7 +440,6 @@
       "hallucination",
       "neon",
       "film",
-      "grid",
       "smoke",
       "music_video",
       "glitch",
@@ -469,7 +456,6 @@
       "film",
       "smoke",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -487,7 +473,6 @@
       "hallucination",
       "neon",
       "film",
-      "grid",
       "music_video",
       "glitch",
       "aurora",
@@ -500,7 +485,6 @@
       "eclipse"
     ],
     "ar-flashcards": [
-      "grid",
       "neon",
       "film",
       "smoke",
@@ -520,7 +504,6 @@
       "film",
       "smoke",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -537,7 +520,6 @@
       "hallucination",
       "neon",
       "film",
-      "grid",
       "smoke",
       "music_video",
       "glitch",
@@ -551,7 +533,6 @@
       "eclipse"
     ],
     "data-sonifier": [
-      "grid",
       "hallucination",
       "neon",
       "film",
@@ -571,7 +552,6 @@
       "film",
       "smoke",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -586,7 +566,6 @@
     ],
     "podcast-visual-editor": [
       "film",
-      "grid",
       "neon",
       "smoke",
       "hallucination",
@@ -605,7 +584,6 @@
       "smoke",
       "film",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -620,7 +598,6 @@
     ],
     "ad-creative-director": [
       "neon",
-      "grid",
       "film",
       "smoke",
       "hallucination",
@@ -636,7 +613,6 @@
       "eclipse"
     ],
     "online-music-teacher": [
-      "grid",
       "film",
       "neon",
       "smoke",
@@ -655,7 +631,6 @@
     "bedroom-producer": [
       "neon",
       "film",
-      "grid",
       "smoke",
       "hallucination",
       "music_video",
@@ -673,7 +648,6 @@
       "neon",
       "hallucination",
       "film",
-      "grid",
       "smoke",
       "music_video",
       "glitch",
@@ -690,7 +664,6 @@
       "film",
       "smoke",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -707,7 +680,6 @@
       "film",
       "smoke",
       "neon",
-      "grid",
       "hallucination",
       "music_video",
       "glitch",
@@ -721,7 +693,6 @@
       "eclipse"
     ],
     "ar-storyboard-reviewer": [
-      "grid",
       "film",
       "neon",
       "smoke",
