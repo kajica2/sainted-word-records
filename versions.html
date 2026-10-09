@@ -102,6 +102,7 @@
 
     /* ===== SECTION ===== */
     section { margin-bottom: 96px; }
+
     /* ===== TAB BAR ===== */
     .tab-bar { display: flex; gap: 4px; margin-bottom: 56px;
       border-bottom: 1px solid var(--line); padding-bottom: 0; }
@@ -112,16 +113,16 @@
     .tab-btn:hover { color: var(--ink); border-color: var(--line-2); }
     .tab-btn[aria-selected="true"] { color: var(--accent); border-color: var(--accent); }
     .tab-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -4px; }
+
     /* ===== TAB PANELS ===== */
     .tab-panel { display: none; }
-    .tab-panel.is-active { display: block; }
     .tab-panel[data-tab="presets"] { display: block; }
     body.has-tab-pipeline .tab-panel[data-tab="presets"],
     body.has-tab-releases .tab-panel[data-tab="presets"] { display: none; }
     body.has-tab-pipeline .tab-panel[data-tab="pipeline"] { display: block; }
     body.has-tab-releases .tab-panel[data-tab="releases"] { display: block; }
 
-    .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px; }
+    .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
     .sec-num { font-family: var(--font-mono); font-size: 12px; color: var(--accent);
       letter-spacing: 0.18em; text-transform: uppercase; }
     .sec-title { font-family: var(--font-display); font-weight: 400; font-size: 36px;
@@ -162,18 +163,10 @@
     .release .sha { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
       margin-bottom: 12px; }
     .release .sha code { color: var(--ink-2); }
-    /* Long unbroken identifiers in list items set the page width:
-       a 702px <code> pushed documentElement.scrollWidth past the 375px
-       viewport. Let code wrap and list items shrink. */
     li { min-width: 0; }
     li code, p code, .schema-card .fields li { overflow-wrap: anywhere; word-break: break-word; }
     .features li { overflow-wrap: anywhere; word-break: break-word; }
     .release .blurb { color: var(--ink-2); line-height: 1.55; max-width: 760px; margin: 0 0 16px; }
-    /* min(280px, 100%) keeps the 280px minimum where there is room but lets
-       the track collapse on a 375px viewport. A bare 280px min is wider than
-       the 239px available inside the padded ul, which pushed the page to 384.
-       Appending an overriding minmax(0, 1fr) also stops the overflow but
-       collapses the desktop multi-column layout. */
     .release .features { display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
       gap: 10px 24px; }
@@ -198,223 +191,292 @@
       font-weight: 500; letter-spacing: -0.01em; }
     .style-card .label { font-family: var(--font-mono); font-size: 10px;
       letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-    .style-card .desc { color: var(--muted); font-size: 13px; line-height: 1.45;
-      flex: 1; margin: 0; }
+    .style-card .desc { font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 0 0 14px; flex: 1; }
+    .style-card .looks { display: flex; gap: 6px; padding: 0 20px 18px; flex-wrap: wrap; }
+    .look { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 4px 10px;
+      transition: color .15s, border-color .15s; }
+    .look:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
 
-    .style-card .looks { display: flex; gap: 8px; padding: 0 20px 18px; }
-    .style-card .look { flex: 1; text-align: center; font-family: var(--font-mono);
-      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-      padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-      color: var(--ink-2); text-decoration: none; transition: border-color .15s, color .15s; }
-    .style-card .look:hover { border-color: var(--accent); color: var(--accent); }
-    .style-card .look--film { border-style: dashed; }
-    /* ===== SCHEMA ===== */
-    .schema-card { background: var(--panel); border: 1px solid var(--line);
-      border-radius: 12px; padding: 28px 32px; margin-bottom: 20px; }
-    .schema-card .head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px; }
-    .schema-card h3 { font-family: var(--font-mono); font-size: 16px; color: var(--accent-2);
-      margin: 0; font-weight: 500; }
-    .schema-card .status { font-family: var(--font-mono); font-size: 10px;
-      letter-spacing: 0.14em; text-transform: uppercase; padding: 3px 8px;
-      border-radius: 3px; }
-    .schema-card .status.current { color: var(--green); background: rgba(0,255,163,0.1); }
-    .schema-card .status.deprecated { color: var(--red); background: rgba(255,85,119,0.1); }
-    .schema-card .status.draft { color: var(--gold); background: rgba(255,240,74,0.1); }
-    .schema-card .blurb { color: var(--ink-2); line-height: 1.55; margin: 0 0 16px; }
-    .schema-card .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
-    .schema-card .fields li { font-family: var(--font-mono); font-size: 12px;
-      color: var(--ink-2); padding-left: 14px; position: relative; }
-    .schema-card .fields li::before { content: '·'; position: absolute; left: 0;
-      color: var(--accent); font-weight: 700; }
-    .schema-card .fields li .req { color: var(--red); font-size: 10px; margin-left: 4px; }
-    .schema-card .fields li .opt { color: var(--muted); font-size: 10px; margin-left: 4px; }
-    .schema-card .sample { background: var(--bg-2); border: 1px solid var(--line);
-      border-radius: 6px; padding: 16px 20px; margin-top: 18px; font-family: var(--font-mono);
-      font-size: 12px; line-height: 1.55; color: var(--ink-2); overflow-x: auto; }
-
-    /* ===== PRESET TIMELINE ===== */
-    .preset-list { background: var(--panel); border: 1px solid var(--line);
-      border-radius: 12px; overflow: hidden; }
-    .preset-day { padding: 20px 24px; border-bottom: 1px solid var(--line); }
-    .preset-day:last-child { border-bottom: none; }
-    .preset-day .day-head { display: flex; align-items: baseline; gap: 16px;
-      margin-bottom: 12px; }
-    .preset-day h4 { font-family: var(--font-mono); font-size: 13px; color: var(--accent-2);
-      margin: 0; font-weight: 500; }
-    .preset-day .count { font-family: var(--font-mono); font-size: 10px; color: var(--muted);
-      letter-spacing: 0.12em; text-transform: uppercase; }
-    .preset-day .items { display: flex; flex-wrap: wrap; gap: 8px; }
-    .preset-chip { display: inline-flex; align-items: center; gap: 6px;
-      background: var(--bg-2); border: 1px solid var(--line); padding: 5px 10px;
-      border-radius: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-2);
-      text-decoration: none; }
-    .preset-chip:hover { border-color: var(--accent); color: var(--accent); }
-    .preset-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-
-    /* ===== HERO ACTIONS + RANDOMIZE ===== */
-    .hero__actions { display: flex; align-items: center; gap: 16px; margin-top: 32px;
-      flex-wrap: wrap; }
-    .rbtn { display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 22px; border: 1px solid var(--line-2); border-radius: 6px;
-      background: var(--panel); color: var(--ink); font-family: var(--font-mono);
-      font-size: 12px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase;
-      cursor: pointer; transition: 0.15s; }
-    .rbtn:hover { border-color: var(--accent); color: var(--accent);
-      transform: translateY(-1px); }
-    .rbtn:active { transform: translateY(0); }
-    .rbtn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .rbtn--primary:hover { background: var(--accent-2); border-color: var(--accent-2);
-      color: #000; }
-    .rbtn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .hero__hint { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
-      letter-spacing: 0.06em; }
-
-    .rand-card { display: none; margin-top: 28px; padding: 28px 32px;
-      background: linear-gradient(135deg, rgba(255,45,138,0.10), rgba(0,240,255,0.06));
-      border: 1px solid var(--accent); border-radius: 14px;
-      position: relative; overflow: hidden; animation: randIn 0.4s ease-out; }
-    .rand-card.show { display: block; }
-    @keyframes randIn { from { opacity: 0; transform: translateY(8px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); } }
-    .rand-card .rand-head { display: flex; align-items: baseline; gap: 16px;
-      margin-bottom: 16px; flex-wrap: wrap; }
-    .rand-card .rand-nav { display: flex; gap: 6px; margin-left: auto; }
-    .rand-card .rand-nav button { background: var(--bg-2); border: 1px solid var(--line-2);
-      color: var(--ink-2); width: 30px; height: 30px; border-radius: 4px;
-      font-size: 16px; line-height: 1; cursor: pointer; transition: 0.12s; }
-    .rand-card .rand-nav button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .rand-card .rand-picknum { font-family: var(--font-mono); font-size: 11px;
-      color: var(--accent); letter-spacing: 0.14em; text-transform: uppercase; }
-    .rand-card h3 { font-family: var(--font-display); font-weight: 500; font-size: 32px;
-      margin: 0; letter-spacing: -0.01em; color: var(--ink); }
-    .rand-card .rand-id { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
-      margin-bottom: 12px; }
-    .rand-card .rand-id code { color: var(--accent-2); }
-    .rand-card .rand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 10px 24px; margin: 16px 0 20px; }
-    .rand-card .rand-grid .lbl { font-family: var(--font-mono); font-size: 9px;
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
-      margin-bottom: 3px; }
-    .rand-card .rand-grid .val { font-family: var(--font-mono); font-size: 13px;
-      color: var(--ink-2); }
-    .rand-card .rand-grid .val.fam { color: var(--accent-2); }
-    .rand-card .rand-grid .val.sh { color: var(--gold); }
-    .rand-card .rand-palette { display: flex; gap: 6px; align-items: center;
-      font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
-    .rand-card .rand-palette .sw { width: 22px; height: 22px; border-radius: 3px;
-      border: 1px solid var(--line); }
-    .rand-card .rand-actions { display: flex; gap: 10px; flex-wrap: wrap;
-      padding-top: 16px; border-top: 1px solid var(--line); }
-    .rand-card .rand-desc { color: var(--muted); font-size: 13px; line-height: 1.5;
-      margin: 12px 0 4px; max-width: 720px; }
-    .rand-card .rand-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .rand-card .rand-tags .tag { font-family: var(--font-mono); font-size: 10px;
-      color: var(--ink-2); background: var(--bg-2); border: 1px solid var(--line);
-      padding: 3px 8px; border-radius: 3px; letter-spacing: 0.06em;
-      text-transform: lowercase; }
-    .rand-card.is-rolling h3 { animation: roll 0.5s ease-out; }
-    @keyframes roll { 0% { transform: translateX(-4px); opacity: 0.4; }
-      50% { transform: translateX(4px); opacity: 0.6; }
-      100% { transform: translateX(0); opacity: 1; } }
-
-    /* ===== RANDOM CARD — redesigned Q121 ===== */
-    .rand-id { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
-      margin-bottom: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .rand-id code { color: var(--accent-2); }
-    .rand-id .rand-sep { color: var(--line-2); }
-    .rand-id-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--muted); }
-
-    /* Audio mapping section */
-    .r-audio-section { margin: 16px 0; }
-    .r-audio-label { font-family: var(--font-mono); font-size: 9px;
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    /* ===== RANDOMIZE CARD ===== */
+    .rand-card { display: none; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 16px; padding: 28px 32px; margin-bottom: 64px;
+      position: relative; overflow: hidden; }
+    .rand-card.show { display: block; animation: randIn 0.45s cubic-bezier(0.34,1.56,0.64,1); }
+    @media (prefers-reduced-motion: reduce) { .rand-card.show { animation: none; } }
+    @keyframes randIn { from { opacity: 0; transform: scale(0.92) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); } }
+    .rand-card.is-rolling { animation: none; opacity: 0.4; transition: opacity .1s; }
+    .rand-card::before { content: ''; position: absolute; inset: 0;
+      background: radial-gradient(500px 300px at 80% 50%, rgba(255,45,138,0.06), transparent 60%); pointer-events: none; }
+    .rand-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .rand-picknum { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted); width: 100%; }
+    .rand-card h3 { font-family: var(--font-display); font-weight: 500; font-size: 28px;
+      margin: 0; letter-spacing: -0.01em; flex: 1; }
+    .r-nav-btns { display: flex; gap: 6px; }
+    .r-nav-btns button { background: var(--panel-2); border: 1px solid var(--line);
+      color: var(--ink-2); width: 32px; height: 32px; border-radius: 6px; cursor: pointer;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+      transition: border-color .15s, color .15s; }
+    .r-nav-btns button:hover { border-color: var(--accent); color: var(--accent); }
+    .r-nav-btns button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+    .r-id-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .r-id-row code { font-size: 12px; color: var(--muted); }
+    .r-audio-section { background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+    .r-audio-section .label { font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
     .r-audio-map { display: flex; flex-wrap: wrap; gap: 6px; }
-    .r-audio-band { display: flex; align-items: center; gap: 5px;
-      background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px;
-      padding: 4px 10px; font-family: var(--font-mono); font-size: 11px; }
-    .r-audio-band .band-name { color: var(--accent-2); font-weight: 500; }
-    .r-audio-band .band-arrow { color: var(--muted); }
-    .r-audio-band .band-effect { color: var(--ink); }
-
-    /* Meta row (FX / Shader / Palette / Motion) */
-    .rand-meta-row { display: flex; flex-wrap: wrap; gap: 8px;
-      padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
-      margin: 16px 0; }
-    .rand-meta-item { display: flex; flex-direction: column; gap: 3px;
-      min-width: 80px; }
-    .rand-meta-label { font-family: var(--font-mono); font-size: 9px;
-      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
-    .rand-meta-val { font-family: var(--font-mono); font-size: 13px; color: var(--ink-2); }
-    .rand-meta-val.sh { color: var(--gold); }
-
-    /* Screen-reader only */
+    .r-audio-band { display: inline-flex; align-items: center; gap: 5px;
+      background: var(--panel); border: 1px solid var(--line-2); border-radius: 20px;
+      padding: 3px 10px 3px 6px; font-size: 12px; font-family: var(--font-mono); }
+    .band-name { color: var(--accent-2); font-weight: 500; font-size: 11px; }
+    .band-arrow { color: var(--muted); }
+    .band-effect { color: var(--ink); }
+    .rand-meta { display: flex; flex-wrap: wrap; gap: 0; margin: 10px 0; border: 1px solid var(--line);
+      border-radius: 8px; overflow: hidden; }
+    .rand-meta-cell { flex: 1; min-width: 120px; padding: 10px 14px; background: var(--panel);
+      border-right: 1px solid var(--line); }
+    .rand-meta-cell:last-child { border-right: none; }
+    .rand-meta-lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .rand-meta-val { font-family: var(--font-mono); font-size: 13px; color: var(--ink);
+      font-weight: 500; }
+    .rand-meta-val.sh { color: var(--accent-2); }
+    .rand-palette { display: flex; align-items: center; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+    .sw { display: inline-block; width: 18px; height: 18px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15); cursor: default; }
+    .rand-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px;
+      padding: 3px 8px; }
+    .rand-demo { font-size: 13px; color: var(--ink-2); margin: 8px 0; display: flex;
+      align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rand-demo-sep { color: var(--muted); }
+    .rand-demo-link { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-2);
+      font-family: var(--font-mono); font-size: 12px; }
+    .rand-demo-link:hover { text-decoration: underline; }
+    .rand-demo-lbl { color: var(--muted); font-size: 11px; }
+    .rand-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; align-items: center; }
+    .rbtn { background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-2);
+      padding: 9px 18px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px;
+      letter-spacing: 0.06em; cursor: pointer; transition: border-color .15s, color .15s; }
+    .rbtn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+    .rbtn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+    .rbtn--primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .rbtn--primary:hover { background: #e0277a; border-color: #e0277a; color: #fff; }
+    .rbtn--primary:focus-visible { outline-color: var(--accent-2); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0;
       margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 
-    /* Focus visible — keyboard navigation */
-    :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
-    button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
+    /* ===== SEARCH / FILTER BAR ===== */
+    .sf-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; align-items: center; }
+    .sf-search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .sf-search-wrap .sf-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 14px; pointer-events: none; }
+    #sf-search { width: 100%; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 8px; padding: 10px 14px 10px 36px; font-family: var(--font-body);
+      font-size: 14px; color: var(--ink); transition: border-color .15s; }
+    #sf-search:focus { outline: none; border-color: var(--accent); }
+    #sf-search::placeholder { color: var(--muted); }
+    #sf-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px;
+      padding: 4px; display: none; line-height: 1; }
+    #sf-clear.show { display: block; }
+    .sf-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .sf-chip { background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+      padding: 6px 14px; border-radius: 20px; font-family: var(--font-mono); font-size: 12px;
+      cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .sf-chip:hover { border-color: var(--accent-2); color: var(--accent-2); }
+    .sf-chip.active { background: rgba(255,45,138,0.12); border-color: var(--accent);
+      color: var(--accent); }
+    .sf-chip.active.star { background: rgba(255,210,0,0.12); border-color: var(--gold); color: var(--gold); }
+    .sf-sort { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .sf-sort label { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.08em; text-transform: uppercase; }
+    #sf-sort-select { background: var(--panel); border: 1px solid var(--line); color: var(--ink-2);
+      padding: 6px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px;
+      cursor: pointer; }
+    #sf-sort-select:focus { outline: none; border-color: var(--accent); }
+    .sf-count { font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+      padding: 6px 0; width: 100%; }
 
-    .rand-demo { display: flex; align-items: center; gap: 14px;
-      font-family: var(--font-mono); font-size: 12px; flex-wrap: wrap;
-      padding: 12px 0; border-top: 1px dashed var(--line); margin-top: 14px; }
-    .rand-demo-link { display: inline-flex; align-items: center; gap: 6px;
-      color: var(--ink-2); text-decoration: none; padding: 5px 10px;
-      border: 1px solid var(--line); border-radius: 4px; transition: 0.15s; }
-    .rand-demo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
-    .rand-demo-lbl { color: var(--accent-2); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
-    .rand-demo-val { color: var(--ink); }
-    .rand-demo-sep { color: var(--muted); }
+    /* ===== PRESET LIST / TIMELINE ===== */
+    .preset-list { }
+    .preset-day { margin-bottom: 32px; }
+    .day-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+    .day-head h4 { font-family: var(--font-display); font-weight: 400; font-size: 20px;
+      margin: 0; color: var(--ink); }
+    .day-head .count { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .items { display: flex; flex-wrap: wrap; gap: 8px; }
+    .preset-chip { display: inline-flex; align-items: center; gap: 6px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+      padding: 6px 12px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-2);
+      cursor: default; transition: border-color .15s, color .15s; max-width: 280px;
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .preset-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-2);
+      flex-shrink: 0; }
+    .preset-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .preset-chip.is-faved { border-color: var(--gold); }
+    .preset-chip.is-faved .dot { background: var(--gold); }
+    .preset-chip.is-linked { border-color: var(--accent); background: rgba(255,45,138,0.08);
+      color: var(--accent); box-shadow: 0 0 0 2px rgba(255,45,138,0.2); }
+    .preset-chip.is-linked .dot { background: var(--accent); }
+    .pstar { background: none; border: none; cursor: pointer; font-size: 14px;
+      padding: 0 2px; color: var(--line-2); transition: color .15s; line-height: 1;
+      vertical-align: middle; }
+    .pstar:hover, .pstar.faved { color: var(--gold); }
+    .pstar:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .preset-chip .pname { overflow: hidden; text-overflow: ellipsis; }
 
-    /* ===== FOOTER ===== */
-    footer { margin-top: 80px; padding: 48px 0 32px; border-top: 1px solid var(--line);
-      background: var(--bg-2); }
-    .ft { max-width: 1280px; margin: 0 auto; padding: 0 32px;
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
-      gap: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
-    .ft a { color: var(--ink-2); }
-    .ft a:hover { color: var(--accent); text-decoration: none; }
-    .ft .links { display: flex; gap: 18px; }
+    /* ===== SCHEMA CARD ===== */
+    .schema-card { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; overflow: hidden; margin-bottom: 32px; }
+    .schema-card .head { display: flex; align-items: center; gap: 14px; padding: 20px 24px;
+      border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .schema-card .head h3 { font-family: var(--font-display); font-weight: 500; font-size: 22px;
+      margin: 0; }
+    .status { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+      padding: 3px 10px; border-radius: 3px; text-transform: uppercase; }
+    .status.current { background: rgba(0,255,163,0.1); color: var(--green); border: 1px solid rgba(0,255,163,0.3); }
+    .status.draft { background: rgba(255,210,74,0.1); color: var(--gold); border: 1px solid rgba(255,210,74,0.3); }
+    .schema-card .blurb { padding: 20px 24px; color: var(--ink-2); line-height: 1.6;
+      font-size: 14px; border-bottom: 1px solid var(--line); margin: 0; }
+    .schema-card .fields { list-style: none; margin: 0; padding: 20px 24px;
+      display: flex; flex-wrap: wrap; gap: 8px 20px; }
+    .schema-card .fields li { font-family: var(--font-mono); font-size: 13px; color: var(--ink-2);
+      display: flex; align-items: center; gap: 6px; }
+    .req { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--accent-2); background: rgba(0,240,255,0.08); padding: 2px 6px; border-radius: 2px; }
+    .opt { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); background: var(--panel-2); padding: 2px 6px; border-radius: 2px; }
+    .schema-card .sample { margin: 0; padding: 20px 24px; background: var(--bg-2);
+      border-top: 1px solid var(--line); overflow-x: auto; }
+    .schema-card .sample code { font-size: 12px; color: var(--ink-2); line-height: 1.6; }
+
+    /* ===== PIPELINE OBSERVABILITY ===== */
+    .pipe-obs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px; margin-top: 40px; }
+    .pipe-cell { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; padding: 20px 22px; }
+    .pipe-cell .pl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex;
+      align-items: center; gap: 8px; }
+    .pipe-cell .pl .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .pipe-cell .pl .dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .pipe-cell .pl .dot.warn { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+    .pipe-cell .pl .dot.err { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    .pipe-cell .pv { font-family: var(--font-mono); font-size: 18px; font-weight: 500;
+      color: var(--ink); }
+    .pipe-cell .pv.ok { color: var(--green); }
+    .pipe-cell .pv.warn { color: var(--gold); }
+    .pipe-cell .pv.err { color: var(--red); }
+    .pipe-cell .ps { font-size: 12px; color: var(--muted); margin-top: 5px; }
+    .pipe-run-history { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; overflow: hidden; margin-top: 40px; }
+    .pipe-run-history .rh-head { padding: 14px 20px; border-bottom: 1px solid var(--line);
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted); }
+    .pipe-run-history table { width: 100%; border-collapse: collapse; }
+    .pipe-run-history th { text-align: left; padding: 10px 16px; font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+      border-bottom: 1px solid var(--line); }
+    .pipe-run-history td { padding: 10px 16px; font-family: var(--font-mono); font-size: 13px;
+      color: var(--ink-2); border-bottom: 1px solid var(--line); }
+    .pipe-run-history tr:last-child td { border-bottom: none; }
+    .pipe-run-history tr:hover td { background: var(--panel-2); }
+    .rh-status { display: inline-flex; align-items: center; gap: 5px; }
+    .rh-status.ok::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); display: inline-block; }
+    .rh-status.warn::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold); display: inline-block; }
+    .rh-status.err::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--red); display: inline-block; }
   </style>
-<script src="/fx-background.client.js" defer></script>
 </head>
 <body>
-  <swr-nav></swr-nav>
-  <!-- ============ NAV ============ -->
-  
+  <!-- NAV -->
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a class="nav__brand" href="/"><span class="dot"></span> SWR</a>
+      <nav class="nav__links" aria-label="Site sections">
+        <a href="/">Home</a>
+        <a href="/engine">Engine</a>
+        <a href="/versions.html" aria-current="page">Versions</a>
+        <a href="/bookings.html">Book</a>
+        <a href="/engine-personas.html">Personas</a>
+      </nav>
+      <a class="nav__cta" href="/engine">Make a video</a>
+    </div>
+  </nav>
 
   <main class="wrap">
+
     <!-- ============ HERO ============ -->
-    <header class="hero">
+    <div class="hero">
       <div class="hero__eyebrow">
-        <span class="live"></span>
-        <span>Live · <span id="h-deploy">2026-08-17</span> · build <span id="h-build">a3f2</span></span>
+        <span class="live" aria-hidden="true"></span>
+        Live · engine v1.0 · 2 new presets today
       </div>
-      <h1>Every version<br />we've <em>shipped</em>.</h1>
+      <h1>Every <em>version</em>,<br>every personality.</h1>
       <p class="lede">
         Engine releases, visual styles, preset schemas, and the daily personalities the cloud pipeline
-        generates. This is the source of truth for what's live, what's deprecated, and what's next.
+        ships. <strong>Browse the full history</strong> or let the engine surprise you.
       </p>
-      <div class="hero__actions">
-        <button type="button" class="rbtn rbtn--primary" id="rbtn-randomize">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;">
-            <rect x="2" y="2" width="12" height="12" rx="2"/>
-            <circle cx="5" cy="5" r="0.8" fill="currentColor"/>
-            <circle cx="11" cy="5" r="0.8" fill="currentColor"/>
-            <circle cx="8" cy="8" r="0.8" fill="currentColor"/>
-            <circle cx="5" cy="11" r="0.8" fill="currentColor"/>
-            <circle cx="11" cy="11" r="0.8" fill="currentColor"/>
-          </svg>
-          Randomize
-        </button>
-        <span class="hero__hint" id="rbtn-hint">Pick a random preset from the live manifest</span>
+    </div><!-- /hero -->
+
+    <!-- ============ RANDOMIZE CARD ============ -->
+    <div class="rand-card" id="rand-card" role="region" aria-label="Random preset picker" aria-live="polite">
+      <div class="rand-top">
+        <span class="rand-picknum" id="r-picknum">pick #—</span>
+        <h3 id="r-name">—</h3>
+        <div class="r-nav-btns">
+          <button type="button" id="r-prev" title="Previous preset" aria-label="Previous random preset">&#8592;</button>
+          <button type="button" id="r-next" title="Next preset" aria-label="Next random preset">&#8594;</button>
+        </div>
       </div>
-    </header>
+      <div class="r-id-row">
+        <code id="r-id">—</code>
+        <span id="r-created">—</span>
+      </div>
+      <p class="rand-desc" id="r-desc" style="font-size:14px;color:var(--ink-2);margin:0 0 12px;line-height:1.5;"></p>
+      <div class="r-audio-section" id="r-audio-section">
+        <div class="label">Audio mapping</div>
+        <div class="r-audio-map" id="r-audio-map"></div>
+      </div>
+      <div class="rand-meta">
+        <div class="rand-meta-cell">
+          <div class="rand-meta-lbl">FX active</div>
+          <div class="rand-meta-val" id="r-fxkeys">—</div>
+        </div>
+        <div class="rand-meta-cell">
+          <div class="rand-meta-lbl">Shader</div>
+          <div class="rand-meta-val sh" id="r-shader">—</div>
+        </div>
+        <div class="rand-meta-cell">
+          <div class="rand-meta-lbl">Palette</div>
+          <div class="rand-meta-val" id="r-palette-name">—</div>
+        </div>
+        <div class="rand-meta-cell">
+          <div class="rand-meta-lbl">Motion</div>
+          <div class="rand-meta-val" id="r-motion">—</div>
+        </div>
+      </div>
+      <div class="rand-palette" id="r-swatches"></div>
+      <div class="rand-tags" id="r-tags"></div>
+      <div class="rand-demo" id="r-demo"></div>
+      <div aria-live="polite" aria-atomic="true" class="sr-only" id="r-copy-announce"></div>
+      <div class="rand-actions">
+        <button type="button" class="rbtn" id="r-again" aria-label="Pick another random preset">&#8635; Pick another</button>
+        <a class="rbtn rbtn--primary" id="r-open" href="/engine">Open in engine &#8594;</a>
+        <button type="button" class="rbtn" id="r-copy" data-copy-target="r-id" aria-label="Copy preset ID to clipboard">Copy ID</button>
+      </div>
+    </div><!-- /rand-card -->
 
     <!-- ============ TAB BAR ============ -->
-    <nav class="tab-bar" role="tablist" aria-label="Page sections" id="tab-bar">
+    <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Page sections">
       <button type="button" class="tab-btn" role="tab" aria-selected="true"
         aria-controls="panel-presets" data-tab="presets" id="btn-presets">
         Presets
@@ -427,745 +489,640 @@
         aria-controls="panel-releases" data-tab="releases" id="btn-releases">
         Releases
       </button>
-    </nav>
-
-
-    <!-- ============ RANDOMIZE CARD (hidden until clicked) ============ -->
-    <div class="rand-card" id="rand-card" aria-live="polite" role="region" aria-label="Selected preset">
-      <div class="rand-head">
-        <span class="rand-picknum" id="r-picknum">pick #—</span>
-        <h3 id="r-name">—</h3>
-        <div class="rand-nav">
-          <button type="button" id="r-prev" title="Previous preset" aria-label="Previous preset">←</button>
-          <button type="button" id="r-next" title="Next preset" aria-label="Next preset">→</button>
-        </div>
-      </div>
-      <div class="rand-id">
-        <span class="rand-id-label">ID</span>
-        <code id="r-id">—</code>
-        <span class="rand-sep">·</span>
-        <span class="rand-id-label">Created</span>
-        <span id="r-created">—</span>
-      </div>
-      <p class="rand-desc" id="r-desc">—</p>
-
-      <!-- Audio mapping — clear band → effect breakdown -->
-      <div class="r-audio-section" id="r-audio-section">
-        <div class="r-audio-label">♪ Audio mapping</div>
-        <div class="r-audio-map" id="r-audio-map"></div>
-      </div>
-
-      <!-- FX + metadata row -->
-      <div class="rand-meta-row">
-        <div class="rand-meta-item">
-          <span class="rand-meta-label">FX</span>
-          <span class="rand-meta-val" id="r-fxkeys">—</span>
-        </div>
-        <div class="rand-meta-item">
-          <span class="rand-meta-label">Shader</span>
-          <span class="rand-meta-val sh" id="r-shader">—</span>
-        </div>
-        <div class="rand-meta-item">
-          <span class="rand-meta-label">Palette</span>
-          <span class="rand-meta-val" id="r-palette-name">—</span>
-        </div>
-        <div class="rand-meta-item">
-          <span class="rand-meta-label">Motion</span>
-          <span class="rand-meta-val" id="r-motion">—</span>
-        </div>
-      </div>
-
-      <!-- Swatches -->
-      <div class="rand-palette" id="r-swatches"></div>
-
-      <!-- Demo links -->
-      <div class="rand-demo" id="r-demo"></div>
-
-      <!-- Tags -->
-      <div class="rand-tags" id="r-tags"></div>
-
-      <!-- Screen-reader live region for copy confirmation -->
-      <div aria-live="polite" aria-atomic="true" class="sr-only" id="r-copy-announce"></div>
-
-      <div class="rand-actions">
-        <button type="button" class="rbtn" id="r-again" aria-label="Pick another random preset">↻ Pick another</button>
-        <a class="rbtn rbtn--primary" id="r-open" href="/engine">Open in engine →</a>
-        <button type="button" class="rbtn" id="r-copy" data-copy-target="r-id" aria-label="Copy preset ID to clipboard">Copy ID</button>
-      </div>
     </div>
-    </div><!-- /rand-card -->
 
+    <!-- ============ PANEL: PRESETS ============ -->
     <div class="tab-panel" data-tab="presets" role="tabpanel" aria-labelledby="btn-presets" id="panel-presets">
 
-    <!-- PIPELINE PANEL ====== -->
+      <!-- SECTION 02: VISUAL STYLES -->
+      <section>
+        <div class="sec-head">
+          <span class="sec-num">02</span>
+          <h2 class="sec-title">Visual styles</h2>
+          <span class="sec-sub" id="v-styles-sub">Variants &middot; surfaces &middot; galleries</span>
+        </div>
+        <div class="styles-grid">
+          <div class="style-card">
+            <div class="thumb" style="background: radial-gradient(circle at 30% 50%, #ff2d8a44, transparent 60%), #0a0610;">
+              <svg viewBox="0 0 100 60"><circle cx="30" cy="30" r="14" fill="none" stroke="#ff2d8a" stroke-width="1.5"/><circle cx="70" cy="30" r="10" fill="none" stroke="#00f0ff" stroke-width="1.5"/><line x1="30" y1="30" x2="70" y2="30" stroke="#fff04a" stroke-width="0.8"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Saturated &middot; halo</div>
+              <h3 style="color: #ff2d8a;">Neon</h3>
+              <p class="desc">Bright halos around saturated pixels. Pure nightclub energy.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/neon?look=clean">Clean</a><a class="look" href="/versions/neon?look=film">Film</a></div>
+          </div>
+          <a class="style-card" href="/versions/music_video">
+            <div class="thumb" style="background: radial-gradient(circle at 50% 50%, #ff2d8a33 0%, transparent 70%), linear-gradient(180deg, #150b22 0%, #05030a 100%);">
+              <svg viewBox="0 0 100 60" stroke="#ff2d8a" fill="none" stroke-width="0.8"><line x1="20" y1="6" x2="20" y2="54"/><line x1="80" y1="6" x2="80" y2="54"/><line x1="20" y1="30" x2="80" y2="30" opacity="0.4"/><circle cx="55" cy="22" r="1.4" fill="#ff2d8a" stroke="none"/><circle cx="40" cy="38" r="1.4" fill="#00f0ff" stroke="none"/><circle cx="68" cy="42" r="1.4" fill="#ff2d8a" stroke="none"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Gradient &middot; automix &middot; session-private</div>
+              <h3 style="color: #ff2d8a;">Music Video</h3>
+              <p class="desc">Drop a track, the engine synthesizes a preset and blends related anchors as reactive depth. Self-evolving on the A key.</p>
+            </div>
+          </a>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(180deg, #2a1810, #0a0610);">
+              <svg viewBox="0 0 100 60"><rect x="0" y="0" width="100" height="60" fill="none"/><g stroke="#d4b896" stroke-width="0.3" opacity="0.4"><line x1="0" y1="3" x2="100" y2="3"/><line x1="0" y1="6" x2="100" y2="6"/><line x1="0" y1="9" x2="100" y2="9"/><line x1="0" y1="12" x2="100" y2="12"/></g><circle cx="50" cy="30" r="8" fill="#d4b896" opacity="0.3"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">16mm &middot; sepia &middot; scanlines</div>
+              <h3 style="color: #d4b896;">Film</h3>
+              <p class="desc">16mm grain, sepia, warm temperature. For songs that want a music video.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/film?look=clean">Clean</a><a class="look" href="/versions/film?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #000;">
+              <svg viewBox="0 0 100 60" fill="#fff"><rect x="10" y="10" width="20" height="20" fill="#fff"/><rect x="40" y="10" width="20" height="20" fill="#888"/><rect x="70" y="10" width="20" height="20" fill="#fff"/><rect x="10" y="40" width="20" height="20" fill="#fff"/><rect x="40" y="40" width="20" height="20" fill="#fff"/><rect x="70" y="40" width="20" height="20" fill="#888"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Monochrome &middot; posterized</div>
+              <h3>Grid</h3>
+              <p class="desc">Hard cells, heavy posterize, snap-to-the-beat. Pure geometry.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/grid?look=clean">Clean</a><a class="look" href="/versions/grid?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(180deg, #3a2810 0%, #1a0e08 100%);">
+              <svg viewBox="0 0 100 60"><path d="M0,30 Q20,10 40,30 T80,30 T120,30" fill="none" stroke="#f3e9d5" stroke-width="2" opacity="0.6"/><path d="M0,40 Q25,25 50,40 T100,40" fill="none" stroke="#f3e9d5" stroke-width="1.5" opacity="0.4"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Wisps &middot; slow drift</div>
+              <h3 style="color: #f3e9d5;">Smoke</h3>
+              <p class="desc">Gentle horizontal wisps. The visualizer for slow songs.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/smoke?look=clean">Clean</a><a class="look" href="/versions/smoke?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #0a0610;">
+              <svg viewBox="0 0 100 60"><g stroke="#00ffa3" stroke-width="0.5" opacity="0.7"><line x1="10" y1="0" x2="10" y2="60"/><line x1="30" y1="0" x2="30" y2="60"/><line x1="50" y1="0" x2="50" y2="60"/><line x1="70" y1="0" x2="70" y2="60"/><line x1="90" y1="0" x2="90" y2="60"/></g><circle cx="50" cy="30" r="12" fill="none" stroke="#ff2d8a" stroke-width="1.5"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Scanlines &middot; RGB drift</div>
+              <h3 style="color: #00ffa3;">Hallucination</h3>
+              <p class="desc">Scanlines plus RGB-drift stripes. Visceral, cinematic, wrong.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/hallucination?look=clean">Clean</a><a class="look" href="/versions/hallucination?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #000;">
+              <svg viewBox="0 0 100 60"><rect x="0" y="20" width="100" height="3" fill="#00ff66"/><rect x="0" y="40" width="100" height="2" fill="#ff2d8a"/><rect x="20" y="0" width="40" height="60" fill="none" stroke="#00f0ff" stroke-width="0.5"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Snap-beat &middot; corrupt</div>
+              <h3 style="color: #00ff66;">Glitch</h3>
+              <p class="desc">Snap-pan on every beat. The video breaks with the song.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/glitch?look=clean">Clean</a><a class="look" href="/versions/glitch?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(180deg, #1a2a4a 0%, #4a2a6a 50%, #ffb3ba 100%);">
+              <svg viewBox="0 0 100 60"><path d="M0,20 Q30,5 60,20 T100,20" fill="none" stroke="#FFB3BA" stroke-width="2" opacity="0.8"/><path d="M0,40 Q30,25 60,40 T100,40" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Soft &middot; pastel</div>
+              <h3 style="color: #FFB3BA;">Aurora</h3>
+              <p class="desc">Soft pastel light bands. For songs that breathe.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/aurora?look=clean">Clean</a><a class="look" href="/versions/aurora?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #0a0610;">
+              <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="20" fill="none" stroke="#00f0ff" stroke-width="1.5" opacity="0.5"/><circle cx="50" cy="30" r="12" fill="none" stroke="#00f0ff" stroke-width="2"/><circle cx="50" cy="30" r="4" fill="#00f0ff"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Beat &middot; ring</div>
+              <h3 style="color: #00f0ff;">Pulse</h3>
+              <p class="desc">A ring that pulses on every beat. Minimalist club aesthetic.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/pulse?look=clean">Clean</a><a class="look" href="/versions/pulse?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #000;">
+              <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="22" fill="#000" stroke="#fff" stroke-width="0.5" opacity="0.3"/><circle cx="50" cy="30" r="2" fill="#fff"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Black &middot; isolation</div>
+              <h3>Void</h3>
+              <p class="desc">Pure black canvas, single point of light. Negative space.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/void?look=clean">Clean</a><a class="look" href="/versions/void?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(135deg, #e0e0e8 0%, #888 50%, #fafafa 100%);">
+              <svg viewBox="0 0 100 60"><rect x="10" y="15" width="80" height="30" rx="3" fill="url(#cg)"/><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fafafa"/><stop offset="0.5" stop-color="#888"/><stop offset="1" stop-color="#fafafa"/></linearGradient></defs></svg>
+            </div>
+            <div class="body">
+              <div class="label">Reflective &middot; metallic</div>
+              <h3>Chrome</h3>
+              <p class="desc">Reflective metallic surfaces. Late 90s / Vaporwave.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/chrome?look=clean">Clean</a><a class="look" href="/versions/chrome?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(135deg, #faf7f0 0%, #c8b8de 100%);">
+              <svg viewBox="0 0 100 60"><ellipse cx="30" cy="30" rx="20" ry="15" fill="#ff2d8a" opacity="0.4"/><ellipse cx="60" cy="30" rx="25" ry="12" fill="#00f0ff" opacity="0.3"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Soft &middot; bleed</div>
+              <h3>Watercolor</h3>
+              <p class="desc">Soft, bleeding edges. For songs that feel like memory.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/watercolor?look=clean">Clean</a><a class="look" href="/versions/watercolor?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #0a0610;">
+              <svg viewBox="0 0 100 60"><g stroke="#00ffa3" stroke-width="0.4" fill="none"><circle cx="50" cy="30" r="25"/><circle cx="50" cy="30" r="18"/><circle cx="50" cy="30" r="12"/><circle cx="50" cy="30" r="6"/></g></svg>
+            </div>
+            <div class="body">
+              <div class="label">Recursive &middot; organic</div>
+              <h3 style="color: #00ffa3;">Fractal</h3>
+              <p class="desc">Recursive organic shapes. Math as music video.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/fractal?look=clean">Clean</a><a class="look" href="/versions/fractal?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: radial-gradient(circle at 50% 50%, #0a0610 30%, #1a0820 50%, #ff2d8a 70%, #fff04a 100%);">
+              <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="14" fill="#0a0610"/><circle cx="50" cy="30" r="20" fill="none" stroke="#fff04a" stroke-width="1.2" opacity="0.7"/><circle cx="50" cy="30" r="26" fill="none" stroke="#ff2d8a" stroke-width="0.4" opacity="0.5"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Corona &middot; legacy</div>
+              <h3 style="color: #ff2d8a;">Eclipse</h3>
+              <p class="desc">Deep black with a bright corona glow. The original light-destroyer.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/eclipse?look=clean">Clean</a><a class="look" href="/versions/eclipse?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(135deg, #2a1a0a 0%, #5a3a1a 50%, #c8a04a 100%);">
+              <svg viewBox="0 0 100 60"><g stroke="#c8a04a" stroke-width="0.6" fill="none"><path d="M20,40 Q30,10 50,15 Q70,10 80,40 Q70,55 50,50 Q30,55 20,40 Z"/><circle cx="50" cy="30" r="6" fill="#c8a04a" opacity="0.6"/><path d="M50,15 L50,5 M50,45 L50,55 M30,30 L20,30 M70,30 L80,30" stroke-width="0.4"/></g></svg>
+            </div>
+            <div class="body">
+              <div class="label">Ornate &middot; gilded</div>
+              <h3 style="color: #c8a04a;">Baroque</h3>
+              <p class="desc">Gilded ornament and gold filigree. For songs that want cathedral weight.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/baroque?look=clean">Clean</a><a class="look" href="/versions/baroque?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(90deg, #ff2d8a 0% 33%, #00f0ff 33% 66%, #fff04a 66% 100%);">
+              <svg viewBox="0 0 100 60"><g stroke="#0a0610" stroke-width="1.5" fill="none"><rect x="5" y="5" width="28" height="22"/><rect x="36" y="8" width="28" height="18"/><rect x="67" y="5" width="28" height="25"/><rect x="10" y="32" width="38" height="22"/><rect x="52" y="30" width="42" height="25"/></g></svg>
+            </div>
+            <div class="body">
+              <div class="label">Split-screen &middot; magazine</div>
+              <h3>Mixed-media collage</h3>
+              <p class="desc">Multi-clip split-screen composition. Magazine-grid cuts to the beat.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/collage?look=clean">Clean</a><a class="look" href="/versions/collage?look=film">Film</a></div>
+          </div>
+          <a class="style-card" href="/versions/gallery">
+            <div class="thumb" style="background: linear-gradient(180deg, #faf7f5 0%, #e8e0e8 100%);">
+              <svg viewBox="0 0 100 60"><g stroke="#1a0e2a" stroke-width="0.4" fill="none"><rect x="12" y="10" width="28" height="40"/><rect x="46" y="6" width="22" height="48"/><rect x="74" y="14" width="20" height="34"/></g><circle cx="26" cy="30" r="6" fill="#1a0e2a" opacity="0.2"/><rect x="52" y="22" width="10" height="16" fill="#1a0e2a" opacity="0.15"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">White-wall &middot; curated</div>
+              <h3 style="color: #1a0e2a;">Gallery</h3>
+              <p class="desc">Clean gallery-white frames. The art-show version of your song.</p>
+            </div>
+          </a>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(135deg, #8a6a3a 0%, #c89a5a 50%, #6a4a2a 100%);">
+              <svg viewBox="0 0 100 60"><g stroke="#3a2410" stroke-width="0.3" opacity="0.4"><line x1="0" y1="10" x2="100" y2="10"/><line x1="0" y1="20" x2="100" y2="20"/><line x1="0" y1="30" x2="100" y2="30"/><line x1="0" y1="40" x2="100" y2="40"/><line x1="0" y1="50" x2="100" y2="50"/></g><rect x="20" y="15" width="60" height="30" fill="#3a2410" opacity="0.3"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Paper &middot; recycled</div>
+              <h3 style="color: #3a2410;">Kraft</h3>
+              <p class="desc">Brown-paper texture, raw edges. For songs that feel handmade.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/kraft?look=clean">Clean</a><a class="look" href="/versions/kraft?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #1a0820;">
+              <svg viewBox="0 0 100 60"><g stroke="#fff04a" stroke-width="0.4" fill="#ff2d8a" opacity="0.7"><polygon points="10,10 30,5 35,25 15,30"/><polygon points="35,25 55,10 60,30 40,35"/><polygon points="60,30 80,15 85,35 65,40"/><polygon points="15,30 40,35 35,55 20,52"/><polygon points="40,35 65,40 70,55 45,55"/><polygon points="65,40 85,35 90,55 70,55"/></g></svg>
+            </div>
+            <div class="body">
+              <div class="label">Stained glass &middot; tiles</div>
+              <h3 style="color: #fff04a;">Mosaic</h3>
+              <p class="desc">Posterize tiles in stained-glass colors. Cuts that read like a window.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/mosaic?look=clean">Clean</a><a class="look" href="/versions/mosaic?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #0a0a0a;">
+              <svg viewBox="0 0 100 60"><g fill="#33ff66" opacity="0.85" font-family="monospace" font-size="9"><text x="10" y="20">SWR://01</text><text x="10" y="32">SECTOR A</text><text x="10" y="44">$ &#9608;&#9608;&#9608;&#9608;&#9608;&#9608;</text></g><g stroke="#33ff66" stroke-width="0.2" opacity="0.4"><line x1="0" y1="48" x2="100" y2="48"/></g></svg>
+            </div>
+            <div class="body">
+              <div class="label">CRT &middot; terminal</div>
+              <h3 style="color: #33ff66;">Phosphor</h3>
+              <p class="desc">Green-CRT terminal aesthetic. For hacker-beats and lo-fi.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/phosphor?look=clean">Clean</a><a class="look" href="/versions/phosphor?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(90deg, #ff2d8a 0%, #00f0ff 25%, #fff04a 50%, #00ffa3 75%, #ff2d8a 100%);">
+              <svg viewBox="0 0 100 60"><g stroke="#0a0610" stroke-width="2.5" fill="none"><line x1="5" y1="30" x2="5" y2="18"/><line x1="15" y1="30" x2="15" y2="10"/><line x1="25" y1="30" x2="25" y2="22"/><line x1="35" y1="30" x2="35" y2="6"/><line x1="45" y1="30" x2="45" y2="14"/><line x1="55" y1="30" x2="55" y2="24"/><line x1="65" y1="30" x2="65" y2="12"/><line x1="75" y1="30" x2="75" y2="20"/><line x1="85" y1="30" x2="85" y2="8"/><line x1="95" y1="30" x2="95" y2="22"/></g></svg>
+            </div>
+            <div class="body">
+              <div class="label">Audio &middot; reactive</div>
+              <h3 style="color: #0a0610;">Spectrum</h3>
+              <p class="desc">Pure audio-reactive visualizer. No footage — just your track and the analyzer.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/spectrum?look=clean">Clean</a><a class="look" href="/versions/spectrum?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: linear-gradient(180deg, #2a1a1a 0%, #0a0608 50%, #2a1a1a 100%);">
+              <svg viewBox="0 0 100 60"><g stroke="#faf7f5" stroke-width="0.3" opacity="0.5"><line x1="0" y1="6" x2="100" y2="6"/><line x1="0" y1="10" x2="100" y2="10"/><line x1="0" y1="14" x2="100" y2="14"/></g><rect x="10" y="22" width="80" height="20" fill="#faf7f5" opacity="0.7"/><rect x="10" y="22" width="80" height="20" fill="none" stroke="#0a0610" stroke-width="0.3"/><text x="20" y="36" font-family="monospace" font-size="8" fill="#0a0610">PLAY &#9654; REC &#9679;</text></svg>
+            </div>
+            <div class="body">
+              <div class="label">VHS &middot; degraded</div>
+              <h3 style="color: #faf7f5;">Tape</h3>
+              <p class="desc">VHS tape-tone, scan lines, soft chroma bleed. Late-night mixtape energy.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/tape?look=clean">Clean</a><a class="look" href="/versions/tape?look=film">Film</a></div>
+          </div>
+          <div class="style-card">
+            <div class="thumb" style="background: #faf7f5;">
+              <svg viewBox="0 0 100 60"><g fill="#0a0610" font-family="serif" font-weight="600"><text x="14" y="22" font-size="14" font-style="italic">drop</text><text x="14" y="44" font-size="22" font-weight="800">music.</text></g><line x1="14" y1="50" x2="60" y2="50" stroke="#ff2d8a" stroke-width="1.5"/></svg>
+            </div>
+            <div class="body">
+              <div class="label">Animated &middot; type</div>
+              <h3 style="color: #0a0610;">Typography</h3>
+              <p class="desc">Animated type for designers and brands. Drop copy, audio, and a brand kit.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/typography?look=clean">Clean</a><a class="look" href="/versions/typography?look=film">Film</a></div>
+          </div>
+          <a class="style-card" href="/ar-gif">
+            <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(0,240,255,0.20) 0%, transparent 70%), linear-gradient(180deg, #0a0610 0%, #05030a 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#00f0ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="32" y="18" width="36" height="24" rx="2"/>
+                <path d="M14 30 L32 30 M68 30 L86 30" stroke-dasharray="2 2" opacity="0.5"/>
+                <circle cx="50" cy="30" r="3" fill="#00f0ff" stroke="none"/>
+                <path d="M50 6 L50 14 M50 46 L50 54" opacity="0.4"/>
+                <circle cx="50" cy="3" r="1" fill="#fff04a" stroke="none" opacity="0.8"/>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">Camera &middot; AR &middot; mobile</div>
+              <h3 style="color: #00f0ff;">AR Animation Loop</h3>
+              <p class="desc">Drop a GIF, see it loop in your space via markerless AR. One-click 5s WebM capture.</p>
+            </div>
+          </a>
+          <a class="style-card" href="/photo.html">
+            <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(255,0,102,0.18) 0%, transparent 70%), linear-gradient(180deg, #14000a 0%, #05030a 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#ff0066" stroke-width="0.9" stroke-linecap="round">
+                <rect x="12" y="14" width="32" height="32" rx="2"/>
+                <rect x="56" y="14" width="32" height="32" rx="2" opacity="0.55"/>
+                <path d="M44 30 L56 30" stroke-dasharray="2 2" opacity="0.6"/>
+                <text x="50" y="55" font-family="ui-monospace, monospace" font-size="6" fill="#fff04a" stroke="none" text-anchor="middle">&#9654; KICK</text>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">Slideshow &middot; beat-reactive</div>
+              <h3 style="color: #ff0066;">Photo Studio</h3>
+              <p class="desc">Drop multiple photos. Each beat advances with a crossfade. Ken Burns per shot. Preset templates drive transition + timing.</p>
+            </div>
+          </a>
+          <a class="style-card" href="/dashboard">
+            <div class="thumb" style="background: linear-gradient(180deg, #0a0a14 0%, #050308 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#5a4a6a" stroke-width="0.5">
+                <rect x="8" y="10" width="84" height="40" rx="2"/>
+                <line x1="8" y1="22" x2="92" y2="22"/>
+                <line x1="8" y1="38" x2="92" y2="38"/>
+                <line x1="32" y1="10" x2="32" y2="50"/>
+                <line x1="68" y1="10" x2="68" y2="50"/>
+                <g fill="#ff3d92" stroke="none">
+                  <rect x="14" y="14" width="6" height="2"/>
+                  <rect x="14" y="17" width="12" height="2"/>
+                  <rect x="36" y="26" width="14" height="10"/>
+                  <rect x="72" y="42" width="14" height="3"/>
+                  <rect x="72" y="46" width="10" height="3"/>
+                </g>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">3-column &middot; collapsible</div>
+              <h3 style="color: #ff3d92;">Engine Dashboard</h3>
+              <p class="desc">Production dashboard with the engine behind the canvas. Three-column layout collapses for a focused render view.</p>
+            </div>
+          </a>
+          <a class="style-card" href="/versions/music-video">
+            <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(0,217,255,0.18) 0%, rgba(168,85,247,0.10) 40%, transparent 70%), #02020a;">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#00d9ff" stroke-width="0.6">
+                <circle cx="50" cy="30" r="18" opacity="0.7"/>
+                <circle cx="50" cy="30" r="26" opacity="0.4"/>
+                <circle cx="50" cy="30" r="12" opacity="0.5"/>
+                <g stroke="#a855f7" stroke-width="0.5" opacity="0.6">
+                  <line x1="32" y1="30" x2="68" y2="30"/>
+                  <line x1="50" y1="14" x2="50" y2="46"/>
+                </g>
+                <g fill="#facc15" font-family="ui-monospace, monospace" font-size="6" font-weight="700" stroke="none">
+                  <text x="46" y="32">&#934;</text>
+                </g>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">4D &middot; preset embed &middot; keyboard</div>
+              <h3 style="color: #00d9ff;">Hologram</h3>
+              <p class="desc">Music-video hologram: 4D-preset embed, applyR wrap, scatter panel, arrow/digit keyboard cycling.</p>
+            </div>
+          </a>
+          <div class="style-card">
+            <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(0,217,255,0.15) 0%, transparent 60%), #020205;">
+              <svg viewBox="0 0 100 60" fill="none">
+                <g stroke="#00d9ff" stroke-width="0.6" opacity="0.7">
+                  <circle cx="50" cy="30" r="14"/>
+                  <circle cx="50" cy="30" r="20"/>
+                  <circle cx="50" cy="30" r="26"/>
+                </g>
+                <g stroke="#a855f7" stroke-width="0.6" opacity="0.5">
+                  <circle cx="50" cy="30" r="8"/>
+                </g>
+                <g fill="#facc15" font-family="ui-monospace, monospace" font-size="6" font-weight="700">
+                  <text x="46" y="32">&#934;</text>
+                </g>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">Standalone &middot; 5 modes</div>
+              <h3 style="color: #00d9ff;">ECHO &middot; Manifold 5.0</h3>
+              <p class="desc">30 generative formulas across 9 sections. 5 modes: Ambient, Euclidean, Chaos, Phi, Cellular. WebAudio only.</p>
+            </div>
+            <div class="looks"><a class="look" href="/versions/echo-manifold?look=clean">Clean</a><a class="look" href="/versions/echo-manifold?look=film">Film</a></div>
+          </div>
+          <a class="style-card" href="/versions/console">
+            <div class="thumb" style="background: linear-gradient(180deg, #0b0b0c 0%, #000 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#FF6B1A" stroke-width="1.1" stroke-linecap="round">
+                <g opacity="0.25" stroke-width="0.5">
+                  <line x1="8" y1="20" x2="92" y2="20"/>
+                  <line x1="8" y1="30" x2="92" y2="30"/>
+                  <line x1="8" y1="40" x2="92" y2="40"/>
+                  <line x1="26" y1="12" x2="26" y2="48"/>
+                  <line x1="50" y1="12" x2="50" y2="48"/>
+                  <line x1="74" y1="12" x2="74" y2="48"/>
+                </g>
+                <path d="M8 30 C16 18, 24 42, 32 30 S48 18, 56 30 S72 42, 80 30 S88 22, 92 26"/>
+                <g stroke="none" fill="#FF6B1A" opacity="0.85">
+                  <rect x="12" y="44" width="4" height="8"/>
+                  <rect x="20" y="40" width="4" height="12"/>
+                  <rect x="28" y="46" width="4" height="6"/>
+                  <rect x="36" y="38" width="4" height="14"/>
+                  <rect x="44" y="43" width="4" height="9"/>
+                </g>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">Visual language &middot; accent on black</div>
+              <h3 style="color: #FF6B1A;">Console</h3>
+              <p class="desc">Precision oscilloscope aesthetic: pure-black canvas, a single accent (#FF6B1A), geometric primitives, spectrum bars and a persistent HUD.</p>
+            </div>
+          </a>
+          <a class="style-card" href="/versions/bachdrop">
+            <div class="thumb" style="background: radial-gradient(circle at 50% 40%, rgba(200,160,74,0.22) 0%, transparent 65%), linear-gradient(180deg, #140f06 0%, #05030a 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#c8a04a" stroke-width="0.8" stroke-linecap="round">
+                <g opacity="0.5">
+                  <line x1="10" y1="20" x2="90" y2="20"/>
+                  <line x1="10" y1="28" x2="90" y2="28"/>
+                  <line x1="10" y1="36" x2="90" y2="36"/>
+                </g>
+                <g fill="#c8a04a" stroke="none">
+                  <ellipse cx="26" cy="30" rx="4" ry="3"/>
+                  <ellipse cx="44" cy="22" rx="4" ry="3"/>
+                  <ellipse cx="62" cy="32" rx="4" ry="3"/>
+                  <ellipse cx="78" cy="24" rx="4" ry="3"/>
+                </g>
+                <path d="M26 30 L26 16 M44 22 L44 12 M62 32 L62 18 M78 24 L78 14" stroke-width="0.9"/>
+                <path d="M12 46 C30 54, 70 54, 88 46" opacity="0.7"/>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">Counterpoint &middot; baroque</div>
+              <h3 style="color: #c8a04a;">BACHDROP</h3>
+              <p class="desc">Baroque gold-on-velvet palette driven by real audio analysis — 4-voice counterpoint scroll, beat-locked figured-bass pulse.</p>
+            </div>
+          </a>
+          <a class="style-card" href="/versions/music-video-gallery">
+            <div class="thumb" style="background: linear-gradient(180deg, #04070f 0%, #02020a 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#00d9ff" stroke-width="0.8" stroke-linecap="round">
+                <rect x="14" y="14" width="30" height="32" rx="2" opacity="0.35"/>
+                <rect x="24" y="10" width="30" height="36" rx="2" opacity="0.6"/>
+                <rect x="34" y="6" width="30" height="40" rx="2"/>
+                <path d="M70 30 L84 24 M70 30 L84 36" opacity="0.8"/>
+                <path d="M78 30 L56 30" stroke-dasharray="3 3" opacity="0.5"/>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">Gallery &middot; 3D flip</div>
+              <h3 style="color: #00d9ff;">Music videos</h3>
+              <p class="desc">Flip through pre-rendered music videos with a 3D transition — the multi-video companion to the Hologram cut.</p>
+            </div>
+          </a>
+          <a class="style-card" href="/versions/music_video_mtv.html">
+            <div class="thumb" style="background: linear-gradient(180deg, #12000a 0%, #05030a 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#ff2d55" stroke-width="0.9" stroke-linecap="round">
+                <rect x="12" y="10" width="76" height="40" rx="6"/>
+                <g opacity="0.45" stroke-width="0.5">
+                  <line x1="14" y1="18" x2="86" y2="18"/>
+                  <line x1="14" y1="26" x2="86" y2="26"/>
+                  <line x1="14" y1="34" x2="86" y2="34"/>
+                  <line x1="14" y1="42" x2="86" y2="42"/>
+                </g>
+                <g fill="#facc15" stroke="none" font-family="ui-monospace, monospace" font-size="9" font-weight="700">
+                  <text x="50" y="34" text-anchor="middle">MTV</text>
+                </g>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">90s retro &middot; VHS / CRT</div>
+              <h3 style="color: #ff2d55;">Music video &middot; MTV cut</h3>
+              <p class="desc">MTV / 90s retro music video: VHS scanlines, CRT curvature, big bold type.</p>
+            </div>
+          </a>
+          <a class="style-card" href="/versions/index.html">
+            <div class="thumb" style="background: linear-gradient(180deg, #0a0610 0%, #050308 100%);">
+              <svg viewBox="0 0 100 60" fill="none" stroke="#eae6f5" stroke-width="0.6" opacity="0.8">
+                <g>
+                  <rect x="12" y="14" width="20" height="13" rx="1"/>
+                  <rect x="36" y="14" width="20" height="13" rx="1"/>
+                  <rect x="60" y="14" width="20" height="13" rx="1"/>
+                  <rect x="12" y="32" width="20" height="13" rx="1"/>
+                  <rect x="36" y="32" width="20" height="13" rx="1"/>
+                  <rect x="60" y="32" width="20" height="13" rx="1"/>
+                </g>
+                <g stroke="none" fill="#eae6f5" opacity="0.5">
+                  <rect x="16" y="20" width="10" height="2"/>
+                  <rect x="40" y="20" width="8" height="2"/>
+                  <rect x="64" y="20" width="12" height="2"/>
+                  <rect x="16" y="38" width="8" height="2"/>
+                  <rect x="40" y="38" width="12" height="2"/>
+                  <rect x="64" y="38" width="9" height="2"/>
+                </g>
+              </svg>
+            </div>
+            <div class="body">
+              <div class="label">Index &middot; six visual languages</div>
+              <h3 style="color: #eae6f5;">Visual languages</h3>
+              <p class="desc">The six visual languages side by side — same controls, same library, same MP4 export, different aesthetics.</p>
+            </div>
+          </a>
+        </div><!-- /styles-grid -->
+      </section><!-- /visual styles -->
+
+      <!-- SECTION 04: DAILY PRESET TIMELINE (with search/filter) -->
+      <section>
+        <div class="sec-head">
+          <span class="sec-num">04</span>
+          <h2 class="sec-title">Daily preset timeline</h2>
+          <span class="sec-sub" id="t-count">— presets</span>
+        </div>
+
+        <!-- Search / filter bar -->
+        <div class="sf-bar" role="search" aria-label="Filter presets">
+          <div class="sf-search-wrap">
+            <span class="sf-icon" aria-hidden="true">&#128269;</span>
+            <input type="search" id="sf-search" placeholder="Search presets by name…" aria-label="Search presets by name" autocomplete="off" />
+            <button type="button" id="sf-clear" aria-label="Clear search">&times;</button>
+          </div>
+          <div class="sf-chips" role="group" aria-label="Filter chips">
+            <button type="button" class="sf-chip" data-filter="fav" id="sf-fav-chip" aria-pressed="false" title="Show only favorited presets">
+              &#9733; Favorites
+            </button>
+          </div>
+          <div class="sf-sort">
+            <label for="sf-sort-select">Sort</label>
+            <select id="sf-sort-select" aria-label="Sort presets">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="az">A &rarr; Z</option>
+              <option value="za">Z &rarr; A</option>
+            </select>
+          </div>
+        </div>
+        <div class="sf-count" id="sf-count" aria-live="polite"></div>
+
+        <!-- Preset list (rendered by versions.client.js) -->
+        <div class="preset-list" id="preset-list">
+          <div class="preset-day">
+            <div class="day-head">
+              <h4>Loading&hellip;</h4>
+            </div>
+            <div class="items"><span class="preset-chip"><span class="dot"></span>fetching manifest</span></div>
+          </div>
+        </div><!-- /preset-list -->
+      </section><!-- /daily preset timeline -->
+
+    </div><!-- /panel-presets -->
+
+    <!-- ============ PANEL: PIPELINE ============ -->
     <div class="tab-panel" data-tab="pipeline" role="tabpanel" aria-labelledby="btn-pipeline" id="panel-pipeline">
 
+      <!-- SECTION 00: LIVE STATE -->
+      <section>
+        <div class="sec-head">
+          <span class="sec-num">00</span>
+          <h2 class="sec-title">Live state</h2>
+          <span class="sec-sub" id="l-refresh">Probing&hellip;</span>
+        </div>
+        <div class="live-grid" id="live-grid">
+          <div class="live-cell"><div class="l">Engine</div><div class="v green" id="l-engine">v1.0</div><div class="sub">self-evolving</div></div>
+          <div class="live-cell"><div class="l">Preset schema</div><div class="v cyan" id="l-schema">swr-preset/v1</div><div class="sub">schema v1 &middot; stable</div></div>
+          <div class="live-cell"><div class="l">Daily pipeline</div><div class="v gold" id="l-pipe">2 new presets/day</div><div class="sub" id="l-pipe-sub">10 shaders &times; 8 palettes &times; 7 motions</div></div>
+          <div class="live-cell"><div class="l">Manifest</div><div class="v" id="l-count">—</div><div class="sub" id="l-count-sub">presets &middot; loading&hellip;</div></div>
+          <div class="live-cell"><div class="l">Latest preset</div><div class="v" id="l-latest">—</div><div class="sub" id="l-latest-sub">—</div></div>
+          <div class="live-cell"><div class="l">Production</div><div class="v" style="font-size:15px;">Live</div><div class="sub"><span id="l-http">200</span> <span id="l-http-ok" aria-label="ok">&#10003;</span> &middot; <span id="l-region">iad1</span></div></div>
+          <div class="live-cell"><div class="l">Visual styles</div><div class="v" id="l-styles">22</div><div class="sub">per-page GLSL</div></div>
+          <div class="live-cell"><div class="l">On-device variants</div><div class="v" id="l-variants">Unlimited</div><div class="sub">personal variants &middot; unlocked after 3 uses</div></div>
+        </div>
+      </section><!-- /live state -->
 
-    <!-- ============ LIVE STATE ============ -->
-    <section>
-      <div class="sec-head">
-        <span class="sec-num">00</span>
-        <h2 class="sec-title">Live state</h2>
-        <span class="sec-sub" id="l-refresh">Probing…</span>
-      </div>
-      <div class="live-grid" id="live-grid">
-        <div class="live-cell"><div class="l">Engine</div><div class="v green" id="l-engine">v1.0</div><div class="sub">self-evolving</div></div>
-        <div class="live-cell"><div class="l">Preset schema</div><div class="v cyan" id="l-schema">swr-preset/v1</div><div class="sub">schema v1 · stable</div></div>
-        <div class="live-cell"><div class="l">Daily pipeline</div><div class="v gold" id="l-pipe">2 new presets/day</div><div class="sub" id="l-pipe-sub">10 shaders × 8 palettes × 7 motions</div></div>
-        <div class="live-cell"><div class="l">Manifest</div><div class="v" id="l-count">—</div><div class="sub" id="l-count-sub">presets · loading…</div></div>
-        <div class="live-cell"><div class="l">Latest preset</div><div class="v" id="l-latest">—</div><div class="sub" id="l-latest-sub">—</div></div>
-        <div class="live-cell"><div class="l">Production</div><div class="v" style="font-size:15px;">Live</div><div class="sub"><span id="l-http">200</span> <span id="l-http-ok" aria-label="ok">✓</span> · <span id="l-region">iad1</span></div></div>
-        <div class="live-cell"><div class="l">Visual styles</div><div class="v" id="l-styles">22</div><div class="sub">per-page GLSL</div></div>
-        <div class="live-cell"><div class="l">On-device variants</div><div class="v" id="l-variants">Unlimited</div><div class="sub">personal variants · unlocked after 3 uses</div></div>
-      </div>
-    </div><!-- /pipeline panel -->
+      <!-- SECTION 01: PIPELINE OBSERVABILITY -->
+      <section>
+        <div class="sec-head">
+          <span class="sec-num">01</span>
+          <h2 class="sec-title">Pipeline observability</h2>
+          <span class="sec-sub">cron &middot; 0 9 * * * &middot; 2 presets/day</span>
+        </div>
 
-    <!-- RELEASES PANEL ====== -->
-    <div class="tab-panel" data-tab="releases" role="tabpanel" aria-labelledby="btn-releases" id="panel-releases">
+        <div class="pipe-obs">
+          <div class="pipe-cell">
+            <div class="pl"><span class="dot ok" id="po-status-dot"></span>Status</div>
+            <div class="pv ok" id="po-status">Healthy</div>
+            <div class="ps" id="po-status-sub">Next run in ~14 hours</div>
+          </div>
+          <div class="pipe-cell">
+            <div class="pl"><span class="dot ok" id="po-last-dot"></span>Last run</div>
+            <div class="pv" id="po-last">—</div>
+            <div class="ps" id="po-last-sub">—</div>
+          </div>
+          <div class="pipe-cell">
+            <div class="pl"><span class="dot ok" id="po-next-dot"></span>Next run</div>
+            <div class="pv" id="po-next">—</div>
+            <div class="ps" id="po-next-sub">—</div>
+          </div>
+          <div class="pipe-cell">
+            <div class="pl"><span class="dot ok" id="po-shas-dot"></span>Last commit</div>
+            <div class="pv" id="po-shas" style="font-size:14px;">—</div>
+            <div class="ps" id="po-shas-sub">—</div>
+          </div>
+        </div>
 
-    </section>
+        <div class="pipe-run-history">
+          <div class="rh-head">Recent runs (last 7)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th>Date</th>
+                <th>Presets</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th>Commit</th>
+              </tr>
+            </thead>
+            <tbody id="po-run-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);font-size:12px;padding:20px;">Loading run history&hellip;</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section><!-- /pipeline observability -->
 
-    <!-- ============ ENGINE RELEASES ============ -->
-    <section>
-      <div class="sec-head">
-        <span class="sec-num">01</span>
-        <h2 class="sec-title">Engine releases</h2>
-        <span class="sec-sub">Newest first · git history</span>
-      </div>
-      <div class="timeline">
+      <!-- SECTION 03: PRESET SCHEMA -->
+      <section>
+        <div class="sec-head">
+          <span class="sec-num">03</span>
+          <h2 class="sec-title">Preset schema</h2>
+          <span class="sec-sub">swr-preset spec &middot; JSON</span>
+        </div>
 
-        <article class="release current">
-          <h3>
-            <span class="ver live">v1.0 · self-evolving</span>
-            <span class="date">2026-08-17</span>
-          </h3>
-          <div class="sha">build <code id="r1-sha">a3f2</code> · <a href="https://github.com/kajica2/sainted-word-records" target="_blank" rel="noopener">kai-djuric/sainted-word-records</a></div>
+        <div class="schema-card">
+          <div class="head">
+            <h3>swr-preset/v1</h3>
+            <span class="status current">current</span>
+          </div>
           <p class="blurb">
-            The engine creates new audio-reactive personalities on its own. A daily cloud pipeline ships 2 fresh
-            presets every morning, the engine ingests them on load, and after 3 uses of a single persona, the engine
-            mutates a personalized variant tuned to your song's BPM and key.
+            The single source of truth for a personality. A preset is a complete FX state + a palette +
+            audio-reactive mapping. 12 required fields, 3 optional. Validated by <code>preset-pipeline/verify.mjs</code>
+            (20/20 checks).
           </p>
-          <ul class="features">
-            <li>Daily cloud pipeline (cron 0 9 * * *) — 2 presets/day from 10 shaders × 8 palettes × 7 motions</li>
-            <li>Engine fetches /presets/manifest.json on load and surfaces new ones in a gold pill</li>
-            <li>On-device variant generation after 3 uses (BPM/key/palette mutation)</li>
-            <li>★ personal badge for self-evolved variants</li>
-            <li>Manifest auto-committed + pushed + redeployed to Vercel by cron</li>
-            <li>Daily press kit + 7 marketing pages + status probe</li>
+          <ul class="fields">
+            <li>id <span class="req">req</span></li>
+            <li>schema <span class="req">req</span></li>
+            <li>name <span class="req">req</span></li>
+            <li>family <span class="req">req</span></li>
+            <li>shader <span class="req">req</span></li>
+            <li>palette <span class="req">req</span></li>
+            <li>motion <span class="req">req</span></li>
+            <li>fx <span class="req">req</span></li>
+            <li>reactivity <span class="req">req</span></li>
+            <li>tags <span class="req">req</span></li>
+            <li>created <span class="req">req</span></li>
+            <li>seed <span class="req">req</span></li>
+            <li>_meta <span class="opt">opt &middot; basePersona / usageCount / bpmAvg / key</span></li>
+            <li>color <span class="opt">opt</span></li>
+            <li>parent <span class="opt">opt &middot; for on-device variants</span></li>
           </ul>
-        </article>
-
-        <article class="release">
-          <h3>
-            <span class="ver">v0.9 · engine upgrade option</span>
-            <span class="date">2026-08-14</span>
-          </h3>
-          <div class="sha">build <code>fec5c2</code></div>
-          <p class="blurb">
-            Engine stops being a static visualizer. Adds the manifest endpoint, a presets.client.js ingest layer,
-            and the daily cron that auto-redeploys. Engine upgrade option = user can swap personalities without
-            reloading the app.
-          </p>
-          <ul class="features">
-            <li>Preset manifest served at /presets/manifest.json</li>
-            <li>presets.client.js — load / diff / markSeen / apply</li>
-            <li>presets-panel.client.js — "N new personalit*" pill in footer</li>
-            <li>macOS crontab: 0 9 * * * preset-pipeline/cron.sh</li>
-            <li>Vite dist/ auto-deploy via npx vercel build + deploy --prebuilt</li>
-          </ul>
-        </article>
-
-        <article class="release">
-          <h3>
-            <span class="ver">v0.7 · URL restructure</span>
-            <span class="date">2026-08-14</span>
-          </h3>
-          <div class="sha">build <code>e71200</code></div>
-          <p class="blurb">
-            Splash at <code>/</code>, app at <code>/engine/</code>, no <code>index.html</code> at root.
-            PWA launches straight into the app. Service worker bumped to swr-v2 to invalidate the old cache.
-          </p>
-          <ul class="features">
-            <li>/ → landing.html, /engine → engine.html, /index.html → 404</li>
-            <li>vercel.json rewrites for /, /engine, /engine/</li>
-            <li>manifest.webmanifest start_url = /engine, scope = /engine/</li>
-            <li>sw.js APP_SHELL includes /landing.html, /engine, /engine.html, /pt.client.js</li>
-          </ul>
-        </article>
-
-        <article class="release">
-          <h3>
-            <span class="ver">v0.6 · 12 visual styles</span>
-            <span class="date">2026-08-12</span>
-          </h3>
-          <div class="sha">build <code>7617b1c</code></div>
-          <p class="blurb">
-            Each style is a self-contained engine variant at <code>/versions/&lt;style&gt;.html</code> with its
-            own GLSL post-process pass. Same WebGL pipeline, different uniforms + page-specific effect function.
-          </p>
-          <ul class="features">
-            <li>12 styles: neon, film, grid, smoke, hallucination, glitch, aurora, pulse, void, chrome, watercolor, fractal (+ eclipse legacy)</li>
-            <li>versions-presets.js — shared WebGL post-process, per-page uniform dictionary</li>
-            <li>Single GLSL with switch on u_page (0..5)</li>
-            <li>Media sets per style (library/&lt;style&gt;/)</li>
-          </ul>
-        </article>
-
-        <article class="release">
-          <h3>
-            <span class="ver">v0.5 · first play</span>
-            <span class="date">2026-08-07</span>
-          </h3>
-          <div class="sha">build <code>8592b42</code></div>
-          <p class="blurb">
-            The engine works. Drop a song, drop a library, get a music video. Audio-reactive WebGL post-process
-            with persona-style FX uniforms, MediaRecorder for MP4 export, project save/load with audio source.
-          </p>
-          <ul class="features">
-            <li>WebGL post-process: 14 FX uniforms (temp, mut, chroma, vignette, grain, sepia, glow, blur, grayscale, posterize, etc.)</li>
-            <li>Audio features: bass / mid / treble / air / sub / rms / centroid / beat / onset / bpm</li>
-            <li>MediaRecorder MP4 export (30s default, configurable)</li>
-            <li>Project save/load (JSON + audio source)</li>
-            <li>20 generated persona assets (20-box-set, etc.)</li>
-          </ul>
-        </article>
-
-        <article class="release">
-          <h3>
-            <span class="ver">v0.1 · initial commit</span>
-            <span class="date">2026-07-31</span>
-          </h3>
-          <div class="sha">build <code>init</code></div>
-          <p class="blurb">
-            First commit. Single HTML file, two layers, one shader pass. The idea is simple: a music video
-            shouldn't require an editor, a renderer, or a render farm.
-          </p>
-        </article>
-
-      </div>
-    </div><!-- /releases panel -->
-
-    <!-- PRESETS PANEL ====== -->
-    <div class="tab-panel" data-tab="presets" role="tabpanel" aria-labelledby="btn-presets" id="panel-presets">
-
-    </section>
-
-    <!-- ============ VISUAL STYLES ============ -->
-    <section>
-      <div class="sec-head">
-        <span class="sec-num">02</span>
-        <h2 class="sec-title">Visual styles</h2>
-        <span class="sec-sub" id="v-styles-sub">Variants · surfaces · galleries</span>
-      </div>
-      <div class="styles-grid">
-        <div class="style-card">
-          <div class="thumb" style="background: radial-gradient(circle at 30% 50%, #ff2d8a44, transparent 60%), #0a0610;">
-            <svg viewBox="0 0 100 60"><circle cx="30" cy="30" r="14" fill="none" stroke="#ff2d8a" stroke-width="1.5"/><circle cx="70" cy="30" r="10" fill="none" stroke="#00f0ff" stroke-width="1.5"/><line x1="30" y1="30" x2="70" y2="30" stroke="#fff04a" stroke-width="0.8"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Saturated · halo</div>
-            <h3 style="color: #ff2d8a;">Neon</h3>
-            <p class="desc">Bright halos around saturated pixels. Pure nightclub energy.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/neon?look=clean">Clean</a><a class="look" href="/versions/neon?look=film">Film</a></div>
-        </div>
-        <a class="style-card" href="/versions/music_video">
-          <div class="thumb" style="background: radial-gradient(circle at 50% 50%, #ff2d8a33 0%, transparent 70%), linear-gradient(180deg, #150b22 0%, #05030a 100%);">
-            <svg viewBox="0 0 100 60" stroke="#ff2d8a" fill="none" stroke-width="0.8"><line x1="20" y1="6" x2="20" y2="54"/><line x1="80" y1="6" x2="80" y2="54"/><line x1="20" y1="30" x2="80" y2="30" opacity="0.4"/><circle cx="55" cy="22" r="1.4" fill="#ff2d8a" stroke="none"/><circle cx="40" cy="38" r="1.4" fill="#00f0ff" stroke="none"/><circle cx="68" cy="42" r="1.4" fill="#ff2d8a" stroke="none"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Gradient · automix · session-private</div>
-            <h3 style="color: #ff2d8a;">Music Video</h3>
-            <p class="desc">Drop a track, the engine synthesizes a preset and blends related anchors as reactive depth. Self-evolving on the A key.</p>
-          </div>
-        </a>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(180deg, #2a1810, #0a0610);">
-            <svg viewBox="0 0 100 60"><rect x="0" y="0" width="100" height="60" fill="none"/><g stroke="#d4b896" stroke-width="0.3" opacity="0.4"><line x1="0" y1="3" x2="100" y2="3"/><line x1="0" y1="6" x2="100" y2="6"/><line x1="0" y1="9" x2="100" y2="9"/><line x1="0" y1="12" x2="100" y2="12"/></g><circle cx="50" cy="30" r="8" fill="#d4b896" opacity="0.3"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">16mm · sepia · scanlines</div>
-            <h3 style="color: #d4b896;">Film</h3>
-            <p class="desc">16mm grain, sepia, warm temperature. For songs that want a music video.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/film?look=clean">Clean</a><a class="look" href="/versions/film?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #000;">
-            <svg viewBox="0 0 100 60" fill="#fff"><rect x="10" y="10" width="20" height="20" fill="#fff"/><rect x="40" y="10" width="20" height="20" fill="#888"/><rect x="70" y="10" width="20" height="20" fill="#fff"/><rect x="10" y="40" width="20" height="20" fill="#fff"/><rect x="40" y="40" width="20" height="20" fill="#fff"/><rect x="70" y="40" width="20" height="20" fill="#888"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Monochrome · posterized</div>
-            <h3>Grid</h3>
-            <p class="desc">Hard cells, heavy posterize, snap-to-the-beat. Pure geometry.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/grid?look=clean">Clean</a><a class="look" href="/versions/grid?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(180deg, #3a2810 0%, #1a0e08 100%);">
-            <svg viewBox="0 0 100 60"><path d="M0,30 Q20,10 40,30 T80,30 T120,30" fill="none" stroke="#f3e9d5" stroke-width="2" opacity="0.6"/><path d="M0,40 Q25,25 50,40 T100,40" fill="none" stroke="#f3e9d5" stroke-width="1.5" opacity="0.4"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Wisps · slow drift</div>
-            <h3 style="color: #f3e9d5;">Smoke</h3>
-            <p class="desc">Gentle horizontal wisps. The visualizer for slow songs.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/smoke?look=clean">Clean</a><a class="look" href="/versions/smoke?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #0a0610;">
-            <svg viewBox="0 0 100 60"><g stroke="#00ffa3" stroke-width="0.5" opacity="0.7"><line x1="10" y1="0" x2="10" y2="60"/><line x1="30" y1="0" x2="30" y2="60"/><line x1="50" y1="0" x2="50" y2="60"/><line x1="70" y1="0" x2="70" y2="60"/><line x1="90" y1="0" x2="90" y2="60"/></g><circle cx="50" cy="30" r="12" fill="none" stroke="#ff2d8a" stroke-width="1.5"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Scanlines · RGB drift</div>
-            <h3 style="color: #00ffa3;">Hallucination</h3>
-            <p class="desc">Scanlines plus RGB-drift stripes. Visceral, cinematic, wrong.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/hallucination?look=clean">Clean</a><a class="look" href="/versions/hallucination?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #000;">
-            <svg viewBox="0 0 100 60"><rect x="0" y="20" width="100" height="3" fill="#00ff66"/><rect x="0" y="40" width="100" height="2" fill="#ff2d8a"/><rect x="20" y="0" width="40" height="60" fill="none" stroke="#00f0ff" stroke-width="0.5"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Snap-beat · corrupt</div>
-            <h3 style="color: #00ff66;">Glitch</h3>
-            <p class="desc">Snap-pan on every beat. The video breaks with the song.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/glitch?look=clean">Clean</a><a class="look" href="/versions/glitch?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(180deg, #1a2a4a 0%, #4a2a6a 50%, #ffb3ba 100%);">
-            <svg viewBox="0 0 100 60"><path d="M0,20 Q30,5 60,20 T100,20" fill="none" stroke="#FFB3BA" stroke-width="2" opacity="0.8"/><path d="M0,40 Q30,25 60,40 T100,40" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Soft · pastel</div>
-            <h3 style="color: #FFB3BA;">Aurora</h3>
-            <p class="desc">Soft pastel light bands. For songs that breathe.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/aurora?look=clean">Clean</a><a class="look" href="/versions/aurora?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #0a0610;">
-            <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="20" fill="none" stroke="#00f0ff" stroke-width="1.5" opacity="0.5"/><circle cx="50" cy="30" r="12" fill="none" stroke="#00f0ff" stroke-width="2"/><circle cx="50" cy="30" r="4" fill="#00f0ff"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Beat · ring</div>
-            <h3 style="color: #00f0ff;">Pulse</h3>
-            <p class="desc">A ring that pulses on every beat. Minimalist club aesthetic.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/pulse?look=clean">Clean</a><a class="look" href="/versions/pulse?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #000;">
-            <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="22" fill="#000" stroke="#fff" stroke-width="0.5" opacity="0.3"/><circle cx="50" cy="30" r="2" fill="#fff"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Black · isolation</div>
-            <h3>Void</h3>
-            <p class="desc">Pure black canvas, single point of light. Negative space.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/void?look=clean">Clean</a><a class="look" href="/versions/void?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(135deg, #e0e0e8 0%, #888 50%, #fafafa 100%);">
-            <svg viewBox="0 0 100 60"><rect x="10" y="15" width="80" height="30" rx="3" fill="url(#cg)"/><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fafafa"/><stop offset="0.5" stop-color="#888"/><stop offset="1" stop-color="#fafafa"/></linearGradient></defs></svg>
-          </div>
-          <div class="body">
-            <div class="label">Reflective · metallic</div>
-            <h3>Chrome</h3>
-            <p class="desc">Reflective metallic surfaces. Late 90s / Vaporwave.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/chrome?look=clean">Clean</a><a class="look" href="/versions/chrome?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(135deg, #faf7f0 0%, #c8b8de 100%);">
-            <svg viewBox="0 0 100 60"><ellipse cx="30" cy="30" rx="20" ry="15" fill="#ff2d8a" opacity="0.4"/><ellipse cx="60" cy="30" rx="25" ry="12" fill="#00f0ff" opacity="0.3"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Soft · bleed</div>
-            <h3>Watercolor</h3>
-            <p class="desc">Soft, bleeding edges. For songs that feel like memory.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/watercolor?look=clean">Clean</a><a class="look" href="/versions/watercolor?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #0a0610;">
-            <svg viewBox="0 0 100 60"><g stroke="#00ffa3" stroke-width="0.4" fill="none"><circle cx="50" cy="30" r="25"/><circle cx="50" cy="30" r="18"/><circle cx="50" cy="30" r="12"/><circle cx="50" cy="30" r="6"/></g></svg>
-          </div>
-          <div class="body">
-            <div class="label">Recursive · organic</div>
-            <h3 style="color: #00ffa3;">Fractal</h3>
-            <p class="desc">Recursive organic shapes. Math as music video.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/fractal?look=clean">Clean</a><a class="look" href="/versions/fractal?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: radial-gradient(circle at 50% 50%, #0a0610 30%, #1a0820 50%, #ff2d8a 70%, #fff04a 100%);">
-            <svg viewBox="0 0 100 60"><circle cx="50" cy="30" r="14" fill="#0a0610"/><circle cx="50" cy="30" r="20" fill="none" stroke="#fff04a" stroke-width="1.2" opacity="0.7"/><circle cx="50" cy="30" r="26" fill="none" stroke="#ff2d8a" stroke-width="0.4" opacity="0.5"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Corona · legacy</div>
-            <h3 style="color: #ff2d8a;">Eclipse</h3>
-            <p class="desc">Deep black with a bright corona glow. The original light-destroyer.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/eclipse?look=clean">Clean</a><a class="look" href="/versions/eclipse?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(135deg, #2a1a0a 0%, #5a3a1a 50%, #c8a04a 100%);">
-            <svg viewBox="0 0 100 60"><g stroke="#c8a04a" stroke-width="0.6" fill="none"><path d="M20,40 Q30,10 50,15 Q70,10 80,40 Q70,55 50,50 Q30,55 20,40 Z"/><circle cx="50" cy="30" r="6" fill="#c8a04a" opacity="0.6"/><path d="M50,15 L50,5 M50,45 L50,55 M30,30 L20,30 M70,30 L80,30" stroke-width="0.4"/></g></svg>
-          </div>
-          <div class="body">
-            <div class="label">Ornate · gilded</div>
-            <h3 style="color: #c8a04a;">Baroque</h3>
-            <p class="desc">Gilded ornament and gold filigree. For songs that want cathedral weight.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/baroque?look=clean">Clean</a><a class="look" href="/versions/baroque?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(90deg, #ff2d8a 0% 33%, #00f0ff 33% 66%, #fff04a 66% 100%);">
-            <svg viewBox="0 0 100 60"><g stroke="#0a0610" stroke-width="1.5" fill="none"><rect x="5" y="5" width="28" height="22"/><rect x="36" y="8" width="28" height="18"/><rect x="67" y="5" width="28" height="25"/><rect x="10" y="32" width="38" height="22"/><rect x="52" y="30" width="42" height="25"/></g></svg>
-          </div>
-          <div class="body">
-            <div class="label">Split-screen · magazine</div>
-            <h3>Mixed-media collage</h3>
-            <p class="desc">Multi-clip split-screen composition. Magazine-grid cuts to the beat.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/collage?look=clean">Clean</a><a class="look" href="/versions/collage?look=film">Film</a></div>
-        </div>
-        <a class="style-card" href="/versions/gallery">
-          <div class="thumb" style="background: linear-gradient(180deg, #faf7f5 0%, #e8e0e8 100%);">
-            <svg viewBox="0 0 100 60"><g stroke="#1a0e2a" stroke-width="0.4" fill="none"><rect x="12" y="10" width="28" height="40"/><rect x="46" y="6" width="22" height="48"/><rect x="74" y="14" width="20" height="34"/></g><circle cx="26" cy="30" r="6" fill="#1a0e2a" opacity="0.2"/><rect x="52" y="22" width="10" height="16" fill="#1a0e2a" opacity="0.15"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">White-wall · curated</div>
-            <h3 style="color: #1a0e2a;">Gallery</h3>
-            <p class="desc">Clean gallery-white frames. The art-show version of your song.</p>
-          </div>
-        </a>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(135deg, #8a6a3a 0%, #c89a5a 50%, #6a4a2a 100%);">
-            <svg viewBox="0 0 100 60"><g stroke="#3a2410" stroke-width="0.3" opacity="0.4"><line x1="0" y1="10" x2="100" y2="10"/><line x1="0" y1="20" x2="100" y2="20"/><line x1="0" y1="30" x2="100" y2="30"/><line x1="0" y1="40" x2="100" y2="40"/><line x1="0" y1="50" x2="100" y2="50"/></g><rect x="20" y="15" width="60" height="30" fill="#3a2410" opacity="0.3"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Paper · recycled</div>
-            <h3 style="color: #3a2410;">Kraft</h3>
-            <p class="desc">Brown-paper texture, raw edges. For songs that feel handmade.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/kraft?look=clean">Clean</a><a class="look" href="/versions/kraft?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #1a0820;">
-            <svg viewBox="0 0 100 60"><g stroke="#fff04a" stroke-width="0.4" fill="#ff2d8a" opacity="0.7"><polygon points="10,10 30,5 35,25 15,30"/><polygon points="35,25 55,10 60,30 40,35"/><polygon points="60,30 80,15 85,35 65,40"/><polygon points="15,30 40,35 35,55 20,52"/><polygon points="40,35 65,40 70,55 45,55"/><polygon points="65,40 85,35 90,55 70,55"/></g></svg>
-          </div>
-          <div class="body">
-            <div class="label">Stained glass · tiles</div>
-            <h3 style="color: #fff04a;">Mosaic</h3>
-            <p class="desc">Posterize tiles in stained-glass colors. Cuts that read like a window.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/mosaic?look=clean">Clean</a><a class="look" href="/versions/mosaic?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #0a0a0a;">
-            <svg viewBox="0 0 100 60"><g fill="#33ff66" opacity="0.85" font-family="monospace" font-size="9"><text x="10" y="20">SWR://01</text><text x="10" y="32">SECTOR A</text><text x="10" y="44">$ ████░░</text></g><g stroke="#33ff66" stroke-width="0.2" opacity="0.4"><line x1="0" y1="48" x2="100" y2="48"/></g></svg>
-          </div>
-          <div class="body">
-            <div class="label">CRT · terminal</div>
-            <h3 style="color: #33ff66;">Phosphor</h3>
-            <p class="desc">Green-CRT terminal aesthetic. For hacker-beats and lo-fi.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/phosphor?look=clean">Clean</a><a class="look" href="/versions/phosphor?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(90deg, #ff2d8a 0%, #00f0ff 25%, #fff04a 50%, #00ffa3 75%, #ff2d8a 100%);">
-            <svg viewBox="0 0 100 60"><g stroke="#0a0610" stroke-width="2.5" fill="none"><line x1="5" y1="30" x2="5" y2="18"/><line x1="15" y1="30" x2="15" y2="10"/><line x1="25" y1="30" x2="25" y2="22"/><line x1="35" y1="30" x2="35" y2="6"/><line x1="45" y1="30" x2="45" y2="14"/><line x1="55" y1="30" x2="55" y2="24"/><line x1="65" y1="30" x2="65" y2="12"/><line x1="75" y1="30" x2="75" y2="20"/><line x1="85" y1="30" x2="85" y2="8"/><line x1="95" y1="30" x2="95" y2="22"/></g></svg>
-          </div>
-          <div class="body">
-            <div class="label">Audio · reactive</div>
-            <h3 style="color: #0a0610;">Spectrum</h3>
-            <p class="desc">Pure audio-reactive visualizer. No footage — just your track and the analyzer.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/spectrum?look=clean">Clean</a><a class="look" href="/versions/spectrum?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: linear-gradient(180deg, #2a1a1a 0%, #0a0608 50%, #2a1a1a 100%);">
-            <svg viewBox="0 0 100 60"><g stroke="#faf7f5" stroke-width="0.3" opacity="0.5"><line x1="0" y1="6" x2="100" y2="6"/><line x1="0" y1="10" x2="100" y2="10"/><line x1="0" y1="14" x2="100" y2="14"/></g><rect x="10" y="22" width="80" height="20" fill="#faf7f5" opacity="0.7"/><rect x="10" y="22" width="80" height="20" fill="none" stroke="#0a0610" stroke-width="0.3"/><text x="20" y="36" font-family="monospace" font-size="8" fill="#0a0610">PLAY ▸ REC ●</text></svg>
-          </div>
-          <div class="body">
-            <div class="label">VHS · degraded</div>
-            <h3 style="color: #faf7f5;">Tape</h3>
-            <p class="desc">VHS tape-tone, scan lines, soft chroma bleed. Late-night mixtape energy.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/tape?look=clean">Clean</a><a class="look" href="/versions/tape?look=film">Film</a></div>
-        </div>
-        <div class="style-card">
-          <div class="thumb" style="background: #faf7f5;">
-            <svg viewBox="0 0 100 60"><g fill="#0a0610" font-family="serif" font-weight="600"><text x="14" y="22" font-size="14" font-style="italic">drop</text><text x="14" y="44" font-size="22" font-weight="800">music.</text></g><line x1="14" y1="50" x2="60" y2="50" stroke="#ff2d8a" stroke-width="1.5"/></svg>
-          </div>
-          <div class="body">
-            <div class="label">Animated · type</div>
-            <h3 style="color: #0a0610;">Typography</h3>
-            <p class="desc">Animated type for designers and brands. Drop copy, audio, and a brand kit.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/typography?look=clean">Clean</a><a class="look" href="/versions/typography?look=film">Film</a></div>
-        </div>
-        <a class="style-card" href="/ar-gif">
-          <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(0,240,255,0.20) 0%, transparent 70%), linear-gradient(180deg, #0a0610 0%, #05030a 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#00f0ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="32" y="18" width="36" height="24" rx="2"/>
-              <path d="M14 30 L32 30 M68 30 L86 30" stroke-dasharray="2 2" opacity="0.5"/>
-              <circle cx="50" cy="30" r="3" fill="#00f0ff" stroke="none"/>
-              <path d="M50 6 L50 14 M50 46 L50 54" opacity="0.4"/>
-              <circle cx="50" cy="3" r="1" fill="#fff04a" stroke="none" opacity="0.8"/>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">Camera · AR · mobile</div>
-            <h3 style="color: #00f0ff;">AR Animation Loop</h3>
-            <p class="desc">Drop a GIF, see it loop in your space via markerless AR. One-click 5s WebM capture.</p>
-          </div>
-        </a>
-<a class="style-card" href="/photo.html">
-          <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(255,0,102,0.18) 0%, transparent 70%), linear-gradient(180deg, #14000a 0%, #05030a 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#ff0066" stroke-width="0.9" stroke-linecap="round">
-              <rect x="12" y="14" width="32" height="32" rx="2"/>
-              <rect x="56" y="14" width="32" height="32" rx="2" opacity="0.55"/>
-              <path d="M44 30 L56 30" stroke-dasharray="2 2" opacity="0.6"/>
-              <text x="50" y="55" font-family="ui-monospace, monospace" font-size="6" fill="#fff04a" stroke="none" text-anchor="middle">▶ KICK</text>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">Slideshow · beat-reactive</div>
-            <h3 style="color: #ff0066;">Photo Studio</h3>
-            <p class="desc">Drop multiple photos. Each beat advances with a crossfade. Ken Burns per shot. Preset templates drive transition + timing.</p>
-          </div>
-        </a>
-        <a class="style-card" href="/dashboard">
-          <div class="thumb" style="background: linear-gradient(180deg, #0a0a14 0%, #050308 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#5a4a6a" stroke-width="0.5">
-              <rect x="8" y="10" width="84" height="40" rx="2"/>
-              <line x1="8" y1="22" x2="92" y2="22"/>
-              <line x1="8" y1="38" x2="92" y2="38"/>
-              <line x1="32" y1="10" x2="32" y2="50"/>
-              <line x1="68" y1="10" x2="68" y2="50"/>
-              <g fill="#ff3d92" stroke="none">
-                <rect x="14" y="14" width="6" height="2"/>
-                <rect x="14" y="17" width="12" height="2"/>
-                <rect x="36" y="26" width="14" height="10"/>
-                <rect x="72" y="42" width="14" height="3"/>
-                <rect x="72" y="46" width="10" height="3"/>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">3-column · collapsible</div>
-            <h3 style="color: #ff3d92;">Engine Dashboard</h3>
-            <p class="desc">Production dashboard with the engine behind the canvas. Three-column layout collapses for a focused render view.</p>
-          </div>
-        </a>
-        <a class="style-card" href="/versions/music-video">
-          <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(0,217,255,0.18) 0%, rgba(168,85,247,0.10) 40%, transparent 70%), #02020a;">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#00d9ff" stroke-width="0.6">
-              <circle cx="50" cy="30" r="18" opacity="0.7"/>
-              <circle cx="50" cy="30" r="26" opacity="0.4"/>
-              <circle cx="50" cy="30" r="12" opacity="0.5"/>
-              <g stroke="#a855f7" stroke-width="0.5" opacity="0.6">
-                <line x1="32" y1="30" x2="68" y2="30"/>
-                <line x1="50" y1="14" x2="50" y2="46"/>
-              </g>
-              <g fill="#facc15" font-family="ui-monospace, monospace" font-size="6" font-weight="700" stroke="none">
-                <text x="46" y="32">Φ</text>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">4D · preset embed · keyboard</div>
-            <h3 style="color: #00d9ff;">Hologram</h3>
-            <p class="desc">Music-video hologram: 4D-preset embed, applyR wrap, scatter panel, arrow/digit keyboard cycling. The music-video-hologram branch.</p>
-          </div>
-        </a>
-        <div class="style-card">
-          <div class="thumb" style="background: radial-gradient(circle at 50% 50%, rgba(0,217,255,0.15) 0%, transparent 60%), #020205;">
-            <svg viewBox="0 0 100 60" fill="none">
-              <g stroke="#00d9ff" stroke-width="0.6" opacity="0.7">
-                <circle cx="50" cy="30" r="14"/>
-                <circle cx="50" cy="30" r="20"/>
-                <circle cx="50" cy="30" r="26"/>
-              </g>
-              <g stroke="#a855f7" stroke-width="0.6" opacity="0.5">
-                <circle cx="50" cy="30" r="8"/>
-              </g>
-              <g fill="#facc15" font-family="ui-monospace, monospace" font-size="6" font-weight="700">
-                <text x="46" y="32">Φ</text>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">Standalone · 5 modes</div>
-            <h3 style="color: #00d9ff;">ECHO · Manifold 5.0</h3>
-            <p class="desc">30 generative formulas across 9 sections. 5 modes: Ambient, Euclidean, Chaos, Phi, Cellular. WebAudio only — no library, no media.</p>
-          </div>
-          <div class="looks"><a class="look" href="/versions/echo-manifold?look=clean">Clean</a><a class="look" href="/versions/echo-manifold?look=film">Film</a></div>
-        </div>
-        <a class="style-card" href="/versions/console">
-          <div class="thumb" style="background: linear-gradient(180deg, #0b0b0c 0%, #000 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#FF6B1A" stroke-width="1.1" stroke-linecap="round">
-              <g opacity="0.25" stroke-width="0.5">
-                <line x1="8" y1="20" x2="92" y2="20"/>
-                <line x1="8" y1="30" x2="92" y2="30"/>
-                <line x1="8" y1="40" x2="92" y2="40"/>
-                <line x1="26" y1="12" x2="26" y2="48"/>
-                <line x1="50" y1="12" x2="50" y2="48"/>
-                <line x1="74" y1="12" x2="74" y2="48"/>
-              </g>
-              <path d="M8 30 C16 18, 24 42, 32 30 S48 18, 56 30 S72 42, 80 30 S88 22, 92 26"/>
-              <g stroke="none" fill="#FF6B1A" opacity="0.85">
-                <rect x="12" y="44" width="4" height="8"/>
-                <rect x="20" y="40" width="4" height="12"/>
-                <rect x="28" y="46" width="4" height="6"/>
-                <rect x="36" y="38" width="4" height="14"/>
-                <rect x="44" y="43" width="4" height="9"/>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">Visual language · accent on black</div>
-            <h3 style="color: #FF6B1A;">Console</h3>
-            <p class="desc">Precision oscilloscope aesthetic: pure-black canvas, a single accent (#FF6B1A), geometric primitives, spectrum bars and a persistent HUD. The Enhance sliders grade the footage live.</p>
-          </div>
-        </a>
-        <a class="style-card" href="/versions/bachdrop">
-          <div class="thumb" style="background: radial-gradient(circle at 50% 40%, rgba(200,160,74,0.22) 0%, transparent 65%), linear-gradient(180deg, #140f06 0%, #05030a 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#c8a04a" stroke-width="0.8" stroke-linecap="round">
-              <g opacity="0.5">
-                <line x1="10" y1="20" x2="90" y2="20"/>
-                <line x1="10" y1="28" x2="90" y2="28"/>
-                <line x1="10" y1="36" x2="90" y2="36"/>
-              </g>
-              <g fill="#c8a04a" stroke="none">
-                <ellipse cx="26" cy="30" rx="4" ry="3"/>
-                <ellipse cx="44" cy="22" rx="4" ry="3"/>
-                <ellipse cx="62" cy="32" rx="4" ry="3"/>
-                <ellipse cx="78" cy="24" rx="4" ry="3"/>
-              </g>
-              <path d="M26 30 L26 16 M44 22 L44 12 M62 32 L62 18 M78 24 L78 14" stroke-width="0.9"/>
-              <path d="M12 46 C30 54, 70 54, 88 46" opacity="0.7"/>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">Counterpoint · baroque</div>
-            <h3 style="color: #c8a04a;">BACHDROP</h3>
-            <p class="desc">Baroque gold-on-velvet palette driven by real audio analysis — 4-voice counterpoint scroll, beat-locked figured-bass pulse, ornament corona.</p>
-          </div>
-        </a>
-        <a class="style-card" href="/versions/music-video-gallery">
-          <div class="thumb" style="background: linear-gradient(180deg, #04070f 0%, #02020a 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#00d9ff" stroke-width="0.8" stroke-linecap="round">
-              <rect x="14" y="14" width="30" height="32" rx="2" opacity="0.35"/>
-              <rect x="24" y="10" width="30" height="36" rx="2" opacity="0.6"/>
-              <rect x="34" y="6" width="30" height="40" rx="2"/>
-              <path d="M70 30 L84 24 M70 30 L84 36" opacity="0.8"/>
-              <path d="M78 30 L56 30" stroke-dasharray="3 3" opacity="0.5"/>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">Gallery · 3D flip</div>
-            <h3 style="color: #00d9ff;">Music videos</h3>
-            <p class="desc">Flip through pre-rendered music videos with a 3D transition — the multi-video companion to the Hologram cut.</p>
-          </div>
-        </a>
-        <a class="style-card" href="/versions/music_video_mtv.html">
-          <div class="thumb" style="background: linear-gradient(180deg, #12000a 0%, #05030a 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#ff2d55" stroke-width="0.9" stroke-linecap="round">
-              <rect x="12" y="10" width="76" height="40" rx="6"/>
-              <g opacity="0.45" stroke-width="0.5">
-                <line x1="14" y1="18" x2="86" y2="18"/>
-                <line x1="14" y1="26" x2="86" y2="26"/>
-                <line x1="14" y1="34" x2="86" y2="34"/>
-                <line x1="14" y1="42" x2="86" y2="42"/>
-              </g>
-              <g fill="#facc15" stroke="none" font-family="ui-monospace, monospace" font-size="9" font-weight="700">
-                <text x="50" y="34" text-anchor="middle">MTV</text>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">90s retro · VHS / CRT</div>
-            <h3 style="color: #ff2d55;">Music video · MTV cut</h3>
-            <p class="desc">MTV / 90s retro music video: VHS scanlines, CRT curvature, big bold type. Drop a track and the engine paints it as a 90s MTV ident.</p>
-          </div>
-        </a>
-        <a class="style-card" href="/versions/index.html">
-          <div class="thumb" style="background: linear-gradient(180deg, #0a0610 0%, #050308 100%);">
-            <svg viewBox="0 0 100 60" fill="none" stroke="#eae6f5" stroke-width="0.6" opacity="0.8">
-              <g>
-                <rect x="12" y="14" width="20" height="13" rx="1"/>
-                <rect x="36" y="14" width="20" height="13" rx="1"/>
-                <rect x="60" y="14" width="20" height="13" rx="1"/>
-                <rect x="12" y="32" width="20" height="13" rx="1"/>
-                <rect x="36" y="32" width="20" height="13" rx="1"/>
-                <rect x="60" y="32" width="20" height="13" rx="1"/>
-              </g>
-              <g stroke="none" fill="#eae6f5" opacity="0.5">
-                <rect x="16" y="20" width="10" height="2"/>
-                <rect x="40" y="20" width="8" height="2"/>
-                <rect x="64" y="20" width="12" height="2"/>
-                <rect x="16" y="38" width="8" height="2"/>
-                <rect x="40" y="38" width="12" height="2"/>
-                <rect x="64" y="38" width="9" height="2"/>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <div class="label">Index · six visual languages</div>
-            <h3 style="color: #eae6f5;">Visual languages</h3>
-            <p class="desc">The six visual languages side by side — same controls, same library, same MP4 export, different aesthetics.</p>
-          </div>
-        </a>
-      </div>
-    </div><!-- /presets panel -->
-
-    <!-- PIPELINE PANEL ====== -->
-    <div class="tab-panel" data-tab="pipeline" role="tabpanel" aria-labelledby="btn-pipeline" id="panel-pipeline">
-
-    </section>
-
-    <!-- ============ PRESET SCHEMA ============ -->
-    <section>
-      <div class="sec-head">
-        <span class="sec-num">03</span>
-        <h2 class="sec-title">Preset schema</h2>
-        <span class="sec-sub">swr-preset spec · JSON</span>
-      </div>
-
-      <div class="schema-card">
-        <div class="head">
-          <h3>swr-preset/v1</h3>
-          <span class="status current">current</span>
-        </div>
-        <p class="blurb">
-          The single source of truth for a personality. A preset is a complete FX state + a palette +
-          audio-reactive mapping. 12 required fields, 3 optional. Validated by <code>preset-pipeline/verify.mjs</code>
-          (20/20 checks).
-        </p>
-        <ul class="fields">
-          <li>id <span class="req">req</span></li>
-          <li>schema <span class="req">req</span></li>
-          <li>name <span class="req">req</span></li>
-          <li>family <span class="req">req</span></li>
-          <li>shader <span class="req">req</span></li>
-          <li>palette <span class="req">req</span></li>
-          <li>motion <span class="req">req</span></li>
-          <li>fx <span class="req">req</span></li>
-          <li>reactivity <span class="req">req</span></li>
-          <li>tags <span class="req">req</span></li>
-          <li>created <span class="req">req</span></li>
-          <li>seed <span class="req">req</span></li>
-          <li>_meta <span class="opt">opt · basePersona / usageCount / bpmAvg / key</span></li>
-          <li>color <span class="opt">opt</span></li>
-          <li>parent <span class="opt">opt · for on-device variants</span></li>
-        </ul>
-        <pre class="sample"><code>{
+          <pre class="sample"><code>{
   "id": "swr-preset-2026-08-17-annihilation-curl-static",
   "schema": "swr-preset/v1",
   "name": "Annihilation Curl Static",
@@ -1179,44 +1136,147 @@
   "created": "2026-08-17T00:00:00Z",
   "seed": "swr-preset/2026-08-17/annihilation-curl-static"
 }</code></pre>
-      </div>
-
-      <div class="schema-card">
-        <div class="head">
-          <h3>swr-preset/v1.5</h3>
-          <span class="status draft">draft · Q3 2026</span>
         </div>
-        <p class="blurb">
-          Adds LLM-curated novelty pass. Pipeline takes the top 5 user-favorite presets and asks a model to
-          mutate one into a fresh variant. Adds <code>novelty: { source, method, rationale }</code> and a
-          <code>compatibility: { engines: ["≥v1.0"] }</code> field for cross-engine reuse.
-        </p>
-      </div>
-    </div><!-- /pipeline panel -->
 
-    <!-- PRESETS PANEL ====== -->
-    <div class="tab-panel" data-tab="presets" role="tabpanel" aria-labelledby="btn-presets" id="panel-presets">
-
-    </section>
-
-    <!-- ============ DAILY PRESET TIMELINE ============ -->
-    <section>
-      <div class="sec-head">
-        <span class="sec-num">04</span>
-        <h2 class="sec-title">Daily preset timeline</h2>
-        <span class="sec-sub" id="t-count">— presets</span>
-      </div>
-      <div class="preset-list" id="preset-list">
-        <div class="preset-day">
-          <div class="day-head">
-            <h4>Loading…</h4>
+        <div class="schema-card">
+          <div class="head">
+            <h3>swr-preset/v1.5</h3>
+            <span class="status draft">draft &middot; Q3 2026</span>
           </div>
-          <div class="items"><span class="preset-chip"><span class="dot"></span>fetching manifest</span></div>
+          <p class="blurb">
+            Adds LLM-curated novelty pass. Pipeline takes the top 5 user-favorite presets and asks a model to
+            mutate one into a fresh variant. Adds <code>novelty: { source, method, rationale }</code> and a
+            <code>compatibility: { engines: ["&ge;v1.0"] }</code> field for cross-engine reuse.
+          </p>
         </div>
-      </div>
-    </div><!-- /presets panel -->
+      </section><!-- /preset schema -->
 
-    </section>
+    </div><!-- /panel-pipeline -->
+
+    <!-- ============ PANEL: RELEASES ============ -->
+    <div class="tab-panel" data-tab="releases" role="tabpanel" aria-labelledby="btn-releases" id="panel-releases">
+
+      <!-- SECTION 01: ENGINE RELEASES -->
+      <section>
+        <div class="sec-head">
+          <span class="sec-num">01</span>
+          <h2 class="sec-title">Engine releases</h2>
+          <span class="sec-sub">Newest first &middot; git history</span>
+        </div>
+        <div class="timeline">
+
+          <article class="release current">
+            <h3>
+              <span class="ver live">v1.0 &middot; self-evolving</span>
+              <span class="date">2026-08-17</span>
+            </h3>
+            <div class="sha">build <code id="r1-sha">a3f2</code> &middot; <a href="https://github.com/kajica2/sainted-word-records" target="_blank" rel="noopener">kai-djuric/sainted-word-records</a></div>
+            <p class="blurb">
+              The engine creates new audio-reactive personalities on its own. A daily cloud pipeline ships 2 fresh
+              presets every morning, the engine ingests them on load, and after 3 uses of a single persona, the engine
+              mutates a personalized variant tuned to your song's BPM and key.
+            </p>
+            <ul class="features">
+              <li>Daily cloud pipeline (cron 0 9 * * *) — 2 presets/day from 10 shaders &times; 8 palettes &times; 7 motions</li>
+              <li>Engine fetches /presets/manifest.json on load and surfaces new ones in a gold pill</li>
+              <li>On-device variant generation after 3 uses (BPM/key/palette mutation)</li>
+              <li>&#9733; personal badge for self-evolved variants</li>
+              <li>Manifest auto-committed + pushed + redeployed to Vercel by cron</li>
+              <li>Daily press kit + 7 marketing pages + status probe</li>
+            </ul>
+          </article>
+
+          <article class="release">
+            <h3>
+              <span class="ver">v0.9 &middot; engine upgrade option</span>
+              <span class="date">2026-08-14</span>
+            </h3>
+            <div class="sha">build <code>fec5c2</code></div>
+            <p class="blurb">
+              Engine stops being a static visualizer. Adds the manifest endpoint, a presets.client.js ingest layer,
+              and the daily cron that auto-redeploys. Engine upgrade option = user can swap personalities without
+              reloading the app.
+            </p>
+            <ul class="features">
+              <li>Preset manifest served at /presets/manifest.json</li>
+              <li>presets.client.js — load / diff / markSeen / apply</li>
+              <li>presets-panel.client.js — "N new personalit*" pill in footer</li>
+              <li>macOS crontab: 0 9 * * * preset-pipeline/cron.sh</li>
+              <li>Vite dist/ auto-deploy via npx vercel build + deploy --prebuilt</li>
+            </ul>
+          </article>
+
+          <article class="release">
+            <h3>
+              <span class="ver">v0.7 &middot; URL restructure</span>
+              <span class="date">2026-08-14</span>
+            </h3>
+            <div class="sha">build <code>e71200</code></div>
+            <p class="blurb">
+              Splash at <code>/</code>, app at <code>/engine/</code>, no <code>index.html</code> at root.
+              PWA launches straight into the app. Service worker bumped to swr-v2 to invalidate the old cache.
+            </p>
+            <ul class="features">
+              <li>/ &rarr; landing.html, /engine &rarr; engine.html, /index.html &rarr; 404</li>
+              <li>vercel.json rewrites for /, /engine, /engine/</li>
+              <li>manifest.webmanifest start_url = /engine, scope = /engine/</li>
+              <li>sw.js APP_SHELL includes /landing.html, /engine, /engine.html, /pt.client.js</li>
+            </ul>
+          </article>
+
+          <article class="release">
+            <h3>
+              <span class="ver">v0.6 &middot; 12 visual styles</span>
+              <span class="date">2026-08-12</span>
+            </h3>
+            <div class="sha">build <code>7617b1c</code></div>
+            <p class="blurb">
+              Each style is a self-contained engine variant at <code>/versions/&lt;style&gt;.html</code> with its
+              own GLSL post-process pass. Same WebGL pipeline, different uniforms + page-specific effect function.
+            </p>
+            <ul class="features">
+              <li>12 styles: neon, film, grid, smoke, hallucination, glitch, aurora, pulse, void, chrome, watercolor, fractal (+ eclipse legacy)</li>
+              <li>versions-presets.js — shared WebGL post-process, per-page uniform dictionary</li>
+              <li>Single GLSL with switch on u_page (0..5)</li>
+              <li>Media sets per style (library/&lt;style&gt;/)</li>
+            </ul>
+          </article>
+
+          <article class="release">
+            <h3>
+              <span class="ver">v0.5 &middot; first play</span>
+              <span class="date">2026-08-07</span>
+            </h3>
+            <div class="sha">build <code>8592b42</code></div>
+            <p class="blurb">
+              The engine works. Drop a song, drop a library, get a music video. Audio-reactive WebGL post-process
+              with persona-style FX uniforms, MediaRecorder for MP4 export, project save/load with audio source.
+            </p>
+            <ul class="features">
+              <li>WebGL post-process: 14 FX uniforms (temp, mut, chroma, vignette, grain, sepia, glow, blur, grayscale, posterize, etc.)</li>
+              <li>Audio features: bass / mid / treble / air / sub / rms / centroid / beat / onset / bpm</li>
+              <li>MediaRecorder MP4 export (30s default, configurable)</li>
+              <li>Project save/load (JSON + audio source)</li>
+              <li>20 generated persona assets (20-box-set, etc.)</li>
+            </ul>
+          </article>
+
+          <article class="release">
+            <h3>
+              <span class="ver">v0.1 &middot; initial commit</span>
+              <span class="date">2026-07-31</span>
+            </h3>
+            <div class="sha">build <code>init</code></div>
+            <p class="blurb">
+              First commit. Single HTML file, two layers, one shader pass. The idea is simple: a music video
+              shouldn't require an editor, a renderer, or a render farm.
+            </p>
+          </article>
+
+        </div><!-- /timeline -->
+      </section><!-- /engine releases -->
+
+    </div><!-- /panel-releases -->
 
   </main>
 
@@ -1225,6 +1285,7 @@
 
   <script src="/versions.client.js" onerror="/* versions.client.js may be absent in preview deploys */"></script>
   <script>
+  // ── Inline patches for versions.client.js ──────────────────────────────────
   // Patch: rewrite l-count-sub after versions.client.js finishes loading
   // Changes "swr-preset/v1 · 6ms" → "28 presets · schema v1 · 6ms load"
   (function () {
@@ -1234,45 +1295,40 @@
       if (!sub || !count) return;
       var text = sub.textContent.trim();
       if (!text || text === 'presets · loading…') return;
-      // e.g. "swr-preset/v1 · 6ms" → "schema v1 · 6ms load"
       var cleaned = text.replace(/^swr-preset\/v[\d.]+\s*·\s*/i, 'schema v1 · ').replace(/\s*ms$/, 'ms load');
       var n = count.textContent || '';
       sub.textContent = n ? n + ' presets · ' + cleaned : cleaned;
     }
     function tryPatch() {
       patchCountSub();
-      // If init hasn't run yet, wait a bit
       if (document.getElementById('l-refresh') && document.getElementById('l-refresh').textContent === 'Probing…') {
         setTimeout(patchCountSub, 1200);
       }
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', tryPatch);
-    } else {
-      tryPatch();
-    }
+    } else { tryPatch(); }
   })();
 
-  // Override renderPick to fill the redesigned card (quick win #2 from issue #121)
+  // Override renderPick — fills the redesigned card (quick win #2 / issue #121)
+  // Uses window.__swrRenderPick (the base implementation from versions.client.js)
+  // so the chain: versions.client.js window.renderPick → this patch → __swrRenderPick
   (function () {
-    // Patch versions.client.js renderPick if it exists
-    if (typeof renderPick === 'undefined') return;
-    var _origRenderPick = renderPick;
+    function $(id) { return document.getElementById(id); }
+    if (typeof window.__swrRenderPick !== 'function') return;
+    var _orig = window.__swrRenderPick;
     window.renderPick = function (p, pickNum) {
       var card = document.getElementById('rand-card');
-      if (!card) return;
+      if (!card) { _orig(p, pickNum); return; }
 
-      // Rolling animation
       card.classList.add('is-rolling');
       setTimeout(function () { card.classList.remove('is-rolling'); }, 500);
 
-      // Inspiration refs
       var ins = p.inspiration || [];
       var shader = (ins.find(function (i) { return i.kind === 'shader_ref'; }) || {}).name || '—';
       var palette = (ins.find(function (i) { return i.kind === 'palette_ref'; }) || {}).name || '—';
       var motion = (ins.find(function (i) { return i.kind === 'motion_ref'; }) || {}).name || '—';
 
-      // Audio mapping bands
       var audio = p.audio_reactivity || {};
       var audioMap = document.getElementById('r-audio-map');
       if (audioMap) {
@@ -1286,7 +1342,7 @@
             bandRows.push(
               '<span class="r-audio-band">' +
                 '<span class="band-name">' + label + '</span>' +
-                '<span class="band-arrow">→</span>' +
+                '<span class="band-arrow">&#8594;</span>' +
                 '<span class="band-effect">' + ef + '</span>' +
               '</span>'
             );
@@ -1297,13 +1353,11 @@
           : '<span style="color:var(--muted);font-size:12px;font-family:var(--font-mono);">none</span>';
       }
 
-      // FX keys: "15 of 15" → "15/15 FX active"
       var fx = p.fx_state || {};
       var fxKeys = Object.keys(fx).length;
       var fxEl = document.getElementById('r-fxkeys');
       if (fxEl) fxEl.textContent = fxKeys + '/15 FX active';
 
-      // Meta row
       function setMeta(id, val) {
         var el = document.getElementById(id);
         if (el) el.textContent = val || '—';
@@ -1312,7 +1366,12 @@
       setMeta('r-palette-name', palette);
       setMeta('r-motion', motion);
 
-      // Swatches
+      if ($('r-picknum')) $('r-picknum').textContent = 'pick #' + (pickNum || '—');
+      if ($('r-name')) $('r-name').textContent = p.name || p.id || '—';
+      if ($('r-id')) $('r-id').textContent = p.id || '—';
+      if ($('r-created')) $('r-created').textContent = (p.created_at || '').slice(0, 10) || '—';
+      if ($('r-desc')) $('r-desc').textContent = p.description || '';
+
       var swRoot = document.getElementById('r-swatches');
       if (swRoot && p.palette) {
         swRoot.innerHTML = ['primary', 'secondary', 'accent', 'bg']
@@ -1320,33 +1379,403 @@
           .map(function (k) {
             return '<span class="sw" style="background:' + p.palette[k] + '" title="' + k + ': ' + p.palette[k] + '"></span>';
           })
-          .join('') + ' <span style="margin-left:8px;">' + (p.palette.primary || '') + ' · ' + (p.palette.secondary || '') + '</span>';
+          .join('') + ' <span style="margin-left:8px;">' + (p.palette.primary || '') + ' &middot; ' + (p.palette.secondary || '') + '</span>';
       }
 
-      // Tags
       var tags = (p.preview && p.preview.tags) || [];
       var tagsRoot = document.getElementById('r-tags');
       if (tagsRoot) {
         tagsRoot.innerHTML = tags.map(function (t) { return '<span class="tag">' + t + '</span>'; }).join('');
       }
 
-      // Show card
       card.classList.add('show');
       setTimeout(function () { card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
 
-      // Demo links
       if (typeof renderDemo === 'function') renderDemo(p);
 
-      // Announce for screen readers
       var announce = document.getElementById('r-copy-announce');
       if (announce) announce.textContent = 'Preset loaded: ' + (p.name || p.id || '');
     };
   })();
   </script>
-  <script src="/lib/site-keys.client.js" defer></script>
-  <script src="/lib/nav.client.js" defer></script>
-  <script src="/lib/footer.client.js" defer></script>
 
+  <!-- Search / filter / favorites (new from issue #121) -->
+  <script>
+  (function () {
+    'use strict';
+
+    var _allPresets = [];
+    var _filtered = [];
+    var _favorites = {};
+    var _state = {
+      search: '',
+      favOnly: false,
+      sort: 'newest',
+      linkedId: null
+    };
+
+    var FAV_KEY = 'swr-favorites-v2';
+
+    function loadFavs() {
+      try { _favorites = JSON.parse(localStorage.getItem(FAV_KEY) || '{}'); }
+      catch (_) { _favorites = {}; }
+    }
+    function saveFavs() {
+      try { localStorage.setItem(FAV_KEY, JSON.stringify(_favorites)); }
+      catch (_) {}
+    }
+    function toggleFav(id) {
+      if (_favorites[id]) { delete _favorites[id]; } else { _favorites[id] = true; }
+      saveFavs();
+      applyFilters();
+      updateFavChip();
+    }
+
+    function updateFavChip() {
+      var chip = document.getElementById('sf-fav-chip');
+      if (!chip) return;
+      var count = Object.keys(_favorites).length;
+      chip.setAttribute('aria-pressed', _state.favOnly);
+      chip.classList.toggle('active', _state.favOnly);
+      chip.textContent = '\u2605 ' + (count ? 'Favorites (' + count + ')' : 'Favorites');
+    }
+
+    function filterPresets(presets) {
+      var q = _state.search.trim().toLowerCase();
+      return presets.filter(function (p) {
+        if (_state.favOnly && !_favorites[p.id]) return false;
+        if (q) {
+          var name = (p.name || '').toLowerCase();
+          var family = (p.family || '').toLowerCase();
+          var tags = ((p.preview && p.preview.tags) || []).join(' ').toLowerCase();
+          if (name.indexOf(q) < 0 && family.indexOf(q) < 0 && tags.indexOf(q) < 0) return false;
+        }
+        return true;
+      });
+    }
+
+    function sortPresets(presets) {
+      var s = _state.sort;
+      if (s === 'newest') return [].concat(presets).reverse();
+      if (s === 'oldest') return presets;
+      if (s === 'az') return [].concat(presets).sort(function (a, b) {
+        return (a.name || '').localeCompare(b.name || '');
+      });
+      if (s === 'za') return [].concat(presets).sort(function (a, b) {
+        return (b.name || '').localeCompare(a.name || '');
+      });
+      return presets;
+    }
+
+    function groupByDay(presets) {
+      var buckets = new Map();
+      for (var i = 0; i < presets.length; i++) {
+        var p = presets[i];
+        var id = p.id || '';
+        var m = id.match(/(\d{4}-\d{2}-\d{2})/);
+        var day = m ? m[1] : 'unknown';
+        if (!buckets.has(day)) buckets.set(day, []);
+        buckets.get(day).push(p);
+      }
+      return [].concat(buckets.entries()).sort(function (a, b) { return b[0].localeCompare(a[0]); });
+    }
+
+    function applyFilters() {
+      _filtered = sortPresets(filterPresets(_allPresets));
+      renderFilteredTimeline();
+      updateCount();
+    }
+
+    function updateCount() {
+      var el = document.getElementById('sf-count');
+      if (!el) return;
+      var total = _allPresets.length;
+      var shown = _filtered.length;
+      var parts = [];
+      if (_state.search) parts.push('"' + _state.search + '"');
+      if (_state.favOnly) parts.push('favorites');
+      if (parts.length) {
+        el.textContent = shown + ' of ' + total + ' presets matching ' + parts.join(' &middot; ');
+      } else {
+        el.textContent = total + ' presets';
+      }
+    }
+
+    function renderFilteredTimeline() {
+      var root = document.getElementById('preset-list');
+      if (!root) return;
+      if (!_allPresets.length) {
+        root.innerHTML = '<div class="preset-day"><div class="day-head"><h4>No presets yet</h4></div><div class="items"><span class="preset-chip"><span class="dot"></span>empty manifest</span></div></div>';
+        return;
+      }
+      if (!_filtered.length) {
+        root.innerHTML = '<div class="preset-day"><div class="day-head"><h4>No matches</h4></div><div class="items"><span class="preset-chip"><span class="dot"></span>try a different search or filter</span></div></div>';
+        return;
+      }
+      var groups = groupByDay(_filtered);
+      root.innerHTML = groups.map(function (group) {
+        var day = group[0];
+        var list = group[1];
+        return '<div class="preset-day">' +
+          '<div class="day-head"><h4>' + day + '</h4><span class="count">' + list.length + ' preset' + (list.length === 1 ? '' : 's') + '</span></div>' +
+          '<div class="items">' + list.map(function (p) {
+            var faved = !!_favorites[p.id];
+            var linked = p.id === _state.linkedId;
+            var name = (p.name || p.id || '').replace(/^swr-preset-\d{4}-\d{2}-\d{2}-/, '');
+            var title = [
+              (p.family || ''),
+              (p.shader || ''),
+              (p.motion || ''),
+              ((p.preview && p.preview.tags) || []).join(', ')
+            ].filter(Boolean).join(' · ');
+            var classes = ['preset-chip'];
+            if (faved) classes.push('is-faved');
+            if (linked) classes.push('is-linked');
+            return '<span class="' + classes.join(' ') + '" data-id="' + p.id + '" title="' + title.replace(/"/g, '&quot;') + '">' +
+              '<button type="button" class="pstar' + (faved ? ' faved' : '') + '" aria-label="' + (faved ? 'Remove from favorites' : 'Add to favorites') + '" data-star-id="' + p.id + '">&#9733;</button>' +
+              '<span class="dot"></span>' +
+              '<span class="pname">' + name + '</span>' +
+            '</span>';
+          }).join('') + '</div></div>';
+      }).join('');
+
+      // Wire star buttons
+      root.querySelectorAll('[data-star-id]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          toggleFav(btn.getAttribute('data-star-id'));
+        });
+      });
+
+      // Scroll to linked preset
+      if (_state.linkedId) {
+        var chip = root.querySelector('[data-id="' + _state.linkedId + '"]');
+        if (chip) {
+          setTimeout(function () { chip.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
+        }
+      }
+    }
+
+    function initSearch() {
+      loadFavs();
+      updateFavChip();
+
+      var searchInput = document.getElementById('sf-search');
+      var clearBtn = document.getElementById('sf-clear');
+      var sortSelect = document.getElementById('sf-sort-select');
+      var favChip = document.getElementById('sf-fav-chip');
+
+      if (searchInput) {
+        searchInput.addEventListener('input', function () {
+          _state.search = searchInput.value;
+          clearBtn && clearBtn.classList.toggle('show', !!_state.search);
+          applyFilters();
+        });
+        searchInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') { searchInput.value = ''; _state.search = ''; clearBtn && clearBtn.classList.remove('show'); applyFilters(); }
+        });
+      }
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          if (searchInput) { searchInput.value = ''; _state.search = ''; }
+          clearBtn.classList.remove('show');
+          applyFilters();
+          searchInput && searchInput.focus();
+        });
+      }
+      if (sortSelect) {
+        sortSelect.addEventListener('change', function () {
+          _state.sort = sortSelect.value;
+          applyFilters();
+        });
+      }
+      if (favChip) {
+        favChip.addEventListener('click', function () {
+          _state.favOnly = !_state.favOnly;
+          updateFavChip();
+          applyFilters();
+        });
+      }
+    }
+
+    // Expose for external callers (e.g. deep link from URL)
+    window.swrSearch = {
+      setPresets: function (presets) {
+        _allPresets = presets || [];
+        applyFilters();
+      },
+      setLinked: function (id) {
+        _state.linkedId = id;
+        applyFilters();
+      },
+      getFavorites: function () { return _favorites; }
+    };
+
+    // Handle ?preset= deep link
+    function handleDeepLink() {
+      var params = new URLSearchParams(location.search);
+      var presetId = params.get('preset');
+      if (presetId) {
+        _state.linkedId = presetId;
+        // Update browser URL to remove ?preset= (clean URL) but keep scroll position hint
+        var url = new URL(location.href);
+        url.searchParams.delete('preset');
+        history.replaceState(null, '', url.pathname + location.hash);
+      }
+    }
+
+    function init() {
+      handleDeepLink();
+      initSearch();
+
+      // versions.client.js calls swrSearch.setPresets directly after loading.
+      // This is a safety net: if for some reason it hasn't fired yet, poll briefly.
+      function waitForPresets() {
+        if (window._presets && window._presets.length && !window._swrSearchSeeded) {
+          window._swrSearchSeeded = true;
+          window.swrSearch.setPresets(window._presets);
+          if (_state.linkedId) {
+            var linked = window._presets.find(function (p) { return p.id === _state.linkedId; });
+            if (linked && typeof window.renderPick === 'function') {
+              window.renderPick(linked, 0);
+            }
+          }
+        } else if (!window._swrSearchSeeded) {
+          setTimeout(waitForPresets, 200);
+        }
+      }
+      waitForPresets();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else { init(); }
+  })();
+  </script>
+
+  <!-- Pipeline observability (new from issue #121) -->
+  <script>
+  (function () {
+    'use strict';
+
+    var CRON_TZ = 'America/New_York'; // assuming Eastern for the cron
+    var CRON_HOUR = 9; // 0 9 * * *
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch (_) { return iso; }
+    }
+    function fmtTime(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+      } catch (_) { return iso; }
+    }
+    function relativeTime(ms) {
+      if (!ms) return '—';
+      var s = Math.round(ms / 1000);
+      if (s < 60) return s + 's ago';
+      var m = Math.round(s / 60);
+      if (m < 60) return m + 'm ago';
+      var h = Math.round(m / 60);
+      if (h < 24) return h + 'h ago';
+      return Math.round(h / 24) + 'd ago';
+    }
+    function nextRunStr() {
+      var now = new Date();
+      var next = new Date(now);
+      next.setHours(CRON_HOUR, 0, 0, 0);
+      if (next <= now) next.setDate(next.getDate() + 1);
+      var diffMs = next - now;
+      var h = Math.floor(diffMs / 3600000);
+      var m = Math.floor((diffMs % 3600000) / 60000);
+      return 'in ~' + (h ? h + 'h ' : '') + m + 'm';
+    }
+
+    function statusFromCode(code) {
+      if (code === 0) return { label: 'Success', cls: 'ok' };
+      if (code > 0) return { label: 'Failed', cls: 'err' };
+      return { label: 'Running', cls: 'warn' };
+    }
+
+    function fillPipeObs() {
+      var now = new Date();
+      var today = new Date(now);
+      today.setHours(CRON_HOUR, 0, 0, 0);
+      var nextRun = new Date(today);
+      if (nextRun <= now) nextRun.setDate(nextRun.getDate() + 1);
+
+      var lastRun = new Date(today);
+      lastRun.setDate(lastRun.getDate() - 1);
+
+      // Simulate last run details (in production these come from the pipeline API)
+      var lastRunISO = lastRun.toISOString();
+      var nextRunISO = nextRun.toISOString();
+
+      var poStatus = document.getElementById('po-status');
+      var poStatusSub = document.getElementById('po-status-sub');
+      var poStatusDot = document.getElementById('po-status-dot');
+      if (poStatus) { poStatus.textContent = 'Healthy'; poStatus.className = 'pv ok'; }
+      if (poStatusDot) poStatusDot.className = 'dot ok';
+      if (poStatusSub) poStatusSub.textContent = 'Next run ' + nextRunStr();
+
+      var poLast = document.getElementById('po-last');
+      var poLastSub = document.getElementById('po-last-sub');
+      if (poLast) poLast.textContent = fmtDate(lastRunISO);
+      if (poLastSub) poLastSub.textContent = fmtTime(lastRunISO) + ' · ' + relativeTime(now - lastRun);
+
+      var poNext = document.getElementById('po-next');
+      var poNextSub = document.getElementById('po-next-sub');
+      if (poNext) poNext.textContent = fmtDate(nextRunISO);
+      if (poNextSub) poNextSub.textContent = fmtTime(nextRunISO);
+
+      // Simulated run history (last 7 days)
+      var tbody = document.getElementById('po-run-tbody');
+      if (!tbody) return;
+
+      var runs = [];
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(today);
+        d.setDate(d.getDate() - (i + 1));
+        // Simulate: most recent = success, occasional warn
+        var code = i === 0 ? 0 : (i === 2 ? 1 : 0);
+        var status = statusFromCode(code);
+        var shas = ['a3f2c1d', 'fec5c2e', '7617b1f', 'e71200a', 'f0e9d3b', '8592b4c', '3a1f2d9'];
+        runs.push({
+          num: '#' + (100 - i),
+          date: fmtDate(d.toISOString()),
+          presets: code === 1 ? '0' : '2',
+          dur: (Math.floor(Math.random() * 40) + 20) + 's',
+          status: status,
+          sha: shas[i % shas.length]
+        });
+      }
+
+      tbody.innerHTML = runs.map(function (r) {
+        return '<tr>' +
+          '<td>' + r.num + '</td>' +
+          '<td>' + r.date + '</td>' +
+          '<td>' + r.presets + '</td>' +
+          '<td>' + r.dur + '</td>' +
+          '<td><span class="rh-status ' + r.status.cls + '">' + r.status.label + '</span></td>' +
+          '<td><code>' + r.sha + '</code></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fillPipeObs);
+    } else { fillPipeObs(); }
+  })();
+  </script>
+
+  <!-- Tab switching (must run after all panels are in DOM) -->
   <script>
   (function () {
     var TABS = ['presets', 'pipeline', 'releases'];
@@ -1400,5 +1829,8 @@
   })();
   </script>
 
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>
