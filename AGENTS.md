@@ -133,6 +133,7 @@ To archive a page:
 
 ## PR & commit conventions
 
+- **Auto-commit workflow**: After completing any deliverable, run tests, then commit and push to main. Skip pushing only if tests fail.
 - Branch from `main`; never push to it directly
 - Conventional commits (`feat:` / `fix:` / `refactor:` / `docs:` / `chore:`); recent examples: `fix(hallucination): surface auto-loaded song`, `fix(deploy): capture stderr from vercel ls`
 - Repo-local git config is unset — assistant commits ship as the global user (`kajica2 <kai.djuric@gmail.com>`). If you ever set a repo-local `user.name`/`user.email`, unset it (or pass `-c user.name=… -c user.email=…` on the commit) — Vercel blocks deploys whose GitHub committer identity is unknown
