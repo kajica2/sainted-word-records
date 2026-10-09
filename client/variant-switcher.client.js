@@ -45,8 +45,15 @@
       accent: { r: 0xff, g: 0x2d, b: 0x8a }, accent2: { r: 0x00, g: 0xf0, b: 0xff }, accent3: { r: 0xff, g: 0xf0, b: 0x4a } },
     { id: 'film',         name: 'Film',         desc: 'Per-pixel grain · projector flicker · warm overlay · vignette', song: 'audios/film.mp3',
       accent: { r: 0xc8, g: 0xa8, b: 0x78 }, accent2: { r: 0x8a, g: 0x6a, b: 0x3a }, accent3: { r: 0xf5, g: 0xe8, b: 0xc8 } },
-    { id: 'grid',         name: 'Grid',         desc: 'Kick flash · grid-line pulse · white punch on downbeat', song: 'audios/grid.mp3',
-      accent: { r: 0xff, g: 0x3d, b: 0x00 }, accent2: { r: 0xff, g: 0x3d, b: 0x00 }, accent3: { r: 0xff, g: 0xff, b: 0xff } },
+    // grid's visual identity is its DOM overlays (#grid lines + #flash
+    // beat-pulse), which client/variant-switcher.client.js's
+    // ensureOverlays() manages. Its drawFx body is intentionally a
+    // no-op (versions/grid.html:1079 — "Legacy flash/pulse retired —
+    // engine.html's console drives #flash/#grid now. Kept as an
+    // extractable no-op: the variant switcher compiles this source."),
+    // so a drawFx-painted-pixels smoke check would falsely fail it.
+    // grid stays reachable as a standalone page at /versions/grid.html
+    // but is not wired into the engine dropdown. (mirrors baroque.)
     { id: 'smoke',        name: 'Smoke',        desc: 'Warm haze · amber chromatic-aberration ghost', song: 'audios/smoke.mp3',
       accent: { r: 0xd6, g: 0x8b, b: 0x5a }, accent2: { r: 0xb8, g: 0x9a, b: 0x72 }, accent3: { r: 0xf0, g: 0xd8, b: 0xb0 } },
     { id: 'hallucination',name: 'Hallucination', desc: 'Lighter flash · RGB torn-signal ghosts · noise punch', song: 'audios/hallucination.mp3',
@@ -101,6 +108,12 @@
     //     /versions/baroque.html. (The page still ships; the dropdown just
     //     doesn't surface it.) The 16-entry switcher was reverted to 15
     //     by request.
+    //   versions/grid.html — has a drawFx (intentionally a no-op), but
+    //     its visual identity is the #grid + #flash DOM overlays that
+    //     client/variant-switcher.client.js's ensureOverlays() manages.
+    //     A canvas drawFx would be redundant and a no-op drawFx would
+    //     fail a "painted pixels" smoke check. Page still ships as
+    //     /versions/grid.html; the engine doesn't wire it.
     //   kraft, mosaic, phosphor, spectrum, tape, typography, collage —
     //   still bespoke render loops with no drawFx. Adding them means
     //   authoring the pass, the same way eclipse did.
