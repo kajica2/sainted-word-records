@@ -1004,6 +1004,14 @@
       "destination": "/enhance.html"
     },
     {
+      "source": "/versions/clean",
+      "destination": "/versions/clean.html"
+    },
+    {
+      "source": "/versions/clean/",
+      "destination": "/versions/clean.html"
+    },
+    {
       "source": "/atlas/200-steps",
       "destination": "/atlas-200-steps.html"
     },

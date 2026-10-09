@@ -135,6 +135,10 @@ function generateRewrites(map) {
   rules.push({ source: '/enhance', destination: '/enhance.html' });
   rules.push({ source: '/enhance/', destination: '/enhance.html' });
 
+  // Clean variant - CSS transitions, linear timeline
+  rules.push({ source: '/versions/clean', destination: '/versions/clean.html' });
+  rules.push({ source: '/versions/clean/', destination: '/versions/clean.html' });
+
   // Atlas section pages. atlas.html's TOC links to /atlas/<slug> while the
   // section files are hyphenated at the repo root (atlas-<slug>.html). Only
   // /atlas itself was routed, so all nine TOC links 404'd in production
@@ -243,6 +247,8 @@ const specialPatterns = [
   // /artists/<name> → /artists/<name>.html for individual artist pages.
   // Not in site-map nav but linked from /artists/index.html cards.
   /^\/artists\/(ana-maric|dusan-popov|kira-lindqvist|marko-ilic|nina-volkova|vodolija)\/?$/,
+  // /versions/clean → /versions/clean.html (CSS transitions, linear timeline)
+  /^\/versions\/clean\/?$/,
   // /versions/<name> → /versions/<name>.html for the 22 variants and
   // index pages. The auto-generator doesn't emit subdirectory rewrites
   // under /versions/ (only under /artists/), so we preserve manually.

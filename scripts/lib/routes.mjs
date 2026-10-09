@@ -55,6 +55,7 @@ export const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s
 export const ROUTE_OVERRIDES = {
   'versions/index.html': '/visual-languages',
   'versions/music_video.html': '/versions/music-video',
+  'versions/clean.html': '/versions/clean',
 };
 
 const FILE_OVERRIDES = Object.fromEntries(

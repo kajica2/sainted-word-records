@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLEAN · SWR</title>
+  <meta name="description" content="Clean linear music video creator — CSS transitions, simple timeline, export.">
+  <meta name="theme-color" content="#0a0d18">
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/versions/clean" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0d18'/><circle cx='16' cy='16' r='10' fill='none' stroke='%23fff' stroke-width='2'/></svg>">
+  
+  <!-- CSS Transitions Library -->
+  <link rel="stylesheet" href="/video-fx.css">
+  
+  <style>
+    :root {
+      --bg: #0a0d18;
+      --bg-2: #12182b;
+      --panel: #12182b;
+      --panel-2: #1a2240;
+      --ink: #e8e6f0;
+      --muted: #6a7090;
+      --line: #2a3050;
+      --accent: #00ffa3;
+      --accent-2: #00c8ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { 
+      height: 100%; 
+      overflow: hidden; 
+      background: #000; 
+      color: var(--ink); 
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    
+    #app { 
+      display: grid; 
+      grid-template-rows: 56px 1fr 80px; 
+      height: 100vh; 
+    }
+    
+    /* Header */
+    header {
+      display: flex; 
+      align-items: center; 
+      gap: 16px;
+      padding: 0 20px;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--line);
+    }
+    .logo {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .logo span { color: var(--muted); font-weight: 400; }
+    
+    .spacer { flex: 1; }
+    
+    /* Effect selector */
+    .effect-select {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .effect-select label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .effect-select select {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .effect-select select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    
+    /* Intensity slider */
+    .intensity-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .intensity-ctrl label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .intensity-ctrl input[type="range"] {
+      width: 100px;
+      accent-color: var(--accent);
+    }
+    .intensity-ctrl span {
+      font-size: 12px;
+      color: var(--accent);
+      min-width: 36px;
+    }
+    
+    /* Stage */
+    #stage {
+      position: relative;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #stage canvas {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    #preview {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #preview video {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    /* CSS transition applied to preview */
+    #preview[class] {
+      transition: all 0.5s ease;
+    }
+    
+    /* Drop zone overlay */
+    .drop-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+    .drop-overlay.hidden { display: none; }
+    .drop-box {
+      text-align: center;
+      padding: 60px;
+      border: 2px dashed var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+    }
+    .drop-box .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .drop-box .label {
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .drop-box .sub {
+      font-size: 13px;
+    }
+    
+    /* Footer / Timeline */
+    footer {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      background: var(--bg-2);
+      border-top: 1px solid var(--line);
+    }
+    
+    /* Transport controls */
+    .transport {
+      display: flex;
+      gap: 8px;
+    }
+    .transport button {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .transport button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .transport button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .transport button.primary {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+    
+    /* Timeline */
+    .timeline {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .timeline-bar {
+      height: 8px;
+      background: var(--panel);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+    }
+    .timeline-progress {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .timeline-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    
+    /* Time display */
+    .time-display {
+      font-size: 14px;
+      font-family: ui-monospace, monospace;
+      color: var(--accent-2);
+      min-width: 100px;
+    }
+    
+    /* Export button */
+    .export-btn {
+      background: linear-gradient(135deg, var(--accent) 0%, #00c878 100%);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+    }
+    .export-btn:hover {
+      opacity: 0.9;
+    }
+    .export-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    /* Hidden file input */
+    #file-input { display: none; }
+    
+    /* Mobile */
+    @media (max-width: 720px) {
+      header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+      .effect-select, .intensity-ctrl { display: none; }
+      footer { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+      .timeline { order: -1; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Site exit -->
+  <a href="/" class="swr-site-exit" title="← Site">← Site</a>
+  
+  <div id="app">
+    <header>
+      <div class="logo">CLEAN <span>· SWR</span></div>
+      <div class="spacer"></div>
+      
+      <div class="effect-select">
+        <label>Transition</label>
+        <select id="effect-select">
+          <option value="">None</option>
+          <option value="kenburns">Ken Burns</option>
+          <option value="pan-scan">Pan & Scan</option>
+          <option value="light-leak">Light Leak</option>
+          <option value="film-grain">Film Grain</option>
+          <option value="vhs">VHS Glitch</option>
+          <option value="hue-shift">Hue Shift</option>
+          <option value="kaleidoscope">Kaleidoscope</option>
+          <option value="zoom-pulse">Zoom Pulse</option>
+          <option value="camera-shake">Camera Shake</option>
+        </select>
+      </div>
+      
+      <div class="intensity-ctrl">
+        <label>Intensity</label>
+        <input type="range" id="intensity" min="0" max="100" value="50">
+        <span id="intensity-val">50%</span>
+      </div>
+    </header>
+    
+    <div id="stage">
+      <video id="preview" playsinline loop muted></video>
+      <div class="drop-overlay" id="drop-overlay">
+        <div class="drop-box">
+          <div class="icon">📁</div>
+          <div class="label">Drop video or audio</div>
+          <div class="sub">or click to browse</div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      <div class="transport">
+        <button id="btn-play" title="Play/Pause">▶</button>
+        <button id="btn-stop" title="Stop">■</button>
+        <button id="btn-reset" title="Reset">↺</button>
+      </div>
+      
+      <div class="timeline">
+        <div class="timeline-bar" id="timeline-bar">
+          <div class="timeline-progress" id="timeline-progress"></div>
+        </div>
+        <div class="timeline-info">
+          <span id="time-current">0:00</span>
+          <span id="time-duration">0:00</span>
+        </div>
+      </div>
+      
+      <div class="time-display" id="time-display">0:00 / 0:00</div>
+      
+      <button class="export-btn" id="btn-export" disabled>Export</button>
+    </footer>
+  </div>
+  
+  <input type="file" id="file-input" accept="video/*,audio/*">
+  
+  <script>
+    // Clean Engine - CSS-only linear video creator
+    (function() {
+      'use strict';
+      
+      const state = {
+        media: null,
+        playing: false,
+        duration: 0,
+        currentTime: 0,
+        effect: '',
+        intensity: 50,
+        exporting: false
+      };
+      
+      // DOM elements
+      const preview = document.getElementById('preview');
+      const dropOverlay = document.getElementById('drop-overlay');
+      const fileInput = document.getElementById('file-input');
+      const btnPlay = document.getElementById('btn-play');
+      const btnStop = document.getElementById('btn-stop');
+      const btnReset = document.getElementById('btn-reset');
+      const btnExport = document.getElementById('btn-export');
+      const effectSelect = document.getElementById('effect-select');
+      const intensityInput = document.getElementById('intensity');
+      const intensityVal = document.getElementById('intensity-val');
+      const timelineBar = document.getElementById('timeline-bar');
+      const timelineProgress = document.getElementById('timeline-progress');
+      const timeCurrent = document.getElementById('time-current');
+      const timeDuration = document.getElementById('time-duration');
+      const timeDisplay = document.getElementById('time-display');
+      
+      // Available CSS effects from video-fx.css
+      const CSS_EFFECTS = [
+        '', 'kenburns', 'pan-scan', 'light-leak', 'film-grain', 
+        'vhs', 'hue-shift', 'kaleidoscope', 'zoom-pulse', 'camera-shake'
+      ];
+      
+      // Format time helper
+      function formatTime(seconds) {
+        if (!seconds || isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+      
+      // Apply CSS effect
+      function applyEffect(effect) {
+        // Remove all known effects
+        CSS_EFFECTS.forEach(e => {
+          if (e) preview.classList.remove(e);
+        });
+        
+        // Apply new effect
+        if (effect) {
+          preview.classList.add(effect);
+          
+          // Adjust animation speed based on intensity
+          const duration = 2 + (100 - state.intensity) / 25; // 2-6s
+          preview.style.animationDuration = `${duration}s`;
+        }
+        
+        state.effect = effect;
+      }
+      
+      // Update intensity
+      function updateIntensity(value) {
+        state.intensity = value;
+        intensityVal.textContent = `${value}%`;
+        
+        // Adjust effect intensity via CSS custom properties or style
+        const opacity = 0.3 + (value / 100) * 0.7;
+        preview.style.opacity = opacity;
+      }
+      
+      // Handle file drop/select
+      function handleFile(file) {
+        if (!file) return;
+        
+        const url = URL.createObjectURL(file);
+        preview.src = url;
+        
+        preview.onloadedmetadata = () => {
+          state.duration = preview.duration;
+          timeDuration.textContent = formatTime(state.duration);
+          timeDisplay.textContent = `0:00 / ${formatTime(state.duration)}`;
+          btnExport.disabled = false;
+          dropOverlay.classList.add('hidden');
+        };
+        
+        preview.onerror = () => {
+          console.error('Failed to load media');
+        };
+      }
+      
+      // Play/Pause
+      function togglePlay() {
+        if (state.playing) {
+          preview.pause();
+          btnPlay.textContent = '▶';
+        } else {
+          preview.play();
+          btnPlay.textContent = '❚❚';
+        }
+        state.playing = !state.playing;
+      }
+      
+      // Stop
+      function stop() {
+        preview.pause();
+        preview.currentTime = 0;
+        state.playing = false;
+        state.currentTime = 0;
+        btnPlay.textContent = '▶';
+        updateTimeline();
+      }
+      
+      // Reset
+      function reset() {
+        stop();
+        preview.src = '';
+        dropOverlay.classList.remove('hidden');
+        btnExport.disabled = true;
+        state.duration = 0;
+        timeDuration.textContent = '0:00';
+        timeDisplay.textContent = '0:00 / 0:00';
+      }
+      
+      // Update timeline
+      function updateTimeline() {
+        if (!state.duration) return;
+        const progress = (preview.currentTime / state.duration) * 100;
+        timelineProgress.style.width = `${progress}%`;
+        timeCurrent.textContent = formatTime(preview.currentTime);
+        timeDisplay.textContent = `${formatTime(preview.currentTime)} / ${formatTime(state.duration)}`;
+      }
+      
+      // Seek on timeline click
+      function seek(e) {
+        if (!state.duration) return;
+        const rect = timelineBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        preview.currentTime = percent * state.duration;
+      }
+      
+      // Export video
+      async function exportVideo() {
+        if (state.exporting || !preview.src) return;
+        
+        state.exporting = true;
+        btnExport.textContent = 'Recording...';
+        btnExport.disabled = true;
+        
+        try {
+          // Use canvas to capture video with CSS effects
+          const canvas = document.createElement('canvas');
+          canvas.width = preview.videoWidth || 1920;
+          canvas.height = preview.videoHeight || 1080;
+          const ctx = canvas.getContext('2d');
+          
+          const stream = canvas.captureStream(30);
+          const recorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm;codecs=vp9,opus'
+          });
+          
+          const chunks = [];
+          recorder.ondataavailable = e => chunks.push(e.data);
+          
+          recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sainted-word-clean-${Date.now()}.webm`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            btnExport.textContent = 'Export';
+            btnExport.disabled = false;
+            state.exporting = false;
+          };
+          
+          recorder.start();
+          
+          // Draw frames
+          const drawFrame = () => {
+            if (preview.paused || preview.ended) {
+              if (recorder.state === 'recording') {
+                recorder.stop();
+              }
+              return;
+            }
+            ctx.drawImage(preview, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(drawFrame);
+          };
+          
+          preview.currentTime = 0;
+          await preview.play();
+          drawFrame();
+          
+        } catch (err) {
+          console.error('Export failed:', err);
+          btnExport.textContent = 'Export Failed';
+          setTimeout(() => {
+            btnExport.textContent = 'Export';
+            btnExport.disabled = false;
+          }, 2000);
+          state.exporting = false;
+        }
+      }
+      
+      // Event listeners
+      dropOverlay.addEventListener('click', () => fileInput.click());
+      dropOverlay.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropOverlay.style.background = 'rgba(0,255,163,0.1)';
+      });
+      dropOverlay.addEventListener('dragleave', () => {
+        dropOverlay.style.background = 'rgba(0,0,0,0.85)';
+      });
+      dropOverlay.addEventListener('drop', e => {
+        e.preventDefault();
+        handleFile(e.dataTransfer.files[0]);
+      });
+      
+      fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+      
+      btnPlay.addEventListener('click', togglePlay);
+      btnStop.addEventListener('click', stop);
+      btnReset.addEventListener('click', reset);
+      btnExport.addEventListener('click', exportVideo);
+      
+      effectSelect.addEventListener('change', e => applyEffect(e.target.value));
+      intensityInput.addEventListener('input', e => updateIntensity(parseInt(e.target.value)));
+      
+      timelineBar.addEventListener('click', seek);
+      
+      preview.addEventListener('timeupdate', updateTimeline);
+      preview.addEventListener('ended', () => {
+        state.playing = false;
+        btnPlay.textContent = '▶';
+      });
+      
+      // Keyboard shortcuts
+      document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        
+        switch(e.key) {
+          case ' ':
+            e.preventDefault();
+            togglePlay();
+            break;
+          case 'Escape':
+            stop();
+            break;
+          case 'r':
+            if (e.metaKey || e.ctrlKey) {
+              e.preventDefault();
+              reset();
+            }
+            break;
+        }
+      });
+      
+      // Expose API
+      window.SWR_CLEAN = {
+        play: () => { preview.play(); state.playing = true; btnPlay.textContent = '❚❚'; },
+        pause: () => { preview.pause(); state.playing = false; btnPlay.textContent = '▶'; },
+        stop,
+        reset,
+        setEffect: applyEffect,
+        setIntensity: updateIntensity,
+        export: exportVideo,
+        getState: () => ({ ...state })
+      };
+      
+    })();
+  </script>
+</body>
+</html>
