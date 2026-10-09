@@ -1728,6 +1728,15 @@
   <script src="/client/targeting.client.js" defer></script>
   <script src="/client/variant-switcher.client.js" defer></script>
   <script src="/client/default-library.client.js" defer></script>
+  <!-- Grouped "looks" dropdown: every shipped look in one control —
+       variant render passes, versions-presets.js grade presets, and the
+       engine's own motion presets. SWR_PRESETS_DATA_ONLY must be set
+       BEFORE versions-presets.js runs: the engine already drives
+       #fx-canvas through fx-postprocess.js, so the catalogue exposes only
+       its table here instead of booting a second WebGL overlay. -->
+  <script>window.SWR_PRESETS_DATA_ONLY = 1;</script>
+  <script src="/versions-presets.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
 </head>
 <body>
   <main id="app">
