@@ -243,12 +243,39 @@
       pointer-events: none;
       z-index: 9999;
       mix-blend-mode: screen;
+      animation: heartbeat 1.5s ease-in-out infinite;
     }
     .swr-watermark img {
       width: 100%;
       height: auto;
       display: block;
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+    }
+    @keyframes heartbeat {
+      0% {
+        filter: drop-shadow(0 0 1px rgba(255,255,255,0.2)) drop-shadow(0 0 2px rgba(200,200,200,0.1));
+        transform: scale(1);
+      }
+      15% {
+        filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)) drop-shadow(0 0 4px rgba(200,200,200,0.4));
+        transform: scale(1.05);
+      }
+      30% {
+        filter: drop-shadow(0 0 1px rgba(255,255,255,0.2)) drop-shadow(0 0 2px rgba(200,200,200,0.1));
+        transform: scale(1);
+      }
+      45% {
+        filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)) drop-shadow(0 0 4px rgba(200,200,200,0.4));
+        transform: scale(1.05);
+      }
+      60% {
+        filter: drop-shadow(0 0 1px rgba(255,255,255,0.2)) drop-shadow(0 0 2px rgba(200,200,200,0.1));
+        transform: scale(1);
+      }
+      100% {
+        filter: drop-shadow(0 0 1px rgba(255,255,255,0.2)) drop-shadow(0 0 2px rgba(200,200,200,0.1));
+        transform: scale(1);
+      }
     }
   
     /* AUTO-START overlay (browser autoplay policy requires one user gesture) */

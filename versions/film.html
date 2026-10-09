@@ -243,12 +243,24 @@
       pointer-events: none;
       z-index: 9999;
       mix-blend-mode: screen;
+      animation: watermark-glow 2s ease-in-out infinite alternate;
     }
     .swr-watermark img {
       width: 100%;
       height: auto;
       display: block;
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+    }
+    @keyframes watermark-glow {
+      0% {
+        filter: drop-shadow(0 0 1px rgba(255,255,255,0.3)) drop-shadow(0 0 2px rgba(200,200,200,0.2));
+      }
+      50% {
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.5)) drop-shadow(0 0 3px rgba(200,200,200,0.3));
+      }
+      100% {
+        filter: drop-shadow(0 0 3px rgba(255,255,255,0.7)) drop-shadow(0 0 4px rgba(180,180,180,0.4));
+      }
     }
   
     /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
