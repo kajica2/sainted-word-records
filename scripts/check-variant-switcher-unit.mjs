@@ -153,12 +153,27 @@ async function main() {
   const curator = ctx.window.SWR_VARIANTS;
   if (!curator) throw new Error('SWR_VARIANTS not exposed');
 
+  // Pre-populate ALL possible variants before module init, because the module
+  // calls prefetchTopVariants() on load which tries to fetch neon/music_video.
+  // Without this, those prefetches fail and pollute the cache with rejected promises.
+  const ALL_VARIANTS = [
+    'neon', 'film', 'smoke', 'hallucination', 'grid',
+    'music_video', 'glitch', 'aurora', 'pulse', 'void',
+    'chrome', 'watercolor', 'fractal', 'music_video_mtv', 'eclipse'
+  ];
+  for (const id of ALL_VARIANTS) {
+    const fp = path.join(ROOT, `versions/${id}.html`);
+    if (fs.existsSync(fp)) {
+      FETCH_HTML[`/versions/${id}.html`] = fs.readFileSync(fp, 'utf8');
+    }
+  }
+
   VARIANTS = curator.list().map((v) => v.id);
 
-  // Load every variant page source into the fake fetch.
-  for (const id of VARIANTS) {
-    FETCH_HTML[`/versions/${id}.html`] = fs.readFileSync(path.join(ROOT, `versions/${id}.html`), 'utf8');
-  }
+  // Clear the cache after module init to clear any failed prefetch promises.
+  // The module prefetches neon and music_video on load, and without pre-populating
+  // FETCH_HTML those requests would fail and leave rejected promises in the cache.
+  curator._debug.state.cache.clear();
 
   console.log(`\n=== 1. Extractor verbatim fidelity (${VARIANTS.length} variants) ===`);
   const extractor = curator._debug.extractFunctionSource;
