@@ -429,6 +429,7 @@
 <script src="../layer-scheduler.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
   <link rel="stylesheet" href="../lib/user-media.css">
+  <link rel="stylesheet" href="/lib/drive-modal.css" />
 </head>
 <body data-page="hallucination">
   <div id="app">
@@ -437,6 +438,7 @@
       <div class="v">HALLUCINATION <small>v5</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
+      <button type="button" id="swr-drive-btn" class="tbtn ghost" title="Import from Google Drive">Drive</button>
       <input type="file" id="song-input" accept="audio/*" />
       <button class="tbtn primary" id="play" disabled data-icon="▶">▶</button>
       <span id="song-name" style="font-size:10px;color:var(--accent-2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
@@ -1908,5 +1910,69 @@ const a=l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a (l
 <script src="../lib/watermark.client.js"></script>
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
+<script src="/lib/auth.client.js" defer></script>
+<script src="/lib/google-drive.client.js" defer></script>
+  <script src="/lib/drive-modal.client.js" defer></script>
+
+  <script>
+    (function() {
+      var driveBtn = document.getElementById('swr-drive-btn');
+      if (!driveBtn) return;
+
+      function getDriveState() {
+        return window.SWR_AUTH ? window.SWR_AUTH.get() : Promise.resolve(null);
+      }
+
+      function updateBtnState(user) {
+        if (!user) {
+          driveBtn.title = 'Sign in to import from Google Drive';
+          driveBtn.style.opacity = '0.4';
+        } else if (!user.googleDriveLinkedAt) {
+          driveBtn.title = 'Connect Google Drive to import files';
+          driveBtn.style.opacity = '0.7';
+        } else {
+          driveBtn.title = 'Import from Google Drive';
+          driveBtn.style.opacity = '1';
+        }
+      }
+
+      // Bootstrap: check session and listen for auth changes.
+      if (window.SWR_AUTH) {
+        getDriveState().then(updateBtnState);
+        window.SWR_AUTH.onChange(updateBtnState);
+      } else {
+        driveBtn.title = 'Sign in to import from Google Drive';
+        driveBtn.style.opacity = '0.4';
+      }
+
+      driveBtn.addEventListener('click', function() {
+        getDriveState().then(function(user) {
+          if (!user) {
+            // Not logged in → redirect to login with return path.
+            var returnTo = encodeURIComponent(location.pathname);
+            location.href = '/auth/login?redirect=' + returnTo;
+            return;
+          }
+          if (!user.googleDriveLinkedAt) {
+            // Drive not linked → initiate OAuth in popup.
+            if (window.SWR_GDRIVE) {
+              window.SWR_GDRIVE.link(location.pathname)
+                .then(function() { updateBtnState(Object.assign({}, user, { googleDriveLinkedAt: new Date().toISOString() })); })
+                .catch(function(e) {
+                  if (e.message !== 'popup_blocked' && e.message !== 'oauth_timeout') {
+                    console.warn('[drive] link error:', e);
+                  }
+                });
+            }
+            return;
+          }
+          // Drive linked → open browser modal.
+          if (window.SWR_DRIVE_MODAL) {
+            window.SWR_DRIVE_MODAL.show();
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

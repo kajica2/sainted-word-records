@@ -25,7 +25,8 @@
 //   .signals.list()                the in-memory rolling window (≤200)
 //   .signals.flush()                persist the window to IDB now
 //   .classify()                    -> { personaId, segmentId, personaScore,
-//                                        segmentScore, alternatives }
+//                                        segmentScore, confidence, alternatives }
+//   .classifyWithConfidence(signals, rules, corrections) -> { personaId, confidence, alternatives }
 //   .maybeReorderVariants(sel, ids)  called by client/variant-switcher.client.js
 //   .applyVariantOrder(sel, order)
 //   .applyTransitionPins(ids)
@@ -47,7 +48,7 @@
   'use strict';
   if (window.SWR_TARGETING) return;
 
-  var VERSION = 'swr-targeting/v1';
+  var VERSION = 'swr-targeting/v2';
   var DB_NAME = 'swr-targeting';
   var DB_VERSION = 1;
   var STORES = ['signals', 'corrections', 'dismissed'];
@@ -268,7 +269,7 @@
   }
 
   function classifyWith(signals, rules, corrections) {
-    if (!rules || !rules.personaToSegment) return { personaId: null, segmentId: null, personaScore: 0, segmentScore: 0, alternatives: [] };
+    if (!rules || !rules.personaToSegment) return { personaId: null, segmentId: null, personaScore: 0, segmentScore: 0, confidence: 0, alternatives: [] };
     var counts = tally(signals);
     var scores = scoreAll(counts, rules, corrections);
     var ranked = Object.keys(scores).sort(function (a, b) {
@@ -276,15 +277,32 @@
     });
     var top = ranked[0];
     if (!top || scores[top] < MIN_SCORE) {
-      return { personaId: null, segmentId: null, personaScore: 0, segmentScore: 0, alternatives: ranked.slice(0, 3).map(function (id) { return { id: id, score: scores[id] }; }) };
+      return { personaId: null, segmentId: null, personaScore: 0, segmentScore: 0, confidence: 0, alternatives: ranked.slice(0, 3).map(function (id) { return { id: id, score: scores[id] }; }) };
     }
     var segmentId = rules.personaToSegment[top] || null;
+    // Calculate confidence: ratio of top score to sum of top 3 scores
+    var topThree = ranked.slice(0, 3);
+    var totalTopThree = topThree.reduce(function (sum, id) { return sum + scores[id]; }, 0);
+    var confidence = totalTopThree > 0 ? scores[top] / totalTopThree : 0;
     return {
       personaId: top,
       segmentId: segmentId,
       personaScore: scores[top],
       segmentScore: segmentId ? counts.surface[segmentId] || 0 : 0,
+      confidence: confidence,
       alternatives: ranked.slice(0, 3).map(function (id) { return { id: id, score: scores[id] }; }),
+    };
+  }
+
+  function classifyWithConfidence(signals, rules, corrections) {
+    var result = classifyWith(signals, rules, corrections);
+    if (!result.personaId) {
+      return { personaId: null, confidence: 0, alternatives: [] };
+    }
+    return {
+      personaId: result.personaId,
+      confidence: result.confidence,
+      alternatives: result.alternatives,
     };
   }
 
@@ -409,7 +427,9 @@
 
   function reclassify() {
     state.result = safe(function () { return classifyWith(state.signals, state.rules, state.corrections); }, null)
-      || { personaId: null, segmentId: null, personaScore: 0, segmentScore: 0, alternatives: [] };
+      || { personaId: null, segmentId: null, personaScore: 0, segmentScore: 0, confidence: 0, alternatives: [] };
+    // Record classification_confidence signal
+    record({ kind: 'classification_confidence', payload: { confidence: state.result.confidence, personaId: state.result.personaId } });
     var order = orderFor(state.result.personaId);
     if (order && state.variantSelect) applyVariantOrder(state.variantSelect, order);
     if (state.rules && state.result.personaId) {
@@ -469,9 +489,45 @@
     if (!state.variantSelect) return false;
     if (!state.rules) return false; // not ready yet — init() re-applies
     return safe(function () {
-      var order = orderFor(state.result && state.result.personaId);
+      var result = state.result;
+      var confidence = result && result.confidence || 0;
+      var personaId = result && result.personaId;
+      var order = orderFor(personaId);
+      // Apply confidence-weighted ordering: blend with default order based on confidence
+      if (order && confidence < 1) {
+        var defaultOrder = state.variantIds || [];
+        var blended = blendWithDefault(order, defaultOrder, confidence);
+        return applyVariantOrder(state.variantSelect, blended);
+      }
       return order ? applyVariantOrder(state.variantSelect, order) : false;
     }, false);
+  }
+
+  function blendWithDefault(targetedOrder, defaultOrder, confidence) {
+    if (confidence >= 1 || !defaultOrder || !defaultOrder.length) return targetedOrder;
+    if (!targetedOrder || !targetedOrder.length) return defaultOrder;
+    var seen = Object.create(null);
+    var result = [];
+    var defaultIdx = 0;
+    // Interleave targeted and default based on confidence (higher confidence = more targeted first)
+    var targetedRatio = Math.max(0, Math.min(1, confidence));
+    var targetedCount = Math.ceil(targetedOrder.length * targetedRatio);
+    var targetedSelected = targetedOrder.slice(0, targetedCount);
+    for (var i = 0; i < targetedSelected.length; i++) {
+      if (!seen[targetedSelected[i]]) {
+        seen[targetedSelected[i]] = 1;
+        result.push(targetedSelected[i]);
+      }
+    }
+    // Add remaining defaults
+    while (defaultIdx < defaultOrder.length) {
+      var id = defaultOrder[defaultIdx++];
+      if (!seen[id]) {
+        seen[id] = 1;
+        result.push(id);
+      }
+    }
+    return result;
   }
 
   function init() {
@@ -519,6 +575,7 @@
       flush: function () { return safe(function () { persistSignals(); return true; }, false); },
     },
     classify: function () { return reclassify(); },
+    classifyWithConfidence: function (signals, rules, corrections) { return safe(function () { return classifyWithConfidence(signals, rules, corrections); }, { personaId: null, confidence: 0, alternatives: [] }); },
     persona: function () { return state.result && state.result.personaId; },
     segment: function () { return state.result && state.result.segmentId; },
     maybeReorderVariants: maybeReorderVariants,

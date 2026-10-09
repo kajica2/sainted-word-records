@@ -19,4 +19,18 @@
 <p>Redirecting to <a href="/auth/login">sign in</a>…</p>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/early-access-modal.client.js" defer></script>
+  <script>
+    // Add early access link to login page
+    document.addEventListener('DOMContentLoaded', function() {
+      var container = document.querySelector('.login-container, main, #app');
+      if (container) {
+        var link = document.createElement('a');
+        link.href = 'javascript:SWR_EARLY_ACCESS.show()';
+        link.textContent = 'Request Early Access';
+        link.style.cssText = 'display:inline-block;margin-top:16px;color:#f5a623;font-size:14px;cursor:pointer;';
+        container.appendChild(link);
+      }
+    });
+  </script>
 </body></html>

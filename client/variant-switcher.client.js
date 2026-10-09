@@ -353,12 +353,18 @@
     }
   }
 
+  // Prefetch a variant's drawFx to prime the cache. Does not activate.
+  function prefetchVariant(id) {
+    loadVariant(id).catch((e) => { console.warn('variant prefetch', id, e.message); });
+  }
+
   window.SWR_VARIANTS = {
     list: () => VARIANTS.map((v) => ({ id: v.id, name: v.name, desc: v.desc, song: v.song })),
     activate,
     deactivate,
     current: () => state.active,
     postFx,
+    prefetchVariant,
     _debug: { extractFunctionSource, state },
   };
 
@@ -408,9 +414,16 @@
       }
     } catch (_) { /* non-URL context (file://, sandboxed) */ }
   }
+  // Prefetch top-2 variants on page load for faster activation.
+  function prefetchTopVariants() {
+    prefetchVariant('music_video');
+    prefetchVariant('neon');
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wireUI, { once: true });
+    document.addEventListener('DOMContentLoaded', () => { wireUI(); prefetchTopVariants(); }, { once: true });
   } else {
     wireUI();
+    prefetchTopVariants();
   }
 })();
