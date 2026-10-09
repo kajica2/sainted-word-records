@@ -207,13 +207,18 @@
     return (h >>> 0).toString(36);
   }
 
-  function buildVersion(r, assetId, audioHash) {
+  function buildVersion(r, assetId, audioHash, blend) {
     // r is applyR(l)'s output. Include every field that can affect the draw,
     // plus a coarse hash of the audio features so layers that read A.feat
     // directly (smoke, etc.) invalidate correctly when audio changes.
+    // `blend` is the RESOLVED blend for this frame: when the first layer's
+    // degenerate blend is substituted (see resolveBlend), the cache key must
+    // change, otherwise a render cached under the old mode would be reused
+    // and the substitution would never appear on screen.
     return assetId + '|' + r._v + '|' + r.scale + '|' + r.x + '|' + r.y + '|' + r.rot +
            '|' + r.opacity + '|' + r.hue + '|' + r.brightness + '|' + r.contrast +
            '|f=' + (r.flipX ? 1 : 0) +
+           '|b=' + (blend || 'source-over') +
            '|a=' + audioHash;
   }
 
@@ -391,6 +396,15 @@
     // the stack (the featured clip stays; deep background drops first).
     // window.SWR.Layers.activeCount — 0/unset = no cap.
     const _activeCap = (window.SWR && window.SWR.Layers && window.SWR.Layers.activeCount) || 0;
+    //
+    // `backdropEmpty` / `firstVisibleSeen` track where the composition has
+    // real imagery beneath it. The first visible layer draws onto the bare
+    // backdrop; if its blend mode is backdrop-dependent (multiply, overlay,
+    // soft-light, …) over an empty backdrop it resolves to nothing and the
+    // stage goes black. Layers after it composite against real pixels and
+    // keep their authored blend untouched.
+    const backdropEmpty = backdropIsEmpty(bg);
+    let firstVisibleSeen = false;
     for (let i = 0; i < layers.length; i++) {
       try {
         const l = layers[i];
@@ -467,12 +481,21 @@
           }
           continue;
         }
+        // Blend resolution (see backdropIsEmpty / DEGENERATE_ON_DARK above).
+        // Only the first VISIBLE layer is at risk; every layer after it has
+        // real imagery beneath it and keeps its authored blend. The resolved
+        // value is swapped in only for the duration of this layer's draw and
+        // restored immediately, so the authored `layer.blend` is never
+        // mutated — a REMAP that re-picks the blend, or any UI that reads
+        // layer.blend, must still see what the artist chose.
+        const blendRes = resolveBlend(l, bg, !firstVisibleSeen && backdropEmpty);
+        firstVisibleSeen = true;
         const assetId = l.asset ? l.asset.id : 'none';
         // Horizontal mirror flag — set per-swap by the layer scheduler's
         // mirror mode (consecutive clips alternate facing). Read onto the
         // reactor so the version hash busts the draw cache on flip.
         if (l.__mirrored) r.flipX = true;
-        const version = hashVersion(buildVersion(r, assetId, audioHash));
+        const version = hashVersion(buildVersion(r, assetId, audioHash, blendRes.blend));
         const force = state.activeSet.has(l.id) || state.dirty;
 
         const cached = !force && getCached(l.id, version);
@@ -487,6 +510,11 @@
           const oc = makeOffscreen(backingW, backingH);
           const octx = oc.getContext('2d');
           octx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+          // Swap in the resolved blend for the duration of the draw only.
+          // The authored value is restored in `finally` so nothing outside
+          // this frame ever observes the substitution.
+          const authoredBlend = l.blend;
+          if (blendRes.degenerate) l.blend = blendRes.blend;
           try {
             drawToCtx(l, r, octx, state.cssW, state.cssH);
           } catch (err) {
@@ -498,6 +526,8 @@
               state._warnedAssets = true;
               try { console.warn('[SWR_RENDER] layer draw failed:', err && err.message); } catch (_) {}
             }
+          } finally {
+            if (blendRes.degenerate) l.blend = authoredBlend;
           }
           setCached(l.id, version, oc);
           if (r.flipX) { ctx.save(); ctx.translate(state.cssW, 0); ctx.scale(-1, 1); }
@@ -547,10 +577,84 @@
 
   // ---- public ----------------------------------------------------------
 
+  // Canvas blend modes that are DEGENERATE over the renderer's backdrop
+  // colour. `multiply`, `overlay`, `soft-light`, `hard-light`, `color-burn`
+  // and `color-dodge` all resolve against the existing backdrop, so when
+  // that backdrop is black (`setBackground('#000')`, the default on every
+  // `versions/*.html` page) the layer contributes nothing and the user sees
+  // a black stage. Verified in isolation: over #000, multiply/overlay
+  // return 0,0,0 while screen/lighter/difference pass the source through.
+  //
+  // `difference` is NOT degenerate on a black backdrop (black is the
+  // identity for XOR) and is listed in SAFE_OVER_DARK precisely because it
+  // is safe as a first-layer replacement.
+  const DEGENERATE_ON_DARK = new Set([
+    'multiply', 'overlay', 'soft-light', 'hard-light', 'color-burn', 'color-dodge',
+  ]);
+  // Blend modes that behave as a plain blit over an empty (black) backdrop,
+  // so they are the correct fallback for the first layer.
+  const SAFE_OVER_DARK = ['screen', 'lighter', 'difference', 'source-over'];
+
+  // A backdrop is "empty" when it is fully transparent or fully black —
+  // in both cases there is nothing for a backdrop-dependent blend mode to
+  // act against. `parseBackdropColor` returns null for anything it cannot
+  // read, which is treated as empty (the conservative choice: falling back
+  // to a safe blend can only ever make a layer visible, never invisible).
+  function parseBackdropColor(c) {
+    if (typeof c !== 'string') return null;
+    const m = /^#([0-9a-f]{3,8})$/i.exec(c.trim());
+    if (m) {
+      let h = m[1];
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      if (h.length === 6) h += 'ff';
+      if (h.length !== 8) return null;
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      const a = parseInt(h.slice(6, 8), 16);
+      if (!Number.isFinite(r + g + b + a)) return null;
+      return { r, g, b, a };
+    }
+    const rgb = /^rgba?\(([^)]+)\)$/i.exec(c.trim());
+    if (rgb) {
+      const p = rgb[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      if (p.length >= 3 && p.slice(0, 3).every(Number.isFinite)) {
+        return { r: p[0], g: p[1], b: p[2], a: p.length > 3 && Number.isFinite(p[3]) ? p[3] : 1 };
+      }
+    }
+    return null;
+  }
+
+  function backdropIsEmpty(color) {
+    const c = parseBackdropColor(color);
+    if (!c) return true;              // unreadable → assume empty
+    if (c.a === 0) return true;       // fully transparent
+    return c.r === 0 && c.g === 0 && c.b === 0; // pure black
+  }
+
+  // resolveBlend(layer, backdropColor, isFirstVisible)
+  //   → { blend, degenerate }
+  //
+  // Only the FIRST VISIBLE layer needs substituting — it is the one drawn
+  // onto the bare backdrop. Every layer after it composites against real
+  // imagery, so `multiply` / `overlay` / `soft-light` are exactly what the
+  // artist wants there and must be left alone.
+  function resolveBlend(layer, backdropColor, isFirstVisible) {
+    const requested = (layer && layer.blend) || 'source-over';
+    if (!isFirstVisible || !backdropIsEmpty(backdropColor)) {
+      return { blend: requested, degenerate: false };
+    }
+    if (!DEGENERATE_ON_DARK.has(requested)) {
+      return { blend: requested, degenerate: false };
+    }
+    return { blend: layer.__swrSafeBlend || SAFE_OVER_DARK[0], degenerate: true };
+  }
+
   window.SWR_RENDER = {
     // Seeded Ken Burns drift for image layers — see imageEvolve().
     imageEvolve,
     fit, frame, invalidate, setBackground, setDprCap, setAutoDpr, devicePixelRatio,
+    resolveBlend, backdropIsEmpty, DEGENERATE_ON_DARK, SAFE_OVER_DARK,
     get dpr() { return state.dpr; },
     get cssW() { return state.cssW; },
     get cssH() { return state.cssH; },
