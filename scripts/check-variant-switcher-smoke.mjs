@@ -86,6 +86,10 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
       hasPostFx: !!(window.SWR_VARIANTS && window.SWR_VARIANTS.postFx),
       select: !!document.getElementById('variant'),
       opts: Array.from(document.querySelectorAll('#variant option')).map((o) => o.value),
+      // list() is the canonical source for the expected set — read at
+      // runtime so the 5→16 expansion (and any future addition) is
+      // covered without editing this file.
+      list: window.SWR_VARIANTS ? window.SWR_VARIANTS.list().map((v) => v.id) : [],
     }));
     if (init.present && init.hasPostFx) pass('window.SWR_VARIANTS installed with postFx()');
     else fail('window.SWR_VARIANTS missing', JSON.stringify(init));
@@ -101,7 +105,7 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
     // without, i.e. the same page yields two legitimate orders. Pinning one of
     // them made this suite fail by timing. Assert the set, and report the
     // order for visibility.
-    const expectedIds = ['neon', 'film', 'grid', 'smoke', 'hallucination'];
+    const expectedIds = (init.list && init.list.length ? init.list : init.opts.slice(1));
     const got = init.opts.slice(1);                    // drop the static 'off'
     const sameSet = got.length === expectedIds.length
       && expectedIds.every((id) => got.includes(id))
@@ -118,7 +122,9 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
       getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
 
     // 3. For each variant: set select → change event → wait for active → postFx + overlay check
-    for (const id of ['film', 'grid', 'neon', 'hallucination', 'smoke']) {
+    // Walk the runtime list, not a hardcoded subset, so the 5→16 expansion
+    // (and any future addition) is auto-covered.
+    for (const id of expectedIds) {
       await page.evaluate((vid) => {
         const sel = document.getElementById('variant');
         sel.value = vid;

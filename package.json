@@ -60,6 +60,8 @@
     "check:capture-unit": "node scripts/check-capture-unit.mjs",
     "check:capture-smoke": "node scripts/check-capture-smoke.mjs",
     "check:reel-unit": "node scripts/check-reel-unit.mjs",
+    "check:variants-unit": "node scripts/check-variants-unit.mjs",
+    "check:variants-smoke": "node scripts/check-variants-smoke.mjs",
     "check:media-input-unit": "node scripts/check-media-input-unit.mjs",
     "check:media-input-smoke": "node scripts/check-media-input-smoke.mjs",
     "check:directors-unit": "node scripts/check-directors-unit.mjs",

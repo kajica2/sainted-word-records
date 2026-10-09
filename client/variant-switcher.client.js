@@ -51,6 +51,59 @@
       accent: { r: 0xd6, g: 0x8b, b: 0x5a }, accent2: { r: 0xb8, g: 0x9a, b: 0x72 }, accent3: { r: 0xf0, g: 0xd8, b: 0xb0 } },
     { id: 'hallucination',name: 'Hallucination', desc: 'Lighter flash · RGB torn-signal ghosts · noise punch', song: 'audios/hallucination.mp3',
       accent: { r: 0xff, g: 0x00, b: 0x66 }, accent2: { r: 0x00, g: 0xff, b: 0x66 }, accent3: { r: 0xff, g: 0xff, b: 0x00 } },
+
+    // --- Artistic variants (the versions/index.html lineup) -------------
+    // Same contract as the five core entries: the page must define
+    // `function drawFx(` — loadVariant() brace-extracts that source verbatim
+    // and compiles it against the engine's own globals. Pages whose visuals
+    // are a bespoke render loop with no drawFx pass still cannot be added
+    // here (kraft, mosaic, phosphor, spectrum, tape, typography, collage).
+    // Accent triples are that page's own :root palette (--m/--c/--y), not
+    // invented values, so switching themes the engine like the page.
+    { id: 'music_video',  name: 'Music Video', desc: 'Gradient · automix · session-private', song: 'audios/endless-tomorrow.mp3',
+      accent: { r: 0xff, g: 0x2d, b: 0x8a }, accent2: { r: 0x00, g: 0xf0, b: 0xff }, accent3: { r: 0xff, g: 0xf0, b: 0x4a } },
+    { id: 'glitch',       name: 'Glitch',      desc: 'Snap-beat · corrupt', song: 'audios/glitch.mp3',
+      accent: { r: 0x00, g: 0xff, b: 0x66 }, accent2: { r: 0xff, g: 0x00, b: 0x66 }, accent3: { r: 0xff, g: 0xff, b: 0xff } },
+    { id: 'aurora',       name: 'Aurora',      desc: 'Soft · pastel', song: 'audios/aurora.mp3',
+      accent: { r: 0xff, g: 0xb3, b: 0xba }, accent2: { r: 0xb3, g: 0xff, b: 0xd9 }, accent3: { r: 0xd4, g: 0xb3, b: 0xff } },
+    { id: 'pulse',        name: 'Pulse',       desc: 'Beat · ring', song: 'audios/pulse.mp3',
+      accent: { r: 0xff, g: 0x2d, b: 0x8a }, accent2: { r: 0x00, g: 0xf0, b: 0xff }, accent3: { r: 0xff, g: 0xf0, b: 0x4a } },
+    { id: 'void',         name: 'Void',        desc: 'Black · isolation', song: 'audios/void.mp3',
+      accent: { r: 0x00, g: 0xff, b: 0xff }, accent2: { r: 0x88, g: 0xcc, b: 0xff }, accent3: { r: 0xff, g: 0xff, b: 0xff } },
+    { id: 'chrome',       name: 'Chrome',      desc: 'Reflective · metallic', song: 'audios/chrome.mp3',
+      accent: { r: 0xd4, g: 0xaf, b: 0x37 }, accent2: { r: 0xc0, g: 0xc0, b: 0xc0 }, accent3: { r: 0xb8, g: 0x73, b: 0x33 } },
+    { id: 'watercolor',   name: 'Watercolor',  desc: 'Soft · bleed', song: 'audios/watercolor.mp3',
+      accent: { r: 0xf4, g: 0xc2, b: 0xc2 }, accent2: { r: 0xb8, g: 0xd4, b: 0xb8 }, accent3: { r: 0xd8, g: 0xbf, b: 0xd8 } },
+    { id: 'fractal',      name: 'Fractal',     desc: 'Recursive · organic', song: 'audios/fractal.mp3',
+      accent: { r: 0xff, g: 0x2d, b: 0x8a }, accent2: { r: 0x00, g: 0xf0, b: 0xff }, accent3: { r: 0xff, g: 0xf0, b: 0x4a } },
+    { id: 'music_video_mtv', name: 'MTV',      desc: '90s retro · VHS / CRT', song: 'audios/endless-tomorrow.mp3',
+      accent: { r: 0xff, g: 0x2d, b: 0x8a }, accent2: { r: 0x00, g: 0xf0, b: 0xff }, accent3: { r: 0xff, g: 0xf0, b: 0x4a } },
+    // eclipse had no drawFx (a DOM-overlay corona). The page now carries
+    // a canvas drawFx written for this contract — see the comment at
+    // its definition. Its gradient/colours are the page's own values.
+    { id: 'eclipse',      name: 'Eclipse',   desc: 'Corona · legacy', song: 'audios/eclipse.mp3',
+      accent: { r: 0xff, g: 0xb3, b: 0x47 }, accent2: { r: 0xff, g: 0x6a, b: 0x1f }, accent3: { r: 0xff, g: 0xf0, b: 0x4a } },
+    // baroque had no drawFx (an opaque full-frame paint()). The page now
+    // carries a canvas drawFx written for the variant contract, but is
+    // intentionally not listed here — baroque is reachable as a standalone
+    // page at /versions/baroque.html and the engine does not wire it.
+    // versions/baroque.html still ships; SWR_VARIANTS.list() returns 15.
+
+    // NOT variant-switchable, deliberately:
+    //   versions/music-video-gallery.html — a VIDEO PLAYER page (eight
+    //   <video> elements with a 3D flip navigation), not a render pass. It
+    //   has no #render canvas and no drawFx, so there is nothing to
+    //   compile into the engine's post-FX. It stays a standalone page.
+    //   versions/gallery.html — art-direction grade, reachable via the
+    //   Grade presets group instead.
+    //   versions/baroque.html — has a drawFx, but is intentionally NOT
+    //     wired into the engine: it stays a standalone page at
+    //     /versions/baroque.html. (The page still ships; the dropdown just
+    //     doesn't surface it.) The 16-entry switcher was reverted to 15
+    //     by request.
+    //   kraft, mosaic, phosphor, spectrum, tape, typography, collage —
+    //   still bespoke render loops with no drawFx. Adding them means
+    //   authoring the pass, the same way eclipse did.
   ];
 
   // ------------------------------------------------------------------
@@ -116,14 +169,34 @@
   // performance (global), _beatCount (grid only), document (global).
   function compileFx(source) {
     let beatCount = 0;
+    // Several variant pages' drawFx() bodies read `proc` — their own
+    // offscreen scratch canvas, declared at page scope (e.g.
+    // versions/aurora.html:709 `const proc = document.createElement('canvas')`).
+    // It was never bound here, so `ctx.drawImage(proc, …)` threw a
+    // ReferenceError on the first frame and postFx() caught it, nulled state.fx
+    // and silently disabled the variant — aurora, glitch and chrome all
+    // "activated" but rendered nothing. Bind a lazily-sized scratch canvas
+    // under the same name so those bodies run verbatim, unmodified.
+    let scratch = null;
+    let scratchCtx = null;
     const fn = new Function(
-      'ctx', 'W', 'H', 'A', 'stage', '$', 'clamp', 'lerp', 'SWR_AUDIO_DAMP', 'performance', '_beatCount',
+      'ctx', 'W', 'H', 'A', 'stage', '$', 'clamp', 'lerp', 'SWR_AUDIO_DAMP', 'performance', '_beatCount', 'proc', 'pcx',
       source + '\nreturn typeof drawFx === "function" ? drawFx() : undefined;'
     );
     return {
       run(ctx, W, H, A, stageCanvas, $, clamp, lerp) {
         if (!ctx || !W || !H) return;
-        fn(ctx, W, H, A, stageCanvas, $, clamp, lerp, undefined, window.performance, beatCount);
+        if (!scratch) {
+          scratch = document.createElement('canvas');
+          scratchCtx = scratch.getContext('2d');
+        }
+        // Resize only on change: assigning width/height clears the bitmap,
+        // so an unconditional assign would wipe the buffer every frame.
+        if (scratch.width !== W || scratch.height !== H) {
+          scratch.width = W;
+          scratch.height = H;
+        }
+        fn(ctx, W, H, A, stageCanvas, $, clamp, lerp, undefined, window.performance, beatCount, scratch, scratchCtx);
         if (A && A.feat && A.feat.beatPulse) beatCount++;
       },
     };
