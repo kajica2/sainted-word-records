@@ -1,9 +1,15 @@
-// api/early-access.js — POST { email } → { ok: true }
+// api/early-access.js — POST { email, name?, useCase?, agreed } → { ok: true }
 //
 // Public endpoint for requesting early access. Stores email in a simple
 // list that admins can review. Uses the existing kv store.
 //
 // Rate limit: 5 requests per IP per hour to prevent abuse.
+//
+// Body fields:
+//   - email (required): user email address
+//   - name (optional): user's name
+//   - useCase (optional): "personal", "company", "label", "creator"
+//   - agreed (required): must be true to accept beta test terms
 
 import { sendJson } from './_lib/http.js';
 import { readJson, writeJson } from './_lib/db.js';
@@ -59,9 +65,9 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: 'invalid_json' });
   }
 
-  const { email } = body || {};
+  const { email, name, useCase, companySize, agreed } = body || {};
   
-  // Validate email
+  // Validate email (required)
   if (!email || typeof email !== 'string') {
     return sendJson(res, 400, { error: 'email_required' });
   }
@@ -70,6 +76,26 @@ export default async function handler(req, res) {
   if (!isValidEmail(normalizedEmail)) {
     return sendJson(res, 400, { error: 'invalid_email' });
   }
+
+  // Validate agreed (required - beta test agreement)
+  if (agreed !== true) {
+    return sendJson(res, 400, { error: 'agreement_required' });
+  }
+
+  // Validate useCase if provided
+  const validUseCases = ['personal', 'company', 'label', 'creator'];
+  if (useCase !== undefined && !validUseCases.includes(useCase)) {
+    return sendJson(res, 400, { error: 'invalid_use_case' });
+  }
+
+  // Validate companySize if useCase is company
+  const validCompanySizes = ['1-10', '11-50', '51-200', '200+'];
+  if (useCase === 'company' && companySize && !validCompanySizes.includes(companySize)) {
+    return sendJson(res, 400, { error: 'invalid_company_size' });
+  }
+
+  // Normalize name (optional)
+  const normalizedName = typeof name === 'string' ? name.trim() : '';
 
   // Read existing requests
   let requests = [];
@@ -86,9 +112,13 @@ export default async function handler(req, res) {
     return sendJson(res, 200, { ok: true, message: 'You\'re on the list!' });
   }
 
-  // Add new request
+  // Add new request with all fields
   requests.push({
     email: normalizedEmail,
+    name: normalizedName,
+    useCase: useCase || null,
+    companySize: useCase === 'company' ? companySize : null,
+    agreed: true,
     requestedAt: new Date().toISOString(),
     source: req.headers.referer || 'unknown'
   });

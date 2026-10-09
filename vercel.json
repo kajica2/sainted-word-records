@@ -644,6 +644,14 @@
       "destination": "/legal/terms.html"
     },
     {
+      "source": "/legal/beta-test.html",
+      "destination": "/legal/beta-test.html"
+    },
+    {
+      "source": "/legal/beta-test.html/",
+      "destination": "/legal/beta-test.html"
+    },
+    {
       "source": "/sitemap",
       "destination": "/sitemap.html"
     },

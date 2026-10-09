@@ -63,6 +63,7 @@ const isHeadOnly = (file) => HEAD_ONLY_FILES.has(file) || HEAD_ONLY_DIRS.some((r
 const APP_SURFACES = new Set([
   'engine.html',
   'dashboard.html',
+  'versions.html',  // versions index - full viewport, has its own nav variant
 ]);
 const VERSIONS_CONTENT = new Set(['index.html', 'console.html', 'gallery.html', 'music-video-gallery.html']);
 

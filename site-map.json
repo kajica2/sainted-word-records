@@ -270,6 +270,11 @@
       "label": "Terms",
       "href": "/legal/terms.html",
       "description": "Terms of service"
+    },
+    {
+      "label": "Beta Test Agreement",
+      "href": "/legal/beta-test.html",
+      "description": "Early Access Program terms"
     }
   ],
   "tools": [
