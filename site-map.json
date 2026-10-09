@@ -22,12 +22,12 @@
     "discoverPages": "Run: node scripts/generate-site-manifest.mjs --dry-run (auto-adds untracked HTML files)"
   },
   "_pathConventions": {
-    "root": "/page-name → /page-name.html",
-    "subdirectory": "/artists/foo → /artists/foo.html",
-    "gallery": "/gallery/music → /gallery-music.html (hyphenated)",
-    "withDotHtml": "/legal/privacy.html → /legal/privacy.html (as-is)",
-    "artistsIndex": "/artists → /artists/index.html",
-    "dynamic": "/s/:id → handled by share-view.html client-side"
+    "root": "/page-name \u2192 /page-name.html",
+    "subdirectory": "/artists/foo \u2192 /artists/foo.html",
+    "gallery": "/gallery/music \u2192 /gallery-music.html (hyphenated)",
+    "withDotHtml": "/legal/privacy.html \u2192 /legal/privacy.html (as-is)",
+    "artistsIndex": "/artists \u2192 /artists/index.html",
+    "dynamic": "/s/:id \u2192 handled by share-view.html client-side"
   },
   "nav": [
     {
@@ -126,6 +126,11 @@
           "description": "System status"
         }
       ]
+    },
+    {
+      "label": "Book an Artist",
+      "href": "/bookings",
+      "description": "Submit a booking request for live performances"
     }
   ],
   "footer": [
@@ -146,7 +151,7 @@
     }
   ],
   "footerNav": {
-    "_comment": "Shared footer content for <swr-footer> (lib/footer.client.js). Columns are the site's own IA — keep hrefs in this file only so every page's footer matches. Tagline is brand copy; social links are external and carry rel=noopener.",
+    "_comment": "Shared footer content for <swr-footer> (lib/footer.client.js). Columns are the site's own IA \u2014 keep hrefs in this file only so every page's footer matches. Tagline is brand copy; social links are external and carry rel=noopener.",
     "tagline": "An audio-reactive video engine that ships as a single HTML file. Drop a song, drop a library, get a music video.",
     "columns": [
       {
@@ -326,7 +331,7 @@
   ],
   "redirects": [
     {
-      "_comment": "Every URL here 301s (scripts/generate-vercel-rewrites.mjs emits from/without-slash/.html for each). Used for pages removed from the IA whose content still exists elsewhere — never a bare deletion. An entry is safe to revert: delete it and the page comes back if its file is restored from _archive/.",
+      "_comment": "Every URL here 301s (scripts/generate-vercel-rewrites.mjs emits from/without-slash/.html for each). Used for pages removed from the IA whose content still exists elsewhere \u2014 never a bare deletion. An entry is safe to revert: delete it and the page comes back if its file is restored from _archive/.",
       "from": "/persona-demo",
       "to": "/personas"
     },
@@ -388,7 +393,7 @@
     }
   ],
   "unlisted": [
-    "_comment: shipped pages deliberately kept OUT of the navigation (owner request, 2026-09-29). They still resolve — scripts/generate-vercel-rewrites.mjs emits a rewrite for every entry here, so the pretty route survives without a nav item. Add an entry here rather than deleting a nav child when a page should stay reachable but unlisted.",
+    "_comment: shipped pages deliberately kept OUT of the navigation (owner request, 2026-09-29). They still resolve \u2014 scripts/generate-vercel-rewrites.mjs emits a rewrite for every entry here, so the pretty route survives without a nav item. Add an entry here rather than deleting a nav child when a page should stay reachable but unlisted.",
     "/make-video",
     "/photo",
     "/enhance",
