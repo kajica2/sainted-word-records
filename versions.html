@@ -102,6 +102,25 @@
 
     /* ===== SECTION ===== */
     section { margin-bottom: 96px; }
+    /* ===== TAB BAR ===== */
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 56px;
+      border-bottom: 1px solid var(--line); padding-bottom: 0; }
+    .tab-btn { background: none; border: none; border-bottom: 2px solid transparent;
+      padding: 10px 20px; font-family: var(--font-mono); font-size: 13px;
+      font-weight: 500; letter-spacing: 0.06em; color: var(--muted);
+      cursor: pointer; transition: color .15s, border-color .15s; margin-bottom: -1px; }
+    .tab-btn:hover { color: var(--ink); border-color: var(--line-2); }
+    .tab-btn[aria-selected="true"] { color: var(--accent); border-color: var(--accent); }
+    .tab-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -4px; }
+    /* ===== TAB PANELS ===== */
+    .tab-panel { display: none; }
+    .tab-panel.is-active { display: block; }
+    .tab-panel[data-tab="presets"] { display: block; }
+    body.has-tab-pipeline .tab-panel[data-tab="presets"],
+    body.has-tab-releases .tab-panel[data-tab="presets"] { display: none; }
+    body.has-tab-pipeline .tab-panel[data-tab="pipeline"] { display: block; }
+    body.has-tab-releases .tab-panel[data-tab="releases"] { display: block; }
+
     .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px; }
     .sec-num { font-family: var(--font-mono); font-size: 12px; color: var(--accent);
       letter-spacing: 0.18em; text-transform: uppercase; }
@@ -394,6 +413,23 @@
       </div>
     </header>
 
+    <!-- ============ TAB BAR ============ -->
+    <nav class="tab-bar" role="tablist" aria-label="Page sections" id="tab-bar">
+      <button type="button" class="tab-btn" role="tab" aria-selected="true"
+        aria-controls="panel-presets" data-tab="presets" id="btn-presets">
+        Presets
+      </button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" tabindex="-1"
+        aria-controls="panel-pipeline" data-tab="pipeline" id="btn-pipeline">
+        Pipeline
+      </button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" tabindex="-1"
+        aria-controls="panel-releases" data-tab="releases" id="btn-releases">
+        Releases
+      </button>
+    </nav>
+
+
     <!-- ============ RANDOMIZE CARD (hidden until clicked) ============ -->
     <div class="rand-card" id="rand-card" aria-live="polite" role="region" aria-label="Selected preset">
       <div class="rand-head">
@@ -457,6 +493,13 @@
         <button type="button" class="rbtn" id="r-copy" data-copy-target="r-id" aria-label="Copy preset ID to clipboard">Copy ID</button>
       </div>
     </div>
+    </div><!-- /rand-card -->
+
+    <div class="tab-panel" data-tab="presets" role="tabpanel" aria-labelledby="btn-presets" id="panel-presets">
+
+    <!-- PIPELINE PANEL ====== -->
+    <div class="tab-panel" data-tab="pipeline" role="tabpanel" aria-labelledby="btn-pipeline" id="panel-pipeline">
+
 
     <!-- ============ LIVE STATE ============ -->
     <section>
@@ -475,6 +518,11 @@
         <div class="live-cell"><div class="l">Visual styles</div><div class="v" id="l-styles">22</div><div class="sub">per-page GLSL</div></div>
         <div class="live-cell"><div class="l">On-device variants</div><div class="v" id="l-variants">Unlimited</div><div class="sub">personal variants · unlocked after 3 uses</div></div>
       </div>
+    </div><!-- /pipeline panel -->
+
+    <!-- RELEASES PANEL ====== -->
+    <div class="tab-panel" data-tab="releases" role="tabpanel" aria-labelledby="btn-releases" id="panel-releases">
+
     </section>
 
     <!-- ============ ENGINE RELEASES ============ -->
@@ -595,6 +643,11 @@
         </article>
 
       </div>
+    </div><!-- /releases panel -->
+
+    <!-- PRESETS PANEL ====== -->
+    <div class="tab-panel" data-tab="presets" role="tabpanel" aria-labelledby="btn-presets" id="panel-presets">
+
     </section>
 
     <!-- ============ VISUAL STYLES ============ -->
@@ -1070,6 +1123,11 @@
           </div>
         </a>
       </div>
+    </div><!-- /presets panel -->
+
+    <!-- PIPELINE PANEL ====== -->
+    <div class="tab-panel" data-tab="pipeline" role="tabpanel" aria-labelledby="btn-pipeline" id="panel-pipeline">
+
     </section>
 
     <!-- ============ PRESET SCHEMA ============ -->
@@ -1134,6 +1192,11 @@
           <code>compatibility: { engines: ["≥v1.0"] }</code> field for cross-engine reuse.
         </p>
       </div>
+    </div><!-- /pipeline panel -->
+
+    <!-- PRESETS PANEL ====== -->
+    <div class="tab-panel" data-tab="presets" role="tabpanel" aria-labelledby="btn-presets" id="panel-presets">
+
     </section>
 
     <!-- ============ DAILY PRESET TIMELINE ============ -->
@@ -1151,6 +1214,8 @@
           <div class="items"><span class="preset-chip"><span class="dot"></span>fetching manifest</span></div>
         </div>
       </div>
+    </div><!-- /presets panel -->
+
     </section>
 
   </main>
@@ -1281,5 +1346,59 @@
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
+
+  <script>
+  (function () {
+    var TABS = ['presets', 'pipeline', 'releases'];
+    var body = document.body;
+    function activateTab(tab) {
+      TABS.forEach(function (t) {
+        var btn = document.getElementById('btn-' + t);
+        var panel = document.getElementById('panel-' + t);
+        if (!btn || !panel) return;
+        var active = (t === tab);
+        btn.setAttribute('aria-selected', active);
+        btn.setAttribute('tabindex', active ? '0' : '-1');
+        panel.classList.toggle('is-active', active);
+      });
+      body.classList.remove('has-tab-presets', 'has-tab-pipeline', 'has-tab-releases');
+      if (tab !== 'presets') body.classList.add('has-tab-' + tab);
+      history.replaceState(null, '', tab === 'presets' ? location.pathname : '#' + tab);
+    }
+    TABS.forEach(function (tab) {
+      var btn = document.getElementById('btn-' + tab);
+      if (btn) btn.addEventListener('click', function () { activateTab(tab); });
+    });
+    var tabBar = document.getElementById('tab-bar');
+    if (tabBar) {
+      tabBar.addEventListener('keydown', function (e) {
+        var btns = TABS.map(function (t) { return document.getElementById('btn-' + t); }).filter(Boolean);
+        var idx = btns.indexOf(document.activeElement);
+        if (idx < 0) return;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          var next = btns[(idx + 1) % btns.length]; next.focus(); next.click();
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          var prev = btns[(idx - 1 + btns.length) % btns.length]; prev.focus(); prev.click();
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          btns[0].click(); btns[0].focus();
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          btns[btns.length - 1].click(); btns[btns.length - 1].focus();
+        }
+      });
+    }
+    function restoreHash() {
+      var h = location.hash.replace('#', '');
+      if (TABS.indexOf(h) >= 0) activateTab(h);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', restoreHash);
+    } else { restoreHash(); }
+  })();
+  </script>
+
 </body>
 </html>
