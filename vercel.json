@@ -432,6 +432,14 @@
       "destination": "/versions.html"
     },
     {
+      "source": "/versions/temple-of-control",
+      "destination": "/versions/temple-of-control.html"
+    },
+    {
+      "source": "/versions/temple-of-control/",
+      "destination": "/versions/temple-of-control.html"
+    },
+    {
       "source": "/",
       "destination": "/landing.html"
     },
@@ -466,6 +474,14 @@
     {
       "source": "/marketplace/",
       "destination": "/marketplace.html"
+    },
+    {
+      "source": "/marketplace-claim",
+      "destination": "/marketplace-claim.html"
+    },
+    {
+      "source": "/marketplace-claim/",
+      "destination": "/marketplace-claim.html"
     },
     {
       "source": "/engine-demos",
@@ -578,6 +594,14 @@
     {
       "source": "/status/",
       "destination": "/status.html"
+    },
+    {
+      "source": "/bookings",
+      "destination": "/bookings.html"
+    },
+    {
+      "source": "/bookings/",
+      "destination": "/bookings.html"
     },
     {
       "source": "/campaign",
@@ -900,14 +924,6 @@
       "destination": "/gallery-vintage.html"
     },
     {
-      "source": "/versions/temple-of-control",
-      "destination": "/versions/temple-of-control.html"
-    },
-    {
-      "source": "/versions/temple-of-control/",
-      "destination": "/versions/temple-of-control.html"
-    },
-    {
       "source": "/slots-admin",
       "destination": "/slots-admin.html"
     },
@@ -930,22 +946,6 @@
     {
       "source": "/buy/",
       "destination": "/buy.html"
-    },
-    {
-      "source": "/booking",
-      "destination": "/booking.html"
-    },
-    {
-      "source": "/booking/",
-      "destination": "/booking.html"
-    },
-    {
-      "source": "/bookings",
-      "destination": "/bookings.html"
-    },
-    {
-      "source": "/bookings/",
-      "destination": "/bookings.html"
     },
     {
       "source": "/fonts",

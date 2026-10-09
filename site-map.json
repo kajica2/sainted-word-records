@@ -51,6 +51,11 @@
           "description": "Curated .swr-set templates"
         },
         {
+          "label": "Claim",
+          "href": "/marketplace-claim",
+          "description": "Limited-edition creative assets"
+        },
+        {
           "label": "Demos",
           "href": "/engine-demos",
           "description": "Live engine demos"

@@ -474,6 +474,8 @@ function copyStatic() {
     'swr-build-id.client.js',
     'swr-onboarding-hf.client.js',
     'shop.html',
+    'marketplace-claim.html',
+    'marketplace-claim.client.js',
     'engine-demos.html',
     'auth/login.html',
     'auth/login.client.js',
