@@ -1,10 +1,16 @@
 /**
  * engine-basic-mode.client.js
- * 
+ *
  * Dual-mode engine: Basic (default for first-timers) and Advanced.
  * Basic mode: minimal UI, floating controls, library drawer.
  * Advanced mode: full power-user layout.
- * 
+ *
+ * All basic controls are wired to the engine's existing IIFE functions:
+ *   - window.Audio.loadFile()     — song loading
+ *   - window.Audio.play() / .pause() — playback
+ *   - Recorder.start() / .stop()  — recording
+ *   - Library.addFiles()          — adding clips to the stage
+ *
  * Mode preference persists in localStorage under 'swr.engine.mode'.
  * First-time users see a welcome overlay (persisted under 'swr.engine.firstRun').
  */
@@ -59,31 +65,35 @@
     var mode = CURRENT_MODE || getMode();
     var body = document.body;
 
-    // Remove old classes
     body.classList.remove('engine-basic-mode', 'engine-advanced-mode');
-
-    // Add new class
     body.classList.add('engine-' + mode + '-mode');
 
-    // Update toggle buttons
     updateToggleButtons(mode);
-
-    // Show/hide welcome overlay
     updateWelcomeOverlay(mode);
   }
 
   function updateToggleButtons(mode) {
-    var basicBtn = document.getElementById('mode-basic-btn');
-    var advancedBtn = document.getElementById('mode-advanced-btn');
-    if (basicBtn) basicBtn.classList.toggle('active', mode === 'basic');
-    if (advancedBtn) advancedBtn.classList.toggle('active', mode === 'advanced');
+    // Update both toggle button sets (transport header + basic header)
+    var selectors = [
+      'mode-basic-btn',
+      'mode-advanced-btn',
+      'mode-basic-btn-2',
+      'mode-advanced-btn-2'
+    ];
+    selectors.forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (!btn) return;
+      if (id.indexOf('basic') >= 0) {
+        btn.classList.toggle('active', mode === 'basic');
+      } else {
+        btn.classList.toggle('active', mode === 'advanced');
+      }
+    });
   }
 
   function updateWelcomeOverlay(mode) {
     var overlay = document.getElementById('welcome-overlay');
     if (!overlay) return;
-
-    // Show welcome if first run AND in basic mode
     if (!isFirstRun() || mode === 'advanced') {
       overlay.classList.add('hidden');
     } else {
@@ -92,7 +102,7 @@
   }
 
   // ─────────────────────────────────────────────
-  // Welcome Overlay Handlers
+  // Welcome Overlay
   // ─────────────────────────────────────────────
 
   function handleWelcomeStart() {
@@ -109,7 +119,7 @@
   }
 
   // ─────────────────────────────────────────────
-  // Basic Mode UI — Song Upload
+  // Basic Mode — Song Upload
   // ─────────────────────────────────────────────
 
   function initBasicUpload() {
@@ -150,12 +160,21 @@
     });
 
     function loadSongFile(file) {
-      // Trigger the engine's existing song loader
-      if (typeof loadSongFileIntoEngine === 'function') {
-        loadSongFileIntoEngine(file);
+      // Wire to engine's Audio.loadFile (attached by lib/audio.client.js)
+      if (window.Audio && typeof window.Audio.loadFile === 'function') {
+        window.Audio.loadFile(file);
+      } else {
+        // Fallback: dispatch through the existing #song-input if available
+        var engineInput = document.getElementById('song-input');
+        if (engineInput) {
+          var dt = new DataTransfer();
+          dt.items.add(file);
+          engineInput.files = dt.files;
+          engineInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       }
 
-      // Update basic UI
+      // Update basic UI badge
       if (badge) badge.classList.remove('hidden');
       if (title) title.textContent = file.name.replace(/\.[^.]+$/, '');
       if (artist) artist.textContent = 'Local file';
@@ -165,7 +184,7 @@
   }
 
   // ─────────────────────────────────────────────
-  // Basic Mode UI — Clip Selection
+  // Basic Mode — Layer Pills + Add Clips
   // ─────────────────────────────────────────────
 
   var basicLayerCount = 0;
@@ -183,11 +202,6 @@
     pill.textContent = basicLayerCount;
     pill.title = name || ('Layer ' + basicLayerCount);
     basicLayersContainer.appendChild(pill);
-
-    // Also add to the engine's layer system
-    if (typeof addLayerToEngine === 'function') {
-      addLayerToEngine(name || ('Layer ' + basicLayerCount));
-    }
   }
 
   function initBasicClips() {
@@ -198,14 +212,34 @@
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         var clip = btn.closest('.basic-clip');
-        var name = clip && (clip.dataset.name || clip.querySelector('.name') && clip.querySelector('.name').textContent);
+        var name = clip && (clip.dataset.name || (clip.querySelector('.name') && clip.querySelector('.name').textContent));
         addBasicLayer(name);
+
+        // Also add to the engine's Library (attaches to stage)
+        if (clip && clip.querySelector('img')) {
+          var img = clip.querySelector('img');
+          // For demo clips from picsum, load them as files via fetch → blob
+          var src = img && img.src;
+          if (src && src.startsWith('http')) {
+            fetch(src)
+              .then(function (r) { return r.blob(); })
+              .then(function (blob) {
+                var file = new File([blob], (name || 'clip') + '.jpg', { type: 'image/jpeg' });
+                if (window.Library && typeof window.Library.addFiles === 'function') {
+                  window.Library.addFiles([file]);
+                }
+              })
+              .catch(function (err) {
+                console.warn('[basic-mode] failed to load clip image', err);
+              });
+          }
+        }
       });
     });
   }
 
   // ─────────────────────────────────────────────
-  // Basic Mode UI — Floating Controls
+  // Basic Mode — Floating Controls
   // ─────────────────────────────────────────────
 
   function initBasicControls() {
@@ -216,28 +250,53 @@
     var libraryDrawer = document.getElementById('basic-library-drawer');
     var libraryClose = document.getElementById('basic-library-close');
 
-    // Play toggle
+    // Play / Pause — wires to engine's Audio.play() / Audio.pause()
     if (playBtn) {
-      var playing = false;
       playBtn.addEventListener('click', function () {
-        playing = !playing;
-        playBtn.textContent = playing ? '⏸' : '▶';
-        if (typeof enginePlay === 'function') enginePlay();
+        if (!window.Audio || !window.Audio.audioEl) {
+          // No song loaded — trigger the song input
+          var engineInput = document.getElementById('song-input');
+          if (engineInput) engineInput.click();
+          return;
+        }
+        if (window.Audio.playing) {
+          window.Audio.pause();
+          playBtn.textContent = '▶';
+        } else {
+          window.Audio.play();
+          playBtn.textContent = '⏸';
+        }
       });
     }
 
-    // Record toggle
+    // Record — wires to engine's Recorder.start() / Recorder.stop()
     if (recordBtn) {
-      var recording = false;
       recordBtn.addEventListener('click', function () {
-        recording = !recording;
-        recordBtn.classList.toggle('recording', recording);
-        recordBtn.classList.toggle('primary', !recording);
-        if (typeof engineRecord === 'function') engineRecord(recording);
+        if (!window.Audio || !window.Audio.audioEl) {
+          window.UI && window.UI.setStatus && window.UI.setStatus('load a song first', 'warn');
+          return;
+        }
+        if (window.Recorder && window.Recorder.recording) {
+          window.Recorder.stop();
+          recordBtn.classList.remove('recording');
+          recordBtn.classList.add('primary');
+          recordBtn.textContent = '⏺';
+        } else {
+          // Start recording — auto-play audio first
+          if (window.Audio && !window.Audio.playing) {
+            window.Audio.play();
+          }
+          if (window.Recorder && typeof window.Recorder.start === 'function') {
+            window.Recorder.start();
+          }
+          recordBtn.classList.add('recording');
+          recordBtn.classList.remove('primary');
+          recordBtn.textContent = '⏹';
+        }
       });
     }
 
-    // Library drawer
+    // Library drawer open/close
     if (libraryBtn && libraryDrawer) {
       libraryBtn.addEventListener('click', function () {
         libraryDrawer.classList.add('open');
@@ -249,63 +308,69 @@
       });
     }
 
-    // Effects button (placeholder)
+    // Effects — open the engine's presets/FX panel via existing toggle
     if (effectsBtn) {
       effectsBtn.addEventListener('click', function () {
-        // Open effects panel or show message
-        if (typeof openEffectsPanel === 'function') {
-          openEffectsPanel();
-        } else if (typeof window.SWR_FX !== 'undefined') {
-          // Try to open presets panel as fallback
-          var presetsToggle = document.getElementById('presets-toggle');
-          if (presetsToggle) presetsToggle.click();
+        var presetsToggle = document.getElementById('presets-toggle');
+        if (presetsToggle) {
+          presetsToggle.click();
+        } else {
+          // Fallback: switch to advanced mode where FX panel lives
+          setMode('advanced');
         }
       });
     }
   }
 
   // ─────────────────────────────────────────────
-  // Mode Toggle — Header Buttons
+  // Mode Toggle
   // ─────────────────────────────────────────────
 
   function initModeToggle() {
-    var basicBtn = document.getElementById('mode-basic-btn');
-    var advancedBtn = document.getElementById('mode-advanced-btn');
-    var proBannerBtn = document.getElementById('pro-banner-upgrade-btn');
-
-    if (basicBtn) {
-      basicBtn.addEventListener('click', function () {
-        setMode('basic');
+    // Transport header toggle (both basic and advanced header have these)
+    ['mode-basic-btn', 'mode-advanced-btn', 'mode-basic-btn-2', 'mode-advanced-btn-2'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        if (id.indexOf('basic') >= 0) {
+          setMode('basic');
+        } else {
+          setMode('advanced');
+        }
       });
-    }
+    });
 
-    if (advancedBtn) {
-      advancedBtn.addEventListener('click', function () {
-        setMode('advanced');
-      });
-    }
-
-    if (proBannerBtn) {
-      proBannerBtn.addEventListener('click', function () {
+    // Pro banner upgrade button
+    var proBtn = document.getElementById('pro-banner-upgrade-btn');
+    if (proBtn) {
+      proBtn.addEventListener('click', function () {
         setMode('advanced');
       });
     }
   }
 
   // ─────────────────────────────────────────────
-  // Welcome Overlay Init
+  // Library Drawer — drag & drop
   // ─────────────────────────────────────────────
 
-  function initWelcomeOverlay() {
-    var startBtn = document.getElementById('welcome-start-btn');
-    var advancedBtn = document.getElementById('welcome-advanced-btn');
-
-    if (startBtn) {
-      startBtn.addEventListener('click', handleWelcomeStart);
-    }
-
-    if (advancedBtn) {
-      advancedBtn.addEventListener('click', handleWelcomeAdvanced);
+  function initLibraryDrawer() {
+    var uploadArea = document.querySelector('.basic-library-upload');
+    if (uploadArea) {
+      uploadArea.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+      });
+      uploadArea.addEventListener('dragleave', function () {
+        uploadArea.classList.remove('drag-over');
+      });
+      uploadArea.addEventListener('drop', function (e) {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        var files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length && window.Library && typeof window.Library.addFiles === 'function') {
+          window.Library.addFiles(Array.prototype.slice.call(files));
+        }
+      });
     }
   }
 
@@ -314,28 +379,51 @@
   // ─────────────────────────────────────────────
 
   function init() {
-    // Set initial mode
     CURRENT_MODE = getMode();
-
-    // Apply mode class to body
     applyMode();
 
-    // Init all components
     initModeToggle();
     initWelcomeOverlay();
     initBasicUpload();
     initBasicClips();
     initBasicControls();
+    initLibraryDrawer();
+
+    // Sync play button state with Audio events
+    if (window.Audio) {
+      var origPlay = window.Audio.play;
+      if (origPlay) {
+        window.Audio.play = function () {
+          var btn = document.getElementById('basic-play-btn');
+          if (btn) btn.textContent = '⏸';
+          return origPlay.apply(this, arguments);
+        };
+      }
+      var origPause = window.Audio.pause;
+      if (origPause) {
+        window.Audio.pause = function () {
+          var btn = document.getElementById('basic-play-btn');
+          if (btn) btn.textContent = '▶';
+          return origPause.apply(this, arguments);
+        };
+      }
+    }
   }
 
-  // Run on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  // Run on DOMContentLoaded (engine scripts are deferred, so Audio/Library
+  // may not exist yet — defer our init too so they load first)
+  function doInit() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      // Also wait a tick for deferred engine scripts to run
+      setTimeout(init, 0);
+    }
   }
 
-  // Expose public API for engine integration
+  doInit();
+
+  // Public API
   window.SWR_ENGINE_MODE = {
     getMode: getMode,
     setMode: setMode,
