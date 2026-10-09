@@ -352,6 +352,14 @@
       "destination": "/versions/spectrum.html"
     },
     {
+      "source": "/versions/simple",
+      "destination": "/versions/simple.html"
+    },
+    {
+      "source": "/versions/simple/",
+      "destination": "/versions/simple.html"
+    },
+    {
       "source": "/versions/tape",
       "destination": "/versions/tape.html"
     },
