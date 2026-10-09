@@ -814,10 +814,12 @@ export default defineConfig(({ command, mode }) => {
       host: '0.0.0.0',
       strictPort: false,
       // Vite 5 blocks Host headers it does not recognise with a 403 before
-      // any route is resolved. The local nameserver (tools/local-dns.mjs)
-      // publishes sainted-word.test, which is what makes
-      // http://sainted-word.test:5174/ mirror production; without this the
-      // request is rejected and never reaches the rewrite above.
+      // any route is resolved. There is no local nameserver in this repo —
+      // the local-dns.{mjs,config.json,system.sh} trio shipped with the
+      // dev-vercel-rewrites plugin in c47adc2 and was dropped in 9c879b7 — so
+      // dev is served at http://127.0.0.1:5174/. These hostnames stay allowed
+      // so an /etc/hosts entry (or a future nameserver) reaches the rewrite
+      // above instead of being rejected at the Host check.
       allowedHosts: [
         'sainted-word.test',
         'www.sainted-word.test',
