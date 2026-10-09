@@ -149,7 +149,7 @@
       e.preventDefault();
       zone.classList.remove('drag-over');
       var file = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (file && (file.type.startsWith('audio/') || file.type.startsWith('video/'))) {
+      if (file && (file.type.startsWith('audio/') || file.type.startsWith('video/') || /\.(mp3|wav|mp4|m4a|ogg|flac|webm|mov|mkv|mid|midi)$/i.test(file.name))) {
         loadSongFile(file);
       }
     });
