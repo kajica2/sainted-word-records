@@ -1276,6 +1276,18 @@ const PRESETS = {
     return null;
   }
 
+  // Data-only mode. engine.html already runs fx-postprocess.js, which
+  // creates and drives the SAME #fx-canvas overlay; booting a second WebGL
+  // pipeline here would either steal the canvas or stack two FX passes on
+  // top of each other. Set window.SWR_PRESETS_DATA_ONLY = 1 before this
+  // script loads to expose the PRESETS table without owning a canvas.
+  // Used by client/looks-menu.client.js to populate the engine's "looks"
+  // dropdown from the same table the version pages read.
+  if (window.SWR_PRESETS_DATA_ONLY) {
+    window.__SWR_PRESETS = PRESETS;
+    return;
+  }
+
   // Defer to next tick so inline <script> can set body[data-page] first.
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

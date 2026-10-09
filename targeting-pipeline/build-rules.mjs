@@ -198,7 +198,10 @@ export function surfaceCodes() { return { ...SURFACE_CODE }; }
 
 export function readVariantIds() {
   const src = fs.readFileSync(path.join(ROOT, 'client/variant-switcher.client.js'), 'utf8');
-  const ids = [...src.matchAll(/\bid:\s*'([a-z0-9-]+)'/g)].map((m) => m[1]);
+  // Includes underscores — `music_video_mtv` would otherwise drop out of the
+  // canonical list and surface as a "variant" not in the switcher, breaking
+  // the permutation check in verify.mjs.
+  const ids = [...src.matchAll(/\bid:\s*'([a-z0-9_-]+)'/g)].map((m) => m[1]);
   return [...new Set(ids)];
 }
 

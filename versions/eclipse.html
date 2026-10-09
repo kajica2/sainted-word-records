@@ -1096,6 +1096,68 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       __swr_libboot();
     }
 
+    // === Canvas corona post-pass ===
+    // The eclipse identity is the shadow ring with a burning corona behind it.
+    // On this page the corona is a DOM overlay (coronaEl) because the page
+    // paints pure black first and therefore never needs the underlying media
+    // to show through. Inside the shared engine the media DOES show through,
+    // so the same corona has to be a canvas pass that darkens to black and
+    // adds the glow back — that is what this reproduces: identical radii,
+    // colours and audio mapping as the DOM version above, drawn additively
+    // so it sits over the user's clips instead of replacing them.
+    //
+    // Safe to compile into the engine: uses only ctx, W, H, A, clamp,
+    // lerp and performance — all bound by client/variant-switcher.client.js.
+    function drawFx() {
+      const bass = (A && A.feat && A.feat.bass) || 0;
+      const mid = (A && A.feat && A.feat.mid) || 0;
+      const beat = (A && A.feat && A.feat.beat) || 0;
+      const onset = (A && A.feat && A.feat.onset) || 0;
+      const cx = W / 2, cy = H / 2;
+      const minWH = Math.min(W, H);
+      // Same percentage radii as the DOM gradient, resolved against the
+      // stage so the ring keeps its proportion at any canvas size.
+      const baseR = (30 + bass * 18) / 100 * minWH;
+      const midHue = Math.round(mid * 60);
+      const glowR = baseR * 1.22;
+
+      // 1) Shadow — radial darkening to near-black, matching the shadowEl
+      //    backdrop, so the corona reads against darkness.
+      const shadow = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
+      shadow.addColorStop(0, 'rgba(0,0,0,0.94)');
+      shadow.addColorStop(0.73, 'rgba(0,0,0,0.90)');
+      shadow.addColorStop(0.82, 'rgba(0,0,0,0.74)');
+      shadow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.globalAlpha = clamp(0.78 + bass * 0.15, 0.6, 0.98);
+      ctx.fillStyle = shadow;
+      ctx.fillRect(0, 0, W, H);
+
+      // 2) Corona — the burning edge, drawn additively so it survives the
+      //    shadow pass above instead of being painted over by it.
+      ctx.globalCompositeOperation = 'lighter';
+      const corona = ctx.createRadialGradient(cx, cy, glowR * 0.6, cx, cy, glowR);
+      corona.addColorStop(0, `rgba(255,179,71,${0.30 + bass * 0.4})`);
+      corona.addColorStop(0.5, `hsla(${32 + midHue},90%,${70 + onset * 15}%,${0.18 + onset * 0.3})`);
+      corona.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = corona;
+      ctx.fillRect(0, 0, W, H);
+
+      // 3) Ring flash — bright bloom on each onset (the DOM ringEl).
+      const ringIntensity = clamp(onset * 1.4, 0, 1);
+      if (ringIntensity > 0.01) {
+        const ring = (30 + bass * 18) / 100 * minWH + beat * 6;
+        ctx.globalAlpha = ringIntensity;
+        ctx.strokeStyle = `hsla(${32 + midHue},95%,72%,0.9)`;
+        ctx.lineWidth = 2 + ringIntensity * 6;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ring, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // === Expose SWR for sibling scripts (match shape used by neon/film/grid/smoke/hallucination) ===
         // Invalidate the per-layer cache whenever the page rebuilds.
     if (Layers && typeof Layers.render === 'function') {

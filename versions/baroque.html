@@ -219,6 +219,75 @@
     }
     paint();
 
+    // === Canvas gilded post-pass ===
+    // paint() above owns the whole frame — it fills an opaque velvet
+    // background before anything else, so on this page there is no
+    // "underlying media" to preserve. Inside the shared engine the user's
+    // clips DO sit underneath, so this port cannot reuse paint()'s opaque
+    // fill: it reproduces the same rays / orb / filigree but composites
+    // them additively over the existing frame. Same geometry, same
+    // animation timing, same gold ramp as paint() above — only the
+    // background wash is dropped so the media stays visible through it.
+    //
+    // Safe to compile into the engine: uses only ctx, W, H, A, clamp,
+    // lerp and performance — all bound by client/variant-switcher.client.js.
+    function drawFx() {
+      const t = performance.now() / 1000;
+      const cx = W / 2, cy = H / 2;
+
+      // Velvet warmth — the one part of paint() that must stay opaque-ish,
+      // but as a translucent wash rather than a full fill.
+      ctx.save();
+      const bg = ctx.createRadialGradient(cx, cy, 50, cx, cy, Math.max(W, H) * 0.8);
+      bg.addColorStop(0, 'rgba(58,31,10,0.34)');
+      bg.addColorStop(0.4, 'rgba(26,10,4,0.30)');
+      bg.addColorStop(1, 'rgba(0,0,0,0.22)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Golden sunburst rays (additive, so they brighten the frame).
+      ctx.globalCompositeOperation = 'lighter';
+      const rays = 24;
+      for (let i = 0; i < rays; i++) {
+        const a = (i / rays) * Math.PI * 2 + t * 0.1;
+        const grad = ctx.createLinearGradient(cx, cy, cx + Math.cos(a) * 600, cy + Math.sin(a) * 600);
+        grad.addColorStop(0, 'rgba(212,175,55,0.14)');
+        grad.addColorStop(0.5, 'rgba(212,175,55,0.03)');
+        grad.addColorStop(1, 'rgba(212,175,55,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, 600, a - 0.04, a + 0.04);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Central golden orb — breathes at the same 1.5 rad/s as paint().
+      const r = 100 + Math.sin(t * 1.5) * 15;
+      const orb = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      orb.addColorStop(0, 'rgba(255,245,208,0.92)');
+      orb.addColorStop(0.3, 'rgba(255,217,104,0.72)');
+      orb.addColorStop(0.6, 'rgba(212,175,55,0.42)');
+      orb.addColorStop(1, 'rgba(90,58,10,0)');
+      ctx.fillStyle = orb;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Filigree — orbiting dots, same radii and cadence as paint().
+      for (let i = 0; i < 8; i++) {
+        const a = t * 0.3 + i * (Math.PI * 2 / 8);
+        const orbit = 220 + i * 15;
+        const x = cx + Math.cos(a) * orbit;
+        const y = cy + Math.sin(a) * orbit;
+        ctx.fillStyle = `rgba(255,217,104,${0.5 - i * 0.045})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     // Minimal SWR.Audio.load/play for auto-start overlay (baroque engine has no audio otherwise)
     if (!window.SWR.Audio.load) {
       window.SWR.Audio.load = function(f) {
