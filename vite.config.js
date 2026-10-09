@@ -209,6 +209,84 @@ function inlineFooterNav() {
   };
 }
 
+// Vite plugin: dev-vercel-rewrites — apply vercel.json's `rewrites` to the dev
+// server so `npm run dev` answers the same routes as production.
+//
+// Without this, http://127.0.0.1:5174/ is a 404 while https://<site>/ serves
+// /landing.html (vercel.json maps "/" -> "/landing.html"), and every
+// extensionless route in the IA — /marketplace, /dashboard, /visual-languages,
+// /gallery/film, /s/:id — is dead locally while working in production. Local
+// work then validates links that 404 on deploy, which is the exact class of
+// bug scripts/check-dist-links.mjs exists to catch on the built output.
+//
+// Rules, deliberately narrow so dev can never serve something production
+// would not:
+//   - rewrites are read from vercel.json at config time, the same file
+//     scripts/generate-vercel-rewrites.mjs emits, so dev cannot drift from
+//     the deploy surface;
+//   - only same-origin rewrites are honoured. External destinations (http,
+//     https, //) and parameterised ones (:id) are skipped rather than
+//     guessed at, so /s/abc stays a client-routed route instead of silently
+//     serving some other page;
+//   - order is preserved and the first match wins, matching Vercel.
+//
+// A rewrite fires whenever its source path is requested, even though the
+// destination file also exists on disk: "/marketplace" -> "/marketplace.html"
+// has to work, and Vite would otherwise resolve "/marketplace.html" itself
+// while "/marketplace" fell through to its 404. Rewriting the pathname and
+// letting Vite's own static middleware serve the result is what keeps the
+// served bytes identical to production.
+//
+// The pathname is rewritten in place, so the page loads with the URL the
+// user typed and every root-relative href/src in it resolves as it does in
+// production. No import.meta.env rewrite needed: the scripts are global by
+// design, not ESM imports.
+function devVercelRewrites() {
+  let routes = [];
+  let root = process.cwd();
+
+  return {
+    name: 'dev-vercel-rewrites',
+    apply: 'serve',
+    configResolved(config) {
+      root = config.root;
+      let vercel = {};
+      try {
+        vercel = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));
+      } catch (e) {
+        process.stderr.write('[dev-rewrites] no vercel.json — dev serves files only\n');
+        return;
+      }
+      const rewrites = Array.isArray(vercel.rewrites) ? vercel.rewrites : [];
+
+      // Vercel evaluates rewrites in order and takes the first match. Keep
+      // that order; a later duplicate cannot override an earlier one.
+      routes = rewrites
+        .map((r) => ({ source: r.source, destination: r.destination }))
+        .filter((r) => typeof r.source === 'string' && typeof r.destination === 'string')
+        .filter((r) => r.destination.startsWith('/'))
+        .filter((r) => !r.destination.includes(':'))
+        .filter((r) => !r.source.includes('*') && !r.source.includes(':'))
+        .map((r) => ({ ...r, source: r.source.replace(/\/$/, '') || '/' }));
+
+      process.stderr.write(`[dev-rewrites] ${routes.length} vercel.json rewrite(s) active in dev\n`);
+    },
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const rawUrl = req.url || '/';
+        const pathname = decodeURIComponent(rawUrl.split('?')[0]);
+        const hit = routes.find((r) => r.source === pathname);
+        if (!hit) return next();
+
+        const query = rawUrl.includes('?') ? '?' + rawUrl.split('?').slice(1).join('?') : '';
+        req.url = hit.destination + query;
+        process.stderr.write(`[dev-rewrites] ${pathname} -> ${hit.destination}\n`);
+        next();
+      });
+    },
+  };
+}
+
 // Vite plugin: copy ./versions/*, ./audios/*, and the GitHub project files
 // to the Vite-resolved outDir.
 //
@@ -726,11 +804,28 @@ export default defineConfig(({ command, mode }) => {
       inlineAutomixConfig(),
       inlineTargetingRules(),
       inlineFooterNav(),
+      // Serve vercel.json's routes in dev. Registered last so it runs after
+      // the transform hooks, but its middleware installs in the pre phase —
+      // see devVercelRewrites() for the precedence rules.
+      devVercelRewrites(),
     ],
     server: {
       port: 5174,
       host: '0.0.0.0',
       strictPort: false,
+      // Vite 5 blocks Host headers it does not recognise with a 403 before
+      // any route is resolved. The local nameserver (tools/local-dns.mjs)
+      // publishes sainted-word.test, which is what makes
+      // http://sainted-word.test:5174/ mirror production; without this the
+      // request is rejected and never reaches the rewrite above.
+      allowedHosts: [
+        'sainted-word.test',
+        'www.sainted-word.test',
+        'app.sainted-word.test',
+        'engine.sainted-word.test',
+        'api.sainted-word.test',
+        '.sainted-word.test',
+      ],
     },
     // api/ files are serverless handlers — they're copied to dist by the
     // copyStatic plugin and executed by Vercel at runtime. We don't want
