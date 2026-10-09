@@ -3,22 +3,21 @@
 <head>
   <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Visual languages — Sainted Word Records</title>
-<meta name="description" content="Six visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
-  <link rel="canonical" href="https://sainted-word-records.vercel.app/visual-languages" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Visual languages — Sainted Word Records</title>
+  <meta name="description" content="Seven visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/visual-languages">
   <meta property="og:title" content="Visual languages — Sainted Word Records">
-  <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/gallery.png" />
-  <meta property="og:description" content="Six visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/gallery.png">
+  <meta property="og:description" content="Seven visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/versions/_shared.css">
-<style>
-/* Version index uses the home page tokens — light surface, accent pink */
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/versions/_shared.css">
+  <style>
 :root {
   --bg:        #FAF7F2;
   --bg-panel:  #F4F4F0;
@@ -58,7 +57,6 @@
 }
 .version-meta b { color: var(--fg); font-weight: 600; margin-right: 4px; }
 
-/* Version grid — 2 columns at desktop, 1 at mobile */
 .versions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -146,173 +144,188 @@
 }
 .version-card:hover .open::after { margin-left: 4px; }
 
-/* Console card has dark visual */
 .version-card.is-console .visual { background: #0A0A0B; }
 .version-card.is-console .num .badge-new { background: #FF6B1A; color: #0A0A0B; }
-</style>
+.version-card.is-simple .visual { background: #050811; }
+  </style>
 </head>
 <body>
   <swr-nav></swr-nav>
 
-<a class="sr" href="#main">Skip to content</a>
+  <a class="sr" href="#main">Skip to content</a>
 
-<header class="top">
-  <a class="brand" href="/" aria-label="Sainted Word Records, home">
-    <span class="sw" aria-hidden="true">SW</span>
-    <span class="brand-text"><b>SAINTED</b><span>WORD RECORDS</span></span>
-  </a>
-
-  <nav class="versions" aria-label="Visual language">
-    <a href="/versions/neon"      data-v="neon">Neon</a>
-    <a href="/versions/film"      data-v="film">Film</a>
-    <a href="/versions/grid"      data-v="grid">Grid</a>
-    <a href="/versions/spectrum"  data-v="spectrum">Spectrum</a>
-    <a href="/versions/aurora"    data-v="aurora">Aurora</a>
-    <span class="sep" aria-hidden="true"></span>
-    <a href="/versions/console"   data-v="console">Console</a>
-  </nav>
-
-  <div class="top-right">
-    <a class="btn-open" href="/dashboard">
-      Open editor
-      <span aria-hidden="true">→</span>
+  <header class="top">
+    <a class="brand" href="/" aria-label="Sainted Word Records, home">
+      <span class="sw" aria-hidden="true">SW</span>
+      <span class="brand-text"><b>SAINTED</b><span>WORD RECORDS</span></span>
     </a>
-  </div>
-</header>
 
-<main id="main" class="page">
+    <nav class="versions" aria-label="Visual language">
+      <a href="/versions/neon"      data-v="neon">Neon</a>
+      <a href="/versions/film"      data-v="film">Film</a>
+      <a href="/versions/grid"      data-v="grid">Grid</a>
+      <a href="/versions/spectrum"  data-v="spectrum">Spectrum</a>
+      <a href="/versions/aurora"    data-v="aurora">Aurora</a>
+      <a href="/versions/simple"    data-v="simple">Simple</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="/versions/console"   data-v="console">Console</a>
+    </nav>
 
-  <header class="page-head">
-    <span class="kicker">Versions</span>
-    <h1>Six <em>visual languages</em>, one engine.</h1>
-    <p class="lede">Same controls, same library, same MP4 export. Pick the aesthetic that fits the song. Switch anytime — projects carry across versions.</p>
-
-    <div class="version-meta">
-      <span><b>6</b>versions live</span>
-      <span><b>1</b>engine</span>
-      <span><b>MIT</b>licensed</span>
-      <span><b>v1</b>schema stable</span>
-      <span><b>new</b>preset dropdown · autoplay with muted fallback</span>
+    <div class="top-right">
+      <a class="btn-open" href="/dashboard">
+        Open editor
+        <span aria-hidden="true">→</span>
+      </a>
     </div>
   </header>
 
-  <div class="versions-grid">
+  <main id="main" class="page">
 
-    <!-- 01 — Neon -->
-    <a class="version-card" href="/versions/neon">
-      <div class="visual" aria-hidden="true"><canvas id="vneon"></canvas></div>
-      <div class="body">
-        <span class="num">01 · NEON</span>
-        <h2>Neon</h2>
-        <p>Hot club, screen-blend stacks, sharpened easings, scanlines. Cuts on the beat, not after it.</p>
-        <div class="tags">
-          <span class="tag">electronic</span>
-          <span class="tag">dance</span>
-          <span class="tag">screen blend</span>
-          <span class="tag">3 reactors</span>
-        </div>
-        <span class="open">Open version</span>
+    <header class="page-head">
+      <span class="kicker">Versions</span>
+      <h1>Seven <em>visual languages</em>, one engine.</h1>
+      <p class="lede">Same controls, same library, same MP4 export. Pick the aesthetic that fits the song. Switch anytime — projects carry across versions.</p>
+
+      <div class="version-meta">
+        <span><b>7</b>versions live</span>
+        <span><b>1</b>engine</span>
+        <span><b>MIT</b>licensed</span>
+        <span><b>v1</b>schema stable</span>
+        <span><b>new</b>preset dropdown · autoplay with muted fallback</span>
       </div>
-    </a>
+    </header>
 
-    <!-- 02 — Film -->
-    <a class="version-card" href="/versions/film">
-      <div class="visual" aria-hidden="true"><canvas id="vfilm"></canvas></div>
-      <div class="body">
-        <span class="num">02 · FILM</span>
-        <h2>Film</h2>
-        <p>Handheld warm tone, per-pixel grain, soft vignette, slow drift. Smooth, breathy, low-FX overall.</p>
-        <div class="tags">
-          <span class="tag">jazz</span>
-          <span class="tag">singer-songwriter</span>
-          <span class="tag">grain</span>
-          <span class="tag">vignette</span>
+    <div class="versions-grid">
+
+      <!-- 01 — Neon -->
+      <a class="version-card" href="/versions/neon">
+        <div class="visual" aria-hidden="true"><canvas id="vneon"></canvas></div>
+        <div class="body">
+          <span class="num">01 · NEON</span>
+          <h2>Neon</h2>
+          <p>Hot club, screen-blend stacks, sharpened easings, scanlines. Cuts on the beat, not after it.</p>
+          <div class="tags">
+            <span class="tag">electronic</span>
+            <span class="tag">dance</span>
+            <span class="tag">screen blend</span>
+            <span class="tag">3 reactors</span>
+          </div>
+          <span class="open">Open version</span>
         </div>
-        <span class="open">Open version</span>
-      </div>
-    </a>
+      </a>
 
-    <!-- 03 — Grid -->
-    <a class="version-card" href="/versions/grid">
-      <div class="visual" aria-hidden="true"><canvas id="vgrid"></canvas></div>
-      <div class="body">
-        <span class="num">03 · GRID</span>
-        <h2>Grid</h2>
-        <p>Modular grid compositions, hard monochrome, geometric type. The visualizer that looks like a poster.</p>
-        <div class="tags">
-          <span class="tag">minimal techno</span>
-          <span class="tag">modular</span>
-          <span class="tag">mono</span>
-          <span class="tag">type</span>
+      <!-- 02 — Film -->
+      <a class="version-card" href="/versions/film">
+        <div class="visual" aria-hidden="true"><canvas id="vfilm"></canvas></div>
+        <div class="body">
+          <span class="num">02 · FILM</span>
+          <h2>Film</h2>
+          <p>Handheld warm tone, per-pixel grain, soft vignette, slow drift. Smooth, breathy, low-FX overall.</p>
+          <div class="tags">
+            <span class="tag">jazz</span>
+            <span class="tag">singer-songwriter</span>
+            <span class="tag">grain</span>
+            <span class="tag">vignette</span>
+          </div>
+          <span class="open">Open version</span>
         </div>
-        <span class="open">Open version</span>
-      </div>
-    </a>
+      </a>
 
-    <!-- 04 — Spectrum -->
-    <a class="version-card" href="/versions/spectrum">
-      <div class="visual" aria-hidden="true"><canvas id="vspectrum"></canvas></div>
-      <div class="body">
-        <span class="num">04 · SPECTRUM</span>
-        <h2>Spectrum</h2>
-        <p>Frequency-only. No footage, no type, no chrome. Bass → hue, mid → position, treble → size. The audio IS the visual.</p>
-        <div class="tags">
-          <span class="tag">ambient</span>
-          <span class="tag">classical</span>
-          <span class="tag">audio only</span>
-          <span class="tag">32 bands</span>
+      <!-- 03 — Grid -->
+      <a class="version-card" href="/versions/grid">
+        <div class="visual" aria-hidden="true"><canvas id="vgrid"></canvas></div>
+        <div class="body">
+          <span class="num">03 · GRID</span>
+          <h2>Grid</h2>
+          <p>Modular grid compositions, hard monochrome, geometric type. The visualizer that looks like a poster.</p>
+          <div class="tags">
+            <span class="tag">minimal techno</span>
+            <span class="tag">modular</span>
+            <span class="tag">mono</span>
+            <span class="tag">type</span>
+          </div>
+          <span class="open">Open version</span>
         </div>
-        <span class="open">Open version</span>
-      </div>
-    </a>
+      </a>
 
-    <!-- 05 — Aurora -->
-    <a class="version-card" href="/versions/aurora">
-      <div class="visual" aria-hidden="true"><canvas id="vaurora"></canvas></div>
-      <div class="body">
-        <span class="num">05 · AURORA</span>
-        <h2>Aurora</h2>
-        <p>Atmospheric color washes, slow drift, bloom-heavy. Soft, dream-like, post-rock energy. Slow onsets, long decays.</p>
-        <div class="tags">
-          <span class="tag">downtempo</span>
-          <span class="tag">post-rock</span>
-          <span class="tag">bloom</span>
-          <span class="tag">drift</span>
+      <!-- 04 — Spectrum -->
+      <a class="version-card" href="/versions/spectrum">
+        <div class="visual" aria-hidden="true"><canvas id="vspectrum"></canvas></div>
+        <div class="body">
+          <span class="num">04 · SPECTRUM</span>
+          <h2>Spectrum</h2>
+          <p>Frequency-only. No footage, no type, no chrome. Bass → hue, mid → position, treble → size. The audio IS the visual.</p>
+          <div class="tags">
+            <span class="tag">ambient</span>
+            <span class="tag">classical</span>
+            <span class="tag">audio only</span>
+            <span class="tag">32 bands</span>
+          </div>
+          <span class="open">Open version</span>
         </div>
-        <span class="open">Open version</span>
-      </div>
-    </a>
+      </a>
 
-    <!-- 06 — Console (NEW) -->
-    <a class="version-card is-console" href="/versions/console">
-      <div class="visual" aria-hidden="true"><canvas id="vconsole"></canvas></div>
-      <div class="body">
-        <span class="num">06 · CONSOLE<span class="badge-new">NEW</span></span>
-        <h2>Console</h2>
-        <p>Precision oscilloscope aesthetic. Black canvas, single accent, geometric primitives, persistent data overlay.</p>
-        <div class="tags">
-          <span class="tag">IDM</span>
-          <span class="tag">experimental</span>
-          <span class="tag">industrial</span>
-          <span class="tag">mono</span>
+      <!-- 05 — Aurora -->
+      <a class="version-card" href="/versions/aurora">
+        <div class="visual" aria-hidden="true"><canvas id="vaurora"></canvas></div>
+        <div class="body">
+          <span class="num">05 · AURORA</span>
+          <h2>Aurora</h2>
+          <p>Atmospheric color washes, slow drift, bloom-heavy. Soft, dream-like, post-rock energy. Slow onsets, long decays.</p>
+          <div class="tags">
+            <span class="tag">downtempo</span>
+            <span class="tag">post-rock</span>
+            <span class="tag">bloom</span>
+            <span class="tag">drift</span>
+          </div>
+          <span class="open">Open version</span>
         </div>
-        <span class="open">Open version</span>
-      </div>
-    </a>
+      </a>
 
-  </div>
+      <!-- 06 — Simple (NEW) -->
+      <a class="version-card is-simple" href="/versions/simple">
+        <div class="visual" aria-hidden="true"><canvas id="vsimple"></canvas></div>
+        <div class="body">
+          <span class="num">06 · SIMPLE<span class="badge-new">NEW</span></span>
+          <h2>Simple</h2>
+          <p>Bare minimum. Drop a song, get a spectrum. No chrome, no options, no presets. Just audio and visuals.</p>
+          <div class="tags">
+            <span class="tag">minimal</span>
+            <span class="tag">spectrum</span>
+            <span class="tag">no presets</span>
+            <span class="tag">mp4 export</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
 
-</main>
+      <!-- 07 — Console -->
+      <a class="version-card is-console" href="/versions/console">
+        <div class="visual" aria-hidden="true"><canvas id="vconsole"></canvas></div>
+        <div class="body">
+          <span class="num">07 · CONSOLE</span>
+          <h2>Console</h2>
+          <p>Precision oscilloscope aesthetic. Black canvas, single accent, geometric primitives, persistent data overlay.</p>
+          <div class="tags">
+            <span class="tag">IDM</span>
+            <span class="tag">experimental</span>
+            <span class="tag">industrial</span>
+            <span class="tag">mono</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
 
-<swr-footer></swr-footer>
+    </div>
 
-<script>
-/* Render a tiny signature preview for each version card.
-   Each gets a 1-line CSS-only-ish representation of its language. */
+  </main>
+
+  <swr-footer></swr-footer>
+
+  <script>
 (function () {
   const accent = '#E6306B';
 
-  /* NEON — magenta/cyan scanlines */
   function neon(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
@@ -326,7 +339,6 @@
     ctx.beginPath(); ctx.arc(w/2, h/2, h/4, 0, Math.PI*2); ctx.stroke();
   }
 
-  /* FILM — sepia with vignette */
   function film(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
@@ -334,18 +346,15 @@
     const g = ctx.createRadialGradient(w/2, h/2, h/8, w/2, h/2, h/1.5);
     g.addColorStop(0, '#A47148'); g.addColorStop(1, '#1A0F08');
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-    /* grain */
     for (let i = 0; i < 400; i++) {
       ctx.fillStyle = `rgba(255,230,180,${Math.random() * 0.1})`;
       ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
     }
-    /* vignette */
     const v = ctx.createRadialGradient(w/2, h/2, h/3, w/2, h/2, h/1.2);
     v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.7)');
     ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
   }
 
-  /* GRID — architectural black/white with one accent square */
   function grid(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
@@ -363,7 +372,6 @@
     ctx.fillText('GRID', step/2, h - step/2);
   }
 
-  /* SPECTRUM — iridescent gradient */
   function spectrum(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
@@ -372,7 +380,6 @@
     g.addColorStop(0, '#0A0A1F'); g.addColorStop(0.4, '#2A0A4A');
     g.addColorStop(0.7, '#FF6B9D'); g.addColorStop(1, '#FFFD87');
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-    /* a few bars */
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     for (let i = 0; i < 16; i++) {
       const bh = (Math.sin(i * 0.7) * 0.4 + 0.5) * h * 0.4;
@@ -380,7 +387,6 @@
     }
   }
 
-  /* AURORA — atmospheric color washes */
   function aurora(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
@@ -401,19 +407,44 @@
     ctx.globalAlpha = 1;
   }
 
-  /* CONSOLE — orange waveform + spectrum bars on black */
+  /* SIMPLE — spectrum bars with waveform */
+  function simple(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#050811'; ctx.fillRect(0, 0, w, h);
+    // bars
+    const bands = 32;
+    const barW = w / bands;
+    for (let i = 0; i < bands; i++) {
+      const v = Math.sin(i * 0.5) * 0.4 + 0.5;
+      const bh = v * h * 0.6;
+      const hue = 280 + (i / bands) * 60 - v * 30;
+      ctx.fillStyle = `hsl(${hue},80%,50%)`;
+      ctx.fillRect(i * barW + 1, h - bh, barW - 2, bh);
+    }
+    // waveform
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= w; x += 2) {
+      const n = x / w;
+      const y = Math.sin(n * Math.PI * 8) * h * 0.05 + h * 0.5;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
   function consoleV(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
     const h = c.height = c.clientHeight * 2;
     ctx.fillStyle = '#0A0A0B'; ctx.fillRect(0, 0, w, h);
-    /* grid */
     ctx.strokeStyle = 'rgba(255,107,26,0.08)'; ctx.lineWidth = 1;
     const step = 16;
     for (let x = 0; x < w; x += step) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
     }
-    /* wave */
     ctx.strokeStyle = '#FF6B1A'; ctx.lineWidth = 2;
     ctx.beginPath();
     for (let x = 0; x <= w; x += 2) {
@@ -424,7 +455,6 @@
       if (x === 0) ctx.moveTo(x, h/2 + y); else ctx.lineTo(x, h/2 + y);
     }
     ctx.stroke();
-    /* spectrum */
     ctx.fillStyle = '#FF6B1A';
     for (let i = 0; i < 24; i++) {
       const bh = (Math.sin(i * 0.5) * 0.5 + 0.5) * h * 0.18;
@@ -432,33 +462,30 @@
       ctx.fillRect(i * (w/24) + 1, h * 0.78 - bh, (w/24) - 2, bh);
     }
     ctx.globalAlpha = 1;
-    /* HUD */
     ctx.fillStyle = '#FF6B1A'; ctx.font = '600 10px "JetBrains Mono", monospace';
     ctx.fillText('BPM 120', 8, 14); ctx.fillText('A min', w - 40, 14);
   }
 
   const map = {
     vneon: neon, vfilm: film, vgrid: grid, vspectrum: spectrum,
-    vaurora: aurora, vconsole: consoleV,
+    vaurora: aurora, vsimple: simple, vconsole: consoleV,
   };
   Object.entries(map).forEach(([id, fn]) => {
     const el = document.getElementById(id);
     if (el) fn(el);
   });
 })();
-</script>
+  </script>
 
-<!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
-<div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-    <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
-    <button id="automix-debug-close" title="Close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; line-height:1;">×</button>
+  <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
+      <button id="automix-debug-close" title="Close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; line-height:1;">×</button>
+    </div>
+    <div id="automix-debug-body" style="color:#aaa;">idle</div>
   </div>
-  <div id="automix-debug-body" style="color:#aaa;">idle</div>
-</div>
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
-<!-- SWR-AUDIO-DAMP-MARKER -->
-<script src="../lib/audio-damp.client.js"></script>
+  <script src="../lib/audio-damp.client.js"></script>
 </body>
 </html>
