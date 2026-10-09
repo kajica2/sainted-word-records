@@ -400,7 +400,10 @@
     }
 
     // WebGL setup
-    const gl = out.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: false })
+    // NB: preserveDrawingBuffer must be true for captureStream() / MediaRecorder to
+    // work — otherwise the WebGL buffer is cleared after each compositor present,
+    // causing black frames in headless SwiftShader (issue #75).
+    const gl = out.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true })
            || out.getContext('experimental-webgl');
     if (!gl) {
       console.warn('[fx-postprocess] WebGL not available; post-process disabled');
