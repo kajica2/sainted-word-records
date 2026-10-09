@@ -110,7 +110,7 @@
         grid-template-rows: auto auto 1fr auto auto;
       }
       header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
-      .meter { width: 100px; }
+      .meter { width: min(8vw, 80px); }
       aside.lib, aside.layers { max-height: 30vh; }
       aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
       aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
@@ -235,7 +235,7 @@
       position: absolute;
       bottom: 16px;
       right: 16px;
-      width: 100px;
+      width: min(8vw, 80px);
       opacity: 0.45;
       pointer-events: none;
       z-index: 9999;
@@ -363,7 +363,7 @@
       <canvas id="render"></canvas>
       <div id="flash"></div>
       <div class="swr-watermark">
-        <img src="../watermark-monogram.svg" alt="SWR" />
+        <img src="../watermark-monogram.png" alt="SWR" />
       </div>
     </section>
     <aside class="layers">
@@ -1297,8 +1297,8 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="../lib/swr-natural.client.js"></script>
   <script src="../lib/look-variant.client.js" defer></script>
-<!-- SWR-WATERMARK-MARKER -->
-<script src="../lib/watermark.client.js"></script>
+
+
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
 <!-- SWR-FX-GRADE-MARKER -->
