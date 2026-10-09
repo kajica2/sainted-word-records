@@ -1,0 +1,82 @@
+{
+  "id": "swr-preset-2026-10-09-halloween-dark",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-10-09T08:60:00.000000+00:00",
+  "name": "Halloween Dark",
+  "family": "DARK",
+  "description": "Smoke, fog, and cold neon for horror-ambient, dark electronic, and Halloween releases. Desaturated base with electric green and deep blood red accents. Heavy vignette, slow mut.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "smoke-fog",
+      "weight": 0.5
+    },
+    {
+      "kind": "palette_ref",
+      "name": "blood-neon",
+      "weight": 0.35
+    },
+    {
+      "kind": "motion_ref",
+      "name": "slow-drift",
+      "weight": 0.15
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.5,
+    "pearl": 0.1,
+    "glitch": 0.05,
+    "grain": 0.3,
+    "chroma": 0.0,
+    "bloom": 0.15,
+    "vignette": 0.8,
+    "sepia": 0.1,
+    "glow": 0.2,
+    "grayscale": 0.2,
+    "blur": 0.2,
+    "mut": 0.3,
+    "mutAlgo": 0.5,
+    "temp": -0.2,
+    "posterize": 0
+  },
+  "motion": {
+    "rotation_speed": 0.02,
+    "scale_pulse": 0.08,
+    "pan_x": 0.2,
+    "pan_y": 0.3
+  },
+  "palette": {
+    "primary": "#1a3a1a",
+    "secondary": "#8b0000",
+    "accent": "#39ff14",
+    "bg": "#030303"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "pan_y",
+      "mut"
+    ],
+    "mid": [
+      "vignette",
+      "grain"
+    ],
+    "treble": [
+      "glow",
+      "bloom"
+    ],
+    "onset": [
+      "scale_pulse"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#030303\"/><ellipse cx=\"40\" cy=\"50\" rx=\"35\" ry=\"20\" fill=\"#1a3a1a\" opacity=\"0.5\"/><ellipse cx=\"30\" cy=\"45\" rx=\"15\" ry=\"15\" fill=\"#8b0000\" opacity=\"0.3\"/><circle cx=\"55\" cy=\"30\" r=\"5\" fill=\"#39ff14\" opacity=\"0.7\"/><circle cx=\"60\" cy=\"35\" r=\"3\" fill=\"#39ff14\" opacity=\"0.5\"/></svg>",
+    "tags": [
+      "halloween",
+      "horror",
+      "dark",
+      "smoke",
+      "neon-green",
+      "blood"
+    ]
+  }
+}
