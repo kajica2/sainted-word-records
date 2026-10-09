@@ -217,7 +217,8 @@
 
   // DOM overlays the verbatim bodies touch that don't exist in engine.html.
   // Created lazily on activate, with the exact CSS from the source page
-  // (grid: #grid + #flash · film: #vignette). Scoped to the stage element
+  // (film: #vignette — the same element versions/film.html:387 ships with
+  // its static 0.7-alpha radial gradient). Scoped to the stage element
   // (position:relative on #stage makes it the containing block so the
   // absolute overlays align to the canvas and not the viewport).
   function ensureOverlays(id) {
@@ -225,22 +226,6 @@
     if (!stage) return;
     if (getComputedStyle(stage).position === 'static') stage.style.position = 'relative';
     const have = (sel) => stage.querySelector(sel);
-    if (id === 'grid') {
-      if (!have('#grid')) {
-        const el = document.createElement('div');
-        el.id = 'grid';
-        el.style.cssText = 'position:absolute;inset:0;pointer-events:none;' +
-          'background-image:linear-gradient(to right,rgba(0,0,0,0.14) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.14) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.05) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.05) 1px,transparent 1px);' +
-          'background-size:12.5% 12.5%,12.5% 12.5%,6.25% 6.25%,6.25% 6.25%;opacity:0.35;';
-        stage.appendChild(el);
-      }
-      if (!have('#flash')) {
-        const el = document.createElement('div');
-        el.id = 'flash';
-        el.style.cssText = 'position:absolute;inset:0;pointer-events:none;background:#ff3d00;opacity:0;mix-blend-mode:multiply;will-change:opacity;';
-        stage.appendChild(el);
-      }
-    }
     if (id === 'film' && !have('#vignette')) {
       const el = document.createElement('div');
       el.id = 'vignette';
@@ -292,7 +277,9 @@
   async function activate(id) {
     const v = VARIANTS.find((x) => x.id === id);
     if (!v) return deactivate();
-    // ensureOverlays(id)
+    // DOM overlays first — the variant's verbatim drawFx body paints over
+    // them, so they must exist before the source loads. Synchronous.
+    ensureOverlays(id);
     let fx = await loadVariant(id)
     // Theme tokens (restore-safe)
     if (!state.savedAccents) {
@@ -310,7 +297,8 @@
     root.style.setProperty('--accent-3', cssColor(v.accent3));
     state.active = id
     state.fx = fx
-    // State is now active. Ensure UI reflects this.
+    // State is now active — overlays were created above, before drawFx loaded.
+    // Ensure UI reflects this.
     if (typeof window.SWR_VARIANTS_UI === 'function') window.SWR_VARIANTS_UI(id)
     return v
   }
