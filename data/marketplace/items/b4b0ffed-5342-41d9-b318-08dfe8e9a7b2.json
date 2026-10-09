@@ -1,0 +1,16 @@
+{
+  "id": "b4b0ffed-5342-41d9-b318-08dfe8e9a7b2",
+  "type": "music_clip",
+  "title": "Epic Orchestral Stingers",
+  "description": "Dramatic orchestral stingers for video reveals.",
+  "creatorType": "creator",
+  "media": [],
+  "quantity": 10,
+  "claimed": 0,
+  "maxQuantity": 25,
+  "lifespanSeconds": 7776000,
+  "availableAt": 1791577039364,
+  "expiresAt": 1799353039364,
+  "status": "available",
+  "createdAt": 1791577039364
+}

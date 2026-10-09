@@ -1,4 +1,4 @@
-// api/invite/redeem.js — POST { code } → { ok: true } | 404
+// api/invite/redeem.js — POST { code, email? } → { ok: true, tier?, preset?, emissions? } | 404 | 429
 //
 // Public endpoint, no auth required. The visitor pastes an invite code
 // (admin-issued via scripts/grant-invite.mjs) and the server tells them
@@ -6,10 +6,11 @@
 // off in the visitor's browser (lib/invite-unlock.client.js owns the
 // localStorage flag + SWR_WATERMARK.setEnabled(false) call).
 //
-// Codes are first-come/first-served and reusable: once an admin issues
-// a code with `enabled: true`, every visitor who redeems it gets the
-// unlock. There is no per-user ledger; this is a license, not a
-// single-use token. Disabling a code means flipping enabled to false.
+// New v2 behavior:
+// - First redemption ties the email to the code (if email provided)
+// - Daily usage is tracked per email
+// - Returns tier/preset/emissions for the client to use
+// - Respects dailyLimit (0 = unlimited)
 //
 // Store backend: the same durable JSON store as auth/projects (Postgres in
 // production when DATABASE_URL is set, local files otherwise — see
@@ -19,9 +20,10 @@
 
 import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
 import { rateLimit } from '../_lib/db.js';
-import { normalizeCode, readInvite } from '../_lib/kv.js';
+import { normalizeCode, readInvite, writeInvite, getUsage, incrementUsage, setUsageTier } from '../_lib/kv.js';
 
 const MAX_BODY_BYTES = 1024; // a code is at most ~32 bytes
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default async function handler(req, res) {
   setCors(res, req.headers.origin);
@@ -50,8 +52,14 @@ export default async function handler(req, res) {
   } catch (e) {
     return sendJson(res, 400, { error: 'invalid_body', detail: e.message });
   }
+
   const code = normalizeCode(body && body.code);
+  const email = body && body.email;
+
   if (!code) return sendJson(res, 400, { error: 'invalid_code' });
+  if (email && !EMAIL_RE.test(email)) {
+    return sendJson(res, 400, { error: 'invalid_email' });
+  }
 
   let entry;
   try {
@@ -70,8 +78,67 @@ export default async function handler(req, res) {
     }
     return sendJson(res, 500, { error: 'internal_error' });
   }
+
   if (!entry || entry.enabled === false) {
     return sendJson(res, 404, { error: 'invalid_or_disabled_code' });
   }
-  return sendJson(res, 200, { ok: true });
+
+  // Get tier/preset/emissions from entry
+  const tier = entry.tier || 'free';
+  const preset = entry.preset || 'RAW';
+  const emissions = entry.emissions || 30;
+  const dailyLimit = entry.dailyLimit;
+
+  // If email provided and code doesn't have one yet, tie them together
+  let boundEmail = entry.email;
+  if (email && !boundEmail) {
+    boundEmail = email.toLowerCase().trim();
+    try {
+      await writeInvite(code, { ...entry, email: boundEmail });
+    } catch (e) {
+      // Non-fatal: continue even if write fails
+      console.error('Failed to bind email to code:', e);
+    }
+  }
+
+  // If we have a bound email, check daily usage
+  if (boundEmail) {
+    // Update tier/preset/emissions if changed
+    try {
+      await setUsageTier(boundEmail, tier, preset, emissions);
+    } catch (e) {
+      // Non-fatal: continue even if update fails
+    }
+
+    // Check daily limit (0 = unlimited)
+    if (dailyLimit !== 0 && dailyLimit !== null && dailyLimit !== undefined) {
+      try {
+        const usage = await getUsage(boundEmail);
+        if (usage.count >= dailyLimit) {
+          return sendJson(res, 429, {
+            error: 'daily_limit_exceeded',
+            limit: dailyLimit,
+            used: usage.count,
+            resetAt: usage.date + 'T00:00:00Z',
+            tier,
+            preset,
+            emissions,
+          });
+        }
+        // Increment usage
+        await incrementUsage(boundEmail, tier, preset, emissions);
+      } catch (e) {
+        // Non-fatal: allow through if tracking fails
+        console.error('Usage tracking failed:', e);
+      }
+    }
+  }
+
+  return sendJson(res, 200, {
+    ok: true,
+    tier,
+    preset,
+    emissions,
+    dailyLimit: dailyLimit || 'unlimited',
+  });
 }

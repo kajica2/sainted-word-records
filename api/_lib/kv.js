@@ -45,7 +45,7 @@ const STORE_ROOT = join(DATA_ROOT, 'invite-store');
 
 // Schema marker. Bump if the invite-entry shape changes incompatibly;
 // redeem.js refuses codes stored under a different schemaVersion.
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SCHEMA_KEY = 'schemaVersion:invite';
 
 function storePath(key) {
@@ -215,4 +215,55 @@ export async function readEmailIndex(email) {
 
 export async function writeEmailIndex(email, code) {
   return kvSet(emailIndexKey(email), code);
+}
+
+// ---- daily usage tracking ----
+// Usage is tracked per email: usage:<email> → { count, date, tier, preset, emissions }
+// date is YYYY-MM-DD format, resets at midnight
+
+function usageKey(email) {
+  return `${INVITE_PREFIX}usage:${String(email).trim().toLowerCase()}`;
+}
+
+export function todayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+export async function getUsage(email) {
+  const key = usageKey(email);
+  const usage = await kvGet(key);
+  if (!usage) return { count: 0, date: todayKey(), tier: 'free', preset: 'RAW', emissions: 30 };
+  // Reset if new day
+  if (usage.date !== todayKey()) {
+    return { count: 0, date: todayKey(), tier: usage.tier, preset: usage.preset, emissions: usage.emissions };
+  }
+  return usage;
+}
+
+export async function incrementUsage(email, tier = 'free', preset = 'RAW', emissions = 30) {
+  const key = usageKey(email);
+  const current = await getUsage(email);
+  const updated = {
+    count: current.count + 1,
+    date: todayKey(),
+    tier: current.tier || tier,
+    preset: current.preset || preset,
+    emissions: current.emissions || emissions,
+  };
+  await kvSet(key, updated);
+  return updated;
+}
+
+export async function setUsageTier(email, tier, preset, emissions) {
+  const key = usageKey(email);
+  const current = await getUsage(email);
+  const updated = {
+    count: current.count,
+    date: todayKey(),
+    tier,
+    preset,
+    emissions,
+  };
+  await kvSet(key, updated);
+  return updated;
 }

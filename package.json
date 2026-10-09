@@ -169,6 +169,7 @@
     "@vercel/blob": "^2.8.0",
     "nodemailer": "^10.0.8",
     "pg": "^8.23.0",
+    "playwright": "^1.64.0",
     "stripe": "^22.6.2"
   }
 }
