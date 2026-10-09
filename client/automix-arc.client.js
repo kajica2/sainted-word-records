@@ -173,6 +173,12 @@
     var ids = map.list();
     var acts = [];
     var prev = null;
+    // Anchors already spent earlier in THIS arc. Without this the builder
+    // only compared against the immediately preceding act, so a 3-act arc
+    // could legitimately resolve to [smoke, aurora, smoke] — the same look
+    // bookending itself. Measured before the fix: 9 distinct anchors across
+    // 40 synthetic songs, with repeats in 3-4 act arcs.
+    var usedIds = Object.create(null);
     for (var b = 0; b < nActs; b++) {
       var arch = archetypes[b];
       var targetCoords = {
@@ -205,18 +211,48 @@
         }
         if (allowed.length) candidates = allowed;
       }
+
+      // Prefer anchors never used earlier in this arc. Two passes: require
+      // "never used" first, then relax when the pool is too small to avoid
+      // a repeat (a style legitimately narrows the map to 4-5 anchors).
       var chosen = null;
-      for (var c = 0; c < candidates.length; c++) {
-        var cand = candidates[c];
-        if (!cand.anchor) continue;
-        if (!prev) { chosen = cand; break; }
-        var dx = cand.anchor.warmth - prev.coords.warmth;
-        var dy = cand.anchor.intensity - prev.coords.intensity;
-        if (Math.sqrt(dx * dx + dy * dy) >= ARC_MIN_DISPLACEMENT) { chosen = cand; break; }
+      var passes = [function (c) { return !usedIds[c.id]; },
+                    function () { return true; }];
+      for (var pi = 0; pi < passes.length && !chosen; pi++) {
+        var fresh = [];
+        for (var fi = 0; fi < candidates.length; fi++) {
+          if (candidates[fi] && candidates[fi].anchor && passes[pi](candidates[fi])) {
+            fresh.push(candidates[fi]);
+          }
+        }
+        if (!fresh.length) continue;
+        for (var c = 0; c < fresh.length; c++) {
+          var cand = fresh[c];
+          if (!prev) { chosen = cand; break; }
+          var dx = cand.anchor.warmth - prev.coords.warmth;
+          var dy = cand.anchor.intensity - prev.coords.intensity;
+          if (Math.sqrt(dx * dx + dy * dy) >= ARC_MIN_DISPLACEMENT) { chosen = cand; break; }
+        }
+        // No unused candidate clears the displacement budget — take the
+        // farthest unused one rather than reusing something adjacent.
+        if (!chosen && prev) {
+          var far = fresh[0];
+          for (var fd = 1; fd < fresh.length; fd++) {
+            var fx = fresh[fd].anchor.warmth - prev.coords.warmth;
+            var fy = fresh[fd].anchor.intensity - prev.coords.intensity;
+            var vx = far.anchor.warmth - prev.coords.warmth;
+            var vy = far.anchor.intensity - prev.coords.intensity;
+            if (fx * fx + fy * fy > vx * vx + vy * vy) far = fresh[fd];
+          }
+          chosen = far;
+        } else if (!chosen) {
+          chosen = fresh[0];
+        }
       }
       if (!chosen) chosen = candidates[candidates.length - 1]; // farthest of the candidates
       if (!chosen || !chosen.anchor) return null;
       prev = { coords: { ...chosen.anchor } };
+      usedIds[chosen.id] = true;
 
       // Baseline: anchor preset pulled toward the archetype's full-range
       // targets (50/50) — louder acts genuinely reach the top of the dial.
