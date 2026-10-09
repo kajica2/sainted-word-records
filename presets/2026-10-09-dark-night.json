@@ -1,0 +1,80 @@
+{
+  "id": "swr-preset-2026-10-09-dark-night",
+  "schema": "swr-preset/v1",
+  "created_at": "2026-10-09T08:54:00.000000+00:00",
+  "name": "Dark Night",
+  "family": "DARK",
+  "description": "Low-light visuals for darkwave, synthwave, and after-hours sets. Deep blacks, desaturated accents, minimal bloom. Layers blend dark-to-light. Rotation breathes slowly — never rushes.",
+  "inspiration": [
+    {
+      "kind": "shader_ref",
+      "name": "vignette-heavy",
+      "weight": 0.4
+    },
+    {
+      "kind": "palette_ref",
+      "name": "synthwave-dark",
+      "weight": 0.35
+    },
+    {
+      "kind": "motion_ref",
+      "name": "slow-breath",
+      "weight": 0.25
+    }
+  ],
+  "fx_state": {
+    "liquid": 0.1,
+    "pearl": 0.15,
+    "glitch": 0.05,
+    "grain": 0.2,
+    "chroma": 0.0,
+    "bloom": 0.2,
+    "vignette": 0.75,
+    "sepia": 0.15,
+    "glow": 0.1,
+    "grayscale": 0.1,
+    "blur": 0.05,
+    "mut": 0.0,
+    "mutAlgo": 0.0,
+    "temp": -0.1,
+    "posterize": 0
+  },
+  "motion": {
+    "rotation_speed": 0.04,
+    "scale_pulse": 0.05,
+    "pan_x": 0.1,
+    "pan_y": 0.08
+  },
+  "palette": {
+    "primary": "#8b0000",
+    "secondary": "#1a1a2e",
+    "accent": "#c8c8d4",
+    "bg": "#030308"
+  },
+  "audio_reactivity": {
+    "bass": [
+      "pan_x",
+      "scale_pulse"
+    ],
+    "mid": [
+      "vignette",
+      "grain"
+    ],
+    "treble": [
+      "bloom"
+    ],
+    "onset": [
+      "rotation_speed"
+    ]
+  },
+  "preview": {
+    "thumbnail_svg": "<svg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"80\" height=\"80\" fill=\"#030308\"/><ellipse cx=\"40\" cy=\"40\" rx=\"30\" ry=\"15\" fill=\"#1a1a2e\" opacity=\"0.8\"/><ellipse cx=\"40\" cy=\"40\" rx=\"20\" ry=\"8\" fill=\"#8b0000\" opacity=\"0.5\"/><line x1=\"0\" y1=\"40\" x2=\"80\" y2=\"40\" stroke=\"#c8c8d4\" stroke-width=\"0.5\" opacity=\"0.3\"/></svg>",
+    "tags": [
+      "dark",
+      "night",
+      "synthwave",
+      "darkwave",
+      "after-hours"
+    ]
+  }
+}
