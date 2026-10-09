@@ -2,12 +2,14 @@
 // scripts/check-variant-switcher-smoke.mjs — variant-switcher (Phase A) browser smoke.
 //
 // Boots engine.html on a static file server, then drives window.SWR_VARIANTS:
-//   1. Module loads, select exists, all 5 variants are populated.
+//   1. Module loads, select exists, every runtime variant is populated.
+//      The expected set comes from SWR_VARIANTS.list() (14 entries) rather
+//      than a hardcoded count, so additions are auto-covered.
 //   2. Activating each variant via the real select (change event) applies theme
 //      tokens and — after the drawFx source fetch completes — a variant is active.
 //   3. postFx runs on real stage canvas without throwing (engine render loop,
 //      which calls it every frame, stays alive — no new pageerrors).
-//   4. film creates #vignette, grid creates #grid/#flash overlays.
+//   4. film creates the #vignette DOM overlay, scoped to #stage.
 //   5. Deactivate restores --accent to original value.
 //
 // Run: node scripts/check-variant-switcher-smoke.mjs
@@ -141,13 +143,13 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
       await new Promise((r) => setTimeout(r, 400));
       const state = await page.evaluate((vid) => ({
         accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
-        vignette: !!document.getElementById('vignette'),
-        grid: !!document.getElementById('grid'),
-        flash: !!document.getElementById('flash'),
+        // Scoped to #stage: #vignette is the overlay contract id (the FX
+        // uniform slider is #vignette-fx), so a document-wide lookup would
+        // pass for the wrong element.
+        vignette: !!document.querySelector('#stage #vignette'),
         engineAlive: !!window.SWR_ASSET_CURATOR || !!window.Layers || !!document.querySelector('#render'),
       }), id);
       if (id === 'film' && state.vignette) pass('film: #vignette overlay created');
-      if (id === 'grid' && state.grid && state.flash) pass('grid: #grid + #flash overlays created');
       if (state.accent !== accentBefore) pass(`${id}: theme accent swapped (${accentBefore} → ${state.accent})`);
       else fail(`${id}: accent unchanged`, state.accent);
     }

@@ -137,7 +137,7 @@
       ['glow', 'glow', 'glow-v'],
       ['blur', 'blur', 'blur-v'],
       ['grayscale', 'grayscale', 'grayscale-v'],
-      ['vignette', 'vignette', 'vignette-v'],
+      ['vignette', 'vignette-fx', 'vignette-fx-v'],
       ['liquid', 'liquid', 'liquid-v'],
       ['pearl', 'pearl', 'pearl-v'],
       ['glitch', 'glitch', 'glitch-v'],
