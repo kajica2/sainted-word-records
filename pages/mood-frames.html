@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Frames · The Twin</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --text: #1a1a1a;
+      --text-muted: #666;
+      --border: #e0e0e0;
+      --card-bg: #ffffff;
+      --tag-bg: #f0f0f0;
+      --tag-text: #333;
+      --font-serif: 'Playfair Display', Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg: #111111;
+      --text: #e0e0e0;
+      --text-muted: #888;
+      --border: #333333;
+      --card-bg: #1a1a1a;
+      --tag-bg: #2a2a2a;
+      --tag-text: #ccc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      transition: background-color 0.3s, color 0.3s;
+      padding: 2rem;
+    }
+
+    header {
+      max-width: 900px;
+      margin: 0 auto 4rem auto;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .theme-toggle button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.2rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.7rem;
+      border-radius: 4px;
+      margin-left: 0.25rem;
+    }
+
+    .theme-toggle button.active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 3rem;
+      font-weight: 400;
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin-bottom: 1.5rem;
+    }
+
+    .tones {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    section {
+      margin-bottom: 5rem;
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 1.8rem;
+      font-weight: 400;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .grid-eight {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+      .grid-eight { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      background: #222;
+    }
+
+    .card-content {
+      padding: 1.5rem;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-title {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .grid-extras {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .extra-item img {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    .extra-item span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .cover-studies p {
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .cover-group {
+      margin-bottom: 3rem;
+    }
+
+    .cover-group h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .grid-covers {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .cover-item img {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    .cover-item span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .grid-system {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .system-item img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    .system-item span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    footer {
+      max-width: 900px;
+      margin: 4rem auto 0 auto;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <header>
+    <div class="header-top">
+      <span>KAI DJURIC · THE TWIN · BOOK & MUSIC FRAMES</span>
+      <div class="theme-toggle">
+        <button onclick="setTheme('light')" id="btn-light" class="active">light</button>
+        <button onclick="setTheme('dark')" id="btn-dark">dark</button>
+        <button onclick="setTheme('auto')" id="btn-auto">auto</button>
+      </div>
+    </div>
+    <h1>Mood Frames</h1>
+    <p class="subtitle">Eight stills, one world: poetic songwriting imagery staged in new-wave video language, in the house sound-tones — ready as book covers, editorial imagery, or music-video start frames. The tones are defined in the twin's how-to; the copy comes from the cognitive twin narrative.</p>
+    <p class="tones">tones — deep house · soundhealing · cyberpunk/hk · collective</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>The Eight</h2>
+      <div class="grid-eight">
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=DEEP+HOUSE" alt="The Room Leans In" class="card-img">
+          <div class="card-content">
+            <span class="tag">Deep House</span>
+            <h3 class="card-title">The Room Leans In</h3>
+            <p class="card-desc">Thursday, six p.m., and the studio is already dark except the one screen.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=SOUNDHEALING" alt="Furniture You Can Rest On" class="card-img">
+          <div class="card-content">
+            <span class="tag">Soundhealing</span>
+            <h3 class="card-title">Furniture You Can Rest On</h3>
+            <p class="card-desc">The tone starts somewhere below the floor and works upward.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=CYBERPUNK+HK" alt="Two A.M. Infrastructure" class="card-img">
+          <div class="card-content">
+            <span class="tag">Cyberpunk / HK</span>
+            <h3 class="card-title">Two A.M. Infrastructure</h3>
+            <p class="card-desc">Rain, neon, a city that doesn't text — it idles.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=COLLECTIVE" alt="The Third Thing" class="card-img">
+          <div class="card-content">
+            <span class="tag">Collective / Misha</span>
+            <h3 class="card-title">The Third Thing</h3>
+            <p class="card-desc">The track came out of a shared wrong chord.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=SOUNDHEALING" alt="The Coda" class="card-img">
+          <div class="card-content">
+            <span class="tag">Soundhealing · Deep House</span>
+            <h3 class="card-title">The Coda</h3>
+            <p class="card-desc">It ends the way the good nights end: not with a stop, but a release.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=SOUNDHEALING" alt="Threshold" class="card-img">
+          <div class="card-content">
+            <span class="tag">Soundhealing · Collective</span>
+            <h3 class="card-title">Threshold</h3>
+            <p class="card-desc">He was born in a country that used to be a different country.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=DEEP+HOUSE" alt="The One Screen" class="card-img">
+          <div class="card-content">
+            <span class="tag">Deep House · Identity</span>
+            <h3 class="card-title">The One Screen</h3>
+            <p class="card-desc">One screen. One pulse. Tonight's kick is tonight's kick.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://placehold.co/600x338/1a1a1a/444444?text=CYBERPUNK+HK" alt="Two A.M. Infrastructure" class="card-img">
+          <div class="card-content">
+            <span class="tag">Cyberpunk / HK</span>
+            <h3 class="card-title">Two A.M. Infrastructure</h3>
+            <p class="card-desc">The ferry terminal at two in the morning is a motherboard under a fist of rain.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Studio Extras</h2>
+      <div class="grid-extras">
+        <div class="extra-item">
+          <img src="https://placehold.co/400x300/1a1a1a/444444?text=vocalist" alt="vocalist">
+          <span>vocalist - blinds</span>
+        </div>
+        <div class="extra-item">
+          <img src="https://placehold.co/400x300/1a1a1a/444444?text=poster" alt="poster">
+          <span>poster - hands</span>
+        </div>
+        <div class="extra-item">
+          <img src="https://placehold.co/400x300/1a1a1a/444444?text=skater" alt="skater">
+          <span>skater - ollie</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cover-studies">
+      <h2>Cover Studies</h2>
+      <p>Twelve square covers in three families — the 1:1 arm of the same world. Each family is one prompt run through five seeds.</p>
+      
+      <div class="cover-group">
+        <h3>Neon Pulse · 5</h3>
+        <div class="grid-covers">
+          <div class="cover-item"><img src="https://placehold.co/300/111/fff?text=Neon+Pulse" alt="Neon Pulse"><span>Neon Pulse</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/111/fff?text=Midnight+Circuit" alt="Midnight Circuit"><span>Midnight Circuit</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/111/fff?text=Chrome+Heart" alt="Chrome Heart"><span>Chrome Heart</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/111/fff?text=Afterhours" alt="Afterhours"><span>Afterhours</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/111/fff?text=Static+Drive" alt="Static Drive"><span>Static Drive</span></div>
+        </div>
+      </div>
+
+      <div class="cover-group">
+        <h3>Smoke · 5</h3>
+        <div class="grid-covers">
+          <div class="cover-item"><img src="https://placehold.co/300/222/ccc?text=Smoke+Portrait" alt="Smoke Portrait"><span>Smoke Portrait</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/222/ccc?text=Ember" alt="Ember"><span>Ember</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/222/ccc?text=Veil" alt="Veil"><span>Veil</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/222/ccc?text=Haze" alt="Haze"><span>Haze</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/222/ccc?text=Ash" alt="Ash"><span>Ash</span></div>
+        </div>
+      </div>
+
+      <div class="cover-group">
+        <h3>Type Loud · 2</h3>
+        <div class="grid-covers">
+          <div class="cover-item"><img src="https://placehold.co/300/000/fff?text=TYPE+LOUD" alt="TYPE : LOUD"><span>TYPE : LOUD</span></div>
+          <div class="cover-item"><img src="https://placehold.co/300/000/fff?text=Overdrive" alt="Overdrive"><span>Overdrive</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>System Error</h2>
+      <p style="margin-bottom: 2rem; color: var(--text-muted); font-size: 0.95rem;">Ten 16:9 plates for the pack card: digital decay, RGB splits, controlled chaos.</p>
+      <div class="grid-system">
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=RGB+Split" alt="RGB Split"><span>portrait - rgb split</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Datamosh" alt="Datamosh"><span>skyline - datamosh</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Test+Pattern" alt="Test Pattern"><span>crt - test pattern</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Pixel+Sort" alt="Pixel Sort"><span>skyline - pixel sort</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Macroblocks" alt="Macroblocks"><span>file - macroblocks</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Lcd+Leak" alt="LCD Leak"><span>lcd - leak</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Chrome+Aberration" alt="Chrome Aberration"><span>chrome - aberration</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Blocks+Missing" alt="Blocks Missing"><span>blocks - missing</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Mesh+Tear" alt="Mesh Tear"><span>mesh - tear</span></div>
+        <div class="system-item"><img src="https://placehold.co/400x225/111/555?text=Halftone" alt="Halftone"><span>noise - halftone</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Generated frames: 10-day + new-wave source-frame packs, dust pass. — 58. 16:9.</p>
+    <p>Rendered locally on FLUX.2 klein-4B (Apple MPS) — no credits, no network.</p>
+  </footer>
+
+  <script>
+    function setTheme(theme) {
+      const html = document.documentElement;
+      const btnLight = document.getElementById('btn-light');
+      const btnDark = document.getElementById('btn-dark');
+      const btnAuto = document.getElementById('btn-auto');
+      
+      btnLight.classList.remove('active');
+      btnDark.classList.remove('active');
+      btnAuto.classList.remove('active');
+
+      if (theme === 'auto') {
+        btnAuto.classList.add('active');
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      } else {
+        document.body.setAttribute('data-theme', theme);
+        if (theme === 'light') btnLight.classList.add('active');
+        if (theme === 'dark') btnDark.classList.add('active');
+      }
+      localStorage.setItem('mood-frames-theme', theme);
+    }
+
+    const savedTheme = localStorage.getItem('mood-frames-theme') || 'light';
+    setTheme(savedTheme);
+  </script>
+</body>
+</html>

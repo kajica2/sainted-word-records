@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temple of Control · The Twin</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --text: #1a1a1a;
+      --text-muted: #666;
+      --border: #e0e0e0;
+      --card-bg: #ffffff;
+      --accent: #2a9d8f;
+      --font-serif: 'Playfair Display', Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg: #111111;
+      --text: #e0e0e0;
+      --text-muted: #888;
+      --border: #333333;
+      --card-bg: #1a1a1a;
+      --accent: #4db6ac;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      transition: background-color 0.3s, color 0.3s;
+      padding: 2rem;
+    }
+
+    header {
+      max-width: 800px;
+      margin: 0 auto 3rem auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .theme-toggle button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.2rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.7rem;
+      border-radius: 4px;
+      margin-left: 0.25rem;
+    }
+
+    .theme-toggle button.active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 3rem;
+      font-weight: 400;
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      font-weight: 400;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .desk-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #2a9d8f;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #visualizer {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .sliders {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-family: var(--font-mono);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .badges {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      cursor: pointer;
+    }
+
+    .badge.active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    section {
+      margin-bottom: 4rem;
+    }
+
+    .section-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    button.action-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: var(--font-sans);
+    }
+
+    button.action-btn.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      background: var(--border);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    footer {
+      max-width: 800px;
+      margin: 4rem auto 0 auto;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <header>
+    <span>~ how-to</span>
+    <div class="theme-toggle">
+      <button onclick="setTheme('light')" id="btn-light" class="active">Light</button>
+      <button onclick="setTheme('dark')" id="btn-dark">Dark</button>
+    </div>
+  </header>
+
+  <main>
+    <h1>Temple of Control</h1>
+    <p class="subtitle">Three temperature sliders turn a meditation into a visual. Heat is the colour temperature, breath the motion temperature, glow the light temperature. Drop in a .mid and the score becomes the meditation.</p>
+
+    <section>
+      <h2>The desk</h2>
+      <div class="desk-container">
+        <canvas id="visualizer"></canvas>
+      </div>
+      
+      <div class="sliders">
+        <div class="slider-group">
+          <div class="slider-header"><span>HEAT</span><span id="val-heat">0.38</span></div>
+          <input type="range" id="slider-heat" min="0" max="1" step="0.01" value="0.38">
+          <div class="slider-labels"><span>colour - steel-blue - ember</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span>BREATH</span><span id="val-breath">0.50</span></div>
+          <input type="range" id="slider-breath" min="0" max="1" step="0.01" value="0.50">
+          <div class="slider-labels"><span>motion - still - alive</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span>GLOW</span><span id="val-glow">0.58</span></div>
+          <input type="range" id="slider-glow" min="0" max="1" step="0.01" value="0.58">
+          <div class="slider-labels"><span>light - dim - incandescent</span></div>
+        </div>
+      </div>
+
+      <div class="badges">
+        <span class="badge">frost</span>
+        <span class="badge">still</span>
+        <span class="badge active">ember</span>
+        <span class="badge">incandescent</span>
+        <span class="badge">no score · breathing</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Feed it a score</h2>
+      <p class="section-desc">Choose a Standard MIDI File and the visual is driven by the note events themselves.</p>
+      <div class="controls-row">
+        <input type="file" id="midi-file" accept=".mid,.midi" style="display: none;">
+        <button class="action-btn secondary" onclick="document.getElementById('midi-file').click()">Choose File</button>
+        <span id="file-name" style="font-size: 0.85rem; color: var(--text-muted);">No file chosen</span>
+        <button class="action-btn secondary" id="pause-btn" style="margin-left: auto;">pause</button>
+        <span id="score-status" style="font-size: 0.85rem; color: var(--text-muted);">no score loaded</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Automap — hardware or keyboard as the desk</h2>
+      <p class="section-desc">A MIDI controller can drive the three temperatures directly.</p>
+      
+      <p style="font-weight: 600; margin-bottom: 0.5rem;">Keyboard fallback:</p>
+      <ul style="margin-bottom: 1.5rem; padding-left: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+        <li><code>1-9, 0</code> → heat (0.1 → 1.0)</li>
+        <li><code>Shift+1-9, Shift+0</code> → breath (0.1 → 1.0)</li>
+        <li><code>Ctrl+1-9, Ctrl+0</code> → glow (0.1 → 1.0)</li>
+        <li><code>M</code> → cycle mode</li>
+      </ul>
+
+      <table>
+        <thead>
+          <tr>
+            <th>MODE</th>
+            <th>KNOB 1</th>
+            <th>KNOB 2</th>
+            <th>KNOB 3</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>temperature</td><td>heat</td><td>breath</td><td>glow</td></tr>
+          <tr><td>score</td><td>heat</td><td>glow</td><td>ring rate</td></tr>
+          <tr><td>tint</td><td>heat</td><td>glow</td><td>hue shift</td></tr>
+        </tbody>
+      </table>
+
+      <div class="controls-row">
+        <button class="action-btn">connect controller</button>
+        <button class="action-btn secondary">cycle mode</button>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">mode: temperature</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>SWR Bridge — control the visual engine</h2>
+      <p class="section-desc">Connect to <strong>SWR</strong> (Sainted Word Records engine) to drive FX parameters directly.</p>
+      <div class="controls-row">
+        <button class="action-btn">connect to SWR</button>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">SWR: disconnected</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Plug it into any page</h2>
+      <p class="section-desc">Two files, no build step. The element is a Web Component.</p>
+
+      <pre><code>&lt;script src="../lib/meditate-temperature.js"&gt;&lt;/script&gt;
+
+&lt;meditate-temperature heat="0.38" breath="0.5" glow="0.58"&gt;&lt;/meditate-temperature&gt;
+
+&lt;script&gt;
+  const v = document.querySelector('meditate-temperature');
+  v.loadMidi('/audio/score.mid').then(console.log);
+  v.setTemp({ heat: 0.8 });
+&lt;/script&gt;</code></pre>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Part of the digital twin - component reference in <a href="https://github.com/kajica2/digital-twin/blob/main/docs/COMPONENT-CATALOGUE.md">docs/COMPONENT-CATALOGUE.md</a></p>
+  </footer>
+
+  <script>
+    function setTheme(theme) {
+      const btnLight = document.getElementById('btn-light');
+      const btnDark = document.getElementById('btn-dark');
+      btnLight.classList.remove('active');
+      btnDark.classList.remove('active');
+      
+      document.body.setAttribute('data-theme', theme);
+      if (theme === 'light') btnLight.classList.add('active');
+      if (theme === 'dark') btnDark.classList.add('active');
+      localStorage.setItem('temple-theme', theme);
+    }
+    const savedTheme = localStorage.getItem('temple-theme') || 'light';
+    setTheme(savedTheme);
+
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    const heatSlider = document.getElementById('slider-heat');
+    const breathSlider = document.getElementById('slider-breath');
+    const glowSlider = document.getElementById('slider-glow');
+    
+    const valHeat = document.getElementById('val-heat');
+    const valBreath = document.getElementById('val-breath');
+    const valGlow = document.getElementById('val-glow');
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let time = 0;
+
+    function draw() {
+      const w = canvas.width;
+      const h = canvas.height;
+      const heat = parseFloat(heatSlider.value);
+      const breath = parseFloat(breathSlider.value);
+      const glow = parseFloat(glowSlider.value);
+
+      valHeat.textContent = heat.toFixed(2);
+      valBreath.textContent = breath.toFixed(2);
+      valGlow.textContent = glow.toFixed(2);
+
+      ctx.clearRect(0, 0, w, h);
+
+      const r = Math.round(70 + (255 - 70) * heat);
+      const g = Math.round(130 + (69 - 130) * heat);
+      const b = Math.round(180 + (0 - 180) * heat);
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+      ctx.fillRect(0, 0, w, h);
+
+      const cx = w / 2;
+      const cy = h / 2;
+      const baseRadius = Math.min(w, h) * 0.15;
+      const radius = baseRadius + (Math.sin(time * 0.02) * 10 * breath) + (breath * 20);
+
+      const glowAlpha = 0.2 + (glow * 0.8);
+      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 3);
+      
+      const gr = Math.round(200 + (55 * glow));
+      const gg = Math.round(200 + (55 * glow));
+      const gb = Math.round(200 - (100 * glow));
+      
+      gradient.addColorStop(0, `rgba(${gr}, ${gg}, ${gb}, ${glowAlpha})`);
+      gradient.addColorStop(0.5, `rgba(${gr}, ${gg}, ${gb}, ${glowAlpha * 0.3})`);
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 3, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + glow * 0.5})`;
+      ctx.fill();
+
+      time += 1;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    document.getElementById('midi-file').addEventListener('change', function(e) {
+      const fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+      document.getElementById('file-name').textContent = fileName;
+      document.getElementById('score-status').textContent = e.target.files[0] ? 'score loaded' : 'no score loaded';
+    });
+  </script>
+</body>
+</html>
