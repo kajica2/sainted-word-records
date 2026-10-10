@@ -22,12 +22,12 @@
     "discoverPages": "Run: node scripts/generate-site-manifest.mjs --dry-run (auto-adds untracked HTML files)"
   },
   "_pathConventions": {
-    "root": "/page-name \u2192 /page-name.html",
-    "subdirectory": "/artists/foo \u2192 /artists/foo.html",
-    "gallery": "/gallery/music \u2192 /gallery-music.html (hyphenated)",
-    "withDotHtml": "/legal/privacy.html \u2192 /legal/privacy.html (as-is)",
-    "artistsIndex": "/artists \u2192 /artists/index.html",
-    "dynamic": "/s/:id \u2192 handled by share-view.html client-side"
+    "root": "/page-name → /page-name.html",
+    "subdirectory": "/artists/foo → /artists/foo.html",
+    "gallery": "/gallery/music → /gallery-music.html (hyphenated)",
+    "withDotHtml": "/legal/privacy.html → /legal/privacy.html (as-is)",
+    "artistsIndex": "/artists → /artists/index.html",
+    "dynamic": "/s/:id → handled by share-view.html client-side"
   },
   "nav": [
     {
@@ -51,18 +51,9 @@
           "description": "Curated .swr-set templates"
         },
         {
-          "label": "Claim",
-          "href": "/marketplace-claim",
-          "description": "Limited-edition creative assets"
-        },
-        {
           "label": "Demos",
           "href": "/engine-demos",
           "description": "Live engine demos"
-        },
-        {
-          "label": "AR GIF",
-          "href": "/ar-gif"
         },
         {
           "label": "Visual Languages",
@@ -131,11 +122,6 @@
           "description": "System status"
         }
       ]
-    },
-    {
-      "label": "Book an Artist",
-      "href": "/bookings",
-      "description": "Submit a booking request for live performances"
     }
   ],
   "footer": [
@@ -156,7 +142,7 @@
     }
   ],
   "footerNav": {
-    "_comment": "Shared footer content for <swr-footer> (lib/footer.client.js). Columns are the site's own IA \u2014 keep hrefs in this file only so every page's footer matches. Tagline is brand copy; social links are external and carry rel=noopener.",
+    "_comment": "Shared footer content for <swr-footer> (lib/footer.client.js). Columns are the site's own IA — keep hrefs in this file only so every page's footer matches. Tagline is brand copy; social links are external and carry rel=noopener.",
     "tagline": "An audio-reactive video engine that ships as a single HTML file. Drop a song, drop a library, get a music video.",
     "columns": [
       {
@@ -182,6 +168,10 @@
           {
             "label": "Personas",
             "href": "/personas"
+          },
+          {
+            "label": "Persona variants",
+            "href": "/personas/v"
           },
           {
             "label": "Media packs",
@@ -270,11 +260,6 @@
       "label": "Terms",
       "href": "/legal/terms.html",
       "description": "Terms of service"
-    },
-    {
-      "label": "Beta Test Agreement",
-      "href": "/legal/beta-test.html",
-      "description": "Early Access Program terms"
     }
   ],
   "tools": [
@@ -341,7 +326,7 @@
   ],
   "redirects": [
     {
-      "_comment": "Every URL here 301s (scripts/generate-vercel-rewrites.mjs emits from/without-slash/.html for each). Used for pages removed from the IA whose content still exists elsewhere \u2014 never a bare deletion. An entry is safe to revert: delete it and the page comes back if its file is restored from _archive/.",
+      "_comment": "Every URL here 301s (scripts/generate-vercel-rewrites.mjs emits from/without-slash/.html for each). Used for pages removed from the IA whose content still exists elsewhere — never a bare deletion. An entry is safe to revert: delete it and the page comes back if its file is restored from _archive/.",
       "from": "/persona-demo",
       "to": "/personas"
     },
@@ -400,18 +385,14 @@
     {
       "from": "/landing-personas-v11-zine",
       "to": "/personas"
-    },
-    {
-      "_comment": "team was never a real page - redirect to artists roster",
-      "from": "/team",
-      "to": "/artists"
     }
   ],
   "unlisted": [
-    "_comment: shipped pages deliberately kept OUT of the navigation (owner request, 2026-09-29). They still resolve \u2014 scripts/generate-vercel-rewrites.mjs emits a rewrite for every entry here, so the pretty route survives without a nav item. Add an entry here rather than deleting a nav child when a page should stay reachable but unlisted.",
+    "_comment: shipped pages deliberately kept OUT of the navigation (owner request, 2026-09-29). They still resolve — scripts/generate-vercel-rewrites.mjs emits a rewrite for every entry here, so the pretty route survives without a nav item. Add an entry here rather than deleting a nav child when a page should stay reachable but unlisted.",
     "/make-video",
     "/photo",
     "/enhance",
+    "/atlas",
     "/gallery",
     "/artists",
     "/shop",
@@ -435,19 +416,16 @@
     "/gallery/brutalist",
     "/gallery/vintage",
     "/versions/music-video-gallery",
-    "/versions/temple-of-control",
     "/slots-admin",
     "/connect",
-    "/buy",
-    "/fonts",
-    "/auth/google-callback"
+    "/buy"
   ],
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-10-09",
-    "totalPages": 149,
-    "corePages": 149,
+    "lastUpdated": "2026-10-02",
+    "totalPages": 146,
+    "corePages": 146,
     "archivedPages": 0
   },
   "discovered": [
@@ -472,7 +450,6 @@
     "atlas-legacy.html",
     "atlas-life-stages.html",
     "atlas.html",
-    "auth/google-callback.html",
     "auth/login.html",
     "auth/verify.html",
     "buy.html",
@@ -518,7 +495,6 @@
     "landing.html",
     "login.html",
     "make-video.html",
-    "marketplace-claim.html",
     "marketplace.html",
     "offline.html",
     "packs.html",
@@ -592,10 +568,8 @@
     "versions/smoke.html",
     "versions/spectrum.html",
     "versions/tape.html",
-    "versions/temple-of-control.html",
     "versions/typography.html",
     "versions/void.html",
-    "versions/watercolor.html",
-    "versions/clean.html"
+    "versions/watercolor.html"
   ]
 }
