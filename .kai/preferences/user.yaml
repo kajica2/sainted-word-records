@@ -46,6 +46,13 @@ delivery:
   open_prs: ask
   # Commit only once the relevant gate passes; never commit red.
   commit_when: gated
+  # New protocol (2026-10-10): after EVERY deliverable, automatically
+  # (no prompt) run the relevant gate, commit, push, and report a review
+  # — without being asked. The three steps form a single terminal
+  # action: tests → commit → push → review summary. Skip pushing only
+  # if tests fail. If multiple unrelated changes are staged, group
+  # them into one Conventional Commit per logical concern.
+  auto_commit_push_review: true
 
 tools:
   # The user is on macOS with zsh. Path quoting is important for spaces.
