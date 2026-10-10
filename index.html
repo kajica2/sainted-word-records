@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kai Djuric</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0a;
+      --bg-warm: #0d0b09;
+      --text: #f5f0e8;
+      --text-dim: #8a8279;
+      --accent: #c9a227;
+      --accent-dim: #9a7b1d;
+      --border: #2a2520;
+      --card: #141210;
+      --card-hover: #1a1815;
+    }
+    
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+    
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+    
+    .name {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(48px, 10vw, 80px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .tagline {
+      font-size: 18px;
+      color: var(--text-dim);
+      font-weight: 400;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    
+    .tagline .accent {
+      color: var(--accent);
+    }
+    
+    /* About */
+    .about {
+      margin-bottom: 56px;
+      padding: 32px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+    
+    .about p {
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    
+    /* Links */
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 56px;
+    }
+    
+    .link-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+    
+    .link-card:hover {
+      background: var(--card-hover);
+      border-color: var(--accent-dim);
+      transform: translateX(4px);
+    }
+    
+    .link-card:hover .link-arrow {
+      transform: translateX(4px);
+      color: var(--accent);
+    }
+    
+    .link-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .link-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      border-radius: 10px;
+      font-size: 20px;
+    }
+    
+    .link-text h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .link-text p {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    
+    .link-arrow {
+      color: var(--text-dim);
+      font-size: 20px;
+      transition: transform 0.2s;
+    }
+    
+    /* Projects */
+    .section-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .projects {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 56px;
+    }
+    
+    .project {
+      padding: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+    
+    .project:hover {
+      background: var(--card-hover);
+      border-color: var(--accent-dim);
+    }
+    
+    .project h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .project p {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    
+    .project-tags {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .tag {
+      font-size: 11px;
+      padding: 4px 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      color: var(--text-dim);
+    }
+    
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .footer p {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Social */
+    .social {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    
+    .social a {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      font-size: 18px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    
+    .social a:hover {
+      background: var(--card-hover);
+      border-color: var(--accent-dim);
+      transform: translateY(-2px);
+    }
+    
+    /* Location */
+    .location {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-top: 16px;
+    }
+    
+    .location .dot {
+      width: 6px;
+      height: 6px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <h1 class="name">Kai Djuric</h1>
+      <p class="tagline">
+        Developer, designer, and <span class="accent">builder</span> of algorithmic creative tools
+      </p>
+      <div class="location">
+        <span class="dot"></span>
+        <span>Based in Berlin</span>
+      </div>
+    </header>
+
+    <div class="social">
+      <a href="https://github.com/kajica2" title="GitHub" target="_blank">⌘</a>
+      <a href="https://twitter.com" title="Twitter/X">𝕏</a>
+      <a href="mailto:hello@kaidjuric.com" title="Email">@</a>
+    </div>
+
+    <section class="about">
+      <p>
+        I build tools for creative work — from audio-reactive video engines to automated pipelines. 
+        Currently focused on AI-powered visual generation, digital twin systems, and making creative workflows more autonomous.
+      </p>
+    </section>
+
+    <h2 class="section-title">Repositories</h2>
+    
+    <section class="projects">
+      <a href="https://github.com/kajica2/sainted-word-records" class="project" target="_blank">
+        <h3>Sainted Word Records</h3>
+        <p>Audio-reactive video engine. Drop in a song, drop in media assets, get a layered composition.</p>
+        <div class="project-tags">
+          <span class="tag">JavaScript</span>
+          <span class="tag">WebGL</span>
+          <span class="tag">Video</span>
+        </div>
+      </a>
+      
+      <a href="https://github.com/kajica2/digital-twin" class="project" target="_blank">
+        <h3>Digital Twin</h3>
+        <p>Personal AI agent system with FLUX visuals, watchers, and automated pipelines.</p>
+        <div class="project-tags">
+          <span class="tag">Python</span>
+          <span class="tag">AI</span>
+          <span class="tag">Automation</span>
+        </div>
+      </a>
+      
+      <a href="https://github.com/kajica2/loopable-video-segmenter" class="project" target="_blank">
+        <h3>Loopable Video Segmenter</h3>
+        <p>Beat-aligned mirror-looping for seamless video loops. Gradio + CLI.</p>
+        <div class="project-tags">
+          <span class="tag">Python</span>
+          <span class="tag">Video</span>
+          <span class="tag">Gradio</span>
+        </div>
+      </a>
+      
+      <a href="https://github.com/kajica2/agentgrid-tools" class="project" target="_blank">
+        <h3>AgentGrid Tools</h3>
+        <p>Utilities and helpers for AgentGrid workflows.</p>
+        <div class="project-tags">
+          <span class="tag">Tools</span>
+          <span class="tag">Automation</span>
+        </div>
+      </a>
+    </section>
+
+    <h2 class="section-title">Quick Links</h2>
+    
+    <section class="links">
+      <a href="https://kajica2.github.io/sainted-word-records/" class="link-card" target="_blank">
+        <div class="link-info">
+          <div class="link-icon">🌐</div>
+          <div class="link-text">
+            <h3>Live Site</h3>
+            <p>sainted-word-records on GitHub Pages</p>
+          </div>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      
+      <a href="https://vercel.com/kajica2" class="link-card" target="_blank">
+        <div class="link-info">
+          <div class="link-icon">▲</div>
+          <div class="link-text">
+            <h3>Vercel Deploys</h3>
+            <p>Latest productions builds</p>
+          </div>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      
+      <a href="https://dashboard.stripe.com" class="link-card" target="_blank">
+        <div class="link-info">
+          <div class="link-icon">💳</div>
+          <div class="link-text">
+            <h3>Stripe Dashboard</h3>
+            <p>Payment & Connect (if applicable)</p>
+          </div>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+    </section>
+
+    <footer class="footer">
+      <p>Built with care. <a href="https://github.com/kajica2">View all projects →</a></p>
+    </footer>
+  </div>
+</body>
+</html>
