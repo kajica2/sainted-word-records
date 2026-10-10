@@ -16,7 +16,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
     :root {
-      --bg: #0a0612; --bg-2: #150b22; --panel: #1a0f30; --panel-2: #221540;
+      --bg: #0a0612; --bg-2: #150b22; --bg-3: #1a0f30; --panel: #1a0f30; --panel-2: #221540;
       --ink: #f5e9ff; --ink-2: #c8b5e0; --muted: #8a7aa0; --line: #2a1d3e;
       --accent: #ff6b3a;
     }
@@ -95,29 +95,6 @@
 </head>
 <body>
   <swr-nav></swr-nav>
-  
-    <audio id="track" loop preload="auto" crossorigin="anonymous">
-      <source src="/audios/glitch.mp3" type="audio/mpeg" />
-    </audio>
-    <button id="playGate" class="play-gate" type="button" aria-label="Play loop">
-      <span class="play-icon" aria-hidden="true">▶</span>
-      <span class="play-label">PLAY LOOP</span>
-    </button>
-    <div class="now-playing" hidden>
-      <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span class="track-label">Loop from &#39;Kvar&#39;</span>
-    </div>
-    <style>
-      /* tiny equaliser animation when audio is running */
-      .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
-      .eq i { width: 3px; background: var(--accent); display: block; animation: eq 0.9s infinite ease-in-out; }
-      .eq i:nth-child(1) { animation-delay: -0.3s; }
-      .eq i:nth-child(2) { animation-delay: -0.1s; }
-      .eq i:nth-child(3) { animation-delay: -0.5s; }
-      @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 12px; } }
-      .now-playing.playing .eq i { animation-play-state: running; }
-      .now-playing.paused .eq i { animation-play-state: paused; }
-    </style>
   <main class="wrap">
     <header class="top">
       <span class="badge">ARTIST · MARKO ILIĆ</span>
@@ -131,6 +108,9 @@
     <p class="bio">Marko treats the engine as a percussion instrument. He runs his tracks through 14-FX with chroma at 0.85 and treats the resulting distortion as the second voice in the mix. Releases on three labels.</p>
 
     <div class="player">
+      <audio id="track" loop preload="auto" crossorigin="anonymous">
+        <source src="/audios/glitch.mp3" type="audio/mpeg" />
+      </audio>
       <button id="playGate" class="play-gate" type="button" aria-label="Play loop">
         <span class="play-icon" aria-hidden="true">▶</span>
         <span class="play-label">PLAY LOOP</span>

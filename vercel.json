@@ -185,11 +185,13 @@
     },
     {
       "source": "/artists/vodolija",
-      "destination": "/artists/vodolija/index.html"
+      "destination": "/artists",
+      "statusCode": 308
     },
     {
       "source": "/artists/vodolija/",
-      "destination": "/artists/vodolija/index.html"
+      "destination": "/artists",
+      "statusCode": 308
     },
     {
       "source": "/versions/music-video-gallery",
@@ -1339,6 +1341,16 @@
       "source": "/landing-personas-v11-zine.html",
       "destination": "/personas",
       "statusCode": 301
+    },
+    {
+      "source": "/team",
+      "destination": "/artists",
+      "statusCode": 308
+    },
+    {
+      "source": "/team/",
+      "destination": "/artists",
+      "statusCode": 308
     }
   ]
 }

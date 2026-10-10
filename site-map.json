@@ -400,6 +400,11 @@
     {
       "from": "/landing-personas-v11-zine",
       "to": "/personas"
+    },
+    {
+      "_comment": "team was never a real page - redirect to artists roster",
+      "from": "/team",
+      "to": "/artists"
     }
   ],
   "unlisted": [
