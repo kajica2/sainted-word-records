@@ -9,6 +9,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "deploy": "bash bin/deploy-gh-pages.sh",
     "dev": "vite",
     "build": "vite build",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
