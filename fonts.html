@@ -239,6 +239,41 @@
       .gff__stage { aspect-ratio: 4 / 5; }
       .gff__controls input[type="range"] { width: 104px; }
     }
+
+    /* Theme: Ink (default - black on cream) */
+    .gff__stage[data-theme="ink"] { background: #faf7f2; }
+    .gff__stage[data-theme="ink"] svg defs path { stroke: #1a1612; fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Theme: Neon (hot pink/cyan on black) */
+    .gff__stage[data-theme="neon"] { background: #0a0a0f; }
+    .gff__stage[data-theme="neon"] svg defs path {
+      stroke: #ff2d8a; fill: none; stroke-width: 4;
+      stroke-linecap: round; stroke-linejoin: round;
+      filter: drop-shadow(0 0 3px #ff2d8a) drop-shadow(0 0 6px #00ffa3);
+    }
+
+    /* Theme: Blueprint (white on deep blue) */
+    .gff__stage[data-theme="blueprint"] { background: #1a2744; }
+    .gff__stage[data-theme="blueprint"] svg defs path { stroke: #e8f0ff; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Theme: Ember (orange/gold on dark brown) */
+    .gff__stage[data-theme="ember"] { background: #1a1210; }
+    .gff__stage[data-theme="ember"] svg defs path {
+      stroke: #ffaa3a; fill: none; stroke-width: 4;
+      stroke-linecap: round; stroke-linejoin: round;
+      filter: drop-shadow(0 0 2px #ff6b2d);
+    }
+
+    /* Theme: Frost (cyan on white) */
+    .gff__stage[data-theme="frost"] { background: #f0f7f9; }
+    .gff__stage[data-theme="frost"] svg defs path { stroke: #0d7377; fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Theme selector */
+    .gff__theme-select {
+      background: var(--panel-2); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 4px;
+      padding: 4px 6px; font-family: var(--font-mono); font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -327,6 +362,16 @@
           <button class="gff__btn" id="gff-regen" type="button">Regenerate</button>
           <button class="gff__btn" id="gff-mute" type="button" aria-pressed="false">Sound on</button>
         </div>
+        <label>
+          Theme
+          <select id="gff-theme" class="gff__theme-select">
+            <option value="ink">Ink</option>
+            <option value="neon">Neon</option>
+            <option value="blueprint">Blueprint</option>
+            <option value="ember">Ember</option>
+            <option value="frost">Frost</option>
+          </select>
+        </label>
         <label>
           Speed
           <input type="range" id="gff-rate" min="2" max="40" step="1" value="14" />
@@ -461,6 +506,7 @@
       const spaceR = $('gff-space');
       const sizeR = $('gff-size');
       const countEl = $('gff-count');
+      const themeSel = $('gff-theme');
 
       let ctl = null;
       let muted = false;
@@ -551,6 +597,13 @@
       sizeR.addEventListener('input', () => apply());
       colsN.addEventListener('change', () => apply());
       rowsN.addEventListener('change', () => apply());
+
+      // Theme selector — changes the data-theme attribute on the stage, CSS handles the rest
+      themeSel.addEventListener('change', () => {
+        stage.setAttribute('data-theme', themeSel.value);
+      });
+      // Set initial theme
+      stage.setAttribute('data-theme', themeSel.value);
 
       // Enter/Space on the stage also starts it, so the stage is keyboard-usable.
       stage.addEventListener('keydown', (e) => {
