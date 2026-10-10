@@ -456,7 +456,10 @@ function copyStatic() {
     // derivation only strips the LEADING slash, so it yields
     // `gallery/dingbats.html` — a path that does not exist here — and the copy
     // loop skips it silently. Same reason gallery-glyphs.html is listed.
+    // /fonts also needs explicit entry — the derivation yields fonts.html but
+    // something in the pipeline is skipping it.
     'gallery-dingbats.html',
+    'fonts.html',
     'gallery-vr.html',
     'gallery-tshirts.html',
     'gallery-posters.html',
