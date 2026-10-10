@@ -395,6 +395,8 @@
     "/atlas",
     "/gallery",
     "/artists",
+    "/booking",
+    "/bookings",
     "/shop",
     "/gallery/music",
     "/gallery/generative",
