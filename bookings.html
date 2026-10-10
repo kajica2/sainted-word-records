@@ -347,6 +347,10 @@ const form = {};
 
 /* ── URL params (confirmation state) ──────────────────────────────────────── */
 const params = new URLSearchParams(window.location.search);
+if (params.has('artist')) {
+  const artistInput = document.getElementById('artistName');
+  if (artistInput) artistInput.value = params.get('artist').slice(0, 120);
+}
 if (params.has('confirmed')) {
   document.getElementById('confirmation').classList.add('visible');
   document.getElementById('form-card').style.display = 'none';
