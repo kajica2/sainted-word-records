@@ -226,6 +226,11 @@ assert(!!loaded, 'loadAudio resolves with the decoded buffer');
 assert(loaded && Math.abs(loaded.duration - 20) < 0.1, 'duration read from the buffer', loaded && loaded.duration);
 assert(loaded && loaded.hook >= 10 && loaded.hook <= 16, 'hook lands on the lift at 12 s', loaded && `hook=${loaded.hook.toFixed(2)}`);
 assert(loaded && loaded.bpm >= 100 && loaded.bpm <= 140, 'BPM near the click train', loaded && `bpm=${Math.round(loaded.bpm)}`);
+// Regression: the chroma branch guards on computeMagnitudes, which audio-analysis-v2.js
+// publishes only on __AudioAnalysisV2Internals. Guarding on the public namespace alone made
+// it dead code and the key chip never populated, unnoticed because nothing asserted key.
+const keyStr = (loaded && loaded.key) || '';
+assert(keyStr.length > 0, 'key/chroma path actually runs (regression: computeMagnitudes lookup)', keyStr || 'empty');
 assert(rt.getState().state === 'ready', 'state is ready after load', rt.getState().state);
 assert(storage.get('swr.tiktok.lastAudioName') === 'click-track.wav', 'filename persisted');
 assert(!!sandbox.window.SWR_TIKTOK_AUDIO, 'audio graph published for the exporter');

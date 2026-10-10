@@ -123,14 +123,19 @@
     }
     out.hook = bestAt;
     // Key: chroma over a strided slice (every 4th frame is plenty for a profile).
-    if (AA && typeof AA.chromagram === 'function' && typeof AA.computeMagnitudes === 'function' && typeof AA.estimateKey === 'function') {
+    // computeMagnitudes is NOT on window.AudioAnalysisV2 — audio-analysis-v2.js
+    // publishes it only on the internals namespace. Read both, or this branch is
+    // dead code and the key chip can never populate.
+    var INTERNALS = window.__AudioAnalysisV2Internals || {};
+    var magsFn = (AA && AA.computeMagnitudes) || INTERNALS.computeMagnitudes;
+    if (AA && typeof AA.chromagram === 'function' && typeof magsFn === 'function' && typeof AA.estimateKey === 'function') {
       try {
         var fftSize = 2048;
         chromaAcc = new Float32Array(12);
         var used = 0;
         for (var f = 0; f + fftSize < data.length && used < 200; f += hop * 4) {
           var slice = data.subarray(f, f + fftSize);
-          var mags = AA.computeMagnitudes(slice, sr, fftSize);
+          var mags = magsFn(slice, sr, fftSize);
           var ch = AA.chromagram(mags, sr);
           if (ch && ch.length) { for (var c = 0; c < 12; c++) chromaAcc[c] += (ch[c] || 0); used++; }
         }
