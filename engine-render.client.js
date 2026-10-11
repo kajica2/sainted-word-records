@@ -298,64 +298,10 @@
   //                  using CSS-pixel coordinates (we already scaled)
   //   bgColor      — optional override; falls back to state.bgColor
   //   extraDraws   — array of () => {} called after layers but before meter
-  // Image evolution — stills drift like video layers play. A seeded Ken Burns
-  // (zoom + pan) applied to every image layer's reactive result; the clock
-  // accumulates only while the song plays, so a paused song freezes photos
-  // exactly like it pauses a video. Phase is a name hash — stacked photos
-  // never drift in lockstep. Pure math on numbers the draw already uses.
-  function imageEvolve(l, r) {
-    const a = l && l.asset;
-    if (!a || a.type !== 'image' || !r) return r;
-    const now = performance.now();
-    const playing = !!(window.SWR && window.SWR.Audio && window.SWR.Audio.playing);
-    // Tidal floor (slice 3): a paused song holds the photos at a slow drift
-    // instead of freezing them — the composition stays alive at rest.
-    const kbDt = (now - (a._kbLast == null ? now : a._kbLast)) / 1000;
-    a._kbT = (a._kbT || 0) + kbDt * (playing ? 1 : 0.25);
-    a._kbLast = now;
-    if (a._kbSeed == null) {
-      const key = String(a.name || a.url || 'img');
-      let h = 2166136261;
-      for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = (h * 16777619) >>> 0; }
-      a._kbSeed = (h % 6283) / 1000; // 0..2π
-    }
-    const ph = a._kbSeed;
-    const tt = a._kbT || 0;
-    const z = 1 + 0.045 * (0.5 + 0.5 * Math.sin(tt * 0.10 + ph));
-    const px = 0.020 * Math.sin(tt * 0.061 + ph * 1.7);
-    const py = 0.014 * Math.cos(tt * 0.083 + ph * 2.3);
-    const sw = (state._stage && state._stage.width) || 1280;
-    const sh = (state._stage && state._stage.height) || 720;
-    r = Object.assign({}, r, {
-      scale: (r.scale || 1) * z,
-      x: (r.x || 0) + px * sw,
-      y: (r.y || 0) + py * sh,
-    });
-    // Flow dissolve (see engine-timing crossfade): during the crossfade
-    // window the photo slides — outgoing along (+x,+y), incoming from
-    // (-x,-y). Offsets exposed for probes.
-    if (l._flowUntil && now < l._flowUntil) {
-      const fb = (l.opacity != null ? l.opacity : 1) || 1;
-      const fp = Math.min(1, Math.max(0, (l._currentOpacity || 0) / fb));
-      const famp = (l._flowAmp || 0.085) * sw;
-      const fdir = l._swapPending ? 1 : -1;
-      const ft = l._swapPending ? Math.min(1, (1 - fp) * 2) : (1 - fp);
-      const fe = ft * ft * (3 - 2 * ft);
-      l._flowOffX = fdir * (l._flowX || 1) * famp * fe;
-      l._flowOffY = fdir * (l._flowY || 0.35) * famp * fe;
-      r = Object.assign({}, r, { x: (r.x || 0) + l._flowOffX, y: (r.y || 0) + l._flowOffY });
-    } else {
-      l._flowOffX = 0;
-      l._flowOffY = 0;
-    }
-    return r;
-  }
-
   function frame(stage, ctx, layers, applyR, drawToCtx, opts) {
     opts = opts || {};
     const bg = opts.bgColor || state.bgColor;
-      if (state.dirty) fit(stage);
-      state._stage = stage;
+    if (state.dirty) fit(stage);
 
     // Clear in device pixels (ctx may have a transform from last frame).
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -392,10 +338,6 @@
     // decoded-image error) can't freeze the render loop. Without this guard,
     // the first failure aborts the for-loop AND the per-layer draw try/catch
     // never wraps the applyR/step/LFO work — silent freeze.
-    // Fewer layers (host cap): how many layers DRAW, counted from the top of
-    // the stack (the featured clip stays; deep background drops first).
-    // window.SWR.Layers.activeCount — 0/unset = no cap.
-    const _activeCap = (window.SWR && window.SWR.Layers && window.SWR.Layers.activeCount) || 0;
     //
     // `backdropEmpty` / `firstVisibleSeen` track where the composition has
     // real imagery beneath it. The first visible layer draws onto the bare
@@ -408,36 +350,15 @@
     for (let i = 0; i < layers.length; i++) {
       try {
         const l = layers[i];
-        if (_activeCap > 0 && i < layers.length - _activeCap) continue;
-          let r = imageEvolve(l, applyR(l));
-          // Wave propagation (slice 3): the beat ripples through the stack —
-          // layer i reacts to the beat delayed by i*90ms. Exposed as _waveVal.
-          if (window.SWR_LIFE && typeof window.SWR_LIFE.wave === 'function') {
-            const wv = window.SWR_LIFE.wave(i);
-            l._waveVal = wv;
-            if (wv > 0.01) {
-              r = Object.assign({}, r, {
-                opacity: Math.min(1, (r.opacity || 0) * (1 + 0.09 * wv)),
-                scale: (r.scale || 1) * (1 + 0.012 * wv),
-              });
-            }
-          }
+        let r = applyR(l);
         // Fade stepper: if a crossfade is in flight and currentOpacity has
         // crossed below the midpoint threshold, swap the asset under the
         // curtain. The fade continues drawing the new asset at rising
         // currentOpacity. See engine-timing.client.js crossfade().
-          if (T && l && l._swapPending && l._currentOpacity < (l.opacity || 1) * 0.5) {
-            const pending = l._swapPending;
-            const _kbPrev = l.asset;
-            l.asset = pending.newAsset;
-            // Camera continuity: the incoming photo inherits the outgoing
-            // photo's drift state, so a set reads as one continuous move.
-            if (_kbPrev && l.asset && _kbPrev.type === 'image' && l.asset.type === 'image') {
-              if (_kbPrev._kbSeed != null) l.asset._kbSeed = _kbPrev._kbSeed;
-              if (_kbPrev._kbT != null) l.asset._kbT = _kbPrev._kbT;
-              if (_kbPrev._kbLast != null) l.asset._kbLast = _kbPrev._kbLast;
-            }
-            l._currentOpacity = l._targetOpacity != null ? l._targetOpacity : 0;
+        if (T && l && l._swapPending && l._currentOpacity < (l.opacity || 1) * 0.5) {
+          const pending = l._swapPending;
+          l.asset = pending.newAsset;
+          l._currentOpacity = l._targetOpacity != null ? l._targetOpacity : 0;
           // Inherit the outgoing layer's visual signature (A2 morph).
           if (l._morphFrom) {
             l.baseScale   = l._morphFrom.baseScale;
@@ -586,13 +507,14 @@
   // return 0,0,0 while screen/lighter/difference pass the source through.
   //
   // `difference` is NOT degenerate on a black backdrop (black is the
-  // identity for XOR) and is listed in SAFE_OVER_DARK precisely because it
+  // identity for XOR), but it collapses to black on any non-black backdrop,
+  // so it is excluded from the ADDITIVE_BASINS list below only because it
   // is safe as a first-layer replacement.
   const DEGENERATE_ON_DARK = new Set([
     'multiply', 'overlay', 'soft-light', 'hard-light', 'color-burn', 'color-dodge',
   ]);
-  // Blend modes that behave as a plain blit over an empty (black) backdrop,
-  // so they are the correct fallback for the first layer.
+  // Blend modes that behave as a plain additive-ish blit over an empty
+  // (black) backdrop, so they are the correct fallback for the first layer.
   const SAFE_OVER_DARK = ['screen', 'lighter', 'difference', 'source-over'];
 
   // A backdrop is "empty" when it is fully transparent or fully black —
@@ -651,8 +573,6 @@
   }
 
   window.SWR_RENDER = {
-    // Seeded Ken Burns drift for image layers — see imageEvolve().
-    imageEvolve,
     fit, frame, invalidate, setBackground, setDprCap, setAutoDpr, devicePixelRatio,
     resolveBlend, backdropIsEmpty, DEGENERATE_ON_DARK, SAFE_OVER_DARK,
     get dpr() { return state.dpr; },

@@ -52,6 +52,9 @@
 //   D *                toggle AUTO DRIFT / manual drag
 //   Esc                close the help overlay
 //   ↑ / ↓              select prev / next layer
+//   J / K *            next / previous demo page (versions/*.html only;
+//                        wraps at both ends of the 22-variant order)
+//   PageDown / PageUp * same as J / K
 //   1..9               select layer by index  (1-based; 0 = deselect)
 //   Alt+1..6 *         per-layer remap (swap one slot, others stay)
 //   Shift+1..9 *       advance story chapters (FRAGMENTS / SIGNAL / …)
@@ -177,7 +180,25 @@
     // `selected` is engine's (see selectedOf below).
     layerAlpha: function () { return layerHasField('alpha'); },
     layerMutate: function () { return layerHasField('mutate'); },
+    // Page navigation across the demo variants (J/K, PageUp/PageDown).
+    // Only meaningful when the current page IS one of the variants — the
+    // engine and every marketing page would have no sibling to move to, so
+    // the rows drop out of the help table there instead of advertising a
+    // dead key.
+    variants: function () { return currentVariantIndex() >= 0; },
   };
+
+  // Canonical variant order. Mirrors the taxonomy in AGENTS.md: the 5 core
+  // variants first (the ones reachable from the hand-written header links),
+  // then the 17 artistic variants. Declared as a module-level constant
+  // rather than probed at runtime so the cycle is deterministic across
+  // pages — a filesystem listing would reorder on every visit.
+  const VARIANT_PAGES = [
+    'neon', 'film', 'grid', 'smoke', 'hallucination',
+    'aurora', 'baroque', 'chrome', 'collage', 'echo-manifold', 'eclipse',
+    'fractal', 'glitch', 'kraft', 'mosaic', 'phosphor', 'pulse', 'spectrum',
+    'tape', 'typography', 'void', 'watercolor',
+  ];
 
   function layerHasField(field) {
     const L = window.Layers || (window.SWR && window.SWR.Layers);
@@ -190,7 +211,7 @@
   const host = {
     genops: false, automap: false, settings: false, engineRotate: false,
     engineAffordance: false, story: false, layerRemap: false, presets: false,
-    layerAlpha: false, layerMutate: false,
+    layerAlpha: false, layerMutate: false, variants: false,
   };
   function getHost() {
     for (const k in hostFlags) {
@@ -345,6 +366,36 @@
       keys: '↓',
       label: 'Select next layer',
       action: function () { cycleLayer(+1); },
+    },
+    // ---- page navigation across the demo variants ----
+    // Nothing on the site did this before: the only affordance was the
+    // hand-written "→ film" link in each page header, which is a dead end
+    // at the last variant and points at an arbitrary neighbour elsewhere.
+    // J / K are vim-style and free; PageUp / PageDown mirror the existing
+    // ↑ / ↓ gesture for layers without stealing the arrow keys.
+    prevVariant: {
+      keys: 'K',
+      label: 'Previous demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(-1); },
+    },
+    nextVariant: {
+      keys: 'J',
+      label: 'Next demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(+1); },
+    },
+    prevVariantPage: {
+      keys: 'PageUp',
+      label: 'Previous demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(-1); },
+    },
+    nextVariantPage: {
+      keys: 'PageDown',
+      label: 'Next demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(+1); },
     },
     cycleAutoMap: {
       keys: 'A',
@@ -733,6 +784,37 @@
     }
   }
 
+  // ---- page navigation across the demo variants ----
+
+  // Index of the current page in VARIANT_PAGES, or -1 when this is not a
+  // variant page. Reads the pathname and strips the optional .html suffix
+  // and trailing slash, so /versions/neon, /versions/neon.html and
+  // /versions/neon/ all resolve to the same id.
+  function currentVariantIndex() {
+    if (typeof window === 'undefined' || !window.location) return -1;
+    const path = String(window.location.pathname || '');
+    const m = /\/versions\/([a-z0-9-]+)(?:\.html)?\/?$/i.exec(path);
+    if (!m) return -1;
+    return VARIANT_PAGES.indexOf(m[1].toLowerCase());
+  }
+
+  // Move `dir` variants along the list. The cycle wraps, so the last
+  // variant's "next" is the first — the header link chain is a dead end
+  // today, and a wrap makes J/K a complete tour without an escape key.
+  function gotoVariant(dir) {
+    const i = currentVariantIndex();
+    if (i < 0) return;
+    const next = (i + dir + VARIANT_PAGES.length) % VARIANT_PAGES.length;
+    const id = VARIANT_PAGES[next];
+    // Build the sibling URL from the pathname with ONLY the filename
+    // replaced. Stripping the directory with /\/?$/ drops the trailing
+    // slash along with it, which produced "/versionsfilm.html".
+    const path = String(window.location.pathname || '');
+    const dotHtml = /\.html$/i.test(path);
+    const dirPart = dotHtml ? path.replace(/[^/]+$/, '') : path.replace(/[^/]*$/, '');
+    window.location.href = dirPart + id + (dotHtml ? '.html' : '');
+  }
+
   function bumpFade(delta, field) {
     const L = layers();
     const T = window.SWR_TIMING;
@@ -880,6 +962,13 @@
         case 'KeyF':            action = ACTIONS.fullscreen; break;
         case 'ArrowUp':         action = ACTIONS.selectPrev; ev.preventDefault(); break;
         case 'ArrowDown':       action = ACTIONS.selectNext; ev.preventDefault(); break;
+        // Page navigation across the demo variants. actionAllowed() drops
+        // these on non-variant pages (see the `variants` host flag), so the
+        // handler stays inert everywhere else.
+        case 'KeyJ':            action = ACTIONS.nextVariant; break;
+        case 'KeyK':            action = ACTIONS.prevVariant; break;
+        case 'PageDown':        action = ACTIONS.nextVariantPage; ev.preventDefault(); break;
+        case 'PageUp':          action = ACTIONS.prevVariantPage; ev.preventDefault(); break;
         case 'Equal':           // +/=
         case 'NumpadAdd':       action = ev.shiftKey ? ACTIONS.bumpFadeIn : ACTIONS.nudgeOpacityUp; break;
         case 'Minus':           // -
@@ -1061,6 +1150,10 @@
       { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },
       { keys: 'D',              label: 'toggle AUTO DRIFT / manual drag', action: ACTIONS.toggleDragMode },
       { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)', requires: 'layerRemap' },
+
+      // ---- Page navigation ----
+      { keys: 'J / K',          label: 'next / previous demo page', action: ACTIONS.nextVariant, requires: 'variants' },
+      { keys: 'PageDown / PageUp', label: 'next / previous demo page', action: ACTIONS.nextVariantPage, requires: 'variants' },
 
       // ---- Presets ----
       { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)', requires: 'story' },
