@@ -85,12 +85,19 @@ Escalate: [yes/no — if yes, state the question]
 
 ## Projects
 
-You also work on **Kajica2 Studio** — your creative studio product.
+You also work on two creative tools:
 
-See `agents/kajica2-studio.md` for context on:
+### Kajica2 Studio
+See `agents/kajica2-studio.md` for context:
 - The six rooms (Music, Video, Story, Content, Social, Studio)
 - Pricing tiers (Ember $12, Lantern $36, House $96)
 - Key messaging: "No install, browser-only, cloud-hosted"
+
+### ComfyUI
+See `agents/comfyui.md` for context:
+- Local generative AI (images, video, audio, 3D)
+- Workflow-based — saves to API JSON format
+- Models in `~/Documents/ComfyUI/models/`
 
 ---
 
