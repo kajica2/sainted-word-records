@@ -442,6 +442,14 @@
       "destination": "/versions/temple-of-control.html"
     },
     {
+      "source": "/versions/clean",
+      "destination": "/versions/clean.html"
+    },
+    {
+      "source": "/versions/clean/",
+      "destination": "/versions/clean.html"
+    },
+    {
       "source": "/",
       "destination": "/landing.html"
     },
@@ -478,28 +486,12 @@
       "destination": "/marketplace.html"
     },
     {
-      "source": "/marketplace-claim",
-      "destination": "/marketplace-claim.html"
-    },
-    {
-      "source": "/marketplace-claim/",
-      "destination": "/marketplace-claim.html"
-    },
-    {
       "source": "/engine-demos",
       "destination": "/engine-demos.html"
     },
     {
       "source": "/engine-demos/",
       "destination": "/engine-demos.html"
-    },
-    {
-      "source": "/ar-gif",
-      "destination": "/ar-gif.html"
-    },
-    {
-      "source": "/ar-gif/",
-      "destination": "/ar-gif.html"
     },
     {
       "source": "/dashboard",
@@ -598,14 +590,6 @@
       "destination": "/status.html"
     },
     {
-      "source": "/bookings",
-      "destination": "/bookings.html"
-    },
-    {
-      "source": "/bookings/",
-      "destination": "/bookings.html"
-    },
-    {
       "source": "/campaign",
       "destination": "/campaign.html"
     },
@@ -644,14 +628,6 @@
     {
       "source": "/legal/terms.html/",
       "destination": "/legal/terms.html"
-    },
-    {
-      "source": "/legal/beta-test.html",
-      "destination": "/legal/beta-test.html"
-    },
-    {
-      "source": "/legal/beta-test.html/",
-      "destination": "/legal/beta-test.html"
     },
     {
       "source": "/sitemap",
@@ -772,6 +748,22 @@
     {
       "source": "/gallery/",
       "destination": "/gallery.html"
+    },
+    {
+      "source": "/booking",
+      "destination": "/booking.html"
+    },
+    {
+      "source": "/booking/",
+      "destination": "/booking.html"
+    },
+    {
+      "source": "/bookings",
+      "destination": "/bookings.html"
+    },
+    {
+      "source": "/bookings/",
+      "destination": "/bookings.html"
     },
     {
       "source": "/shop",
@@ -958,22 +950,6 @@
       "destination": "/buy.html"
     },
     {
-      "source": "/fonts",
-      "destination": "/fonts.html"
-    },
-    {
-      "source": "/fonts/",
-      "destination": "/fonts.html"
-    },
-    {
-      "source": "/auth/google-callback",
-      "destination": "/auth/google-callback.html"
-    },
-    {
-      "source": "/auth/google-callback/",
-      "destination": "/auth/google-callback.html"
-    },
-    {
       "source": "/login",
       "destination": "/login.html"
     },
@@ -1004,14 +980,6 @@
     {
       "source": "/enhance/",
       "destination": "/enhance.html"
-    },
-    {
-      "source": "/versions/clean",
-      "destination": "/versions/clean.html"
-    },
-    {
-      "source": "/versions/clean/",
-      "destination": "/versions/clean.html"
     },
     {
       "source": "/atlas/200-steps",
@@ -1341,16 +1309,6 @@
       "source": "/landing-personas-v11-zine.html",
       "destination": "/personas",
       "statusCode": 301
-    },
-    {
-      "source": "/team",
-      "destination": "/artists",
-      "statusCode": 308
-    },
-    {
-      "source": "/team/",
-      "destination": "/artists",
-      "statusCode": 308
     }
   ]
 }

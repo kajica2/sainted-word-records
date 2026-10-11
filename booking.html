@@ -192,6 +192,11 @@
       overflow: hidden; border: 2px solid var(--line-2);
       transition: border-color 0.2s, transform 0.2s;
     }
+    .artist-avatar {
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, #0a0612), #150b22);
+      font-size: 32px; font-weight: 800; color: var(--accent);
+    }
     .artist-avatar img {
       width: 100%; height: 100%; object-fit: cover;
       filter: saturate(0.7) contrast(1.1);
@@ -455,51 +460,39 @@
   <section class="section" id="artists">
     <div class="page">
       <div class="section-head">
-        <h2>Les Plus Joués</h2>
-        <a href="#">5,211 Artists →</a>
+        <h2>Most Booked</h2>
+        <a href="/artists">6 Artists →</a>
       </div>
       <div class="artists-grid">
-        <a href="#" class="artist-card">
-          <div class="artist-avatar">
-            <img src="https://picsum.photos/seed/dj1/280/280" alt="Sebb Junior">
-          </div>
-          <span class="artist-name">Sebb Junior</span>
-          <span class="artist-meta">67 sessions</span>
+        <a href="/bookings?artist=Ana%20Mari%C4%87" class="artist-card" style="--accent:#ff2d8a">
+          <div class="artist-avatar"><span>AM</span></div>
+          <span class="artist-name">Ana Marić</span>
+          <span class="artist-meta">Book →</span>
         </a>
-        <a href="#" class="artist-card">
-          <div class="artist-avatar">
-            <img src="https://picsum.photos/seed/dj2/280/280" alt="Ana Maric">
-          </div>
-          <span class="artist-name">Ana Maric</span>
-          <span class="artist-meta">54 sessions</span>
+        <a href="/bookings?artist=Du%C5%A1an%20Popov" class="artist-card" style="--accent:#00f0ff">
+          <div class="artist-avatar"><span>DP</span></div>
+          <span class="artist-name">Dušan Popov</span>
+          <span class="artist-meta">Book →</span>
         </a>
-        <a href="#" class="artist-card">
-          <div class="artist-avatar">
-            <img src="https://picsum.photos/seed/dj3/280/280" alt="Dusan Popov">
-          </div>
-          <span class="artist-name">Dusan Popov</span>
-          <span class="artist-meta">43 sessions</span>
-        </a>
-        <a href="#" class="artist-card">
-          <div class="artist-avatar">
-            <img src="https://picsum.photos/seed/dj4/280/280" alt="Kira Lindqvist">
-          </div>
+        <a href="/bookings?artist=Kira%20Lindqvist" class="artist-card" style="--accent:#fff04a">
+          <div class="artist-avatar"><span>KL</span></div>
           <span class="artist-name">Kira Lindqvist</span>
-          <span class="artist-meta">38 sessions</span>
+          <span class="artist-meta">Book →</span>
         </a>
-        <a href="#" class="artist-card">
-          <div class="artist-avatar">
-            <img src="https://picsum.photos/seed/dj5/280/280" alt="Marko Ilic">
-          </div>
-          <span class="artist-name">Marko Ilic</span>
-          <span class="artist-meta">31 sessions</span>
+        <a href="/bookings?artist=Marko%20Ili%C4%87" class="artist-card" style="--accent:#ff6b3a">
+          <div class="artist-avatar"><span>MI</span></div>
+          <span class="artist-name">Marko Ilić</span>
+          <span class="artist-meta">Book →</span>
         </a>
-        <a href="#" class="artist-card">
-          <div class="artist-avatar">
-            <img src="https://picsum.photos/seed/dj6/280/280" alt="Nina Volkova">
-          </div>
+        <a href="/bookings?artist=Nina%20Volkova" class="artist-card" style="--accent:#00ffa3">
+          <div class="artist-avatar"><span>NV</span></div>
           <span class="artist-name">Nina Volkova</span>
-          <span class="artist-meta">29 sessions</span>
+          <span class="artist-meta">Book →</span>
+        </a>
+        <a href="/bookings?artist=Vodolija" class="artist-card" style="--accent:#00f0ff">
+          <div class="artist-avatar"><span>V</span></div>
+          <span class="artist-name">Vodolija</span>
+          <span class="artist-meta">Book →</span>
         </a>
       </div>
     </div>
@@ -509,7 +502,7 @@
   <div class="page">
     <div class="feature-card" id="about">
       <div class="feature-img">
-        <img src="https://picsum.photos/seed/studio1/900/700" alt="Studio session">
+        <img src="/keyart/aurora.svg" alt="Studio session">
       </div>
       <div class="feature-body">
         <div class="feature-script">A studio, a story.</div>
@@ -525,7 +518,7 @@
             <span class="stat-l">Sessions</span>
           </div>
           <div class="stat">
-            <span class="stat-n">5,211</span>
+            <span class="stat-n">6</span>
             <span class="stat-l">Artists</span>
           </div>
           <div class="stat">
@@ -534,8 +527,8 @@
           </div>
         </div>
         <div class="feature-actions">
-          <a href="#contact" class="btn btn-primary">Book a Session</a>
-          <a href="#" class="btn btn-outline">View Roster</a>
+          <a href="/bookings" class="btn btn-primary">Book a Session</a>
+          <a href="/artists" class="btn btn-outline">View Roster</a>
         </div>
       </div>
     </div>
@@ -576,7 +569,7 @@
     <div class="contact-inner page">
       <h2>Get in Touch</h2>
       <p>Tell us about your project — we'll match you with the right artist and have a session booked within 24 hours.</p>
-      <form class="contact-form" onsubmit="event.preventDefault(); alert('Demo — form submission would send to SWR booking team.');">
+      <form class="contact-form" action="/bookings" method="get">
         <div class="form-row">
           <div class="form-group">
             <label for="name">Name</label>
@@ -590,7 +583,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="service">Service</label>
-            <select id="service">
+            <select id="service" name="service">
               <option value="">Select a service</option>
               <option>Live Session</option>
               <option>Stream Production</option>
@@ -600,7 +593,7 @@
           </div>
           <div class="form-group">
             <label for="budget">Budget</label>
-            <select id="budget">
+            <select id="budget" name="budget">
               <option value="">Select range</option>
               <option>Under €1,000</option>
               <option>€1,000 – €3,000</option>
@@ -611,7 +604,7 @@
         </div>
         <div class="form-group">
           <label for="message">Project Brief</label>
-          <textarea id="message" placeholder="Describe your project, timeline, and any specific requirements..."></textarea>
+          <textarea id="message" name="message" placeholder="Describe your project, timeline, and any specific requirements..."></textarea>
         </div>
         <div class="form-submit">
           <button type="submit" class="btn btn-primary">Send Request</button>
