@@ -460,6 +460,7 @@ function copyStatic() {
     // something in the pipeline is skipping it.
     'gallery-dingbats.html',
     'fonts.html',
+    'font-vault.html',
     'gallery-vr.html',
     'gallery-tshirts.html',
     'gallery-posters.html',
