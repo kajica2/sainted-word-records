@@ -1779,6 +1779,14 @@
     body.engine-basic-mode #basic-mode-ui { display: flex !important; }
     body.engine-advanced-mode #basic-mode-ui { display: none !important; }
 
+    /* Cover Fullscreen Mode */
+    body.cover-fullscreen section#stage { position: fixed; inset: 0; z-index: 9999; background: #000; }
+    body.cover-fullscreen aside#layers,
+    body.cover-fullscreen header#transport,
+    body.cover-fullscreen #basic-mode-header,
+    body.cover-fullscreen footer { display: none !important; }
+    body.cover-fullscreen #toggle-cover-fullscreen.active { background: var(--accent); }
+
     /* Header */
     #basic-mode-header {
       display: none;
@@ -3055,8 +3063,8 @@
         <h2>Layers</h2>
         <button class="tbtn ghost" id="add-layer" style="padding:4px 8px; font-size:9px;">+ Layer</button>
         <button class="tbtn ghost" id="add-3d" style="padding:4px 8px; font-size:9px;" title="Add a 3D primitive as a layer (sphere, cube, torus, icosahedron)">+ 3D</button>
-        <button class="tbtn" id="rotate-sel" disabled title="Rotate selected clip 90° (R / Shift+R for -90°)" style="padding:4px 8px; font-size:9px; opacity:0.4; cursor:not-allowed;">↻ ROT</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
+        <button class="tbtn ghost" id="toggle-cover-fullscreen" title="Toggle cover fullscreen" style="padding:4px 8px; font-size:9px;">⛶ Cover</button>
         <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
           <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
           <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
@@ -5649,6 +5657,14 @@
           Layers.add(pool[pool.length - 1]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
+        
+        // Toggle cover fullscreen
+        let coverFullscreen = false;
+        $('toggle-cover-fullscreen')?.addEventListener('click', () => {
+          coverFullscreen = !coverFullscreen;
+          document.body.classList.toggle('cover-fullscreen', coverFullscreen);
+          $('toggle-cover-fullscreen').classList.toggle('active', coverFullscreen);
+        });
 
         // Tone / desaturation readout (the slider module owns the binding).
         (function () {
