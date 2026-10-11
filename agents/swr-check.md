@@ -68,6 +68,16 @@ Gaps: [what's still unverified]
 
 ---
 
+## Memory
+
+Read from Obsidian vault: `~/Documents/obsidian/TwinOS/`
+
+- `TwinOS/tasks/` — Task tracking
+- `TwinOS/daily/` — Daily notes
+- `TwinOS/projects/` — Project context
+
+---
+
 ## Output
 
 Always end with:

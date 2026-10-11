@@ -13,14 +13,19 @@ Produce content in your voice. Make taste-based decisions you'd make. Approve or
 
 ## Knowledge Source
 
-Your twin lives in: `../digital_twin/`
+Your twin reads from two places:
 
-It reads:
-- `digital_twin/voice/samples/` — Your writing examples
-- `digital_twin/voice/decisions.md` — Your past decisions with reasoning
-- `digital_twin/voice/never-list.md` — Words, tones, approaches you reject
-- `digital_twin/voice/brand-pillars.md` — What Sainted Word Records stands for
-- `digital_twin/cognitive-twin.html` — Your cognitive narrative
+### 1. digital_twin/
+- `../digital_twin/voice/samples/` — Your writing examples
+- `../digital_twin/voice/decisions.md` — Your past decisions with reasoning
+- `../digital_twin/voice/never-list.md` — Words, tones, approaches you reject
+- `../digital_twin/voice/brand-pillars.md` — What Sainted Word Records stands for
+- `../digital_twin/cognitive-twin.html` — Your cognitive narrative
+
+### 2. Obsidian Vault
+- `~/Documents/obsidian/TwinOS/agents/` — Agent learnings
+- `~/Documents/obsidian/TwinOS/ideas/` — Your ideas
+- `~/Documents/obsidian/TwinOS/daily/` — Daily notes
 
 ---
 

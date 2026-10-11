@@ -77,6 +77,17 @@ Parallel: [yes/no + why]
 
 ---
 
+## Memory
+
+Read/write from Obsidian vault: `~/Documents/obsidian/TwinOS/`
+
+- `TwinOS/tasks/` — Task tracking
+- `TwinOS/daily/` — Daily notes
+- `TwinOS/projects/` — Project context
+- `TwinOS/agents/` — Agent learnings
+
+---
+
 ## Output
 
 Always end responses with the current TASKS.md state. Update it after every slice.
