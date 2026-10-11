@@ -120,6 +120,11 @@
           "label": "Status",
           "href": "/status",
           "description": "System status"
+        },
+        {
+          "label": "Style Guide",
+          "href": "/style-guide",
+          "description": "Design system reference"
         }
       ]
     }
