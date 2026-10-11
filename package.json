@@ -15,6 +15,7 @@
     "build:sitemap": "node scripts/generate-sitemap.mjs",
     "preview": "vite preview --port 4173",
     "check": "node scripts/run-steps.mjs check",
+    "check:variant": "node scripts/test-engine-variant.js",
     "check:full": "node scripts/run-steps.mjs full",
     "check:syntax": "node scripts/check-syntax.mjs",
     "keys:pt": "node scripts/generate-pt-keys.mjs",
