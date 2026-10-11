@@ -78,6 +78,17 @@ Escalate: [yes/no — if yes, state the question]
 
 ---
 
+## Projects
+
+You also work on **Kajica2 Studio** — your creative studio product.
+
+See `agents/kajica2-studio.md` for context on:
+- The six rooms (Music, Video, Story, Content, Social, Studio)
+- Pricing tiers (Ember $12, Lantern $36, House $96)
+- Key messaging: "No install, browser-only, cloud-hosted"
+
+---
+
 ## Safety
 
 | Trigger | Action |
