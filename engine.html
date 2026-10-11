@@ -5202,6 +5202,13 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
+        // Update REC button with timer
+        const recBtn = $('rec');
+        this.recTimer = setInterval(() => {
+          if (!this.recording) return;
+          const elapsed = Math.floor((Date.now() - this.startedAt) / 1000);
+          recBtn.textContent = `■ ${Math.floor(elapsed/60)}:${(elapsed%60).toString().padStart(2,'0')}`;
+        }, 1000);
         // The mark itself is composited into the recorded stream by
         // lib/watermark.client.js — nothing to preload or repaint here.
         const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
@@ -5316,6 +5323,7 @@
         if (this._wcActive) {
           if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
           if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
+          if (this.recTimer) { clearInterval(this.recTimer); this.recTimer = null; }
           this._wcActive = false;
           this.recording = false;
           $('rec').classList.remove('live');
@@ -5346,6 +5354,7 @@
         // captureStream() has been wrapped, so one recording would leave that
         // cost running for the life of the page.
         try { window.SWR_WATERMARK && window.SWR_WATERMARK.stopCompositors && window.SWR_WATERMARK.stopCompositors(); } catch (_) {}
+        if (this.recTimer) { clearInterval(this.recTimer); this.recTimer = null; }
         this.recording = false;
         $('rec').classList.remove('live');
         $('rec').textContent = '● REC';
