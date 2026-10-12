@@ -17,8 +17,8 @@ export function setSessionCookie(res, token, maxAgeSec = 30 * 24 * 60 * 60) {
     `Max-Age=${maxAgeSec}`,
     'HttpOnly',
     'SameSite=Lax',
+    'Secure', // Always set - app only runs on HTTPS
   ];
-  if (process.env.NODE_ENV === 'production') flags.push('Secure');
   res.setHeader('Set-Cookie', flags.join('; '));
 }
 
@@ -128,7 +128,13 @@ export function setCors(res, origin) {
   // enables separate preview domains (e.g. a Vercel preview URL).
   // The literal string "same-origin" is NOT a valid origin and would
   // cause browsers to refuse the response.
-  if (origin && /^https?:\/\//i.test(origin)) {
+  // CORS allowlist - restrict to known origins only
+  const ALLOWED_ORIGINS = [
+    process.env.SWRC_APP_ORIGIN || 'https://sainted-word-records.vercel.app',
+    'http://localhost:5174',
+    'http://localhost:4173',
+  ];
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
