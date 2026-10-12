@@ -3,7 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Airlock Debug Panel</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Airlock Debug Panel v2026.10.12.1</title>
+  <script>
+    // Cache-bust: force reload if version changed
+    const CURRENT_VERSION = '2026.10.12.1';
+    const savedVersion = localStorage.getItem('airlock_version');
+    if (savedVersion && savedVersion !== CURRENT_VERSION) {
+      console.log('[airlock] version changed, clearing logs');
+      localStorage.removeItem('airlock_logs');
+    }
+    localStorage.setItem('airlock_version', CURRENT_VERSION);
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
@@ -151,6 +164,16 @@
       flex-direction: column;
       gap: 4px;
     }
+    
+    #airlock-footer {
+      padding: 6px 12px;
+      background: #0a0a10;
+      border-top: 1px solid #2a2a3e;
+      color: #444;
+      font-size: 9px;
+      text-align: center;
+      flex-shrink: 0;
+    }
     .log-entry {
       padding: 6px 8px;
       border-radius: 4px;
@@ -230,6 +253,7 @@
     </div>
     
     <div id="airlock-logs"></div>
+    <div id="airlock-footer">v2026.10.12.1</div>
   </div>
 
   <script>
@@ -418,5 +442,7 @@
       updateToggle();
     })();
   </script>
+  
+  <!-- Airlock Debug Panel v2026.10.12.1 -->
 </body>
 </html>
