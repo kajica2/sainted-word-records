@@ -29,7 +29,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
+    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: minmax(44px, auto) 1fr 36px; height: 100vh; }
     header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 14px;
       background: var(--bg-2); border-bottom: 1px solid var(--line); }
     .v { font-weight: 700; letter-spacing: 0.16em; color: var(--m); text-shadow: 0 0 8px var(--m); }

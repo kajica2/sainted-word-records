@@ -36,7 +36,7 @@
 
   const BLENDS   = ['source-over', 'screen', 'multiply', 'overlay', 'soft-light', 'difference'];
   const FEATURES = ['bass', 'mid', 'treble', 'air', 'sub', 'rms', 'centroid', 'beat', 'onset'];
-  const TARGETS  = ['scale', 'x', 'y', 'rot', 'opacity', 'hue', 'brightness', 'contrast'];
+  const TARGETS  = ['scale', 'x', 'y', 'opacity', 'hue', 'brightness', 'contrast'];
   const EASES    = ['linear', 'soft', 'sharp', 'smooth'];
 
   // Sane reactor amount ranges per target, matching applyR()'s multipliers in the pages.
@@ -633,6 +633,10 @@
     const desc = el('div', 'genops-desc', OP_DESC.randomize);
     root.appendChild(desc);
 
+    const more = el('details', 'genops-more');
+    more.appendChild(el('summary', null, 'options'));
+    root.appendChild(more);
+
     // --- scope + amount ---
     const r1 = el('div', 'genops-row');
     r1.appendChild(el('label', null, 'scope'));
@@ -645,7 +649,7 @@
     scopeSel.value = state.scope;
     scopeSel.title = 'Which layers and which parameter families the operations touch.';
     r1.appendChild(scopeSel);
-    root.appendChild(r1);
+    more.appendChild(r1);
 
     const r2 = el('div', 'genops-row');
     r2.appendChild(el('label', null, 'amount'));
@@ -655,7 +659,7 @@
     amtIn.title = 'Strength. Randomize widens its range; Mutate takes bigger steps.';
     const amtOut = el('b', null, state.amount.toFixed(2));
     r2.appendChild(amtIn); r2.appendChild(amtOut);
-    root.appendChild(r2);
+    more.appendChild(r2);
 
     // --- preserve ---
     const r3 = el('div', 'genops-row');
@@ -673,7 +677,7 @@
       chks[p[0]] = c;
       r3.appendChild(wrap);
     });
-    root.appendChild(r3);
+    more.appendChild(r3);
 
     // --- seed + history ---
     const r4 = el('div', 'genops-row');
@@ -688,7 +692,7 @@
     detWrap.appendChild(detChk); detWrap.appendChild(document.createTextNode('det'));
     detWrap.title = 'Deterministic mode: the same seed reproduces the same result, including asset selection.';
     r4.appendChild(seedOut); r4.appendChild(bReroll); r4.appendChild(bCopy); r4.appendChild(detWrap);
-    root.appendChild(r4);
+    more.appendChild(r4);
 
     const r5 = el('div', 'genops-row');
     const bUndo = el('button', 'genops-mini', 'undo');
@@ -701,12 +705,12 @@
     bCommit.title = 'Freeze the current patch as the new baseline and clear the variation strip';
     const genOut = el('span', 'genops-gen', '');
     r5.appendChild(bUndo); r5.appendChild(bRedo); r5.appendChild(bCommit); r5.appendChild(genOut);
-    root.appendChild(r5);
+    more.appendChild(r5);
 
     // --- variation strip ---
     const strip = el('div', 'genops-strip');
     strip.title = 'Recent variations. Click to keep, press and hold to preview, × to discard.';
-    root.appendChild(strip);
+    more.appendChild(strip);
 
     // Insert above the layer list, below the panel heading.
     const body = host.querySelector('.body');

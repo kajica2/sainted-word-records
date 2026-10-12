@@ -1881,7 +1881,7 @@
       background: var(--bg-1);
       border-top: 1px solid var(--basic-border);
     }
-    body.engine-basic-mode #basic-clips-bar { display: block !important; }
+    body.engine-basic-mode #basic-clips-bar { display: none !important; }
     body.engine-advanced-mode #basic-clips-bar { display: none !important; }
 
     .basic-clips-label {
@@ -1954,7 +1954,7 @@
     #basic-controls {
       display: none;
       position: fixed;
-      bottom: 20px;
+      bottom: 140px;
       left: 50%;
       transform: translateX(-50%);
       align-items: center;
@@ -2062,7 +2062,7 @@
       color: var(--basic-text-muted);
       z-index: 40;
     }
-    body.engine-basic-mode #pro-banner { display: block !important; }
+    body.engine-basic-mode #pro-banner { display: none !important; }
     body.engine-advanced-mode #pro-banner { display: none !important; }
     #pro-banner a {
       color: var(--basic-accent);
@@ -2125,6 +2125,24 @@
       font-weight: 500;
       color: var(--basic-text-muted);
       margin-bottom: 10px;
+    }
+
+    /* Hidden by request; runtime kept so APIs and tests still resolve */
+    #swr-capture-toolbar, .swr-presets-panel-head { display: none !important; }
+    .swr-presets-panel[hidden] { display: none !important; }
+    #timeline-host { display: none !important; }
+    #\33 d-picker.hidden { display: none !important; }
+    /* One Media section: duplicate/confusing controls hidden, handlers kept */
+    body.engine-advanced-mode #library :is([data-clear="songs"], #library-hygiene, #save-set, #import-set, #reel-bar, .sets-bar),
+    body.engine-advanced-mode #swr-user-media :is(.swr-user-media-title, .swr-user-media-add, #swr-user-media-clear) {
+      display: none !important;
+    }
+    body.engine-advanced-mode #swr-user-media .swr-user-media-head { padding: 2px 8px; }
+    /* Advanced header decluttered; elements stay in the DOM for their handlers */
+    body.engine-advanced-mode :is(#brandkit-chip, #pt-chip, #nav-home, #swr-tx-master, #swr-rot-master,
+      #swr-keys-help-btn, #nav-ver-prev, #nav-ver-next, #presets-pill, #daily-btn, #hero-btn, #stats-btn,
+      #edit-data-btn, #review-btn, #hook-btn, #mood-btn, #scenes-btn, #fit-btn, a[href="/versions"].tbtn) {
+      display: none !important;
     }
 
     /* Welcome overlay — minimal, centered */
@@ -2311,6 +2329,7 @@
       <div class="basic-layers" id="basic-layers"></div>
       <div class="basic-divider"></div>
       <button class="basic-ctrl" id="basic-library-btn" title="My Library">📁</button>
+      <button class="basic-ctrl" id="basic-drive-btn" title="Import from Google Drive" style="font-size:11px;font-weight:700;">Drive</button>
       <button class="basic-ctrl" id="basic-play-btn" title="Play">▶</button>
       <button class="basic-ctrl primary" id="basic-record-btn" title="Record">⏺</button>
       <button class="basic-ctrl" id="basic-effects-btn" title="Effects">✨</button>
@@ -2340,41 +2359,6 @@
       </div>
     </div>
 
-  </div>
-
-  <!-- Welcome overlay -->
-  <div id="welcome-overlay">
-    <div class="welcome-card">
-      <h2>Welcome to the Audio Engine</h2>
-      <p>Create stunning audio-reactive videos in three simple steps.</p>
-      <div class="welcome-steps">
-        <div class="welcome-step">
-          <div class="welcome-step-num">1</div>
-          <div class="welcome-step-text">
-            <strong>Drop in a song</strong>
-            <span>Any audio format — we'll handle the rest</span>
-          </div>
-        </div>
-        <div class="welcome-step">
-          <div class="welcome-step-num">2</div>
-          <div class="welcome-step-text">
-            <strong>Add your clips</strong>
-            <span>Images or video — drag them in or pick from the library</span>
-          </div>
-        </div>
-        <div class="welcome-step">
-          <div class="welcome-step-num">3</div>
-          <div class="welcome-step-text">
-            <strong>Hit record</strong>
-            <span>Watch your visuals react to the music in real-time</span>
-          </div>
-        </div>
-      </div>
-      <div class="welcome-actions">
-        <button class="welcome-btn secondary" id="welcome-advanced-btn">Show me everything</button>
-        <button class="welcome-btn primary" id="welcome-start-btn">Let's go →</button>
-      </div>
-    </div>
   </div>
 
   <main id="app">
@@ -2511,11 +2495,11 @@
 
     <aside id="library">
       <div class="panel-head">
-        <h2>Library</h2>
-        <button class="tbtn ghost" id="clear-all" title="Erase all uploaded assets + the saved song" style="padding:4px 8px; font-size:9px; color:#f55;">Clear</button>
+        <h2>Media</h2>
+        <button class="tbtn ghost" id="clear-all" title="Erase all uploaded assets + the saved song" style="padding:4px 8px; font-size:9px; color:#f55;">Clear all</button>
         <button class="tbtn ghost" data-clear="songs" title="Clear only the saved song — keeps your library assets and bundled songs" style="padding:4px 8px; font-size:9px;">Clear song</button>
         <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
-        <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
+        <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add files</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
         <button class="tbtn ghost" id="add-folder" title="Pick a folder — engine pulls every image/video recursively" style="padding:4px 8px; font-size:9px;">+ Folder</button>
         <input type="file" id="folder-input" webkitdirectory multiple style="display:none;" />
@@ -2546,7 +2530,7 @@
           <span id="reel-status" style="font-size:9px; opacity:.75;">no reel</span>
         </div>
         <div id="songs-list" class="songs-list">
-          <div class="songs-empty">Loading bundled songs…</div>
+          <div class="songs-empty"></div>
         </div>
         <div id="library-grid">
           <div class="lib-empty">
@@ -3033,13 +3017,12 @@
       <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <div id="stage-flash"></div>
       <div id="stage-empty">
-        <h3>Algorithmic Audio-Reactive Engine</h3>
+        <h3>No timeline. No render farm. It composes itself.</h3>
         <p>
-          Load a song, drop a library of clips, hit play. The audio signal becomes the score —
-          bass, mids, treble, beats, and onsets drive a layered composition of your assets.
+          Drop a song and your clips. Bass, mids and treble drive every layer.
         </p>
         <div class="hint">
-          ⌘+Drop folder for bulk import · click any layer to edit · RE-MAP re-derives the assignment · R rotates selected clip
+          Start here: drop a song anywhere on the page.
         </div>
       </div>
     </section>
@@ -8635,5 +8618,21 @@
   </script>
   <!-- Basic mode controller -->
   <script src="/engine-basic-mode.client.js" defer></script>
+  <script>
+    // Mic/cam are injected by their own scripts; park them beside Export video
+    (function () {
+      var tries = 0;
+      var t = setInterval(function () {
+        var exp = document.getElementById('export-video');
+        var mic = document.getElementById('mic-toggle');
+        var cam = document.getElementById('cam-toggle');
+        if (exp && mic && cam) {
+          exp.parentNode.insertBefore(mic, exp);
+          exp.parentNode.insertBefore(cam, exp);
+          clearInterval(t);
+        } else if (++tries > 50) clearInterval(t);
+      }, 200);
+    })();
+  </script>
 </body>
 </html>

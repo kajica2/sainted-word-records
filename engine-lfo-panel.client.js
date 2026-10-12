@@ -69,7 +69,7 @@
     // pulled from the module's defaults); afterwards the user edits them
     // directly via setParam().
     const moduleRows = LFO.list.map(function (mod) {
-      const targetOptions = ['opacity','scale','x','y','hue','rot','brightness','contrast']
+      const targetOptions = ['opacity','scale','x','y','hue','brightness','contrast']
         .map(function (t) { return '<option value="' + t + '">' + t + '</option>'; })
         .join('');
       const paramSliders = Object.keys(mod.params || {}).map(function (k) {
