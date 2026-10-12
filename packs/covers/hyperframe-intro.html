@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!--
+  packs/covers/hyperframe-intro.html — 3s HyperFrames intro for SWR videos.
+  
+  Contract: same as hyperframe-cover.html (paused timeline, deterministic, zero-dep).
+  
+  Parameters (query string):
+    title=SWR          wordmark
+    subtitle=presents  tagline
+    accent=%23ff3d92   accent hue
+    dur=3              duration (default 3s)
+  
+  Render: Puppeteer screenshot at t=0.5 (slam settled) -> intro frame
+          Or full duration -> intro.mp4 (via CDP + ffmpeg)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWR Intro</title>
+<style>
+  :root {
+    --bg-0: #05060a;
+    --fg: #f5f7ff;
+    --accent: #ff3d92;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-0); }
+  .stage {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: var(--mono);
+  }
+  .wordmark {
+    font-size: 4rem; font-weight: 700; letter-spacing: 0.2em;
+    color: var(--fg); text-transform: uppercase;
+    opacity: 0; transform: translateY(20px);
+  }
+  .tagline {
+    font-size: 1.2rem; letter-spacing: 0.4em;
+    color: var(--accent); text-transform: uppercase;
+    margin-top: 0.5rem;
+    opacity: 0; transform: translateY(10px);
+  }
+  .accent-bar {
+    width: 0; height: 3px;
+    background: var(--accent); margin-top: 1.5rem;
+    opacity: 0;
+  }
+  .glow {
+    position: fixed; top: 50%; left: 50%;
+    width: 600px; height: 600px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    opacity: 0; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="glow" id="glow"></div>
+<div class="stage">
+  <div class="wordmark" id="wordmark">SWR</div>
+  <div class="tagline" id="tagline">PRESENTS</div>
+  <div class="accent-bar" id="bar"></div>
+</div>
+<script>
+(function() {
+  const params = new URLSearchParams(location.search);
+  const title = params.get('title') || 'SWR';
+  const subtitle = params.get('subtitle') || 'PRESENTS';
+  const accent = params.get('accent') || '#ff3d92';
+  const dur = parseFloat(params.get('dur')) || 3;
+  
+  document.documentElement.style.setProperty('--accent', accent);
+  document.getElementById('wordmark').textContent = title;
+  document.getElementById('tagline').textContent = subtitle;
+  
+  const wordmark = document.getElementById('wordmark');
+  const tagline = document.getElementById('tagline');
+  const bar = document.getElementById('bar');
+  const glow = document.getElementById('glow');
+  
+  // Timeline: 0-0.3s glow bloom, 0.2-0.8s wordmark slam, 0.5-1.2s tagline, 1.0-2.5s bar expand, hold
+  const tl = [
+    { t: 0,    op: 0.15, sc: 0.8 },
+    { t: 0.3,  op: 0.25, sc: 1.0 },
+    { t: 1.5,  op: 0.25, sc: 1.0 },
+    { t: 2.0,  op: 0,    sc: 1.2 },
+  ];
+  const tl2 = [
+    { t: 0.2,  op: 0,    y: 20 },
+    { t: 0.5,  op: 1,    y: 0 },
+    { t: 2.0,  op: 1,    y: 0 },
+    { t: 2.5,  op: 0,    y: -10 },
+  ];
+  const tl3 = [
+    { t: 0.5,  op: 0,    y: 10 },
+    { t: 0.8,  op: 1,    y: 0 },
+    { t: 2.2,  op: 1,    y: 0 },
+    { t: 2.7,  op: 0,    y: -10 },
+  ];
+  const tl4 = [
+    { t: 1.0,  op: 0,    w: 0 },
+    { t: 1.5,  op: 1,    w: 120 },
+    { t: 2.5,  op: 1,    w: 120 },
+    { t: 3.0,  op: 0,    w: 0 },
+  ];
+  
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  
+  function sample(arr, t) {
+    let i = 0;
+    for (let j = 0; j < arr.length - 1; j++) {
+      if (t >= arr[j].t && t <= arr[j + 1].t) { i = j; break; }
+    }
+    const a = arr[i], b = arr[i + 1];
+    const p = (t - a.t) / (b.t - a.t);
+    return {
+      op: lerp(a.op, b.op, easeOut(p)),
+      sc: a.sc !== undefined ? lerp(a.sc, b.sc, easeOut(p)) : undefined,
+      y: a.y !== undefined ? lerp(a.y, b.y, easeInOut(p)) : undefined,
+      w: a.w !== undefined ? lerp(a.w, b.w, easeOut(p)) : undefined,
+    };
+  }
+  
+  const start = performance.now();
+  function tick(now) {
+    const elapsed = (now - start) / 1000;
+    if (elapsed > dur + 0.5) return;
+    
+    const s1 = sample(tl, elapsed);
+    const s2 = sample(tl2, elapsed);
+    const s3 = sample(tl3, elapsed);
+    const s4 = sample(tl4, elapsed);
+    
+    glow.style.opacity = s1.op;
+    glow.style.transform = `translate(-50%, -50%) scale(${s1.sc})`;
+    
+    wordmark.style.opacity = s2.op;
+    wordmark.style.transform = `translateY(${s2.y}px)`;
+    
+    tagline.style.opacity = s3.op;
+    tagline.style.transform = `translateY(${s3.y}px)`;
+    
+    bar.style.opacity = s4.op;
+    bar.style.width = s4.w + 'px';
+    
+    requestAnimationFrame(tick);
+  }
+  
+  if (document.readyState === 'complete') {
+    requestAnimationFrame(tick);
+  } else {
+    window.addEventListener('load', () => requestAnimationFrame(tick));
+  }
+  
+  window.__timelines = [{
+    duration: dur,
+    kill: function() { start = 0; }
+  }];
+})();
+</script>
+</body>
+</html>
