@@ -209,7 +209,7 @@
       'user-select:none;-webkit-user-select:none;' +
     '}' +
     '#swr-capture-toolbar .swr-capture-row{' +
-      'display:flex;align-items:center;gap:8px;' +
+      'display:none;' +
     '}' +
     '#swr-capture-toolbar button{' +
       'position:relative;background:transparent;color:inherit;' +
