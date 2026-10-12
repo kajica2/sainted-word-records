@@ -572,9 +572,16 @@
     return { blend: layer.__swrSafeBlend || SAFE_OVER_DARK[0], degenerate: true };
   }
 
+  // imageEvolve: apply seeded Ken Burns drift to image layers (stub for now)
+  function imageEvolve(layer, r) {
+    // TODO: implement seeded Ken Burns for image layers
+    return r;
+  }
+
   window.SWR_RENDER = {
     fit, frame, invalidate, setBackground, setDprCap, setAutoDpr, devicePixelRatio,
     resolveBlend, backdropIsEmpty, DEGENERATE_ON_DARK, SAFE_OVER_DARK,
+    imageEvolve,
     get dpr() { return state.dpr; },
     get cssW() { return state.cssW; },
     get cssH() { return state.cssH; },
