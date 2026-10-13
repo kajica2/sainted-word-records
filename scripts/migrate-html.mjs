@@ -207,15 +207,25 @@ function applyVersionChrome(filePath, html, changes, verbose, dryRun) {
   //    already accounts for the </\script> template-literal escape that
   //    engine.html uses; we use the same ranges here to find the real
   //    closing tag.
-  const ranges = scriptRanges(html);
+  //
+  //    IMPORTANT: ranges are computed LAZILY each call. The codemod
+  //    mutates `html` between calls (adds scripts, removes exit links,
+  //    adds the looks-mount) — a stale ranges array would mark a
+  //    real </body> as "inside a script" because the offsets in
+  //    `ranges` no longer align with the live text. Recomputing on
+  //    every call keeps the function correct as the file mutates.
   function lastBodyOutsideScript() {
+    const liveRanges = scriptRanges(html);
     const re = /<\/body>/gi;
     let m, last = -1;
     while ((m = re.exec(html))) {
-      if (!ranges.some(([a, b]) => m.index >= a && m.index < b)) last = m.index;
+      if (!liveRanges.some(([a, b]) => m.index >= a && m.index < b)) last = m.index;
     }
     return last;
   }
+  // `ranges` is also needed by the exit-pattern removal step. Compute
+  // it lazily there too (its only consumer is the next ~10 lines).
+  function currentRanges() { return scriptRanges(html); }
   const lastBody = lastBodyOutsideScript();
   if (lastBody < 0) {
     console.log(`✗ ${filePath} (no </body> outside scripts)`);
@@ -248,7 +258,11 @@ function applyVersionChrome(filePath, html, changes, verbose, dryRun) {
   //    template string (engine.html's export-document builder, for
   //    instance) is not edited. The scriptRanges() helper already
   //    handles the </\script> template-literal escape.
-  const inScript = (idx) => ranges.some(([a, b]) => idx >= a && idx < b);
+  // inScript() is also computed lazily — `currentRanges()` reads the
+  // mutated html every call. The `ranges` constant in the outer scope
+  // is the one captured by the closure; for an always-fresh check, we
+  // use currentRanges() directly.
+  const inScript = (idx) => currentRanges().some(([a, b]) => idx >= a && idx < b);
   const exitPatterns = [
     { re: /<a class="tbtn ghost nav-arrow" id="nav-home"[\s\S]*?<\/a>/g, label: 'engine #nav-home' },
     { re: /<!--\s*SWR-SITE-EXIT\s*-->\s*<a class="swr-site-exit"[\s\S]*?<\/a>/g, label: 'SWR-SITE-EXIT' },
