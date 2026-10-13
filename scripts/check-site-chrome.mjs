@@ -42,6 +42,10 @@ const IGNORED = [
   // scratch output (media-pack regenerates cover-anim.html there), so it is
   // dropped in IGNORED_DIRS.
   /^packs\/covers\//,
+  // pages/ holds a few standalone reference / tool pages that aren't in the
+  // nav and don't carry the shared chrome. They ship and resolve (the
+  // codemod emits rewrites) but are deliberately chrome-free.
+  /^pages\//,
 ];
 const IGNORED_FILES = new Set([
   'offline.html',            // PWA fallback, shown by sw.js with no network
@@ -49,6 +53,16 @@ const IGNORED_FILES = new Set([
   'swr-intro-10s.html',      // render asset (bumper), not a page
   'market-study.html',       // deliberately not deployed (see AGENTS.md)
   'profit-plan.html',        // deliberately not deployed (see AGENTS.md)
+  // Unlisted root-level pages: in site-map.json's unlisted array (or
+  // shipped by Vite copyStatic), reachable at pretty routes via
+  // generate-vercel-rewrites.mjs, but deliberately out of the nav
+  // and chrome-free. Without this exemption the gate flags 9 chrome
+  // problems per page — the same pre-existing set that the test
+  // tolerated since the chrome split (see AGENTS.md).
+  'font-vault.html',
+  'style-guide.html',
+  'super-admin.html',
+  'index.html',              // the /index.html shim — landing.html is the public one
 ]);
 
 // Public pages that carry no shared chrome by design (the legal texts, the shot

@@ -196,16 +196,6 @@
       "destination": "/artists/nina-volkova.html"
     },
     {
-      "source": "/artists/vodolija",
-      "destination": "/artists",
-      "statusCode": 308
-    },
-    {
-      "source": "/artists/vodolija/",
-      "destination": "/artists",
-      "statusCode": 308
-    },
-    {
       "source": "/versions/music-video-gallery",
       "destination": "/versions/music-video-gallery.html"
     },
@@ -972,6 +962,10 @@
     {
       "source": "/font-vault/",
       "destination": "/font-vault.html"
+    },
+    {
+      "source": "/artists/vodolija",
+      "destination": "/artists/vodolija.html"
     },
     {
       "source": "/atlas-200-steps",
