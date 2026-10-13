@@ -92,17 +92,67 @@
     return out;
   }
 
+  // Hardcoded fallback for the "Variant looks" group. On engine.html,
+  // SWR_VARIANTS is provided by client/variant-switcher.client.js
+  // and the dropdown applies variants in-place (loadVariant() +
+  // compile()). On a versions/*.html page, SWR_VARIANTS is not loaded
+  // — picking a variant should NAVIGATE to that variant's page so the
+  // user lands on the engine-equivalent of their pick. The list below
+  // mirrors client/variant-switcher.client.js's VARIANTS table
+  // (the 14 entrypoints the switcher knows), enough to populate the
+  // dropdown everywhere.
+  const VARIANT_NAV = [
+    { id: 'neon',          name: 'Neon' },
+    { id: 'film',          name: 'Film' },
+    { id: 'smoke',         name: 'Smoke' },
+    { id: 'hallucination', name: 'Hallucination' },
+    { id: 'music_video',   name: 'Music Video' },
+    { id: 'glitch',        name: 'Glitch' },
+    { id: 'aurora',        name: 'Aurora' },
+    { id: 'pulse',         name: 'Pulse' },
+    { id: 'void',          name: 'Void' },
+    { id: 'chrome',        name: 'Chrome' },
+    { id: 'watercolor',    name: 'Watercolor' },
+    { id: 'fractal',       name: 'Fractal' },
+    { id: 'eclipse',       name: 'Eclipse' },
+    { id: 'music_video_mtv', name: 'Music Video MTV' },
+  ];
+
   function variantEntries() {
-    if (!window.SWR_VARIANTS || typeof window.SWR_VARIANTS.list !== 'function') return [];
-    return window.SWR_VARIANTS.list().map((v) => ({ id: v.id, name: v.name, desc: v.desc || '' }));
+    if (window.SWR_VARIANTS && typeof window.SWR_VARIANTS.list === 'function') {
+      return window.SWR_VARIANTS.list().map((v) => ({ id: v.id, name: v.name, desc: v.desc || '' }));
+    }
+    // No SWR_VARIANTS — likely a versions/*.html page. Show the
+    // nav-only fallback so the user can still jump between variants.
+    return VARIANT_NAV.map((v) => ({ id: v.id, name: v.name, desc: '' }));
+  }
+
+  // True when the page is the engine: it has #variant/#preset (so
+  // variant/grade/motion can all be applied in-place). On a
+  // versions/*.html page, only the variant group has a meaningful
+  // target (the variant HTMLs) — grade and motion live in
+  // versions-presets.js / engine.html's VISUAL_PRESETS, neither of
+  // which a variant page loads. Showing those groups on a variant
+  // page would invite "I picked Pulse and nothing happened" UX.
+  function isEnginePage() {
+    return !!document.getElementById('variant')
+        || !!document.getElementById('preset')
+        || !!(window.FX && typeof window.FX.setPersona === 'function')
+        || !!(window.SWR_VARIANTS && typeof window.SWR_VARIANTS.activate === 'function');
   }
 
   function buildGroups() {
-    return [
+    const onEngine = isEnginePage();
+    const groups = [
       { id: GROUP_VARIANT, label: 'Variant looks', items: variantEntries() },
-      { id: GROUP_GRADE, label: 'Grade presets', items: gradeEntries() },
-      { id: GROUP_MOTION, label: 'Motion presets', items: MOTION.slice() },
-    ].filter((g) => g.items.length > 0);
+    ];
+    if (onEngine) {
+      groups.push(
+        { id: GROUP_GRADE, label: 'Grade presets', items: gradeEntries() },
+        { id: GROUP_MOTION, label: 'Motion presets', items: MOTION.slice() },
+      );
+    }
+    return groups.filter((g) => g.items.length > 0);
   }
 
   // ---- Apply -------------------------------------------------------------
@@ -153,15 +203,30 @@
   }
 
   function applyVariant(id) {
-    if (!window.SWR_VARIANTS || typeof window.SWR_VARIANTS.activate !== 'function') return false;
-    // Activate is async (it fetches the page); a rejected fetch must not
-    // surface as an unhandled rejection, and the UI already shows the pick.
-    window.SWR_VARIANTS.activate(id).catch((e) => {
-      console.warn('looks: variant activate failed', id, e && e.message);
-    });
-    // Keep #variant in step so the two controls never disagree.
-    const sel = document.getElementById('variant');
-    if (sel) sel.value = id;
+    // Engine path: in-place activate via the variant switcher.
+    if (window.SWR_VARIANTS && typeof window.SWR_VARIANTS.activate === 'function') {
+      // Activate is async (it fetches the page); a rejected fetch must not
+      // surface as an unhandled rejection, and the UI already shows the pick.
+      window.SWR_VARIANTS.activate(id).catch((e) => {
+        console.warn('looks: variant activate failed', id, e && e.message);
+      });
+      // Keep #variant in step so the two controls never disagree.
+      const sel = document.getElementById('variant');
+      if (sel) sel.value = id;
+      return true;
+    }
+    // Version page path: navigate to the matching /versions/<id>.html.
+    // Pick the same source the dropdown rendered (id may be a bare
+    // id like "film" or an alias like "music_video_mtv" — both ship
+    // as their own HTML file at /versions/<id>.html). Skip the
+    // navigation if we're already there so the user doesn't get a
+    // pointless reload from picking the current page in the list.
+    const target = '/versions/' + id + '.html';
+    try {
+      const here = window.location.pathname.replace(/\/$/, '');
+      if (here === target.replace(/\/$/, '')) return true;
+    } catch (_) { /* noop */ }
+    window.location.assign(target);
     return true;
   }
 
