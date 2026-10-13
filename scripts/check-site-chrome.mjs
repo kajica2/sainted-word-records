@@ -208,8 +208,17 @@ for (const file of pages) {
 
   if (isApp) {
     appChecked++;
+    // App surfaces (engine + every versions/*.html) need an exit affordance
+    // back to the site. Two ways to provide it: the legacy inline
+    // `swr-site-exit` link (older variant pages still have one) OR the
+    // shared /lib/home-link.client.js script, which mounts a fixed
+    // bottom-right <a href="/"> dynamically. The dynamic mount is the
+    // preferred chrome (see Section B of docs/FUTURE-PROOF-PLAN.md) and
+    // is now wired into every shipped page, so the script tag in <head>
+    // is the marker.
     const hasExit = html.includes('swr-site-exit') ||
-      /<a[^>]+href="(\/|\.\.\/|\.\.\/versions\.html|\/engine)"[^>]*>/i.test(html);
+      /<a[^>]+href="(\/|\.\.\/|\.\.\/versions\.html|\/engine)"[^>]*>/i.test(html) ||
+      html.includes('/lib/home-link.client.js');
     if (!hasExit) fail(file, 'app surface has no exit link back to the site');
     // App shells are the pages most likely to be opened on a phone; one of them
     // (dashboard.html) shipped without this and rendered at desktop width.
