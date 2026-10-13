@@ -328,6 +328,25 @@ function applyVersionChrome(filePath, html, changes, verbose, dryRun) {
     }
   }
 
+  // 4c. Proactive stale-page detector. Loads on engine + every
+  //     versions/*.html — the work surfaces where a long-running
+  //     recording session could be silently running on a stale bundle.
+  //     Marketing pages don't need it (a reload there is harmless).
+  //
+  //     The watcher polls /lib/app-version.js every 60s and on
+  //     visibility/focus; see lib/version-watcher.client.js for the
+  //     full design. Idempotent: the script's IIFE checks
+  //     `window.SWR_VERSION_WATCHER` and bails if already loaded.
+  const isWorkSurface = filePath === 'engine.html' || /^versions\/[^/]+\.html$/.test(filePath);
+  if (isWorkSurface && !html.includes('/lib/version-watcher.client.js')) {
+    const lb = lastBodyOutsideScript();
+    if (lb >= 0) {
+      html = html.slice(0, lb) + '<script src="/lib/version-watcher.client.js" defer></script>\n' + html.slice(lb);
+      changes.push('+ /lib/version-watcher.client.js (proactive stale-page detector)');
+      needsUpdate = true;
+    }
+  }
+
   // Write back if changed.
   if (needsUpdate) {
     if (dryRun) {
