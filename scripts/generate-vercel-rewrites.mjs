@@ -117,8 +117,58 @@ function generateRewrites(map) {
   // Unlisted pages: shipped and reachable, deliberately absent from the
   // navigation. Their pretty routes must keep working (sitemap.html renders
   // them, and inbound links exist), so they get the same rewrite treatment.
+  //
+  // The unlisted array can carry either form — `/fonts` (route) or
+  // `fonts.html` (file basename) — depending on which side of the
+  // site-map the entry was added from. Normalize to the route form
+  // before calling addPath so the source/destination pair the codemod
+  // emits actually rewrites a request to the file.
   for (const href of (Array.isArray(map.unlisted) ? map.unlisted : [])) {
-    if (typeof href === 'string') addPath(href);
+    if (typeof href !== 'string') continue;
+    // Skip `_comment:` lines — site-map.json uses those as inline
+    // documentation. They were string entries before JSON Schema
+    // comments existed; preserving them here lets the author keep
+    // notes next to the data they describe.
+    if (href.startsWith('_comment:')) continue;
+    let h = href;
+    if (h.startsWith('/') && h.endsWith('.html')) h = h.slice(0, -5);
+    if (!h.startsWith('/')) h = '/' + h;
+    addPath(h);
+  }
+
+  // Catch-all: scan the dist tree for any .html that doesn't already
+  // have a rewrite. These are pages that shipped via Vite's
+  // copy-static (auth/, packs/covers/) or via a hardcoded rootFiles
+  // entry but were never recorded in site-map.json. Without a
+  // rewrite, the extensionless URL is a 404 (vercel.json has
+  // cleanUrls: false), so the sitemap test would also fail. Idempotent:
+  // if a rule already exists for a given source, the second push is
+  // a no-op.
+  const writtenSources = new Set(rules.map((r) => r.source));
+  const distDir = path.join(process.cwd(), 'dist');
+  if (fs.existsSync(distDir)) {
+    function scan(dir, base) {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const rel = base ? `${base}/${e.name}` : e.name;
+        if (e.isDirectory()) {
+          if (e.name === 'node_modules' || e.name.startsWith('_')) continue;
+          scan(path.join(dir, e.name), rel);
+        } else if (e.name.endsWith('.html') && !e.name.endsWith('index.html')) {
+          const source = '/' + rel.replace(/\.html$/, '');
+          if (writtenSources.has(source) || writtenSources.has(source + '/')) continue;
+          // Skip the noise: dist/landing-style-guide.html, dist/404.html,
+          // dist/offline.html, dist/swr-intro-10s.html — these are
+          // static assets, not pages, and have explicit NO_REWRITE
+          // semantics via routes.mjs.
+          if (rel === '404.html' || rel === 'offline.html' || rel === 'swr-intro-10s.html') continue;
+          // The rules array is appended to in order; the generated
+          // pass will merge these with the site-map-driven ones.
+          rules.push({ source, destination: '/' + rel });
+          writtenSources.add(source);
+        }
+      }
+    }
+    scan(distDir, '');
   }
 
   // Auth
