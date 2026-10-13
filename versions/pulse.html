@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <title>PULSE · SWR engine v1</title>
   <meta name="description" content="Bass-locked concentric pulse rings on a deep navy field" />
@@ -81,7 +83,8 @@
     footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 14px;
       background: var(--bg-2); border-top: 1px solid var(--line); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
     /* ---- Preset bank ----
-       A compact horizontal strip between <header> and the main
+       A compact horizontal strip between <header>
+      <span class="gctrl" data-looks-mount></span> and the main
        row, so users discover the Shift+1..9 mapping at a glance.
        Each button shows the keycap (⇧1) and the preset name.
        Selected preset gets the .active class (gold border + glow). */
@@ -435,7 +438,7 @@
 <body data-page="pulse">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header>
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      
       <div class="v">PULSE <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -1635,5 +1638,8 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       });
     })();
   </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
 </body>
 </html>

@@ -1,5 +1,9 @@
 // Sainted Word Records — PWA service worker
-const CACHE_VERSION = 'swr-v4';
+// Bump CACHE_VERSION whenever the app shell changes. lib/app-version-bust.js
+// also matches this name (as the prefix `swr-v*`) and deletes any old cache
+// when a user lands on the page with a stale version in localStorage, so
+// keeping these in sync is the contract that makes the auto-clear work.
+const CACHE_VERSION = 'swr-v5';
 // Only paths that exist as separate files in the dist root after Vite build.
 // The engine now lives at /engine/ (rewritten to /engine.html). The 9 client
 // modules (project, mic-input, camera, timeline, trim, media-sets, share,

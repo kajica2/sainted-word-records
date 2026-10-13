@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <title>KRAFT · SWR version · Cardboard paper</title>
   <meta name="description" content="Stub preset — brown-paper texture tone (page-target only)" />
@@ -122,9 +124,10 @@
   </style>
 </head>
 <body data-page="kraft">
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      
   <div id="app">
     <header>
+      <span class="gctrl" data-looks-mount></span>
       <div class="v">KRAFT <small>· v1 · recycled paper</small></div>
       <span class="stamp" id="stamp">★ APPROVED ★</span>
       <span class="pill live" id="live">● ON AIR</span>
@@ -579,5 +582,8 @@
     }
   })();
 </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
 </body>
 </html>

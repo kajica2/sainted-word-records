@@ -249,7 +249,16 @@
   }
 
   function mount() {
-    const host = document.getElementById('variant') && document.getElementById('variant').closest('.gctrl');
+    // Accept either the legacy #variant host (engine.html's existing
+    // `#variant` select wrapped in a .gctrl) or a page-supplied mount
+    // point (`<span data-looks-mount></span>` injected by the codemod
+    // into versions/*.html and any other page that wants the dropdown
+    // but has no existing #variant).
+    let host = document.querySelector('[data-looks-mount]');
+    if (!host) {
+      const variant = document.getElementById('variant');
+      if (variant) host = variant.closest('.gctrl');
+    }
     if (!host || document.getElementById('looks')) return;
     const wrap = document.createElement('span');
     wrap.className = 'gctrl';

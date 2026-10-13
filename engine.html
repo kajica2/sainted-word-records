@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
@@ -2394,7 +2396,7 @@
 
   <main id="app">
     <header id="transport">
-      <a class="tbtn ghost nav-arrow" id="nav-home" href="/" title="Back to home" aria-label="Home" style="padding:4px 8px; font-size:14px; text-decoration:none; line-height:1;">←</a>
+      
       <button class="tbtn ghost" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="padding:4px 10px; font-size:14px; line-height:1; margin:0 8px;">?</button>
       <div class="brand">SAINTED-WORD <small>records</small></div>
       <div class="mode-toggle" id="mode-toggle">
@@ -8666,5 +8668,7 @@
   </script>
   <!-- Basic mode controller -->
   <script src="/engine-basic-mode.client.js" defer></script>
-</body>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  </body>
 </html>

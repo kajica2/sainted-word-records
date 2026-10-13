@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>MUSIC VIDEOS · SWR gallery</title>
@@ -176,6 +178,7 @@
 <body>
   <swr-nav></swr-nav>
   <header class="container">
+      <span class="gctrl" data-looks-mount></span>
     <h1>Music videos</h1>
     <p class="muted">Click <strong>Next</strong> / <strong>Previous</strong> or use the arrow keys to flip through the videos.</p>
   </header>
@@ -493,5 +496,8 @@
   <script src="/lib/footer.client.js" defer></script>
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
 </body>
 </html>

@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <title>COLLAGE · SWR version · Mixed-media magazine layout</title>
   <meta name="description" content="SWR engine — COLLAGE: multi-clip split-screen composition for mixed-media. Magazine-grid layout that cuts to the beat." />
@@ -99,9 +101,10 @@
   <script src="../client/library-loader.client.js" defer></script>
 </head>
 <body data-page="collage">
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      
   <div id="app">
     <header>
+      <span class="gctrl" data-looks-mount></span>
       <div class="v">COLL<em>A</em>GE<small>· MAGAZINE GRID · MIXED-MEDIA</small></div>
       <span class="pill live" id="live">● CUT</span>
       <span class="spacer"></span>
@@ -864,5 +867,8 @@
     }
   })();
 </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
 </body>
 </html>
