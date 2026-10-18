@@ -30,6 +30,7 @@
     "check:version-watcher-unit": "node scripts/check-version-watcher-unit.mjs",
     "check:looks-menu-unit": "node scripts/check-looks-menu-unit.mjs",
     "check:variant-codemods": "node scripts/check-variant-codemods.mjs",
+    "check:build-idempotent": "node scripts/check-build-idempotent.mjs",
     "check:unit": "npm run test:generated-audio && npm run test:mascot-states && node scripts/check-asset-curator-unit.mjs && node scripts/check-narrative-unit.mjs && npm run test:asset-curator",
     "test:asset-curator-unit": "node scripts/check-asset-curator-unit.mjs",
     "test:generated-audio": "node tests/generated-audio.test.mjs",

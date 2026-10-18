@@ -193,6 +193,12 @@ const GROUPS = {
     // builds dist/ if missing or stale. The 90s budget covers the
     // 16×~1.6s variant walk plus harness boot.
     { cmd: 'npm run check:variants-smoke', timeoutMs: 120000, retries: 1 },
+    // Builds twice from a clean state and verifies the second `dist/` is
+    // byte-identical to the first. Catches plugin-ordering bugs (a
+    // post-processor that overwrites another post-processor's output)
+    // before they ship. The only allowed drift is the build timestamp
+    // in `dist/lib/app-version.js`.
+    { cmd: 'npm run check:build-idempotent', timeoutMs: 240000, retries: 0 },
     'npm run check:dist-links',
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.
