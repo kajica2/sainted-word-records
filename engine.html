@@ -3731,7 +3731,7 @@
                          'revelation', 'overload', 'afterimage', 'memory', 'loop'];
 
     // ======================================================================
-    // VISUAL PRESETS — 5 curated looks. Each preset overrides reactors/blends/
+    // VISUAL PRESETS — 7 curated looks. Each preset overrides reactors/blends/
     // scale-fills for ALL layers so the look is consistent. Reactor values are
     // tuned with `soft` / `release` eases for visual smoothness.
     // ======================================================================
@@ -3740,6 +3740,16 @@
     // faster EMA k values (see loop()), the engine is much more
     // visibly audio-driven on a fresh drop-in. The user can still
     // dial it back via the existing sensitivity slider (0.2–3×).
+    //
+    // Every preset also has a small `beatPhase` component — a phase-
+    // locked reactor with a release ease that resets the visual on
+    // every downbeat. This is the third axis of audio reactivity
+    // (volume → amplitude, spectrum → color, beatPhase → phasing) and
+    // is what makes the engine feel like it's *in the music* rather
+    // than *on top of it*. The 'downbeat' preset uses beatPhase as
+    // its primary feature; the other six use it as a complement to
+    // their primary axis. Set its scale to 0 if you want a
+    // pre-2026-10 feel.
     const VISUAL_PRESETS = {
       pulse: {
         name: 'Pulse',
@@ -3747,6 +3757,7 @@
         reactors: [
           [{ feature: 'bass', target: 'scale',   scale: 0.88, ease: 'soft' },
            { feature: 'beat', target: 'opacity', scale: 0.55, ease: 'soft' },
+           { feature: 'beatPhase', target: 'scale', scale: 0.20, ease: 'release' },
            { feature: 'rms',  target: 'scale',   scale: 0.22, ease: 'release' }],
           [{ feature: 'bass', target: 'scale',   scale: 0.55, ease: 'soft' },
            { feature: 'beat', target: 'brightness', scale: 0.65, ease: 'release' }],
@@ -3761,7 +3772,8 @@
         desc: 'Slow continuous motion. Mid + air, soft-light, ambient.',
         reactors: [
           [{ feature: 'mid',  target: 'x',     scale: 44,  ease: 'smooth' },
-           { feature: 'air',  target: 'y',     scale: 36,  ease: 'smooth' }],
+           { feature: 'air',  target: 'y',     scale: 36,  ease: 'smooth' },
+           { feature: 'beatPhase', target: 'scale', scale: 0.12, ease: 'release' }],
           [{ feature: 'mid',  target: 'hue',   scale: 144, ease: 'smooth' },
            { feature: 'rms',  target: 'scale', scale: 0.24, ease: 'soft' }],
           [{ feature: 'air',  target: 'rot',   scale: 28,  ease: 'smooth' },
@@ -3775,6 +3787,7 @@
         desc: 'Sharp onset flicker, x/y jitter, lighter blend. Chaotic.',
         reactors: [
           [{ feature: 'onset', target: 'opacity', scale: 1.0,  ease: 'sharp' },
+           { feature: 'beatPhase', target: 'scale', scale: 0.30, ease: 'sharp' },
            { feature: 'rms',   target: 'x',       scale: 95,  ease: 'release' }],
           [{ feature: 'onset', target: 'brightness', scale: 1.1,  ease: 'sharp' },
            { feature: 'rms',   target: 'y',       scale: 70,  ease: 'release' }],
@@ -3789,7 +3802,8 @@
         desc: 'Hue rotation, smoothstep, overlay. Psychedelic, slow.',
         reactors: [
           [{ feature: 'centroid', target: 'hue', scale: 340, ease: 'smooth' },
-           { feature: 'mid',      target: 'scale', scale: 0.32, ease: 'soft' }],
+           { feature: 'mid',      target: 'scale', scale: 0.32, ease: 'soft' },
+           { feature: 'beatPhase', target: 'hue',  scale: 40, ease: 'release' }],
           [{ feature: 'mid',  target: 'hue',   scale: 250, ease: 'smooth' },
            { feature: 'rms',  target: 'scale', scale: 0.24, ease: 'soft' }],
           [{ feature: 'centroid', target: 'hue', scale: 320, ease: 'smooth' },
@@ -3803,6 +3817,7 @@
         desc: 'Bass + rms thump, rotation, sharp attack. Live-show energy.',
         reactors: [
           [{ feature: 'bass', target: 'scale', scale: 1.0, ease: 'release' },
+           { feature: 'beatPhase', target: 'rot', scale: 18, ease: 'sharp' },
            { feature: 'rms',  target: 'rot',   scale: 32,  ease: 'release' }],
           [{ feature: 'bass', target: 'rot',   scale: 26,  ease: 'release' },
            { feature: 'rms',  target: 'x',     scale: 60,  ease: 'release' }],
