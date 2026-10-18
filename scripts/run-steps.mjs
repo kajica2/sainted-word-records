@@ -46,6 +46,7 @@ const GROUPS = {
   check: [
     'npm run check:syntax',
     'npm run check:engine-mobile',
+    'npm run check:quota-estimate-unit',
     'npm run check:bundle',
     'npm run check:automix-unit',
     'npm run check:automix-arc-unit',
