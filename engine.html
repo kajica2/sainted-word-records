@@ -286,22 +286,24 @@
     .nav-arrow.nav-pulse { animation: navPulse 0.25s ease; }
 
     /* Quick variant picker (3 chips: v1 Neon, v2 Film, v3 Smoke).
-       Clicking activates the variant in place via SWR_VARIANTS.activate()
-       (no new tab — different from the ← ver / ver → buttons that open
-       the standalone version page in a new tab). The .on class marks
-       the active variant and is maintained by an SWR_VARIANTS_UI hook
-       below so the picker stays in sync with whatever the user does
-       elsewhere (Shift+←, the .ver dropdown, etc.). */
-    .ver-picker { display: inline-flex; gap: 4px; }
-    .ver-picker .ver-chip {
+       Lives inside a `.gctrl` span so it picks up the standard
+       transport-row styling (font-size 9-10px, gap 6px, uppercase
+       muted). Clicking activates the variant in place via
+       SWR_VARIANTS.activate() (no new tab — different from the
+       ← ver / ver → buttons that open the standalone version page
+       in a new tab). The .on class marks the active variant and is
+       maintained by an SWR_VARIANTS_UI hook below so the picker stays
+       in sync with whatever the user does elsewhere (Shift+←, the
+       .ver dropdown, etc.). */
+    #ver-picker .ver-chip {
       font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-      font-size: 9px; padding: 4px 6px; line-height: 1; white-space: nowrap;
+      line-height: 1; white-space: nowrap;
     }
-    .ver-picker .ver-chip[aria-pressed="true"],
-    .ver-picker .ver-chip.on {
+    #ver-picker .ver-chip[aria-pressed="true"],
+    #ver-picker .ver-chip.on {
       background: var(--accent); color: #fff; border-color: var(--accent);
     }
-    .ver-picker .ver-chip:hover:not([aria-pressed="true"]) {
+    #ver-picker .ver-chip:hover:not([aria-pressed="true"]) {
       background: rgba(255, 61, 146, 0.18);
     }
     @keyframes navPulse { 0% { transform: scale(1); } 50% { transform: scale(1.18); background: var(--accent); color: #fff; border-color: var(--accent); } 100% { transform: scale(1); } }
@@ -2552,11 +2554,11 @@
         <button id="mode-advanced-btn">Advanced</button>
       </div>
       <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
-      <div class="ver-picker" id="ver-picker" role="group" aria-label="Quick variant picker — click to activate in place">
-        <button class="tbtn ghost ver-chip" data-variant-id="neon"          type="button" aria-pressed="false">v1&nbsp;Neon</button>
-        <button class="tbtn ghost ver-chip" data-variant-id="film"          type="button" aria-pressed="false">v2&nbsp;Film</button>
-        <button class="tbtn ghost ver-chip" data-variant-id="smoke"         type="button" aria-pressed="false">v3&nbsp;Smoke</button>
-      </div>
+      <span class="gctrl" id="ver-picker" role="group" aria-label="Quick variant picker — click to activate in place" style="font-size:9px;">
+        <button class="tbtn ghost ver-chip" data-variant-id="neon"  type="button" aria-pressed="false">v1&nbsp;Neon</button>
+        <button class="tbtn ghost ver-chip" data-variant-id="film"  type="button" aria-pressed="false">v2&nbsp;Film</button>
+        <button class="tbtn ghost ver-chip" data-variant-id="smoke" type="button" aria-pressed="false">v3&nbsp;Smoke</button>
+      </span>
       <button class="tbtn ghost nav-arrow" id="nav-ver-prev" title="Previous visual version (Shift+←)" aria-label="Previous version" style="padding:4px 8px; font-size:11px; line-height:1;">← ver</button>
       <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
       <span class="pill" id="status-pill">idle</span>

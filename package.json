@@ -44,6 +44,8 @@
     "check:verify": "node scripts/check-verify-smoke.mjs",
     "check:automix-unit": "node scripts/check-automix-unit.mjs",
     "check:posterize-curve": "node scripts/check-posterize-curve.mjs",
+    "check:contract": "node scripts/check-contract.mjs",
+    "check:ver-picker": "node scripts/check-ver-picker.mjs",
     "check:automix-smoke": "node scripts/check-automix-smoke.mjs",
     "check:automix-arc-smoke": "node scripts/check-automix-arc-smoke.mjs",
     "check:storyboard": "node scripts/run-steps.mjs storyboard",
