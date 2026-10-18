@@ -76,6 +76,11 @@ function pickHandlerPath(urlPath) {
   // PT tier checkout: /api/pt/checkout starts a Stripe Checkout Session for a
   // license tier (D4 — webhook fulfilment in api/webhooks/stripe.js).
   if (segs[1] === 'pt' && segs[2] === 'checkout' && !segs[3]) return '../api/pt/checkout.js';
+  // PT key verification (FIX 2 — the audit). GET /api/pt/verify?key=...
+  // looks the key up in the server-side ledger. The pt.client.js
+  // client now treats a missing/unverifiable entitlement as "not
+  // entitled" — the watermark stays on.
+  if (segs[1] === 'pt' && segs[2] === 'verify' && !segs[3]) return '../api/pt/verify.js';
   // Video-slot ledger: /api/slots/grant (admin), /api/slots/<userId>
   // (state + register), /api/slots (the PT panel sync endpoint).
   if (segs[1] === 'slots') {
