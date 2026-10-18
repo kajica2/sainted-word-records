@@ -574,6 +574,8 @@ function copyStatic() {
     'api/_lib/session.js',
     'api/_lib/email.js',
     'api/_lib/kv.js',
+    // Public waitlist: landing/login pages POST to /api/early-access.
+    'api/early-access.js',
     // Video-slot ledger (authoritative payment-side quota for pt.client.js).
     'api/slots/grant.js',
     'api/slots/index.js',

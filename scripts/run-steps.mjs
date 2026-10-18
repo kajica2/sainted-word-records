@@ -45,6 +45,7 @@ const GROUPS = {
   // The quick gate. Order preserved from the original `check` chain.
   check: [
     'npm run check:syntax',
+    'npm run check:engine-mobile',
     'npm run check:bundle',
     'npm run check:automix-unit',
     'npm run check:automix-arc-unit',

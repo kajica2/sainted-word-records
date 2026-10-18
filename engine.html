@@ -96,6 +96,134 @@
     aside#layers { grid-area: layers; }
     footer#global { grid-area: global; }
 
+    /* === RESPONSIVE — fix P1 zero-width canvas on phones ===
+       The grid above uses 240px + 1fr + 280px named-area columns. On a
+       390px viewport the center `1fr` track is asked to shrink to
+       max(0, 390 - 520) = 0, so the stage canvas (section#stage) is
+       invisible. body has `overflow-x: hidden` so there is no scroll
+       rescue. This block reorganises the grid for narrow viewports
+       and bumps the touch-target sizes. iOS safe-area primitives are
+       included so the transport header doesn't sit under the
+       Dynamic Island and the footer doesn't sit under the home
+       indicator. Overscroll-behavior: none keeps Safari's
+       rubber-band refresh from firing mid-render.
+
+       No @media block here touches #app, so engine.html was
+       effectively desktop-only before this. */
+    #app { min-width: 0; }
+    #app > * { min-width: 0; }   /* intrinsic content can't re-inflate the tracks */
+
+    /* 720px and below — single-column reorder, canvas first */
+    @media (max-width: 860px) {
+      #app {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto 1fr auto auto;
+        grid-template-areas:
+          "transport"
+          "stage"
+          "library"
+          "layers"
+          "global";
+        height: auto;
+        min-height: 100vh;
+      }
+      header#transport  { max-height: 22vh; overflow-y: auto; padding: 6px 10px; gap: 6px; }
+      aside#library,
+      aside#layers      { max-height: 30vh; overflow-y: auto; border-left: none;
+                          border-right: none; border-top: 1px solid var(--line); }
+      section#stage    { min-height: 320px; }
+    }
+
+    /* 480px and below — even tighter, plus icons-only transport pass.
+       The 44 transport controls are visible at <= 720px via wrapping,
+       but at <= 480px they overflow horizontally. The icons-only mode
+       shrinks each text-bearing control to a glyph so they fit in one
+       row ~41px tall (was 75-109px when wrapped to multiple rows).
+       Existing variants (_mobile-header-inject.js) do this for the
+       variants; the engine's #transport has its own control list, so
+       the icon assignments below target only the controls present in
+       engine.html. */
+    @media (max-width: 480px) {
+      header#transport { gap: 4px; padding: 4px 8px; }
+      /* text → glyph, hide label but keep DOM for screen readers */
+      header#transport .tbtn:not([data-icon]),
+      header#transport a.tbtn:not([data-icon]) {
+        font-size: 0 !important;     /* hide text */
+        line-height: 0 !important;
+        overflow: hidden;
+        padding: 6px 8px;
+        min-width: 36px;
+      }
+      header#transport .tbtn:not([data-icon])::before,
+      header#transport a.tbtn:not([data-icon])::before {
+        font-size: 14px; line-height: 1;
+        display: inline-block;
+      }
+      /* Per-control icons. The data-icon attribute is the source of
+         truth — engine.html doesn't carry it yet on every control,
+         so we add the glyphs as a ::before content rule keyed by
+         the visible text. When the codemod pass lands later, it can
+         stamp data-icon="<glyph>" on each element and this CSS can
+         drop back to a single data-icon::before rule. */
+      header#transport #load-song:not([data-icon])::before    { content: '♪ load'; }
+      header#transport #daily-btn:not([data-icon])::before     { content: '✎ practice'; }
+      header#transport #play:not([data-icon])::before          { content: '▶ play'; }
+      header#transport #rec:not([data-icon])::before           { content: '● rec'; }
+      header#transport #export-video:not([data-icon])::before  { content: '↗ export'; }
+      header#transport #nav-prev:not([data-icon])::before       { content: '‹'; }
+      header#transport #nav-next:not([data-icon])::before       { content: '›'; }
+      header#transport #nav-ver-prev:not([data-icon])::before   { content: '‹v'; }
+      header#transport #nav-ver-next:not([data-icon])::before   { content: 'v›'; }
+      /* Mode-toggle collapses to a single visible button at 480px
+         (toggle lives in the mode-advanced panel below the transport) */
+      #mode-toggle { display: none; }
+    }
+
+    /* Touch targets — iOS HIG 44pt, Material 48dp. The existing
+       .tbtn is ~28px tall (11px font + 7px vertical padding), which
+       is hard to hit with a fingertip. The range sliders are 14px
+       tall, which is essentially undraggable. Both get a
+       coarse-pointer-only override so desktop metrics don't change. */
+    @media (pointer: coarse) {
+      .tbtn { min-height: 44px; padding-top: 12px; padding-bottom: 12px; }
+      .layer-row input[type="range"],
+      .gctrl input[type="range"],
+      .swr-tx-panel input[type="range"] {
+        height: 44px;
+      }
+      .layer-row input[type="range"]::-webkit-slider-thumb,
+      .gctrl input[type="range"]::-webkit-slider-thumb,
+      .swr-tx-panel input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 28px; height: 28px;
+        background: var(--accent);
+        border-radius: 50%;
+        cursor: pointer;
+        margin-top: -10px;  /* center thumb on the 44px track */
+      }
+      .layer-row input[type="range"]::-webkit-slider-runnable-track,
+      .gctrl input[type="range"]::-webkit-slider-runnable-track,
+      .swr-tx-panel input[type="range"]::-webkit-slider-runnable-track {
+        height: 8px;
+        background: var(--line-2);
+        border-radius: 4px;
+      }
+    }
+
+    /* iOS safe-area + overscroll — missing repo-wide before this.
+       env(safe-area-inset-top) keeps the transport header below the
+       iPhone Dynamic Island (59px on Pro models). env(safe-area-inset-
+       bottom) keeps the footer above the home indicator (34px).
+       overscroll-behavior: none stops Safari's rubber-band refresh
+       from firing mid-render and destroying in-flight composition
+       state. -webkit-tap-highlight-color: transparent removes the
+       grey flash on tap. */
+    #app { padding-top: env(safe-area-inset-top);
+          padding-bottom: env(safe-area-inset-bottom);
+          overscroll-behavior: none; }
+    * { -webkit-tap-highlight-color: transparent; }
+
     /* === TRANSPORT === */
     header#transport {
       background: linear-gradient(180deg, var(--bg-2), var(--panel));

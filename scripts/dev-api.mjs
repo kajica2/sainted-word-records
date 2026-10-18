@@ -43,6 +43,8 @@ function pickHandlerPath(urlPath) {
   if (segs[1] === 'auth' && (segs[2] === 'session' || segs[2] === 'magic' || segs[2] === 'verify')) {
     return HANDLER_PATHS['auth/' + segs[2]];
   }
+  // Public waitlist signup (no auth): /api/early-access.
+  if (segs[1] === 'early-access' && !segs[2]) return '../api/early-access.js';
   if (segs[1] === 'storage') {
     if (segs[2] === 'sign-upload') return HANDLER_PATHS['storage/sign-upload'];
     if (segs[2] === 'sign-download') return HANDLER_PATHS['storage/sign-download'];
