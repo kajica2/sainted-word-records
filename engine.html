@@ -5137,6 +5137,17 @@
         // client/variant-switcher.client.js.
         if (window.SWR_VARIANTS) window.SWR_VARIANTS.postFx(cx);
         this.drawMeter();
+        // Beat / onset LED indicators. Both UI elements were rendered
+        // with CSS for a `.on` highlight state, but nothing was
+        // toggling the class — the LEDs were dead. Wire them to the
+        // existing beatPulse / onsetPulse booleans (one-frame edge
+        // triggers) so they flash on every hit. The CSS transition
+        // handles the fade-out; we just sync the class to the current
+        // audio frame.
+        const beatLed  = $('beat-led');
+        if (beatLed)  beatLed.classList.toggle('on', !!Audio.feat.beatPulse);
+        const onsetLed = $('onset-led');
+        if (onsetLed) onsetLed.classList.toggle('on', !!Audio.feat.onsetPulse);
         // v2: recording overlay — burn BPM + key into the captured video
         if (Recorder.recording) {
           this.drawRecordingOverlay(cx);
