@@ -589,6 +589,10 @@ function copyStatic() {
     'api/catalogue/public.js',
     'api/checkout/index.js',
     'api/_lib/orders.js',
+    // PT key import endpoint (FIX 2 part B) — bulk import from the
+    // operator's local issuer so a single verify call at the client
+    // covers both Stripe-issued and operator-issued keys.
+    'api/admin/pt/keys/import.js',
     // Slot-ledger admin surface (unlisted route /slots-admin).
     'slots-admin.html',
     'slots-admin.client.js',

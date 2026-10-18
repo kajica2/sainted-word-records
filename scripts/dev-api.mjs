@@ -81,6 +81,11 @@ function pickHandlerPath(urlPath) {
   // client now treats a missing/unverifiable entitlement as "not
   // entitled" — the watermark stays on.
   if (segs[1] === 'pt' && segs[2] === 'verify' && !segs[3]) return '../api/pt/verify.js';
+  // Operator-minted PT key import (FIX 2 part B). POST .../import
+  // upserts records from the local issuer into the server ledger.
+  if (segs[1] === 'admin' && segs[2] === 'pt' && segs[3] === 'keys' && segs[4] === 'import') {
+    return '../api/admin/pt/keys/import.js';
+  }
   // Video-slot ledger: /api/slots/grant (admin), /api/slots/<userId>
   // (state + register), /api/slots (the PT panel sync endpoint).
   if (segs[1] === 'slots') {

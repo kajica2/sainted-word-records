@@ -48,6 +48,7 @@ const GROUPS = {
     'npm run check:engine-mobile',
     'npm run check:quota-estimate-unit',
     'npm run check:pt-verify',
+    'npm run check:pt-import',
     'npm run check:bundle',
     'npm run check:automix-unit',
     'npm run check:automix-arc-unit',
