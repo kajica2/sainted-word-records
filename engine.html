@@ -3282,6 +3282,7 @@
           <option value="strobe">Strobe</option>
           <option value="warp">Warp</option>
           <option value="mosh">Mosh</option>
+          <option value="downbeat">Downbeat</option>
         </select>
       </span>
       <span class="separator"></span>
@@ -3803,6 +3804,29 @@
         blends: ['source-over', 'source-over', 'overlay', 'multiply'],
         fills:  [1.1, 0.95, 1.2, 0.85, 1.05, 1.0],
       },
+      // New 2026-10: the "beat-locked" preset. Uses beatPhase (a 0..1
+      // sawtooth that resets on the downbeat) to push hard at the start
+      // of every bar and ease out through the bar. Visuals breathe with
+      // the song's phrasing rather than reacting to volume. Each layer
+      // uses a different feature (hue, scale, x, y) so the field
+      // doesn't collapse to a single pulse. RMS keeps an ambient
+      // "energy floor" so quiet bars still feel alive.
+      downbeat: {
+        name: 'Downbeat',
+        desc: 'Snaps to the bar. Hue resets on every downbeat, scale pulses. Music-driven breathing.',
+        reactors: [
+          [{ feature: 'beatPhase', target: 'scale',   scale: 0.55, ease: 'release' },
+           { feature: 'rms',       target: 'scale',   scale: 0.18, ease: 'soft' }],
+          [{ feature: 'beatPhase', target: 'hue',     scale: 120,  ease: 'release' },
+           { feature: 'centroid',  target: 'hue',     scale: 80,   ease: 'smooth' }],
+          [{ feature: 'beatPhase', target: 'x',       scale: 50,   ease: 'release' },
+           { feature: 'mid',       target: 'x',       scale: 30,   ease: 'smooth' }],
+          [{ feature: 'beatPhase', target: 'y',       scale: 40,   ease: 'release' },
+           { feature: 'air',       target: 'y',       scale: 24,   ease: 'smooth' }],
+        ],
+        blends: ['screen', 'source-over', 'overlay', 'screen'],
+        fills:  [1.0, 1.1, 0.9, 1.2, 1.05, 0.95],
+      },
     };
 
     // Expose for debugging from devtools / puppeteer
@@ -4311,7 +4335,7 @@
       fps: 0,
       lastFrame: 0,
       // Smoothed features
-      smooth: { bass: 0, mid: 0, treble: 0, air: 0, rms: 0, beat: 0, onset: 0, centroid: 0 },
+      smooth: { bass: 0, mid: 0, treble: 0, air: 0, rms: 0, beat: 0, onset: 0, centroid: 0, bpm: 0, beatPhase: 0, beatInBar: 0 },
       // Drag / drift system
       dragMode: 'auto',     // 'auto' = continuous drift, 'manual' = user-controlled
       dragging: false,
@@ -4379,6 +4403,14 @@
         const raw = Audio.feat[react.feature] ?? 0;
         if (react.feature === 'beat' || react.feature === 'onset') return raw; // already 0..1 envelope
         if (react.feature === 'centroid') return raw;
+        // Normalize the beat-derived features into 0..1 so they compose
+        // with the easing function and the reactor's `scale`. A reactor
+        // that uses feat 'bpm' with scale 0.5 and ease 'soft' now reads
+        // as "0.5 of the way from 60bpm to 180bpm" — peaks at fast songs.
+        // 'beatInBar' is already 1..4; we rebase to 0..1 by subtracting
+        // 1 and dividing by 3 (so beat 1 → 0, beat 2 → 0.33, beat 4 → 1).
+        if (react.feature === 'bpm') return clamp((raw - 60) / 120, 0, 1);
+        if (react.feature === 'beatInBar') return clamp((raw - 1) / 3, 0, 1);
         return raw;
       },
       ease(name, t) {
@@ -4947,6 +4979,17 @@
         // to make transients land harder: continuous features 0.18→0.32
         // (~80% faster), beat 0.22→0.42, onset 0.30→0.52. The user
         // can still dial it back via the existing sensitivity slider.
+        //
+        // beatPhase is a 0..1 sawtooth (resets at every downbeat) and
+        // bpm is integer beats-per-minute; both are pre-shaped upstream
+        // in lib/audio.client.js. bpm gets a light EMA (k=0.10) to
+        // suppress jitter between v1 (autocorrelation) and v2 (onset
+        // history) detections without changing its integer scale; a
+        // sawtooth through a low-pass becomes a sine, which is the
+        // wrong shape for a phase feature, so beatPhase passes through.
+        // They're mirrored here so reactors can target them by name;
+        // reactor users get a value the engine is already reading every
+        // frame.
         const a = Audio.feat, s = this.smooth;
         const k = 0.32;
         s.bass = lerp(s.bass, a.bass, k);
@@ -4957,6 +5000,9 @@
         s.beat = lerp(s.beat, a.beat, 0.42);          // decay so opacity doesn't latch on
         s.onset = lerp(s.onset, a.onset, 0.52);        // snappier decay for strobey hits
         s.centroid = lerp(s.centroid, a.centroid, k);
+        s.bpm = lerp(s.bpm || 0, a.bpm || 0, 0.10);    // jitter-suppressed; reactor normalizes to 0..1
+        s.beatPhase = a.beatPhase || 0;                 // 0..1 sawtooth, resets on downbeat
+        s.beatInBar = a.beatInBar || 0;                 // 1..4 integer
         // Auto-drift: gentle continuous motion when in auto mode.
         // Each layer gets a phase offset so they don't all move in sync.
         this._t += Math.max(dt, 0.0001);
