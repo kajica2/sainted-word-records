@@ -284,6 +284,26 @@
     .nav-arrow { min-width: 26px; text-align: center; transition: 0.12s; padding: 4px 8px; }
     .nav-arrow:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
     .nav-arrow.nav-pulse { animation: navPulse 0.25s ease; }
+
+    /* Quick variant picker (3 chips: v1 Neon, v2 Film, v3 Smoke).
+       Clicking activates the variant in place via SWR_VARIANTS.activate()
+       (no new tab — different from the ← ver / ver → buttons that open
+       the standalone version page in a new tab). The .on class marks
+       the active variant and is maintained by an SWR_VARIANTS_UI hook
+       below so the picker stays in sync with whatever the user does
+       elsewhere (Shift+←, the .ver dropdown, etc.). */
+    .ver-picker { display: inline-flex; gap: 4px; }
+    .ver-picker .ver-chip {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 9px; padding: 4px 6px; line-height: 1; white-space: nowrap;
+    }
+    .ver-picker .ver-chip[aria-pressed="true"],
+    .ver-picker .ver-chip.on {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    .ver-picker .ver-chip:hover:not([aria-pressed="true"]) {
+      background: rgba(255, 61, 146, 0.18);
+    }
     @keyframes navPulse { 0% { transform: scale(1); } 50% { transform: scale(1.18); background: var(--accent); color: #fff; border-color: var(--accent); } 100% { transform: scale(1); } }
     .tbtn.ghost { background: transparent; border-color: var(--line); }
     .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -2532,6 +2552,11 @@
         <button id="mode-advanced-btn">Advanced</button>
       </div>
       <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
+      <div class="ver-picker" id="ver-picker" role="group" aria-label="Quick variant picker — click to activate in place">
+        <button class="tbtn ghost ver-chip" data-variant-id="neon"          type="button" aria-pressed="false">v1&nbsp;Neon</button>
+        <button class="tbtn ghost ver-chip" data-variant-id="film"          type="button" aria-pressed="false">v2&nbsp;Film</button>
+        <button class="tbtn ghost ver-chip" data-variant-id="smoke"         type="button" aria-pressed="false">v3&nbsp;Smoke</button>
+      </div>
       <button class="tbtn ghost nav-arrow" id="nav-ver-prev" title="Previous visual version (Shift+←)" aria-label="Previous version" style="padding:4px 8px; font-size:11px; line-height:1;">← ver</button>
       <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
       <span class="pill" id="status-pill">idle</span>
@@ -8485,6 +8510,53 @@
           if (e.shiftKey && e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
           if (e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); go(1); }
         });
+
+        // Quick variant picker (3 chips: v1 Neon, v2 Film, v3 Smoke).
+        // Each click activates the variant in place via SWR_VARIANTS.activate().
+        // The picker stays in sync with other entry points (the .ver
+        // dropdown, Shift+← / → which currently opens in a new tab)
+        // through the SWR_VARIANTS_UI callback that client/variant-
+        // switcher.client.js installs.
+        const picker = $('ver-picker');
+        if (picker) {
+          const chips = picker.querySelectorAll('.ver-chip');
+          for (const c of chips) {
+            c.addEventListener('click', () => {
+              const id = c.getAttribute('data-variant-id');
+              if (id && window.SWR_VARIANTS && typeof window.SWR_VARIANTS.activate === 'function') {
+                window.SWR_VARIANTS.activate(id).catch((e) => {
+                  console.warn('[ver-picker] activate', e.message);
+                });
+              }
+            });
+          }
+          // Hook the existing SWR_VARIANTS_UI bridge. The variant
+          // switcher installs this function at module load (with defer)
+          // — i.e. AFTER this inline IIFE runs. We re-install on the
+          // next animation frame so we wrap the chain instead of
+          // clobbering it (the chain keeps updating the variant <select>
+          // and our chips).
+          const installUiHook = () => {
+            const prevUi = window.SWR_VARIANTS_UI;
+            window.SWR_VARIANTS_UI = (id) => {
+              for (const c of chips) {
+                const on = id && c.getAttribute('data-variant-id') === id;
+                c.setAttribute('aria-pressed', on ? 'true' : 'false');
+                c.classList.toggle('on', !!on);
+              }
+              if (typeof prevUi === 'function') prevUi(id);
+            };
+            // If a variant is already active (e.g. deep-link ?v=neon),
+            // reflect it on the chips now.
+            try {
+              const cur = window.SWR_VARIANTS && window.SWR_VARIANTS.current
+                ? window.SWR_VARIANTS.current() : null;
+              if (cur) window.SWR_VARIANTS_UI(cur);
+            } catch (_) { /* noop */ }
+          };
+          if (typeof requestAnimationFrame === 'function') requestAnimationFrame(installUiHook);
+          else setTimeout(installUiHook, 0);
+        }
       }
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
