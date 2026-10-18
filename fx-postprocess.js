@@ -346,6 +346,13 @@
     enabled: true,
     bass: 0, mid: 0, treble: 0, beat: 0,
     time: 0,
+    // Audio-reactive FX modulation. When true, the engine's rAF loop
+    // adds 0..0.5 of audio-driven modulation on top of the user-set
+    // slider values (chroma, grain, glow, sepia, vignette, tone).
+    // Off by default — the user opts in via the FX auto-react checkbox
+    // in the FX panel. The state lives here so the toggle is just one
+    // boolean the user (or a saved preset) can set.
+    audioReact: false,
     // Persona uniforms
     posterize: 0,
     vignette: 0,
