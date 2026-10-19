@@ -407,6 +407,13 @@
     }
 
     // WebGL setup
+    // Check for disable flag (localStorage 'swrDisableWebGL=1' or URL ?webgl=0)
+    const webglDisabled = (localStorage.getItem('swrDisableWebGL') === '1') 
+                       || (new URLSearchParams(location.search).get('webgl') === '0');
+    if (webglDisabled) {
+      console.info('[fx-postprocess] WebGL disabled via flag');
+      return;
+    }
     // NB: preserveDrawingBuffer must be true for captureStream() / MediaRecorder to
     // work — otherwise the WebGL buffer is cleared after each compositor present,
     // causing black frames in headless SwiftShader (issue #75).

@@ -1038,6 +1038,13 @@ const PRESETS = {
       return false;
     }
 
+    // Check for disable flag
+    const webglDisabled = (typeof localStorage !== 'undefined' && localStorage.getItem('swrDisableWebGL') === '1') 
+                        || (typeof location !== 'undefined' && new URLSearchParams(location.search).get('webgl') === '0');
+    if (webglDisabled) {
+      console.info('[versions-presets] WebGL disabled via flag');
+      return;
+    }
     const gl = out.getContext('webgl', { premultipliedAlpha: false }) ||
                out.getContext('experimental-webgl');
     if (!gl) {
