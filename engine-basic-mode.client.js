@@ -324,16 +324,19 @@
       });
     }
 
-    // Effects — open the engine's presets/FX panel via existing toggle
+    var driveBtn = document.getElementById('basic-drive-btn');
+    if (driveBtn) {
+      driveBtn.addEventListener('click', function () {
+        var real = document.getElementById('swr-drive-btn');
+        if (real) real.click();
+      });
+    }
+
+    // Effects — basic mode only offers the styles dropdown
     if (effectsBtn) {
       effectsBtn.addEventListener('click', function () {
-        var presetsToggle = document.getElementById('presets-toggle');
-        if (presetsToggle) {
-          presetsToggle.click();
-        } else {
-          // Fallback: switch to advanced mode where FX panel lives
-          setMode('advanced');
-        }
+        var trigger = document.getElementById('swr-presets-dropdown-trigger');
+        if (trigger) trigger.click();
       });
     }
   }

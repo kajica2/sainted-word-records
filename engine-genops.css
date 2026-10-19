@@ -258,3 +258,6 @@ section.stage { will-change: transform; }
 /* Stop the canvas from anti-aliasing during subpixel movement — keeps
    composite crisp when grid/film layers float over half-pixels. */
 #render, canvas#render { transform: translateZ(0); }
+
+.genops-more { margin-top: 4px; }
+.genops-more > summary { font-size: 10px; opacity: .7; cursor: pointer; }

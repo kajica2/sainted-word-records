@@ -71,10 +71,17 @@
   const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // Reserve the canvas for WebGL — if this succeeds the 2D fallback ctx
-  // is never created (the overlay canvas covers transitions).
-  gl = canvasEl.getContext('webgl2', {
-    alpha: false, preserveDrawingBuffer: true, antialias: false
-  });
+  // is never created (the overlay canvas covers transitions). WebGL is
+  // off by default (see lib/webgl-feature-detect.client.js); the page
+  // uses the 2D fallback when isWebGLEnabled() is false.
+  if (window.SWR_WEBGL && !window.SWR_WEBGL.isWebGLEnabled()) {
+    // No WebGL init — leave `gl` undefined so the consumer below falls
+    // back to the 2D path.
+  } else {
+    gl = canvasEl.getContext('webgl2', {
+      alpha: false, preserveDrawingBuffer: true, antialias: false
+    });
+  }
 
   function hexVec3(h) {
     // safari CSS returns triples, others #hex

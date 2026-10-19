@@ -28,6 +28,7 @@
 <script src="/lib/invite-unlock.client.js" defer></script>
 <script src="/lib/invite-modal.client.js" defer></script>
   <script src="/lib/presets-dropdown.client.js" defer></script>
+  <script src="/lib/webgl-feature-detect.client.js" defer></script>
   <link rel="stylesheet" href="/video-fx.css" />
   <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/lib/presets-dropdown.css" />
@@ -441,6 +442,14 @@
       overflow: hidden;
       cursor: grab;
       transition: border-color 0.12s, transform 0.12s;
+    }
+    .lib-item-stale {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-2);
+      color: var(--text-2);
+      font-size: 10px;
+      text-transform: uppercase;
     }
     .lib-item:hover { border-color: var(--accent-2); transform: translateY(-1px); }
     .lib-item:active { cursor: grabbing; }
@@ -8205,37 +8214,37 @@
 
   </script>
   <!-- Automix + asset-curator stack (ported from music_video, Phase 1) -->
-  <script src="/client/preset-anchor-map.client.js"></script>
-  <script src="/client/anchor-embed.js"></script>
-  <script src="/client/automix.client.js"></script>
+  <script src="/client/preset-anchor-map.client.js" defer></script>
+  <script src="/client/anchor-embed.js" defer></script>
+  <script src="/client/automix.client.js" defer></script>
   <script src="/client/section-detector.client.js" defer></script>
-  <script src="/client/preset-cycle.client.js"></script>
-  <script src="/client/preset-pick-store.client.js"></script>
-  <script src="/client/layer-state-store.client.js"></script>
-  <script src="/client/last-mix-store.client.js"></script>
-  <script src="/client/asset-curator.client.js"></script>
+  <script src="/client/preset-cycle.client.js" defer></script>
+  <script src="/client/preset-pick-store.client.js" defer></script>
+  <script src="/client/layer-state-store.client.js" defer></script>
+  <script src="/client/last-mix-store.client.js" defer></script>
+  <script src="/client/asset-curator.client.js" defer></script>
   <script src="/client/library-packs.client.js" defer></script>
   <!-- L3 song arc — macro direction; the 22 variants have shipped this
        since f582f56, engine.html was missed in that rollout. -->
-  <script src="/client/automix-arc.client.js"></script>
+  <script src="/client/automix-arc.client.js" defer></script>
 
   <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
-  <script src="/client/automix-session-store.client.js"></script>
-  <script src="/client/automix-runtime.client.js"></script>
+  <script src="/client/automix-session-store.client.js" defer></script>
+  <script src="/client/automix-runtime.client.js" defer></script>
   <!-- Act-driven clip cutting (L3 composition coupling). The 22 variant
        pages have shipped this since the port; engine.html was missed in the
        same rollout that omitted automix-arc (see above). -->
   <script src="/client/automix-composition.client.js" defer></script>
   <!-- Periodic frame capture runtime + UI (Phase 1) -->
-  <script src="/client/capture-runtime.client.js"></script>
+  <script src="/client/capture-runtime.client.js" defer></script>
 
   <!-- Hero / Hook / Stats / Mood / Scenes runtimes (Phase 1b) -->
   <!-- NOTE: hero-frames.client.js intentionally omitted per /steer skip hero -->
   <script src="/client/narrative-state.client.js" defer></script>
-  <script src="/client/hook-detector.client.js"></script>
-  <script src="/client/stats.client.js"></script>
-  <script src="/client/mood.client.js"></script>
-  <script src="/client/scenes.client.js"></script>
+  <script src="/client/hook-detector.client.js" defer></script>
+  <script src="/client/stats.client.js" defer></script>
+  <script src="/client/mood.client.js" defer></script>
+  <script src="/client/scenes.client.js" defer></script>
 
   <script type="module" src="/engine-panel-visibility.client.js"></script>
   <script type="module" src="/layer-scheduler.client.js"></script>
@@ -8465,13 +8474,13 @@
   <script type="module" src="/persona-preview.client.js"></script>
   <script type="module" src="/media-sets.client.js"></script>
 <script type="module" src="/lib/media-store.client.js"></script>
-  <script src="/lib/persist.client.js"></script>
-  <script src="/lib/persist-wire.client.js"></script>
-  <script src="/lib/persist-fx.client.js"></script>
-  <script src="/lib/library-hygiene.client.js"></script>
-  <script src="/lib/preset-transitions.client.js"></script>
-  <script src="/lib/reset-state.client.js"></script>
-  <script src="/lib/recorder.client.js"></script>
+  <script src="/lib/persist.client.js" defer></script>
+  <script src="/lib/persist-wire.client.js" defer></script>
+  <script src="/lib/persist-fx.client.js" defer></script>
+  <script src="/lib/library-hygiene.client.js" defer></script>
+  <script src="/lib/preset-transitions.client.js" defer></script>
+  <script src="/lib/reset-state.client.js" defer></script>
+  <script src="/lib/recorder.client.js" defer></script>
   <script type="module" src="/share.client.js"></script>
   <script type="module" src="/pwa-bootstrap.js"></script>
   <script type="module" src="/pt.client.js"></script>
@@ -9019,7 +9028,7 @@
     })();
   </script>
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
-  <script src="/lib/swr-natural.client.js"></script>
+  <script src="/lib/swr-natural.client.js" defer></script>
   <script>
     // Google Drive import — engine integration.
     // Wire: Drive button → modal → refresh media grid on import.

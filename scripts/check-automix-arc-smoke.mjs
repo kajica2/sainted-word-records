@@ -125,7 +125,11 @@ try {
   // CI runners never settle on networkidle — navigate on domcontentloaded and
   // give the page a bounded chance to reach `complete` (same pattern as the
   // other check:* smokes).
-  await page.goto(`${served.url}/engine.html?automix=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  // ?webgl=1 opts back in: WebGL is off by default (lib/webgl-feature-detect
+  // .client.js), which makes fx-postprocess.js bail out before it defines
+  // window.FX — the very object assertions 3 and 4 sample. This check is
+  // about the arc driving FX.state, so it must run on the WebGL path.
+  await page.goto(`${served.url}/engine.html?automix=1&webgl=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
 
   // 1. Transport, then a song. default-library seeds the demo MP3, but its
