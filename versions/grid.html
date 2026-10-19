@@ -1015,6 +1015,11 @@ d.addEventListener('click', (e) => {
       const _txOn = (l.reactorsEnabled !== false)
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
       if (!_txOn) return out;
+      // Mirror the engine.html pattern: rot-target reactors are silenced
+      // by the per-layer rotationEnabled toggle. Without this guard the
+      // angle accumulates frame-to-frame and the layer tumbles even when
+      // the user has explicitly turned rotation off.
+      const _rotOn = l.rotationEnabled === true;  // OFF by default — opt in via the per-layer 'rotate' toggle; reactors targeting 'rot' are silenced until then
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
@@ -1022,6 +1027,7 @@ d.addEventListener('click', (e) => {
         if (r.target==='scale') out.scale += v;
         else if (r.target==='opacity') out.opacity = clamp(out.opacity * (1 - v) + (v>0?1:0), 0, 1);
         else if (r.target==='hue') out.hue += v * 180;
+        else if (r.target==='rot') { if (_rotOn) out.rot += v * 12; }
       }
       // Wrap accumulated rot into (-180, 180] so it stays continuous across many audio frames.
       // The previous asin(sin(x)) clamp produced sign flips every ~180° of accumulation,
