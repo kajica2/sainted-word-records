@@ -1116,6 +1116,16 @@ const PRESETS = {
       tint:      gl.getUniformLocation(prog, 'u_tint'),
     };
 
+    // Safe uniform setters — skip if location is null. Some preset
+    // shaders don't declare every uniform (e.g. a minimal variant
+    // without u_blur); calling gl.uniform1f(null, …) throws
+    // INVALID_OPERATION: location is not from the associated program
+    // and the browser emits the error before any higher-level guard
+    // can swallow it. The guard prevents the WebGL call entirely.
+    const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
+    const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
+    const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
+
     // Texture from #render
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -1123,7 +1133,7 @@ const PRESETS = {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(u.tex, 0);
+    _ui(u.tex, 0);
 
     // Page index
     const pageKeys = Object.keys(PRESETS);
@@ -1164,11 +1174,11 @@ const PRESETS = {
         return;
       }
 
-      gl.uniform1f(u.time,      t);
-      gl.uniform1f(u.bass,      bass);
-      gl.uniform1f(u.mid,       mid);
-      gl.uniform1f(u.treble,    treble);
-      gl.uniform1f(u.beat,      beat);
+      _uf(u.time,      t);
+      _uf(u.bass,      bass);
+      _uf(u.mid,       mid);
+      _uf(u.treble,    treble);
+      _uf(u.beat,      beat);
       // Self-evolving automixer override (versions/music_video.html):
       // when window.SWR._fxOverride is set, blend its 8 fx_state fields
       // on top of the static page preset. The blend amount is driven by
@@ -1224,10 +1234,10 @@ const PRESETS = {
         ? window.FX.intensity
         : (typeof window.SWR_FX_INTENSITY === 'number' ? window.SWR_FX_INTENSITY : 1);
       if (!(_k >= 0 && _k <= 1)) _k = 1;
-      // Safe uniform setters — skip if location is null (uniform not in shader)
-      const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
-      const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
-      const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
+      // (Safe uniform setters _uf / _ui / _u3 are defined at the top of
+      // init() so all WebGL calls in this file use them. If a location
+      // is null (the uniform isn't in the shader), the call is
+      // skipped — no INVALID_OPERATION error from the driver.)
       _uf(u.temp,      _temp * _k);
       _uf(u.mut,       _mut * _k);
       _uf(u.mutAlgo,   preset.mutAlgo);

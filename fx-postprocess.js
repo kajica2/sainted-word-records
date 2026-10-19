@@ -489,6 +489,14 @@
       fade:     gl.getUniformLocation(prog, 'u_fade'),
     };
 
+    // Safe uniform setters — skip if location is null. u.tex, u.fade,
+    // etc. may be null if the shader doesn't declare them. Calling
+    // gl.uniform1i(null, …) throws INVALID_OPERATION and the browser
+    // emits the error before any higher-level guard.
+    const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
+    const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
+    const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
+
     // Texture from #render
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -496,7 +504,7 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(u.tex, 0);
+    _ui(u.tex, 0);
 
     let t0 = performance.now();
     let lastResize = 0;
@@ -669,8 +677,8 @@
         return;
       }
 
-      // Update uniforms — skip if location is null (uniform not in shader)
-      const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
+      // Update uniforms (safe setters _uf / _ui / _u3 defined at the top
+      // of init() so all calls in this file skip null locations).
       _uf(u.time,      state.time);
       _uf(u.bass,      state.bass);
       _uf(u.mid,       state.mid);

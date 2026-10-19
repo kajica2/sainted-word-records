@@ -49,6 +49,7 @@
     "check:svg-grade-integration": "node scripts/check-svg-grade-integration.mjs",
     "check:api-mock": "node scripts/check-api-mock.mjs",
     "check:webgl-default-off": "node scripts/check-webgl-default-off.mjs",
+    "check:webgl-safe-uniforms": "node scripts/check-webgl-safe-uniforms.mjs",
     "check:automix-smoke": "node scripts/check-automix-smoke.mjs",
     "check:automix-arc-smoke": "node scripts/check-automix-arc-smoke.mjs",
     "check:storyboard": "node scripts/run-steps.mjs storyboard",

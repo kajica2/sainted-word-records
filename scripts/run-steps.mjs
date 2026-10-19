@@ -59,6 +59,7 @@ const GROUPS = {
     'npm run check:svg-grade-integration',
     'npm run check:api-mock',
     'npm run check:webgl-default-off',
+    'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
     'npm run check:gradient-dot-unit',
