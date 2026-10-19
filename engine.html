@@ -242,6 +242,27 @@
         width: 44px !important;
         height: 44px !important;
       }
+
+      /* Library toolbar icons (per-thumbnail actions). Each was 18-22 px,
+         which is unusable with a fingertip. Bump to 44×44 (iOS HIG, Material
+         48dp). Reposition so they don't overlap each other on the 96×96 thumb.
+         The visible glyph stays small (16-18 px) — the hit area expands
+         around it via padding. !important wins over the desktop sizing. */
+      .lib-rot, .lib-del, .lib-use-as-song {
+        width: 44px !important;
+        height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 16px !important;
+        line-height: 1 !important;
+      }
+      .lib-rot      { top: 2px;    left: 2px;    !important; }
+      .lib-del      { top: 50px;   right: 2px;   !important; } /* was 26 → 50 (2+44+4) */
+      .lib-use-as-song { bottom: 2px; left: 2px;  !important; }  /* bottom-left on small cards */
+
+      /* Library thumbnails stay 96 px tall (already bumped in PR #227) */
+      .lib-item { min-height: 96px; }
     }
 
     /* iOS safe-area + overscroll — missing repo-wide before this.
