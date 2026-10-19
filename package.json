@@ -176,7 +176,9 @@
     "verify:genops": "node verify-genops.mjs",
     "verify:tier-runtime": "node verify-tier-runtime.mjs",
     "check:register-data": "node scripts/check-register-data.mjs",
-    "check:preset-smoke": "node preset-pipeline/verify.mjs"
+    "check:preset-smoke": "node preset-pipeline/verify.mjs",
+    "check:webgl-uniform-guard": "node scripts/check-webgl-uniform-guard.mjs",
+    "check:webgl-no-invalid-op": "node scripts/check-webgl-no-invalid-op.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",
