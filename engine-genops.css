@@ -261,4 +261,3 @@ section.stage { will-change: transform; }
 
 .genops-more { margin-top: 4px; }
 .genops-more > summary { font-size: 10px; opacity: .7; cursor: pointer; }
-.genops-more { display: none !important; }
