@@ -998,9 +998,10 @@
         // "S" is deliberately unbound: it used to open the gear menu, which
         // no longer exists (engine-settings.client.js is UI-free now).
         case 'KeyC':            action = ACTIONS.cycleBlend; break;
-        case 'KeyY':            action = ACTIONS.duplicateLayer; break;
+        case 'KeyY':            action = ev.shiftKey ? ACTIONS.toggleMasterRotation : ACTIONS.duplicateLayer; break;
         case 'KeyV':            action = ev.shiftKey ? ACTIONS.mirrorVertical : ACTIONS.cycleMirror; break;
         case 'KeyF':            action = ACTIONS.fullscreen; break;
+        case 'KeyU':            if (ev.shiftKey) action = ACTIONS.actionsRunAutoMap; break;
         case 'ArrowUp':         action = ACTIONS.selectPrev; ev.preventDefault(); break;
         case 'ArrowDown':       action = ACTIONS.selectNext; ev.preventDefault(); break;
         // Page navigation across the demo variants. actionAllowed() drops
