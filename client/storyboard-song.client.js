@@ -108,12 +108,23 @@
 
   // Compute 100ms-hop RMS (in dB) and spectral centroid (Hz) over the
   // full buffer. Returns arrays of equal length; step = hopSec.
+  //
+  // Scratch buffers are module-scope and lazily (re)sized so the per-frame
+  // loops below never allocate; only the two result arrays are copied out.
+  let _loud = null;    // RMS dB scratch
+  let _cent = null;    // centroid scratch
+  let _lcReal = null;  // FFT real part
+  let _lcImag = null;  // FFT imaginary part
+  let _lcWin = null;   // Hann window
+
   function loudnessAndCentroid(mono, sr, hopSec) {
     const hop = Math.max(1, Math.floor(sr * hopSec));
     const winSize = hop * 4; // 400ms window for stable RMS
     const n = Math.max(1, Math.floor((mono.length - winSize) / hop));
-    const loudness = new Float32Array(n);
-    const centroid = new Float32Array(n);
+    if (!_loud || _loud.length !== n) _loud = new Float32Array(n);
+    if (!_cent || _cent.length !== n) _cent = new Float32Array(n);
+    const loudness = _loud;
+    const centroid = _cent;
 
     // Pre-compute scratch for centroid: bin frequencies for a winSize FFT.
     // We don't need a full FFT to estimate centroid; an energy-weighted
@@ -122,12 +133,18 @@
     // audio-analysis-v2 internals if available) for magnitudes.
     // Fallback: derive magnitudes from a windowed FFT.
     const fftSize = nextPow2(winSize);
-    const real = new Float32Array(fftSize);
-    const imag = new Float32Array(fftSize);
-    const window = new Float32Array(fftSize);
-    for (let i = 0; i < fftSize; i++) {
-      window[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (fftSize - 1)));
+    if (!_lcReal || _lcReal.length !== fftSize) {
+      _lcReal = new Float32Array(fftSize);
+      _lcImag = new Float32Array(fftSize);
+      _lcWin = new Float32Array(fftSize);
+      // Window depends only on fftSize, so fill it once per resize.
+      for (let i = 0; i < fftSize; i++) {
+        _lcWin[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (fftSize - 1)));
+      }
     }
+    const real = _lcReal;
+    const imag = _lcImag;
+    const window = _lcWin;
     const haveFFT = typeof fft === 'function';
     let prevMag = null;
 
@@ -166,7 +183,9 @@
         centroid[i] = (zc / winSize) * (sr / 2);
       }
     }
-    return { loudness, centroid, hopSec, winSize };
+    // Copy out: the caller keeps these in the returned song profile, so the
+    // module-scope scratch must not leak across analyses.
+    return { loudness: loudness.slice(), centroid: centroid.slice(), hopSec, winSize };
   }
 
   function nextPow2(n) {
@@ -178,11 +197,16 @@
   // Self-similarity matrix on chroma vectors, then Foote novelty curve.
   // Returns novelty[k] = average of off-diagonal kernel response at lag k.
   // Cheap O(N^2 * K) where N = chroma frames, K = kernel half-width.
+  // Module-scope scratch for footeNovelty; resized only when frame count changes.
+  let _sim = null;       // N×N self-similarity matrix
+  let _novelty = null;  // Foote novelty curve
+
   function footeNovelty(chromaFrames, kernelHalf) {
     const N = chromaFrames.length;
     if (N === 0) return [];
     // Self-similarity (cosine on 12-dim chroma)
-    const S = new Float32Array(N * N);
+    if (!_sim || _sim.length !== N * N) _sim = new Float32Array(N * N);
+    const S = _sim;
     for (let i = 0; i < N; i++) {
       for (let j = i; j < N; j++) {
         let dot = 0, ai = 0, aj = 0;
@@ -198,7 +222,8 @@
     // Foote checkerboard kernel: 1 in a square around (i,j), -1 in an
     // outer annulus. We compute the sliding sum of off-diagonal pixels
     // vs on-diagonal pixels along the anti-diagonal.
-    const novelty = new Float32Array(N);
+    if (!_novelty || _novelty.length !== N) _novelty = new Float32Array(N);
+    const novelty = _novelty;
     for (let i = 0; i < N; i++) {
       let onSum = 0, offSum = 0;
       for (let dx = -kernelHalf; dx <= kernelHalf; dx++) {
@@ -266,16 +291,28 @@
 
   // Build chroma frames at 1s hop (12-dim, summed over the same window the
   // energy is measured). Used for self-similarity.
+  // Module-scope FFT scratch for chromaFrames, plus a 12-float chroma
+  // accumulator that is zeroed and copied out each frame.
+  let _cfReal = null;
+  let _cfImag = null;
+  let _cfWin = null;
+  const _chromaScratch = new Float32Array(12);
+
   function chromaFrames(mono, sr, hopSec) {
     const hop = Math.max(1, Math.floor(sr * hopSec));
     const winSize = hop * 4;
     const fftSize = nextPow2(winSize);
-    const real = new Float32Array(fftSize);
-    const imag = new Float32Array(fftSize);
-    const window = new Float32Array(fftSize);
-    for (let i = 0; i < fftSize; i++) {
-      window[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (fftSize - 1)));
+    if (!_cfReal || _cfReal.length !== fftSize) {
+      _cfReal = new Float32Array(fftSize);
+      _cfImag = new Float32Array(fftSize);
+      _cfWin = new Float32Array(fftSize);
+      for (let i = 0; i < fftSize; i++) {
+        _cfWin[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (fftSize - 1)));
+      }
     }
+    const real = _cfReal;
+    const imag = _cfImag;
+    const window = _cfWin;
     const n = Math.max(1, Math.floor((mono.length - winSize) / hop));
     const frames = [];
     for (let i = 0; i < n; i++) {
@@ -285,7 +322,8 @@
         imag[j] = 0;
       }
       if (typeof fft === 'function') fft(real, imag);
-      const chroma = new Float32Array(12);
+      const chroma = _chromaScratch;  // 12-float scratch, copied out per frame
+      chroma.fill(0);
       for (let k = 1; k < fftSize / 2; k++) {
         const mag = Math.hypot(real[k], imag[k]);
         const freq = (k * sr) / fftSize;

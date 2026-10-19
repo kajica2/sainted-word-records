@@ -34,6 +34,10 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
   }
 
+  // Module-scope scratch for per-frame RMS energies. Reused across
+  // detect() calls; only reallocated when the frame count changes.
+  var _energies = null;
+
   var detector = {
     lastResult: null,
 
@@ -67,7 +71,8 @@
       var win = Math.floor(sampleRate * 0.02);
       var hop = Math.floor(sampleRate * 0.01);
       var nFrames = Math.max(1, Math.floor(samples.length / hop));
-      var energies = new Float32Array(nFrames);
+      if (!_energies || _energies.length !== nFrames) _energies = new Float32Array(nFrames);
+      var energies = _energies;
       for (var f = 0; f < nFrames; f++) {
         var start = f * hop;
         var sum = 0;
