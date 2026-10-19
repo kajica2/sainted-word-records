@@ -184,7 +184,10 @@
        .tbtn is ~28px tall (11px font + 7px vertical padding), which
        is hard to hit with a fingertip. The range sliders are 14px
        tall, which is essentially undraggable. Both get a
-       coarse-pointer-only override so desktop metrics don't change. */
+       coarse-pointer-only override so desktop metrics don't change.
+       Mobile widths also get the bump regardless of pointer type
+       (Chrome DevTools mobile emulation reports pointer as 'fine' but
+       the small touch surface is still unusable). */
     @media (pointer: coarse) {
       .tbtn { min-height: 44px; padding-top: 12px; padding-bottom: 12px; }
       .layer-row input[type="range"],
@@ -209,6 +212,35 @@
         height: 8px;
         background: var(--line-2);
         border-radius: 4px;
+      }
+    }
+
+    /* Mobile widths: bring tap targets up to ≥44×44 regardless of pointer
+       type. Chrome DevTools mobile emulation reports pointer as 'fine'
+       so the coarse-pointer block above doesn't fire there. The inline
+       styles on the layers-panel header buttons (#add-layer etc.) have
+       higher specificity than `.tbtn` — `!important` is the right tool
+       for a one-line accessibility fix without changing the design system.
+       Layer strip items in client/layer-strip.client.js also bump here. */
+    @media (max-width: 768px) {
+      button,
+      .tbtn,
+      .basic-ctrl,
+      #mode-basic-btn,
+      #mode-advanced-btn,
+      #mode-basic-btn-2,
+      #mode-advanced-btn-2,
+      #add-layer, #add-3d, #re-map, #toggle-cover-fullscreen,
+      #save-project, #open-drive, #layer-count-dec, #layer-count-inc,
+      #basic-library-btn, #basic-play-btn, #basic-record-btn, #basic-effects-btn,
+      .layer-strip .li {
+        min-height: 44px !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+      }
+      .basic-ctrl {
+        width: 44px !important;
+        height: 44px !important;
       }
     }
 
