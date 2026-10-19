@@ -58,6 +58,7 @@ const GROUPS = {
     'npm run check:ver-picker',
     'npm run check:svg-grade-integration',
     'npm run check:api-mock',
+    'npm run check:client-sdk',
     'npm run check:webgl-default-off',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
