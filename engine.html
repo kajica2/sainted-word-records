@@ -3232,6 +3232,7 @@
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
         <button class="tbtn ghost" id="toggle-cover-fullscreen" title="Toggle cover fullscreen" style="padding:4px 8px; font-size:9px;">⛶ Cover</button>
         <button class="tbtn ghost" id="save-project" title="Save project as a .swr-project file (Cmd/Ctrl+S)" style="padding:4px 8px; font-size:9px;">💾 Save</button>
+        <button class="tbtn ghost" id="open-drive" title="Import from Google Drive (audio, video, image)" style="padding:4px 8px; font-size:9px;">📁 Drive</button>
         <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
           <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
           <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
@@ -6052,6 +6053,62 @@
             setStatus('save unavailable on this page', 'warn');
           }
         });
+
+        // Google Drive: open the file-browser modal. If the user isn't
+        // linked yet, surface a status-bar prompt and offer the connect
+        // path. The modal itself handles the OAuth popup (lib/google-drive.client.js).
+        $('open-drive').addEventListener('click', async () => {
+          if (!window.SWR_GDRIVE) {
+            setStatus('Drive module not loaded', 'warn');
+            return;
+          }
+          if (!window.SWR_DRIVE_MODAL) {
+            setStatus('Drive modal not loaded', 'warn');
+            return;
+          }
+          const linked = window.SWR_GDRIVE.isLinked && window.SWR_GDRIVE.isLinked();
+          if (!linked) {
+            try {
+              setStatus('connecting to Google Drive…', 'ok');
+              await window.SWR_GDRIVE.link();
+              setStatus('Drive connected', 'ok');
+            } catch (e) {
+              setStatus('Drive connect failed: ' + (e.message || 'unknown'), 'err');
+              return;
+            }
+          }
+          window.SWR_DRIVE_MODAL.show();
+        });
+
+        // Drive import → stage: when SWR_DRIVE_MODAL emits an import event,
+        // pull the file's storageKey URL into a layer on the stage. No
+        // background classification (audio features stay at the default
+        // mid-band values); the import is "play it now" rather than
+        // "schedule it smartly". A future revision can call classify().
+        if (window.SWR_DRIVE_MODAL && typeof window.SWR_DRIVE_MODAL.onImport === 'function') {
+          window.SWR_DRIVE_MODAL.onImport(async ({ file, result }) => {
+            try {
+              if (!window.Layers || !result || !result.storageKey) return;
+              const type = (file.mimeType || '').split('/')[0];
+              const asset = {
+                id: file.id || ('gdrive-' + Date.now()),
+                name: file.name || 'Drive file',
+                type: ['image', 'video', 'audio'].includes(type) ? type : 'video',
+                thumb: null,
+                motion: 0.5, luma: 0.5, hue: 0,
+                w: 640, h: 360,
+                added: Date.now(),
+              };
+              asset.url = result.storageKey;
+              asset.coverUrl = result.storageKey;
+              asset.mimeType = file.mimeType || '';
+              window.Layers.add(asset);
+              setStatus(`Drive: ${file.name} added`, 'ok');
+            } catch (e) {
+              setStatus('Drive import failed: ' + (e.message || e), 'err');
+            }
+          });
+        }
         
         // Toggle cover fullscreen
         let coverFullscreen = false;
