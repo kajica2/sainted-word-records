@@ -65,6 +65,7 @@ const GROUPS = {
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
     'npm run check:preset-pick-unit',
+    'npm run check:webgl-uniform-guard',
     // Preset spec gate: manifest.json + presets/*.json against swr-preset/v1.
     // Also its own CI step (npm run preset-pipeline:verify) after check:full.
     'npm run check:preset-smoke',
