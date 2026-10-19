@@ -78,6 +78,16 @@
   z-index: 9999;
 }
 
+/* The panel is toggled via the `hidden` attribute (presets-dropdown.client.js
+   sets panel.hidden = true until the trigger is clicked). A bare class
+   selector's `display: flex` outranks the UA stylesheet's `[hidden] {
+   display: none }`, so without this the z-index:9999 panel stays painted over
+   the transport row and swallows hit-tests on ● REC and Export video.
+   Attribute selector matches the class specificity and restores the intent. */
+.swr-presets-panel[hidden] {
+  display: none;
+}
+
 @keyframes swr-presets-slide-in {
   from {
     opacity: 0;
