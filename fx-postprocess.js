@@ -406,14 +406,7 @@
       return false;
     }
 
-    // WebGL setup. WebGL is OFF by default (see lib/webgl-feature-detect.client.js
-    // for the rationale). If the helper isn't loaded (e.g. on variant
-    // pages that don't pull in engine.html's script tags), bail —
-    // better to render 2D than to ship a broken shader program.
-    if (!window.SWR_WEBGL || !window.SWR_WEBGL.isWebGLEnabled()) {
-      console.info('[fx-postprocess] WebGL disabled (helper missing or flag off)');
-      return;
-    }
+    // WebGL setup
     // NB: preserveDrawingBuffer must be true for captureStream() / MediaRecorder to
     // work — otherwise the WebGL buffer is cleared after each compositor present,
     // causing black frames in headless SwiftShader (issue #75).
@@ -489,14 +482,6 @@
       fade:     gl.getUniformLocation(prog, 'u_fade'),
     };
 
-    // Safe uniform setters — skip if location is null. u.tex, u.fade,
-    // etc. may be null if the shader doesn't declare them. Calling
-    // gl.uniform1i(null, …) throws INVALID_OPERATION and the browser
-    // emits the error before any higher-level guard.
-    const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
-    const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
-    const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
-
     // Texture from #render
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -504,6 +489,15 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    // Safe uniform setters — skip if location is null. The render-loop
+    // setters further down already use these via ca46544; this first
+    // batch (tex + the time/bass/mid/treble/beat loop on the next
+    // frame) was missed by that fix and re-emits INVALID_OPERATION
+    // when a preset shader omits any of these uniforms. Defining them
+    // here closes the leak before the FIRST frame draws.
+    const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
+    const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
+    const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
     _ui(u.tex, 0);
 
     let t0 = performance.now();
@@ -677,8 +671,8 @@
         return;
       }
 
-      // Update uniforms (safe setters _uf / _ui / _u3 defined at the top
-      // of init() so all calls in this file skip null locations).
+      // Update uniforms (safe setters _uf / _ui defined at the top of
+      // init() so all calls in this file skip null locations).
       _uf(u.time,      state.time);
       _uf(u.bass,      state.bass);
       _uf(u.mid,       state.mid);

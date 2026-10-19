@@ -1038,14 +1038,6 @@ const PRESETS = {
       return false;
     }
 
-    // WebGL is OFF by default; opt in with ?webgl=1 or swrWebGL=1. If the
-    // helper isn't loaded (e.g. on variant pages that don't pull in
-    // engine.html's script tags), bail — better to render 2D than to
-    // ship a broken shader program.
-    if (!window.SWR_WEBGL || !window.SWR_WEBGL.isWebGLEnabled()) {
-      console.info('[versions-presets] WebGL disabled (helper missing or flag off)');
-      return;
-    }
     const gl = out.getContext('webgl', { premultipliedAlpha: false }) ||
                out.getContext('experimental-webgl');
     if (!gl) {
@@ -1116,16 +1108,6 @@ const PRESETS = {
       tint:      gl.getUniformLocation(prog, 'u_tint'),
     };
 
-    // Safe uniform setters — skip if location is null. Some preset
-    // shaders don't declare every uniform (e.g. a minimal variant
-    // without u_blur); calling gl.uniform1f(null, …) throws
-    // INVALID_OPERATION: location is not from the associated program
-    // and the browser emits the error before any higher-level guard
-    // can swallow it. The guard prevents the WebGL call entirely.
-    const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
-    const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
-    const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
-
     // Texture from #render
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -1133,6 +1115,15 @@ const PRESETS = {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    // Safe uniform setters — skip if location is null (uniform not
+    // in shader). The render-loop setters (lines 1219-1233) already
+    // use these via ca46544, but the FIRST batch of calls (tex, time,
+    // bass, mid, treble, beat) was missed by that fix and re-emits
+    // INVALID_OPERATION when a preset shader omits any of these
+    // uniforms. Defining them here closes the leak.
+    const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
+    const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
+    const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
     _ui(u.tex, 0);
 
     // Page index
@@ -1234,10 +1225,6 @@ const PRESETS = {
         ? window.FX.intensity
         : (typeof window.SWR_FX_INTENSITY === 'number' ? window.SWR_FX_INTENSITY : 1);
       if (!(_k >= 0 && _k <= 1)) _k = 1;
-      // (Safe uniform setters _uf / _ui / _u3 are defined at the top of
-      // init() so all WebGL calls in this file use them. If a location
-      // is null (the uniform isn't in the shader), the call is
-      // skipped — no INVALID_OPERATION error from the driver.)
       _uf(u.temp,      _temp * _k);
       _uf(u.mut,       _mut * _k);
       _uf(u.mutAlgo,   preset.mutAlgo);
