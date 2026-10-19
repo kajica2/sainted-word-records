@@ -94,7 +94,7 @@ await test('1. unauthorized (localhost without secret, off-ip) → 401', async (
   const res = makeRes();
   await importHandler(req, res);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(JSON.parse(res.body), { ok: false, error: 'unauthorized' });
+  assert.deepEqual(JSON.parse(res.body), { error: 'unauthorized' });
 });
 
 await test('2. wrong secret → 401', async () => {
@@ -128,7 +128,7 @@ await test('5. invalid JSON → 400', async () => {
   const res = makeRes();
   await importHandler(req, res);
   assert.equal(res.statusCode, 400);
-  assert.equal(JSON.parse(res.body).error, 'invalid JSON');
+  assert.equal(JSON.parse(res.body).error, 'invalid_request');
 });
 
 await test('6. no `keys` field → 400', async () => {
@@ -136,6 +136,7 @@ await test('6. no `keys` field → 400', async () => {
   const res = makeRes();
   await importHandler(req, res);
   assert.equal(res.statusCode, 400);
+  assert.equal(JSON.parse(res.body).error, 'invalid_request');
 });
 
 await test('7. valid import (localhost) → 200, imported=2', async () => {
@@ -180,21 +181,19 @@ await test('8. idempotency: re-importing same key → imported=0, skipped=1', as
   assert.deepEqual(body.skippedKeys, ['swr-band-A2B3C4D5']);
 });
 
-await test('9. declared tier is unknown / not in PT_TIERS → error', async () => {
-  // The handler validates format FIRST, then tier. This test exercises
-  // the tier check by declaring a key in a tier that's not in PT_TIERS.
-  // Use a valid-format key (A2B3C4D5) with a fake tier.
+await test('9. declared tier is unknown / not in PT_TIERS → 400 invalid_request', async () => {
+  // The ImportReq contract declares `tier` as z.enum(['solo','band','label']).
+  // A request with an unknown tier fails at the Zod parse step with a 400 —
+  // fail-fast is better than silently importing the valid keys and reporting
+  // the bad one in the 200 errors[] array, because the operator would miss
+  // the failure if they don't inspect the response.
   const req = makeReq({
     body: { keys: [{ key: 'swr-band-A2B3C4D5', tier: 'fakemade' }] },
   });
   const res = makeRes();
   await importHandler(req, res);
-  assert.equal(res.statusCode, 200);
-  const body = JSON.parse(res.body);
-  assert.equal(body.imported, 0);
-  assert.equal(body.errors.length, 1);
-  assert.equal(body.errors[0].key, 'swr-band-A2B3C4D5');
-  assert.match(body.errors[0].error, /tier/i);
+  assert.equal(res.statusCode, 400);
+  assert.equal(JSON.parse(res.body).error, 'invalid_request');
 });
 
 await test('10. format-invalid key → errors[0].error contains "format"', async () => {

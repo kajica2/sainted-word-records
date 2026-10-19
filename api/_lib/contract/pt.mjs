@@ -28,7 +28,11 @@ export const VerifyRes = z.union([
     valid: z.literal(false),
     error: z.string().optional(),     // 'key not found' | 'key format invalid' | 'tier mismatch' | 'tier retired'
   }),
-  ErrorBody.extend({ error: z.enum(['rate_limited', 'method_not_allowed']) }),
+  // Error envelopes for 4xx class responses. The verify endpoint can
+  // also fail with `invalid_request` (missing/oversize `key` param
+  // caught at the Zod parse step) — included so the contract is the
+  // single source of truth for every status code the handler emits.
+  ErrorBody.extend({ error: z.enum(['invalid_request', 'rate_limited', 'method_not_allowed']) }),
 ]);
 
 // Admin-side: bulk-import keys minted by the operator. Requires

@@ -37,9 +37,10 @@
 // We dedupe by key inside the withLock that readJson/writeJson
 // share.
 
-import { sendJson, setCors } from '../../../_lib/http.js';
+import { sendJson, setCors, readJsonBody, methodNotAllowed } from '../../../_lib/http.js';
 import { withLock, readJson, writeJson, DATA_ROOT } from '../../../_lib/db.js';
 import { PT_KEY_RE, PT_TIERS, listPtKeysForUser } from '../../../_lib/pt-keys.js';
+import { ImportReq } from '../../../_lib/contract/pt.mjs';
 import { join } from 'node:path';
 
 const KEYS_INDEX = join(DATA_ROOT, 'pt-keys');
@@ -66,24 +67,6 @@ function isAuthorized(req) {
   }
   const got = req.headers['x-import-secret'];
   return typeof got === 'string' && got === expected;
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let total = 0;
-    const chunks = [];
-    req.on('data', (c) => {
-      total += c.length;
-      if (total > 2_000_000) {
-        reject(new Error('body too large'));
-        req.destroy();
-        return;
-      }
-      chunks.push(c);
-    });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    req.on('error', reject);
-  });
 }
 
 function parseKeysPayload(parsed) {
@@ -127,30 +110,41 @@ export default async function handler(req, res) {
     return res.end();
   }
   if (req.method !== 'POST') {
-    return sendJson(res, 405, { ok: false, error: 'method not allowed' });
+    return methodNotAllowed(res, ['POST', 'OPTIONS']);
   }
 
   if (!isAuthorized(req)) {
-    return sendJson(res, 401, { ok: false, error: 'unauthorized' });
+    return sendJson(res, 401, { error: 'unauthorized' });
   }
 
-  let body;
-  try { body = await readBody(req); }
-  catch (e) { return sendJson(res, 400, { ok: false, error: 'read body failed: ' + e.message }); }
+  // Body parse + Zod contract validation. ImportReq accepts:
+  //   { keys: [ 'swr-band-A1B2C3D4', { key, tier, email, ... }, ... ] }
+  // The Zod schema catches missing keys, oversize arrays (>500),
+  // empty arrays, and malformed entries.
+  const body = await readJsonBody(req);
+  if (body && body.__error === 'payload_too_large') {
+    return sendJson(res, 413, { error: 'payload_too_large' });
+  }
+  if (body && body.__error === 'invalid_json') {
+    return sendJson(res, 400, { error: 'invalid_request', hint: 'request body must be valid JSON' });
+  }
+  const input = ImportReq.safeParse(body);
+  if (!input.success) {
+    return sendJson(res, 400, {
+      error: 'invalid_request',
+      hint: input.success ? undefined : 'see Zod issues for detail',
+    });
+  }
 
-  let parsed;
-  try { parsed = JSON.parse(body); }
-  catch (e) { return sendJson(res, 400, { ok: false, error: 'invalid JSON' }); }
-
-  const input = parseKeysPayload(parsed);
-  if (!input.ok) {
-    return sendJson(res, 400, { ok: false, error: input.error });
+  const parsedKeys = parseKeysPayload({ keys: input.data.keys });
+  if (!parsedKeys.ok) {
+    return sendJson(res, 400, { error: 'invalid_request', hint: parsedKeys.error });
   }
 
   // Validate each entry; queue the ones that pass.
   const valid = [];
   const errors = [];
-  for (const it of input.items) {
+  for (const it of parsedKeys.items) {
     if (!it.key) { errors.push({ key: null, error: it.error || 'missing key' }); continue; }
     if (!PT_KEY_RE.test(it.key.trim())) {
       errors.push({ key: it.key, error: 'key format invalid' }); continue;

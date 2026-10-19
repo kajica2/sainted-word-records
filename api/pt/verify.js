@@ -27,11 +27,12 @@
 // prevent a "free tier" workaround for the media-feature cap, not
 // to defend the key's secrecy.)
 
-import { sendJson, setCors } from '../_lib/http.js';
+import { sendJson, setCors, methodNotAllowed } from '../_lib/http.js';
 import { PT_KEY_RE, findPtKeyBySession, listPtKeysForUser, PT_TIERS } from '../_lib/pt-keys.js';
 import { readJson } from '../_lib/db.js';
 import { join } from 'node:path';
 import { DATA_ROOT } from '../_lib/db.js';
+import { VerifyReq, VerifyRes } from '../_lib/contract/pt.mjs';
 
 const KEYS_INDEX = join(DATA_ROOT, 'pt-keys', 'index.json');
 
@@ -97,7 +98,7 @@ export default async function handler(req, res) {
   // Method gate: GET only. POSTing a key in the body works but the
   // URL query is the simplest and matches how the client calls this.
   if (req.method !== 'GET') {
-    return sendJson(res, 405, { ok: false, error: 'method not allowed' });
+    return methodNotAllowed(res, ['GET', 'OPTIONS']);
   }
 
   // Rate limit
@@ -105,19 +106,25 @@ export default async function handler(req, res) {
     .toString().split(',')[0].trim();
   if (!checkRateLimit(ip)) {
     res.setHeader('Retry-After', '2');
-    return sendJson(res, 429, { ok: false, error: 'rate limited' });
+    return sendJson(res, 429, { error: 'rate_limited', retryAfterMs: 2000 });
   }
 
-  // Parse the key
+  // Parse the key from the query string. The contract (VerifyReq)
+  // validates length + non-empty; format and tier are checked below
+  // by PT_KEY_RE so a typo doesn't waste a ledger scan.
   let raw = '';
   try {
     const url = new URL(req.url, 'http://localhost');
     raw = url.searchParams.get('key') || '';
   } catch (_) { /* no url parse; fall through */ }
-  if (!raw) {
-    return sendJson(res, 400, { ok: false, valid: false, error: 'key required' });
+  const reqParse = VerifyReq.safeParse({ key: raw });
+  if (!reqParse.success) {
+    return sendJson(res, 400, {
+      error: 'invalid_request',
+      hint: 'key required (pass ?key=<your-license-key>)',
+    });
   }
-  const parsed = parseKey(raw);
+  const parsed = parseKey(reqParse.data.key);
   if (!parsed) {
     return sendJson(res, 200, { ok: true, valid: false, error: 'key format invalid' });
   }
@@ -176,4 +183,8 @@ export default async function handler(req, res) {
     grantedAt: record.createdAt || null,
     sessionId: record.sessionId || null,
   });
+  // The response shape is asserted by VerifyRes (api/_lib/contract/pt.mjs).
+  // The contract is the single source of truth for the public surface; if
+  // a future edit removes a field or changes a type, check:contract (and
+  // check:contract-parity once it lands) will catch the drift.
 }

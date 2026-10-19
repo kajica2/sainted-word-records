@@ -136,23 +136,23 @@ await test('4. malformed key → valid: false, error: key format invalid', async
   assert.equal(body.error, 'key format invalid');
 });
 
-await test('5. missing key param → 400, error: key required', async () => {
+await test('5. missing key param → 400, error: invalid_request', async () => {
   const req = makeReq({ url: '/api/pt/verify' });
   const res = makeRes();
   await verifyHandler(req, res);
   const body = JSON.parse(res.body);
   assert.equal(res.statusCode, 400);
-  assert.equal(body.ok, false);
-  assert.equal(body.error, 'key required');
+  assert.equal(body.error, 'invalid_request');
+  assert.match(body.hint, /key required/);
 });
 
-await test('6. POST method → 405 method not allowed', async () => {
+await test('6. POST method → 405 method_not_allowed', async () => {
   const req = makeReq({ method: 'POST', url: '/api/pt/verify?key=' + encodeURIComponent(REAL_KEY) });
   const res = makeRes();
   await verifyHandler(req, res);
   assert.equal(res.statusCode, 405);
   const body = JSON.parse(res.body);
-  assert.equal(body.ok, false);
+  assert.equal(body.error, 'method_not_allowed');
 });
 
 await test('7. rate limit: 5 rapid requests from same IP, 6th → 429', async () => {
@@ -170,8 +170,8 @@ await test('7. rate limit: 5 rapid requests from same IP, 6th → 429', async ()
   await verifyHandler(req, res);
   assert.equal(res.statusCode, 429, '6th request should be rate limited');
   const body = JSON.parse(res.body);
-  assert.equal(body.ok, false);
-  assert.equal(body.error, 'rate limited');
+  assert.equal(body.error, 'rate_limited');
+  assert.equal(body.retryAfterMs, 2000);
 });
 
 await test('8. CORS preflight (OPTIONS) → 204, no rate limit', async () => {

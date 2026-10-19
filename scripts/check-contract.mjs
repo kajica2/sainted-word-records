@@ -104,6 +104,12 @@ check('PtVerifyRes accepts valid:true with tier',
   PtVerifyRes.safeParse({ ok: true, valid: true, tier: 'band' }).success);
 check('PtVerifyRes accepts valid:false with error',
   PtVerifyRes.safeParse({ ok: true, valid: false, error: 'key not found' }).success);
+check('PtVerifyRes accepts invalid_request error envelope',
+  PtVerifyRes.safeParse({ error: 'invalid_request', hint: 'key required' }).success);
+check('PtVerifyRes accepts rate_limited error envelope',
+  PtVerifyRes.safeParse({ error: 'rate_limited', retryAfterMs: 2000 }).success);
+check('PtVerifyRes accepts method_not_allowed error envelope',
+  PtVerifyRes.safeParse({ error: 'method_not_allowed' }).success);
 check('ImportReq accepts a string-key array',
   ImportReq.safeParse({ keys: ['swr-band-A2B3C4D5', 'swr-solo-N2P3P4P5'] }).success);
 check('ImportReq accepts an object-key array',
