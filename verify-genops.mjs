@@ -350,6 +350,7 @@ const CHECKS = `(async () => {
     '[ / ]', ', / .', "; / '", '/',
     'Shift+[', 'Shift+]', 'Shift+,', 'Shift+.', 'Shift+;', "Shift+'",
     'Shift+N', 'Shift+R', 'Shift+A', 'Shift+T', 'Shift+L',
+    'Shift+Y', 'Shift+U',
     'B', 'X', '0', '?', 'Esc',
   ];
   const helpKeys = window.SWR_KEYS ? window.SWR_KEYS.help().map(function (r) { return r.keys; }) : [];

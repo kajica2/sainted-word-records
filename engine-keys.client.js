@@ -441,6 +441,47 @@
         }
       },
     },
+    // Master rotation toggle: flips window.SWR_ROT_MASTER.enabled (the
+    // same flag the per-layer 'rotate' button and the rot-master UI
+    // button honour) and propagates the new value to every layer. The
+    // panel-side ↻ button reflects the change via paintMasterButton.
+    toggleMasterRotation: {
+      keys: 'Shift+Y',
+      label: 'Toggle master rotation (audio-driven rot on every layer)',
+      action: function () {
+        if (!window.SWR_ROT_MASTER) return;
+        window.SWR_ROT_MASTER.enabled = !window.SWR_ROT_MASTER.enabled;
+        try {
+          localStorage.setItem('swr.rotMaster.enabled',
+                               window.SWR_ROT_MASTER.enabled ? '1' : '0');
+        } catch (_) {}
+        // applyMasterToLayers walks every layer in window.Layers and
+        // sets rotationEnabled to the new value, then re-renders.
+        if (typeof applyMasterToLayers === 'function') applyMasterToLayers();
+        const btn = document.getElementById('swr-rot-master');
+        if (btn && typeof paintMasterButton === 'function') paintMasterButton(btn);
+        try {
+          document.dispatchEvent(new CustomEvent('swr-rot-master-change', {
+            detail: { enabled: window.SWR_ROT_MASTER.enabled },
+          }));
+        } catch (_) {}
+      },
+    },
+    // Auto-map library assets to layer roles by audio features. The
+    // #re-map button on engine.html calls Layers.autoMap(); this is
+    // the same call. The action null-checks Layers.autoMap itself, so
+    // it's safe on every page — no requires-gate needed. Pages without
+    // Layers.autoMap (very few) just no-op.
+    actionsRunAutoMap: {
+      keys: 'Shift+U',
+      label: 'Auto-map library assets to layer roles by audio features',
+      action: function () {
+        const L = window.Layers;
+        if (L && typeof L.autoMap === 'function') {
+          try { L.autoMap(); } catch (e) { console.warn('[keys] autoMap failed:', e.message); }
+        }
+      },
+    },
     // ---- mirror axis (rotkey) ------------------------------------------
     // One key, three states: vertical-axis mirror → horizontal-axis mirror
     // → off. The off state is a real frame-time saving (both ghost passes
@@ -1132,6 +1173,8 @@
       { keys: 'B',              label: 'bloom layers (stagger fade-in)', action: ACTIONS.bloom },
       { keys: 'X',              label: 'crossfade all layers (A2 swap)', action: ACTIONS.crossfade },
       { keys: 'Shift+R',        label: 'force auto-swap now',          action: ACTIONS.forceSwap },
+      { keys: 'Shift+Y',        label: 'toggle master rotation (every layer)', action: ACTIONS.toggleMasterRotation },
+      { keys: 'Shift+U',        label: 'auto-map library assets to layer roles', action: ACTIONS.actionsRunAutoMap },
       { keys: 'V',              label: 'mirror axis: vertical → horizontal → off', action: ACTIONS.cycleMirror },
       { keys: 'Shift+V',        label: 'mirror axis: vertical (left/right)', action: ACTIONS.mirrorVertical },
 
