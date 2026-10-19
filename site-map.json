@@ -428,7 +428,13 @@
     "/versions/music-video-gallery",
     "/slots-admin",
     "/connect",
-    "/buy"
+    "/buy",
+    "/super-admin",
+    "/swr-pipeline",
+    "/mood-frames",
+    "/temple-of-control",
+    "/fonts",
+    "/marketplace-claim"
   ],
   "archived": [],
   "meta": {

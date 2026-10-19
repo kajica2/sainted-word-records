@@ -184,16 +184,6 @@
       "destination": "/artists/nina-volkova.html"
     },
     {
-      "source": "/artists/vodolija",
-      "destination": "/artists",
-      "statusCode": 308
-    },
-    {
-      "source": "/artists/vodolija/",
-      "destination": "/artists",
-      "statusCode": 308
-    },
-    {
       "source": "/versions/music-video-gallery",
       "destination": "/versions/music-video-gallery.html"
     },
@@ -442,6 +432,24 @@
       "destination": "/versions/temple-of-control.html"
     },
     {
+      "source": "/versions/clean",
+      "destination": "/versions/clean.html"
+    },
+    {
+      "source": "/versions/clean/",
+      "destination": "/versions/clean.html"
+    },
+    {
+      "source": "/artists/vodolija",
+      "destination": "/artists/vodolija/index.html",
+      "statusCode": 301
+    },
+    {
+      "source": "/artists/vodolija/",
+      "destination": "/artists/vodolija/index.html",
+      "statusCode": 301
+    },
+    {
       "source": "/",
       "destination": "/landing.html"
     },
@@ -478,28 +486,12 @@
       "destination": "/marketplace.html"
     },
     {
-      "source": "/marketplace-claim",
-      "destination": "/marketplace-claim.html"
-    },
-    {
-      "source": "/marketplace-claim/",
-      "destination": "/marketplace-claim.html"
-    },
-    {
       "source": "/engine-demos",
       "destination": "/engine-demos.html"
     },
     {
       "source": "/engine-demos/",
       "destination": "/engine-demos.html"
-    },
-    {
-      "source": "/ar-gif",
-      "destination": "/ar-gif.html"
-    },
-    {
-      "source": "/ar-gif/",
-      "destination": "/ar-gif.html"
     },
     {
       "source": "/dashboard",
@@ -598,14 +590,6 @@
       "destination": "/status.html"
     },
     {
-      "source": "/bookings",
-      "destination": "/bookings.html"
-    },
-    {
-      "source": "/bookings/",
-      "destination": "/bookings.html"
-    },
-    {
       "source": "/campaign",
       "destination": "/campaign.html"
     },
@@ -644,14 +628,6 @@
     {
       "source": "/legal/terms.html/",
       "destination": "/legal/terms.html"
-    },
-    {
-      "source": "/legal/beta-test.html",
-      "destination": "/legal/beta-test.html"
-    },
-    {
-      "source": "/legal/beta-test.html/",
-      "destination": "/legal/beta-test.html"
     },
     {
       "source": "/sitemap",
@@ -958,6 +934,22 @@
       "destination": "/buy.html"
     },
     {
+      "source": "/super-admin",
+      "destination": "/super-admin.html"
+    },
+    {
+      "source": "/super-admin/",
+      "destination": "/super-admin.html"
+    },
+    {
+      "source": "/swr-pipeline",
+      "destination": "/swr-pipeline/index.html"
+    },
+    {
+      "source": "/swr-pipeline/",
+      "destination": "/swr-pipeline/index.html"
+    },
+    {
       "source": "/fonts",
       "destination": "/fonts.html"
     },
@@ -966,12 +958,12 @@
       "destination": "/fonts.html"
     },
     {
-      "source": "/auth/google-callback",
-      "destination": "/auth/google-callback.html"
+      "source": "/marketplace-claim",
+      "destination": "/marketplace-claim.html"
     },
     {
-      "source": "/auth/google-callback/",
-      "destination": "/auth/google-callback.html"
+      "source": "/marketplace-claim/",
+      "destination": "/marketplace-claim.html"
     },
     {
       "source": "/login",
@@ -1004,14 +996,6 @@
     {
       "source": "/enhance/",
       "destination": "/enhance.html"
-    },
-    {
-      "source": "/versions/clean",
-      "destination": "/versions/clean.html"
-    },
-    {
-      "source": "/versions/clean/",
-      "destination": "/versions/clean.html"
     },
     {
       "source": "/atlas/200-steps",
@@ -1341,16 +1325,6 @@
       "source": "/landing-personas-v11-zine.html",
       "destination": "/personas",
       "statusCode": 301
-    },
-    {
-      "source": "/team",
-      "destination": "/artists",
-      "statusCode": 308
-    },
-    {
-      "source": "/team/",
-      "destination": "/artists",
-      "statusCode": 308
     }
   ]
 }

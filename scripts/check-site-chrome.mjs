@@ -33,8 +33,9 @@ const IGNORED_DIRS = new Set(['node_modules', 'dist', 'dist-dev', '_archive', 's
 // Not deployed, not public, or deliberately chrome-free.
 //   tools/ + auth/     — internal/dev tools and the auth flow: noindex, no marketing chrome
 //   scripts/           — dev fixtures, never shipped (vite copyStatic skips scripts/)
+//   swr-pipeline/      — internal dev tool for pipeline engineering
 const IGNORED = [
-  /^tools\//, /^auth\//, /^scripts\//,
+  /^tools\//, /^auth\//, /^scripts\//, /^swr-pipeline\//, /^pages\//,
   // Generated cover animations (media-pack / NFT cover art): standalone
   // paused-timeline render assets, not navigable pages. Same category as the
   // swr-intro-10s.html bumper below — chrome-free by design. out/ is likewise
@@ -48,6 +49,8 @@ const IGNORED_FILES = new Set([
   'swr-intro-10s.html',      // render asset (bumper), not a page
   'market-study.html',       // deliberately not deployed (see AGENTS.md)
   'profit-plan.html',        // deliberately not deployed (see AGENTS.md)
+  'super-admin.html',        // internal admin tool
+  'index.html',              // conflicts with landing.html at / route
 ]);
 
 // Public pages that carry no shared chrome by design (the legal texts, the shot
