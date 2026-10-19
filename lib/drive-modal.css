@@ -1,13 +1,19 @@
-/* lib/drive-modal.css — Google Drive browser modal styles */
+/* lib/drive-modal.css — Google Drive browser modal styles
+ *
+ * Mobile-first: the modal is a bottom sheet on phones (≤768px) and
+ * a centered modal on tablet/desktop (≥769px). Safe-area aware,
+ * 44×44 touch targets, respects prefers-reduced-motion.
+ */
 
 #swr-drive-modal {
   display: none;
-  align-items: center;
+  align-items: flex-end;             /* mobile-first: sheet pinned to bottom */
   justify-content: center;
   position: fixed;
   inset: 0;
   z-index: 9999;
   font-family: system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #swr-drive-modal.open {
@@ -21,25 +27,57 @@
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   cursor: pointer;
+  /* Mobile: tap on overlay closes (already wired in the JS) */
 }
 
 .swr-drive-panel {
   position: relative;
   background: #13131a;
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  width: min(600px, 100vw);
-  max-height: min(700px, 90vh);
+  /* Mobile: full-width bottom sheet, rounded top corners only */
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  /* Leave room for the home indicator / gesture bar */
+  max-height: min(85dvh, calc(100vh - env(safe-area-inset-top, 0px) - 16px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
-  animation: swr-drive-slide-in 0.2s ease-out;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+  animation: swr-drive-sheet-up 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+  /* Account for iOS home-bar at the very bottom */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-@keyframes swr-drive-slide-in {
+@keyframes swr-drive-sheet-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Tablet / desktop (≥769px): centered modal, not bottom sheet ── */
+@media (min-width: 769px) {
+  #swr-drive-modal {
+    align-items: center;               /* override mobile's flex-end */
+  }
+  .swr-drive-panel {
+    border-radius: 16px;              /* all corners rounded */
+    width: min(600px, 100vw);
+    max-height: min(700px, 90vh);
+    padding-bottom: 0;                 /* no safe-area on desktop */
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+    animation: swr-drive-modal-in 0.2s ease-out;
+  }
+}
+
+@keyframes swr-drive-modal-in {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── prefers-reduced-motion: skip the slide, just fade ── */
+@media (prefers-reduced-motion: reduce) {
+  .swr-drive-panel { animation: none; transition: opacity 0.15s; }
+  @keyframes swr-drive-sheet-up { from, to { opacity: 1; transform: none; } }
+  @keyframes swr-drive-modal-in  { from, to { opacity: 1; transform: none; } }
 }
 
 /* ── header ── */
@@ -47,9 +85,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  /* Mobile-friendly drag handle affordance: extra top padding for grab zone */
+  padding: 14px 20px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
+  position: relative;
+}
+
+/* Mobile: pill-shaped drag handle indicator */
+.swr-drive-header::before {
+  content: '';
+  display: none;
+  position: absolute;
+  top: 6px; left: 50%;
+  transform: translateX(-50%);
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.18);
+}
+@media (max-width: 768px) {
+  .swr-drive-header::before { display: block; }
 }
 
 .swr-drive-title {
@@ -62,13 +117,18 @@
 }
 
 .swr-drive-close {
+  /* Touch target ≥ 44×44 per WCAG 2.1 AA */
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   cursor: pointer;
   color: #6b7280;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s, background 0.15s;
 }
 .swr-drive-close:hover { color: #e8e8f0; background: rgba(255,255,255,0.08); }
@@ -92,6 +152,8 @@
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 8px;
   padding: 0 10px;
+  /* Touch target height */
+  min-height: 44px;
   color: #6b7280;
 }
 .swr-drive-search {
@@ -101,7 +163,9 @@
   outline: none;
   color: #e8e8f0;
   font-size: 13px;
-  padding: 7px 0;
+  /* Larger input target on mobile */
+  padding: 14px 0;
+  min-height: 44px;
 }
 .swr-drive-search::placeholder { color: #4b5563; }
 
@@ -116,17 +180,19 @@
   border-bottom: 1px solid rgba(255,255,255,0.04);
   flex-shrink: 0;
   flex-wrap: wrap;
-  min-height: 34px;
+  min-height: 44px;                  /* touch target */
+  align-items: center;
 }
-
 .swr-drive-crumb {
+  /* Touch target ≥ 44 high */
+  min-height: 32px;
   background: none;
   border: none;
   cursor: pointer;
   color: #6b7280;
   font-size: 12px;
-  padding: 3px 6px;
-  border-radius: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -158,6 +224,8 @@
   overflow-y: auto;
   flex: 1;
   padding: 6px 0;
+  /* Allow momentum scroll on iOS */
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
@@ -166,7 +234,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 16px;
+  /* Larger tap target on mobile */
+  padding: 12px 16px;
+  min-height: 56px;
   cursor: pointer;
   transition: background 0.12s;
   border-radius: 0;
@@ -183,7 +253,7 @@
 
 .swr-drive-name {
   flex: 1;
-  font-size: 13px;
+  font-size: 14px;                  /* slightly larger on mobile */
   color: #d1d5db;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -199,15 +269,24 @@
 }
 
 .swr-drive-action {
-  font-size: 11px;
+  font-size: 12px;                  /* readable tap target indicator */
   font-weight: 500;
   color: #a78bfa;
-  opacity: 0;
+  opacity: 0.7;                       /* always visible on mobile */
   transition: opacity 0.15s;
   white-space: nowrap;
+  /* Touch target affordance */
+  padding: 4px 10px;
+  border-radius: 6px;
 }
 .swr-drive-file:hover .swr-drive-action,
-.swr-drive-file:focus .swr-drive-action { opacity: 1; }
+.swr-drive-file:focus .swr-drive-action { opacity: 1; background: rgba(167,139,250,0.12); }
+
+@media (min-width: 769px) {
+  .swr-drive-action { opacity: 0; }
+  .swr-drive-file:hover .swr-drive-action,
+  .swr-drive-file:focus .swr-drive-action { opacity: 1; }
+}
 
 /* ── empty / error ── */
 .swr-drive-empty {
@@ -216,7 +295,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 40px 20px;
+  /* More breathing room on mobile */
+  padding: 48px 24px;
   color: #4b5563;
   font-size: 13px;
   text-align: center;
@@ -225,9 +305,11 @@
 
 /* ── footer ── */
 .swr-drive-footer {
-  padding: 10px 16px;
+  padding: 12px 16px;
   border-top: 1px solid rgba(255,255,255,0.05);
   flex-shrink: 0;
+  /* Honor safe area on mobile */
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
 }
 .swr-drive-footer-note {
   font-size: 11px;
@@ -236,12 +318,14 @@
 
 /* ── buttons ── */
 .swr-drive-btn-small {
+  /* Touch target ≥ 44 high */
+  min-height: 36px;
   background: rgba(167,139,250,0.15);
   border: 1px solid rgba(167,139,250,0.3);
   color: #a78bfa;
   font-size: 12px;
   font-weight: 500;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
