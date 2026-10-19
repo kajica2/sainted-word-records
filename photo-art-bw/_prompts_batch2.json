@@ -1,0 +1,28 @@
+{
+  "requests": [
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "05_bamboo_scaffolding",
+      "prompt": "Black and white architectural documentary photograph of a traditional old Hong Kong tenement building wrapped in dense bamboo scaffolding, two construction workers visible on a suspended wooden platform, dramatic cloudy sky behind, intricate texture of bamboo poles creating strong geometric patterns across the facade, shot on medium format film, square 1:1 composition, photojournalism"
+    },
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "06_market_vendor_hands",
+      "prompt": "Black and white close-up documentary photograph of a Mong Kok wet market vendor's weathered hands sorting fresh leafy vegetables at her stall, blurred background showing hanging meat hooks, stacked produce, and a few customers, shallow depth of field with hands tack sharp, shot on Leica M6 with 35mm lens, Kodak Tri-X 400, photojournalism, square 1:1 framing centered on the hands"
+    },
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "07_rooftop_laundry",
+      "prompt": "Black and white architectural documentary photograph looking across a dense rooftop landscape of old Hong Kong tenement buildings, white laundry and bedsheets hanging from bamboo poles strung between rooftops, dramatic cumulus clouds in the upper third, water tanks, TV antennas and air-conditioning units cluttering the skyline, shot from a neighboring rooftop vantage point, square 1:1 composition, photojournalism"
+    },
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "08_tram_tracks_overhead",
+      "prompt": "Black and white overhead street photograph looking straight down at Hong Kong tram tracks embedded in a pedestrian crosswalk, a single figure mid-stride casting a long diagonal shadow, geometric pattern of tracks and pavement lines dominating the frame, shot from a pedestrian overpass, square 1:1 minimal documentary composition, shot on Kodak Tri-X 400, strong graphic shapes"
+    }
+  ]
+}

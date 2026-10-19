@@ -45,10 +45,18 @@ const GROUPS = {
   // The quick gate. Order preserved from the original `check` chain.
   check: [
     'npm run check:syntax',
+    'npm run check:engine-mobile',
+    'npm run check:quota-estimate-unit',
+    'npm run check:pt-verify',
+    'npm run check:pt-import',
     'npm run check:bundle',
     'npm run check:automix-unit',
     'npm run check:automix-arc-unit',
     'npm run check:automix-session-unit',
+    'npm run check:posterize-curve',
+    'npm run check:contract',
+    'npm run check:ver-picker',
+    'npm run check:svg-grade-integration',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
     'npm run check:gradient-dot-unit',
@@ -82,6 +90,10 @@ const GROUPS = {
     'npm run check:bpm-unit',
     'npm run check:life-unit',
     'npm run check:midi-feat-unit',
+    'npm run check:app-version-bust-unit',
+    'npm run check:version-watcher-unit',
+    'npm run check:variant-codemods',
+    'npm run check:looks-menu-unit',
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
     'npm run check:invite-api-smoke',
@@ -189,6 +201,12 @@ const GROUPS = {
     // builds dist/ if missing or stale. The 90s budget covers the
     // 16×~1.6s variant walk plus harness boot.
     { cmd: 'npm run check:variants-smoke', timeoutMs: 120000, retries: 1 },
+    // Builds twice from a clean state and verifies the second `dist/` is
+    // byte-identical to the first. Catches plugin-ordering bugs (a
+    // post-processor that overwrites another post-processor's output)
+    // before they ship. The only allowed drift is the build timestamp
+    // in `dist/lib/app-version.js`.
+    { cmd: 'npm run check:build-idempotent', timeoutMs: 240000, retries: 0 },
     'npm run check:dist-links',
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.

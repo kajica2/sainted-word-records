@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <title>GRID · SWR engine v3</title>
   <meta name="description" content="Monochrome hard cells, heavy posterize, snap to the beat" />
@@ -410,7 +412,8 @@
 <body data-page="grid">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header>
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      <span class="gctrl" data-looks-mount></span>
+      
       <div class="head-title"><div class="v">GRID <small>v3</small></div><span class="subtitle">monochrome hard cells · heavy posterize · snap to the beat</span></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -1468,6 +1471,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="../lib/persist-wire.client.js"></script>
 <script src="../versions-presets.js"></script>
 <script src="/versions/temp-slider.js"></script>
+<script src="../fx-postprocess.js"></script>
 <script src="../engine-genops.client.js"></script>  <script src="../engine-transitions.client.js" defer></script>
   <script src="../lib/media-store.client.js" defer></script>
 
@@ -1493,6 +1497,8 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 
 <!-- SWR-FX-GRADE-MARKER -->
 <script src="../lib/gpu-grade.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
 <script src="/lib/auth.client.js" defer></script>
 <script src="/lib/google-drive.client.js" defer></script>
   <script src="/lib/drive-modal.client.js" defer></script>
@@ -1557,5 +1563,11 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       });
     })();
   </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
 </body>
 </html>

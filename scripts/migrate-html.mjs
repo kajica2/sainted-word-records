@@ -28,6 +28,7 @@ const ADD_NAV = args.includes('--add-nav');
 const APPLY_FOOTER = args.includes('--apply-footer');
 const ADD_FOOTER = args.includes('--add-footer');
 const INCLUDE_APPS = args.includes('--include-apps');
+const ADD_VERSION_CHROME = args.includes('--add-version-chrome');
 
 // Extract file arguments (non-flags)
 const fileArgs = args.filter(a => !a.startsWith('--'));
@@ -85,8 +86,13 @@ if (fileArgs.length > 0) {
   }
 }
 
-// Filter out app pages unless --include-apps
-if (!INCLUDE_APPS) {
+// Filter out app pages unless --include-apps.
+// `--add-version-chrome` is a special case: the version chrome (bottom-right
+// home link + version badge + cache-bust) is universal, not per-page, so
+// we want it on every page including app pages. We still skip the default
+// migration steps for app pages (the design-tokens / components / nav /
+// footer additions can break an app's bespoke theme).
+if (!INCLUDE_APPS && !ADD_VERSION_CHROME) {
   pagesToMigrate = pagesToMigrate.filter(p => !APP_PAGES.includes(p));
 }
 
@@ -143,9 +149,14 @@ const THEME_BOOTSTRAP_PATTERN = /<script>\s*\(function\s*\(\)\s*\{\s*try\s*\{[\s
 
 // Ranges covered by <script>…</script>, so markup inside a template string
 // (engine.html builds an export document in JS) is never touched.
+//
+// The regex matches both the literal `</script>` and the template-string
+// escape `</\/script>` (which is the form engine.html uses to keep the
+// parser from terminating the outer script tag when the JS code inside
+// contains a template literal that itself emits `</script>`).
 function scriptRanges(html) {
   const ranges = [];
-  const re = /<script[\s\S]*?<\/script>/gi;
+  const re = /<script[\s\S]*?(?:<\/script>|<\/\\script>)/gi;
   let m;
   while ((m = re.exec(html))) ranges.push([m.index, m.index + m[0].length]);
   return ranges;
@@ -163,6 +174,196 @@ function footerLinks(footerHtml) {
   return hrefs;
 }
 
+// applyVersionChrome — the `--add-version-chrome` mode. Adds the four
+// version-chrome scripts to a page and removes the old top-left exit
+// affordances. Self-contained: does not depend on the default migration
+// steps and runs even on app pages whose bespoke theme would be broken
+// by the shared CSS.
+function applyVersionChrome(filePath, html, changes, verbose, dryRun) {
+  let needsUpdate = false;
+
+  // 1. Inject <script src="/lib/app-version.js"></script> in <head>,
+  //    only if not already present. The bust script must follow
+  //    immediately so the constant is defined when it runs.
+  const headMatch = html.match(/<head>([\s\S]*?)<\/head>/);
+  if (headMatch) {
+    if (!headMatch[1].includes('/lib/app-version.js')) {
+      const injection = '\n  <script src="/lib/app-version.js"></script>\n  <script src="/lib/app-version-bust.js"></script>';
+      html = html.replace('<head>', '<head>' + injection);
+      changes.push('+ /lib/app-version.js + /lib/app-version-bust.js (in <head>)');
+      needsUpdate = true;
+    }
+  } else {
+    console.log(`✗ ${filePath} (no <head> tag)`);
+    return { error: true };
+  }
+
+  // 2. Inject home-link + version-badge scripts before the real </body>.
+  //    The "real" body is the LAST </body> tag that's outside any
+  //    <script> block — engine.html builds an export document in a JS
+  //    template string that contains its own <head>/<body> markup, and
+  //    naively replacing the first </body> would inject the script tags
+  //    INSIDE that template literal, breaking the parse. scriptRanges()
+  //    already accounts for the </\script> template-literal escape that
+  //    engine.html uses; we use the same ranges here to find the real
+  //    closing tag.
+  //
+  //    IMPORTANT: ranges are computed LAZILY each call. The codemod
+  //    mutates `html` between calls (adds scripts, removes exit links,
+  //    adds the looks-mount) — a stale ranges array would mark a
+  //    real </body> as "inside a script" because the offsets in
+  //    `ranges` no longer align with the live text. Recomputing on
+  //    every call keeps the function correct as the file mutates.
+  function lastBodyOutsideScript() {
+    const liveRanges = scriptRanges(html);
+    const re = /<\/body>/gi;
+    let m, last = -1;
+    while ((m = re.exec(html))) {
+      if (!liveRanges.some(([a, b]) => m.index >= a && m.index < b)) last = m.index;
+    }
+    return last;
+  }
+  // `ranges` is also needed by the exit-pattern removal step. Compute
+  // it lazily there too (its only consumer is the next ~10 lines).
+  function currentRanges() { return scriptRanges(html); }
+  const lastBody = lastBodyOutsideScript();
+  if (lastBody < 0) {
+    console.log(`✗ ${filePath} (no </body> outside scripts)`);
+    return { error: true };
+  }
+  if (!html.includes('/lib/home-link.client.js')) {
+    // No trailing whitespace in the prefix — the existing indentation
+    // before </body> carries through, and adding more would compound
+    // across multiple injections (each new </body> search picks up
+    // the prior script's trailing indent).
+    html = html.slice(0, lastBody) + '<script src="/lib/home-link.client.js" defer></script>\n' + html.slice(lastBody);
+    changes.push('+ /lib/home-link.client.js');
+    needsUpdate = true;
+  }
+  if (!html.includes('/lib/version-badge.client.js')) {
+    // Re-find the last body — the previous edit may have shifted indices,
+    // so we recompute on the current html.
+    const lb2 = lastBodyOutsideScript();
+    html = html.slice(0, lb2) + '<script src="/lib/version-badge.client.js" defer></script>\n' + html.slice(lb2);
+    changes.push('+ /lib/version-badge.client.js');
+    needsUpdate = true;
+  }
+
+  // 3. Remove the old top-left exit affordances. Three patterns:
+  //    - engine.html's standalone #nav-home button
+  //    - versions/'s swr-site-exit anchor with SWR-SITE-EXIT comment
+  //    - any remaining swr-site-exit anchor (catch-all)
+  //
+  //    Skip ranges inside <script> blocks so an anchor inside a JS
+  //    template string (engine.html's export-document builder, for
+  //    instance) is not edited. The scriptRanges() helper already
+  //    handles the </\script> template-literal escape.
+  // inScript() is also computed lazily — `currentRanges()` reads the
+  // mutated html every call. The `ranges` constant in the outer scope
+  // is the one captured by the closure; for an always-fresh check, we
+  // use currentRanges() directly.
+  const inScript = (idx) => currentRanges().some(([a, b]) => idx >= a && idx < b);
+  const exitPatterns = [
+    { re: /<a class="tbtn ghost nav-arrow" id="nav-home"[\s\S]*?<\/a>/g, label: 'engine #nav-home' },
+    { re: /<!--\s*SWR-SITE-EXIT\s*-->\s*<a class="swr-site-exit"[\s\S]*?<\/a>/g, label: 'SWR-SITE-EXIT' },
+    { re: /<a class="swr-site-exit"[\s\S]*?<\/a>/g, label: 'swr-site-exit' },
+  ];
+  for (const { re, label } of exitPatterns) {
+    let m;
+    const matches = [];
+    while ((m = re.exec(html))) {
+      if (!inScript(m.index)) matches.push([m.index, m.index + m[0].length]);
+    }
+    // Remove from the end so indices stay valid.
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const [a, b] = matches[i];
+      html = html.slice(0, a) + html.slice(b);
+      changes.push(`- top-left exit: ${label} (replaced by bottom-right home link)`);
+      needsUpdate = true;
+    }
+  }
+
+  // 4. versions/*.html: inject the looks-dropdown mount + script.
+  //    The mount goes in the FIRST <header> outside any script block;
+  //    the script goes before the real </body> (not a template-literal
+  //    one — see the home-link case above for the same care).
+  const isVersionPage = /^versions\/[^/]+\.html$/.test(filePath) || /versions\//.test(filePath);
+  if (isVersionPage) {
+    if (!html.includes('data-looks-mount')) {
+      const headerRe = /<header\b[^>]*>/g;
+      let hm, firstHeader = null;
+      while ((hm = headerRe.exec(html))) {
+        if (!inScript(hm.index)) { firstHeader = hm; break; }
+      }
+      if (firstHeader) {
+        const insertAt = firstHeader.index + firstHeader[0].length;
+        html = html.slice(0, insertAt) + '\n      <span class="gctrl" data-looks-mount></span>' + html.slice(insertAt);
+        changes.push('+ <span data-looks-mount> in <header>');
+        needsUpdate = true;
+      }
+    }
+    if (!html.includes('/client/looks-menu.client.js')) {
+      // Re-find the last body outside scripts after prior edits may
+      // have shifted the file.
+      const lb = lastBodyOutsideScript();
+      if (lb >= 0) {
+        html = html.slice(0, lb) + '<script src="/client/looks-menu.client.js" defer></script>\n' + html.slice(lb);
+        changes.push('+ /client/looks-menu.client.js (version dropdown)');
+        needsUpdate = true;
+      }
+    }
+  }
+
+  // 4b. engine.html: also load the looks-menu script. The engine already
+  //     has its own #variant select, so we don't add a mount — but we do
+  //     need the script to populate #looks from the same catalogues.
+  if (filePath === 'engine.html' && !html.includes('/client/looks-menu.client.js')) {
+    // Re-find the last body outside scripts (prior edits may have
+    // shifted indices).
+    const lb = lastBodyOutsideScript();
+    if (lb >= 0) {
+      html = html.slice(0, lb) + '<script src="/client/looks-menu.client.js" defer></script>\n' + html.slice(lb);
+      changes.push('+ /client/looks-menu.client.js (engine dropdown)');
+      needsUpdate = true;
+    }
+  }
+
+  // 4c. Proactive stale-page detector. Loads on engine + every
+  //     versions/*.html — the work surfaces where a long-running
+  //     recording session could be silently running on a stale bundle.
+  //     Marketing pages don't need it (a reload there is harmless).
+  //
+  //     The watcher polls /lib/app-version.js every 60s and on
+  //     visibility/focus; see lib/version-watcher.client.js for the
+  //     full design. Idempotent: the script's IIFE checks
+  //     `window.SWR_VERSION_WATCHER` and bails if already loaded.
+  const isWorkSurface = filePath === 'engine.html' || /^versions\/[^/]+\.html$/.test(filePath);
+  if (isWorkSurface && !html.includes('/lib/version-watcher.client.js')) {
+    const lb = lastBodyOutsideScript();
+    if (lb >= 0) {
+      html = html.slice(0, lb) + '<script src="/lib/version-watcher.client.js" defer></script>\n' + html.slice(lb);
+      changes.push('+ /lib/version-watcher.client.js (proactive stale-page detector)');
+      needsUpdate = true;
+    }
+  }
+
+  // Write back if changed.
+  if (needsUpdate) {
+    if (dryRun) {
+      console.log(`[dry-run] ${filePath}:`);
+      for (const change of changes) console.log(`    ${change}`);
+    } else {
+      fs.writeFileSync(filePath, html);
+      console.log(`✓ ${filePath}`);
+      for (const change of changes) console.log(`    ${change}`);
+    }
+    return { migrated: true, changes };
+  } else {
+    if (verbose) console.log(`⊘ ${filePath} (no changes)`);
+    return { skipped: true };
+  }
+}
+
 function migratePage(filePath) {
   if (!fs.existsSync(filePath)) {
     console.log(`⊘ ${filePath} (not found)`);
@@ -172,6 +373,19 @@ function migratePage(filePath) {
   let html = fs.readFileSync(filePath, 'utf8');
   const original = html;
   const changes = [];
+
+  // The script has two modes:
+  //   - default: applies the standard migration (design-tokens, components,
+  //     nav, footer). Skipped for app pages unless --include-apps.
+  //   - --add-version-chrome: only injects the version chrome (app-version
+  //     + bust + home-link + version-badge) and removes the old top-left
+  //     exit affordances. Applies to every page, including app pages,
+  //     because the chrome is universal.
+  // The two are mutually exclusive in a single run: when --add-version-chrome
+  // is set, we skip the default migration steps and do only the chrome work.
+  if (ADD_VERSION_CHROME) {
+    return applyVersionChrome(filePath, html, changes, VERBOSE, DRY_RUN);
+  }
 
   // 1. Add shared CSS to <head>
   const headMatch = html.match(/<head>([\s\S]*?)<\/head>/);

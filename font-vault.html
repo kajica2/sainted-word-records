@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Font Vault — Custom Fonts Index</title>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <style>
+    :root {
+      --bg: #0e0c0a; --bg-2: #161310; --panel: #1d1815; --panel-2: #241e18;
+      --ink: #f5ead8; --ink-2: #c0b29c; --muted: #8a7a66; --line: #2c2419;
+      --accent: #ff2d8a; --accent-2: #ffaa3a; --accent-3: #00ffa3;
+    }
+    [data-theme="light"] {
+      --bg: #faf7f2; --bg-2: #f1ebe1; --panel: #ffffff; --panel-2: #f5efe6;
+      --ink: #1a1612; --ink-2: #4a4035; --muted: #8a7a66; --line: #ddd3c2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Geist', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 32px; }
+    h1 { font-size: 2.5rem; margin: 0 0 8px; font-weight: 400; letter-spacing: -0.02em; }
+    .subtitle { color: var(--muted); margin-bottom: 32px; }
+    
+    .font-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .font-card:hover { border-color: var(--accent); }
+    
+    .font-name {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    
+    .font-sample {
+      font-size: 3rem;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    
+    .font-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'Geist Mono', monospace;
+    }
+    
+    .font-meta span { 
+      background: var(--panel-2);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+    
+    .checkbox-wrapper label {
+      font-size: 0.875rem;
+      color: var(--ink-2);
+    }
+    
+    .section-title {
+      font-size: 1.25rem;
+      margin: 32px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 16px;
+    }
+    
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    
+    .actions {
+      position: sticky;
+      bottom: 0;
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    .btn:hover { opacity: 0.9; }
+    
+    .count { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Font Vault</h1>
+    <p class="subtitle">Your custom fonts from the branding inbox. Check the ones you want to keep.</p>
+    
+    <h2 class="section-title">Regular & Italic</h2>
+    <div class="grid" id="regular-grid"></div>
+    
+    <h2 class="section-title">Generated Variations</h2>
+    <div class="grid" id="generated-grid"></div>
+  </div>
+  
+  <div class="actions">
+    <span class="count" id="count">0 selected</span>
+    <button class="btn" id="export">Export Selected</button>
+  </div>
+
+  <!-- Regular fonts -->
+  <style>
+    @font-face {
+      font-family: 'CustomRegular';
+      src: url('/fonts/CustomFont-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'CustomItalic';
+      src: url('/fonts/CustomFont-Italic.ttf') format('truetype');
+      font-weight: normal;
+      font-style: italic;
+    }
+    @font-face {
+      font-family: 'CustomReg1';
+      src: url('/fonts/CustomFont-Regular%20%281%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomReg2';
+      src: url('/fonts/CustomFont-Regular%20%282%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomReg3';
+      src: url('/fonts/CustomFont-Regular%20%283%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomItal1';
+      src: url('/fonts/CustomFont-Italic%20%281%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomItal2';
+      src: url('/fonts/CustomFont-Italic%20%282%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomItal3';
+      src: url('/fonts/CustomFont-Italic%20%283%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomItal4';
+      src: url('/fonts/CustomFont-Italic%20%284%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen1';
+      src: url('/fonts/CustomFont-generated%20%281%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen2';
+      src: url('/fonts/CustomFont-generated%20%282%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen3';
+      src: url('/fonts/CustomFont-generated%20%283%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen4';
+      src: url('/fonts/CustomFont-generated%20%284%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen5';
+      src: url('/fonts/CustomFont-generated%20%285%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen6';
+      src: url('/fonts/CustomFont-generated%20%286%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen7';
+      src: url('/fonts/CustomFont-generated%20%287%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen8';
+      src: url('/fonts/CustomFont-generated%20%288%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen9';
+      src: url('/fonts/CustomFont-generated%20%289%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen10';
+      src: url('/fonts/CustomFont-generated%20%2810%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen11';
+      src: url('/fonts/CustomFont-generated%20%2811%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen12';
+      src: url('/fonts/CustomFont-generated%20%2812%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen13';
+      src: url('/fonts/CustomFont-generated%20%2813%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen14';
+      src: url('/fonts/CustomFont-generated%20%2814%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen15';
+      src: url('/fonts/CustomFont-generated%20%2815%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen16';
+      src: url('/fonts/CustomFont-generated%20%2816%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen17';
+      src: url('/fonts/CustomFont-generated%20%2817%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen18';
+      src: url('/fonts/CustomFont-generated%20%2818%29.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'CustomGen19';
+      src: url('/fonts/CustomFont-generated%20%2819%29.ttf') format('truetype');
+    }
+  </style>
+
+  <script>
+    const fonts = [
+      // Regular & Italic
+      { file: '/fonts/CustomFont-Regular.ttf', name: 'Custom Font Regular', family: 'CustomRegular', style: 'normal', group: 'regular' },
+      { file: '/fonts/CustomFont-Italic.ttf', name: 'Custom Font Italic', family: 'CustomItalic', style: 'italic', group: 'regular' },
+      { file: '/fonts/CustomFont-Regular (1).ttf', name: 'Custom Font Regular (1)', family: 'CustomReg1', style: 'normal', group: 'regular' },
+      { file: '/fonts/CustomFont-Regular (2).ttf', name: 'Custom Font Regular (2)', family: 'CustomReg2', style: 'normal', group: 'regular' },
+      { file: '/fonts/CustomFont-Regular (3).ttf', name: 'Custom Font Regular (3)', family: 'CustomReg3', style: 'normal', group: 'regular' },
+      { file: '/fonts/CustomFont-Italic (1).ttf', name: 'Custom Font Italic (1)', family: 'CustomItal1', style: 'italic', group: 'regular' },
+      { file: '/fonts/CustomFont-Italic (2).ttf', name: 'Custom Font Italic (2)', family: 'CustomItal2', style: 'italic', group: 'regular' },
+      { file: '/fonts/CustomFont-Italic (3).ttf', name: 'Custom Font Italic (3)', family: 'CustomItal3', style: 'italic', group: 'regular' },
+      { file: '/fonts/CustomFont-Italic (4).ttf', name: 'Custom Font Italic (4)', family: 'CustomItal4', style: 'italic', group: 'regular' },
+      // Generated
+      { file: '/fonts/CustomFont-generated (1).ttf', name: 'Generated #1', family: 'CustomGen1', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (2).ttf', name: 'Generated #2', family: 'CustomGen2', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (3).ttf', name: 'Generated #3', family: 'CustomGen3', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (4).ttf', name: 'Generated #4', family: 'CustomGen4', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (5).ttf', name: 'Generated #5', family: 'CustomGen5', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (6).ttf', name: 'Generated #6', family: 'CustomGen6', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (7).ttf', name: 'Generated #7', family: 'CustomGen7', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (8).ttf', name: 'Generated #8', family: 'CustomGen8', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (9).ttf', name: 'Generated #9', family: 'CustomGen9', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (10).ttf', name: 'Generated #10', family: 'CustomGen10', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (11).ttf', name: 'Generated #11', family: 'CustomGen11', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (12).ttf', name: 'Generated #12', family: 'CustomGen12', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (13).ttf', name: 'Generated #13', family: 'CustomGen13', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (14).ttf', name: 'Generated #14', family: 'CustomGen14', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (15).ttf', name: 'Generated #15', family: 'CustomGen15', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (16).ttf', name: 'Generated #16', family: 'CustomGen16', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (17).ttf', name: 'Generated #17', family: 'CustomGen17', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (18).ttf', name: 'Generated #18', family: 'CustomGen18', style: 'normal', group: 'generated' },
+      { file: '/fonts/CustomFont-generated (19).ttf', name: 'Generated #19', family: 'CustomGen19', style: 'normal', group: 'generated' },
+    ];
+
+    function createCard(font) {
+      const div = document.createElement('div');
+      div.className = 'font-card';
+      div.innerHTML = `
+        <div class="font-name">${font.name}</div>
+        <div class="font-sample" style="font-family: '${font.family}', sans-serif; font-style: ${font.style};">
+          The quick brown fox jumps over the lazy dog
+        </div>
+        <div class="font-meta">
+          <span>${font.file.split('/').pop()}</span>
+          <span>${font.style}</span>
+        </div>
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="keep-${font.file.replace(/\W/g, '')}" data-file="${font.file}">
+          <label for="keep-${font.file.replace(/\W/g, '')}">Keep this font</label>
+        </div>
+      `;
+      return div;
+    }
+
+    // Populate grids
+    const regularGrid = document.getElementById('regular-grid');
+    const generatedGrid = document.getElementById('generated-grid');
+
+    fonts.forEach(font => {
+      const card = createCard(font);
+      if (font.group === 'regular') {
+        regularGrid.appendChild(card);
+      } else {
+        generatedGrid.appendChild(card);
+      }
+    });
+
+    // Count updates
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    const countEl = document.getElementById('count');
+    
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const selected = document.querySelectorAll('input[type="checkbox"]:checked').length;
+        countEl.textContent = selected + ' selected';
+      });
+    });
+
+    // Export
+    document.getElementById('export').addEventListener('click', () => {
+      const selected = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(cb => cb.dataset.file);
+      if (selected.length === 0) {
+        alert('No fonts selected. Check the boxes next to fonts you want to keep.');
+        return;
+      }
+      console.log('Selected fonts:', selected);
+      alert('Selected ' + selected.length + ' fonts:\n\n' + selected.join('\n'));
+    });
+  </script>
+</body>
+</html>

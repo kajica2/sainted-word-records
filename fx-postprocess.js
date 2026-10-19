@@ -346,6 +346,13 @@
     enabled: true,
     bass: 0, mid: 0, treble: 0, beat: 0,
     time: 0,
+    // Audio-reactive FX modulation. When true, the engine's rAF loop
+    // adds 0..0.5 of audio-driven modulation on top of the user-set
+    // slider values (chroma, grain, glow, sepia, vignette, tone).
+    // Off by default — the user opts in via the FX auto-react checkbox
+    // in the FX panel. The state lives here so the toggle is just one
+    // boolean the user (or a saved preset) can set.
+    audioReact: false,
     // Persona uniforms
     posterize: 0,
     vignette: 0,
@@ -655,12 +662,13 @@
         return;
       }
 
-      // Update uniforms
-      gl.uniform1f(u.time,      state.time);
-      gl.uniform1f(u.bass,      state.bass);
-      gl.uniform1f(u.mid,       state.mid);
-      gl.uniform1f(u.treble,    state.treble);
-      gl.uniform1f(u.beat,      state.beat);
+      // Update uniforms — skip if location is null (uniform not in shader)
+      const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
+      _uf(u.time,      state.time);
+      _uf(u.bass,      state.bass);
+      _uf(u.mid,       state.mid);
+      _uf(u.treble,    state.treble);
+      _uf(u.beat,      state.beat);
       // FX intensity master multiplier (0…1). Applied ONLY here — the
       // render/uniform boundary — never written back into `state`, so
       // personas, automix overrides, LFOs and sliders keep their canonical
@@ -668,18 +676,18 @@
       // mutAlgo is an algorithm selector (not an amount) and the audio
       // features are inputs, not filters — both stay unscaled.
       const k = (typeof FX_INTENSITY === 'number') ? FX_INTENSITY : 1;
-      gl.uniform1f(u.temp,      state.temp * k);
-      gl.uniform1f(u.mut,       state.mut * k);
-      gl.uniform1f(u.mutAlgo,   state.mutAlgo);
-      gl.uniform1f(u.posterize, state.posterize * k);
-      gl.uniform1f(u.vignette,  state.vignette * k);
-      gl.uniform1f(u.chroma,    state.chroma * k);
-      gl.uniform1f(u.grain,     state.grain * k);
-      gl.uniform1f(u.sepia,     state.sepia * k);
-      gl.uniform1f(u.glow,      state.glow * k);
-      gl.uniform1f(u.grayscale, state.grayscale * k);
-      gl.uniform1f(u.tone,      state.tone * k);
-      gl.uniform1f(u.blur,      state.blur * k);
+      _uf(u.temp,      state.temp * k);
+      _uf(u.mut,       state.mut * k);
+      _uf(u.mutAlgo,   state.mutAlgo);
+      _uf(u.posterize, state.posterize * k);
+      _uf(u.vignette,  state.vignette * k);
+      _uf(u.chroma,    state.chroma * k);
+      _uf(u.grain,     state.grain * k);
+      _uf(u.sepia,     state.sepia * k);
+      _uf(u.glow,      state.glow * k);
+      _uf(u.grayscale, state.grayscale * k);
+      _uf(u.tone,      state.tone * k);
+      _uf(u.blur,      state.blur * k);
       // Liquid surface: the knob + a life coupling (lib/swr-life.client.js).
       // SWR_LIFE adds a moving floor — energy swells, beat pulses ring, a
       // tide never stops — so the surface reads as water rather than a static
@@ -691,11 +699,11 @@
         : state.liquid;
       _liquidEff = Math.max(0, Math.min(1.2, _liquidEff));
       state._liquidEff = _liquidEff;
-      gl.uniform1f(u.liquid,    _liquidEff * k);
-      gl.uniform1f(u.pearl,     state.pearl * k);
-      gl.uniform1f(u.glitch,    state.glitch * k);
-      gl.uniform1f(u.sharp,     state.sharp * k);
-      gl.uniform1f(u.cinematic, state.cinematic * k);
+      _uf(u.liquid,    _liquidEff * k);
+      _uf(u.pearl,     state.pearl * k);
+      _uf(u.glitch,    state.glitch * k);
+      _uf(u.sharp,     state.sharp * k);
+      _uf(u.cinematic, state.cinematic * k);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);

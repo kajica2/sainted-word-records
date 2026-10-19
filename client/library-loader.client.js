@@ -43,7 +43,11 @@
 
   function boot(opts) {
     opts = opts || {};
-    var manifestUrl = opts.manifestUrl || './library/manifest.json';
+    // `manifestUrl: null` is the documented opt-out (the curated library was
+    // removed from the build). `||` would coerce that null back to the
+    // default path and re-introduce the guaranteed 404, so only fall back
+    // when the key is genuinely absent.
+    var manifestUrl = ('manifestUrl' in opts) ? opts.manifestUrl : './library/manifest.json';
     var filePrefix  = opts.filePrefix  || './library/';
     var phase1Count = (opts.phase1Count | 0) || 8;
     var Lib         = opts.Lib;

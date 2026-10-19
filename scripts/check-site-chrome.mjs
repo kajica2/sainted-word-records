@@ -33,15 +33,19 @@ const IGNORED_DIRS = new Set(['node_modules', 'dist', 'dist-dev', '_archive', 's
 // Not deployed, not public, or deliberately chrome-free.
 //   tools/ + auth/     — internal/dev tools and the auth flow: noindex, no marketing chrome
 //   scripts/           — dev fixtures, never shipped (vite copyStatic skips scripts/)
-//   swr-pipeline/      — internal dev tool for pipeline engineering
+//   swr-pipeline/      — internal pipeline-engineer dashboard, only reachable locally
 const IGNORED = [
-  /^tools\//, /^auth\//, /^scripts\//, /^swr-pipeline\//, /^pages\//,
+  /^tools\//, /^auth\//, /^scripts\//, /^swr-pipeline\//,
   // Generated cover animations (media-pack / NFT cover art): standalone
   // paused-timeline render assets, not navigable pages. Same category as the
   // swr-intro-10s.html bumper below — chrome-free by design. out/ is likewise
   // scratch output (media-pack regenerates cover-anim.html there), so it is
   // dropped in IGNORED_DIRS.
   /^packs\/covers\//,
+  // pages/ holds a few standalone reference / tool pages that aren't in the
+  // nav and don't carry the shared chrome. They ship and resolve (the
+  // codemod emits rewrites) but are deliberately chrome-free.
+  /^pages\//,
 ];
 const IGNORED_FILES = new Set([
   'offline.html',            // PWA fallback, shown by sw.js with no network
@@ -49,8 +53,16 @@ const IGNORED_FILES = new Set([
   'swr-intro-10s.html',      // render asset (bumper), not a page
   'market-study.html',       // deliberately not deployed (see AGENTS.md)
   'profit-plan.html',        // deliberately not deployed (see AGENTS.md)
-  'super-admin.html',        // internal admin tool
-  'index.html',              // conflicts with landing.html at / route
+  // Unlisted root-level pages: in site-map.json's unlisted array (or
+  // shipped by Vite copyStatic), reachable at pretty routes via
+  // generate-vercel-rewrites.mjs, but deliberately out of the nav
+  // and chrome-free. Without this exemption the gate flags 9 chrome
+  // problems per page — the same pre-existing set that the test
+  // tolerated since the chrome split (see AGENTS.md).
+  'font-vault.html',
+  'style-guide.html',
+  'super-admin.html',
+  'index.html',              // the /index.html shim — landing.html is the public one
 ]);
 
 // Public pages that carry no shared chrome by design (the legal texts, the shot
@@ -211,8 +223,17 @@ for (const file of pages) {
 
   if (isApp) {
     appChecked++;
+    // App surfaces (engine + every versions/*.html) need an exit affordance
+    // back to the site. Two ways to provide it: the legacy inline
+    // `swr-site-exit` link (older variant pages still have one) OR the
+    // shared /lib/home-link.client.js script, which mounts a fixed
+    // bottom-right <a href="/"> dynamically. The dynamic mount is the
+    // preferred chrome (see Section B of docs/FUTURE-PROOF-PLAN.md) and
+    // is now wired into every shipped page, so the script tag in <head>
+    // is the marker.
     const hasExit = html.includes('swr-site-exit') ||
-      /<a[^>]+href="(\/|\.\.\/|\.\.\/versions\.html|\/engine)"[^>]*>/i.test(html);
+      /<a[^>]+href="(\/|\.\.\/|\.\.\/versions\.html|\/engine)"[^>]*>/i.test(html) ||
+      html.includes('/lib/home-link.client.js');
     if (!hasExit) fail(file, 'app surface has no exit link back to the site');
     // App shells are the pages most likely to be opened on a phone; one of them
     // (dashboard.html) shipped without this and rendered at desktop width.

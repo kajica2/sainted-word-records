@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CLEAN · SWR</title>
@@ -288,6 +290,7 @@
   
   <div id="app">
     <header>
+      <span class="gctrl" data-looks-mount></span>
       <div class="logo">CLEAN <span>· SWR</span></div>
       <div class="spacer"></div>
       
@@ -628,5 +631,14 @@
       
     })();
   </script>
+<script src="/lib/home-link.client.js" defer></script>
+<script src="/lib/version-badge.client.js" defer></script>
+<script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
 </body>
 </html>

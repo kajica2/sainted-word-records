@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <title>CHROME · SWR engine v1</title>
   <meta name="description" content="Polished liquid metal, hard specular highlights, desaturated mid-tones" />
@@ -340,7 +342,8 @@
 <body data-page="chrome">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header>
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      <span class="gctrl" data-looks-mount></span>
+      
       <div class="v">CHROME <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -457,6 +460,10 @@
         
       setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
+        // AUTO-RESUME-SWAP: remember the transport state BEFORE the element
+        // swap. Read after the swap it would always reflect the new element,
+        // which is never started.
+        const wasPlaying = !!this.playing;
         if (this.el) { this.el.pause(); this.el.src=''; }
         // Free the previous Blob URL before allocating a new one.
         if (this.el && this.el.__swr_blob_url) {
@@ -472,7 +479,26 @@
         this.src = this.ctx.createMediaElementSource(this.el);
         this.src.connect(this.an);
         this.hist = { prev:null, bassAvg:0, fluxAvg:0 }; this.beats=[]; this.feat.bpm=0;
-        $('play').disabled=false; $('rec').disabled=false; },
+        $('play').disabled=false; $('rec').disabled=false;
+        // AUTO-RESUME-SWAP: loading a song while the transport is playing
+        // used to leave `playing === true` on a paused element — the new
+        // <audio> was created but never started, so the reactive render
+        // saw silence and the recorder captured a still frame. Resume here,
+        // and reconcile `playing` if the browser blocks the autoplay.
+        if (wasPlaying) {
+          if (this.fadeIn) this.fadeIn(250);
+          const pr = this.el.play();
+          if (pr && typeof pr.then === 'function') {
+            pr.catch((err) => {
+              this.playing = false;
+              try { $('play').textContent = '▶'; } catch (_) {}
+              try { console.warn('[SWR_Audio] swap autoplay blocked:', err && err.name); } catch (_) {}
+            });
+          }
+          this.playing = true;
+          $('play').textContent = '❚❚';
+        }
+      },
       play() { this.unlock(); if (this.ctx.state==='suspended') this.ctx.resume();
         this.el.play(); this.playing=true; $('play').textContent='❚❚'; },
       pause() { if (this.el) this.el.pause(); this.playing=false; $('play').textContent='▶'; },
@@ -1325,6 +1351,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 
 
 
+  <script src="../fx-postprocess.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
   <script src="../lib/media-store.client.js" defer></script>
   <script src="../lib/library-persist.client.js" defer></script>
@@ -1346,6 +1373,8 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 <script src="../lib/audio-damp.client.js"></script>
 <!-- SWR-FX-GRADE-MARKER -->
 <script src="../lib/gpu-grade.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
 <script src="/lib/auth.client.js" defer></script>
 <script src="/lib/google-drive.client.js" defer></script>
   <script src="/lib/drive-modal.client.js" defer></script>
@@ -1410,5 +1439,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       });
     })();
   </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
 </body>
 </html>

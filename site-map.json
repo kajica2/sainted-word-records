@@ -429,12 +429,9 @@
     "/slots-admin",
     "/connect",
     "/buy",
-    "/super-admin",
-    "/swr-pipeline",
-    "/mood-frames",
-    "/temple-of-control",
-    "/fonts",
-    "/marketplace-claim"
+    "/font-vault",
+    "/bookings",
+    "/engine-personas"
   ],
   "archived": [],
   "meta": {

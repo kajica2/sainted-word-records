@@ -1,0 +1,28 @@
+{
+  "requests": [
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "01_bus_steep_hill",
+      "prompt": "Black and white documentary street photograph of a classic Hong Kong double-decker bus climbing a steep city street, pedestrians walking on a narrow sidewalk beside metal railings, shot from low street level looking up, hard midday sun creating deep shadows, shot on Kodak Tri-X 400 film, photojournalism style, square 1:1 composition with breathing space in the upper third for typography overlay, cinematic grain and full tonal range"
+    },
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "02_tram_crosswalk_motion",
+      "prompt": "Black and white street photograph of a vintage Hong Kong tram (ding ding) crossing a downtown intersection at night, motion-blurred pedestrians walking past in the foreground, sharp tram with illuminated destination sign, wet pavement reflecting streetlight, neon shop signs in the deep background, shot on Ilford HP5 plus film, documentary style, square 1:1 composition with breathing space on the right side for type"
+    },
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "03_cha_chaan_teng_lady",
+      "prompt": "Black and white documentary portrait of an elderly Chinese woman sitting alone at a corner booth in a Hong Kong cha chaan teng (traditional diner), reading a Chinese newspaper held open in both hands, soft window light falling on her face, vinyl seat behind her, partial view of a glass coffee cup and formica tabletop in the foreground, shot on Kodak Tri-X 400, intimate photojournalism, square 1:1 framing, candid and unposed"
+    },
+    {
+      "aspect_ratio": "1:1",
+      "resolution": "1K",
+      "output_file": "04_alleyway_night_rain",
+      "prompt": "Black and white noir street photograph of a narrow Mong Kok alleyway at night in the rain, wet reflective cobblestones and large puddles mirroring overhead lights, a single small figure walking away with a black umbrella in the middle distance, hanging neon shop signs and air-conditioning units cluttered overhead, shot on Kodak Tri-X pushed to 1600, dramatic high-contrast documentary, square 1:1 composition with figure small in frame and lots of moody negative space"
+    }
+  ]
+}
