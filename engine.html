@@ -3231,6 +3231,7 @@
         <button class="tbtn ghost" id="add-3d" style="padding:4px 8px; font-size:9px;" title="Add a 3D primitive as a layer (sphere, cube, torus, icosahedron)">+ 3D</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
         <button class="tbtn ghost" id="toggle-cover-fullscreen" title="Toggle cover fullscreen" style="padding:4px 8px; font-size:9px;">⛶ Cover</button>
+        <button class="tbtn ghost" id="save-project" title="Save project as a .swr-project file (Cmd/Ctrl+S)" style="padding:4px 8px; font-size:9px;">💾 Save</button>
         <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
           <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
           <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
@@ -6042,6 +6043,15 @@
           Layers.add(pool[pool.length - 1]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
+        $('save-project').addEventListener('click', () => {
+          // Delegate to the keyboard action — same path as Cmd+S, so
+          // status-bar messaging, file format, and naming stay in lock-step.
+          if (window.SWR_SETTINGS && typeof window.SWR_SETTINGS.saveProject === 'function') {
+            window.SWR_SETTINGS.saveProject();
+          } else if (typeof setStatus === 'function') {
+            setStatus('save unavailable on this page', 'warn');
+          }
+        });
         
         // Toggle cover fullscreen
         let coverFullscreen = false;
