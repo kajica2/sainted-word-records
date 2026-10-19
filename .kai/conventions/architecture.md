@@ -90,8 +90,14 @@ script (the `migrate-html.mjs` script enforces this — it strips duplicates whe
 
 - `pwa-bootstrap.js`, `sw.js`, `manifest.webmanifest`, `offline.html`.
 - Service worker registers after first load; offline page handles network failures.
-- Engine state persists in IndexedDB via `lib/media-store.client.js` (with
-  lazy-evict quota handling).
+- Engine state persists in IndexedDB via `lib/media-store.client.js`. On
+  QuotaExceededError the rejected error is augmented with `{usage, quota}` from
+  `navigator.storage.estimate()` (50 ms ceiling) BEFORE the rejection is
+  observed by callers, so the consumer at `lib/user-media-mount.client.js:115-137`
+  can show concrete "X MB / Y MB used" usage numbers and a Library-Hygiene
+  prompt. Without the estimate, the storage-full error was thrown without
+  any quota data and the only available action was a generic "Storage full"
+  message. Verified by `scripts/check-quota-estimate-unit.mjs`.
 
 ## API Threat Model (excerpt from SECURITY.md)
 

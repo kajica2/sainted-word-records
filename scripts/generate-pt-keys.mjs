@@ -59,3 +59,36 @@ if (asJson) {
   }
 }
 console.log(`\n${minted.length} key(s) minted → ${LEDGER} (gitignored).`);
+
+// ---- Optional: import the freshly-minted keys to the server ledger
+//      via the operator import endpoint (FIX 2 part B). The endpoint is
+//      idempotent so re-running is safe. The local file is always
+//      written first; the import is a separate step.
+const importFlagIdx = args.indexOf('--import');
+const importDryRunIdx = args.indexOf('--import-dry-run');
+const apiOriginIdx = args.indexOf('--api-origin');
+const doImport = importFlagIdx >= 0 || importDryRunIdx >= 0;
+if (doImport) {
+  const apiOrigin = apiOriginIdx >= 0
+    ? args[apiOriginIdx + 1]
+    : (process.env.PT_API_ORIGIN || 'http://127.0.0.1:5174');
+  const secret = process.env.PT_IMPORT_SECRET || null;
+  const url = apiOrigin.replace(/\/$/, '') + '/api/admin/pt/keys/import';
+  const body = { keys: minted };
+  const headers = { 'content-type': 'application/json' };
+  if (secret) headers['x-import-secret'] = secret;
+  if (importDryRunIdx >= 0) {
+    console.log('\nIMPORT DRY RUN: would POST ' + minted.length + ' key(s) to ' + url);
+    for (const k of minted) console.log('  - ' + k);
+  } else {
+    console.log('\nImporting ' + minted.length + ' key(s) to ' + url + '...');
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    const resBody = await res.json();
+    console.log('HTTP ' + res.status + ': ' + JSON.stringify(resBody, null, 2));
+    if (!res.ok || !resBody.ok) {
+      console.error('Import failed. Keys are still in ' + LEDGER + ' and can be re-imported with:');
+      console.error('  node scripts/migrate-pt-keys-local.mjs');
+      process.exit(1);
+    }
+  }
+}

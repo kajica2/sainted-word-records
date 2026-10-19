@@ -77,12 +77,18 @@ Credit-bank, not subscription. Credits never expire. Top up with another key any
 ## Features
 
 - **Adaptive beat detection** — bass-energy tracker with adaptive threshold
-- **Audio analysis v2** — zero-deps BPM (autocorrelation), key (Krumhansl-Schmuckler), chromagram, beat phase
+- **Audio analysis v2** — zero-deps BPM (inter-onset-interval histogram, octave-folded
+  into 60–180 BPM, with a ±10% jitter window and an honest `return 0` below
+  `CONFIDENCE_FLOOR = 0.5`), key (Krumhansl-Schmuckler), chromagram, beat phase.
 - **23 personas** in 4 families: 10 original (RAW, POSTER, MASK, FX, FILTER, NEON, FILM, GRID, SMOKE, HALLUCINATION) + 5 generative (LIQUID GLASS, PEARL HAZE, CLUB STROBE, VHS VIBE, NEON WASH) + 5 MORPHA (ANCHOR, FLOW, FRACTURE, VOID, ECHO) + 3 Train-stages
 - **14 WebGL FX** on a fullscreen quad: posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch, mut, mutAlgo, temp
 - **20 stackable CSS filters** on the live stage: kenburns, pan-scan, mesh-warp, liquify, light-leak, film-grain, VHS, RGB-split, pixel-sort, CRT, hue-shift, kaleidoscope, zoom-pulse, camera-shake + 3 combos
 - **Persistent library** (IndexedDB v2) — both `assets` (per-clip) and `songs` (current) stores. Survives reload.
-- **Cross-tab library sync** — uploads + deletes in one tab refresh the library in all open tabs via `BroadcastChannel('swr-media')`. Falls back to local-only on very old browsers
+- **Cross-tab library sync** — uploads + deletes in one tab refresh the library in
+  all open tabs via `BroadcastChannel('swr-media')`. Browsers without
+  `BroadcastChannel` (very old or in private mode where it's blocked) sync
+  locally only — the same tab still updates; a manual reload picks up the
+  change in other tabs. No `localStorage` event fallback.
 - **MP4-as-audio source** — drop a video file, the engine extracts audio. No conversion.
 - **PWA** — installable, offline, iOS splash screens, 4 PNG icons (192/512/maskable/apple-touch)
 - **Watermark engine** — 3 concepts (monogram / wordmark / icon+text). Suppressed for PT users.

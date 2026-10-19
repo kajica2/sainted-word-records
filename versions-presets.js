@@ -941,9 +941,14 @@ const PRESETS = {
       // Sepia
       if (u_sepia > 0.001) col = sepiaTint(col, u_sepia);
 
-      // Posterize
+      // Posterize — geometric curve from 256 levels (off) to 3 (heavy).
+      // The linear mix(256, 3, t) was perceptually flat: at t=0.5 the
+      // slider still left 130 levels on screen, which is visually
+      // indistinguishable from the source. The geometric curve maps the
+      // slider uniformly across the *visible* range — t=0.5 lands
+      // at ~28 levels, t=0.8 at ~7, t=1.0 at 3.
       if (u_posterize > 0.001) {
-        float levels = mix(256.0, 3.0, u_posterize);
+        float levels = exp(mix(log(256.0), log(3.0), u_posterize));
         col = floor(col * levels) / levels;
       }
 

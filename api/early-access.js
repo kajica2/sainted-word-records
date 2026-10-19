@@ -12,10 +12,9 @@
 //   - agreed (required): must be true to accept beta test terms
 
 import { sendJson } from './_lib/http.js';
-import { readJson, writeJson } from './_lib/db.js';
-import { join, DATA_ROOT } from './_lib/paths.js';
+import { readJson, writeJson, DATA_ROOT } from './_lib/db.js';
 
-const EARLY_ACCESS_FILE = join(DATA_ROOT, 'early-access-requests.json');
+const EARLY_ACCESS_FILE = `${DATA_ROOT}/early-access-requests.json`;
 
 // Simple rate limiter (in-memory, per-instance)
 const rateLimit = new Map();

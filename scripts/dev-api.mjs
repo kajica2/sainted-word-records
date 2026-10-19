@@ -43,6 +43,8 @@ function pickHandlerPath(urlPath) {
   if (segs[1] === 'auth' && (segs[2] === 'session' || segs[2] === 'magic' || segs[2] === 'verify')) {
     return HANDLER_PATHS['auth/' + segs[2]];
   }
+  // Public waitlist signup (no auth): /api/early-access.
+  if (segs[1] === 'early-access' && !segs[2]) return '../api/early-access.js';
   if (segs[1] === 'storage') {
     if (segs[2] === 'sign-upload') return HANDLER_PATHS['storage/sign-upload'];
     if (segs[2] === 'sign-download') return HANDLER_PATHS['storage/sign-download'];
@@ -74,6 +76,16 @@ function pickHandlerPath(urlPath) {
   // PT tier checkout: /api/pt/checkout starts a Stripe Checkout Session for a
   // license tier (D4 — webhook fulfilment in api/webhooks/stripe.js).
   if (segs[1] === 'pt' && segs[2] === 'checkout' && !segs[3]) return '../api/pt/checkout.js';
+  // PT key verification (FIX 2 — the audit). GET /api/pt/verify?key=...
+  // looks the key up in the server-side ledger. The pt.client.js
+  // client now treats a missing/unverifiable entitlement as "not
+  // entitled" — the watermark stays on.
+  if (segs[1] === 'pt' && segs[2] === 'verify' && !segs[3]) return '../api/pt/verify.js';
+  // Operator-minted PT key import (FIX 2 part B). POST .../import
+  // upserts records from the local issuer into the server ledger.
+  if (segs[1] === 'admin' && segs[2] === 'pt' && segs[3] === 'keys' && segs[4] === 'import') {
+    return '../api/admin/pt/keys/import.js';
+  }
   // Video-slot ledger: /api/slots/grant (admin), /api/slots/<userId>
   // (state + register), /api/slots (the PT panel sync endpoint).
   if (segs[1] === 'slots') {

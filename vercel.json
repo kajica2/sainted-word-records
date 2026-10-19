@@ -464,6 +464,10 @@
       "destination": "/versions/music_video_mtv.html"
     },
     {
+      "source": "/artists/vodolija",
+      "destination": "/artists/vodolija.html"
+    },
+    {
       "source": "/",
       "destination": "/landing.html"
     },
@@ -964,8 +968,20 @@
       "destination": "/font-vault.html"
     },
     {
-      "source": "/artists/vodolija",
-      "destination": "/artists/vodolija.html"
+      "source": "/bookings",
+      "destination": "/bookings.html"
+    },
+    {
+      "source": "/bookings/",
+      "destination": "/bookings.html"
+    },
+    {
+      "source": "/engine-personas",
+      "destination": "/engine-personas.html"
+    },
+    {
+      "source": "/engine-personas/",
+      "destination": "/engine-personas.html"
     },
     {
       "source": "/atlas-200-steps",
@@ -1278,6 +1294,14 @@
     {
       "source": "/auth/verify/",
       "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/auth/google",
+      "destination": "/auth/google-callback.html"
+    },
+    {
+      "source": "/auth/google/",
+      "destination": "/auth/google-callback.html"
     },
     {
       "source": "/enhance",

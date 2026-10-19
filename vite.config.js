@@ -574,6 +574,8 @@ function copyStatic() {
     'api/_lib/session.js',
     'api/_lib/email.js',
     'api/_lib/kv.js',
+    // Public waitlist: landing/login pages POST to /api/early-access.
+    'api/early-access.js',
     // Video-slot ledger (authoritative payment-side quota for pt.client.js).
     'api/slots/grant.js',
     'api/slots/index.js',
@@ -587,6 +589,10 @@ function copyStatic() {
     'api/catalogue/public.js',
     'api/checkout/index.js',
     'api/_lib/orders.js',
+    // PT key import endpoint (FIX 2 part B) — bulk import from the
+    // operator's local issuer so a single verify call at the client
+    // covers both Stripe-issued and operator-issued keys.
+    'api/admin/pt/keys/import.js',
     // Slot-ledger admin surface (unlisted route /slots-admin).
     'slots-admin.html',
     'slots-admin.client.js',

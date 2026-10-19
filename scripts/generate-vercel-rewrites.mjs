@@ -176,6 +176,14 @@ function generateRewrites(map) {
     addPath(map.auth.href);
     addPath('/auth/login');
     addPath('/auth/verify');
+    // /auth/google is the OAuth START button on the login form
+    // (auth/login.html). The flow currently routes it to
+    // auth/google-callback.html, which gracefully shows "No
+    // authorization code received" when no `?code=` arrives. That
+    // keeps the link live (dist-links gate) until the actual OAuth
+    // start endpoint lands.
+    rules.push({ source: '/auth/google', destination: '/auth/google-callback.html' });
+    rules.push({ source: '/auth/google/', destination: '/auth/google-callback.html' });
   }
 
   // Pages the legacy /nav.client.js linked to. They exist at the repo root but

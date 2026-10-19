@@ -45,10 +45,18 @@ const GROUPS = {
   // The quick gate. Order preserved from the original `check` chain.
   check: [
     'npm run check:syntax',
+    'npm run check:engine-mobile',
+    'npm run check:quota-estimate-unit',
+    'npm run check:pt-verify',
+    'npm run check:pt-import',
     'npm run check:bundle',
     'npm run check:automix-unit',
     'npm run check:automix-arc-unit',
     'npm run check:automix-session-unit',
+    'npm run check:posterize-curve',
+    'npm run check:contract',
+    'npm run check:ver-picker',
+    'npm run check:svg-grade-integration',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
     'npm run check:gradient-dot-unit',

@@ -429,7 +429,9 @@
     "/slots-admin",
     "/connect",
     "/buy",
-    "/font-vault"
+    "/font-vault",
+    "/bookings",
+    "/engine-personas"
   ],
   "archived": [],
   "meta": {

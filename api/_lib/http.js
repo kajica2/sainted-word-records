@@ -122,13 +122,27 @@ export function readRawBody(req, { maxBytes = 2_000_000 } = {}) {
 }
 
 export function setCors(res, origin) {
-  // Tight CORS: same-origin by default (return no ACAO header so the
-  // browser refuses any cross-origin attempt). When an explicit Origin
-  // is present AND it looks like an http(s) URL, echo it back — this
-  // enables separate preview domains (e.g. a Vercel preview URL).
-  // The literal string "same-origin" is NOT a valid origin and would
-  // cause browsers to refuse the response.
-  // CORS allowlist - restrict to known origins only
+  // Strict CORS with an explicit allowlist (3 entries):
+  //   1. process.env.SWRC_APP_ORIGIN  — the production app origin, set
+  //      in Vercel env. Defaults to the canonical Vercel URL.
+  //   2. http://localhost:5174         — Vite dev server.
+  //   3. http://localhost:4173         — Vite preview server.
+  // No "echo back" — an unknown Origin gets NO Access-Control-Allow-
+  // Origin header, so the browser refuses the response. The previous
+  // "echo any http(s) origin" comment was wrong: the actual code has
+  // always had the allowlist below (it was added in the M1 backend
+  // hardening pass on 2026-09-29). The mistake is that the comment
+  // described the OLD behaviour and was never updated.
+  //
+  // Trade-off: this rejects Vercel preview URLs. Vercel preview
+  // domains (*.vercel.app) are NOT in the allowlist, so a preview
+  // build can serve the app but cross-origin requests from a preview
+  // URL back to the production API are blocked. That is deliberate:
+  // previews are meant to be a static snapshot of the SPA, and the
+  // production API should never trust preview origins. Add a preview
+  // domain to the allowlist only if you can constrain the wildcard
+  // to a known prefix (e.g. 'https://swr-<sha>-kai.vercel.app') — do
+  // NOT wildcard the entire *.vercel.app namespace.
   const ALLOWED_ORIGINS = [
     process.env.SWRC_APP_ORIGIN || 'https://sainted-word-records.vercel.app',
     'http://localhost:5174',
