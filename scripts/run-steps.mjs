@@ -56,6 +56,7 @@ const GROUPS = {
     'npm run check:posterize-curve',
     'npm run check:contract',
     'npm run check:ver-picker',
+    'npm run check:svg-grade-integration',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
     'npm run check:gradient-dot-unit',
