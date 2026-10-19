@@ -142,7 +142,7 @@
     actWrap.appendChild(rmBtn);
 
     // 3-column grid: thumb | name | actions
-    item.appendChild(thumbImg);
+    item.appendChild(thumbCell);
     item.appendChild(name);
     item.appendChild(actWrap);
 
