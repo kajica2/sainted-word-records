@@ -33,8 +33,23 @@
 .layer-strip .ls-list { display:flex; flex-direction:column; gap:4px; max-height:300px; overflow-y:auto; }
 .layer-strip .li { display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:6px; padding:6px 8px; border:1px solid var(--border,#333); border-radius:6px; background:rgba(255,255,255,.02); cursor:pointer; transition:background .15s ease; }
 .layer-strip .li:hover { background:rgba(255,255,255,.06); }
-.layer-strip .li .thumb { width:48px; height:36px; object-fit:cover; border-radius:4px; background:var(--surface-2,#222); transform:rotate(0deg); transition:transform .15s ease; }
+.layer-strip .li .thumb { width:48px; height:36px; object-fit:cover; border-radius:4px; background:var(--surface-2,#222); transform:rotate(0deg); transition:transform .15s ease; display:block; }
 .layer-strip .li .thumb.rotated { transform:rotate(90deg); }
+/* Placeholder when no thumb/coverUrl exists — a subtle dash on the
+   panel surface so the row layout is intact and the user knows the
+   slot is there (asset missing or pruned). */
+.layer-strip .li .thumb.placeholder {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color: var(--text-2, #888);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  background: var(--surface-2, #222);
+  cursor: pointer;
+  transform: rotate(0deg) !important;  /* don't rotate the dash */
+}
+.layer-strip .li .thumb.placeholder.rotated { transform: rotate(0deg) !important; }
 .layer-strip .li .nm { font-size:11px; color:var(--text-1,#eee); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .layer-strip .li .act { display:flex; gap:4px; }
 .layer-strip .li .act span { width:24px; height:22px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border,#333); border-radius:4px; background:transparent; color:var(--text-2,#aaa); cursor:pointer; font-size:14px; line-height:1; user-select:none; }
@@ -63,11 +78,25 @@
     const item = el('div', 'li');
     item.dataset.id = layer.id;
 
-    // CSS-rotate-thumbnail — pure visual toggle, doesn't change layer state
-    const thumbImg = el('img');
-    thumbImg.src = thumbnail || '';
-    thumbImg.alt = '';
-    thumbImg.className = 'thumb';
+    // Thumbnail cell. When the asset has a real thumb/coverUrl, render
+    // an <img class="thumb">. Otherwise render a placeholder cell so the
+    // layout doesn't collapse and the user doesn't see a broken-image
+    // icon. The cell is still a tap target for the layer card.
+    let thumbCell;
+    if (thumbnail) {
+      thumbCell = el('img');
+      thumbCell.src = thumbnail;
+      thumbCell.alt = '';
+      thumbCell.className = 'thumb';
+      thumbCell.loading = 'lazy';
+    } else {
+      // Empty asset (no asset yet, or the asset was pruned). The asset
+      // name + tag are the only signal the user has — show a clean
+      // placeholder so the row isn't visually broken.
+      thumbCell = el('div', 'thumb placeholder');
+      thumbCell.setAttribute('aria-hidden', 'true');
+      thumbCell.textContent = '—';
+    }
 
     const name = el('span', 'nm', escapeHtml(layer.name || '(empty)'));
 
@@ -78,12 +107,14 @@
     rotBtn.dataset.id = layer.id;
     rotBtn.title = 'Rotate';
     rotBtn.textContent = '↻';
-    // Track whether currently rotated (mirrors thumbImg.rotated class)
+    // Track whether currently rotated (mirrors thumbCell.rotated class).
+    // The CSS only animates when thumbCell is an <img>; the placeholder
+    // div has no visual rotation but the class toggle is harmless.
     let rotatedOn = false;
     rotBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       rotatedOn = !rotatedOn;
-      thumbImg.classList.toggle('rotated', rotatedOn);
+      thumbCell.classList.toggle('rotated', rotatedOn);
       rotBtn.classList.toggle('on', rotatedOn);
       // Optional: also toggle a preview video if the layer has one.
       // Layers don't currently expose `previewVideo`, so this is a
