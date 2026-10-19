@@ -170,6 +170,10 @@
   const sessions = new Map();
 
   function createViewport(canvas, opts) {
+    // WebGL off by default.
+    if (window.SWR_WEBGL && !window.SWR_WEBGL.isWebGLEnabled()) {
+      throw new Error('mesh-renderer: WebGL disabled via flag');
+    }
     const ctx = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     if (!ctx) throw new Error('mesh-renderer: WebGL not supported on this canvas');
     const opt = opts || {};

@@ -1038,11 +1038,12 @@ const PRESETS = {
       return false;
     }
 
-    // Check for disable flag
-    const webglDisabled = (typeof localStorage !== 'undefined' && localStorage.getItem('swrDisableWebGL') === '1') 
-                        || (typeof location !== 'undefined' && new URLSearchParams(location.search).get('webgl') === '0');
-    if (webglDisabled) {
-      console.info('[versions-presets] WebGL disabled via flag');
+    // WebGL is OFF by default; opt in with ?webgl=1 or swrWebGL=1. If the
+    // helper isn't loaded (e.g. on variant pages that don't pull in
+    // engine.html's script tags), bail — better to render 2D than to
+    // ship a broken shader program.
+    if (!window.SWR_WEBGL || !window.SWR_WEBGL.isWebGLEnabled()) {
+      console.info('[versions-presets] WebGL disabled (helper missing or flag off)');
       return;
     }
     const gl = out.getContext('webgl', { premultipliedAlpha: false }) ||

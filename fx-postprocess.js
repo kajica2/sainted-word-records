@@ -406,12 +406,12 @@
       return false;
     }
 
-    // WebGL setup
-    // Check for disable flag (localStorage 'swrDisableWebGL=1' or URL ?webgl=0)
-    const webglDisabled = (localStorage.getItem('swrDisableWebGL') === '1') 
-                       || (new URLSearchParams(location.search).get('webgl') === '0');
-    if (webglDisabled) {
-      console.info('[fx-postprocess] WebGL disabled via flag');
+    // WebGL setup. WebGL is OFF by default (see lib/webgl-feature-detect.client.js
+    // for the rationale). If the helper isn't loaded (e.g. on variant
+    // pages that don't pull in engine.html's script tags), bail —
+    // better to render 2D than to ship a broken shader program.
+    if (!window.SWR_WEBGL || !window.SWR_WEBGL.isWebGLEnabled()) {
+      console.info('[fx-postprocess] WebGL disabled (helper missing or flag off)');
       return;
     }
     // NB: preserveDrawingBuffer must be true for captureStream() / MediaRecorder to

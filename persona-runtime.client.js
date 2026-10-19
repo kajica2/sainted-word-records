@@ -235,6 +235,9 @@
   }
 
   function setupGL(canvas, geom) {
+    // WebGL off by default; the helper is loaded by engine.html
+    // before this script so the global is available.
+    if (window.SWR_WEBGL && !window.SWR_WEBGL.isWebGLEnabled()) return false;
     var gl = canvas.getContext('webgl', { antialias: true, alpha: true });
     if (!gl) return false;
     var vs = compileShader(gl, gl.VERTEX_SHADER,
