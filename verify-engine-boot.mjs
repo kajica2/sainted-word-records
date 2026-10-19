@@ -61,6 +61,17 @@ try {
   page.on('pageerror', (e) => pageErrors.push(e.message.split('\n')[0]));
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
 
+  // The engine defaults to Basic mode for first-time users, and Basic mode
+  // CSS (engine.html) sets section#stage, header#transport, aside#layers and
+  // footer#global to display:none. The checks below assert on exactly that
+  // advanced-mode DOM (#render's layout box, #rec, #export-video), so they
+  // would all measure a hidden layout (css=0, inViewport=false) regardless of
+  // how well the engine booted. Seed the persisted mode preference the same
+  // way a returning power user would have it, before any document script runs.
+  await page.evaluateOnNewDocument(() => {
+    try { localStorage.setItem('swr.engine.mode', 'advanced'); } catch {}
+  });
+
   await page.goto(`${BASE}/engine.html`, { waitUntil: 'load', timeout: 45000 });
 
   await page.waitForFunction(
