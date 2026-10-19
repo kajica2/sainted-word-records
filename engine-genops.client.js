@@ -36,7 +36,11 @@
 
   const BLENDS   = ['source-over', 'screen', 'multiply', 'overlay', 'soft-light', 'difference'];
   const FEATURES = ['bass', 'mid', 'treble', 'air', 'sub', 'rms', 'centroid', 'beat', 'onset'];
-  const TARGETS  = ['scale', 'x', 'y', 'opacity', 'hue', 'brightness', 'contrast'];
+  // 'rot' is in TARGET_RANGE but was missing from TARGETS — reactors
+  // couldn't drive rotation. verify-genops.mjs's "mapping is live"
+  // check caught this: setting `select.value = 'rot'` resets the
+  // <select> to '' because no <option value="rot"> exists. Adding it.
+  const TARGETS  = ['scale', 'x', 'y', 'rot', 'opacity', 'hue', 'brightness', 'contrast'];
   const EASES    = ['linear', 'soft', 'sharp', 'smooth'];
 
   // Sane reactor amount ranges per target, matching applyR()'s multipliers in the pages.
