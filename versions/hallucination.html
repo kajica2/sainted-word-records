@@ -1067,7 +1067,7 @@ const Layers = { list: [], sel: null,
         // Master rotation toggle gate: when the user has turned rotation
         // OFF globally (swr-rot-master button), skip rot reactor writes so
         // audio doesn't compound the canvas into 180-degree flips.
-        const _rotOn = l.rotationEnabled !== false;
+        const _rotOn = l.rotationEnabled === true;  // OFF by default — opt in via per-layer rotation toggle; reactors targeting rot are silenced until then
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 150;
         else if (r.target==='y') out.y += v * 150;

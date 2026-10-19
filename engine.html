@@ -4667,7 +4667,7 @@
         // rot = audio-driven base + per-clip persistent offset (if rotationEnabled)
         // rotationEnabled defaults to true (undefined === true); when false,
         // both manual rotOffset and any rot-target reactors are silenced.
-        const enabled = layer.rotationEnabled !== false;
+        const enabled = layer.rotationEnabled === true;  // OFF by default — opt in via the per-layer rotate toggle; rot-target reactors are silenced until then
         const out = {
           scale: layer.baseScale,
           x: layer.pos.x, y: layer.pos.y,
