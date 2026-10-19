@@ -442,6 +442,14 @@
       cursor: grab;
       transition: border-color 0.12s, transform 0.12s;
     }
+    .lib-item-stale {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-2);
+      color: var(--text-2);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
     .lib-item:hover { border-color: var(--accent-2); transform: translateY(-1px); }
     .lib-item:active { cursor: grabbing; }
     .lib-item img, .lib-item video {
