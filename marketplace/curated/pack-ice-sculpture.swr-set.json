@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "7c279ca4-dd71-5f38-9899-fafafb53cd69",
+  "name": "Ice Sculpture",
+  "author": "SWR",
+  "description": "An ice sculpture on a reflective surface, shot close. Built for the slowest tracks you own.",
+  "tags": [
+    "ice",
+    "sculpture",
+    "reflection",
+    "slow"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "aurora",
+  "audio": {
+    "name": "aurora.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 211654,
+    "url": "/audios/aurora.mp3"
+  },
+  "fx": {
+    "temp": -0.45,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.5,
+    "chroma": 0.15,
+    "grain": 0.15,
+    "sepia": 0,
+    "glow": 0.55,
+    "grayscale": 0.3,
+    "blur": 0.1,
+    "liquid": 0.2,
+    "pearl": 0.1,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ice-sculpture-01.webp",
+        "mimeType": "image/webp",
+        "size": 77820,
+        "url": "/packs/ice-sculpture/ice-sculpture-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ice-sculpture-02.webp",
+        "mimeType": "image/webp",
+        "size": 37940,
+        "url": "/packs/ice-sculpture/ice-sculpture-02.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ice-sculpture-03.webp",
+        "mimeType": "image/webp",
+        "size": 96514,
+        "url": "/packs/ice-sculpture/ice-sculpture-03.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 70,
+    "key": "D",
+    "scale": "minor"
+  }
+}

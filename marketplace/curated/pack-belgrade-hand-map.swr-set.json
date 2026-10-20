@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "1a2a1b39-3f3d-52c5-bf92-55b0b37104d0",
+  "name": "Belgrade Hand Map",
+  "author": "SWR",
+  "description": "Hand-sketched city maps of Belgrade, ink over paper. Warm enough to sit under spoken word.",
+  "tags": [
+    "map",
+    "belgrade",
+    "hand-drawn",
+    "architecture"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "mosaic",
+  "audio": {
+    "name": "mosaic.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 213958,
+    "url": "/audios/mosaic.mp3"
+  },
+  "fx": {
+    "temp": 0.15,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0.25,
+    "vignette": 0.35,
+    "chroma": 0.1,
+    "grain": 0.35,
+    "sepia": 0.3,
+    "glow": 0.25,
+    "grayscale": 0.3,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "belgrade-hand-map-01.webp",
+        "mimeType": "image/webp",
+        "size": 93288,
+        "url": "/packs/belgrade-hand-map/belgrade-hand-map-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "belgrade-hand-map-05.webp",
+        "mimeType": "image/webp",
+        "size": 81922,
+        "url": "/packs/belgrade-hand-map/belgrade-hand-map-05.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "belgrade-hand-map-09.webp",
+        "mimeType": "image/webp",
+        "size": 77192,
+        "url": "/packs/belgrade-hand-map/belgrade-hand-map-09.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 96,
+    "key": "E",
+    "scale": "phrygian"
+  }
+}

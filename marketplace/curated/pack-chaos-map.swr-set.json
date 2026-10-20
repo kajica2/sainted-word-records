@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "a36de0b2-fcf5-51a9-ac75-0e7c0e6e54bd",
+  "name": "Chaos Map",
+  "author": "SWR",
+  "description": "Chaos-20 maps run to wallpaper depth. Long, tiling, and happy to sit behind a whole track.",
+  "tags": [
+    "map",
+    "chaos",
+    "wallpaper",
+    "fractal"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "fractal",
+  "audio": {
+    "name": "fractal.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 238150,
+    "url": "/audios/fractal.mp3"
+  },
+  "fx": {
+    "temp": 0,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0.3,
+    "vignette": 0.3,
+    "chroma": 0.45,
+    "grain": 0.25,
+    "sepia": 0,
+    "glow": 0.5,
+    "grayscale": 0.2,
+    "blur": 0,
+    "liquid": 0.1,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "chaos-map-01.webp",
+        "mimeType": "image/webp",
+        "size": 129780,
+        "url": "/packs/chaos-map/chaos-map-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "chaos-map-04.webp",
+        "mimeType": "image/webp",
+        "size": 100728,
+        "url": "/packs/chaos-map/chaos-map-04.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "chaos-map-07.webp",
+        "mimeType": "image/webp",
+        "size": 83646,
+        "url": "/packs/chaos-map/chaos-map-07.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 150,
+    "key": "C",
+    "scale": "minor"
+  }
+}

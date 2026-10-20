@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "008ca857-b984-51a0-bf6e-18d3c5b510ab",
+  "name": "Dancers",
+  "author": "SWR",
+  "description": "Stage-lit dancer silhouettes in black and white. Best for slow builds, halftime, anything that breathes before it breaks.",
+  "tags": [
+    "dance",
+    "silhouette",
+    "stage",
+    "monochrome"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "film",
+  "audio": {
+    "name": "film.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 243334,
+    "url": "/audios/film.mp3"
+  },
+  "fx": {
+    "temp": -0.25,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.7,
+    "chroma": 0.05,
+    "grain": 0.3,
+    "sepia": 0,
+    "glow": 0.45,
+    "grayscale": 0.35,
+    "blur": 0.1,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "dancer-01.webp",
+        "mimeType": "image/webp",
+        "size": 36148,
+        "url": "/packs/dancers/dancer-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "dancer-03.webp",
+        "mimeType": "image/webp",
+        "size": 31752,
+        "url": "/packs/dancers/dancer-03.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "dancer-06.webp",
+        "mimeType": "image/webp",
+        "size": 122042,
+        "url": "/packs/dancers/dancer-06.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 92,
+    "key": "F",
+    "scale": "minor"
+  }
+}

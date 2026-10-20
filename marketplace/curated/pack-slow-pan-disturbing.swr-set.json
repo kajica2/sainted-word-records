@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "6c0bfc09-7727-570e-8c68-d8f2b23c28eb",
+  "name": "Slow Pan Disturbing",
+  "author": "SWR",
+  "description": "A slow pan across something you are not supposed to notice. Unsettling without ever being loud.",
+  "tags": [
+    "slow-pan",
+    "unease",
+    "found-footage",
+    "experimental"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "hallucination",
+  "audio": {
+    "name": "hallucination.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 232966,
+    "url": "/audios/hallucination.mp3"
+  },
+  "fx": {
+    "temp": -0.15,
+    "mut": 0.15,
+    "mutAlgo": 1,
+    "posterize": 0,
+    "vignette": 0.7,
+    "chroma": 0.3,
+    "grain": 0.45,
+    "sepia": 0,
+    "glow": 0.3,
+    "grayscale": 0.3,
+    "blur": 0.2,
+    "liquid": 0,
+    "pearl": 0.1,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "slow-pan-disturbing-01.webp",
+        "mimeType": "image/webp",
+        "size": 101882,
+        "url": "/packs/slow-pan-disturbing/slow-pan-disturbing-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "slow-pan-disturbing-14.webp",
+        "mimeType": "image/webp",
+        "size": 117428,
+        "url": "/packs/slow-pan-disturbing/slow-pan-disturbing-14.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "slow-pan-disturbing-28.webp",
+        "mimeType": "image/webp",
+        "size": 113982,
+        "url": "/packs/slow-pan-disturbing/slow-pan-disturbing-28.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 138,
+    "key": "E",
+    "scale": "phrygian"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "7de75d22-9cc6-5d49-b170-eb92dfe28a92",
+  "name": "UFO Portrait",
+  "author": "SWR",
+  "description": "Portrait photography with lights in the background. Slow, wide, and a little wrong.",
+  "tags": [
+    "portrait",
+    "ufo",
+    "night",
+    "eclipse"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "eclipse",
+  "audio": {
+    "name": "eclipse.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 238150,
+    "url": "/audios/eclipse.mp3"
+  },
+  "fx": {
+    "temp": -0.2,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.65,
+    "chroma": 0.2,
+    "grain": 0.25,
+    "sepia": 0.1,
+    "glow": 0.55,
+    "grayscale": 0.2,
+    "blur": 0.1,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ufo-portrait-01.webp",
+        "mimeType": "image/webp",
+        "size": 108784,
+        "url": "/packs/ufo-portrait/ufo-portrait-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ufo-portrait-15.webp",
+        "mimeType": "image/webp",
+        "size": 69698,
+        "url": "/packs/ufo-portrait/ufo-portrait-15.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ufo-portrait-29.webp",
+        "mimeType": "image/webp",
+        "size": 72258,
+        "url": "/packs/ufo-portrait/ufo-portrait-29.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 100,
+    "key": "A",
+    "scale": "minor"
+  }
+}

@@ -324,6 +324,11 @@
       "description": "Curated opt-in media packs (covers + contents)"
     },
     {
+      "label": "Photo Scrolls",
+      "href": "/photo-scrolls",
+      "description": "Every still in the media packs as a horizontal scroll"
+    },
+    {
       "label": "AR GIF",
       "href": "/ar-gif",
       "description": "Drop a GIF, see it in AR"
@@ -471,7 +476,7 @@
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-10-02",
+    "lastUpdated": "2026-10-20",
     "totalPages": 146,
     "corePages": 146,
     "archivedPages": 0
@@ -572,6 +577,7 @@
     "personas/v/trainstage2.html",
     "personas/v/trainstage3.html",
     "personas/v/vhsvibe.html",
+    "photo-scrolls.html",
     "photo.html",
     "portfolio.html",
     "press.html",

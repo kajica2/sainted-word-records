@@ -720,6 +720,14 @@
       "destination": "/packs.html"
     },
     {
+      "source": "/photo-scrolls",
+      "destination": "/photo-scrolls.html"
+    },
+    {
+      "source": "/photo-scrolls/",
+      "destination": "/photo-scrolls.html"
+    },
+    {
       "source": "/ar-gif",
       "destination": "/ar-gif.html"
     },

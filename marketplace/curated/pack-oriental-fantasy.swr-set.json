@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "d0c2e64d-f9dd-509c-8223-ab1db246cbd1",
+  "name": "Oriental Fantasy",
+  "author": "SWR",
+  "description": "Daytime oriental fantasy composed on the golden section. The one pack in here that wants light.",
+  "tags": [
+    "oriental",
+    "fantasy",
+    "golden-section",
+    "daylight"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "watercolor",
+  "audio": {
+    "name": "watercolor.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 239302,
+    "url": "/audios/watercolor.mp3"
+  },
+  "fx": {
+    "temp": 0.25,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.3,
+    "chroma": 0.2,
+    "grain": 0.2,
+    "sepia": 0.35,
+    "glow": 0.5,
+    "grayscale": 0,
+    "blur": 0.15,
+    "liquid": 0,
+    "pearl": 0.2,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "oriental-fantasy-01.webp",
+        "mimeType": "image/webp",
+        "size": 126956,
+        "url": "/packs/oriental-fantasy/oriental-fantasy-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "oriental-fantasy-03.webp",
+        "mimeType": "image/webp",
+        "size": 68986,
+        "url": "/packs/oriental-fantasy/oriental-fantasy-03.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "oriental-fantasy-06.webp",
+        "mimeType": "image/webp",
+        "size": 132796,
+        "url": "/packs/oriental-fantasy/oriental-fantasy-06.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 76,
+    "key": "A",
+    "scale": "pentatonic"
+  }
+}
