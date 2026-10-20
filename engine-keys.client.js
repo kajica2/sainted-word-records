@@ -58,6 +58,8 @@
 //   1..9               select layer by index  (1-based; 0 = deselect)
 //   Alt+1..6 *         per-layer remap (swap one slot, others stay)
 //   Shift+1..9 *       advance story chapters (FRAGMENTS / SIGNAL / …)
+//   T + 0              clear look filter (no tint, no variant change)
+//   T + 1..9           look filter (mixes tone + temp + variant)
 //   Cmd+1..9 *         legacy FX palette preset (PULSE / NEON / …)
 //                        Applies a known FX configuration (temp, vignette,
 //                        glow, …) to the running engine. The page stays put;
@@ -1122,6 +1124,34 @@
         })); } catch (_) {}
         return;
       }
+      // T (pre-arm) + DigitN/Digit0 — look filter cycler. The user presses
+      // T first (enters look-mode), then a digit: 1-9 apply a pre-baked
+      // tint/variant look, 0 clears everything back to no filter. Cheap
+      // state machine stored on window.__swrLookModeUntil.
+      if (!action && code === 'KeyT' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+        window.__swrLookModeUntil = performance.now() + 2000;
+        if (typeof window.setStatus === 'function') {
+          window.setStatus('look-mode: press 1-9 (or 0 = no filter)', 'ok');
+        }
+        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'look-mode' }
+        })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
+        return;
+      }
+      if (!action && /^Digit[0-9]$/.test(code || '') && !ev.metaKey && !ev.ctrlKey && !ev.altKey
+          && window.__swrLookModeUntil && performance.now() < window.__swrLookModeUntil) {
+        const slot = parseInt(code.replace('Digit', ''), 10);
+        if (window.SWR_LOOK_FILTER_CYCLER && typeof window.SWR_LOOK_FILTER_CYCLER.apply === 'function') {
+          window.SWR_LOOK_FILTER_CYCLER.apply(slot);
+        }
+        window.__swrLookModeUntil = 0; // consume the mode
+        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'look-' + slot }
+        })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
+        return;
+      }
     }
 
     // Single choke point for every dispatch path. An action whose
@@ -1202,6 +1232,8 @@
       // ---- Presets ----
       { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)', requires: 'story' },
       { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)', requires: 'presets' },
+      { keys: 'T + 1..9',       label: 'look filter (tint tone + variant; 0 clears)' },
+      { keys: 'T + 0',          label: 'no filter' },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
       { keys: '[ / ]',          label: '− / + alpha',                    requires: 'layerAlpha' },
