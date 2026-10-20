@@ -3808,8 +3808,10 @@
   <script src="/client/library-sheet.client.js" defer></script>
   <script src="/client/layer-audio-algos.client.js" defer></script>
   <script src="/client/look-filter-cycler.client.js" defer></script>
+  <script src="/lib/look-variant.client.js" defer></script>
   <script src="/client/debug-overlay.client.js" defer></script>
   <script src="/client/midi-alias.client.js" defer></script>
+  <script src="/client/midi-learn-ui.client.js" defer></script>
   <script src="/client/cloud-library.client.js" defer></script>
   <script src="/client/cloud-library-fab.client.js" defer></script>
   <script src="/lib/personal-presets.client.js" defer></script>
@@ -9006,11 +9008,24 @@
         $('daily-btn').addEventListener('click', open);
         document.querySelector('.daily-modal__close')?.addEventListener('click', close);
         $('daily-modal').addEventListener('click', (e) => { if (e.target === $('daily-modal')) close(); });
-        // MIDI pill: click to toggle auto-mapping; long-press to retry
-        // permission (handy when the user previously denied it).
+        // MIDI pill: click to toggle auto-mapping; double-click to
+        // enter learn mode (move a knob/fader next). Permission is
+        // auto-armed on first page interaction so this button only
+        // needs to re-request when the user previously denied.
         const midiPill = $('midi-pill');
         if (midiPill && window.SWR_MIDI) {
+          let lastClick = 0;
           midiPill.addEventListener('click', () => {
+            const now = Date.now();
+            if (now - lastClick < 320) {
+              // Double-click: enter learn mode
+              window.SWR_MIDI.arm();
+              window.SWR_MIDI_LEARN_UI && window.SWR_MIDI_LEARN_UI.show();
+              window.setStatus && window.setStatus('midi learn: move a knob/fader to bind', 'ok');
+              lastClick = 0;
+              return;
+            }
+            lastClick = now;
             const cur = window.SWR_MIDI.snapshot();
             window.SWR_MIDI.setEnabled(!cur.enabled);
             const next = window.SWR_MIDI.snapshot();

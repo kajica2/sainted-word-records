@@ -45,6 +45,7 @@
     "check:record-client-unit": "node scripts/check-record-client-unit.mjs",
     "check:onboarding-save-unit": "node scripts/check-onboarding-save-unit.mjs",
     "check:midi-alias-unit": "node scripts/check-midi-alias-unit.mjs",
+    "check:look-variant-unit": "node scripts/check-look-variant-unit.mjs",
     "check:variant-codemods": "node scripts/check-variant-codemods.mjs",
     "check:engine-mobile": "node scripts/check-engine-mobile.mjs",
     "check:quota-estimate-unit": "node scripts/check-quota-estimate-unit.mjs",
