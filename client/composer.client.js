@@ -373,6 +373,125 @@
     });
   }
 
+  // ---- Default 3 preset clips ----
+  // When the library is empty, we seed three synthetic placeholder
+  // images so the user has something to compose with right away. Each
+  // one is a small data-URL image generated on canvas, themed to the
+  // composer's amber + cyan accents. They live as regular library
+  // items so any add/pick/remove action works without special-casing.
+  const DEFAULT_CLIPS = [
+    { id: 'preset-riff',   name: 'Riff',   hue: 35,  accent: 'amber' },
+    { id: 'preset-pulse',  name: 'Pulse',  hue: 200, accent: 'cyan'  },
+    { id: 'preset-glow',   name: 'Glow',   hue: 280, accent: 'mix'   },
+  ];
+
+  function makePresetClip(spec) {
+    return new Promise((resolve) => {
+      const c = document.createElement('canvas');
+      c.width = 320; c.height = 180;
+      const cx = c.getContext('2d');
+      const w = c.width, h = c.height;
+      // Base radial gradient
+      const g = cx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, w * 0.6);
+      const base = spec.accent === 'amber' ? 'rgba(251,191,36,0.95)' :
+                   spec.accent === 'cyan'  ? 'rgba(103,232,249,0.95)' :
+                                            'rgba(180,180,200,0.95)';
+      g.addColorStop(0, base);
+      g.addColorStop(1, 'rgba(0,0,0,0.85)');
+      cx.fillStyle = g;
+      cx.fillRect(0, 0, w, h);
+      // Diagonal bands so each preset reads as a unique motif.
+      cx.strokeStyle = 'rgba(255,255,255,.18)';
+      cx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        cx.beginPath();
+        cx.moveTo(0, (i + 0.5) * (h / 8));
+        cx.lineTo(w, (i + 0.5) * (h / 8) - 30);
+        cx.stroke();
+      }
+      // Label
+      cx.fillStyle = 'rgba(0,0,0,.5)';
+      cx.fillRect(8, h - 38, 110, 30);
+      cx.fillStyle = '#fff';
+      cx.font = '600 16px ui-monospace, monospace';
+      cx.textAlign = 'left';
+      cx.textBaseline = 'middle';
+      cx.fillText(spec.name.toUpperCase(), 16, h - 23);
+      cx.strokeStyle = 'rgba(255,255,255,.85)';
+      cx.lineWidth = 1;
+      cx.strokeRect(8, h - 38, 110, 30);
+      c.toBlob((blob) => {
+        if (!blob) { resolve(null); return; }
+        const file = new File([blob], spec.name + '.png', { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        resolve({
+          id: spec.id,
+          name: spec.name + '.png',
+          type: 'image',
+          w: 320, h: 180, duration: 0, size: blob.size,
+          url: url,
+          thumb: url,
+          source: 'default-preset',
+          added: Date.now(),
+        });
+      }, 'image/png');
+    });
+  }
+
+  async function seedDefaultClips() {
+    if (!window.Library || typeof window.Library.add !== 'function') return;
+    if (window.Library.items && window.Library.items.length) return;
+    // Toast: "Seeding 3 default clips..."
+    if (window.SWR_ONBOARD) window.SWR_ONBOARD.toast('Adding 3 default clips to the library', 'info');
+    for (const spec of DEFAULT_CLIPS) {
+      const item = await makePresetClip(spec);
+      if (!item) continue;
+      try {
+        await window.Library.add(item);
+        if (window.SWR_ONBOARD) {
+          window.SWR_ONBOARD.toast('Added clip: ' + spec.name, 'success');
+        }
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  // ---- Latest track (the project's "shared" track) ----
+  // The composer auto-loads the project's default audio so the
+  // user has something to play with the moment the page opens. The
+  // candidates are tried in order; the first one that 200s wins.
+  const LATEST_TRACK_CANDIDATES = [
+    '/audios/endless-tomorrow.mp3',
+    '/default-library/endless-tomorrow.mp3',
+  ];
+
+  async function loadLatestTrack() {
+    if (audioReady) return;
+    if (!window.Audio || typeof window.Audio.loadFile !== 'function') return;
+    if (window.SWR_ONBOARD) window.SWR_ONBOARD.toast('Loading the latest track', 'info');
+    for (const url of LATEST_TRACK_CANDIDATES) {
+      try {
+        const r = await fetch(url, { method: 'HEAD' });
+        if (!r.ok) continue;
+        // Re-fetch as blob so we can hand Audio.loadFile a File object
+        // (works in both the live audio and the WebCodecs recorder path).
+        const rb = await fetch(url);
+        if (!rb.ok) continue;
+        const blob = await rb.blob();
+        const name = (url.split('/').pop() || 'track.mp3');
+        const file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+        await loadAudioFile(file);
+        if (window.SWR_ONBOARD) {
+          window.SWR_ONBOARD.toast('Loaded: ' + name, 'success');
+          window.SWR_ONBOARD.markAudioLoaded();
+        }
+        return;
+      } catch (e) { /* try next candidate */ }
+    }
+    if (window.SWR_ONBOARD) {
+      window.SWR_ONBOARD.toast('No track found. Tap "Add a song" to load one.', 'info');
+    }
+  }
+
   function onLibraryPick(item) {
     if (!item) return;
     if (!window.Layers) {
@@ -384,8 +503,16 @@
     let existing = null;
     try { existing = window.Layers.list.find((l) => l.asset && l.asset.id === item.id); }
     catch (_) {}
-    if (existing) { existing && window.Layers.select && window.Layers.select(existing); }
-    else if (typeof window.Layers.add === 'function') { window.Layers.add(item); }
+    if (existing) {
+      if (window.Layers.select) window.Layers.select(existing);
+    } else if (typeof window.Layers.add === 'function') {
+      window.Layers.add(item);
+    }
+    // Feedback + onboarding step
+    if (window.SWR_ONBOARD) {
+      window.SWR_ONBOARD.markLayerAdded();
+      window.SWR_ONBOARD.toast('Added clip: ' + (item.name || item.id), 'success');
+    }
     setLibraryOpen(false);
   }
 
@@ -453,6 +580,38 @@
   // ---- Mount ----
   setLibraryOpen(false);
   updatePlay();
+
+  // Seed three default clips + auto-load the latest track, then
+  // surface the next-step pill. We do this asynchronously so the page
+  // paints first; the on-boarding is gated on the onboarding module
+  // being loaded (script defer order).
+  async function boot() {
+    try { await seedDefaultClips(); } catch (_) { /* ignore */ }
+    try { await loadLatestTrack(); } catch (_) { /* ignore */ }
+    try { if (window.Library) renderLibraryGrid(); } catch (_) { /* ignore */ }
+    try {
+      if (window.SWR_ONBOARD && typeof window.SWR_ONBOARD.init === 'function') {
+        window.SWR_ONBOARD.init({});
+      }
+    } catch (_) { /* ignore */ }
+    if (window.SWR_ONBOARD) {
+      if (window.Library && window.Library.items && window.Library.items.length) {
+        window.SWR_ONBOARD.markLayerAdded();
+      }
+      // First-run greeting once per session.
+      if (!sessionStorage.getItem('swr.greeted.v1')) {
+        sessionStorage.setItem('swr.greeted.v1', '1');
+        setTimeout(function () {
+          window.SWR_ONBOARD.toast(
+            'Welcome! The next step below walks you through your first composition.',
+            'info'
+          );
+        }, 800);
+      }
+    }
+  }
+  // run after the current tick so the onboarding module is parsed
+  setTimeout(boot, 0);
 
   window.SWR_COMPOSER = {
     setLibraryOpen, renderLibraryGrid,

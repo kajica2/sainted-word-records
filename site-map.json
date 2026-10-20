@@ -309,6 +309,11 @@
       "description": "Capture the audio-reactive composition to a video file. Three orientation formats: 16:9 landscape, 9:16 portrait, 1:1 square."
     },
     {
+      "label": "Composer tour",
+      "href": "/composer#onboarding",
+      "description": "Guided 5-step on-ramp: pick a song, add a clip, try a look filter, save the preset, save the library"
+    },
+    {
       "label": "Shot list",
       "href": "/shotlist",
       "description": "Director's beat-by-beat shot list editor"

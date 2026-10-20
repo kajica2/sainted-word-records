@@ -15,6 +15,10 @@
 | Layer lifecycle | ✅ `Layers.retire` / `unretire` / `homeAll` / `addText` |
 | Keyboard map | ✅ bare-digit = filter; T-prefix = alias; 0 = home |
 | Eco-pages | ✅ Echo / Tour / Shortcuts Movie / Layer-Lifecycle |
+| Mobile composer | ✅ `/composer` (mobile-first, single column) |
+| Desktop capture | ✅ `/record` (3 orientation formats: 16:9 / 9:16 / 1:1) |
+| Onboarding / next-step | ✅ 5-step guided tour with toasts + progress pill |
+| Preset + library save | ✅ JSON presets in localStorage + kit-zip distribution |
 | Firestore | ✅ dormant (`SWR_PROJECTS_STORE=firestore`) |
 | API rules | ✅ rate-limited + auth-gated + invite-code schema v2 |
 | Standards | ✅ LICENSE · CONTRIBUTING · CODE_OF_CONDUCT · CHANGELOG · SECURITY · ISSUE_TEMPLATES · CODEOWNERS |
@@ -28,6 +32,8 @@
 | You want to | Use | Price |
 |---|---|---|
 | Make a music video from **your** song + **your** clips | The engine (free, browser-native) | Free |
+| Try the **mobile composer** (touch-native, single column) | [/composer](./composer.html) | Free |
+| **Record** the result to 16:9 / 9:16 / 1:1 video | [/record](./record.html) | Free |
 | Have someone **render it for you** (5 curated media sets) | [Service tier](./campaign.html#pricing) | €25 / €45 / €75 |
 | Use the engine yourself, **no watermark**, with credits | [Personal Tier (PT)](./campaign.html#pt) | €120 / €280 / €600 (one-time) |
 
