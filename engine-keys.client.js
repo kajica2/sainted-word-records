@@ -55,7 +55,8 @@
 //   J / K *            next / previous demo page (versions/*.html only;
 //                        wraps at both ends of the 22-variant order)
 //   PageDown / PageUp * same as J / K
-//   1..9               select layer by index  (1-based; 0 = deselect)
+//   1..9               apply look filter slot (no rotation; see docs/PLANS/number-key-assignment.md)
+//   0                  home — slide every layer back to its origin
 //   Alt+1..6 *         per-layer remap (swap one slot, others stay)
 //   Shift+1..9 *       advance story chapters (FRAGMENTS / SIGNAL / …)
 //   T + 0              clear look filter (no tint, no variant change)
@@ -790,6 +791,20 @@
   function layers() { return window.SWR && window.SWR.Layers; }
   function audio()  { return window.SWR && window.SWR.Audio; }
 
+  // Bare 1..9 = apply look filter slot N. NO LAYER SELECTION on the bare
+  // digit row: the user reported pressing 1 was starting rotation, which
+  // traced back to "select layer 1" exposing an audio-rot reactor. This
+  // contract binds digit keys to the filter cycler ONLY; rotation lives
+  // on R / Shift+R / ↻ button affordance. See
+  // docs/PLANS/number-key-assignment.md.
+  function applyFilterFromDigit(n) {
+    if (typeof n !== 'number' || !Number.isFinite(n)) return;
+    const slot = Math.max(0, Math.min(9, Math.floor(n)));
+    const K = window.SWR_LOOK_FILTER_CYCLER;
+    if (!K || typeof K.apply !== 'function') return false;
+    return K.apply(slot);
+  }
+
   // Layer selection is NOT uniform across the two page families that share
   // this keymap:
   //   - lib/layers.client.js (engine.html): the property is `selected`, and
@@ -1039,25 +1054,18 @@
       if (!action && (key === '?' || (ev.shiftKey && code === 'Slash'))) {
         action = ACTIONS.showHelp;
       }
-      // 1..9 to select layer 0..8. The Cmd/Ctrl/Alt guards matter because
-      // this block keys off `key` alone: without them it would also fire on
-      // the Cmd+1..9 palette and Alt+1..6 remap combos and strand them.
+      // 1..9 = apply look filter slot N (no rotation). The Cmd/Alt guards
+      // matter because this block keys off `key` alone: without them it
+      // would also fire on Cmd/Ctrl+1..9 palette and Alt+1..6 remap
+      // combos and strand them.
       if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && /^[1-9]$/.test(key)) {
-        const L = layers();
-        if (L && L.list && L.list.length) {
-          const idx = parseInt(key, 10) - 1;
-          if (idx < L.list.length) {
-            selectLayer(L, L.list[idx]);
-            if (typeof L.render === 'function') L.render();
-            if (typeof window.setStatus === 'function') {
-              window.setStatus('layer: ' + (L.list[idx].id || ('#' + idx)), 'ok');
-            }
-            try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
-              detail: { key, code, mods: { shift: !!ev.shiftKey, alt: !!ev.altKey }, action: 'select-layer-' + idx }
-            })); } catch (_) {}
-            return;
-          }
-        }
+        const slot = parseInt(key, 10);
+        applyFilterFromDigit(slot);
+        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+          detail: { key, code, mods: {}, action: 'filter-' + slot }
+        })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
+        return;
       }
       // Shift+1..9 to advance the STORY runtime through its 9 chapters
       // (Fragments, Signal, Pursuit, Fracture, Overload, Afterimage,
@@ -1229,8 +1237,10 @@
 
       // ---- Layers (documentation-only rows; no single action) ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
-      { keys: '1..9',           label: 'select layer by index (1-based)' },
-      { keys: '0',              label: 'home — slide every layer back to its original position' },
+      { keys: '[ / ]',          label: 'cycle prev / next layer' },
+      { keys: '0',              label: 'home — slide every layer back to its origin' },
+      { keys: '1..9',           label: 'apply look filter slot (soft / old cinema / 5 cinematic / void / echo); no rotation' },
+      { keys: 'T + 1..9',       label: 'alias of 1..9 filter cycler (kept for muscle memory)' },
       { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },
       { keys: 'D',              label: 'toggle AUTO DRIFT / manual drag', action: ACTIONS.toggleDragMode },
       { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)', requires: 'layerRemap' },
@@ -1242,8 +1252,6 @@
       // ---- Presets ----
       { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)', requires: 'story' },
       { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)', requires: 'presets' },
-      { keys: 'T + 1..9',       label: 'look filter (tint tone + variant; 0 clears)' },
-      { keys: 'T + 0',          label: 'no filter' },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
       { keys: '[ / ]',          label: '− / + alpha',                    requires: 'layerAlpha' },
