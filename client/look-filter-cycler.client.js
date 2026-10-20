@@ -56,7 +56,8 @@
     { id: 8, label: 'void warm',       fx: { grayscale: 0.70, temp: 0.60, vignette: 0.55, grain: 0.20, blur: 0.08 } },
     // Slot 9: echo. mut + mutAlgo: 2 = liquid warp (Trap 6). "echo-manifold"
     // is the /versions/echo-manifold.html page (applied via the looks
-    // menu, not the FX filter table); the filter is its FX twin.
+    // menu, not the FX filter table); the filter is its FX twin — option
+    // (c) from the spec's open question (heavy pearl + cool + liquid).
     { id: 9, label: 'echo',            fx: { temp: -0.40, tone: 0.70, pearl: 0.28, mut: 0.18, mutAlgo: 2 } },
   ];
 
