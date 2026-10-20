@@ -1,133 +1,133 @@
 // client/look-filter-cycler.client.js — Tint + variant look cycler.
 //
-// T+1..9 apply pre-baked look filters that mix tone, tint, grain,
-// sepia, vignette and (optionally) the engine variant. T+0 clears
-// the filter and resets the FX back to no grade.
+// Ten filter presets over the FX uniform vocabulary. Applied through
+// FX.setPersona(), which writes state only — the intensity multiplier
+// k still applies at the render/uniform boundary (fx-postprocess.js),
+// so dragging intensity down is an exact restore for every filter
+// here. Slot 0 is a true reset (zeros every FX state field) rather
+// than intensity 0; intensity 0 hides the effect but leaves stale
+// values that the next persona, automix, or LFO would inherit.
 //
-// Slot layout:
-//   0 = no filter
-//   1 = soft                  (subtle desaturation, slight cool)
-//   2 = old cinema (polished) (sepia + grain + vignette + slight blur)
-//                            — the dust & scratches feel, refined
-//   3-7 = cinematic palette   (5 graded variants on the cinema theme)
-//   8 = void warm             (heavy desaturation, warm push)
-//   9 = echo                  (deep cool, high tone)
-//
-// `T+1..T+7` covers the cinematic colour-tone ramp so a director can
-// quickly settle on a mood without leaving the keyboard.
-//
-// Why the T prefix? The bare digits are already claimed for layer
-// selection, story, remap, FX-presets; we needed somewhere that
-// wouldn't collide and reads naturally ("T" = tint). The 2s window is
-// stored on window.__swrLookModeUntil.
-//
-// All values 0..1 unless marked otherwise. temp uses -100..100
-// (cool..warm). The state is held on window.SWR_LOOK_FILTER and the
-// UI can read what's applied.
+// Trap fixes applied during authoring:
+//   TRAP 1: sepia overrides other tints (fx-postprocess.js:47), so no
+//           sepia look sets temp/tone/glow. Sepia looks commit or don't.
+//   TRAP 2: temp is SIGNED (-1 cold .. +1 warm). Every other param
+//           is 0..1. Schema guard at the bottom asserts on author.
+//   TRAP 3: cinematic already does vignette+tone internally
+//           (fx-postprocess.js:57), so no filter sets cinematic AND
+//           vignette/tone together.
+//   TRAP 4: tone is now in the automix blend fxFields list
+//           (fx-postprocess.js:640) so tone-based filters CAN be
+//           blended over by an automix preset.
+//   TRAP 5: mutAlgo is unscaled by intensity (fx-postprocess.js:680),
+//           so a look that selects an algorithm also sets mut, or an
+//           LFO can't activate it later.
+//   TRAP 6: liquid carries a SWR_LIFE coupling (fx-postprocess.js:694-
+//           703). Use mut + mutAlgo: 2 (liquid warp) instead —
+//           deterministic, same shader path.
 
 (() => {
-  // Full look table. fx shape mirrors FX.setPersona() so we could route
-  // through that, but per-slot direct setters give finer control here
-  // (intensity slider still applies on top — see fx-postprocess.js).
-  const LOOKS = [
-    // 1 — gentle: barely there
-    {
-      label: 'soft', tone: 0.20, temp: -8, sepia: 0, grain: 0.10,
-      vignette: 0.15, blur: 0, grayscale: 0, variant: null,
-    },
-    // 2 — OLD CINEMA, polished. Sepia warm, real grain (the dust),
-    // soft vignette (the projector halo), a hair of blur (the gate).
-    // No variant swap — the underlying clip stays; the grade does the work.
-    {
-      label: 'old cinema', tone: 0.45, temp: 35, sepia: 0.6, grain: 0.55,
-      vignette: 0.55, blur: 0.04, grayscale: 0.45, variant: null,
-    },
-    // 3..7 — five cinematic colour-tone variants. Each one sets its own
-    // (temp, tone, vignette, grain) so the same clip reads as five
-    // different moods. No hard grade overrides — they stay musical.
-    {
-      label: 'cinema · cool', tone: 0.30, temp: -45, sepia: 0.05, grain: 0.20,
-      vignette: 0.30, blur: 0, grayscale: 0, variant: null,
-    },
-    {
-      label: 'cinema · teal',  tone: 0.35, temp: -15, sepia: 0, grain: 0.18,
-      vignette: 0.28, blur: 0, grayscale: 0, variant: null,
-    },
-    {
-      label: 'cinema · amber', tone: 0.30, temp:  30, sepia: 0.10, grain: 0.22,
-      vignette: 0.32, blur: 0, grayscale: 0, variant: null,
-    },
-    {
-      label: 'cinema · rose',  tone: 0.28, temp:  18, sepia: 0, grain: 0.18,
-      vignette: 0.30, blur: 0, grayscale: 0, variant: null,
-    },
-    {
-      label: 'cinema · mono',  tone: 0.50, temp:   0, sepia: 0, grain: 0.28,
-      vignette: 0.40, blur: 0, grayscale: 0.85, variant: null,
-    },
-    // 8 — void warm: deep desaturation + warm push (aftermovie feel)
-    {
-      label: 'void warm', tone: 0.70, temp: 35, sepia: 0.10, grain: 0.20,
-      vignette: 0.35, blur: 0.02, grayscale: 0, variant: 'void',
-    },
-    // 9 — echo: cool + heavy tone, using the echo-manifold variant
-    {
-      label: 'echo', tone: 0.80, temp: -45, sepia: 0, grain: 0.15,
-      vignette: 0.30, blur: 0, grayscale: 0, variant: 'echo-manifold',
-    },
+  if (window.SWR_LOOK_FILTER_CYCLER) return;
+
+  // Every key FX state carries. Slot 0 must zero ALL of them — setting
+  // intensity to 0 is not a reset (intensity 0 hides the effect but
+  // leaves the values in state, so the next persona/automix/LFO would
+  // inherit whatever was last set).
+  const ALL = [
+    'temp', 'mut', 'mutAlgo', 'posterize', 'vignette', 'chroma',
+    'grain', 'sepia', 'glow', 'grayscale', 'tone', 'blur',
+    'liquid', 'pearl', 'glitch', 'sharp', 'cinematic'
   ];
 
-  // FX setters used by the filter (mapped to actual window.FX API)
-  const FX_SETTERS = {
-    tone:        (v) => window.FX.setTone && window.FX.setTone(v),
-    sepia:       (v) => window.FX.setSepia && window.FX.setSepia(v),
-    grain:       (v) => window.FX.setGrain && window.FX.setGrain(v),
-    vignette:    (v) => window.FX.setVignette && window.FX.setVignette(v),
-    blur:        (v) => window.FX.setBlur && window.FX.setBlur(v),
-    grayscale:   (v) => window.FX.setGrayscale && window.FX.setGrayscale(v),
-    // `temp` lives on FX.state directly (it's the temperature uniform)
-    temp:        (v) => window.FX.setTemp && window.FX.setTemp(v),
-  };
+  // T+0..9. fx shape is consumed verbatim by FX.setPersona().
+  const FILTERS = [
+    { id: 0, label: '— none —',        fx: {} },                              // reset only
+    { id: 1, label: 'soft',            fx: { grayscale: 0.22, temp: -0.18, tone: 0.15 } },
+    // Old cinema (polished). Sepia MUST commit — no temp/tone/glow per Trap 1.
+    { id: 2, label: 'old cinema',      fx: { sepia: 0.42, grain: 0.30, vignette: 0.45, blur: 0.12 } },
+    // Cinematic tone ramp (slots 3-7). Each carries its own (temp, tone).
+    // Slot 7 is mono: sepia + grain + grayscale, no temp/tone (Trap 1).
+    { id: 3, label: 'cinema · cool',   fx: { temp: -0.55, tone: 0.35, vignette: 0.30 } },
+    { id: 4, label: 'cinema · teal',   fx: { temp: -0.30, tone: 0.45, vignette: 0.25 } },
+    { id: 5, label: 'cinema · amber',  fx: { temp:  0.48, tone: 0.25, glow: 0.20 } },
+    { id: 6, label: 'cinema · rose',   fx: { temp:  0.22, tone: 0.30, glow: 0.15 } },
+    { id: 7, label: 'cinema · mono',   fx: { sepia: 0, grayscale: 1.0, grain: 0.35, vignette: 0.35 } },
+    // Slot 8: warm void — soft focus + warm desat.
+    { id: 8, label: 'void warm',       fx: { grayscale: 0.70, temp: 0.60, vignette: 0.55, grain: 0.20, blur: 0.08 } },
+    // Slot 9: echo. mut + mutAlgo: 2 = liquid warp (Trap 6). "echo-manifold"
+    // is the /versions/echo-manifold.html page (applied via the looks
+    // menu, not the FX filter table); the filter is its FX twin.
+    { id: 9, label: 'echo',            fx: { temp: -0.40, tone: 0.70, pearl: 0.28, mut: 0.18, mutAlgo: 2 } },
+  ];
 
-  function applyLook(slot) {
-    // Pass 0 = clear filter (keep current variant)
-    if (slot === 0) {
-      Object.values(FX_SETTERS).forEach(fn => { try { fn(0); } catch (_) {} });
-      if (window.setStatus) window.setStatus('look: none', 'ok');
-      window.SWR_LOOK_FILTER = { slot: 0, label: 'none' };
-      try { window.dispatchEvent(new CustomEvent('swr-look-filter', {
-        detail: { slot: 0, label: 'none' }
-      })); } catch (_) {}
-      return true;
-    }
-    const idx = slot - 1;
-    if (idx < 0 || idx >= LOOKS.length) return false;
-    const look = LOOKS[idx];
-    // Apply each FX setter. `temp` is held in -1..1 here (matches
-    // window.FX.setTemp's clamp). -1 = full cool, +1 = full warm.
-    if (window.FX) {
-      for (const k of Object.keys(FX_SETTERS)) {
-        if (typeof look[k] === 'number') {
-          const v = (k === 'temp') ? look[k] / 100 : look[k];
-          try { FX_SETTERS[k](v); } catch (_) {}
-        }
+  // Schema guard for Trap 2 + Trap 5. Catches "all-positive temp" slips
+  // at author time rather than as a warm-looking "cool" filter in
+  // production. Console warn only — does not block.
+  for (const f of FILTERS) {
+    for (const k in f.fx) {
+      if (ALL.indexOf(k) < 0) {
+        console.warn('[look-filter] filter ' + f.id + ' sets unknown param:', k);
+      }
+      const v = f.fx[k];
+      if (k === 'temp') {
+        if (!(v >= -1 && v <= 1)) console.warn('[look-filter] filter ' + f.id + ' temp out of -1..1:', v);
+      } else if (k === 'mutAlgo') {
+        if (!Number.isInteger(v) || v < 0 || v > 5) console.warn('[look-filter] filter ' + f.id + ' bad mutAlgo:', v);
+      } else if (!(v >= 0 && v <= 1)) {
+        console.warn('[look-filter] filter ' + f.id + ' ' + k + ' out of 0..1:', v);
       }
     }
-    // Variant switcher: switch if a variant name was provided
-    if (look.variant && window.SWR_VARIANTS && typeof window.SWR_VARIANTS.activate === 'function') {
-      try { window.SWR_VARIANTS.activate(look.variant); } catch (_) {}
-    }
-    if (window.setStatus) window.setStatus('look: ' + look.label, 'ok');
-    window.SWR_LOOK_FILTER = Object.assign({ slot: slot }, look);
-    try { window.dispatchEvent(new CustomEvent('swr-look-filter', {
-      detail: Object.assign({ slot: slot }, look)
-    })); } catch (_) {}
-    return true;
   }
 
-  window.SWR_LOOK_FILTER_CYCLER = {
-    list: LOOKS,
-    apply: applyLook,
-    get current() { return window.SWR_LOOK_FILTER || null; },
-  };
+  // True reset. FX.setPersona({}) is a no-op by construction: every key
+  // is guarded by `if (profile.X !== undefined)`, so an empty profile
+  // writes nothing. We must send every key explicitly to actually zero
+  // state. Temp's 0 is neutral.
+  function reset() {
+    const p = {};
+    for (const k of ALL) p[k] = 0;
+    if (window.FX && typeof window.FX.setPersona === 'function') {
+      window.FX.setPersona(p);
+    }
+    return p;
+  }
+
+  let current = 0;
+
+  function apply(n) {
+    const f = FILTERS.find(x => x.id === Number(n)) || FILTERS[0];
+    if (!window.FX || typeof window.FX.setPersona !== 'function') {
+      console.warn('[look-filter] FX.setPersona unavailable; filter not applied');
+      return f;
+    }
+    if (f.id === 0) {
+      reset();
+    } else {
+      window.FX.setPersona(f.fx);
+    }
+    current = f.id;
+    try { localStorage.setItem('swr.lookfilter', String(current)); } catch (_) {}
+    if (window.setStatus) {
+      window.setStatus('look: ' + (f.id === 0 ? 'none' : f.label), 'ok');
+    }
+    window.SWR_LOOK_FILTER = Object.assign({ slot: f.id }, f);
+    try {
+      window.dispatchEvent(new CustomEvent('swr-look-filter', {
+        detail: Object.assign({ slot: f.id }, f)
+      }));
+    } catch (_) {}
+    return f;
+  }
+
+  function list() { return FILTERS.slice(); }
+  function get() { return current; }
+
+  function restore() {
+    let n = 0;
+    try { n = parseInt(localStorage.getItem('swr.lookfilter') || '0', 10) || 0; } catch (_) {}
+    if (n < 0 || n >= FILTERS.length) n = 0;
+    return apply(n);
+  }
+
+  window.SWR_LOOK_FILTER_CYCLER = { list, apply, get, restore, reset, ALL };
 })();

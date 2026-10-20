@@ -637,7 +637,7 @@
         const rampMs = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
         const k = Math.max(0, Math.min(1, (performance.now() - t0) / rampMs));
         const smooth = k * k * (3 - 2 * k); // smoothstep, matches versions-presets
-        const fxFields = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette',
+        const fxFields = ['temp', 'tone', 'mut', 'mutAlgo', 'posterize', 'vignette',
           'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch', 'sharp', 'cinematic'];
         for (const f of fxFields) {
           // Only blend fields the automix preset actually carries — absent
