@@ -124,6 +124,10 @@ const GROUPS = {
     // against a vm sandbox, with a guarded A.feat that fails on a future
     // drawFx that reads a feature the contract mock does not provide.
     'npm run check:variants-unit',
+    // Static: lib/look-variant.client.js is loaded by engine/composer/record
+    // and its JS source carries no em-dashes. Reachable from NO gate until
+    // it was added here.
+    'npm run check:look-variant-unit',
     'npm run check:targeting-unit',
     'npm run targeting:verify',
     'npm run check:media-input-unit',

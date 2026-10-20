@@ -5585,8 +5585,13 @@
         const midiPill = $('midi-state');
         if (midiPill && window.SWR_MIDI) {
           const s = window.SWR_MIDI.snapshot();
-          midiPill.textContent = s.inputs.length
-            ? (s.inputs.length + ' dev' + (s.inputs.length === 1 ? '' : 's'))
+          // snapshot() returns inputCount/inputNames — there is no `inputs`
+          // array on it. Reading s.inputs.length threw "Cannot read properties
+          // of undefined (reading 'length')" on every engine boot, which is
+          // what check-automix-arc-smoke had been reporting on main.
+          const n = s.inputCount || 0;
+          midiPill.textContent = n
+            ? (n + ' dev' + (n === 1 ? '' : 's'))
             : (s.available ? 'await' : 'off');
         }
         // v2: recording overlay — burn BPM + key into the captured video
