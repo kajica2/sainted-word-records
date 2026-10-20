@@ -294,6 +294,11 @@
       "description": "Guided sweep across every feature, tagged with Nielsen's 10 usability heuristics"
     },
     {
+      "label": "Shortcuts Movie",
+      "href": "/shortcuts-movie",
+      "description": "60-second hyperframe walkthrough of every keyboard shortcut — Space, ←/→, click a chapter"
+    },
+    {
       "label": "Shot list",
       "href": "/shotlist",
       "description": "Director's beat-by-beat shot list editor"

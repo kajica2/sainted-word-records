@@ -688,6 +688,14 @@
       "destination": "/tour.html"
     },
     {
+      "source": "/shortcuts-movie",
+      "destination": "/shortcuts-movie.html"
+    },
+    {
+      "source": "/shortcuts-movie/",
+      "destination": "/shortcuts-movie.html"
+    },
+    {
       "source": "/packs",
       "destination": "/packs.html"
     },
