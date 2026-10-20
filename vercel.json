@@ -664,6 +664,14 @@
       "destination": "/sitemap.html"
     },
     {
+      "source": "/echo",
+      "destination": "/echo.html"
+    },
+    {
+      "source": "/echo/",
+      "destination": "/echo.html"
+    },
+    {
       "source": "/packs",
       "destination": "/packs.html"
     },

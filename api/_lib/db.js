@@ -626,6 +626,33 @@ function projectPath(id) {
   return join(ROOT, 'projects', `${id}.json`);
 }
 
+// =====================================================================
+// KITS — named asset bundles distributed as a single .zip
+// =====================================================================
+//
+// A "kit" is the zip equivalent of a saved project: a user selects files
+// (audio, images, video, the project's .swr-project JSON), and the server
+// packs them into a single zip and serves it via a signed-download URL.
+// Firestore path (api/_lib/projects-store.js) replaces this local store
+// when SWR_PROJECTS_STORE=firestore — both export the same shape.
+//
+//   kits/index.json   — list of kit metadata (one record per kit)
+//   kits/<id>.zip     — the actual bundle (referenced from kit.zipRef)
+//   kits/<id>.json    — kit metadata + items manifest (not strictly
+//                       needed; the index carries it. kept for parity.)
+
+const KITS_INDEX = join(ROOT, 'kits', 'index.json');
+const KITS_DIR   = join(ROOT, 'kits');
+
+function kitPath(id) {
+  if (!/^[a-z0-9-]{8,40}$/i.test(id)) throw new Error('invalid kit id');
+  return join(KITS_DIR, `${id}.json`);
+}
+
+function kitZipPath(id) {
+  return join(KITS_DIR, `${id}.zip`);
+}
+
 export async function listProjects(userId, { includeDeleted = false } = {}) {
   const idx = await readJson(PROJECTS_INDEX, []);
   return idx
@@ -724,6 +751,69 @@ export async function softDeleteProject(userId, id) {
       file.deletedAt = idx[i].deletedAt;
       await writeJson(projectPath(id), file);
     }
+    return true;
+  });
+}
+
+// ---- kits CRUD (local store; Firestore mirrors in projects-store.js) ----
+
+export async function listKits(userId, { includeDeleted = false } = {}) {
+  const idx = await readJson(KITS_INDEX, []);
+  return idx
+    .filter((k) => k.userId === userId && (includeDeleted || !k.deletedAt))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+export async function getKit(userId, id) {
+  if (!userId || !id) return null;
+  const idx = await readJson(KITS_INDEX, []);
+  const meta = idx.find((k) => k.id === id && k.userId === userId);
+  if (!meta) return null;
+  const file = await readJson(kitPath(id), null);
+  return file || { ...meta, items: [], zipRef: null };
+}
+
+export async function upsertKit(userId, id, doc) {
+  if (!userId) throw new Error('userId required');
+  if (!id) id = uuid();
+  return withLock(async () => {
+    const idx = await readJson(KITS_INDEX, []);
+    const now = new Date().toISOString();
+    const existing = idx.find((k) => k.id === id && k.userId === userId);
+    if (!existing && idx.some((k) => k.id === id)) return null; // ownership guard
+    const meta = {
+      id,
+      userId,
+      name: (doc && doc.name) || (existing && existing.name) || 'Untitled kit',
+      createdAt: existing ? existing.createdAt : now,
+      updatedAt: now,
+      deletedAt: existing ? existing.deletedAt : null,
+      itemCount: (doc && doc.items && doc.items.length) || (existing && existing.itemCount) || 0,
+      sizeBytes: (doc && doc.size) || (existing && existing.sizeBytes) || 0,
+      zipRef: (doc && doc.zipRef) || (existing && existing.zipRef) || null,
+    };
+    let nextIdx;
+    if (existing) nextIdx = idx.map((k) => (k.id === id ? { ...k, ...meta } : k));
+    else nextIdx = [...idx, meta];
+    await writeJson(KITS_INDEX, nextIdx);
+    const file = {
+      ...meta,
+      items: (doc && doc.items) || [],
+      zipRef: meta.zipRef,
+    };
+    await writeJson(kitPath(id), file);
+    return meta;
+  });
+}
+
+export async function softDeleteKit(userId, id) {
+  return withLock(async () => {
+    const idx = await readJson(KITS_INDEX, []);
+    const i = idx.findIndex((k) => k.id === id && k.userId === userId);
+    if (i === -1) return false;
+    idx[i].deletedAt = new Date().toISOString();
+    idx[i].updatedAt = idx[i].deletedAt;
+    await writeJson(KITS_INDEX, idx);
     return true;
   });
 }

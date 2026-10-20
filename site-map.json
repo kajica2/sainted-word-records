@@ -279,6 +279,11 @@
       "description": "Every page on the site, with search and filters"
     },
     {
+      "label": "Echo",
+      "href": "/echo",
+      "description": "30-minute slow crossfade between black PNG sequences (meditative, all-black)"
+    },
+    {
       "label": "Shot list",
       "href": "/shotlist",
       "description": "Director's beat-by-beat shot list editor"

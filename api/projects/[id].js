@@ -2,7 +2,7 @@
 // Uses Vercel's [id] segment. On local Vite dev, the path is /api/projects/<id>.
 
 import { requireUser } from '../_lib/session.js';
-import { getProject, upsertProject, softDeleteProject, rateLimit } from '../_lib/db.js';
+import { getProject, upsertProject, softDeleteProject, rateLimit } from '../_lib/projects-store.js';
 import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
 
 export default async function handler(req, res) {

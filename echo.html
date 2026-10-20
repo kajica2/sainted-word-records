@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Echo — 30-minute black PNG sequence crossfade</title>
+  <meta name="description" content="Echo: a 30-minute slow crossfade between black PNG sequences. Meditative, minimal, all-black." />
+  <link rel="canonical" href="/echo.html" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/design-base.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/client/echo-mode.client.js" defer></script>
+  <style>
+    :root {
+      --echo-bg: #000;
+      --echo-fg: rgba(255,255,255,.4);
+      --echo-fg-dim: rgba(255,255,255,.18);
+    }
+    html, body { margin:0; padding:0; height:100%; background: var(--echo-bg); color: var(--echo-fg); font-family: var(--font-sans, system-ui); }
+    body.echo-page { overflow: hidden; background: #000; }
+    /* Two stacked canvases for the crossfade. Bottom = previous PNG
+       sequence, top = next, alpha ramps with the elapsed time inside the
+       sequence window. */
+    #echo-stage {
+      position: fixed; inset: 0; background: #000; overflow: hidden;
+      display: grid; place-items: center;
+    }
+    #echo-stage canvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      display: block; image-rendering: auto;
+    }
+    #echo-stage canvas.echo-canvas-top { opacity: 0; transition: none; }
+    /* Minimal HUD: only essential readout. Fade out after a few seconds
+       so it doesn't ruin the meditation. */
+    #echo-hud {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translateX(-50%);
+      font: 11px/1.5 var(--font-mono, monospace);
+      letter-spacing: .04em;
+      color: var(--echo-fg-dim);
+      text-align: center;
+      pointer-events: none;
+      transition: opacity 1.2s ease;
+      opacity: .5;
+    }
+    #echo-hud.hide { opacity: 0; }
+    #echo-hud b { color: var(--echo-fg); font-weight: 600; }
+    /* Quiet the swr-nav so it doesn't distract from 30 min of black. */
+    swr-nav { opacity: .18; transition: opacity .8s ease; }
+    swr-nav:hover, swr-nav:focus-within { opacity: 1; }
+    /* Skip control: tiny, off-axis, only revealed on first hover. */
+    #echo-skip {
+      position: fixed; top: 12px; right: 12px;
+      font: 10px/1 var(--font-mono, monospace);
+      letter-spacing: .08em;
+      color: var(--echo-fg-dim);
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 6px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity .6s ease;
+    }
+    #echo-skip:hover { opacity: 1; color: var(--echo-fg); }
+    body.echo-page.faded-hud #echo-hud { opacity: 0; }
+  </style>
+</head>
+<body class="echo-page">
+  <swr-nav></swr-nav>
+  <main id="echo-stage" aria-label="Echo — slow black-to-black crossfade"></main>
+  <div id="echo-hud" aria-live="polite">
+    <div><b id="echo-seq-name">—</b></div>
+    <div>seq <b id="echo-seq-i">0</b>/<b id="echo-seq-n">0</b> · frame <b id="echo-frame-i">0</b>/<b id="echo-frame-n">0</b></div>
+    <div id="echo-clock">00:00:00 / 30:00</div>
+  </div>
+  <button id="echo-skip" type="button" aria-label="Advance to the next sequence">NEXT »</button>
+  <noscript>Echo needs JavaScript. The 30-minute crossfade can't run.</noscript>
+</body>
+</html>
