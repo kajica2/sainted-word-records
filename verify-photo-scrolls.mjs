@@ -20,7 +20,7 @@ const BASE = (process.env.BASE || 'http://127.0.0.1:5173').replace(/\/$/, '');
 // implement — so hitting it here tested the routing layer, not the page. The
 // rewrite is asserted separately below.
 const PAGE = `${BASE}/photo-scrolls.html`;
-const ARTIFACTS = 'artifacts';
+const ARTIFACTS = 'verify-screenshots';
 
 let failed = 0;
 const results = [];
@@ -45,9 +45,21 @@ const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 
 const consoleErrors = [];
+const imageAborts = [];
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push('console.error: ' + m.text()); });
-page.on('requestfailed', (r) => consoleErrors.push('reqfail: ' + r.url()));
+// 508 lazy images mean Chrome issues and then cancels a large burst of
+// requests for frames that never came into view. Against localhost the files
+// are instant and nothing is ever cancelled; against the deployed CDN it
+// reproduces intermittently (observed: 0 aborts one run, 3 the next, every
+// URL returning 200 when fetched by hand). A flaky gate is worse than none, so
+// these are counted separately and the real assertion below is that the images
+// actually in the viewport decoded.
+page.on('requestfailed', (r) => {
+  const line = 'reqfail: ' + r.url();
+  if (/\.(webp|png|jpe?g|avif|mp4|webm|mp3|m4a)(\?|$)/i.test(r.url())) imageAborts.push(line);
+  else consoleErrors.push(line);
+});
 
 try {
   await page.goto(PAGE, { waitUntil: 'networkidle2', timeout: 30000 });
@@ -162,6 +174,41 @@ check('a photo actually decoded in a strip', await page.evaluate(() => {
   return `${ok}/${imgs.length} decoded`;
 }));
 
+// Stronger and non-flaky: every image Chrome actually put in the viewport must
+// have decoded. This is what would catch a 404'd layer asset, a bad CDN path or
+// a broken base URL — none of which depend on request timing.
+const decoded = await page.evaluate(() => {
+  const imgs = Array.from(document.querySelectorAll('.ps-frame img'));
+  const inView = imgs.filter((i) => {
+    const r = i.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+  });
+  return {
+    inView: inView.length,
+    good: inView.filter((i) => i.complete && i.naturalWidth > 0).length,
+  };
+});
+check('every in-view photo decoded', decoded.inView > 0 && decoded.good === decoded.inView,
+  `${decoded.good}/${decoded.inView} in-view decoded`);
+
+check('lazy loading keeps the off-screen frames unfetched', await page.evaluate(() => {
+  const imgs = Array.from(document.querySelectorAll('.ps-frame img'));
+  const decodedN = imgs.filter((i) => i.complete && i.naturalWidth > 0).length;
+  // 508 images at ~90 KB each is ~45 MB; the page must not pull all of them.
+  return decodedN < imgs.length * 0.5;
+}), await page.evaluate(() => {
+  const imgs = Array.from(document.querySelectorAll('.ps-frame img'));
+  const d = imgs.filter((i) => i.complete && i.naturalWidth > 0).length;
+  return `${d}/${imgs.length} decoded`;
+}));
+
+check('0 console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));
+if (imageAborts.length) {
+  console.log(`  (note: ${imageAborts.length} transient image/media abort(s) — see the handler above)`);
+}
+
+// Navigation away happens LAST: everything above queries .ps-frame, which only
+// exists on this page.
 check('packs page links here', await (async () => {
   try {
     await page.goto(`${BASE}/packs.html`, { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -169,8 +216,6 @@ check('packs page links here', await (async () => {
       !!document.querySelector('a[href="/photo-scrolls"]'));
   } catch { return false; }
 })());
-
-check('0 console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));
 
 fs.mkdirSync(ARTIFACTS, { recursive: true });
 await page.goto(PAGE, { waitUntil: 'networkidle2' }).catch(() => {});
