@@ -299,6 +299,11 @@
       "description": "60-second hyperframe walkthrough of every keyboard shortcut — Space, ←/→, click a chapter"
     },
     {
+      "label": "Composer",
+      "href": "/composer",
+      "description": "Mobile-first audio-reactive video composer. Touch-native, single column on phone, dual column on desktop."
+    },
+    {
       "label": "Shot list",
       "href": "/shotlist",
       "description": "Director's beat-by-beat shot list editor"

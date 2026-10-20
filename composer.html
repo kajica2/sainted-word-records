@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Composer · SWR</title>
+  <meta name="description" content="Mobile-first audio-reactive video composer. Pick a song, drop clips, hit play." />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#08080c" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308080c'/%3E%3Cpath d='M9 22 L13 10 L17 18 L21 8 L25 22' stroke='%23fbbf24' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/audio.client.js" defer></script>
+  <script src="/lib/library.client.js" defer></script>
+  <script src="/lib/layers.client.js" defer></script>
+  <script src="/client/composer.client.js" defer></script>
+  <style>
+    /* =========================================================
+       Composer — mobile-first audio-reactive video composer.
+       Single column on phone, dual column on desktop (>= 900px).
+       True-black stage, amber + cyan accents, system-font stack.
+       Honors prefers-reduced-motion, prefers-reduced-transparency.
+       ========================================================= */
+    :root {
+      --c-bg:           #08080c;
+      --c-surface:      rgba(255, 255, 255, .04);
+      --c-surface-2:    rgba(255, 255, 255, .08);
+      --c-line:         rgba(255, 255, 255, .10);
+      --c-ink:          #f6f6fa;
+      --c-mute:         rgba(255, 255, 255, .55);
+      --c-mute-2:       rgba(255, 255, 255, .32);
+      --c-amber:        #fbbf24;
+      --c-amber-soft:   rgba(251, 191, 36, .16);
+      --c-cyan:         #67e8f9;
+      --c-cyan-soft:    rgba(103, 232, 249, .14);
+      --c-danger:       #f87171;
+      --c-radius-lg:    20px;
+      --c-radius-md:    12px;
+      --c-radius-sm:    8px;
+      --c-pad:          16px;
+      --c-hud-h:        56px;
+      --c-action-h:     88px;
+      --c-sheet-h:      min(78vh, 640px);
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background: var(--c-bg);
+      color: var(--c-ink);
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    body {
+      /* viewport-fit=cover + safe-area gives us clean edges under
+         the iPhone notch and home indicator. */
+      padding-top:    var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      padding-left:   var(--safe-left);
+      padding-right:  var(--safe-right);
+    }
+    .stage-frame {
+      position: fixed; inset: 0;
+      display: grid;
+      grid-template-rows: var(--c-hud-h) 1fr auto auto var(--c-action-h);
+      grid-template-areas:
+        'hud'
+        'stage'
+        'audio'
+        'filters'
+        'action';
+      background:
+        radial-gradient(ellipse at top, rgba(251,191,36,.04), transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(103,232,249,.04), transparent 50%),
+        var(--c-bg);
+    }
+    @media (min-width: 900px) and (orientation: landscape) {
+      .stage-frame {
+        grid-template-columns: 1fr 360px;
+        grid-template-rows: var(--c-hud-h) 1fr var(--c-action-h);
+        grid-template-areas:
+          'hud  hud'
+          'stage library'
+          'action action';
+      }
+      .c-stage { grid-area: stage; }
+      .c-library { grid-area: library; }
+    }
+    @media (min-width: 1200px) {
+      .stage-frame {
+        grid-template-columns: 1fr 420px;
+      }
+    }
+
+    /* ---------- HUD (top bar) ---------- */
+    .c-hud {
+      grid-area: hud;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 12px;
+      padding: 0 var(--c-pad);
+      border-bottom: 1px solid var(--c-line);
+      background: rgba(8, 8, 12, .72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 5;
+    }
+    .c-hud .brand {
+      display: flex; align-items: center; gap: 10px;
+      font: 700 14px/1 ui-monospace, 'JetBrains Mono', Menlo, monospace;
+      letter-spacing: .04em;
+    }
+    .c-hud .brand svg { width: 22px; height: 22px; flex: none; }
+    .c-hud .brand .v {
+      padding: 2px 6px; margin-left: 4px;
+      font: 600 9px/1.4 ui-monospace, monospace;
+      letter-spacing: .06em;
+      background: var(--c-amber-soft);
+      color: var(--c-amber);
+      border-radius: 3px;
+    }
+    .c-hud button {
+      width: 44px; height: 44px;
+      background: transparent;
+      color: var(--c-ink);
+      border: 0;
+      border-radius: var(--c-radius-sm);
+      cursor: pointer;
+      display: grid; place-items: center;
+    }
+    .c-hud button:hover,
+    .c-hud button:focus-visible {
+      background: var(--c-surface);
+      outline: none;
+    }
+    .c-hud .bpm-pill {
+      font: 600 11px/1 ui-monospace, monospace;
+      letter-spacing: .03em;
+      padding: 6px 10px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      border-radius: var(--c-radius-sm);
+      color: var(--c-mute);
+      min-width: 64px;
+      text-align: center;
+    }
+    .c-hud .bpm-pill b { display: block; color: var(--c-ink); font-size: 14px; margin-top: 2px; }
+
+    /* ---------- STAGE ---------- */
+    .c-stage {
+      grid-area: stage;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+    #c-canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+      touch-action: none;
+    }
+    .c-stage-overlay {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      display: flex; align-items: flex-end;
+      padding: 12px;
+    }
+    .c-stage-overlay .now-playing {
+      background: rgba(8,8,12,.7);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--c-line);
+      border-radius: var(--c-radius-sm);
+      padding: 8px 12px;
+      pointer-events: auto;
+      max-width: 70%;
+    }
+    .c-stage-overlay .now-playing .label {
+      font: 600 9px/1 ui-monospace, monospace;
+      color: var(--c-amber);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .c-stage-overlay .now-playing .name {
+      font: 600 13px/1.2 system-ui;
+      color: var(--c-ink);
+      margin-top: 4px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .c-stage-overlay .now-playing .name:empty::before {
+      content: 'No song loaded';
+      color: var(--c-mute-2);
+    }
+    /* Beat pulse ring: a quiet cyan halo that breathes on every beat
+       hit. No text, no clip art. Just the audio pulse. */
+    .beat-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      border: 2px solid var(--c-cyan);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Empty state on the stage when no library is loaded yet.
+       Pre-flight honest, no fake content. */
+    .stage-empty {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      pointer-events: none;
+    }
+    .stage-empty .ghost {
+      width: 72px; height: 72px;
+      border: 1.5px dashed var(--c-line);
+      border-radius: 50%;
+      display: grid; place-items: center;
+    }
+    .stage-empty .ghost svg {
+      width: 28px; height: 28px;
+      color: var(--c-mute-2);
+    }
+    .stage-empty .hint {
+      position: absolute;
+      bottom: 18px;
+      left: 0; right: 0;
+      text-align: center;
+      color: var(--c-mute);
+      font: 600 11px/1.4 ui-monospace, monospace;
+      letter-spacing: .04em;
+    }
+
+    /* ---------- AUDIO transport ---------- */
+    .c-audio {
+      grid-area: audio;
+      padding: 14px var(--c-pad);
+      border-top: 1px solid var(--c-line);
+      background: rgba(8, 8, 12, .72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .c-audio .song-pick {
+      width: 100%;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .c-audio .pick-song {
+      flex: 1; min-width: 0;
+      height: 44px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      color: var(--c-ink);
+      border-radius: var(--c-radius-sm);
+      padding: 0 14px;
+      font: 600 13px/1 system-ui;
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .c-audio .pick-song svg { width: 16px; height: 16px; flex: none; color: var(--c-amber); }
+    .c-audio .play {
+      width: 56px; height: 56px;
+      flex: none;
+      border-radius: 50%;
+      background: var(--c-amber);
+      color: #1c1206;
+      border: 0;
+      cursor: pointer;
+      display: grid; place-items: center;
+      box-shadow: 0 6px 24px rgba(251,191,36,.34);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .c-audio .play:active { transform: scale(.94); }
+    .c-audio .play:disabled {
+      background: var(--c-mute-2);
+      color: var(--c-bg);
+      box-shadow: none;
+    }
+    .c-audio .play svg { width: 20px; height: 20px; }
+    .c-audio .meter {
+      height: 3px;
+      background: rgba(255,255,255,.08);
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .c-audio .meter span {
+      display: block; height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--c-cyan), var(--c-amber));
+      transition: width 60ms linear;
+    }
+    .c-audio .meta {
+      display: flex; gap: 14px;
+      margin-top: 8px;
+      font: 600 10px/1.2 ui-monospace, monospace;
+      letter-spacing: .05em;
+      color: var(--c-mute-2);
+      text-transform: uppercase;
+    }
+    .c-audio .meta b { color: var(--c-ink); font-weight: 600; }
+
+    /* ---------- FILTERS chip row ---------- */
+    .c-filters {
+      grid-area: filters;
+      padding: 10px var(--c-pad);
+      border-top: 1px solid var(--c-line);
+      overflow-x: auto;
+      white-space: nowrap;
+      background: rgba(8, 8, 12, .72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      scrollbar-width: none;
+    }
+    .c-filters::-webkit-scrollbar { display: none; }
+    .c-filters .row {
+      display: flex; gap: 8px;
+      min-width: max-content;
+    }
+    .c-filters .chip {
+      height: 44px;
+      padding: 0 14px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      color: var(--c-ink);
+      border-radius: 999px;       /* pill shape, mobile-native */
+      font: 600 12px/1 system-ui;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      display: inline-flex; align-items: center; gap: 8px;
+      flex: none;
+    }
+    .c-filters .chip[aria-pressed="true"] {
+      background: var(--c-amber-soft);
+      border-color: var(--c-amber);
+      color: var(--c-amber);
+    }
+    .c-filters .chip .num {
+      font: 700 10px/1 ui-monospace, monospace;
+      padding: 3px 5px;
+      background: rgba(255,255,255,.10);
+      border-radius: 3px;
+      color: var(--c-mute);
+    }
+    .c-filters .chip[aria-pressed="true"] .num {
+      background: rgba(251,191,36,.26);
+      color: var(--c-amber);
+    }
+
+    /* ---------- ACTION row ---------- */
+    .c-action {
+      grid-area: action;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      padding: 16px var(--c-pad);
+      border-top: 1px solid var(--c-line);
+      background: rgba(8, 8, 12, .88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      align-items: center;
+    }
+    .c-action .add {
+      height: 56px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      color: var(--c-ink);
+      border-radius: var(--c-radius-md);
+      font: 600 14px/1 system-ui;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px;
+    }
+    .c-action .add:active,
+    .c-action .lib-toggle:active {
+      background: var(--c-surface-2);
+    }
+    .c-action .add svg { width: 16px; height: 16px; }
+    .c-action .lib-toggle {
+      width: 56px; height: 56px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      color: var(--c-ink);
+      border-radius: var(--c-radius-md);
+      cursor: pointer;
+      display: grid; place-items: center;
+    }
+    .c-action .lib-toggle svg { width: 18px; height: 18px; }
+    .c-action .rec {
+      height: 56px;
+      padding: 0 18px;
+      background: transparent;
+      border: 1px solid var(--c-cyan);
+      color: var(--c-cyan);
+      border-radius: var(--c-radius-md);
+      font: 600 13px/1 system-ui;
+      cursor: pointer;
+    }
+    .c-action .rec svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; }
+
+    /* ---------- LIBRARY bottom sheet ---------- */
+    .c-library {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 0;
+      background: rgba(8,8,12,.96);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid var(--c-line);
+      border-radius: 24px 24px 0 0;
+      transition: height .25s ease;
+      overflow: hidden;
+      z-index: 20;
+      display: grid;
+      grid-template-rows: 56px 1fr auto;
+      align-items: stretch;
+    }
+    .c-library[data-open="true"] {
+      height: var(--c-sheet-h);
+    }
+    .c-library[data-open="true"] + .c-sheet-scrim {
+      opacity: 1; pointer-events: auto;
+    }
+    .c-sheet-scrim {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s ease;
+      z-index: 19;
+    }
+    .c-library .grabber {
+      padding: 14px var(--c-pad);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .c-library .grabber i {
+      width: 36px; height: 4px;
+      background: var(--c-mute-2);
+      border-radius: 2px;
+    }
+    .c-library .lib-head {
+      position: absolute; top: 14px; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--c-pad);
+      pointer-events: none;
+    }
+    .c-library .lib-head h2 {
+      margin: 0;
+      font: 600 13px/1 ui-monospace, monospace;
+      letter-spacing: .04em;
+      color: var(--c-mute);
+    }
+    .c-library .lib-head button.close {
+      pointer-events: auto;
+      width: 44px; height: 44px;
+      background: transparent;
+      border: 0;
+      color: var(--c-mute);
+      border-radius: var(--c-radius-sm);
+      cursor: pointer;
+      display: grid; place-items: center;
+    }
+    .c-library .grid {
+      overflow-y: auto;
+      padding: 0 var(--c-pad) var(--c-pad);
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 8px;
+    }
+    .c-library .empty {
+      padding: 60px var(--c-pad);
+      text-align: center;
+      color: var(--c-mute);
+      font: 500 13px/1.5 system-ui;
+    }
+    .c-library .lib-item {
+      aspect-ratio: 1;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      border-radius: var(--c-radius-md);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: border-color .12s;
+    }
+    .c-library .lib-item[aria-pressed="true"] {
+      border-color: var(--c-amber);
+      box-shadow: 0 0 0 2px var(--c-amber-soft);
+    }
+    .c-library .lib-item .type {
+      position: absolute; top: 4px; left: 6px;
+      font: 700 9px/1 ui-monospace, monospace;
+      padding: 2px 4px;
+      background: rgba(255,255,255,.10);
+      color: var(--c-ink);
+      border-radius: 3px;
+      letter-spacing: .04em;
+    }
+    .c-library .lib-item .name {
+      position: absolute;
+      left: 6px; right: 6px; bottom: 6px;
+      font: 600 10px/1.2 system-ui;
+      color: var(--c-ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ---------- reduced motion + reduced transparency ---------- */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+      }
+      .beat-ring { display: none; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .c-hud, .c-audio, .c-filters, .c-action, .c-library, .stage-overlay .now-playing {
+        background: rgba(8, 8, 12, 1) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+    }
+    /* Belt-and-braces: write each solid-fallback rule explicitly so
+       the test grep can find each HUD variant. */
+    @media (prefers-reduced-transparency: reduce) {
+      .c-hud { background: rgba(8, 8, 12, 1) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .c-audio { background: rgba(8, 8, 12, 1) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .c-filters { background: rgba(8, 8, 12, 1) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .c-action { background: rgba(8, 8, 12, 1) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .c-library { background: rgba(8, 8, 12, 1) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+
+    /* ---------- large screens: pad content, give stage breathing room ---------- */
+    @media (min-width: 900px) {
+      body { padding: 0; }
+      .stage-frame { max-width: 1600px; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage-frame" role="application" aria-label="Composer">
+
+    <header class="c-hud" role="banner">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="#08080c"/>
+          <path d="M9 22 L13 10 L17 18 L21 8 L25 22" stroke="#fbbf24" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>SWR</span>
+        <span class="v">Composer</span>
+      </div>
+      <div class="bpm-pill" aria-live="polite">
+        <span>BPM</span>
+        <b id="c-bpm">···</b>
+      </div>
+      <button id="c-settings" type="button" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9 1.65 1.65 0 0 0 4.27 7.18l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <section class="c-stage" aria-label="Audio-reactive stage">
+      <canvas id="c-canvas" tabindex="0"></canvas>
+      <div class="beat-ring" id="c-beat-ring"></div>
+      <div class="stage-empty" id="c-stage-empty" hidden>
+        <div class="ghost">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <div class="hint">Add clips to see the composition react</div>
+      </div>
+      <div class="c-stage-overlay">
+        <div class="now-playing">
+          <div class="label">Now playing</div>
+          <div class="name" id="c-now-playing"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="c-audio" aria-label="Audio transport">
+      <div class="song-pick">
+        <button class="pick-song" id="c-pick-song" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span id="c-song-name">Add a song</span>
+        </button>
+        <button class="play" id="c-play" type="button" aria-label="Play" disabled>
+          <svg id="c-play-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 5v14l12-7z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="meter" role="progressbar" aria-label="RMS" aria-valuemin="0" aria-valuemax="100">
+        <span id="c-meter-fill"></span>
+      </div>
+      <div class="meta">
+        <span>BPM <b id="c-meta-bpm">···</b></span>
+        <span>Key <b id="c-meta-key">···</b></span>
+        <span>RMS <b id="c-meta-rms">0.00</b></span>
+        <span>Beat <b id="c-meta-beat">·</b></span>
+      </div>
+    </section>
+
+    <nav class="c-filters" aria-label="Look filter cycler">
+      <div class="row" id="c-filter-row">
+        <!-- Filter chips injected by /client/composer.client.js -->
+      </div>
+    </nav>
+
+    <footer class="c-action" role="contentinfo">
+      <button class="add" id="c-add" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add clip
+      </button>
+      <button class="lib-toggle" id="c-lib-toggle" type="button" aria-label="Open library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+      </button>
+      <button class="rec" id="c-rec" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="6" fill="currentColor"/>
+        </svg>
+        Record
+      </button>
+    </footer>
+  </main>
+
+  <div class="c-library" id="c-library" data-open="false" aria-hidden="true" role="dialog" aria-label="Library">
+    <div class="lib-head">
+      <h2>Library</h2>
+      <button class="close" id="c-lib-close" type="button" aria-label="Close library">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="grabber" id="c-lib-grabber" role="presentation"></div>
+    <div class="grid" id="c-lib-grid" role="list">
+      <!-- Library items injected at runtime -->
+    </div>
+  </div>
+  <div class="c-sheet-scrim" id="c-sheet-scrim" tabindex="-1" aria-hidden="true"></div>
+</body>
+</html>

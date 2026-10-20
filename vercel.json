@@ -696,6 +696,14 @@
       "destination": "/shortcuts-movie.html"
     },
     {
+      "source": "/composer",
+      "destination": "/composer.html"
+    },
+    {
+      "source": "/composer/",
+      "destination": "/composer.html"
+    },
+    {
       "source": "/packs",
       "destination": "/packs.html"
     },
