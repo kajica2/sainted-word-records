@@ -304,6 +304,11 @@
       "description": "Mobile-first audio-reactive video composer. Touch-native, single column on phone, dual column on desktop."
     },
     {
+      "label": "Record",
+      "href": "/record",
+      "description": "Capture the audio-reactive composition to a video file. Three orientation formats: 16:9 landscape, 9:16 portrait, 1:1 square."
+    },
+    {
       "label": "Shot list",
       "href": "/shotlist",
       "description": "Director's beat-by-beat shot list editor"

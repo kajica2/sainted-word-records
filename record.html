@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Record · SWR</title>
+  <meta name="description" content="Capture the audio-reactive composition to a video file. Three orientation formats: 16:9 landscape, 9:16 portrait, 1:1 square." />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#08080c" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308080c'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23f87171'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/audio.client.js" defer></script>
+  <script src="/lib/library.client.js" defer></script>
+  <script src="/lib/recorder.client.js" defer></script>
+  <script src="/client/record.client.js" defer></script>
+  <style>
+    :root {
+      --r-bg:           #08080c;
+      --r-surface:      rgba(255, 255, 255, .04);
+      --r-surface-2:    rgba(255, 255, 255, .08);
+      --r-line:         rgba(255, 255, 255, .10);
+      --r-ink:          #f6f6fa;
+      --r-mute:         rgba(255, 255, 255, .55);
+      --r-mute-2:       rgba(255, 255, 255, .32);
+      --r-amber:        #fbbf24;
+      --r-cyan:         #67e8f9;
+      --r-red:          #f87171;
+      --r-red-soft:     rgba(248, 113, 113, .16);
+      --r-radius-lg:    20px;
+      --r-radius-md:    12px;
+      --r-radius-sm:    8px;
+      --r-pad:          24px;
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; min-height: 100%;
+      background: var(--r-bg);
+      color: var(--r-ink);
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    body {
+      padding-top:    var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      padding-left:   var(--safe-left);
+      padding-right:  var(--safe-right);
+    }
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: calc(72px + var(--r-pad)) var(--r-pad) 64px;
+    }
+    @media (min-width: 900px) {
+      .layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; }
+    }
+
+    /* ---------- Page header ---------- */
+    header.page-head {
+      margin-bottom: 28px;
+    }
+    header.page-head h1 {
+      font: 700 28px/1.15 system-ui;
+      letter-spacing: -.01em;
+      margin: 0 0 6px;
+    }
+    header.page-head p {
+      color: var(--r-mute);
+      margin: 0;
+      max-width: 64ch;
+      line-height: 1.5;
+    }
+    header.page-head .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      font: 700 10px/1.4 ui-monospace, monospace;
+      letter-spacing: .08em;
+      background: var(--r-red-soft);
+      color: var(--r-red);
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    /* ---------- Stage / preview ---------- */
+    .stage-card {
+      background: var(--r-surface);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-lg);
+      padding: 20px;
+    }
+    .stage-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .stage-head h2 {
+      font: 700 13px/1 ui-monospace, monospace;
+      letter-spacing: .04em;
+      color: var(--r-mute);
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .stage-head .orient-badge {
+      font: 600 11px/1.4 ui-monospace, monospace;
+      letter-spacing: .04em;
+      padding: 6px 10px;
+      background: var(--r-surface-2);
+      border-radius: var(--r-radius-sm);
+      color: var(--r-ink);
+    }
+    .stage-head .orient-badge b {
+      color: var(--r-amber);
+      font-weight: 700;
+      margin-left: 6px;
+    }
+    .preview {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: var(--r-radius-md);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      transition: aspect-ratio .25s ease;
+    }
+    .preview canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .rec-dot {
+      position: absolute;
+      top: 14px; left: 14px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px;
+      background: rgba(8,8,12,.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-sm);
+      font: 600 11px/1 ui-monospace, monospace;
+      letter-spacing: .04em;
+      color: var(--r-ink);
+      pointer-events: none;
+    }
+    .rec-dot i {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--r-red);
+      box-shadow: 0 0 0 0 rgba(248,113,113,.6);
+    }
+    .rec-dot.recording i { animation: rec-pulse 1.4s ease-out infinite; }
+    @keyframes rec-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(248,113,113,.55); }
+      70%  { box-shadow: 0 0 0 14px rgba(248,113,113,0); }
+      100% { box-shadow: 0 0 0 0 rgba(248,113,113,0); }
+    }
+    .timer {
+      position: absolute;
+      top: 14px; right: 14px;
+      padding: 7px 12px;
+      background: rgba(8,8,12,.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-sm);
+      font: 700 14px/1 ui-monospace, monospace;
+      letter-spacing: .04em;
+      color: var(--r-ink);
+      pointer-events: none;
+    }
+
+    /* ---------- Transport ---------- */
+    .transport {
+      margin-top: 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .transport .play {
+      width: 56px; height: 56px;
+      flex: none;
+      border-radius: 50%;
+      background: var(--r-amber);
+      color: #1c1206;
+      border: 0;
+      cursor: pointer;
+      display: grid; place-items: center;
+      box-shadow: 0 6px 24px rgba(251,191,36,.34);
+    }
+    .transport .play:disabled {
+      background: var(--r-mute-2);
+      color: var(--r-bg);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .transport .record-btn {
+      flex: 1; min-width: 0;
+      height: 56px;
+      border-radius: var(--r-radius-md);
+      background: var(--r-red);
+      color: #fff;
+      border: 0;
+      font: 700 14px/1 system-ui;
+      letter-spacing: .02em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px;
+    }
+    .transport .record-btn:disabled {
+      background: var(--r-mute-2);
+      color: var(--r-bg);
+      cursor: not-allowed;
+    }
+    .transport .record-btn i {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .transport .record-btn.stop { background: #1f1f29; color: var(--r-ink); }
+    .transport .record-btn.stop i { border-radius: 2px; background: var(--r-red); }
+
+    /* ---------- Orientation selector ---------- */
+    .orient-card {
+      background: var(--r-surface);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-lg);
+      padding: 20px;
+    }
+    .orient-card h2 {
+      font: 700 13px/1 ui-monospace, monospace;
+      letter-spacing: .04em;
+      color: var(--r-mute);
+      text-transform: uppercase;
+      margin: 0 0 4px;
+    }
+    .orient-card .help {
+      color: var(--r-mute-2);
+      font: 500 12px/1.4 system-ui;
+      margin: 0 0 16px;
+    }
+    .orient-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 540px) {
+      .orient-grid { grid-template-columns: 1fr; }
+    }
+    .orient {
+      background: var(--r-surface-2);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-md);
+      padding: 14px 12px 12px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--r-ink);
+      transition: border-color .12s, background .12s, transform .12s;
+      font: inherit;
+      display: flex; flex-direction: column;
+      gap: 8px;
+    }
+    .orient:hover { border-color: var(--r-mute); }
+    .orient[aria-pressed="true"] {
+      background: rgba(251,191,36,.12);
+      border-color: var(--r-amber);
+      box-shadow: 0 0 0 2px rgba(251,191,36,.16);
+    }
+    .orient .preview-shape {
+      width: 100%;
+      background: #000;
+      border-radius: 6px;
+      border: 1px solid var(--r-line);
+      position: relative;
+      margin-bottom: 4px;
+    }
+    .orient .label {
+      font: 600 13px/1.1 system-ui;
+    }
+    .orient .dims {
+      font: 600 10px/1.2 ui-monospace, monospace;
+      color: var(--r-mute);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    /* 16:9, 9:16, 1:1 — pre-rendered CSS rectangles */
+    .orient.r169 .preview-shape { aspect-ratio: 16 / 9; }
+    .orient.r916 .preview-shape { aspect-ratio: 9 / 16; }
+    .orient.r11  .preview-shape { aspect-ratio: 1 / 1; }
+    .orient .preview-shape::after {
+      content: '';
+      position: absolute; inset: 8px;
+      border: 1px dashed rgba(255,255,255,.20);
+      border-radius: 2px;
+    }
+    .orient[aria-pressed="true"] .preview-shape {
+      box-shadow: 0 0 0 1px var(--r-amber) inset;
+    }
+
+    /* ---------- Settings + status ---------- */
+    .settings {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .settings .field {
+      background: var(--r-surface-2);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-sm);
+      padding: 10px 12px;
+    }
+    .settings .field .k {
+      font: 600 10px/1.2 ui-monospace, monospace;
+      color: var(--r-mute);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .settings .field .v {
+      font: 600 14px/1.2 system-ui;
+      color: var(--r-ink);
+    }
+    .settings .field .v small {
+      color: var(--r-mute);
+      font: 600 10px/1.4 ui-monospace, monospace;
+      letter-spacing: .03em;
+      margin-left: 4px;
+    }
+
+    /* ---------- Result panel ---------- */
+    .result {
+      margin-top: 14px;
+      background: var(--r-surface);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-md);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .result .file {
+      flex: 1; min-width: 0;
+      font: 600 13px/1.3 system-ui;
+      color: var(--r-ink);
+      word-break: break-all;
+    }
+    .result .file small {
+      display: block;
+      font: 600 10px/1.2 ui-monospace, monospace;
+      color: var(--r-mute);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .result a.dl {
+      height: 44px;
+      padding: 0 16px;
+      background: var(--r-amber);
+      color: #1c1206;
+      border-radius: var(--r-radius-md);
+      font: 600 13px/1 system-ui;
+      text-decoration: none;
+      display: inline-flex; align-items: center;
+      gap: 8px;
+    }
+    .result a.dl svg { width: 14px; height: 14px; }
+    .result a.copy {
+      height: 44px;
+      padding: 0 14px;
+      background: transparent;
+      color: var(--r-ink);
+      border: 1px solid var(--r-line);
+      border-radius: var(--r-radius-md);
+      font: 600 13px/1 system-ui;
+      text-decoration: none;
+      display: inline-flex; align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    /* ---------- Misc ---------- */
+    .empty-meta {
+      color: var(--r-mute-2);
+      font: 500 13px/1.5 system-ui;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rec-dot.recording i { animation: none; }
+      .orient, .preview { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="page-head">
+      <h1><span class="tag">REC</span>Record</h1>
+      <p>Capture the audio-reactive composition to a video file. Pick an orientation, hit record, and the engine renders to that aspect ratio while audio plays through.</p>
+    </header>
+
+    <div class="layout">
+      <section class="stage-card" aria-label="Preview">
+        <div class="stage-head">
+          <h2>Preview</h2>
+          <div class="orient-badge" id="r-orient-badge">FORMAT <b id="r-orient-name">16:9</b></div>
+        </div>
+        <div class="preview" id="r-preview">
+          <canvas id="r-canvas" width="1280" height="720" aria-label="Composition preview"></canvas>
+          <div class="rec-dot" id="r-rec-dot" hidden>
+            <i></i><span id="r-rec-state">REC</span>
+          </div>
+          <div class="timer" id="r-timer" hidden>00:00.0</div>
+        </div>
+        <div class="transport">
+          <button class="play" id="r-play" type="button" aria-label="Play / pause" disabled>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M7 5v14l12-7z"/>
+            </svg>
+          </button>
+          <button class="record-btn" id="r-record" type="button" disabled>
+            <i></i>
+            <span id="r-record-label">Record</span>
+          </button>
+        </div>
+        <div class="result" id="r-result" hidden>
+          <div class="file">
+            <span id="r-file-name">recording.webm</span>
+            <small id="r-file-meta">-- / --</small>
+          </div>
+          <a class="dl" id="r-download" href="#" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download
+          </a>
+          <button class="copy" id="r-copy" type="button">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy URL
+          </button>
+        </div>
+      </section>
+
+      <section class="orient-card" aria-label="Orientation">
+        <h2>Orientation</h2>
+        <p class="help">Three formats. Each one picks the engine canvas + the rendered video dimensions.</p>
+        <div class="orient-grid" id="r-orient-grid">
+          <button class="orient r169" data-orient="169" type="button" aria-pressed="true">
+            <div class="preview-shape"></div>
+            <span class="label">Landscape</span>
+            <span class="dims">16 : 9  ·  1920 × 1080</span>
+          </button>
+          <button class="orient r916" data-orient="916" type="button" aria-pressed="false">
+            <div class="preview-shape"></div>
+            <span class="label">Portrait</span>
+            <span class="dims">9 : 16  ·  1080 × 1920</span>
+          </button>
+          <button class="orient r11" data-orient="11" type="button" aria-pressed="false">
+            <div class="preview-shape"></div>
+            <span class="label">Square</span>
+            <span class="dims">1 : 1  ·  1080 × 1080</span>
+          </button>
+        </div>
+        <div class="settings">
+          <div class="field">
+            <div class="k">Frame rate</div>
+            <div class="v" id="r-fps">24 <small>fps</small></div>
+          </div>
+          <div class="field">
+            <div class="k">Bitrate</div>
+            <div class="v" id="r-bitrate">6 <small>Mbps</small></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

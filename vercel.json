@@ -704,6 +704,14 @@
       "destination": "/composer.html"
     },
     {
+      "source": "/record",
+      "destination": "/record.html"
+    },
+    {
+      "source": "/record/",
+      "destination": "/record.html"
+    },
+    {
       "source": "/packs",
       "destination": "/packs.html"
     },
