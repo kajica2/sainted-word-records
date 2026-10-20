@@ -111,21 +111,25 @@ function flushAll(windowObj) {
   windowObj.__flushRaf();
 }
 
-check('Layers.retire(id) sets opacity → 0 and baseScale → 0.4', () => {
+check('Layers.retire(id) sets opacity → 0, baseScale → 0.4, rotates 360°', () => {
   const w = runFresh();
   const L = w.Layers;
   L.add({ name: 'test', type: 'image', url: 'data:url' });
   const layer = L.list[0];
   layer.opacity = 1; layer.baseScale = 1.2;
+  const startRot = layer.rotOffset || 0;
   L.retire(layer.id, 100);
-  flushAll(w); // drain the rAF queue so the tween completes
+  flushAll(w);
   if (Math.abs(layer.opacity - 0) > 1e-6) return 'opacity not zeroed: ' + layer.opacity;
   if (Math.abs(layer.baseScale - 0.4) > 1e-6) return 'baseScale not parked at 0.4: ' + layer.baseScale;
   if (!layer._retired) return '_retired flag not set';
+  // rotOffset should have advanced ~360° from start (one full turn)
+  const expectedRot = startRot + 360;
+  if (Math.abs(layer.rotOffset - expectedRot) > 1) return 'rotOffset wrong: ' + layer.rotOffset + ' (expected ' + expectedRot + ')';
   return true;
 });
 
-check('Layers.unretire(id) restores opacity = 1, baseScale = 1', () => {
+check('Layers.unretire(id) restores opacity = 1, baseScale = 1, rotOffset = 0', () => {
   const w = runFresh();
   const L = w.Layers;
   L.add({ name: 'u', type: 'image', url: 'data:url' });
@@ -136,6 +140,7 @@ check('Layers.unretire(id) restores opacity = 1, baseScale = 1', () => {
   if (Math.abs(layer.opacity - 1) > 1e-6) return 'opacity not restored: ' + layer.opacity;
   if (Math.abs(layer.baseScale - 1) > 1e-6) return 'baseScale not restored: ' + layer.baseScale;
   if (layer._retired) return '_retired flag still set after unretire';
+  if (layer.rotOffset !== 0) return 'rotOffset not reset: ' + layer.rotOffset;
   return true;
 });
 
@@ -147,6 +152,26 @@ check('retire(id) on missing layer returns false', () => {
 check('retire emits no false-positive for an empty layer list', () => {
   const w = runFresh();
   return w.Layers.retire('whatever') === false;
+});
+
+check('retire respects the rotationEnabled gate (no spin when off)', () => {
+  const w = runFresh();
+  const L = w.Layers;
+  L.add({ name: 'off', type: 'image', url: 'data:url' });
+  const layer = L.list[0];
+  layer.rotationEnabled = false;
+  const startRot = layer.rotOffset || 0;
+  // Verify the gate set correctly
+  if (layer.rotationEnabled !== false) return 'gate was not set: ' + layer.rotationEnabled;
+  L.retire(layer.id, 50);
+  flushAll(w);
+  if (Math.abs(layer.rotOffset - startRot) > 1e-6) {
+    return 'rotation still advanced: start=' + startRot + ' end=' + layer.rotOffset + ' (rotationEnabled=' + layer.rotationEnabled + ')';
+  }
+  // opacity+scale should still tween even with rotation off
+  if (Math.abs(layer.opacity - 0) > 1e-6) return 'opacity not zeroed: ' + layer.opacity;
+  if (Math.abs(layer.baseScale - 0.4) > 1e-6) return 'baseScale not parked: ' + layer.baseScale;
+  return true;
 });
 
 // ---- summary ----

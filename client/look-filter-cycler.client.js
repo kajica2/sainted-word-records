@@ -149,7 +149,13 @@
     for (const key in f.fx) {
       const v = f.fx[key];
       if (typeof v !== 'number') continue;
-      profile[key] = (key === 'temp') ? Math.max(-1, Math.min(1, v * k)) : Math.max(0, Math.min(1, v * k));
+      // Trap 5: mutAlgo is an algorithm selector (0..5, integer), not an
+      // amount. The FX pipeline doesn't scale it (see
+      // fx-postprocess.js around line 680), and we shouldn't either.
+      if (key === 'mutAlgo') { profile[key] = v; continue; }
+      profile[key] = (key === 'temp')
+        ? Math.max(-1, Math.min(1, v * k))
+        : Math.max(0, Math.min(1, v * k));
     }
     window.FX.setPersona(profile);
     const intensityLabel = (k >= 1) ? 'max' : (k <= 0.5 ? 'subtle' : 'med');

@@ -284,6 +284,11 @@
       "description": "30-minute slow crossfade between black PNG sequences (meditative, all-black)"
     },
     {
+      "label": "Layer Lifecycle",
+      "href": "/layer-lifecycle",
+      "description": "Demo of Layers.retire / Layers.unretire / Layers.homeAll — add, retire, wake layers back up"
+    },
+    {
       "label": "Shot list",
       "href": "/shotlist",
       "description": "Director's beat-by-beat shot list editor"

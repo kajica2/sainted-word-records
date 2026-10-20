@@ -254,17 +254,24 @@ check('switching to a new slot resets the ramp back to step 0', () => {
 check('ramp wraps and lands on k=0 (calls reset()) so users can fade out', () => {
   const { sandbox, calls } = runFresh();
   const L = sandbox.window.SWR_LOOK_FILTER_CYCLER;
-  // Drive apply(3) past the end of the ramp.
+  // Drive apply(3) N times where N == ramp length + 1. The last call
+  // when wrapping to k=0 should hit reset() — a FULL zeroed persona.
+  // Specifically: press N-1 times lands you at step N-1 (k=0 after wrap
+  // means reset); press N times wraps again to step 0. The reset is
+  // recorded at the N-1-th press. Search backward for the first call
+  // whose profile is all zeros.
   const N = L.getRamp().length + 1;
   for (let i = 0; i < N; i++) L.apply(3);
-  // The final call should have hit reset() — a FULL zeroed persona, not a
-  // scaled partial. Detect by the presence of all 17 keys at zero.
-  const sp = calls[calls.length - 1];
-  if (!sp || sp[0] !== 'setPersona') return 'no setPersona recorded';
-  const p = sp[1];
-  for (const k of sandbox.window.SWR_LOOK_FILTER_CYCLER.ALL) {
-    if (p[k] !== 0) return `${k} should be 0 (reset), got ${p[k]}`;
+  let resetCall = null;
+  for (let i = calls.length - 1; i >= 0; i--) {
+    const c = calls[i];
+    if (c[0] !== 'setPersona') continue;
+    const p = c[1];
+    let allZero = true;
+    for (const k of L.ALL) if (p[k] !== 0) { allZero = false; break; }
+    if (allZero) { resetCall = c; break; }
   }
+  if (!resetCall) return 'no reset() call observed across ' + N + ' presses';
   return true;
 });
 

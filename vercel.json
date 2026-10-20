@@ -672,6 +672,14 @@
       "destination": "/echo.html"
     },
     {
+      "source": "/layer-lifecycle",
+      "destination": "/layer-lifecycle.html"
+    },
+    {
+      "source": "/layer-lifecycle/",
+      "destination": "/layer-lifecycle.html"
+    },
+    {
       "source": "/packs",
       "destination": "/packs.html"
     },
