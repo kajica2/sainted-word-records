@@ -1,0 +1,44 @@
+# CODEOWNERS — default reviewer routing for the engine / surface areas.
+#
+# Each line is a path pattern + one or more owners. The LAST matching
+# pattern wins (so write the most specific rules LAST).
+# Usernames here are GitHub handles; for solo projects, the default
+# owner is the project maintainer. Tweak per the team structure once
+# the project outgrows a single maintainer.
+
+# Core engine + render loop
+/agent-browser.client.js          @kajica2
+/engine.html                       @kajica2
+/versions/                         @kajica2
+/client/engine-*.client.js         @kajica2
+/client/engine-render.client.js    @kajica2
+/client/variant-switcher.client.js @kajica2
+
+# Audio + features
+/lib/audio.client.js               @kajica2
+/lib/library.client.js             @kajica2
+/client/layer-audio-algos.client.js @kajica2
+/client/automix-*.client.js         @kajica2
+
+# API / Firestore / backend
+/api/                              @kajica2
+/api/_lib/firestore.js             @kajica2
+/api/_lib/library-store.js         @kajica2
+/api/_lib/projects-store.js        @kajica2
+
+# Tools, planning, docs
+/docs/PLANS/                       @kajica2
+/tools/                            @kajica2
+/scripts/                          @kajica2
+
+# Top-level standards + CI
+/.github/                          @kajica2
+/CHANGELOG.md                      @kajica2
+/CONTRIBUTING.md                   @kajica2
+/CODE_OF_CONDUCT.md                @kajica2
+/LICENSE                           @kajica2
+/SECURITY.md                       @kajica2
+/README.md                         @kajica2
+
+# Catch-all fallback
+*                                  @kajica2

@@ -1,0 +1,66 @@
+# Changelog
+
+All notable changes to **Sainted Word Records** are recorded here. The
+format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and the project adheres to [Semantic Versioning](https://semver.org/)
+once it hits 1.0.
+
+## [Unreleased]
+
+### Added
+- `tour.html` — 12-stop Jakob Nielsen usability tour (sweep / step / reset).
+- `shortcuts-movie.html` — 60-second hyperframe walkthrough of every
+  keyboard shortcut (Space, ←/→, number-jump).
+- `echo.html` — standalone 30-min black-PNG crossfade art piece.
+- `layer-lifecycle.html` — self-contained demo of `Layers.retire` /
+  `Layers.unretire` / `Layers.homeAll`.
+- `Layers.addText(text, opts)` — user-typed text layers
+  (`Layers.setText`, render path with fillText + glow).
+- `Layers.retire(id, ms)` / `Layers.unretire(id)` — eases opacity → 0,
+  baseScale → 0.4, and rotates the layer 360° over RETIRE_MS; respects
+  the `rotationEnabled` gate.
+- `Layers.homeAll(ms)` — slides every layer back to its defaults.
+- Shift+↑/↓/←/→ — nudge the selected layer's pos.x / pos.y in canvas
+  units.
+- T+0..9 — look-filter cycler with a 5-step intensity ramp on repeated
+  presses; bare 1..9 dispatch the same cycler (no rotation contract).
+- Cloud-library FAB + menu (Push / Pull / Sync / Watch) on the engine
+  library panel.
+- `client/cloud-library.client.js` — `SWR_CLOUD_LIBRARY` API surface.
+- `api/library/index.js` + `api/_lib/library-store.js` — local-FS
+  manifest + sample zops.
+- Debug overlay (`?debug=1`) — fixed bottom-right HUD that logs
+  key/filter events + audio features + layer state.
+- Unit tests for retire/unretire, layer-text, cloud-library,
+  library-store, tour-client, debug-overlay, look-filter cycler,
+  engine-keys digit filter, engine-keys keypress dispatch, layer
+  lifecycle, layer retire, kit-zip.
+
+### Fixed
+- `api/_lib/kv.js`: invite-code schema marker v1 → v2 auto-migration
+  (unblocks the `Register Invite Codes` GH Action).
+- Library thumbnails: corrupt base64 detection + stale-blob fallback
+  placeholder; auto-purge on boot via `lib/library-hygiene.client.js`.
+- WebGL uniform errors: `null` location guards in `fx-postprocess.js`
+  and `versions-presets.js`.
+- Reserve / void warnings on missing-pristine transitions.
+
+### Changed
+- Bare 1..9 no longer selects layers (the previous behaviour
+  surfaced audio rot reactors and caused accidental rotation).
+- Help text remapped: digit row = filter slots, T-prefix = alias.
+- `VersionsPresets.SHORTCUT_PRESETS` (Cmd+1..9) and `Layer.autoMapLayer`
+  (Alt+1..6) preserved for muscle memory.
+- `client/look-filter-cycler.client.js`: `applyScaled()` no longer
+  scales `mutAlgo` (Trap 5).
+- `client/debug-overlay.client.js`: only mounts when `?debug=1` or
+  `localStorage['swr.debug'] = '1'`.
+
+### Removed
+- Implicit layer rotation on bare-digit selection.
+
+## [0.x] — initial engine era (2025-01 → 2026-10)
+
+Internal development; no formal releases prior to v1.0.
+
+[Unreleased]: https://github.com/kajica2/sainted-word-records/compare/HEAD...HEAD

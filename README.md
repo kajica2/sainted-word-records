@@ -6,6 +6,23 @@
 
 ---
 
+## Status
+
+| Area | State |
+|------|-------|
+| Engine (`engine.html`) | ✅ wired up + 23 personas + 20 filters + look-filter cycler |
+| Cloud library | ✅ Phase 1 (FAB + push/pull/sync/watch) |
+| Layer lifecycle | ✅ `Layers.retire` / `unretire` / `homeAll` / `addText` |
+| Keyboard map | ✅ bare-digit = filter; T-prefix = alias; 0 = home |
+| Eco-pages | ✅ Echo / Tour / Shortcuts Movie / Layer-Lifecycle |
+| Firestore | ✅ dormant (`SWR_PROJECTS_STORE=firestore`) |
+| API rules | ✅ rate-limited + auth-gated + invite-code schema v2 |
+| Standards | ✅ LICENSE · CONTRIBUTING · CODE_OF_CONDUCT · CHANGELOG · SECURITY · ISSUE_TEMPLATES · CODEOWNERS |
+| Tests | ✅ 110+ unit checks, `npm run check` (63-step), `check:full` (20-step) |
+| CI | ✅ Pages build deployment · required checks on PRs |
+
+---
+
 ## TL;DR
 
 | You want to | Use | Price |
@@ -147,7 +164,10 @@ sainted-word-records/
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE). Standards: [CONTRIBUTING](./CONTRIBUTING.md),
+[CHANGELOG](./CHANGELOG.md), [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md),
+[SECURITY](./SECURITY.md), [issue templates](./.github/ISSUE_TEMPLATE/),
+[PR template](./.github/PULL_REQUEST_TEMPLATE.md).
 
 ## Author
 
