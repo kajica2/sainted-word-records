@@ -616,12 +616,12 @@
       "destination": "/style-guide.html"
     },
     {
-      "source": "/campaign",
-      "destination": "/campaign.html"
+      "source": "/services",
+      "destination": "/services.html"
     },
     {
-      "source": "/campaign/",
-      "destination": "/campaign.html"
+      "source": "/services/",
+      "destination": "/services.html"
     },
     {
       "source": "/marketplace",
@@ -798,6 +798,14 @@
     {
       "source": "/terms.html/",
       "destination": "/terms.html"
+    },
+    {
+      "source": "/services",
+      "destination": "/services.html"
+    },
+    {
+      "source": "/services/",
+      "destination": "/services.html"
     },
     {
       "source": "/make-video",
@@ -1086,6 +1094,10 @@
     {
       "source": "/auth/verify",
       "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/campaign",
+      "destination": "/campaign.html"
     },
     {
       "source": "/director-mode-sainted-word",

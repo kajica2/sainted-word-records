@@ -131,14 +131,9 @@
   ],
   "footer": [
     {
-      "label": "Kajica2 Studio",
-      "href": "https://jju8x1yizy38y.space.minimax.io",
-      "description": "Music, Video, Story, Content, Social — One subscription"
-    },
-    {
-      "label": "Get a visualizer",
-      "href": "/campaign",
-      "description": "Hire us for a custom visualizer"
+      "label": "Services",
+      "href": "/services",
+      "description": "Transcription, production and audio-reactive video — hire Kai directly"
     },
     {
       "label": "Marketplace",
@@ -372,6 +367,11 @@
       "label": "Terms",
       "href": "/terms.html",
       "description": "Glossary of Sainted Word Records terms"
+    },
+    {
+      "label": "Services",
+      "href": "/services",
+      "description": "Hire Kai directly: transcription, production, audio-reactive video"
     }
   ],
   "redirects": [
@@ -476,7 +476,7 @@
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-10-20",
+    "lastUpdated": "2026-10-21",
     "totalPages": 146,
     "corePages": 146,
     "archivedPages": 0
@@ -581,6 +581,7 @@
     "photo.html",
     "portfolio.html",
     "press.html",
+    "services.html",
     "share-view.html",
     "shop.html",
     "shotlist/index.html",
