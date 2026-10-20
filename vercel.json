@@ -680,6 +680,14 @@
       "destination": "/layer-lifecycle.html"
     },
     {
+      "source": "/tour",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/tour/",
+      "destination": "/tour.html"
+    },
+    {
       "source": "/packs",
       "destination": "/packs.html"
     },

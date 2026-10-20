@@ -289,6 +289,11 @@
       "description": "Demo of Layers.retire / Layers.unretire / Layers.homeAll — add, retire, wake layers back up"
     },
     {
+      "label": "Jakob Nielsen Tour",
+      "href": "/tour",
+      "description": "Guided sweep across every feature, tagged with Nielsen's 10 usability heuristics"
+    },
+    {
       "label": "Shot list",
       "href": "/shotlist",
       "description": "Director's beat-by-beat shot list editor"
