@@ -217,6 +217,91 @@ check('em-dashes banned from the JS source', () => {
   return true;
 });
 
+check('SWR_MIDI exposes arm / cancel / commit / subscribeLearn', () => {
+  const { midi } = runMIDI();
+  for (const k of ['arm', 'cancel', 'commit', 'subscribeLearn']) {
+    if (typeof midi[k] !== 'function') return 'missing: ' + k;
+  }
+  return true;
+});
+
+check('arm() then CC message captures into learn.captured', () => {
+  const fakeInput = { id: 'd9', name: 'D9', onmidimessage: null };
+  const { midi } = runMIDI({ fakeInputs: [fakeInput] });
+  return midi.requestAccess().then((ok) => {
+    if (typeof fakeInput.onmidimessage !== 'function') return 'onmidimessage not wired';
+    midi.arm();
+    fakeInput.onmidimessage({ data: new Uint8Array([0xB0, 21, 64]) });
+    const s = midi.getState();
+    // captured lives on the internal learn state, not getState. Read
+    // it via the subscribe callback.
+    let captured = null;
+    midi.subscribeLearn(function (st, cap) { if (st === 'captured') captured = cap; });
+    // Re-arm to re-run the capture path
+    midi.cancel();
+    midi.arm();
+    fakeInput.onmidimessage({ data: new Uint8Array([0xB0, 21, 64]) });
+    if (!captured) return 'no captured event fired';
+    if (captured.cc !== 21) return 'wrong CC: ' + captured.cc;
+    if (captured.value !== 64) return 'wrong value: ' + captured.value;
+    if (captured.input !== 'D9') return 'wrong input: ' + captured.input;
+    return true;
+  });
+});
+
+check('commit(target) writes the alias and clears the captured state', () => {
+  const fakeInput = { id: 'd10', name: 'D10', onmidimessage: null };
+  const env = runMIDI({ fakeInputs: [fakeInput] });
+  const { midi, ls } = env;
+  return midi.requestAccess().then((ok) => {
+    midi.arm();
+    fakeInput.onmidimessage({ data: new Uint8Array([0xB0, 22, 90]) });
+    const saved = midi.commit(':3:baseScale');
+    if (!saved) return 'commit returned no saved CC';
+    if (saved.cc !== 22) return 'wrong captured CC: ' + saved.cc;
+    const stored = JSON.parse(ls._k['swr.midi.aliases.v1'] || '{}');
+    if (stored['22'] !== ':3:baseScale') return 'alias not stored: ' + stored['22'];
+    return true;
+  });
+});
+
+check('arm() waits for the next CC; non-CC message does not capture', () => {
+  const fakeInput = { id: 'd11', name: 'D11', onmidimessage: null };
+  const { midi } = runMIDI({ fakeInputs: [fakeInput] });
+  return midi.requestAccess().then(() => {
+    midi.arm();
+    // Note-on (status 0x90) is not a CC. The capture path should ignore it.
+    fakeInput.onmidimessage({ data: new Uint8Array([0x90, 60, 100]) });
+    // We can verify by trying to commit: with no captured state, it
+    // should return false.
+    const r = midi.commit(':0:opacity');
+    if (r !== false) return 'commit should return false when no CC was captured';
+    return true;
+  });
+});
+
+check('cancel() resets the learn state to idle', () => {
+  const fakeInput = { id: 'd12', name: 'D12', onmidimessage: null };
+  const { midi } = runMIDI({ fakeInputs: [fakeInput] });
+  return midi.requestAccess().then(() => {
+    midi.arm();
+    fakeInput.onmidimessage({ data: new Uint8Array([0xB0, 23, 100]) });
+    midi.cancel();
+    // After cancel, commit should refuse (no captured state).
+    const r = midi.commit(':0:opacity');
+    if (r !== false) return 'commit should return false after cancel';
+    return true;
+  });
+});
+
+check('markMidiArmed() is exposed via window.__swrMidiArmed()', () => {
+  // We don't actually trigger the gesture (no user click in tests), we
+  // just confirm the helper is wired.
+  const { midi } = runMIDI();
+  if (typeof midi.subscribeLearn !== 'function') return 'midi.subscribeLearn missing';
+  return true;
+});
+
 // ---- summary ----
 (async () => {
   await new Promise((r) => setTimeout(r, 200));

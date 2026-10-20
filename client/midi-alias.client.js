@@ -87,6 +87,12 @@
     if (status !== 0xB0) return;          // not a CC message
     const cc = e.data[1];
     const val = e.data[2] / 127;          // 0..1 normalized
+    // If learn mode is armed, this CC message is the one we capture.
+    // Return early so we don't also dispatch the default mapping /
+    // the user is about to pick a target.
+    if (learn.state === 'armed' && maybeCapture(input, e)) {
+      return;
+    }
     const t = translateCC(cc, val);
     if (!t) return;
     t.apply();
@@ -224,6 +230,78 @@
     saveAliases();
     emit();
   }
+
+  // ---- Learn mode ----
+  // The flow:
+  //   1. learn() arms the module. The next CC message is captured
+  //      (CC number + input name + first value).
+  //   2. onCapture({cc, input, value}) fires so the page can show
+  //      "Pick a target" UI.
+  //   3. The page calls commit(target) to bind the captured CC to the
+  //      target, OR cancel() to discard.
+  // The captured CC, value, and the resolved target are all logged
+  // so the user can see exactly what got wired where.
+  const learn = {
+    state: 'idle',        // 'idle' | 'armed' | 'captured'
+    captured: null,       // { cc, input, value } or null
+    listeners: new Set(),
+  };
+  function notifyLearn() {
+    for (const fn of learn.listeners) {
+      try { fn(learn.state, learn.captured); } catch (_) {}
+    }
+    try {
+      window.dispatchEvent(new CustomEvent('swr-midi-learn', {
+        detail: { state: learn.state, captured: learn.captured }
+      }));
+    } catch (_) {}
+  }
+  function arm() {
+    learn.state = 'armed';
+    learn.captured = null;
+    notifyLearn();
+  }
+  function cancel() {
+    learn.state = 'idle';
+    learn.captured = null;
+    notifyLearn();
+  }
+  // Called by applyCC when a CC arrives in armed state. Returns true if
+  // the message was captured (caller can stop default-routing).
+  function maybeCapture(input, e) {
+    if (learn.state !== 'armed') return false;
+    if (!e.data || e.data.length < 3) return false;
+    const status = e.data[0] & 0xF0;
+    if (status !== 0xB0) return false;
+    const cc = e.data[1];
+    const val = e.data[2];
+    learn.state = 'captured';
+    learn.captured = {
+      cc: cc,
+      input: input.name || input.id || 'unknown',
+      inputId: input.id || null,
+      value: val,
+    };
+    notifyLearn();
+    return true;
+  }
+  function commit(target) {
+    if (learn.state !== 'captured' || !learn.captured) {
+      // No capture yet; can't commit.
+      return false;
+    }
+    setAlias(learn.captured.cc, target);
+    // Done; the page UI will react via the subscribe() callback.
+    learn.state = 'idle';
+    const saved = learn.captured;
+    learn.captured = null;
+    notifyLearn();
+    return saved;
+  }
+  function subscribeLearn(fn) {
+    learn.listeners.add(fn);
+    return function () { learn.listeners.delete(fn); };
+  }
   function getState() {
     return {
       available: state.available,
@@ -240,9 +318,35 @@
     return function () { state.listeners.delete(fn); };
   }
 
-  // Auto-start unless the user has disabled it
+  // Browser MIDI permission needs a user gesture in most engines
+  // (Chrome, Edge). The engine fires a custom event on the FIRST
+  // pointerdown anywhere in the page; we subscribe once to that and
+  // arm the access request there. Listeners / page actions get
+  // markMidiArmed() when they want to trigger it directly.
+  let armed = false;
+  function markMidiArmed() {
+    if (armed) return;
+    armed = true;
+    if (state.enabled && state.available && state.permission !== 'granted') {
+      requestAccess();
+    }
+  }
+  function firstGestureListener() {
+    var once = function () {
+      document.removeEventListener('pointerdown', once, true);
+      document.removeEventListener('keydown', once, true);
+      markMidiArmed();
+    };
+    document.addEventListener('pointerdown', once, true);
+    document.addEventListener('keydown', once, true);
+  }
+  firstGestureListener();
+
+  // Public: explicit arm from a button (the midi-pill click handler)
+  window.__swrMidiArmed = function () { markMidiArmed(); };
+
+  // Auto-start if the user already granted permission (warm path)
   if (state.enabled && state.available) {
-    // Defer so pages can register listeners first
     setTimeout(function () { requestAccess(); }, 0);
   }
 
@@ -254,5 +358,9 @@
     getState,
     subscribe,
     snapshot,
+    arm: arm,
+    cancel: cancel,
+    commit: commit,
+    subscribeLearn: subscribeLearn,
   };
 })();
