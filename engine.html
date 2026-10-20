@@ -3722,6 +3722,7 @@
   <script src="/lib/layers.client.js" defer></script>
   <script src="/client/layer-strip.client.js" defer></script>
   <script src="/client/library-sheet.client.js" defer></script>
+  <script src="/client/layer-audio-algos.client.js" defer></script>
   <script src="/lib/personal-presets.client.js" defer></script>
   <!-- M1: auth + storage clients. project.js depends on these. -->
   <script src="/lib/auth.client.js" defer></script>
@@ -4762,6 +4763,25 @@
           else if (r.target === 'hue') out.hue += v;
           else if (r.target === 'brightness') out.brightness = clamp(out.brightness + v, 0.1, 2.5);
           else if (r.target === 'contrast') out.contrast = clamp(out.contrast + v, 0.1, 2.5);
+        }
+        // Audio algorithm: high-level audio-reactive behavior (Pulse / Drift
+        // / Spark) with an intensity slider. Adds deltas on top of base +
+        // reactor values; the algo is intentionally additive so existing
+        // reactors keep working. See client/layer-audio-algos.client.js.
+        if (layer.algo && layer.algo !== 'none' && (layer.algoIntensity || 0) > 0 &&
+            window.SWR_LAYER_AUDIO_ALGOS) {
+          const feat = Audio && Audio.feat ? Audio.feat : {};
+          const o = {
+            scale: 0, dx: 0, dy: 0, dBrightness: 0, dHue: 0, opacityMul: 0
+          };
+          window.SWR_LAYER_AUDIO_ALGOS.apply(layer.algo, feat, layer.algoIntensity, o);
+          out.scale    += o.scale;
+          out.x        += o.dx;
+          out.y        += o.dy;
+          out.hue      += o.dHue;
+          out.brightness = clamp(out.brightness + o.dBrightness, 0.1, 2.5);
+          // opacityMul: positive bumps opacity; clamp the final to a safe range
+          out.opacity  = clamp(out.opacity + o.opacityMul, 0, 1.5);
         }
         return out;
       },
