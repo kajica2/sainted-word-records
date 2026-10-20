@@ -122,12 +122,20 @@ async function ensureSchema() {
       return SCHEMA_VERSION;
     }
     const parsed = Number.parseInt(String(current), 10);
-    if (parsed !== SCHEMA_VERSION) {
-      throw new Error(
-        `invite-code schema mismatch: store has v${parsed}, code expects v${SCHEMA_VERSION}`
-      );
+    if (parsed === SCHEMA_VERSION) return parsed;
+    // Forward migration: v1 → v2 (and any future X → Y). The entry
+    // shape only ADDS optional fields (tier, dailyLimit, preset,
+    // emissions); existing v1 entries lack them but readEntry() supplies
+    // safe defaults, so the migration is lossless. Just bump the marker.
+    // Bump downgrades (parsed > SCHEMA_VERSION) still raise — the
+    // newer deploy wrote something we can't safely downgrade.
+    if (Number.isFinite(parsed) && parsed > 0 && parsed < SCHEMA_VERSION) {
+      await storeSet(SCHEMA_KEY, String(SCHEMA_VERSION));
+      return SCHEMA_VERSION;
     }
-    return parsed;
+    throw new Error(
+      `invite-code schema mismatch: store has v${parsed}, code expects v${SCHEMA_VERSION}`
+    );
   })().catch((e) => {
     // Do not cache a failed migration — the next request should retry,
     // and a cold start must not be poisoned by one transient outage.
