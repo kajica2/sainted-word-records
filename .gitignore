@@ -134,3 +134,6 @@ _archive/
 
 # PT license keys minted by scripts/generate-pt-keys.mjs (never commit: they are the product)
 pt-keys.local.txt
+
+# upload-youtube.mjs screenshots (profile now lives in Application Support)
+out/
