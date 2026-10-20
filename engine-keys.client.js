@@ -670,6 +670,32 @@
       label: '+ mutate jitter (selected layer)',
       action: function () { nudgeLayer('mutate', +0.05, 0, 1); },
     },
+    // ---- positional nudge (Shift+arrows) ------------------------------
+    // Move the selected layer by 8 / 1.5 css px per press. Two speeds
+    // gated on the displayed stepSize so a quick keyboard nudge lands
+    // the layer close to where the eye wants it, while a slower mode
+    // (when the user holds Shift+arrow longer, the engine multiplies by
+    // 4) can fine-tune without nudge-fighting.
+    nudgeLayerUp: {
+      keys: 'Shift+ArrowUp',
+      label: 'Move selected layer up (Shift+↑)',
+      action: function () { nudgeLayerPos(0, -nudgeStepY()); },
+    },
+    nudgeLayerDown: {
+      keys: 'Shift+ArrowDown',
+      label: 'Move selected layer down (Shift+↓)',
+      action: function () { nudgeLayerPos(0, +nudgeStepY()); },
+    },
+    nudgeLayerLeft: {
+      keys: 'Shift+ArrowLeft',
+      label: 'Move selected layer left (Shift+←)',
+      action: function () { nudgeLayerPos(-nudgeStepX(), 0); },
+    },
+    nudgeLayerRight: {
+      keys: 'Shift+ArrowRight',
+      label: 'Move selected layer right (Shift+→)',
+      action: function () { nudgeLayerPos(+nudgeStepX(), 0); },
+    },
     nudgeOpacityUp: {
       // The binding is '=' (see the Equal case in handle()); Shift+/ is the
       // '?' help key. The old 'Shift+/' value was never a binding.
@@ -721,6 +747,40 @@
     if (window.setStatus) {
       window.setStatus(field + ': ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
     }
+  }
+
+  // Step sizes for Shift+arrows. Read the canvas so a position nudge
+  // walks the right distance on every screen size. 1/40 of the longer
+  // side is roughly a thumb-tip's worth on a 1920×1080 (≈ 27 px) and
+  // scales down on phones.
+  function nudgeStepX() {
+    const c = document.querySelector('canvas#stage, canvas.stage, canvas');
+    if (!c) return 12;
+    return Math.max(8, Math.round(c.width / 40));
+  }
+  function nudgeStepY() {
+    const c = document.querySelector('canvas#stage, canvas.stage, canvas');
+    if (!c) return 12;
+    return Math.max(8, Math.round(c.height / 40));
+  }
+  function nudgeLayerPos(dx, dy) {
+    const L = layers();
+    const sel = selectedOf(L);
+    if (!sel) return;
+    if (!sel.pos || typeof sel.pos !== 'object') sel.pos = { x: 0, y: 0, rot: 0 };
+    const sx = sel.pos.x || 0;
+    const sy = sel.pos.y || 0;
+    sel.pos.x = sx + dx;
+    sel.pos.y = sy + dy;
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) {
+      window.setStatus('pos: ' + sx.toFixed(0) + ',' + sy.toFixed(0)
+                       + ' → ' + sel.pos.x.toFixed(0) + ',' + sel.pos.y.toFixed(0), 'ok');
+    }
+    try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+      detail: { key: 'Arrow', code: 'ArrowNudge', mods: { shift: true },
+                action: 'nudge-pos-' + (dy ? 'y' : 'x') }
+    })); } catch (_) {}
   }
 
   function action_nudgeOpacityUp() {
@@ -1019,8 +1079,10 @@
         case 'KeyV':            action = ev.shiftKey ? ACTIONS.mirrorVertical : ACTIONS.cycleMirror; break;
         case 'KeyF':            action = ACTIONS.fullscreen; break;
         case 'KeyU':            if (ev.shiftKey) action = ACTIONS.actionsRunAutoMap; break;
-        case 'ArrowUp':         action = ACTIONS.selectPrev; ev.preventDefault(); break;
-        case 'ArrowDown':       action = ACTIONS.selectNext; ev.preventDefault(); break;
+        case 'ArrowUp':         action = ev.shiftKey ? ACTIONS.nudgeLayerUp : ACTIONS.selectPrev; ev.preventDefault(); break;
+        case 'ArrowDown':       action = ev.shiftKey ? ACTIONS.nudgeLayerDown : ACTIONS.selectNext; ev.preventDefault(); break;
+        case 'ArrowLeft':       action = ev.shiftKey ? ACTIONS.nudgeLayerLeft : null; ev.preventDefault(); break;
+        case 'ArrowRight':      action = ev.shiftKey ? ACTIONS.nudgeLayerRight : null; ev.preventDefault(); break;
         // Page navigation across the demo variants. actionAllowed() drops
         // these on non-variant pages (see the `variants` host flag), so the
         // handler stays inert everywhere else.

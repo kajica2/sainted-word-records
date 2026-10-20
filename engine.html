@@ -480,6 +480,88 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 6px;
     }
+    /* Cloud library FAB + menu. The FAB only mounts when the
+       [data-cloud-library] attribute is present on the panel — see
+       client/cloud-library-fab.client.js. Anchors the button to the
+       bottom-right of the library panel and slides the menu up above
+       it. On phones (≤720px) the menu becomes a full-width drawer. */
+    .cloud-fab {
+      position: absolute;
+      right: 8px; bottom: 8px;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg-2);
+      color: var(--text-1);
+      border: 1px solid var(--line);
+      display: grid; place-items: center;
+      cursor: pointer;
+      z-index: 5;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .cloud-fab:hover { border-color: var(--accent, #f59e0b); }
+    .cloud-fab:disabled { opacity: .35; cursor: not-allowed; }
+    .cloud-fab--active { background: var(--accent, #f59e0b); color: var(--bg-1); border-color: var(--accent); }
+    .cloud-fab--error { color: #f55; border-color: #f55; }
+    .cloud-menu {
+      position: absolute;
+      right: 8px; bottom: 60px;
+      min-width: 220px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.45);
+      z-index: 6;
+      font: 12px/1.4 var(--font-body);
+      color: var(--text-1);
+    }
+    .cloud-menu[hidden] { display: none; }
+    .cloud-menu__head {
+      font: 600 10px/1 var(--font-mono, monospace);
+      letter-spacing: .06em;
+      color: var(--text-2, #aaa);
+      text-transform: uppercase;
+      padding: 4px 8px 6px;
+    }
+    .cloud-menu__row {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%;
+      padding: 8px 10px;
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      color: var(--text-1);
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+    }
+    .cloud-menu__row:hover { background: rgba(255,255,255,.06); }
+    .cloud-menu__row .ico { width: 18px; opacity: .8; }
+    .cloud-menu__hr {
+      border: 0;
+      border-top: 1px dashed var(--line);
+      margin: 6px 4px;
+    }
+    .cloud-menu__toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+    .cloud-menu__status {
+      padding: 6px 10px 8px;
+      border-top: 1px dashed var(--line);
+      margin-top: 4px;
+      color: var(--text-2, #aaa);
+      font: 10px/1.4 var(--font-mono, monospace);
+    }
+    .cloud-menu__backdrop {
+      position: fixed; inset: 0;
+      z-index: 4;
+    }
+    @media (max-width: 720px) {
+      .cloud-menu { right: 4px; left: 4px; min-width: 0; }
+    }
+
     /* `display: grid` above is an author rule, so it beats the UA stylesheet's
        `[hidden] { display: none }` — meaning `engineGrid.hidden = true` (set
        from the unified-grid wire-up) did nothing and the panel showed TWO
@@ -2743,10 +2825,11 @@
       </div>
     </div>
 
-    <aside id="library">
+    <aside id="library" data-cloud-library="on">
       <div class="panel-head">
         <h2>Library</h2>
         <button class="tbtn ghost" id="clear-all" title="Erase all uploaded assets + the saved song" style="padding:4px 8px; font-size:9px; color:#f55;">Clear</button>
+        <button class="tbtn ghost" data-clear="library" title="Empty the library only — removes every uploaded asset and bundled song, leaves other settings and saved sets untouched. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">Empty library</button>
         <button class="tbtn ghost" data-clear="songs" title="Clear only the saved song — keeps your library assets and bundled songs" style="padding:4px 8px; font-size:9px;">Clear song</button>
         <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
@@ -3725,6 +3808,8 @@
   <script src="/client/layer-audio-algos.client.js" defer></script>
   <script src="/client/look-filter-cycler.client.js" defer></script>
   <script src="/client/debug-overlay.client.js" defer></script>
+  <script src="/client/cloud-library.client.js" defer></script>
+  <script src="/client/cloud-library-fab.client.js" defer></script>
   <script src="/lib/personal-presets.client.js" defer></script>
   <!-- M1: auth + storage clients. project.js depends on these. -->
   <script src="/lib/auth.client.js" defer></script>
@@ -5015,6 +5100,33 @@
         cx.globalCompositeOperation = layer.blend || 'source-over';
         cx.globalAlpha = clamp(r.opacity, 0, 1);
         const cw = cx.canvas.width, chh = cx.canvas.height;
+        // Text layers: draw a string at the layer's position. Skipped
+        // under heavy hue/brightness treatments so the text stays
+        // legible — the eye reads text first, not the grade.
+        if (layer.kind === 'text' && layer.text) {
+          cx.save();
+          const fontPx = Math.max(8, (layer.size || 64) * (r.scale || 1));
+          cx.font = (layer.weight || 700) + ' ' + fontPx + 'px ' + (layer.family || 'sans-serif');
+          cx.textAlign = 'center';
+          cx.textBaseline = 'middle';
+          if (layer.glow) {
+            cx.shadowColor = layer.glow;
+            cx.shadowBlur = fontPx * 0.18;
+          }
+          cx.fillStyle = layer.color || '#fff';
+          const tx = cw / 2 + (r.x || 0);
+          const ty = chh / 2 + (r.y || 0);
+          if (r.rot) {
+            cx.translate(tx, ty);
+            cx.rotate((r.rot || 0) * Math.PI / 180);
+            cx.fillText(layer.text, 0, 0);
+          } else {
+            cx.fillText(layer.text, tx, ty);
+          }
+          cx.restore();
+          cx.restore();
+          return;
+        }
         // Hue/brightness/contrast pre-pass: draw asset into proc, then composite with filter
         if (Math.abs(r.hue) > 0.5 || Math.abs(r.brightness - 1) > 0.01 || Math.abs(r.contrast - 1) > 0.01) {
           const p = this.proc;
