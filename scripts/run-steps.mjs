@@ -47,6 +47,7 @@ const GROUPS = {
     'npm run check:syntax',
     'npm run check:engine-mobile',
     'npm run check:quota-estimate-unit',
+    'npm run check:quota-eviction',
     'npm run check:pt-verify',
     'npm run check:pt-import',
     'npm run check:bundle',

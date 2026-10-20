@@ -411,6 +411,7 @@
   </style>
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
+<script src="/lib/ease.js"></script>
   <script src="../engine-render.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -877,11 +878,11 @@
     fit();
     const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
     const pcx = proc.getContext('2d');
-    function ease(name, t) {
-      if (name === 'sharp') return Math.pow(t, 0.4);
-      if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
-      return t;
-    }
+    // ease(name, t) now lives in the shared /lib/ease.js curve map (plan
+    // P1.4). This page used to carry its own copy of the function; see
+    // lib/ease.js for the three historical bodies and the one behavior
+    // change the unification makes.
+    const ease = window.SWR_EASE.ease;
     function applyR(l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };

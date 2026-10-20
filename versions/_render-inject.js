@@ -246,22 +246,24 @@ for (const name of ENGINES) {
     }
   }
 
-  // ---- 5. ensure `ease` is defined (used by 3 engines' applyR) -------
-  // grid, hallucination, and smoke reference `ease(name, t)` inside their
-  // applyR() but never declare it. Other engines (film, eclipse) define it
-  // locally as a `function ease(name, t)` that handles 'sharp'/'soft'.
-  // Inject a shared no-op fallback for the three engines that miss it.
-  if (/ease\(\s*r\.ease\s*,/.test(src) && !/function ease\s*\(/.test(src)) {
-    const easeDef =
-      `    function ease(name, t) {\n` +
-      `      if (name === 'sharp') return Math.pow(t, 0.4);\n` +
-      `      if (name === 'soft') return t * t * (3 - 2 * t);\n` +
-      `      if (name === 'smooth') return t;\n` +
-      `      return t;\n` +
-      `    }\n`;
-    // Insert right after the IIFE's `const clamp = …;` line.
-    const anchor = src.match(/(\s*const clamp = \(v,lo,hi\) => Math\.max\(lo,Math\.min\(hi,v\)\);)/);
-    if (anchor) src = src.replace(anchor[0], anchor[0] + '\n' + easeDef);
+  // ---- 5. `ease` is shared now (plan P1.4) --------------------------
+  // This step used to inject a per-page `function ease(name, t)` into any
+  // page whose applyR() called `ease(r.ease, ...)` without declaring it
+  // (grid, hallucination, smoke at the time), while film and eclipse each
+  // hand-rolled their own copy and nine more pages carried a third variant.
+  //
+  // `ease` now lives once in lib/ease.js and every variant page binds it
+  // with `const ease = window.SWR_EASE.ease;`, served by the blocking
+  // `<script src="/lib/ease.js"></script>` tag in the page head. There is
+  // nothing left to inject, and re-injecting a local definition here would
+  // fork the curve map straight back out of the shared module.
+  //
+  // A page that still calls `ease(r.ease, ...)` with no binding is the
+  // expected post-migration shape. The guard below only warns; it must not
+  // write a definition back.
+  if (/ease\(\s*r\.ease\s*,/.test(src) && !/const ease = window\.SWR_EASE\.ease;/.test(src)
+      && !/function ease\s*\(/.test(src)) {
+    console.log(`  ${name}.html: WARN ease() is called but unbound (lib/ease.js tag missing?)`);
   }
 
   // ---- 6. hook Layers.render to mark the cache dirty on changes -------

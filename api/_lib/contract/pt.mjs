@@ -35,6 +35,34 @@ export const VerifyRes = z.union([
   ErrorBody.extend({ error: z.enum(['invalid_request', 'rate_limited', 'method_not_allowed']) }),
 ]);
 
+// The POST side of server-side PT verification: /api/license/verify
+// (P0.3, docs/PLANS/architecture-audit-2026-10.md). Same security
+// model as the GET contract above: the key is the credential, the
+// route is rate-limited per code, and it takes the code in a body
+// rather than a query string so it never lands in a proxy access log.
+export const LicenseVerifyReq = z.object({
+  code: z.string().min(1).max(64),  // format checked by the handler
+});
+export const LicenseVerifyRes = z.union([
+  z.object({
+    valid: z.literal(true),
+    tier: z.string(),                  // 'solo' | 'band' | 'label'
+    tierName: z.string().optional(),
+    creditsRemaining: z.number().int(),
+    slotCount: z.number().int(),
+    slotsRemaining: z.number().int().nullable().optional(),
+    grantedAt: IsoDate.optional(),
+  }),
+  z.object({
+    valid: z.literal(false),
+    reason: z.enum(['unknown_code', 'expired']),
+  }),
+  ErrorBody.extend({
+    reason: z.literal('invalid_request').optional(),
+    error: z.enum(['method_not_allowed', 'rate_limited', 'license_store_unavailable']),
+  }),
+]);
+
 // Admin-side: bulk-import keys minted by the operator. Requires
 // the admin secret in the x-import-secret header (not part of the
 // body contract; enforced by handler middleware).

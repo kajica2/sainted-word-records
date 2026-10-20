@@ -50,6 +50,7 @@
     "check:variant-codemods": "node scripts/check-variant-codemods.mjs",
     "check:engine-mobile": "node scripts/check-engine-mobile.mjs",
     "check:quota-estimate-unit": "node scripts/check-quota-estimate-unit.mjs",
+    "check:quota-eviction": "node scripts/check-quota-eviction.mjs",
     "check:pt-verify": "node scripts/check-pt-verify.mjs",
     "check:pt-import": "node scripts/check-pt-import.mjs",
     "check:build-idempotent": "node scripts/check-build-idempotent.mjs",

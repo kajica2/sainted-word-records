@@ -81,6 +81,10 @@ function pickHandlerPath(urlPath) {
   // client now treats a missing/unverifiable entitlement as "not
   // entitled" — the watermark stays on.
   if (segs[1] === 'pt' && segs[2] === 'verify' && !segs[3]) return '../api/pt/verify.js';
+  // PT license verification (P0.3, the audit). POST /api/license/verify
+  // { code } answers "is this key real" from the server ledger so the
+  // localStorage copy in pt.client.js is a cache, not the source of truth.
+  if (segs[1] === 'license' && segs[2] === 'verify' && !segs[3]) return '../api/license/verify.js';
   // Operator-minted PT key import (FIX 2 part B). POST .../import
   // upserts records from the local issuer into the server ledger.
   if (segs[1] === 'admin' && segs[2] === 'pt' && segs[3] === 'keys' && segs[4] === 'import') {

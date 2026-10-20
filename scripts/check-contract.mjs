@@ -121,6 +121,31 @@ check('ImportRes accepts { ok, imported, skipped }',
 check('ImportRes accepts unauthorized error',
   ImportRes.safeParse({ error: 'unauthorized' }).success);
 
+// PT license-verify contracts (POST /api/license/verify, P0.3)
+const { LicenseVerifyReq, LicenseVerifyRes } =
+  await import('../api/_lib/contract/pt.mjs');
+
+check('LicenseVerifyReq accepts a well-formed code',
+  LicenseVerifyReq.safeParse({ code: 'swr-band-A2B3C4D5' }).success);
+check('LicenseVerifyReq rejects an empty code',
+  !LicenseVerifyReq.safeParse({ code: '' }).success);
+check('LicenseVerifyRes accepts valid:true with tier + entitlements',
+  LicenseVerifyRes.safeParse({ valid: true, tier: 'band', creditsRemaining: 150, slotCount: 30 }).success);
+check('LicenseVerifyRes accepts valid:true with slotsRemaining null',
+  LicenseVerifyRes.safeParse({ valid: true, tier: 'solo', creditsRemaining: 50, slotCount: 10, slotsRemaining: null }).success);
+check('LicenseVerifyRes accepts valid:false unknown_code',
+  LicenseVerifyRes.safeParse({ valid: false, reason: 'unknown_code' }).success);
+check('LicenseVerifyRes accepts valid:false expired',
+  LicenseVerifyRes.safeParse({ valid: false, reason: 'expired' }).success);
+check('LicenseVerifyRes rejects valid:false with an unknown reason',
+  !LicenseVerifyRes.safeParse({ valid: false, reason: 'nope' }).success);
+check('LicenseVerifyRes accepts the rate_limited envelope',
+  LicenseVerifyRes.safeParse({ error: 'rate_limited', retryAfterMs: 1234 }).success);
+check('LicenseVerifyRes accepts the store_unavailable envelope',
+  LicenseVerifyRes.safeParse({ error: 'license_store_unavailable' }).success);
+check('LicenseVerifyRes accepts the method_not_allowed envelope',
+  LicenseVerifyRes.safeParse({ error: 'method_not_allowed' }).success);
+
 // Public contracts
 const { EarlyAccessReq, EarlyAccessRes, ManifestRes } =
   await import('../api/_lib/contract/_public.mjs');

@@ -307,6 +307,7 @@
   </style>
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
+<script src="/lib/ease.js"></script>
   <script src="../engine-render.client.js"></script>
 
   <!-- Automix + asset-curator stack (Phase 2 port from music_video) -->
@@ -612,12 +613,11 @@
     let W, H;
     const lerp = (a,b,t) => a+(b-a)*t;
     const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
-    function ease(name, t) {
-      if (name === 'sharp') return Math.pow(t, 0.4);
-      if (name === 'soft') return t * t * (3 - 2 * t);
-      if (name === 'smooth') return t;
-      return t;
-    }
+    // ease(name, t) now lives in the shared /lib/ease.js curve map (plan
+    // P1.4). This page used to carry its own copy of the function; see
+    // lib/ease.js for the three historical bodies and the one behavior
+    // change the unification makes.
+    const ease = window.SWR_EASE.ease;
 
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t,cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }

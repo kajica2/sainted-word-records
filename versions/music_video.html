@@ -418,6 +418,7 @@
   </style>
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
+<script src="/lib/ease.js"></script>
   <script src="../engine-render.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
 <script src="../client/anchor-embed.js"></script>
@@ -1349,11 +1350,11 @@
     fit();
     const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
     const pcx = proc.getContext('2d');
-    function ease(name, t) {
-      if (name === 'sharp') return Math.pow(t, 0.4);
-      if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
-      return t;
-    }
+    // ease(name, t) now lives in the shared /lib/ease.js curve map (plan
+    // P1.4). This page used to carry its own copy of the function; see
+    // lib/ease.js for the three historical bodies and the one behavior
+    // change the unification makes.
+    const ease = window.SWR_EASE.ease;
     // applyR is a let binding (not a function declaration) so the
     // post-modules wiring can wrap it. Originally was a function
     // declaration which is hoisted and not reassignable; the
