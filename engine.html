@@ -2718,6 +2718,7 @@
       <span class="pill" id="bpm-pill">— bpm</span>
       <button class="tbtn ghost" id="daily-btn" title="Today's editing practice" style="padding:4px 10px; font-size:9px;">📅 Day 1 · Practice</button>
       <span class="pill" id="key-pill">— key</span>
+      <span class="gctrl" id="midi-pill" style="font-size:10px; cursor:pointer;" title="MIDI controller mapping. Click to toggle auto-map.">MIDI <span id="midi-state">off</span></span>
       <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
       <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
       <select id="rec-size" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Export size preset — re-fits the canvas to the chosen aspect ratio at full quality before recording">
@@ -3808,6 +3809,7 @@
   <script src="/client/layer-audio-algos.client.js" defer></script>
   <script src="/client/look-filter-cycler.client.js" defer></script>
   <script src="/client/debug-overlay.client.js" defer></script>
+  <script src="/client/midi-alias.client.js" defer></script>
   <script src="/client/cloud-library.client.js" defer></script>
   <script src="/client/cloud-library-fab.client.js" defer></script>
   <script src="/lib/personal-presets.client.js" defer></script>
@@ -5576,6 +5578,15 @@
         if (beatLed)  beatLed.classList.toggle('on', !!Audio.feat.beatPulse);
         const onsetLed = $('onset-led');
         if (onsetLed) onsetLed.classList.toggle('on', !!Audio.feat.onsetPulse);
+        // MIDI pill — only update when state changes (cheap to re-render
+        // but no point redrawing every frame).
+        const midiPill = $('midi-state');
+        if (midiPill && window.SWR_MIDI) {
+          const s = window.SWR_MIDI.snapshot();
+          midiPill.textContent = s.inputs.length
+            ? (s.inputs.length + ' dev' + (s.inputs.length === 1 ? '' : 's'))
+            : (s.available ? 'await' : 'off');
+        }
         // v2: recording overlay — burn BPM + key into the captured video
         if (Recorder.recording) {
           this.drawRecordingOverlay(cx);
@@ -8995,6 +9006,26 @@
         $('daily-btn').addEventListener('click', open);
         document.querySelector('.daily-modal__close')?.addEventListener('click', close);
         $('daily-modal').addEventListener('click', (e) => { if (e.target === $('daily-modal')) close(); });
+        // MIDI pill: click to toggle auto-mapping; long-press to retry
+        // permission (handy when the user previously denied it).
+        const midiPill = $('midi-pill');
+        if (midiPill && window.SWR_MIDI) {
+          midiPill.addEventListener('click', () => {
+            const cur = window.SWR_MIDI.snapshot();
+            window.SWR_MIDI.setEnabled(!cur.enabled);
+            const next = window.SWR_MIDI.snapshot();
+            if (next.permission === 'denied') {
+              window.setStatus && window.setStatus('midi: permission denied. enable in browser settings.', 'warn');
+            } else if (!next.enabled) {
+              window.setStatus && window.setStatus('midi: auto-map disabled', 'ok');
+            } else if (next.inputs.length === 0) {
+              window.SWR_MIDI.requestAccess();
+              window.setStatus && window.setStatus('midi: requesting device permission', 'ok');
+            } else {
+              window.setStatus && window.setStatus('midi: ' + next.inputs.length + ' device(s) auto-mapped', 'ok');
+            }
+          });
+        }
         $('daily-reroll').addEventListener('click', reroll);
         $('daily-done').addEventListener('click', toggleDone);
         document.addEventListener('keydown', (e) => {
