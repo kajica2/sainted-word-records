@@ -40,6 +40,7 @@
     "check:tour-client-unit": "node scripts/check-tour-client-unit.mjs",
     "check:engine-keys-digit-filter-unit": "node scripts/check-engine-keys-digit-filter-unit.mjs",
     "check:engine-keys-keyspress-unit": "node scripts/check-engine-keys-keyspress-unit.mjs",
+    "check:shortcuts-movie-unit": "node scripts/check-shortcuts-movie-unit.mjs",
     "check:variant-codemods": "node scripts/check-variant-codemods.mjs",
     "check:engine-mobile": "node scripts/check-engine-mobile.mjs",
     "check:quota-estimate-unit": "node scripts/check-quota-estimate-unit.mjs",
