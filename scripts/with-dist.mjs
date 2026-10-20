@@ -135,9 +135,14 @@ export function ensureDist(opts) {
 // function. Uses the same minimal HTTP server pattern the smoke
 // scripts already use, so they can drop the duplicated boilerplate.
 //
+// Pass 0 for `port` to let the OS pick a free one — the returned `url` carries
+// the real port. Prefer that in anything CI runs: a hardcoded port collides
+// with whatever the developer (or a parallel job) already has listening, and
+// the failure is EADDRINUSE deep inside an unrelated step.
+//
 // Usage:
-//   const { close } = await serveDist(5180);
-//   ...puppeteer runs against http://localhost:5180/...
+//   const { url, close } = await serveDist(0);
+//   ...puppeteer runs against url...
 //   await close();
 export async function serveDist(port) {
   const http = await import('node:http');
@@ -152,6 +157,12 @@ export async function serveDist(port) {
     '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
     '.gif': 'image/gif', '.wav': 'audio/wav', '.mp3': 'audio/mpeg',
     '.mp4': 'video/mp4', '.webm': 'video/webm',
+    // The media packs under packs/ are webp. Without these they fall through to
+    // application/octet-stream, and Chrome refuses to render an <img> served
+    // with that type — so any smoke that loads a pack photo silently sees a
+    // broken image rather than a decode.
+    '.webp': 'image/webp', '.avif': 'image/avif', '.ico': 'image/x-icon',
+    '.webmanifest': 'application/manifest+json',
   };
   const server = http.createServer((req, res) => {
     let rel = decodeURIComponent(req.url.split('?')[0].replace(/^\/+/, '')) || 'index.html';
@@ -165,9 +176,14 @@ export async function serveDist(port) {
       res.end(buf);
     });
   });
-  await new Promise(r => server.listen(port, r));
+  await new Promise((res, rej) => {
+    server.once('error', rej);
+    server.listen(port, () => res());
+  });
+  const bound = server.address().port;
   return {
-    url: 'http://localhost:' + port,
-    close: () => new Promise(r => server.close(r)),
+    url: 'http://localhost:' + bound,
+    port: bound,
+    close: () => new Promise((r) => server.close(r)),
   };
 }
