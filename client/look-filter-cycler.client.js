@@ -92,35 +92,80 @@
     return p;
   }
 
+  // Intensity ramps. Press the SAME number key repeatedly and the active
+  // filter's effect scales through these values, then wraps. Different
+  // numbers reset the ramp. Each ramp is per-slot so the user can leave
+  // one filter at "barely there" and another at "all the way" without
+  // them interfering.
+  //
+  // Order is intentionally monotonic — the first press is gentle, the
+  // last is full-strength — so users get a clear "more please" gesture
+  // without thinking about it. Cycling past the final step wraps to 0,
+  // letting T+1 (×5) + T+1 (×6) act as off.
+  const INTENSITY_RAMP = [0.30, 0.55, 0.80, 1.00, 0.00]; // 0.00 = off
   let current = 0;
+  let intensityStep = 0; // index into INTENSITY_RAMP per active slot
 
+  // Apply a filter. Behavior:
+  //   n === 0       → clear (always)
+  //   n === current → advance the ramp and re-apply with that scale
+  //   n !== current → switch to n at the default intensity (step 0)
   function apply(n) {
-    const f = FILTERS.find(x => x.id === Number(n)) || FILTERS[0];
+    const num = Number(n);
+    const f = FILTERS.find(x => x.id === num) || FILTERS[0];
     if (!window.FX || typeof window.FX.setPersona !== 'function') {
       console.warn('[look-filter] FX.setPersona unavailable; filter not applied');
       return f;
     }
     if (f.id === 0) {
+      // Clear always wins — pressing T+0 is the explicit off gesture.
       reset();
+      current = 0;
+      intensityStep = 0;
+    } else if (current !== f.id) {
+      // Switching to a new filter: reset the ramp so each filter starts
+      // at its first intensity.
+      current = f.id;
+      intensityStep = 0;
+      applyScaled(f, INTENSITY_RAMP[0]);
     } else {
-      window.FX.setPersona(f.fx);
+      // Same filter as last time: advance the ramp. After the last
+      // step, wrap so the user can fade out by tapping the same key.
+      intensityStep = (intensityStep + 1) % INTENSITY_RAMP.length;
+      const k = INTENSITY_RAMP[intensityStep];
+      applyScaled(f, k);
     }
-    current = f.id;
     try { localStorage.setItem('swr.lookfilter', String(current)); } catch (_) {}
-    if (window.setStatus) {
-      window.setStatus('look: ' + (f.id === 0 ? 'none' : f.label), 'ok');
+    return f;
+  }
+
+  // Scale every numeric FX field in `f.fx` by `k`. 0 collapses to a no-op
+  // reset so the user can fade a filter out by tapping its key past
+  // the end of the ramp (step 4 → k=0 → reset).
+  function applyScaled(f, k) {
+    if (!window.FX || typeof window.FX.setPersona !== 'function') return;
+    if (k <= 0.001) { reset(); return; }
+    const profile = {};
+    for (const key in f.fx) {
+      const v = f.fx[key];
+      if (typeof v !== 'number') continue;
+      profile[key] = (key === 'temp') ? Math.max(-1, Math.min(1, v * k)) : Math.max(0, Math.min(1, v * k));
     }
-    window.SWR_LOOK_FILTER = Object.assign({ slot: f.id }, f);
+    window.FX.setPersona(profile);
+    const intensityLabel = (k >= 1) ? 'max' : (k <= 0.5 ? 'subtle' : 'med');
+    if (window.setStatus) window.setStatus('look: ' + f.label + ' · ' + intensityLabel, 'ok');
+    window.SWR_LOOK_FILTER = Object.assign({ slot: f.id, intensity: k, step: intensityStep }, f);
     try {
       window.dispatchEvent(new CustomEvent('swr-look-filter', {
-        detail: Object.assign({ slot: f.id }, f)
+        detail: Object.assign({ slot: f.id, intensity: k, step: intensityStep }, f)
       }));
     } catch (_) {}
-    return f;
   }
 
   function list() { return FILTERS.slice(); }
   function get() { return current; }
+  function getIntensityStep() { return intensityStep; }
+  function getRamp() { return INTENSITY_RAMP.slice(); }
 
   function restore() {
     let n = 0;
@@ -129,5 +174,6 @@
     return apply(n);
   }
 
-  window.SWR_LOOK_FILTER_CYCLER = { list, apply, get, restore, reset, ALL };
+  window.SWR_LOOK_FILTER_CYCLER = { list, apply, get, restore, reset, ALL,
+                                  getIntensityStep, getRamp };
 })();

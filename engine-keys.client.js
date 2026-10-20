@@ -1117,11 +1117,21 @@
       // switch above, where it is reachable.
       if (!action && key === '0' && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
         const L = layers();
+        // 0 = home: slide every layer back to its default transform
+        // (pos origin, opacity 1, hue 0, brightness/contrast neutral,
+        // baseScale from pickScale). Home is a smooth tween via
+        // Layers.homeAll() so the composition breathes back rather
+        // than snapping. Selected layer is deselected too — there's
+        // nothing to focus on when everything's at rest.
+        if (L && typeof L.homeAll === 'function') {
+          L.homeAll(480);
+        }
         if (L) selectLayer(L, null);
-        if (typeof window.setStatus === 'function') window.setStatus('layer: —', 'ok');
+        if (typeof window.setStatus === 'function') window.setStatus('home: layers back to start', 'ok');
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
-          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'deselect' }
+          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'home' }
         })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
         return;
       }
       // T (pre-arm) + DigitN/Digit0 — look filter cycler. The user presses
@@ -1220,7 +1230,7 @@
       // ---- Layers (documentation-only rows; no single action) ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '1..9',           label: 'select layer by index (1-based)' },
-      { keys: '0',              label: 'deselect layer' },
+      { keys: '0',              label: 'home — slide every layer back to its original position' },
       { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },
       { keys: 'D',              label: 'toggle AUTO DRIFT / manual drag', action: ACTIONS.toggleDragMode },
       { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)', requires: 'layerRemap' },

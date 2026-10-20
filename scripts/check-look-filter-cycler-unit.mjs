@@ -111,13 +111,16 @@ check('reset() clears stale FX state.mutAlgo so the next persona starts clean', 
 check('slot 2 (old cinema) sends sepia + grain + vignette + blur (no temp/tone per Trap 1)', () => {
   const { sandbox, calls } = runFresh();
   sandbox.window.SWR_LOOK_FILTER_CYCLER.apply(2);
+  // The default ramp step is 0.30 → all values scaled by 0.30.
   const sp = calls.find((c) => c[0] === 'setPersona' && c[1].sepia != null);
   if (!sp) return 'old cinema apply not seen';
   const p = sp[1];
-  if (p.sepia !== 0.42) return 'sepia ' + p.sepia;
-  if (p.grain !== 0.30) return 'grain ' + p.grain;
-  if (p.vignette !== 0.45) return 'vignette ' + p.vignette;
-  if (p.blur !== 0.12) return 'blur ' + p.blur;
+  // Field-by-field check at the ramp's default scale (0.30)
+  const K = 0.30;
+  if (Math.abs(p.sepia - 0.42 * K) > 1e-6) return 'sepia ' + p.sepia;
+  if (Math.abs(p.grain - 0.30 * K) > 1e-6) return 'grain ' + p.grain;
+  if (Math.abs(p.vignette - 0.45 * K) > 1e-6) return 'vignette ' + p.vignette;
+  if (Math.abs(p.blur - 0.12 * K) > 1e-6) return 'blur ' + p.blur;
   if (p.temp !== undefined) return 'temp leaked: ' + p.temp;
   if (p.tone !== undefined) return 'tone leaked: ' + p.tone;
   if (p.glow !== undefined) return 'glow leaked: ' + p.glow;
@@ -130,6 +133,7 @@ check('slot 9 (echo) sets mut + mutAlgo together (Trap 5)', () => {
   const sp = calls.find((c) => c[0] === 'setPersona' && c[1].mutAlgo != null);
   if (!sp) return 'echo apply not seen';
   const p = sp[1];
+  // mutAlgo is integer 0..5, NOT scaled by the ramp (Trap 5).
   if (p.mutAlgo !== 2) return 'mutAlgo ' + p.mutAlgo;
   if (typeof p.mut !== 'number') return 'mut missing: ' + p.mut;
   if (p.liquid !== undefined) return 'liquid leaks (Trap 6): ' + p.liquid;
@@ -205,7 +209,75 @@ check('restore() re-applies saved slot from localStorage', () => {
   vm.createContext(sandbox);
   vm.runInContext(SRC, sandbox);
   const f = sandbox.window.SWR_LOOK_FILTER_CYCLER.restore();
-  return f.id === 2 && sandbox.window.FX.state.sepia === 0.42;
+  // restore() at step 0 scales slot 2's sepia 0.42 × 0.30 = 0.126
+  return f.id === 2 && Math.abs(sandbox.window.FX.state.sepia - 0.42 * 0.30) < 1e-6;
+});
+
+check('repeated presses on the same slot scale through the intensity ramp', () => {
+  const { sandbox, calls } = runFresh();
+  const L = sandbox.window.SWR_LOOK_FILTER_CYCLER;
+  // Apply slot 3 four times — each profile passed to setPersona should have
+  // a smaller magnitude than the previous, since the ramp is ascending.
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    calls.length = 0;
+    L.apply(3);
+    const sp = calls.find((c) => c[0] === 'setPersona');
+    if (!sp) return 'no setPersona call';
+    const p = sp[1];
+    const mag = Object.values(p).filter((v) => typeof v === 'number').reduce((s, v) => s + Math.abs(v), 0);
+    seen.push(mag);
+  }
+  // First press resets ramp to step 0 (smallest). Repeated presses advance.
+  // Magnitudes must be monotonically increasing across calls 2..4 (first
+  // is the initial step-0 baseline, then subsequent ramp steps rise).
+  const r = L.getRamp();
+  if (r.length < 2) return 'ramp too short';
+  if (seen[1] <= seen[0]) return `ramp did not step up: ${seen.join(',')}`;
+  if (seen[2] <= seen[1]) return `ramp did not step up: ${seen.join(',')}`;
+  if (seen[3] <= seen[2]) return `ramp did not step up: ${seen.join(',')}`;
+  return true;
+});
+
+check('switching to a new slot resets the ramp back to step 0', () => {
+  const { sandbox } = runFresh();
+  const L = sandbox.window.SWR_LOOK_FILTER_CYCLER;
+  L.apply(3); // step 0 (subtle)
+  L.apply(3); L.apply(3); // step 1, 2
+  if (L.get() !== 3) return 'not on slot 3';
+  L.apply(4); // new slot → reset ramp
+  if (L.get() !== 4) return 'did not switch to 4';
+  if (L.getIntensityStep() !== 0) return 'ramp did not reset, step=' + L.getIntensityStep();
+  return true;
+});
+
+check('ramp wraps and lands on k=0 (calls reset()) so users can fade out', () => {
+  const { sandbox, calls } = runFresh();
+  const L = sandbox.window.SWR_LOOK_FILTER_CYCLER;
+  // Drive apply(3) past the end of the ramp.
+  const N = L.getRamp().length + 1;
+  for (let i = 0; i < N; i++) L.apply(3);
+  // The final call should have hit reset() — a FULL zeroed persona, not a
+  // scaled partial. Detect by the presence of all 17 keys at zero.
+  const sp = calls[calls.length - 1];
+  if (!sp || sp[0] !== 'setPersona') return 'no setPersona recorded';
+  const p = sp[1];
+  for (const k of sandbox.window.SWR_LOOK_FILTER_CYCLER.ALL) {
+    if (p[k] !== 0) return `${k} should be 0 (reset), got ${p[k]}`;
+  }
+  return true;
+});
+
+check('reset() round trip: apply(k) → ramp to 0 → state is fully zeroed', () => {
+  const { sandbox } = runFresh();
+  const L = sandbox.window.SWR_LOOK_FILTER_CYCLER;
+  L.apply(2);   // old cinema, default intensity
+  L.apply(2); L.apply(2); L.apply(2); L.apply(2); // ramp to step 4 = k=0 → reset
+  const st = sandbox.window.FX.state;
+  for (const k of L.ALL) {
+    if (st[k] !== 0) return `${k} still set: ${st[k]}`;
+  }
+  return true;
 });
 
 // ---- summary ----
