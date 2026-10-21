@@ -20,9 +20,10 @@
 // The packs are what the library drawer loads; a wrong base or a lost
 // pack path breaks the site silently, so this is worth pinning down.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 
 import {
   PACKS_DIR,
@@ -205,6 +206,32 @@ async function main() {
       if (f.rel.includes('\\')) return f.rel + ' is not a POSIX path';
     }
     return true;
+  });
+
+  // A symlink inside the packs directory has a path that stays inside it
+  // while its target points anywhere. The walk must not hand such a file
+  // to the uploader — the publish step puts these on a public host — and
+  // must not follow it into a directory outside the tree.
+  await check('listPackFiles() skips symlinks that point outside', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'swr-offsite-'));
+    try {
+      const packs = join(tmp, 'packs');
+      const outside = join(tmp, 'outside');
+      mkdirSync(packs);
+      mkdirSync(outside);
+      writeFileSync(join(packs, 'real.webp'), 'x');
+      writeFileSync(join(outside, 'secret.txt'), 'x');
+      symlinkSync(join(outside, 'secret.txt'), join(packs, 'escape.webp'));
+      symlinkSync(outside, join(packs, 'escape-dir'));
+      const found = listPackFiles(tmp, 'packs').map((f) => f.rel).sort();
+      const expected = ['real.webp'];
+      if (found.length !== expected.length || found[0] !== expected[0]) {
+        return 'walked ' + JSON.stringify(found) + ', expected ' + JSON.stringify(expected);
+      }
+      return true;
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   await check('listPackFiles() includes the manifest', () => {

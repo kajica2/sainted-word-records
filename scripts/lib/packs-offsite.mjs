@@ -16,7 +16,7 @@
 // (scripts/publish-media-offsite.mjs) does that, and the build only needs
 // to know WHICH files to copy and what the manifest's base becomes.
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 
 export const PACKS_DIR = 'packs';
@@ -57,13 +57,19 @@ export function rewriteManifest(text, base) {
 // Every file under the packs directory, as repo-relative paths, with its
 // size. A path that escapes the packs directory is refused rather than
 // uploaded: the publish step sends these to a public host.
+//
+// Symlinks are skipped outright. lstat() (not stat()) is what makes that
+// possible: a symlink's *path* stays inside the packs directory while its
+// target can point anywhere — the walk must never hand such a file to the
+// uploader, and never follow it into a directory outside the tree.
 export function listPackFiles(root, packsDir = PACKS_DIR) {
   const base = resolve(root, packsDir);
   const out = [];
   const walk = (dir) => {
     for (const name of readdirSync(dir).sort()) {
       const full = join(dir, name);
-      const st = statSync(full);
+      const st = lstatSync(full);
+      if (st.isSymbolicLink()) continue;
       if (st.isDirectory()) {
         walk(full);
         continue;
