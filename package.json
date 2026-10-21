@@ -205,7 +205,9 @@
     "check:webgl-no-invalid-op": "node scripts/check-webgl-no-invalid-op.mjs",
     "verify:photo-scrolls": "node verify-photo-scrolls.mjs",
     "verify:pack-store": "node verify-pack-store.mjs",
-    "publish:packs": "python3 scripts/publish-packs-to-store.py"
+    "publish:packs": "python3 scripts/publish-packs-to-store.py",
+    "media:inventory": "node scripts/media-inventory.mjs",
+    "prebuild": "node scripts/media-inventory.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",
