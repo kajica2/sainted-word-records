@@ -103,12 +103,24 @@ const maxDelta = (a, b, fields) => {
 
 const FIELDS_SRC = FIELDS;
 let server;
+let browser = null;
+
+// A gate that HANGS is worse than a gate that fails: this step has its own
+// CI job, so a stuck browser would burn the whole budget and report
+// nothing. The watchdog turns a hang into a failure with a reason. It is
+// unref'd, so it never keeps the process alive on a normal finish.
+const WATCHDOG_MS = 5 * 60 * 1000;
+const watchdog = setTimeout(() => {
+  process.stderr.write('[arc-smoke] still running after 5 minutes — failing instead of hanging\n');
+  process.exit(1);
+}, WATCHDOG_MS);
+watchdog.unref();
 
 try {
   const served = await serveDist(PORT);
   server = served;
 
-  const browser = await puppeteer.launch({
+  browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
            '--autoplay-policy=no-user-gesture-required'],
   });
@@ -265,11 +277,23 @@ try {
     bad('unexpected HTTP failures', JSON.stringify(unexpected.slice(0, 4)));
   }
 
-  await browser.close();
 } catch (err) {
   bad('automix arc smoke', String(err && err.message || err));
 } finally {
+  // The browser is closed HERE, not at the end of the try: an exception used
+  // to skip the close, and the surviving Chrome process kept the event loop
+  // alive — so the gate HUNG instead of failing (seen twice on 2026-10-21:
+  // once locally, once burning a CI job's whole budget). The close is
+  // bounded, because a browser that will not close must not hang the gate
+  // either.
+  if (browser) {
+    await Promise.race([
+      browser.close().catch(() => {}),
+      new Promise((r) => setTimeout(r, 5000)),
+    ]);
+  }
   if (server && server.close) await server.close();
+  clearTimeout(watchdog);
 }
 
 console.log(results.join('\n'));

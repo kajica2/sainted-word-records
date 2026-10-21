@@ -52,6 +52,18 @@ await new Promise((resolve, reject) => {
 const PORT = server.address().port;
 const BASE = `http://localhost:${PORT}`;
 
+// A gate that HANGS is worse than a gate that fails: this step is a
+// member of the check:full group, so a stuck browser would burn the
+// group's whole budget and report nothing. The watchdog turns a hang into
+// a failure with a reason. It is unref'd, so it never keeps the process
+// alive on a normal finish.
+const WATCHDOG_MS = 8 * 60 * 1000;
+const watchdog = setTimeout(() => {
+  process.stderr.write('[automix-smoke] still running after 8 minutes — failing instead of hanging\n');
+  process.exit(1);
+}, WATCHDOG_MS);
+watchdog.unref();
+
 // --autoplay-policy: the pages this suite drives call play() on the demo track.
 // Without the flag Chrome rejects it ("NotAllowedError: play() failed because
 // the user didn't interact with the document first"), which is how this step
@@ -1826,7 +1838,12 @@ for (const name of DISABLED_VARIANTS) {
   else bad('versions/' + name + '.html: disabled → toggle hidden', JSON.stringify(res));
 }
 
-await browser.close();
+// Bounded: a browser that will not close must not hang the gate.
+await Promise.race([
+  browser.close().catch(() => {}),
+  new Promise((r) => setTimeout(r, 5000)),
+]);
+clearTimeout(watchdog);
 server.close();
 console.log(results.join('\n'));
 console.log('AUTOMIX SMOKE: ' + (process.exitCode ? 'FAILED' : 'ALL GREEN') + ' (' + results.length + ' assertions)');
