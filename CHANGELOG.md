@@ -18,6 +18,36 @@ once it hits 1.0.
   fetches the media from its own origin, so a host without CORS would break
   the packs at runtime. Unset, nothing changes: the whole directory ships
   exactly as before.
+- The **Media Source** panel — where the audio comes from, next to the
+  loaded video instead of buried in a global settings page. The source is
+  the video's own track, a separate audio file, or nothing; the panel also
+  carries the sync toggle and the audio offset (milliseconds, **positive
+  delays the audio**). The engine behind it changed with it: the media
+  element's `MediaElementAudioSourceNode` is now built on
+  `loadedmetadata` / `canplay` instead of at load time, and **one clock
+  drives everything** — the bar counter, the beat timestamps and the beat
+  phase read the media element's `currentTime` (the external file's, when
+  one is loaded) rather than an independent `requestAnimationFrame` timer.
+  A separate file becomes the master: the music is what you hear and what
+  the visuals react to, and the picture is corrected onto it (80 ms
+  threshold, so it never jitters). With the video's own track the picture
+  and the sound are the same element, so the sync and the offset are
+  disabled with a note saying why — they have nothing to trim.
+- The export now records **the audio the preview hears**. All three export
+  paths tap the engine's analyser, whose input is the current audio
+  source, so the file carries whatever the panel is set to — with no
+  second set of export controls that could disagree with the preview. (Two
+  of the three paths passed a string and a media element where the
+  recorder needs an `AudioNode`, so they produced video-only files.)
+- A video song becomes a layer, in sync with the audio. Load a video file
+  as the song and its picture joins the stage automatically: the layer
+  shares the song's **own** `<video>` element rather than a second one, so
+  play, pause, seek and rate move the picture and the sound together —
+  the sync is structural, not corrected frame by frame, and an exported
+  music video cannot drift from its track. The layer is left out of saved
+  compositions (the song's own restore path brings it back), and the
+  engine's renderer no longer drives the element, so nothing can restart
+  the song from zero mid-playback.
 - The store — one data file (`site-map.json` → `store`) drives the whole
   storefront. `lib/store.client.js` paints the download catalogue into any
   `[data-store]` container (the marketplace lists the products itself — add
@@ -67,6 +97,13 @@ once it hits 1.0.
   lifecycle, layer retire, kit-zip.
 
 ### Fixed
+- The export hung on browsers without an H.264 encoder (Firefox, and the
+  Chromium builds that ship without the proprietary codecs): the WebCodecs
+  worker reported the unusable codec **asynchronously**, so the promise
+  rejected after the `try` block that handled it had already run. The
+  button said "recording" and no frame was ever encoded. The fallback to
+  the MediaRecorder path is now attached to the promise, so the export
+  falls back instead of hanging.
 - The master rotation toggle defaulted to **off**, so every layer was born
   with `rotationEnabled === false` and no audio-driven or manual rotation
   ran until the user pressed the ↻ button. `engine-keys.client.js`'s
@@ -93,6 +130,25 @@ once it hits 1.0.
   so `lib/app-version-bust.js` does not hard-reload a cold profile.
 - `verify-rot-master.mjs` asserted `window.SWR.RENDER`, a global that does
   not exist anywhere in the tree; `engine.html` publishes `SWR.Renderer`.
+- `check:automix-arc-smoke` measured the wrong song, and then a stale arc.
+  The gate loaded its demo song only as a FALLBACK: the default library
+  seeds `audios/test-clip.mp3` (60s) on its own schedule, and whichever won
+  was a race. The two songs produce different arcs — the 60s default yields
+  a 4-act arc whose last two acts are both low-energy, so the act-to-act
+  displacement the gate measures lands at ~0.21 and the 0.3 bar failed on a
+  design choice rather than on a regression. The gate now waits for the
+  default library to settle, loads the demo song unconditionally, and pins
+  the arc to that song's duration (the runtime replaces the arc only after
+  its async analysis resolves, so a leftover arc already satisfied the act
+  count). It also neutralises the service worker, whose `controllerchange`
+  reload was destroying the execution context mid-assertion.
+- Four smokes bound a fixed port for their static server
+  (`check:webgl-default-off` 5396, `check:svg-grade-integration` 5394,
+  `check:variants-smoke` 5392, `check:automix-arc-smoke` 5185). An
+  unrelated outbound connection that the OS handed the same port to killed
+  the gate with EADDRINUSE before it asserted anything. They now bind an
+  ephemeral port and read the assigned one back, like `check:store-smoke`
+  and `check:dashboard`.
 - `verify-autoplay.mjs` failed about half the time with *"Execution context
   was destroyed, most likely because of a navigation"*. The engine page
   reloads itself twice on a cold profile — the service worker claims the

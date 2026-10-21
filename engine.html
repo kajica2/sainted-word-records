@@ -3002,6 +3002,10 @@
         </div>
       </div>
       <div class="panel-body">
+        <!-- The Media Source panel: the audio source, the sync and the
+             offset, next to the media they apply to. Rendered by
+             client/media-source.client.js against this id. -->
+        <div id="media-source" aria-label="Media source"></div>
         <!-- Opt-in media packs. Nothing auto-loads; clicking a pack pulls its
              assets in. Rendered by client/library-packs.client.js against this
              id (same contract as versions/music_video.html). -->
@@ -3964,6 +3968,10 @@
   <script src="/lib/swr-life.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
+  <!-- A video loaded as the song becomes a layer, sharing the song's own
+       <video> element so the picture and the sound cannot drift apart
+       (see lib/song-video-layer.client.js). -->
+  <script src="/lib/song-video-layer.client.js" defer></script>
   <script src="/client/layer-strip.client.js" defer></script>
   <script src="/client/library-sheet.client.js" defer></script>
   <script src="/client/layer-audio-algos.client.js" defer></script>
@@ -3974,6 +3982,10 @@
   <script src="/client/midi-learn-ui.client.js" defer></script>
   <script src="/client/cloud-library.client.js" defer></script>
   <script src="/client/cloud-library-fab.client.js" defer></script>
+  <!-- The Media Source panel: where the audio comes from, whether the
+       picture is locked to it, and by how much. It drives window.Audio
+       (see client/media-source.client.js). -->
+  <script src="/client/media-source.client.js" defer></script>
   <script src="/lib/personal-presets.client.js" defer></script>
   <!-- M1: auth + storage clients. project.js depends on these. -->
   <script src="/lib/auth.client.js" defer></script>
@@ -5099,17 +5111,24 @@
           // Video with a blob URL: drive playback from main audio play state.
           // Camera: srcObject drives its own playback (autoplay); don't pause it.
           if (a.type === 'video') {
-            // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
-            // lib/video-sync.client.js) does not trust `paused`: a video
-            // paused while it is still loading has its media pipeline
-            // suspended — the element drops back to readyState 1 and stops
-            // fetching — and while a play() promise is pending `paused`
-            // stays true, so the next frame calls play() again and a second
-            // play() on a pending element resets it to readyState 1. Either
-            // way the element sits at readyState 1, the draw gate below
-            // (readyState < 2) skips the layer, and the clip never reaches
-            // the stage.
-            if (window.SWR_VIDEO_SYNC) {
+            if (a.songBound) {
+              // The song's own element (lib/song-video-layer.client.js).
+              // The transport already drives it — Audio.play / pause / seek
+              // all act on this very element — so the picture and the sound
+              // are one clock and cannot drift. SWR_VIDEO_SYNC must not
+              // touch it: its stalled-element recovery calls el.load(),
+              // which would restart the song from zero.
+            } else if (window.SWR_VIDEO_SYNC) {
+              // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
+              // lib/video-sync.client.js) does not trust `paused`: a video
+              // paused while it is still loading has its media pipeline
+              // suspended — the element drops back to readyState 1 and stops
+              // fetching — and while a play() promise is pending `paused`
+              // stays true, so the next frame calls play() again and a second
+              // play() on a pending element resets it to readyState 1. Either
+              // way the element sits at readyState 1, the draw gate below
+              // (readyState < 2) skips the layer, and the clip never reaches
+              // the stage.
               window.SWR_VIDEO_SYNC(src, Audio.playing);
             } else {
               if (Audio.playing && src.paused) src.play().catch(()=>{});
@@ -5889,8 +5908,11 @@
         // Compute auto-stop deadline from #rec-dur selector
         const durSel = $('rec-dur') ? $('rec-dur').value : '0';
         let durMs = 0;
-        if (durSel === 'song' && Audio.audioEl && Audio.audioEl.duration) {
-          const remaining = (Audio.audioEl.duration - Audio.audioEl.currentTime) * 1000;
+        // The clock carries the audio, so the recording runs for the length
+        // of the MUSIC — which is the external file when one is loaded.
+        const clockEl = (typeof Audio.clockElement === 'function' ? Audio.clockElement() : null) || Audio.audioEl;
+        if (durSel === 'song' && clockEl && clockEl.duration) {
+          const remaining = (clockEl.duration - clockEl.currentTime) * 1000;
           durMs = Math.max(0, remaining);
         } else if (durSel !== '0' && durSel !== 'manual') {
           durMs = parseInt(durSel) * 1000;
@@ -6029,6 +6051,28 @@
           }, Math.max(50, this.autoStopAt - Date.now()));
         }
       },
+      // The WebCodecs path gave up. An unusable codec (no H.264 encoder)
+      // is not a dead end: the MediaRecorder path below can record the
+      // same canvas, with the same audio, in every browser that can
+      // capture a canvas at all.
+      _webCodecsFailed(e) {
+        if (e && e.unsupported) {
+          setStatus('WebCodecs unsupported, falling back to MediaRecorder', 'warn');
+          this._wcActive = false;
+          // Re-enter the standard path. SWR_RECORDER_WORKER is toggled off
+          // for the recursive call so start() takes the MediaRecorder
+          // branch instead of bouncing back into _startWebCodecs (which
+          // would throw unsupported again and infinite-loop). The flag
+          // is restored in `finally` so the next visit still opts in.
+          const prevFlag = window.SWR_RECORDER_WORKER;
+          window.SWR_RECORDER_WORKER = false;
+          this._prevCanvasSize = null;
+          try { this.start(); } finally { window.SWR_RECORDER_WORKER = prevFlag; }
+          return;
+        }
+        setStatus(`recorder start failed: ${(e && e.message) || e}`, 'err');
+        this._wcActive = false;
+      },
       // ---- WebCodecs recording path ------------------------------------
       // Encode runs in a Web Worker; the main thread sends one VideoFrame per
       // rendered frame (explicit timestamp — frame-locked, so a stalled frame
@@ -6069,26 +6113,27 @@
             height: newSize.height,
             fps: 24,
             videoBitsPerSecond: bits,
+            // The export records what the preview hears. The analyser
+            // carries the current audio source (the video's own track, an
+            // external file, or silence), so the file inherits the Media
+            // Source settings — there is no second set of export controls
+            // that could disagree with the preview.
+            audioSource: Audio.analyser,
+            audioSampleRate: (Audio.ctx && Audio.ctx.sampleRate) || 44100,
+            audioNumberOfChannels: 2,
           });
         } catch (e) {
-          if (e && e.unsupported) {
-            setStatus('WebCodecs unsupported, falling back to MediaRecorder', 'warn');
-            this._wcActive = false;
-            // Re-enter the standard path. SWR_RECORDER_WORKER is toggled off
-            // for the recursive call so start() takes the MediaRecorder
-            // branch instead of bouncing back into _startWebCodecs (which
-            // would throw unsupported again and infinite-loop). The flag
-            // is restored in `finally` so the next visit still opts in.
-            const prevFlag = window.SWR_RECORDER_WORKER;
-            window.SWR_RECORDER_WORKER = false;
-            this._prevCanvasSize = null;
-            try { this.start(); } finally { window.SWR_RECORDER_WORKER = prevFlag; }
-            return;
-          }
-          setStatus(`recorder start failed: ${e.message || e}`, 'err');
-          this._wcActive = false;
+          this._webCodecsFailed(e);
           return;
         }
+        // The worker reports an unusable codec ASYNCHRONOUSLY (the promise
+        // rejects with { unsupported: true }), so the fallback has to be
+        // attached to the promise. Without this the export hangs: the
+        // button says "recording", but no frame is ever encoded — which is
+        // what happens on every browser without an H.264 encoder.
+        this._wcStartPromise.catch((e) => {
+          try { this._webCodecsFailed(e); } catch (_) {}
+        });
         this.recording = true;
         this.startedAt = Date.now();
         $('rec').classList.add('live');
@@ -7094,9 +7139,12 @@
         Audio.pause();
       },
       updateTime() {
-        if (!Audio.audioEl) return;
-        const t = Audio.audioEl.currentTime || 0;
-        const d = Audio.audioEl.duration || 0;
+        // The clock, not the media element: with an external audio file the
+        // music is what the transport is moving through.
+        const el = (typeof Audio.clockElement === 'function' ? Audio.clockElement() : null) || Audio.audioEl;
+        if (!el) return;
+        const t = el.currentTime || 0;
+        const d = el.duration || 0;
         $('time').innerHTML = `${fmt(t)} <b>/ ${fmt(d)}</b>`;
       },
       // Audio drop handler: load the dropped audio as the current song.
@@ -7951,11 +7999,13 @@
 
           // 2. Start the recorder at 1 Mbps.
           setStatus('recording preview at 1 Mbps…', 'ok');
-          const audioSrc = window.A && window.A.src ? window.A.src : el.src;
+          // The recorder taps an AudioNode — the analyser carries whatever
+          // the preview is hearing, so the review file inherits the Media
+          // Source settings.
           const sampleRate = (window.A && window.A.ctx && window.A.ctx.sampleRate) || 44100;
           const pending = window.SWR_RECORDER.start({
             canvas: stage,
-            audioSource: audioSrc,
+            audioSource: (window.A && window.A.analyser) || null,
             audioSampleRate: sampleRate,
             audioNumberOfChannels: 2,
             width: stage.width,
@@ -8125,8 +8175,11 @@
           try {
             rec = window.SWR_RECORDER.start({
               canvas: stage,
-              audioSource: el,
-              audioSampleRate: 44100,
+              // The analyser, not the media element: the recorder needs an
+              // AudioNode, and the analyser carries whatever the preview is
+              // hearing (the video's own track, an external file, silence).
+              audioSource: (window.A && window.A.analyser) || null,
+              audioSampleRate: (window.A && window.A.ctx && window.A.ctx.sampleRate) || 44100,
               audioNumberOfChannels: 2,
               width: stage.width,
               height: stage.height,

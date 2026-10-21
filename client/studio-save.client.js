@@ -40,24 +40,30 @@
     const A = window.Audio;
     const cyc = (window.SWR_LOOK_FILTER_CYCLER && window.SWR_LOOK_FILTER_CYCLER.get)
       ? window.SWR_LOOK_FILTER_CYCLER.get() : {};
-    const layers = (L && Array.isArray(L.list)) ? L.list.map(function (l) {
-      return {
-        id: l.id,
-        assetId: l.asset ? (l.asset.id || null) : null,
-        blend: l.blend,
-        opacity: l.opacity,
-        baseScale: l.baseScale,
-        hue: l.hue,
-        brightness: l.brightness,
-        contrast: l.contrast,
-        pos: l.pos,
-        rotOffset: l.rotOffset || 0,
-        rotationEnabled: l.rotationEnabled !== false,
-        z: l.z,
-        algo: l.algo || 'none',
-        algoIntensity: l.algoIntensity || 0,
-      };
-    }) : [];
+    // The song-video layer (lib/song-video-layer.client.js) holds the song's
+    // live <video> element — it cannot be restored from a snapshot, and the
+    // song's own restore path re-adds it. Saving it would restore a ghost
+    // layer with a missing-asset stub.
+    const layers = (L && Array.isArray(L.list)) ? L.list
+      .filter(function (l) { return !(l.asset && l.asset.songBound); })
+      .map(function (l) {
+        return {
+          id: l.id,
+          assetId: l.asset ? (l.asset.id || null) : null,
+          blend: l.blend,
+          opacity: l.opacity,
+          baseScale: l.baseScale,
+          hue: l.hue,
+          brightness: l.brightness,
+          contrast: l.contrast,
+          pos: l.pos,
+          rotOffset: l.rotOffset || 0,
+          rotationEnabled: l.rotationEnabled !== false,
+          z: l.z,
+          algo: l.algo || 'none',
+          algoIntensity: l.algoIntensity || 0,
+        };
+      }) : [];
     return {
       schema: 'swr-preset/v1',
       name: String(name || 'Untitled'),

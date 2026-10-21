@@ -39,6 +39,14 @@
 // have reached — and it covers every act deterministically instead of
 // whichever ones happened to elapse. Measured cost: ~15s vs 85-180s.
 //
+// The song is pinned to /audios/endless-tomorrow.mp3 and the arc is pinned to
+// that song's duration. The default library seeds audios/test-clip.mp3 (60s)
+// on its own schedule, and whichever song won was a race: the 60s default
+// produces a 4-act arc whose last two acts are both low-energy, so the
+// act-to-act displacement lands at ~0.21 and the 0.3 bar below fails on a
+// design choice rather than on a regression. The demo song's arc is
+// [intro, peak, outro] and its consecutive pairs move 0.87 and 0.95.
+//
 // The final act's wrap (last act glides back toward the first baseline, by
 // design — "the outro drifts back toward the intro's feel") is NOT asserted:
 // the builder guarantees only consecutive pairs, so that pair is legitimately
@@ -47,8 +55,13 @@
 // Run command: node scripts/check-automix-arc-smoke.mjs
 // Pass criteria: every consecutive act pair differs, no page errors, exit 0.
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ensureDist, serveDist } from './with-dist.mjs';
 import puppeteer from 'puppeteer';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 ensureDist();
 
@@ -62,11 +75,11 @@ const FIELDS = [
   'temp', 'mut', 'posterize', 'vignette', 'chroma', 'grain', 'sepia',
   'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch',
 ];
-const DISPLACEMENT_MIN = 0.3;   // same bar as the realtime contract
+const DISPLACEMENT_MIN = 0.3;   // absolute, in at least one field — the same 0.3 the realtime contract uses
 const MIN_ACTS = 3;
-// The port is chosen by the OS (0 = ephemeral): a hardcoded port collides
-// with whatever else on the machine holds it — a parallel gate run is
-// enough to fail the whole step with EADDRINUSE.
+// Port 0 binds an ephemeral port. A fixed port can be handed to an
+// unrelated outbound connection by the OS, and the smoke then dies with
+// EADDRINUSE before it asserts anything.
 const PORT = 0;
 const DEMO_SONG = '/audios/endless-tomorrow.mp3';
 // A dev-only manifest probe: library-packs.client.js tries /packs/manifest.json
@@ -116,15 +129,47 @@ const watchdog = setTimeout(() => {
 }, WATCHDOG_MS);
 watchdog.unref();
 
+// The app version the served page will report to lib/app-version-bust.js.
+// The bust script runs synchronously in <head> and hard-reloads the page when
+// the stored version is stale, which it always is in a fresh profile — so the
+// version is seeded into localStorage below to keep the page loaded.
+const APP_VERSION = (() => {
+  try {
+    const src = fs.readFileSync(path.join(ROOT, 'dist/lib/app-version.js'), 'utf8');
+    const m = src.match(/SWR_APP_VERSION\s*=\s*"([^"]*)"/);
+    return m ? m[1] : '';
+  } catch (_) {
+    return '';
+  }
+})();
+
 try {
   const served = await serveDist(PORT);
   server = served;
 
   browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-           '--autoplay-policy=no-user-gesture-required'],
+           '--autoplay-policy=no-user-gesture-required',
+           // The service worker registers on load, claims the page on its
+           // first activation, and pwa-bootstrap.js reloads on
+           // 'controllerchange'. That reload lands mid-assertion and kills
+           // the execution context ("Execution context was destroyed, most
+           // likely because of a navigation"). The feature flag stops the
+           // worker existing; the register() stub below stops it being
+           // created. This smoke covers the arc, not the PWA shell — same
+           // fix and same symptom as verify-rotation-enabled.mjs,
+           // verify-autoplay.mjs and scripts/check-capture-smoke.mjs.
+           '--disable-features=ServiceWorker,ServiceWorkerOnUI'],
   });
   const page = await browser.newPage();
+  await page.evaluateOnNewDocument((version) => {
+    try {
+      if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+        navigator.serviceWorker.register = () => new Promise(() => {});
+      }
+    } catch (_) {}
+    try { localStorage.setItem('swr_app_version_seen', version); } catch (_) {}
+  }, APP_VERSION);
   const pageErrors = [];
   const failedRequests = [];
   page.on('pageerror', (e) => pageErrors.push(String(e.message || e)));
@@ -147,30 +192,50 @@ try {
   await page.goto(`${served.url}/engine.html?automix=1&webgl=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
 
-  // 1. Transport, then a song. default-library seeds the demo MP3, but its
-  //    poll windows can miss on a cold runner, so drive loadFile ourselves if
-  //    src has not landed.
+  // 1. Transport, then a song. default-library seeds a song of its own
+  //    (audios/test-clip.mp3, 60s) on its own schedule, and which song ended
+  //    up loaded was a RACE: sometimes the default library won, sometimes
+  //    this smoke's fallback load did. The two songs produce different arcs,
+  //    and the 60s default's 4-act arc has two adjacent low-energy acts, so
+  //    the act-to-act displacement this gate measures lands at ~0.21 and the
+  //    0.3 bar fails on a design choice rather than on a regression. Wait
+  //    for the default library to settle, THEN load the demo song
+  //    unconditionally, so the gate always measures the same arc.
   await page.waitForFunction(
     () => !!(window.SWR && window.SWR.Audio && typeof window.SWR.Audio.loadFile === 'function'),
     { timeout: 60000, polling: 300 });
-  const hasSrc = async () => page.evaluate(
-    () => !!(window.SWR.Audio.audioEl && window.SWR.Audio.audioEl.getAttribute('src')));
-  if (!(await hasSrc())) {
-    const loaded = await page.evaluate(async (demo) => {
-      try {
-        const r = await fetch(demo);
-        if (!r.ok) return 'HTTP ' + r.status;
-        const f = new File([await r.blob()], 'endless-tomorrow.mp3', { type: 'audio/mpeg' });
-        window.SWR.Audio.loadFile(f);
-        return true;
-      } catch (e) { return String(e); }
-    }, DEMO_SONG);
-    if (loaded !== true) bad('demo song loaded', loaded);
-  }
+  await page.waitForFunction(
+    () => !!(window.SWR.Audio.audioEl && window.SWR.Audio.audioEl.getAttribute('src')),
+    { timeout: 30000, polling: 300 }).catch(() => {});
+  const loaded = await page.evaluate(async (demo) => {
+    try {
+      const r = await fetch(demo);
+      if (!r.ok) return 'HTTP ' + r.status;
+      const f = new File([await r.blob()], 'endless-tomorrow.mp3', { type: 'audio/mpeg' });
+      await window.SWR.Audio.loadFile(f);
+      return true;
+    } catch (e) { return String(e); }
+  }, DEMO_SONG);
+  if (loaded !== true) bad('demo song loaded', loaded);
   await page.waitForFunction(
     () => !!(window.SWR.Audio.audioEl && window.SWR.Audio.audioEl.getAttribute('src')),
     { timeout: 30000, polling: 300 });
   ok('transport + demo song ready');
+
+  // 1b. The demo song's own duration, decoded from the file. The default
+  //     library fetches its track asynchronously and can land a load after
+  //     ours, so the arc this gate measures is pinned to the demo song by
+  //     duration rather than to whatever happens to be loaded.
+  const demoDuration = await page.evaluate(async (demo) => {
+    try {
+      const A = window.SWR.Audio;
+      if (!A.ctx && typeof A.unlock === 'function') A.unlock();
+      if (!A.ctx) return null;
+      const r = await fetch(demo);
+      const buf = await A.ctx.decodeAudioData(await r.arrayBuffer());
+      return buf.duration;
+    } catch (_) { return null; }
+  }, DEMO_SONG);
 
   // 2. Start automix and wait for the arc. No arc → the L3 layer is inert and
   //    every downstream assertion is meaningless, so this is the first gate.
@@ -182,16 +247,31 @@ try {
     // page, where Node-side constants do not exist (referencing it there throws
     // a ReferenceError every poll and the wait can never satisfy).
     await page.waitForFunction(
-      (min) => window.automix.arc && Array.isArray(window.automix.arc.acts) && window.automix.arc.acts.length >= min,
-      { timeout: 90000, polling: 300 }, MIN_ACTS);
+      (min, wantDur) => {
+        const arc = window.automix && window.automix.arc;
+        if (!arc || !Array.isArray(arc.acts) || arc.acts.length < min) return false;
+        // The arc must belong to the demo song. The builder always starts an
+        // arc at 0 and ends it at the song's duration, so an arc left over
+        // from another song fails this test. Waiting on acts.length alone is
+        // not enough: the runtime replaces the arc only after its async
+        // analysis resolves, so a stale arc already satisfies the count.
+        const last = arc.acts[arc.acts.length - 1];
+        if (arc.acts[0].t0 !== 0) return false;
+        return !wantDur || Math.abs(last.t1 - wantDur) < 0.5;
+      },
+      { timeout: 90000, polling: 300 }, MIN_ACTS, demoDuration);
     ok(`song arc built (≥${MIN_ACTS} acts)`);
   } catch (_) {
     const diag = await page.evaluate(() => ({
       hasArcModule: !!window.SWR_AUTOMIX_ARC,
       hasAnalyzeFull: !!(window.SWR && window.SWR.Audio && typeof window.SWR.Audio.analyzeFull === 'function'),
       arc: window.automix && window.automix.arc ? (window.automix.arc.acts || []).length + ' acts' : 'null',
+      arcEnd: window.automix && window.automix.arc && window.automix.arc.acts
+        ? window.automix.arc.acts[window.automix.arc.acts.length - 1].t1 : null,
+      elDuration: (window.SWR.Audio.audioEl || {}).duration || null,
       src: (window.SWR.Audio.audioEl || {}).src ? 'set' : 'unset',
     }));
+    diag.demoDuration = demoDuration;
     bad('song arc built', JSON.stringify(diag));
     throw new Error('no arc');
   }
