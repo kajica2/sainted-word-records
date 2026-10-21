@@ -717,6 +717,34 @@ const P8_SRC = `
 
 // ── main ─────────────────────────────────────────────────────────────────
 
+// P9 — the overlay must actually be laid out and styled. A broken
+// stylesheet once turned the whole panel into unstyled stacked text and
+// every content check still passed, because they read the DOM rather
+// than the rendering.
+const P9_SRC = `
+(() => {
+  const panel = document.getElementById('swr-debugger');
+  if (!panel) return { ok: false, reason: 'no panel' };
+  const cs = getComputedStyle(panel);
+  const rect = panel.getBoundingClientRect();
+  const bar = panel.querySelector('.bar');
+  const grid = panel.querySelector('.grid');
+  const checks = [
+    { ok: cs.position === 'fixed', reason: 'panel is not position:fixed', got: cs.position },
+    { ok: rect.width >= 300 && rect.height >= 200, reason: 'panel has no size', got: rect.width + 'x' + rect.height },
+    { ok: cs.display === 'flex', reason: 'panel is not a flex column', got: cs.display },
+    { ok: !!bar && bar.getBoundingClientRect().width > 10, reason: 'audio bars have no width' },
+    { ok: !!grid && getComputedStyle(grid).display === 'grid', reason: 'transform grid is not a grid' },
+    { ok: /mono/i.test(cs.fontFamily), reason: 'panel is not monospaced', got: cs.fontFamily },
+  ];
+  const passed = checks.filter((c) => c.ok).length;
+  return { ok: passed === checks.length, passed, total: checks.length,
+           failures: checks.filter((c) => !c.ok).slice(0, 6) };
+})()
+`;
+
+// ── main ─────────────────────────────────────────────────────────────────
+
 function median(xs) {
   if (!xs.length) return 0;
   const s = [...xs].sort((a, b) => a - b);
@@ -867,6 +895,8 @@ async function measurePage(cdp, url) {
       probes.push({ name: 'multi-layer', ...p7 });
       const p8 = await evaluate(cdp, sessionId, P8_SRC, true);
       probes.push({ name: 'unmount-integrity', ...p8 });
+      const p9 = await evaluate(cdp, sessionId, P9_SRC);
+      probes.push({ name: 'panel-rendered', ...p9 });
     }
 
     // P3 — no perturbation: the debugger must not add or suppress calls

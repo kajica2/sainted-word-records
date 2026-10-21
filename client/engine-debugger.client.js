@@ -365,8 +365,7 @@
   // ── overlay construction ───────────────────────────────────────────────
 
   var CSS = [
-    '#swr-debugger{position:fixed;top:44px;right:0;bottom:36px;width:330px;z-index:10050;',
-    'contain:layout style paint;',
+    '#swr-debugger{position:fixed;top:44px;right:0;bottom:36px;width:330px;z-index:10050;contain:layout style paint;',
     'display:flex;flex-direction:column;background:rgba(10,6,18,0.93);',
     'border-left:1px solid #2a1d3e;color:#f5e9ff;',
     'font:9px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;',
@@ -380,8 +379,7 @@
     'font:11px/1 ui-monospace,monospace;padding:0 2px}',
     '#swr-debugger .d-head button:hover{color:#ff2d8a}',
     '#swr-debugger .d-body{flex:1 1 auto;overflow-y:auto;min-height:0}',
-    '#swr-debugger section{border-bottom:1px solid #150b22;',
-    'content-visibility:auto;contain-intrinsic-size:auto 90px;',
+    '#swr-debugger section{border-bottom:1px solid #150b22}',
     '#swr-debugger .s-h{display:flex;align-items:center;gap:6px;padding:5px 10px 3px;',
     'font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:#8a7aa0}',
     '#swr-debugger .s-h .sp{flex:1}',
