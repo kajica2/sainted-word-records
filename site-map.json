@@ -420,27 +420,13 @@
     },
     "downloads": [
       {
-        "id": "preset-pack",
-        "name": "SWR Preset Pack",
-        "blurb": "Every curated .swr-set template and preset spec in one download.",
-        "price": 19,
+        "id": "media-packs",
+        "name": "Media Packs",
+        "blurb": "Every curated media pack — the stills and clips behind the galleries — in one download.",
+        "price": 25,
         "currency": "EUR",
         "source": [
-          "marketplace/curated",
-          "presets"
-        ],
-        "gumroadUrl": "",
-        "downloadUrl": "",
-        "bytes": 0
-      },
-      {
-        "id": "generation-archive",
-        "name": "Generation Archive",
-        "blurb": "The full render history — every generation with its credits and manifest.",
-        "price": 9,
-        "currency": "EUR",
-        "source": [
-          "generations"
+          "packs"
         ],
         "gumroadUrl": "",
         "downloadUrl": "",

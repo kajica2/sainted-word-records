@@ -389,11 +389,16 @@ async function main() {
   await check('writeDownloadUrl edits the right product and nothing else', () => {
     const text = readFileSync(new URL('../site-map.json', import.meta.url), 'utf8');
     const before = JSON.parse(text);
-    const updated = writeDownloadUrl(text, 'preset-pack', 'https://blob.example/store/preset-pack.zip', 67291);
+    // The product is read from the manifest, not hardcoded: the gate
+    // follows the catalogue.
+    const first = before.store.downloads[0];
+    if (!first) return 'the manifest has no downloads';
+    const url = 'https://blob.example/store/' + first.id + '.zip';
+    const updated = writeDownloadUrl(text, first.id, url, 67291);
     const after = JSON.parse(updated);
-    const d = after.store.downloads.find(x => x.id === 'preset-pack');
+    const d = after.store.downloads.find(x => x.id === first.id);
     if (!d) return 'the product is gone';
-    if (d.downloadUrl !== 'https://blob.example/store/preset-pack.zip') return 'downloadUrl is ' + d.downloadUrl;
+    if (d.downloadUrl !== url) return 'downloadUrl is ' + d.downloadUrl;
     if (d.bytes !== 67291) return 'bytes is ' + d.bytes;
     if (after.store.downloads.length !== before.store.downloads.length) return 'the product count changed';
     if (after.store.gumroad.url !== before.store.gumroad.url) return 'the gumroad block changed';

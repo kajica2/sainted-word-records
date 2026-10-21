@@ -115,6 +115,11 @@ read it; they never hardcode a product, a price or a payment link.
 - `store.products[]` — the **Stripe** products: `surface` (`shop` or
   `campaign`) and `stripeUrl` (the Payment Link).
 
+The catalogue is the owner's to define: one entry ships (the media packs as
+one download) as the starting point, and the free material the site already
+gives away (the curated `.swr-set` templates, the generation archives) is
+deliberately **not** in it.
+
 - `lib/store.client.js` — `window.SWR_STORE`. Reads the block from the
   inlined `#swr-footer-data` slice (the build's `inline-footer-nav` plugin
   now carries `store`) and falls back to `/site-map.json` on the dev server.
