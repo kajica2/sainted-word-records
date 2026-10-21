@@ -41,6 +41,58 @@
   var lastApplied = null;
   var lastProgress = null;
 
+  // ---- Grouping helpers for automix ----
+  // Extract name prefix for grouping (e.g. "intro_clip_01.mp4" -> "intro_clip")
+  function getNamePrefix(name) {
+    if (!name) return '_';
+    // Strip common extensions and trailing numbers
+    var base = name.replace(/\.(mp4|mov|webm|mkv|avi|m4v|jpg|jpeg|png|gif|webp)$/i, '');
+    // Strip trailing _01, _02, -01, -02 etc
+    base = base.replace(/[_-]?\d+$/, '');
+    // Strip trailing v1, v2 etc
+    base = base.replace(/v\d+$/i, '');
+    return base.toLowerCase() || '_';
+  }
+
+  // Group items by name prefix, separate videos from static images
+  function groupItemsByName(items) {
+    var groups = {};
+    var images = [];
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (!item || !item.url) continue;
+      // Collect all static images separately
+      if (item.type === 'image') {
+        images.push(item);
+        continue;
+      }
+      // Group videos by name prefix
+      var prefix = getNamePrefix(item.name);
+      if (!groups[prefix]) groups[prefix] = [];
+      groups[prefix].push(item);
+    }
+    return { groups: groups, images: images };
+  }
+
+  // Build layer pool: videos stay grouped by name, all images in one pool
+  function buildGroupedPool(items) {
+    var grouped = groupItemsByName(items || []);
+    var pool = [];
+    // Add video groups first (each group becomes a separate layer candidate)
+    var prefixes = Object.keys(grouped.groups).sort();
+    for (var i = 0; i < prefixes.length; i++) {
+      var groupItems = grouped.groups[prefixes[i]];
+      if (groupItems && groupItems.length) {
+        pool.push.apply(pool, groupItems);
+      }
+    }
+    // Add all static images at the end (they'll be assigned to one layer)
+    if (grouped.images.length) {
+      pool.push.apply(pool, grouped.images);
+    }
+    return pool;
+  }
+
   // Media-store pool wrappers are cached by content signature: apply() runs
   // on every act boundary and on the 10s fallback, and building a fresh
   // object URL per media item per call leaked one blob URL each time (the
@@ -86,13 +138,17 @@
     // swap — the #1 cause of "automix isn't evolving my clips". Add up
     // to 3 layers from EITHER store (engine Library or the '+ ADD'
     // media store), once per session.
+    // Grouping: videos grouped by name prefix, all static images together.
     var SWR = window.SWR;
     var Layers = SWR && SWR.Layers;
     var Library = SWR && SWR.Library;
     if (Layers && typeof Layers.add === 'function' &&
         (!Layers.list || !Layers.list.length)) {
       var engineItems = ((Library && Library.items) || []).filter(function (i) { return i && i.url; });
-      var pool = engineItems.length ? engineItems : mediaWraps();
+      var rawPool = engineItems.length ? engineItems : mediaWraps();
+      // Use grouped pool: videos stay grouped by name, images together
+      var pool = buildGroupedPool(rawPool);
+      // Add up to 3 layers, respecting grouping
       for (var li = 0; li < Math.min(3, pool.length); li++) {
         try { Layers.add(pool[li]); } catch (_) {}
       }
