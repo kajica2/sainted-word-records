@@ -298,7 +298,10 @@
               </div>
               <div id="photo-deck" class="mt-3 grid grid-cols-4 gap-2"></div>
               <div class="flex items-center justify-between mt-3 text-[11px]">
-                <label class="flex items-center gap-2 text-gray-300"><input type="checkbox" id="photo-advance" checked class="accent-orange" /> Advance on beat</label>
+                <div class="flex items-center gap-4">
+                  <label class="flex items-center gap-2 text-gray-300"><input type="checkbox" id="photo-advance" checked class="accent-orange" /> Advance on beat</label>
+                  <label class="flex items-center gap-2 text-gray-300"><input type="checkbox" id="photo-auto-group" checked class="accent-orange" /> Auto-group by name</label>
+                </div>
                 <span id="photo-status" class="text-gray-500">— no photos —</span>
               </div>
             </div>
@@ -1035,27 +1038,147 @@
     const photoDrop = document.getElementById('photo-drop');
     const photoFile = document.getElementById('photo-file');
     const photos = [];
-    function addPhoto(file) {
-      if (!file || !file.type.startsWith('image/')) return;
-      const url = URL.createObjectURL(file);
-      const tile = document.createElement('div');
-      tile.className = 'aspect-square bg-[#1e1e24] rounded overflow-hidden border border-line';
-      const img = document.createElement('img');
-      img.src = url;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-      tile.appendChild(img);
-      photoDeck.appendChild(tile);
-      photos.push({ file, url });
-      photoStatus.textContent = `${photos.length} photo${photos.length === 1 ? '' : 's'} loaded`;
-      // The deck is the engine's base source — it wins over a live camera.
-      if (window.__SWR_ENGINE && window.__SWR_ENGINE.setPhotos) {
-        window.__SWR_ENGINE.setPhotos(photos.map((p) => p.url));
+    
+    // Auto-group photos by similar name patterns
+    function groupPhotosByName(files) {
+      const groups = {};
+      const groupOrder = [];
+      
+      files.forEach((file) => {
+        // Extract base name: remove extension, trailing numbers
+        const name = file.name.replace(/\.[^.]+$/, ''); // remove extension
+        // Try to find common prefix (e.g., "img_001" -> "img", "photo-2" -> "photo")
+        const baseMatch = name.match(/^([a-zA-Z]+)[_-]?\d*$/);
+        const base = baseMatch ? baseMatch[1].toLowerCase() : name.toLowerCase();
+        
+        if (!groups[base]) {
+          groups[base] = [];
+          groupOrder.push(base);
+        }
+        groups[base].push(file);
+      });
+      
+      return { groups, order: groupOrder };
+    }
+    
+    // Create layers from grouped photos
+    function createLayersFromGroups(groups, order) {
+      const layerList = document.getElementById('layers-list');
+      if (!layerList) return;
+      
+      // Clear existing layers
+      layerList.innerHTML = '';
+      
+      order.forEach((groupName, groupIdx) => {
+        const groupPhotos = groups[groupName];
+        const layer = {
+          name: groupName.toUpperCase(),
+          photos: groupPhotos,
+          blend: 'over',
+          opacity: 80,
+          base: 50,
+          scale: 100,
+          hue: (groupIdx * 30) % 360,
+          rot: 0,
+        };
+        
+        // Add layer row
+        const details = document.createElement('details');
+        details.className = 'border-b border-line';
+        if (groupIdx === 0) details.setAttribute('open', '');
+        details.innerHTML = `
+          <summary class="flex items-center gap-2 px-3 py-2 hover:bg-[#161619]">
+            <span class="text-gray-500 text-[10px] cursor-grab"><i class="fa-solid fa-grip-vertical"></i></span>
+            <span class="micro w-4 tabular text-right text-gray-500">${groupIdx + 1}</span>
+            <span class="w-8 h-8 rounded bg-[#1e1e24] flex items-center justify-center">
+              <i class="fa-solid fa-images text-[10px] text-gray-500"></i>
+            </span>
+            <span class="text-[12px] font-medium text-white flex-1">${layer.name} (${groupPhotos.length})</span>
+            <span class="flex items-center gap-1" onclick="event.stopPropagation()">
+              <a class="icon-btn" title="Link"><i class="fa-solid fa-link text-[10px]"></i></a>
+              <a class="icon-btn" title="Duplicate"><i class="fa-solid fa-copy text-[10px]"></i></a>
+              <a class="icon-btn" title="Delete"><i class="fa-solid fa-trash-can text-[10px]"></i></a>
+            </span>
+          </summary>
+          <div class="px-3 pb-3 space-y-2.5">
+            <div class="label mb-1">Blend</div>
+            <select class="w-full bg-panel border border-line rounded text-[11px] px-2 py-1.5 text-gray-200">
+              <option ${layer.blend === 'over' ? 'selected' : ''}>over</option>
+              <option ${layer.blend === 'overlay' ? 'selected' : ''}>overlay</option>
+              <option ${layer.blend === 'screen' ? 'selected' : ''}>screen</option>
+              <option ${layer.blend === 'multiply' ? 'selected' : ''}>multiply</option>
+            </select>
+            ${['Opacity', 'Base', 'Scale', 'Hue', 'Rot'].map((p, i) => `
+              <div><div class="flex justify-between label mb-1"><span>${p}</span><span class="tabular text-white text-[11px]">${[layer.opacity, layer.base, layer.scale, layer.hue, layer.rot][i]}</span></div>
+              <input type="range" class="swr-slider" value="${[layer.opacity, layer.base, layer.scale, layer.hue, layer.rot][i]}" min="0" max="100" /></div>
+            `).join('')}
+            <label class="flex items-center justify-between gap-2 text-[11px] text-gray-300 cursor-pointer pt-1">
+              <span><input type="checkbox" class="accent-orange mr-1" /> Auto-rotate</span>
+              <select class="text-[9px] bg-panel border border-line rounded px-1 py-0.5">
+                <option value="0.5">slow</option>
+                <option value="1" selected>normal</option>
+                <option value="2">fast</option>
+              </select>
+            </label>
+          </div>
+        `;
+        layerList.appendChild(details);
+      });
+      
+      // Send to engine
+      if (window.__SWR_ENGINE && window.__SWR_ENGINE.setPhotosByGroup) {
+        const groupData = order.map(groupName => ({
+          name: groupName,
+          urls: groups[groupName].map(f => f.url || URL.createObjectURL(f))
+        }));
+        window.__SWR_ENGINE.setPhotosByGroup(groupData);
+      }
+      
+      console.log(`[Auto-group] Created ${order.length} layers from ${files.length} photos`);
+    }
+    
+    // Batch add photos with auto-grouping
+    function addPhotosBatch(files) {
+      const imageFiles = files.filter(f => f && f.type && f.type.startsWith('image/'));
+      if (!imageFiles.length) return;
+      
+      const autoGroup = document.getElementById('photo-auto-group')?.checked ?? true;
+      
+      // Add to deck display
+      imageFiles.forEach((file) => {
+        const url = URL.createObjectURL(file);
+        const tile = document.createElement('div');
+        tile.className = 'aspect-square bg-[#1e1e24] rounded overflow-hidden border border-line';
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        tile.appendChild(img);
+        photoDeck.appendChild(tile);
+        photos.push({ file, url });
+      });
+      
+      if (autoGroup) {
+        // Auto-group by name pattern
+        const { groups, order } = groupPhotosByName(photos);
+        photoStatus.textContent = `${photos.length} photos → ${order.length} groups`;
+        // Create layers from groups
+        createLayersFromGroups(groups, order);
+      } else {
+        // Single layer for all
+        photoStatus.textContent = `${photos.length} photos → 1 layer`;
+        createLayersFromGroups({ all: photos }, ['all']);
       }
     }
+    
+    function addPhoto(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      addPhotosBatch([file]);
+    }
+    
     if (photoDrop && photoFile) {
       photoDrop.addEventListener('click', () => photoFile.click());
       photoFile.addEventListener('change', (e) => {
-        Array.from(e.target.files || []).forEach(addPhoto);
+        addPhotosBatch(Array.from(e.target.files || []));
         photoFile.value = '';
       });
       ['dragenter', 'dragover'].forEach((evt) =>
@@ -1065,7 +1188,7 @@
         photoDrop.addEventListener(evt, (e) => { e.preventDefault(); photoDrop.classList.remove('border-orange'); })
       );
       photoDrop.addEventListener('drop', (e) => {
-        Array.from(e.dataTransfer.files || []).forEach(addPhoto);
+        addPhotosBatch(Array.from(e.dataTransfer.files || []));
       });
     }
     // "Advance on beat" (checked by default) — applies the deck's initial
