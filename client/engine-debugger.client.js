@@ -81,7 +81,7 @@
 
   var HISTORY_MAX = 260;
   var PAINT_INTERVAL_MS = 90;   // overlay repaint cadence
-  var SCOPE_INTERVAL_MS = 55;   // scope canvas cadence
+  var SCOPE_INTERVAL_MS = 85;   // scope canvas cadence
   var MODULE_REFRESH_MS = 1200;
 
   var state = {
@@ -506,8 +506,8 @@
     // SCOPE
     var scopeBody = section('scope-canvas', 'Scope');
     var canvas = document.createElement('canvas');
-    canvas.width = 620;
-    canvas.height = 128;
+    canvas.width = 480;
+    canvas.height = 96;
     scopeBody.appendChild(canvas);
     state.dom['scope-canvas'].canvas = canvas;
     state.dom['scope-canvas'].ctx = canvas.getContext('2d');
@@ -552,8 +552,8 @@
     // BEAT STRIP
     var stripBody = section('beat-strip', 'Rhythm');
     var strip = document.createElement('canvas');
-    strip.width = 620;
-    strip.height = 40;
+    strip.width = 480;
+    strip.height = 32;
     stripBody.appendChild(strip);
     state.dom['beat-strip'].canvas = strip;
     state.dom['beat-strip'].ctx = strip.getContext('2d');
@@ -1069,6 +1069,7 @@
     if (t - state.lastScope > SCOPE_INTERVAL_MS) {
       state.lastScope = t;
       paintScope();
+      paintBeatStrip();
     }
     requestAnimationFrame(tick);
   }
@@ -1128,6 +1129,16 @@
       // rather than forcing a layout flush on every repaint.
       state.onResize = function () { refreshStageSize(); };
       window.addEventListener('resize', state.onResize);
+      // ` toggles the overlay. Backquote is free across the engine's own
+      // key map, and the guard keeps it out of the way while typing.
+      state.onKey = function (ev) {
+        if (ev.code !== 'Backquote' || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+        var t = ev.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        ev.preventDefault();
+        api.toggle();
+      };
+      window.addEventListener('keydown', state.onKey);
       requestAnimationFrame(tick);
       return api;
     },
@@ -1140,6 +1151,10 @@
       if (state.onResize) {
         window.removeEventListener('resize', state.onResize);
         state.onResize = null;
+      }
+      if (state.onKey) {
+        window.removeEventListener('keydown', state.onKey);
+        state.onKey = null;
       }
       var root = $('swr-debugger');
       if (root && root.parentNode) root.parentNode.removeChild(root);

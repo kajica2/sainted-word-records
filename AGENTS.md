@@ -134,18 +134,20 @@ To archive a page:
 
 ## SWR visual debugger
 
-`client/engine-debugger.client.js` is a standalone overlay that shows what the engine is actually doing, live. It ships as a file no page loads — you inject it when you need it:
+`client/engine-debugger.client.js` is a standalone overlay that shows what the engine is actually doing, live. **No page loads it** — the file ships in `dist/client/` (the `copy-static` plugin copies `client/` wholesale) but nothing references it, so it is dead weight until you ask for it. Inject it when you want it:
 
-```bash
-# In the console on any /versions/<name>.html page:
+```js
+// In the console on any /versions/<name>.html page:
 fetch('/client/engine-debugger.client.js').then(r => r.text()).then(t => eval(t))
 ```
 
-It attaches `window.SWR_DEBUGGER` and auto-mounts. `SWR_DEBUGGER.toggle()` mounts/unmounts; `unmount()` also releases the engine wrappers, so the page returns to its untouched state.
+It attaches `window.SWR_DEBUGGER` and auto-mounts. The **backquote key** toggles it, `SWR_DEBUGGER.unmount()` releases the engine wrappers and removes the overlay, and the page returns to its untouched state.
 
-**What it shows** — audio features (bass/sub/mid/treble/air/rms/centroid), BPM, beat/onset pulses, the layer stack with each layer's resolved transform (scale, opacity, hue, contrast, brightness, x, y, rot), the reactor wiring, the drift between a layer's resolved transform and the one actually drawn, a scrolling feature scope, a beat/onset rhythm strip, perf counters, master-toggle states, the loaded `SWR_*` module registry, and — drawn on the stage canvas itself — each layer's real footprint.
+**What it shows** — audio features (bass/sub/mid/treble/air/rms/centroid), BPM, beat/onset pulses, the layer stack with each layer's resolved transform (scale, opacity, hue, contrast, brightness, x, y, rot), the reactor wiring, the gap between a layer's resolved transform and the one actually drawn, a scrolling feature scope, a beat/onset rhythm strip, perf counters, master-toggle states, the loaded `SWR_*` module registry, and — drawn over the stage itself — each layer's real footprint.
 
-**How it observes** — it wraps `SWR_RENDER.frame`'s `applyR` argument and the exported `SWR_RENDER.imageEvolve`, and forwards both unchanged. It never re-derives engine state: `SWR_AUDIO_DAMP.damp()` is stateful, so an extra call would advance the damper and the panel would describe a picture that was never rendered. The wrappers add no calls, so the overlay cannot perturb the engine.
+**How it observes** — it wraps `SWR_RENDER.frame`'s `applyR` argument, the exported `SWR_RENDER.imageEvolve`, and the `drawImage` calls the engine makes while drawing a layer. It never re-derives engine state: `SWR_AUDIO_DAMP.damp()` is stateful, so an extra call would advance the damper and the panel would describe a picture that was never rendered. The wrappers add no calls, so the overlay cannot perturb the engine.
+
+It deliberately **does not model each variant's draw convention** — cover fit vs contain, a rotation threshold of 0.3 vs 0.5, the engine-supplied offscreen vs the stage canvas all differ, and modelling them was wrong on film and aurora and absent on watercolor. The overlay reports the corners the engine actually drew, so it is right on every variant.
 
 **Its metric** — `npm run check:debugger` (`scripts/check-swr-debugger.mjs`) drives headless Chrome over the DevTools Protocol with **no npm dependencies** (Node's built-in `WebSocket` does the work) and scores:
 

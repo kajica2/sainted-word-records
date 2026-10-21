@@ -387,9 +387,25 @@ const COVERAGE_SRC = `
   out['reactor-rows'] = { ok: root.querySelectorAll('[data-surface="reactor-rows"] .rx').length >= 1,
                            n: root.querySelectorAll('[data-surface="reactor-rows"] .rx').length };
 
+  // A canvas surface only counts if it actually has something drawn on
+  // it. The rhythm strip was once wired up but never painted, and a
+  // presence check would have called that a pass.
+  const hasInk = (cv) => {
+    if (!cv || !cv.width) return false;
+    try {
+      const g = cv.getContext('2d');
+      const d = g.getImageData(0, 0, cv.width, cv.height).data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 40 || d[i + 1] > 40 || d[i + 2] > 40) return true;
+      }
+    } catch (e) { return false; }
+    return false;
+  };
+
   const cv = root.querySelector('[data-surface="scope-canvas"] canvas');
-  out['scope-canvas'] = { ok: !!cv && cv.width > 0 && (window.SWR_DEBUGGER ? window.SWR_DEBUGGER.history(4).length : 0) >= 2,
-                           n: cv ? cv.width : 0 };
+  const scopeInk = hasInk(cv);
+  const scopeHist = window.SWR_DEBUGGER ? window.SWR_DEBUGGER.history(8).length : 0;
+  out['scope-canvas'] = { ok: !!cv && scopeInk && scopeHist >= 2, n: scopeHist, ink: scopeInk };
 
   out['perf-stats'] = { ok: numbersIn('perf-stats').length >= 3, n: numbersIn('perf-stats').length };
   out['master-states'] = { ok: root.querySelectorAll('[data-surface="master-states"] .mast span').length >= 4,
@@ -424,8 +440,8 @@ const COVERAGE_SRC = `
   };
 
   const strip = root.querySelector('[data-surface="beat-strip"] canvas');
-  const histLen = window.SWR_DEBUGGER ? window.SWR_DEBUGGER.history(8).length : 0;
-  out['beat-strip'] = { ok: !!strip && strip.width > 0 && histLen >= 2, n: histLen };
+  const stripInk = hasInk(strip);
+  out['beat-strip'] = { ok: !!strip && stripInk, n: strip ? strip.width : 0, ink: stripInk };
 
   const total = Object.keys(out).length;
   const passing = Object.values(out).filter((v) => v.ok).length;
