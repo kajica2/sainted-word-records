@@ -313,6 +313,187 @@
     }
     paint();
 
+    // === Engine spectrum overlay (canvas pass) ===
+    // Standalone, this page is a pure audio visualiser: paint() above fills
+    // an opaque deep-blue backdrop and then draws a 128-bin spectrum as a
+    // field of bars around the vertical centre line — pink at the low end,
+    // blue through the mids, pale white at the treble end — with thin
+    // hi-coloured peak-hold caps, an additive glow pass, a pink centre
+    // line, and a beat-driven pink pulse disc in the middle of the frame.
+    //
+    // Inside the shared engine the user's clip is ALREADY painted on the
+    // canvas before this pass runs, so the page's opaque background fill
+    // cannot be replayed — it would erase the media. This pass therefore
+    // reproduces the same geometry, palette and audio mapping, but
+    // composites ADDITIVELY over the media instead of replacing the frame:
+    // the bar field is anchored to the bottom edge so the picture stays
+    // visible above it, the bars and their glow are drawn with 'lighter',
+    // and the seating gradient plus the travelling sweep are translucent
+    // washes rather than a full-frame fill.
+    //
+    // Audio features used: bass / mid / treble shape the 128-bin spectrum
+    // through the same sub → bass → mid → treble → air falloff the page
+    // uses for its synthetic spectrum, beat opens the pulse disc and the
+    // peak caps, onset flashes the sweep, and rms scales its brightness.
+    function drawFx() {
+      const t = performance.now() / 1000;
+      const feat = (typeof A !== 'undefined' && A && A.feat) ? A.feat : null;
+      // The engine binds SWR_AUDIO_DAMP as undefined; the standalone page
+      // gets it from lib/audio-damp.client.js. Guard every read.
+      const damp = (typeof SWR_AUDIO_DAMP !== 'undefined' && SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp : null;
+      const st = stage || null;
+      const num = (v) => (typeof v === 'number' && isFinite(v)) ? v : 0;
+      // Stable damp instances so repeated frames smooth instead of jitter.
+      const keys = (st && st.__swrSpectrumDamp) ? st.__swrSpectrumDamp
+        : { bass: {}, mid: {}, treble: {}, beat: {}, onset: {}, rms: {} };
+      if (st && !st.__swrSpectrumDamp) st.__swrSpectrumDamp = keys;
+      const smooth = (v, k) => damp ? damp(num(v), 0.35, keys[k]) : num(v);
+      const bass = smooth(feat && feat.bass, 'bass');
+      const mid = smooth(feat && feat.mid, 'mid');
+      const treble = smooth(feat && feat.treble, 'treble');
+      const beat = smooth(feat && feat.beat, 'beat');
+      const onset = smooth(feat && feat.onset, 'onset');
+      const rms = smooth(feat && feat.rms, 'rms');
+
+      // 128-bin spectrum + peak hold, reused across frames (no per-frame
+      // allocation) and stashed on the stage element.
+      const BINS = 128;
+      let store = st && st.__swrSpectrumStore;
+      if (!store) {
+        store = { spec: new Float32Array(BINS), peaks: new Float32Array(BINS) };
+        if (st) st.__swrSpectrumStore = store;
+      }
+      const spec = store.spec;
+      const peaks = store.peaks;
+      for (let i = 0; i < BINS; i++) {
+        const f = i / BINS;
+        let amp;
+        if (f < 0.05) amp = bass * 0.6;                                  // sub
+        else if (f < 0.2) amp = bass * (1 - (f - 0.05) / 0.15);           // bass
+        else if (f < 0.5) amp = mid * (1 - (f - 0.2) / 0.3) * 0.9;        // mid
+        else if (f < 0.8) amp = treble * (1 - (f - 0.5) / 0.3) * 0.7;     // treble
+        else amp = treble * 0.3 * (1 - (f - 0.8) / 0.2);                  // air
+        amp *= 0.85 + 0.15 * Math.sin(t * 3 + i * 0.4);                   // wobble
+        // Idle floor: the field must never read as an empty frame.
+        const floor = 0.05 + 0.03 * Math.sin(t * 1.7 + i * 0.25);
+        if (amp < floor) amp = floor;
+        spec[i] = amp > 1 ? 1 : amp;
+        if (spec[i] > peaks[i]) peaks[i] = spec[i];
+        else peaks[i] = Math.max(0, peaks[i] - 0.012);
+      }
+
+      // Palette, inlined from this page's :root custom properties:
+      // --ink #a8d0ff · --accent #ff6090 · --hi #fff0a0
+      // --muted #5060a0 · --panel #0a0d1c · --bg #050811
+      const INK = [168, 208, 255];
+      const ACCENT = [255, 96, 144];
+      const HI = [255, 240, 160];
+      const MUTED = [80, 96, 160];
+
+      const barW = W / BINS;
+      const baseY = H;                 // bar field is anchored to the bottom edge
+      const barH = (i) => spec[i] * H * 0.4;
+      const peakH = (i) => peaks[i] * H * 0.42;
+
+      ctx.save();
+
+      // 1) Seating wash — the page's own background gradient (#0a0d20 →
+      //    #02030a) as a TRANSLUCENT grade instead of an opaque fill, so
+      //    the media still shows through while the bars read against it.
+      const wash = ctx.createLinearGradient(0, 0, 0, H);
+      wash.addColorStop(0, 'rgba(10,13,32,0.34)');
+      wash.addColorStop(1, 'rgba(2,3,10,0.62)');
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, W, H);
+      const washTop = H - H * 0.55;
+
+      ctx.globalCompositeOperation = 'lighter';
+
+      // 2) Bar field — same colour ramp as paint(): pink at the low end
+      //    fading through blue to pale white at the treble end.
+      for (let i = 0; i < BINS; i++) {
+        const h = barH(i);
+        if (h < 0.5) continue;
+        const x = i * barW;
+        const f = i / BINS;
+        let r, g, b;
+        if (f < 0.2) {
+          const u = f / 0.2;
+          r = 255 * (0.4 + 0.6 * (1 - u));
+          g = 96;
+          b = 144 + 100 * u;
+        } else if (f < 0.6) {
+          const u = (f - 0.2) / 0.4;
+          r = 96 + 100 * u;
+          g = 144 + 60 * (1 - u);
+          b = 255 * (0.9 - 0.3 * u);
+        } else {
+          const u = (f - 0.6) / 0.4;
+          r = 196 + 60 * u;
+          g = 204;
+          b = 255 * (1 - 0.2 * u);
+        }
+        ctx.fillStyle = 'rgba(' + (r | 0) + ',' + (g | 0) + ',' + (b | 0) + ',0.55)';
+        ctx.fillRect(x + 1, baseY - h, barW - 2, h);
+      }
+
+      // 3) Additive glow pass — taller, softer, full-width bars exactly
+      //    like paint()'s 'lighter' layer.
+      for (let i = 0; i < BINS; i++) {
+        const h = spec[i] * H * 0.5;
+        if (h < 0.5) continue;
+        const x = i * barW;
+        const f = i / BINS;
+        const c = f < 0.2 ? ACCENT : (f < 0.6 ? [96, 144, 255] : [200, 220, 255]);
+        ctx.fillStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0.18)';
+        ctx.fillRect(x, baseY - h, barW, h);
+      }
+
+      // 4) Peak-hold caps in --hi, the page's highlight colour.
+      for (let i = 0; i < BINS; i++) {
+        const ph = peakH(i);
+        if (ph < 2) continue;
+        const x = i * barW;
+        ctx.fillStyle = 'rgba(' + HI[0] + ',' + HI[1] + ',' + HI[2] + ',0.85)';
+        ctx.fillRect(x + 1, baseY - ph - 2, barW - 2, 1.5);
+      }
+
+      // 5) Gradient sweep — a travelling band of --ink / --hi light that
+      //    runs left to right across the field; onset flashes it in --accent.
+      const sweepX = ((t * 0.16) % 1) * (W + 480) - 240;
+      const sweep = ctx.createLinearGradient(sweepX - 240, 0, sweepX + 240, 0);
+      const flash = Math.max(0, Math.min(1, onset * 1.2));
+      const sweepC = flash > 0.01 ? ACCENT : INK;
+      const sweepA = 0.10 + rms * 0.12 + flash * 0.18;
+      sweep.addColorStop(0, 'rgba(' + sweepC[0] + ',' + sweepC[1] + ',' + sweepC[2] + ',0)');
+      sweep.addColorStop(0.5, 'rgba(' + sweepC[0] + ',' + sweepC[1] + ',' + sweepC[2] + ',' + sweepA.toFixed(3) + ')');
+      sweep.addColorStop(1, 'rgba(' + HI[0] + ',' + HI[1] + ',' + HI[2] + ',0)');
+      ctx.fillStyle = sweep;
+      ctx.fillRect(0, washTop, W, H - washTop);
+
+      // 6) Centre line — the page's --accent rule across the frame.
+      ctx.fillStyle = 'rgba(' + ACCENT[0] + ',' + ACCENT[1] + ',' + ACCENT[2] + ',0.28)';
+      ctx.fillRect(0, H / 2 - 0.5, W, 1);
+
+      // 7) Beat pulse disc in the middle, same radius ramp as paint().
+      const pulseR = 30 + beat * 80;
+      const ring = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, pulseR);
+      ring.addColorStop(0, 'rgba(' + ACCENT[0] + ',' + ACCENT[1] + ',' + ACCENT[2] + ',' + (0.18 + beat * 0.3).toFixed(3) + ')');
+      ring.addColorStop(0.7, 'rgba(' + ACCENT[0] + ',' + ACCENT[1] + ',' + ACCENT[2] + ',' + (0.04 + beat * 0.06).toFixed(3) + ')');
+      ring.addColorStop(1, 'rgba(' + ACCENT[0] + ',' + ACCENT[1] + ',' + ACCENT[2] + ',0)');
+      ctx.fillStyle = ring;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, pulseR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 8) Muted baseline under the field, in --muted.
+      ctx.fillStyle = 'rgba(' + MUTED[0] + ',' + MUTED[1] + ',' + MUTED[2] + ',0.45)';
+      ctx.fillRect(0, baseY - 1, W, 1);
+
+      ctx.restore();
+    }
+
     // === RECORDER (MP4/WebM canvas + audio export) ===
     // Same shape as other engines: MediaRecorder over canvas captureStream
     // + MediaStreamDestination fed from the audio element (when available).

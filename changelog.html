@@ -38,7 +38,16 @@
     .tag.added{background:rgba(94,194,122,.12);color:var(--green)}
     .tag.fixed{background:rgba(0,229,255,.12);color:var(--cyan)}
     .tag.changed{background:rgba(245,165,36,.12);color:var(--amber)}
-    h1+.group-label{font:11px/1 ui-sans-serif;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:32px 0 12px}
+    .group-label{font:11px/1 ui-sans-serif;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:32px 0 12px}
+    /* Auto-post feed — painted by lib/announcements.client.js */
+    .announcements{margin:0 0 8px}
+    .announcement{padding:18px 22px;background:var(--bg-1);border:1px solid var(--line);border-left:2px solid var(--gold);border-radius:8px;margin:0 0 10px}
+    .announcement__date{font:11px/1 ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted);margin:0 0 6px}
+    .announcement__title{font:16px/1.3 ui-sans-serif,system-ui,sans-serif;margin:0 0 6px;font-weight:600}
+    .announcement__body{font-size:14px;color:#c5c3bd;margin:0 0 10px}
+    .announcement__link{font:11px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);text-decoration:none}
+    .announcement__link:hover{text-decoration:underline}
+    .announcements__empty{font-size:14px;color:var(--muted);margin:0 0 8px}
   </style>
 <script src="/fx-background.client.js" defer></script>
 </head>
@@ -47,6 +56,9 @@
   <main>
     <h1>Changelog</h1>
     <p class="sub">Public release history. Daily preset-pipeline runs aren't listed here — see <a href="/presets/manifest.json">/presets/manifest.json</a> for the live list.</p>
+
+    <h2 class="group-label">Latest posts</h2>
+    <div class="announcements" data-announcements="5" data-announcements-empty="No posts yet."></div>
 
     <h2 class="group-label">2026</h2>
 
@@ -94,6 +106,7 @@
   </main>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/announcements.client.js" defer></script>
   <swr-footer></swr-footer>
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>

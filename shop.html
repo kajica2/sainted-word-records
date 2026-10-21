@@ -237,6 +237,10 @@
       background: var(--bg-2); padding: 1px 6px; border-radius: 3px;
       color: var(--ink);
     }
+    /* The notice is the "checkout is not live yet" state — it disappears
+       by itself the moment a Stripe link exists (lib/store.client.js sets
+       body[data-store-state]). */
+    body[data-store-state="live"] .notice { display: none; }
   </style>
 </head>
 <body>
@@ -266,13 +270,12 @@
     </div>
 
     <div class="notice" id="notice">
-      <b>Stripe Payment Links not wired yet.</b>
-      To go live, create 3 products in your Stripe dashboard
-      (Logo Tee €25 / Graphic Tee €25 / Mug €15), generate payment links with redirect to
-      <code>/thanks.html</code>, then paste the <code>buy.stripe.com</code> URLs into
-      <code>client/shop-decorator.client.js</code> at <code>PRODUCTS[*].stripeUrl</code>. The Buy
-      buttons below currently open Stripe's homepage — replace the URLs and they go straight to
-      checkout with the artwork pre-attached via <code>client_reference_id</code>.
+      <b>Checkout is not live yet.</b>
+      The catalogue below is the shop's plan; the Buy buttons stay disabled until a
+      Stripe Payment Link exists for the product. The links live in one place —
+      <code>site-map.json</code> → <code>store.products[*].stripeUrl</code> — or in the
+      <code>STRIPE_LINKS</code> env var at build time. A product without a link never
+      points at a fake checkout page: it says so instead.
     </div>
 
     <div class="shop">
@@ -306,6 +309,7 @@
   <swr-footer></swr-footer>
 
   <script src="/client/shop-decorator.client.js" defer></script>
+  <script src="/lib/store.client.js"></script>
   <script>
     // shop.html page logic: read ?g=&c=, load card data, render the page.
     (function () {
@@ -729,33 +733,58 @@
         picker.appendChild(chip);
       });
 
-      // Product picker — 3 buttons
+      // Product picker — the catalogue comes from the store (site-map.json
+      // → store.products, surface "shop"). The Buy button is live only
+      // when the product has a Stripe Payment Link; otherwise it says so
+      // instead of pointing at a dead checkout URL.
       var productsEl = document.getElementById('products');
-      var products = (window.SWR_SHOP && window.SWR_SHOP.products) || [
-        { id: 'logo-tee', name: 'Logo Tee', blurb: 'Front-pocket print, single color on cotton.', price: 25, currency: 'EUR', stripeUrl: 'https://buy.stripe.com/REPLACE_LOGO_TEE_25' },
-        { id: 'graphic-tee', name: 'Graphic Tee', blurb: 'Full back print, large format on cotton.', price: 25, currency: 'EUR', stripeUrl: 'https://buy.stripe.com/REPLACE_GRAPHIC_TEE_25' },
-        { id: 'mug', name: 'Mug', blurb: '11oz ceramic, both-sides print.', price: 15, currency: 'EUR', stripeUrl: 'https://buy.stripe.com/REPLACE_MUG_15' },
-      ];
 
-      products.forEach(function (p) {
-        var row = document.createElement('div');
-        row.className = 'product';
-        var isPlaceholder = /REPLACE_/.test(p.stripeUrl);
-        if (isPlaceholder) row.classList.add('is-disabled');
-        row.innerHTML =
-          '<div style="flex:1; min-width:0;">' +
-            '<h3 class="product__name">' + p.name + '</h3>' +
-            '<p class="product__blurb">' + p.blurb + '</p>' +
-          '</div>' +
-          '<span class="product__price">€' + p.price + '</span>' +
-          '<a class="product__buy' + (isPlaceholder ? ' is-disabled' : '') + '" href="' +
-            (isPlaceholder ? '#notice' : (p.stripeUrl + '?client_reference_id=g%3D' + slug + '%26c%3D' + cardIdx + '%26p%3D' + p.id)) +
-          '" ' + (isPlaceholder
-              ? 'aria-disabled="true" onclick="document.getElementById(\'notice\').scrollIntoView({behavior:\'smooth\'}); return false;"'
-              : 'target="_blank" rel="noopener"') +
-          '>' + (isPlaceholder ? 'Coming soon' : 'Buy →') + '</a>';
-        productsEl.appendChild(row);
-      });
+      function storeProducts() {
+        var store = window.SWR_STORE;
+        if (!store) return [];
+        var list = store.products('shop');
+        return list && list.length ? list : [];
+      }
+
+      function productLink(p) {
+        var store = window.SWR_STORE;
+        if (store && store.link) return store.link(p.id);
+        var url = String(p.stripeUrl || '');
+        if (!url || /REPLACE_|YOUR_|SWR_[A-Z_]*_\d/i.test(url)) return '';
+        return url;
+      }
+
+      function renderProducts() {
+        var products = storeProducts();
+        if (!products.length && window.SWR_SHOP && window.SWR_SHOP.products) {
+          products = window.SWR_SHOP.products;
+        }
+        productsEl.innerHTML = '';
+        products.forEach(function (p) {
+          var row = document.createElement('div');
+          row.className = 'product';
+          var url = productLink(p);
+          if (!url) row.classList.add('is-disabled');
+          row.innerHTML =
+            '<div style="flex:1; min-width:0;">' +
+              '<h3 class="product__name">' + p.name + '</h3>' +
+              '<p class="product__blurb">' + p.blurb + '</p>' +
+            '</div>' +
+            '<span class="product__price">€' + p.price + '</span>' +
+            '<a class="product__buy' + (url ? '' : ' is-disabled') + '" href="' +
+              (url ? (url + '?client_reference_id=g%3D' + slug + '%26c%3D' + cardIdx + '%26p%3D' + p.id) : '#notice') +
+            '" ' + (url
+                ? 'target="_blank" rel="noopener"'
+                : 'aria-disabled="true" onclick="document.getElementById(\'notice\').scrollIntoView({behavior:\'smooth\'}); return false;"') +
+            '>' + (url ? 'Buy →' : 'Coming soon') + '</a>';
+          productsEl.appendChild(row);
+        });
+      }
+
+      renderProducts();
+      if (window.SWR_STORE && window.SWR_STORE.ready) {
+        window.SWR_STORE.ready(renderProducts);
+      }
     })();
   </script>
 

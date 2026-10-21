@@ -34,6 +34,7 @@
       scheduler: p.scheduler,
       panels: p.panels,
       layers: p.layers,           // metadata only — references assets by name
+      groups: p.groups,           // layer-group headers (name/visibility)
     };
   }
 

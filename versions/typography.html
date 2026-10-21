@@ -267,6 +267,220 @@
     }
     paint();
 
+    // === Canvas kinetic-type post-pass ===
+    // The standalone page paints an off-white "paper" sheet — a near-white
+    // background whose brightness breathes with the bass — and on top of it
+    // a huge Archivo Black headline ("MAKE IT LOUD") that scales on every
+    // beat, thickens with the bass, tracks out with the mids, a small
+    // subhead line under it, a kicker bar whose height rides the treble,
+    // and a red (#ff3030) accent strip pinned to the bottom edge whose
+    // width and opacity follow the bass. Hairline rules in --line frame
+    // the sheet the way the page's chrome frames the canvas.
+    //
+    // Inside the shared engine the user's clips sit UNDER this pass, so the
+    // paper cannot be an opaque fill: the sheet becomes a translucent white
+    // veil the media still reads through, the grid rules and the type forms
+    // are drawn in the page's own ink colours on top of it, and the red
+    // accent plus the beat echo are composited with 'lighter' so they read
+    // as light rather than as paint. Same typographic system — grid,
+    // headline, subhead, kicker, red accent — laid over moving images
+    // instead of replacing them.
+    //
+    // Audio mapping, identical to paint() above: bass -> paper brightness,
+    // headline weight and accent-strip width/opacity; beat -> headline scale
+    // (1.00 .. 1.15); mid -> tracking and subhead opacity; treble -> kicker
+    // bar height and width.
+    //
+    // The headline is drawn as block letterforms assembled from rectangles
+    // (the same heavy grotesque geometry as the page's Archivo Black) rather
+    // than fillText, because real glyph metrics are not available here and
+    // the engine has no headline input to read.
+    //
+    // Safe to compile into the engine: uses only ctx, W, H and A — all
+    // bound by client/variant-switcher.client.js.
+    function drawFx() {
+      const feat = (typeof A !== 'undefined' && A && A.feat) || {};
+      const bass = feat.bass || 0;
+      const mid = feat.mid || 0;
+      const treble = feat.treble || 0;
+      const beat = feat.beat || 0;
+
+      // Page palette, inlined from typography.html's :root and from the
+      // literal fills paint() uses on the canvas:
+      //   --line #2a2a2a (grid rules)  --accent #ff3030 (accent strip)
+      //   headline / kicker fill #0a0a0a
+      const INK = '#0a0a0a';
+      const LINE = '#2a2a2a';
+      const ACCENT = '#ff3030';
+
+      // Heavy grotesque block letters on a 5x7 unit grid: [x, y, w, h].
+      // Only the letters the page's own copy needs are defined.
+      const GLYPHS = {
+        A: [[1, 0, 3, 1], [0, 1, 1, 6], [4, 1, 1, 6], [1, 3, 3, 1]],
+        D: [[0, 0, 1, 7], [1, 0, 3, 1], [4, 0, 1, 7], [1, 6, 3, 1]],
+        E: [[0, 0, 1, 7], [1, 0, 4, 1], [1, 3, 3, 1], [1, 6, 4, 1]],
+        I: [[0, 0, 5, 1], [2, 1, 1, 5], [0, 6, 5, 1]],
+        K: [[0, 0, 1, 7], [4, 0, 1, 1], [3, 1, 1, 1], [1, 2, 2, 1], [3, 4, 1, 1], [4, 5, 1, 2]],
+        L: [[0, 0, 1, 7], [0, 6, 5, 1]],
+        M: [[0, 0, 1, 7], [4, 0, 1, 7], [1, 1, 1, 2], [3, 1, 1, 2], [2, 3, 1, 1]],
+        N: [[0, 0, 1, 7], [4, 0, 1, 7], [1, 1, 2, 2], [3, 4, 1, 2]],
+        O: [[0, 0, 1, 7], [4, 0, 1, 7], [1, 0, 3, 1], [1, 6, 3, 1]],
+        T: [[0, 0, 5, 1], [2, 1, 1, 6]],
+        U: [[0, 0, 1, 6], [4, 0, 1, 6], [1, 6, 3, 1]],
+      };
+
+      // Metrics: a glyph is 5 units wide, one unit of sidebearing follows
+      // every character, a space is 2 units, and the live tracking is added
+      // to each advance — the same relationship the page has between its
+      // headline size and its tracking readout.
+      function advance(ch, unit, track) {
+        return (ch === ' ' ? 2 : 5) * unit + unit + track;
+      }
+
+      function wordWidth(word, unit, track) {
+        let w = 0;
+        for (const ch of word) w += advance(ch, unit, track);
+        // No trailing sidebearing on the last character.
+        return w - (unit + track);
+      }
+
+      // Draw a word centred on cx, its cap height sitting on baseline.
+      // fw / fh thicken the stems and the bars (the "weight" parameter).
+      function drawWord(word, unit, cx, baseline, track, fw, fh, color, alpha) {
+        ctx.fillStyle = color;
+        ctx.globalAlpha = alpha;
+        let x = cx - wordWidth(word, unit, track) / 2;
+        for (const ch of word) {
+          if (ch !== ' ') {
+            const g = GLYPHS[ch];
+            if (g) {
+              for (const r of g) {
+                const gx = r[0], gy = r[1], gw = r[2], gh = r[3];
+                const w = gw * unit * (gw >= gh ? fw : 1);
+                const h = gh * unit * (gh > gw ? fh : 1);
+                ctx.fillRect(x + gx * unit, baseline - 7 * unit + gy * unit, w, h);
+              }
+            }
+          }
+          x += advance(ch, unit, track);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.save();
+
+      // 1) The paper sheet. paint() fills an opaque near-white background
+      //    whose luminance follows the bass; here it is a translucent veil
+      //    so the engine's media stays visible underneath.
+      const paper = 0.16 + bass * 0.06;
+      ctx.fillStyle = 'rgba(250, 250, 250, ' + paper.toFixed(3) + ')';
+      ctx.fillRect(0, 0, W, H);
+
+      // 2) Typographic grid — margin rules, twelve column rules and the
+      //    baseline rules the headline and subhead sit on (--line).
+      ctx.strokeStyle = LINE;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.5;
+      for (let i = 1; i < 12; i++) {
+        const x = Math.round((W / 12) * i) + 0.5;
+        ctx.globalAlpha = 0.16;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.45;
+      const marginX = [W * 0.04, W * 0.96];
+      for (const mx of marginX) {
+        ctx.beginPath();
+        ctx.moveTo(Math.round(mx) + 0.5, 0);
+        ctx.lineTo(Math.round(mx) + 0.5, H);
+        ctx.stroke();
+      }
+
+      // 3) The headline: "MAKE IT LOUD" set as one line, scaled on the beat
+      //    exactly like paint() (1.00 .. 1.15), thickened by the bass
+      //    (weight 800 .. 1000) and tracked out by the mids.
+      const HEADLINE = 'MAKE IT LOUD';
+      const SUBHEAD = 'MOTION';
+      const cols = 65; // 10 glyphs * 5 units + 2 spaces * 2 units + sidebearings
+      // Sized so the line still fits the frame after the beat scale
+      // (up to 1.15x) and the live tracking have been applied.
+      const unit = Math.min((W * 0.78) / cols, (H * 0.28) / 7);
+      const trackUnit = (Math.floor(mid * 40) - 20) / 1000; // em thousandths
+      const track = trackUnit * 7 * unit;
+      const fw = 1 + bass * 0.14;
+      const fh = 1 + bass * 0.2;
+      const beatScale = 1 + beat * 0.15;
+      const headBase = H * 0.45 + 3.5 * unit;
+
+      // Baselines the grid rules follow (headline cap height + subhead).
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.moveTo(marginX[0], Math.round(headBase) + 0.5);
+      ctx.lineTo(marginX[1], Math.round(headBase) + 0.5);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      ctx.save();
+      ctx.translate(W / 2, headBase);
+      ctx.scale(beatScale, beatScale);
+      ctx.translate(-W / 2, -headBase);
+      drawWord(HEADLINE, unit, W / 2, headBase, track, fw, fh, INK, 0.95);
+      ctx.restore();
+
+      // 4) Subhead line under the headline, opacity driven by the mids.
+      const subUnit = unit * 0.26;
+      const subBase = H * 0.7 + 3.5 * subUnit;
+      drawWord(SUBHEAD, subUnit, W / 2, subBase, track * 0.4, 1, 1,
+        'rgba(20, 20, 20, ' + (0.6 + mid * 0.4).toFixed(3) + ')', 1);
+
+      // 5) Kicker bar: height rides the treble, width the treble-scaled
+      //    kicker percentage, exactly as paint() computes it.
+      const kicker = Math.floor(80 + treble * 100);
+      const kickerH = 4 + treble * 12;
+      const kickerW = W * 0.4 * (0.7 + kicker / 200);
+      const kickerY = H * 0.88;
+      ctx.fillStyle = INK;
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect((W - kickerW) / 2, kickerY, kickerW, kickerH);
+
+      // 6) Red accent strip along the bottom edge: width and opacity follow
+      //    the bass, exactly as paint() does — plus an additive bloom so it
+      //    glows over the media instead of sitting flat on it.
+      const accentA = 0.05 + bass * 0.4;
+      const accentW = W * (0.3 + bass * 0.7);
+      ctx.globalAlpha = accentA;
+      ctx.fillStyle = ACCENT;
+      ctx.fillRect(0, H - 4, accentW, 4);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = accentA * 0.8;
+      ctx.fillRect(0, H - 10, accentW, 6);
+
+      // 7) Beat echo: the headline re-strikes in red, offset, on every
+      //    hit — the kinetic-type flourish, additive so it reads as light.
+      if (beat > 0.02) {
+        ctx.globalAlpha = Math.min(Math.max(beat * 0.28, 0), 1);
+        ctx.fillStyle = ACCENT;
+        let x = W / 2 - wordWidth(HEADLINE, unit, track) / 2 + 8;
+        const baseline = headBase - 8;
+        for (const ch of HEADLINE) {
+          if (ch !== ' ') {
+            const g = GLYPHS[ch];
+            if (g) {
+              for (const r of g) {
+                ctx.fillRect(x + r[0] * unit, baseline - 7 * unit + r[1] * unit,
+                  r[2] * unit, r[3] * unit);
+              }
+            }
+          }
+          x += advance(ch, unit, track);
+        }
+      }
+
+      ctx.restore();
+    }
+
     // === RECORDER ===
     const Recorder = {
       rec: null, chunks: [], recording: false, mime: 'video/webm',

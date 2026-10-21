@@ -264,7 +264,7 @@
       #mode-advanced-btn,
       #mode-basic-btn-2,
       #mode-advanced-btn-2,
-      #add-layer, #add-3d, #re-map, #toggle-cover-fullscreen,
+      #add-layer, #add-3d, #group-layers, #re-map, #toggle-cover-fullscreen,
       #save-project, #open-drive, #layer-count-dec, #layer-count-inc,
       #basic-library-btn, #basic-play-btn, #basic-record-btn, #basic-effects-btn,
       .layer-strip .li {
@@ -1130,6 +1130,76 @@
       transition: border-color 0.12s;
     }
     .layer.selected { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(255, 61, 146, 0.3); }
+    /* Multi-select (shift+click): a second, cooler ring so a marked
+       layer reads as "in the group selection" without looking like the
+       active layer. */
+    .layer.multi-selected {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.35);
+    }
+    .layer.multi-selected.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(255, 61, 146, 0.3), 0 0 0 2px rgba(0, 229, 255, 0.35);
+    }
+    /* A layer inside a group is indented under its group header. */
+    .layer.in-group { margin-left: 14px; }
+    .layer.hidden-layer { opacity: 0.42; }
+    .layer.hidden-layer .layer-head .name { text-decoration: line-through; }
+    /* Group header row */
+    .layer-group {
+      background: var(--panel-2);
+      border: 1px solid var(--line-2);
+      border-left: 2px solid var(--accent-2);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+    }
+    .layer-group.collapsed { opacity: 0.75; }
+    .layer-group .layer-head { gap: 6px; }
+    .layer-group .g-caret {
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      font-size: 10px;
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .layer-group .g-caret:hover { color: var(--accent-2); }
+    .layer-group .g-name {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      padding: 2px 4px;
+    }
+    .layer-group .g-name:hover { border-color: var(--line-2); }
+    .layer-group .g-name:focus { border-color: var(--accent-2); outline: none; }
+    .layer-group .g-count {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--dim);
+      min-width: 12px;
+      text-align: right;
+    }
+    .layer-group .g-vis,
+    .layer-group .g-ungroup {
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .layer-group .g-vis:hover,
+    .layer-group .g-ungroup:hover { color: var(--accent); background: rgba(255, 255, 255, 0.05); }
     .layer-head {
       display: flex;
       align-items: center;
@@ -3454,6 +3524,7 @@
       <div class="panel-head">
         <h2>Layers</h2>
         <button class="tbtn ghost" id="add-layer" style="padding:4px 8px; font-size:9px;">+ Layer</button>
+        <button class="tbtn ghost" id="group-layers" style="padding:4px 8px; font-size:9px;" title="Group the selected layers (shift+click to multi-select)">+ Group</button>
         <button class="tbtn ghost" id="add-3d" style="padding:4px 8px; font-size:9px;" title="Add a 3D primitive as a layer (sphere, cube, torus, icosahedron)">+ 3D</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
         <button class="tbtn ghost" id="toggle-cover-fullscreen" title="Toggle cover fullscreen" style="padding:4px 8px; font-size:9px;">⛶ Cover</button>
@@ -4915,7 +4986,7 @@
         // rot = audio-driven base + per-clip persistent offset (if rotationEnabled)
         // rotationEnabled defaults to true (undefined === true); when false,
         // both manual rotOffset and any rot-target reactors are silenced.
-        const enabled = layer.rotationEnabled === true;  // OFF by default — opt in via the per-layer rotate toggle; rot-target reactors are silenced until then
+        const enabled = layer.rotationEnabled === true;  // rotation is ON by default (Layers.add sets rotationEnabled: true, and the rot-master defaults to enabled); when false, both manual rotOffset and any rot-target reactors are silenced
         const out = {
           scale: layer.baseScale,
           x: layer.pos.x, y: layer.pos.y,
@@ -5430,7 +5501,8 @@
       // Find the topmost layer under a canvas-space point.
       // Hit test uses a centered circle of radius R, ignoring rotation.
       pickLayer(cx, cy) {
-        const sorted = Layers.list.slice().sort((a, b) => b.z - a.z);
+        // Hidden layers are not on the stage, so they are not pickable.
+        const sorted = Layers.visibleList().sort((a, b) => b.z - a.z);
         for (const l of sorted) {
           if (!l.asset) continue;
           const r = this.applyReactors(l);
@@ -5674,7 +5746,10 @@
         // Draw layers in z order. Fewer layers (host cap): when activeCount
         // is set, only the TOP N draw — the featured clip stays, the deepest
         // background layers drop first (see lib/layers.client.js).
-        const sorted = Layers.list.slice().sort((a, b) => a.z - b.z);
+        // Hidden layers (a hidden group writes `hidden` on its members)
+        // do not draw at all — and they do not consume the top-N budget
+        // either, so hiding a group frees a slot for the next layer down.
+        const sorted = Layers.visibleList().sort((a, b) => a.z - b.z);
         const _activeCap = (Layers && Layers.activeCount) || 0;
         const _drawFrom = _activeCap > 0 ? Math.max(0, sorted.length - _activeCap) : 0;
         for (let i = _drawFrom; i < sorted.length; i++) {
@@ -6413,6 +6488,9 @@
           Layers.add(pool[pool.length - 1]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
+        // Group the shift-clicked layers into one named group.
+        // groupSelected() reports its own outcome in the status bar.
+        $('group-layers').addEventListener('click', () => { Layers.groupSelected(); });
         $('save-project').addEventListener('click', () => {
           // Delegate to the keyboard action — same path as Cmd+S, so
           // status-bar messaging, file format, and naming stay in lock-step.
@@ -6544,22 +6622,26 @@
           const inc = $('layer-count-inc');
           const val = $('layer-count-val');
           function sync() {
-            const total = Layers.list.length || 0;
+            // Hidden layers do not draw, so the stepper counts the
+            // visible stack only.
+            const total = Layers.visibleList().length || 0;
             const n = (Layers.activeCount > 0 ? Layers.activeCount : total) || 0;
             if (val) val.textContent = String(n || '–');
             if (dec) dec.disabled = !(n > 1);
             if (inc) inc.disabled = !(total && n < total);
           }
           function setCount(n) {
-            const total = Layers.list.length || 0;
+            const total = Layers.visibleList().length || 0;
             if (!total) return;
             const next = Math.max(1, Math.min(total, n));
             Layers.setActiveCount(next >= total ? 0 : next);
             try { localStorage.setItem('swr.layers.active', String(next)); } catch (_) {}
             sync();
           }
-          if (dec) dec.addEventListener('click', () => setCount((Layers.activeCount || Layers.list.length) - 1));
-          if (inc) inc.addEventListener('click', () => setCount((Layers.activeCount || Layers.list.length) + 1));
+          if (dec) dec.addEventListener('click', () => setCount((Layers.activeCount || Layers.visibleList().length) - 1));
+          if (inc) inc.addEventListener('click', () => setCount((Layers.activeCount || Layers.visibleList().length) + 1));
+          // Hiding or showing a group changes how many layers draw.
+          document.addEventListener('swr-layers-changed', sync);
           // Restore once the default library seeds the stack (async).
           let tries = 0;
           const iv = setInterval(() => {

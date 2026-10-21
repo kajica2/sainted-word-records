@@ -355,13 +355,22 @@ function creditsMarkdown(gen) {
 const archives = [];
 for (const gen of generations) {
   const entries = [];
+  // The stamp is content-derived, not "now" and not the filesystem's mtime:
+  // a build output that changes on every build is not reproducible, and
+  // `check:build-idempotent` fails on it. It is also not the source file's
+  // mtime — a `touch`, a fresh clone or a rebase moves that without the
+  // content changing, which would make the archive bytes drift for no
+  // reason. The generation's own authored date changes exactly when the
+  // generation does.
+  const stamp = new Date(`${gen.date}T00:00:00Z`);
+
   for (const artifact of gen.artifacts) {
     if (!artifact.exists) continue;
     const abs = path.join(ROOT, artifact.path);
     entries.push({
       name: `files/${artifact.path}`,
       data: fs.readFileSync(abs),
-      mtime: fs.statSync(abs).mtime,
+      mtime: stamp,
     });
   }
   for (const m of gen.media) {
@@ -371,12 +380,13 @@ for (const gen of generations) {
     entries.push({
       name: `media/${m.path}`,
       data: fs.readFileSync(abs),
-      mtime: fs.statSync(abs).mtime,
+      mtime: stamp,
     });
   }
 
+
   const credits = Buffer.from(creditsMarkdown(gen), 'utf8');
-  entries.push({ name: 'CREDITS.md', data: credits, mtime: new Date() });
+  entries.push({ name: 'CREDITS.md', data: credits, mtime: stamp });
 
   const manifest = {
     generation: gen.id,
@@ -405,7 +415,7 @@ for (const gen of generations) {
   entries.push({
     name: 'MANIFEST.json',
     data: Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8'),
-    mtime: new Date(),
+    mtime: stamp,
   });
 
   const zip = createZip(entries);

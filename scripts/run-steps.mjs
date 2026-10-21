@@ -82,6 +82,22 @@ const GROUPS = {
     // Also its own CI step (npm run preset-pipeline:verify) after check:full.
     'npm run check:preset-smoke',
     'npm run check:layer-state-unit',
+    // Layer groups: the shift+click multi-selection, the group header,
+    // group visibility (hidden members), collapse, ungroup, and the
+    // group name. The sibling layer-retire/layer-text/layer-lifecycle
+    // suites are reachable from no gate (pre-existing, not this gate's job).
+    'npm run check:layer-groups-unit',
+    // The auto-post feed: the posts come from site-map.json's
+    // `announcements` array, read from the inlined footer slice or from
+    // /site-map.json, and painted into every [data-announcements]
+    // container plus the footer's bottom bar.
+    'npm run check:announcements-unit',
+    // The store: the Gumroad download catalogue and the Stripe products
+    // come from site-map.json's `store` block, read from the inlined
+    // footer slice or from /site-map.json. A product without a link must
+    // never render a dead checkout URL, and the publish script must write
+    // the off-site URL back into the manifest without reformatting it.
+    'npm run check:store-unit',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.
@@ -246,7 +262,25 @@ const GROUPS = {
     'npm run verify:story-graph',
     'npm run check:capture-smoke',
     'npm run check:targeting-smoke',
+    // Layer groups in the engine's layer panel: shift+click multi-select,
+    // the group header, hide/collapse/ungroup, and the proof that a hidden
+    // member stops drawing on the stage. Needs a built dist/ (ensureDist).
+    'npm run check:layer-groups-smoke',
+    // The auto-post feed in a real browser: the changelog and the
+    // marketplace paint the posts, and the footer's "New — …" link reaches
+    // every page that mounts <swr-footer>. Needs a built dist/.
+    'npm run check:announcements-smoke',
+    // The store in a real browser: the marketplace paints the download
+    // catalogue from site-map.json, the shop renders the shop products
+    // with a disabled Buy button while the Payment Links are missing, and
+    // no page ships a placeholder checkout URL. Needs a built dist/.
+    'npm run check:store-smoke',
     'npm run check:media-input-smoke',
+    // The Live control end to end in a real browser: a synthetic camera
+    // (--use-fake-device-for-media-stream) actually playing, the stage
+    // pixels moving, the mic routed into the engine's own analyser, and
+    // the devices released on stop. Was reachable from NO gate.
+    'npm run check:live-input',
     'npm run check:spit-live-smoke',
     'npm run check:tiktok-smoke',
     'npm run check:camera-enhance-smoke',

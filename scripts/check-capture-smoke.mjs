@@ -70,7 +70,12 @@ server.on('error', (err) => {
 server.listen(5182);
 
 const browser = await puppeteer.launch({
-  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  args: [
+    '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+    // Belt and braces with the register() stub below: the feature flags
+    // stop the worker existing at all, the stub stops it being created.
+    '--disable-features=ServiceWorker,ServiceWorkerOnUI',
+  ],
 });
 
 const results = [];
@@ -91,11 +96,51 @@ async function nav(page, url) {
   ).catch(() => {});
 }
 
+// The engine page reloads itself twice on a cold profile, and either
+// reload destroys the execution context an assertion is running in:
+//   1. lib/app-version-bust.js hard-reloads when the stored version is
+//      stale, which it always is in a fresh profile.
+//   2. The service worker claims the page on its first activation and
+//      pwa-bootstrap.js reloads on 'controllerchange'.
+// Neither the capture toolbar nor the periodic frame capture has anything
+// to do with either, so both are neutralised.
+//
+// For the service worker, stubbing register() is what actually works:
+// page.setRequestInterception() does not intercept the SW script fetch,
+// so blocking the request leaves the worker free to register and claim.
+// This is the approach verify-rotation-enabled.mjs and
+// verify-transitions.mjs use for the same reason.
+const APP_VERSION = (() => {
+  try {
+    const src = fs.readFileSync(path.join(distDir, 'lib/app-version.js'), 'utf8');
+    const m = src.match(/SWR_APP_VERSION\s*=\s*"([^"]+)"/);
+    return m ? m[1] : '';
+  } catch (_) {
+    return '';
+  }
+})();
+
+async function neutraliseReloads(page) {
+  await page.evaluateOnNewDocument((v) => {
+    // The version bust compares the stored version against the build's
+    // and hard-reloads on a mismatch. Seed it so the page loads once.
+    try { if (v) localStorage.setItem('swr_app_version_seen', v); } catch (_) {}
+    // Stop the service worker from registering, so it never claims the
+    // page and never fires the 'controllerchange' reload.
+    try {
+      if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+        navigator.serviceWorker.register = () => new Promise(() => {});
+      }
+    } catch (_) {}
+  }, APP_VERSION);
+}
+
 // ---------------------------------------------------------------------------
 // Main page (no URL opt-in) — exercises toolbar + toggle + interval input
 // ---------------------------------------------------------------------------
 
 const page = await browser.newPage();
+await neutraliseReloads(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -186,6 +231,7 @@ else bad('setIntervalSec(7) updates state + UI input value', JSON.stringify(ivSt
 // ---------------------------------------------------------------------------
 
 const page2 = await browser.newPage();
+await neutraliseReloads(page2);
 const errors2 = [];
 page2.on('pageerror', (e) => errors2.push(e.message));
 page2.on('console', (m) => { if (m.type() === 'error') errors2.push(m.text()); });

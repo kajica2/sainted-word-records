@@ -206,6 +206,189 @@
     }
     paint();
 
+    // === Canvas VHS tracking post-pass ===
+    // The standalone page (this file) paints a burnt-umber radial field, a
+    // sweeping stack of "tape head" rings, twelve horizontal chroma ribbons
+    // marching down the frame, a pulsing red head circle and a PLAY
+    // wordmark, and then layers a CSS .static scanline sheet plus a
+    // "CH-3 · 1986" label and a running timecode over the canvas. Its audio
+    // mapping is the classic VHS degradation: the head pulse breathes with
+    // the bass, the ribbons shimmer with the treble, and the beat is the
+    // tracking kick that makes the picture jump.
+    //
+    // Inside the engine this pass cannot repaint the frame — the user's
+    // clips are already on the canvas when postFx() runs, so the tape look
+    // has to be a grade/overlay instead of a replacement. The sepia wash,
+    // the vignette and the scanline jitter are translucent source-over
+    // passes; the tracking band, its chromatic split, the tracking tear and
+    // the REC glow are additive ('lighter') so they brighten the media
+    // underneath rather than hiding it.
+    //
+    // Audio features read: A.feat.bass (band height + REC glow), A.feat.treble
+    // (chromatic bleed strength), A.feat.beat and A.feat.beatPulse (tracking
+    // kick + REC blink), A.feat.rms (noise density), A.feat.centroid (smear
+    // bias). Every read is defensive, so the pass still runs with no audio
+    // object at all, and SWR_AUDIO_DAMP is optional (guarded) smoothing for
+    // the band height.
+    function drawFx() {
+      const A_ = (typeof A !== 'undefined' && A) ? A : null;
+      const feat = (A_ && A_.feat) ? A_.feat : null;
+      const num = (v) => (typeof v === 'number' && isFinite(v)) ? v : 0;
+      const bass = num(feat && feat.bass);
+      const treble = num(feat && feat.treble);
+      const beat = num(feat && feat.beat);
+      const onset = num(feat && feat.onset);
+      const rms = num(feat && feat.rms);
+      const centroid = num(feat && feat.centroid);
+      const beatPulse = !!(feat && feat.beatPulse);
+
+      const t = performance.now() / 1000;
+      const cw = (typeof W !== 'undefined' && W) ? W
+        : ((typeof stage !== 'undefined' && stage && stage.width) ? stage.width : 1280);
+      const ch = (typeof H !== 'undefined' && H) ? H
+        : ((typeof stage !== 'undefined' && stage && stage.height) ? stage.height : 720);
+      if (!cw || !ch) return;
+
+      // Optional smoothing for the band height — the page's own band grows
+      // and shrinks with the raw bass, so damping only the height keeps the
+      // jitter intact while the edges stop strobing. SWR_AUDIO_DAMP is bound
+      // by the switcher but may be undefined, so both the bound name and the
+      // global are probed and every read is guarded.
+      const _DAMP = (typeof SWR_AUDIO_DAMP !== 'undefined' && SWR_AUDIO_DAMP &&
+        typeof SWR_AUDIO_DAMP.damp === 'function')
+        ? SWR_AUDIO_DAMP.damp
+        : ((typeof window !== 'undefined' && window.SWR_AUDIO_DAMP &&
+            typeof window.SWR_AUDIO_DAMP.damp === 'function')
+          ? window.SWR_AUDIO_DAMP.damp : null);
+      let bassS = bass;
+      if (_DAMP) {
+        // `proc` is the switcher's stable scratch canvas, so it doubles as
+        // the damping instance key — the band height then smooths across
+        // frames instead of strobing on noisy analyser values.
+        bassS = (typeof proc !== 'undefined' && proc) ? _DAMP(bass, 0.35, proc) : _DAMP(bass, 0.35);
+      }
+
+      ctx.save();
+
+      // 1) Sepia wash — the page's own burnt-umber background gradient
+      //    (#3a2a1a → #1a0e08) applied translucently over the media.
+      const wash = ctx.createRadialGradient(cw / 2, ch / 2, 40, cw / 2, ch / 2, Math.max(cw, ch) * 0.7);
+      wash.addColorStop(0, 'rgba(58,42,26,0.16)');
+      wash.addColorStop(0.5, 'rgba(26,14,8,0.12)');
+      wash.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, cw, ch);
+
+      // 2) Vignette — same radial darkening as the page's .static::after.
+      const vig = ctx.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.34,
+        cw / 2, ch / 2, Math.max(cw, ch) * 0.72);
+      vig.addColorStop(0, 'rgba(0,0,0,0)');
+      vig.addColorStop(1, 'rgba(0,0,0,0.38)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, 0, cw, ch);
+
+      // 3) Scanline jitter — the page's 1px-in-3px static sheet, but each
+      //    line is displaced horizontally so the pattern wobbles like a
+      //    mis-tracked head. The wobble grows with the bass.
+      const wob = 1.5 + bassS * 5 + rms * 3;
+      ctx.fillStyle = 'rgba(232,216,184,0.035)';
+      for (let y = 0; y < ch; y += 3) {
+        const off = Math.sin(y * 0.07 + t * 3.1) * wob + Math.sin(y * 0.011 + t * 0.7) * wob * 1.6;
+        ctx.fillRect(-4 + off, y, cw + 8, 1);
+      }
+
+      // 4) Tracking band — the horizontal strip of noise the tape head has
+      //    lost, drifting down the frame at the same 80px/s as the page's
+      //    chroma ribbons. Height follows the bass; the beat kicks it.
+      const bandH = Math.max(18, Math.min(ch * 0.22, 34 + bassS * 90 + rms * 40));
+      let bandY = ((t * 80) % (ch + bandH * 2)) - bandH;
+      const kick = beat * 0.6 + onset;
+      if (kick > 0.02) bandY += Math.sin(t * 37) * kick * 14;
+
+      ctx.globalCompositeOperation = 'lighter';
+      const bandGrad = ctx.createLinearGradient(0, bandY, 0, bandY + bandH);
+      bandGrad.addColorStop(0, 'rgba(212,160,74,0)');
+      bandGrad.addColorStop(0.5, 'rgba(212,160,74,0.10)');
+      bandGrad.addColorStop(1, 'rgba(212,160,74,0)');
+      ctx.fillStyle = bandGrad;
+      ctx.fillRect(0, bandY, cw, bandH);
+
+      // 5) Chroma bleed inside the band — the streaks are tinted with the
+      //    page's chromatic-aberration colours (#ff3838 / #00d4ff, the
+      //    same pair the .label and .v text-shadows use) and each streak is
+      //    offset from its neighbours, which is what a split signal looks
+      //    like. Treble drives how far the channels separate.
+      const split = 1 + treble * 4 + centroid * 3;
+      const streaks = 140;
+      for (let i = 0; i < streaks; i++) {
+        const n = Math.random();
+        const x = Math.random() * cw;
+        const y = bandY + Math.random() * bandH;
+        const len = 6 + Math.random() * 46;
+        const a = 0.05 + n * 0.22 * (0.4 + rms);
+        if (n > 0.66) {
+          ctx.fillStyle = 'rgba(255,56,56,' + a + ')';
+          ctx.fillRect(x + split, y, len, 1.5);
+        } else if (n > 0.4) {
+          ctx.fillStyle = 'rgba(0,212,255,' + a * 0.85 + ')';
+          ctx.fillRect(x - split, y, len, 1.5);
+        } else {
+          ctx.fillStyle = 'rgba(232,216,184,' + a + ')';
+          ctx.fillRect(x, y, len, 1.5);
+        }
+      }
+
+      // 6) Tracking tear — a bright scanline ripping across the band,
+      //    split into the same red/cyan fringes.
+      const tearY = bandY + ((t * 220) % bandH);
+      ctx.fillStyle = 'rgba(232,216,184,0.22)';
+      ctx.fillRect(0, tearY, cw, 1.5);
+      ctx.fillStyle = 'rgba(255,56,56,0.18)';
+      ctx.fillRect(split * 0.8, tearY, cw, 1.5);
+      ctx.fillStyle = 'rgba(0,212,255,0.18)';
+      ctx.fillRect(-split * 0.8, tearY, cw, 1.5);
+
+      // 7) REC accent — the blinking record dot of the page header, in the
+      //    page's --rec red, with an additive glow that swells on the beat.
+      const blink = Math.sin(t * Math.PI * 2 / 1.2) > 0 ? 1 : 0.3;
+      const recA = Math.max(0, Math.min(1, blink * (0.55 + bassS * 0.35) + (beatPulse ? 0.3 : 0)));
+      const recGlow = ctx.createRadialGradient(18, 22, 0, 18, 22, 26 + bassS * 16);
+      recGlow.addColorStop(0, 'rgba(196,42,42,' + (0.5 * recA) + ')');
+      recGlow.addColorStop(1, 'rgba(196,42,42,0)');
+      ctx.fillStyle = recGlow;
+      ctx.fillRect(0, 0, 60, 60);
+      ctx.beginPath();
+      ctx.arc(18, 22, 4 + bassS * 2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(196,42,42,' + recA + ')';
+      ctx.fill();
+
+      // 8) REC label + timecode — the page's own chrome, in --ink and
+      //    --warn, with the label's chromatic text-shadow.
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.font = 'bold 11px ui-monospace';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(255,56,56,0.5)';
+      ctx.fillText('REC', 29, 26);
+      ctx.fillStyle = 'rgba(0,212,255,0.5)';
+      ctx.fillText('REC', 27, 26);
+      ctx.fillStyle = 'rgba(232,216,184,0.9)';
+      ctx.fillText('REC', 28, 26);
+
+      const frames = Math.floor(performance.now() / 33);
+      const total = frames % 10000;
+      const tc = String(Math.floor(total / 3600)).padStart(2, '0') + ':' +
+        String(Math.floor(total / 60) % 60).padStart(2, '0') + ':' +
+        String(total % 60).padStart(2, '0') + ':' +
+        String(frames % 30).padStart(2, '0');
+      ctx.font = '14px ui-monospace';
+      const tcW = ctx.measureText(tc).width;
+      ctx.fillStyle = 'rgba(212,160,74,0.9)';
+      ctx.fillText(tc, cw - tcW - 16, ch - 16);
+
+      ctx.restore();
+    }
+
     // Timecode
     setInterval(() => {
       const s = Math.floor(performance.now() / 33) % 10000;

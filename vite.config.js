@@ -182,6 +182,52 @@ function inlineTargetingRules() {
 // dist/ (copy-static is registered before this plugin, so its closeBundle —
 // which re-copies root files over ./public/ staleness — finishes first and
 // our edits persist).
+// The store block (site-map.json → `store`) with the build-time overrides
+// applied. The links live in the data file so the repo is the source of
+// truth, but a deployment that would rather not commit them can supply
+// them as env vars:
+//   GUMROAD_STORE_URL  → the store URL
+//   GUMROAD_LINKS      → JSON { productId: gumroadProductUrl }
+//   STRIPE_LINKS       → JSON { productId: stripePaymentLink }
+// Overrides win over the file; a malformed env var is ignored (never fatal,
+// never silently mangled) and reported on stderr.
+function resolveStore(store) {
+  if (!store) return null;
+  const out = JSON.parse(JSON.stringify(store));
+
+  const gumroadUrl = process.env.GUMROAD_STORE_URL;
+  if (gumroadUrl && out.gumroad) out.gumroad.url = gumroadUrl;
+
+  const parseLinks = (raw, label) => {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (e) {
+      process.stderr.write(`[inline-footer-nav] ${label} is not valid JSON — ignored\n`);
+      return null;
+    }
+  };
+
+  const gumroadLinks = parseLinks(process.env.GUMROAD_LINKS, 'GUMROAD_LINKS');
+  if (gumroadLinks && Array.isArray(out.downloads)) {
+    out.downloads.forEach(d => {
+      const url = gumroadLinks[d.id];
+      if (url) d.gumroadUrl = url;
+    });
+  }
+
+  const stripeLinks = parseLinks(process.env.STRIPE_LINKS, 'STRIPE_LINKS');
+  if (stripeLinks && Array.isArray(out.products)) {
+    out.products.forEach(p => {
+      const url = stripeLinks[p.id];
+      if (url) p.stripeUrl = url;
+    });
+  }
+
+  return out;
+}
+
 function inlineFooterNav() {
   let outDir = 'dist';
   return {
@@ -192,11 +238,14 @@ function inlineFooterNav() {
     closeBundle() {
       const map = JSON.parse(readFileSync('site-map.json', 'utf8'));
       // Only the keys renderFooter() reads: the IA block, the legal links and
-      // the tools list it looks up the sitemap entry in.
+      // the tools list it looks up the sitemap entry in — plus the
+      // announcements, which the footer shows as the newest post.
       const slice = JSON.stringify({
         footerNav: map.footerNav,
         legal: map.legal || [],
         tools: map.tools || [],
+        announcements: map.announcements || [],
+        store: resolveStore(map.store),
       });
       const tag = `<script type="application/json" id="swr-footer-data">${slice}</script>`;
       let inlined = 0;
