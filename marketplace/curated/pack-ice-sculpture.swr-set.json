@@ -55,7 +55,7 @@
       "asset": {
         "name": "ice-sculpture-01.webp",
         "mimeType": "image/webp",
-        "size": 42438,
+        "size": 27066,
         "url": "/packs/ice-sculpture/ice-sculpture-01.webp"
       }
     },
@@ -79,7 +79,7 @@
       "asset": {
         "name": "ice-sculpture-02.webp",
         "mimeType": "image/webp",
-        "size": 21764,
+        "size": 13936,
         "url": "/packs/ice-sculpture/ice-sculpture-02.webp"
       }
     },
@@ -103,7 +103,7 @@
       "asset": {
         "name": "ice-sculpture-03.webp",
         "mimeType": "image/webp",
-        "size": 55768,
+        "size": 35034,
         "url": "/packs/ice-sculpture/ice-sculpture-03.webp"
       }
     }
