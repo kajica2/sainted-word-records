@@ -327,6 +327,11 @@
           </span>
           <span class="micro ml-6">Waveform ▸ Beats</span>
           <div class="wave-bars ml-3" id="drawer-wave" aria-hidden="true"></div>
+          <select id="dist-algo" class="ml-auto bg-panel border border-line rounded text-[10px] px-2 py-1 text-gray-300">
+            <option value="linear">Linear</option>
+            <option value="random">Random</option>
+            <option value="beat">Beat-Sync</option>
+          </select>
         </button>
         <!-- body -->
         <div class="drawer-body">
@@ -854,6 +859,52 @@
       });
     }
 
+    // ─── Distribution algorithm for preset parameters ──────────────
+    const distAlgoSelect = document.getElementById('dist-algo');
+    if (distAlgoSelect && window.PresetDistribution) {
+      // Apply distribution when algorithm changes
+      distAlgoSelect.addEventListener('change', () => {
+        const algo = distAlgoSelect.value;
+        const layersList = document.getElementById('layers-list');
+        if (!layersList) return;
+
+        // Get all layer sliders
+        const sliders = layersList.querySelectorAll('input[type="range"]');
+        const layerCount = Math.ceil(sliders.length / 5) || 5; // 5 params per layer
+
+        let distributed;
+        const seed = Date.now();
+        const baseValue = 0.5;
+
+        if (algo === 'linear') {
+          distributed = window.PresetDistribution.LINEAR_SPREAD.acrossLayers(baseValue, layerCount, 0.3);
+        } else if (algo === 'random') {
+          distributed = window.PresetDistribution.RANDOM_DIST.acrossLayers(baseValue, layerCount, 0.4, seed);
+        } else if (algo === 'beat') {
+          // For beat-sync, get current audio features if available
+          const audioFeat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+          distributed = window.PresetDistribution.BEAT_SYNDIST.compute(new Array(layerCount), audioFeat);
+        }
+
+        // Apply distributed values to layer parameters
+        if (distributed && distributed.length) {
+          const paramNames = ['opacity', 'base', 'scale', 'hue', 'rot'];
+          sliders.forEach((slider, i) => {
+            const layerIdx = Math.floor(i / 5);
+            const paramIdx = i % 5;
+            if (distributed[layerIdx] !== undefined) {
+              // Apply value scaled to slider range (0-100)
+              const newVal = Math.round(distributed[layerIdx] * 100);
+              slider.value = newVal;
+              // Trigger change event for the layer
+              slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          });
+          console.log(`[Distribution] Applied ${algo} algorithm to ${layerCount} layers`);
+        }
+      });
+    }
+
     // ─── Photo tab: drop photos → render thumbnails ──────────────
     const photoDeck = document.getElementById('photo-deck');
     const photoStatus = document.getElementById('photo-status');
@@ -966,6 +1017,7 @@
   <script src="/client/swr-media-input.client.js" defer></script>
   <script src="/client/dashboard-engine.client.js" defer></script>
   <script src="/client/dashboard-presets.client.js" defer></script>
+  <script src="/lib/preset-distribution.client.js" defer></script>
 
   <!-- Phase 3: Music-video automix+curator runtimes (exposed for any
        future dashboard integration). Each script is wrapped in IIFE +
