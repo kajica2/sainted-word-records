@@ -224,15 +224,21 @@ const PROBE_SRC = `
   // Capture the engine's REAL draw calls. This is the ground truth the
   // debugger's geometry overlay is audited against — the overlay claims
   // to show where each layer lands; this records where it actually did.
+  //
+  // Only element sources count. The engine also blits its per-layer
+  // offscreen cache (an OffscreenCanvas) and the natural/grade pass
+  // blits full-stage canvases; those are engine internals, not layer
+  // draws, and they carry no identity to match a layer against.
   const stageCtx = window.SWR && window.SWR.ctx;
   if (stageCtx) {
     const origDraw = stageCtx.drawImage;
     stageCtx.drawImage = function (src) {
       const rest = Array.prototype.slice.call(arguments, 1);
-      if (rest.length >= 4) {
+      const tag = src && src.tagName;
+      if (rest.length >= 4 && (tag === 'IMG' || tag === 'VIDEO')) {
         const t = this.getTransform();
         probe.draws.push({
-          key: src && src.tagName ? src.tagName + '#' + String(src.src || '').slice(-24) : '',
+          key: tag + '#' + String(src.src || '').slice(-24),
           dx: rest[0], dy: rest[1], dw: rest[2], dh: rest[3],
           a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f,
         });
@@ -689,6 +695,16 @@ async function main() {
     // Seed a layer so the layer surfaces have content.
     const seeded = await evaluate(cdp, sessionId, SEED_SRC, true);
     if (!seeded?.ok) throw new Error('seed failed: ' + JSON.stringify(seeded));
+    // The seeded images must be decoded before the engine draws them —
+    // until then the page skips the layer entirely.
+    await waitFor(cdp, sessionId,
+      `(() => {
+        const S = window.SWR;
+        const L = (S && S.Layers && S.Layers.list) || [];
+        return L.length > 0 && L.every((l) => l.asset && l.asset._el &&
+          l.asset._el.complete && l.asset._el.naturalWidth > 0);
+      })()`,
+      'seeded images to decode');
     await sleep(700);
 
     // ── baseline measurement ──
