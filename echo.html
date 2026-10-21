@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Echo — 30-minute black PNG sequence crossfade</title>
   <meta name="description" content="Echo: a 30-minute slow crossfade between black PNG sequences. Meditative, minimal, all-black." />
-  <link rel="canonical" href="/echo.html" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/echo" />
   <link rel="stylesheet" href="/lib/design-tokens.css" />
   <link rel="stylesheet" href="/lib/design-base.css" />
   <link rel="stylesheet" href="/lib/components.css" />
@@ -66,6 +66,7 @@
     #echo-skip:hover { opacity: 1; color: var(--echo-fg); }
     body.echo-page.faded-hud #echo-hud { opacity: 0; }
   </style>
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 </head>
 <body class="echo-page">
   <swr-nav></swr-nav>
@@ -77,5 +78,7 @@
   </div>
   <button id="echo-skip" type="button" aria-label="Advance to the next sequence">NEXT »</button>
   <noscript>Echo needs JavaScript. The 30-minute crossfade can't run.</noscript>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

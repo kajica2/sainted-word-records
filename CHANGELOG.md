@@ -44,6 +44,17 @@ once it hits 1.0.
 - WebGL uniform errors: `null` location guards in `fx-postprocess.js`
   and `versions-presets.js`.
 - Reserve / void warnings on missing-pristine transitions.
+- The CI gate was red on `main` itself (it only runs on pull requests, so
+  the breakage after the `/campaign` launch went unnoticed). Six causes,
+  all fixed: eight pages were missing the shared chrome (`<swr-nav>`,
+  `<swr-footer>`, `og:image`, `canonical`); `campaign.html` shipped a
+  rewrite but was never copied into `dist/`; the link checks treated a
+  `#fragment` as part of the path, so `/composer#onboarding` read as
+  dead (the composer's onboarding pill now carries that id);
+  `check:svg-grade-integration` called `.equals()` on the `Uint8Array`
+  Puppeteer returns; two doc claims contradicted the tree; and the
+  automix smoke asserted the engine's globals after a fixed 400 ms
+  wait instead of waiting for the deferred module that publishes them.
 
 ### Changed
 - Bare 1..9 no longer selects layers (the previous behaviour

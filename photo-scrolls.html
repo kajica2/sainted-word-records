@@ -111,6 +111,7 @@
   </style>
 </head>
 <body>
+  <swr-nav></swr-nav>
   <header class="ps-hero">
     <div style="max-width:1400px;margin:0 auto;padding:0 20px">
       <p class="kicker" style="font-family:var(--font-mono,monospace);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin:0 0 10px">
@@ -271,5 +272,8 @@
       document.title = `Photo Scrolls · ${photos} frames · SWR`;
     })();
   </script>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

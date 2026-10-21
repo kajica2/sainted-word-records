@@ -1100,6 +1100,10 @@
       "destination": "/campaign.html"
     },
     {
+      "source": "/contact-sheet",
+      "destination": "/contact-sheet.html"
+    },
+    {
       "source": "/director-mode-sainted-word",
       "destination": "/director-mode-sainted-word.html"
     },

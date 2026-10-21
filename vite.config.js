@@ -480,6 +480,13 @@ function copyStatic() {
     'landing-personas-v4-dashboard.html',
     'landing-personas-v5-brutalist.html',
     'landing-personas-v6-wireframe.html',
+    // The hire-us campaign page. It ships a rewrite (/campaign →
+    // /campaign.html) and the shared footer links to it, but no
+    // nav/footer/legal/tools entry points at it, so the
+    // SITE_MAP_ROOT_FILES derivation never picked it up — the rewrite
+    // resolved to a file that was never copied into dist. Listed here
+    // so check-dist-links finds the page it promises.
+    'campaign.html',
     'trim.client.js',
     'wizard.js',
     'icons/apple-touch-icon-180.png',

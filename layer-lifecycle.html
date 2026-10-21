@@ -196,8 +196,10 @@
     }
     .help-grid b { color: var(--accent, #f59e0b); }
   </style>
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 </head>
 <body>
+  <swr-nav></swr-nav>
   <main>
     <h1>Layer Lifecycle</h1>
     <p class="lead">
@@ -232,5 +234,7 @@
     </div>
   </main>
   <div id="ll-status" role="status" aria-live="polite"></div>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

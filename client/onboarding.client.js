@@ -224,6 +224,9 @@
     dismissed = false;
     const pill = document.createElement('button');
     pill.type = 'button';
+    // The site map deep-links to /composer#onboarding ("Composer tour"), so
+    // the pill needs the id the fragment points at.
+    pill.id = 'onboarding';
     pill.className = 'swr-next-pill';
     pill.style.cssText = [
       'position:fixed',
