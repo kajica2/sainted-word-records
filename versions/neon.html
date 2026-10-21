@@ -540,6 +540,7 @@
       <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
       <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
       <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
+      <span class="gc"><a class="tbtn" id="swr-inspect" href="?swrdebug=1" title="Visual debugger — live engine state" style="padding:3px 8px;font-size:9px;text-decoration:none;">Inspect</a></span>
       <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">
         <span data-fx-intensity-mount></span>
         <span data-fx-tone-mount></span>
@@ -2001,5 +2002,15 @@
     <script src="/lib/version-badge.client.js" defer></script>
   <script src="/client/looks-menu.client.js" defer></script>
 <script src="/lib/version-watcher.client.js" defer></script>
+  <!-- Visual debugger. Nothing is fetched unless ?swrdebug=1 asks for it,
+       so the page pays nothing for the tool being one click away. -->
+  <script>
+    if (/[?&]swrdebug=1/.test(location.search)) {
+      var s = document.createElement('script');
+      s.src = '/client/engine-debugger.client.js';
+      s.defer = true;
+      document.head.appendChild(s);
+    }
+  </script>
 </body>
 </html>
