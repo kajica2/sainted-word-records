@@ -1409,8 +1409,8 @@
     function loadMasterEnabled() {
       try {
         var v = localStorage.getItem(ROT_MASTER_KEY);
-        return v === null ? true : v === '1';
-      } catch (_) { return true; }
+        return v === null ? false : v === '1';
+      } catch (_) { return false; }
     }
     function saveMasterEnabled(v) {
       try { localStorage.setItem(ROT_MASTER_KEY, v ? '1' : '0'); } catch (_) {}
