@@ -613,8 +613,18 @@
     },
     fullscreen: {
       keys: 'F',
-      label: 'Toggle fullscreen',
+      label: 'Fullscreen (no UI)',
       action: function () {
+        // On a page that has a cover-fullscreen mode, F means "fullscreen
+        // with no UI": the stage fills the screen and every panel, bar
+        // and footer is hidden. The browser's own fullscreen comes with
+        // it, so it is a real fullscreen rather than a full-bleed
+        // viewport. Elsewhere F keeps its plain fullscreen behaviour.
+        const CF = window.SWR_COVER_FULLSCREEN;
+        if (CF && typeof CF.toggle === 'function') {
+          CF.toggle(true);
+          return;
+        }
         if (document.fullscreenElement) {
           try { document.exitFullscreen(); } catch (_) {}
         } else if (document.documentElement.requestFullscreen) {
@@ -1392,7 +1402,7 @@
       // ---- Transport ----
       { keys: 'Space',          label: 'play / pause',                 action: ACTIONS.play },
       { keys: 'M',              label: 'toggle mute',                  action: ACTIONS.mute },
-      { keys: 'F',              label: 'fullscreen',                   action: ACTIONS.fullscreen },
+      { keys: 'F',              label: 'fullscreen (no UI)',           action: ACTIONS.fullscreen },
       { keys: 'Esc',            label: 'close help overlay',           action: ACTIONS.closeSettings },
 
       // ---- Generation ----

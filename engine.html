@@ -2147,10 +2147,15 @@
     body.engine-advanced-mode #basic-mode-ui { display: none !important; }
 
     /* Cover Fullscreen Mode */
-    body.cover-fullscreen section#stage { position: fixed; inset: 0; z-index: 9999; background: #000; }
+    body.cover-fullscreen section#stage,
+    body.cover-fullscreen #basic-stage { position: fixed; inset: 0; z-index: 9999; background: #000; }
+    body.cover-fullscreen aside#library,
     body.cover-fullscreen aside#layers,
     body.cover-fullscreen header#transport,
     body.cover-fullscreen #basic-mode-header,
+    body.cover-fullscreen #basic-clips-bar,
+    body.cover-fullscreen #basic-controls,
+    body.cover-fullscreen #basic-empty-state,
     body.cover-fullscreen footer { display: none !important; }
     body.cover-fullscreen #toggle-cover-fullscreen.active { background: var(--accent); }
 
@@ -6462,13 +6467,52 @@
           });
         }
         
-        // Toggle cover fullscreen
+        // Cover fullscreen — the stage fills the viewport with every
+        // panel, bar and footer hidden. The F key reaches this through
+        // window.SWR_COVER_FULLSCREEN (see engine-keys.client.js),
+        // so the key and the button drive the same state; the key also
+        // engages the browser's own fullscreen, which is what makes it a
+        // real fullscreen rather than a full-bleed viewport.
         let coverFullscreen = false;
-        $('toggle-cover-fullscreen')?.addEventListener('click', () => {
-          coverFullscreen = !coverFullscreen;
+        let coverViaKey = false;
+        const setCoverFullscreen = (on, viaKey) => {
+          coverFullscreen = !!on;
+          if (viaKey) coverViaKey = coverFullscreen;
           document.body.classList.toggle('cover-fullscreen', coverFullscreen);
-          $('toggle-cover-fullscreen').classList.toggle('active', coverFullscreen);
+          $('toggle-cover-fullscreen')?.classList.toggle('active', coverFullscreen);
+          if (viaKey) {
+            if (coverFullscreen && document.documentElement.requestFullscreen) {
+              try { document.documentElement.requestFullscreen(); } catch (_) {}
+            } else if (!coverFullscreen && document.fullscreenElement) {
+              try { document.exitFullscreen(); } catch (_) {}
+            }
+          }
+        };
+        $('toggle-cover-fullscreen')?.addEventListener('click', () => {
+          setCoverFullscreen(!coverFullscreen, false);
         });
+        // Escape leaves the browser's fullscreen; the cover mode has to
+        // follow it out, or the page would stay chrome-less.
+        document.addEventListener('fullscreenchange', () => {
+          if (!document.fullscreenElement && coverFullscreen && coverViaKey) {
+            setCoverFullscreen(false, true);
+          }
+        });
+        // Escape also leaves the cover mode on its own, since the button
+        // that turns it on is itself hidden while it is on.
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && coverFullscreen && !document.fullscreenElement) {
+            setCoverFullscreen(false, false);
+          }
+        });
+        // Published on its own global, not on window.SWR: the engine
+        // replaces window.SWR wholesale when it exports its API further
+        // down, which would take these with it.
+        window.SWR_COVER_FULLSCREEN = {
+          set: setCoverFullscreen,
+          toggle: (viaKey) => setCoverFullscreen(!coverFullscreen, viaKey === true),
+          get: () => coverFullscreen,
+        };
 
         // Tone / desaturation readout (the slider module owns the binding).
         (function () {
