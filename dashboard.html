@@ -995,10 +995,38 @@
       }
     });
 
-    // Add button to layers header
+    // Add button + master toggle to layers header
     const layersHeader = document.querySelector('#sidebar-r .flex.items-center.justify-between');
     if (layersHeader) {
+      // Master toggle checkbox
+      const masterToggle = document.createElement('label');
+      masterToggle.className = 'flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer';
+      masterToggle.innerHTML = `
+        <input type="checkbox" id="auto-rotate-master" class="accent-orange" />
+        <span>Auto</span>
+      `;
+      masterToggle.title = 'Toggle auto-rotate for all layers';
+      layersHeader.appendChild(masterToggle);
+      
+      // Auto-rotate button
       layersHeader.appendChild(autoRotateBtn);
+      
+      // Master toggle logic
+      document.getElementById('auto-rotate-master')?.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          // Enable all auto-rotate checkboxes
+          const checkboxes = document.querySelectorAll('#layers-list input[type="checkbox"]');
+          checkboxes.forEach(cb => cb.checked = true);
+          startAutoRotate();
+          autoRotateBtn.style.color = 'var(--signal)';
+        } else {
+          // Disable all
+          const checkboxes = document.querySelectorAll('#layers-list input[type="checkbox"]');
+          checkboxes.forEach(cb => cb.checked = false);
+          stopAutoRotate();
+          autoRotateBtn.style.color = '';
+        }
+      });
     }
 
     // ─── Photo tab: drop photos → render thumbnails ──────────────
