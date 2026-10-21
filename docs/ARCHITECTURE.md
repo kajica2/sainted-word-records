@@ -33,7 +33,8 @@ the engine.
 sainted-word-records/
 ├── engine.html              # legacy single-page engine (still served, no auth)
 ├── swr-app.html              # current SPA at /engine/ (PWA install target)
-├── landing.html              # marketing splash at /
+├── index.html                # the homepage (2026-10-21 redesign), served at /
+├── landing.html              # previous marketing splash, at /landing.html
 ├── versions/                 # 23 preset pages (neon, film, grid, …)
 │   ├── music_video.html      # the gradient-panel + automix page (post-2026 work)
 │   └── _*.js                # 10 build-time inject scripts (recorder, layout, mobile, etc.)

@@ -145,7 +145,8 @@ npm run build  # → dist/ (engine + 5 versions)
 ```
 sainted-word-records/
 ├── engine.html               # The main engine (live, served at /engine/, ~32 KB)
-├── landing.html              # Public landing page
+├── index.html                # Public homepage (the 2026-10-21 redesign), served at /
+├── landing.html              # Previous homepage, still reachable at /landing.html
 ├── campaign.html             # 17-section sales page with pricing
 ├── personas.html             # 23-persona gallery with family filter
 ├── versions/                 # audio-reactive engine variants — 5 core (neon, film, grid, smoke, hallucination) + reference `music_video.html` (3D hologram) + 17 artistic presets sharing the same runtime

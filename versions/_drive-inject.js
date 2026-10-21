@@ -37,7 +37,7 @@ const DRIVE_HANDLER = `
       if (!driveBtn) return;
 
       function getDriveState() {
-        return window.SWR_AUTH ? window.SWR_AUTH.get() : Promise.resolve(null);
+        return window.SWR_AUTH ? window.SWR_AUTH.session() : Promise.resolve(null);
       }
 
       function updateBtnState(user) {

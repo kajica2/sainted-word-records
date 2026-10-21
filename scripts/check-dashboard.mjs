@@ -48,6 +48,17 @@ const BASE = process.env.BASE_URL || `http://127.0.0.1:${PORT}`;
 const ROOT = process.cwd();
 const server = process.env.BASE_URL ? null : http.createServer((req, res) => {
   const url = req.url.split('?')[0];
+  // The dashboard loads lib/auth.client.js, which polls the session
+  // endpoint. The static server has no API, and a 404 on that fetch is
+  // logged by the browser as a console error — which the "no console
+  // errors" assertions then read as a page failure. Answer it the way the
+  // real handler does: a signed-out session.
+  if (url === '/api/auth/session') {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ user: null }));
+    return;
+  }
   let path = url === '/' ? '/dashboard.html' : url;
   const fullPath = ROOT + path;
   if (!fs.existsSync(fullPath)) {

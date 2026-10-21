@@ -1435,7 +1435,7 @@
   <!-- Google Drive integration -->
   <script src="/lib/google-drive.client.js"></script>
   <script src="/lib/drive-modal.client.js" defer></script>
-  <script src="/api/auth/session.js"></script>
+  <script src="/lib/auth.client.js"></script>
 
   <!-- Phase 3 → Phase 4 dashboard integration: the runtimes are now
        interactable. The dashboard-engine-bridge feeds dashboard's
@@ -1701,7 +1701,7 @@
     if (!driveBtn) return;
 
     function getDriveState() {
-      return window.SWR_AUTH ? window.SWR_AUTH.get() : Promise.resolve(null);
+      return window.SWR_AUTH ? window.SWR_AUTH.session() : Promise.resolve(null);
     }
 
     function updateBtnState(user) {

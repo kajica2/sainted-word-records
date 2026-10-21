@@ -11,7 +11,7 @@ Algorithmic audio-reactive video engine. Two surfaces:
 
 ```
                   ┌────────────────────────────────────────────┐
-   user browser ───►  landing.html / engine.html (Vite SPA-ish) │
+   user browser ───►  index.html / engine.html (Vite SPA-ish)   │
                        │                                       │
                        ├── engine-*.client.js   (engine runtime) │
                        ├── lib/*.client.js      (shared)        │
@@ -35,7 +35,7 @@ Algorithmic audio-reactive video engine. Two surfaces:
 | File                | Owns                                              | Generator                            |
 | ------------------- | ------------------------------------------------- | ------------------------------------ |
 | `site-map.json`     | IA: nav, footer, auth, legal, tools, archived      | hand-edited                          |
-| `vercel.json`       | Rewrites (`/` → `landing.html`, `/engine` → …)    | `scripts/generate-vercel-rewrites.mjs` (run after editing site-map.json) |
+| `vercel.json`       | Rewrites (`/` → `index.html`, `/engine` → …)     | `scripts/generate-vercel-rewrites.mjs` (run after editing site-map.json) |
 | `vite.config.js`    | Build, `rootFiles`, plugins, copy-static          | hand-edited (with `BUILD_MARKER_v*`) |
 | `manifest.webmanifest` | PWA manifest                                    | hand-edited                          |
 | `presets/*.json`    | Daily preset specs (append-only)                  | `preset-pipeline/generate.py` (local cron)   |

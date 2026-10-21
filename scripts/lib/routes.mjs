@@ -22,7 +22,10 @@
 //                          redirect, not the address — measured live 2026-09-29
 //                          on /artists/, /artists/vodolija/, /personas/v/,
 //                          /shotlist/)
-//   index.html/landing   → /
+//   index.html           → /                    (the homepage: the 2026-10-21
+//                                              redesign; it shadows the
+//                                              '/' → /landing.html rewrite)
+//   landing.html         → /landing.html        (the previous homepage)
 // A handful of pages are only reachable at their real filename (NO_REWRITE) or
 // at a preserved hand-written route (ROUTE_OVERRIDES) because no rewrite points
 // at their stem.
@@ -44,7 +47,7 @@ export const ATLAS_SLUGS = [
 // (the "Visual languages" page, measured live 2026-09-29) and versions.html is
 // only reachable at /versions.html. `servesFile()` below encodes that rule
 // rather than trusting the rewrite table, so a new page cannot reintroduce it.
-export const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|versions$|artists\/vodolija$)/;
+export const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|versions$|artists\/vodolija$|landing$)/;
 
 // Pages served at a preserved hand-written route that the stem rule cannot
 // express. Both routes exist in vercel.json and are what the site links to:
@@ -66,7 +69,10 @@ export function routeForFile(file) {
   const f = String(file).replace(/^\.\//, '');
   if (ROUTE_OVERRIDES[f]) return ROUTE_OVERRIDES[f];
   const stem = f.replace(/\.html$/, '');
-  if (stem === 'index' || stem === 'landing') return '/';
+  // The root index.html IS the homepage (the 2026-10-21 redesign). The old
+  // landing page keeps its own file name: `/` serves index.html, so
+  // landing.html is only reachable at /landing.html.
+  if (stem === 'index') return '/';
   if (/^gallery-/.test(stem)) return '/gallery/' + stem.replace(/^gallery-/, '');
   if (stem.startsWith('atlas-') && ATLAS_SLUGS.includes(stem.replace(/^atlas-/, ''))) {
     return '/atlas/' + stem.replace(/^atlas-/, '');
@@ -93,9 +99,12 @@ export function routeForFile(file) {
 export function routeToFile(route, { rewrites = [], exists = () => false } = {}) {
   const r = String(route);
   if (FILE_OVERRIDES[r]) return FILE_OVERRIDES[r];
+  // The root is served by the shipped index.html before any rewrite is
+  // consulted (Vercel resolves the filesystem first — measured live
+  // 2026-10-21: '/' rendered the redesign, not the /landing.html target).
+  if (r === '/' || r === '') return 'index.html';
   const hit = rewriteForRoute(r, rewrites);
   if (hit && !String(hit.destination).includes(':')) return String(hit.destination).replace(/^\/+/, '');
-  if (r === '/' || r === '') return 'landing.html';
   if (/^\/gallery\/[^/]+$/.test(r)) return 'gallery-' + r.slice('/gallery/'.length) + '.html';
   if (/^\/atlas\/[^/]+$/.test(r)) {
     const slug = r.slice('/atlas/'.length);
@@ -151,6 +160,10 @@ export function rewriteForRoute(route, rewrites) {
 // accepted when it lands on `file`.
 export function servesFile(route, file, { rewrites = [], files = new Set() } = {}) {
   const rel = String(route).replace(/^\/+/, '').replace(/\/$/, '');
+  // The root: the shipped index.html is what '/' serves — Vercel resolves
+  // the filesystem before user rewrites, so the root index shadows the
+  // '/' → /landing.html rewrite (measured live 2026-10-21).
+  if (!rel) return files.has('index.html') ? 'index.html' === file : false;
   if (rel && files.has(rel + '/index.html')) return rel + '/index.html' === file;
   const hit = rewriteForRoute(route, rewrites);
   if (hit) return destinationServesFile(hit.destination, route, file);

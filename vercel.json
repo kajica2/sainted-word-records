@@ -469,7 +469,7 @@
     },
     {
       "source": "/",
-      "destination": "/landing.html"
+      "destination": "/index.html"
     },
     {
       "source": "/for-creators",

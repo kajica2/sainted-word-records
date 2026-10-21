@@ -212,7 +212,10 @@
       //                          ATLAS_SLUGS in scripts/generate-vercel-rewrites.mjs)
       //   <dir>/index.html     → /<dir>            (the directory route, no
       //                          trailing slash: Vercel 308s /<dir>/ → /<dir>)
-      //   index.html/landing   → /
+      //   index.html           → /            (the homepage: the 2026-10-21
+      //                                          redesign; it shadows the
+      //                                          '/' → /landing.html rewrite)
+      //   landing.html         → /landing.html (the previous homepage)
       // and a handful of pages are only reachable at their real filename
       // (NO_REWRITE) or at a preserved hand-written route (ROUTE_OVERRIDES)
       // because no rewrite points at their stem — or, for versions.html,
@@ -222,7 +225,7 @@
         'versions/index.html': '/visual-languages',
         'versions/music_video.html': '/versions/music-video',
       };
-      const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|versions$|artists\/vodolija$)/;
+      const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s$|offline$|404$|director-mode-sainted-word$|versions\/music_video_mtv$|terms$|versions$|artists\/vodolija$|landing$)/;
       const ATLAS_SLUGS = [
         '200-steps', 'architect', 'checklist', 'crisis', 'final-insight',
         'forge', 'integration', 'legacy', 'life-stages',
@@ -231,7 +234,7 @@
         const f = String(file).replace(/^\.\//, '');
         if (ROUTE_OVERRIDES[f]) return ROUTE_OVERRIDES[f];
         const stem = f.replace(/\.html$/, '');
-        if (stem === 'index' || stem === 'landing') return '/';
+        if (stem === 'index') return '/';
         if (/^gallery-/.test(stem)) return '/gallery/' + stem.replace(/^gallery-/, '');
         if (stem.startsWith('atlas-') && ATLAS_SLUGS.includes(stem.replace(/^atlas-/, ''))) {
           return '/atlas/' + stem.replace(/^atlas-/, '');
@@ -266,7 +269,7 @@
 
       function pathToFile(href) {
         const clean = (href || '').replace(/^\//, '').replace(/\/$/, '');
-        if (!clean) return 'landing.html';
+        if (!clean) return 'index.html';
         if (clean === 's/:id') return 'share-view.html';
         if (clean.endsWith('.html')) return clean;
         if (clean === 'artists') return 'artists/index.html';

@@ -16,6 +16,12 @@ try {
     for (const item of items) {
       if (item.href && item.href.startsWith('/')) {
         const clean = item.href.replace(/^\//, '').replace(/\/$/, '');
+        if (!clean) {
+          // A root href ('/') is the homepage: the shipped root index.html.
+          // Without this the homepage would not be copied into dist/ and the
+          // '/' rewrite would point at a file that never reaches the deploy.
+          paths.add('index.html');
+        }
         if (clean && clean !== 's/:id') {
           // s/:id is a dynamic route, skip from rootFiles
           // Don't add .html if already present (e.g., /legal/privacy.html)

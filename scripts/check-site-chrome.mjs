@@ -62,7 +62,6 @@ const IGNORED_FILES = new Set([
   'font-vault.html',
   'style-guide.html',
   'super-admin.html',
-  'index.html',              // the /index.html shim — landing.html is the public one
 ]);
 
 // Public pages that carry no shared chrome by design (the legal texts, the shot
@@ -70,8 +69,15 @@ const IGNORED_FILES = new Set([
 // still shipped and linked from the nav. They are exempt from the header /
 // footer / landmark / unique-title assertions and still get the <head> checks —
 // they were the last four public pages without a social card.
+//
+// index.html (the 2026-10-21 homepage redesign) and for-creators.html (its
+// upsell page) ship the redesign's own <nav class="nav"> + <footer
+// class="site-foot"> instead of the shared <swr-nav>/<swr-footer> components.
+// The redesign is the site's front door, so the shared chrome would sit on
+// top of a different visual language; they keep the bespoke pair and are
+// head-checked like every other public page.
 const HEAD_ONLY_DIRS = [/^legal\//, /^shotlist\//];
-const HEAD_ONLY_FILES = new Set(['persona-library.html']);
+const HEAD_ONLY_FILES = new Set(['persona-library.html', 'index.html', 'for-creators.html']);
 const isHeadOnly = (file) => HEAD_ONLY_FILES.has(file) || HEAD_ONLY_DIRS.some((re) => re.test(file));
 
 // Full-viewport app surfaces: their own chrome, one exit link required.

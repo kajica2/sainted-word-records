@@ -47,8 +47,12 @@ if (fs.existsSync(VERCEL_JSON)) {
 function generateRewrites(map) {
   const rules = [];
 
-  // Root → landing.html
-  rules.push({ source: '/', destination: '/landing.html' });
+  // Root → index.html. The root index.html IS the homepage (the 2026-10-21
+  // redesign). Vercel serves the shipped file before the rewrite anyway, but
+  // naming it explicitly keeps the local dev server, the sitemap generator
+  // and production on the same page. The previous homepage stays reachable
+  // at /landing.html.
+  rules.push({ source: '/', destination: '/index.html' });
 
   // Helper to add rewrite for a path
   function addPath(href) {
@@ -58,7 +62,8 @@ function generateRewrites(map) {
     // Convert /artists to /artists/index.html
     let htmlPath;
     if (cleanHref === '') {
-      htmlPath = '/landing.html';
+      // The root rule is already pushed above ('/' → /index.html).
+      return;
     } else if (cleanHref.endsWith('.html')) {
       // Already has .html (e.g., /legal/privacy.html)
       htmlPath = cleanHref;
@@ -90,8 +95,10 @@ function generateRewrites(map) {
       htmlPath = `${cleanHref}.html`;
     }
 
-    // Skip if it's already /index.html (handled by vercel default)
-    if (htmlPath === '/index.html') return;
+    // The root index.html is NOT reachable at /index on its own — measured
+    // live 2026-10-21, /index returned the 404 page while / served the
+    // redesign. The rewrite is emitted explicitly so the route resolves.
+    if (htmlPath === '/index.html' && cleanHref !== '/index') return;
 
     // Add both /path and /path/ variants
     rules.push({ source: cleanHref || '/', destination: htmlPath });
