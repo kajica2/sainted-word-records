@@ -266,6 +266,10 @@
       {
         "label": "Mood Frames",
         "href": "https://digitaltwin-ebon.vercel.app/pages/marketplace.html"
+      },
+      {
+        "label": "Gumroad",
+        "href": "https://kaidjuric.gumroad.com"
       }
     ]
   },
@@ -396,6 +400,11 @@
       "label": "Mood Frames",
       "href": "https://digitaltwin-ebon.vercel.app/pages/marketplace.html",
       "description": "The digital twin's marketplace — eight stills in the house sound-tones, ready as book covers, editorial imagery, or music-video start frames"
+    },
+    {
+      "label": "Gumroad",
+      "href": "https://kaidjuric.gumroad.com",
+      "description": "The store — presets, packs and stills, with checkout and delivery handled by Gumroad"
     }
   ],
   "redirects": [
