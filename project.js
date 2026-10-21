@@ -92,6 +92,19 @@
       reactors: (l.reactors || []).map(r => ({ ...r })),
       pos: l.pos ? { ...l.pos } : { x: 0, y: 0, rot: 0 },
       z: l.z,
+      // Group membership + visibility (the group record itself is
+      // saved separately, in `groups`).
+      groupId: l.groupId || null,
+      hidden: !!l.hidden,
+    }));
+
+    // Layer groups: name, visibility, collapsed state. Membership lives
+    // on the layer (`groupId`), so this is only the group headers.
+    const groups = (Layers.groups || []).map(g => ({
+      id: g.id,
+      name: g.name,
+      visible: g.visible !== false,
+      collapsed: !!g.collapsed,
     }));
 
     const fxState = FX.state || {};
@@ -151,6 +164,7 @@
       savedAt: new Date().toISOString(),
       library,
       layers,
+      groups,
       fx,
       preset:  presetSel  ? presetSel.value  : null,
       persona: personaSel ? personaSel.value : 'off',
@@ -301,7 +315,20 @@
           reactors: (pl.reactors || []).map(r => ({ ...r })),
           pos: pl.pos ? { ...pl.pos } : l.pos,
           z: pl.z !== undefined ? pl.z : (zBase + i),
+          groupId: pl.groupId || null,
+          hidden: !!pl.hidden,
         });
+      }
+      // Restore the group headers themselves (name, visibility, collapsed).
+      // Always reassign: a project with no groups must clear the groups
+      // the live panel already had, not leave them dangling.
+      if (Layers.groups) {
+        Layers.groups = (Array.isArray(project.groups) ? project.groups : []).map(g => ({
+          id: g.id,
+          name: g.name || 'Group',
+          visible: g.visible !== false,
+          collapsed: !!g.collapsed,
+        }));
       }
       if (Layers.render) Layers.render();
     }

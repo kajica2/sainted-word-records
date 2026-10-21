@@ -33,6 +33,10 @@
 .layer-strip .ls-list { display:flex; flex-direction:column; gap:4px; max-height:300px; overflow-y:auto; }
 .layer-strip .li { display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:6px; padding:6px 8px; border:1px solid var(--border,#333); border-radius:6px; background:rgba(255,255,255,.02); cursor:pointer; transition:background .15s ease; }
 .layer-strip .li:hover { background:rgba(255,255,255,.06); }
+/* A layer whose group is hidden does not draw — dim its row so the
+   strip agrees with the layer panel and the stage. */
+.layer-strip .li.hidden { opacity:.42; }
+.layer-strip .li.hidden .nm { text-decoration:line-through; }
 .layer-strip .li .thumb { width:48px; height:36px; object-fit:cover; border-radius:4px; background:var(--surface-2,#222); transform:rotate(0deg); transition:transform .15s ease; display:block; }
 .layer-strip .li .thumb.rotated { transform:rotate(90deg); }
 /* Placeholder when no thumb/coverUrl exists — a subtle dash on the
@@ -77,6 +81,10 @@
   function buildItem(layer, thumbnail) {
     const item = el('div', 'li');
     item.dataset.id = layer.id;
+    // A hidden layer (its group is hidden) does not draw on the stage.
+    // The strip mirrors the layer panel, so it dims those rows too —
+    // otherwise a hidden layer still looks like it is on the stage.
+    if (layer.hidden) item.classList.add('hidden');
 
     // Thumbnail cell. When the asset has a real thumb/coverUrl, render
     // an <img class="thumb">. Otherwise render a placeholder cell so the
