@@ -375,8 +375,14 @@ for (const gen of generations) {
     });
   }
 
+  // The two generated entries carry the generation's own authored date, not
+  // "now": a build output that changes on every build is not reproducible,
+  // and `check:build-idempotent` fails on it. The date is content-derived,
+  // so the archive only changes when the generation does.
+  const stamp = new Date(`${gen.date}T00:00:00Z`);
+
   const credits = Buffer.from(creditsMarkdown(gen), 'utf8');
-  entries.push({ name: 'CREDITS.md', data: credits, mtime: new Date() });
+  entries.push({ name: 'CREDITS.md', data: credits, mtime: stamp });
 
   const manifest = {
     generation: gen.id,
@@ -405,7 +411,7 @@ for (const gen of generations) {
   entries.push({
     name: 'MANIFEST.json',
     data: Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8'),
-    mtime: new Date(),
+    mtime: stamp,
   });
 
   const zip = createZip(entries);
