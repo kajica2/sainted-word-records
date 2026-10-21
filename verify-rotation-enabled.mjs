@@ -85,9 +85,15 @@ try {
   // approach verify-transitions.mjs uses for the same reason: this verify
   // covers rotation, not the PWA shell.
   await page.evaluateOnNewDocument(() => {
-    if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
-      navigator.serviceWorker.register = () => new Promise(() => {});
-    }
+    // Reading navigator.serviceWorker throws a SecurityError when the
+    // service worker is disabled (the launch flag above), so the read has
+    // to be guarded — otherwise the stub installs nothing and the page
+    // logs an uncaught SecurityError.
+    try {
+      if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+        navigator.serviceWorker.register = () => new Promise(() => {});
+      }
+    } catch (_) {}
   });
   page.on('pageerror', (err) => process.stderr.write(`[page error] ${err.message}\n`));
   // domcontentloaded, not networkidle0: engine.html auto-loads and streams

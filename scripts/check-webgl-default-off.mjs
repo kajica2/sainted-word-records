@@ -19,11 +19,15 @@
 import puppeteer from 'puppeteer';
 import { ensureDist, serveDist } from './with-dist.mjs';
 
-const PORT = Number(process.env.WEBGL_SMOKE_PORT || 5396);
-const BASE = `http://127.0.0.1:${PORT}`;
+// Port 0 binds an ephemeral port. A fixed port can be handed to an
+// unrelated outbound connection by the OS, and the smoke then dies with
+// EADDRINUSE before it asserts anything. Set WEBGL_SMOKE_PORT to pin one.
+const PORT = Number(process.env.WEBGL_SMOKE_PORT || 0);
 
 ensureDist();
-const { close } = await serveDist(PORT);
+const served = await serveDist(PORT);
+const BASE = served.url;
+const close = served.close;
 
 let failed = 0;
 function ok(name) { console.log('  PASS  ' + name); }

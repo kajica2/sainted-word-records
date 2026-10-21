@@ -83,6 +83,25 @@ once it hits 1.0.
   so `lib/app-version-bust.js` does not hard-reload a cold profile.
 - `verify-rot-master.mjs` asserted `window.SWR.RENDER`, a global that does
   not exist anywhere in the tree; `engine.html` publishes `SWR.Renderer`.
+- `check:automix-arc-smoke` measured the wrong song, and then a stale arc.
+  The gate loaded its demo song only as a FALLBACK: the default library
+  seeds `audios/test-clip.mp3` (60s) on its own schedule, and whichever won
+  was a race. The two songs produce different arcs — the 60s default yields
+  a 4-act arc whose last two acts are both low-energy, so the act-to-act
+  displacement the gate measures lands at ~0.21 and the 0.3 bar failed on a
+  design choice rather than on a regression. The gate now waits for the
+  default library to settle, loads the demo song unconditionally, and pins
+  the arc to that song's duration (the runtime replaces the arc only after
+  its async analysis resolves, so a leftover arc already satisfied the act
+  count). It also neutralises the service worker, whose `controllerchange`
+  reload was destroying the execution context mid-assertion.
+- Four smokes bound a fixed port for their static server
+  (`check:webgl-default-off` 5396, `check:svg-grade-integration` 5394,
+  `check:variants-smoke` 5392, `check:automix-arc-smoke` 5185). An
+  unrelated outbound connection that the OS handed the same port to killed
+  the gate with EADDRINUSE before it asserted anything. They now bind an
+  ephemeral port and read the assigned one back, like `check:store-smoke`
+  and `check:dashboard`.
 - `verify-autoplay.mjs` failed about half the time with *"Execution context
   was destroyed, most likely because of a navigation"*. The engine page
   reloads itself twice on a cold profile — the service worker claims the
