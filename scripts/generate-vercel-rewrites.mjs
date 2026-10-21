@@ -90,8 +90,17 @@ function generateRewrites(map) {
       htmlPath = `${cleanHref}.html`;
     }
 
-    // Skip if it's already /index.html (handled by vercel default)
-    if (htmlPath === '/index.html') return;
+    // Skip if it's already /index.html — but ONLY when the source is the
+    // root, where Vercel serves /index.html on its own. A source of
+    // "/index" (the nav's Home entry, the redesign home page) is a
+    // different URL and does need its own rewrite, or it 404s.
+    if (htmlPath === '/index.html') {
+      if (cleanHref === '/index') {
+        rules.push({ source: '/index', destination: '/index.html' });
+        rules.push({ source: '/index/', destination: '/index.html' });
+      }
+      return;
+    }
 
     // Add both /path and /path/ variants
     rules.push({ source: cleanHref || '/', destination: htmlPath });

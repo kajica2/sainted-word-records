@@ -472,6 +472,14 @@
       "destination": "/landing.html"
     },
     {
+      "source": "/index",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/index/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/for-creators",
       "destination": "/for-creators.html"
     },

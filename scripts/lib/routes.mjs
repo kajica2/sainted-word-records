@@ -66,7 +66,12 @@ export function routeForFile(file) {
   const f = String(file).replace(/^\.\//, '');
   if (ROUTE_OVERRIDES[f]) return ROUTE_OVERRIDES[f];
   const stem = f.replace(/\.html$/, '');
-  if (stem === 'index' || stem === 'landing') return '/';
+  // The site's root is landing.html (vercel.json rewrites / → /landing.html).
+  // index.html is the redesign home and keeps its own route — when both
+  // claimed "/", the route could not be resolved back to a single file and
+  // check-sitemap failed with "index.html: route / does not serve this file".
+  if (stem === 'landing') return '/';
+  if (stem === 'index') return '/index';
   if (/^gallery-/.test(stem)) return '/gallery/' + stem.replace(/^gallery-/, '');
   if (stem.startsWith('atlas-') && ATLAS_SLUGS.includes(stem.replace(/^atlas-/, ''))) {
     return '/atlas/' + stem.replace(/^atlas-/, '');

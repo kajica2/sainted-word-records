@@ -46,10 +46,40 @@ const BASE = process.env.BASE_URL || `http://127.0.0.1:${PORT}`;
 
 // Static server for dashboard.html + needed assets — local runs only.
 const ROOT = process.cwd();
+
+// Model production routing. Vercel answers /versions/neon with
+// /versions/neon.html (vercel.json rewrites); this server used to serve
+// the literal path, so every route link on the dashboard 404'd and the
+// console error failed the gate. Same mapping, same fallback.
+const REWRITES = (() => {
+  try {
+    const v = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+    return (v.rewrites || [])
+      .filter((r) => r.source && r.source.startsWith('/') &&
+                     r.destination && r.destination.startsWith('/') && !r.destination.includes(':'))
+      .map((r) => [r.source.replace(/\/$/, ''), r.destination]);
+  } catch {
+    return [];
+  }
+})();
+
 const server = process.env.BASE_URL ? null : http.createServer((req, res) => {
   const url = req.url.split('?')[0];
   let path = url === '/' ? '/dashboard.html' : url;
+  if (!fs.existsSync(ROOT + path)) {
+    const hit = REWRITES.find(([source]) => source === path.replace(/\/$/, ''));
+    if (hit) path = hit[1];
+  }
   const fullPath = ROOT + path;
+  // The session endpoint is a Vercel function (api/auth/session.js) — it
+  // cannot run in this static server, and its 404 showed up as a console
+  // error that failed the gate. Answer it with the contract the function
+  // documents for an anonymous visitor: always 200 with { user: null }.
+  if (url === '/api/auth/session') {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ user: null }));
+    return;
+  }
   if (!fs.existsSync(fullPath)) {
     res.statusCode = 404;
     res.end('not found');
