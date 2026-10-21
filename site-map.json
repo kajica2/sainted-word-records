@@ -261,7 +261,11 @@
       },
       {
         "label": "@kai-djuric",
-        "href": "https://github.com/kai-djuric"
+        "href": "https://kai-djuric"
+      },
+      {
+        "label": "Mood Frames",
+        "href": "https://digitaltwin-ebon.vercel.app/pages/marketplace.html"
       }
     ]
   },
@@ -387,6 +391,11 @@
       "label": "Services",
       "href": "/services",
       "description": "Hire Kai directly: transcription, production, audio-reactive video"
+    },
+    {
+      "label": "Mood Frames",
+      "href": "https://digitaltwin-ebon.vercel.app/pages/marketplace.html",
+      "description": "The digital twin's marketplace — eight stills in the house sound-tones, ready as book covers, editorial imagery, or music-video start frames"
     }
   ],
   "redirects": [
