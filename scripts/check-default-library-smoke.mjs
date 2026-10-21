@@ -9,27 +9,43 @@
 // Run: node scripts/check-default-library-smoke.mjs
 import puppeteer from 'puppeteer';
 import http from 'node:http';
-import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const PORT = 53967;
 const BASE = `http://127.0.0.1:${PORT}`;
 
+// A Node http server, not `python3 -m http.server`.
+//
+// python's SimpleHTTPServer handles ONE request at a time. The engine asks
+// for a dozen files in parallel and the single-threaded server resets the
+// overflow — the console shows ERR_CONNECTION_RESET, and the request for
+// client/default-library.client.js is among the casualties, so the script
+// never runs: "SWR_DEFAULT_LIBRARY missing", "items=0", "layers=0". The
+// check then failed on the seeded set being absent, which is exactly the
+// symptom it exists to catch — but the cause was the server, not the
+// engine. Node's http server is threaded and serves them all.
 function startServer() {
+  const ROOT = process.cwd();
+  const server = http.createServer((req, res) => {
+    const url = req.url.split('?')[0];
+    const full = path.join(ROOT, url === '/' ? '/engine.html' : url);
+    if (!full.startsWith(ROOT) || !fs.existsSync(full) || !fs.statSync(full).isFile()) {
+      res.statusCode = 404;
+      res.end('not found');
+      return;
+    }
+    const ct = full.endsWith('.html') ? 'text/html'
+      : full.endsWith('.css') ? 'text/css'
+        : full.endsWith('.js') ? 'application/javascript'
+          : full.endsWith('.json') ? 'application/json'
+            : 'application/octet-stream';
+    res.setHeader('Content-Type', ct);
+    res.end(fs.readFileSync(full));
+  });
   return new Promise((resolve, reject) => {
-    const proc = spawn('python3', ['-m', 'http.server', String(PORT)], {
-      cwd: process.cwd(), stdio: 'ignore',
-    });
-    const start = Date.now();
-    const tick = () => http.get(`${BASE}/engine.html`, (res) => {
-      res.resume();
-      if (res.statusCode === 200) return resolve(proc);
-      if (Date.now() - start > 8000) return reject(new Error('server timeout'));
-      setTimeout(tick, 100);
-    }).on('error', () => {
-      if (Date.now() - start > 8000) return reject(new Error('server error'));
-      setTimeout(tick, 80);
-    });
-    setTimeout(tick, 100);
+    server.on('error', reject);
+    server.listen(PORT, () => resolve(server));
   });
 }
 
@@ -136,7 +152,8 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     else fail('library seeded but stage stayed empty (no layers)', `layers=${staged}`);
   } finally {
     await browser.close();
-    if (server) try { server.kill('SIGTERM'); } catch (_) {}
+    // A Node server closes with .close(); the old python child took a signal.
+    if (server) try { server.close(); } catch (_) {}
   }
 
   const passed = checks.filter((c) => c.ok).length;

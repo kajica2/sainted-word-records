@@ -8,6 +8,23 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- `scripts/media-budget.mjs` (`npm run check:media-budget`) — a per-directory
+  budget for the media the build ships, wired into the CI after the build.
+  The build-size gate is one number for the whole `dist/`: it says the build
+  is too big, not which directory did it. On 2026-10-21 the answer was
+  "sixteen media directories, no single culprit" — the shipped media is
+  156M of a 173M build.
+- `scripts/media-optimize.mjs` (`npm run media:optimize`) — re-encodes the
+  shipped video and audio to a delivery bitrate, in place, so no filename,
+  URL, manifest or page changes. Dry run by default; `--apply` writes. It
+  refuses any output that is larger than its source, or that drifts in
+  duration or dimensions, and leaves files that are already under the cap
+  alone. On the 2026-10-21 media it would save 31.9M across 19 files.
+- `docs/plans/2026-10-21-shipped-media-budget.md` — the plan: what the
+  build ships, what the media costs, and the seven slices to get from
+  173M back under the original 155M ceiling.
+
+### Fixed
 - `tour.html` — 12-stop Jakob Nielsen usability tour (sweep / step / reset).
 - `shortcuts-movie.html` — 60-second hyperframe walkthrough of every
   keyboard shortcut (Space, ←/→, number-jump).
@@ -37,6 +54,34 @@ once it hits 1.0.
   lifecycle, layer retire, kit-zip.
 
 ### Fixed
+- The dashboard loaded `/api/auth/session.js` as a browser script. That is a
+  Vercel ES module handler, so the page threw *"Cannot use import statement
+  outside a module"* and took the whole dashboard's JavaScript with it. It
+  now loads `lib/auth.client.js` — the client the button handler actually
+  reads — as a classic script, before the handler runs.
+- `window.SWR_AUTH.get()` did not exist. The engine, the dashboard and ten
+  variant pages call it to read the session; the auth client only exposed
+  `session()`. Every Drive button was calling a missing function and
+  rejecting. `get` is now an alias of `session` — same signature, same
+  return.
+- `vercel.json` lost the `/campaign → /campaign.html` rewrite in a merge,
+  so the campaign page 404'd and `check:sitemap` failed. Regenerated with
+  `scripts/generate-vercel-rewrites.mjs`.
+- `check:dashboard` served the page without production's routing, so every
+  route link 404'd and the console error failed the gate; and the session
+  endpoint — a Vercel function — could not run in the local static server.
+  The check now applies `vercel.json`'s rewrites and answers
+  `/api/auth/session` with the contract the function documents for an
+  anonymous visitor.
+- `check:default-library` served the engine from `python3 -m http.server`,
+  which handles one request at a time. The engine asks for a dozen files
+  in parallel, the server reset the overflow, and the request for
+  `client/default-library.client.js` was among the casualties — so the
+  script never ran and the check reported "SWR_DEFAULT_LIBRARY missing",
+  "items=0", "layers=0": the seeded set absent, which is exactly the
+  symptom the check exists to catch. The cause was the server. It now
+  uses a threaded Node server, and the smoke takes 2s instead of timing
+  out for 125s.
 - Engine "Hooks" button could only ever answer *"no song loaded"*.
   `client/hook-detector.client.js` reads the song to analyse from
   `window.SWR_LAST_SONG`; the engine never loaded the saved-song bridge

@@ -181,3 +181,16 @@ jobs:
             du -sh dist/* 2>/dev/null | sort -rh | head -10
             exit 1
           fi
+
+      - name: shipped-media budget (per directory)
+        # The build-size gate above is one number for the whole dist/. It
+        # tells you the build is too big, not which directory did it — and
+        # on 2026-10-21 the answer was "18 media directories, no single
+        # culprit". This gate names the offender, measured the same way
+        # (byte sum of the files the build copies).
+        #
+        # The budgets are set at the current sizes, so this fails on the
+        # NEXT growth, not today. Raise one only with the same
+        # justification the global budget demands.
+        # See docs/plans/2026-10-21-shipped-media-budget.md.
+        run: npm run check:media-budget
