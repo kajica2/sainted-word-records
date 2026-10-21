@@ -1039,15 +1039,21 @@
     const photoFile = document.getElementById('photo-file');
     const photos = [];
     
-    // Auto-group photos by similar name patterns
-    function groupPhotosByName(files) {
+    // Auto-group photos/videos by similar name patterns
+    function groupMediaByName(files) {
       const groups = {};
       const groupOrder = [];
       
       files.forEach((file) => {
+        // Skip non-media
+        if (!file || !file.type) return;
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+        if (!isVideo && !isImage) return;
+        
         // Extract base name: remove extension, trailing numbers
         const name = file.name.replace(/\.[^.]+$/, ''); // remove extension
-        // Try to find common prefix (e.g., "img_001" -> "img", "photo-2" -> "photo")
+        // Try to find common prefix (e.g., "img_001" -> "img", "clip-2" -> "clip")
         const baseMatch = name.match(/^([a-zA-Z]+)[_-]?\d*$/);
         const base = baseMatch ? baseMatch[1].toLowerCase() : name.toLowerCase();
         
@@ -1055,13 +1061,13 @@
           groups[base] = [];
           groupOrder.push(base);
         }
-        groups[base].push(file);
+        groups[base].push({ ...file, _isVideo: isVideo });
       });
       
       return { groups, order: groupOrder };
     }
     
-    // Create layers from grouped photos
+    // Create layers from grouped media
     function createLayersFromGroups(groups, order) {
       const layerList = document.getElementById('layers-list');
       if (!layerList) return;
@@ -1070,10 +1076,13 @@
       layerList.innerHTML = '';
       
       order.forEach((groupName, groupIdx) => {
-        const groupPhotos = groups[groupName];
+        const groupMedia = groups[groupName];
+        const hasVideo = groupMedia.some(m => m._isVideo);
+        const hasImage = groupMedia.some(m => !m._isVideo);
+        const icon = hasVideo ? 'fa-film' : 'fa-images';
         const layer = {
           name: groupName.toUpperCase(),
-          photos: groupPhotos,
+          media: groupMedia,
           blend: 'over',
           opacity: 80,
           base: 50,
@@ -1091,9 +1100,9 @@
             <span class="text-gray-500 text-[10px] cursor-grab"><i class="fa-solid fa-grip-vertical"></i></span>
             <span class="micro w-4 tabular text-right text-gray-500">${groupIdx + 1}</span>
             <span class="w-8 h-8 rounded bg-[#1e1e24] flex items-center justify-center">
-              <i class="fa-solid fa-images text-[10px] text-gray-500"></i>
+              <i class="fa-solid ${icon} text-[10px] text-gray-500"></i>
             </span>
-            <span class="text-[12px] font-medium text-white flex-1">${layer.name} (${groupPhotos.length})</span>
+            <span class="text-[12px] font-medium text-white flex-1">${layer.name} (${groupMedia.length})</span>
             <span class="flex items-center gap-1" onclick="event.stopPropagation()">
               <a class="icon-btn" title="Link"><i class="fa-solid fa-link text-[10px]"></i></a>
               <a class="icon-btn" title="Duplicate"><i class="fa-solid fa-copy text-[10px]"></i></a>
@@ -1125,48 +1134,78 @@
         layerList.appendChild(details);
       });
       
-      // Send to engine
-      if (window.__SWR_ENGINE && window.__SWR_ENGINE.setPhotosByGroup) {
+      // Send to engine (images + videos)
+      if (window.__SWR_ENGINE && window.__SWR_ENGINE.setMediaByGroup) {
         const groupData = order.map(groupName => ({
           name: groupName,
-          urls: groups[groupName].map(f => f.url || URL.createObjectURL(f))
+          items: groups[groupName].map(f => ({ 
+            url: f.url || URL.createObjectURL(f), 
+            type: f._isVideo ? 'video' : 'image' 
+          }))
         }));
-        window.__SWR_ENGINE.setPhotosByGroup(groupData);
+        window.__SWR_ENGINE.setMediaByGroup(groupData);
       }
       
-      console.log(`[Auto-group] Created ${order.length} layers from ${files.length} photos`);
+      console.log(`[Auto-group] Created ${order.length} layers from media`);
     }
     
-    // Batch add photos with auto-grouping
-    function addPhotosBatch(files) {
-      const imageFiles = files.filter(f => f && f.type && f.type.startsWith('image/'));
-      if (!imageFiles.length) return;
+    // Batch add media (photos + videos) with auto-grouping
+    function addMediaBatch(files) {
+      // Accept up to 50 videos/images
+      const mediaFiles = files.filter(f => {
+        if (!f || !f.type) return false;
+        return f.type.startsWith('image/') || f.type.startsWith('video/');
+      }).slice(0, 50); // Max 50 files
+      
+      if (!mediaFiles.length) return;
       
       const autoGroup = document.getElementById('photo-auto-group')?.checked ?? true;
       
       // Add to deck display
-      imageFiles.forEach((file) => {
+      mediaFiles.forEach((file) => {
         const url = URL.createObjectURL(file);
         const tile = document.createElement('div');
         tile.className = 'aspect-square bg-[#1e1e24] rounded overflow-hidden border border-line';
-        const img = document.createElement('img');
-        img.src = url;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-        tile.appendChild(img);
+        
+        if (file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = url;
+          video.muted = true;
+          video.loop = true;
+          video.play().catch(() => {});
+          video.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+          tile.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+          tile.appendChild(img);
+        }
+        
         photoDeck.appendChild(tile);
         photos.push({ file, url });
       });
       
       if (autoGroup) {
-        // Auto-group by name pattern
-        const { groups, order } = groupPhotosByName(photos);
-        photoStatus.textContent = `${photos.length} photos → ${order.length} groups`;
+        // Auto-group by name pattern (now handles both images + videos)
+        const { groups, order } = groupMediaByName(mediaFiles);
+        const videoCount = mediaFiles.filter(f => f.type.startsWith('video/')).length;
+        const imgCount = mediaFiles.length - videoCount;
+        let status = '';
+        if (videoCount > 0 && imgCount > 0) {
+          status = `${imgCount} img, ${videoCount} vid → ${order.length} groups`;
+        } else if (videoCount > 0) {
+          status = `${videoCount} videos → ${order.length} groups`;
+        } else {
+          status = `${mediaFiles.length} photos → ${order.length} groups`;
+        }
+        photoStatus.textContent = status;
         // Create layers from groups
         createLayersFromGroups(groups, order);
       } else {
         // Single layer for all
-        photoStatus.textContent = `${photos.length} photos → 1 layer`;
-        createLayersFromGroups({ all: photos }, ['all']);
+        photoStatus.textContent = `${mediaFiles.length} media → 1 layer`;
+        createLayersFromGroups({ all: mediaFiles }, ['all']);
       }
     }
     
