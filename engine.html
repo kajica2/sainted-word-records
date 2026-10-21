@@ -5483,6 +5483,20 @@
         if (typeof Story !== 'undefined' && typeof Story.tick === 'function') {
           try { Story.tick(); } catch (_) { /* don't crash the rAF on story errors */ }
         }
+        // Song-section detection. client/section-detector.client.js aggregates
+        // these samples on the beat clock into a rolling self-similarity matrix
+        // and reports boundaries as peaks of a Foote novelty curve, so a
+        // loudness ramp inside one section does not cut it (which is what the
+        // energy-threshold segmenter this replaced did). One call per frame is
+        // enough; the detector dedupes on the timestamp, so the automix
+        // runtime's own tickSection() call with the same live feat object
+        // cannot double-count. It publishes window.SWR_SECTIONS and fires
+        // `swr-section-change`, which client/section-scheduler.client.js
+        // listens for. Wrapped: a section detector fault must not take the
+        // render loop with it.
+        if (window.SWR_SECTION) {
+          try { window.SWR_SECTION.detect(a); } catch (_) {}
+        }
         if (this.dragMode === 'auto') {
           for (let i = 0; i < Layers.list.length; i++) {
             const l = Layers.list[i];
@@ -6022,6 +6036,16 @@
       },
     };
 
+    // A new song invalidates every section found so far, so both load seams
+    // call this rather than each remembering to. The detector clears its
+    // history and republishes an empty map; without it the tail of the
+    // previous track would be scored as if it were the opening of this one.
+    function resetSectionDetector() {
+      if (window.SWR_SECTION && typeof window.SWR_SECTION.reset === 'function') {
+        try { window.SWR_SECTION.reset(); } catch (_) {}
+      }
+    }
+
     // ======================================================================
     // UI WIRING
     // ======================================================================
@@ -6030,7 +6054,9 @@
         // Transport
         $('load-song').addEventListener('click', () => $('song-input').click());
         $('song-input').addEventListener('change', (e) => {
-          if (e.target.files[0]) Audio.loadFile(e.target.files[0]);
+          if (!e.target.files[0]) return;
+          resetSectionDetector();
+          Audio.loadFile(e.target.files[0]);
         });
         $('play').addEventListener('click', () => {
           if (!Audio.audioEl) return;
@@ -6868,6 +6894,7 @@
         // harvests, programmatic imports, fetch() downloads) go through the
         // same code path as a manual drop. Fall back to direct loadFile()
         // if the seam isn't loaded (graceful degradation).
+        resetSectionDetector();
         if (window.SWR_GENERATED_AUDIO && typeof window.SWR_GENERATED_AUDIO.fromFile === 'function') {
           window.SWR_GENERATED_AUDIO.fromFile(file);
         } else {

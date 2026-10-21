@@ -89,7 +89,7 @@ function buildWindow() {
   const ls = {
     getItem(k) { return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
     setItem(k, v) { data[String(k)] = String(v); },
-    removeItem(k) { delete data[String(k]); },
+    removeItem(k) { delete data[String(k)]; },
     clear() { for (const k of Object.keys(data)) delete data[k]; },
   };
   const listenersByName = Object.create(null);
@@ -178,6 +178,8 @@ check(received[received.length - 1] && received[received.length - 1].ids && rece
 console.log('cross-tab: multiple listeners on one storage event');
 const alsoReceived = [];
 const off2 = M.onChange((e) => alsoReceived.push(e));
+const receivedBeforeMulti = received.length;
+const alsoBeforeMulti = alsoReceived.length;
 const multiEvent = {
   type: 'storage',
   key: 'swr.bc.swr-media',
@@ -186,7 +188,8 @@ const multiEvent = {
   storageArea: wBCAbsent.localStorage,
 };
 wBCAbsent.dispatchEvent(multiEvent);
-check(received.length === 3 && alsoReceived.length === 1, 'both listeners fired for one event', `received=${received.length} also=${alsoReceived.length}`);
+check(received.length === receivedBeforeMulti + 1, 'first listener fired for the second event', `received=${received.length} was=${receivedBeforeMulti}`);
+check(alsoReceived.length === alsoBeforeMulti + 1, 'second listener fired for the second event', `also=${alsoReceived.length} was=${alsoBeforeMulti}`);
 
 // ---- 5. Unsubscribe stops delivery ----------------------------------------
 
@@ -250,6 +253,11 @@ wBCAbsent.dispatchEvent(jsonNoEvt);
 check(received.length === before, 'JSON without the evt envelope is dropped', 'received=' + received.length);
 
 // After this stretch of ignored events, a valid event should still come through.
+// `received`'s listener was unsubscribed in section 5, so it must not move.
+// Register a fresh listener for the recovery check so the assertion does not
+// depend on the unsubscribed listeners from earlier sections.
+const recoveryReceived = [];
+const offRecovery = M.onChange((e) => recoveryReceived.push(e));
 const recoveryEvent = {
   type: 'storage',
   key: 'swr.bc.swr-media',
@@ -258,7 +266,9 @@ const recoveryEvent = {
   storageArea: wBCAbsent.localStorage,
 };
 wBCAbsent.dispatchEvent(recoveryEvent);
-check(received.length === before + 1, 'a valid event AFTER bad ones still fires the listener', 'received=' + received.length);
+check(received.length === before, 'unsubscribed `received` listener does NOT re-fire after recovery', `received=${received.length} before=${before}`);
+check(recoveryReceived.length === 1, 'a valid event AFTER bad ones still fires the freshly-registered listener', `recoveryReceived=${recoveryReceived.length}`);
+offRecovery();
 
 // ---- 7. When BroadcastChannel IS available, NO storage listener is wired --
 

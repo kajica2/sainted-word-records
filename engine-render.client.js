@@ -30,6 +30,20 @@
   // silently undoing the autoDpr adjustment. Cleared when the user steps
   // back UP to the natural cap or disables autoDpr.
   const LS_DPR_AUTO_LOW = 'swr.render.dprAutoLow';
+  // Timestamp (Date.now() ms) of the LAST DOWN-STEP that wrote
+  // LS_DPR_AUTO_LOW. Pairs with that value so a stale entry (>30 days old)
+  // can be auto-cleared and the heuristic re-evaluated. Without this the
+  // ratchet was permanent: a single throttled frame from a year ago pinned
+  // the engine at the lowered DPR until the user manually disabled autoDpr
+  // or stepped back up to the natural cap. The user's hardware, browser,
+  // and even software load change over that span, so the conservative
+  // answer is to assume the original read might no longer apply.
+  const LS_DPR_AUTO_LOW_AT = 'swr.render.dprAutoLowAt';
+  // 30 days in ms. Exported implicitly through isAutoDprLowStale() so a
+  // caller (the test, a future diagnostic) can read the same constant the
+  // module uses.
+  const DPR_AUTO_LOW_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  const DAY_MS = 24 * 60 * 60 * 1000;
 
   // ---- state ------------------------------------------------------------
 
@@ -73,6 +87,32 @@
     return state.autoDpr;
   }
 
+  // True when LS_DPR_AUTO_LOW was written MORE THAN DPR_AUTO_LOW_TTL_MS ago.
+  // Called from devicePixelRatio() so a stale entry (a year-old throttled
+  // frame on different hardware) silently auto-clears and the engine
+  // re-evaluates against the current device. Exposed on SWR_RENDER for the
+  // UI + tests; never called from a hot frame path.
+  function isAutoDprLowStale() {
+    try {
+      const atStr = localStorage.getItem(LS_DPR_AUTO_LOW_AT);
+      if (!atStr) return false;
+      const at = parseInt(atStr, 10);
+      if (!isFinite(at) || at <= 0) return false;
+      return (Date.now() - at) > DPR_AUTO_LOW_TTL_MS;
+    } catch (_) { return false; }
+  }
+
+  // Clear the auto-DPR step-down lower bound. Used by:
+  //   - the "Reset DPR" UI control (SWR_SETTINGS.resetDprAuto wiring is below)
+  //   - setAutoDpr(false) when the user disables the feature outright
+  //   - devicePixelRatio() when it detects a stale (>30 day) timestamp
+  // Idempotent: silently no-ops when nothing was stored.
+  function clearAutoDprLow() {
+    try { localStorage.removeItem(LS_DPR_AUTO_LOW); } catch (_) {}
+    try { localStorage.removeItem(LS_DPR_AUTO_LOW_AT); } catch (_) {}
+    state.dirty = true;
+  }
+
   function devicePixelRatio() {
     let cap = 2;
     try { const v = parseFloat(localStorage.getItem(LS_DPR_CAP)); if (v > 0 && isFinite(v)) cap = v; } catch (_) {}
@@ -83,6 +123,12 @@
     // (cap-clamped) DPR, silently undoing the auto-adjustment on every
     // dirty frame. Stepping UP clears the bound so the user returns to
     // the natural cap; setAutoDpr(false) also clears it.
+    //
+    // A stale (>30 day) lower bound is auto-cleared so the ratchet does
+    // not pin the engine at yesterday's read indefinitely. Test seam:
+    // tests drive this code path by hand-clearing via clearAutoDprLow()
+    // or by writing a far-future timestamp and re-running fit().
+    if (isAutoDprLowStale()) clearAutoDprLow();
     let low = 0;
     try { const v = parseFloat(localStorage.getItem(LS_DPR_AUTO_LOW)); if (v > 0 && isFinite(v)) low = v; } catch (_) {}
     if (low > 0 && low < natural) return low;
@@ -99,8 +145,10 @@
     try { localStorage.setItem(LS_AUTO_DPR, on ? '1' : '0'); } catch (_) {}
     if (!on) {
       // Disabling clears the step-down bound so the next fit() returns
-      // to the natural cap immediately.
-      try { localStorage.removeItem(LS_DPR_AUTO_LOW); } catch (_) {}
+      // to the natural cap immediately. clearAutoDprLow also removes the
+      // paired timestamp so a future re-enable does not pick up a stale
+      // ratchet read.
+      clearAutoDprLow();
     }
     state._frameSamples = [];
     state._lastDprAdjustAt = 0;
@@ -132,7 +180,10 @@
         // silently resetting to the cap. Without this, the autoDpr
         // feature is a no-op on every device where natural DPR > cap
         // (every iPhone, iPad, and most Android phones since 2018).
+        // The paired timestamp lets devicePixelRatio() auto-clear a stale
+        // (>30 day) read instead of pinning the engine at last year's read.
         try { localStorage.setItem(LS_DPR_AUTO_LOW, String(next)); } catch (_) {}
+        try { localStorage.setItem(LS_DPR_AUTO_LOW_AT, String(Date.now())); } catch (_) {}
         state.dirty = true;
         state._lastDprAdjustAt = now;
         state._frameSamples = [];
@@ -143,8 +194,9 @@
         state.dpr = next;
         // Stepping back UP to the natural cap clears the bound so the
         // next fit() doesn't keep clamping us at the previous step-down.
+        // clearAutoDprLow wipes BOTH the value and its paired timestamp.
         if (next >= target) {
-          try { localStorage.removeItem(LS_DPR_AUTO_LOW); } catch (_) {}
+          clearAutoDprLow();
         }
         state.dirty = true;
         state._lastDprAdjustAt = now;
@@ -593,6 +645,10 @@
     fit, frame, invalidate, setBackground, setDprCap, setAutoDpr, devicePixelRatio,
     resolveBlend, backdropIsEmpty, DEGENERATE_ON_DARK, SAFE_OVER_DARK,
     imageEvolve,
+    // DPR-ratchet introspection + control. isAutoDprLowStale() answers the
+    // testable question "is the persisted lower bound older than 30 days?";
+    // clearAutoDprLow() is the "Reset DPR" action the UI control calls.
+    isAutoDprLowStale, clearAutoDprLow,
     get dpr() { return state.dpr; },
     get cssW() { return state.cssW; },
     get cssH() { return state.cssH; },

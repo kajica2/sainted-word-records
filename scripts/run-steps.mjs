@@ -52,6 +52,12 @@ const GROUPS = {
     'npm run check:pt-import',
     'npm run check:bundle',
     'npm run check:automix-unit',
+    // The engine's section detector: self-similarity matrix + Foote novelty
+    // over the live Audio.feat stream, replacing the energy-threshold
+    // segmenter it used to be. Its own gate asserts both true boundaries are
+    // found on a 3-section fixture with at most 1 false positive, and that
+    // the old rule over-fires on the same fixture.
+    'npm run check:section-detector-unit',
     'npm run check:automix-arc-unit',
     'npm run check:automix-session-unit',
     'npm run check:posterize-curve',
@@ -125,6 +131,8 @@ const GROUPS = {
     'npm run check:slots-api-smoke',
     'npm run check:webm-clips-unit',
     'npm run check:storage-blob-unit',
+    'npm run check:cross-tab-unit',
+    'npm run check:dpr-ratchet-unit',
     'npm run check:db-postgres',
     'npm run verify:smtp',
     // The node:test suite for api/_lib/email.js (nodemailer is stubbed via a

@@ -440,7 +440,15 @@
       state.current = 'verse';
       return state;
     }
-    var result = window.SWR_SECTION.detect(features || {});
+    var result = null;
+    // SWR_SECTION is a separate module that the page may or may not load, and
+    // a fault in it must not take the automix tick (and with it the rAF loop
+    // that drives the whole blend) down. Same fallback as "not loaded": hold.
+    try {
+      result = window.SWR_SECTION.detect(features || {});
+    } catch (e) {
+      result = null;
+    }
     var detected = (result && result.section) || 'verse';
     var confidence = (result && typeof result.confidence === 'number') ? result.confidence : 0;
     if (confidence < 0.5) detected = state.current; // hold

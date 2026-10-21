@@ -87,7 +87,21 @@ em { font-style: italic; }
 .nav { display: flex; align-items: center; gap: 22px; margin-left: auto; }
 .nav a { font-size: 0.875rem; color: var(--ink-2); text-decoration: none; white-space: nowrap; transition: color var(--transition); }
 .nav a:hover { color: var(--ink); }
-@media (max-width: 860px) { .nav { display: none; } }
+.nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 8px; margin-right: 8px; }
+.nav-toggle span { display: block; width: 24px; height: 2px; background: var(--ink); border-radius: 1px; transition: transform 0.2s; }
+.nav-toggle span + span { margin-top: 5px; }
+.nav-toggle.is-active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.nav-toggle.is-active span:nth-child(2) { opacity: 0; }
+.nav-toggle.is-active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+@media (max-width: 860px) {
+  .nav { display: none; position: absolute; top: 68px; left: 0; right: 0; background: var(--bg); border-bottom: 1px solid var(--line); flex-direction: column; padding: 20px; gap: 16px; }
+  .nav.is-open { display: flex; }
+  .nav-toggle { display: flex; flex-direction: column; margin-left: auto; }
+}
+
+/* ---------- skip link ---------- */
+.skip-link { position: absolute; top: -100px; left: 16px; background: var(--accent); color: #fff; padding: 8px 16px; border-radius: var(--radius); z-index: 100; }
+.skip-link:focus { top: 16px; }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -105,6 +119,15 @@ em { font-style: italic; }
 .btn--sm { padding: 8px 15px; font-size: 0.82rem; }
 .btn--accent { background: var(--accent); color: #fff; }
 .btn--accent:hover { filter: brightness(1.08); }
+.btn--loading { position: relative; pointer-events: none; opacity: 0.7; }
+.btn--loading::after { content: ''; position: absolute; width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: btn-spin 0.8s linear infinite; }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ---------- error / status ---------- */
+.auth-status { padding: 12px 16px; border-radius: var(--radius); font-size: 0.88rem; margin-bottom: 16px; display: none; }
+.auth-status.err { background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.4); color: #f55; display: block; }
+.auth-status.ok { background: rgba(40, 167, 69, 0.15); border: 1px solid rgba(40, 167, 69, 0.4); color: #28a745; display: block; }
+.auth-status.warn { background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.4); color: #ffc107; display: block; }
 
 /* ============================================================
    HERO. Asymmetric split: copy left, live render right.
@@ -376,9 +399,13 @@ em { font-style: italic; }
 <body>
 
 <!-- ================= NAV ================= -->
+<a class="skip-link" href="#main">Skip to main content</a>
 <header class="site-head">
   <div class="shell site-head__in">
     <a class="brand" href="/"><b>SWR</b> Sainted Word Records</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <nav class="nav" aria-label="Primary">
       <a href="/engine">Engine</a>
       <a href="/versions">Versions</a>
@@ -390,7 +417,7 @@ em { font-style: italic; }
   </div>
 </header>
 
-<main>
+<main id="main">
 
 <!-- ================= HERO ================= -->
 <section class="hero">
@@ -895,11 +922,45 @@ em { font-style: italic; }
 // Behaviour. Three small surfaces, each with one job.
 // 1. Reveal on scroll  - states that a section has arrived.
 // 2. Flip carousel    - state change between renders.
+// 3. Mobile nav      - hamburger toggle
+// 4. CTA loading     - button loading states
 // ---------------------------------------------------------------------
 (function () {
   'use strict';
 
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // --- 0. Mobile nav toggle ---
+  var navToggle = document.querySelector('.nav-toggle');
+  var nav = document.querySelector('.nav');
+  if (navToggle && nav) {
+    navToggle.addEventListener('click', function () {
+      var isOpen = nav.classList.toggle('is-open');
+      navToggle.classList.toggle('is-active');
+      navToggle.setAttribute('aria-expanded', isOpen);
+    });
+    // Close nav on link click
+    nav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        nav.classList.remove('is-open');
+        navToggle.classList.remove('is-active');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
+  // --- 0b. CTA loading states ---
+  document.querySelectorAll('.btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      // Skip if it's just a link or already loading
+      if (btn.tagName === 'A' || btn.classList.contains('btn--loading')) return;
+      // Add loading state
+      btn.classList.add('btn--loading');
+      var originalText = btn.textContent;
+      btn.setAttribute('data-original-text', originalText);
+      btn.textContent = 'Loading...';
+    });
+  });
 
   // --- 1. Reveal on scroll (IntersectionObserver, never a scroll listener) ---
   var reveals = document.querySelectorAll('.reveal');

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/check-section-detector-unit.mjs — section-detector unit gate.
+// scripts/check-section-detector-unit.mjs - section-detector unit gate.
 //
 // client/section-detector.client.js is the engine's section detector (plan
 // P1.3, architecture-audit-2026-10). Its algorithm is a rolling
@@ -48,8 +48,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const SRC = path.join(__dirname, 'client/section-detector.client.js');
+const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const SRC = path.join(ROOT, 'client/section-detector.client.js');
+const AUTOMIX_SRC = path.join(ROOT, 'client/automix.client.js');
 
 let pass = 0;
 const failures = [];
@@ -146,14 +147,16 @@ function featFor(beat, sub) {
 }
 
 function drive(beats, repeat = 1, onSample) {
+  let last = null;
   for (let beat = 0; beat < beats; beat++) {
     for (let sub = 0; sub < SUBS; sub++) {
       clock = (beat * SUBS + sub) * (BEAT_MS / SUBS);
       const f = featFor(beat, sub);
-      for (let k = 0; k < repeat; k++) S.detect(f);
-      if (onSample) onSample(f);
+      for (let k = 0; k < repeat; k++) last = S.detect(f);
+      if (onSample) onSample(last, f);
     }
   }
+  return last;
 }
 
 // Boundary matching. Late tolerance is the kernel's lookahead: a boundary
@@ -191,6 +194,7 @@ S.reset();
 const events = [];
 win.addEventListener('swr-section-change', (ev) => events.push(ev.detail));
 drive(TOTAL_BEATS);
+const firstPassEvents = events.slice();
 
 const K = S.options.kernelHalf;
 const detected = win.SWR_SECTIONS.map((s) => s.startFrame).slice(1); // 0 opens the map
@@ -259,24 +263,22 @@ const dupDetected = win.SWR_SECTIONS.map((s) => s.startFrame).slice(1);
 assert(dupDetected.join(',') === detected.join(','),
   'the boundaries are identical whether detect() is called once or twice per sample',
   `once [${detected.join(', ')}] vs twice [${dupDetected.join(', ')}]`);
-assert(dupEvents.length === events.length,
+assert(dupEvents.length === firstPassEvents.length,
   'the doubled call emits no extra swr-section-change',
-  `${dupEvents.length} vs ${events.length}`);
+  `${dupEvents.length} vs ${firstPassEvents.length}`);
 
 // ── 6. confidence ──────────────────────────────────────────────────────────
 S.reset();
 let youngConfidence = null;
-let calm = null;
-drive(TOTAL_BEATS, 1, () => {
-  const r = S.detect(featFor(0, 0)); // re-read state without advancing the clock
-  if (calm === null && S.sections.length >= 1) calm = r;
-  if (youngConfidence === null && S.sections.length >= 2 && r.confidence < 0.7) {
-    youngConfidence = r.confidence;
+let firstResult = null;
+const final = drive(TOTAL_BEATS, 1, (res) => {
+  if (firstResult === null) firstResult = res;
+  if (youngConfidence === null && res.sections >= 2 && res.confidence < 0.7) {
+    youngConfidence = res.confidence;
   }
 });
-const final = S.detect(featFor(TOTAL_BEATS - 1, SUBS - 1));
-assert(typeof final.section === 'string' && S.LABELS.indexOf(final.section) >= 0,
-  'detect() returns a taxonomy label', final.section);
+assert(firstResult !== null && S.LABELS.indexOf(firstResult.section) >= 0,
+  'detect() returns a taxonomy label from the first frame', firstResult && firstResult.section);
 assert(typeof final.confidence === 'number' && final.confidence >= 0 && final.confidence <= 1,
   'confidence is bounded 0..1', final.confidence.toFixed(3));
 assert(final.frames > 0 && final.energy > 0,
@@ -287,17 +289,21 @@ assert(youngConfidence !== null,
   youngConfidence == null ? 'never observed' : youngConfidence.toFixed(3));
 
 // ── 7. the event section-scheduler.client.js listens for ───────────────────
-assert(events.length >= 2, 'swr-section-change fires once per boundary', `${events.length} events`);
-for (const d of events) {
+assert(firstPassEvents.length >= 2, 'swr-section-change fires once per boundary',
+  `${firstPassEvents.length} events`);
+for (const d of firstPassEvents) {
   assert(typeof d.from === 'string' && typeof d.to === 'string' &&
     typeof d.frame === 'number' && typeof d.tMs === 'number' &&
     typeof d.novelty === 'number' && typeof d.confidence === 'number',
   'event detail carries { from, to, frame, tMs, novelty, confidence }',
     `${d.from} -> ${d.to} @${d.frame}`);
 }
-assert(events[events.length - 1].to !== events[0].to,
+assert(firstPassEvents[firstPassEvents.length - 1].to !== firstPassEvents[0].to,
   'the last boundary reports a different section than the first',
-  `${events[0].to} then ${events[events.length - 1].to}`);
+  `${firstPassEvents[0].to} then ${firstPassEvents[firstPassEvents.length - 1].to}`);
+assert(firstPassEvents[0].frame >= BOUNDS[0] - 2,
+  'the first boundary is reported at or after the true one',
+  `@${firstPassEvents[0].frame}`);
 assert(win.SWR_SECTIONS.length === detected.length + 1,
   'window.SWR_SECTIONS holds one entry per section', `${win.SWR_SECTIONS.length}`);
 assert(win.SWR_SECTIONS[0].startFrame === 0 && win.SWR_SECTIONS[0].name === 'intro',
@@ -307,13 +313,39 @@ assert(S.LABELS.indexOf(tail.name) >= 0,
   'the closing section carries a taxonomy label', tail.name);
 
 // ── 8. the batch entry point keeps its shape ───────────────────────────────
+// The batch path gets an AudioAnalysisV2 output: energy + onsets, no band
+// features. Its descriptor is therefore the bar's intra-bar energy SHAPE,
+// which is scale-invariant the same way the live descriptor is. Same idea,
+// same trap: the level moves a lot, the shape changes only at the two
+// boundaries.
+//
+//   bars 0-15   decrescendo inside each bar, level alternating 0.30 / 0.12
+//   bars 16-31  the mirror image (crescendo inside the bar), level decaying
+//               0.62 -> 0.18 and continuing to fall through bars 32-47, so the
+//               second boundary has no level step at all to find
+//   bars 32-47  flat inside the bar, sparse onsets
+const BARS = 48;
+const barShape = (bar) => (bar < 16 ? [1.30, 1.10, 0.90, 0.70]
+  : bar < 32 ? [0.70, 0.90, 1.10, 1.30]
+    : [1.15, 0.95, 1.05, 0.85]);
+const barLevel = (bar) => (bar < 16 ? (bar % 2 === 0 ? 0.30 : 0.12)
+  : 0.62 - (bar - 16) * (0.44 / 31));
+const barOnsets = (bar) => (bar < 16 ? 1 : (bar < 32 ? 4 : 2));
+
 const energy = [];
-for (let i = 0; i < 720; i++) {
-  energy.push(levelAt(Math.floor(i / 5))); // 100 Hz series over a 72 s track
+for (let bar = 0; bar < BARS; bar++) {
+  const shape = barShape(bar);
+  for (let q = 0; q < 4; q++) {
+    for (let i = 0; i < 100; i++) { // 100 Hz, so 400 samples per bar
+      energy.push(barLevel(bar) * shape[q] * (1 + wobble(bar * 400 + q * 100 + i, 11) * 0.5));
+    }
+  }
 }
 const onsets = [];
-for (let beat = 0; beat < TOTAL_BEATS; beat++) onsets.push(beat * 0.5);
-const batch = D.detectSections({ bpm: 120, duration: 72, energy, onsets });
+for (let bar = 0; bar < BARS; bar++) {
+  for (let k = 0; k < barOnsets(bar); k++) onsets.push(bar * 2 + k * 0.5);
+}
+const batch = D.detectSections({ bpm: 120, duration: BARS * 2, energy, onsets });
 assert(Array.isArray(batch) && batch.length >= 1,
   'detectSections returns an array', `${batch.length} sections`);
 assert(batch.every((s) => typeof s.startBar === 'number' && typeof s.name === 'string' &&
@@ -321,13 +353,22 @@ assert(batch.every((s) => typeof s.startBar === 'number' && typeof s.name === 's
   'each batch section has { startBar, bars, name, energy }',
   batch.map((s) => `${s.name}@${s.startBar}`).join(' '));
 assert(batch[0].startBar === 0, 'the first batch section starts at bar 0');
-const batchTruth = BOUNDS.map((b) => Math.floor(b / 4)); // beats -> bars
+const batchTruth = [16, 32];
 const batchStarts = batch.map((s) => s.startBar).slice(1);
-const batchHits = batchTruth.filter((t) =>
-  batchStarts.some((d) => d >= t - 1 && d <= t + 4));
-assert(batchHits.length === batchTruth.length,
-  'the batch path finds the same two boundaries, bar-aligned',
-  `expected near [${batchTruth}], got [${batchStarts}]`);
+for (const t of batchTruth) {
+  assert(batchStarts.some((d) => d >= t - 1 && d <= t + 2),
+    `the batch path finds the boundary at bar ${t}`,
+    `got [${batchStarts.join(', ')}]`);
+}
+const batchM = matchAll(batchStarts, batchTruth, 1, 2);
+assert(batchM.fps.length <= 1,
+  'the batch path does not cut the level ramp into pieces',
+  `false positives [${batchM.fps.join(', ')}]`);
+const naiveBatch = naiveEnergyBoundaries(
+  Array.from({ length: BARS }, (_, bar) => barLevel(bar)));
+assert(matchAll(naiveBatch, batchTruth, 1, 2).fps.length > 1,
+  'the naive energy rule over-fires on the batch fixture too',
+  `naive [${naiveBatch.join(', ')}]`);
 const scenes = D.sectionsToScenes(batch);
 assert(Array.isArray(scenes) && scenes.length === batch.length &&
   scenes.every((s) => typeof s.id === 'string' && Array.isArray(s.layers)),
@@ -337,8 +378,76 @@ assert(Array.isArray(scenes) && scenes.length === batch.length &&
 S.reset();
 assert(win.SWR_SECTIONS.length === 0, 'reset() clears the published map');
 clock = 0;
-assert(S.detect(featFor(0, 0)).sections === 1, 'a fresh stream starts one section');
+assert(S.detect(featFor(0, 0)).sections === 0,
+  'one sample is not yet a frame, so no section exists yet');
+assert(drive(2).sections === 1, 'a fresh stream starts exactly one section');
 assert(S.history.length === 0, 'reset() clears the transition history');
+
+// The detector restarts its own stream when the material either side is not
+// comparable, because a novelty curve computed across a hole is meaningless.
+// Two ways that happens in the engine: playback stops (silence) and the clock
+// jumps (a seek, a hidden tab). Both must clear the map.
+{
+  S.reset();
+  drive(TOTAL_BEATS);
+  assert(win.SWR_SECTIONS.length >= 3, 'the fixture produced a multi-section map',
+    `${win.SWR_SECTIONS.length}`);
+  for (let i = 0; i < 8 * SUBS; i++) { // 8 silent frames
+    clock += BEAT_MS / SUBS;
+    S.detect({ bpm: 120, rms: 0, bass: 0, mid: 0, treble: 0, centroid: 0, onset: 0, tMs: clock });
+  }
+  assert(win.SWR_SECTIONS.length === 0,
+    'sustained silence restarts the stream and clears the published map',
+    `${win.SWR_SECTIONS.length} sections left`);
+  assert(S.history.length === 0, 'the restart clears the transition history');
+
+  // A hole in the clock does the same, with no silence at all.
+  S.reset();
+  drive(TOTAL_BEATS);
+  const before = win.SWR_SECTIONS.length;
+  const jumped = { ...featFor(TOTAL_BEATS - 1, SUBS - 1), tMs: clock + 30000 };
+  S.detect(jumped);
+  assert(win.SWR_SECTIONS.length < before,
+    'a hole in the clock restarts the stream too',
+    `${before} -> ${win.SWR_SECTIONS.length}`);
+  assert(drive(2).sections === 1, 'the next stream starts clean');
+}
+
+// ── 10. the real consumer sees real sections ───────────────────────────────
+// client/automix.client.js:439 calls window.SWR_SECTION.detect() and falls
+// back to a permanent 'verse' when it is missing. Between 2026-10-01 (when
+// that global was deleted) and this rewrite, automix therefore never saw a
+// section at all. Load the real automix module in the same sandbox and drive
+// it with the same fixture: the point of the wiring is that this label moves.
+{
+  const automixSrc = AUTOMIX_SRC;
+  const aCtx = vm.createContext({
+    window: win, performance: win.performance, console,
+    // automix only touches this inside helpers it does not call here.
+    HologramState: undefined,
+  });
+  vm.runInContext(fs.readFileSync(AUTOMIX_SRC, 'utf8'), aCtx, { filename: 'automix.client.js' });
+  const A = win.SWR_AUTOMIX;
+  assert(!!(A && typeof A.tickSection === 'function'), 'SWR_AUTOMIX.tickSection loaded');
+
+  S.reset();
+  let state = null;
+  const seen = new Set();
+  const last = drive(TOTAL_BEATS, 1, (res, f) => {
+    // tickSection applies its own hysteresis on top: a label has to repeat
+    // for SECTION_HYSTERESIS_TICKS ticks before automix accepts it.
+    state = A.tickSection(f, state);
+    seen.add(res.section);
+  });
+  assert(!!(state && typeof state.current === 'string'),
+    'automix holds a current section after a full pass', state && state.current);
+  assert(last.section !== 'verse',
+    'the detector reports a non-verse section for the busy part of the track',
+    last.section);
+  assert(state.current !== 'verse',
+    'automix is not stuck on its static verse fallback',
+    `automix=${state.current}, detector saw ${[...seen].join(' / ')}`);
+}
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log('');

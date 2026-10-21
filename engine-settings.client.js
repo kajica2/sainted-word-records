@@ -207,10 +207,36 @@
     setTimeout(boot, 50);
   }
 
+  // ---- DPR reset (P1.6) --------------------------------------------------
+  // Clears the auto-DPR step-down lower bound + its paired timestamp from
+  // localStorage so the engine re-evaluates DPR on the next frame. Wired to
+  // the engine's settings panel via the UI; safe to call when SWR_RENDER is
+  // absent (engine-render.client.js is loaded by every variant page that
+  // exposes a settings panel, so this is a near-universal presence).
+  function resetDprAuto() {
+    var R = window.SWR_RENDER;
+    if (!R || typeof R.clearAutoDprLow !== 'function') {
+      if (typeof window.setStatus === 'function') window.setStatus('DPR reset skipped: SWR_RENDER not loaded', 'err');
+      return false;
+    }
+    R.clearAutoDprLow();
+    // Force the next fit() to re-evaluate so the user sees the change take
+    // effect immediately, not on the next dirty frame.
+    if (typeof R.markDirty === 'function') R.markDirty();
+    if (typeof window.setStatus === 'function') window.setStatus('DPR auto-step reset', 'ok');
+    return true;
+  }
+
+  // ---- public -----------------------------------------------------------
+
   window.SWR_SETTINGS = {
     togglePanel: toggleVisibility,
     saveProject: saveProject,
     openProject: openProject,
     resetPanels: resetPanels,
+    // The settings panel surfaces this as a button next to the DPR readout.
+    // resetDprAuto() returns true on success, false when SWR_RENDER is not
+    // loaded (the host can show a "not available" state instead).
+    resetDprAuto: resetDprAuto,
   };
 })();

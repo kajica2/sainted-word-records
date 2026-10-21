@@ -1,4 +1,4 @@
-// client/section-detector.client.js — song-section detection for the engine.
+// client/section-detector.client.js - song-section detection for the engine.
 //
 // WHY THIS FILE WAS REWRITTEN (architecture-audit-2026-10, P1.3)
 //
@@ -51,12 +51,19 @@
 //
 //   window.SWR_SECTION.detect(feat) -> { section, confidence, index,
 //        startFrame, startMs, energy, novelty, frames, sections, ready }
-//   window.SWR_SECTION.reset()          forget the stream (next detect starts
-//                                       a new one; the published sections are
-//                                       kept so a UI map survives the reset)
-//   window.SWR_SECTION.sections         live section list (getter)
+//   window.SWR_SECTION.sections         the published map, same content as
+//                                       window.SWR_SECTIONS
 //   window.SWR_SECTION.history          boundary transitions, newest last
-//   window.SWR_SECTION.options          read/modify the detector constants
+//   window.SWR_SECTION.options          the LIVE stream's constants (write to
+//                                       them to retune without a reload);
+//                                       SWR_SECTION.DEFAULTS is the set a
+//                                       fresh stream starts from
+//   window.SWR_SECTION.reset()          forget everything and publish an empty
+//                                       map. The detector also calls this on
+//                                       itself when the stream breaks (a pause,
+//                                       a seek, silence, the end of a track),
+//                                       because a novelty curve across such a
+//                                       hole is meaningless.
 //
 //   window.SWR_SECTIONS                 the same list, republished as a fresh
 //                                       array on every confirmed boundary
@@ -78,8 +85,8 @@
 //   per frame cannot double-count. Pass feat.tMs to drive the clock yourself
 //   (used by the unit gate); otherwise performance.now() is read.
 //
-// NO ML, NO NETWORK, NO DECODED BUFFER. Same globals, same event name, no
-// page changes required beyond the one engine.html call.
+// NO ML, NO NETWORK, NO DECODED BUFFER. Same globals, same event name. The
+// only page change needed was the one engine.html call.
 
 (function () {
   'use strict';
@@ -102,14 +109,23 @@
 
   const LABELS = ['intro', 'verse', 'prechorus', 'chorus', 'breakdown', 'outro'];
 
+  // The engine's feat.rms is a true RMS of the waveform, so digital silence
+  // reads ~0 and anything musical reads well above this. Six silent frames in
+  // a row (three bars at 120 BPM) is the end of a stream, not a gap inside
+  // one. Deliberately conservative: a false reset costs the caller its
+  // continuity, and the engine also calls reset() explicitly on a song load.
+  const SILENCE_RMS = 0.002;
+  const SILENT_FRAMES = 6;
+
   const DEFAULTS = {
     kernelHalf: 8,       // Foote kernel half-width in frames (~4 s at 120 BPM)
-    zThreshold: 0.75,    // a peak must clear mean + z * sigma of its own history
-    minNovelty: 0.045,   // and an absolute floor, so a flat history cannot fire
+    zThreshold: 0.75,    // a peak must clear median + z * MAD of its neighbourhood
+    minExcess: 0.03,     // and the excess over that median, so a flat
+                         // neighbourhood (MAD ~ 0) cannot fire on a wobble
     minSectionFrames: 8, // no two boundaries closer than this (2 bars @ 120)
     minFrames: 16,       // frames of history before any boundary is allowed
     frameMs: 0,          // 0 = derive from bpm (one beat), else explicit hop
-    gapMs: 2500,         // a longer silence than this starts a new stream
+    gapMs: 2500,         // a longer hole in the clock starts a new stream
   };
 
   // Label bands, on energy normalised against the stream's running mean
@@ -132,16 +148,32 @@
   // Weighted, L2-normalised descriptor row. Scale-invariant: doubling every
   // dim leaves the returned vector identical, which is the property that
   // makes a loudness ramp invisible to the matrix.
-  function unitVector(values) {
+  //
+  // `dims` is either a positional array of the 5 dims in DIM_SRC order (what
+  // the batch path builds) or a feat-shaped object keyed by DIM_SRC (what the
+  // live path accumulates). Both are accepted, because the difference is
+  // invisible until it is fatal: indexing an object with 0..4 yields all
+  // undefined, an all-zero descriptor row makes every similarity 0, and the
+  // novelty curve then reads exactly 0.000 at every frame forever.
+  function dimAt(dims, d) {
+    if (dims == null) return 0;
+    if (Array.isArray(dims) || ArrayBuffer.isView(dims)) return dims[d];
+    return dims[DIM_SRC[d]];
+  }
+
+  function unitVector(dims) {
     const out = new Float64Array(DIMS);
     let norm = 0;
     for (let d = 0; d < DIMS; d++) {
-      const w = num(values[d]) * DIM_W[d];
+      const w = num(dimAt(dims, d)) * DIM_W[d];
       norm += w * w;
     }
     if (norm < 1e-9) return out; // silence: zeros, and cosine() guards below
     const inv = 1 / Math.sqrt(norm);
-    for (let d = 0; d < DIMS; d++) out[d] = (num(values[d]) * DIM_W[d]) * inv;
+    for (let d = 0; d < DIMS; d++) {
+      const w = num(dimAt(dims, d)) * DIM_W[d];
+      out[d] = w * inv;
+    }
     return out;
   }
 
@@ -160,17 +192,20 @@
   // ---- the rolling state (shared by the live path and the batch path) -----
   function makeState(overrides) {
     const state = {
-      rows: [],        // { u, e, tMs } one per frame, L2-normalised descriptor
+      rows: [],        // { u, e, onset, tMs } one descriptor row per frame
       novelty: [],     // novelty per frame, filled K frames late
       sections: [],
       history: [],
+      pending: null,   // candidate index awaiting one more frame of novelty
       base: 0,         // absolute index of rows[0] (ring position)
       meanE: 0,        // running mean of frame energy (the loudness reference)
       primed: false,
-      lastTMs: -1,
+      lastTMs: -1,       // timestamp of the last call, for the dedupe below
+      lastIngestMs: -1,  // timestamp of the last ingested sample (clock jumps)
       frameStartMs: 0,
-      acc: null,
+      acc: null,       // partial sums for the frame in progress
       accN: 0,
+      silent: 0,       // consecutive silent frames (see SILENCE_RMS)
       options: Object.assign({}, DEFAULTS, overrides || {}),
     };
     return state;
@@ -229,49 +264,83 @@
     return wsum > 0 ? sum / wsum : 0;
   }
 
-  // Adaptive peak threshold: mean + z * sigma over the trailing novelty
-  // history. Self-calibrating, so a loud master and a near-silent one need
-  // the same constants.
-  function adaptiveThreshold(state, n) {
-    const floor = state.options.minNovelty;
-    const win = Math.min(state.novelty.length, 64);
+  // Local centre and spread of the novelty curve around n.
+  //
+  // Two decisions here, both forced by measurement:
+  //
+  // 1. WINDOW. +-2K frames, not the whole history. The curve is heavy-tailed
+  //    by nature (a real boundary IS an outlier), so a global mean/sigma is
+  //    dominated by whichever boundary came first and masks the next one: on
+  //    the unit gate's 3-section fixture, one peak at +0.154 inflated sigma
+  //    to 0.056 and the genuine weaker peak 24 frames later (-0.009 against a
+  //    -0.080 floor, an excess of 0.041) fell under the threshold and was
+  //    never reported.
+  // 2. MEDIAN / MAD, not mean / sigma. Same reason, local form: one big peak
+  //    inside a +-2K window still moves the mean, but not the median, and the
+  //    MAD of a flat window is tiny, so the threshold sits just above the
+  //    noise floor and a real peak clears it by a wide margin.
+  //
+  // The candidate's own neighbourhood (|k - n| <= 1) is excluded, so a value
+  // can never raise the bar it has to clear.
+  function localMoments(state, n) {
+    const K = state.options.kernelHalf;
+    const win = 2 * K;
+    const nov = state.novelty;
     const from = Math.max(0, n - win);
+    const to = Math.min(nov.length - 1, n + win);
+    const vals = [];
+    for (let k = from; k <= to; k++) {
+      if (Math.abs(k - n) <= 1) continue;
+      const v = nov[k];
+      if (typeof v === 'number' && isFinite(v)) vals.push(v);
+    }
+    if (vals.length < 4) return { mean: 0, median: 0, std: 0, mad: 0, count: vals.length };
+    vals.sort((a, b) => a - b);
+    const mid = vals.length >> 1;
+    const median = (vals.length % 2)
+      ? vals[mid]
+      : (vals[mid - 1] + vals[mid]) / 2;
+    let dev = [];
     let sum = 0;
-    let count = 0;
-    for (let k = from; k <= n; k++) {
-      const v = state.novelty[k];
-      if (typeof v === 'number' && isFinite(v)) {
-        sum += v;
-        count++;
-      }
+    for (const v of vals) {
+      sum += v;
+      dev.push(Math.abs(v - median));
     }
-    if (count < 8) return floor;
-    const mean = sum / count;
-    let vs = 0;
-    for (let k = from; k <= n; k++) {
-      const v = state.novelty[k];
-      if (typeof v === 'number' && isFinite(v)) {
-        const d = v - mean;
-        vs += d * d;
-      }
-    }
-    const std = Math.sqrt(vs / count);
-    return Math.max(floor, mean + state.options.zThreshold * std);
+    dev.sort((a, b) => a - b);
+    const mad = (dev.length % 2) ? dev[mid] : (dev[mid - 1] + dev[mid]) / 2;
+    return {
+      mean: sum / vals.length,
+      median: median,
+      std: Math.sqrt(vals.reduce((a, v) => a + (v - median) * (v - median), 0) / vals.length),
+      mad: mad,
+      count: vals.length,
+    };
   }
 
-  // The one boundary rule, shared by both paths.
-  //  - rising into the peak (the peak itself is checked one frame later)
-  //  - above the absolute floor
-  //  - above the adaptive threshold
+  // Robust peak threshold: median + z * 1.4826 * MAD (the MAD scaled to be a
+  // consistent estimator of sigma for normally distributed noise).
+  function adaptiveThreshold(state, n) {
+    const m = localMoments(state, n);
+    const spread = m.mad > 1e-9 ? 1.4826 * m.mad : m.std;
+    return m.median + state.options.zThreshold * spread;
+  }
+
+  // Is frame n a boundary CANDIDATE? Everything except the confirmation that
+  // it is the top of the peak rather than a point on the rising flank:
+  //  - rising into n
+  //  - excess over the local median above the absolute floor
+  //  - above the robust adaptive threshold
   //  - enough history behind it
   //  - far enough from the previous boundary
-  function acceptPeak(state, n) {
+  function isCandidate(state, n, value) {
     if (n < 1) return false;
-    const cur = state.novelty[n];
+    const cur = typeof value === 'number' ? value : state.novelty[n];
+    if (typeof cur !== 'number' || !isFinite(cur)) return false;
     const prev = state.novelty[n - 1];
-    if (typeof cur !== 'number' || typeof prev !== 'number') return false;
+    if (typeof prev !== 'number' || !isFinite(prev)) return false;
     if (!(cur > prev)) return false;
-    if (!(cur > state.options.minNovelty)) return false;
+    const m = localMoments(state, n);
+    if (cur - m.median < state.options.minExcess) return false;
     if (cur < adaptiveThreshold(state, n)) return false;
     if (n < state.options.minFrames) return false;
     const last = state.sections.length
@@ -279,6 +348,32 @@
       : 0;
     if (n - last < state.options.minSectionFrames) return false;
     return true;
+  }
+
+  // A candidate becomes a boundary only once the NEXT frame of novelty is
+  // known and is not higher. That is what makes the reported boundary the top
+  // of the peak (where the kernel says the change actually is) instead of the
+  // first frame on the rising flank that happened to clear the threshold, and
+  // it is why the live path can answer one beat late without being wrong.
+  function confirmPeak(state, n) {
+    const cur = state.novelty[n];
+    const next = state.novelty[n + 1];
+    if (typeof cur !== 'number' || !isFinite(cur)) return false;
+    if (typeof next !== 'number' || !isFinite(next)) return false;
+    if (next > cur) return false;
+    return isCandidate(state, n, cur);
+  }
+
+  // Live-path driver: called once per newly computed novelty value, i.e. once
+  // per beat. Resolves the pending candidate against the value that just
+  // arrived, then arms the next one.
+  function evaluatePeak(state, n) {
+    const pending = state.pending;
+    if (pending != null) {
+      state.pending = null;
+      if (confirmPeak(state, pending)) commitBoundary(state, pending);
+    }
+    if (isCandidate(state, n, state.novelty[n])) state.pending = n;
   }
 
   // Energy statistics over frames [from, to). `rise` compares the last third
@@ -290,7 +385,9 @@
     const b = Math.min(rows.length, Math.max(from, to));
     const n = Math.max(0, b - a);
     if (n === 0) {
-      return { energy: state.meanE, dev: 0, onset: 0, rise: 0, frames: 0 };
+      // No frames yet: report exactly the stream average (1.0), which is the
+      // unit every other energy here is expressed in.
+      return { energy: 1, dev: 0, onset: 0, rise: 0, frames: 0 };
     }
     let sum = 0;
     let onset = 0;
@@ -344,7 +441,7 @@
   // AND how steady it has been, damped while the section is still young so a
   // caller with its own hysteresis (automix) is not handed a fresh label on
   // the first frame after a boundary.
-  function confidence(stats, frames) {
+  function confidence(stats) {
     const edges = [0, BAND_BREAKDOWN, BAND_OUTRO, BAND_INTRO, BAND_CHORUS, 1];
     let margin = 1;
     for (let i = 0; i < edges.length - 1; i++) {
@@ -402,7 +499,7 @@
     });
     const from = prev ? prev.name : 'silence';
     const to = state.sections[state.sections.length - 1].name;
-    const conf = confidence(stats, stats.frames);
+    const conf = confidence(stats);
     state.history.push({
       from: from,
       to: to,
@@ -414,7 +511,12 @@
     while (state.history.length > MAX_HISTORY) state.history.shift();
     publish(state);
     try {
-      window.dispatchEvent(new CustomEvent('swr-section-change', {
+      // window.CustomEvent, not the bare global: the object that owns
+      // dispatchEvent must own the constructor too, or a host that provides
+      // its DOM shim on window (a vm sandbox, a harness page) throws a
+      // ReferenceError here and the event is lost while the boundary still
+      // publishes.
+      window.dispatchEvent(new window.CustomEvent('swr-section-change', {
         detail: {
           from: from,
           to: to,
@@ -425,6 +527,30 @@
         },
       }));
     } catch (e) { /* no DOM / no CustomEvent: boundaries still publish */ }
+  }
+
+  // Section 0 exists as soon as there is one frame to describe. Both paths call
+  // this, so neither can end up with an empty section list (the batch path
+  // would then have nothing to seal, and the live path would have no section
+  // for automix to read before the first boundary).
+  function seedSection(state) {
+    if (state.sections.length > 0) return false;
+    if (state.rows.length === 0) return false;
+    const stats = rangeStats(state, 0, state.rows.length);
+    state.sections.push({
+      index: 0,
+      startFrame: 0,
+      endFrame: null,
+      bars: 0,
+      name: classify(stats, 0, null),
+      energy: stats.energy,
+      dev: stats.dev,
+      rise: stats.rise,
+      prevEnergy: null,
+      startMs: state.rows[0].tMs,
+      novelty: 0,
+    });
+    return true;
   }
 
   function publish(state) {
@@ -451,13 +577,16 @@
     state.novelty.length = 0;
     state.sections.length = 0;
     state.history.length = 0;
+    state.pending = null;
     state.base = 0;
     state.meanE = 0;
     state.primed = false;
     state.lastTMs = -1;
+    state.lastIngestMs = -1;
     state.frameStartMs = 0;
     state.acc = null;
     state.accN = 0;
+    state.silent = 0;
   }
 
   function freshAccumulator() {
@@ -522,13 +651,24 @@
     const cand = rows.length - 1 - K;
     if (cand >= 1) {
       state.novelty[cand] = noveltyAt(state, cand);
-      if (acceptPeak(state, cand)) commitBoundary(state, cand);
+      evaluatePeak(state, cand);
     }
   }
 
   // ---- live path ----------------------------------------------------------
   // One streaming state, fed by detect() and reset() by the engine.
   const live = makeState();
+
+  // A pause, a seek, silence, the end of a track or a song swap all mean the
+  // same thing: the material on the other side is not comparable to the
+  // material on this side, and a novelty curve computed across the hole is
+  // meaningless. Drop the analysis and publish an empty map. The engine also
+  // calls reset() on an explicit song load, which covers a hard cut with no
+  // silence between the tracks.
+  function restartStream(state) {
+    resetState(state);
+    publish(state);
+  }
 
   function detect(feat) {
     const f = feat || {};
@@ -539,13 +679,16 @@
     if (tMs !== live.lastTMs) {
       live.lastTMs = tMs;
 
-      // A pause, a seek or a song swap leaves a hole in the stream. Start a
-      // new one instead of computing novelty across the hole. The published
-      // sections survive so a UI map does not vanish under the user.
-      if (live.frameStartMs > 0 && tMs - live.frameStartMs > live.options.gapMs) {
-        resetState(live);
+      // The clock jumped forward (a seek, a hidden tab, a pause) or
+      // backwards (a reload, a caller driving its own clock): the material
+      // either side of the hole is not comparable, so start a new stream
+      // rather than compute a novelty curve across it.
+      if (live.lastIngestMs >= 0 &&
+          (tMs - live.lastIngestMs > live.options.gapMs || tMs < live.lastIngestMs)) {
+        restartStream(live);
         live.lastTMs = tMs;
       }
+      live.lastIngestMs = tMs;
 
       if (live.acc === null) {
         live.acc = freshAccumulator();
@@ -565,38 +708,40 @@
       if (tMs - live.frameStartMs >= dur && live.accN > 0) {
         const inv = 1 / live.accN;
         const a = live.acc;
-        commitFrame(live, {
-          bass: a.bass * inv,
-          mid: a.mid * inv,
-          treble: a.treble * inv,
-          centroid: a.centroid * inv,
-          onset: a.onset * inv,
-          rms: a.rms * inv,
-        }, tMs);
+        const meanRms = a.rms * inv;
         live.acc = freshAccumulator();
         live.accN = 0;
         live.frameStartMs = tMs;
+
+        // Silence is not music: a silent frame is dropped instead of being
+        // committed, so the descriptor rows stay material-only. Sustained
+        // silence means the track ended or playback stopped, which is a
+        // stream break rather than a gap inside one. The engine also calls
+        // reset() on an explicit song load, which covers a hard cut with no
+        // silence between the tracks.
+        if (meanRms < SILENCE_RMS) {
+          live.silent++;
+          if (live.silent >= SILENT_FRAMES && live.rows.length > live.options.minFrames) {
+            restartStream(live);
+            live.lastTMs = tMs;
+            live.lastIngestMs = tMs;
+          }
+        } else {
+          live.silent = 0;
+          commitFrame(live, {
+            bass: a.bass * inv,
+            mid: a.mid * inv,
+            treble: a.treble * inv,
+            centroid: a.centroid * inv,
+            onset: a.onset * inv,
+            rms: meanRms,
+          }, tMs);
+        }
       }
     }
 
     // Sections exist as soon as there is one frame to describe.
-    if (live.sections.length === 0 && live.rows.length > 0) {
-      const stats = rangeStats(live, 0, live.rows.length);
-      live.sections.push({
-        index: 0,
-        startFrame: 0,
-        endFrame: null,
-        bars: 0,
-        name: classify(stats, 0, null),
-        energy: stats.energy,
-        dev: stats.dev,
-        rise: stats.rise,
-        prevEnergy: null,
-        startMs: live.rows[0].tMs,
-        novelty: 0,
-      });
-      publish(live);
-    }
+    if (seedSection(live)) publish(live);
 
     const active = live.sections.length
       ? live.sections[live.sections.length - 1]
@@ -614,7 +759,7 @@
 
     return {
       section: active ? active.name : 'verse',
-      confidence: active ? confidence(stats, stats.frames) : 0,
+      confidence: active ? confidence(stats) : 0,
       index: active ? active.index : 0,
       startFrame: active ? active.startFrame : 0,
       startMs: active ? active.startMs : 0,
@@ -634,6 +779,12 @@
   // played twice as loud normalises to the same vector).
   function detectSections(analysis, options) {
     const opts = Object.assign({}, DEFAULTS, options || {});
+    // Off-line the whole track is in hand, so the "wait for history" guard can
+    // be one kernel band rather than the online default: a boundary still
+    // needs K frames of material after it before the kernel can score it.
+    if (options == null || options.minFrames == null) {
+      opts.minFrames = Math.max(2, opts.kernelHalf + 2);
+    }
     const a = analysis || {};
     const energy = Array.isArray(a.energy) ? a.energy : [];
     const onsets = Array.isArray(a.onsets) ? a.onsets : [];
@@ -686,7 +837,8 @@
         if (onsets[i] >= barStart && onsets[i] < barEnd) hits++;
       }
       state.rows.push({
-        u: unitVector([shape[0], shape[1], shape[2], shape[3], hits / beatsPerBar]),
+        u: null, // set below, once the per-dim track means are known
+        raw: [shape[0], shape[1], shape[2], shape[3], hits / beatsPerBar],
         e: mean,
         onset: hits / beatsPerBar,
         tMs: barStart * 1000,
@@ -700,16 +852,38 @@
       }
     }
 
-    // Full novelty curve in one pass, then the shared boundary rule.
+    // Centre each descriptor dim on its own mean over the whole analysis before
+    // normalising. Off-line the track is complete, so a dim that is roughly
+    // constant across the song carries no structural information and would
+    // otherwise dominate the cosine: without this, "flat inside the bar" and
+    // "crescendo inside the bar" sit at cosine 0.98, which is under the noise
+    // floor of any threshold, and a real boundary goes unreported. Centring
+    // does not reintroduce level sensitivity: the raw dims are already
+    // ratios, not levels.
+    const dimMean = [0, 0, 0, 0, 0];
+    for (const r of state.rows) {
+      for (let d = 0; d < DIMS; d++) dimMean[d] += num(r.raw[d]);
+    }
+    for (let d = 0; d < DIMS; d++) dimMean[d] /= Math.max(1, state.rows.length);
+    for (const r of state.rows) {
+      const centred = new Array(DIMS);
+      for (let d = 0; d < DIMS; d++) centred[d] = num(r.raw[d]) - dimMean[d];
+      r.u = unitVector(centred);
+    }
+
+    // Full novelty curve in one pass, then the same boundary rule. Off-line
+    // the whole curve exists up front, so confirmation is immediate.
     const K = state.options.kernelHalf;
     for (let i = 0; i < state.rows.length; i++) fillMatrix(state, i);
     for (let i = 1; i + K < state.rows.length; i++) {
       state.novelty[i] = noveltyAt(state, i);
     }
+    seedSection(state);
     for (let i = 1; i + K < state.rows.length; i++) {
-      if (acceptPeak(state, i)) commitBoundary(state, i);
+      if (confirmPeak(state, i)) commitBoundary(state, i);
     }
     // The trailing section is only sealed once the track ends.
+    seedSection(state);
     sealPrevious(state, state.rows.length);
     state.sections[state.sections.length - 1].bars =
       state.sections[state.sections.length - 1].endFrame - state.sections[state.sections.length - 1].startFrame;
@@ -749,11 +923,11 @@
   window.SWR_SECTION = {
     detect: detect,
     reset: function () {
-      resetState(live);
-      publish(live);
+      restartStream(live);
     },
+    // The published map, i.e. the same content as window.SWR_SECTIONS.
     get sections() {
-      return live.sections;
+      return window.SWR_SECTIONS;
     },
     get history() {
       return live.history;
@@ -766,20 +940,28 @@
     get novelty() {
       return live.novelty.slice();
     },
-    options: DEFAULTS,
+    get options() {
+      return live.options;
+    },
+    DEFAULTS: DEFAULTS,
     LABELS: LABELS,
     DIM_SRC: DIM_SRC,
     _internals: {
       unitVector: unitVector,
       cosine: cosine,
+      fillMatrix: fillMatrix,
+      simAt: simAt,
       noveltyAt: noveltyAt,
+      localMoments: localMoments,
       adaptiveThreshold: adaptiveThreshold,
-      acceptPeak: acceptPeak,
+      isCandidate: isCandidate,
+      confirmPeak: confirmPeak,
       rangeStats: rangeStats,
       classify: classify,
       confidence: confidence,
       makeState: makeState,
       resetState: resetState,
+      commitFrame: commitFrame,
     },
   };
 
