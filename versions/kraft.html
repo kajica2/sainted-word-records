@@ -227,6 +227,171 @@
     }
     paint();
 
+    // === Canvas kraft-paper pass (engine variant) ===
+    // The standalone KRAFT page is a printed-paper poster: paint() fills
+    // the stage with flat kraft (#c4a578), lays a per-pixel fibrous noise
+    // over it, stamps five irregular dashed ink polygons that rotate and
+    // drift around the centre, and sets a hand-stamped wordmark; the DOM
+    // around the canvas adds the dashed kraft-darker page borders, the
+    // double cardboard frame and the red corner stamp.
+    //
+    // Inside the shared engine the user's media is ALREADY painted on the
+    // stage canvas, so this pass cannot re-fill the frame with kraft — that
+    // would replace the media instead of grading it. Everything below is
+    // therefore a mark laid OVER the media: a translucent kraft wash (the
+    // sheet the clip is printed on), a per-pixel fibre-grain tile, the
+    // translucent ink stamps and dashed borders, and an additive 'lighter'
+    // bloom for the beat. The clip stays visible through the paper exactly
+    // as it stays visible through the page's own cardboard frame overlay.
+    //
+    // Audio mapping follows the page's own synthetic bands (bass 1.5 rad/s,
+    // mid 0.8 rad/s, treble 4 rad/s, beat 3 rad/s in paint() above): bass
+    // presses the paper darker and swells the stamped polygons, mid speeds
+    // their drift, treble brightens the fibre grain, and beat/onset flash
+    // the red corner stamp and the warm bloom.
+    //
+    // Safe to compile into the engine: uses only ctx, W, H, A, proc, pcx,
+    // clamp and performance — all bound by
+    // client/variant-switcher.client.js.
+    function drawFx() {
+      const feat = (A && A.feat) || {};
+      const bass = clamp(feat.bass || 0, 0, 1);
+      const mid = clamp(feat.mid || 0, 0, 1);
+      const treble = clamp(feat.treble || 0, 0, 1);
+      const beat = clamp(feat.beat || 0, 0, 1);
+      const onset = clamp(feat.onset || 0, 0, 1);
+      const rms = clamp(feat.rms || 0, 0, 1);
+      const t = performance.now() / 1000;
+      const cx = W / 2, cy = H / 2;
+
+      // Page palette, inlined from the :root block above.
+      const KRAFT = '196,165,120';        // --kraft #c4a578
+      const KRAFT_DARK = '138,106,72';    // --kraft-dark #8a6a48
+      const KRAFT_DARKER = '90,64,40';    // --kraft-darker #5a4028
+      const INK = '58,40,24';             // --ink #3a2818
+      const STAMP = '168,32,42';          // --stamp #a8202a
+      // The page's canvas is a fixed 1280x720, so every radius it uses is
+      // scaled here to keep the stamp proportions at any engine size.
+      const k = Math.min(W / 1280, H / 720) || 1;
+
+      ctx.save();
+
+      // 1) Paper wash — the kraft sheet the media is printed on. A
+      //    translucent gradient, never an opaque fill, so the clip below
+      //    keeps its own contrast.
+      ctx.globalCompositeOperation = 'source-over';
+      const wash = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.1, cx, cy, Math.max(W, H) * 0.72);
+      wash.addColorStop(0, 'rgba(' + KRAFT + ',' + (0.10 + rms * 0.08).toFixed(3) + ')');
+      wash.addColorStop(0.65, 'rgba(' + KRAFT_DARK + ',' + (0.20 + bass * 0.10).toFixed(3) + ')');
+      wash.addColorStop(1, 'rgba(' + KRAFT_DARKER + ',' + (0.32 + bass * 0.12).toFixed(3) + ')');
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, W, H);
+
+      // 2) Paper fibre grain — the page's per-pixel fibrous noise, built
+      //    once per frame as a 256px noise tile in the scratch canvas and
+      //    tiled over the frame. Kept translucent so it textures the media
+      //    instead of replacing it.
+      if (proc && pcx && typeof pcx.createImageData === 'function') {
+        const TS = Math.max(8, Math.min(256, Math.floor(Math.min(W, H))));
+        const img = pcx.createImageData(TS, TS);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const dark = Math.random() < 0.5;
+          const a = 16 + Math.random() * 74;
+          if (dark) {
+            d[i] = 74; d[i + 1] = 52; d[i + 2] = 34;
+          } else {
+            d[i] = 232; d[i + 1] = 212; d[i + 2] = 178;
+          }
+          d[i + 3] = a;
+        }
+        pcx.putImageData(img, 0, 0);
+        ctx.globalAlpha = 0.42 + treble * 0.22;
+        for (let y = 0; y < H; y += TS) {
+          for (let x = 0; x < W; x += TS) {
+            ctx.drawImage(proc, 0, 0, TS, TS, x, y, TS, TS);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // 3) Cardboard frame — the page's double kraft-darker rule plus the
+      //    dashed inner border from .cardboard::before.
+      ctx.strokeStyle = 'rgba(' + KRAFT_DARKER + ',0.55)';
+      ctx.lineWidth = Math.max(1, 2 * k);
+      ctx.strokeRect(6 * k, 6 * k, W - 12 * k, H - 12 * k);
+      ctx.setLineDash([6 * k, 5 * k]);
+      ctx.strokeStyle = 'rgba(' + KRAFT_DARKER + ',0.40)';
+      ctx.lineWidth = Math.max(1, k);
+      ctx.strokeRect(18 * k, 18 * k, W - 36 * k, H - 36 * k);
+      ctx.setLineDash([]);
+
+      // 4) Hand-stamped ink polygons — the page's five dashed, irregular
+      //    stamps: same radii, drift, rotation and dash pattern.
+      const rot = t * (0.2 + mid * 0.22);
+      ctx.setLineDash([8 * k, 6 * k]);
+      for (let i = 0; i < 5; i++) {
+        const r = (80 + i * 60 + Math.sin(t * 1.3 + i) * 20) * k * (0.8 + bass * 0.45);
+        ctx.save();
+        ctx.translate(cx + Math.cos(t * 0.4 + i) * 30 * k, cy + Math.sin(t * 0.5 + i) * 20 * k);
+        ctx.rotate(rot + i);
+        const inkA = clamp((0.34 - i * 0.05) * (0.65 + bass * 0.5), 0, 0.55);
+        ctx.strokeStyle = 'rgba(' + INK + ',' + inkA.toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1, (3 - i * 0.3) * k);
+        ctx.beginPath();
+        for (let j = 0; j < 6; j++) {
+          const a = (j / 6) * Math.PI * 2;
+          const rr = r + (Math.random() - 0.5) * 8 * k;
+          const x = Math.cos(a) * rr;
+          const y = Math.sin(a) * rr;
+          if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.setLineDash([]);
+
+      // 5) Corner stamp — the red "100% RECYCLED" ring from the page's
+      //    .stamp-corner, flashed by the beat and the onset.
+      const sr = 40 * k;
+      ctx.save();
+      ctx.translate(W - 26 * k - sr, H - 26 * k - sr);
+      ctx.rotate(-8 * Math.PI / 180);
+      const stampA = clamp(0.45 + beat * 0.4 + onset * 0.25, 0, 0.95);
+      ctx.strokeStyle = 'rgba(' + STAMP + ',' + stampA.toFixed(3) + ')';
+      ctx.lineWidth = Math.max(1, 3 * k);
+      ctx.beginPath();
+      ctx.arc(0, 0, sr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([3 * k, 4 * k]);
+      ctx.lineWidth = Math.max(1, 1.5 * k);
+      ctx.strokeStyle = 'rgba(' + STAMP + ',' + (stampA * 0.6).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(0, 0, sr * 0.78, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(' + STAMP + ',' + (stampA * 0.9).toFixed(3) + ')';
+      ctx.font = 'bold ' + Math.max(7, 9 * k) + 'px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('100%', 0, -sr * 0.30);
+      ctx.fillText('RECYCLED', 0, sr * 0.22);
+      ctx.restore();
+
+      // 6) Additive bloom — the paper catching the music: the kraft tone
+      //    lifts with the rms and the beat, additively, so the frame
+      //    brightens instead of being covered.
+      ctx.globalCompositeOperation = 'lighter';
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7);
+      glow.addColorStop(0, 'rgba(' + KRAFT + ',' + (0.02 + rms * 0.04 + beat * 0.05).toFixed(3) + ')');
+      glow.addColorStop(1, 'rgba(' + KRAFT_DARK + ',0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.restore();
+    }
+
     const fxScript = document.createElement('script');
     fxScript.src = '../fx-postprocess.js';
     fxScript.onload = () => {

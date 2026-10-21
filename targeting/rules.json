@@ -14,7 +14,15 @@
     "watercolor",
     "fractal",
     "music_video_mtv",
-    "eclipse"
+    "eclipse",
+    "collage",
+    "echo-manifold",
+    "kraft",
+    "mosaic",
+    "phosphor",
+    "spectrum",
+    "tape",
+    "typography"
   ],
   "transitions": [
     "whip-blur",
@@ -274,7 +282,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "storyboard-editor": [
       "film",
@@ -290,7 +306,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "version-hopper": [
       "neon",
@@ -306,7 +330,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "fx-surgeon": [
       "film",
@@ -322,7 +354,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "transition-choreo": [
       "neon",
@@ -338,7 +378,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "recorder-renderer": [
       "film",
@@ -354,7 +402,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "anchor-curator": [
       "neon",
@@ -370,7 +426,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "audio-theorist": [
       "smoke",
@@ -386,7 +450,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "tag-janitor": [
       "film",
@@ -402,7 +474,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "auth-projects": [
       "film",
@@ -418,7 +498,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "ar-poster-artist": [
       "smoke",
@@ -434,7 +522,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "live-vj": [
       "hallucination",
@@ -450,7 +546,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "film-composer": [
       "film",
@@ -466,7 +570,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "theory-sonifier": [
       "smoke",
@@ -482,7 +594,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "ar-flashcards": [
       "neon",
@@ -498,7 +618,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "short-film-scorer": [
       "film",
@@ -514,7 +642,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "touring-visualist": [
       "hallucination",
@@ -530,7 +666,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "data-sonifier": [
       "hallucination",
@@ -546,7 +690,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "gallery-curator": [
       "film",
@@ -562,7 +714,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "podcast-visual-editor": [
       "film",
@@ -578,7 +738,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "music-therapist": [
       "smoke",
@@ -594,7 +762,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "ad-creative-director": [
       "neon",
@@ -610,7 +786,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "online-music-teacher": [
       "film",
@@ -626,7 +810,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "bedroom-producer": [
       "neon",
@@ -642,7 +834,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "choreographer": [
       "neon",
@@ -658,7 +858,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "wedding-videographer": [
       "film",
@@ -674,7 +882,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "album-cover-designer": [
       "film",
@@ -690,7 +906,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ],
     "ar-storyboard-reviewer": [
       "film",
@@ -706,7 +930,15 @@
       "watercolor",
       "fractal",
       "music_video_mtv",
-      "eclipse"
+      "eclipse",
+      "collage",
+      "echo-manifold",
+      "kraft",
+      "mosaic",
+      "phosphor",
+      "spectrum",
+      "tape",
+      "typography"
     ]
   },
   "personaToTransitions": {

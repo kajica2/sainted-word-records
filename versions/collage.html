@@ -486,6 +486,201 @@
     }
     paint();
 
+    // === Collage paper pass (engine variant) ===
+    // The standalone COLLAGE page is a cut-paper magazine spread: six
+    // paper panels (3 × 2, 24px margin, 6px gutter) on a warm paper
+    // ground, each panel carrying its own hue/sat and one of six printed
+    // motifs — a big circle, diagonal stripes, a bold text block, concentric
+    // circles, a halftone dot field, a cross-hatch — with a red accent
+    // flashing on the beat, a small [01]…[06] index marker in the corner,
+    // a heavy black masthead bar across the top and speed lines torn across
+    // the sheet on a heavy beat.
+    //
+    // Inside the shared engine the user's media is ALREADY painted on the
+    // stage canvas, so the paper cannot be re-painted: an opaque sheet would
+    // erase the clips, which is the one thing the engine exists to show. So
+    // the paper becomes a translucent warm lift ('lighter'), each printed
+    // motif becomes an additive tint in the panel's own hue, the panel
+    // edges become the page's --line rule, and the masthead bar stays the
+    // one near-opaque mark — it is 6px tall and it is the page's identity.
+    // The media stays visible UNDER the collage, which is the point.
+    //
+    // Audio mapping — the page's own loop drives a synthetic bass/mid/
+    // treble out of sine waves; under the engine the real feature values
+    // arrive on A.feat instead: bass swells the big circle and the paper
+    // lift, mid drives the halftone dot radius, treble lifts the diagonal
+    // stripes, and the beat flashes the red accent, shifts the panels on
+    // the page's half-second cut and tears the speed lines across the sheet.
+    //
+    // Safe to compile into the engine: uses only ctx, W, H, A, clamp and
+    // performance — all bound by client/variant-switcher.client.js.
+    function drawFx() {
+      const feat = (typeof A !== 'undefined' && A && A.feat) || null;
+      const bass = feat ? (feat.bass || 0) : 0;
+      const mid = feat ? (feat.mid || 0) : 0;
+      const treble = feat ? (feat.treble || 0) : 0;
+      const beat = feat ? (feat.beat || 0) : 0;
+      const onset = feat ? (feat.onset || 0) : 0;
+      const t = performance.now() / 1000;
+
+      // Page palette, inlined from the :root block above.
+      const PAPER = '255,250,240';   // --paper  #fffaf0
+      const INK = '26,15,8';         // --ink    #1a0f08
+      const LINE = '200,184,154';    // --line   #c8b89a
+      const ACCENT = '216,35,42';    // --accent #d8232a
+
+      // The page's own layout constants (pad 24, gutter 6, 3 × 2).
+      const pad = 24, gutter = 6, cols = 3, rows = 2;
+      const gridW = W - pad * 2, gridH = H - pad * 2;
+      const colW = (gridW - gutter * (cols - 1)) / cols;
+      const rowH = (gridH - gutter * (rows - 1)) / rows;
+
+      // The page's half-second panel cut, and the beat-driven shift.
+      const cut = Math.floor(t * 2) % 2;
+      const beatCut = beat > 0.4 ? 0.08 : 0;
+
+      ctx.save();
+
+      // --- 1) The paper lift ------------------------------------------------
+      // The page paints an opaque sheet; over media it is a warm lift that
+      // desaturates toward paper without hiding anything.
+      ctx.globalCompositeOperation = 'lighter';
+      const wash = ctx.createLinearGradient(0, 0, W, H);
+      wash.addColorStop(0, 'rgba(' + PAPER + ',' + (0.09 + bass * 0.07).toFixed(3) + ')');
+      wash.addColorStop(0.55, 'rgba(' + PAPER + ',' + (0.05 + mid * 0.05).toFixed(3) + ')');
+      wash.addColorStop(1, 'rgba(' + PAPER + ',' + (0.03 + treble * 0.05).toFixed(3) + ')');
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, W, H);
+
+      // --- 2) The six printed panels ---------------------------------------
+      for (let i = 0; i < cols * rows; i++) {
+        const row = Math.floor(i / cols), col = i % cols;
+        // The page's per-panel hue/sat/pattern, inlined from the panel loop.
+        const hue = 20 + ((i * 47) % 360);
+        const sat = 30 + ((i * 11) % 50);
+        const pattern = i % 6;
+
+        const shiftX = (i % 2 === cut) ? beatCut * colW * 0.05 : 0;
+        const shiftY = (i % 3 === cut) ? beatCut * rowH * 0.05 : 0;
+        const x = pad + col * (colW + gutter) + shiftX;
+        const y = pad + row * (rowH + gutter) + shiftY;
+
+        // Panel tint: the page's motif colour, printed lightly over the
+        // clip so the panel reads as a coloured sheet of paper.
+        const tint = 0.05 + bass * 0.05 + mid * 0.03;
+        ctx.fillStyle = 'hsla(' + hue + ',' + sat + '%,60%,' + tint.toFixed(3) + ')';
+        ctx.fillRect(x, y, colW, rowH);
+
+        // The printed motif, one per panel, exactly the page's six.
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, colW, rowH);
+        ctx.clip();
+        if (pattern === 0) {
+          // Big circle — the bass swells it.
+          const cr = Math.min(colW, rowH) * 0.35 * (1 + bass * 0.1);
+          ctx.fillStyle = 'hsla(' + hue + ',' + sat + '%,60%,' + (0.10 + bass * 0.14).toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.arc(x + colW / 2, y + rowH / 2, cr, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (pattern === 1) {
+          // Diagonal stripes — the treble lifts them.
+          ctx.strokeStyle = 'hsla(' + hue + ',' + sat + '%,40%,' + (0.12 + treble * 0.16).toFixed(3) + ')';
+          ctx.lineWidth = 4;
+          for (let s = -rowH; s < colW + rowH; s += 12) {
+            ctx.beginPath();
+            ctx.moveTo(x + s, y);
+            ctx.lineTo(x + s + rowH, y + rowH);
+            ctx.stroke();
+          }
+        } else if (pattern === 2) {
+          // Bold text block.
+          ctx.fillStyle = 'hsla(' + hue + ',' + (sat - 10) + '%,25%,' + (0.16 + mid * 0.10).toFixed(3) + ')';
+          ctx.fillRect(x + colW * 0.1, y + rowH * 0.3, colW * 0.8, rowH * 0.4);
+        } else if (pattern === 3) {
+          // Concentric circles.
+          for (let r = 5; r < Math.min(colW, rowH) / 2; r += 6) {
+            ctx.strokeStyle = 'hsla(' + ((hue + r) % 360) + ',' + sat + '%,40%,' + (0.14 + bass * 0.10).toFixed(3) + ')';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(x + colW / 2, y + rowH / 2, r, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        } else if (pattern === 4) {
+          // Halftone dots — the mid band drives the radius.
+          for (let dy = 0; dy < rowH; dy += 8) {
+            for (let dx = 0; dx < colW; dx += 8) {
+              const dist = Math.hypot(dx - colW / 2, dy - rowH / 2);
+              const fall = 1 - dist / Math.max(colW, rowH);
+              const r = Math.max(0.5, fall * 4 * (0.5 + mid * 0.5));
+              ctx.fillStyle = 'hsla(' + ((hue + dy) % 360) + ',' + sat + '%,30%,' + (0.12 + mid * 0.12).toFixed(3) + ')';
+              ctx.beginPath();
+              ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        } else {
+          // Cross-hatch.
+          ctx.strokeStyle = 'hsla(' + hue + ',' + sat + '%,25%,' + (0.10 + onset * 0.14).toFixed(3) + ')';
+          ctx.lineWidth = 1;
+          for (let s = 0; s < colW; s += 8) {
+            ctx.beginPath();
+            ctx.moveTo(x + s, y);
+            ctx.lineTo(x + s, y + rowH);
+            ctx.stroke();
+          }
+          for (let s = 0; s < rowH; s += 8) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + s);
+            ctx.lineTo(x + colW, y + s);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+
+        // The page's panel edge (--line) and the red beat flash.
+        ctx.strokeStyle = 'rgba(' + LINE + ',0.30)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, colW - 1, rowH - 1);
+        if (beat > 0.1) {
+          ctx.fillStyle = 'rgba(' + ACCENT + ',' + (beat * 0.12).toFixed(3) + ')';
+          ctx.fillRect(x, y, colW, rowH);
+        }
+
+        // The small index marker, like a magazine.
+        ctx.fillStyle = 'rgba(' + INK + ',0.45)';
+        ctx.font = '600 9px "Space Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('[' + String(i + 1).padStart(2, '0') + ']', x + 6, y + 6);
+      }
+
+      // --- 3) The masthead bar ---------------------------------------------
+      // The one near-opaque mark: 6px of black ink across the top, the
+      // page's magazine rule. It is the paper's edge, not a replacement
+      // for the frame.
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(' + INK + ',0.92)';
+      ctx.fillRect(0, 0, W, 6);
+
+      // --- 4) Speed lines on a heavy beat ----------------------------------
+      // The page tears ink lines across the sheet when the beat is heavy.
+      if (beat > 0.5) {
+        ctx.strokeStyle = 'rgba(' + INK + ',0.28)';
+        ctx.lineWidth = 1;
+        for (let s = 0; s < 12; s++) {
+          const ly = Math.random() * H;
+          const ll = Math.random() * 80;
+          ctx.beginPath();
+          ctx.moveTo(0, ly);
+          ctx.lineTo(ll, ly);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
     // === RECORDER (same shape as other engines) ===
     const Recorder = {
       rec: null, chunks: [], recording: false, mime: 'video/webm',

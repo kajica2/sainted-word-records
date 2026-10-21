@@ -213,6 +213,159 @@
     }
     paint();
 
+    // === Canvas phosphor post-pass ===
+    // The phosphor identity is a green CRT tube. Standalone, this page owns
+    // its whole frame: paint() fills the canvas black, draws the 40px dot
+    // grid, the oscilloscope trace and the AUDIO caption, while the .scan
+    // overlay (a 1px dark line every 3px plus a radial vignette) and the
+    // .frame-* bezel corners sit on top of the canvas in DOM. Inside the
+    // shared engine the user's clips are painted on the stage UNDER this
+    // pass instead, so the page's own paint() cannot be reused — the frame
+    // would be replaced rather than graded. This pass therefore reproduces
+    // the tube's behaviour on top of the media: the panel green multiplies
+    // over the image, bright features bleed a phosphor bloom, the raster of
+    // scanlines runs across the frame, the bezel corners glow, and the
+    // amber --accent rides the bottom edge as a status bar.
+    //
+    // The bloom is a real downscale/upscale of the stage through the
+    // scratch canvas (proc/pcx) with a squaring pass so only the bright
+    // features survive, then added back with 'lighter' — additive, so the
+    // media stays visible through the glow exactly as it stays visible
+    // through the page's own scanline overlay.
+    //
+    // Audio features used: bass drives the green wash and the amber status
+    // bar, mid the raster depth, treble the amber refresh beam, beat and
+    // onset the bezel flash, rms the overall tube glow.
+    //
+    // Safe to compile into the engine: uses only ctx, W, H, A, stage, proc,
+    // pcx, clamp and performance — all bound by
+    // client/variant-switcher.client.js.
+    function drawFx() {
+      const feat = (A && A.feat) || {};
+      const bass = clamp(feat.bass || 0, 0, 1);
+      const mid = clamp(feat.mid || 0, 0, 1);
+      const treble = clamp(feat.treble || 0, 0, 1);
+      const beat = clamp(feat.beat || 0, 0, 1);
+      const onset = clamp(feat.onset || 0, 0, 1);
+      const rms = clamp(feat.rms || 0, 0, 1);
+      const pulse = feat.beatPulse ? 1 : 0;
+      const t = performance.now() / 1000;
+      const cx = W / 2, cy = H / 2;
+
+      ctx.save();
+
+      // 1) Green tube grade — the media is seen THROUGH phosphor, so the
+      //    panel ink (#4dff7a) multiplies over it before any light.
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 0.45 + rms * 0.15;
+      ctx.fillStyle = '#4dff7a';
+      ctx.fillRect(0, 0, W, H);
+
+      // 2) Phosphor bloom — the stage is copied into the scratch canvas at
+      //    quarter resolution, squared (so mid-tones fall away and only
+      //    bright features survive) and blown back up additively.
+      if (typeof proc !== 'undefined' && typeof pcx !== 'undefined' && proc && pcx) {
+        const bw = Math.max(1, Math.floor(W / 4));
+        const bh = Math.max(1, Math.floor(H / 4));
+        pcx.save();
+        pcx.globalCompositeOperation = 'copy';
+        pcx.drawImage(stage, 0, 0, bw, bh);
+        pcx.globalCompositeOperation = 'multiply';
+        pcx.drawImage(proc, 0, 0, bw, bh, 0, 0, bw, bh);
+        pcx.restore();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.26 + rms * 0.20;
+        ctx.drawImage(proc, 0, 0, bw, bh, 0, 0, W, H);
+        ctx.globalAlpha = 1;
+      }
+
+      // 3) Tube glow — the soft green haze the whole panel sits in.
+      ctx.globalCompositeOperation = 'lighter';
+      const wash = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7);
+      wash.addColorStop(0, `rgba(77,255,122,${0.05 + bass * 0.09})`);
+      wash.addColorStop(0.55, `rgba(42,106,58,${0.04 + rms * 0.05})`);
+      wash.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, W, H);
+
+      // 4) Oscilloscope trace — same two-sine shape and same 200 samples
+      //    as the page's own line, scaled by the audio level.
+      ctx.strokeStyle = '#4dff7a';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#4dff7a';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      for (let i = 0; i < 200; i++) {
+        const x = (i / 200) * W;
+        const y = cy + (Math.sin(i * 0.1 + t * 3) * 100 + Math.sin(i * 0.05 + t) * 60) * (0.55 + rms * 0.6);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 5) Dot grid — 40px terminal lattice, same radial wave as paint().
+      const spacing = 40;
+      for (let x = spacing; x < W; x += spacing) {
+        for (let y = spacing; y < H; y += spacing) {
+          const d = Math.hypot(x - cx, y - cy);
+          const wave = Math.sin(d * 0.01 - t * 2);
+          const a = Math.max(0, wave) * 0.6;
+          if (a < 0.02) continue;
+          ctx.fillStyle = `rgba(77,255,122,${a * 0.35})`;
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+
+      // 6) Scanline raster — the page's .scan gradient as canvas lines:
+      //    one dark line every 3px, deepening slightly with the mids.
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = `rgba(10,20,8,${0.24 + mid * 0.10})`;
+      for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+
+      // 7) CRT vignette — the .scan::after radial falloff to the corners.
+      const vig = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.3, cx, cy, Math.max(W, H) * 0.72);
+      vig.addColorStop(0, 'rgba(10,20,8,0)');
+      vig.addColorStop(1, 'rgba(10,20,8,0.55)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, 0, W, H);
+
+      // 8) Beat flash — the tube brightening on a kick.
+      if (beat > 0.05) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(77,255,122,${beat * 0.09})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // 9) Bezel corners — the .frame-* L marks, glowing on beats.
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(77,255,122,${0.35 + beat * 0.35 + onset * 0.2})`;
+      ctx.lineWidth = 1;
+      const m = 8, s = 12;
+      const corners = [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]];
+      for (const c of corners) {
+        ctx.beginPath();
+        ctx.moveTo(c[0] + c[2] * s, c[1]);
+        ctx.lineTo(c[0], c[1]);
+        ctx.lineTo(c[0], c[1] + c[3] * s);
+        ctx.stroke();
+      }
+
+      // 10) Amber accent — the status bar along the bottom edge, plus the
+      //     slow refresh beam that drifts down the tube.
+      const barW = W * Math.min(1, 0.06 + bass * 0.55 + pulse * 0.15);
+      ctx.fillStyle = `rgba(255,184,77,${0.30 + beat * 0.45})`;
+      ctx.fillRect(0, H - 14, barW, 2);
+      const beamY = ((t * 60) % (H + 160)) - 80;
+      const beam = ctx.createLinearGradient(0, beamY - 40, 0, beamY + 40);
+      beam.addColorStop(0, 'rgba(255,184,77,0)');
+      beam.addColorStop(0.5, `rgba(255,184,77,${0.05 + treble * 0.10})`);
+      beam.addColorStop(1, 'rgba(255,184,77,0)');
+      ctx.fillStyle = beam;
+      ctx.fillRect(0, beamY - 40, W, 80);
+
+      ctx.restore();
+    }
+
     const fxScript = document.createElement('script');
     fxScript.src = '../fx-postprocess.js';
     fxScript.onload = () => {

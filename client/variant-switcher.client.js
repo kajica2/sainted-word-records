@@ -95,7 +95,30 @@
     // carries a canvas drawFx written for the variant contract, but is
     // intentionally not listed here — baroque is reachable as a standalone
     // page at /versions/baroque.html and the engine does not wire it.
-    // versions/baroque.html still ships; SWR_VARIANTS.list() returns 14.
+    // versions/baroque.html still ships; SWR_VARIANTS.list() returns 22.
+
+    // The eight decorative visual languages. Each page carried a bespoke
+    // render loop with no drawFx; every one of them now carries a canvas
+    // drawFx written for this contract — the same pass it runs standalone,
+    // composited ADDITIVELY over the engine's media (see the comment at
+    // each definition). The accent triples are each page's own :root
+    // palette, not invented values.
+    { id: 'collage',      name: 'Collage',     desc: 'Cut-paper · torn edges', song: 'audios/endless-tomorrow.mp3',
+      accent: { r: 0xd8, g: 0x23, b: 0x2a }, accent2: { r: 0x1a, g: 0x0f, b: 0x08 }, accent3: { r: 0xff, g: 0xfa, b: 0xf0 } },
+    { id: 'echo-manifold', name: 'Echo Manifold', desc: 'Cyan · purple folds', song: 'audios/endless-tomorrow.mp3',
+      accent: { r: 0x00, g: 0xd9, b: 0xff }, accent2: { r: 0xa8, g: 0x55, b: 0xf7 }, accent3: { r: 0x02, g: 0x02, b: 0x05 } },
+    { id: 'kraft',        name: 'Kraft',       desc: 'Paper · printed grain', song: 'audios/kraft.mp3',
+      accent: { r: 0xc4, g: 0xa5, b: 0x78 }, accent2: { r: 0x5a, g: 0x40, b: 0x28 }, accent3: { r: 0xa8, g: 0x20, b: 0x2a } },
+    { id: 'mosaic',       name: 'Mosaic',      desc: 'Tiles · colour grid', song: 'audios/mosaic.mp3',
+      accent: { r: 0xff, g: 0x2d, b: 0x8a }, accent2: { r: 0x00, g: 0xd4, b: 0xff }, accent3: { r: 0xff, g: 0xd7, b: 0x00 } },
+    { id: 'phosphor',     name: 'Phosphor',    desc: 'Green CRT · scanlines', song: 'audios/phosphor.mp3',
+      accent: { r: 0x4d, g: 0xff, b: 0x7a }, accent2: { r: 0xff, g: 0xb8, b: 0x4d }, accent3: { r: 0x2a, g: 0x6a, b: 0x3a } },
+    { id: 'spectrum',     name: 'Spectrum',    desc: 'Bars · gradient sweep', song: 'audios/endless-tomorrow.mp3',
+      accent: { r: 0xa8, g: 0xd0, b: 0xff }, accent2: { r: 0xff, g: 0x60, b: 0x90 }, accent3: { r: 0xff, g: 0xf0, b: 0xa0 } },
+    { id: 'tape',         name: 'Tape',        desc: 'VHS · tracking noise', song: 'audios/tape.mp3',
+      accent: { r: 0xe8, g: 0xd8, b: 0xb8 }, accent2: { r: 0xc4, g: 0x2a, b: 0x2a }, accent3: { r: 0xd4, g: 0xa0, b: 0x4a } },
+    { id: 'typography',   name: 'Typography',  desc: 'Kinetic type · grid', song: 'audios/endless-tomorrow.mp3',
+      accent: { r: 0xff, g: 0x30, b: 0x30 }, accent2: { r: 0xfa, g: 0xfa, b: 0xfa }, accent3: { r: 0x88, g: 0x88, b: 0x88 } },
 
     // NOT variant-switchable, deliberately:
     //   versions/music-video-gallery.html — a VIDEO PLAYER page (eight
@@ -109,16 +132,13 @@
     //     /versions/baroque.html. (The page still ships; the dropdown just
     //     doesn't surface it.) baroque was the first of two ids removed
     //     from the switcher; d8f6390 removed grid as well. Both remain
-    //     reachable as standalone pages, so the list is 14.
+    //     reachable as standalone pages, so the list is 22.
     //   versions/grid.html — has a drawFx (intentionally a no-op), but
     //     its visual identity is the #grid + #flash DOM overlays, which
     //     versions/grid.html drives itself — the engine does not create
     //     them. A canvas drawFx would be redundant and a no-op drawFx
     //     would fail a "painted pixels" smoke check. Page still ships as
     //     /versions/grid.html; the engine doesn't wire it.
-    //   kraft, mosaic, phosphor, spectrum, tape, typography, collage —
-    //   still bespoke render loops with no drawFx. Adding them means
-    //   authoring the pass, the same way eclipse did.
   ];
 
   // ------------------------------------------------------------------

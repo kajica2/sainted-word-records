@@ -1440,6 +1440,173 @@
             requestAnimationFrame(draw);
         }
 
+        // === Canvas fold post-pass ===
+        // The standalone page above paints its own manifold: a deep
+        // #020205 trail wash (15% per tick), then the active formula
+        // family stroked additively with 'lighter' in the section colour
+        // — black-hole arcs, pulsar beams, torus point-clouds, cymatics
+        // grids, meander waves. Folding is the connective tissue of that
+        // language: creases mirrored around the centre line, ripples
+        // expanding out of the core, and a seam that snaps outward on
+        // every beat.
+        //
+        // Inside the engine the user's media is already painted UNDER
+        // this pass, so the same identity has to be a grade rather than a
+        // replacement: the deep background becomes a translucent
+        // darkening wash instead of an opaque fill, and every crease,
+        // ripple and impulse is composited with 'lighter' so the clip
+        // keeps showing through the energy.
+        //
+        // Audio mapping, same as the page's own loop: bass (the page's
+        // FFT-average level) drives fold depth and crease width, mid
+        // drives ripple speed, treble the filament brightness, rms the
+        // overall level, the spectral centroid the cyan→purple hue mix,
+        // and beat/onset the outward fold impulse.
+        //
+        // Safe to compile into the engine: uses only ctx, W, H, A,
+        // clamp, lerp and performance — all bound by
+        // client/variant-switcher.client.js.
+        function drawFx() {
+            const audio = (typeof A !== 'undefined' && A) ? A : null;
+            const feat = (audio && audio.feat) ? audio.feat : null;
+            // Every read is defensive: a missing, null or non-finite feature
+            // falls back to 0, and the value is clamped to the 0..1 range
+            // the contract guarantees, so the pass still runs with no audio
+            // at all and never feeds a negative radius to the canvas.
+            const num = (v) => (typeof v === 'number' && isFinite(v)) ? clamp(v, 0, 1) : 0;
+            const bass = num(feat && feat.bass);
+            const mid = num(feat && feat.mid);
+            const treble = num(feat && feat.treble);
+            const beat = num(feat && feat.beat);
+            const onset = num(feat && feat.onset);
+            const rms = num(feat && feat.rms);
+            const centroid = num(feat && feat.centroid);
+
+            const t = performance.now() / 1000;
+            const cw = (typeof W !== 'undefined' && W) ? W : 0;
+            const ch = (typeof H !== 'undefined' && H) ? H : 0;
+            if (!cw || !ch) return;
+            const cx = cw / 2;
+            const cy = ch / 2;
+            const minWH = Math.min(cw, ch);
+
+            // Palette inlined from this page's :root custom properties
+            // (--accent-cyan #00d9ff, --accent-purple #a855f7,
+            //  --bg-deep #020205). The pass is compiled in isolation, so
+            // it cannot read the page's CSS variables at runtime.
+            const CYAN = [0, 217, 255];
+            const PURPLE = [168, 85, 247];
+            const DEEP = [2, 2, 5];
+
+            ctx.save();
+
+            // 1) Deep background — a translucent wash, never an opaque
+            //    fill, so the engine's media stays visible underneath.
+            ctx.globalCompositeOperation = 'source-over';
+            const wash = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(cw, ch) * 0.72);
+            wash.addColorStop(0, `rgba(${DEEP[0]}, ${DEEP[1]}, ${DEEP[2]}, 0.12)`);
+            wash.addColorStop(0.55, `rgba(${DEEP[0]}, ${DEEP[1]}, ${DEEP[2]}, 0.30)`);
+            wash.addColorStop(1, `rgba(${DEEP[0]}, ${DEEP[1]}, ${DEEP[2]}, 0.48)`);
+            ctx.fillStyle = wash;
+            ctx.fillRect(0, 0, cw, ch);
+
+            // 2) The fold — creases mirrored around the horizontal centre
+            //    line, displaced by a travelling sine. This is the drape
+            //    the page's meander/light formulas share, expressed as
+            //    vertical folds instead of horizontal waves.
+            ctx.globalCompositeOperation = 'lighter';
+            const creases = 9;
+            const amp = minWH * (0.03 + bass * 0.09);
+            const freq = 0.005 + mid * 0.009;
+            const speed = 0.5 + mid * 1.3 + treble * 0.6;
+            for (let i = 0; i < creases; i++) {
+                const u = (i + 0.5) / creases;
+                const x0 = u * cw;
+                const phase = u * 12.566 + t * speed;
+                const isCyan = i % 2 === 0;
+                const col = isCyan ? CYAN : PURPLE;
+                const alpha = (isCyan ? 0.10 + treble * 0.16 : 0.09 + mid * 0.18) * (0.45 + rms * 0.9);
+                ctx.strokeStyle = `rgba(${col[0]}, ${col[1]}, ${col[2]}, ${clamp(alpha, 0, 1)})`;
+                ctx.lineWidth = 1 + bass * 2;
+                ctx.beginPath();
+                for (let y = 0; y <= ch; y += Math.max(3, ch / 110)) {
+                    const dy = Math.abs(y - cy);
+                    const x = x0 + Math.sin(dy * freq + phase) * amp;
+                    if (y === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // 3) Ripples — energy rings expanding out of the manifold core,
+            //    hue sliding from cyan toward purple as they travel and as
+            //    the spectrum darkens.
+            const rings = 7;
+            for (let i = 0; i < rings; i++) {
+                const phase = (t * 0.32 + i / rings) % 1;
+                const r = phase * minWH * 0.9 * (1 + bass * 0.45);
+                const a = (1 - phase) * (0.06 + rms * 0.20);
+                if (a < 0.004 || r < 2) continue;
+                const mix = clamp(centroid + (1 - phase) * 0.35, 0, 1);
+                const col = [
+                    Math.round(lerp(CYAN[0], PURPLE[0], mix)),
+                    Math.round(lerp(CYAN[1], PURPLE[1], mix)),
+                    Math.round(lerp(CYAN[2], PURPLE[2], mix)),
+                ];
+                ctx.strokeStyle = `rgba(${col[0]}, ${col[1]}, ${col[2]}, ${a})`;
+                ctx.lineWidth = 1 + (1 - phase) * (1 + bass * 3);
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // 4) Beat impulse — the seam that snaps outward on every hit:
+            //    a diamond fold whose vertices race toward the frame edge
+            //    and fade as the beat envelope decays.
+            const impulse = Math.max(beat, onset);
+            if (impulse > 0.012) {
+                const spread = (1.15 - impulse) * minWH * 0.75;
+                const a = clamp(impulse * 0.85, 0, 1);
+                ctx.strokeStyle = `rgba(${PURPLE[0]}, ${PURPLE[1]}, ${PURPLE[2]}, ${a})`;
+                ctx.lineWidth = 1.5 + impulse * 5;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - spread);
+                ctx.lineTo(cx + spread, cy);
+                ctx.lineTo(cx, cy + spread);
+                ctx.lineTo(cx - spread, cy);
+                ctx.closePath();
+                ctx.stroke();
+
+                const glowR = Math.max(spread, minWH * 0.12);
+                const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
+                glow.addColorStop(0, `rgba(${CYAN[0]}, ${CYAN[1]}, ${CYAN[2]}, ${a * 0.5})`);
+                glow.addColorStop(1, `rgba(${CYAN[0]}, ${CYAN[1]}, ${CYAN[2]}, 0)`);
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 5) Core — the manifold's breathing nucleus: cyan at rest,
+            //    pushed toward purple as the spectrum darkens.
+            const coreR = minWH * (0.06 + rms * 0.10 + bass * 0.05);
+            const coreMix = clamp(centroid * 0.8 + beat * 0.2, 0, 1);
+            const coreCol = [
+                Math.round(lerp(CYAN[0], PURPLE[0], coreMix)),
+                Math.round(lerp(CYAN[1], PURPLE[1], coreMix)),
+                Math.round(lerp(CYAN[2], PURPLE[2], coreMix)),
+            ];
+            const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+            core.addColorStop(0, `rgba(${coreCol[0]}, ${coreCol[1]}, ${coreCol[2]}, ${0.35 + rms * 0.35})`);
+            core.addColorStop(0.5, `rgba(${coreCol[0]}, ${coreCol[1]}, ${coreCol[2]}, 0.14)`);
+            core.addColorStop(1, `rgba(${coreCol[0]}, ${coreCol[1]}, ${coreCol[2]}, 0)`);
+            ctx.fillStyle = core;
+            ctx.beginPath();
+            ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
         function buildUI() {
             const nav = document.getElementById('nav-container');
             const grid = document.getElementById('formula-grid');

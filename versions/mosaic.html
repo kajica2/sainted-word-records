@@ -234,6 +234,162 @@
     }
     paint();
 
+    // === Mosaic tile pass (engine variant) ===
+    // The standalone MOSAIC page is a stained-glass posterize tile: a
+    // rotating dark gradient mesh (the page's own paint() above), five
+    // saturated colour blobs drifting on their own sine paths, a stack of
+    // concentric rotating squares, a 16px white pixel-grid over the whole
+    // stage, and a heavy posterize/glow grade from fx-postprocess.js so
+    // the image breaks into flat quantised colour blocks.
+    //
+    // Inside the shared engine the user's media is ALREADY painted on the
+    // stage canvas, so this pass cannot re-paint the mesh — it has to be a
+    // grade over the media rather than a replacement for it. That is why
+    // the blob glows, the tile accents and the square outlines are all
+    // composited additively ('lighter'): they brighten and tint whatever
+    // clip is underneath, so the mosaic identity survives as a coloured
+    // tile veil instead of erasing the media. The only non-additive marks
+    // are the tile seams, which are drawn as translucent dark mortar
+    // (rgba(10,10,10,...), the page's --bg) so the grid reads as lead
+    // between the glass.
+    //
+    // Audio mapping — the page's own loop drives a synthetic bass/mid/
+    // treble from sine waves; under the engine the real feature values
+    // arrive on A.feat instead, and each one lights a different family of
+    // tiles: bass drives the magenta/cyan glass, mid the gold, treble the
+    // green, and the beat/onset the violet tiles plus the square outlines.
+    // The colour *wave* travelling across the grid runs at the same
+    // cadence as the page's blob drift, so the whole frame breathes as one
+    // object rather than as an unrelated overlay.
+    //
+    // Safe to compile into the engine: uses only ctx, W, H, A, clamp and
+    // performance — all bound by client/variant-switcher.client.js.
+    function drawFx() {
+      const feat = (typeof A !== 'undefined' && A && A.feat) || null;
+      const bass = feat ? (feat.bass || 0) : 0;
+      const mid = feat ? (feat.mid || 0) : 0;
+      const treble = feat ? (feat.treble || 0) : 0;
+      const beat = feat ? (feat.beat || 0) : 0;
+      const onset = feat ? (feat.onset || 0) : 0;
+      const t = performance.now() / 1000;
+
+      // Page palette, inlined from the :root block above.
+      const PAL = [
+        '255,45,138',   // --c1 #ff2d8a
+        '0,212,255',    // --c2 #00d4ff
+        '255,215,0',    // --c3 #ffd700
+        '0,255,122',    // --c4 #00ff7a
+        '180,0,255'     // --c5 #b400ff
+      ];
+      // Which audio band lights which colour family.
+      const bands = [bass, bass, mid, treble, Math.max(onset, beat)];
+
+      // --- 1) Drifting colour blobs (the page's five blobs) ---
+      // Same radii, drift speeds and phases as the paint() loop above, so
+      // the engine overlay drifts in step with the standalone page.
+      const blobs = [
+        { c: 0, r: 180, sx: 0.4,  sy: 0.3,  phase: 0 },
+        { c: 1, r: 220, sx: -0.3, sy: 0.4,  phase: 1 },
+        { c: 2, r: 160, sx: 0.3,  sy: -0.4, phase: 2 },
+        { c: 3, r: 140, sx: -0.4, sy: -0.3, phase: 3 },
+        { c: 4, r: 200, sx: 0.0,  sy: 0.0,  phase: 4 }
+      ];
+      const cx = W / 2, cy = H / 2;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < blobs.length; i++) {
+        const b = blobs[i];
+        const bx = cx + Math.cos(t * b.sx + b.phase) * 350;
+        const by = cy + Math.sin(t * b.sy + b.phase) * 280;
+        const br = b.r + Math.sin(t * 2 + b.phase) * 30;
+        const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+        const lit = clamp(0.10 + bands[b.c] * 0.30, 0, 0.55);
+        g.addColorStop(0, 'rgba(' + PAL[b.c] + ',' + lit.toFixed(3) + ')');
+        g.addColorStop(0.5, 'rgba(' + PAL[b.c] + ',' + (lit * 0.45).toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(' + PAL[b.c] + ',0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // --- 2) The tile grid ---
+      // One tile per ~1/16th of the short edge, matching the page's
+      // chunky stained-glass blocks. Every tile takes a fixed colour from
+      // the palette (hashed from its grid position, so the mosaic pattern
+      // is stable frame to frame) and a brightness that rides the audio
+      // band bound to that colour plus a travelling wave.
+      const tile = Math.max(14, Math.round(Math.min(W, H) / 16));
+      const cols = Math.ceil(W / tile);
+      const rows = Math.ceil(H / tile);
+      const inset = Math.max(1, Math.round(tile * 0.12));
+      const waveSpeed = 2.0; // same cadence family as the blob drift
+      for (let gy = 0; gy < rows; gy++) {
+        for (let gx = 0; gx < cols; gx++) {
+          // Stable per-tile hash → palette slot.
+          let h = (gx * 374761393 + gy * 668265263) | 0;
+          h = (h ^ (h >> 13)) * 1274126177 | 0;
+          const rnd = ((h ^ (h >> 16)) >>> 0) / 4294967296;
+          const slot = Math.min(4, Math.floor(rnd * 5));
+
+          // Travelling brightness wave across the grid.
+          const wave = 0.5 + 0.5 * Math.sin((gx * 0.6 + gy * 0.45) - t * waveSpeed);
+          const energy = clamp(bands[slot] * (0.35 + 0.65 * wave), 0, 1);
+          const alpha = clamp(0.05 + energy * 0.45, 0, 0.62);
+
+          const x = gx * tile, y = gy * tile;
+          const w = Math.min(tile, W - x), hgt = Math.min(tile, H - y);
+
+          // Glass body — additive so the media underneath still reads.
+          ctx.fillStyle = 'rgba(' + PAL[slot] + ',' + alpha.toFixed(3) + ')';
+          ctx.fillRect(x, y, w, hgt);
+
+          // Inner accent pane — a smaller, brighter block of the same
+          // glass, the "stained" highlight inside each tile.
+          const aw = w - inset * 2, ah = hgt - inset * 2;
+          if (aw > 1 && ah > 1) {
+            const aAlpha = clamp(alpha * 0.85 + energy * 0.30, 0, 0.85);
+            ctx.fillStyle = 'rgba(' + PAL[slot] + ',' + aAlpha.toFixed(3) + ')';
+            ctx.fillRect(x + inset, y + inset, aw, ah);
+          }
+
+          // Seams — translucent dark mortar, the page's --bg, drawn with
+          // the default composite so the grid reads as lead lines.
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = 'rgba(10,10,10,0.30)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, w - 1, hgt - 1);
+          ctx.globalCompositeOperation = 'lighter';
+        }
+      }
+
+      // --- 3) Concentric rotating squares (the page's geometry) ---
+      // Same count, radii and rotation as the paint() loop, drawn
+      // additively and dimmer than the page version so they sit over
+      // media without blowing it out.
+      const beatLift = clamp(onset * 1.2 + beat * 0.6, 0, 1);
+      for (let i = 0; i < 6; i++) {
+        const r = 60 + i * 50 + Math.sin(t * 1.2 + i) * 20;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(t * 0.15 + i * 0.3);
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.10 - i * 0.012 + beatLift * 0.05).toFixed(3) + ')';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-r, -r, r * 2, r * 2);
+        ctx.restore();
+      }
+
+      // --- 4) The page's 16px pixel-grid over the whole stage ---
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 16) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, H); }
+      for (let y = 0; y <= H; y += 16) { ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5); }
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
     const fxScript = document.createElement('script');
     fxScript.src = '../fx-postprocess.js';
     fxScript.onload = () => {
