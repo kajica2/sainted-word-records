@@ -45,6 +45,8 @@
     "check:library-store-unit": "node scripts/check-library-store-unit.mjs",
     "check:tour-client-unit": "node scripts/check-tour-client-unit.mjs",
     "check:engine-keys-digit-filter-unit": "node scripts/check-engine-keys-digit-filter-unit.mjs",
+    "check:engine-keys-digit-rotation-guard-unit": "node scripts/check-engine-keys-digit-rotation-guard-unit.mjs",
+    "check:media-grouping-unit": "node scripts/check-media-grouping-unit.mjs",
     "check:engine-keys-keyspress-unit": "node scripts/check-engine-keys-keyspress-unit.mjs",
     "check:shortcuts-movie-unit": "node scripts/check-shortcuts-movie-unit.mjs",
     "check:composer-client-unit": "node scripts/check-composer-client-unit.mjs",

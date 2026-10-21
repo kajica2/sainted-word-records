@@ -341,6 +341,21 @@
     .media-views { display: flex; gap: 2px; flex: none; }
     .media-view { padding: 3px 5px; font-size: 9px; line-height: 1; }
     .media-view.is-on { border-color: var(--m); color: var(--m); }
+    /* Group-by-name toggle + the group headers it produces. The button
+       lives in the media bar next to the grid/list switch, so grouping is
+       one click away from the view it changes. */
+    .media-group-btn { display: inline-flex; align-items: center; justify-content: center;
+      padding: 3px 5px; font-size: 9px; line-height: 1; }
+    .media-group-btn[aria-pressed="true"] { border-color: var(--m); color: var(--m); background: var(--panel-2); }
+    .li-group { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px;
+      margin: 6px 0 1px; padding: 3px 4px 2px; border-bottom: 1px solid var(--line);
+      font: 8px/1 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); position: sticky; top: 0; background: var(--panel); z-index: 2; }
+    .li-group:first-child { margin-top: 0; }
+    .li-group .gname { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .li-group .gcount { color: var(--c); font-size: 8px; margin-left: auto; flex: none; }
+    .li-group.is-graphics .gname { color: var(--c); }
+    .li-group .grule { flex: 1; height: 1px; background: var(--line); }
     .media-search { flex: none; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
     .media-search input { width: 100%; background: var(--bg); border: 1px solid var(--line);
       color: var(--ink); font: 9px ui-monospace, monospace; padding: 3px 5px; border-radius: 3px; }
@@ -394,6 +409,7 @@
   <script src="../client/layer-state-store.client.js"></script>
   <script src="../client/last-mix-store.client.js"></script>
   <script src="../client/asset-curator.client.js"></script>
+  <script src="../client/media-grouping.client.js"></script>
   <script src="../client/library-packs.client.js" defer></script>
 
   <!-- Extracted runtimes (Phase 1b) — hero-frames intentionally omitted per /steer skip hero -->
@@ -473,6 +489,12 @@
           <button type="button" class="media-tab" data-media-tab="used" role="tab" aria-selected="false" aria-controls="lib">Used <b class="ct" id="media-count-used">0</b></button>
         </div>
         <div class="media-views" role="group" aria-label="Layout">
+          <button type="button" class="tbtn media-group-btn" id="media-group-btn" title="Group media by name (G)" aria-pressed="false" aria-label="Group media by name">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" width="11" height="11" aria-hidden="true">
+              <path d="M2 3.5h12M2 8h12M2 12.5h12"/>
+              <path d="M5.5 3.5v9" opacity="0.45"/>
+            </svg>
+          </button>
           <button type="button" class="tbtn media-view is-on" data-media-view="grid" title="Grid view" aria-pressed="true">▦</button>
           <button type="button" class="tbtn media-view" data-media-view="list" title="List view" aria-pressed="false">☰</button>
         </div>
@@ -941,7 +963,9 @@
           return;
         }
         el.innerHTML = '';
-        for (const it of list) {
+        // One builder for both layouts: flat (upload order) and grouped
+        // (by name prefix, graphics collected in one group).
+        const buildItem = (it) => {
           const d = document.createElement('div');
           d.className = 'li' + (it.id === MediaUI.focusId ? ' is-focus' : '');
           d.dataset.id = String(it.id);
@@ -988,7 +1012,35 @@
             if (e.target.closest('.rm, .asg')) return;
             Layers.add(it);
           });
-          el.appendChild(d);
+          return d;
+        };
+        // Group headers: the group name, a rule, and the item count.
+        const buildGroupHeader = (g) => {
+          const h = document.createElement('div');
+          h.className = 'li-group' + (g.kind === 'graphics' ? ' is-graphics' : '');
+          const name = document.createElement('span');
+          name.className = 'gname';
+          name.textContent = g.label;
+          h.appendChild(name);
+          const rule = document.createElement('span');
+          rule.className = 'grule';
+          h.appendChild(rule);
+          const count = document.createElement('span');
+          count.className = 'gcount';
+          count.textContent = String(g.items.length);
+          h.appendChild(count);
+          return h;
+        };
+        const grouping = window.SWR_MEDIA_GROUPING_UI && window.SWR_MEDIA_GROUPING_UI.isOn()
+          && window.SWR_MEDIA_GROUPING;
+        if (grouping) {
+          const groups = grouping.groupItems(list);
+          for (const g of groups) {
+            el.appendChild(buildGroupHeader(g));
+            for (const it of g.items) el.appendChild(buildItem(it));
+          }
+        } else {
+          for (const it of list) el.appendChild(buildItem(it));
         }
         // Wire the × buttons. Done after innerHTML so we attach listeners
         // to the live DOM nodes (innerHTML-replaced elements lose their
@@ -1512,6 +1564,35 @@
     if (mediaSearch) {
       mediaSearch.addEventListener('input', () => { MediaUI.query = mediaSearch.value; Lib.render(); });
     }
+    // Group-by-name toggle. The state lives in the shared module so the
+    // button, the G shortcut and the list render can never disagree; the
+    // page only decides how a group looks.
+    const groupBtn = $('media-group-btn');
+    const groupUI = window.SWR_MEDIA_GROUPING_UI;
+    if (groupBtn && groupUI) {
+      const paintGroupBtn = (on) => {
+        groupBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        groupBtn.title = on ? 'Grouped by name — click to show the flat list (G)' : 'Group media by name (G)';
+      };
+      const applyGrouping = (on) => {
+        paintGroupBtn(on);
+        Lib.render();
+        if (on) {
+          const groups = window.SWR_MEDIA_GROUPING.groupItems(Lib.visible());
+          setStatus('grouped ' + groups.length + ' group' + (groups.length === 1 ? '' : 's'), 'ok');
+        } else {
+          setStatus('flat list', 'ok');
+        }
+      };
+      groupBtn.addEventListener('click', () => applyGrouping(groupUI.toggle()));
+      // The keyboard shortcut (G) and the button share this one path.
+      window.SWR_MEDIA_GROUPING_TOGGLE = function () {
+        const on = groupUI.toggle();
+        applyGrouping(on);
+        return on;
+      };
+      paintGroupBtn(groupUI.isOn());
+    }
     const mediaClear = $('media-clear');
     if (mediaClear) {
       mediaClear.addEventListener('click', () => {
@@ -1855,7 +1936,7 @@
       if (!driveBtn) return;
 
       function getDriveState() {
-        return window.SWR_AUTH ? window.SWR_AUTH.get() : Promise.resolve(null);
+        return window.SWR_AUTH ? window.SWR_AUTH.session() : Promise.resolve(null);
       }
 
       function updateBtnState(user) {

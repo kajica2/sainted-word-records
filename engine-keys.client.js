@@ -156,6 +156,11 @@
       const S = window.SWR && window.SWR.Story;
       return !!(S && Array.isArray(S.ORDER) && typeof S.enter === 'function');
     },
+    // Media-panel grouping (G). The page publishes the toggle when it
+    // renders the grouped media list (versions/neon.html today).
+    mediaGrouping: function () {
+      return typeof window.SWR_MEDIA_GROUPING_TOGGLE === 'function';
+    },
     // Per-slot remap (Alt+1..6). `Layers.autoMapLayer` is defined by
     // engine.html's inline engine, which these pages do not load — they use the
     // page-local window.Layers — so this is false everywhere today and the
@@ -369,6 +374,18 @@
       keys: '↓',
       label: 'Select next layer',
       action: function () { cycleLayer(+1); },
+    },
+    // Group the media panel by name (videos by filename prefix, every
+    // static graphic in one group). The page owns the rendering; the
+    // shortcut just flips the shared toggle so the button, the key and
+    // the list can never disagree.
+    toggleMediaGrouping: {
+      keys: 'G',
+      label: 'Group media by name',
+      requires: 'mediaGrouping',
+      action: function () {
+        try { window.SWR_MEDIA_GROUPING_TOGGLE(); } catch (_) {}
+      },
     },
     // ---- page navigation across the demo variants ----
     // Nothing on the site did this before: the only affordance was the
@@ -857,6 +874,12 @@
   // contract binds digit keys to the filter cycler ONLY; rotation lives
   // on R / Shift+R / ↻ button affordance. See
   // docs/PLANS/number-key-assignment.md.
+  //
+  // The contract is ENFORCED, not just documented: every digit path runs
+  // inside withNoRotation(), which snapshots the rotation-relevant state
+  // of every layer, runs the digit action, and restores anything the
+  // action touched. A digit can therefore never leave a layer rotating,
+  // no matter what the filter cycler (or a future digit owner) does.
   function applyFilterFromDigit(n) {
     if (typeof n !== 'number' || !Number.isFinite(n)) return;
     const slot = Math.max(0, Math.min(9, Math.floor(n)));
@@ -864,6 +887,98 @@
     if (!K || typeof K.apply !== 'function') return false;
     return K.apply(slot);
   }
+
+  // Snapshot every rotation-relevant field of every layer. Cheap: a
+  // handful of numbers per layer, and it only runs while a digit key is
+  // held down.
+  //
+  // REJECTED_DIGIT_TARGETS is the contract enum from
+  // docs/PLANS/number-key-assignment.md: the set of layer properties a
+  // digit key may never touch. It drives the snapshot/restore below, so
+  // the list in the plan and the list in the code cannot drift apart.
+  const REJECTED_DIGIT_TARGETS = ['rot', 'rotationEnabled', 'pos', 'rotOffset', 'reactor'];
+
+  function snapshotRotationState(L) {
+    if (!L || !Array.isArray(L.list)) return null;
+    const wants = function (t) { return REJECTED_DIGIT_TARGETS.indexOf(t) !== -1; };
+    return L.list.map(function (l) {
+      const snap = { layer: l };
+      if (wants('rotationEnabled')) snap.rotationEnabled = l.rotationEnabled;
+      if (wants('rotOffset')) snap.rotOffset = l.rotOffset;
+      if (wants('rot')) snap.posRot = l.pos ? l.pos.rot : undefined;
+      if (wants('pos')) { snap.posX = l.pos ? l.pos.x : undefined; snap.posY = l.pos ? l.pos.y : undefined; }
+      if (wants('reactor')) snap.reactors = l.reactors ? l.reactors.slice() : null;
+      return snap;
+    });
+  }
+
+  // Restore whatever the digit action changed. Only fields that actually
+  // differ are written back, so a no-op digit press costs nothing.
+  function restoreRotationState(snap) {
+    if (!snap) return;
+    const wants = function (t) { return REJECTED_DIGIT_TARGETS.indexOf(t) !== -1; };
+    for (let i = 0; i < snap.length; i++) {
+      const s = snap[i];
+      const l = s.layer;
+      if (!l) continue;
+      if (wants('rotationEnabled') && l.rotationEnabled !== s.rotationEnabled) l.rotationEnabled = s.rotationEnabled;
+      if (wants('rotOffset') && l.rotOffset !== s.rotOffset) l.rotOffset = s.rotOffset;
+      if (l.pos) {
+        if (wants('rot') && l.pos.rot !== s.posRot) l.pos.rot = s.posRot;
+        if (wants('pos')) {
+          if (l.pos.x !== s.posX) l.pos.x = s.posX;
+          if (l.pos.y !== s.posY) l.pos.y = s.posY;
+        }
+      }
+      if (wants('reactor') && s.reactors && l.reactors && l.reactors !== s.reactors) {
+        l.reactors.length = 0;
+        for (let j = 0; j < s.reactors.length; j++) l.reactors.push(s.reactors[j]);
+      }
+    }
+  }
+
+  // Run `fn` with rotation locked on every layer. Returns fn's value.
+  function withNoRotation(fn) {
+    const L = layers();
+    const snap = snapshotRotationState(L);
+    let out;
+    try {
+      out = fn();
+    } finally {
+      restoreRotationState(snap);
+    }
+    return out;
+  }
+
+  // Reset every layer back to its original transform. The engine's
+  // Layers (lib/layers.client.js) ships homeAll() as a smooth tween; the
+  // variant pages (versions/*.html) build their own inline Layers object
+  // with no homeAll(), so this fallback writes the same "original"
+  // values directly. Both families end up at the same state.
+  function homeLayers(L) {
+    if (!L) return false;
+    if (typeof L.homeAll === 'function') {
+      L.homeAll(480);
+      return true;
+    }
+    if (!Array.isArray(L.list)) return false;
+    for (let i = 0; i < L.list.length; i++) {
+      const l = L.list[i];
+      // Only fields with a well-defined "original" are reset. baseScale is
+      // left alone on the variant family: there it is the layer's DESIGNED
+      // scale (assigned at add() time), not a user tweak, so zeroing it
+      // would flatten the composition instead of restoring it.
+      l.opacity = 1;
+      l.hue = 0;
+      l.brightness = 1;
+      l.contrast = 1;
+      l.rotOffset = 0;
+      if (l.pos) { l.pos.x = 0; l.pos.y = 0; l.pos.rot = 0; }
+    }
+    if (typeof L.render === 'function') L.render();
+    return true;
+  }
+
 
   // Layer selection is NOT uniform across the two page families that share
   // this keymap:
@@ -1070,6 +1185,7 @@
         case 'KeyT':            action = ev.shiftKey ? ACTIONS.toggleTiming : null; break;
         case 'KeyL':            action = ev.shiftKey ? ACTIONS.toggleLfOs : ACTIONS.addLayer; break;
         case 'KeyD':            action = ACTIONS.toggleDragMode; break;
+        case 'KeyG':            action = ACTIONS.toggleMediaGrouping; break;
         case 'KeyB':            action = ACTIONS.bloom; break;
         case 'KeyX':            action = ACTIONS.crossfade; break;
         // "S" is deliberately unbound: it used to open the gear menu, which
@@ -1122,7 +1238,7 @@
       // combos and strand them.
       if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && /^[1-9]$/.test(key)) {
         const slot = parseInt(key, 10);
-        applyFilterFromDigit(slot);
+        withNoRotation(function () { applyFilterFromDigit(slot); });
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
           detail: { key, code, mods: {}, action: 'filter-' + slot }
         })); } catch (_) {}
@@ -1193,9 +1309,12 @@
         // Layers.homeAll() so the composition breathes back rather
         // than snapping. Selected layer is deselected too — there's
         // nothing to focus on when everything's at rest.
-        if (L && typeof L.homeAll === 'function') {
-          L.homeAll(480);
-        }
+        //
+        // homeLayers() falls back to writing the same "original" values
+        // directly on the variant pages (versions/*.html), whose inline
+        // Layers object has no homeAll() — so 0 resets layers everywhere,
+        // not just on the engine.
+        homeLayers(L);
         if (L) selectLayer(L, null);
         if (typeof window.setStatus === 'function') window.setStatus('home: layers back to start', 'ok');
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
@@ -1222,9 +1341,11 @@
       if (!action && /^Digit[0-9]$/.test(code || '') && !ev.metaKey && !ev.ctrlKey && !ev.altKey
           && window.__swrLookModeUntil && performance.now() < window.__swrLookModeUntil) {
         const slot = parseInt(code.replace('Digit', ''), 10);
-        if (window.SWR_LOOK_FILTER_CYCLER && typeof window.SWR_LOOK_FILTER_CYCLER.apply === 'function') {
-          window.SWR_LOOK_FILTER_CYCLER.apply(slot);
-        }
+        withNoRotation(function () {
+          if (window.SWR_LOOK_FILTER_CYCLER && typeof window.SWR_LOOK_FILTER_CYCLER.apply === 'function') {
+            window.SWR_LOOK_FILTER_CYCLER.apply(slot);
+          }
+        });
         window.__swrLookModeUntil = 0; // consume the mode
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
           detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'look-' + slot }
@@ -1300,8 +1421,9 @@
       // ---- Layers (documentation-only rows; no single action) ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '[ / ]',          label: 'cycle prev / next layer' },
-      { keys: '0',              label: 'home — slide every layer back to its origin' },
+      { keys: '0',              label: 'home — reset every layer to its original transform' },
       { keys: '1..9',           label: 'apply look filter slot (soft / old cinema / 5 cinematic / void / echo); no rotation' },
+      { keys: 'G',              label: 'group media by name (media panel)', action: ACTIONS.toggleMediaGrouping },
       { keys: 'T + 1..9',       label: 'alias of 1..9 filter cycler (kept for muscle memory)' },
       { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },
       { keys: 'D',              label: 'toggle AUTO DRIFT / manual drag', action: ACTIONS.toggleDragMode },

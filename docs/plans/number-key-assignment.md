@@ -146,6 +146,31 @@ layer**:
    'rotOffset', 'reactor']` is documented in the module header so a
    refactor that breaks the contract shows up in code review.
 
+### Enforcement (implemented)
+
+The contract above is now **enforced at runtime**, not just documented:
+
+- `REJECTED_DIGIT_TARGETS` lives in `engine-keys.client.js` and drives
+  `snapshotRotationState()` / `restoreRotationState()`.
+- Every digit path (bare `1..9` and the `T+0..9` alias) runs inside
+  `withNoRotation(fn)`: the rotation-relevant fields of every layer are
+  snapshotted, the digit action runs, and anything it touched is
+  restored. A digit can therefore never leave a layer rotating, whatever
+  the filter cycler (or a future digit owner) does.
+- The digit row has exactly ONE owner. `engine.html` used to bind a
+  second handler that mapped `1..9` to the transition dropdown — option
+  #1 is `swivel`, a `rotateY(0→90→180)` cover — so the digit row could
+  have spun the stage the moment transitions were re-enabled. That
+  handler is gone; transitions stay on the panel's FIRE button and chips.
+- Key `0` resets every layer to its original transform on BOTH page
+  families: the engine's `Layers.homeAll()` (smooth tween) and, for the
+  variant pages whose inline `Layers` object has no `homeAll()`, the
+  `homeLayers()` fallback in `engine-keys.client.js`.
+
+Gate: `scripts/check-engine-keys-digit-rotation-guard-unit.mjs`
+(`npm run check:engine-keys-digit-rotation-guard-unit`), in the `check`
+group.
+
 ## Implementation Order
 
 1. Add the contract constant in `engine-keys.client.js`

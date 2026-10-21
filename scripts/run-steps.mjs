@@ -83,6 +83,17 @@ const GROUPS = {
     'npm run check:preset-smoke',
     'npm run check:layer-state-unit',
     'npm run check:with-dist-unit',
+    // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
+    // 1..9 apply a look filter and never touch a layer's rotation state.
+    // The rotation guard is what ENFORCES that, and the filter/keyspress
+    // suites cover the mapping itself. All three were reachable from no
+    // gate before this.
+    'npm run check:engine-keys-digit-filter-unit',
+    'npm run check:engine-keys-digit-rotation-guard-unit',
+    'npm run check:engine-keys-keyspress-unit',
+    // The one rule for "which media belong together" — shared by the
+    // media panel's group-by-name view and the automix layer pool.
+    'npm run check:media-grouping-unit',
     // These were reachable from NO gate: six `check:*` unit suites plus
     // check:unit's four members (check:unit itself is a `&&` chain, so its
     // members are listed individually here — same short-circuit reasoning as

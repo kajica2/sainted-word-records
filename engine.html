@@ -6730,23 +6730,16 @@
             appendLog(name, source);
           });
 
-          // ---- Keyboard shortcuts: 1-9 fires the dropdown option at that index ----
-          // Modifier-free so it's fast; ignored when typing in an input/textarea.
-          document.addEventListener('keydown', (e) => {
-            if (e.metaKey || e.ctrlKey || e.altKey) return;
-            const t = e.target;
-            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-            const k = e.key;
-            if (k < '1' || k > '9') return;
-            const idx = parseInt(k, 10) - 1;
-            const opts = pick.options;
-            if (idx >= opts.length) return;
-            const opt = opts[idx];
-            if (!opt) return;
-            if (!TRANSITIONS_ENABLED) return;
-            e.preventDefault();
-            window.SWRTransitions.fire(opt.value);
-          });
+          // NOTE: the bare 1-9 "fire the transition dropdown option at that
+          // index" shortcut was removed here. Two handlers owned the digit
+          // row: this one and engine-keys.client.js's look-filter path
+          // (docs/PLANS/number-key-assignment.md). The engine-keys contract
+          // is that digits apply a look filter and NEVER rotate anything —
+          // but transition #1 is "swivel", a rotateY(0→90→180) cover, so
+          // leaving both in place meant the digit row could spin the stage
+          // the moment TRANSITIONS_ENABLED was flipped back on. The digit
+          // row now has exactly one owner (engine-keys). Transitions stay
+          // reachable through the panel's FIRE button and the chips.
         })();
         // Distortion sliders (from flexible-smart-videomaker preset system)
         const liquidInp = $('liquid');

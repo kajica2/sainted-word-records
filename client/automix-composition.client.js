@@ -42,8 +42,13 @@
   var lastProgress = null;
 
   // ---- Grouping helpers for automix ----
-  // Extract name prefix for grouping (e.g. "intro_clip_01.mp4" -> "intro_clip")
+  // ONE rule for "which clips belong together", shared with the media
+  // panel's group-by-name view (client/media-grouping.client.js). The
+  // shared module is used when the page loads it; the local copy below
+  // is the fallback for pages that don't (the module is optional).
   function getNamePrefix(name) {
+    var shared = window.SWR_MEDIA_GROUPING;
+    if (shared && typeof shared.prefixOf === 'function') return shared.prefixOf(name);
     if (!name) return '_';
     // Strip common extensions and trailing numbers
     var base = name.replace(/\.(mp4|mov|webm|mkv|avi|m4v|jpg|jpeg|png|gif|webp)$/i, '');
