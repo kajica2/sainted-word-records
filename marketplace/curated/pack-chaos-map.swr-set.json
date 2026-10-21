@@ -55,7 +55,7 @@
       "asset": {
         "name": "chaos-map-01.webp",
         "mimeType": "image/webp",
-        "size": 129780,
+        "size": 70860,
         "url": "/packs/chaos-map/chaos-map-01.webp"
       }
     },
@@ -79,7 +79,7 @@
       "asset": {
         "name": "chaos-map-04.webp",
         "mimeType": "image/webp",
-        "size": 100728,
+        "size": 54356,
         "url": "/packs/chaos-map/chaos-map-04.webp"
       }
     },
@@ -103,7 +103,7 @@
       "asset": {
         "name": "chaos-map-07.webp",
         "mimeType": "image/webp",
-        "size": 83646,
+        "size": 47414,
         "url": "/packs/chaos-map/chaos-map-07.webp"
       }
     }
