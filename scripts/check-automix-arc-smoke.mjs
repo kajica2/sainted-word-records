@@ -64,7 +64,10 @@ const FIELDS = [
 ];
 const DISPLACEMENT_MIN = 0.3;   // same bar as the realtime contract
 const MIN_ACTS = 3;
-const PORT = 5185;
+// The port is chosen by the OS (0 = ephemeral): a hardcoded port collides
+// with whatever else on the machine holds it — a parallel gate run is
+// enough to fail the whole step with EADDRINUSE.
+const PORT = 0;
 const DEMO_SONG = '/audios/endless-tomorrow.mp3';
 // A dev-only manifest probe: library-packs.client.js tries /packs/manifest.json
 // then /library/manifest.json, and the latter is not copied into dist/. Benign,
