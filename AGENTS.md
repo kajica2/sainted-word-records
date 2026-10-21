@@ -156,7 +156,8 @@ deliberately **not** in it.
 
 ## The shipped media off-site
 
-`packs/` is 582 files and 39.6 MB — a quarter of the build. The packs are
+`packs/` is 582 files and 39.6 MB — 22% of the build (measured: 187,696,273 B
+→ 146,215,364 B with `PACKS_BASE` set). The packs are
 opt-in content and the only thing the deploy needs to serve them is
 `packs/manifest.json` (the engine's library drawer, `/packs.html` and
 `/photo-scrolls.html` all fetch that manifest and then load the media it

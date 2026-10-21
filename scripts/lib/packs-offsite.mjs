@@ -1,7 +1,7 @@
 // scripts/lib/packs-offsite.mjs — the shared logic for serving the curated
 // media packs from an off-site host instead of the deploy.
 //
-// Why this exists: `packs/` is 582 files and 39.6 MB — a quarter of the
+// Why this exists: `packs/` is 582 files and 39.6 MB — 22% of the
 // build. The packs are opt-in content (the engine's library drawer and
 // /packs.html fetch /packs/manifest.json and then load the media listed
 // in it), so the seam is exactly one file: the manifest.
