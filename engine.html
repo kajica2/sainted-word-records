@@ -1099,6 +1099,18 @@
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+    .layer-head .drag-handle {
+      cursor: grab;
+      color: var(--dim);
+      font-size: 14px;
+      letter-spacing: -2px;
+      padding: 2px 4px;
+      user-select: none;
+    }
+    .layer-head .drag-handle:hover { color: var(--accent); }
+    .layer.dragging { opacity: 0.5; }
+    .layer.drag-over { border-top: 2px solid var(--accent); }
       margin-bottom: 6px;
     }
     .layer-head .num {
