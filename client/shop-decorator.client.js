@@ -48,11 +48,12 @@
   }
 
   // ---- 3-product catalog -------------------------------------------------
-  // Stripe Payment Links live here. Until you wire real Stripe URLs,
-  // these point at a placeholder that explains the swap-in step.
-  // After you create products in the Stripe dashboard (per swr-stripe-setup.html
-  // Step 1) and copy the buy.stripe.com URLs from each product detail page,
-  // paste them here. Order: logo tee / graphic tee / mug.
+  // The catalogue lives in site-map.json → store.products (surface "shop"),
+  // which is the single source of truth for prices and Stripe Payment
+  // Links. This list is only the fallback for a page that has no store
+  // data (no inlined slice and no /site-map.json yet): it carries no
+  // payment links at all, because a product without a link must never
+  // render a dead checkout URL.
   const PRODUCTS = [
     {
       id: 'logo-tee',
@@ -60,7 +61,7 @@
       blurb: 'Front-pocket print, single color on cotton.',
       price: 25,
       currency: 'EUR',
-      stripeUrl: 'https://buy.stripe.com/REPLACE_LOGO_TEE_25',
+      stripeUrl: '',
     },
     {
       id: 'graphic-tee',
@@ -68,7 +69,7 @@
       blurb: 'Full back print, large format on cotton.',
       price: 25,
       currency: 'EUR',
-      stripeUrl: 'https://buy.stripe.com/REPLACE_GRAPHIC_TEE_25',
+      stripeUrl: '',
     },
     {
       id: 'mug',
@@ -76,9 +77,27 @@
       blurb: '11oz ceramic, both-sides print.',
       price: 15,
       currency: 'EUR',
-      stripeUrl: 'https://buy.stripe.com/REPLACE_MUG_15',
+      stripeUrl: '',
     },
   ];
+
+  // The store catalogue when it is available, the local fallback otherwise.
+  function catalogue() {
+    var store = window.SWR_STORE;
+    if (store && store.products) {
+      var list = store.products('shop');
+      if (list && list.length) return list;
+    }
+    return PRODUCTS;
+  }
+
+  function isLiveLink(url) {
+    var s = String(url || '').trim();
+    if (!s) return false;
+    if (!/^https:\/\//i.test(s)) return false;
+    if (/REPLACE_|YOUR_|SWR_[A-Z_]*_\d/i.test(s)) return false;
+    return !/^https:\/\/xxx(\.|\/|$)/i.test(s);
+  }
 
   // ---- Gallery slug detection --------------------------------------------
   // Three URL shapes:
@@ -109,12 +128,12 @@
   }
 
   function buildStripeUrl(productId, gallerySlug, cardIndex) {
-    var product = PRODUCTS.find(function (p) { return p.id === productId; });
+    var product = catalogue().find(function (p) { return p.id === productId; });
     if (!product) return null;
-    // BUG-017: surface the placeholder Stripe URLs instead of silently
-    // navigating to a 404. Callers (shop.html, decorateCard) check for
-    // the REPLACE_ prefix and render a 'Coming soon' state.
-    if (/REPLACE_/.test(product.stripeUrl)) return null;
+    // BUG-017: a product without a live Payment Link yields no URL at all
+    // instead of a dead checkout page. Callers (shop.html, decorateCard)
+    // render a 'Coming soon' state.
+    if (!isLiveLink(product.stripeUrl)) return null;
     var url = new URL(product.stripeUrl);
     url.searchParams.set('client_reference_id',
       'g=' + gallerySlug + '&c=' + cardIndex + '&p=' + productId);
@@ -154,7 +173,7 @@
 
   // Expose
   window.SWR_SHOP = {
-    products: PRODUCTS,
+    get products() { return catalogue(); },
     decorate: decorateAll,
     buildShopUrl: buildShopUrl,
     buildStripeUrl: buildStripeUrl,

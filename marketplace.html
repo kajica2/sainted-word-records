@@ -100,6 +100,24 @@
     .announcement__link:hover { color: #ff80a8; }
     .announcements__empty { color: var(--muted); font-size: 14px; }
 
+    /* The store — painted by lib/store.client.js from site-map.json → store */
+    .store { display: flex; flex-direction: column; gap: 16px; }
+    .store__store-link { font: 9px/1 'Space Mono', monospace; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--accent); text-decoration: none; }
+    .store__store-link:hover { color: #ff80a8; }
+    .store__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .store__card { background: var(--panel); border: 1px solid var(--line);
+      border-left: 2px solid var(--accent); border-radius: 4px; padding: 18px;
+      display: flex; flex-direction: column; gap: 6px; }
+    .store__name { font: 700 16px/1.2 'Inter', sans-serif; margin: 2px 0; }
+    .store__blurb { font-size: 12px; line-height: 1.5; color: var(--ink); opacity: .75; margin: 4px 0; }
+    .store__price { font: 700 13px/1 'Inter', sans-serif; color: var(--accent); }
+    .store__cta { font: 9px/1 'Space Mono', monospace; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--accent); text-decoration: none;
+      margin-top: auto; padding-top: 12px; }
+    a.store__cta:hover { color: #ff80a8; }
+    .store__cta[aria-disabled="true"] { color: var(--muted); cursor: default; }
+
     /* Preset packs — a named collection installed in one action. Visually
        distinct from a single set so the two never get confused. */
     .card.preset { border-color: var(--accent); border-width: 1px; }
@@ -190,6 +208,14 @@
     </div>
 
     <div class="section-head">
+      <h3>The store</h3>
+      <span class="count">paid downloads · gumroad</span>
+    </div>
+    <div class="store" data-store="downloads">
+      <div class="empty"><strong>Loading…</strong></div>
+    </div>
+
+    <div class="section-head">
       <h3>Elsewhere</h3>
       <span class="count">sibling projects</span>
     </div>
@@ -201,13 +227,6 @@
         <p class="desc">Eight stills, one world: poetic songwriting imagery staged in new-wave video language, in the house sound-tones — ready as book covers, editorial imagery, or music-video start frames.</p>
         <span class="out">Open the marketplace</span>
       </a>
-      <a class="card" href="https://kaidjuric.gumroad.com" target="_blank" rel="noopener">
-        <span class="tag">The store</span>
-        <h4>Gumroad</h4>
-        <div class="author">presets · packs · stills</div>
-        <p class="desc">The paid side: engine presets, media packs and stills, with checkout and delivery handled by Gumroad. The free templates above stay free.</p>
-        <span class="out">Open the store</span>
-      </a>
     </div>
   </main>
 
@@ -215,6 +234,7 @@
 
   <script src="/swr-sets.js"></script>
   <script src="/lib/zip-reader.client.js"></script>
+  <script src="/lib/store.client.js" defer></script>
   <script>
     (function () {
       const toast = (msg, isError) => {

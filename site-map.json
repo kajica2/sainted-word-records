@@ -407,6 +407,134 @@
       "description": "The store — presets, packs and stills, with checkout and delivery handled by Gumroad"
     }
   ],
+  "store": {
+    "gumroad": {
+      "url": "https://kaidjuric.gumroad.com",
+      "label": "Gumroad",
+      "description": "Presets, packs and stills, with checkout and delivery handled by Gumroad."
+    },
+    "downloads": [
+      {
+        "id": "preset-pack",
+        "name": "SWR Preset Pack",
+        "blurb": "Every curated .swr-set template and preset spec in one download.",
+        "price": 19,
+        "currency": "EUR",
+        "source": [
+          "marketplace/curated",
+          "presets"
+        ],
+        "gumroadUrl": "",
+        "downloadUrl": "",
+        "bytes": 0
+      },
+      {
+        "id": "generation-archive",
+        "name": "Generation Archive",
+        "blurb": "The full render history — every generation with its credits and manifest.",
+        "price": 9,
+        "currency": "EUR",
+        "source": [
+          "generations"
+        ],
+        "gumroadUrl": "",
+        "downloadUrl": "",
+        "bytes": 0
+      }
+    ],
+    "products": [
+      {
+        "id": "logo-tee",
+        "name": "Logo Tee",
+        "blurb": "Front-pocket print, single color on cotton.",
+        "price": 25,
+        "currency": "EUR",
+        "surface": "shop",
+        "stripeUrl": ""
+      },
+      {
+        "id": "graphic-tee",
+        "name": "Graphic Tee",
+        "blurb": "Full back print, large format on cotton.",
+        "price": 25,
+        "currency": "EUR",
+        "surface": "shop",
+        "stripeUrl": ""
+      },
+      {
+        "id": "mug",
+        "name": "Mug",
+        "blurb": "11oz ceramic, both-sides print.",
+        "price": 15,
+        "currency": "EUR",
+        "surface": "shop",
+        "stripeUrl": ""
+      },
+      {
+        "id": "swr-single",
+        "name": "SWR Single",
+        "blurb": "1 curated set · 1 song · 30s render",
+        "price": 25,
+        "currency": "EUR",
+        "surface": "campaign",
+        "stripeUrl": ""
+      },
+      {
+        "id": "swr-double",
+        "name": "SWR Double",
+        "blurb": "2 curated sets · 1 song · 30s renders",
+        "price": 45,
+        "currency": "EUR",
+        "surface": "campaign",
+        "stripeUrl": ""
+      },
+      {
+        "id": "swr-full",
+        "name": "SWR Full Rotation",
+        "blurb": "All 5 sets · 1 song · 5 renders",
+        "price": 75,
+        "currency": "EUR",
+        "surface": "campaign",
+        "stripeUrl": ""
+      },
+      {
+        "id": "swr-custom",
+        "name": "SWR Custom Source",
+        "blurb": "Your assets + 1 SWR set · 30s render",
+        "price": 55,
+        "currency": "EUR",
+        "surface": "campaign",
+        "stripeUrl": ""
+      },
+      {
+        "id": "pt-solo",
+        "name": "PT Solo",
+        "blurb": "Personal Tier license — watermark removal, 50 credits",
+        "price": 120,
+        "currency": "EUR",
+        "surface": "campaign",
+        "stripeUrl": ""
+      },
+      {
+        "id": "pt-band",
+        "name": "PT Band",
+        "blurb": "Personal Tier license — watermark removal, 150 credits",
+        "price": 280,
+        "currency": "EUR",
+        "surface": "campaign",
+        "stripeUrl": ""
+      },
+      {
+        "id": "pt-label",
+        "name": "PT Label",
+        "blurb": "Personal Tier license — watermark removal, 500 credits",
+        "price": 600,
+        "currency": "EUR",
+        "surface": "campaign",
+        "stripeUrl": ""
+      }
+    ]
+  },
   "announcements": [
     {
       "date": "2026-10-21",

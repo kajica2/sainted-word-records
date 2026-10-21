@@ -363,6 +363,19 @@
       text-align: center; line-height: 1.55;
     }
     .pricing__foot strong { color: var(--ink); font-weight: 600; }
+    /* Checkout state — lib/store.client.js sets body[data-store-state].
+       A tier without a live Payment Link stays visibly disabled, and the
+       note under the grid explains what happens instead. */
+    .price__cta[data-stripe-state="pending"] { opacity: .5; cursor: not-allowed; }
+    .price__cta[data-stripe-state="pending"]:hover { background: var(--bg-3); color: var(--ink); }
+    .price--featured .price__cta[data-stripe-state="pending"]:hover { background: var(--accent); }
+    .pricing__note {
+      display: none;
+      max-width: 720px; margin: 18px auto 0; padding: 12px 18px;
+      border: 1px dashed var(--line); border-radius: var(--radius);
+      font-size: 12px; color: var(--muted); text-align: center; line-height: 1.5;
+    }
+    body[data-store-state="pending"] .pricing__note { display: block; }
 
     .founding-note {
       max-width: 720px; margin: 32px auto 0;
@@ -956,8 +969,8 @@
           <li>48-hour delivery</li>
           <li>Commercial-use rights</li>
         </ul>
-        <!-- Replace with your real Stripe Payment Link for the €25 Single tier -->
-        <a class="price__cta" href="https://buy.stripe.com/SWR_SINGLE_25">Order Single €25 →</a>
+        <!-- The Payment Link comes from the store (site-map.json → store.products) -->
+        <a class="price__cta" data-stripe-product="swr-single" href="#">Order Single €25 →</a>
       </div>
       <div class="price price--featured">
         <div class="price__badge">Most popular</div>
@@ -973,8 +986,8 @@
           <li>Commercial-use rights</li>
           <li>A/B test which vibe fits</li>
         </ul>
-        <!-- Replace with your real Stripe Payment Link for the €45 Double tier -->
-        <a class="price__cta" href="https://buy.stripe.com/SWR_DOUBLE_45">Order Double €45 →</a>
+        <!-- The Payment Link comes from the store (site-map.json → store.products) -->
+        <a class="price__cta" data-stripe-product="swr-double" href="#">Order Double €45 →</a>
       </div>
       <div class="price">
         <div class="price__name">Full Rotation</div>
@@ -989,8 +1002,8 @@
           <li>Commercial-use rights</li>
           <li>Perfect for label pitching</li>
         </ul>
-        <!-- Replace with your real Stripe Payment Link for the €75 Full Rotation tier -->
-        <a class="price__cta" href="https://buy.stripe.com/SWR_FULL_75">Order Full €75 →</a>
+        <!-- The Payment Link comes from the store (site-map.json → store.products) -->
+        <a class="price__cta" data-stripe-product="swr-full" href="#">Order Full €75 →</a>
       </div>
       <div class="price">
         <div class="price__name">Custom Source</div>
@@ -1005,10 +1018,15 @@
           <li>48-hour delivery</li>
           <li>Commercial-use rights</li>
         </ul>
-        <!-- Replace with your real Stripe Payment Link for the €55 Custom tier -->
-        <a class="price__cta" href="https://buy.stripe.com/SWR_CUSTOM_55">Order Custom €55 →</a>
+        <!-- The Payment Link comes from the store (site-map.json → store.products) -->
+        <a class="price__cta" data-stripe-product="swr-custom" href="#">Order Custom €55 →</a>
       </div>
     </div>
+    <p class="pricing__note">
+      Checkout is not live yet: the Payment Links live in <code>site-map.json</code> →
+      <code>store.products[*].stripeUrl</code>. Until a tier has one, the order form sends
+      the details by email instead.
+    </p>
     <p class="pricing__foot">
       <strong>Add-ons:</strong> +€10 for 60-second length · +€25 for full-song render
       · +€5 for Spotify Canvas crop · +€15 for 24-hour rush delivery.
@@ -1053,8 +1071,8 @@
           <li>1 year of updates</li>
           <li>Persistent library (IndexedDB)</li>
         </ul>
-        <!-- Replace with your real Stripe Payment Link for PT Solo -->
-        <a class="price__cta" href="https://buy.stripe.com/SWR_PT_SOLO_120">Get PT Solo →</a>
+        <!-- The Payment Link comes from the store (site-map.json → store.products) -->
+        <a class="price__cta" data-stripe-product="pt-solo" href="#">Get PT Solo →</a>
         <a class="price__cta-link" href="/thanks.html?type=pt&tier=solo" style="font-size:11px; margin-top:8px; display:block; text-align:center; color:var(--muted);">Already paid? Activate your key →</a>
       </div>
       <div class="price price--featured">
@@ -1070,8 +1088,8 @@
           <li>2 years of updates</li>
           <li>Priority email support</li>
         </ul>
-        <!-- Replace with your real Stripe Payment Link for PT Band -->
-        <a class="price__cta" href="https://buy.stripe.com/SWR_PT_BAND_280">Get PT Band →</a>
+        <!-- The Payment Link comes from the store (site-map.json → store.products) -->
+        <a class="price__cta" data-stripe-product="pt-band" href="#">Get PT Band →</a>
         <a class="price__cta-link" href="/thanks.html?type=pt&tier=band" style="font-size:11px; margin-top:8px; display:block; text-align:center; color:var(--muted);">Already paid? Activate your key →</a>
       </div>
       <div class="price">
@@ -1087,8 +1105,8 @@
           <li>Lifetime updates</li>
           <li>Dedicated support</li>
         </ul>
-        <!-- Replace with your real Stripe Payment Link for PT Label -->
-        <a class="price__cta" href="https://buy.stripe.com/SWR_PT_LABEL_600">Get PT Label →</a>
+        <!-- The Payment Link comes from the store (site-map.json → store.products) -->
+        <a class="price__cta" data-stripe-product="pt-label" href="#">Get PT Label →</a>
         <a class="price__cta-link" href="/thanks.html?type=pt&tier=label" style="font-size:11px; margin-top:8px; display:block; text-align:center; color:var(--muted);">Already paid? Activate your key →</a>
       </div>
     </div>
@@ -1760,14 +1778,16 @@
       <div class="check">
         <div class="check__num">1</div>
         <div>
-          <h3 class="check__title">Replace Stripe placeholder URLs with real ones</h3>
+          <h3 class="check__title">Add the 7 Stripe Payment Links to the store</h3>
           <p class="check__body">
-            Open this file, search for <code>https://buy.stripe.com/</code>, swap each of
-            the 7 Payment Link placeholders (Single €25, Double €45, Full Rotation €75,
-            Custom Source €55, PT Solo €120, PT Band €280, PT Label €600) for the real
-            links from your Stripe dashboard. Each placeholder is marked with an HTML
-            comment naming the tier and price. Mirror the same edits to
-            <code>public/campaign.html</code>.
+            The links live in one place: <code>site-map.json</code> →
+            <code>store.products[*].stripeUrl</code> — Single €25, Double €45, Full
+            Rotation €75, Custom Source €55, PT Solo €120, PT Band €280, PT Label €600.
+            Paste the <code>buy.stripe.com</code> URL from each Stripe dashboard
+            product there (or set the <code>STRIPE_LINKS</code> env var at build time)
+            and every buy button on every page goes live by itself. A tier without a
+            link stays visibly disabled — the order form falls back to email instead
+            of sending anyone to a dead checkout.
           </p>
           <span class="check__price">15 min</span>
         </div>
@@ -2350,16 +2370,15 @@
   (function() {
     var CONTACT_EMAIL = 'orders@swr.example';
 
-    // Stripe Payment Link map. Replace each placeholder URL with the real
-    // Stripe Payment Link for the matching tier + region. The form will
-    // append ?prefilled_email=, ?client_reference_id=, and a comment
-    // field with the song link / style / format.
-    var STRIPE_LINKS = {
-      'single':  'https://buy.stripe.com/SWR_SINGLE_25',
-      'double':  'https://buy.stripe.com/SWR_DOUBLE_45',
-      'full':    'https://buy.stripe.com/SWR_FULL_75',
-      'custom':  'https://buy.stripe.com/SWR_CUSTOM_55'
-    };
+    // Stripe Payment Links come from the store (site-map.json →
+    // store.products, or the STRIPE_LINKS env var at build time). A tier
+    // without a live link has no URL at all — the form falls back to the
+    // email order instead of sending anyone to a dead checkout.
+    function stripeLinkFor(tier) {
+      var store = window.SWR_STORE;
+      if (!store || !store.link) return '';
+      return store.link('swr-' + tier);
+    }
     var TIER_LABEL = {
       single: 'Single', double: 'Double', full: 'Full Rotation', custom: 'Custom Source'
     };
@@ -2484,7 +2503,7 @@
         var tier = document.getElementById('f-tier').value;
         var email = document.getElementById('f-email').value.trim();
         var name = document.getElementById('f-name').value.trim();
-        var stripeUrl = STRIPE_LINKS[tier];
+        var stripeUrl = stripeLinkFor(tier);
         if (!stripeUrl) {
           // No Stripe link for this tier — fall back to mailto
           window.location.href = buildMailto();
@@ -2514,6 +2533,7 @@
 </script>
 
   <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/store.client.js" defer></script>
 
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>

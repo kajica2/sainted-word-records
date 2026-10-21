@@ -92,6 +92,12 @@ const GROUPS = {
     // /site-map.json, and painted into every [data-announcements]
     // container plus the footer's bottom bar.
     'npm run check:announcements-unit',
+    // The store: the Gumroad download catalogue and the Stripe products
+    // come from site-map.json's `store` block, read from the inlined
+    // footer slice or from /site-map.json. A product without a link must
+    // never render a dead checkout URL, and the publish script must write
+    // the off-site URL back into the manifest without reformatting it.
+    'npm run check:store-unit',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.
@@ -264,6 +270,11 @@ const GROUPS = {
     // marketplace paint the posts, and the footer's "New — …" link reaches
     // every page that mounts <swr-footer>. Needs a built dist/.
     'npm run check:announcements-smoke',
+    // The store in a real browser: the marketplace paints the download
+    // catalogue from site-map.json, the shop renders the shop products
+    // with a disabled Buy button while the Payment Links are missing, and
+    // no page ships a placeholder checkout URL. Needs a built dist/.
+    'npm run check:store-smoke',
     'npm run check:media-input-smoke',
     // The Live control end to end in a real browser: a synthetic camera
     // (--use-fake-device-for-media-stream) actually playing, the stage

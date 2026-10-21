@@ -8,6 +8,20 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- The store — one data file (`site-map.json` → `store`) drives the whole
+  storefront. `lib/store.client.js` paints the download catalogue into any
+  `[data-store]` container (the marketplace lists the products itself — add
+  one to the data file and it appears, with no HTML edit), and wires every
+  `[data-stripe-product]` button to its Stripe Payment Link. A product
+  without a link renders as "Coming soon" / a disabled button, never as a
+  dead `buy.stripe.com` URL — the placeholder URLs the shop and the
+  campaign used to ship are gone. The links can also come from the build
+  (`GUMROAD_STORE_URL`, `GUMROAD_LINKS`, `STRIPE_LINKS`).
+- Off-site hosting for the download products — `npm run store:build`
+  packages each product's sources into `out/store/<id>.zip` (outside
+  `dist/`, so the payloads never ship with the site) and
+  `npm run store:publish` pushes them to Vercel Blob or the Hugging Face
+  Hub and writes the public URL back into the manifest.
 - `check:live-input` — the Live control end to end in a real browser, with a
   synthetic camera and microphone: the video is actually playing, the stage
   pixels move, the mic reaches the engine's own analyser, and the devices
