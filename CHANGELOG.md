@@ -8,6 +8,27 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- The **Media Source** panel — where the audio comes from, next to the
+  loaded video instead of buried in a global settings page. The source is
+  the video's own track, a separate audio file, or nothing; the panel also
+  carries the sync toggle and the audio offset (milliseconds, **positive
+  delays the audio**). The engine behind it changed with it: the media
+  element's `MediaElementAudioSourceNode` is now built on
+  `loadedmetadata` / `canplay` instead of at load time, and **one clock
+  drives everything** — the bar counter, the beat timestamps and the beat
+  phase read the media element's `currentTime` (the external file's, when
+  one is loaded) rather than an independent `requestAnimationFrame` timer.
+  A separate file becomes the master: the music is what you hear and what
+  the visuals react to, and the picture is corrected onto it (80 ms
+  threshold, so it never jitters). With the video's own track the picture
+  and the sound are the same element, so the sync and the offset are
+  disabled with a note saying why — they have nothing to trim.
+- The export now records **the audio the preview hears**. All three export
+  paths tap the engine's analyser, whose input is the current audio
+  source, so the file carries whatever the panel is set to — with no
+  second set of export controls that could disagree with the preview. (Two
+  of the three paths passed a string and a media element where the
+  recorder needs an `AudioNode`, so they produced video-only files.)
 - A video song becomes a layer, in sync with the audio. Load a video file
   as the song and its picture joins the stage automatically: the layer
   shares the song's **own** `<video>` element rather than a second one, so
@@ -66,6 +87,13 @@ once it hits 1.0.
   lifecycle, layer retire, kit-zip.
 
 ### Fixed
+- The export hung on browsers without an H.264 encoder (Firefox, and the
+  Chromium builds that ship without the proprietary codecs): the WebCodecs
+  worker reported the unusable codec **asynchronously**, so the promise
+  rejected after the `try` block that handled it had already run. The
+  button said "recording" and no frame was ever encoded. The fallback to
+  the MediaRecorder path is now attached to the promise, so the export
+  falls back instead of hanging.
 - The master rotation toggle defaulted to **off**, so every layer was born
   with `rotationEnabled === false` and no audio-driven or manual rotation
   ran until the user pressed the ↻ button. `engine-keys.client.js`'s
