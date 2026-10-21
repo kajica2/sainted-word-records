@@ -840,16 +840,37 @@
     var step = w / Math.max(1, HISTORY_MAX - 1);
     var x0 = w - (n - 1) * step;
 
+    // The envelope of the beat and onset decays, not just the hits: a
+    // page whose audio produces no detectable beat still shows the
+    // pulse decaying, rather than an empty strip.
+    [['beat', '#ff2d8a'], ['onset', '#00f0ff']].forEach(function (pair) {
+      var key = pair[0];
+      g.beginPath();
+      g.moveTo(x0, h);
+      for (var i = 0; i < n; i++) {
+        var v = historyAt(i)[key];
+        v = typeof v === 'number' ? v : 0;
+        g.lineTo(x0 + i * step, h - Math.max(0, Math.min(1, v)) * (h - 6) - 2);
+      }
+      g.lineTo(x0 + (n - 1) * step, h);
+      g.closePath();
+      g.fillStyle = pair[1];
+      g.globalAlpha = 0.28;
+      g.fill();
+      g.globalAlpha = 1;
+    });
+
+    // Hit markers on top of the envelope.
     for (var i = 0; i < n; i++) {
       var x = x0 + i * step;
       var sample = historyAt(i);
       if (sample.onset > 0.6) {
         g.fillStyle = '#00f0ff';
-        g.fillRect(x, 0, 1, 8);
+        g.fillRect(x, 0, 1, 5);
       }
       if (sample.beat > 0.6) {
         g.fillStyle = '#ff2d8a';
-        g.fillRect(x, h - 8, 1, 8);
+        g.fillRect(x, h - 5, 1, 5);
       }
     }
   }

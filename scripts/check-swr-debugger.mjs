@@ -823,10 +823,15 @@ async function measurePage(cdp, url) {
       dbgCounters.push(await evaluate(cdp, sessionId, COUNTERS_EXPR));
     }
 
-    const baseMs = median(baseWins.map(median));
-    const dbgMs = median(dbgWins.map(median));
-    const baseSpread = Math.max(...baseWins.map(median)) - Math.min(...baseWins.map(median));
-    const dbgSpread = Math.max(...dbgWins.map(median)) - Math.min(...dbgWins.map(median));
+    // The mean, not the median: film.html runs below 60fps, so its frame
+    // times quantise against vsync and the median flips between 16.7 and
+    // 33.3 depending on which side of the boundary it lands. The mean
+    // answers "how long does this page take per frame" without that.
+    const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+    const baseMs = mean(baseWins.map(mean));
+    const dbgMs = mean(dbgWins.map(mean));
+    const baseSpread = Math.max(...baseWins.map(mean)) - Math.min(...baseWins.map(mean));
+    const dbgSpread = Math.max(...dbgWins.map(mean)) - Math.min(...dbgWins.map(mean));
 
     // Counter ratios: use the round that produced the cleanest frame.
     const base = baseCounters[0];
