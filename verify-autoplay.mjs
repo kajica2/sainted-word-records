@@ -29,6 +29,20 @@ const MIME = {
   '.mp3': 'audio/mpeg', '.mp4': 'video/mp4', '.webm': 'video/webm',
 };
 
+// The version this page will report to lib/app-version-bust.js. The bust
+// script runs synchronously in <head> and hard-reloads the page when the
+// stored version differs, so a fresh profile always reloads once. Seeding
+// it keeps the page loaded (see the evaluateOnNewDocument call below).
+const APP_VERSION = (() => {
+  try {
+    const src = fs.readFileSync(path.join(ROOT, 'lib/app-version.js'), 'utf8');
+    const m = src.match(/SWR_APP_VERSION\s*=\s*'([^']*)'/);
+    return m ? m[1] : '';
+  } catch (_) {
+    return '';
+  }
+})();
+
 function serve() {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
@@ -63,9 +77,36 @@ try {
     args: [
       '--no-sandbox',
       '--autoplay-policy=no-user-gesture-required', // match the user's intent: play on load
+      // The service worker registers on load, claims the page on its first
+      // activation, and pwa-bootstrap.js reloads on 'controllerchange'. That
+      // reload lands in the middle of an assertion and destroys the
+      // execution context — "Execution context was destroyed, most likely
+      // because of a navigation" — which made this verify fail about half
+      // the time. The feature flags stop the worker existing at all; the
+      // register() stub below stops it being created. This verify covers
+      // autoplay, not the PWA shell. Same fix, and the same symptom, as
+      // verify-rotation-enabled.mjs, verify-transitions.mjs and
+      // scripts/check-capture-smoke.mjs.
+      '--disable-features=ServiceWorker,ServiceWorkerOnUI',
     ],
   });
   const page = await browser.newPage();
+  await page.evaluateOnNewDocument((version) => {
+    // Stop the service worker from registering, so it never claims the page
+    // and never fires the 'controllerchange' reload.
+    try {
+      if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+        navigator.serviceWorker.register = () => new Promise(() => {});
+      }
+    } catch (_) {}
+    // lib/app-version-bust.js hard-reloads the page when the stored version
+    // is stale — which it always is in a fresh profile. Seed the version the
+    // page is about to run so the bust script takes its "up to date" path
+    // and the page loads once. (This runs before any page script, so
+    // window.SWR_APP_VERSION is not set yet — the value is read from the
+    // served lib/app-version.js on the Node side.)
+    try { localStorage.setItem('swr_app_version_seen', version); } catch (_) {}
+  }, APP_VERSION);
   const consoleErrors = [];
   page.on('pageerror', (err) => consoleErrors.push('PE: ' + err.message));
   page.on('console', (msg) => {
