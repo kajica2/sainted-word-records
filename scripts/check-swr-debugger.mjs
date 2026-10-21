@@ -187,18 +187,20 @@ const PROBE_SRC = `
     frames: 0,
     applyRCalls: 0,
     evolveCalls: 0,
+    draws: [],
     layerIds: [],
     resolved: {},
     drawn: {},
     reset() {
       this.frames = 0; this.applyRCalls = 0; this.evolveCalls = 0;
-      this.resolved = {}; this.drawn = {};
+      this.resolved = {}; this.drawn = {}; this.draws = [];
     },
   };
 
   const origFrame = R.frame;
   R.frame = function (stage, ctx, layers, applyR, drawToCtx, opts) {
     probe.frames++;
+    probe.draws = [];
     probe.layerIds = (layers || []).map((l) => l.id);
     const rec = function (l) {
       probe.applyRCalls++;
@@ -216,6 +218,26 @@ const PROBE_SRC = `
       probe.evolveCalls++;
       probe.drawn[l.id] = out;
       return out;
+    };
+  }
+
+  // Capture the engine's REAL draw calls. This is the ground truth the
+  // debugger's geometry overlay is audited against — the overlay claims
+  // to show where each layer lands; this records where it actually did.
+  const stageCtx = window.SWR && window.SWR.ctx;
+  if (stageCtx) {
+    const origDraw = stageCtx.drawImage;
+    stageCtx.drawImage = function (src) {
+      const rest = Array.prototype.slice.call(arguments, 1);
+      if (rest.length >= 4) {
+        const t = this.getTransform();
+        probe.draws.push({
+          key: src && src.tagName ? src.tagName + '#' + String(src.src || '').slice(-24) : '',
+          dx: rest[0], dy: rest[1], dw: rest[2], dh: rest[3],
+          a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f,
+        });
+      }
+      return origDraw.apply(this, arguments);
     };
   }
 
@@ -518,6 +540,107 @@ const P4_SRC = `
 })()
 `;
 
+// P6 — the overlay's geometry must match where the engine ACTUALLY drew.
+// The probe captured the real drawImage calls; the debugger claims a quad
+// per layer. This is the independent ground-truth check.
+const P6_SRC = `
+(() => {
+  const D = window.SWR_DEBUGGER;
+  const p = window.__swrProbe;
+  if (!D || !p) return { ok: false, reason: 'missing api' };
+  const snap = D.snapshot();
+  const byKey = {};
+  snap.layers.forEach((l) => { if (l.elKey) byKey[l.elKey] = l; });
+
+  const checks = [];
+  p.draws.forEach((d) => {
+    const layer = byKey[d.key];
+    if (!layer || !layer.quad) {
+      checks.push({ ok: false, reason: 'no layer matches this draw call', key: d.key });
+      return;
+    }
+    const dpr = Math.hypot(d.a, d.b) || 1;
+    const corners = [[d.dx, d.dy], [d.dx + d.dw, d.dy], [d.dx + d.dw, d.dy + d.dh], [d.dx, d.dy + d.dh]];
+    const css = corners.map((q) => [
+      (d.a * q[0] + d.c * q[1] + d.e) / dpr,
+      (d.b * q[0] + d.d * q[1] + d.f) / dpr,
+    ]);
+    let maxDelta = 0;
+    for (let i = 0; i < 4; i++) {
+      maxDelta = Math.max(maxDelta,
+        Math.abs(css[i][0] - layer.quad[i][0]),
+        Math.abs(css[i][1] - layer.quad[i][1]));
+    }
+    checks.push({ ok: maxDelta <= 1.5, key: d.key, maxDelta });
+  });
+  if (!checks.length) return { ok: false, reason: 'no draw calls captured', passed: 0, total: 0 };
+  const passed = checks.filter((c) => c.ok).length;
+  return { ok: passed === checks.length, passed, total: checks.length,
+           failures: checks.filter((c) => !c.ok).slice(0, 6) };
+})()
+`;
+
+// P7 — every layer the engine holds must appear in the overlay, with its
+// own geometry. Catches an overlay that only ever shows one layer.
+const P7_SRC = `
+(() => {
+  const S = window.SWR;
+  const D = window.SWR_DEBUGGER;
+  if (!S || !D) return { ok: false, reason: 'missing api' };
+  const engineIds = S.Layers.list.map((l) => l.id);
+  const snap = D.snapshot();
+  const dbgIds = snap.layers.map((l) => l.id);
+  const checks = [];
+  checks.push({ ok: engineIds.length >= 3, reason: 'expected a real layer stack', n: engineIds.length });
+  checks.push({ ok: dbgIds.length === engineIds.length, reason: 'layer count mismatch', dbg: dbgIds.length, engine: engineIds.length });
+  engineIds.forEach((id) => checks.push({ ok: dbgIds.indexOf(id) !== -1, reason: 'layer missing from overlay', id }));
+  snap.layers.forEach((l) => checks.push({ ok: !!(l.quad && l.quad.length === 4), reason: 'layer has no quad', id: l.id }));
+  const passed = checks.filter((c) => c.ok).length;
+  return { ok: passed === checks.length, passed, total: checks.length,
+           failures: checks.filter((c) => !c.ok).slice(0, 6) };
+})()
+`;
+
+// P8 — unmount must fully release the engine: the wrappers go back to
+// what they were, the overlay disappears, and the engine keeps drawing.
+// Runs last because it takes the debugger down (and puts it back).
+const P8_SRC = `
+(async () => {
+  const D = window.SWR_DEBUGGER;
+  const R = window.SWR_RENDER;
+  const p = window.__swrProbe;
+  if (!D || !R) return { ok: false, reason: 'missing api' };
+
+  const wrappedFrame = R.frame;
+  const wrappedEvolve = R.imageEvolve;
+  const overlayBefore = !!document.getElementById('swr-debugger');
+  const stageBefore = !!document.getElementById('swr-debugger-stage');
+
+  D.unmount();
+  await new Promise((r) => setTimeout(r, 300));
+
+  const overlayAfter = !!document.getElementById('swr-debugger');
+  const stageAfter = !!document.getElementById('swr-debugger-stage');
+  const restoredFrame = R.frame !== wrappedFrame;
+  const restoredEvolve = R.imageEvolve !== wrappedEvolve;
+
+  const framesBefore = p.frames;
+  await new Promise((r) => setTimeout(r, 500));
+  const stillRendering = p.frames > framesBefore;
+
+  D.mount();
+  await new Promise((r) => setTimeout(r, 700));
+
+  return {
+    ok: overlayBefore && stageBefore && !overlayAfter && !stageAfter &&
+        restoredFrame && restoredEvolve && stillRendering,
+    overlayBefore, stageBefore, overlayAfter, stageAfter,
+    restoredFrame, restoredEvolve, stillRendering,
+    remounted: D.isMounted(),
+  };
+})()
+`;
+
 // ── main ─────────────────────────────────────────────────────────────────
 
 function median(xs) {
@@ -617,6 +740,12 @@ async function main() {
       probes.push({ name: 'reactivity', ...p4 });
       const p5 = await evaluate(cdp, sessionId, P5_SRC, true);
       probes.push({ name: 'mutation-liveness', ...p5 });
+      const p6 = await evaluate(cdp, sessionId, P6_SRC);
+      probes.push({ name: 'geometry-truth', ...p6 });
+      const p7 = await evaluate(cdp, sessionId, P7_SRC);
+      probes.push({ name: 'multi-layer', ...p7 });
+      const p8 = await evaluate(cdp, sessionId, P8_SRC, true);
+      probes.push({ name: 'unmount-integrity', ...p8 });
     }
 
     // P3 — no perturbation: the debugger must not add calls into the
