@@ -734,9 +734,12 @@
 
     // Reuse the boxes; only add or remove when the stack changes.
     var boxes = state.stage.boxes || (state.stage.boxes = []);
+    var labels = state.stage.labels || (state.stage.labels = []);
     while (boxes.length > entries.length) {
       var extra = boxes.pop();
       if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
+      var extraLabel = labels.pop();
+      if (extraLabel && extraLabel.parentNode) extraLabel.parentNode.removeChild(extraLabel);
     }
 
     entries.forEach(function (e, i) {
@@ -766,13 +769,23 @@
       box.style.transform = 'translate(' + (cx - w / 2) + 'px,' + (cy - h / 2) + 'px) rotate(' + ang + 'rad)';
       if (box.getAttribute('data-layer') !== e.id) {
         box.setAttribute('data-layer', e.id);
-        box.setAttribute('data-label', 'L' + (i + 1));
-        box.textContent = '';
-        var tag = document.createElement('span');
-        tag.textContent = 'L' + (i + 1);
-        tag.style.cssText = 'position:absolute;left:2px;top:0;font:9px ui-monospace,monospace;color:' + color;
-        box.appendChild(tag);
       }
+
+      // The label lives outside the box: a layer larger than the stage
+      // has its corner clipped away, which would take its label with it.
+      var label = labels[i];
+      if (!label) {
+        label = document.createElement('span');
+        label.style.cssText = 'position:absolute;left:0;top:0;font:9px ui-monospace,monospace;' +
+          'text-shadow:0 0 3px rgba(0,0,0,0.9);pointer-events:none;';
+        wrap.appendChild(label);
+        labels[i] = label;
+      }
+      var lx = Math.max(3, Math.min(size.W - 22, cx - 8));
+      var ly = Math.max(3, Math.min(size.H - 14, cy - 6));
+      label.style.color = color;
+      label.style.transform = 'translate(' + lx + 'px,' + ly + 'px)';
+      label.textContent = 'L' + (i + 1);
     });
   }
 

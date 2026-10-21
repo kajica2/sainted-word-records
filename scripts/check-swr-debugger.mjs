@@ -421,16 +421,18 @@ const COVERAGE_SRC = `
   }
   out['module-list'] = { ok: modCount > 0 && modCount === realCount, n: modCount, real: realCount };
 
-  // The stage overlay must exist over the engine canvas and carry a box
-  // per layer it is drawing.
+  // The stage overlay must exist over the engine canvas and carry one
+  // box per layer it is drawing.
   const stageOverlay = document.getElementById('swr-debugger-stage');
   const snap = window.SWR_DEBUGGER ? window.SWR_DEBUGGER.snapshot() : null;
   const quadLayers = snap ? snap.layers.filter((l) => l.quad && l.quad.length === 4).length : 0;
   const boxes = stageOverlay ? stageOverlay.querySelectorAll('[data-layer]').length : 0;
+  const labels = stageOverlay ? stageOverlay.querySelectorAll('span').length : 0;
   out['layer-geometry'] = {
-    ok: !!stageOverlay && boxes >= 1 && quadLayers >= 1,
+    ok: !!stageOverlay && boxes >= 1 && boxes === quadLayers && labels === quadLayers,
     n: boxes,
     quad: quadLayers,
+    labels,
   };
 
   out['drift-readout'] = {
