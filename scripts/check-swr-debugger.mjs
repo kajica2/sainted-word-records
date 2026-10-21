@@ -395,23 +395,36 @@ const P1_SRC = `
 })()
 `;
 
-// P2 — the numbers painted into the DOM must equal the debugger's own
-// snapshot. Catches stale, rounded, or mismatched readouts.
+// P2 — the numbers painted into the DOM must equal the state the overlay
+// last painted, and that painted state must not be stale. The overlay
+// repaints on a timer, so comparing the DOM against the *live* snapshot
+// would race by design; comparing against the painted snapshot is exact.
 const P2_SRC = `
 (() => {
   const D = window.SWR_DEBUGGER;
   if (!D) return { ok: false, reason: 'no debugger' };
-  const snap = D.snapshot();
+  const painted = D.painted ? D.painted() : null;
+  const live = D.snapshot();
+  if (!painted) return { ok: false, reason: 'no painted snapshot', passed: 0, total: 0 };
   const dom = (window.__swrReadDom ? window.__swrReadDom() : { rows: [] }).rows;
   if (!dom.length) return { ok: false, reason: 'no dom rows', passed: 0, total: 0 };
+
   const checks = [];
   dom.forEach((d) => {
-    const layer = snap.layers.find((l) => l.id === d.layer);
-    if (!layer) { checks.push({ ok: false, reason: 'dom layer not in snapshot' }); return; }
+    const layer = painted.layers.find((l) => l.id === d.layer);
+    if (!layer) { checks.push({ ok: false, reason: 'dom layer not in painted snapshot' }); return; }
     const got = layer.resolved ? layer.resolved[d.field] : undefined;
     const ok = typeof got === 'number' && Math.abs(got - d.value) < 5e-3;
-    checks.push({ ok, id: d.layer, field: d.field, dom: d.value, snap: got });
+    checks.push({ ok, id: d.layer, field: d.field, dom: d.value, painted: got });
   });
+
+  // Freshness: the painted state must trail the live state by no more
+  // than a handful of frames. A debugger that renders a cached copy
+  // forever would show matching DOM but a frozen painted state.
+  const lag = live.frameIndex - painted.frameIndex;
+  const fresh = lag >= 0 && lag <= 8;
+  checks.push({ ok: fresh, reason: 'painted state is stale', lag, live: live.frameIndex, painted: painted.frameIndex });
+
   const passed = checks.filter((c) => c.ok).length;
   return { ok: passed === checks.length, passed, total: checks.length,
            failures: checks.filter((c) => !c.ok).slice(0, 6) };

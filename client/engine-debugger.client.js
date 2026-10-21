@@ -92,6 +92,7 @@
     perf: { fps: 0, frameMs: 0, dpr: 1 },
     lastPaint: 0,
     lastScope: 0,
+    painted: null,
     dom: {},
     unwrap: [],
     _fpsAcc: [],
@@ -643,6 +644,11 @@
     paintPerf();
     paintMasters();
     paintModules();
+    // Capture what was just painted. The overlay repaints on a timer, so
+    // the live snapshot and the painted DOM are necessarily a few frames
+    // apart — this records the painted state so a probe can compare the
+    // two without racing.
+    state.painted = snapshotNow();
   }
 
   // ── loop ───────────────────────────────────────────────────────────────
@@ -668,6 +674,26 @@
   }
 
   // ── public API ─────────────────────────────────────────────────────────
+
+  // The live engine state as of the last observed frame.
+  function snapshotNow() {
+    var frame = state.lastFrame;
+    return {
+      version: VERSION,
+      mounted: state.mounted,
+      frameIndex: state.frameIndex,
+      perf: { fps: state.perf.fps, dpr: state.perf.dpr },
+      feat: state.feat,
+      layers: layerEntries().map(function (e) {
+        return {
+          id: e.id,
+          name: e.name,
+          resolved: e.resolved,
+          drawn: e.drawn,
+        };
+      }),
+    };
+  }
 
   var api = {
     version: VERSION,
@@ -696,6 +722,7 @@
       var style = $('swr-debugger-style');
       if (style && style.parentNode) style.parentNode.removeChild(style);
       state.dom = {};
+      state.painted = null;
       return api;
     },
 
@@ -706,22 +733,13 @@
     isMounted: function () { return state.mounted; },
 
     snapshot: function () {
-      var frame = state.lastFrame;
-      return {
-        version: VERSION,
-        mounted: state.mounted,
-        frameIndex: state.frameIndex,
-        perf: { fps: state.perf.fps, dpr: state.perf.dpr },
-        feat: state.feat,
-        layers: layerEntries().map(function (e) {
-          return {
-            id: e.id,
-            name: e.name,
-            resolved: e.resolved,
-            drawn: e.drawn,
-          };
-        }),
-      };
+      return snapshotNow();
+    },
+
+    // The state the overlay last rendered. The overlay repaints on a
+    // timer, so this trails snapshot() by up to one paint interval.
+    painted: function () {
+      return state.painted;
     },
 
     history: function (n) {
