@@ -207,6 +207,12 @@ const GROUPS = {
     // (no drift, no 301/archived URL, no duplicate, every shipped content page
     // exactly once). Needs a built dist/ — ensureDist() builds it on demand.
     'npm run check:sitemap',
+    // The living history: rebuilds generations.json + the per-generation
+    // archives from marketing/generations.json and the tree, then proves the
+    // records are sound, the media really has a length and a bitrate, the
+    // archives are readable zips that credit what they claim, and the route
+    // is wired (site-map → vercel → sitemap).
+    'npm run check:generations',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.

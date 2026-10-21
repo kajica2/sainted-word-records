@@ -144,3 +144,11 @@ out/
 
 # Generated media inventory (rebuilt by scripts/build-inventory.mjs)
 media/inventory.json
+
+# The living history: the data file and the per-generation archives, both
+# built by scripts/generate-generations.mjs from marketing/generations.json
+# and the tree it describes. The AUTHORED source (marketing/generations.json)
+# is tracked — the patterns are anchored to the repository root so they do
+# not match it.
+/generations.json
+/generations/

@@ -1,0 +1,227 @@
+{
+  "_about": "marketing/generations.json — the AUTHORED half of the living history. Each entry is one generation of the project: what it was, when it landed, why it mattered, and the real pages it produced. scripts/generate-generations.mjs merges this with live facts read from the tree (what still exists, how big it is, how many commits are behind it) and writes the shipped /generations.json. Add a generation here, run `npm run build:generations`, and the page grows — that is what makes the history living rather than a hand-written page that goes stale.",
+  "_schema": {
+    "id": "stable slug, kebab-case, never reused",
+    "era": "id of an era in meta.eras",
+    "kind": "one of: origin, engine, register, language, system, surface, design, stream",
+    "date": "ISO day the generation landed",
+    "title": "one line, no full stops in the middle",
+    "story": "the narrative — two or three sentences, written like a person, not a changelog",
+    "artifacts": "array of {label, href, path} — path is the repo file the link points at, so the generator can prove the link still resolves",
+    "facts": "optional authored numbers the generator keeps verbatim"
+  },
+  "meta": {
+    "title": "The living history",
+    "lede": "Sainted Word Records did not arrive finished. It was one page that listened to a song, and then it kept growing — a layer stack, thirty-two faces, eleven design registers, a preset stream, an engine that reads the room. This is that history, written down as it happened.",
+    "current": "generations-key-contract",
+    "eras": [
+      { "id": "origin", "label": "The spark", "span": "August 2026" },
+      { "id": "engine", "label": "The engine", "span": "August – September 2026" },
+      { "id": "registers", "label": "The registers", "span": "September 2026" },
+      { "id": "systems", "label": "The systems", "span": "September – October 2026" },
+      { "id": "surfaces", "label": "The hands", "span": "September – October 2026" },
+      { "id": "now", "label": "Now", "span": "October 2026" }
+    ]
+  },
+  "generations": [
+    {
+      "id": "origin-visualizer",
+      "era": "origin",
+      "kind": "origin",
+      "date": "2026-08-13",
+      "title": "A page that listened",
+      "story": "The first commit was not a product, it was a question: what happens if a picture takes orders from a song? A browser page, an audio analyser, a layer of colour that moved with the low end. Everything since has been an answer to a smaller version of that question.",
+      "artifacts": [
+        { "label": "The engine it grew into", "href": "/engine", "path": "engine.html" }
+      ],
+      "facts": { "commits_at_birth": 1 }
+    },
+    {
+      "id": "engine-layer-stack",
+      "era": "engine",
+      "kind": "engine",
+      "date": "2026-08-13",
+      "title": "A stack of layers, and something that argues with them",
+      "story": "A single reacting layer is a toy. The engine became a stack: each layer carries its own opacity, hue, brightness, contrast, position and rotation, and reactors wire the audio features to those properties — bass pulls a colour, a beat displaces a layer, an onset flashes a frame. A layer scheduler worker took over the swapping so the picture keeps moving when the music does.",
+      "artifacts": [
+        { "label": "The engine", "href": "/engine", "path": "engine.html" },
+        { "label": "Layer lifecycle", "href": "/layer-lifecycle", "path": "layer-lifecycle.html" }
+      ]
+    },
+    {
+      "id": "engine-versions",
+      "era": "engine",
+      "kind": "language",
+      "date": "2026-09-01",
+      "title": "One engine, thirty-two faces",
+      "story": "The engine was never allowed to have one look. Five core versions came first — neon, film, grid, smoke, hallucination — then nine artistic passes, then nine decorative ones, each a real page with its own hand-tuned canvas pass. A version page is not a preset: it is a separate way of drawing the same song.",
+      "artifacts": [
+        { "label": "All versions", "href": "/versions.html", "path": "versions.html" },
+        { "label": "Neon", "href": "/versions/neon.html", "path": "versions/neon.html" },
+        { "label": "Film", "href": "/versions/film.html", "path": "versions/film.html" },
+        { "label": "Hallucination", "href": "/versions/hallucination.html", "path": "versions/hallucination.html" }
+      ],
+      "include": ["versions/*.html"],
+      "media": [
+        { "path": "audios/neon.mp3", "embed": true, "note": "The neon demo track" },
+        { "path": "audios/film.mp3", "embed": true, "note": "The film demo track" },
+        { "path": "audios/grid.mp3", "embed": true, "note": "The grid demo track" },
+        { "path": "audios/smoke.mp3", "embed": true, "note": "The smoke demo track" },
+        { "path": "audios/hallucination.mp3", "embed": true, "note": "The hallucination demo track" },
+        { "path": "audios/aurora.mp3", "note": "The aurora demo track" },
+        { "path": "audios/baroque.mp3", "note": "The baroque demo track" },
+        { "path": "audios/chrome.mp3", "note": "The chrome demo track" },
+        { "path": "audios/eclipse.mp3", "note": "The eclipse demo track" },
+        { "path": "audios/fractal.mp3", "note": "The fractal demo track" },
+        { "path": "audios/glitch.mp3", "note": "The glitch demo track" },
+        { "path": "audios/kraft.mp3", "note": "The kraft demo track" },
+        { "path": "audios/mosaic.mp3", "note": "The mosaic demo track" },
+        { "path": "audios/phosphor.mp3", "note": "The phosphor demo track" },
+        { "path": "audios/pulse.mp3", "note": "The pulse demo track" },
+        { "path": "audios/tape.mp3", "note": "The tape demo track" },
+        { "path": "audios/void.mp3", "note": "The void demo track" },
+        { "path": "audios/watercolor.mp3", "note": "The watercolor demo track" },
+        { "path": "audios/endless-tomorrow.mp3", "note": "The music-video demo track" },
+        { "path": "videos/neon.mp4", "note": "The neon placeholder clip" },
+        { "path": "videos/grid.mp4", "note": "The grid placeholder clip" },
+        { "path": "videos/film.mp4", "note": "The film placeholder clip" },
+        { "path": "videos/collage-figures.mp4", "note": "The collage gallery clip" },
+        { "path": "videos/faces-stack.mp4", "note": "The faces-stack gallery clip" },
+        { "path": "videos/reedbed-bokeh.mp4", "note": "The bokeh reedbed clip" },
+        { "path": "videos/reedbed-watercolor.mp4", "note": "The watercolor reedbed clip" }
+      ]
+    },
+    {
+      "id": "engine-browser-native",
+      "era": "engine",
+      "kind": "engine",
+      "date": "2026-09-20",
+      "title": "Nothing to install, nothing to upload",
+      "story": "The engine moved into the browser and stayed there. A song, a folder of clips, a canvas — the analysis, the compositing and the MP4 export all run on the machine you are reading this on. The server shrank to a thin M1 layer for sign-in, storage and projects, which is the only part that genuinely needs a server.",
+      "artifacts": [
+        { "label": "Open the engine", "href": "/engine", "path": "engine.html" },
+        { "label": "How it is put together", "href": "/intro", "path": "intro.html" }
+      ]
+    },
+    {
+      "id": "register-editorial",
+      "era": "registers",
+      "kind": "register",
+      "date": "2026-09-10",
+      "title": "Register I — Editorial",
+      "story": "The personas needed a face, and the first face was a magazine. Eight starter people — the indie musician, the beatmaker, the night-shift DJ — rendered as a long-form feature with pull quotes and a reading rhythm. The register set the rule that still holds: one authored source, many faces.",
+      "artifacts": [
+        { "label": "Register I", "href": "/landing-personas-v1-editorial.html", "path": "landing-personas-v1-editorial.html" },
+        { "label": "The personas", "href": "/personas", "path": "personas.html" }
+      ]
+    },
+    {
+      "id": "register-two-to-six",
+      "era": "registers",
+      "kind": "register",
+      "date": "2026-09-18",
+      "title": "Registers II–VI",
+      "story": "Five more faces for the same eight people: Dark reads like a terminal, Friendly like a poster, Dashboard like a control room, Brutalist like a concrete slab, Wireframe like a 3D blueprint. Six registers, one personas.json — and the personae themselves are edited in one place, so every face picks the change up at once.",
+      "artifacts": [
+        { "label": "Register II — Dark", "href": "/landing-personas-v2-dark.html", "path": "landing-personas-v2-dark.html" },
+        { "label": "Register III — Friendly", "href": "/landing-personas-v3-friendly.html", "path": "landing-personas-v3-friendly.html" },
+        { "label": "Register IV — Dashboard", "href": "/landing-personas-v4-dashboard.html", "path": "landing-personas-v4-dashboard.html" },
+        { "label": "Register V — Brutalist", "href": "/landing-personas-v5-brutalist.html", "path": "landing-personas-v5-brutalist.html" },
+        { "label": "Register VI — Wireframe", "href": "/landing-personas-v6-wireframe.html", "path": "landing-personas-v6-wireframe.html" }
+      ]
+    },
+    {
+      "id": "register-seven-to-eleven",
+      "era": "registers",
+      "kind": "register",
+      "date": "2026-09-29",
+      "title": "Registers VII–XI, and the ones that did not survive",
+      "story": "Five more registers were drawn — Riso, Broadcast, Cassette, Neon, Zine — and then, on the same day, they were archived and redirected to the persona index. A generation that ended is still a generation: it is part of the history precisely because it stopped. The six that survived are the ones still on the site.",
+      "artifacts": [
+        { "label": "The survivors", "href": "/personas", "path": "personas.html" },
+        { "label": "The register decisions", "href": "/persona-library.html", "path": "persona-library.html" }
+      ],
+      "facts": { "registers_drawn": 11, "registers_shipped": 6, "archived_on": "2026-09-29" }
+    },
+    {
+      "id": "automix-presets",
+      "era": "systems",
+      "kind": "system",
+      "date": "2026-09-20",
+      "title": "The engine started choosing",
+      "story": "A generator began writing a new preset every day — named, tagged, verified against a schema before it shipped. Then the automix runtime came: the engine listens to the song, picks the presets that suit its band, and composes the layers itself. The picture stops being a consequence of your folder and starts being a consequence of the track.",
+      "artifacts": [
+        { "label": "Preset packs", "href": "/packs", "path": "packs.html" },
+        { "label": "The marketplace", "href": "/marketplace", "path": "marketplace.html" }
+      ],
+      "include": ["presets/*.json"]
+    },
+    {
+      "id": "targeting-engine",
+      "era": "systems",
+      "kind": "system",
+      "date": "2026-10-05",
+      "title": "The engine reads the room",
+      "story": "Twenty-eight personas, four segments, and a set of signature rules that read the visitor and re-order the room for them: which version leads, which transitions are pinned, which copy is offered. The classification is deterministic, the rules are generated from the persona files themselves, and the whole thing is measured against a 50 ms budget.",
+      "artifacts": [
+        { "label": "Persona library", "href": "/persona-library.html", "path": "persona-library.html" },
+        { "label": "The personas", "href": "/personas", "path": "personas.html" }
+      ]
+    },
+    {
+      "id": "surfaces-hands",
+      "era": "surfaces",
+      "kind": "surface",
+      "date": "2026-10-01",
+      "title": "The engine grew hands",
+      "story": "The engine stopped being a page you watch. Camera and microphone became live inputs, a storyboard put scenes on a timeline, periodic capture saved frames to disk, Spit Live turned a phone into a stage, TikTok Studio rendered vertical, Camera Enhance graded a live feed. Each one is the same engine wearing a different pair of hands.",
+      "artifacts": [
+        { "label": "Media input lab", "href": "/lab/media-input", "path": "lab/media-input.html" },
+        { "label": "Spit Live", "href": "/spit", "path": "spit.html" },
+        { "label": "TikTok Studio", "href": "/tiktok", "path": "tiktok.html" },
+        { "label": "Camera Enhance", "href": "/camera-enhance", "path": "camera-enhance.html" },
+        { "label": "AR GIF", "href": "/ar-gif", "path": "ar-gif.html" }
+      ]
+    },
+    {
+      "id": "media-grouping",
+      "era": "now",
+      "kind": "engine",
+      "date": "2026-10-21",
+      "title": "The library learned to arrange itself",
+      "story": "A folder of clips is unreadable. One rule now decides what belongs together — videos grouped by the stem of their name, every static graphic gathered into a single group — and it is shared by the media panel and the automix pool, so the list you see and the pool the engine draws from can never disagree.",
+      "artifacts": [
+        { "label": "See it on the media panel", "href": "/versions/neon.html", "path": "versions/neon.html" }
+      ]
+    },
+    {
+      "id": "generations-key-contract",
+      "era": "now",
+      "kind": "engine",
+      "date": "2026-10-21",
+      "title": "The keyboard became a contract",
+      "story": "Number keys used to mean three different things depending on what else was held, and pressing 1 could turn the whole stage. They now mean exactly one thing — a look filter — and the rule is enforced in code, not in a document: every digit action runs inside a guard that restores anything it touched, so a digit can never leave a layer rotating. Zero became the reset that puts every layer back where it started.",
+      "artifacts": [
+        { "label": "The plan", "href": "/generations", "path": "generations.html" }
+      ]
+    },
+    {
+      "id": "redesign-homepage",
+      "era": "now",
+      "kind": "design",
+      "date": "2026-10-21",
+      "title": "The site became the front door",
+      "story": "The homepage was rebuilt around a single sentence — drop in a song, get a music video — and everything else moved behind it. This page is the newest generation of the same idea: the site as a record of its own growth, written from the tree it grew in, so it cannot drift away from what the project actually is.",
+      "artifacts": [
+        { "label": "The homepage", "href": "/", "path": "index.html" },
+        { "label": "For creators", "href": "/for-creators", "path": "for-creators.html" }
+      ],
+      "media": [
+        { "path": "videos/stage.mp4", "note": "The stage demo render" },
+        { "path": "videos/meadow.mp4", "note": "The meadow demo render" },
+        { "path": "videos/lights.mp4", "note": "The lights demo render" },
+        { "path": "videos/stage-take-2026-09-29.mp4", "note": "The later stage take" }
+      ]
+    }
+  ]
+}

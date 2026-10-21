@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The living history · Sainted Word Records</title>
+  <meta name="description" content="How the audio-reactive video engine grew: every generation of Sainted Word Records, with the files it shipped and the credits measured from the media it carried." />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/generations" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="The living history · Sainted Word Records" />
+  <meta property="og:description" content="Every generation of the engine, with the files it shipped and the credits measured from the media it carried." />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root{
+      --bg-0:#0a0d12;--bg-1:#111114;--bg-2:#16161b;--ink:#e8e6e0;--muted:#7a7a82;--muted-2:#4a4a52;
+      --line:#1f1f25;--line-2:#2a2a32;--gold:#d4a24c;--amber:#f5a524;--cyan:#00e5ff;--green:#5ec27a;--violet:#a78bfa;
+      --mono:ui-monospace,"SF Mono",Menlo,monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg-0);color:var(--ink);font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Inter",sans-serif;-webkit-font-smoothing:antialiased}
+    body{padding:0 24px 96px}
+    main{max-width:900px;margin:0 auto}
+    h1{font:clamp(30px,5vw,44px)/1.1 ui-sans-serif,system-ui,sans-serif;margin:0 0 10px;font-weight:700;letter-spacing:-.02em}
+    .eyebrow{font:11px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin:0 0 14px}
+    .lede{color:var(--muted);margin:0 0 28px;font-size:16px;max-width:62ch}
+    .lede b{color:var(--ink);font-weight:600}
+
+    /* the pulse — the site as it stands right now */
+    .pulse{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 32px;padding:0;list-style:none}
+    .pulse li{font:11px/1 var(--mono);letter-spacing:.04em;color:var(--muted);background:var(--bg-1);border:1px solid var(--line);border-radius:999px;padding:7px 12px}
+    .pulse li b{color:var(--ink);font-weight:600}
+
+    /* filters */
+    .filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 36px;position:sticky;top:0;z-index:5;padding:12px 0;background:linear-gradient(var(--bg-0) 78%,transparent)}
+    .filters .label{font:10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);margin-right:4px}
+    .chip{font:12px/1 inherit;color:var(--muted);background:var(--bg-1);border:1px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer;transition:color .12s,border-color .12s,background .12s}
+    .chip:hover{color:var(--ink);border-color:var(--line-2)}
+    .chip[aria-pressed="true"]{color:var(--bg-0);background:var(--gold);border-color:var(--gold);font-weight:600}
+    .chip--era[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan)}
+    .chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+    /* eras */
+    .era{margin:0 0 8px;scroll-margin-top:80px}
+    .era-head{display:flex;align-items:baseline;gap:12px;margin:44px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+    .era-head h2{font:600 13px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:0}
+    .era-head .span{font:12px/1 var(--mono);color:var(--muted-2)}
+    .era-head .count{margin-left:auto;font:11px/1 var(--mono);color:var(--muted-2)}
+
+    /* a generation */
+    .gen{position:relative;padding:22px 24px 20px;background:var(--bg-1);border:1px solid var(--line);border-radius:10px;margin:0 0 14px}
+    .gen.now{border-color:rgba(212,162,76,.55);box-shadow:0 0 0 1px rgba(212,162,76,.18)}
+    .gen-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+    .kind{font:10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:3px;background:var(--bg-2);color:var(--muted)}
+    .kind[data-kind="engine"],.kind[data-kind="system"]{background:rgba(0,229,255,.10);color:var(--cyan)}
+    .kind[data-kind="register"],.kind[data-kind="design"]{background:rgba(212,162,76,.12);color:var(--gold)}
+    .kind[data-kind="language"]{background:rgba(167,139,250,.14);color:var(--violet)}
+    .kind[data-kind="surface"]{background:rgba(94,194,122,.12);color:var(--green)}
+    .kind[data-kind="origin"]{background:rgba(245,165,36,.12);color:var(--amber)}
+    .date{font:12px/1 var(--mono);color:var(--muted-2)}
+    .now-tag{margin-left:auto;font:10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(212,162,76,.5);border-radius:3px;padding:4px 7px}
+    .gen h3{font:600 19px/1.3 ui-sans-serif,system-ui,sans-serif;margin:0 0 8px;letter-spacing:-.01em}
+    .gen p.story{margin:0 0 14px;color:#c5c3bd;max-width:68ch}
+    .facts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;padding:0;list-style:none}
+    .facts li{font:11px/1 var(--mono);color:var(--muted);border:1px solid var(--line-2);border-radius:3px;padding:5px 8px}
+
+    /* the links out */
+    .links{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;padding:0;list-style:none}
+    .links a{font:12px/1 inherit;color:var(--muted);text-decoration:none;background:var(--bg-2);border:1px solid var(--line-2);border-radius:4px;padding:6px 10px}
+    .links a:hover{color:var(--ink);border-color:var(--muted-2)}
+
+    /* the credits */
+    .credits{border-top:1px solid var(--line);padding-top:12px}
+    .credits-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 10px}
+    .credits-row .stat{font:11px/1.4 var(--mono);color:var(--muted)}
+    .credits-row .stat b{color:var(--ink);font-weight:600}
+    .zip{font:12px/1 inherit;color:var(--gold);text-decoration:none;border:1px solid rgba(212,162,76,.45);border-radius:4px;padding:7px 12px;white-space:nowrap}
+    .zip:hover{background:rgba(212,162,76,.10)}
+    details table{width:100%;border-collapse:collapse;margin:8px 0 0;font:11px/1.5 var(--mono)}
+    details caption{text-align:left;color:var(--muted-2);padding:6px 0;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+    details th{text-align:left;color:var(--muted-2);font-weight:500;padding:5px 10px 5px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+    details td{color:var(--muted);padding:5px 10px 5px 0;border-bottom:1px solid var(--line);vertical-align:top}
+    details td:first-child{color:var(--ink);white-space:nowrap}
+    details td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+    details .empty{color:var(--muted-2);font:12px/1.5 var(--mono)}
+
+    .fallback{margin:32px 0;padding:18px 20px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);color:var(--muted);font-size:14px}
+    .fallback a{color:var(--gold)}
+    .note{color:var(--muted-2);font-size:12px;margin:36px 0 0;max-width:68ch}
+    .note a{color:var(--muted)}
+    [hidden]{display:none !important}
+    @media (max-width:640px){
+      body{padding:0 16px 64px}
+      .gen{padding:18px 16px}
+      details table{font-size:10px}
+    }
+  </style>
+<script src="/fx-background.client.js" defer></script>
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main>
+    <p class="eyebrow">The living history</p>
+    <h1>How this thing grew</h1>
+    <p class="lede" id="lede">Loading the history…</p>
+    <ul class="pulse" id="pulse"></ul>
+
+    <div class="filters" id="filters" hidden>
+      <span class="label">Era</span>
+      <span id="era-chips" style="display:contents"></span>
+      <span class="label" style="margin-left:10px">Kind</span>
+      <span id="kind-chips" style="display:contents"></span>
+    </div>
+
+    <div id="timeline"></div>
+
+    <p class="fallback" id="fallback" hidden>
+      The history data has not been built yet. Run <code>npm run build:generations</code>
+      and reload — the page reads <code>/generations.json</code>, which the build writes from
+      <code>marketing/generations.json</code> and the tree it describes.
+    </p>
+
+    <p class="note">
+      Every generation is measured, not remembered: the credits below are read from the
+      files themselves with <code>ffprobe</code> — length, bitrate, codec — at build time.
+      Each archive holds the generation's own files, its <code>CREDITS.md</code> and a
+      <code>MANIFEST.json</code>. The story is authored in
+      <a href="https://github.com/kajica2/sainted-word-records">the repository</a>;
+      the numbers come from the tree.
+    </p>
+  </main>
+  <swr-footer></swr-footer>
+
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script type="module">
+    // The page is a reader, not a document: everything below is built from
+    // /generations.json, which the build writes from marketing/generations.json
+    // and the tree it describes. A generation added to the authored file
+    // appears here with its credits — nothing on this page is hand-maintained.
+    const DATA_URL = '/generations.json';
+
+    const $ = (id) => document.getElementById(id);
+    const state = { era: null, kind: null };
+
+    const esc = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    function bytes(n) {
+      if (!Number.isFinite(n)) return '—';
+      if (n < 1024) return `${n} B`;
+      if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
+      return `${(n / 1048576).toFixed(1)} MB`;
+    }
+
+    function duration(seconds) {
+      if (!Number.isFinite(seconds) || seconds <= 0) return '—';
+      const total = Math.round(seconds);
+      const m = Math.floor(total / 60);
+      const s = total % 60;
+      if (!m) return `${s}s`;
+      return `${m}m ${String(s).padStart(2, '0')}s`;
+    }
+
+    function bitrate(bps) {
+      if (!Number.isFinite(bps)) return '—';
+      return `${Math.round(bps / 1000)} kbps`;
+    }
+
+    function mediaTable(gen) {
+      const media = (gen.media || []).filter((m) => m.tracked);
+      if (!media.length) {
+        return '<p class="empty">This generation shipped no audio or video of its own.</p>';
+      }
+      const rows = media.map((m) => {
+        const detail = m.kind === 'video'
+          ? `${m.width || '?'}×${m.height || '?'}`
+          : [m.sampleRate ? `${(m.sampleRate / 1000).toFixed(1)} kHz` : null,
+             m.channels === 1 ? 'mono' : m.channels === 2 ? 'stereo' : null]
+            .filter(Boolean).join(' · ') || '—';
+        return `<tr>
+          <td>${esc(m.path)}</td>
+          <td>${esc(m.kind)}</td>
+          <td class="num">${duration(m.duration)}</td>
+          <td class="num">${bitrate(m.bitrate)}</td>
+          <td>${esc(m.codec || '—')}</td>
+          <td>${esc(detail)}</td>
+          <td class="num">${bytes(m.bytes)}</td>
+        </tr>`;
+      }).join('');
+      return `<table>
+        <caption>Media — length and bitrate, measured</caption>
+        <thead><tr>
+          <th>file</th><th>kind</th><th class="num">length</th><th class="num">bitrate</th>
+          <th>codec</th><th>detail</th><th class="num">size</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    function creditsBlock(gen) {
+      const c = gen.credits || {};
+      const stats = [];
+      if (c.media) stats.push(`<span class="stat"><b>${c.media}</b> media file${c.media === 1 ? '' : 's'}</span>`);
+      if (c.files) stats.push(`<span class="stat"><b>${c.files}</b> file${c.files === 1 ? '' : 's'}</span>`);
+      if (c.duration) stats.push(`<span class="stat"><b>${duration(c.duration)}</b> of media</span>`);
+      if (c.averageBitrate) stats.push(`<span class="stat">average <b>${bitrate(c.averageBitrate)}</b></span>`);
+      if (c.bytes) stats.push(`<span class="stat"><b>${bytes(c.bytes)}</b> in total</span>`);
+      const zip = c.archive
+        ? `<a class="zip" href="/${c.archive}" download>↓ the archive · ${bytes(c.archiveBytes)}</a>`
+        : '';
+      return `<div class="credits">
+        <div class="credits-row">${stats.join('')}${zip}</div>
+        <details><summary class="label" style="cursor:pointer;font:10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2)">the credits</summary>
+          ${mediaTable(gen)}
+        </details>
+      </div>`;
+    }
+
+    function generationCard(gen, current) {
+      const links = (gen.artifacts || [])
+        .filter((a) => a.href)
+        .map((a) => `<li><a href="${esc(a.href)}">${esc(a.label)}</a></li>`)
+        .join('');
+      const facts = (gen.facts && typeof gen.facts === 'object')
+        ? Object.entries(gen.facts).map(([k, v]) => `<li>${esc(k.replace(/_/g, ' '))}: ${esc(v)}</li>`).join('')
+        : '';
+      return `<article class="gen${gen.id === current ? ' now' : ''}" data-kind="${esc(gen.kind)}" data-era="${esc(gen.era)}" id="gen-${esc(gen.id)}">
+        <div class="gen-top">
+          <span class="kind" data-kind="${esc(gen.kind)}">${esc(gen.kind)}</span>
+          <span class="date">${esc(gen.date)}</span>
+          ${gen.id === current ? '<span class="now-tag">now</span>' : ''}
+        </div>
+        <h3>${esc(gen.title)}</h3>
+        <p class="story">${esc(gen.story)}</p>
+        ${facts ? `<ul class="facts">${facts}</ul>` : ''}
+        ${links ? `<ul class="links">${links}</ul>` : ''}
+        ${creditsBlock(gen)}
+      </article>`;
+    }
+
+    function applyFilters() {
+      const cards = [...document.querySelectorAll('.gen')];
+      const eras = [...document.querySelectorAll('.era')];
+      let visible = 0;
+      for (const card of cards) {
+        const okEra = !state.era || card.dataset.era === state.era;
+        const okKind = !state.kind || card.dataset.kind === state.kind;
+        const show = okEra && okKind;
+        card.hidden = !show;
+        if (show) visible += 1;
+      }
+      for (const era of eras) {
+        const any = [...era.querySelectorAll('.gen')].some((c) => !c.hidden);
+        era.hidden = !any;
+      }
+      $('timeline').querySelectorAll('.era-head .count').forEach((el) => {
+        const era = el.closest('.era');
+        const n = [...era.querySelectorAll('.gen')].filter((c) => !c.hidden).length;
+        el.textContent = `${n} generation${n === 1 ? '' : 's'}`;
+      });
+      return visible;
+    }
+
+    function chip(label, group, value) {
+      const b = document.createElement('button');
+      b.className = `chip chip--${group}`;
+      b.type = 'button';
+      b.textContent = label;
+      b.dataset.value = value;
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', () => {
+        state[group] = state[group] === value ? null : value;
+        for (const other of document.querySelectorAll(`.chip--${group}`)) {
+          other.setAttribute('aria-pressed', String(other.dataset.value === state[group]));
+        }
+        applyFilters();
+      });
+      return b;
+    }
+
+    async function pulse(generations) {
+      const items = [];
+      items.push(`<li><b>${generations.length}</b> generations</li>`);
+      const eras = new Set(generations.map((g) => g.era)).size;
+      items.push(`<li><b>${eras}</b> eras</li>`);
+      const media = generations.reduce((sum, g) => sum + ((g.credits && g.credits.media) || 0), 0);
+      items.push(`<li><b>${media}</b> media files credited</li>`);
+      const seconds = generations.reduce((sum, g) => sum + ((g.credits && g.credits.duration) || 0), 0);
+      if (seconds) items.push(`<li><b>${duration(seconds)}</b> of audio and video</li>`);
+      try {
+        const map = await fetch('/site-map.json').then((r) => (r.ok ? r.json() : null));
+        if (map && map.meta && map.meta.totalPages) {
+          items.push(`<li><b>${map.meta.totalPages}</b> pages live</li>`);
+        }
+      } catch (_) {}
+      $('pulse').innerHTML = items.join('');
+    }
+
+    async function load() {
+      let data;
+      try {
+        const res = await fetch(DATA_URL, { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+      } catch (e) {
+        $('lede').textContent = '';
+        $('fallback').hidden = false;
+        return;
+      }
+      const generations = data.generations || [];
+      const current = (data.meta && data.meta.current) || null;
+      $('lede').innerHTML = esc((data.meta && data.meta.lede) || '')
+        + ' <b>Every generation below ships as an archive</b> — its files, its credits, its manifest.';
+
+      const eras = (data.meta && data.meta.eras) || [];
+      const eraById = new Map(eras.map((e) => [e.id, e]));
+      const kinds = [...new Set(generations.map((g) => g.kind))].sort();
+
+      for (const era of eras) $('era-chips').appendChild(chip(era.label, 'era', era.id));
+      for (const kind of kinds) $('kind-chips').appendChild(chip(kind, 'kind', kind));
+      $('filters').hidden = false;
+
+      const grouped = new Map();
+      for (const gen of generations) {
+        if (!grouped.has(gen.era)) grouped.set(gen.era, []);
+        grouped.get(gen.era).push(gen);
+      }
+
+      const sections = [];
+      for (const era of eras) {
+        const list = grouped.get(era.id) || [];
+        if (!list.length) continue;
+        sections.push(`<section class="era" id="era-${esc(era.id)}">
+          <div class="era-head">
+            <h2>${esc(era.label)}</h2>
+            <span class="span">${esc(era.span || '')}</span>
+            <span class="count"></span>
+          </div>
+          ${list.map((g) => generationCard(g, current)).join('')}
+        </section>`);
+      }
+      // A generation whose era is not in the era list still has to render.
+      const known = new Set(eras.map((e) => e.id));
+      const orphans = generations.filter((g) => !known.has(g.era));
+      if (orphans.length) {
+        sections.push(`<section class="era" id="era-other">
+          <div class="era-head"><h2>Elsewhere</h2><span class="count"></span></div>
+          ${orphans.map((g) => generationCard(g, current)).join('')}
+        </section>`);
+      }
+
+      $('timeline').innerHTML = sections.join('');
+      applyFilters();
+      pulse(generations);
+    }
+
+    load();
+  </script>
+</body>
+</html>

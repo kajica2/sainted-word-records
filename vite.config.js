@@ -387,6 +387,8 @@ function copyStatic() {
     // Landing page (served via root rewrite in vercel.json)
     'landing.html',
     'personas.json',
+    // The living history data — read at runtime by generations.html.
+    'generations.json',
     // HOWTO-30s-VIDEO.md deliberately NOT listed: it is a local runbook that
     // embeds the developer's macOS home path and raw shell commands, and it
     // shipped publicly (200) with no HTML wrapper. Removing it from the build
@@ -670,6 +672,11 @@ function copyStatic() {
     { src: 'portfolio', dst: 'portfolio' },
     { src: 'keyart', dst: 'keyart' },
     { src: 'presets', dst: 'presets' },
+    // The living history: one archive per generation (built by
+    // scripts/generate-generations.mjs from marketing/generations.json and
+    // the tree it describes). The page fetches /generations.json (root file
+    // below) and links /generations/<id>.zip.
+    { src: 'generations', dst: 'generations' },
     // Targeting artifacts (targeting-pipeline/ output): ontology.json,
     // segments.json, rules.json, voice-lint.json. Read at runtime by
     // client/targeting.client.js; rules.json is ALSO inlined into

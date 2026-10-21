@@ -112,6 +112,11 @@
           "description": "What's new"
         },
         {
+          "label": "Generations",
+          "href": "/generations",
+          "description": "The living history of the project"
+        },
+        {
           "label": "About",
           "href": "/about",
           "description": "About SWR"

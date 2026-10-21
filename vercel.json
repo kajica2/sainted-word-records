@@ -576,6 +576,14 @@
       "destination": "/changelog.html"
     },
     {
+      "source": "/generations",
+      "destination": "/generations.html"
+    },
+    {
+      "source": "/generations/",
+      "destination": "/generations.html"
+    },
+    {
       "source": "/about",
       "destination": "/about.html"
     },
