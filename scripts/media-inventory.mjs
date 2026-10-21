@@ -29,6 +29,10 @@ const EXCLUDE = new Map([
   ['verify-screenshots', 'test artifacts'],
 ]);
 
+// Excluded dirs whose size changes with every build. They are listed, but
+// never measured — see the walk() below.
+const VOLATILE = new Set(['dist', 'dist-dev', 'out']);
+
 // What git actually tracks. This is the difference between "media on this
 // machine" and "media that ships" — most of the repo's media is untracked, so a
 // page built from disk alone would describe files Vercel never sees. The same
@@ -50,6 +54,14 @@ const kindOf = (ext) => {
 
 const groups = new Map();   // dir -> {files:[]}
 const excluded = new Map(); // dir -> {reason, files, bytes}
+// Seed the volatile entries so the report is the same whether or not the
+// directory happens to exist: a build from a clean tree has no dist/ to
+// walk, a second build does, and the build-idempotency gate compares the
+// two. They are never measured (see VOLATILE), so the entry is always
+// the same.
+for (const [dir, reason] of EXCLUDE) {
+  if (VOLATILE.has(dir)) excluded.set(dir, { reason, files: 0, bytes: 0 });
+}
 
 function walk(dir, top) {
   let entries;
@@ -70,7 +82,12 @@ function walk(dir, top) {
     const ex = EXCLUDE.get(top);
     if (ex) {
       const g = excluded.get(top) || { reason: ex, files: 0, bytes: 0 };
-      g.files++; g.bytes += bytes;
+      // Build outputs are not measured: the build that writes this file is
+      // the thing filling dist/, so the numbers differ between two builds
+      // of the same tree. The build-idempotency gate caught exactly that
+      // (dist/media/inventory.json hashed differently on every run). They
+      // are still reported by name, with no counts.
+      if (!VOLATILE.has(top)) { g.files++; g.bytes += bytes; }
       excluded.set(top, g);
       continue;
     }
@@ -114,5 +131,8 @@ console.log(`  tracked in git: ${trackedFiles} files / ${mb(trackedBytes)} MB  (
 console.log(`  -> ${path.relative(ROOT, OUT)}`);
 if (exList.length) {
   console.log(`  excluded (reported, not counted):`);
-  for (const e of exList) console.log(`    ${e.dir.padEnd(20)} ${String(e.files).padStart(4)} files  ${mb(e.bytes).padStart(7)} MB  — ${e.reason}`);
+  for (const e of exList) {
+    const size = VOLATILE.has(e.dir) ? 'not measured (changes with every build)' : `${String(e.files).padStart(4)} files  ${mb(e.bytes).padStart(7)} MB`;
+    console.log(`    ${e.dir.padEnd(20)} ${size}  — ${e.reason}`);
+  }
 }

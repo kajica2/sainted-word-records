@@ -904,7 +904,8 @@ export default defineConfig(({ command, mode }) => {
       devVercelRewrites(),
     ],
     server: {
-      port: 5174,
+      // Allow custom port via CLI: npm run dev -- --port 8732
+      // Default is 5174
       host: '0.0.0.0',
       strictPort: false,
       // Vite 5 blocks Host headers it does not recognise with a 403 before

@@ -504,14 +504,6 @@
       "destination": "/marketplace.html"
     },
     {
-      "source": "/engine-demos",
-      "destination": "/engine-demos.html"
-    },
-    {
-      "source": "/engine-demos/",
-      "destination": "/engine-demos.html"
-    },
-    {
       "source": "/dashboard",
       "destination": "/dashboard.html"
     },
@@ -1096,16 +1088,16 @@
       "destination": "/auth/verify.html"
     },
     {
-      "source": "/campaign",
-      "destination": "/campaign.html"
-    },
-    {
       "source": "/contact-sheet",
       "destination": "/contact-sheet.html"
     },
     {
       "source": "/director-mode-sainted-word",
       "destination": "/director-mode-sainted-word.html"
+    },
+    {
+      "source": "/engine-demos",
+      "destination": "/engine-demos.html"
     },
     {
       "source": "/fonts",

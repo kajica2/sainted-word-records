@@ -11,6 +11,7 @@
   "scripts": {
     "deploy": "bash bin/deploy-gh-pages.sh",
     "dev": "vite",
+    "dev:dashboard": "vite --port 8732",
     "build": "vite build",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
     "preview": "vite preview --port 4173",

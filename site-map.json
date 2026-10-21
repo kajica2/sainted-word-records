@@ -51,9 +51,9 @@
           "description": "Curated .swr-set templates"
         },
         {
-          "label": "Demos",
-          "href": "/engine-demos",
-          "description": "Live engine demos"
+          "label": "Demo",
+          "href": "/versions/neon",
+          "description": "Main demo - neon visual language"
         },
         {
           "label": "Visual Languages",

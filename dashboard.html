@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/lib/design-tokens.css" />
   <link rel="stylesheet" href="/lib/components.css" />
+  <link rel="stylesheet" href="/lib/drive-modal.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script>
@@ -102,6 +103,10 @@
     /* Layer row details */
     details > summary { list-style: none; cursor: pointer; }
     details > summary::-webkit-details-marker { display: none; }
+    /* Layer drag styling */
+    .layer-item.dragging { opacity: 0.5; background: var(--bg-elev); }
+    .layer-item[draggable="true"] .cursor-grab { cursor: grab; }
+    .layer-item[draggable="true"]:hover { background: rgba(255,255,255,0.02); }
 
     /* prefers-reduced-motion — the engine renders one static frame; this
        stops every CSS transition/animation too (Console criterion 9). */
@@ -212,9 +217,9 @@
       <div class="flex items-center justify-between px-3 py-2 border-b border-line">
         <span class="micro">Library</span>
         <div class="flex items-center gap-1">
-          <button class="icon-btn" title="Clear"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
           <button class="icon-btn" title="Save Set"><i class="fa-solid fa-floppy-disk text-[10px]"></i></button>
           <button class="icon-btn" title="Import .SMR-SET"><i class="fa-solid fa-file-import text-[10px]"></i></button>
+          <button type="button" id="swr-drive-btn" class="icon-btn" title="Import from Google Drive"><i class="fa-brands fa-google-drive text-[10px]"></i></button>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2 p-3 overflow-y-auto" id="library-grid" style="height: calc(100% - 41px);"></div>
@@ -298,7 +303,10 @@
               </div>
               <div id="photo-deck" class="mt-3 grid grid-cols-4 gap-2"></div>
               <div class="flex items-center justify-between mt-3 text-[11px]">
-                <label class="flex items-center gap-2 text-gray-300"><input type="checkbox" id="photo-advance" checked class="accent-orange" /> Advance on beat</label>
+                <div class="flex items-center gap-4">
+                  <label class="flex items-center gap-2 text-gray-300"><input type="checkbox" id="photo-advance" checked class="accent-orange" /> Advance on beat</label>
+                  <label class="flex items-center gap-2 text-gray-300"><input type="checkbox" id="photo-auto-group" checked class="accent-orange" /> Auto-group by name</label>
+                </div>
                 <span id="photo-status" class="text-gray-500">— no photos —</span>
               </div>
             </div>
@@ -1035,27 +1043,281 @@
     const photoDrop = document.getElementById('photo-drop');
     const photoFile = document.getElementById('photo-file');
     const photos = [];
-    function addPhoto(file) {
-      if (!file || !file.type.startsWith('image/')) return;
-      const url = URL.createObjectURL(file);
-      const tile = document.createElement('div');
-      tile.className = 'aspect-square bg-[#1e1e24] rounded overflow-hidden border border-line';
-      const img = document.createElement('img');
-      img.src = url;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-      tile.appendChild(img);
-      photoDeck.appendChild(tile);
-      photos.push({ file, url });
-      photoStatus.textContent = `${photos.length} photo${photos.length === 1 ? '' : 's'} loaded`;
-      // The deck is the engine's base source — it wins over a live camera.
-      if (window.__SWR_ENGINE && window.__SWR_ENGINE.setPhotos) {
-        window.__SWR_ENGINE.setPhotos(photos.map((p) => p.url));
+    
+    // Auto-group photos/videos by similar name patterns
+    function groupMediaByName(files) {
+      const groups = {};
+      const groupOrder = [];
+      
+      files.forEach((file) => {
+        // Skip non-media
+        if (!file || !file.type) return;
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+        if (!isVideo && !isImage) return;
+        
+        // Extract base name: remove extension, trailing numbers
+        const name = file.name.replace(/\.[^.]+$/, ''); // remove extension
+        // Try to find common prefix (e.g., "img_001" -> "img", "clip-2" -> "clip")
+        const baseMatch = name.match(/^([a-zA-Z]+)[_-]?\d*$/);
+        const base = baseMatch ? baseMatch[1].toLowerCase() : name.toLowerCase();
+        
+        if (!groups[base]) {
+          groups[base] = [];
+          groupOrder.push(base);
+        }
+        groups[base].push({ ...file, _isVideo: isVideo });
+      });
+      
+      return { groups, order: groupOrder };
+    }
+    
+    // Create layers from grouped media
+    const MAX_LAYERS = 6;
+    
+    function createLayersFromGroups(groups, order) {
+      const layerList = document.getElementById('layers-list');
+      if (!layerList) return;
+      
+      // Clear existing layers
+      layerList.innerHTML = '';
+      
+      // Limit to 6 layers max
+      const limitedOrder = order.slice(0, MAX_LAYERS);
+      const excess = order.length - MAX_LAYERS;
+      if (excess > 0) {
+        console.log(`[Auto-group] Limited to ${MAX_LAYERS} layers (${excess} groups merged into first layer)`);
+        // Merge excess groups into first layer
+        for (let i = MAX_LAYERS; i < order.length; i++) {
+          groups[limitedOrder[0]].push(...groups[order[i]]);
+        }
+      }
+      order = limitedOrder;
+      
+      order.forEach((groupName, groupIdx) => {
+        const groupMedia = groups[groupName];
+        const hasVideo = groupMedia.some(m => m._isVideo);
+        const hasImage = groupMedia.some(m => !m._isVideo);
+        const icon = hasVideo ? 'fa-film' : 'fa-images';
+        const layer = {
+          name: groupName.toUpperCase(),
+          media: groupMedia,
+          blend: 'over',
+          opacity: 80,
+          base: 50,
+          scale: 100,
+          hue: (groupIdx * 30) % 360,
+          rot: 0,
+        };
+        
+        // Add layer row
+        const details = document.createElement('details');
+        details.className = 'border-b border-line layer-item';
+        details.dataset.layerIdx = groupIdx;
+        if (groupIdx === 0) details.setAttribute('open', '');
+        details.innerHTML = `
+          <summary class="flex items-center gap-2 px-3 py-2 hover:bg-[#161619] layer-drag-handle" draggable="true">
+            <span class="text-gray-500 text-[10px] cursor-grab"><i class="fa-solid fa-grip-vertical"></i></span>
+            <span class="micro w-4 tabular text-right text-gray-500 layer-index">${groupIdx + 1}</span>
+            <span class="w-8 h-8 rounded bg-[#1e1e24] flex items-center justify-center">
+              <i class="fa-solid ${icon} text-[10px] text-gray-500"></i>
+            </span>
+            <span class="text-[12px] font-medium text-white flex-1">${layer.name} (${groupMedia.length})</span>
+            <span class="flex items-center gap-1" onclick="event.stopPropagation()">
+              <button class="icon-btn layer-lock-btn" title="Lock layer"><i class="fa-solid fa-lock-open text-[10px]"></i></button>
+              <a class="icon-btn" title="Link"><i class="fa-solid fa-link text-[10px]"></i></a>
+              <a class="icon-btn" title="Duplicate"><i class="fa-solid fa-copy text-[10px]"></i></a>
+              <a class="icon-btn" title="Delete"><i class="fa-solid fa-trash-can text-[10px]"></i></a>
+            </span>
+          </summary>
+          <div class="px-3 pb-3 space-y-2.5">
+            <div class="label mb-1">Blend</div>
+            <select class="w-full bg-panel border border-line rounded text-[11px] px-2 py-1.5 text-gray-200">
+              <option ${layer.blend === 'over' ? 'selected' : ''}>over</option>
+              <option ${layer.blend === 'overlay' ? 'selected' : ''}>overlay</option>
+              <option ${layer.blend === 'screen' ? 'selected' : ''}>screen</option>
+              <option ${layer.blend === 'multiply' ? 'selected' : ''}>multiply</option>
+            </select>
+            ${['Opacity', 'Base', 'Scale', 'Hue', 'Rot'].map((p, i) => `
+              <div><div class="flex justify-between label mb-1"><span>${p}</span><span class="tabular text-white text-[11px]">${[layer.opacity, layer.base, layer.scale, layer.hue, layer.rot][i]}</span></div>
+              <input type="range" class="swr-slider" value="${[layer.opacity, layer.base, layer.scale, layer.hue, layer.rot][i]}" min="0" max="100" /></div>
+            `).join('')}
+            <label class="flex items-center justify-between gap-2 text-[11px] text-gray-300 cursor-pointer pt-1">
+              <span><input type="checkbox" class="accent-orange mr-1" /> Auto-rotate</span>
+              <select class="text-[9px] bg-panel border border-line rounded px-1 py-0.5">
+                <option value="0.5">slow</option>
+                <option value="1" selected>normal</option>
+                <option value="2">fast</option>
+              </select>
+            </label>
+          </div>
+        `;
+        layerList.appendChild(details);
+      });
+      
+      // Send to engine (images + videos)
+      if (window.__SWR_ENGINE && window.__SWR_ENGINE.setMediaByGroup) {
+        const groupData = order.map(groupName => ({
+          name: groupName,
+          items: groups[groupName].map(f => ({ 
+            url: f.url || URL.createObjectURL(f), 
+            type: f._isVideo ? 'video' : 'image' 
+          }))
+        }));
+        window.__SWR_ENGINE.setMediaByGroup(groupData);
+      }
+      
+      console.log(`[Auto-group] Created ${order.length} layers from media`);
+      
+      // Enable drag-and-drop reordering
+      initLayerDragDrop();
+    }
+    
+    // Drag and drop for layer reordering
+    function initLayerDragDrop() {
+      const layerList = document.getElementById('layers-list');
+      if (!layerList) return;
+      
+      let draggedItem = null;
+      
+      layerList.querySelectorAll('.layer-drag-handle').forEach(handle => {
+        handle.addEventListener('dragstart', (e) => {
+          draggedItem = handle.closest('.layer-item');
+          draggedItem.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        handle.addEventListener('dragend', () => {
+          if (draggedItem) {
+            draggedItem.classList.remove('dragging');
+            draggedItem = null;
+          }
+          // Re-index all layers
+          layerList.querySelectorAll('.layer-item').forEach((item, idx) => {
+            const indexSpan = item.querySelector('.layer-index');
+            if (indexSpan) indexSpan.textContent = idx + 1;
+            item.dataset.layerIdx = idx;
+          });
+        });
+        
+        handle.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        });
+        
+        handle.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const dropTarget = handle.closest('.layer-item');
+          if (!dropTarget || !draggedItem || dropTarget === draggedItem) return;
+          
+          // Get all layer items
+          const items = [...layerList.querySelectorAll('.layer-item')];
+          const draggedIdx = items.indexOf(draggedItem);
+          const dropIdx = items.indexOf(dropTarget);
+          
+          // Reorder
+          if (draggedIdx < dropIdx) {
+            dropTarget.after(draggedItem);
+          } else {
+            dropTarget.before(draggedItem);
+          }
+        });
+      });
+    }
+    
+    // Lock toggle for layers
+    document.addEventListener('click', (e) => {
+      const lockBtn = e.target.closest('.layer-lock-btn');
+      if (!lockBtn) return;
+      
+      const layerRow = lockBtn.closest('.layer-item');
+      if (!layerRow) return;
+      
+      const isLocked = layerRow.dataset.locked === 'true';
+      layerRow.dataset.locked = (!isLocked).toString();
+      
+      const icon = lockBtn.querySelector('i');
+      if (icon) {
+        icon.className = isLocked ? 'fa-solid fa-lock-open text-[10px]' : 'fa-solid fa-lock text-[10px]';
+      }
+      lockBtn.title = isLocked ? 'Unlock layer' : 'Lock layer';
+      
+      // Visual feedback
+      layerRow.style.opacity = isLocked ? '1' : '0.6';
+      layerRow.style.pointerEvents = isLocked ? 'auto' : 'none';
+    });
+    
+    // Batch add media (photos + videos) with auto-grouping
+    function addMediaBatch(files) {
+      // Accept up to 50 videos/images
+      const mediaFiles = files.filter(f => {
+        if (!f || !f.type) return false;
+        return f.type.startsWith('image/') || f.type.startsWith('video/');
+      }).slice(0, 50); // Max 50 files
+      
+      if (!mediaFiles.length) return;
+      
+      const autoGroup = document.getElementById('photo-auto-group')?.checked ?? true;
+      
+      // Add to deck display
+      mediaFiles.forEach((file) => {
+        const url = URL.createObjectURL(file);
+        const tile = document.createElement('div');
+        tile.className = 'aspect-square bg-[#1e1e24] rounded overflow-hidden border border-line';
+        
+        if (file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = url;
+          video.muted = true;
+          video.loop = true;
+          video.play().catch(() => {});
+          video.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+          tile.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+          tile.appendChild(img);
+        }
+        
+        photoDeck.appendChild(tile);
+        photos.push({ file, url });
+      });
+      
+      if (autoGroup) {
+        // Auto-group by name pattern (now handles both images + videos)
+        const { groups, order } = groupMediaByName(mediaFiles);
+        const videoCount = mediaFiles.filter(f => f.type.startsWith('video/')).length;
+        const imgCount = mediaFiles.length - videoCount;
+        const layerCount = Math.min(order.length, MAX_LAYERS);
+        let status = '';
+        if (videoCount > 0 && imgCount > 0) {
+          status = `${imgCount} img, ${videoCount} vid → ${layerCount} layer${layerCount !== 1 ? 's' : ''}`;
+        } else if (videoCount > 0) {
+          status = `${videoCount} videos → ${layerCount} layer${layerCount !== 1 ? 's' : ''}`;
+        } else {
+          status = `${mediaFiles.length} photos → ${layerCount} layer${layerCount !== 1 ? 's' : ''}`;
+        }
+        photoStatus.textContent = status;
+        // Create layers from groups
+        createLayersFromGroups(groups, order);
+      } else {
+        // Single layer for all (but still limited to MAX_LAYERS visually)
+        const singleGroup = { all: mediaFiles.slice(0, 50) };
+        photoStatus.textContent = `${mediaFiles.length} media → 1 layer`;
+        createLayersFromGroups(singleGroup, ['all']);
       }
     }
+    
+    function addPhoto(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      addPhotosBatch([file]);
+    }
+    
     if (photoDrop && photoFile) {
       photoDrop.addEventListener('click', () => photoFile.click());
       photoFile.addEventListener('change', (e) => {
-        Array.from(e.target.files || []).forEach(addPhoto);
+        addPhotosBatch(Array.from(e.target.files || []));
         photoFile.value = '';
       });
       ['dragenter', 'dragover'].forEach((evt) =>
@@ -1065,7 +1327,7 @@
         photoDrop.addEventListener(evt, (e) => { e.preventDefault(); photoDrop.classList.remove('border-orange'); })
       );
       photoDrop.addEventListener('drop', (e) => {
-        Array.from(e.dataTransfer.files || []).forEach(addPhoto);
+        addPhotosBatch(Array.from(e.dataTransfer.files || []));
       });
     }
     // "Advance on beat" (checked by default) — applies the deck's initial
@@ -1170,6 +1432,10 @@
   <script src="/client/mood.client.js"></script>
   <script src="/client/scenes.client.js"></script>
   <script src="/client/dashboard-engine-bridge.client.js"></script>
+  <!-- Google Drive integration -->
+  <script src="/lib/google-drive.client.js"></script>
+  <script src="/lib/drive-modal.client.js" defer></script>
+  <script src="/api/auth/session.js"></script>
 
   <!-- Phase 3 → Phase 4 dashboard integration: the runtimes are now
        interactable. The dashboard-engine-bridge feeds dashboard's
@@ -1427,6 +1693,71 @@
     });
   })();
   </script>
+  
+  <!-- Google Drive button handler with authentication -->
+  <script>
+  (function() {
+    var driveBtn = document.getElementById('swr-drive-btn');
+    if (!driveBtn) return;
+
+    function getDriveState() {
+      return window.SWR_AUTH ? window.SWR_AUTH.get() : Promise.resolve(null);
+    }
+
+    function updateBtnState(user) {
+      if (!user) {
+        driveBtn.title = 'Sign in to import from Google Drive';
+        driveBtn.style.opacity = '0.4';
+      } else if (!user.googleDriveLinkedAt) {
+        driveBtn.title = 'Connect Google Drive to import files';
+        driveBtn.style.opacity = '0.7';
+      } else {
+        driveBtn.title = 'Import from Google Drive';
+        driveBtn.style.opacity = '1';
+      }
+    }
+
+    // Check session and listen for auth changes
+    if (window.SWR_AUTH) {
+      getDriveState().then(updateBtnState);
+      window.SWR_AUTH.onChange(updateBtnState);
+    } else {
+      driveBtn.title = 'Sign in to import from Google Drive';
+      driveBtn.style.opacity = '0.4';
+    }
+
+    driveBtn.addEventListener('click', function() {
+      getDriveState().then(function(user) {
+        if (!user) {
+          // Not logged in → redirect to login with return path
+          var returnTo = encodeURIComponent(location.pathname);
+          location.href = '/auth/login?redirect=' + returnTo;
+          return;
+        }
+        if (!user.googleDriveLinkedAt) {
+          // Drive not linked → initiate OAuth in popup
+          if (window.SWR_GDRIVE) {
+            window.SWR_GDRIVE.link(location.pathname)
+              .then(function() { 
+                updateBtnState(Object.assign({}, user, { googleDriveLinkedAt: new Date().toISOString() })); 
+              })
+              .catch(function(e) {
+                if (e.message !== 'popup_blocked' && e.message !== 'oauth_timeout') {
+                  console.warn('[drive] link error:', e);
+                }
+              });
+          }
+          return;
+        }
+        // Drive linked → open modal
+        if (window.SWR_DRIVE_MODAL && window.SWR_DRIVE_MODAL.open) {
+          window.SWR_DRIVE_MODAL.open();
+        }
+      });
+    });
+  })();
+  </script>
+  
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
 </body>
