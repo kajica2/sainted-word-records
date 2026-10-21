@@ -8,6 +8,15 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- A video song becomes a layer, in sync with the audio. Load a video file
+  as the song and its picture joins the stage automatically: the layer
+  shares the song's **own** `<video>` element rather than a second one, so
+  play, pause, seek and rate move the picture and the sound together —
+  the sync is structural, not corrected frame by frame, and an exported
+  music video cannot drift from its track. The layer is left out of saved
+  compositions (the song's own restore path brings it back), and the
+  engine's renderer no longer drives the element, so nothing can restart
+  the song from zero mid-playback.
 - The store — one data file (`site-map.json` → `store`) drives the whole
   storefront. `lib/store.client.js` paints the download catalogue into any
   `[data-store]` container (the marketplace lists the products itself — add

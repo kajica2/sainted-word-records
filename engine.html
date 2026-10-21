@@ -3964,6 +3964,10 @@
   <script src="/lib/swr-life.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
+  <!-- A video loaded as the song becomes a layer, sharing the song's own
+       <video> element so the picture and the sound cannot drift apart
+       (see lib/song-video-layer.client.js). -->
+  <script src="/lib/song-video-layer.client.js" defer></script>
   <script src="/client/layer-strip.client.js" defer></script>
   <script src="/client/library-sheet.client.js" defer></script>
   <script src="/client/layer-audio-algos.client.js" defer></script>
@@ -5099,17 +5103,24 @@
           // Video with a blob URL: drive playback from main audio play state.
           // Camera: srcObject drives its own playback (autoplay); don't pause it.
           if (a.type === 'video') {
-            // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
-            // lib/video-sync.client.js) does not trust `paused`: a video
-            // paused while it is still loading has its media pipeline
-            // suspended — the element drops back to readyState 1 and stops
-            // fetching — and while a play() promise is pending `paused`
-            // stays true, so the next frame calls play() again and a second
-            // play() on a pending element resets it to readyState 1. Either
-            // way the element sits at readyState 1, the draw gate below
-            // (readyState < 2) skips the layer, and the clip never reaches
-            // the stage.
-            if (window.SWR_VIDEO_SYNC) {
+            if (a.songBound) {
+              // The song's own element (lib/song-video-layer.client.js).
+              // The transport already drives it — Audio.play / pause / seek
+              // all act on this very element — so the picture and the sound
+              // are one clock and cannot drift. SWR_VIDEO_SYNC must not
+              // touch it: its stalled-element recovery calls el.load(),
+              // which would restart the song from zero.
+            } else if (window.SWR_VIDEO_SYNC) {
+              // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
+              // lib/video-sync.client.js) does not trust `paused`: a video
+              // paused while it is still loading has its media pipeline
+              // suspended — the element drops back to readyState 1 and stops
+              // fetching — and while a play() promise is pending `paused`
+              // stays true, so the next frame calls play() again and a second
+              // play() on a pending element resets it to readyState 1. Either
+              // way the element sits at readyState 1, the draw gate below
+              // (readyState < 2) skips the layer, and the clip never reaches
+              // the stage.
               window.SWR_VIDEO_SYNC(src, Audio.playing);
             } else {
               if (Audio.playing && src.paused) src.play().catch(()=>{});

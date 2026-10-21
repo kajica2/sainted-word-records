@@ -110,6 +110,12 @@ const GROUPS = {
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
+    // A video loaded as the song becomes a layer that shares the song's own
+    // <video> element, so the picture and the sound are one clock. The unit
+    // pins the module's decisions (a video song adds one songBound layer
+    // bound to the song's element, an audio song adds none, a new song
+    // replaces the old one, the song-loaded seam chains).
+    'npm run check:song-video-layer-unit',
     // These were reachable from NO gate: six `check:*` unit suites plus
     // check:unit's four members (check:unit itself is a `&&` chain, so its
     // members are listed individually here — same short-circuit reasoning as
@@ -266,6 +272,11 @@ const GROUPS = {
     // the group header, hide/collapse/ungroup, and the proof that a hidden
     // member stops drawing on the stage. Needs a built dist/ (ensureDist).
     'npm run check:layer-groups-smoke',
+    // A video song on the real stage: the song's own <video> element becomes
+    // a layer, the stage canvas draws it, the shared element advances with
+    // the sound, a seek moves the picture with it, and the renderer never
+    // re-loads the element. Needs a built dist/ (ensureDist).
+    'npm run check:song-video-layer-smoke',
     // The auto-post feed in a real browser: the changelog and the
     // marketplace paint the posts, and the footer's "New — …" link reaches
     // every page that mounts <swr-footer>. Needs a built dist/.

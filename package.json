@@ -45,6 +45,8 @@
     "check:layer-retire-unit": "node scripts/check-layer-retire-unit.mjs",
     "check:layer-groups-unit": "node scripts/check-layer-groups-unit.mjs",
     "check:layer-groups-smoke": "node scripts/check-layer-groups-smoke.mjs",
+    "check:song-video-layer-unit": "node scripts/check-song-video-layer-unit.mjs",
+    "check:song-video-layer-smoke": "node scripts/check-song-video-layer-smoke.mjs",
     "check:announcements-unit": "node scripts/check-announcements-unit.mjs",
     "check:store-unit": "node scripts/check-store-unit.mjs",
     "store:build": "node scripts/build-store-downloads.mjs",
