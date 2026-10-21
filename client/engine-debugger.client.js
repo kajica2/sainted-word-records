@@ -292,19 +292,38 @@
     var A = window.SWR && window.SWR.Audio;
     if (!A || !A.feat) return;
     state.feat = A.feat;
-    var h = {
-      t: now(),
-      bass: A.feat.bass,
-      mid: A.feat.mid,
-      treble: A.feat.treble,
-      air: A.feat.air,
-      rms: A.feat.rms,
-      beat: A.feat.beat,
-      onset: A.feat.onset,
-      bpm: A.feat.bpm,
-    };
-    state.history.push(h);
-    if (state.history.length > HISTORY_MAX) state.history.shift();
+    // A pre-allocated ring buffer: this runs every frame, and allocating
+    // a fresh sample object each time is pure GC pressure for no benefit.
+    if (!state.historyBuf) {
+      state.historyBuf = [];
+      for (var i = 0; i < HISTORY_MAX; i++) {
+        state.historyBuf.push({ t: 0, bass: 0, mid: 0, treble: 0, air: 0, rms: 0, beat: 0, onset: 0, bpm: 0 });
+      }
+      state.historyLen = 0;
+    }
+    var slot = state.historyBuf[state.historyLen % HISTORY_MAX];
+    slot.t = now();
+    slot.bass = A.feat.bass;
+    slot.mid = A.feat.mid;
+    slot.treble = A.feat.treble;
+    slot.air = A.feat.air;
+    slot.rms = A.feat.rms;
+    slot.beat = A.feat.beat;
+    slot.onset = A.feat.onset;
+    slot.bpm = A.feat.bpm;
+    state.historyLen++;
+  }
+
+  // The recorded samples, oldest first.
+  function historyArray() {
+    if (!state.historyBuf) return [];
+    var count = Math.min(state.historyLen, HISTORY_MAX);
+    var out = [];
+    var start = state.historyLen - count;
+    for (var i = 0; i < count; i++) {
+      out.push(state.historyBuf[(start + i) % HISTORY_MAX]);
+    }
+    return out;
   }
 
   function samplePerf(dt) {
@@ -537,20 +556,24 @@
     return root;
   }
 
-  // The stage overlay: a transparent canvas drawn on top of the engine's
-  // own canvas, showing where each layer actually lands. This is the
-  // "visual" in visual debugger — the side panel explains, this shows.
+  // The stage overlay: a set of absolutely positioned boxes drawn over
+  // the engine's own canvas, showing where each layer actually lands.
+  // This is the "visual" in visual debugger — the side panel explains,
+  // this shows.
+  //
+  // Boxes rather than a canvas: a full-stage canvas overlay adds a
+  // composited layer the browser must blend on every frame, which
+  // measurably costs the host page. A handful of thin borders does not.
   function buildStageOverlay() {
     var stage = window.SWR && window.SWR.stage;
     var host = stage && stage.parentElement;
     if (!host) return;
-    var c = document.createElement('canvas');
-    c.id = 'swr-debugger-stage';
-    c.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;' +
-      'pointer-events:none;z-index:4;';
-    host.appendChild(c);
-    state.stage.canvas = c;
-    state.stage.ctx = c.getContext('2d');
+    var wrap = document.createElement('div');
+    wrap.id = 'swr-debugger-stage';
+    wrap.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;' +
+      'pointer-events:none;z-index:4;overflow:hidden;';
+    host.appendChild(wrap);
+    state.stage.canvas = wrap;
     state.stage.host = host;
   }
 
@@ -559,7 +582,6 @@
       state.stage.canvas.parentNode.removeChild(state.stage.canvas);
     }
     state.stage.canvas = null;
-    state.stage.ctx = null;
   }
 
   // ── painting ───────────────────────────────────────────────────────────
@@ -682,43 +704,56 @@
   var LAYER_COLORS = ['#ff2d8a', '#00f0ff', '#fff04a', '#00ffa3'];
 
   function paintGeometry() {
-    var c = state.stage.canvas;
-    var g = state.stage.ctx;
-    if (!c || !g) return;
+    var wrap = state.stage.canvas;
+    if (!wrap) return;
     var size = engineSize();
     if (!size) return;
-    var stage = size.stage;
-
-    if (c.width !== stage.width || c.height !== stage.height) {
-      c.width = stage.width;
-      c.height = stage.height;
-    }
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.clearRect(0, 0, c.width, c.height);
-    g.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
 
     var entries = layerEntries();
     var note = state.dom['layer-geometry'] && state.dom['layer-geometry'].note;
     if (note) note.style.display = entries.length ? 'none' : '';
 
+    // Reuse the boxes; only add or remove when the stack changes.
+    var boxes = state.stage.boxes || (state.stage.boxes = []);
+    while (boxes.length > entries.length) {
+      var extra = boxes.pop();
+      if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
+    }
+
     entries.forEach(function (e, i) {
       var q = layerQuad(e, size.W, size.H);
       if (!q) return;
+      var box = boxes[i];
+      if (!box) {
+        box = document.createElement('div');
+        box.style.cssText = 'position:absolute;left:0;top:0;border:1px solid currentColor;' +
+          'transform-origin:0 0;will-change:transform;';
+        wrap.appendChild(box);
+        boxes[i] = box;
+      }
       var color = LAYER_COLORS[i % LAYER_COLORS.length];
-      g.beginPath();
-      g.moveTo(q.quad[0][0], q.quad[0][1]);
-      for (var k = 1; k < q.quad.length; k++) g.lineTo(q.quad[k][0], q.quad[k][1]);
-      g.closePath();
-      g.strokeStyle = color;
-      g.globalAlpha = 0.85;
-      g.lineWidth = 1;
-      g.stroke();
-      g.globalAlpha = 1;
-
-      var anchor = q.quad[0];
-      g.fillStyle = color;
-      g.font = '9px ui-monospace, monospace';
-      g.fillText('L' + (i + 1), anchor[0] + 3, anchor[1] + 11);
+      var ax = q.quad[1][0] - q.quad[0][0];
+      var ay = q.quad[1][1] - q.quad[0][1];
+      var bx = q.quad[3][0] - q.quad[0][0];
+      var by = q.quad[3][1] - q.quad[0][1];
+      var w = Math.hypot(ax, ay);
+      var h = Math.hypot(bx, by);
+      var ang = Math.atan2(ay, ax);
+      var cx = (q.quad[0][0] + q.quad[2][0]) / 2;
+      var cy = (q.quad[0][1] + q.quad[2][1]) / 2;
+      box.style.color = color;
+      box.style.width = w + 'px';
+      box.style.height = h + 'px';
+      box.style.transform = 'translate(' + (cx - w / 2) + 'px,' + (cy - h / 2) + 'px) rotate(' + ang + 'rad)';
+      if (box.getAttribute('data-layer') !== e.id) {
+        box.setAttribute('data-layer', e.id);
+        box.setAttribute('data-label', 'L' + (i + 1));
+        box.textContent = '';
+        var tag = document.createElement('span');
+        tag.textContent = 'L' + (i + 1);
+        tag.style.cssText = 'position:absolute;left:2px;top:0;font:9px ui-monospace,monospace;color:' + color;
+        box.appendChild(tag);
+      }
     });
   }
 
@@ -726,43 +761,48 @@
     var d = state.dom['drift-readout'];
     if (!d) return;
     var entries = layerEntries();
-    d.body.innerHTML = '';
-    if (!entries.length) {
-      d.body.appendChild(el('div', 'empty', 'no layers'));
-      return;
+
+    if (d.items.length !== entries.length) {
+      d.body.innerHTML = '';
+      d.items = [];
+      entries.forEach(function (e, i) {
+        var row = el('div');
+        row.style.margin = '4px 0';
+
+        var a = el('div', 'row');
+        a.appendChild(el('span', 'k', 'L' + (i + 1) + ' res'));
+        var av = el('span', 'v');
+        av.style.width = 'auto';
+        av.style.flex = '1';
+        av.style.textAlign = 'left';
+        a.appendChild(av);
+
+        var b = el('div', 'row');
+        b.appendChild(el('span', 'k', 'drawn'));
+        var bv = el('span', 'v');
+        bv.style.width = 'auto';
+        bv.style.flex = '1';
+        bv.style.textAlign = 'left';
+        bv.style.color = '#00f0ff';
+        b.appendChild(bv);
+
+        row.appendChild(a);
+        row.appendChild(b);
+        d.body.appendChild(row);
+        d.items.push({ res: av, drawn: bv });
+      });
     }
+
     entries.forEach(function (e, i) {
-      var rec = state.drawsByLayer[e.id];
+      var slot = d.items[i];
+      if (!slot) return;
       var r = e.resolved || {};
-      var row = el('div');
-      row.style.margin = '4px 0';
-
-      var a = el('div', 'row');
-      a.appendChild(el('span', 'k', 'L' + (i + 1) + ' res'));
-      var av = el('span', 'v');
-      av.style.width = 'auto';
-      av.style.flex = '1';
-      av.style.textAlign = 'left';
-      av.textContent = 'sc ' + num(r.scale, 2) + '  x ' + num(r.x, 1) + '  y ' + num(r.y, 1);
-      a.appendChild(av);
-      row.appendChild(a);
-
-      var b = el('div', 'row');
-      b.appendChild(el('span', 'k', 'drawn'));
-      var bv = el('span', 'v');
-      bv.style.width = 'auto';
-      bv.style.flex = '1';
-      bv.style.textAlign = 'left';
-      bv.style.color = '#00f0ff';
-      if (rec) {
-        bv.textContent = 'x ' + num(rec.ox, 1) + '  y ' + num(rec.oy, 1) +
-          '  ' + Math.round(rec.w) + '×' + Math.round(rec.h);
-      } else {
-        bv.textContent = 'not drawn yet';
-      }
-      b.appendChild(bv);
-      row.appendChild(b);
-      d.body.appendChild(row);
+      var rec = state.drawsByLayer[e.id];
+      slot.res.textContent = 'sc ' + num(r.scale, 2) + '  x ' + num(r.x, 1) + '  y ' + num(r.y, 1);
+      slot.drawn.textContent = rec
+        ? 'x ' + num(rec.ox, 1) + '  y ' + num(rec.oy, 1) +
+          '  ' + Math.round(rec.w) + '×' + Math.round(rec.h)
+        : 'not drawn yet';
     });
   }
 
@@ -776,7 +816,7 @@
     g.fillStyle = '#05030a';
     g.fillRect(0, 0, w, h);
 
-    var hist = state.history;
+    var hist = historyArray();
     if (hist.length < 2) return;
     var n = hist.length;
     var step = w / Math.max(1, HISTORY_MAX - 1);
@@ -825,27 +865,41 @@
     });
 
     // Transform grid — one row per layer, resolved values with the drawn
-    // value in parentheses when the page's draw path reports one.
-    tfDom.body.innerHTML = '';
-    if (!entries.length) {
-      tfDom.body.appendChild(el('div', 'empty', 'no layers'));
+    // value in parentheses when the page's draw path reports one. The
+    // rows are built once and updated in place; rebuilding them on every
+    // repaint is the single most expensive thing this panel could do.
+    var tf = tfDom;
+    if (tf.items.length !== entries.length) {
+      tf.body.innerHTML = '';
+      tf.items = [];
+      entries.forEach(function (e, i) {
+        var row = el('div', 'row');
+        row.appendChild(el('span', 'k', 'L' + (i + 1)));
+        var grid = el('div', 'grid');
+        grid.style.flex = '1';
+        var cells = {};
+        FIELDS.forEach(function (fld) {
+          var cell = el('div');
+          cell.appendChild(el('span', null, fld.label));
+          var b = el('b', null, '—');
+          b.setAttribute('data-field', fld.key);
+          b.setAttribute('data-layer', e.id);
+          cell.appendChild(b);
+          grid.appendChild(cell);
+          cells[fld.key] = b;
+        });
+        row.appendChild(grid);
+        tf.body.appendChild(row);
+        tf.items.push({ row: row, cells: cells });
+      });
     }
     entries.forEach(function (e, i) {
-      var row = el('div', 'row');
-      row.appendChild(el('span', 'k', 'L' + (i + 1)));
-      var grid = el('div', 'grid');
-      grid.style.flex = '1';
+      var slot = tf.items[i];
+      if (!slot) return;
       FIELDS.forEach(function (fld) {
-        var cell = el('div');
-        cell.appendChild(el('span', null, fld.label));
-        var b = el('b', null, num(e.resolved[fld.key], 2));
-        b.setAttribute('data-field', fld.key);
-        b.setAttribute('data-layer', e.id);
-        cell.appendChild(b);
-        grid.appendChild(cell);
+        var b = slot.cells[fld.key];
+        if (b) b.textContent = num(e.resolved[fld.key], 2);
       });
-      row.appendChild(grid);
-      tfDom.body.appendChild(row);
     });
 
     // Reactors — the wiring plus the live feature that drives it.
@@ -929,7 +983,7 @@
     g.fillStyle = '#05030a';
     g.fillRect(0, 0, w, h);
 
-    var hist = state.history;
+    var hist = historyArray();
     if (hist.length < 2) return;
 
     var series = [
@@ -1086,7 +1140,7 @@
 
     history: function (n) {
       n = n || HISTORY_MAX;
-      return state.history.slice(-n);
+      return historyArray().slice(-n);
     },
   };
 
