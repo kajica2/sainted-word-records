@@ -240,34 +240,45 @@ const PROBE_SRC = `
 })()
 `;
 
-// Seed a synthetic media layer so the layer-facing surfaces have real
+// Seed synthetic media layers so the layer-facing surfaces have real
 // content to show, independent of whatever library the page ships.
+// Several layers, so the overlay's per-layer rows and the stage geometry
+// are exercised with a real stack rather than a single element.
 const SEED_SRC = `
 (async () => {
   const S = window.SWR;
   if (!S || !S.Library || !S.Layers) return { ok: false, reason: 'SWR API missing' };
 
-  const c = document.createElement('canvas');
-  c.width = 512; c.height = 512;
-  const g = c.getContext('2d');
-  const grad = g.createLinearGradient(0, 0, 512, 512);
-  grad.addColorStop(0, '#ff2d8a');
-  grad.addColorStop(0.5, '#00f0ff');
-  grad.addColorStop(1, '#fff04a');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 512, 512);
-  g.fillStyle = '#05030a';
-  g.beginPath(); g.arc(256, 256, 120, 0, Math.PI * 2); g.fill();
+  function makeCanvas(hue, label) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, hue);
+    grad.addColorStop(0.5, '#00f0ff');
+    grad.addColorStop(1, '#fff04a');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 512, 512);
+    g.fillStyle = '#05030a';
+    g.beginPath(); g.arc(256, 256, 110, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f5e9ff';
+    g.font = 'bold 42px monospace';
+    g.textAlign = 'center';
+    g.fillText(label, 256, 272);
+    return c;
+  }
 
-  const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
-  const file = new File([blob], 'probe-seed.png', { type: 'image/png' });
+  const hues = ['#ff2d8a', '#00f0ff', '#fff04a', '#00ffa3', '#ff2d8a', '#00f0ff'];
+  for (let i = 0; i < hues.length; i++) {
+    const c = makeCanvas(hues[i], String(i + 1));
+    const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+    const file = new File([blob], 'probe-seed-' + (i + 1) + '.png', { type: 'image/png' });
+    await S.Library.addFiles([file]);
+    const asset = S.Library.items[S.Library.items.length - 1];
+    if (asset) S.Layers.add(asset);
+  }
 
-  await S.Library.addFiles([file]);
-  const asset = S.Library.items[S.Library.items.length - 1];
-  if (!asset) return { ok: false, reason: 'addFiles produced no asset' };
-
-  S.Layers.add(asset);
-  return { ok: true, layers: S.Layers.list.length, asset: asset.name };
+  return { ok: true, layers: S.Layers.list.length, assets: S.Library.items.length };
 })()
 `;
 
@@ -321,6 +332,26 @@ const COVERAGE_SRC = `
     if (k.length > 3 && k.slice(0, 3) === 'SWR' && k !== 'SWR_DEBUGGER') realCount++;
   }
   out['module-list'] = { ok: modCount > 0 && modCount === realCount, n: modCount, real: realCount };
+
+  // The stage overlay must exist over the engine canvas and carry a
+  // computed quad for every layer it is drawing.
+  const stageCanvas = document.getElementById('swr-debugger-stage');
+  const snap = window.SWR_DEBUGGER ? window.SWR_DEBUGGER.snapshot() : null;
+  const quadLayers = snap ? snap.layers.filter((l) => l.quad && l.quad.length === 4).length : 0;
+  out['layer-geometry'] = {
+    ok: !!stageCanvas && stageCanvas.width > 0 && quadLayers >= 1,
+    n: quadLayers,
+    canvas: stageCanvas ? stageCanvas.width : 0,
+  };
+
+  out['drift-readout'] = {
+    ok: root.querySelectorAll('[data-surface="drift-readout"] b[data-drift]').length >= 4,
+    n: root.querySelectorAll('[data-surface="drift-readout"] b[data-drift]').length,
+  };
+
+  const strip = root.querySelector('[data-surface="beat-strip"] canvas');
+  const histLen = window.SWR_DEBUGGER ? window.SWR_DEBUGGER.history(8).length : 0;
+  out['beat-strip'] = { ok: !!strip && strip.width > 0 && histLen >= 2, n: histLen };
 
   const total = Object.keys(out).length;
   const passing = Object.values(out).filter((v) => v.ok).length;

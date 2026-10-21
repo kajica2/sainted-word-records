@@ -56,6 +56,9 @@
     'perf-stats',
     'master-states',
     'module-list',
+    'layer-geometry',
+    'drift-readout',
+    'beat-strip',
   ];
 
   // Transform fields worth surfacing, with the short labels the engine's
@@ -94,6 +97,7 @@
     lastScope: 0,
     painted: null,
     dom: {},
+    stage: { canvas: null, ctx: null, host: null },
     unwrap: [],
     _fpsAcc: [],
   };
@@ -148,7 +152,7 @@
 
         var recording = function (l) {
           var r = applyR(l);
-          captured.push({ id: l.id, name: l.asset ? l.asset.name : '(empty)', r: r });
+          captured.push({ id: l.id, name: l.asset ? l.asset.name : '(empty)', asset: l.asset, r: r });
           return r;
         };
 
@@ -428,8 +432,53 @@
     modsBody.appendChild(mods);
     state.dom['module-list'].wrap = mods;
 
+    // GEOMETRY — the overlay drawn on the stage itself
+    var geoBody = section('layer-geometry', 'Geometry');
+    var geoNote = el('div', 'empty', 'no layers');
+    geoBody.appendChild(geoNote);
+    state.dom['layer-geometry'].note = geoNote;
+
+    // DRIFT — resolved transform vs the transform actually drawn
+    var driftBody = section('drift-readout', 'Drift');
+    state.dom['drift-readout'].items = [];
+
+    // BEAT STRIP
+    var stripBody = section('beat-strip', 'Rhythm');
+    var strip = document.createElement('canvas');
+    strip.width = 620;
+    strip.height = 40;
+    stripBody.appendChild(strip);
+    state.dom['beat-strip'].canvas = strip;
+    state.dom['beat-strip'].ctx = strip.getContext('2d');
+
     document.body.appendChild(root);
+    buildStageOverlay();
     return root;
+  }
+
+  // The stage overlay: a transparent canvas drawn on top of the engine's
+  // own canvas, showing where each layer actually lands. This is the
+  // "visual" in visual debugger — the side panel explains, this shows.
+  function buildStageOverlay() {
+    var stage = window.SWR && window.SWR.stage;
+    var host = stage && stage.parentElement;
+    if (!host) return;
+    var c = document.createElement('canvas');
+    c.id = 'swr-debugger-stage';
+    c.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;' +
+      'pointer-events:none;z-index:4;';
+    host.appendChild(c);
+    state.stage.canvas = c;
+    state.stage.ctx = c.getContext('2d');
+    state.stage.host = host;
+  }
+
+  function destroyStageOverlay() {
+    if (state.stage.canvas && state.stage.canvas.parentNode) {
+      state.stage.canvas.parentNode.removeChild(state.stage.canvas);
+    }
+    state.stage.canvas = null;
+    state.stage.ctx = null;
   }
 
   // ── painting ───────────────────────────────────────────────────────────
@@ -466,8 +515,169 @@
     var drawn = frame.drawn || {};
     return frame.layers.map(function (c) {
       var d = drawn[c.id];
-      return { id: c.id, name: c.name, resolved: c.r || {}, drawn: d || null };
+      return { id: c.id, name: c.name, asset: c.asset, resolved: c.r || {}, drawn: d || null };
     });
+  }
+
+  // The engine's CSS drawing dimensions. SWR_RENDER.fit() is the only
+  // authority on these (it applies the 640×360 floor and the DPR cap),
+  // so the debugger asks rather than re-deriving.
+  function engineSize() {
+    var stage = window.SWR && window.SWR.stage;
+    if (!stage) return null;
+    if (window.SWR_RENDER && window.SWR_RENDER.fit) {
+      var f = window.SWR_RENDER.fit(stage);
+      return { W: f.cssW, H: f.cssH, dpr: f.dpr, stage: stage };
+    }
+    return {
+      W: Math.max(640, Math.round(stage.clientWidth)),
+      H: Math.max(360, Math.round(stage.clientHeight)),
+      dpr: window.devicePixelRatio || 1,
+      stage: stage,
+    };
+  }
+
+  // Where a layer lands on the stage, in CSS pixels.
+  //
+  // This mirrors the engine's draw path: a cover-fit of the asset's
+  // aspect ratio at the layer's scale, centred on the stage and offset
+  // by the transform's x/y — EXCEPT when the layer is rotated, where the
+  // engine rotates about the stage centre and drops the x/y offset
+  // entirely. That asymmetry is worth seeing, so the overlay reproduces
+  // it rather than hiding it.
+  function layerQuad(entry, W, H) {
+    var r = entry.drawn || entry.resolved;
+    if (!r) return null;
+    var scale = r.scale || 1;
+    var ar = 1;
+    var a = entry.asset;
+    if (a) {
+      var sw = a.w || (a._el && a._el.naturalWidth) || (a._el && a._el.videoWidth) || 0;
+      var sh = a.h || (a._el && a._el.naturalHeight) || (a._el && a._el.videoHeight) || 0;
+      if (sw && sh) ar = sw / sh;
+    }
+    var car = W / H;
+    var dw, dh;
+    if (ar > car) { dh = H * scale; dw = dh * ar; } else { dw = W * scale; dh = dw / ar; }
+    var rot = r.rot || 0;
+    if (Math.abs(rot) > 0.5) {
+      var rad = rot * Math.PI / 180;
+      var cos = Math.cos(rad), sin = Math.sin(rad);
+      var cx = W / 2, cy = H / 2;
+      var quad = [[-dw / 2, -dh / 2], [dw / 2, -dh / 2], [dw / 2, dh / 2], [-dw / 2, dh / 2]].map(function (p) {
+        return [cx + p[0] * cos - p[1] * sin, cy + p[0] * sin + p[1] * cos];
+      });
+      return { quad: quad, w: dw, h: dh, rot: rot, centered: true };
+    }
+    var dx = (W - dw) / 2 + (r.x || 0);
+    var dy = (H - dh) / 2 + (r.y || 0);
+    return {
+      quad: [[dx, dy], [dx + dw, dy], [dx + dw, dy + dh], [dx, dy + dh]],
+      w: dw, h: dh, rot: 0, centered: false,
+    };
+  }
+
+  var LAYER_COLORS = ['#ff2d8a', '#00f0ff', '#fff04a', '#00ffa3'];
+
+  function paintGeometry() {
+    var c = state.stage.canvas;
+    var g = state.stage.ctx;
+    if (!c || !g) return;
+    var size = engineSize();
+    if (!size) return;
+    var stage = size.stage;
+
+    if (c.width !== stage.width || c.height !== stage.height) {
+      c.width = stage.width;
+      c.height = stage.height;
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, c.width, c.height);
+    g.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
+
+    var entries = layerEntries();
+    var note = state.dom['layer-geometry'] && state.dom['layer-geometry'].note;
+    if (note) note.style.display = entries.length ? 'none' : '';
+
+    entries.forEach(function (e, i) {
+      var q = layerQuad(e, size.W, size.H);
+      if (!q) return;
+      var color = LAYER_COLORS[i % LAYER_COLORS.length];
+      g.beginPath();
+      g.moveTo(q.quad[0][0], q.quad[0][1]);
+      for (var k = 1; k < q.quad.length; k++) g.lineTo(q.quad[k][0], q.quad[k][1]);
+      g.closePath();
+      g.strokeStyle = color;
+      g.globalAlpha = 0.85;
+      g.lineWidth = 1;
+      g.stroke();
+      g.globalAlpha = 1;
+
+      var anchor = q.quad[0];
+      g.fillStyle = color;
+      g.font = '9px ui-monospace, monospace';
+      g.fillText('L' + (i + 1), anchor[0] + 3, anchor[1] + 11);
+    });
+  }
+
+  function paintDrift() {
+    var d = state.dom['drift-readout'];
+    if (!d) return;
+    var entries = layerEntries();
+    d.body.innerHTML = '';
+    if (!entries.length) {
+      d.body.appendChild(el('div', 'empty', 'no layers'));
+      return;
+    }
+    entries.forEach(function (e, i) {
+      if (!e.drawn) return;
+      var r = e.resolved || {};
+      var dr = e.drawn || {};
+      var row = el('div', 'row');
+      row.appendChild(el('span', 'k', 'L' + (i + 1)));
+      var grid = el('div', 'grid');
+      grid.style.flex = '1';
+      [['sc', r.scale, dr.scale], ['x', r.x, dr.x], ['y', r.y, dr.y], ['rt', r.rot, dr.rot]].forEach(function (f) {
+        var cell = el('div');
+        cell.appendChild(el('span', null, f[0]));
+        var b = el('b', null, num(f[2], 2));
+        b.setAttribute('data-drift', f[0]);
+        b.setAttribute('data-layer', e.id);
+        cell.appendChild(b);
+        grid.appendChild(cell);
+      });
+      row.appendChild(grid);
+      d.body.appendChild(row);
+    });
+  }
+
+  function paintBeatStrip() {
+    var d = state.dom['beat-strip'];
+    if (!d || !d.ctx) return;
+    var g = d.ctx;
+    var w = d.canvas.width;
+    var h = d.canvas.height;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = '#05030a';
+    g.fillRect(0, 0, w, h);
+
+    var hist = state.history;
+    if (hist.length < 2) return;
+    var n = hist.length;
+    var step = w / Math.max(1, HISTORY_MAX - 1);
+    var x0 = w - (n - 1) * step;
+
+    for (var i = 0; i < n; i++) {
+      var x = x0 + i * step;
+      if (hist[i].onset > 0.6) {
+        g.fillStyle = '#00f0ff';
+        g.fillRect(x, 0, 1, 8);
+      }
+      if (hist[i].beat > 0.6) {
+        g.fillStyle = '#ff2d8a';
+        g.fillRect(x, h - 8, 1, 8);
+      }
+    }
   }
 
   function paintLayers() {
@@ -644,6 +854,8 @@
     paintPerf();
     paintMasters();
     paintModules();
+    paintDrift();
+    paintGeometry();
     // Capture what was just painted. The overlay repaints on a timer, so
     // the live snapshot and the painted DOM are necessarily a few frames
     // apart — this records the painted state so a probe can compare the
@@ -678,18 +890,27 @@
   // The live engine state as of the last observed frame.
   function snapshotNow() {
     var frame = state.lastFrame;
+    var size = engineSize();
     return {
       version: VERSION,
       mounted: state.mounted,
       frameIndex: state.frameIndex,
       perf: { fps: state.perf.fps, dpr: state.perf.dpr },
       feat: state.feat,
+      size: size ? { W: size.W, H: size.H, dpr: size.dpr } : null,
       layers: layerEntries().map(function (e) {
+        var el = e.asset && e.asset._el;
+        var q = size ? layerQuad(e, size.W, size.H) : null;
         return {
           id: e.id,
           name: e.name,
           resolved: e.resolved,
           drawn: e.drawn,
+          // A stable key for the element the layer actually draws, so a
+          // probe can match a real draw call to this layer.
+          elKey: el ? el.tagName + '#' + String(el.src || '').slice(-24) : '',
+          quad: q ? q.quad : null,
+          quadSize: q ? { w: q.w, h: q.h, rot: q.rot, centered: q.centered } : null,
         };
       }),
     };
@@ -717,6 +938,7 @@
       if (!state.mounted) return api;
       state.mounted = false;
       uninstrument();
+      destroyStageOverlay();
       var root = $('swr-debugger');
       if (root && root.parentNode) root.parentNode.removeChild(root);
       var style = $('swr-debugger-style');
