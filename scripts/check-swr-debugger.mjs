@@ -39,6 +39,10 @@ const ROOT = resolve(HERE, '..');
 const DEBUGGER_SRC = join(ROOT, 'client', 'engine-debugger.client.js');
 
 const DEFAULT_TARGET = 'https://sainted-word-records.vercel.app/versions/neon.html';
+const BASE_URL = 'https://sainted-word-records.vercel.app/versions/';
+// A representative slice of the variant family: the target page, two
+// sibling core variants, and two artistic ones with different draw paths.
+const DEFAULT_PAGES = ['neon', 'film', 'aurora', 'watercolor'];
 
 const argv = process.argv.slice(2);
 const arg = (name, fallback) => {
@@ -47,10 +51,16 @@ const arg = (name, fallback) => {
 };
 const has = (name) => argv.includes(`--${name}`);
 
-const TARGET = arg('target', process.env.SWR_DEBUG_TARGET || DEFAULT_TARGET);
+const TARGET = arg('target', process.env.SWR_DEBUG_TARGET || null);
+const PAGES = arg('pages', process.env.SWR_DEBUG_PAGES || DEFAULT_PAGES.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 const HEADED = has('headed');
 const NO_DEBUGGER = has('no-debugger');
 const FAIL_UNDER = arg('fail-under', null);
+
+function TARGET_URLS() {
+  if (TARGET) return [TARGET];
+  return PAGES.map((p) => (p.includes('://') ? p : BASE_URL + p + '.html'));
+}
 
 const CHROME_CANDIDATES = [
   process.env.CHROME_BIN,
@@ -656,32 +666,35 @@ function median(xs) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-async function main() {
+// ── per-page measurement ─────────────────────────────────────────────────
+
+async function measurePage(cdp, url) {
   const source = readFileSync(DEBUGGER_SRC, 'utf8');
-  const { proc, wsUrl, profile } = await launchChrome();
-  const cdp = new Cdp(wsUrl);
-  let exitCode = 0;
+  const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+  const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+  await cdp.send('Page.enable', {}, sessionId);
+  await cdp.send('Runtime.enable', {}, sessionId);
+  await cdp.send('Page.navigate', { url }, sessionId);
+
+  const result = {
+    url,
+    surfaces: {}, surfaceTotal: 0, surfacePassing: 0,
+    probes: [], baseMs: 0, dbgMs: 0, overheadPct: 0,
+    coverage: 0, accuracy: 0, headroom: 0, score: 0, error: null,
+  };
 
   try {
-    await cdp.connect();
-    const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
-    const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
-    await cdp.send('Page.enable', {}, sessionId);
-    await cdp.send('Runtime.enable', {}, sessionId);
-
-    await cdp.send('Page.navigate', { url: TARGET }, sessionId);
-
     // Engine boot.
     await waitFor(cdp, sessionId,
-      "!!(window.SWR && window.SWR_RENDER && window.SWR.Audio && document.querySelector('#render'))",
-      'engine boot on ' + TARGET);
+      "!!(window.SWR && window.SWR_RENDER && window.SWR.Audio && document.querySelector('canvas'))",
+      'engine boot on ' + url, 30000);
     await sleep(1200);
 
     // Make sure audio is actually running — the feature surfaces are only
     // meaningful with a live analyser.
     await evaluate(cdp, sessionId, DISMISS_START_SRC);
     await sleep(600);
-    let playing = await evaluate(cdp, sessionId, '!!(window.SWR.Audio && window.SWR.Audio.playing)');
+    const playing = await evaluate(cdp, sessionId, '!!(window.SWR.Audio && window.SWR.Audio.playing)');
     if (!playing) {
       await evaluate(cdp, sessionId, "(function(){const b=document.getElementById('play');if(b)b.click();return true})()");
       await sleep(1200);
@@ -692,7 +705,7 @@ async function main() {
     const probeInstalled = await evaluate(cdp, sessionId, PROBE_SRC);
     if (!probeInstalled?.ok) throw new Error('probe install failed: ' + JSON.stringify(probeInstalled));
 
-    // Seed a layer so the layer surfaces have content.
+    // Seed a layer stack so the layer surfaces have content.
     const seeded = await evaluate(cdp, sessionId, SEED_SRC, true);
     if (!seeded?.ok) throw new Error('seed failed: ' + JSON.stringify(seeded));
     // The seeded images must be decoded before the engine draws them —
@@ -704,7 +717,7 @@ async function main() {
         return L.length > 0 && L.every((l) => l.asset && l.asset._el &&
           l.asset._el.complete && l.asset._el.naturalWidth > 0);
       })()`,
-      'seeded images to decode');
+      'seeded images to decode', 20000);
     await sleep(700);
 
     // ── baseline measurement ──
@@ -721,7 +734,7 @@ async function main() {
     let mounted = false;
     if (!NO_DEBUGGER) {
       await evaluate(cdp, sessionId, source);
-      await evaluate(cdp, sessionId, 'window.SWR_DEBUGGER.mount(), true');
+      await evaluate(cdp, sessionId, 'window.SWR_DEBUGGER && window.SWR_DEBUGGER.mount(), true');
       await sleep(1500);
       mounted = await evaluate(cdp, sessionId, 'window.SWR_DEBUGGER && window.SWR_DEBUGGER.isMounted()');
       if (!mounted) throw new Error('debugger did not mount');
@@ -744,6 +757,9 @@ async function main() {
     const coverage = mounted
       ? await evaluate(cdp, sessionId, COVERAGE_SRC)
       : { surfaces: {}, total: 0, passing: 0 };
+    result.surfaces = coverage?.surfaces || {};
+    result.surfaceTotal = coverage?.total || 0;
+    result.surfacePassing = coverage?.passing || 0;
 
     // ── accuracy probes ──
     const probes = [];
@@ -779,33 +795,77 @@ async function main() {
       baseEvolve: base.perFrameEvolve,
       dbgEvolve: dbg.perFrameEvolve,
     });
+    result.probes = probes;
 
     // ── score ──
-    const coverageRatio = coverage && coverage.total ? coverage.passing / coverage.total : 0;
-    const accuracyRatio = probes.filter((p) => p.ok).length / probes.length;
-    const baseMs = median(baseFrames);
-    const dbgMs = median(dbgFrames);
-    const overheadPct = baseMs > 0 ? ((dbgMs - baseMs) / baseMs) * 100 : 0;
-    const headroom = Math.max(0, Math.min(1, 1 - Math.max(0, overheadPct) / 10));
+    result.coverage = result.surfaceTotal ? result.surfacePassing / result.surfaceTotal : 0;
+    result.accuracy = probes.filter((p) => p.ok).length / probes.length;
+    result.baseMs = median(baseFrames);
+    result.dbgMs = median(dbgFrames);
+    result.overheadPct = result.baseMs > 0 ? ((result.dbgMs - result.baseMs) / result.baseMs) * 100 : 0;
+    result.headroom = Math.max(0, Math.min(1, 1 - Math.max(0, result.overheadPct) / 10));
+    result.score = 0.5 * result.coverage + 0.3 * result.accuracy + 0.2 * result.headroom;
+  } catch (err) {
+    result.error = (err && err.message ? err.message : String(err));
+    result.score = 0;
+  }
 
-    const score = 0.5 * coverageRatio + 0.3 * accuracyRatio + 0.2 * headroom;
+  try { await cdp.send('Target.closeTarget', { targetId }); } catch { /* ignore */ }
+  return result;
+}
 
-    // ── report ──
-    console.log('TARGET      ' + TARGET);
-    console.log('SURFACES    ' + (coverage?.passing ?? 0) + '/' + (coverage?.total ?? 0));
-    for (const [id, v] of Object.entries(coverage?.surfaces || {})) {
-      console.log('  ' + (v.ok ? 'ok  ' : 'FAIL') + ' ' + id.padEnd(16) +
-        ' got=' + v.n + (v.real !== undefined ? ' real=' + v.real : ''));
+// ── main ─────────────────────────────────────────────────────────────────
+
+async function main() {
+  const { proc, wsUrl, profile } = await launchChrome();
+  const cdp = new Cdp(wsUrl);
+  let exitCode = 0;
+
+  try {
+    await cdp.connect();
+
+    const urls = TARGET_URLS();
+    const results = [];
+    for (const url of urls) {
+      const r = await measurePage(cdp, url);
+      results.push(r);
+
+      const label = url.split('/').pop();
+      if (r.error) {
+        console.log('PAGE ' + label.padEnd(18) + ' ERROR  ' + r.error);
+        console.log('  surfaces 0/0  probes 0/0  SCORE=0.0000');
+        continue;
+      }
+      console.log('PAGE ' + label.padEnd(18) +
+        ' surfaces ' + r.surfacePassing + '/' + r.surfaceTotal +
+        '  probes ' + r.probes.filter((p) => p.ok).length + '/' + r.probes.length +
+        '  overhead ' + r.overheadPct.toFixed(2) + '%' +
+        '  SCORE=' + r.score.toFixed(4));
+      for (const [id, v] of Object.entries(r.surfaces)) {
+        if (v.ok) continue;
+        console.log('  FAIL surface ' + id.padEnd(16) + ' got=' + v.n +
+          (v.real !== undefined ? ' real=' + v.real : ''));
+      }
+      for (const p of r.probes) {
+        if (p.ok) continue;
+        console.log('  FAIL probe   ' + p.name.padEnd(16) + ' ' +
+          JSON.stringify(p.failures || p.reason || p));
+      }
     }
-    console.log('PROBES');
-    for (const p of probes) {
-      console.log('  ' + (p.ok ? 'ok  ' : 'FAIL') + ' ' + p.name.padEnd(20) +
-        (p.ok ? '' : '  ' + JSON.stringify(p.failures || p.reason || p)));
-    }
-    console.log('FRAME       base=' + baseMs.toFixed(2) + 'ms  dbg=' + dbgMs.toFixed(2) +
-      'ms  overhead=' + overheadPct.toFixed(2) + '%');
-    console.log('COMPONENTS  coverage=' + coverageRatio.toFixed(3) +
-      ' accuracy=' + accuracyRatio.toFixed(3) + ' headroom=' + headroom.toFixed(3));
+
+    // The score is the MEAN across the page family, so a variant the
+    // debugger cannot handle costs real points rather than being averaged
+    // away.
+    const score = results.reduce((a, r) => a + r.score, 0) / results.length;
+    const totalSurfaces = results.reduce((a, r) => a + r.surfaceTotal, 0);
+    const totalSurfacePassing = results.reduce((a, r) => a + r.surfacePassing, 0);
+    const totalProbes = results.reduce((a, r) => a + r.probes.length, 0);
+    const totalProbesPassing = results.reduce((a, r) => a + r.probes.filter((p) => p.ok).length, 0);
+
+    console.log('');
+    console.log('PAGES       ' + results.length);
+    console.log('SURFACES    ' + totalSurfacePassing + '/' + totalSurfaces);
+    console.log('PROBES      ' + totalProbesPassing + '/' + totalProbes);
     console.log('SCORE=' + score.toFixed(4));
 
     if (FAIL_UNDER !== null && score < Number(FAIL_UNDER)) {
