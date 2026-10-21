@@ -407,6 +407,22 @@
       "description": "The store — presets, packs and stills, with checkout and delivery handled by Gumroad"
     }
   ],
+  "announcements": [
+    {
+      "date": "2026-10-21",
+      "title": "The Gumroad store is open",
+      "body": "Presets, packs and stills, with checkout and delivery handled by Gumroad. The free templates in the marketplace stay free.",
+      "href": "https://kaidjuric.gumroad.com",
+      "label": "Open the store"
+    },
+    {
+      "date": "2026-10-21",
+      "title": "Mood Frames, on the digital twin",
+      "body": "Eight stills in the house sound-tones — ready as book covers, editorial imagery, or music-video start frames.",
+      "href": "https://digitaltwin-ebon.vercel.app/pages/marketplace.html",
+      "label": "Open the marketplace"
+    }
+  ],
   "redirects": [
     {
       "_comment": "Every URL here 301s (scripts/generate-vercel-rewrites.mjs emits from/without-slash/.html for each). Used for pages removed from the IA whose content still exists elsewhere — never a bare deletion. An entry is safe to revert: delete it and the page comes back if its file is restored from _archive/.",

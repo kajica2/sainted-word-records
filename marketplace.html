@@ -87,6 +87,18 @@
     .card .out { font: 9px/1 'Space Mono', monospace; letter-spacing: 0.16em;
       text-transform: uppercase; color: var(--accent); margin-top: auto; padding-top: 12px; }
     .card .out::after { content: ' ↗'; }
+    /* Auto-post feed — painted by lib/announcements.client.js */
+    .announcements { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .announcement { background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--accent);
+      border-radius: 4px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+    .announcement__date { font: 8px/1 'Space Mono', monospace; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--muted); }
+    .announcement__title { font: 700 16px/1.2 'Inter', sans-serif; margin: 2px 0; }
+    .announcement__body { font-size: 12px; line-height: 1.5; color: var(--ink); opacity: .75; }
+    .announcement__link { font: 9px/1 'Space Mono', monospace; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--accent); text-decoration: none; margin-top: auto; padding-top: 10px; }
+    .announcement__link:hover { color: #ff80a8; }
+    .announcements__empty { color: var(--muted); font-size: 14px; }
 
     /* Preset packs — a named collection installed in one action. Visually
        distinct from a single set so the two never get confused. */
@@ -162,6 +174,12 @@
         Install a curated set above, or drop a .swr-set file to get started.
       </div>
     </div>
+
+    <div class="section-head">
+      <h3>Latest posts</h3>
+      <span class="count">from the changelog</span>
+    </div>
+    <div class="announcements" id="announcements" data-announcements="3" data-announcements-empty="No posts yet."></div>
 
     <div class="section-head">
       <h3>Harmonic Study Engine Packages</h3>
@@ -719,6 +737,7 @@
   <script src="/lib/nav.client.js" defer></script>
   <swr-footer></swr-footer>
   <script src="/lib/footer.client.js" defer></script>
+  <script src="/lib/announcements.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
 </body>

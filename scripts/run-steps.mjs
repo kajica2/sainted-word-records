@@ -87,6 +87,11 @@ const GROUPS = {
     // group name. The sibling layer-retire/layer-text/layer-lifecycle
     // suites are reachable from no gate (pre-existing, not this gate's job).
     'npm run check:layer-groups-unit',
+    // The auto-post feed: the posts come from site-map.json's
+    // `announcements` array, read from the inlined footer slice or from
+    // /site-map.json, and painted into every [data-announcements]
+    // container plus the footer's bottom bar.
+    'npm run check:announcements-unit',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.
@@ -255,6 +260,10 @@ const GROUPS = {
     // the group header, hide/collapse/ungroup, and the proof that a hidden
     // member stops drawing on the stage. Needs a built dist/ (ensureDist).
     'npm run check:layer-groups-smoke',
+    // The auto-post feed in a real browser: the changelog and the
+    // marketplace paint the posts, and the footer's "New — …" link reaches
+    // every page that mounts <swr-footer>. Needs a built dist/.
+    'npm run check:announcements-smoke',
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
     'npm run check:tiktok-smoke',

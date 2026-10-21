@@ -192,11 +192,13 @@ function inlineFooterNav() {
     closeBundle() {
       const map = JSON.parse(readFileSync('site-map.json', 'utf8'));
       // Only the keys renderFooter() reads: the IA block, the legal links and
-      // the tools list it looks up the sitemap entry in.
+      // the tools list it looks up the sitemap entry in — plus the
+      // announcements, which the footer shows as the newest post.
       const slice = JSON.stringify({
         footerNav: map.footerNav,
         legal: map.legal || [],
         tools: map.tools || [],
+        announcements: map.announcements || [],
       });
       const tag = `<script type="application/json" id="swr-footer-data">${slice}</script>`;
       let inlined = 0;

@@ -514,6 +514,8 @@
 .footer__bottom-links { display: flex; flex-wrap: wrap; gap: 16px; }
 .footer__bottom-links a { color: var(--muted); display: inline-block; min-height: 44px; padding: 10px 0; }
 .footer__bottom-links a:hover { color: var(--accent); }
+/* The newest post (site-map.json → announcements) leads the bottom row. */
+.footer__bottom-links a.footer__announcement { color: var(--accent); font-weight: 600; }
 
 /* ===== UTILITIES ===== */
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s, transform 0.6s; }
