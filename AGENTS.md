@@ -150,6 +150,8 @@ It attaches `window.SWR_DEBUGGER` and auto-mounts. The **backquote key** toggles
 
 It deliberately **does not model each variant's draw convention** — cover fit vs contain, a rotation threshold of 0.3 vs 0.5, the engine-supplied offscreen vs the stage canvas all differ, and modelling them was wrong on film and aurora and absent on watercolor. The overlay reports the corners the engine actually drew, so it is right on every variant.
 
+**Relationship to `client/debug-overlay.client.js`** — the two are complementary, not duplicates. The engine's own overlay (loaded by `engine.html`, enabled with `?debug=1`) is a *key-action log*: the last 12 keys and UI actions, the look filter, a coarse audio and layer summary. This one is a *state inspector*: live feature values, per-layer resolved transforms, reactor wiring, the audio's contribution per layer, and each layer's footprint on the stage. They use different globals (`SWR_DEBUG_OVERLAY` vs `SWR_DEBUGGER`) and neither binds a key the other uses — but both would sit in the bottom-right corner of `engine.html`, so this panel stops above the engine's overlay when it is present.
+
 **Its metric** — `npm run check:debugger` (`scripts/check-swr-debugger.mjs`) drives headless Chrome over the DevTools Protocol with **no npm dependencies** (Node's built-in `WebSocket` does the work) and scores:
 
 ```

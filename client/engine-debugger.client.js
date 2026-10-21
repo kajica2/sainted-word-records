@@ -568,7 +568,30 @@
 
     document.body.appendChild(root);
     buildStageOverlay();
+    applyClearance();
     return root;
+  }
+
+  // engine.html already ships a small key-action HUD in the bottom-right
+  // corner (client/debug-overlay.client.js, enabled with ?debug=1). That
+  // panel answers "what did I just press"; this one answers "what is the
+  // engine doing right now" — different jobs, but they would sit on top
+  // of each other. This panel stops above it instead of covering it.
+  function applyClearance() {
+    var root = $('swr-debugger');
+    if (!root) return;
+    var other = document.querySelector('.swr-debug-overlay');
+    if (!other) {
+      root.style.bottom = '36px';
+      return;
+    }
+    var rect = other.getBoundingClientRect();
+    if (!rect || !rect.height) {
+      root.style.bottom = '36px';
+      return;
+    }
+    var clearance = Math.round(window.innerHeight - rect.top + 10);
+    root.style.bottom = Math.max(36, clearance) + 'px';
   }
 
   // The stage overlay: a set of absolutely positioned boxes drawn over
@@ -1209,7 +1232,7 @@
       refreshStageSize();
       // The stage's size only changes on a resize; re-measure then
       // rather than forcing a layout flush on every repaint.
-      state.onResize = function () { refreshStageSize(); };
+      state.onResize = function () { refreshStageSize(); applyClearance(); };
       window.addEventListener('resize', state.onResize);
       // ` toggles the overlay. Backquote is free across the engine's own
       // key map, and the guard keeps it out of the way while typing.
