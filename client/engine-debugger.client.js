@@ -375,6 +375,9 @@
     'font-size:8px;color:#8a7aa0}',
     '#swr-debugger .d-head b{color:#ff2d8a;font-weight:700;text-shadow:0 0 8px rgba(255,45,138,0.6)}',
     '#swr-debugger .d-head .sp{flex:1}',
+    '#swr-debugger .d-head .d-link{color:#8a7aa0;text-decoration:none;font-size:8px;',
+    'letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #2a1d3e;padding-bottom:1px}',
+    '#swr-debugger .d-head .d-link:hover{color:#ff2d8a;border-color:#ff2d8a}',
     '#swr-debugger .d-head button{background:none;border:none;color:#8a7aa0;cursor:pointer;',
     'font:11px/1 ui-monospace,monospace;padding:0 2px}',
     '#swr-debugger .d-head button:hover{color:#ff2d8a}',
@@ -438,6 +441,12 @@
     head.appendChild(el('b', null, 'SWR Debug'));
     head.appendChild(el('span', null, 'v' + VERSION));
     head.appendChild(el('span', 'sp'));
+    // The parameter bench: what every URL parameter does, and which ones
+    // this page actually resolved.
+    var bench = el('a', 'd-link', 'params');
+    bench.href = '/lab/params';
+    bench.title = 'Every URL parameter the engine and the site understand';
+    head.appendChild(bench);
     var close = el('button', null, '×');
     close.title = 'Close (unmounts and releases the engine wrappers)';
     close.addEventListener('click', function () { api.unmount(); });

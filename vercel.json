@@ -752,6 +752,14 @@
       "destination": "/lab/media-input.html"
     },
     {
+      "source": "/lab/params",
+      "destination": "/lab/params.html"
+    },
+    {
+      "source": "/lab/params/",
+      "destination": "/lab/params.html"
+    },
+    {
       "source": "/tiktok",
       "destination": "/tiktok.html"
     },
