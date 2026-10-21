@@ -619,5 +619,27 @@
     "twilight-shotlist": "twilight-shotlist/cover.webp",
     "ufo-portrait": "ufo-portrait/cover.webp",
     "wide-angle-low-angle": "wide-angle-low-angle/cover.webp"
+  },
+  "bytes": {
+    "dancers": 518236,
+    "dancer-video": 2018747,
+    "dream-sequence-video": 2053425,
+    "skaters": 5173393,
+    "cyber-synth": 1695445,
+    "audio-loops": 5926962,
+    "cinematic-reel": 5240394,
+    "belgrade-hand-map": 443014,
+    "chaos-map": 304310,
+    "ice-sculpture": 107556,
+    "istanbul-bw": 47224,
+    "metatron-holographic": 5272824,
+    "ocean-scan-spectra": 818008,
+    "oriental-fantasy": 268828,
+    "santiago-instagram": 2896710,
+    "slow-pan-disturbing": 1854980,
+    "twilight-shotlist": 3087520,
+    "ufo-portrait": 887996,
+    "wide-angle-low-angle": 1827414,
+    "__total": 40442986
   }
 }
