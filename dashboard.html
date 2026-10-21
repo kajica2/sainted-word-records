@@ -103,6 +103,10 @@
     /* Layer row details */
     details > summary { list-style: none; cursor: pointer; }
     details > summary::-webkit-details-marker { display: none; }
+    /* Layer drag styling */
+    .layer-item.dragging { opacity: 0.5; background: var(--bg-elev); }
+    .layer-item[draggable="true"] .cursor-grab { cursor: grab; }
+    .layer-item[draggable="true"]:hover { background: rgba(255,255,255,0.02); }
 
     /* prefers-reduced-motion — the engine renders one static frame; this
        stops every CSS transition/animation too (Console criterion 9). */
@@ -1108,17 +1112,19 @@
         
         // Add layer row
         const details = document.createElement('details');
-        details.className = 'border-b border-line';
+        details.className = 'border-b border-line layer-item';
+        details.dataset.layerIdx = groupIdx;
         if (groupIdx === 0) details.setAttribute('open', '');
         details.innerHTML = `
-          <summary class="flex items-center gap-2 px-3 py-2 hover:bg-[#161619]">
+          <summary class="flex items-center gap-2 px-3 py-2 hover:bg-[#161619] layer-drag-handle" draggable="true">
             <span class="text-gray-500 text-[10px] cursor-grab"><i class="fa-solid fa-grip-vertical"></i></span>
-            <span class="micro w-4 tabular text-right text-gray-500">${groupIdx + 1}</span>
+            <span class="micro w-4 tabular text-right text-gray-500 layer-index">${groupIdx + 1}</span>
             <span class="w-8 h-8 rounded bg-[#1e1e24] flex items-center justify-center">
               <i class="fa-solid ${icon} text-[10px] text-gray-500"></i>
             </span>
             <span class="text-[12px] font-medium text-white flex-1">${layer.name} (${groupMedia.length})</span>
             <span class="flex items-center gap-1" onclick="event.stopPropagation()">
+              <button class="icon-btn layer-lock-btn" title="Lock layer"><i class="fa-solid fa-lock-open text-[10px]"></i></button>
               <a class="icon-btn" title="Link"><i class="fa-solid fa-link text-[10px]"></i></a>
               <a class="icon-btn" title="Duplicate"><i class="fa-solid fa-copy text-[10px]"></i></a>
               <a class="icon-btn" title="Delete"><i class="fa-solid fa-trash-can text-[10px]"></i></a>
@@ -1162,7 +1168,84 @@
       }
       
       console.log(`[Auto-group] Created ${order.length} layers from media`);
+      
+      // Enable drag-and-drop reordering
+      initLayerDragDrop();
     }
+    
+    // Drag and drop for layer reordering
+    function initLayerDragDrop() {
+      const layerList = document.getElementById('layers-list');
+      if (!layerList) return;
+      
+      let draggedItem = null;
+      
+      layerList.querySelectorAll('.layer-drag-handle').forEach(handle => {
+        handle.addEventListener('dragstart', (e) => {
+          draggedItem = handle.closest('.layer-item');
+          draggedItem.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        handle.addEventListener('dragend', () => {
+          if (draggedItem) {
+            draggedItem.classList.remove('dragging');
+            draggedItem = null;
+          }
+          // Re-index all layers
+          layerList.querySelectorAll('.layer-item').forEach((item, idx) => {
+            const indexSpan = item.querySelector('.layer-index');
+            if (indexSpan) indexSpan.textContent = idx + 1;
+            item.dataset.layerIdx = idx;
+          });
+        });
+        
+        handle.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        });
+        
+        handle.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const dropTarget = handle.closest('.layer-item');
+          if (!dropTarget || !draggedItem || dropTarget === draggedItem) return;
+          
+          // Get all layer items
+          const items = [...layerList.querySelectorAll('.layer-item')];
+          const draggedIdx = items.indexOf(draggedItem);
+          const dropIdx = items.indexOf(dropTarget);
+          
+          // Reorder
+          if (draggedIdx < dropIdx) {
+            dropTarget.after(draggedItem);
+          } else {
+            dropTarget.before(draggedItem);
+          }
+        });
+      });
+    }
+    
+    // Lock toggle for layers
+    document.addEventListener('click', (e) => {
+      const lockBtn = e.target.closest('.layer-lock-btn');
+      if (!lockBtn) return;
+      
+      const layerRow = lockBtn.closest('.layer-item');
+      if (!layerRow) return;
+      
+      const isLocked = layerRow.dataset.locked === 'true';
+      layerRow.dataset.locked = (!isLocked).toString();
+      
+      const icon = lockBtn.querySelector('i');
+      if (icon) {
+        icon.className = isLocked ? 'fa-solid fa-lock-open text-[10px]' : 'fa-solid fa-lock text-[10px]';
+      }
+      lockBtn.title = isLocked ? 'Unlock layer' : 'Lock layer';
+      
+      // Visual feedback
+      layerRow.style.opacity = isLocked ? '1' : '0.6';
+      layerRow.style.pointerEvents = isLocked ? 'auto' : 'none';
+    });
     
     // Batch add media (photos + videos) with auto-grouping
     function addMediaBatch(files) {
