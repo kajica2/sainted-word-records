@@ -16,7 +16,7 @@ Algorithmic audio-reactive video engine. Two surfaces:
                        ├── engine-*.client.js   (engine runtime) │
                        ├── lib/*.client.js      (shared)        │
                        ├── versions/<variant>.html              │
-                       └── versions/inject/*.js  (per-variant)  │
+                       └── variants/<name>.automix.json         │
                   ┌────────────────────────────────────────────┘
                                        │
                                        │ HTTPS (signed URLs)
@@ -47,31 +47,40 @@ also need `node scripts/migrate-html.mjs <page.html>` to wire shared CSS/JS link
 
 ## Engine Variants
 
-32 HTML files live in `versions/`:
+32 HTML files live in `versions/` (`ls versions/*.html` is the canonical
+list; the taxonomy below is 5 + 9 + 9 + 1 + 8 = 32):
 
 - **5 core** (reactive): `neon`, `film`, `smoke`, `hallucination`, `music_video`
-- **8 artistic-preset** (reactive, share the engine-genops shell):
+- **9 artistic-preset** (reactive, share the engine-genops shell):
   `glitch`, `aurora`, `pulse`, `void`, `chrome`, `watercolor`, `fractal`,
   `eclipse`, `music_video_mtv`
 - **9 decorative / non-reactive**: `baroque`, `collage`, `echo-manifold`,
   `kraft`, `mosaic`, `phosphor`, `spectrum`, `tape`, `typography`
   (own paint loops, do NOT load engine-genops)
-- **9 content pages**: `index`, `console`, `gallery`,
-  `music-video-gallery`, `bachdrop`, `clean`, `simple`, `temple-of-control`,
-  and `engines.html`? — see `ls versions/*.html` for the canonical list
+- **8 content pages** (no render loop of their own): `index`, `console`,
+  `gallery`, `music-video-gallery`, `bachdrop`, `clean`, `simple`,
+  `temple-of-control`
+- **1 standalone variant**: `grid` (CRT-grid; its visual identity is DOM
+  overlays rather than a canvas `drawFx`, so the switcher doesn't drive it)
 
-The 13 reactive engines share `engine-genops.client.js` and run the
-common `engine-render.client.js` pipeline. The decorative pages have
-their own bespoke render loops. The reactive set is defined in
-`client/variant-switcher.client.js` (the `VARIANTS` table minus
-`baroque` and `grid`, which the switcher doesn't drive).
+15 pages load `engine-genops.client.js` and run the common
+`engine-render.client.js` pipeline: the 5 core, the 9 artistic, and
+`grid`. 14 of those 15 are reachable from the engine's `#looks` dropdown -
+the `VARIANTS` table in `client/variant-switcher.client.js` omits `grid`
+and `baroque`. The decorative pages keep their own bespoke render loops.
 
-Each `versions/<variant>.html` loads the shared `engine-*.client.js`
-subsystems. The visual identity of each variant lives in its `drawLayer`
-inline script — the part that's actually variant-specific research.
-The shared plumbing (mobile header, responsive media queries,
-watermark, audio-damp, FX-grade chain) is added by hand-run codemods
-in `versions/_*.js` and verified by `scripts/check-variant-codemods.mjs`.
+Each `versions/<variant>.html` is a COMMITTED page, not a template
+rendered from anything: the shared `engine-*.client.js` subsystems and
+the variant's own inline scripts all live in that file. The visual
+identity of each variant lives in its `drawLayer` inline script - the
+part that's actually variant-specific research. The shared plumbing
+(mobile header, responsive media queries, watermark, audio-damp,
+FX-grade chain) is applied by the hand-run codemods in
+`versions/_*.js`, which EDIT THE VARIANT IN PLACE and leave a
+`SWR-*-MARKER` comment behind so the pass is visible in the file.
+`scripts/check-variant-codemods.mjs` re-runs each codemod in dry-run and
+compares what it plans to inject against the markers actually present in
+the tree; a divergence is a drift case and fails the gate.
 
 ## Shared Design System
 
@@ -98,6 +107,25 @@ script (the `migrate-html.mjs` script enforces this — it strips duplicates whe
   prompt. Without the estimate, the storage-full error was thrown without
   any quota data and the only available action was a generic "Storage full"
   message. Verified by `scripts/check-quota-estimate-unit.mjs`.
+- A full disk is NOT a lost upload. The write path in
+  `lib/media-store.client.js` catches QuotaExceededError, fills `err.usage`
+  if it is still null, then calls `evictOldestOne()` and retries the batch
+  exactly ONCE. The policy is deliberately the most conservative one that
+  still works: exactly one record is dropped, the oldest by `createdAt`
+  (ties broken by id; undated records sort last so they are never the
+  victim); `favorite === true` is never a candidate; eviction is LOCAL ONLY
+  (no tombstone, cloud copy untouched, and a session-scoped `_evictedIds`
+  set keeps the sync pull from re-downloading the file that was just freed);
+  a second failure rethrows the ORIGINAL error so a genuinely full disk
+  cannot spin. `getEvictionStats()` returns `{count, total, day}` from three
+  deliberately un-namespaced `localStorage` keys -
+  `quota-evictions-count` (today, resets at local midnight),
+  `quota-evictions-day` (`YYYY-MM-DD` the count belongs to) and
+  `quota-evictions-total` (life of the library) - and every drop also emits
+  an `evicted` event, so a UI can say "auto-cleaned N times today" instead
+  of letting an item quietly vanish. Verified by
+  `scripts/check-quota-eviction.mjs`. (Before this, no eviction code existed
+  anywhere in the repo and the quota error carried no usage data at all.)
 
 ## API Threat Model (excerpt from SECURITY.md)
 

@@ -22,7 +22,7 @@
 | Firestore | ✅ dormant (`SWR_PROJECTS_STORE=firestore`) |
 | API rules | ✅ rate-limited + auth-gated + invite-code schema v2 |
 | Standards | ✅ LICENSE · CONTRIBUTING · CODE_OF_CONDUCT · CHANGELOG · SECURITY · ISSUE_TEMPLATES · CODEOWNERS |
-| Tests | ✅ 110+ unit checks, `npm run check` (63-step), `check:full` (20-step) |
+| Tests | ✅ 110+ unit checks, `npm run check` (86-step), `check:full` (21-step) |
 | CI | ✅ Pages build deployment · required checks on PRs |
 
 ---

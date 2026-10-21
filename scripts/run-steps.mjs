@@ -100,6 +100,21 @@ const GROUPS = {
     'npm run check:app-version-bust-unit',
     'npm run check:version-watcher-unit',
     'npm run check:variant-codemods',
+    // The manifest half of the codemod contract (plan P0.5, "the 'I rebuilt
+    // it' #1"). check:variant-codemods above asks one question per codemod:
+    // "does this marker exist where the codemod says it should?". This asks
+    // the other half: does versions/manifest.json still describe the tree?
+    // It re-runs all 20 codemods against a throwaway copy of versions/ +
+    // tools/ + auth/ and fails on drift the manifest does not record, on a
+    // marker that disappeared, on a codemod whose declared marker is no
+    // longer in its own source, and on recorded `pending` debt older than
+    // the manifest's 30-day budget. Read-only on the working tree.
+    'npm run check:codemods',
+    // Doc-vs-code drift: every file path, route, glob and library name the
+    // current-state docs assert is verified against the tree. Carries its
+    // own self-test, because a green gate that can no longer detect anything
+    // is worse than no gate.
+    'npm run check:doc-truth',
     'npm run check:looks-menu-unit',
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',

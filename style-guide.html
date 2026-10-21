@@ -14,6 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
   <style>
     /* ====================================================================
        SWR Style Guide v1.0
@@ -21,6 +23,9 @@
        Design language distilled from the live site + the 5 visual languages.
        ==================================================================== */
     :root {
+      /* === SWR Design Tokens === */
+      /* Inherited from /lib/design-tokens.css - extended below for reference display */
+      /* Light theme */
       --canvas:        #faf7f2;
       --surface:       #f1ebe1;
       --surface-soft:  #ffffff;
@@ -50,6 +55,27 @@
       --font-display: 'Fraunces', ui-serif, Georgia, serif;
       --font-body:    'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
       --font-mono:    'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+      /* === CANONICAL TOKEN ALIASES === */
+      /* For cross-compatibility with pages using design-tokens.css naming */
+      --bg:           var(--canvas);
+      --bg-2:         var(--surface);
+      --bg-3:         var(--surface-soft);
+      --ink:          var(--ink);
+      --ink-2:        var(--ink-2);
+      --muted:        var(--stone);
+      --line:         var(--hairline);
+      --accent:       var(--hot);
+      --accent-2:     var(--orange);
+      --accent-3:     var(--green);
+      --hot:          var(--hot);
+      --cool:         var(--cool);
+      --warn:         var(--orange);
+      --ok:           var(--green);
+      --radius:       var(--radius-sm);
+      --radius-sm:    var(--r-sm);
+      --shadow-1:     var(--shadow-card);
+      --shadow-2:     var(--shadow-pop);
     }
     [data-theme="dark"] {
       --canvas: #0e0c0a; --surface: #161310; --surface-soft: #1d1815;
@@ -783,5 +809,6 @@
 </script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
 </body>
 </html>

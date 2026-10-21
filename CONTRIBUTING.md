@@ -10,7 +10,7 @@ Thanks for the help. SWR is the source-code repo behind
 npm install
 npm run dev                # http://localhost:5174 (engine)
                            # http://localhost:5175  (5174 occupied)
-npm test                   # the curated 63-step unit group
+npm test                   # the curated 86-step unit group
 npm run check              # check + check:full + check:storyboard
 npm run build              # vite build → dist/
 ```
@@ -32,7 +32,7 @@ runs it via `.github/workflows/ci.yml`.
   distribution), library (manifest + zops), storage (signed URLs).
 - **`docs/PLANS/`** — design docs that double as audit trails (number-key
   assignment, firestore user library menu, layer-lifecycle).
-- **`scripts/`** (98+ files) — 63-step `npm run check`, standalone
+- **`scripts/`** (98+ files) — 86-step `npm run check`, standalone
   `verify-*.mjs` E2E Puppeteer suites, codemod injectors, build
   helpers.
 - **`tools/`** — `deploy-vercel.sh`, `local-dns.mjs`, HF publish tool,
@@ -60,10 +60,10 @@ is the catch-all (deps, config).
 
 ## Test surface
 
-- **63-step unit suite** (`npm run check`): syntax + bundle + util +
+- **86-step unit suite** (`npm run check`): syntax + bundle + util +
   API + curated smokes. ~110 tests across 70+ files. Green on every
   push to `main` is the bar.
-- **20-step full pre-PR gate** (`npm run check:full`): adds Puppeteer
+- **21-step full pre-PR gate** (`npm run check:full`): adds Puppeteer
   smokes, Vercel-style health checks, and the curated 5 verifier
   smoke (`scripts/check-verify-smoke.mjs`).
 - **Standalone `verify-*.mjs`** Puppeteer E2E: each page / surface
@@ -86,9 +86,9 @@ copy one from `scripts/check-*` and rename.
 | Keyboard             | `engine-keys.client.js`                               |
 | Variant switcher     | `client/variant-switcher.client.js`                    |
 | Audio algo (Pulse/Drift/Spark) | `client/layer-audio-algos.client.js`    |
-| Canvas / WebGL       | `engine.html`, `client/engine-render.client.js`       |
+| Canvas / WebGL       | `engine.html`, `engine-render.client.js`               |
 | Theme + tokens       | `lib/design-tokens.css`, `lib/components.css`         |
-| Install + boot       | `engine-bootstrap.client.js` (per `<script>` tag order) |
+| Install + boot       | `pwa-bootstrap.js` + the inline `<script type="module">` in `engine.html` (order matters) |
 
 ## Style
 
