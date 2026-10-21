@@ -41,8 +41,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const PORT = 53939;
-const BASE = process.env.BASE_URL || `http://127.0.0.1:${PORT}`;
+// The port is chosen by the OS (0 = ephemeral) and read back from the
+// bound server: a hardcoded port collides with whatever else on the
+// machine holds it — an ephemeral outbound connection was enough to fail
+// the whole gate with EADDRINUSE.
+let BASE = process.env.BASE_URL || null;
 
 // Static server for dashboard.html + needed assets — local runs only.
 const ROOT = process.cwd();
@@ -73,7 +76,10 @@ const server = process.env.BASE_URL ? null : http.createServer((req, res) => {
   res.setHeader('Content-Type', ct);
   res.end(fs.readFileSync(fullPath));
 });
-if (server) await new Promise((r) => server.listen(PORT, r));
+if (server) {
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  BASE = `http://127.0.0.1:${server.address().port}`;
+}
 
 let pass = 0, fail = 0;
 function check(name, ok, detail) {

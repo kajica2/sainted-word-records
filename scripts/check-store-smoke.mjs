@@ -35,7 +35,10 @@ import { ensureDist } from './with-dist.mjs';
 
 ensureDist();
 
-const PORT = 5186;
+// The port is chosen by the OS (0 = ephemeral) and read back from the
+// bound server: a hardcoded port collides with whatever else on the
+// machine holds it.
+let PORT = 0;
 const distDir = path.resolve(dirname(fileURLToPath(import.meta.url)), '../dist');
 const server = http.createServer((req, res) => {
   let p = req.url.split('?')[0];
@@ -62,10 +65,11 @@ const server = http.createServer((req, res) => {
   });
 });
 server.on('error', (err) => {
-  console.error('STORE SMOKE: cannot bind port ' + PORT + ' — ' + (err && err.code ? err.code : err));
+  console.error('STORE SMOKE: the static server failed — ' + (err && err.code ? err.code : err));
   process.exit(1);
 });
-server.listen(PORT);
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+PORT = server.address().port;
 
 const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
