@@ -37,6 +37,20 @@ once it hits 1.0.
   lifecycle, layer retire, kit-zip.
 
 ### Fixed
+- Engine "Hooks" button could only ever answer *"no song loaded"*.
+  `client/hook-detector.client.js` reads the song to analyse from
+  `window.SWR_LAST_SONG`; the engine never loaded the saved-song bridge
+  (`versions/last-song.js`) even though `lib/audio.client.js` was already
+  writing the identical IndexedDB record it reads. The engine now loads the
+  bridge, and `lib/audio.client.js` refreshes it on every song load (file
+  picker, drag-and-drop, generated audio) — the bridge caches its promise
+  once at load time.
+- `versions/neon.html` published no core globals, so 21 of the 53 shared
+  modules silently no-op'd there: `window.Audio` (saved projects carried no
+  song, grade presets rendered without audio reactivity), `window.Layers`,
+  `window.Library`, `window.setStatus` and `window.A` are now published, and
+  `A.audioEl` aliases the page's `A.el` so modules written against either
+  naming convention find the same element.
 - `api/_lib/kv.js`: invite-code schema marker v1 → v2 auto-migration
   (unblocks the `Register Invite Codes` GH Action).
 - Library thumbnails: corrupt base64 detection + stale-blob fallback

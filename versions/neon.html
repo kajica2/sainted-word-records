@@ -692,6 +692,14 @@
     // === AUDIO ===
     const A = { ctx: null, an: null, src: null, el: null, gain: null,
       fft: null, time: null,
+      // Engine convention. lib/audio.client.js names the <audio> element
+      // `audioEl` (audio.client.js:89); this page's fork names it `el`
+      // (the music_video.html convention). Shared modules are written
+      // against both — project.client.js:102 reads `A.audioEl`, while
+      // library-switcher.client.js:69 and music-video-maker.client.js:154
+      // read `A.el`. Expose the engine's name as an alias so a module
+      // that expects `audioEl` finds the same element.
+      get audioEl() { return this.el; },
       feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
       // Cached slider values — read once per slider input, not once
       // per audio frame. Avoids forcing layout every audio sample.
@@ -1754,6 +1762,30 @@
       Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
     }
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
+    // ---- Shared-module contract (engine ↔ neon parity, slice 1) ----
+    // The engine gets its core globals from the shared modules —
+    // lib/audio.client.js publishes window.Audio, lib/library.client.js
+    // publishes window.Library, lib/layers.client.js publishes
+    // window.Layers, and engine.html:3918 publishes window.setStatus.
+    // This page carries its own inline copies of the same subsystems, so
+    // without these four lines every shared module that reaches for a
+    // core global degrades to a silent no-op here:
+    //   project.client.js:99     window.Audio  → no song in the saved project
+    //   versions-presets.js:1144 window.Audio  → grade presets stop reacting to audio
+    //   engine-keys.client.js:164 window.Layers → layer remap keys stay suppressed
+    //   client/scenes.client.js:24 window.setStatus → pad recalls show no status
+    // The modules are defensive (they check before use), so the drift
+    // never surfaced as an error — it surfaced as features that quietly
+    // did nothing. Publishing the globals is the smallest change that
+    // makes the contract real on both pages.
+    window.Audio = A;
+    window.Library = Lib;
+    window.Layers = Layers;
+    window.setStatus = setStatus;
+    // `window.A` is the music_video.html convention the SWR_* blocks read
+    // (`A.el`, `A.feat`); the engine publishes the same alias at
+    // engine.html:7274. This page's A already uses that convention.
+    window.A = A;
   })();
   </script>
 <script src="../versions-presets.js"></script>
