@@ -706,7 +706,7 @@ function copyStatic() {
     // inline video tiles (landing.html:882-896, versions/music-video-gallery.html).
     { src: 'videos', dst: 'videos' },
     // Default (always-loaded) engine library: 7 hologram/glitch WebP images
-    // + manifest.json. The Endless Tomorrow song lives in audios/ below.
+    // + manifest.json. The default test clip song lives in audios/ below.
     { src: 'default-library', dst: 'default-library' },
     // Opt-in curated media packs (packs/manifest.json + packs/<name>/*).
     // Tracked in git, unlike library/ which is gitignored and stripped.

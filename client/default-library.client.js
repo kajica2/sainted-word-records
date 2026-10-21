@@ -1,8 +1,10 @@
 // client/default-library.client.js — always-load the SWR default library
 //
 // Seeds the engine's Library + Audio with the curated default set shipped
-// in /default-library/ (7 hologram/glitch texture WebP images) and
-// /audios/endless-tomorrow.mp3. Loaded by engine.html via a defer'd script;
+// in /default-library/ (7 hologram/glitch texture WebP images) and the
+// default test clip in /audios/ (the first entry of the manifest's `audio`
+// list — /audios/test-clip.mp3, with /audios/endless-tomorrow.mp3 behind it).
+// Loaded by engine.html via a defer'd script;
 // it polls for window.Library (same pattern persist-wire uses) because the
 // engine's module graph installs Library asynchronously.
 //

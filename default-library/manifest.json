@@ -1,8 +1,8 @@
 {
   "schema": "swr-default-library/v1",
   "generated_at": "2026-09-14T07:10:00+02:00",
-  "description": "Always-loaded default library for the engine. 7 hologram/glitch texture images (Midjourney sessions, converted to WebP) + the Endless Tomorrow song in /audios/.",
-  "audio": ["/audios/endless-tomorrow.mp3"],
+  "description": "Always-loaded default library for the engine. 7 hologram/glitch texture images (Midjourney sessions, converted to WebP) + the default test clip in /audios/. The first entry of `audio` is the song the engine loads on a first visit; the rest are fallbacks.",
+  "audio": ["/audios/test-clip.mp3", "/audios/endless-tomorrow.mp3"],
   "images": [
     "/default-library/holo-0.webp",
     "/default-library/holo-1.webp",
