@@ -772,13 +772,13 @@ async function measurePage(cdp, url) {
 
     // ── frame cost ──
     //
-    // Interleaved rounds, each measuring the fastest frame the page can
-    // produce. A single median over one window is dominated by whatever
-    // else the machine is doing, which made the overhead figure swing by
-    // several percent between identical runs. The minimum over several
-    // interleaved windows is stable enough to compare runs, and it is
-    // also the honest question: does the overlay cost the host a frame?
-    const ROUNDS = 3;
+    // Interleaved rounds, toggling the debugger on and off inside each,
+    // so machine drift hits both conditions equally. The estimator is the
+    // median of the per-round medians: a single window's median is
+    // noisy, and the minimum is worse still — headless rAF fires in
+    // bursts well below the vsync period, so the fastest frame measures
+    // the scheduler, not the page.
+    const ROUNDS = 5;
     const FRAMES = 120;
     const baseWins = [];
     const dbgWins = [];
@@ -807,11 +807,10 @@ async function measurePage(cdp, url) {
       dbgCounters.push(await evaluate(cdp, sessionId, COUNTERS_EXPR));
     }
 
-    const fastest = (wins) => Math.min(...wins.map((w) => Math.min(...w)));
-    const baseMs = fastest(baseWins);
-    const dbgMs = fastest(dbgWins);
-    const baseMedian = median(baseWins.flat());
-    const dbgMedian = median(dbgWins.flat());
+    const baseMs = median(baseWins.map(median));
+    const dbgMs = median(dbgWins.map(median));
+    const baseSpread = Math.max(...baseWins.map(median)) - Math.min(...baseWins.map(median));
+    const dbgSpread = Math.max(...dbgWins.map(median)) - Math.min(...dbgWins.map(median));
 
     // Counter ratios: use the round that produced the cleanest frame.
     const base = baseCounters[0];
@@ -873,8 +872,8 @@ async function measurePage(cdp, url) {
     result.accuracy = probes.filter((p) => p.ok).length / probes.length;
     result.baseMs = baseMs;
     result.dbgMs = dbgMs;
-    result.baseMedian = baseMedian;
-    result.dbgMedian = dbgMedian;
+    result.baseSpread = baseSpread;
+    result.dbgSpread = dbgSpread;
     result.overheadPct = baseMs > 0 ? ((dbgMs - baseMs) / baseMs) * 100 : 0;
     result.headroom = Math.max(0, Math.min(1, 1 - Math.max(0, result.overheadPct) / 10));
     result.score = 0.5 * result.coverage + 0.3 * result.accuracy + 0.2 * result.headroom;

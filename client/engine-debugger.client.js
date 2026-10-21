@@ -582,6 +582,9 @@
       state.stage.canvas.parentNode.removeChild(state.stage.canvas);
     }
     state.stage.canvas = null;
+    // The boxes belong to the overlay that just went away; keeping them
+    // would leave a remount reusing detached elements.
+    state.stage.boxes = [];
   }
 
   // ── painting ───────────────────────────────────────────────────────────
