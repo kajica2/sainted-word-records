@@ -183,6 +183,11 @@ const ACCEPTED_DRIFT = [
     claim: 'TRUSTED_PROXIES',
     reason: 'documented-but-unimplemented env var; the audit files the mechanism as P3 (docs/PLANS/architecture-audit-2026-10.md)',
   },
+  {
+    doc: null,
+    claim: '_archive',
+    reason: 'gitignored by design — it holds local experimental pages, so it never exists in a checkout. The doc can name it; the tree cannot show it.',
+  },
 ];
 
 // ---------------------------------------------------------------------------

@@ -127,7 +127,9 @@ function loadSiteMap() {
       function addUrl(href) {
         if (!href || href.startsWith('http')) return;
         if (href.startsWith('/s/')) return; // Dynamic route, skip
-        const clean = href.replace(/^\//, '').replace(/\/$/, '');
+        // A fragment is a same-document anchor, not a path segment:
+        // "/composer#onboarding" serves the same document as "/composer".
+        const clean = href.split('#')[0].replace(/^\//, '').replace(/\/$/, '');
         if (!clean) return;
         let url;
         // First, check if a Vercel rewrite resolves this URL

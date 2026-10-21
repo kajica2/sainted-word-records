@@ -99,11 +99,17 @@ function paramGlob(destination) {
   // /versions/music_video_mtv (found 2026-09-29 against the deployed site).
   const sourceRe = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/:[A-Za-z_]+/g, '[^/]+') + '$');
   function servedInDist(url) {
-    const rel = String(url).replace(/^\/+/, '');
+    // A fragment is a same-document anchor: it does not change whether the
+    // path is served. "/composer#onboarding" resolves to the same document
+    // as "/composer", and the anchor itself is the page's business (a
+    // runtime-rendered target cannot be verified statically). Strip it
+    // before resolving the path.
+    const frag = String(url).split('#')[0];
+    const rel = frag.replace(/^\/+/, '');
     if (!rel) return true;
     if (isFile(path.join(DIST, rel))) return true;
     if (isFile(path.join(DIST, rel, 'index.html'))) return true;
-    const hit = rewrites.find((r) => sourceRe(r.source).test(url));
+    const hit = rewrites.find((r) => sourceRe(r.source).test(frag));
     if (!hit || !hit.destination || !hit.destination.startsWith('/')) return false;
     if (hit.destination.includes(':')) return allFiles.some((f) => paramGlob(hit.destination).test(f));
     return resolvesInDist(hit.destination);

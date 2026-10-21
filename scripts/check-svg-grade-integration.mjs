@@ -180,7 +180,11 @@ try {
     bad('screenshot captured (with filter)');
   } else if (withoutFilter.length === 0) {
     bad('screenshot captured (without filter)');
-  } else if (withFilter.equals(withoutFilter)) {
+  } else if (Buffer.compare(Buffer.from(withFilter), Buffer.from(withoutFilter)) === 0) {
+    // Buffer.compare, not Uint8Array.equals: Puppeteer returns a
+    // Uint8Array for encoding:'binary' on current versions, and
+    // Uint8Array has no .equals() — the call below used to throw
+    // "withFilter.equals is not a function" and failed the step.
     bad('filter alters composited output', 'screenshots identical (' + withFilter.length + ' bytes)');
   } else {
     ok(`filter alters composited output (with=${withFilter.length}b without=${withoutFilter.length}b)`);

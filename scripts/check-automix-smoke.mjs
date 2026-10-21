@@ -1620,7 +1620,14 @@ else bad('SWR_SCENES', JSON.stringify(scenesShape));
 // (parity with versions/music_video.html — see
 // .hermes/plans/2026-09-09_065000-engine-page-parity.md).
 await nav('http://localhost:5181/engine.html');
-await new Promise(r => setTimeout(r, 400));
+// SWR_RECORDER is published by a deferred module (/lib/recorder.client.js),
+// so the globals below only exist once the deferred scripts have run. A
+// fixed 400ms wait is a coin flip on a loaded CI runner — the wait has to
+// be for the global, not for the clock.
+await page.waitForFunction(
+  () => typeof window.SWR_RECORDER === 'object' && window.SWR_RECORDER !== null,
+  { timeout: 15000 },
+).catch(() => {});
 const engineParity = await page.evaluate(() => ({
   hero: typeof window.SWR_HERO_FRAMES === 'object' && window.SWR_HERO_FRAMES !== null,
   stats: typeof window.SWR_STATS === 'object' && window.SWR_STATS !== null,
