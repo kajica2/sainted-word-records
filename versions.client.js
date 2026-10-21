@@ -2,7 +2,10 @@
 //
 // Fetches /presets/manifest.json + pings /engine, /presets/manifest.json
 // and fills in the "Live state" panel + the "Daily preset timeline" section.
-// No framework, no deps. ~3 KB.
+// No framework, no deps. ~4 KB.
+//
+// Exposes window._presets for the search/filter layer and window.renderPick
+// so inline patches in versions.html can override the card renderer.
 (function () {
   'use strict';
 
@@ -45,7 +48,7 @@
     const root = $('preset-list');
     if (!root) return;
     if (!presets.length) {
-      root.innerHTML = '<div class="preset-day"><div class="day-head"><h4>No presets yet</h4></div><div class="items"><span class="preset-chip">empty manifest</span></div></div>';
+      root.innerHTML = '<div class="preset-day"><div class="day-head"><h4>No presets yet</h4></div><div class="items"><span class="preset-chip"><span class="dot"></span>empty manifest</span></div></div>';
       return;
     }
     const groups = groupByDay(presets);
@@ -135,8 +138,33 @@
     const schemaEl = $('l-schema');
     if (schemaEl) schemaEl.textContent = schemaVersion;
 
-    // Render the timeline
+    // Expose _presets on window so the search/filter layer (inline patch) can use it
+    window._presets = presets;
+
+    // Render the timeline (search/filter layer takes over via swrSearch.setPresets)
     renderTimeline(presets);
+
+    // Notify search layer that presets are loaded
+    if (window.swrSearch && window.swrSearch.setPresets) {
+      window.swrSearch.setPresets(presets);
+    }
+
+    // Handle ?preset= deep link — load a specific preset into the card
+    const params = new URLSearchParams(location.search);
+    const deepPresetId = params.get('preset');
+    if (deepPresetId) {
+      const found = presets.find(p => p.id === deepPresetId);
+      if (found) {
+        // Suppress the random first pick and show the linked preset instead
+        _picks = [deepPresetId];
+        // Expose for search layer
+        if (window.swrSearch && window.swrSearch.setLinked) {
+          window.swrSearch.setLinked(deepPresetId);
+        }
+        // Use the (possibly patched) renderPick
+        _renderPickImpl(found, 0);
+      }
+    }
 
     // Wire the randomize button
     wireRandomize(presets);
@@ -190,8 +218,11 @@
         }
       });
     }
-    // Pick one on initial load so the card is visible
-    setTimeout(pickRandom, 600);
+    // Skip initial random pick if a ?preset= deep link is in the URL (handled in init)
+    const params = new URLSearchParams(location.search);
+    if (!params.has('preset')) {
+      setTimeout(pickRandom, 600);
+    }
   }
 
   function pickRandom() {
@@ -204,10 +235,23 @@
     } while (_picks[_picks.length - 1] && _picks[_picks.length - 1] === p.id && _presets.length > 1 && attempts < 8);
     _picks.push(p.id);
     if (_picks.length > 50) _picks = _picks.slice(-50);
-    renderPick(p, _picks.length);
+    _renderPickImpl(p, _picks.length);
   }
 
-  function renderPick(p, pickNum) {
+  // Internal render implementation — delegates to window.renderPick if patched
+  function _renderPickImpl(p, pickNum) {
+    // Allow inline patches to override the card rendering
+    if (typeof window.renderPick === 'function' && window.renderPick !== _renderPickImpl) {
+      window.renderPick(p, pickNum);
+      return;
+    }
+    _doRenderPick(p, pickNum);
+  }
+
+  // Expose the implementation so patches can call it as _origRenderPick
+  window.__swrRenderPick = _doRenderPick;
+
+  function _doRenderPick(p, pickNum) {
     const card = $('rand-card');
     if (!card) return;
     card.classList.add('is-rolling');
@@ -252,13 +296,12 @@
     renderDemo(p);
   }
 
+  // Alias for external patches — they can override window.renderPick
+  window.renderPick = function(p, pickNum) { _renderPickImpl(p, pickNum); };
+
   function renderDemo(p) {
     const demoRoot = $('r-demo');
     const styleFile = (p && p.demo && p.demo.style) || '';
-    // The secondary CTA opened the generic engine, which discarded the one
-    // thing the random card had just picked — the style. Point it at that
-    // style's own standalone page instead, so "Open in Grid →" opens Grid.
-    // Falls back to /engine only when the manifest has no style for the pick.
     const openEl = $('r-open');
     if (openEl) {
       if (styleFile) {
@@ -277,9 +320,6 @@
       return;
     }
     demoRoot.style.display = '';
-    // Audio paths in the manifest are relative ("library/audio/...") — this page
-    // lives at /versions, so without a leading slash they 404 (resolving to
-    // /versions/library/audio/...). Prefix with "/" so the link is always absolute.
     const audioPath = (p.demo.audio || '').startsWith('/') ? p.demo.audio : '/' + (p.demo.audio || '');
     const audioFile = (p.demo.audio || '').split('/').pop().replace(/\.[^.]+$/, '');
     const style = p.demo.style_name || (p.demo.style || '').replace('.html', '');

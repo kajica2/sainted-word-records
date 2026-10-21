@@ -80,7 +80,12 @@ try {
   // CI runner note: networkidle0 never settles on engine.html (long-lived
   // audio/fetch). Navigate on domcontentloaded, then poll for the harness
   // readiness signal: SWR_VARIANTS + SWR_LOOKS + FX all defined.
-  await page.goto(`${BASE}/engine.html`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  // ?webgl=1 opts back in: WebGL is off by default
+  // (lib/webgl-feature-detect.client.js), and fx-postprocess.js returns before
+  // defining window.FX when the gate is closed. The harness-readiness probe
+  // below and every per-variant "fx=true drawFx ran, painted pixels"
+  // assertion all key off window.FX, so this walk must run on the WebGL path.
+  await page.goto(`${BASE}/engine.html?webgl=1`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(
     () => !!(window.SWR_VARIANTS && window.SWR_LOOKS && window.FX),
     { timeout: 30000, polling: 400 }

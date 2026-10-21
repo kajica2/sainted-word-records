@@ -52,9 +52,15 @@
 //   D *                toggle AUTO DRIFT / manual drag
 //   Esc                close the help overlay
 //   ↑ / ↓              select prev / next layer
-//   1..9               select layer by index  (1-based; 0 = deselect)
+//   J / K *            next / previous demo page (versions/*.html only;
+//                        wraps at both ends of the 22-variant order)
+//   PageDown / PageUp * same as J / K
+//   1..9               apply look filter slot (no rotation; see docs/PLANS/number-key-assignment.md)
+//   0                  home — slide every layer back to its origin
 //   Alt+1..6 *         per-layer remap (swap one slot, others stay)
 //   Shift+1..9 *       advance story chapters (FRAGMENTS / SIGNAL / …)
+//   T + 0              clear look filter (no tint, no variant change)
+//   T + 1..9           look filter (mixes tone + temp + variant)
 //   Cmd+1..9 *         legacy FX palette preset (PULSE / NEON / …)
 //                        Applies a known FX configuration (temp, vignette,
 //                        glow, …) to the running engine. The page stays put;
@@ -177,7 +183,25 @@
     // `selected` is engine's (see selectedOf below).
     layerAlpha: function () { return layerHasField('alpha'); },
     layerMutate: function () { return layerHasField('mutate'); },
+    // Page navigation across the demo variants (J/K, PageUp/PageDown).
+    // Only meaningful when the current page IS one of the variants — the
+    // engine and every marketing page would have no sibling to move to, so
+    // the rows drop out of the help table there instead of advertising a
+    // dead key.
+    variants: function () { return currentVariantIndex() >= 0; },
   };
+
+  // Canonical variant order. Mirrors the taxonomy in AGENTS.md: the 5 core
+  // variants first (the ones reachable from the hand-written header links),
+  // then the 17 artistic variants. Declared as a module-level constant
+  // rather than probed at runtime so the cycle is deterministic across
+  // pages — a filesystem listing would reorder on every visit.
+  const VARIANT_PAGES = [
+    'neon', 'film', 'grid', 'smoke', 'hallucination',
+    'aurora', 'baroque', 'chrome', 'collage', 'echo-manifold', 'eclipse',
+    'fractal', 'glitch', 'kraft', 'mosaic', 'phosphor', 'pulse', 'spectrum',
+    'tape', 'typography', 'void', 'watercolor',
+  ];
 
   function layerHasField(field) {
     const L = window.Layers || (window.SWR && window.SWR.Layers);
@@ -190,7 +214,7 @@
   const host = {
     genops: false, automap: false, settings: false, engineRotate: false,
     engineAffordance: false, story: false, layerRemap: false, presets: false,
-    layerAlpha: false, layerMutate: false,
+    layerAlpha: false, layerMutate: false, variants: false,
   };
   function getHost() {
     for (const k in hostFlags) {
@@ -346,6 +370,36 @@
       label: 'Select next layer',
       action: function () { cycleLayer(+1); },
     },
+    // ---- page navigation across the demo variants ----
+    // Nothing on the site did this before: the only affordance was the
+    // hand-written "→ film" link in each page header, which is a dead end
+    // at the last variant and points at an arbitrary neighbour elsewhere.
+    // J / K are vim-style and free; PageUp / PageDown mirror the existing
+    // ↑ / ↓ gesture for layers without stealing the arrow keys.
+    prevVariant: {
+      keys: 'K',
+      label: 'Previous demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(-1); },
+    },
+    nextVariant: {
+      keys: 'J',
+      label: 'Next demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(+1); },
+    },
+    prevVariantPage: {
+      keys: 'PageUp',
+      label: 'Previous demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(-1); },
+    },
+    nextVariantPage: {
+      keys: 'PageDown',
+      label: 'Next demo page',
+      requires: 'variants',
+      action: function () { gotoVariant(+1); },
+    },
     cycleAutoMap: {
       keys: 'A',
       label: 'Re-randomize auto-map (this engine)',
@@ -387,6 +441,47 @@
       action: function () {
         if (window.LayerScheduler && typeof window.LayerScheduler.swapNow === 'function') {
           window.LayerScheduler.swapNow();
+        }
+      },
+    },
+    // Master rotation toggle: flips window.SWR_ROT_MASTER.enabled (the
+    // same flag the per-layer 'rotate' button and the rot-master UI
+    // button honour) and propagates the new value to every layer. The
+    // panel-side ↻ button reflects the change via paintMasterButton.
+    toggleMasterRotation: {
+      keys: 'Shift+Y',
+      label: 'Toggle master rotation (audio-driven rot on every layer)',
+      action: function () {
+        if (!window.SWR_ROT_MASTER) return;
+        window.SWR_ROT_MASTER.enabled = !window.SWR_ROT_MASTER.enabled;
+        try {
+          localStorage.setItem('swr.rotMaster.enabled',
+                               window.SWR_ROT_MASTER.enabled ? '1' : '0');
+        } catch (_) {}
+        // applyMasterToLayers walks every layer in window.Layers and
+        // sets rotationEnabled to the new value, then re-renders.
+        if (typeof applyMasterToLayers === 'function') applyMasterToLayers();
+        const btn = document.getElementById('swr-rot-master');
+        if (btn && typeof paintMasterButton === 'function') paintMasterButton(btn);
+        try {
+          document.dispatchEvent(new CustomEvent('swr-rot-master-change', {
+            detail: { enabled: window.SWR_ROT_MASTER.enabled },
+          }));
+        } catch (_) {}
+      },
+    },
+    // Auto-map library assets to layer roles by audio features. The
+    // #re-map button on engine.html calls Layers.autoMap(); this is
+    // the same call. The action null-checks Layers.autoMap itself, so
+    // it's safe on every page — no requires-gate needed. Pages without
+    // Layers.autoMap (very few) just no-op.
+    actionsRunAutoMap: {
+      keys: 'Shift+U',
+      label: 'Auto-map library assets to layer roles by audio features',
+      action: function () {
+        const L = window.Layers;
+        if (L && typeof L.autoMap === 'function') {
+          try { L.autoMap(); } catch (e) { console.warn('[keys] autoMap failed:', e.message); }
         }
       },
     },
@@ -575,6 +670,32 @@
       label: '+ mutate jitter (selected layer)',
       action: function () { nudgeLayer('mutate', +0.05, 0, 1); },
     },
+    // ---- positional nudge (Shift+arrows) ------------------------------
+    // Move the selected layer by 8 / 1.5 css px per press. Two speeds
+    // gated on the displayed stepSize so a quick keyboard nudge lands
+    // the layer close to where the eye wants it, while a slower mode
+    // (when the user holds Shift+arrow longer, the engine multiplies by
+    // 4) can fine-tune without nudge-fighting.
+    nudgeLayerUp: {
+      keys: 'Shift+ArrowUp',
+      label: 'Move selected layer up (Shift+↑)',
+      action: function () { nudgeLayerPos(0, -nudgeStepY()); },
+    },
+    nudgeLayerDown: {
+      keys: 'Shift+ArrowDown',
+      label: 'Move selected layer down (Shift+↓)',
+      action: function () { nudgeLayerPos(0, +nudgeStepY()); },
+    },
+    nudgeLayerLeft: {
+      keys: 'Shift+ArrowLeft',
+      label: 'Move selected layer left (Shift+←)',
+      action: function () { nudgeLayerPos(-nudgeStepX(), 0); },
+    },
+    nudgeLayerRight: {
+      keys: 'Shift+ArrowRight',
+      label: 'Move selected layer right (Shift+→)',
+      action: function () { nudgeLayerPos(+nudgeStepX(), 0); },
+    },
     nudgeOpacityUp: {
       // The binding is '=' (see the Equal case in handle()); Shift+/ is the
       // '?' help key. The old 'Shift+/' value was never a binding.
@@ -626,6 +747,40 @@
     if (window.setStatus) {
       window.setStatus(field + ': ' + before.toFixed(2) + ' → ' + after.toFixed(2), 'ok');
     }
+  }
+
+  // Step sizes for Shift+arrows. Read the canvas so a position nudge
+  // walks the right distance on every screen size. 1/40 of the longer
+  // side is roughly a thumb-tip's worth on a 1920×1080 (≈ 27 px) and
+  // scales down on phones.
+  function nudgeStepX() {
+    const c = document.querySelector('canvas#stage, canvas.stage, canvas');
+    if (!c) return 12;
+    return Math.max(8, Math.round(c.width / 40));
+  }
+  function nudgeStepY() {
+    const c = document.querySelector('canvas#stage, canvas.stage, canvas');
+    if (!c) return 12;
+    return Math.max(8, Math.round(c.height / 40));
+  }
+  function nudgeLayerPos(dx, dy) {
+    const L = layers();
+    const sel = selectedOf(L);
+    if (!sel) return;
+    if (!sel.pos || typeof sel.pos !== 'object') sel.pos = { x: 0, y: 0, rot: 0 };
+    const sx = sel.pos.x || 0;
+    const sy = sel.pos.y || 0;
+    sel.pos.x = sx + dx;
+    sel.pos.y = sy + dy;
+    if (typeof L.render === 'function') L.render();
+    if (window.setStatus) {
+      window.setStatus('pos: ' + sx.toFixed(0) + ',' + sy.toFixed(0)
+                       + ' → ' + sel.pos.x.toFixed(0) + ',' + sel.pos.y.toFixed(0), 'ok');
+    }
+    try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+      detail: { key: 'Arrow', code: 'ArrowNudge', mods: { shift: true },
+                action: 'nudge-pos-' + (dy ? 'y' : 'x') }
+    })); } catch (_) {}
   }
 
   function action_nudgeOpacityUp() {
@@ -696,6 +851,20 @@
   function layers() { return window.SWR && window.SWR.Layers; }
   function audio()  { return window.SWR && window.SWR.Audio; }
 
+  // Bare 1..9 = apply look filter slot N. NO LAYER SELECTION on the bare
+  // digit row: the user reported pressing 1 was starting rotation, which
+  // traced back to "select layer 1" exposing an audio-rot reactor. This
+  // contract binds digit keys to the filter cycler ONLY; rotation lives
+  // on R / Shift+R / ↻ button affordance. See
+  // docs/PLANS/number-key-assignment.md.
+  function applyFilterFromDigit(n) {
+    if (typeof n !== 'number' || !Number.isFinite(n)) return;
+    const slot = Math.max(0, Math.min(9, Math.floor(n)));
+    const K = window.SWR_LOOK_FILTER_CYCLER;
+    if (!K || typeof K.apply !== 'function') return false;
+    return K.apply(slot);
+  }
+
   // Layer selection is NOT uniform across the two page families that share
   // this keymap:
   //   - lib/layers.client.js (engine.html): the property is `selected`, and
@@ -731,6 +900,37 @@
     if (typeof window.setStatus === 'function') {
       window.setStatus('layer: ' + (L.list[idx].id || ('#' + idx)) + ' (' + (idx + 1) + '/' + L.list.length + ')', 'ok');
     }
+  }
+
+  // ---- page navigation across the demo variants ----
+
+  // Index of the current page in VARIANT_PAGES, or -1 when this is not a
+  // variant page. Reads the pathname and strips the optional .html suffix
+  // and trailing slash, so /versions/neon, /versions/neon.html and
+  // /versions/neon/ all resolve to the same id.
+  function currentVariantIndex() {
+    if (typeof window === 'undefined' || !window.location) return -1;
+    const path = String(window.location.pathname || '');
+    const m = /\/versions\/([a-z0-9-]+)(?:\.html)?\/?$/i.exec(path);
+    if (!m) return -1;
+    return VARIANT_PAGES.indexOf(m[1].toLowerCase());
+  }
+
+  // Move `dir` variants along the list. The cycle wraps, so the last
+  // variant's "next" is the first — the header link chain is a dead end
+  // today, and a wrap makes J/K a complete tour without an escape key.
+  function gotoVariant(dir) {
+    const i = currentVariantIndex();
+    if (i < 0) return;
+    const next = (i + dir + VARIANT_PAGES.length) % VARIANT_PAGES.length;
+    const id = VARIANT_PAGES[next];
+    // Build the sibling URL from the pathname with ONLY the filename
+    // replaced. Stripping the directory with /\/?$/ drops the trailing
+    // slash along with it, which produced "/versionsfilm.html".
+    const path = String(window.location.pathname || '');
+    const dotHtml = /\.html$/i.test(path);
+    const dirPart = dotHtml ? path.replace(/[^/]+$/, '') : path.replace(/[^/]*$/, '');
+    window.location.href = dirPart + id + (dotHtml ? '.html' : '');
   }
 
   function bumpFade(delta, field) {
@@ -875,11 +1075,21 @@
         // "S" is deliberately unbound: it used to open the gear menu, which
         // no longer exists (engine-settings.client.js is UI-free now).
         case 'KeyC':            action = ACTIONS.cycleBlend; break;
-        case 'KeyY':            action = ACTIONS.duplicateLayer; break;
+        case 'KeyY':            action = ev.shiftKey ? ACTIONS.toggleMasterRotation : ACTIONS.duplicateLayer; break;
         case 'KeyV':            action = ev.shiftKey ? ACTIONS.mirrorVertical : ACTIONS.cycleMirror; break;
         case 'KeyF':            action = ACTIONS.fullscreen; break;
-        case 'ArrowUp':         action = ACTIONS.selectPrev; ev.preventDefault(); break;
-        case 'ArrowDown':       action = ACTIONS.selectNext; ev.preventDefault(); break;
+        case 'KeyU':            if (ev.shiftKey) action = ACTIONS.actionsRunAutoMap; break;
+        case 'ArrowUp':         action = ev.shiftKey ? ACTIONS.nudgeLayerUp : ACTIONS.selectPrev; ev.preventDefault(); break;
+        case 'ArrowDown':       action = ev.shiftKey ? ACTIONS.nudgeLayerDown : ACTIONS.selectNext; ev.preventDefault(); break;
+        case 'ArrowLeft':       action = ev.shiftKey ? ACTIONS.nudgeLayerLeft : null; ev.preventDefault(); break;
+        case 'ArrowRight':      action = ev.shiftKey ? ACTIONS.nudgeLayerRight : null; ev.preventDefault(); break;
+        // Page navigation across the demo variants. actionAllowed() drops
+        // these on non-variant pages (see the `variants` host flag), so the
+        // handler stays inert everywhere else.
+        case 'KeyJ':            action = ACTIONS.nextVariant; break;
+        case 'KeyK':            action = ACTIONS.prevVariant; break;
+        case 'PageDown':        action = ACTIONS.nextVariantPage; ev.preventDefault(); break;
+        case 'PageUp':          action = ACTIONS.prevVariantPage; ev.preventDefault(); break;
         case 'Equal':           // +/=
         case 'NumpadAdd':       action = ev.shiftKey ? ACTIONS.bumpFadeIn : ACTIONS.nudgeOpacityUp; break;
         case 'Minus':           // -
@@ -906,25 +1116,18 @@
       if (!action && (key === '?' || (ev.shiftKey && code === 'Slash'))) {
         action = ACTIONS.showHelp;
       }
-      // 1..9 to select layer 0..8. The Cmd/Ctrl/Alt guards matter because
-      // this block keys off `key` alone: without them it would also fire on
-      // the Cmd+1..9 palette and Alt+1..6 remap combos and strand them.
+      // 1..9 = apply look filter slot N (no rotation). The Cmd/Alt guards
+      // matter because this block keys off `key` alone: without them it
+      // would also fire on Cmd/Ctrl+1..9 palette and Alt+1..6 remap
+      // combos and strand them.
       if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && /^[1-9]$/.test(key)) {
-        const L = layers();
-        if (L && L.list && L.list.length) {
-          const idx = parseInt(key, 10) - 1;
-          if (idx < L.list.length) {
-            selectLayer(L, L.list[idx]);
-            if (typeof L.render === 'function') L.render();
-            if (typeof window.setStatus === 'function') {
-              window.setStatus('layer: ' + (L.list[idx].id || ('#' + idx)), 'ok');
-            }
-            try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
-              detail: { key, code, mods: { shift: !!ev.shiftKey, alt: !!ev.altKey }, action: 'select-layer-' + idx }
-            })); } catch (_) {}
-            return;
-          }
-        }
+        const slot = parseInt(key, 10);
+        applyFilterFromDigit(slot);
+        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+          detail: { key, code, mods: {}, action: 'filter-' + slot }
+        })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
+        return;
       }
       // Shift+1..9 to advance the STORY runtime through its 9 chapters
       // (Fragments, Signal, Pursuit, Fracture, Overload, Afterimage,
@@ -984,11 +1187,49 @@
       // switch above, where it is reachable.
       if (!action && key === '0' && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
         const L = layers();
+        // 0 = home: slide every layer back to its default transform
+        // (pos origin, opacity 1, hue 0, brightness/contrast neutral,
+        // baseScale from pickScale). Home is a smooth tween via
+        // Layers.homeAll() so the composition breathes back rather
+        // than snapping. Selected layer is deselected too — there's
+        // nothing to focus on when everything's at rest.
+        if (L && typeof L.homeAll === 'function') {
+          L.homeAll(480);
+        }
         if (L) selectLayer(L, null);
-        if (typeof window.setStatus === 'function') window.setStatus('layer: —', 'ok');
+        if (typeof window.setStatus === 'function') window.setStatus('home: layers back to start', 'ok');
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
-          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'deselect' }
+          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'home' }
         })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
+        return;
+      }
+      // T (pre-arm) + DigitN/Digit0 — look filter cycler. The user presses
+      // T first (enters look-mode), then a digit: 1-9 apply a pre-baked
+      // tint/variant look, 0 clears everything back to no filter. Cheap
+      // state machine stored on window.__swrLookModeUntil.
+      if (!action && code === 'KeyT' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+        window.__swrLookModeUntil = performance.now() + 2000;
+        if (typeof window.setStatus === 'function') {
+          window.setStatus('look-mode: press 1-9 (or 0 = no filter)', 'ok');
+        }
+        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'look-mode' }
+        })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
+        return;
+      }
+      if (!action && /^Digit[0-9]$/.test(code || '') && !ev.metaKey && !ev.ctrlKey && !ev.altKey
+          && window.__swrLookModeUntil && performance.now() < window.__swrLookModeUntil) {
+        const slot = parseInt(code.replace('Digit', ''), 10);
+        if (window.SWR_LOOK_FILTER_CYCLER && typeof window.SWR_LOOK_FILTER_CYCLER.apply === 'function') {
+          window.SWR_LOOK_FILTER_CYCLER.apply(slot);
+        }
+        window.__swrLookModeUntil = 0; // consume the mode
+        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'look-' + slot }
+        })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
         return;
       }
     }
@@ -1043,6 +1284,8 @@
       { keys: 'B',              label: 'bloom layers (stagger fade-in)', action: ACTIONS.bloom },
       { keys: 'X',              label: 'crossfade all layers (A2 swap)', action: ACTIONS.crossfade },
       { keys: 'Shift+R',        label: 'force auto-swap now',          action: ACTIONS.forceSwap },
+      { keys: 'Shift+Y',        label: 'toggle master rotation (every layer)', action: ACTIONS.toggleMasterRotation },
+      { keys: 'Shift+U',        label: 'auto-map library assets to layer roles', action: ACTIONS.actionsRunAutoMap },
       { keys: 'V',              label: 'mirror axis: vertical → horizontal → off', action: ACTIONS.cycleMirror },
       { keys: 'Shift+V',        label: 'mirror axis: vertical (left/right)', action: ACTIONS.mirrorVertical },
 
@@ -1056,11 +1299,17 @@
 
       // ---- Layers (documentation-only rows; no single action) ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
-      { keys: '1..9',           label: 'select layer by index (1-based)' },
-      { keys: '0',              label: 'deselect layer' },
+      { keys: '[ / ]',          label: 'cycle prev / next layer' },
+      { keys: '0',              label: 'home — slide every layer back to its origin' },
+      { keys: '1..9',           label: 'apply look filter slot (soft / old cinema / 5 cinematic / void / echo); no rotation' },
+      { keys: 'T + 1..9',       label: 'alias of 1..9 filter cycler (kept for muscle memory)' },
       { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },
       { keys: 'D',              label: 'toggle AUTO DRIFT / manual drag', action: ACTIONS.toggleDragMode },
       { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)', requires: 'layerRemap' },
+
+      // ---- Page navigation ----
+      { keys: 'J / K',          label: 'next / previous demo page', action: ACTIONS.nextVariant, requires: 'variants' },
+      { keys: 'PageDown / PageUp', label: 'next / previous demo page', action: ACTIONS.nextVariantPage, requires: 'variants' },
 
       // ---- Presets ----
       { keys: 'Shift+1..9',     label: 'story chapter (FRAGMENTS / SIGNAL / …)', requires: 'story' },

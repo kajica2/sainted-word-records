@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Engine · Sainted Word Records</title>
@@ -18,6 +20,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script>
@@ -323,6 +327,11 @@
           </span>
           <span class="micro ml-6">Waveform ▸ Beats</span>
           <div class="wave-bars ml-3" id="drawer-wave" aria-hidden="true"></div>
+          <select id="dist-algo" class="ml-auto bg-panel border border-line rounded text-[10px] px-2 py-1 text-gray-300">
+            <option value="linear">Linear</option>
+            <option value="random">Random</option>
+            <option value="beat">Beat-Sync</option>
+          </select>
         </button>
         <!-- body -->
         <div class="drawer-body">
@@ -484,8 +493,13 @@
           ${sliderRow('Scale', L.scale)}
           ${sliderRow('Hue', L.hue)}
           ${sliderRow('Rot', L.rot)}
-          <label class="flex items-center justify-end gap-2 text-[11px] text-gray-300 cursor-pointer pt-1">
-            <input type="checkbox" class="accent-orange" /> Rotate
+          <label class="flex items-center justify-between gap-2 text-[11px] text-gray-300 cursor-pointer pt-1">
+            <span><input type="checkbox" class="accent-orange mr-1" ${L.rot > 0 ? 'checked' : ''} /> Auto-rotate</span>
+            <select class="text-[9px] bg-panel border border-line rounded px-1 py-0.5" data-rot-speed="${i}">
+              <option value="0.5">slow</option>
+              <option value="1" selected>normal</option>
+              <option value="2">fast</option>
+            </select>
           </label>
         </div>
       `;
@@ -850,6 +864,171 @@
       });
     }
 
+    // ─── Distribution algorithm for preset parameters ──────────────
+    const distAlgoSelect = document.getElementById('dist-algo');
+    if (distAlgoSelect && window.PresetDistribution) {
+      // Apply distribution when algorithm changes
+      distAlgoSelect.addEventListener('change', () => {
+        const algo = distAlgoSelect.value;
+        const layersList = document.getElementById('layers-list');
+        if (!layersList) return;
+
+        // Get all layer sliders
+        const sliders = layersList.querySelectorAll('input[type="range"]');
+        const layerCount = Math.ceil(sliders.length / 5) || 5; // 5 params per layer
+
+        let distributed;
+        const seed = Date.now();
+        const baseValue = 0.5;
+
+        if (algo === 'linear') {
+          distributed = window.PresetDistribution.LINEAR_SPREAD.acrossLayers(baseValue, layerCount, 0.3);
+        } else if (algo === 'random') {
+          distributed = window.PresetDistribution.RANDOM_DIST.acrossLayers(baseValue, layerCount, 0.4, seed);
+        } else if (algo === 'beat') {
+          // For beat-sync, get current audio features if available
+          const audioFeat = (window.SWR && window.SWR.Audio && window.SWR.Audio.feat) || {};
+          distributed = window.PresetDistribution.BEAT_SYNDIST.compute(new Array(layerCount), audioFeat);
+        }
+
+        // Apply distributed values to layer parameters
+        if (distributed && distributed.length) {
+          const paramNames = ['opacity', 'base', 'scale', 'hue', 'rot'];
+          sliders.forEach((slider, i) => {
+            const layerIdx = Math.floor(i / 5);
+            const paramIdx = i % 5;
+            if (distributed[layerIdx] !== undefined) {
+              // Apply value scaled to slider range (0-100)
+              const newVal = Math.round(distributed[layerIdx] * 100);
+              slider.value = newVal;
+              // Trigger change event for the layer
+              slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          });
+          console.log(`[Distribution] Applied ${algo} algorithm to ${layerCount} layers`);
+        }
+      });
+    }
+
+    // ─── Auto-rotate animation for layers ────────────────────────────
+    const autoRotateState = { running: false, frame: null, layers: [] };
+    function startAutoRotate() {
+      if (autoRotateState.running) return;
+      autoRotateState.running = true;
+      
+      const animate = () => {
+        if (!autoRotateState.running) return;
+        
+        // Get all layer rot sliders and their auto-rotate checkboxes
+        const layersList = document.getElementById('layers-list');
+        if (!layersList) {
+          autoRotateState.frame = requestAnimationFrame(animate);
+          return;
+        }
+        
+        const details = layersList.querySelectorAll('details');
+        details.forEach((detail, layerIdx) => {
+          const checkbox = detail.querySelector('input[type="checkbox"]');
+          const speedSelect = detail.querySelector('[data-rot-speed]');
+          if (!checkbox || !checkbox.checked) return;
+          
+          const speed = parseFloat(speedSelect?.value || 1);
+          const rotSlider = detail.querySelectorAll('input[type="range"]')[4]; // Rot is 5th slider (index 4)
+          if (!rotSlider) return;
+          
+          // Increment rotation value
+          let currentVal = parseFloat(rotSlider.value);
+          currentVal = (currentVal + speed) % 360;
+          rotSlider.value = currentVal;
+          
+          // Update the displayed value
+          const displaySpan = rotSlider.previousElementSibling;
+          if (displaySpan) displaySpan.textContent = Math.round(currentVal);
+          
+          // Dispatch input event to update the engine
+          rotSlider.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        
+        autoRotateState.frame = requestAnimationFrame(animate);
+      };
+      
+      autoRotateState.frame = requestAnimationFrame(animate);
+    }
+    
+    function stopAutoRotate() {
+      autoRotateState.running = false;
+      if (autoRotateState.frame) {
+        cancelAnimationFrame(autoRotateState.frame);
+        autoRotateState.frame = null;
+      }
+    }
+    
+    // Bind auto-rotate checkboxes
+    document.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox' && e.target.closest('[data-rot-speed]')) {
+        const anyChecked = document.querySelectorAll('#layers-list input[type="checkbox"]:checked').length > 0;
+        if (anyChecked) {
+          startAutoRotate();
+        } else {
+          stopAutoRotate();
+        }
+      }
+    });
+    
+    // Auto-rotate toggle button in header
+    const autoRotateBtn = document.createElement('button');
+    autoRotateBtn.id = 'auto-rotate-btn';
+    autoRotateBtn.className = 'icon-btn';
+    autoRotateBtn.title = 'Auto-rotate all layers';
+    autoRotateBtn.innerHTML = '<i class="fa-solid fa-rotate text-[10px]"></i>';
+    autoRotateBtn.addEventListener('click', () => {
+      const isRunning = autoRotateState.running;
+      if (isRunning) {
+        stopAutoRotate();
+        autoRotateBtn.style.color = '';
+      } else {
+        // Check all auto-rotate checkboxes first
+        const checkboxes = document.querySelectorAll('#layers-list input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = true);
+        startAutoRotate();
+        autoRotateBtn.style.color = 'var(--signal)';
+      }
+    });
+
+    // Add button + master toggle to layers header
+    const layersHeader = document.querySelector('#sidebar-r .flex.items-center.justify-between');
+    if (layersHeader) {
+      // Master toggle checkbox
+      const masterToggle = document.createElement('label');
+      masterToggle.className = 'flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer';
+      masterToggle.innerHTML = `
+        <input type="checkbox" id="auto-rotate-master" class="accent-orange" />
+        <span>Auto</span>
+      `;
+      masterToggle.title = 'Toggle auto-rotate for all layers';
+      layersHeader.appendChild(masterToggle);
+      
+      // Auto-rotate button
+      layersHeader.appendChild(autoRotateBtn);
+      
+      // Master toggle logic
+      document.getElementById('auto-rotate-master')?.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          // Enable all auto-rotate checkboxes
+          const checkboxes = document.querySelectorAll('#layers-list input[type="checkbox"]');
+          checkboxes.forEach(cb => cb.checked = true);
+          startAutoRotate();
+          autoRotateBtn.style.color = 'var(--signal)';
+        } else {
+          // Disable all
+          const checkboxes = document.querySelectorAll('#layers-list input[type="checkbox"]');
+          checkboxes.forEach(cb => cb.checked = false);
+          stopAutoRotate();
+          autoRotateBtn.style.color = '';
+        }
+      });
+    }
+
     // ─── Photo tab: drop photos → render thumbnails ──────────────
     const photoDeck = document.getElementById('photo-deck');
     const photoStatus = document.getElementById('photo-status');
@@ -962,6 +1141,7 @@
   <script src="/client/swr-media-input.client.js" defer></script>
   <script src="/client/dashboard-engine.client.js" defer></script>
   <script src="/client/dashboard-presets.client.js" defer></script>
+  <script src="/lib/preset-distribution.client.js" defer></script>
 
   <!-- Phase 3: Music-video automix+curator runtimes (exposed for any
        future dashboard integration). Each script is wrapped in IIFE +
@@ -1247,5 +1427,7 @@
     });
   })();
   </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
 </body>
 </html>

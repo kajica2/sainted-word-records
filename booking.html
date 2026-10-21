@@ -1,10 +1,14 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8">
   <title>Artist Booking · SWR</title>
   <meta name="description" content="Book a session with Sainted Word Records artists.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/booking" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/hero.png" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230e0c0a'/><rect x='4' y='18' width='3' height='10' fill='%23e6306b'/><rect x='9' y='12' width='3' height='16' fill='%23e6306b'/><rect x='14' y='8' width='3' height='20' fill='%23e6306b'/><rect x='19' y='14' width='3' height='14' fill='%23e6306b'/><rect x='24' y='20' width='3' height='8' fill='%23e6306b'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Yellowtail&display=swap" rel="stylesheet">
@@ -391,7 +395,8 @@
   </style>
 </head>
 <body>
-
+  <swr-nav></swr-nav>
+  <main>
   <!-- ─── NAV ─────────────────────────────────────── -->
   <nav>
     <div class="inner">
@@ -615,19 +620,11 @@
     </div>
   </div>
 
+  </main>
   <!-- ─── FOOTER ─────────────────────────────────────── -->
-  <footer>
-    <div class="inner">
-      <span class="footer-brand">SWR <span>·</span> Records</span>
-      <p>© 2026 Sainted Word Records. All rights reserved.</p>
-      <div class="footer-links">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-        <a href="#">Press</a>
-        <a href="#">Contact</a>
-      </div>
-    </div>
-  </footer>
+  <swr-footer></swr-footer>
 
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

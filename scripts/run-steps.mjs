@@ -45,10 +45,23 @@ const GROUPS = {
   // The quick gate. Order preserved from the original `check` chain.
   check: [
     'npm run check:syntax',
+    'npm run check:engine-mobile',
+    'npm run check:quota-estimate-unit',
+    'npm run check:quota-eviction',
+    'npm run check:pt-verify',
+    'npm run check:pt-import',
     'npm run check:bundle',
     'npm run check:automix-unit',
     'npm run check:automix-arc-unit',
     'npm run check:automix-session-unit',
+    'npm run check:posterize-curve',
+    'npm run check:contract',
+    'npm run check:ver-picker',
+    'npm run check:svg-grade-integration',
+    'npm run check:api-mock',
+    'npm run check:client-sdk',
+    'npm run check:webgl-default-off',
+    'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
     'npm run check:gradient-dot-unit',
@@ -57,6 +70,8 @@ const GROUPS = {
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
     'npm run check:preset-pick-unit',
+    'npm run check:webgl-uniform-guard',
+    'npm run check:webgl-no-invalid-op',
     // Preset spec gate: manifest.json + presets/*.json against swr-preset/v1.
     // Also its own CI step (npm run preset-pipeline:verify) after check:full.
     'npm run check:preset-smoke',
@@ -82,6 +97,25 @@ const GROUPS = {
     'npm run check:bpm-unit',
     'npm run check:life-unit',
     'npm run check:midi-feat-unit',
+    'npm run check:app-version-bust-unit',
+    'npm run check:version-watcher-unit',
+    'npm run check:variant-codemods',
+    // The manifest half of the codemod contract (plan P0.5, "the 'I rebuilt
+    // it' #1"). check:variant-codemods above asks one question per codemod:
+    // "does this marker exist where the codemod says it should?". This asks
+    // the other half: does versions/manifest.json still describe the tree?
+    // It re-runs all 20 codemods against a throwaway copy of versions/ +
+    // tools/ + auth/ and fails on drift the manifest does not record, on a
+    // marker that disappeared, on a codemod whose declared marker is no
+    // longer in its own source, and on recorded `pending` debt older than
+    // the manifest's 30-day budget. Read-only on the working tree.
+    'npm run check:codemods',
+    // Doc-vs-code drift: every file path, route, glob and library name the
+    // current-state docs assert is verified against the tree. Carries its
+    // own self-test, because a green gate that can no longer detect anything
+    // is worse than no gate.
+    'npm run check:doc-truth',
+    'npm run check:looks-menu-unit',
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
     'npm run check:invite-api-smoke',
@@ -106,6 +140,10 @@ const GROUPS = {
     // against a vm sandbox, with a guarded A.feat that fails on a future
     // drawFx that reads a feature the contract mock does not provide.
     'npm run check:variants-unit',
+    // Static: lib/look-variant.client.js is loaded by engine/composer/record
+    // and its JS source carries no em-dashes. Reachable from NO gate until
+    // it was added here.
+    'npm run check:look-variant-unit',
     'npm run check:targeting-unit',
     'npm run targeting:verify',
     'npm run check:media-input-unit',
@@ -189,6 +227,12 @@ const GROUPS = {
     // builds dist/ if missing or stale. The 90s budget covers the
     // 16×~1.6s variant walk plus harness boot.
     { cmd: 'npm run check:variants-smoke', timeoutMs: 120000, retries: 1 },
+    // Builds twice from a clean state and verifies the second `dist/` is
+    // byte-identical to the first. Catches plugin-ordering bugs (a
+    // post-processor that overwrites another post-processor's output)
+    // before they ship. The only allowed drift is the build timestamp
+    // in `dist/lib/app-version.js`.
+    { cmd: 'npm run check:build-idempotent', timeoutMs: 240000, retries: 0 },
     'npm run check:dist-links',
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.

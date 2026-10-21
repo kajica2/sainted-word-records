@@ -16,7 +16,7 @@ Algorithmic audio-reactive video engine. Two surfaces:
                        ├── engine-*.client.js   (engine runtime) │
                        ├── lib/*.client.js      (shared)        │
                        ├── versions/<variant>.html              │
-                       └── versions/inject/*.js  (per-variant)  │
+                       └── variants/<name>.automix.json         │
                   ┌────────────────────────────────────────────┘
                                        │
                                        │ HTTPS (signed URLs)
@@ -47,16 +47,40 @@ also need `node scripts/migrate-html.mjs <page.html>` to wire shared CSS/JS link
 
 ## Engine Variants
 
-5 audio-reactive variants live in `versions/`:
+32 HTML files live in `versions/` (`ls versions/*.html` is the canonical
+list; the taxonomy below is 5 + 9 + 9 + 1 + 8 = 32):
 
-- **neon** — magenta-cyan glow, high-contrast
-- **film** — warm vignette + grain + 24fps cadence
-- **grid** — CRT-grid + flash overlays
-- **smoke** — soft, desaturated, particle haze
-- **hallucination** — multi-layer kaleidoscope, high motion
+- **5 core** (reactive): `neon`, `film`, `smoke`, `hallucination`, `music_video`
+- **9 artistic-preset** (reactive, share the engine-genops shell):
+  `glitch`, `aurora`, `pulse`, `void`, `chrome`, `watercolor`, `fractal`,
+  `eclipse`, `music_video_mtv`
+- **9 decorative / non-reactive**: `baroque`, `collage`, `echo-manifold`,
+  `kraft`, `mosaic`, `phosphor`, `spectrum`, `tape`, `typography`
+  (own paint loops, do NOT load engine-genops)
+- **8 content pages** (no render loop of their own): `index`, `console`,
+  `gallery`, `music-video-gallery`, `bachdrop`, `clean`, `simple`,
+  `temple-of-control`
+- **1 standalone variant**: `grid` (CRT-grid; its visual identity is DOM
+  overlays rather than a canvas `drawFx`, so the switcher doesn't drive it)
 
-Each variant HTML loads shared `engine-*.client.js` subsystems; per-variant
-behavior comes from `versions/inject/<variant>.js`.
+15 pages load `engine-genops.client.js` and run the common
+`engine-render.client.js` pipeline: the 5 core, the 9 artistic, and
+`grid`. 14 of those 15 are reachable from the engine's `#looks` dropdown -
+the `VARIANTS` table in `client/variant-switcher.client.js` omits `grid`
+and `baroque`. The decorative pages keep their own bespoke render loops.
+
+Each `versions/<variant>.html` is a COMMITTED page, not a template
+rendered from anything: the shared `engine-*.client.js` subsystems and
+the variant's own inline scripts all live in that file. The visual
+identity of each variant lives in its `drawLayer` inline script - the
+part that's actually variant-specific research. The shared plumbing
+(mobile header, responsive media queries, watermark, audio-damp,
+FX-grade chain) is applied by the hand-run codemods in
+`versions/_*.js`, which EDIT THE VARIANT IN PLACE and leave a
+`SWR-*-MARKER` comment behind so the pass is visible in the file.
+`scripts/check-variant-codemods.mjs` re-runs each codemod in dry-run and
+compares what it plans to inject against the markers actually present in
+the tree; a divergence is a drift case and fails the gate.
 
 ## Shared Design System
 
@@ -75,8 +99,33 @@ script (the `migrate-html.mjs` script enforces this — it strips duplicates whe
 
 - `pwa-bootstrap.js`, `sw.js`, `manifest.webmanifest`, `offline.html`.
 - Service worker registers after first load; offline page handles network failures.
-- Engine state persists in IndexedDB via `lib/media-store.client.js` (with
-  lazy-evict quota handling).
+- Engine state persists in IndexedDB via `lib/media-store.client.js`. On
+  QuotaExceededError the rejected error is augmented with `{usage, quota}` from
+  `navigator.storage.estimate()` (50 ms ceiling) BEFORE the rejection is
+  observed by callers, so the consumer at `lib/user-media-mount.client.js:115-137`
+  can show concrete "X MB / Y MB used" usage numbers and a Library-Hygiene
+  prompt. Without the estimate, the storage-full error was thrown without
+  any quota data and the only available action was a generic "Storage full"
+  message. Verified by `scripts/check-quota-estimate-unit.mjs`.
+- A full disk is NOT a lost upload. The write path in
+  `lib/media-store.client.js` catches QuotaExceededError, fills `err.usage`
+  if it is still null, then calls `evictOldestOne()` and retries the batch
+  exactly ONCE. The policy is deliberately the most conservative one that
+  still works: exactly one record is dropped, the oldest by `createdAt`
+  (ties broken by id; undated records sort last so they are never the
+  victim); `favorite === true` is never a candidate; eviction is LOCAL ONLY
+  (no tombstone, cloud copy untouched, and a session-scoped `_evictedIds`
+  set keeps the sync pull from re-downloading the file that was just freed);
+  a second failure rethrows the ORIGINAL error so a genuinely full disk
+  cannot spin. `getEvictionStats()` returns `{count, total, day}` from three
+  deliberately un-namespaced `localStorage` keys -
+  `quota-evictions-count` (today, resets at local midnight),
+  `quota-evictions-day` (`YYYY-MM-DD` the count belongs to) and
+  `quota-evictions-total` (life of the library) - and every drop also emits
+  an `evicted` event, so a UI can say "auto-cleaned N times today" instead
+  of letting an item quietly vanish. Verified by
+  `scripts/check-quota-eviction.mjs`. (Before this, no eviction code existed
+  anywhere in the repo and the quota error carried no usage data at all.)
 
 ## API Threat Model (excerpt from SECURITY.md)
 
@@ -96,8 +145,11 @@ script (the `migrate-html.mjs` script enforces this — it strips duplicates whe
 
 - **Local dev**: `npm run dev` → Vite on `:5174` with `swrc-api-middleware`
   proxying `/api/*` to `scripts/dev-api.mjs`.
-- **Build**: `npm run build` → `dist/`. Build size ≈ 66MB (down from ~140MB
-  pre-2026-09-13 after the curated demo library removal).
+- **Build**: `npm run build` → `dist/`. Build size ≈ 153MB (measured
+  2026-10-18: audios 40 + videos 30 + packs 22 + keyart 43 + portfolio
+  15 + ~6 elsewhere). `ci.yml:168` enforces 155MB; the 130MB and
+  140MB figures in `.kai/tech-debt/register.md:210` and the
+  earlier comment are stale.
 - **Deploy**: Vercel auto-deploys on push to `main`. GitHub committer identity
   must match an authorized user (currently `kajica2 <kai.djuric@gmail.com>`)
   — see `.kai/memory.yaml#owner`.
@@ -113,6 +165,10 @@ script (the `migrate-html.mjs` script enforces this — it strips duplicates whe
 
 - `preset-pipeline/generate.py` (Python) — daily preset generator
 - `preset-pipeline/verify.mjs` (Node) — schema verifier
-- Local entrypoint: `preset-pipeline/cron.sh` (run on dev box; no GitHub Action)
+- Local entrypoint: `preset-pipeline/cron.sh` (LaunchAgent on dev box)
 - Output: append-only `presets/*.json`
-- Committed manually by whoever runs `cron.sh`.
+- `cron.sh:52-64` auto-commits AND `git push origin main`s the new
+  presets. Vercel auto-deploys from `main`. This is unattended: a
+  laptop sleep for two weeks is two weeks of missing presets with
+  no signal except `manifest.json#updated_at`. The log lives at
+  `preset-pipeline/out/cron.log` (gitignored).

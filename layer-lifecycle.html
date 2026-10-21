@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Layer Lifecycle · SWR</title>
+  <meta name="description" content="Hands-on page for Layers.retire() and Layers.unretire(). Add layers, retire the oldest so a new layer can take over the sound reactivity, wake them back up. Audio-reactive composition primer, no engine required." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/layer-lifecycle" />
+  <meta property="og:title" content="Layer Lifecycle · SWR">
+  <meta property="og:description" content="Add layers, retire the oldest so a new layer can take over the sound reactivity, wake them back up. Demo of Layers.retire / Layers.unretire.">
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0c0c10" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/layers.client.js" defer></script>
+  <script src="/client/layer-lifecycle.client.js" defer></script>
+  <style>
+    /* Layer Lifecycle page-local tokens */
+    :root {
+      --ll-bg:     #0c0c10;
+      --ll-pad:    20px;
+      --ll-card:   var(--bg-2, #181820);
+      --ll-line:   var(--line, rgba(255,255,255,.08));
+      --ll-accent: var(--accent, #f59e0b);
+      --ll-active: var(--accent-2, #38bdf8);
+    }
+    body {
+      margin: 0; background: var(--ll-bg); color: var(--text-1, #eee);
+      font-family: var(--font-body);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: calc(64px + var(--ll-pad)) var(--ll-pad) var(--ll-pad);
+    }
+    h1 {
+      font: 700 22px/1.3 var(--font-body);
+      margin: 0 0 8px;
+    }
+    .lead {
+      color: var(--text-2, #aaa);
+      max-width: 70ch;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: var(--ll-pad);
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    /* Stage canvas */
+    .stage-card {
+      background: var(--ll-card);
+      border: 1px solid var(--ll-line);
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      position: relative;
+    }
+    #ll-stage-canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    /* Controls card */
+    .controls-card {
+      background: var(--ll-card);
+      border: 1px solid var(--ll-line);
+      border-radius: 12px;
+      padding: var(--ll-pad);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .controls-card h2 {
+      font: 700 13px/1 var(--font-mono, monospace);
+      letter-spacing: .04em;
+      color: var(--text-2, #aaa);
+      margin: 0;
+      text-transform: uppercase;
+    }
+    .ctl-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .ctl-grid > button,
+    .ctl-row > button {
+      font: 600 11px/1 var(--font-mono, monospace);
+      letter-spacing: .04em;
+      padding: 10px 12px;
+      background: transparent;
+      color: var(--text-1, #eee);
+      border: 1px solid var(--ll-line);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+    }
+    .ctl-grid > button:hover,
+    .ctl-row > button:hover {
+      background: rgba(255,255,255,.06);
+      border-color: var(--accent, #f59e0b);
+    }
+    .ctl-grid > button.primary {
+      background: var(--accent, #f59e0b);
+      border-color: var(--accent, #f59e0b);
+      color: var(--bg-1, #000);
+    }
+    .ctl-grid > button:disabled,
+    .ctl-row > button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    /* Layer list */
+    .layer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .layer-item {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--ll-line);
+      border-radius: 6px;
+      transition: border-color .12s, opacity .35s ease;
+    }
+    .layer-item.retired {
+      opacity: 0.42;
+      border-style: dashed;
+    }
+    .layer-item .num {
+      font: 700 11px/1 var(--font-mono, monospace);
+      color: var(--accent, #f59e0b);
+    }
+    .layer-item .name {
+      font: 13px/1.2 var(--font-body);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .layer-item .status {
+      font: 600 9px/1 var(--font-mono, monospace);
+      letter-spacing: .04em;
+      padding: 3px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+    .layer-item .status.live { background: rgba(56,189,248,.18); color: #67e8f9; }
+    .layer-item .status.retired { background: rgba(245,158,11,.18); color: #fbbf24; }
+    .layer-item .meta {
+      grid-column: 2 / -1;
+      font: 10px/1.4 var(--font-mono, monospace);
+      color: var(--text-2, #aaa);
+      margin-top: 4px;
+    }
+    /* Status bar */
+    #ll-status {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 14px;
+      background: var(--ll-card);
+      border: 1px solid var(--ll-line);
+      border-radius: 6px 6px 0 0;
+      font: 11px/1 var(--font-mono, monospace);
+      color: var(--text-1, #eee);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .25s ease;
+      max-width: 80vw;
+    }
+    #ll-status.show { opacity: 1; }
+    /* Help row */
+    .help-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 4px 12px;
+      font: 11px/1.5 var(--font-mono, monospace);
+      color: var(--text-2, #aaa);
+      margin-top: 4px;
+    }
+    .help-grid b { color: var(--accent, #f59e0b); }
+  </style>
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main>
+    <h1>Layer Lifecycle</h1>
+    <p class="lead">
+      Add layers from the default library, retire the oldest so a fresh layer
+      can take over the sound reactivity, and wake retired layers back up.
+      Demonstrates <code>Layers.retire(id)</code> + <code>Layers.unretire(id)</code>
+      in isolation — no engine, no audio, no deploy. Everything runs locally.
+    </p>
+
+    <div class="layout">
+      <div class="stage-card">
+        <canvas id="ll-stage-canvas" aria-label="Layer lifecycle stage"></canvas>
+      </div>
+      <div class="controls-card">
+        <h2>Controls</h2>
+        <div class="ctl-grid">
+          <button id="ll-add" class="primary">+ Add layer</button>
+          <button id="ll-retire-oldest">retire oldest</button>
+          <button id="ll-retire-all">retire all</button>
+          <button id="ll-unretire-all">unretire all</button>
+          <button id="ll-clear">clear</button>
+          <button id="ll-home">home (0)</button>
+        </div>
+        <h2 style="margin-top:8px">Layers <span id="ll-count" style="color:var(--accent);"></span></h2>
+        <div class="layer-list" id="ll-list" role="list"></div>
+        <div class="help-grid">
+          <b>click</b><span>select a layer in the stage</span>
+          <b>0</b><span>home — slide layers back to origin</span>
+          <b>9</b><span>cycle through look filters (no rotation)</span>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div id="ll-status" role="status" aria-live="polite"></div>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
+</body>
+</html>

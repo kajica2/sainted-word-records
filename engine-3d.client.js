@@ -481,6 +481,14 @@
     canvas.style.top = '-9999px';
     canvas.style.pointerEvents = 'none';
 
+    // WebGL is OFF by default. If the user hasn't opted in (via ?webgl=1
+    // or localStorage swrWebGL=1), the engine-3d module is a no-op and
+    // the page falls back to the 2D path. The helper is loaded by
+    // engine.html before this script so window.SWR_WEBGL is available.
+    if (window.SWR_WEBGL && !window.SWR_WEBGL.isWebGLEnabled()) {
+      throw new Error('engine-3d: WebGL disabled via flag');
+    }
+
     const gl = canvas.getContext('webgl', {
       alpha: true,
       antialias: true,

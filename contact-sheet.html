@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact Sheet · Sainted Word Records</title>
+  <meta name="description" content="Every media file in the SWR repo, in one view — counts, weight, and what each directory actually contains." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/contact-sheet" />
+  <link rel="icon" href="/favicon.ico" />
+
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/design-base.css">
+  <link rel="stylesheet" href="/lib/components.css">
+  <style>
+    .cs-hero { padding: 56px 0 24px; border-bottom: 1px solid var(--line); }
+    .cs-hero h1 {
+      font-family: var(--font-display); font-weight: 300;
+      font-size: clamp(34px, 5vw, 50px); line-height: 1.05;
+      letter-spacing: -0.02em; margin: 0 0 10px;
+    }
+    .cs-hero h1 em { font-style: italic; color: var(--accent); }
+    .cs-hero .lede { font-size: 16px; color: var(--ink-2); max-width: 720px; line-height: 1.5; margin: 0 0 18px; }
+
+    /* headline numbers */
+    .tally { display: flex; flex-wrap: wrap; gap: 28px; margin: 0 0 4px; }
+    .tally div { display: flex; flex-direction: column; gap: 2px; }
+    .tally b { font-family: var(--font-mono); font-size: 26px; font-weight: 500; color: var(--ink); line-height: 1; }
+    .tally span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+    /* the weight picture — one bar, whole repo */
+    .weight { padding: 30px 0 8px; }
+    .weight h2, .sect h2 {
+      font-family: var(--font-display); font-weight: 400; font-size: 21px;
+      margin: 0 0 4px; letter-spacing: -0.01em;
+    }
+    .sect .sub { font-size: 13px; color: var(--muted); margin: 0 0 16px; max-width: 720px; line-height: 1.5; }
+
+    .stack { display: flex; width: 100%; height: 30px; border-radius: 6px; overflow: hidden; margin: 0 0 10px; background: var(--bg-2); }
+    .stack span { display: block; height: 100%; transition: opacity .15s; }
+    .stack span:hover { opacity: .55; }
+
+    .rank { display: flex; flex-direction: column; gap: 1px; }
+    .rank-row {
+      display: grid; grid-template-columns: 1fr 92px 74px; gap: 10px; align-items: center;
+      padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 13px;
+      border: none; background: none; color: inherit; text-align: left; width: 100%; font-family: inherit;
+    }
+    .rank-row:hover, .rank-row:focus-visible { background: var(--bg-2); }
+    .rank-row[aria-pressed="true"] { background: var(--bg-2); box-shadow: inset 2px 0 0 var(--accent); }
+    .rank-row .name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .rank-row .name code { font-family: var(--font-mono); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-row .mb, .rank-row .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: right; }
+    .rank-row .bar { height: 4px; border-radius: 2px; background: var(--accent); opacity: .55; margin-top: 3px; }
+    .rank-name-cell { min-width: 0; }
+
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 20px 0 18px; }
+    .chip {
+      border: 1px solid var(--line-2); background: none; color: var(--ink-2);
+      border-radius: 999px; padding: 5px 13px; font-size: 12.5px; cursor: pointer;
+      font-family: var(--font-body);
+    }
+    .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chip.ghost { border-style: dashed; }
+
+    /* group cards */
+    .sect { padding: 26px 0 8px; }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 420px)); justify-content: start; padding-bottom: 40px; }
+
+    .gcard { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg-3); width: 100%; }
+    .gcard > header { padding: 12px 14px; border-bottom: 1px solid var(--line); cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .gcard h3 { margin: 0; font-family: var(--font-mono); font-size: 13.5px; font-weight: 500; }
+    .gcard .meta { font-size: 11px; color: var(--muted); font-family: var(--font-mono); white-space: nowrap; }
+    .gcard .kinds { display: flex; gap: 5px; padding: 8px 14px 0; flex-wrap: wrap; }
+    .kind { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--muted); }
+    .thumbs { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 10px 14px 14px; }
+    .thumbs a, .thumbs .tile { aspect-ratio: 1; overflow: hidden; background: var(--bg-2); position: relative; display: block; border-radius: 3px; min-width: 0; }
+    .thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .tile.more { display: grid; place-items: center; width: 100%; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .gcard .more-btn { display: block; width: 100%; padding: 8px; border: none; border-top: 1px solid var(--line); background: none; color: var(--accent); font-size: 12px; cursor: pointer; font-family: var(--font-body); }
+    .tile.av { display: grid; place-items: center; font-size: 15px; color: var(--muted); }
+    .tile .play { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+    .gcard .more-btn { display: block; width: 100%; padding: 8px; border: none; border-top: 1px solid var(--line); background: none; color: var(--accent); font-size: 12px; cursor: pointer; font-family: var(--font-body); }
+    .gcard .more-btn:hover { background: var(--bg-2); }
+
+    .full { display: none; grid-template-columns: repeat(auto-fill, 64px); grid-auto-rows: 64px; gap: 3px; padding: 10px 14px 14px; border-top: 1px solid var(--line); max-height: 460px; overflow: auto; }
+    .gcard.open .full { display: grid; }
+    .full a, .full .tile { overflow: hidden; background: var(--bg-2); display: block; border-radius: 3px; position: relative; min-width: 0; }
+    .full img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* biggest files */
+    .big { border-top: 1px solid var(--line); }
+    .big li { display: grid; grid-template-columns: 1fr 90px; gap: 12px; padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 12.5px; list-style: none; }
+    .big code { font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .big .mb { font-family: var(--font-mono); text-align: right; color: var(--muted); }
+    .big ul { margin: 0; padding: 0; }
+
+    .note-box { border: 1px dashed var(--line-2); border-radius: 8px; padding: 12px 14px; margin: 0 0 30px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+    .note-box b { color: var(--ink-2); font-weight: 500; }
+
+    /* lightbox */
+    #lb { position: fixed; inset: 0; background: rgba(8,6,4,.92); display: none; place-items: center; z-index: 90; padding: 28px; }
+    #lb.on { display: grid; }
+    #lb img, #lb video { max-width: 92vw; max-height: 78vh; object-fit: contain; border-radius: 6px; }
+    #lb .cap { color: #f0e7d8; font-family: var(--font-mono); font-size: 12px; margin-top: 12px; text-align: center; word-break: break-all; }
+    #lb .x { position: absolute; top: 16px; right: 20px; font-size: 28px; color: #f0e7d8; background: none; border: none; cursor: pointer; line-height: 1; }
+    #empty { padding: 40px 0; color: var(--muted); font-size: 14px; }
+  </style>
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main class="wrap">
+    <header class="cs-hero">
+      <h1>Contact <em>sheet</em></h1>
+      <p class="lede">
+        Every media file in this repo, counted. Grouped by directory, ranked by weight,
+        with thumbnails — so you can see what actually exists without opening 20 folders.
+        Note that the counts differ depending on where this page is generated: files that are
+        not tracked in git exist on this machine but never ship.
+      </p>
+      <div class="tally" id="tally"></div>
+    </header>
+
+    <section class="weight">
+      <h2>Where the weight is</h2>
+      <p class="sub">Each bar is one directory, proportional to its share of all media bytes. Click a row to filter below.</p>
+      <div class="stack" id="stack" role="img" aria-label="Share of media bytes by directory"></div>
+      <div class="rank" id="rank"></div>
+    </section>
+
+    <div class="filters" id="filters">
+      <button class="chip" data-kind="all" aria-pressed="true">Everything</button>
+      <button class="chip" data-kind="image" aria-pressed="false">Images</button>
+      <button class="chip" data-kind="video" aria-pressed="false">Video</button>
+      <button class="chip" data-kind="audio" aria-pressed="false">Audio</button>
+      <button class="chip ghost" id="reset" aria-pressed="false">Clear filters</button>
+    </div>
+
+    <section class="sect">
+      <h2>Every group</h2>
+      <p class="sub" id="groupsub"></p>
+      <div class="grid" id="grid"></div>
+      <div id="empty" hidden>Nothing matches that filter.</div>
+    </section>
+
+    <section class="sect">
+      <h2>The 25 largest single files</h2>
+      <p class="sub">Compression targets, in order of payoff.</p>
+      <div class="big"><ul id="big"></ul></div>
+    </section>
+
+    <div class="note-box" id="excluded"></div>
+  </main>
+
+  <div id="lb" role="dialog" aria-modal="true" aria-label="Media viewer">
+    <button class="x" id="lbx" aria-label="Close">&times;</button>
+    <div>
+      <div id="lbm"></div>
+      <div class="cap" id="lbc"></div>
+    </div>
+  </div>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const fmtMB = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+const fmtN = (n) => n.toLocaleString();
+
+const inv = await (await fetch('/media/inventory.json')).json();
+// One distinct hue per group, spread by the golden angle so no two rows share
+// a swatch even when there are more groups than house colours. Saturation and
+// lightness stay in the token family's range so the bar still reads as SWR.
+const hue = (i) => Math.round((i * 137.508) % 360);
+const colorOf = (i) => `hsl(${hue(i)} 62% 52%)`;
+
+let kindFilter = 'all';
+let dirFilter = null;
+
+/* ---------- headline ---------- */
+const pct = inv.totalFiles ? Math.round(inv.trackedFiles / inv.totalFiles * 100) : 0;
+$('#tally').innerHTML = `
+  <div><b>${fmtN(inv.totalFiles)}</b><span>media files on disk</span></div>
+  <div><b>${(inv.totalBytes / 1048576).toFixed(0)} MB</b><span>total weight</span></div>
+  <div><b>${inv.groups.length}</b><span>directories</span></div>
+  <div><b>${fmtN(inv.trackedFiles)} <span style="font-size:15px;color:var(--muted)">of ${fmtN(inv.totalFiles)}</span></b>
+       <span>tracked in git &mdash; ${pct}% ships</span></div>`;
+
+/* ---------- weight picture ---------- */
+const max = inv.groups[0].bytes;
+$('#stack').innerHTML = inv.groups.map((g, i) =>
+  `<span style="width:${(g.bytes / inv.totalBytes * 100).toFixed(3)}%;background:${colorOf(i)}"
+     title="${g.dir} — ${fmtMB(g.bytes)}"></span>`).join('');
+
+$('#rank').innerHTML = inv.groups.map((g, i) => `
+  <button class="rank-row" data-dir="${g.dir}" aria-pressed="false">
+    <span class="rank-name-cell">
+      <span class="name"><i style="width:9px;height:9px;border-radius:2px;background:${colorOf(i)};flex:none"></i><code>${g.dir}</code></span>
+      <span class="bar" style="width:${(g.bytes / max * 100).toFixed(1)}%"></span>
+    </span>
+    <span class="mb">${fmtMB(g.bytes)}</span>
+    <span class="n">${fmtN(g.files)} files</span>
+  </button>`).join('');
+
+/* ---------- biggest single files ---------- */
+const flat = inv.groups.flatMap((g) => g.items.map((f) => ({ ...f, dir: g.dir })));
+$('#big').innerHTML = flat.slice().sort((a, b) => b.b - a.b).slice(0, 25).map((f) => `
+  <li><code>${f.p}</code><span class="mb">${fmtMB(f.b)}</span></li>`).join('');
+
+/* ---------- excluded, reported not hidden ---------- */
+if (inv.excluded?.length) {
+  const ex = inv.excluded.filter((e) => e.bytes > 0);
+  $('#excluded').innerHTML =
+    `<b>Not counted above</b> — build output, dependency trees and other agents' worktrees, ` +
+    `kept out of the inventory but listed so the total isn't understated:<br>` +
+    ex.map((e) => `${e.dir} (${fmtN(e.files)} files, ${fmtMB(e.bytes)} MB — ${e.reason})`).join(' · ');
+}
+
+/* ---------- group cards ---------- */
+const thumb = (f) => f.k === 'image'
+  ? `<a href="${f.p}" data-lb="${f.p}"><img src="${f.p}" alt="" loading="lazy" decoding="async"></a>`
+  : `<a class="tile av" href="${f.p}" data-lb="${f.p}" data-kind="${f.k}" title="${f.p}">${f.k === 'video' ? '▶' : '♪'}</a>`;
+
+function render() {
+  const shown = inv.groups.filter((g) => !dirFilter || g.dir === dirFilter);
+  const counts = { image: 0, video: 0, audio: 0 };
+  let visible = 0, bytes = 0;
+
+  $('#grid').innerHTML = shown.map((g) => {
+    const items = g.items.filter((f) => kindFilter === 'all' || f.k === kindFilter);
+    if (!items.length) return '';
+    items.forEach((f) => { counts[f.k]++; visible++; bytes += f.b; });
+    const imgs = items.filter((f) => f.k === 'image');
+    const previews = imgs.slice(0, 18);
+    const rest = items.length - previews.length;
+    const kinds = Object.entries(g.byKind)
+      .filter(([k]) => kindFilter === 'all' || k === kindFilter)
+      .map(([k, n]) => `<span class="kind">${n} ${k}</span>`).join('');
+
+    return `
+      <article class="gcard${dirFilter === g.dir ? ' open' : ''}" data-dir="${g.dir}">
+        <header data-toggle>
+          <h3>${g.dir}</h3>
+          <span class="meta">${fmtN(items.length)} · ${fmtMB(items.reduce((s, f) => s + f.b, 0))}${
+            g.trackedFiles < g.files ? ` · <span style="color:var(--warn)">${fmtN(g.trackedFiles)} tracked</span>` : ''}</span>
+        </header>
+        <div class="kinds">${kinds}</div>
+        <div class="thumbs">
+          ${previews.map(thumb).join('')}
+        </div>
+        <div class="full">${items.map(thumb).join('')}</div>
+        <button class="more-btn" data-toggle>${dirFilter === g.dir ? 'Close'
+          : `Show all ${fmtN(items.length)}` + (rest > 0 ? ` — ${fmtN(rest)} beyond this strip` : '')}</button>
+      </article>`;
+  }).join('');
+
+  $('#empty').hidden = visible > 0;
+  $('#groupsub').textContent = visible
+    ? `${fmtN(visible)} of ${fmtN(inv.totalFiles)} files · ${fmtMB(bytes)} · ` +
+      (dirFilter ? `filtered to ${dirFilter}` : 'all directories') +
+      (kindFilter !== 'all' ? `, ${kindFilter} only` : '') +
+      ` — ${counts.image} images, ${counts.video} video, ${counts.audio} audio`
+    : '';
+}
+
+/* ---------- interactions ---------- */
+$('#stack').addEventListener('click', (e) => {
+  // the stacked bar has no labels, so map a click to whichever group it covers
+  const pct = e.offsetX / e.clientWidth * 100;
+  let acc = 0;
+  for (const g of inv.groups) {
+    acc += g.bytes / inv.totalBytes * 100;
+    if (pct <= acc) { setDir(g.dir === dirFilter ? null : g.dir); return; }
+  }
+});
+$('#rank').addEventListener('click', (e) => {
+  const row = e.target.closest('.rank-row');
+  if (row) setDir(row.dataset.dir === dirFilter ? null : row.dataset.dir);
+});
+$('#grid').addEventListener('click', (e) => {
+  if (e.target.closest('[data-lb]')) return;
+  const t = e.target.closest('[data-toggle]');
+  if (!t) return;
+  const card = t.closest('.gcard');
+  if (t.tagName === 'HEADER') setDir(dirFilter === card.dataset.dir ? null : card.dataset.dir);
+  else card.classList.toggle('open');
+});
+$('#filters').addEventListener('click', (e) => {
+  const c = e.target.closest('.chip');
+  if (!c) return;
+  if (c.id === 'reset') { kindFilter = 'all'; dirFilter = null; }
+  else kindFilter = c.dataset.kind;
+  [...document.querySelectorAll('.chip[data-kind]')].forEach((x) =>
+    x.setAttribute('aria-pressed', String(x.dataset.kind === kindFilter)));
+  syncPressed();
+  render();
+});
+
+function setDir(d) {
+  dirFilter = d;
+  syncPressed();
+  render();
+  if (d) $('#grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function syncPressed() {
+  document.querySelectorAll('.rank-row').forEach((r) =>
+    r.setAttribute('aria-pressed', String(r.dataset.dir === dirFilter)));
+}
+
+/* ---------- files the build does not serve ----------
+   Heavy directories are stripped from dist/, so on a deployed copy of this
+   page some thumbnails have no file behind them. Mark those tiles instead of
+   leaving a broken image, and count how many so the page can say so. */
+let unserved = 0;
+document.addEventListener('error', (e) => {
+  const el = e.target;
+  if (!el || el.tagName !== 'IMG' || !el.closest('.thumbs, .full')) return;
+  const tile = el.parentElement;
+  unserved++;
+  tile.classList.add('gone');
+  tile.innerHTML = '<span style="display:grid;place-items:center;height:100%;font-size:10px;color:var(--muted);padding:2px;text-align:center">not<br>served</span>';
+  if (!unserved) return;
+  noteUnserved();
+}, true);
+function noteUnserved() {
+  if ($('#unserved-note')) return;
+  const d = document.createElement('p');
+  d.id = 'unserved-note';
+  d.className = 'sub';
+  d.style.color = 'var(--warn)';
+  $('#groupsub').after(d);
+  d.textContent = `Some thumbnails are marked "not served" — this build strips those directories from dist/. ` +
+    `Run it against the repo root locally (not the built output) to see every file.`;
+}
+
+/* ---------- lightbox ---------- */
+const lb = $('#lb');
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-lb]');
+  if (!a) return;
+  e.preventDefault();
+  const p = a.dataset.lb;
+  $('#lbm').innerHTML = a.dataset.kind === 'video'
+    ? `<video src="${p}" controls autoplay></video>`
+    : `<img src="${p}" alt="">`;
+  $('#lbc').textContent = p;
+  lb.classList.add('on');
+});
+const closeLb = () => { lb.classList.remove('on'); $('#lbm').innerHTML = ''; };
+$('#lbx').addEventListener('click', closeLb);
+lb.addEventListener('click', (e) => { if (e.target === lb) closeLb(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && lb.classList.contains('on')) closeLb();
+});
+
+render();
+</script>
+
+<script src="/lib/nav.client.js" defer></script>
+<swr-footer></swr-footer>
+<script src="/lib/footer.client.js" defer></script>
+</body>
+</html>

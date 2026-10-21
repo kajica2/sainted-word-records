@@ -1,0 +1,74 @@
+name: Feature request
+description: Propose a new feature or material improvement to an existing surface.
+labels: ['type/feature', 'needs-triage']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the current state?
+      description: |
+        Describe the gap. "When I try to X, the app does Y, but I
+        want Z." Link to the relevant page or surface.
+      placeholder: |
+        When I open /engine and load my library, I can manually move
+        layers with the drag handle but cannot save a layout / preset
+        for re-loading later.
+    validations:
+      required: true
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: What would success look like?
+      description: |
+        Sketch the user-facing behaviour in a few sentences. Diagrams
+        or screen mockups welcome; embed via GitHub drag-and-drop.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: |
+        What other approaches did you consider? This helps converge on
+        the smallest surface change that solves the gap.
+    validations:
+      required: false
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Where the feature lives.
+      options:
+        - Engine (`engine.html`)
+        - Cloud library
+        - Layer lifecycle page
+        - Echo page
+        - Tour / Shortcuts movie pages
+        - TikTok / Spit / Camera-enhance
+        - Marketplace
+        - API endpoints
+        - Build / deploy pipeline
+        - Documentation
+        - Other (explain in body)
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 — drops a feature in production
+        - P1 — visibly improves the surface
+        - P2 — nice to have
+        - P3 — experimental / spike
+    validations:
+      required: true
+  - type: input
+    id: scope
+    attributes:
+      label: Estimated scope (lines / files)
+      description: |
+        Rough estimate: "<= 50 LOC, 1 file", "200-500 LOC + tests",
+        "touches engine.html + lib/layers.client.js", etc.
+    validations:
+      required: false

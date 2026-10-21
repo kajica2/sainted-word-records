@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <!-- Video poster-frame thumbnail — see lib/video-thumb.client.js -->
+  <script src="../lib/video-thumb.client.js"></script>
+  <!-- Video playback sync — see lib/video-sync.client.js -->
+  <script src="../lib/video-sync.client.js"></script>
   <meta charset="utf-8" />
   <title>GLITCH · SWR engine v1</title>
   <meta name="description" content="Datamosh: horizontal slice displacement, RGB split, beat-locked" />
@@ -37,7 +43,7 @@
     .pill { font-size: 9px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
     .pill.ok { color: var(--g); border-color: var(--g); }
     .pill.live { color: var(--y); border-color: var(--y); animation: blink 0.4s infinite alternate; }
-    @keyframes blink { from { opacity: 0.4; } to { opacity: 1; } }
+    @keyframes blink { from { opacity: 0.8; } to { opacity: 1; } }
     .tbtn { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); font: 10px/1 ui-monospace;
       letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 12px; border-radius: 4px; cursor: pointer; }
     .tbtn:hover { border-color: var(--m); color: var(--m); }
@@ -110,7 +116,7 @@
         grid-template-rows: auto auto 1fr auto auto;
       }
       header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
-      .meter { width: 100px; }
+      .meter { width: min(8vw, 80px); }
       aside.lib, aside.layers { max-height: 30vh; }
       aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
       aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
@@ -235,17 +241,50 @@
       position: absolute;
       bottom: 16px;
       right: 16px;
-      width: 100px;
-      opacity: 0.45;
+      width: min(8vw, 80px);
+      opacity: 0.55;
       pointer-events: none;
       z-index: 9999;
       mix-blend-mode: screen;
+      animation: heartbeat 1.2s ease-in-out infinite;
     }
     .swr-watermark img {
       width: 100%;
       height: auto;
       display: block;
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+    }
+    @keyframes heartbeat {
+      0% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
+        transform: scale(1);
+      }
+      12% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(160,160,160,0.7));
+        transform: scale(1.08);
+      }
+      24% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
+        transform: scale(1);
+      }
+      36% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(160,160,160,0.7));
+        transform: scale(1.08);
+      }
+      50% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)) drop-shadow(0 0 3px rgba(160,160,160,0.2));
+        transform: scale(1);
+      }
     }
 
     /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
@@ -279,6 +318,7 @@
   </style>
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
+<script src="/lib/ease.js"></script>
   <script src="../engine-render.client.js"></script>
 <script src="../engine-timing.client.js"></script>
 <script src="../engine-timing-panel.client.js"></script>
@@ -307,7 +347,8 @@
 <body data-page="glitch">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header>
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      <span class="gctrl" data-looks-mount></span>
+      
       <div class="v">GLITCH <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -363,7 +404,7 @@
       <canvas id="render"></canvas>
       <div id="flash"></div>
       <div class="swr-watermark">
-        <img src="../watermark-monogram.svg" alt="SWR" />
+        <img src="../watermark-monogram.png" alt="SWR" />
       </div>
     </section>
     <aside class="layers">
@@ -424,6 +465,10 @@
         
       setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
+        // AUTO-RESUME-SWAP: remember the transport state BEFORE the element
+        // swap. Read after the swap it would always reflect the new element,
+        // which is never started.
+        const wasPlaying = !!this.playing;
         if (this.el) { this.el.pause(); this.el.src=''; }
         // Free the previous Blob URL before allocating a new one.
         if (this.el && this.el.__swr_blob_url) {
@@ -439,7 +484,26 @@
         this.src = this.ctx.createMediaElementSource(this.el);
         this.src.connect(this.an);
         this.hist = { prev:null, bassAvg:0, fluxAvg:0 }; this.beats=[]; this.feat.bpm=0;
-        $('play').disabled=false; $('rec').disabled=false; },
+        $('play').disabled=false; $('rec').disabled=false;
+        // AUTO-RESUME-SWAP: loading a song while the transport is playing
+        // used to leave `playing === true` on a paused element — the new
+        // <audio> was created but never started, so the reactive render
+        // saw silence and the recorder captured a still frame. Resume here,
+        // and reconcile `playing` if the browser blocks the autoplay.
+        if (wasPlaying) {
+          if (this.fadeIn) this.fadeIn(250);
+          const pr = this.el.play();
+          if (pr && typeof pr.then === 'function') {
+            pr.catch((err) => {
+              this.playing = false;
+              try { $('play').textContent = '▶'; } catch (_) {}
+              try { console.warn('[SWR_Audio] swap autoplay blocked:', err && err.name); } catch (_) {}
+            });
+          }
+          this.playing = true;
+          $('play').textContent = '❚❚';
+        }
+      },
       play() { this.unlock(); if (this.ctx.state==='suspended') this.ctx.resume();
         this.el.play(); this.playing=true; $('play').textContent='❚❚'; },
       pause() { if (this.el) this.el.pause(); this.playing=false; $('play').textContent='▶'; },
@@ -499,7 +563,7 @@
       _classify(it) {
         const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
         const src = it.type==='video' ? Object.assign(document.createElement('video'),{src:it.url,muted:true,playsInline:true,preload:'metadata'}) : Object.assign(new Image(),{src:it.url});
-        src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', () => {
+        const capture = () => {
           if (it.type==='video') it.duration = src.duration;
           cx.drawImage(src, 0,0,32,32);
           const d = cx.getImageData(0,0,32,32).data;
@@ -520,7 +584,17 @@
           const tcx=tcv.getContext('2d'); tcx.drawImage(src,0,0,tw,th);
           it.thumb = tcv.toDataURL('image/jpeg',0.7);
           this.render();
-        }, { once: true });
+        };
+        // Poster frame, not frame 0: t=0 is black on anything that fades
+        // in, so the thumbnail (and the luma/hue read from it) came out
+        // black. Same rule as lib/library.client.js. The helper seeks to
+        // 1s — or the middle of a shorter clip — and falls back to the
+        // current frame if the clip cannot be seeked.
+        if (src.tagName === 'VIDEO' && window.SWR_VIDEO_THUMB) {
+          window.SWR_VIDEO_THUMB.atPoster(src, capture);
+        } else {
+          src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', capture, { once: true });
+        }
       },
       removeItem(id) {
         const i = this.items.findIndex(x => x.id === id);
@@ -710,11 +784,11 @@
     fit();
     const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
     const pcx = proc.getContext('2d');
-    function ease(name, t) {
-      if (name === 'sharp') return Math.pow(t, 0.4);
-      if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
-      return t;
-    }
+    // ease(name, t) now lives in the shared /lib/ease.js curve map (plan
+    // P1.4). This page used to carry its own copy of the function; see
+    // lib/ease.js for the three historical bodies and the one behavior
+    // change the unification makes.
+    const ease = window.SWR_EASE.ease;
     function applyR(l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
@@ -736,7 +810,7 @@
         // Master rotation toggle gate: when the user has turned rotation
         // OFF globally (swr-rot-master button), skip rot reactor writes so
         // audio doesn't compound the canvas into 180-degree flips.
-        const _rotOn = l.rotationEnabled !== false;
+        const _rotOn = l.rotationEnabled === true;  // OFF by default — opt in via per-layer rotation toggle; reactors targeting rot are silenced until then
         if (r.target==='scale') out.scale += v;
         else if (r.target==='x') out.x += v * 200;
         else if (r.target==='y') out.y += v * 200;
@@ -769,8 +843,21 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       if (a.type === 'video') {
         if (!a._el) { a._el = document.createElement('video'); a._el.src=url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
         src = a._el;
-        if (A.playing && src.paused) src.play().catch(()=>{});
-        if (!A.playing && !src.paused) src.pause();
+        // Shared video playback sync (see engine-render.client.js /
+        // SWR_VIDEO_SYNC). Two Chrome behaviours break the old two-line
+        // version: a video paused while it is still loading has its media
+        // pipeline suspended — the element drops back to readyState 1 and
+        // stops fetching — and while a play() promise is pending `paused`
+        // stays true, so the next frame calls play() again and a second
+        // play() on a pending element resets it to readyState 1. Either way
+        // the element sits at readyState 1, the draw gate (readyState < 2)
+        // skips the layer, and the clip never reaches the stage.
+        if (window.SWR_VIDEO_SYNC) {
+          window.SWR_VIDEO_SYNC(src, A.playing);
+        } else {
+          if (A.playing && src.paused) src.play().catch(()=>{});
+          if (!A.playing && !src.paused) src.pause();
+        }
       } else {
         if (!a._el) { a._el = new Image(); a._el.src=url; }
         src = a._el;
@@ -1287,6 +1374,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
 
 
 
+  <script src="../fx-postprocess.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
   <script src="../lib/media-store.client.js" defer></script>
   <script src="../lib/library-persist.client.js" defer></script>
@@ -1302,12 +1390,14 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="../lib/swr-natural.client.js"></script>
   <script src="../lib/look-variant.client.js" defer></script>
-<!-- SWR-WATERMARK-MARKER -->
-<script src="../lib/watermark.client.js"></script>
+
+
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
 <!-- SWR-FX-GRADE-MARKER -->
 <script src="../lib/gpu-grade.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
 <script src="/lib/auth.client.js" defer></script>
 <script src="/lib/google-drive.client.js" defer></script>
   <script src="/lib/drive-modal.client.js" defer></script>
@@ -1372,5 +1462,9 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
       });
     })();
   </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
 </body>
 </html>

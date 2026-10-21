@@ -8,7 +8,7 @@
 // On local Vite dev, the dev-api.mjs middleware handles the same paths
 // via filesystem matching.
 
-import { getSharedProject } from '../../../_lib/db.js';
+import { getSharedProject } from '../../../_lib/projects-store.js';
 import { sendJson, setCors } from '../../../_lib/http.js';
 
 export default async function handler(req, res) {

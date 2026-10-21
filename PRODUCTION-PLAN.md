@@ -13,7 +13,7 @@ This plan sequences the work from **today's demo** to **a production-grade VJ to
 >
 > - **Phase 1 milestones all landed.** Real MediaRecorder export ✓ (verified via `verify:e2e-media-record`); per-layer asset assignment + composite ✓ (engine variants); real beat detector ✓ (audio-analysis-v2 with adaptive threshold + section detection); project save/load ✓ (project-state stores).
 >
-> - **Phase 2 milestones all landed.** BPM detection ✓ (autocorrelation + beat phase); multiple reactors per layer ✓; RE-MAP system ✓ (preset cycle + anchor map); key detection ✓ (Krumhansl-Schmuckler).
+> - **Phase 2 milestones all landed.** BPM detection ✓ (inter-onset-interval histogram + beat phase); multiple reactors per layer ✓; RE-MAP system ✓ (preset cycle + anchor map); key detection ✓ (Krumhansl-Schmuckler).
 >
 > - **Phase 3 milestones all landed.** WebGL post-FX ✓ (fx-postprocess.js); persona assets panel ✓; PWA + mobile ✓ (pwa-bootstrap.js + sw.js + manifest).
 >
@@ -64,7 +64,7 @@ The SPA is at `https://sainted-word-records.vercel.app/app`. 27 features are liv
 | 3 | Per-layer asset assignment + composite (uploads don't reach canvas) | **Critical** | P1 |
 | 4 | Auto-arrange uploaded media into a working visual | **Critical** | P1 |
 | 5 | Project save/load (JSON + audio blob) | High | P1 |
-| 6 | Real BPM detection (autocorrelation) | High | P2 |
+| 6 | Real BPM detection (inter-onset-interval histogram, octave-folded) | High | P2 |
 | 7 | Multiple reactors per layer (currently 1) | Medium | P2 |
 | 8 | Generative mutate/evolve/randomize (RE-MAP from hallucination) | Medium | P2 |
 | 9 | Key detection (Krumhansl-Schmuckler) | Low | P2 |

@@ -1,7 +1,7 @@
 {
   "schema": "swr-marketplace-index/v1",
-  "generatedAt": "2026-10-02T03:25:23.800Z",
-  "count": 18,
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "count": 31,
   "sets": [
     {
       "file": "/marketplace/curated/aurora-drift.swr-set.json",
@@ -34,10 +34,28 @@
       "engine": "tape"
     },
     {
+      "file": "/marketplace/curated/pack-belgrade-hand-map.swr-set.json",
+      "id": "1a2a1b39-3f3d-52c5-bf92-55b0b37104d0",
+      "name": "Belgrade Hand Map",
+      "engine": "mosaic"
+    },
+    {
+      "file": "/marketplace/curated/pack-chaos-map.swr-set.json",
+      "id": "a36de0b2-fcf5-51a9-ac75-0e7c0e6e54bd",
+      "name": "Chaos Map",
+      "engine": "fractal"
+    },
+    {
       "file": "/marketplace/curated/collage-mag.swr-set.json",
       "id": "00000000-0000-4000-8000-000000000004",
       "name": "Collage · Mag",
       "engine": "collage"
+    },
+    {
+      "file": "/marketplace/curated/pack-dancers.swr-set.json",
+      "id": "008ca857-b984-51a0-bf6e-18d3c5b510ab",
+      "name": "Dancers",
+      "engine": "film"
     },
     {
       "file": "/marketplace/curated/eclipse-veil.swr-set.json",
@@ -58,16 +76,58 @@
       "engine": "glitch"
     },
     {
+      "file": "/marketplace/curated/pack-ice-sculpture.swr-set.json",
+      "id": "7c279ca4-dd71-5f38-9899-fafafb53cd69",
+      "name": "Ice Sculpture",
+      "engine": "aurora"
+    },
+    {
+      "file": "/marketplace/curated/pack-istanbul-bw.swr-set.json",
+      "id": "db52d3b1-84ed-59b2-bf07-43628649d50c",
+      "name": "Istanbul B&W",
+      "engine": "kraft"
+    },
+    {
       "file": "/marketplace/curated/slip-07-low-light.swr-set.json",
       "id": "00000000-0000-4000-8000-000000000018",
       "name": "Low Light",
       "engine": "neon"
     },
     {
+      "file": "/marketplace/curated/pack-metatron-holographic.swr-set.json",
+      "id": "09d68984-c7f8-5e81-a325-cc2a127c780e",
+      "name": "Metatron Holographic",
+      "engine": "glitch"
+    },
+    {
       "file": "/marketplace/curated/neon-pulse.swr-set.json",
       "id": "00000000-0000-4000-8000-000000000001",
       "name": "Neon Pulse",
       "engine": "neon"
+    },
+    {
+      "file": "/marketplace/curated/pack-ocean-scan-spectra.swr-set.json",
+      "id": "a1831c80-550d-5b18-89d4-d62cf2d6462d",
+      "name": "Ocean Scan Spectra",
+      "engine": "phosphor"
+    },
+    {
+      "file": "/marketplace/curated/pack-oriental-fantasy.swr-set.json",
+      "id": "d0c2e64d-f9dd-509c-8223-ab1db246cbd1",
+      "name": "Oriental Fantasy",
+      "engine": "watercolor"
+    },
+    {
+      "file": "/marketplace/curated/pack-santiago-instagram.swr-set.json",
+      "id": "2284a8bd-f709-5ffe-9527-5b72a1d8860d",
+      "name": "Santiago Instagram",
+      "engine": "collage"
+    },
+    {
+      "file": "/marketplace/curated/pack-slow-pan-disturbing.swr-set.json",
+      "id": "6c0bfc09-7727-570e-8c68-d8f2b23c28eb",
+      "name": "Slow Pan Disturbing",
+      "engine": "hallucination"
     },
     {
       "file": "/marketplace/curated/smoke-portrait.swr-set.json",
@@ -94,10 +154,22 @@
       "engine": "grid"
     },
     {
+      "file": "/marketplace/curated/pack-twilight-shotlist.swr-set.json",
+      "id": "38806f79-a35e-509c-87ec-d1e58e5ea4bf",
+      "name": "Twilight Shotlist",
+      "engine": "tape"
+    },
+    {
       "file": "/marketplace/curated/typography-loud.swr-set.json",
       "id": "00000000-0000-4000-8000-000000000003",
       "name": "Type · Loud",
       "engine": "typography"
+    },
+    {
+      "file": "/marketplace/curated/pack-ufo-portrait.swr-set.json",
+      "id": "7de75d22-9cc6-5d49-b170-eb92dfe28a92",
+      "name": "UFO Portrait",
+      "engine": "eclipse"
     },
     {
       "file": "/marketplace/curated/void-bloom.swr-set.json",
@@ -110,6 +182,12 @@
       "id": "00000000-0000-4000-8000-000000000010",
       "name": "Watercolor · Bleed",
       "engine": "watercolor"
+    },
+    {
+      "file": "/marketplace/curated/pack-wide-angle-low-angle.swr-set.json",
+      "id": "95a24544-c6e9-504f-9e1c-0f6f18341aad",
+      "name": "Wide Angle Low Angle",
+      "engine": "chrome"
     }
   ]
 }

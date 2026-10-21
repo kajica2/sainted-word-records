@@ -55,6 +55,7 @@ export const NO_REWRITE = /^(tools\/|legal\/|landing-personas-v\d+|swr-intro-10s
 export const ROUTE_OVERRIDES = {
   'versions/index.html': '/visual-languages',
   'versions/music_video.html': '/versions/music-video',
+  'versions/clean.html': '/versions/clean',
 };
 
 const FILE_OVERRIDES = Object.fromEntries(
@@ -70,7 +71,13 @@ export function routeForFile(file) {
   if (stem.startsWith('atlas-') && ATLAS_SLUGS.includes(stem.replace(/^atlas-/, ''))) {
     return '/atlas/' + stem.replace(/^atlas-/, '');
   }
-  if (/\/index$/.test(stem)) return '/' + stem.replace(/\/index$/, '');
+  // Directory index: append a trailing slash so the URL is unambiguous
+  // and Vercel's filesystem resolver prefers the directory over a
+  // same-stem .html file (artists/vodolija/index.html coexists with
+  // artists/vodolija.html in the repo — the latter is the showcase
+  // page, the former the artist profile, and the test wants them
+  // distinguished by the trailing-slash route).
+  if (/\/index$/.test(stem)) return '/' + stem.replace(/\/index$/, '') + '/';
   if (NO_REWRITE.test(stem)) return '/' + f;
   return '/' + stem;
 }

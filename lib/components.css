@@ -175,6 +175,42 @@
 .btn--ghost:hover { border-color: var(--ink); }
 .btn svg { width: 14px; height: 14px; }
 
+/* ===== DRIVE CTA EMPHASIS ===== */
+#swr-drive-btn,
+#swr-drive-btn:link,
+#swr-drive-btn:visited {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 72%, transparent),
+    0 12px 28px color-mix(in srgb, var(--accent) 28%, transparent);
+  transform: translateY(-1px);
+  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition), background var(--transition);
+}
+
+#swr-drive-btn:hover,
+#swr-drive-btn:focus-visible {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 80%, transparent),
+    0 18px 36px color-mix(in srgb, var(--accent) 38%, transparent);
+  filter: saturate(1.08);
+}
+
+#swr-drive-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 50%, white);
+  outline-offset: 3px;
+}
+
 /* ===== STATS STRIP ===== */
 .swr-strip {
   border-top: 1px solid var(--line);
@@ -462,7 +498,10 @@
 }
 .footer__col ul { list-style: none; padding: 0; margin: 0; }
 .footer__col li { margin-bottom: 8px; }
-.footer__col a { color: var(--ink-2); font-size: 14px; }
+.footer__col a {
+  color: var(--ink-2); font-size: 14px;
+  display: inline-block; min-height: 44px; padding: 10px 0;
+}
 .footer__col a:hover { color: var(--accent); }
 .footer__bottom {
   margin-top: 48px; padding-top: 24px;
@@ -473,7 +512,7 @@
   color: var(--muted); letter-spacing: 0.05em;
 }
 .footer__bottom-links { display: flex; flex-wrap: wrap; gap: 16px; }
-.footer__bottom-links a { color: var(--muted); }
+.footer__bottom-links a { color: var(--muted); display: inline-block; min-height: 44px; padding: 10px 0; }
 .footer__bottom-links a:hover { color: var(--accent); }
 
 /* ===== UTILITIES ===== */
@@ -490,8 +529,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   background: transparent;
   border: 1px solid var(--line-2);
@@ -506,4 +545,14 @@
 .swr-theme-toggle svg {
   width: 16px;
   height: 16px;
+}
+
+/* ===== PREFER REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

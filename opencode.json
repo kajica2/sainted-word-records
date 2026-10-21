@@ -1,0 +1,17 @@
+{
+  "mcp": {
+    "servers": {
+      "tinyfish": {
+        "type": "remote",
+        "url": "https://agent.tinyfish.ai/mcp"
+      },
+      "comfyui": {
+        "command": "npx",
+        "args": ["-y", "comfyui-mcp"],
+        "env": {
+          "COMFYUI_PATH": "/Users/kaidejuricmasscmbook/Documents/ComfyUI"
+        }
+      }
+    }
+  }
+}

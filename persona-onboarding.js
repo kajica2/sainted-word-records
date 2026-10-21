@@ -107,12 +107,25 @@
         .swr-persona-modal .card .hint { font: 9px/1.3 'Inter', sans-serif; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.1em; margin-top: auto; }
         .swr-persona-modal .footer { display: flex; justify-content: space-between; align-items: center;
           margin-top: 22px; padding-top: 18px; border-top: 1px solid #1a1a22;
-          font-size: 11px; opacity: 0.55; }
-        .swr-persona-modal .footer button { font: 500 11px/1 'Inter', sans-serif; letter-spacing: 0.1em;
+          font-size: 11px; background: transparent; color: #fff; gap: 12px; }
+        .swr-persona-modal .footer span { opacity: 0.7; }
+        .swr-persona-modal .footer button { flex: none; font: 500 11px/1 'Inter', sans-serif; letter-spacing: 0.1em;
           text-transform: uppercase; padding: 8px 14px; background: transparent;
           color: #fff; border: 1px solid #2a2a2a; border-radius: 3px; cursor: pointer; }
         .swr-persona-modal .footer button:hover { border-color: #fff; }
-        @media (max-width: 720px) { .swr-persona-modal .grid { grid-template-columns: 1fr; } }
+        @media (max-width: 720px) {
+          .swr-persona-modal { align-items: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+          .swr-persona-modal .panel { width: 100%; max-width: none; min-height: 100%; box-sizing: border-box;
+            padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); border: 0; border-radius: 0; }
+          .swr-persona-modal h1 { font-size: 20px; }
+          .swr-persona-modal p.sub { margin-bottom: 16px; }
+          .swr-persona-modal .grid { grid-template-columns: 1fr; gap: 10px; }
+          .swr-persona-modal .card { display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; row-gap: 4px; padding: 14px; }
+          .swr-persona-modal .card .emoji { grid-row: 1 / span 2; font-size: 26px; align-self: center; text-align: center; }
+          .swr-persona-modal .card .desc, .swr-persona-modal .card .hint { grid-column: 2; }
+          .swr-persona-modal .footer { flex-direction: column-reverse; align-items: stretch; text-align: center; }
+          .swr-persona-modal .footer button { padding: 14px; font-size: 12px; }
+        }
       </style>
       <div class="panel">
         <h1>What are you making today?</h1>

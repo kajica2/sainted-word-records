@@ -84,18 +84,28 @@ export function planBatch(emails, existing) {
   return plan;
 }
 
+const VALID_TIERS = ['free', 'basic', 'pro', 'unlimited'];
+const VALID_PRESETS = ['RAW', 'HD', 'CLEAN'];
+
 async function main() {
   const { values, positionals } = parseArgs({
     options: {
       code: { type: 'string' },
       label: { type: 'string' },
+      email: { type: 'string' },
+      tier: { type: 'string' },
+      'daily-limit': { type: 'string' },
+      preset: { type: 'string' },
+      emissions: { type: 'string' },
       emails: { type: 'string' },
       'dry-run': { type: 'boolean', short: 'n' },
     },
     allowPositionals: true,
   });
   const cmd = positionals[0];
-  if (!cmd) die('usage: grant-invite.mjs <create|batch|disable|enable|delete|inspect> [--code FOO-BAR-BAZ] [--label "..."] [--emails "a@x.com, b@y.com"] [--dry-run]');
+  if (!cmd) die('usage: grant-invite.mjs <create|batch|disable|enable|delete|inspect> [options]');
+  if (!cmd) die('  create:  [--code FOO-BAR-BAZ] [--label "..."] [--email a@x.com] [--tier free|basic|pro|unlimited] [--daily-limit N] [--preset RAW|HD|CLEAN] [--emissions 0-100]');
+  if (!cmd) die('  batch:  --emails "a@x.com, b@y.com" [--dry-run] [--tier ...] [--preset ...]');
 
   if (cmd === 'create') {
     let code = normalizeCode(values.code);
@@ -105,10 +115,44 @@ async function main() {
     if (existing && existing.enabled !== false) {
       die(`code ${code} already exists and is enabled (use --code to pick another, or delete first)`);
     }
+
+    // Validate new v2 fields
+    let tier = values.tier || 'free';
+    if (!VALID_TIERS.includes(tier)) die(`invalid --tier: ${tier}. Valid: ${VALID_TIERS.join(', ')}`);
+
+    let preset = values.preset || 'RAW';
+    if (!VALID_PRESETS.includes(preset)) die(`invalid --preset: ${preset}. Valid: ${VALID_PRESETS.join(', ')}`);
+
+    let dailyLimit = null;
+    if (values['daily-limit']) {
+      dailyLimit = parseInt(values['daily-limit'], 10);
+      if (isNaN(dailyLimit) || dailyLimit < 0) die(`invalid --daily-limit: ${values['daily-limit']}`);
+    } else if (tier === 'unlimited') {
+      dailyLimit = 0;
+    }
+
+    let emissions = 30;
+    if (values.emissions) {
+      emissions = parseInt(values.emissions, 10);
+      if (isNaN(emissions) || emissions < 0 || emissions > 100) die(`invalid --emissions: ${values.emissions} (0-100)`);
+    }
+
+    let email = null;
+    if (values.email) {
+      email = normalizeEmail(values.email);
+      if (!email) die(`invalid --email: ${values.email}`);
+    }
+
     const value = {
       enabled: true,
       createdAt: new Date().toISOString(),
       label: values.label || null,
+      // v2 fields
+      email,
+      tier,
+      dailyLimit,
+      preset,
+      emissions,
     };
     await writeInvite(code, value);
     console.log(code);

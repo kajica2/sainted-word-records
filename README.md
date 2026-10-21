@@ -6,11 +6,34 @@
 
 ---
 
+## Status
+
+| Area | State |
+|------|-------|
+| Engine (`engine.html`) | ✅ wired up + 23 personas + 20 filters + look-filter cycler |
+| Cloud library | ✅ Phase 1 (FAB + push/pull/sync/watch) |
+| Layer lifecycle | ✅ `Layers.retire` / `unretire` / `homeAll` / `addText` |
+| Keyboard map | ✅ bare-digit = filter; T-prefix = alias; 0 = home |
+| Eco-pages | ✅ Echo / Tour / Shortcuts Movie / Layer-Lifecycle |
+| Mobile composer | ✅ `/composer` (mobile-first, single column) |
+| Desktop capture | ✅ `/record` (3 orientation formats: 16:9 / 9:16 / 1:1) |
+| Onboarding / next-step | ✅ 5-step guided tour with toasts + progress pill |
+| Preset + library save | ✅ JSON presets in localStorage + kit-zip distribution |
+| Firestore | ✅ dormant (`SWR_PROJECTS_STORE=firestore`) |
+| API rules | ✅ rate-limited + auth-gated + invite-code schema v2 |
+| Standards | ✅ LICENSE · CONTRIBUTING · CODE_OF_CONDUCT · CHANGELOG · SECURITY · ISSUE_TEMPLATES · CODEOWNERS |
+| Tests | ✅ 110+ unit checks, `npm run check` (86-step), `check:full` (21-step) |
+| CI | ✅ Pages build deployment · required checks on PRs |
+
+---
+
 ## TL;DR
 
 | You want to | Use | Price |
 |---|---|---|
 | Make a music video from **your** song + **your** clips | The engine (free, browser-native) | Free |
+| Try the **mobile composer** (touch-native, single column) | [/composer](./composer.html) | Free |
+| **Record** the result to 16:9 / 9:16 / 1:1 video | [/record](./record.html) | Free |
 | Have someone **render it for you** (5 curated media sets) | [Service tier](./campaign.html#pricing) | €25 / €45 / €75 |
 | Use the engine yourself, **no watermark**, with credits | [Personal Tier (PT)](./campaign.html#pt) | €120 / €280 / €600 (one-time) |
 
@@ -77,12 +100,18 @@ Credit-bank, not subscription. Credits never expire. Top up with another key any
 ## Features
 
 - **Adaptive beat detection** — bass-energy tracker with adaptive threshold
-- **Audio analysis v2** — zero-deps BPM (autocorrelation), key (Krumhansl-Schmuckler), chromagram, beat phase
+- **Audio analysis v2** — zero-deps BPM (inter-onset-interval histogram, octave-folded
+  into 60–180 BPM, with a ±10% jitter window and an honest `return 0` below
+  `CONFIDENCE_FLOOR = 0.5`), key (Krumhansl-Schmuckler), chromagram, beat phase.
 - **23 personas** in 4 families: 10 original (RAW, POSTER, MASK, FX, FILTER, NEON, FILM, GRID, SMOKE, HALLUCINATION) + 5 generative (LIQUID GLASS, PEARL HAZE, CLUB STROBE, VHS VIBE, NEON WASH) + 5 MORPHA (ANCHOR, FLOW, FRACTURE, VOID, ECHO) + 3 Train-stages
 - **14 WebGL FX** on a fullscreen quad: posterize, vignette, chroma, grain, sepia, glow, grayscale, blur, liquid, pearl, glitch, mut, mutAlgo, temp
 - **20 stackable CSS filters** on the live stage: kenburns, pan-scan, mesh-warp, liquify, light-leak, film-grain, VHS, RGB-split, pixel-sort, CRT, hue-shift, kaleidoscope, zoom-pulse, camera-shake + 3 combos
 - **Persistent library** (IndexedDB v2) — both `assets` (per-clip) and `songs` (current) stores. Survives reload.
-- **Cross-tab library sync** — uploads + deletes in one tab refresh the library in all open tabs via `BroadcastChannel('swr-media')`. Falls back to local-only on very old browsers
+- **Cross-tab library sync** — uploads + deletes in one tab refresh the library in
+  all open tabs via `BroadcastChannel('swr-media')`. Browsers without
+  `BroadcastChannel` (very old or in private mode where it's blocked) sync
+  locally only — the same tab still updates; a manual reload picks up the
+  change in other tabs. No `localStorage` event fallback.
 - **MP4-as-audio source** — drop a video file, the engine extracts audio. No conversion.
 - **PWA** — installable, offline, iOS splash screens, 4 PNG icons (192/512/maskable/apple-touch)
 - **Watermark engine** — 3 concepts (monogram / wordmark / icon+text). Suppressed for PT users.
@@ -141,7 +170,10 @@ sainted-word-records/
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE). Standards: [CONTRIBUTING](./CONTRIBUTING.md),
+[CHANGELOG](./CHANGELOG.md), [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md),
+[SECURITY](./SECURITY.md), [issue templates](./.github/ISSUE_TEMPLATE/),
+[PR template](./.github/PULL_REQUEST_TEMPLATE.md).
 
 ## Author
 

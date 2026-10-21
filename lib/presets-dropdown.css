@@ -63,20 +63,29 @@
 /* ── Dropdown panel ────────────────────────────────────────────────────────── */
 .swr-presets-panel {
   position: fixed;
-  top: 56px;           /* below the top nav bar */
+  top: 56px;
   right: 16px;
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
   background: #14141a;
-  border: 1px solid #2a2a35;
-  border-radius: 12px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 8px;
+  box-shadow: none;
   box-sizing: border-box;
   overflow: hidden;
   z-index: 9999;
-  animation: swr-presets-slide-in 160ms ease;
+}
+
+/* The panel is toggled via the `hidden` attribute (presets-dropdown.client.js
+   sets panel.hidden = true until the trigger is clicked). A bare class
+   selector's `display: flex` outranks the UA stylesheet's `[hidden] {
+   display: none }`, so without this the z-index:9999 panel stays painted over
+   the transport row and swallows hit-tests on ● REC and Export video.
+   Attribute selector matches the class specificity and restores the intent. */
+.swr-presets-panel[hidden] {
+  display: none;
 }
 
 @keyframes swr-presets-slide-in {
@@ -93,7 +102,7 @@
 /* ── Panel head: search + chips ────────────────────────────────────────────── */
 .swr-presets-panel-head {
   padding: 12px 12px 8px;
-  border-bottom: 1px solid #1e1e28;
+  border-bottom: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -109,8 +118,8 @@
   box-sizing: border-box;
   padding: 8px 12px 8px 34px;
   background: #0c0c12;
-  border: 1px solid #2a2a35;
-  border-radius: 7px;
+  border: none;
+  border-radius: 4px;
   color: #fff;
   font: 400 13px/1 ui-sans-serif, system-ui, sans-serif;
   outline: none;
@@ -147,7 +156,7 @@
 .swr-presets-chip {
   padding: 3px 9px;
   border-radius: 999px;
-  border: 1px solid #2a2a35;
+  border: none;
   background: #1d1d27;
   color: #888;
   font: 600 9px/1 ui-sans-serif, system-ui, sans-serif;
@@ -186,7 +195,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid #2a2a35;
+  border: none;
   background: transparent;
   color: #666;
   font-size: 12px;
@@ -413,7 +422,7 @@
 /* ── Footer count ──────────────────────────────────────────────────────────── */
 .swr-presets-panel-foot {
   padding: 7px 12px;
-  border-top: 1px solid #1e1e28;
+  border-top: none;
   display: flex;
   align-items: center;
   flex-shrink: 0;

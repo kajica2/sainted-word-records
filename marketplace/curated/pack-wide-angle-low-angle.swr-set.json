@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "95a24544-c6e9-504f-9e1c-0f6f18341aad",
+  "name": "Wide Angle Low Angle",
+  "author": "SWR",
+  "description": "Wide-angle static frames shot slightly from below. Room to put type across the bottom third.",
+  "tags": [
+    "wide-angle",
+    "low-angle",
+    "chrome",
+    "industrial"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "chrome",
+  "audio": {
+    "name": "chrome.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 237574,
+    "url": "/audios/chrome.mp3"
+  },
+  "fx": {
+    "temp": 0,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0.15,
+    "vignette": 0.5,
+    "chroma": 0.35,
+    "grain": 0.2,
+    "sepia": 0,
+    "glow": 0.6,
+    "grayscale": 0.3,
+    "blur": 0,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "wide-angle-low-angle-01.webp",
+        "mimeType": "image/webp",
+        "size": 55318,
+        "url": "/packs/wide-angle-low-angle/wide-angle-low-angle-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "wide-angle-low-angle-14.webp",
+        "mimeType": "image/webp",
+        "size": 46022,
+        "url": "/packs/wide-angle-low-angle/wide-angle-low-angle-14.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "wide-angle-low-angle-27.webp",
+        "mimeType": "image/webp",
+        "size": 28454,
+        "url": "/packs/wide-angle-low-angle/wide-angle-low-angle-27.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 110,
+    "key": "B",
+    "scale": "minor"
+  }
+}

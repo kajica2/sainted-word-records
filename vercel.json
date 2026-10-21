@@ -10,6 +10,18 @@
         {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         }
       ]
     },
@@ -182,14 +194,6 @@
     {
       "source": "/artists/nina-volkova/",
       "destination": "/artists/nina-volkova.html"
-    },
-    {
-      "source": "/artists/vodolija",
-      "destination": "/artists/vodolija/index.html"
-    },
-    {
-      "source": "/artists/vodolija/",
-      "destination": "/artists/vodolija/index.html"
     },
     {
       "source": "/versions/music-video-gallery",
@@ -432,6 +436,38 @@
       "destination": "/versions.html"
     },
     {
+      "source": "/versions/temple-of-control",
+      "destination": "/versions/temple-of-control.html"
+    },
+    {
+      "source": "/versions/temple-of-control/",
+      "destination": "/versions/temple-of-control.html"
+    },
+    {
+      "source": "/versions/clean",
+      "destination": "/versions/clean.html"
+    },
+    {
+      "source": "/versions/clean/",
+      "destination": "/versions/clean.html"
+    },
+    {
+      "source": "/tools/airlock-debug",
+      "destination": "/tools/airlock-debug.html"
+    },
+    {
+      "source": "/tools/manifest-editor",
+      "destination": "/tools/manifest-editor.html"
+    },
+    {
+      "source": "/versions/music_video_mtv",
+      "destination": "/versions/music_video_mtv.html"
+    },
+    {
+      "source": "/artists/vodolija",
+      "destination": "/artists/vodolija.html"
+    },
+    {
       "source": "/",
       "destination": "/landing.html"
     },
@@ -474,14 +510,6 @@
     {
       "source": "/engine-demos/",
       "destination": "/engine-demos.html"
-    },
-    {
-      "source": "/ar-gif",
-      "destination": "/ar-gif.html"
-    },
-    {
-      "source": "/ar-gif/",
-      "destination": "/ar-gif.html"
     },
     {
       "source": "/dashboard",
@@ -580,12 +608,20 @@
       "destination": "/status.html"
     },
     {
-      "source": "/campaign",
-      "destination": "/campaign.html"
+      "source": "/style-guide",
+      "destination": "/style-guide.html"
     },
     {
-      "source": "/campaign/",
-      "destination": "/campaign.html"
+      "source": "/style-guide/",
+      "destination": "/style-guide.html"
+    },
+    {
+      "source": "/services",
+      "destination": "/services.html"
+    },
+    {
+      "source": "/services/",
+      "destination": "/services.html"
     },
     {
       "source": "/marketplace",
@@ -628,12 +664,68 @@
       "destination": "/sitemap.html"
     },
     {
+      "source": "/echo",
+      "destination": "/echo.html"
+    },
+    {
+      "source": "/echo/",
+      "destination": "/echo.html"
+    },
+    {
+      "source": "/layer-lifecycle",
+      "destination": "/layer-lifecycle.html"
+    },
+    {
+      "source": "/layer-lifecycle/",
+      "destination": "/layer-lifecycle.html"
+    },
+    {
+      "source": "/tour",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/tour/",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/shortcuts-movie",
+      "destination": "/shortcuts-movie.html"
+    },
+    {
+      "source": "/shortcuts-movie/",
+      "destination": "/shortcuts-movie.html"
+    },
+    {
+      "source": "/composer",
+      "destination": "/composer.html"
+    },
+    {
+      "source": "/composer/",
+      "destination": "/composer.html"
+    },
+    {
+      "source": "/record",
+      "destination": "/record.html"
+    },
+    {
+      "source": "/record/",
+      "destination": "/record.html"
+    },
+    {
       "source": "/packs",
       "destination": "/packs.html"
     },
     {
       "source": "/packs/",
       "destination": "/packs.html"
+    },
+    {
+      "source": "/photo-scrolls",
+      "destination": "/photo-scrolls.html"
+    },
+    {
+      "source": "/photo-scrolls/",
+      "destination": "/photo-scrolls.html"
     },
     {
       "source": "/ar-gif",
@@ -706,6 +798,14 @@
     {
       "source": "/terms.html/",
       "destination": "/terms.html"
+    },
+    {
+      "source": "/services",
+      "destination": "/services.html"
+    },
+    {
+      "source": "/services/",
+      "destination": "/services.html"
     },
     {
       "source": "/make-video",
@@ -900,14 +1000,6 @@
       "destination": "/gallery-vintage.html"
     },
     {
-      "source": "/versions/temple-of-control",
-      "destination": "/versions/temple-of-control.html"
-    },
-    {
-      "source": "/versions/temple-of-control/",
-      "destination": "/versions/temple-of-control.html"
-    },
-    {
       "source": "/slots-admin",
       "destination": "/slots-admin.html"
     },
@@ -932,28 +1024,324 @@
       "destination": "/buy.html"
     },
     {
-      "source": "/booking",
-      "destination": "/booking.html"
+      "source": "/font-vault",
+      "destination": "/font-vault.html"
     },
     {
-      "source": "/booking/",
-      "destination": "/booking.html"
+      "source": "/font-vault/",
+      "destination": "/font-vault.html"
     },
     {
-      "source": "/fonts",
-      "destination": "/fonts.html"
+      "source": "/bookings",
+      "destination": "/bookings.html"
     },
     {
-      "source": "/fonts/",
-      "destination": "/fonts.html"
+      "source": "/bookings/",
+      "destination": "/bookings.html"
+    },
+    {
+      "source": "/engine-personas",
+      "destination": "/engine-personas.html"
+    },
+    {
+      "source": "/engine-personas/",
+      "destination": "/engine-personas.html"
+    },
+    {
+      "source": "/atlas-200-steps",
+      "destination": "/atlas-200-steps.html"
+    },
+    {
+      "source": "/atlas-architect",
+      "destination": "/atlas-architect.html"
+    },
+    {
+      "source": "/atlas-checklist",
+      "destination": "/atlas-checklist.html"
+    },
+    {
+      "source": "/atlas-crisis",
+      "destination": "/atlas-crisis.html"
+    },
+    {
+      "source": "/atlas-final-insight",
+      "destination": "/atlas-final-insight.html"
+    },
+    {
+      "source": "/atlas-forge",
+      "destination": "/atlas-forge.html"
+    },
+    {
+      "source": "/atlas-integration",
+      "destination": "/atlas-integration.html"
+    },
+    {
+      "source": "/atlas-legacy",
+      "destination": "/atlas-legacy.html"
+    },
+    {
+      "source": "/atlas-life-stages",
+      "destination": "/atlas-life-stages.html"
     },
     {
       "source": "/auth/google-callback",
       "destination": "/auth/google-callback.html"
     },
     {
-      "source": "/auth/google-callback/",
-      "destination": "/auth/google-callback.html"
+      "source": "/auth/login",
+      "destination": "/auth/login.html"
+    },
+    {
+      "source": "/auth/verify",
+      "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/campaign",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/contact-sheet",
+      "destination": "/contact-sheet.html"
+    },
+    {
+      "source": "/director-mode-sainted-word",
+      "destination": "/director-mode-sainted-word.html"
+    },
+    {
+      "source": "/fonts",
+      "destination": "/fonts.html"
+    },
+    {
+      "source": "/gallery-ai",
+      "destination": "/gallery-ai.html"
+    },
+    {
+      "source": "/gallery-albums",
+      "destination": "/gallery-albums.html"
+    },
+    {
+      "source": "/gallery-artist",
+      "destination": "/gallery-artist.html"
+    },
+    {
+      "source": "/gallery-bachdrop",
+      "destination": "/gallery-bachdrop.html"
+    },
+    {
+      "source": "/gallery-bio",
+      "destination": "/gallery-bio.html"
+    },
+    {
+      "source": "/gallery-brutalist",
+      "destination": "/gallery-brutalist.html"
+    },
+    {
+      "source": "/gallery-cosmic",
+      "destination": "/gallery-cosmic.html"
+    },
+    {
+      "source": "/gallery-darkfuture",
+      "destination": "/gallery-darkfuture.html"
+    },
+    {
+      "source": "/gallery-dingbats",
+      "destination": "/gallery-dingbats.html"
+    },
+    {
+      "source": "/gallery-generative",
+      "destination": "/gallery-generative.html"
+    },
+    {
+      "source": "/gallery-glyphs",
+      "destination": "/gallery-glyphs.html"
+    },
+    {
+      "source": "/gallery-music",
+      "destination": "/gallery-music.html"
+    },
+    {
+      "source": "/gallery-photoexp",
+      "destination": "/gallery-photoexp.html"
+    },
+    {
+      "source": "/gallery-point4brand",
+      "destination": "/gallery-point4brand.html"
+    },
+    {
+      "source": "/gallery-posters",
+      "destination": "/gallery-posters.html"
+    },
+    {
+      "source": "/gallery-tshirts",
+      "destination": "/gallery-tshirts.html"
+    },
+    {
+      "source": "/gallery-videofx",
+      "destination": "/gallery-videofx.html"
+    },
+    {
+      "source": "/gallery-vintage",
+      "destination": "/gallery-vintage.html"
+    },
+    {
+      "source": "/gallery-vr",
+      "destination": "/gallery-vr.html"
+    },
+    {
+      "source": "/landing-personas-v1-editorial",
+      "destination": "/landing-personas-v1-editorial.html"
+    },
+    {
+      "source": "/landing-personas-v2-dark",
+      "destination": "/landing-personas-v2-dark.html"
+    },
+    {
+      "source": "/landing-personas-v3-friendly",
+      "destination": "/landing-personas-v3-friendly.html"
+    },
+    {
+      "source": "/landing-personas-v4-dashboard",
+      "destination": "/landing-personas-v4-dashboard.html"
+    },
+    {
+      "source": "/landing-personas-v5-brutalist",
+      "destination": "/landing-personas-v5-brutalist.html"
+    },
+    {
+      "source": "/landing-personas-v6-wireframe",
+      "destination": "/landing-personas-v6-wireframe.html"
+    },
+    {
+      "source": "/landing",
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/legal/beta-test",
+      "destination": "/legal/beta-test.html"
+    },
+    {
+      "source": "/legal/privacy",
+      "destination": "/legal/privacy.html"
+    },
+    {
+      "source": "/legal/terms",
+      "destination": "/legal/terms.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/marketplace-claim",
+      "destination": "/marketplace-claim.html"
+    },
+    {
+      "source": "/packs/covers/hyperframe-cover",
+      "destination": "/packs/covers/hyperframe-cover.html"
+    },
+    {
+      "source": "/packs/covers/hyperframe-intro",
+      "destination": "/packs/covers/hyperframe-intro.html"
+    },
+    {
+      "source": "/packs/covers/hyperframe-outro",
+      "destination": "/packs/covers/hyperframe-outro.html"
+    },
+    {
+      "source": "/personas/v/clubstrobe",
+      "destination": "/personas/v/clubstrobe.html"
+    },
+    {
+      "source": "/personas/v/filmfilm",
+      "destination": "/personas/v/filmfilm.html"
+    },
+    {
+      "source": "/personas/v/filter",
+      "destination": "/personas/v/filter.html"
+    },
+    {
+      "source": "/personas/v/fx",
+      "destination": "/personas/v/fx.html"
+    },
+    {
+      "source": "/personas/v/grid",
+      "destination": "/personas/v/grid.html"
+    },
+    {
+      "source": "/personas/v/hallucination",
+      "destination": "/personas/v/hallucination.html"
+    },
+    {
+      "source": "/personas/v/liquidglass",
+      "destination": "/personas/v/liquidglass.html"
+    },
+    {
+      "source": "/personas/v/mask",
+      "destination": "/personas/v/mask.html"
+    },
+    {
+      "source": "/personas/v/morphaanchor",
+      "destination": "/personas/v/morphaanchor.html"
+    },
+    {
+      "source": "/personas/v/morphaecho",
+      "destination": "/personas/v/morphaecho.html"
+    },
+    {
+      "source": "/personas/v/morphaflow",
+      "destination": "/personas/v/morphaflow.html"
+    },
+    {
+      "source": "/personas/v/morphafracture",
+      "destination": "/personas/v/morphafracture.html"
+    },
+    {
+      "source": "/personas/v/morphavoid",
+      "destination": "/personas/v/morphavoid.html"
+    },
+    {
+      "source": "/personas/v/neon",
+      "destination": "/personas/v/neon.html"
+    },
+    {
+      "source": "/personas/v/neonwash",
+      "destination": "/personas/v/neonwash.html"
+    },
+    {
+      "source": "/personas/v/pearlhaze",
+      "destination": "/personas/v/pearlhaze.html"
+    },
+    {
+      "source": "/personas/v/poster",
+      "destination": "/personas/v/poster.html"
+    },
+    {
+      "source": "/personas/v/raw",
+      "destination": "/personas/v/raw.html"
+    },
+    {
+      "source": "/personas/v/smoke",
+      "destination": "/personas/v/smoke.html"
+    },
+    {
+      "source": "/personas/v/trainstage1",
+      "destination": "/personas/v/trainstage1.html"
+    },
+    {
+      "source": "/personas/v/trainstage2",
+      "destination": "/personas/v/trainstage2.html"
+    },
+    {
+      "source": "/personas/v/trainstage3",
+      "destination": "/personas/v/trainstage3.html"
+    },
+    {
+      "source": "/personas/v/vhsvibe",
+      "destination": "/personas/v/vhsvibe.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
     },
     {
       "source": "/login",
@@ -978,6 +1366,14 @@
     {
       "source": "/auth/verify/",
       "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/auth/google",
+      "destination": "/auth/google-callback.html"
+    },
+    {
+      "source": "/auth/google/",
+      "destination": "/auth/google-callback.html"
     },
     {
       "source": "/enhance",

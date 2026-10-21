@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
@@ -79,6 +81,18 @@
     .card .actions button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     .card .actions button.primary:hover { background: #ff80a8; }
     .card .actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Preset packs — a named collection installed in one action. Visually
+       distinct from a single set so the two never get confused. */
+    .card.preset { border-color: var(--accent); border-width: 1px; }
+    .card.preset .tag { background: var(--accent); color: #fff; }
+    .card .packcount { font: 8px/1 'Space Mono', monospace; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--muted); }
+    .card .packlist { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; }
+    .card .packlist span { font: 8px/1 'Space Mono', monospace; letter-spacing: .08em;
+      color: var(--muted); border: 1px solid var(--line); padding: 3px 5px; }
+    .card.preset .actions button.primary:disabled { opacity: .45; cursor: default; }
+    .card .actions button.primary:disabled:hover { background: var(--accent); }
     .empty { padding: 32px; text-align: center; color: var(--muted);
       border: 1px dashed var(--line); border-radius: 4px; font-size: 14px; }
     .empty strong { color: var(--ink); display: block; font-size: 16px; margin-bottom: 6px; }
@@ -105,7 +119,7 @@
   <main class="container">
     <div class="intro">
       <h2>Music-video templates for designers, musicians, and mixed-media creators.</h2>
-      <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Drop a custom .swr-set file — or a .zip media pack — to add it to your library.</p>
+      <p>Browse curated <em>.swr-set</em> templates. Install one and it lands in your engine with the audio, FX chain, and library pre-loaded. Open and play. Or start from a <em>preset pack</em> — a named collection you install in one click instead of one at a time. Drop a custom .swr-set file — or a .zip media pack — to add it to your library.</p>
     </div>
 
     <div class="drop-zone" id="drop-zone">
@@ -114,6 +128,14 @@
       <br />
       <button id="browse-btn">Choose file…</button>
       <input type="file" id="set-input" accept=".swr-set,.json,.zip,application/json,application/zip" style="display:none" />
+    </div>
+
+    <div class="section-head">
+      <h3>Preset Packs</h3>
+      <span class="count" id="preset-count">— loading…</span>
+    </div>
+    <div class="grid" id="preset-grid">
+      <div class="empty"><strong>Loading…</strong></div>
     </div>
 
     <div class="section-head">
@@ -202,6 +224,94 @@
         'glitch-idm', 'neon-pulse', 'smoke-portrait', 'spectrum-bass',
         'typography-loud', 'void-bloom', 'watercolor-bleed',
       ].map(s => '/marketplace/curated/' + s + '.swr-set.json');
+
+      // === Preset packs ===
+      // Loaded once at boot; the delegated action handler looks presets up by id.
+      let PRESETS = [];
+      // A preset is a named collection of already-curated sets. Installing one
+      // installs every set it lists, so a first-time user does not have to
+      // click Install 31 times. marketplace/presets.json is the source of
+      // truth — adding a preset is a data change, not an HTML edit.
+      async function loadPresets() {
+        try {
+          const r = await fetch('/marketplace/presets.json', { cache: 'no-cache' });
+          if (!r.ok) return [];
+          const idx = await r.json();
+          return Array.isArray(idx.presets) ? idx.presets : [];
+        } catch (e) { return []; }
+      }
+
+      function renderPresetGrid(presets) {
+        const grid = document.getElementById('preset-grid');
+        const count = document.getElementById('preset-count');
+        count.textContent = presets.length + (presets.length === 1 ? ' preset' : ' presets');
+        if (!presets.length) {
+          grid.innerHTML = '<div class="empty"><strong>No presets</strong>marketplace/presets.json lists none.</div>';
+          return;
+        }
+        grid.innerHTML = '';
+        for (const p of presets) {
+          const card = document.createElement('div');
+          card.className = 'card preset';
+          card.dataset.preset = p.id;
+          const packNames = (p.packs || []).map((f) => f.split('/').pop().replace('.swr-set.json', ''));
+          const shown = packNames.slice(0, 4);
+          card.innerHTML = `
+            <span class="tag">preset</span>
+            <h4>${escapeHtml(p.name || 'Untitled preset')}</h4>
+            <div class="author">${escapeHtml(p.engine || 'mixed')} · ${(p.packs || []).length} sets</div>
+            <p class="desc">${escapeHtml(p.description || '')}</p>
+            <div class="packlist">
+              ${shown.map((n) => `<span>${escapeHtml(n)}</span>`).join('')}
+              ${packNames.length > shown.length ? `<span>+${packNames.length - shown.length} more</span>` : ''}
+            </div>
+            <div class="actions">
+              <button class="primary" data-action="install-preset" data-id="${escapeHtml(p.id)}">
+                Install all ${(p.packs || []).length}
+              </button>
+            </div>
+          `;
+          grid.appendChild(card);
+        }
+      }
+
+      // Install every set in a preset. Sets are fetched one at a time on
+      // purpose: a 31-pack preset is 31 requests, and firing them in parallel
+      // trips browser per-host connection limits and turns a 2-second install
+      // into a 30-second one. Each install is independent, so one bad pack
+      // must not abandon the rest.
+      async function installPreset(preset, btn) {
+        const packs = preset.packs || [];
+        if (!packs.length) { toast('preset has no sets', true); return; }
+        const original = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Installing 0/' + packs.length; }
+
+        let done = 0;
+        const failed = [];
+        for (const file of packs) {
+          try {
+            const r = await fetch(file, { cache: 'no-cache' });
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const doc = await r.json();
+            await saveSetInstalled(doc);
+            done++;
+          } catch (e) {
+            failed.push(file.split('/').pop() + ' (' + e.message + ')');
+          }
+          if (btn) btn.textContent = 'Installing ' + done + '/' + packs.length;
+        }
+
+        await refreshInstalled();
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = failed.length ? 'Retry ' + (packs.length - done) + ' failed' : 'Installed ✓';
+        }
+        if (failed.length) {
+          toast(done + ' installed, ' + failed.length + ' failed: ' + failed[0], true);
+        } else {
+          toast('Installed ' + done + ' sets from ' + (preset.name || 'preset'));
+        }
+      }
 
       async function loadCurated() {
         let files = KNOWN;
@@ -471,6 +581,12 @@
           if (!btn) return;
           const action = btn.dataset.action;
           const id = btn.dataset.id;
+          if (action === 'install-preset') {
+            const card = btn.closest('.card');
+            const preset = PRESETS.find((p) => p.id === card.dataset.preset);
+            if (preset) await installPreset(preset, btn);
+            return;
+          }
           if (action === 'install') {
             const card = btn.closest('.card');
             // Read the source path the card was rendered with — never derive
@@ -507,6 +623,7 @@
       }
       wireActions(document.getElementById('curated-grid'));
       wireActions(document.getElementById('installed-grid'));
+      wireActions(document.getElementById('preset-grid'));
 
       // === HSE packages (MP3 + MIDI from the harmonic-study-engine repo) ===
       const HSE_REPO = 'kajica2/harmonic-study-engine';
@@ -562,6 +679,8 @@
 
       // === Init ===
       (async function init() {
+        PRESETS = await loadPresets();
+        renderPresetGrid(PRESETS);
         const curated = await loadCurated();
         renderCuratedGrid(curated);
         await refreshInstalled();
@@ -573,5 +692,7 @@
   <script src="/lib/nav.client.js" defer></script>
   <swr-footer></swr-footer>
   <script src="/lib/footer.client.js" defer></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
 </body>
 </html>

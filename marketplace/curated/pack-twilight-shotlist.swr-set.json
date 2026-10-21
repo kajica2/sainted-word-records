@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "38806f79-a35e-509c-87ec-d1e58e5ea4bf",
+  "name": "Twilight Shotlist",
+  "author": "SWR",
+  "description": "A dim-twilight shot list — corridors, doorways, silhouettes, one held close-up. Long takes, no cuts.",
+  "tags": [
+    "twilight",
+    "shotlist",
+    "blue-grey",
+    "cinematic"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "tape",
+  "audio": {
+    "name": "tape.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 225478,
+    "url": "/audios/tape.mp3"
+  },
+  "fx": {
+    "temp": -0.35,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0,
+    "vignette": 0.75,
+    "chroma": 0.1,
+    "grain": 0.35,
+    "sepia": 0,
+    "glow": 0.3,
+    "grayscale": 0.4,
+    "blur": 0.15,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "twilight-shotlist-01.webp",
+        "mimeType": "image/webp",
+        "size": 37062,
+        "url": "/packs/twilight-shotlist/twilight-shotlist-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "twilight-shotlist-27.webp",
+        "mimeType": "image/webp",
+        "size": 42366,
+        "url": "/packs/twilight-shotlist/twilight-shotlist-27.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "twilight-shotlist-54.webp",
+        "mimeType": "image/webp",
+        "size": 35338,
+        "url": "/packs/twilight-shotlist/twilight-shotlist-54.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 84,
+    "key": "D",
+    "scale": "dorian"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "2284a8bd-f709-5ffe-9527-5b72a1d8860d",
+  "name": "Santiago Instagram",
+  "author": "SWR",
+  "description": "Photographers' hands at the poster — a gallery of instants rebuilt as collage. Good for art-directed transitions.",
+  "tags": [
+    "collage",
+    "poster",
+    "photography",
+    "instagram"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "collage",
+  "audio": {
+    "name": "mosaic.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 213958,
+    "url": "/audios/mosaic.mp3"
+  },
+  "fx": {
+    "temp": -0.1,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0.1,
+    "vignette": 0.4,
+    "chroma": 0.25,
+    "grain": 0.4,
+    "sepia": 0.2,
+    "glow": 0.35,
+    "grayscale": 0.25,
+    "blur": 0.05,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "santiago-instagram-01.webp",
+        "mimeType": "image/webp",
+        "size": 68238,
+        "url": "/packs/santiago-instagram/santiago-instagram-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "santiago-instagram-20.webp",
+        "mimeType": "image/webp",
+        "size": 33048,
+        "url": "/packs/santiago-instagram/santiago-instagram-20.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "santiago-instagram-39.webp",
+        "mimeType": "image/webp",
+        "size": 79498,
+        "url": "/packs/santiago-instagram/santiago-instagram-39.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 120,
+    "key": "G",
+    "scale": "mixolydian"
+  }
+}

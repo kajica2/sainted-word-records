@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Jakom Nexon Tour · SWR</title>
+  <meta name="description" content="An interactive sweep through the SWR engine. Every feature, every page, one guided tour. Press a button to walk the whole site." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/tour" />
+  <meta property="og:title" content="Jakom Nexon Tour · SWR">
+  <meta property="og:description" content="An interactive sweep through the SWR engine. Every feature, every page, one guided tour.">
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0c0c10" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/client/tour.client.js" defer></script>
+  <style>
+    /* ---------- tokens ---------- */
+    :root {
+      --t-bg:    #0a0a10;
+      --t-pad:   28px;
+      --t-card:  rgba(255,255,255,.04);
+      --t-line:  rgba(255,255,255,.10);
+      --t-accent: #fbbf24;
+      --t-accent-2: #67e8f9;
+      --t-ink:   #f3f3f5;
+      --t-mute:  rgba(255,255,255,.55);
+      --t-mute-2: rgba(255,255,255,.32);
+    }
+    body {
+      margin: 0; padding: 0;
+      min-height: 100vh;
+      background: var(--t-bg);
+      color: var(--t-ink);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+    main { max-width: 1100px; margin: 0 auto; padding: calc(72px + var(--t-pad)) var(--t-pad) 80px; }
+    .hero {
+      background: linear-gradient(135deg, rgba(251,191,36,.07), rgba(103,232,249,.07));
+      border: 1px solid var(--t-line);
+      border-radius: 14px;
+      padding: 36px 32px;
+      margin-bottom: 32px;
+    }
+    .hero h1 {
+      font: 700 32px/1.1 var(--font-body);
+      margin: 0 0 8px;
+      letter-spacing: -.01em;
+    }
+    .hero .lede {
+      color: var(--t-mute);
+      max-width: 64ch;
+      line-height: 1.55;
+      font-size: 15px;
+      margin: 0 0 18px;
+    }
+    .hero .row {
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+    button.t-btn {
+      font: 600 13px/1 var(--font-mono, monospace);
+      letter-spacing: .04em;
+      padding: 12px 18px;
+      background: var(--t-accent);
+      color: #1c1206;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform .12s ease;
+    }
+    button.t-btn:hover { transform: translateY(-1px); }
+    button.t-btn.primary { background: var(--t-accent-2); color: #032a31; }
+    button.t-btn.ghost {
+      background: transparent; color: var(--t-ink);
+      border: 1px solid var(--t-line);
+    }
+    /* ---------- progress bar ---------- */
+    .tour-bar {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .tour-bar .meter {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,.06);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .tour-bar .meter span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--t-accent), var(--t-accent-2));
+      width: 0%;
+      transition: width .35s ease;
+    }
+    .tour-bar .label {
+      font: 600 11px/1 var(--font-mono, monospace);
+      color: var(--t-mute);
+      letter-spacing: .04em;
+      min-width: 120px;
+      text-align: right;
+    }
+    /* ---------- step card ---------- */
+    .step-card {
+      background: var(--t-card);
+      border: 1px solid var(--t-line);
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 16px;
+      transition: border-color .25s ease;
+      scroll-margin-top: 96px;
+    }
+    .step-card.active { border-color: var(--t-accent); }
+    .step-card.done {
+      border-style: dashed;
+      opacity: .7;
+    }
+    .step-card .meta {
+      display: flex; align-items: center; gap: 10px;
+      font: 600 11px/1 var(--font-mono, monospace);
+      color: var(--t-mute);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .step-card .meta .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      background: rgba(103,232,249,.12);
+      color: var(--t-accent-2);
+      border-radius: 4px;
+    }
+    .step-card h2 {
+      font: 700 22px/1.2 var(--font-body);
+      margin: 0 0 8px;
+    }
+    .step-card p {
+      color: var(--t-mute);
+      line-height: 1.55;
+      max-width: 70ch;
+      margin: 0 0 18px;
+    }
+    .step-card .nav {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .step-card .nav a {
+      font: 600 12px/1 var(--font-mono, monospace);
+      letter-spacing: .04em;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.06);
+      color: var(--t-ink);
+      border: 1px solid var(--t-line);
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .step-card .nav a:hover { border-color: var(--t-accent); }
+    .step-card .nav a.primary {
+      background: var(--t-accent-2);
+      color: #032a31;
+      border-color: var(--t-accent-2);
+    }
+    .step-card .nav a.target::after {
+      content: " →";
+      opacity: .6;
+    }
+    .step-card .marker {
+      display: inline-block;
+      font: 700 13px/1 var(--font-mono, monospace);
+      color: var(--t-accent);
+      letter-spacing: .08em;
+      margin-right: 6px;
+    }
+    /* ---------- Nielsen heuristics aside ---------- */
+    .heuristics {
+      margin-bottom: 24px;
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--t-line);
+      border-radius: 10px;
+      padding: 0;
+      overflow: hidden;
+    }
+    .heuristics summary {
+      cursor: pointer;
+      padding: 14px 18px;
+      font: 600 12px/1 var(--font-mono, monospace);
+      letter-spacing: .04em;
+      color: var(--t-ink);
+      list-style: none;
+    }
+    .heuristics summary::-webkit-details-marker { display: none; }
+    .heuristics summary::before {
+      content: "▸ ";
+      color: var(--t-accent);
+      transition: transform .15s ease;
+      display: inline-block;
+      transform-origin: center;
+    }
+    .heuristics[open] summary::before { content: "▾ "; }
+    .heuristics ol {
+      list-style: none;
+      counter-reset: h;
+      margin: 0;
+      padding: 0 18px 16px;
+      font-size: 13px;
+      color: var(--t-mute);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+    }
+    .heuristics li b {
+      color: var(--t-accent);
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      letter-spacing: .06em;
+      margin-right: 4px;
+    }
+
+    /* ---------- tour complete footer ---------- */
+    .endcap {
+      margin-top: 36px;
+      text-align: center;
+      padding: 28px;
+      color: var(--t-mute);
+      font-size: 13px;
+    }
+    .endcap .label { color: var(--t-accent); font-weight: 600; }
+    /* mobile */
+    @media (max-width: 720px) {
+      main { padding: calc(56px + var(--t-pad)) 16px 60px; }
+      .hero { padding: 24px 18px; }
+      .hero h1 { font-size: 24px; }
+    }
+  </style>
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main>
+    <section class="hero">
+      <h1>Jakob Nielsen Tour</h1>
+      <p class="lede">
+        A guided sweep through the SWR engine. Every feature, every page, in order.
+        Each stop is tagged with one of Nielsen's 10 usability heuristics (the
+        badge in the card header) so the tour doubles as an internal usability
+        audit. Press <b>Sweep</b> to open all stops in a new tab sequence — Esc
+        to pause. Or step through manually below.
+      </p>
+      <div class="row">
+        <button class="t-btn primary" id="t-sweep" type="button">▶ Sweep (sequential)</button>
+        <button class="t-btn ghost" id="t-step" type="button">Step manually</button>
+        <button class="t-btn ghost" id="t-reset" type="button">Reset progress</button>
+      </div>
+    </section>
+
+    <div class="tour-bar" role="status" aria-live="polite">
+      <span class="meter"><span id="t-meter"></span></span>
+      <span class="label" id="t-label">0 / 12</span>
+    </div>
+
+    <aside class="heuristics" aria-label="Jakob Nielsen's 10 usability heuristics">
+      <details>
+        <summary>The 10 heuristics behind this tour</summary>
+        <ol>
+          <li><b>H1</b> · visibility — keep the user informed about state.</li>
+          <li><b>H2</b> · match with the real world — speak the user's language.</li>
+          <li><b>H3</b> · user control and freedom — make actions reversible.</li>
+          <li><b>H4</b> · consistency and standards — same words, same actions, same order.</li>
+          <li><b>H5</b> · error prevention — fail before the user does.</li>
+          <li><b>H6</b> · recognition rather than recall — show, don't require memorization.</li>
+          <li><b>H7</b> · flexibility and efficiency — shortcuts for power users.</li>
+          <li><b>H8</b> · aesthetic and minimalist design — no irrelevant info.</li>
+          <li><b>H9</b> · help recognize / diagnose / recover — clear error messages.</li>
+          <li><b>H10</b> · help and documentation — easy to find, task-focused.</li>
+        </ol>
+        <p style="margin-top:8px; color: var(--t-mute-2); font-size:12px;">
+          Credit: Nielsen Norman Group. Each card below names the heuristic it
+          most strongly demonstrates — the tour is also an internal audit trail.
+        </p>
+      </details>
+    </aside>
+
+    <div id="t-steps" role="list">
+      <!-- Steps injected by /client/tour.client.js so the route table is
+           easy to edit in one place. -->
+    </div>
+
+    <footer class="endcap" id="t-endcap" hidden>
+      <div><span class="label">Done.</span> All 12 stops visited.</div>
+      <div id="t-endcap-meta" style="margin-top:8px; color: var(--t-mute-2);"></div>
+    </footer>
+  </main>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
+</body>
+</html>

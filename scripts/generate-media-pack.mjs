@@ -219,6 +219,32 @@ async function runMain() {
     const mp4Present = fs.existsSync(mp4Path);
     stats.mp4 = mp4Present ? path.relative(ROOT, mp4Path) : null;
 
+    // --- intro/outro concat (if requested) ---------------------------------
+    if (mp4Present && (args.intro || args.outro)) {
+      const introSrc = args.intro ? resolveIntroOutro(args.intro, packDir, 'intro') : null;
+      const outroSrc = args.outro ? resolveIntroOutro(args.outro, packDir, 'outro') : null;
+      if (introSrc || outroSrc) {
+        console.log(`  [${pack.id}] concat intro/outro...`);
+        const concatList = path.join(packDir, 'concat-list.txt');
+        let listContent = '';
+        if (introSrc) listContent += `file '${introSrc}'\\n`;
+        listContent += `file '${mp4Path}'\\n`;
+        if (outroSrc) listContent += `file '${outroSrc}'\\n`;
+        fs.writeFileSync(concatList, listContent);
+        const finalMp4 = mp4Path + '.tmp';
+        const concatOk = spawnSync('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', concatList, '-c', 'copy', finalMp4], { stdio: ['ignore', 'ignore', 'pipe'] });
+        if (concatOk.status === 0 && fs.existsSync(finalMp4)) {
+          fs.unlinkSync(mp4Path);
+          fs.renameSync(finalMp4, mp4Path);
+          stats.render = { wallSeconds: stats.render?.wallSeconds || 0, mp4Bytes: fs.statSync(mp4Path).size, withIntroOutro: true };
+          console.log(`  [${pack.id}] concat complete: ${(fs.statSync(mp4Path).size / 1024 / 1024).toFixed(1)}MB`);
+        } else {
+          console.warn(`  [${pack.id}] concat failed — keeping original`);
+        }
+        fs.unlinkSync(concatList);
+      }
+    }
+
     // --- b. .swr-set.json (schema v2, auto-start audio + video layers) -----
     const setDoc = buildSet({ pack, title, wavPath, wavName, wavSize, variant, clipMode: isClipPack });
     const setPath = path.join(packDir, `${pack.id}.swr-set.json`);
@@ -408,6 +434,10 @@ function printUsage() {
   --fps N               render fps (default: 12)
   --width N --height N  render resolution (default: 640x360)
   --skip-render         reuse an existing rendered <pack>.mp4 instead of rendering
+  --intro <template>    prepend HyperFrame intro: 'default' (SWR Presents), or
+                        path to a pre-rendered intro.mp4 / intro.webm
+  --outro <template>    append HyperFrame outro: 'default' (Created with SWR),
+                        or path to a pre-rendered outro.mp4 / outro.webm
   --help                show this help`);
 }
 
@@ -427,6 +457,8 @@ export function parseArgs(argv) {
     else if (a === '--width') out.width = parseInt(argv[++i], 10);
     else if (a === '--height') out.height = parseInt(argv[++i], 10);
     else if (a === '--skip-render') out.skipRender = true;
+    else if (a === '--intro') out.intro = argv[++i];
+    else if (a === '--outro') out.outro = argv[++i];
     else if (a === '--help' || a === '-h') out.help = true;
     else if (a.startsWith('--')) { console.error(`unknown flag: ${a}`); process.exit(2); }
     else if (!out.audio) out.audio = a;
@@ -492,6 +524,34 @@ function resolvePacks(packsArg) {
 
 function packTitle(id) {
   return id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+// Resolve intro/outro source: 'default' -> pre-rendered, or a file path.
+// Pre-rendered assets live in packs/covers/ (intro.webm, outro.webm).
+function resolveIntroOutro(template, packDir, type) {
+  if (!template) return null;
+  if (template === 'default') {
+    // Use pre-rendered intro/outro from packs/covers/
+    const src = path.join(ROOT, 'packs', 'covers', `hyperframe-${type}.webm`);
+    if (fs.existsSync(src)) {
+      // Copy to pack dir for concat safety
+      const dest = path.join(packDir, `${type}.webm`);
+      fs.copyFileSync(src, dest);
+      return dest;
+    } else {
+      console.warn(`  default ${type} not found at ${src} — skipping`);
+      return null;
+    }
+  }
+  // Assume it's a file path — copy to pack dir if relative
+  const src = path.isAbsolute(template) ? template : path.join(process.cwd(), template);
+  if (fs.existsSync(src)) {
+    const dest = path.join(packDir, `${type}${path.extname(src)}`);
+    fs.copyFileSync(src, dest);
+    return dest;
+  }
+  console.warn(`  ${type} not found: ${src} — skipping`);
+  return null;
 }
 
 function requireExec(cmd, args) {

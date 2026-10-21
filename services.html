@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Services · Kai Djuric · Sainted Word Records</title>
+  <meta name="description" content="Transcription and engraving, music production, and audio-reactive video — one person in Belgrade, no studio overhead. See the work before you enquire." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/services" />
+  <meta property="og:title" content="Services · Kai Djuric · Sainted Word Records" />
+  <meta property="og:description" content="Transcription and engraving, music production, and audio-reactive video. See the work before you enquire." />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..800&display=swap" />
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --surface: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #b06a2a;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius: 14px;
+    }
+    [data-theme="dark"] {
+      --bg: #12100e;
+      --bg-2: #1a1714;
+      --surface: #1c1917;
+      --ink: #f2ece2;
+      --ink-2: #c2b6a6;
+      --muted: #93856f;
+      --line: #2f2925;
+      --line-2: #423a34;
+      --accent: #ff5c8a;
+      --accent-2: #d9913f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.65 var(--font-body); -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent-2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px; }
+
+    /* --- hero --- */
+    .hero { padding: 72px 0 40px; border-bottom: 1px solid var(--line); }
+    .kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+    h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(36px, 6vw, 58px);
+      line-height: 1.04; letter-spacing: -.02em; margin: 0 0 18px; }
+    h1 em { font-style: italic; color: var(--accent); }
+    .hero .lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0 0 22px; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px 22px; font-family: var(--font-mono);
+      font-size: 12px; color: var(--muted); margin: 0; padding: 0; list-style: none; }
+
+    /* --- sections --- */
+    section { padding: 52px 0; border-bottom: 1px solid var(--line); }
+    h2 { font-family: var(--font-display); font-weight: 400; font-size: 26px;
+      letter-spacing: -.01em; margin: 0 0 8px; }
+    .section-note { color: var(--muted); font-size: 14px; margin: 0 0 28px; max-width: 62ch; }
+
+    /* --- service cards --- */
+    .services { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); }
+    .service { border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--surface); padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+    .service__n { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .service h3 { font-family: var(--font-display); font-weight: 500; font-size: 20px;
+      margin: 0; letter-spacing: -.01em; }
+    .service p { margin: 0; color: var(--ink-2); font-size: 15px; flex: 1; }
+    .service ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
+    .service li { margin: 3px 0; }
+    .service__link { font-family: var(--font-mono); font-size: 12px; }
+
+    /* --- deliverables (what you actually receive) --- */
+    .deliverables { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+    .deliverable { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; background: var(--bg-2); }
+    .deliverable h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+    .deliverable p { margin: 0; font-size: 14px; color: var(--ink-2); }
+
+    /* --- process --- */
+    ol.process { margin: 0; padding-left: 20px; color: var(--ink-2); }
+    ol.process li { margin: 8px 0; }
+    ol.process b { color: var(--ink); }
+
+    /* --- proof --- */
+    .proof { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .proof a { display: block; border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 18px; background: var(--surface); color: inherit; }
+    .proof a:hover { border-color: var(--accent-2); text-decoration: none; }
+    .proof h4 { margin: 0 0 6px; font-size: 15px; }
+    .proof p { margin: 0; font-size: 13px; color: var(--muted); }
+
+    /* --- contact --- */
+    .contact { border: 1px solid var(--line-2); border-radius: var(--radius);
+      background: var(--bg-2); padding: 26px; }
+    .contact h3 { margin: 0 0 8px; font-family: var(--font-display); font-weight: 500; font-size: 20px; }
+    .contact p { margin: 0 0 14px; color: var(--ink-2); }
+    .contact address { font-style: normal; font-family: var(--font-mono); font-size: 13px;
+      color: var(--muted); }
+    .todo { font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+      border: 1px dashed var(--accent); border-radius: 6px; padding: 1px 7px; }
+
+    footer.legal { padding: 34px 0 56px; color: var(--muted); font-size: 13px; }
+    footer.legal a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+  <main>
+    <div class="wrap">
+
+      <div class="hero">
+        <p class="kicker">Services · Kai Djuric · Belgrade</p>
+        <h1>One person, <em>three</em> crafts</h1>
+        <p class="lede">
+          I write music, engrave it, and put it on screen. No studio overhead, no
+          account manager, no deadline that moves after you sign. You talk to the
+          person doing the work — and every service below links to the actual
+          output, so you can check the work before you enquire.
+        </p>
+        <ul class="hero-meta">
+          <li>Remote · worldwide</li>
+          <li>Source files included</li>
+          <li>Revisions agreed up front</li>
+        </ul>
+      </div>
+
+      <section id="what-i-do">
+        <h2>What I do</h2>
+        <p class="section-note">Three services. They overlap more than you'd expect —
+          a transcribed chart usually wants a rehearsal recording, and a music video
+          usually wants a mastered master.</p>
+
+        <div class="services">
+          <article class="service">
+            <span class="service__n">01</span>
+            <h3>Transcription &amp; engraving</h3>
+            <p>
+              Charts that a band can actually read — parts in the right order,
+              correct transpositions, and rehearsal audio so the drummer learns it
+              before the first downbeat.
+            </p>
+            <ul>
+              <li>From audio, or from a MIDI transcription</li>
+              <li>Full-score PDF + per-part PDFs</li>
+              <li>Multi-track MIDI and a rehearsal mix</li>
+              <li>Muted backing versions (no trumpet / no sax)</li>
+            </ul>
+            <a class="service__link" href="/packs">see the chart packs →</a>
+          </article>
+
+          <article class="service">
+            <span class="service__n">02</span>
+            <h3>Music production</h3>
+            <p>
+              Recording, arranging and mastering for artists who want a finished
+              record, not a folder of stems. Horn and rhythm-section writing is the
+              strength; everything else gets an honest answer about whether I'm
+              the right person.
+            </p>
+            <ul>
+              <li>Arranging and horn writing</li>
+              <li>Recording and editing</li>
+              <li>Mix and master</li>
+              <li>Mastered files plus the session</li>
+            </ul>
+            <a class="service__link" href="/marketplace">hear the templates →</a>
+          </article>
+
+          <article class="service">
+            <span class="service__n">03</span>
+            <h3>Audio-reactive video</h3>
+            <p>
+              Music videos driven by the track rather than by hand. The engine
+              reads BPM and onsets and reacts; you keep the editable set, so a
+              revision is a slider, not a re-render.
+            </p>
+            <ul>
+              <li>Audio-reactive visuals and motion</li>
+              <li>Vertical edits for social</li>
+              <li>Still frames and cover art</li>
+              <li>Editable templates, not flattened video</li>
+            </ul>
+            <a class="service__link" href="/campaign">visualizer service →</a>
+          </article>
+        </div>
+      </section>
+
+      <section id="deliverables">
+        <h2>What you get</h2>
+        <p class="section-note">Every job ends with files, not a private folder that
+          disappears when the invoice clears.</p>
+        <div class="deliverables">
+          <div class="deliverable">
+            <h4>Printable score PDF</h4>
+            <p>Vector, A4, engraved — not an image of a score.</p>
+          </div>
+          <div class="deliverable">
+            <h4>Per-part PDFs</h4>
+            <p>Split by instrument, in band order, correctly transposed.</p>
+          </div>
+          <div class="deliverable">
+            <h4>Rehearsal audio</h4>
+            <p>Full arrangement, plus a demo and muted backing tracks.</p>
+          </div>
+          <div class="deliverable">
+            <h4>Session MIDI</h4>
+            <p>Multi-track, editable — reopens in any DAW or notation program.</p>
+          </div>
+          <div class="deliverable">
+            <h4>Mastered audio</h4>
+            <p>Release-ready, plus the unmastered mix for comparison.</p>
+          </div>
+          <div class="deliverable">
+            <h4>Editable video set</h4>
+            <p>The .swr-set template, so revisions are yours to make.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="how">
+        <h2>How it goes</h2>
+        <ol class="process">
+          <li><b>You send the source.</b> A recording, a MIDI file, a reference track, or two sentences and a humming — whichever you have.</li>
+          <li><b>You get a scope.</b> What's included, what it costs, how long, and how many revisions. Fixed before any work starts.</li>
+          <li><b>You get a first pass.</b> Enough to judge the direction, not a finished thing you'll feel obliged to approve.</li>
+          <li><b>Files land.</b> Everything in the deliverables list above, in your format, with the editable sources.</li>
+        </ol>
+      </section>
+
+      <section id="work">
+        <h2>Look before you write</h2>
+        <p class="section-note">None of this is private work — it's all on this site.</p>
+        <div class="proof">
+          <a href="/packs">
+            <h4>Media packs →</h4>
+            <p>508 photographs and 48 clips, grouped and browsable.</p>
+          </a>
+          <a href="/photo-scrolls">
+            <h4>Photo scrolls →</h4>
+            <p>The stills unrolled, one horizontal strip per collection.</p>
+          </a>
+          <a href="/marketplace">
+            <h4>Marketplace →</h4>
+            <p>31 installable templates. Open one in the engine and use it.</p>
+          </a>
+          <a href="/engine">
+            <h4>The engine →</h4>
+            <p>Drop a song, drop a library, get a music video.</p>
+          </a>
+        </div>
+      </section>
+
+      <section id="contact">
+        <h2>Get in touch</h2>
+        <div class="contact">
+          <h3>Tell me what you're making.</h3>
+          <p>
+            A sentence is enough to start — what the piece is, roughly when it's
+            due, and whether you have audio yet. If it's not something I do well
+            I'll say so and point you at someone who is.
+          </p>
+          <address>
+            <span class="todo">edit me</span>
+            kai@saintedwordrecords.com
+          </address>
+          <p style="margin-top:14px">
+            <a href="/about">More about the studio →</a>
+          </p>
+        </div>
+      </section>
+
+      <footer class="legal">
+        Sainted Word Records · Belgrade · <a href="/about">About</a> ·
+        <a href="/packs">Packs</a> · <a href="/marketplace">Marketplace</a> ·
+        <a href="/engine">Engine</a>
+      </footer>
+
+    </div>
+  </main>
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+</body>
+</html>

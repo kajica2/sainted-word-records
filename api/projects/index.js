@@ -3,7 +3,7 @@
 //   { id?, name, library?, layers?, fx?, preset?, persona?, scheduler?, panels?, palette?, audio?: { name, type, key, durationSec? }, settings? }
 
 import { requireUser } from '../_lib/session.js';
-import { listProjects, upsertProject, rateLimit } from '../_lib/db.js';
+import { listProjects, upsertProject, rateLimit } from '../_lib/projects-store.js';
 import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
 
 const MAX_NAME = 80;

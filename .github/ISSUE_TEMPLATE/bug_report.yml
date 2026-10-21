@@ -1,0 +1,82 @@
+name: Bug report
+description: Something isn't working right. Reproducible steps + context help.
+labels: ['type/bug', 'needs-triage']
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear, one-paragraph description. Console errors go here.
+      placeholder: |
+        Pushed 1..9 and an empty keyframe selector appeared.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproducible steps
+      description: |
+        Step-by-step. Include: which page, what to click, what URL,
+        `localStorage` entries that affect reproduction (`swr-debug`,
+        `swr.library.id`, ...).
+      placeholder: |
+        1. Open /engine
+        2. Load default library
+        3. Press 1, 2, 3, 4 in sequence
+        4. Press 9 — stage goes black, no way back without reload
+      validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Plain-English description of the correct behaviour.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Where the bug surfaces.
+      options:
+        - Engine (`engine.html`)
+        - Cloud library FAB
+        - Layer lifecycle (`layer-lifecycle.html`)
+        - Echo (`echo.html`)
+        - Tour (`tour.html`)
+        - Shortcuts movie (`shortcuts-movie.html`)
+        - TikTok / Spit / Camera-enhance / Marketplace
+        - API endpoint (`api/...`)
+        - Build / deploy / Vercel
+        - Other (explain in body)
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: |
+        Browser + OS. Paste exact reproduction steps if known.
+      placeholder: |
+        Chrome 124 on macOS 14.5
+    validations:
+      required: false
+  - type: dropdown
+    id: repro-frequency
+    attributes:
+      label: How often does this happen?
+      options:
+        - Always
+        - Often (more than half the time)
+        - Sometimes
+        - Once
+        - Couldn't repro
+    validations:
+      required: true
+  - type: textarea
+    id: fix-ideas
+    attributes:
+      label: What did you try?
+      description: Anything you tried to fix it (hard refresh, dev tools, etc).
+    validations:
+      required: false

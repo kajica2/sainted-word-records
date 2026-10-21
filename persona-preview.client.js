@@ -118,6 +118,12 @@
       canvas.style.cssText = 'position:fixed;top:-9999px;left:-9999px;';
       document.body.appendChild(canvas);
 
+      // WebGL off by default.
+      if (window.SWR_WEBGL && !window.SWR_WEBGL.isWebGLEnabled()) {
+        document.body.removeChild(canvas);
+        return fallbackThumbnail(persona);
+      }
+
       const gl = canvas.getContext('webgl', { premultipliedAlpha: false }) ||
                  canvas.getContext('experimental-webgl');
       if (!gl) {

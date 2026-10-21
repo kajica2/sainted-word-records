@@ -1,13 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Artists · SWR</title>
   <meta name="description" content="Artists using the SWR engine. Each page is a one-track loop + a list of their works. Pick a sound, hear the room." />
-  <link rel="canonical" href="https://sainted-word-records.vercel.app/artists" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/artists/" />
   <meta property="og:title" content="Artists · SWR">
   <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
   <meta property="og:description" content="Artists using the SWR engine. Each page is a one-track loop + a list of their works. Pick a sound, hear the room.">
@@ -49,13 +51,13 @@
     .card-inner { position: relative; height: 100%; padding: 18px;
       display: flex; flex-direction: column; justify-content: space-between;
       background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.55) 100%); }
-    .card-loc { font-size: 9px; color: rgba(255,255,255,0.7); letter-spacing: 0.18em;
+    .card-loc { font-size: 11px; color: rgba(255,255,255,0.7); letter-spacing: 0.18em;
       text-transform: uppercase; }
     .card-name { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 0.02em;
       margin-top: 8px; }
     .card-tag { font-size: 11px; color: rgba(255,255,255,0.75); font-style: italic;
       letter-spacing: 0.06em; margin-top: 4px; }
-    .card-meta { font-size: 10px; color: var(--accent); letter-spacing: 0.16em;
+    .card-meta { font-size: 11px; color: var(--accent); letter-spacing: 0.16em;
       text-transform: uppercase; }
   </style>
 </head>
@@ -136,5 +138,7 @@
   <script src="/lib/nav.client.js" defer></script>
   <swr-footer></swr-footer>
   <script src="/lib/footer.client.js" defer></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
 </body>
 </html>

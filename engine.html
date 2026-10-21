@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <!-- Video playback sync — see lib/video-sync.client.js -->
+  <script src="/lib/video-sync.client.js" defer></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
@@ -26,6 +30,8 @@
 <script src="/lib/invite-unlock.client.js" defer></script>
 <script src="/lib/invite-modal.client.js" defer></script>
   <script src="/lib/presets-dropdown.client.js" defer></script>
+  <script src="/lib/webgl-feature-detect.client.js" defer></script>
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
   <link rel="stylesheet" href="/video-fx.css" />
   <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/lib/presets-dropdown.css" />
@@ -33,6 +39,7 @@
   <link rel="stylesheet" href="/lib/drive-modal.css" />
   <style>
     :root {
+      /* === ENGINE PALETTE === */
       --bg-0: #050308;
       --bg-1: #0d0918;
       --bg-2: #1a1226;
@@ -50,6 +57,19 @@
       --ok: #00ffa3;
       --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+
+      /* === CANONICAL TOKEN ALIASES === */
+      /* Map canonical design-token names to engine's palette */
+      --bg: var(--bg-0);
+      --bg-2: var(--bg-2);
+      --bg-3: var(--panel-2);
+      --ink: var(--fg);
+      --ink-2: var(--muted);
+      --line: var(--line);
+      --line-2: var(--line-2);
+      /* --accent already matches canonical */
+      --hot: var(--accent);
+      --cool: var(--accent-2);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
@@ -93,6 +113,187 @@
     section#stage { grid-area: stage; }
     aside#layers { grid-area: layers; }
     footer#global { grid-area: global; }
+
+    /* === RESPONSIVE — fix P1 zero-width canvas on phones ===
+       The grid above uses 240px + 1fr + 280px named-area columns. On a
+       390px viewport the center `1fr` track is asked to shrink to
+       max(0, 390 - 520) = 0, so the stage canvas (section#stage) is
+       invisible. body has `overflow-x: hidden` so there is no scroll
+       rescue. This block reorganises the grid for narrow viewports
+       and bumps the touch-target sizes. iOS safe-area primitives are
+       included so the transport header doesn't sit under the
+       Dynamic Island and the footer doesn't sit under the home
+       indicator. Overscroll-behavior: none keeps Safari's
+       rubber-band refresh from firing mid-render.
+
+       No @media block here touches #app, so engine.html was
+       effectively desktop-only before this. */
+    #app { min-width: 0; }
+    #app > * { min-width: 0; }   /* intrinsic content can't re-inflate the tracks */
+
+    /* 720px and below — single-column reorder, canvas first */
+    @media (max-width: 860px) {
+      #app {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto 1fr auto auto;
+        grid-template-areas:
+          "transport"
+          "stage"
+          "library"
+          "layers"
+          "global";
+        height: auto;
+        min-height: 100vh;
+      }
+      header#transport  { max-height: 22vh; overflow-y: auto; padding: 6px 10px; gap: 6px; }
+      aside#library,
+      aside#layers      { max-height: 30vh; overflow-y: auto; border-left: none;
+                          border-right: none; border-top: 1px solid var(--line); }
+      section#stage    { min-height: 320px; }
+    }
+
+    /* 480px and below — even tighter, plus icons-only transport pass.
+       The 44 transport controls are visible at <= 720px via wrapping,
+       but at <= 480px they overflow horizontally. The icons-only mode
+       shrinks each text-bearing control to a glyph so they fit in one
+       row ~41px tall (was 75-109px when wrapped to multiple rows).
+       Existing variants (_mobile-header-inject.js) do this for the
+       variants; the engine's #transport has its own control list, so
+       the icon assignments below target only the controls present in
+       engine.html. */
+    @media (max-width: 480px) {
+      header#transport { gap: 4px; padding: 4px 8px; }
+      /* text → glyph, hide label but keep DOM for screen readers */
+      header#transport .tbtn:not([data-icon]),
+      header#transport a.tbtn:not([data-icon]) {
+        font-size: 0 !important;     /* hide text */
+        line-height: 0 !important;
+        overflow: hidden;
+        padding: 6px 8px;
+        min-width: 36px;
+      }
+      header#transport .tbtn:not([data-icon])::before,
+      header#transport a.tbtn:not([data-icon])::before {
+        font-size: 14px; line-height: 1;
+        display: inline-block;
+      }
+      /* Per-control icons. The data-icon attribute is the source of
+         truth — engine.html doesn't carry it yet on every control,
+         so we add the glyphs as a ::before content rule keyed by
+         the visible text. When the codemod pass lands later, it can
+         stamp data-icon="<glyph>" on each element and this CSS can
+         drop back to a single data-icon::before rule. */
+      header#transport #load-song:not([data-icon])::before    { content: '♪ load'; }
+      header#transport #daily-btn:not([data-icon])::before     { content: '✎ practice'; }
+      header#transport #play:not([data-icon])::before          { content: '▶ play'; }
+      header#transport #rec:not([data-icon])::before           { content: '● rec'; }
+      header#transport #export-video:not([data-icon])::before  { content: '↗ export'; }
+      header#transport #nav-prev:not([data-icon])::before       { content: '‹'; }
+      header#transport #nav-next:not([data-icon])::before       { content: '›'; }
+      header#transport #nav-ver-prev:not([data-icon])::before   { content: '‹v'; }
+      header#transport #nav-ver-next:not([data-icon])::before   { content: 'v›'; }
+      /* Mode-toggle collapses to a single visible button at 480px
+         (toggle lives in the mode-advanced panel below the transport) */
+      #mode-toggle { display: none; }
+    }
+
+    /* Touch targets — iOS HIG 44pt, Material 48dp. The existing
+       .tbtn is ~28px tall (11px font + 7px vertical padding), which
+       is hard to hit with a fingertip. The range sliders are 14px
+       tall, which is essentially undraggable. Both get a
+       coarse-pointer-only override so desktop metrics don't change.
+       Mobile widths also get the bump regardless of pointer type
+       (Chrome DevTools mobile emulation reports pointer as 'fine' but
+       the small touch surface is still unusable). */
+    @media (pointer: coarse) {
+      .tbtn { min-height: 44px; padding-top: 12px; padding-bottom: 12px; }
+      .layer-row input[type="range"],
+      .gctrl input[type="range"],
+      .swr-tx-panel input[type="range"] {
+        height: 44px;
+      }
+      .layer-row input[type="range"]::-webkit-slider-thumb,
+      .gctrl input[type="range"]::-webkit-slider-thumb,
+      .swr-tx-panel input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 28px; height: 28px;
+        background: var(--accent);
+        border-radius: 50%;
+        cursor: pointer;
+        margin-top: -10px;  /* center thumb on the 44px track */
+      }
+      .layer-row input[type="range"]::-webkit-slider-runnable-track,
+      .gctrl input[type="range"]::-webkit-slider-runnable-track,
+      .swr-tx-panel input[type="range"]::-webkit-slider-runnable-track {
+        height: 8px;
+        background: var(--line-2);
+        border-radius: 4px;
+      }
+    }
+
+    /* Mobile widths: bring tap targets up to ≥44×44 regardless of pointer
+       type. Chrome DevTools mobile emulation reports pointer as 'fine'
+       so the coarse-pointer block above doesn't fire there. The inline
+       styles on the layers-panel header buttons (#add-layer etc.) have
+       higher specificity than `.tbtn` — `!important` is the right tool
+       for a one-line accessibility fix without changing the design system.
+       Layer strip items in client/layer-strip.client.js also bump here. */
+    @media (max-width: 768px) {
+      button,
+      .tbtn,
+      .basic-ctrl,
+      #mode-basic-btn,
+      #mode-advanced-btn,
+      #mode-basic-btn-2,
+      #mode-advanced-btn-2,
+      #add-layer, #add-3d, #re-map, #toggle-cover-fullscreen,
+      #save-project, #open-drive, #layer-count-dec, #layer-count-inc,
+      #basic-library-btn, #basic-play-btn, #basic-record-btn, #basic-effects-btn,
+      .layer-strip .li {
+        min-height: 44px !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+      }
+      .basic-ctrl {
+        width: 44px !important;
+        height: 44px !important;
+      }
+
+      /* Library toolbar icons (per-thumbnail actions). Each was 18-22 px,
+         which is unusable with a fingertip. Bump to 44×44 (iOS HIG, Material
+         48dp). Reposition so they don't overlap each other on the 96×96 thumb.
+         The visible glyph stays small (16-18 px) — the hit area expands
+         around it via padding. !important wins over the desktop sizing. */
+      .lib-rot, .lib-del, .lib-use-as-song {
+        width: 44px !important;
+        height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 16px !important;
+        line-height: 1 !important;
+      }
+      .lib-rot      { top: 2px;    left: 2px;    !important; }
+      .lib-del      { top: 50px;   right: 2px;   !important; } /* was 26 → 50 (2+44+4) */
+      .lib-use-as-song { bottom: 2px; left: 2px;  !important; }  /* bottom-left on small cards */
+
+      /* Library thumbnails stay 96 px tall (already bumped in PR #227) */
+      .lib-item { min-height: 96px; }
+    }
+
+    /* iOS safe-area + overscroll — missing repo-wide before this.
+       env(safe-area-inset-top) keeps the transport header below the
+       iPhone Dynamic Island (59px on Pro models). env(safe-area-inset-
+       bottom) keeps the footer above the home indicator (34px).
+       overscroll-behavior: none stops Safari's rubber-band refresh
+       from firing mid-render and destroying in-flight composition
+       state. -webkit-tap-highlight-color: transparent removes the
+       grey flash on tap. */
+    #app { padding-top: env(safe-area-inset-top);
+          padding-bottom: env(safe-area-inset-bottom);
+          overscroll-behavior: none; }
+    * { -webkit-tap-highlight-color: transparent; }
 
     /* === TRANSPORT === */
     header#transport {
@@ -154,6 +355,28 @@
     .nav-arrow { min-width: 26px; text-align: center; transition: 0.12s; padding: 4px 8px; }
     .nav-arrow:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
     .nav-arrow.nav-pulse { animation: navPulse 0.25s ease; }
+
+    /* Quick variant picker (3 chips: v1 Neon, v2 Film, v3 Smoke).
+       Lives inside a `.gctrl` span so it picks up the standard
+       transport-row styling (font-size 9-10px, gap 6px, uppercase
+       muted). Clicking activates the variant in place via
+       SWR_VARIANTS.activate() (no new tab — different from the
+       ← ver / ver → buttons that open the standalone version page
+       in a new tab). The .on class marks the active variant and is
+       maintained by an SWR_VARIANTS_UI hook below so the picker stays
+       in sync with whatever the user does elsewhere (Shift+←, the
+       .ver dropdown, etc.). */
+    #ver-picker .ver-chip {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      line-height: 1; white-space: nowrap;
+    }
+    #ver-picker .ver-chip[aria-pressed="true"],
+    #ver-picker .ver-chip.on {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    #ver-picker .ver-chip:hover:not([aria-pressed="true"]) {
+      background: rgba(255, 61, 146, 0.18);
+    }
     @keyframes navPulse { 0% { transform: scale(1); } 50% { transform: scale(1.18); background: var(--accent); color: #fff; border-color: var(--accent); } 100% { transform: scale(1); } }
     .tbtn.ghost { background: transparent; border-color: var(--line); }
     .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -274,6 +497,88 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 6px;
     }
+    /* Cloud library FAB + menu. The FAB only mounts when the
+       [data-cloud-library] attribute is present on the panel — see
+       client/cloud-library-fab.client.js. Anchors the button to the
+       bottom-right of the library panel and slides the menu up above
+       it. On phones (≤720px) the menu becomes a full-width drawer. */
+    .cloud-fab {
+      position: absolute;
+      right: 8px; bottom: 8px;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg-2);
+      color: var(--text-1);
+      border: 1px solid var(--line);
+      display: grid; place-items: center;
+      cursor: pointer;
+      z-index: 5;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .cloud-fab:hover { border-color: var(--accent, #f59e0b); }
+    .cloud-fab:disabled { opacity: .35; cursor: not-allowed; }
+    .cloud-fab--active { background: var(--accent, #f59e0b); color: var(--bg-1); border-color: var(--accent); }
+    .cloud-fab--error { color: #f55; border-color: #f55; }
+    .cloud-menu {
+      position: absolute;
+      right: 8px; bottom: 60px;
+      min-width: 220px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.45);
+      z-index: 6;
+      font: 12px/1.4 var(--font-body);
+      color: var(--text-1);
+    }
+    .cloud-menu[hidden] { display: none; }
+    .cloud-menu__head {
+      font: 600 10px/1 var(--font-mono, monospace);
+      letter-spacing: .06em;
+      color: var(--text-2, #aaa);
+      text-transform: uppercase;
+      padding: 4px 8px 6px;
+    }
+    .cloud-menu__row {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%;
+      padding: 8px 10px;
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      color: var(--text-1);
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+    }
+    .cloud-menu__row:hover { background: rgba(255,255,255,.06); }
+    .cloud-menu__row .ico { width: 18px; opacity: .8; }
+    .cloud-menu__hr {
+      border: 0;
+      border-top: 1px dashed var(--line);
+      margin: 6px 4px;
+    }
+    .cloud-menu__toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+    .cloud-menu__status {
+      padding: 6px 10px 8px;
+      border-top: 1px dashed var(--line);
+      margin-top: 4px;
+      color: var(--text-2, #aaa);
+      font: 10px/1.4 var(--font-mono, monospace);
+    }
+    .cloud-menu__backdrop {
+      position: fixed; inset: 0;
+      z-index: 4;
+    }
+    @media (max-width: 720px) {
+      .cloud-menu { right: 4px; left: 4px; min-width: 0; }
+    }
+
     /* `display: grid` above is an author rule, so it beats the UA stylesheet's
        `[hidden] { display: none }` — meaning `engineGrid.hidden = true` (set
        from the unified-grid wire-up) did nothing and the panel showed TWO
@@ -289,6 +594,14 @@
       overflow: hidden;
       cursor: grab;
       transition: border-color 0.12s, transform 0.12s;
+    }
+    .lib-item-stale {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-2);
+      color: var(--text-2);
+      font-size: 10px;
+      text-transform: uppercase;
     }
     .lib-item:hover { border-color: var(--accent-2); transform: translateY(-1px); }
     .lib-item:active { cursor: grabbing; }
@@ -1779,6 +2092,14 @@
     body.engine-basic-mode #basic-mode-ui { display: flex !important; }
     body.engine-advanced-mode #basic-mode-ui { display: none !important; }
 
+    /* Cover Fullscreen Mode */
+    body.cover-fullscreen section#stage { position: fixed; inset: 0; z-index: 9999; background: #000; }
+    body.cover-fullscreen aside#layers,
+    body.cover-fullscreen header#transport,
+    body.cover-fullscreen #basic-mode-header,
+    body.cover-fullscreen footer { display: none !important; }
+    body.cover-fullscreen #toggle-cover-fullscreen.active { background: var(--accent); }
+
     /* Header */
     #basic-mode-header {
       display: none;
@@ -2269,7 +2590,7 @@
 
     <!-- Quick clips bar -->
     <div id="basic-clips-bar">
-      <div class="basic-clips-label">Or grab some clips to get started</div>
+      <div class="basic-clips-label">Or pick a visual to start with</div>
       <div class="basic-clips-grid" id="basic-clips-grid">
         <div class="basic-clip" data-name="Abstract 01">
           <img src="https://picsum.photos/seed/clip1/200" alt="">
@@ -2346,7 +2667,7 @@
   <div id="welcome-overlay">
     <div class="welcome-card">
       <h2>Welcome to the Audio Engine</h2>
-      <p>Create stunning audio-reactive videos in three simple steps.</p>
+      <p>No timeline. No render farm. It composes itself.</p>
       <div class="welcome-steps">
         <div class="welcome-step">
           <div class="welcome-step-num">1</div>
@@ -2365,21 +2686,28 @@
         <div class="welcome-step">
           <div class="welcome-step-num">3</div>
           <div class="welcome-step-text">
+            <strong>RE-MAP</strong>
+            <span>Re-derive the clip-to-beat assignment</span>
+          </div>
+        </div>
+        <div class="welcome-step">
+          <div class="welcome-step-num">4</div>
+          <div class="welcome-step-text">
             <strong>Hit record</strong>
             <span>Watch your visuals react to the music in real-time</span>
           </div>
         </div>
       </div>
       <div class="welcome-actions">
-        <button class="welcome-btn secondary" id="welcome-advanced-btn">Show me everything</button>
-        <button class="welcome-btn primary" id="welcome-start-btn">Let's go →</button>
+        <button class="welcome-btn secondary" id="welcome-advanced-btn">Full control: presets, FX, per-layer routing →</button>
+        <button class="welcome-btn primary" id="welcome-start-btn">Let's drop in a song →</button>
       </div>
     </div>
   </div>
 
   <main id="app">
     <header id="transport">
-      <a class="tbtn ghost nav-arrow" id="nav-home" href="/" title="Back to home" aria-label="Home" style="padding:4px 8px; font-size:14px; text-decoration:none; line-height:1;">←</a>
+      
       <button class="tbtn ghost" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="padding:4px 10px; font-size:14px; line-height:1; margin:0 8px;">?</button>
       <div class="brand">SAINTED-WORD <small>records</small></div>
       <div class="mode-toggle" id="mode-toggle">
@@ -2387,6 +2715,11 @@
         <button id="mode-advanced-btn">Advanced</button>
       </div>
       <a class="tbtn ghost" href="/versions" style="padding:4px 10px; font-size:9px; text-decoration:none;">12 versions →</a>
+      <span class="gctrl" id="ver-picker" role="group" aria-label="Quick variant picker — click to activate in place" style="font-size:9px;">
+        <button class="tbtn ghost ver-chip" data-variant-id="neon"  type="button" aria-pressed="false">v1&nbsp;Neon</button>
+        <button class="tbtn ghost ver-chip" data-variant-id="film"  type="button" aria-pressed="false">v2&nbsp;Film</button>
+        <button class="tbtn ghost ver-chip" data-variant-id="smoke" type="button" aria-pressed="false">v3&nbsp;Smoke</button>
+      </span>
       <button class="tbtn ghost nav-arrow" id="nav-ver-prev" title="Previous visual version (Shift+←)" aria-label="Previous version" style="padding:4px 8px; font-size:11px; line-height:1;">← ver</button>
       <button class="tbtn ghost nav-arrow" id="nav-ver-next" title="Next visual version (Shift+→)" aria-label="Next version" style="padding:4px 8px; font-size:11px; line-height:1;">ver →</button>
       <span class="pill" id="status-pill">idle</span>
@@ -2402,6 +2735,7 @@
       <span class="pill" id="bpm-pill">— bpm</span>
       <button class="tbtn ghost" id="daily-btn" title="Today's editing practice" style="padding:4px 10px; font-size:9px;">📅 Day 1 · Practice</button>
       <span class="pill" id="key-pill">— key</span>
+      <span class="gctrl" id="midi-pill" style="font-size:10px; cursor:pointer;" title="MIDI controller mapping. Click to toggle auto-map.">MIDI <span id="midi-state">off</span></span>
       <span class="gctrl" style="font-size:10px;">beat <span class="beat-led" id="beat-led"></span></span>
       <span class="gctrl" style="font-size:10px;">onset <span class="beat-led onset-led" id="onset-led"></span></span>
       <select id="rec-size" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Export size preset — re-fits the canvas to the chosen aspect ratio at full quality before recording">
@@ -2509,10 +2843,11 @@
       </div>
     </div>
 
-    <aside id="library">
+    <aside id="library" data-cloud-library="on">
       <div class="panel-head">
         <h2>Library</h2>
         <button class="tbtn ghost" id="clear-all" title="Erase all uploaded assets + the saved song" style="padding:4px 8px; font-size:9px; color:#f55;">Clear</button>
+        <button class="tbtn ghost" data-clear="library" title="Empty the library only — removes every uploaded asset and bundled song, leaves other settings and saved sets untouched. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">Empty library</button>
         <button class="tbtn ghost" data-clear="songs" title="Clear only the saved song — keeps your library assets and bundled songs" style="padding:4px 8px; font-size:9px;">Clear song</button>
         <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
@@ -3033,13 +3368,12 @@
       <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <div id="stage-flash"></div>
       <div id="stage-empty">
-        <h3>Algorithmic Audio-Reactive Engine</h3>
+        <h3>No timeline. No render farm. It composes itself.</h3>
         <p>
-          Load a song, drop a library of clips, hit play. The audio signal becomes the score —
-          bass, mids, treble, beats, and onsets drive a layered composition of your assets.
+          Bass, mids and treble drive every layer — drop a song, drop your clips, hit play.
         </p>
         <div class="hint">
-          ⌘+Drop folder for bulk import · click any layer to edit · RE-MAP re-derives the assignment · R rotates selected clip
+          Start here: drop a song anywhere on the page
         </div>
       </div>
     </section>
@@ -3049,8 +3383,10 @@
         <h2>Layers</h2>
         <button class="tbtn ghost" id="add-layer" style="padding:4px 8px; font-size:9px;">+ Layer</button>
         <button class="tbtn ghost" id="add-3d" style="padding:4px 8px; font-size:9px;" title="Add a 3D primitive as a layer (sphere, cube, torus, icosahedron)">+ 3D</button>
-        <button class="tbtn" id="rotate-sel" disabled title="Rotate selected clip 90° (R / Shift+R for -90°)" style="padding:4px 8px; font-size:9px; opacity:0.4; cursor:not-allowed;">↻ ROT</button>
         <button class="tbtn" id="re-map" style="padding:4px 8px; font-size:9px;">RE-MAP</button>
+        <button class="tbtn ghost" id="toggle-cover-fullscreen" title="Toggle cover fullscreen" style="padding:4px 8px; font-size:9px;">⛶ Cover</button>
+        <button class="tbtn ghost" id="save-project" title="Save project as a .swr-project file (Cmd/Ctrl+S)" style="padding:4px 8px; font-size:9px;">💾 Save</button>
+        <button class="tbtn ghost" id="open-drive" title="Import from Google Drive (audio, video, image)" style="padding:4px 8px; font-size:9px;">📁 Drive</button>
         <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
           <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
           <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
@@ -3266,6 +3602,8 @@
           <option value="strobe">Strobe</option>
           <option value="warp">Warp</option>
           <option value="mosh">Mosh</option>
+          <option value="downbeat">Downbeat</option>
+          <option value="tonal">Tonal</option>
         </select>
       </span>
       <span class="separator"></span>
@@ -3415,6 +3753,13 @@
       <span class="css-fx-panel__sub">Stackable. Composites over the WebGL stage. Each toggle adds a class to <code>#stage</code>.</span>
       <button class="tbtn ghost" id="css-fx-clear" style="padding:3px 8px; font-size:9px;">Clear all</button>
     </div>
+    <div class="css-fx-panel__row" style="display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+      <label class="tbtn" style="padding:4px 10px; font-size:9px; cursor:pointer; user-select:none;" title="When on, the engine's rAF loop adds audio-driven modulation on top of the slider values: bass→chroma, treble→grain, beat→glow+sepia, rms→vignette, centroid→tone. Slider values are preserved as the user's base; audio adds 0..0.5 on top.">
+        <input type="checkbox" id="fx-audio-react" style="vertical-align:middle; margin-right:6px;" />
+        FX auto-react
+      </label>
+      <span style="font-size:9px; color:var(--muted, #9a8aaa);">bass→chroma · treble→grain · beat→glow · rms→vignette · centroid→tone</span>
+    </div>
     <div class="css-fx-panel__grid" id="css-fx-grid">
       <!-- chips injected by CSSFX.init() -->
     </div>
@@ -3476,6 +3821,17 @@
   <script src="/lib/swr-life.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
+  <script src="/client/layer-strip.client.js" defer></script>
+  <script src="/client/library-sheet.client.js" defer></script>
+  <script src="/client/layer-audio-algos.client.js" defer></script>
+  <script src="/client/look-filter-cycler.client.js" defer></script>
+  <script src="/lib/look-variant.client.js" defer></script>
+  <script src="/client/debug-overlay.client.js" defer></script>
+  <script src="/client/midi-alias.client.js" defer></script>
+  <script src="/client/midi-learn-ui.client.js" defer></script>
+  <script src="/client/cloud-library.client.js" defer></script>
+  <script src="/client/cloud-library-fab.client.js" defer></script>
+  <script src="/lib/personal-presets.client.js" defer></script>
   <!-- M1: auth + storage clients. project.js depends on these. -->
   <script src="/lib/auth.client.js" defer></script>
   <script src="/lib/storage.client.js" defer></script>
@@ -3706,22 +4062,38 @@
                          'revelation', 'overload', 'afterimage', 'memory', 'loop'];
 
     // ======================================================================
-    // VISUAL PRESETS — 5 curated looks. Each preset overrides reactors/blends/
+    // VISUAL PRESETS — 7 curated looks. Each preset overrides reactors/blends/
     // scale-fills for ALL layers so the look is consistent. Reactor values are
     // tuned with `soft` / `release` eases for visual smoothness.
     // ======================================================================
+    // Reactivity bump 2026-10: every reactor scale raised ~60% so the
+    // visual response lands bigger by default. Combined with the
+    // faster EMA k values (see loop()), the engine is much more
+    // visibly audio-driven on a fresh drop-in. The user can still
+    // dial it back via the existing sensitivity slider (0.2–3×).
+    //
+    // Every preset also has a small `beatPhase` component — a phase-
+    // locked reactor with a release ease that resets the visual on
+    // every downbeat. This is the third axis of audio reactivity
+    // (volume → amplitude, spectrum → color, beatPhase → phasing) and
+    // is what makes the engine feel like it's *in the music* rather
+    // than *on top of it*. The 'downbeat' preset uses beatPhase as
+    // its primary feature; the other six use it as a complement to
+    // their primary axis. Set its scale to 0 if you want a
+    // pre-2026-10 feel.
     const VISUAL_PRESETS = {
       pulse: {
         name: 'Pulse',
         desc: 'Bass-thumping, beat-pulsing. Dark, heavy, club-energy.',
         reactors: [
+          [{ feature: 'bass', target: 'scale',   scale: 0.88, ease: 'soft' },
+           { feature: 'beat', target: 'opacity', scale: 0.55, ease: 'soft' },
+           { feature: 'beatPhase', target: 'scale', scale: 0.20, ease: 'release' },
+           { feature: 'rms',  target: 'scale',   scale: 0.22, ease: 'release' }],
           [{ feature: 'bass', target: 'scale',   scale: 0.55, ease: 'soft' },
-           { feature: 'beat', target: 'opacity', scale: 0.35, ease: 'soft' },
-           { feature: 'rms',  target: 'scale',   scale: 0.15, ease: 'release' }],
-          [{ feature: 'bass', target: 'scale',   scale: 0.35, ease: 'soft' },
-           { feature: 'beat', target: 'brightness', scale: 0.4, ease: 'release' }],
-          [{ feature: 'beat', target: 'rot',     scale: 6,   ease: 'release' },
-           { feature: 'rms',  target: 'y',       scale: 24,  ease: 'soft' }],
+           { feature: 'beat', target: 'brightness', scale: 0.65, ease: 'release' }],
+          [{ feature: 'beat', target: 'rot',     scale: 9,   ease: 'release' },
+           { feature: 'rms',  target: 'y',       scale: 38,  ease: 'soft' }],
         ],
         blends: ['screen', 'screen', 'lighter', 'screen'],
         fills:  [1.0, 0.9, 1.1, 0.7, 1.3, 0.8],
@@ -3730,12 +4102,13 @@
         name: 'Drift',
         desc: 'Slow continuous motion. Mid + air, soft-light, ambient.',
         reactors: [
-          [{ feature: 'mid',  target: 'x',     scale: 28,  ease: 'smooth' },
-           { feature: 'air',  target: 'y',     scale: 22,  ease: 'smooth' }],
-          [{ feature: 'mid',  target: 'hue',   scale: 90,  ease: 'smooth' },
-           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
-          [{ feature: 'air',  target: 'rot',   scale: 18,  ease: 'smooth' },
-           { feature: 'treble', target: 'scale', scale: 0.2, ease: 'soft' }],
+          [{ feature: 'mid',  target: 'x',     scale: 44,  ease: 'smooth' },
+           { feature: 'air',  target: 'y',     scale: 36,  ease: 'smooth' },
+           { feature: 'beatPhase', target: 'scale', scale: 0.12, ease: 'release' }],
+          [{ feature: 'mid',  target: 'hue',   scale: 144, ease: 'smooth' },
+           { feature: 'rms',  target: 'scale', scale: 0.24, ease: 'soft' }],
+          [{ feature: 'air',  target: 'rot',   scale: 28,  ease: 'smooth' },
+           { feature: 'treble', target: 'scale', scale: 0.32, ease: 'soft' }],
         ],
         blends: ['source-over', 'soft-light', 'overlay', 'soft-light'],
         fills:  [0.9, 1.1, 0.7, 1.0, 0.8, 1.2],
@@ -3744,12 +4117,13 @@
         name: 'Strobe',
         desc: 'Sharp onset flicker, x/y jitter, lighter blend. Chaotic.',
         reactors: [
-          [{ feature: 'onset', target: 'opacity', scale: 0.7, ease: 'sharp' },
-           { feature: 'rms',   target: 'x',       scale: 60,  ease: 'release' }],
-          [{ feature: 'onset', target: 'brightness', scale: 0.8, ease: 'sharp' },
-           { feature: 'rms',   target: 'y',       scale: 45,  ease: 'release' }],
-          [{ feature: 'onset', target: 'scale',  scale: 0.4, ease: 'sharp' },
-           { feature: 'beat',  target: 'rot',    scale: 14,  ease: 'sharp' }],
+          [{ feature: 'onset', target: 'opacity', scale: 1.0,  ease: 'sharp' },
+           { feature: 'beatPhase', target: 'scale', scale: 0.30, ease: 'sharp' },
+           { feature: 'rms',   target: 'x',       scale: 95,  ease: 'release' }],
+          [{ feature: 'onset', target: 'brightness', scale: 1.1,  ease: 'sharp' },
+           { feature: 'rms',   target: 'y',       scale: 70,  ease: 'release' }],
+          [{ feature: 'onset', target: 'scale',  scale: 0.6, ease: 'sharp' },
+           { feature: 'beat',  target: 'rot',    scale: 20,  ease: 'sharp' }],
         ],
         blends: ['lighter', 'difference', 'lighter', 'screen'],
         fills:  [0.7, 1.2, 0.9, 1.4, 0.6, 1.1],
@@ -3758,12 +4132,13 @@
         name: 'Warp',
         desc: 'Hue rotation, smoothstep, overlay. Psychedelic, slow.',
         reactors: [
-          [{ feature: 'centroid', target: 'hue', scale: 220, ease: 'smooth' },
-           { feature: 'mid',      target: 'scale', scale: 0.2, ease: 'soft' }],
-          [{ feature: 'mid',  target: 'hue',   scale: 160, ease: 'smooth' },
-           { feature: 'rms',  target: 'scale', scale: 0.15, ease: 'soft' }],
-          [{ feature: 'centroid', target: 'hue', scale: 200, ease: 'smooth' },
-           { feature: 'treble',   target: 'scale', scale: 0.25, ease: 'soft' }],
+          [{ feature: 'centroid', target: 'hue', scale: 340, ease: 'smooth' },
+           { feature: 'mid',      target: 'scale', scale: 0.32, ease: 'soft' },
+           { feature: 'beatPhase', target: 'hue',  scale: 40, ease: 'release' }],
+          [{ feature: 'mid',  target: 'hue',   scale: 250, ease: 'smooth' },
+           { feature: 'rms',  target: 'scale', scale: 0.24, ease: 'soft' }],
+          [{ feature: 'centroid', target: 'hue', scale: 320, ease: 'smooth' },
+           { feature: 'treble',   target: 'scale', scale: 0.40, ease: 'soft' }],
         ],
         blends: ['overlay', 'overlay', 'soft-light', 'overlay'],
         fills:  [1.0, 0.85, 1.15, 0.95, 1.05, 0.9],
@@ -3772,15 +4147,71 @@
         name: 'Mosh',
         desc: 'Bass + rms thump, rotation, sharp attack. Live-show energy.',
         reactors: [
-          [{ feature: 'bass', target: 'scale', scale: 0.7, ease: 'release' },
-           { feature: 'rms',  target: 'rot',   scale: 22,  ease: 'release' }],
-          [{ feature: 'bass', target: 'rot',   scale: 18,  ease: 'release' },
-           { feature: 'rms',  target: 'x',     scale: 40,  ease: 'release' }],
-          [{ feature: 'bass', target: 'scale', scale: 0.5, ease: 'release' },
-           { feature: 'rms',  target: 'y',     scale: 30,  ease: 'release' }],
+          [{ feature: 'bass', target: 'scale', scale: 1.0, ease: 'release' },
+           { feature: 'beatPhase', target: 'rot', scale: 18, ease: 'sharp' },
+           { feature: 'rms',  target: 'rot',   scale: 32,  ease: 'release' }],
+          [{ feature: 'bass', target: 'rot',   scale: 26,  ease: 'release' },
+           { feature: 'rms',  target: 'x',     scale: 60,  ease: 'release' }],
+          [{ feature: 'bass', target: 'scale', scale: 0.75, ease: 'release' },
+           { feature: 'rms',  target: 'y',     scale: 45,  ease: 'release' }],
         ],
         blends: ['source-over', 'source-over', 'overlay', 'multiply'],
         fills:  [1.1, 0.95, 1.2, 0.85, 1.05, 1.0],
+      },
+      // New 2026-10: the "beat-locked" preset. Uses beatPhase (a 0..1
+      // sawtooth that resets on the downbeat) to push hard at the start
+      // of every bar and ease out through the bar. Visuals breathe with
+      // the song's phrasing rather than reacting to volume. Each layer
+      // uses a different feature (hue, scale, x, y) so the field
+      // doesn't collapse to a single pulse. RMS keeps an ambient
+      // "energy floor" so quiet bars still feel alive.
+      downbeat: {
+        name: 'Downbeat',
+        desc: 'Snaps to the bar. Hue resets on every downbeat, scale pulses. Music-driven breathing.',
+        reactors: [
+          [{ feature: 'beatPhase', target: 'scale',   scale: 0.55, ease: 'release' },
+           { feature: 'rms',       target: 'scale',   scale: 0.18, ease: 'soft' }],
+          [{ feature: 'beatPhase', target: 'hue',     scale: 120,  ease: 'release' },
+           { feature: 'centroid',  target: 'hue',     scale: 80,   ease: 'smooth' }],
+          [{ feature: 'beatPhase', target: 'x',       scale: 50,   ease: 'release' },
+           { feature: 'mid',       target: 'x',       scale: 30,   ease: 'smooth' }],
+          [{ feature: 'beatPhase', target: 'y',       scale: 40,   ease: 'release' },
+           { feature: 'air',       target: 'y',       scale: 24,   ease: 'smooth' }],
+        ],
+        blends: ['screen', 'source-over', 'overlay', 'screen'],
+        fills:  [1.0, 1.1, 0.9, 1.2, 1.05, 0.95],
+      },
+      // New 2026-10: tonal coloring by song key. Every song has a
+      // musical key (C major, A minor, etc.) — the engine already
+      // computes this via AudioAnalysisV2 and exposes it on
+      // Audio.feat.key. This preset uses that key to set each
+      // layer's base hue, so a song in C major gets a red-dominant
+      // palette, A minor gets a violet palette, F# major gets cyan,
+      // etc. Bass/beat still drive the motion (so the music keeps
+      // its pulse), but the static color is the song's key. Use
+      // this when you want the same song to *look* different on
+      // different playings — minor keys feel colder, major keys
+      // feel warmer, and the engine picks the right one for the
+      // song automatically.
+      tonal: {
+        name: 'Tonal',
+        desc: 'Each layer\'s hue = the song\'s musical key. C major red, A minor violet, F# major cyan. Motion is bass/beat.',
+        reactors: [
+          [{ feature: 'key',  target: 'hue',   scale: 1.0,  ease: 'soft' },
+           { feature: 'bass', target: 'scale', scale: 0.50, ease: 'soft' },
+           { feature: 'beat', target: 'opacity', scale: 0.30, ease: 'soft' }],
+          [{ feature: 'key',  target: 'hue',   scale: 0.85, ease: 'soft' },
+           { feature: 'mid',  target: 'x',     scale: 30,  ease: 'smooth' },
+           { feature: 'rms',  target: 'scale', scale: 0.18, ease: 'soft' }],
+          [{ feature: 'key',  target: 'hue',   scale: 0.70, ease: 'soft' },
+           { feature: 'air',  target: 'y',     scale: 22,  ease: 'smooth' },
+           { feature: 'centroid', target: 'hue', scale: 60,  ease: 'smooth' }],
+          [{ feature: 'key',  target: 'hue',   scale: 0.55, ease: 'soft' },
+           { feature: 'bass', target: 'rot',   scale: 12,  ease: 'release' },
+           { feature: 'rms',  target: 'rot',   scale: 18,  ease: 'release' }],
+        ],
+        blends: ['screen', 'source-over', 'overlay', 'soft-light'],
+        fills:  [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
       },
     };
 
@@ -4290,7 +4721,7 @@
       fps: 0,
       lastFrame: 0,
       // Smoothed features
-      smooth: { bass: 0, mid: 0, treble: 0, air: 0, rms: 0, beat: 0, onset: 0, centroid: 0 },
+      smooth: { bass: 0, mid: 0, treble: 0, air: 0, rms: 0, beat: 0, onset: 0, centroid: 0, bpm: 0, beatPhase: 0, beatInBar: 0 },
       // Drag / drift system
       dragMode: 'auto',     // 'auto' = continuous drift, 'manual' = user-controlled
       dragging: false,
@@ -4353,11 +4784,43 @@
         try { this.draw && this.draw(); } catch (e) {}
         return { width: aw, height: ah };
       },
+      // The chromatic-circle mapping for the 'key' feature. Twelve
+      // pitch classes, each 30° around the hue wheel. The mapping is
+      // stable across V1 detection (which returns the same key strings
+      // — C, C#, D, D#, E, F, F#, G, G#, A, A#, B) so a reactor that
+      // uses 'key' on a `hue` target will pick a single dominant color
+      // for the entire song (modulated by the reactor's scale). A
+      // scale=180 reactor will swing through the full wheel; a
+      // scale=30 reactor will nudge the existing hue by ~10° per
+      // semitone. Unknown keys (e.g. before analyzeFull runs) return
+      // 0 (C major) so the user gets a sensible default rather than
+      // NaN.
+      _keyHue(key) {
+        if (!key || typeof key !== 'string') return 0;
+        const map = { C: 0, 'C#': 30, D: 60, 'D#': 90, E: 120, F: 150,
+                    'F#': 180, G: 210, 'G#': 240, A: 270, 'A#': 300, B: 330 };
+        return map[key] ?? 0;
+      },
       getFeature(react) {
         const s = this.smooth;
         const raw = Audio.feat[react.feature] ?? 0;
         if (react.feature === 'beat' || react.feature === 'onset') return raw; // already 0..1 envelope
         if (react.feature === 'centroid') return raw;
+        // Normalize the beat-derived features into 0..1 so they compose
+        // with the easing function and the reactor's `scale`. A reactor
+        // that uses feat 'bpm' with scale 0.5 and ease 'soft' now reads
+        // as "0.5 of the way from 60bpm to 180bpm" — peaks at fast songs.
+        // 'beatInBar' is already 1..4; we rebase to 0..1 by subtracting
+        // 1 and dividing by 3 (so beat 1 → 0, beat 2 → 0.33, beat 4 → 1).
+        if (react.feature === 'bpm') return clamp((raw - 60) / 120, 0, 1);
+        if (react.feature === 'beatInBar') return clamp((raw - 1) / 3, 0, 1);
+        // 'key' is a string (C, C#, D, …). It maps to a hue angle in
+        // 0..360. A reactor on target 'hue' with feature 'key' and
+        // scale 1 will set the layer's hue to that angle; scale 0.5
+        // will set it to half that angle; scale 0 will leave the
+        // layer's existing hue alone (because the eased value × 0
+        // adds 0 to out.hue).
+        if (react.feature === 'key') return this._keyHue(Audio.feat.key);
         return raw;
       },
       ease(name, t) {
@@ -4371,7 +4834,7 @@
         // rot = audio-driven base + per-clip persistent offset (if rotationEnabled)
         // rotationEnabled defaults to true (undefined === true); when false,
         // both manual rotOffset and any rot-target reactors are silenced.
-        const enabled = layer.rotationEnabled !== false;
+        const enabled = layer.rotationEnabled === true;  // OFF by default — opt in via the per-layer rotate toggle; rot-target reactors are silenced until then
         const out = {
           scale: layer.baseScale,
           x: layer.pos.x, y: layer.pos.y,
@@ -4408,6 +4871,25 @@
           else if (r.target === 'hue') out.hue += v;
           else if (r.target === 'brightness') out.brightness = clamp(out.brightness + v, 0.1, 2.5);
           else if (r.target === 'contrast') out.contrast = clamp(out.contrast + v, 0.1, 2.5);
+        }
+        // Audio algorithm: high-level audio-reactive behavior (Pulse / Drift
+        // / Spark) with an intensity slider. Adds deltas on top of base +
+        // reactor values; the algo is intentionally additive so existing
+        // reactors keep working. See client/layer-audio-algos.client.js.
+        if (layer.algo && layer.algo !== 'none' && (layer.algoIntensity || 0) > 0 &&
+            window.SWR_LAYER_AUDIO_ALGOS) {
+          const feat = Audio && Audio.feat ? Audio.feat : {};
+          const o = {
+            scale: 0, dx: 0, dy: 0, dBrightness: 0, dHue: 0, opacityMul: 0
+          };
+          window.SWR_LAYER_AUDIO_ALGOS.apply(layer.algo, feat, layer.algoIntensity, o);
+          out.scale    += o.scale;
+          out.x        += o.dx;
+          out.y        += o.dy;
+          out.hue      += o.dHue;
+          out.brightness = clamp(out.brightness + o.dBrightness, 0.1, 2.5);
+          // opacityMul: positive bumps opacity; clamp the final to a safe range
+          out.opacity  = clamp(out.opacity + o.opacityMul, 0, 1.5);
         }
         return out;
       },
@@ -4465,8 +4947,22 @@
           // Video with a blob URL: drive playback from main audio play state.
           // Camera: srcObject drives its own playback (autoplay); don't pause it.
           if (a.type === 'video') {
-            if (Audio.playing && src.paused) src.play().catch(()=>{});
-            if (!Audio.playing && !src.paused) src.pause();
+            // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
+            // lib/video-sync.client.js) does not trust `paused`: a video
+            // paused while it is still loading has its media pipeline
+            // suspended — the element drops back to readyState 1 and stops
+            // fetching — and while a play() promise is pending `paused`
+            // stays true, so the next frame calls play() again and a second
+            // play() on a pending element resets it to readyState 1. Either
+            // way the element sits at readyState 1, the draw gate below
+            // (readyState < 2) skips the layer, and the clip never reaches
+            // the stage.
+            if (window.SWR_VIDEO_SYNC) {
+              window.SWR_VIDEO_SYNC(src, Audio.playing);
+            } else {
+              if (Audio.playing && src.paused) src.play().catch(()=>{});
+              if (!Audio.playing && !src.paused) src.pause();
+            }
           }
           // Camera: ensure playing
           if (a.type === 'camera' && src.paused) src.play().catch(()=>{});
@@ -4639,6 +5135,33 @@
         cx.globalCompositeOperation = layer.blend || 'source-over';
         cx.globalAlpha = clamp(r.opacity, 0, 1);
         const cw = cx.canvas.width, chh = cx.canvas.height;
+        // Text layers: draw a string at the layer's position. Skipped
+        // under heavy hue/brightness treatments so the text stays
+        // legible — the eye reads text first, not the grade.
+        if (layer.kind === 'text' && layer.text) {
+          cx.save();
+          const fontPx = Math.max(8, (layer.size || 64) * (r.scale || 1));
+          cx.font = (layer.weight || 700) + ' ' + fontPx + 'px ' + (layer.family || 'sans-serif');
+          cx.textAlign = 'center';
+          cx.textBaseline = 'middle';
+          if (layer.glow) {
+            cx.shadowColor = layer.glow;
+            cx.shadowBlur = fontPx * 0.18;
+          }
+          cx.fillStyle = layer.color || '#fff';
+          const tx = cw / 2 + (r.x || 0);
+          const ty = chh / 2 + (r.y || 0);
+          if (r.rot) {
+            cx.translate(tx, ty);
+            cx.rotate((r.rot || 0) * Math.PI / 180);
+            cx.fillText(layer.text, 0, 0);
+          } else {
+            cx.fillText(layer.text, tx, ty);
+          }
+          cx.restore();
+          cx.restore();
+          return;
+        }
         // Hue/brightness/contrast pre-pass: draw asset into proc, then composite with filter
         if (Math.abs(r.hue) > 0.5 || Math.abs(r.brightness - 1) > 0.01 || Math.abs(r.contrast - 1) > 0.01) {
           const p = this.proc;
@@ -4918,17 +5441,38 @@
         $('fps-v').textContent = Math.round(this.fps) + ' fps';
         // Sample audio features
         if (Audio.playing) Audio.sample();
-        // Smooth features
+        // Smooth features. The k constants are the EMA rate (per-frame
+        // pull toward the raw value); higher = snappier / more
+        // reactive, lower = smoother / more sluggish. The defaults
+        // were 0.18 for continuous features, 0.22/0.30 for beat/onset
+        // (which need to decay so opacity doesn't latch). Bumped 2026-10
+        // to make transients land harder: continuous features 0.18→0.32
+        // (~80% faster), beat 0.22→0.42, onset 0.30→0.52. The user
+        // can still dial it back via the existing sensitivity slider.
+        //
+        // beatPhase is a 0..1 sawtooth (resets at every downbeat) and
+        // bpm is integer beats-per-minute; both are pre-shaped upstream
+        // in lib/audio.client.js. bpm gets a light EMA (k=0.10) to
+        // suppress jitter between v1 (autocorrelation) and v2 (onset
+        // history) detections without changing its integer scale; a
+        // sawtooth through a low-pass becomes a sine, which is the
+        // wrong shape for a phase feature, so beatPhase passes through.
+        // They're mirrored here so reactors can target them by name;
+        // reactor users get a value the engine is already reading every
+        // frame.
         const a = Audio.feat, s = this.smooth;
-        const k = 0.18;
+        const k = 0.32;
         s.bass = lerp(s.bass, a.bass, k);
         s.mid = lerp(s.mid, a.mid, k);
         s.treble = lerp(s.treble, a.treble, k);
         s.air = lerp(s.air, a.air, k);
         s.rms = lerp(s.rms, a.rms, k);
-        s.beat = lerp(s.beat, a.beat, 0.22);          // decay so opacity doesn't latch on
-        s.onset = lerp(s.onset, a.onset, 0.30);        // snappier decay for strobey hits
+        s.beat = lerp(s.beat, a.beat, 0.42);          // decay so opacity doesn't latch on
+        s.onset = lerp(s.onset, a.onset, 0.52);        // snappier decay for strobey hits
         s.centroid = lerp(s.centroid, a.centroid, k);
+        s.bpm = lerp(s.bpm || 0, a.bpm || 0, 0.10);    // jitter-suppressed; reactor normalizes to 0..1
+        s.beatPhase = a.beatPhase || 0;                 // 0..1 sawtooth, resets on downbeat
+        s.beatInBar = a.beatInBar || 0;                 // 1..4 integer
         // Auto-drift: gentle continuous motion when in auto mode.
         // Each layer gets a phase offset so they don't all move in sync.
         this._t += Math.max(dt, 0.0001);
@@ -4967,6 +5511,67 @@
             }
           }
         }
+        // Audio-reactive FX modulation. When `FX.state.audioReact` is on,
+        // a curated subset of the persona uniforms is driven from the
+        // smoothed audio features. Each mapping is *additive* on top of
+        // whatever the user set with the sliders — the user keeps control
+        // of the personality (slider=0.6 chroma); audio adds 0..0.4 on
+        // top of that. The user-facing 'FX auto-react' checkbox toggles
+        // this without touching the existing FX UI.
+        //
+        // Mapping rationale:
+        //   bass    → chroma      (low-end adds color separation; the visual
+        //                          classic of bass-pumping VHS)
+        //   treble  → grain       (high-end crackle — bright transients get
+        //                          noisy; sustained high notes stay clean
+        //                          because grain follows the EMA, not the
+        //                          raw spectrum)
+        //   beat    → glow + sepia (per-beat bloom + brief warm tint; sepia
+        //                          scales with beat energy so kicks land
+        //                          with a warm flash, sustains fade back)
+        //   rms     → vignette    (loud sections get a slightly tighter
+        //                          vignette; quiet sections breathe back to
+        //                          the user-set value)
+        //   centroid→ tone        (spectral brightness nudges the split-tone
+        //                          grade — bright passages warm, dark cool)
+        if (window.FX && window.FX.state && window.FX.state.audioReact) {
+          const ar = window.FX.state;
+          // 0..1 audio modulations, conservative amplitudes so the audio
+          // is a presence, not a takeover. User sliders still dominate.
+          const aChroma = s.bass    * 0.35;   // up to 0.35 of chroma
+          const aGrain  = s.treble  * 0.45;   // up to 0.45 of grain
+          const aGlow   = s.beat    * 0.50;   // up to 0.50 of glow
+          const aSepia  = s.beat    * 0.35;   // up to 0.35 of sepia tint
+          const aVig    = s.rms     * 0.20;   // up to 0.20 of vignette
+          const aTone   = (s.centroid - 0.5) * 0.4; // ±0.2 around midpoint
+          // Apply as additive on top of the user-set base. The base is
+          // captured on toggle-on so toggling doesn't drag the audio
+          // reaction around as the user moves the sliders — and so
+          // toggling off returns to the user's exact settings.
+          if (!ar._audioBase) {
+            ar._audioBase = {
+              chroma: ar.chroma, grain: ar.grain, glow: ar.glow,
+              sepia: ar.sepia, vignette: ar.vignette, tone: ar.tone,
+            };
+          }
+          ar.chroma   = Math.min(1, ar._audioBase.chroma   + aChroma);
+          ar.grain    = Math.min(1, ar._audioBase.grain    + aGrain);
+          ar.glow     = Math.min(1, ar._audioBase.glow     + aGlow);
+          ar.sepia    = Math.min(1, ar._audioBase.sepia    + aSepia);
+          ar.vignette = Math.min(1, ar._audioBase.vignette + aVig);
+          ar.tone     = clamp(ar._audioBase.tone   + aTone, -1, 1);
+        } else if (window.FX && window.FX.state && window.FX.state._audioBase) {
+          // Toggle-off: restore the user's settings, clear the base.
+          const b = window.FX.state._audioBase;
+          window.FX.state.chroma   = b.chroma;
+          window.FX.state.grain    = b.grain;
+          window.FX.state.glow     = b.glow;
+          window.FX.state.sepia    = b.sepia;
+          window.FX.state.vignette = b.vignette;
+          window.FX.state.tone     = b.tone;
+          window.FX.state._audioBase = null;
+        }
+
         // Clear
         const cx = stageCtx;
         cx.fillStyle = '#000';
@@ -4995,6 +5600,31 @@
         // client/variant-switcher.client.js.
         if (window.SWR_VARIANTS) window.SWR_VARIANTS.postFx(cx);
         this.drawMeter();
+        // Beat / onset LED indicators. Both UI elements were rendered
+        // with CSS for a `.on` highlight state, but nothing was
+        // toggling the class — the LEDs were dead. Wire them to the
+        // existing beatPulse / onsetPulse booleans (one-frame edge
+        // triggers) so they flash on every hit. The CSS transition
+        // handles the fade-out; we just sync the class to the current
+        // audio frame.
+        const beatLed  = $('beat-led');
+        if (beatLed)  beatLed.classList.toggle('on', !!Audio.feat.beatPulse);
+        const onsetLed = $('onset-led');
+        if (onsetLed) onsetLed.classList.toggle('on', !!Audio.feat.onsetPulse);
+        // MIDI pill — only update when state changes (cheap to re-render
+        // but no point redrawing every frame).
+        const midiPill = $('midi-state');
+        if (midiPill && window.SWR_MIDI) {
+          const s = window.SWR_MIDI.snapshot();
+          // snapshot() returns inputCount/inputNames — there is no `inputs`
+          // array on it. Reading s.inputs.length threw "Cannot read properties
+          // of undefined (reading 'length')" on every engine boot, which is
+          // what check-automix-arc-smoke had been reporting on main.
+          const n = s.inputCount || 0;
+          midiPill.textContent = n
+            ? (n + ' dev' + (n === 1 ? '' : 's'))
+            : (s.available ? 'await' : 'off');
+        }
         // v2: recording overlay — burn BPM + key into the captured video
         if (Recorder.recording) {
           this.drawRecordingOverlay(cx);
@@ -5188,6 +5818,13 @@
         this.startedAt = Date.now();
         $('rec').classList.add('live');
         $('rec').textContent = '■ STOP';
+        // Update REC button with timer
+        const recBtn = $('rec');
+        this.recTimer = setInterval(() => {
+          if (!this.recording) return;
+          const elapsed = Math.floor((Date.now() - this.startedAt) / 1000);
+          recBtn.textContent = `■ ${Math.floor(elapsed/60)}:${(elapsed%60).toString().padStart(2,'0')}`;
+        }, 1000);
         // The mark itself is composited into the recorded stream by
         // lib/watermark.client.js — nothing to preload or repaint here.
         const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
@@ -5302,6 +5939,7 @@
         if (this._wcActive) {
           if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
           if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
+          if (this.recTimer) { clearInterval(this.recTimer); this.recTimer = null; }
           this._wcActive = false;
           this.recording = false;
           $('rec').classList.remove('live');
@@ -5332,6 +5970,7 @@
         // captureStream() has been wrapped, so one recording would leave that
         // cost running for the life of the page.
         try { window.SWR_WATERMARK && window.SWR_WATERMARK.stopCompositors && window.SWR_WATERMARK.stopCompositors(); } catch (_) {}
+        if (this.recTimer) { clearInterval(this.recTimer); this.recTimer = null; }
         this.recording = false;
         $('rec').classList.remove('live');
         $('rec').textContent = '● REC';
@@ -5643,6 +6282,79 @@
           Layers.add(pool[pool.length - 1]);
         });
         $('re-map').addEventListener('click', () => Layers.autoMap());
+        $('save-project').addEventListener('click', () => {
+          // Delegate to the keyboard action — same path as Cmd+S, so
+          // status-bar messaging, file format, and naming stay in lock-step.
+          if (window.SWR_SETTINGS && typeof window.SWR_SETTINGS.saveProject === 'function') {
+            window.SWR_SETTINGS.saveProject();
+          } else if (typeof setStatus === 'function') {
+            setStatus('save unavailable on this page', 'warn');
+          }
+        });
+
+        // Google Drive: open the file-browser modal. If the user isn't
+        // linked yet, surface a status-bar prompt and offer the connect
+        // path. The modal itself handles the OAuth popup (lib/google-drive.client.js).
+        $('open-drive').addEventListener('click', async () => {
+          if (!window.SWR_GDRIVE) {
+            setStatus('Drive module not loaded', 'warn');
+            return;
+          }
+          if (!window.SWR_DRIVE_MODAL) {
+            setStatus('Drive modal not loaded', 'warn');
+            return;
+          }
+          const linked = window.SWR_GDRIVE.isLinked && window.SWR_GDRIVE.isLinked();
+          if (!linked) {
+            try {
+              setStatus('connecting to Google Drive…', 'ok');
+              await window.SWR_GDRIVE.link();
+              setStatus('Drive connected', 'ok');
+            } catch (e) {
+              setStatus('Drive connect failed: ' + (e.message || 'unknown'), 'err');
+              return;
+            }
+          }
+          window.SWR_DRIVE_MODAL.show();
+        });
+
+        // Drive import → stage: when SWR_DRIVE_MODAL emits an import event,
+        // pull the file's storageKey URL into a layer on the stage. No
+        // background classification (audio features stay at the default
+        // mid-band values); the import is "play it now" rather than
+        // "schedule it smartly". A future revision can call classify().
+        if (window.SWR_DRIVE_MODAL && typeof window.SWR_DRIVE_MODAL.onImport === 'function') {
+          window.SWR_DRIVE_MODAL.onImport(async ({ file, result }) => {
+            try {
+              if (!window.Layers || !result || !result.storageKey) return;
+              const type = (file.mimeType || '').split('/')[0];
+              const asset = {
+                id: file.id || ('gdrive-' + Date.now()),
+                name: file.name || 'Drive file',
+                type: ['image', 'video', 'audio'].includes(type) ? type : 'video',
+                thumb: null,
+                motion: 0.5, luma: 0.5, hue: 0,
+                w: 640, h: 360,
+                added: Date.now(),
+              };
+              asset.url = result.storageKey;
+              asset.coverUrl = result.storageKey;
+              asset.mimeType = file.mimeType || '';
+              window.Layers.add(asset);
+              setStatus(`Drive: ${file.name} added`, 'ok');
+            } catch (e) {
+              setStatus('Drive import failed: ' + (e.message || e), 'err');
+            }
+          });
+        }
+        
+        // Toggle cover fullscreen
+        let coverFullscreen = false;
+        $('toggle-cover-fullscreen')?.addEventListener('click', () => {
+          coverFullscreen = !coverFullscreen;
+          document.body.classList.toggle('cover-fullscreen', coverFullscreen);
+          $('toggle-cover-fullscreen').classList.toggle('active', coverFullscreen);
+        });
 
         // Tone / desaturation readout (the slider module owns the binding).
         (function () {
@@ -6337,6 +7049,19 @@
         // Clear-all
         const clearBtn = $('css-fx-clear');
         if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
+
+        // Audio-react toggle. When on, the rAF loop adds audio-driven
+        // modulation on top of the slider values. We mirror to FX.state
+        // and a localStorage key so the user's choice survives reloads.
+        const arEl = $('fx-audio-react');
+        if (arEl) {
+          try { arEl.checked = !!JSON.parse(localStorage.getItem('swr-cssfx-audioreact') || 'false'); } catch (_) {}
+          if (window.FX && window.FX.state) window.FX.state.audioReact = !!arEl.checked;
+          arEl.addEventListener('change', () => {
+            try { localStorage.setItem('swr-cssfx-audioreact', JSON.stringify(!!arEl.checked)); } catch (_) {}
+            if (window.FX && window.FX.state) window.FX.state.audioReact = !!arEl.checked;
+          });
+        }
 
         // Restore persisted state
         try {
@@ -7795,37 +8520,48 @@
 
   </script>
   <!-- Automix + asset-curator stack (ported from music_video, Phase 1) -->
-  <script src="/client/preset-anchor-map.client.js"></script>
-  <script src="/client/anchor-embed.js"></script>
-  <script src="/client/automix.client.js"></script>
+  <script src="/client/preset-anchor-map.client.js" defer></script>
+  <script src="/client/anchor-embed.js" defer></script>
+  <script src="/client/automix.client.js" defer></script>
   <script src="/client/section-detector.client.js" defer></script>
-  <script src="/client/preset-cycle.client.js"></script>
-  <script src="/client/preset-pick-store.client.js"></script>
-  <script src="/client/layer-state-store.client.js"></script>
-  <script src="/client/last-mix-store.client.js"></script>
-  <script src="/client/asset-curator.client.js"></script>
+  <script src="/client/preset-cycle.client.js" defer></script>
+  <script src="/client/preset-pick-store.client.js" defer></script>
+  <script src="/client/layer-state-store.client.js" defer></script>
+  <script src="/client/last-mix-store.client.js" defer></script>
+  <script src="/client/asset-curator.client.js" defer></script>
   <script src="/client/library-packs.client.js" defer></script>
   <!-- L3 song arc — macro direction; the 22 variants have shipped this
        since f582f56, engine.html was missed in that rollout. -->
-  <script src="/client/automix-arc.client.js"></script>
+  <script src="/client/automix-arc.client.js" defer></script>
 
   <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
-  <script src="/client/automix-session-store.client.js"></script>
-  <script src="/client/automix-runtime.client.js"></script>
+  <script src="/client/automix-session-store.client.js" defer></script>
+  <script src="/client/automix-runtime.client.js" defer></script>
   <!-- Act-driven clip cutting (L3 composition coupling). The 22 variant
        pages have shipped this since the port; engine.html was missed in the
        same rollout that omitted automix-arc (see above). -->
   <script src="/client/automix-composition.client.js" defer></script>
   <!-- Periodic frame capture runtime + UI (Phase 1) -->
-  <script src="/client/capture-runtime.client.js"></script>
+  <script src="/client/capture-runtime.client.js" defer></script>
 
   <!-- Hero / Hook / Stats / Mood / Scenes runtimes (Phase 1b) -->
   <!-- NOTE: hero-frames.client.js intentionally omitted per /steer skip hero -->
   <script src="/client/narrative-state.client.js" defer></script>
-  <script src="/client/hook-detector.client.js"></script>
-  <script src="/client/stats.client.js"></script>
-  <script src="/client/mood.client.js"></script>
-  <script src="/client/scenes.client.js"></script>
+  <!-- Saved-song bridge. client/hook-detector.client.js reads the song to
+       analyse from window.SWR_LAST_SONG (hook-detector.client.js:47) and
+       returns {ok:false, reason:'no song loaded'} when it is absent.
+       lib/audio.client.js already persists the loaded song into the same
+       IndexedDB record the bridge reads — DB 'sainted-word-records' v4,
+       store 'songs', key 'current', fields {blob,name,type,savedAt}
+       (audio.client.js:342) — so the engine was already writing the one
+       thing the hook detector could not see. Every versions/*.html page
+       loads this bridge; the engine did not, so its Hooks button could
+       only ever answer 'no song loaded'. -->
+  <script src="/versions/last-song.js" defer></script>
+  <script src="/client/hook-detector.client.js" defer></script>
+  <script src="/client/stats.client.js" defer></script>
+  <script src="/client/mood.client.js" defer></script>
+  <script src="/client/scenes.client.js" defer></script>
 
   <script type="module" src="/engine-panel-visibility.client.js"></script>
   <script type="module" src="/layer-scheduler.client.js"></script>
@@ -8055,13 +8791,13 @@
   <script type="module" src="/persona-preview.client.js"></script>
   <script type="module" src="/media-sets.client.js"></script>
 <script type="module" src="/lib/media-store.client.js"></script>
-  <script src="/lib/persist.client.js"></script>
-  <script src="/lib/persist-wire.client.js"></script>
-  <script src="/lib/persist-fx.client.js"></script>
-  <script src="/lib/library-hygiene.client.js"></script>
-  <script src="/lib/preset-transitions.client.js"></script>
-  <script src="/lib/reset-state.client.js"></script>
-  <script src="/lib/recorder.client.js"></script>
+  <script src="/lib/persist.client.js" defer></script>
+  <script src="/lib/persist-wire.client.js" defer></script>
+  <script src="/lib/persist-fx.client.js" defer></script>
+  <script src="/lib/library-hygiene.client.js" defer></script>
+  <script src="/lib/preset-transitions.client.js" defer></script>
+  <script src="/lib/reset-state.client.js" defer></script>
+  <script src="/lib/recorder.client.js" defer></script>
   <script type="module" src="/share.client.js"></script>
   <script type="module" src="/pwa-bootstrap.js"></script>
   <script type="module" src="/pt.client.js"></script>
@@ -8102,6 +8838,53 @@
           if (e.shiftKey && e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
           if (e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); go(1); }
         });
+
+        // Quick variant picker (3 chips: v1 Neon, v2 Film, v3 Smoke).
+        // Each click activates the variant in place via SWR_VARIANTS.activate().
+        // The picker stays in sync with other entry points (the .ver
+        // dropdown, Shift+← / → which currently opens in a new tab)
+        // through the SWR_VARIANTS_UI callback that client/variant-
+        // switcher.client.js installs.
+        const picker = $('ver-picker');
+        if (picker) {
+          const chips = picker.querySelectorAll('.ver-chip');
+          for (const c of chips) {
+            c.addEventListener('click', () => {
+              const id = c.getAttribute('data-variant-id');
+              if (id && window.SWR_VARIANTS && typeof window.SWR_VARIANTS.activate === 'function') {
+                window.SWR_VARIANTS.activate(id).catch((e) => {
+                  console.warn('[ver-picker] activate', e.message);
+                });
+              }
+            });
+          }
+          // Hook the existing SWR_VARIANTS_UI bridge. The variant
+          // switcher installs this function at module load (with defer)
+          // — i.e. AFTER this inline IIFE runs. We re-install on the
+          // next animation frame so we wrap the chain instead of
+          // clobbering it (the chain keeps updating the variant <select>
+          // and our chips).
+          const installUiHook = () => {
+            const prevUi = window.SWR_VARIANTS_UI;
+            window.SWR_VARIANTS_UI = (id) => {
+              for (const c of chips) {
+                const on = id && c.getAttribute('data-variant-id') === id;
+                c.setAttribute('aria-pressed', on ? 'true' : 'false');
+                c.classList.toggle('on', !!on);
+              }
+              if (typeof prevUi === 'function') prevUi(id);
+            };
+            // If a variant is already active (e.g. deep-link ?v=neon),
+            // reflect it on the chips now.
+            try {
+              const cur = window.SWR_VARIANTS && window.SWR_VARIANTS.current
+                ? window.SWR_VARIANTS.current() : null;
+              if (cur) window.SWR_VARIANTS_UI(cur);
+            } catch (_) { /* noop */ }
+          };
+          if (typeof requestAnimationFrame === 'function') requestAnimationFrame(installUiHook);
+          else setTimeout(installUiHook, 0);
+        }
       }
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
@@ -8272,6 +9055,39 @@
         $('daily-btn').addEventListener('click', open);
         document.querySelector('.daily-modal__close')?.addEventListener('click', close);
         $('daily-modal').addEventListener('click', (e) => { if (e.target === $('daily-modal')) close(); });
+        // MIDI pill: click to toggle auto-mapping; double-click to
+        // enter learn mode (move a knob/fader next). Permission is
+        // auto-armed on first page interaction so this button only
+        // needs to re-request when the user previously denied.
+        const midiPill = $('midi-pill');
+        if (midiPill && window.SWR_MIDI) {
+          let lastClick = 0;
+          midiPill.addEventListener('click', () => {
+            const now = Date.now();
+            if (now - lastClick < 320) {
+              // Double-click: enter learn mode
+              window.SWR_MIDI.arm();
+              window.SWR_MIDI_LEARN_UI && window.SWR_MIDI_LEARN_UI.show();
+              window.setStatus && window.setStatus('midi learn: move a knob/fader to bind', 'ok');
+              lastClick = 0;
+              return;
+            }
+            lastClick = now;
+            const cur = window.SWR_MIDI.snapshot();
+            window.SWR_MIDI.setEnabled(!cur.enabled);
+            const next = window.SWR_MIDI.snapshot();
+            if (next.permission === 'denied') {
+              window.setStatus && window.setStatus('midi: permission denied. enable in browser settings.', 'warn');
+            } else if (!next.enabled) {
+              window.setStatus && window.setStatus('midi: auto-map disabled', 'ok');
+            } else if (next.inputs.length === 0) {
+              window.SWR_MIDI.requestAccess();
+              window.setStatus && window.setStatus('midi: requesting device permission', 'ok');
+            } else {
+              window.setStatus && window.setStatus('midi: ' + next.inputs.length + ' device(s) auto-mapped', 'ok');
+            }
+          });
+        }
         $('daily-reroll').addEventListener('click', reroll);
         $('daily-done').addEventListener('click', toggleDone);
         document.addEventListener('keydown', (e) => {
@@ -8486,6 +9302,23 @@
         try {
           out.lastAudioError = (window.Audio && window.Audio._lastAudioError) || null;
         } catch (_) { out.lastAudioError = null; }
+        // Music-theory features (BPM / key / scale) — available after
+        // analyzeFull() runs (lib/audio.client.js:510). The bpm-pill
+        // and key-pill in the master row show these; the diag dump
+        // exposes them for headless verifiers and devtools inspection.
+        try {
+          const f = (window.Audio && window.Audio.feat) || {};
+          out.music = {
+            bpm:         f.bpm         || 0,
+            key:         f.key         || null,
+            scale:       f.scale       || null,
+            confidence:  f.confidence  || 0,
+            beatPhase:   typeof f.beatPhase  === 'number' ? +f.beatPhase.toFixed(3)  : 0,
+            beatInBar:   f.beatInBar  || 0,
+            beatPulse:   !!f.beatPulse,
+            onsetPulse:  !!f.onsetPulse,
+          };
+        } catch (_) {}
         // SWR_MEDIA (user library) count — async; also re-writes the <pre>
         // text so the verifier sees the merged state (savedSong + swrMedia).
         try {
@@ -8545,7 +9378,7 @@
     })();
   </script>
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
-  <script src="/lib/swr-natural.client.js"></script>
+  <script src="/lib/swr-natural.client.js" defer></script>
   <script>
     // Google Drive import — engine integration.
     // Wire: Drive button → modal → refresh media grid on import.
@@ -8635,5 +9468,8 @@
   </script>
   <!-- Basic mode controller -->
   <script src="/engine-basic-mode.client.js" defer></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/lib/version-watcher.client.js" defer></script>
 </body>
 </html>

@@ -941,9 +941,14 @@ const PRESETS = {
       // Sepia
       if (u_sepia > 0.001) col = sepiaTint(col, u_sepia);
 
-      // Posterize
+      // Posterize — geometric curve from 256 levels (off) to 3 (heavy).
+      // The linear mix(256, 3, t) was perceptually flat: at t=0.5 the
+      // slider still left 130 levels on screen, which is visually
+      // indistinguishable from the source. The geometric curve maps the
+      // slider uniformly across the *visible* range — t=0.5 lands
+      // at ~28 levels, t=0.8 at ~7, t=1.0 at 3.
       if (u_posterize > 0.001) {
-        float levels = mix(256.0, 3.0, u_posterize);
+        float levels = exp(mix(log(256.0), log(3.0), u_posterize));
         col = floor(col * levels) / levels;
       }
 
@@ -1110,7 +1115,16 @@ const PRESETS = {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(u.tex, 0);
+    // Safe uniform setters — skip if location is null (uniform not
+    // in shader). The render-loop setters (lines 1219-1233) already
+    // use these via ca46544, but the FIRST batch of calls (tex, time,
+    // bass, mid, treble, beat) was missed by that fix and re-emits
+    // INVALID_OPERATION when a preset shader omits any of these
+    // uniforms. Defining them here closes the leak.
+    const _uf = (loc, val) => { if (loc) gl.uniform1f(loc, val); };
+    const _ui = (loc, val) => { if (loc) gl.uniform1i(loc, val); };
+    const _u3 = (loc, a, b, c) => { if (loc) gl.uniform3f(loc, a, b, c); };
+    _ui(u.tex, 0);
 
     // Page index
     const pageKeys = Object.keys(PRESETS);
@@ -1151,11 +1165,11 @@ const PRESETS = {
         return;
       }
 
-      gl.uniform1f(u.time,      t);
-      gl.uniform1f(u.bass,      bass);
-      gl.uniform1f(u.mid,       mid);
-      gl.uniform1f(u.treble,    treble);
-      gl.uniform1f(u.beat,      beat);
+      _uf(u.time,      t);
+      _uf(u.bass,      bass);
+      _uf(u.mid,       mid);
+      _uf(u.treble,    treble);
+      _uf(u.beat,      beat);
       // Self-evolving automixer override (versions/music_video.html):
       // when window.SWR._fxOverride is set, blend its 8 fx_state fields
       // on top of the static page preset. The blend amount is driven by
@@ -1211,21 +1225,21 @@ const PRESETS = {
         ? window.FX.intensity
         : (typeof window.SWR_FX_INTENSITY === 'number' ? window.SWR_FX_INTENSITY : 1);
       if (!(_k >= 0 && _k <= 1)) _k = 1;
-      gl.uniform1f(u.temp,      _temp * _k);
-      gl.uniform1f(u.mut,       _mut * _k);
-      gl.uniform1f(u.mutAlgo,   preset.mutAlgo);
-      gl.uniform1f(u.posterize, _posterize * _k);
-      gl.uniform1f(u.vignette,  preset.vignette * _k);
-      gl.uniform1f(u.chroma,    _chroma * _k);
-      gl.uniform1f(u.grain,     _grain * _k);
-      gl.uniform1f(u.sepia,     _sepia * _k);
-      gl.uniform1f(u.glow,      _glow * _k);
-      gl.uniform1f(u.grayscale, _grayscale * _k);
-      gl.uniform1f(u.tone,      _tone * _k);
-      gl.uniform1f(u.blur,      preset.blur * _k);
-      gl.uniform1f(u.effect,    preset.effect * _k);
-      gl.uniform1i(u.page,      pageIdx);
-      gl.uniform3f(u.tint,      preset.tint[0], preset.tint[1], preset.tint[2]);
+      _uf(u.temp,      _temp * _k);
+      _uf(u.mut,       _mut * _k);
+      _uf(u.mutAlgo,   preset.mutAlgo);
+      _uf(u.posterize, _posterize * _k);
+      _uf(u.vignette,  preset.vignette * _k);
+      _uf(u.chroma,    _chroma * _k);
+      _uf(u.grain,     _grain * _k);
+      _uf(u.sepia,     _sepia * _k);
+      _uf(u.glow,      _glow * _k);
+      _uf(u.grayscale, _grayscale * _k);
+      _uf(u.tone,      _tone * _k);
+      _uf(u.blur,      preset.blur * _k);
+      _uf(u.effect,    preset.effect * _k);
+      _ui(u.page,      pageIdx);
+      _u3(u.tint,      preset.tint[0], preset.tint[1], preset.tint[2]);
 
       // Silence → fade the fx canvas to ALPHA (transparent — reveals the
       // raw stage), not black. Sound → opacity 1. Multi-source audio

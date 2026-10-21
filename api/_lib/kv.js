@@ -45,7 +45,7 @@ const STORE_ROOT = join(DATA_ROOT, 'invite-store');
 
 // Schema marker. Bump if the invite-entry shape changes incompatibly;
 // redeem.js refuses codes stored under a different schemaVersion.
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SCHEMA_KEY = 'schemaVersion:invite';
 
 function storePath(key) {
@@ -122,12 +122,20 @@ async function ensureSchema() {
       return SCHEMA_VERSION;
     }
     const parsed = Number.parseInt(String(current), 10);
-    if (parsed !== SCHEMA_VERSION) {
-      throw new Error(
-        `invite-code schema mismatch: store has v${parsed}, code expects v${SCHEMA_VERSION}`
-      );
+    if (parsed === SCHEMA_VERSION) return parsed;
+    // Forward migration: v1 → v2 (and any future X → Y). The entry
+    // shape only ADDS optional fields (tier, dailyLimit, preset,
+    // emissions); existing v1 entries lack them but readEntry() supplies
+    // safe defaults, so the migration is lossless. Just bump the marker.
+    // Bump downgrades (parsed > SCHEMA_VERSION) still raise — the
+    // newer deploy wrote something we can't safely downgrade.
+    if (Number.isFinite(parsed) && parsed > 0 && parsed < SCHEMA_VERSION) {
+      await storeSet(SCHEMA_KEY, String(SCHEMA_VERSION));
+      return SCHEMA_VERSION;
     }
-    return parsed;
+    throw new Error(
+      `invite-code schema mismatch: store has v${parsed}, code expects v${SCHEMA_VERSION}`
+    );
   })().catch((e) => {
     // Do not cache a failed migration — the next request should retry,
     // and a cold start must not be poisoned by one transient outage.
@@ -215,4 +223,55 @@ export async function readEmailIndex(email) {
 
 export async function writeEmailIndex(email, code) {
   return kvSet(emailIndexKey(email), code);
+}
+
+// ---- daily usage tracking ----
+// Usage is tracked per email: usage:<email> → { count, date, tier, preset, emissions }
+// date is YYYY-MM-DD format, resets at midnight
+
+function usageKey(email) {
+  return `${INVITE_PREFIX}usage:${String(email).trim().toLowerCase()}`;
+}
+
+export function todayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+export async function getUsage(email) {
+  const key = usageKey(email);
+  const usage = await kvGet(key);
+  if (!usage) return { count: 0, date: todayKey(), tier: 'free', preset: 'RAW', emissions: 30 };
+  // Reset if new day
+  if (usage.date !== todayKey()) {
+    return { count: 0, date: todayKey(), tier: usage.tier, preset: usage.preset, emissions: usage.emissions };
+  }
+  return usage;
+}
+
+export async function incrementUsage(email, tier = 'free', preset = 'RAW', emissions = 30) {
+  const key = usageKey(email);
+  const current = await getUsage(email);
+  const updated = {
+    count: current.count + 1,
+    date: todayKey(),
+    tier: current.tier || tier,
+    preset: current.preset || preset,
+    emissions: current.emissions || emissions,
+  };
+  await kvSet(key, updated);
+  return updated;
+}
+
+export async function setUsageTier(email, tier, preset, emissions) {
+  const key = usageKey(email);
+  const current = await getUsage(email);
+  const updated = {
+    count: current.count,
+    date: todayKey(),
+    tier,
+    preset,
+    emissions,
+  };
+  await kvSet(key, updated);
+  return updated;
 }

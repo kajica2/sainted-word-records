@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
   <meta charset="utf-8">
@@ -147,6 +149,7 @@
 .version-card.is-console .visual { background: #0A0A0B; }
 .version-card.is-console .num .badge-new { background: #FF6B1A; color: #0A0A0B; }
 .version-card.is-simple .visual { background: #050811; }
+.version-card.is-clean .visual { background: linear-gradient(135deg, #0a0d18 0%, #00ffa3 100%); }
   </style>
 </head>
 <body>
@@ -155,20 +158,28 @@
   <a class="sr" href="#main">Skip to content</a>
 
   <header class="top">
+      <span class="gctrl" data-looks-mount></span>
     <a class="brand" href="/" aria-label="Sainted Word Records, home">
       <span class="sw" aria-hidden="true">SW</span>
       <span class="brand-text"><b>SAINTED</b><span>WORD RECORDS</span></span>
     </a>
 
     <nav class="versions" aria-label="Visual language">
-      <a href="/versions/neon"      data-v="neon">Neon</a>
-      <a href="/versions/film"      data-v="film">Film</a>
-      <a href="/versions/grid"      data-v="grid">Grid</a>
-      <a href="/versions/spectrum"  data-v="spectrum">Spectrum</a>
-      <a href="/versions/aurora"    data-v="aurora">Aurora</a>
-      <a href="/versions/simple"    data-v="simple">Simple</a>
+      <a href="/versions/neon"            data-v="neon">Neon</a>
+      <a href="/versions/film"            data-v="film">Film</a>
+      <a href="/versions/smoke"           data-v="smoke">Smoke</a>
+      <a href="/versions/hallucination"   data-v="hallucination">Hallucination</a>
+      <a href="/versions/aurora"          data-v="aurora">Aurora</a>
       <span class="sep" aria-hidden="true"></span>
-      <a href="/versions/console"   data-v="console">Console</a>
+      <a href="/versions/music_video"     data-v="music_video">Music Video</a>
+      <a href="/versions/glitch"          data-v="glitch">Glitch</a>
+      <a href="/versions/pulse"           data-v="pulse">Pulse</a>
+      <a href="/versions/void"            data-v="void">Void</a>
+      <a href="/versions/chrome"          data-v="chrome">Chrome</a>
+      <a href="/versions/watercolor"      data-v="watercolor">Watercolor</a>
+      <a href="/versions/fractal"         data-v="fractal">Fractal</a>
+      <a href="/versions/music_video_mtv" data-v="music_video_mtv">MTV</a>
+      <a href="/versions/eclipse"         data-v="eclipse">Eclipse</a>
     </nav>
 
     <div class="top-right">
@@ -299,7 +310,24 @@
         </div>
       </a>
 
-      <!-- 07 — Console -->
+      <!-- 07 — Clean (NEW) -->
+      <a class="version-card is-clean" href="/versions/clean">
+        <div class="visual" aria-hidden="true"><canvas id="vclean"></canvas></div>
+        <div class="body">
+          <span class="num">07 · CLEAN<span class="badge-new">NEW</span></span>
+          <h2>Clean</h2>
+          <p>Linear music video creator with CSS transitions. Drop video, apply effects, export. No WebGL, no post-processing.</p>
+          <div class="tags">
+            <span class="tag">linear</span>
+            <span class="tag">css</span>
+            <span class="tag">export</span>
+            <span class="tag">no audio-reactive</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 08 — Console -->
       <a class="version-card is-console" href="/versions/console">
         <div class="visual" aria-hidden="true"><canvas id="vconsole"></canvas></div>
         <div class="body">
@@ -466,9 +494,31 @@
     ctx.fillText('BPM 120', 8, 14); ctx.fillText('A min', w - 40, 14);
   }
 
+  // Clean — CSS-style gradient animation
+  function clean(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const t = Date.now() / 1000;
+    const g = ctx.createLinearGradient(0, 0, w * Math.sin(t * 0.5) + w, h);
+    g.addColorStop(0, '#0a0d18');
+    g.addColorStop(0.5, '#00ffa3');
+    g.addColorStop(1, '#00c8ff');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    // Minimalist play icon
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.4, h * 0.3);
+    ctx.lineTo(w * 0.4, h * 0.7);
+    ctx.lineTo(w * 0.7, h * 0.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   const map = {
     vneon: neon, vfilm: film, vgrid: grid, vspectrum: spectrum,
-    vaurora: aurora, vsimple: simple, vconsole: consoleV,
+    vaurora: aurora, vsimple: simple, vclean: clean, vconsole: consoleV,
   };
   Object.entries(map).forEach(([id, fn]) => {
     const el = document.getElementById(id);
@@ -487,5 +537,13 @@
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
   <script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
 </body>
 </html>

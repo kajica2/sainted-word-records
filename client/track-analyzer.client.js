@@ -109,10 +109,15 @@
     var fftSize = 4096;
     var start = Math.floor(mono.length * 0.5);
     var end = Math.min(mono.length, start + fftSize);
-    var seg = new Float32Array(end - start);
+    if (!_seg || _seg.length < end - start) _seg = new Float32Array(end - start);
+    var seg = _seg.subarray(0, end - start);
     for (var i = 0; i < seg.length; i++) seg[i] = mono[start + i];
     return internals.computeMagnitudes(seg, sampleRate, fftSize);
   }
+
+  // Module-scope scratch for the centroid FFT slice; lazily resized so
+  // repeated analyze() calls don't allocate a fresh segment each time.
+  var _seg = null;
 
   // Mix an AudioBuffer to mono Float32Array (one channel).
   function mixToMono(audioBuffer) {

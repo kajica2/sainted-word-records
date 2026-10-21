@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <!-- Video poster-frame thumbnail — see lib/video-thumb.client.js -->
+  <script src="../lib/video-thumb.client.js"></script>
   <meta charset="utf-8" />
   <title>COLLAGE · SWR version · Mixed-media magazine layout</title>
   <meta name="description" content="SWR engine — COLLAGE: multi-clip split-screen composition for mixed-media. Magazine-grid layout that cuts to the beat." />
@@ -99,9 +103,10 @@
   <script src="../client/library-loader.client.js" defer></script>
 </head>
 <body data-page="collage">
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      
   <div id="app">
     <header>
+      <span class="gctrl" data-looks-mount></span>
       <div class="v">COLL<em>A</em>GE<small>· MAGAZINE GRID · MIXED-MEDIA</small></div>
       <span class="pill live" id="live">● CUT</span>
       <span class="spacer"></span>
@@ -193,7 +198,7 @@
         const src = it.type === 'video'
           ? Object.assign(document.createElement('video'), { src: it.url, muted: true, playsInline: true, preload: 'metadata' })
           : Object.assign(new Image(), { src: it.url });
-        src.addEventListener(src.tagName === 'VIDEO' ? 'loadeddata' : 'load', () => {
+        const capture = () => {
           if (it.type === 'video') it.duration = src.duration;
           try { cx.drawImage(src, 0, 0, 32, 32); } catch (_) {}
           const d = cx.getImageData(0, 0, 32, 32).data;
@@ -202,7 +207,17 @@
           it.luma = (luma / (d.length / 4)) / 255;
           it.w = src.videoWidth || src.naturalWidth || 0;
           it.h = src.videoHeight || src.naturalHeight || 0;
-        }, { once: true });
+        };
+        // Poster frame, not frame 0: t=0 is black on anything that fades
+        // in, so the thumbnail (and the luma/hue read from it) came out
+        // black. Same rule as lib/library.client.js. The helper seeks to
+        // 1s — or the middle of a shorter clip — and falls back to the
+        // current frame if the clip cannot be seeked.
+        if (src.tagName === 'VIDEO' && window.SWR_VIDEO_THUMB) {
+          window.SWR_VIDEO_THUMB.atPoster(src, capture);
+        } else {
+          src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', capture, { once: true });
+        }
       },
     };
 
@@ -828,6 +843,7 @@
 <script src="../client/automix-composition.client.js" defer></script>
 <script src="../client/automix-style.client.js" defer></script>
 <script src="/versions/temp-slider.js"></script>
+  <script src="../fx-postprocess.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
 <!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
 <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
@@ -864,5 +880,9 @@
     }
   })();
 </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
 </body>
 </html>

@@ -121,21 +121,40 @@ export default async function handler(req, res) {
     if (qsIdx >= 0) {
       const params = new URLSearchParams(url.slice(qsIdx + 1));
       const action = params.get('action');
+      // SLICE 4 FIX: require auth for known-files and health
       if (action === 'known-files') {
+        // Require auth - strip absolute paths from response
+        const auth = req.headers.authorization;
+        if (!auth || !auth.startsWith('Bearer ')) {
+          return send(res, 401, { error: 'unauthorized' });
+        }
         try {
           const files = await walkDiskFiles();
-          return send(res, 200, { files });
+          // Strip absolute paths - return only filenames
+          const safeFiles = files.map(f => f.replace(/^.*library[/\\]/, ''));
+          return send(res, 200, { files: safeFiles });
         } catch (e) {
           return send(res, 500, { error: 'walk_failed', message: e.message });
         }
       }
       if (action === 'health') {
+        // Require auth - strip server paths and counts
+        const auth = req.headers.authorization;
+        if (!auth || !auth.startsWith('Bearer ')) {
+          return send(res, 401, { error: 'unauthorized' });
+        }
         try {
           const h = await health();
-          return send(res, 200, h);
+          // Strip sensitive data
+          const safe = { ok: h.ok };
+          return send(res, 200, safe);
         } catch (e) {
           return send(res, 500, { error: 'health_failed', message: e.message });
         }
+      }
+      // Minimal liveness probe - no auth required
+      if (action === 'ping') {
+        return send(res, 200, { pong: true });
       }
     }
     try {

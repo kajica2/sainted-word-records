@@ -1,0 +1,16 @@
+{
+  "id": "c8e78a61-5438-4ba5-8a17-33295f79518d",
+  "type": "music_clip",
+  "title": "Lo-Fi Beat Collection",
+  "description": "Chill lo-fi beats for streams and content creation.",
+  "creatorType": "creator",
+  "media": [],
+  "quantity": 15,
+  "claimed": 0,
+  "maxQuantity": 30,
+  "lifespanSeconds": 7776000,
+  "availableAt": 1791577039365,
+  "expiresAt": 1799353039365,
+  "status": "available",
+  "createdAt": 1791577039365
+}

@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en" data-theme="system">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Packs · Sainted Word Records</title>
@@ -85,6 +87,11 @@
       Everything here is generated from the pack manifest, so this page and the
       engine library can never disagree about what a pack contains.
     </p>
+    <p class="note">
+      Want to look at the photographs rather than load them?
+      <a href="/photo-scrolls">Photo Scrolls</a> unrolls every still into a
+      horizontal strip, one per pack.
+    </p>
     <p class="note" id="packs-note">Loading manifest…</p>
   </section>
 
@@ -146,13 +153,6 @@
   function isVideo(rel) { return /\.(mp4|webm|mov)$/i.test(rel); }
   function isAudio(rel) { return /\.(mp3|wav|m4a|aac|ogg)$/i.test(rel); }
 
-  async function headSize(url) {
-    try {
-      const r = await fetch(url, { method: 'HEAD' });
-      if (!r.ok) return null;
-      return parseInt(r.headers.get('content-length') || '0', 10) || null;
-    } catch (_) { return null; }
-  }
 
   function card(key, files, coverRel, base) {
     const title = TITLES[key] || key;
@@ -208,7 +208,6 @@
     body.appendChild(actions);
 
     el.appendChild(body);
-    void headSize;
     return el;
   }
 
@@ -238,12 +237,11 @@
       grid.appendChild(card(k, m.packs[k] || [], covers[k], base));
     }
 
-    // Fill in real byte totals once HEADs settle (progressive, non-blocking).
-    let sum = 0;
-    const sizes = await Promise.all(
-      keys.flatMap((k) => (m.packs[k] || []).map((rel) => headSize(base + rel)))
-    );
-    sizes.forEach((s) => { if (s) sum += s; });
+    // Byte total comes from the manifest, written by scripts/pack-manifest-bytes.mjs.
+    // This used to HEAD every asset in every pack (556 requests on load) to compute
+    // the same number in the browser. Those requests returned content-length for
+    // entities that were never sent, so they cost a request storm and bought nothing.
+    const sum = m.bytes?.__total || 0;
     if (sum) note.textContent += ` · ~${bytes(sum)} total`;
   })();
 </script>
@@ -253,5 +251,7 @@
 <script src="/lib/nav.client.js" defer></script>
   <swr-footer></swr-footer>
   <script src="/lib/footer.client.js" defer></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
 </body>
 </html>

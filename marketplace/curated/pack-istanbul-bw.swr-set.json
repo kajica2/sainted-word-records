@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "db52d3b1-84ed-59b2-bf07-43628649d50c",
+  "name": "Istanbul B&W",
+  "author": "SWR",
+  "description": "A black-and-white building study from Istanbul. One frame, and it holds.",
+  "tags": [
+    "istanbul",
+    "architecture",
+    "black-and-white",
+    "documentary"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "kraft",
+  "audio": {
+    "name": "kraft.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 233542,
+    "url": "/audios/kraft.mp3"
+  },
+  "fx": {
+    "temp": -0.15,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0.2,
+    "vignette": 0.45,
+    "chroma": 0.05,
+    "grain": 0.4,
+    "sepia": 0.15,
+    "glow": 0.3,
+    "grayscale": 0.45,
+    "blur": 0.05,
+    "liquid": 0,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "istanbul-bw-01.webp",
+        "mimeType": "image/webp",
+        "size": 47224,
+        "url": "/packs/istanbul-bw/istanbul-bw-01.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 94,
+    "key": "C",
+    "scale": "major"
+  }
+}

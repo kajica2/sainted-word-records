@@ -34,7 +34,7 @@ const ROOT = path.dirname(__dirname);
 const PAGES = [
   'aurora', 'bachdrop', 'baroque', 'chrome', 'collage', 'echo-manifold',
   'eclipse', 'film', 'fractal', 'glitch', 'grid', 'hallucination', 'kraft',
-  'mosaic', 'neon', 'phosphor', 'pulse', 'smoke', 'spectrum', 'tape',
+  'mosaic', 'neon', 'phosphor', 'pulse', 'simple', 'smoke', 'spectrum', 'tape',
   'typography', 'void', 'watercolor', 'music_video', 'music_video_mtv',
 ].map((name) => path.join('versions', `${name}.html`));
 

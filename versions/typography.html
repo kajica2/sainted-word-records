@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
   <meta charset="utf-8" />
   <title>TYPOGRAPHY · SWR version · Animated type for designers</title>
   <meta name="description" content="SWR engine — TYPOGRAPHY: animated type for designers and brands. Drop your copy, audio, and brand kit, get motion typography." />
@@ -103,9 +105,10 @@
   </style>
 </head>
 <body data-page="typography">
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      
   <div id="app">
     <header>
+      <span class="gctrl" data-looks-mount></span>
       <div class="v">TYPOGRAPHY<small>· MOTION TYPE FOR DESIGNERS</small></div>
       <span class="pill live" id="live">● ON</span>
       <span class="spacer"></span>
@@ -621,6 +624,7 @@
 <script src="../client/automix-composition.client.js" defer></script>
 <script src="../client/automix-style.client.js" defer></script>
 <script src="/versions/temp-slider.js"></script>
+  <script src="../fx-postprocess.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
 <!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
 <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
@@ -657,5 +661,9 @@
     }
   })();
 </script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
 </body>
 </html>

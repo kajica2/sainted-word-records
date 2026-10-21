@@ -1,0 +1,1549 @@
+{
+  "schema": "swr-codemod-manifest/v1",
+  "generated_at": "2026-10-21T00:22:44.855Z",
+  "generated_by": "node versions/verify-codemods.mjs --update",
+  "pending_max_age_days": 30,
+  "ENGINES": [
+    "aurora",
+    "chrome",
+    "eclipse",
+    "film",
+    "fractal",
+    "glitch",
+    "grid",
+    "hallucination",
+    "neon",
+    "pulse",
+    "smoke",
+    "void",
+    "watercolor"
+  ],
+  "known_findings": [
+    {
+      "id": "site-exit-claim-vs-reality",
+      "severity": "warn",
+      "since": "2026-10-21T00:00:00.000Z",
+      "detail": "AGENTS.md states _site-exit-inject.js gave 24 full-viewport renderers a site exit link. The SWR-SITE-EXIT marker is on ZERO of the 26 pages that codemod declares; its 31 files are all in pending. Either the codemod was reverted wholesale or it was never run. check-site-chrome.mjs does not catch this because those pages are exempt from the shared-footer rule."
+    },
+    {
+      "id": "library-loader-guard-broken",
+      "severity": "warn",
+      "since": "2026-10-21T00:00:00.000Z",
+      "detail": "_library-loader-inject.js is applied to all 13 of its engines, but its idempotency guard does not recognise its own output: every run prints 'no matchable library boot block' for 13 pages and exits 1 while writing nothing. Cosmetic (no data loss) but it makes the codemod unusable as a dry-run signal until the guard is taught the v2 shape."
+    },
+    {
+      "id": "bachdrop-missing-library",
+      "severity": "warn",
+      "since": "2026-10-21T00:00:00.000Z",
+      "detail": "_library-loader-inject.js's own coverage scan reports bachdrop.html as MISSING_LIBRARY: the page carries the #swr-start overlay but has no library wiring. bachdrop is in no codemod's allowlist, so no marker check covers it. It is the one page whose exit-1 the codemod exits on."
+    },
+    {
+      "id": "fx-grade-codemod-dead",
+      "severity": "warn",
+      "since": "2026-10-21T00:00:00.000Z",
+      "detail": "_fx-grade-inject.js is superseded and inert: its regex expects filter('args') but the pages use ctx.filter = 'string', so a dry-run reports 0 migrations while its SWR-FX-GRADE-MARKER comment still sits on 11 pages and gpu-grade.client.js is loaded and unused there. scripts/check-variant-codemods.mjs carries the same note. Removing the dead markers is a separate cleanup."
+    },
+    {
+      "id": "blend-shuffle-film-partial",
+      "severity": "warn",
+      "since": "2026-10-21T00:00:00.000Z",
+      "detail": "film.html is marked as _blend-shuffle applied but the codemod would still rewrite it: its exact blend-array anchor no longer matches film.html's remap() line, so the page has the __shuffle_once helper but not the rewritten pick. film is the only one of the 5 in this state."
+    }
+  ],
+  "codemods": {
+    "_30s-inject": {
+      "script": "versions/_30s-inject.js",
+      "markers": [
+        "id=\"rec-dur\""
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "neon",
+        "film",
+        "grid",
+        "smoke",
+        "hallucination"
+      ],
+      "notes": "Adds the rec-dur auto-stop <select> plus autoStopAt/autoStopTimer to the inline Recorder. Oldest codemod in the tree; targets the 5 core variants, not the reactive 13.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "simple.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_audio-damp-inject": {
+      "script": "versions/_audio-damp-inject.js",
+      "markers": [
+        "<!-- SWR-AUDIO-DAMP-MARKER -->"
+      ],
+      "marker_mode": "all",
+      "scope": "*",
+      "engines": [],
+      "notes": "Loads lib/audio-damp.client.js in every versions/*.html. Honours --dry-run.",
+      "variants_processed": [
+        "aurora.html",
+        "bachdrop.html",
+        "baroque.html",
+        "chrome.html",
+        "clean.html",
+        "collage.html",
+        "console.html",
+        "echo-manifold.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "gallery.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "index.html",
+        "kraft.html",
+        "mosaic.html",
+        "music-video-gallery.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "phosphor.html",
+        "pulse.html",
+        "simple.html",
+        "smoke.html",
+        "spectrum.html",
+        "tape.html",
+        "temple-of-control.html",
+        "typography.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": true,
+      "partial": []
+    },
+    "_audio-overlay-inject": {
+      "script": "versions/_audio-overlay-inject.js",
+      "markers": [
+        "var succeeded = false;"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "bachdrop",
+        "chrome",
+        "collage",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "spectrum",
+        "typography",
+        "void",
+        "watercolor",
+        "music_video",
+        "music_video_mtv"
+      ],
+      "notes": "Adds the #swr-start auto-load overlay + IIFE. The marker is the v3 failure-path guard (`var succeeded = false;`), which is what distinguishes the current canonical overlay from the v1/v2/v3-old shapes this codemod still repairs.",
+      "variants_processed": [
+        "aurora.html",
+        "bachdrop.html",
+        "chrome.html",
+        "collage.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "spectrum.html",
+        "typography.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_blend-shuffle": {
+      "script": "versions/_blend-shuffle.js",
+      "markers": [
+        "__shuffle_once",
+        "_shuffledCells"
+      ],
+      "marker_mode": "any",
+      "scope": "engines",
+      "engines": [
+        "neon",
+        "film",
+        "grid",
+        "smoke",
+        "hallucination"
+      ],
+      "notes": "Replaces the deterministic [i%N] remap blend pick with a runtime shuffle. grid takes the `_shuffledCells` branch; the other four take `__shuffle_once`. Marker mode is `any` because the two branches are mutually exclusive per page.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": [
+        "film.html"
+      ]
+    },
+    "_canvas-hints-inject": {
+      "script": "versions/_canvas-hints-inject.js",
+      "markers": [
+        "willReadFrequently: true"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "baroque",
+        "chrome",
+        "collage",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "kraft",
+        "mosaic",
+        "neon",
+        "phosphor",
+        "pulse",
+        "smoke",
+        "spectrum",
+        "tape",
+        "typography",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Adds the willReadFrequently hint to the stage canvas context so per-frame getImageData stops tripping Chrome's readback warning.",
+      "variants_processed": [
+        "aurora.html",
+        "baroque.html",
+        "chrome.html",
+        "collage.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "kraft.html",
+        "mosaic.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "phosphor.html",
+        "pulse.html",
+        "simple.html",
+        "smoke.html",
+        "spectrum.html",
+        "tape.html",
+        "typography.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_drive-inject": {
+      "script": "versions/_drive-inject.js",
+      "markers": [
+        "id=\"swr-drive-btn\""
+      ],
+      "marker_mode": "all",
+      "scope": "*",
+      "engines": [],
+      "notes": "Adds the Google Drive import button, its CSS and its three client scripts. Self-filters: skips the 7 non-variant pages and any page with no #load-song button. Honours --dry-run.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": true,
+      "partial": []
+    },
+    "_fx-grade-inject": {
+      "script": "versions/_fx-grade-inject.js",
+      "markers": [
+        "<!-- SWR-FX-GRADE-MARKER -->"
+      ],
+      "marker_mode": "all",
+      "scope": "*",
+      "engines": [],
+      "pending_reason": "DEAD CODEMOD. Its regex expects the filter-syntax `filter('args')` but the pages on disk use `ctx.filter = 'string'`, so a dry-run reports 0 migrations. The markers below are leftovers from a previous era; they are inert (gpu-grade.client.js is loaded and harmlessly unused) and removing them is a separate cleanup. See scripts/check-variant-codemods.mjs for the same note.",
+      "notes": "Moves the per-frame 2D ctx.filter grade chain onto the GPU pass in lib/gpu-grade.client.js. Honours --dry-run. Superseded in practice by _svg-grade-inject.js.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": true,
+      "partial": []
+    },
+    "_genops-inject": {
+      "script": "versions/_genops-inject.js",
+      "markers": [
+        "engine-genops.client.js",
+        "const _rnd ="
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Wires the generative control system (engine-genops.css + .client.js) and routes Math.random() in the generative paths through the seeded RNG. Both markers are required: a partially patched page can have the assets without the shim.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_image-evolve-inject": {
+      "script": "versions/_image-evolve-inject.js",
+      "markers": [
+        "SWR_RENDER.imageEvolve"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "hallucination",
+        "neon",
+        "pulse",
+        "void",
+        "music_video",
+        "music_video_mtv"
+      ],
+      "notes": "Wraps each variant's per-layer reactive result in SWR_RENDER.imageEvolve() so IMAGE layers drift with a seeded Ken Burns. Only covers the pages that recompute r locally inside their own drawLayer; the pass-through pages (smoke, watercolor, grid) are covered by the module patch alone.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "void.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_image-load-inject": {
+      "script": "versions/_image-load-inject.js",
+      "markers": [
+        "a._el.naturalWidth"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Extends the per-frame asset-not-ready guard from video-only to images too.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "collage.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_library-loader-inject": {
+      "script": "versions/_library-loader-inject.js",
+      "markers": [
+        "client/library-loader.client.js"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Routes the library load through client/library-loader.client.js (two-phase load). Carries a trailing coverage scan that exits 1 when a page has the #swr-start overlay but no library wiring - bachdrop.html is that page today.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "collage.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_mobile-header-inject": {
+      "script": "versions/_mobile-header-inject.js",
+      "markers": [
+        "SWR-MOBILE-HEADER-MARKER",
+        "SWR-HEADER-DATA-ICONS"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Adds data-icon glyphs to each header control plus the <= 480px icons-only CSS. Two markers by design: the CSS one is the idempotency guard, the HTML one stops a re-run adding the attributes twice.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_recorder-inject": {
+      "script": "versions/_recorder-inject.js",
+      "markers": [
+        "// === RECORDER (MP4 export) ==="
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "neon",
+        "film",
+        "grid",
+        "smoke",
+        "hallucination"
+      ],
+      "notes": "Injects the inline Recorder block (MediaRecorder over stage.captureStream + the audio track) and moves the window.SWR exposure after it so Recorder is defined when the exposure runs.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_render-inject": {
+      "script": "versions/_render-inject.js",
+      "markers": [
+        "SWR_RENDER.fit(stage)",
+        "SWR_RENDER.frame("
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Routes the render loop through engine-render.client.js (DPR-aware fit + per-layer cache + invalidate hook). NOTE: this codemod has NO <!-- SWR-RENDER-MARKER --> comment. Its fingerprint is the code it emits - `SWR_RENDER.fit(stage)` and `SWR_RENDER.frame(` - and both are required. scripts/check-variant-codemods.mjs attributes SWR-HEADER-DATA-ICONS to it, which is wrong: that marker belongs to _mobile-header-inject.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_responsive-inject": {
+      "script": "versions/_responsive-inject.js",
+      "markers": [
+        "SWR-RESPONSIVE-MARKER"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Collapses the 220px/1fr/240px engine grid to a single column below 720px and lets the header wrap and scroll. Inserts at the same .swr-watermark anchor as _mobile-header-inject, so the two blocks stack.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_shuffle-inject": {
+      "script": "versions/_shuffle-inject.js",
+      "markers": [
+        "const pool = cands.slice(0, Math.min(topN, cands.length));"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "neon",
+        "film",
+        "grid",
+        "smoke",
+        "hallucination"
+      ],
+      "notes": "Replaces the deterministic greedy top-1 pick in Layers.remap() with a weighted random pick from the top 2-3 candidates. The marker is the `const pool = cands.slice(...)` line the replacement introduces, NOT the `const topN =` line above it: _genops-inject rewrote Math.random() to _rnd() inside that same remap() block, so the topN line reads `Math.floor(_rnd()*2)` on every page that also got genops. The pool line is untouched by genops and identical on all 15 pages that carry it.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_site-exit-inject": {
+      "script": "versions/_site-exit-inject.js",
+      "markers": [
+        "SWR-SITE-EXIT"
+      ],
+      "marker_mode": "all",
+      "scope": "*",
+      "engines": [],
+      "pending_reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out.",
+      "notes": "Injects <!-- SWR-SITE-EXIT --><a class=\"swr-site-exit\" href=\"/\"> after the transport <header>. The only codemod that reaches outside versions/, so it also owns tools/ and auth/ pages - see extra_pages.",
+      "variants_processed": [],
+      "pending": [
+        {
+          "file": "aurora.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "auth/login.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "auth/verify.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "bachdrop.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "baroque.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "chrome.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "collage.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "echo-manifold.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "eclipse.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "film.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "fractal.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "glitch.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "grid.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "hallucination.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "kraft.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "mosaic.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "music_video.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "music_video_mtv.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "neon.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "phosphor.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "pulse.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "simple.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "smoke.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "spectrum.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "tape.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "tools/hf-publish.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "tools/manifest-editor.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "tools/mobile/index.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "typography.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "void.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        },
+        {
+          "file": "watercolor.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
+        }
+      ],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_svg-grade-inject": {
+      "script": "versions/_svg-grade-inject.js",
+      "markers": [
+        "<!-- SWR-SVG-GRADE-MARKER -->"
+      ],
+      "marker_mode": "all",
+      "scope": "*",
+      "engines": [],
+      "notes": "Moves the audio-driven ctx.filter grade chain onto the SVG filter graph in lib/svg-grade.client.js. Honours --dry-run. Only smoke.html has a single plain audio-driven chain today; the other 31 are correctly skipped.",
+      "variants_processed": [
+        "smoke.html"
+      ],
+      "pending": [],
+      "dry_run_flag": true,
+      "partial": []
+    },
+    "_tone-slider-inject": {
+      "script": "versions/_tone-slider-inject.js",
+      "markers": [
+        "data-fx-tone-mount"
+      ],
+      "marker_mode": "all",
+      "scope": "*",
+      "engines": [],
+      "pending_reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix.",
+      "notes": "Mounts the tone/desaturation slider (lib/tone-slider.client.js) beside the existing intensity slider. Self-filters on the presence of intensity-slider plus an fx-postprocess or versions-presets consumer.",
+      "variants_processed": [
+        "aurora.html",
+        "baroque.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "kraft.html",
+        "mosaic.html",
+        "neon.html",
+        "phosphor.html",
+        "pulse.html",
+        "smoke.html",
+        "tape.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [
+        {
+          "file": "collage.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
+        },
+        {
+          "file": "spectrum.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
+        },
+        {
+          "file": "typography.html",
+          "since": "2026-10-21T00:22:44.855Z",
+          "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
+        }
+      ],
+      "dry_run_flag": false,
+      "partial": []
+    },
+    "_watermark-inject": {
+      "script": "versions/_watermark-inject.js",
+      "markers": [
+        "<!-- SWR-WATERMARK-MARKER -->"
+      ],
+      "marker_mode": "all",
+      "scope": "*",
+      "engines": [],
+      "notes": "Loads lib/watermark.client.js so recorded media carries the SWR mark. The renderers capture stage.captureStream directly, so the on-page .swr-watermark DOM overlay never reached an export. Honours --dry-run.",
+      "variants_processed": [
+        "aurora.html",
+        "bachdrop.html",
+        "baroque.html",
+        "chrome.html",
+        "clean.html",
+        "collage.html",
+        "console.html",
+        "echo-manifold.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "gallery.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "index.html",
+        "kraft.html",
+        "mosaic.html",
+        "music-video-gallery.html",
+        "music_video.html",
+        "music_video_mtv.html",
+        "neon.html",
+        "phosphor.html",
+        "pulse.html",
+        "simple.html",
+        "smoke.html",
+        "spectrum.html",
+        "tape.html",
+        "temple-of-control.html",
+        "typography.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "dry_run_flag": true,
+      "partial": []
+    }
+  },
+  "variants": {
+    "aurora.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "bachdrop.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "baroque.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_canvas-hints-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "chrome.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "clean.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "collage.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_canvas-hints-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "console.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "echo-manifold.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "eclipse.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "film.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "fractal.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "gallery.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "glitch.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "grid.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "hallucination.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "index.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "kraft.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_canvas-hints-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "mosaic.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_canvas-hints-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "music_video.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "music_video_mtv.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "neon.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "phosphor.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_canvas-hints-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "pulse.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "simple.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_canvas-hints-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "smoke.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_genops-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_svg-grade-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "spectrum.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_canvas-hints-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "tape.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_canvas-hints-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "temple-of-control.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "typography.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_canvas-hints-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "void.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-evolve-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "watercolor.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_audio-overlay-inject",
+        "_blend-shuffle",
+        "_canvas-hints-inject",
+        "_drive-inject",
+        "_fx-grade-inject",
+        "_genops-inject",
+        "_image-load-inject",
+        "_library-loader-inject",
+        "_mobile-header-inject",
+        "_recorder-inject",
+        "_render-inject",
+        "_responsive-inject",
+        "_shuffle-inject",
+        "_tone-slider-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "music-video-gallery.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    }
+  },
+  "extra_pages": {
+    "tools/hf-publish.html": {
+      "codemods_applied": [],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "tools/manifest-editor.html": {
+      "codemods_applied": [],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "tools/mobile/index.html": {
+      "codemods_applied": [],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "auth/login.html": {
+      "codemods_applied": [],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "auth/verify.html": {
+      "codemods_applied": [],
+      "skipped": [],
+      "last_verified": "2026-10-21T00:22:44.855Z"
+    }
+  }
+}

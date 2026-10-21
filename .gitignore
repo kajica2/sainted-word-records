@@ -134,3 +134,13 @@ _archive/
 
 # PT license keys minted by scripts/generate-pt-keys.mjs (never commit: they are the product)
 pt-keys.local.txt
+
+# upload-youtube.mjs screenshots (profile now lives in Application Support)
+out/
+
+# Local orchestrator vault (the daily journal lives in this folder
+# and is meant to be opened in Obsidian, not committed to the repo)
+.obsidian-swr/
+
+# Generated media inventory (rebuilt by scripts/build-inventory.mjs)
+media/inventory.json

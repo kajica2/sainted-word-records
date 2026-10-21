@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <!-- Video poster-frame thumbnail — see lib/video-thumb.client.js -->
+  <script src="../lib/video-thumb.client.js"></script>
+  <!-- Video playback sync — see lib/video-sync.client.js -->
+  <script src="../lib/video-sync.client.js"></script>
   <meta charset="utf-8" />
   <title>NEON · SWR engine v1</title>
   <meta name="description" content="Electric magenta/cyan, heavy chromatic aberration, glow" />
@@ -113,7 +119,7 @@
         grid-template-rows: auto auto 1fr auto auto;
       }
       header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
-      .meter { width: 100px; }
+      .meter { width: min(8vw, 80px); }
       aside.lib, aside.layers { max-height: 30vh; }
       aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
       aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
@@ -238,17 +244,50 @@
       position: absolute;
       bottom: 16px;
       right: 16px;
-      width: 100px;
-      opacity: 0.45;
+      width: min(8vw, 80px);
+      opacity: 0.55;
       pointer-events: none;
       z-index: 9999;
       mix-blend-mode: screen;
+      animation: heartbeat 1.2s ease-in-out infinite;
     }
     .swr-watermark img {
       width: 100%;
       height: auto;
       display: block;
       filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+    }
+    @keyframes heartbeat {
+      0% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
+      12% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 4px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(160,160,160,0.4));
+        transform: scale(1.08);
+      }
+      24% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
+      36% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 4px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(160,160,160,0.4));
+        transform: scale(1.08);
+      }
+      50% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
     }
   
     /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
@@ -279,9 +318,68 @@
     .li .rm:hover { color: var(--m); background: rgba(0,0,0,0.85); }
     .li .rm.rm-armed { color: #fff; background: var(--m); opacity: 1; }
 
+    /* ---------- Media panel (replaces the Library + My Media split) ----------
+       SWR-MEDIA-PANEL-MARKER
+       The sidebar used to carry two lists fed by the same IndexedDB
+       store: #lib (rendered by Lib.render) and the shared
+       #swr-user-media-grid mount. Same assets, two places. It is now
+       ONE panel with two states — "library" (every available asset) and
+       "used" (assets currently assigned to a layer) — plus a search box
+       and a grid/list toggle. */
+    aside.lib { display: flex; flex-direction: column; overflow: hidden; }
+    aside.lib > .head { flex: none; }
+    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    .media-bar { flex: none; display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .media-tabs { display: flex; gap: 4px; flex: 1; min-width: 0; }
+    .media-tab { background: none; border: 1px solid transparent; color: var(--muted);
+      font: 8px/1 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 4px 6px; border-radius: 3px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .media-tab:hover { color: var(--ink); }
+    .media-tab.is-on { color: var(--ink); border-color: var(--line); background: var(--panel-2); }
+    .media-tab .ct { font-weight: 400; color: var(--c); font-size: 8px; }
+    .media-views { display: flex; gap: 2px; flex: none; }
+    .media-view { padding: 3px 5px; font-size: 9px; line-height: 1; }
+    .media-view.is-on { border-color: var(--m); color: var(--m); }
+    .media-search { flex: none; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .media-search input { width: 100%; background: var(--bg); border: 1px solid var(--line);
+      color: var(--ink); font: 9px ui-monospace, monospace; padding: 3px 5px; border-radius: 3px; }
+    .media-search input:focus { outline: 1px solid var(--c); outline-offset: -1px; }
+    .media-assign { flex: none; display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px; border-top: 1px solid var(--line); background: var(--panel-2); }
+    .media-assign label { font-size: 8px; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.08em; flex: none; }
+    .media-assign select { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line);
+      color: var(--ink); font: 9px ui-monospace, monospace; padding: 3px 4px; border-radius: 2px; }
+    .media-empty { grid-column: 1 / -1; color: var(--muted); font-size: 10px;
+      padding: 16px 8px; text-align: center; }
+    .li .badge { position: absolute; top: 2px; left: 18px; font-size: 7px; padding: 1px 3px;
+      background: var(--c); color: #000; border-radius: 1px; letter-spacing: 0.04em; }
+    .li .asg { position: absolute; right: 2px; bottom: 15px; font: 7px/1 ui-monospace, monospace;
+      padding: 2px 3px; background: rgba(0,0,0,0.65); color: var(--c); border: 1px solid var(--c);
+      border-radius: 2px; cursor: pointer; opacity: 0; transition: opacity 0.1s; }
+    .li:hover .asg, .li:focus-within .asg { opacity: 1; }
+    .li .asg:hover { background: var(--c); color: #000; }
+    .li.is-focus { border-color: var(--m); box-shadow: 0 0 0 1px var(--m); }
+    #lib.list { display: flex; flex-direction: column; gap: 2px; }
+    #lib.list .li { display: flex; align-items: center; gap: 5px; aspect-ratio: auto; padding: 3px 4px; }
+    #lib.list .li img, #lib.list .li video { width: 26px; height: 26px; border-radius: 2px; flex: none; }
+    #lib.list .li .tag, #lib.list .li .badge { position: static; flex: none; }
+    #lib.list .li .nm { position: static; flex: 1; background: none; color: var(--ink);
+      padding: 0; font-size: 9px; }
+    #lib.list .li .rm { position: static; opacity: 1; flex: none; }
+    #lib.list .li .asg { position: static; opacity: 1; flex: none; }
+    .l .lh .th { width: 18px; height: 18px; border-radius: 2px; overflow: hidden; flex: none;
+      border: 1px solid var(--line); background: var(--bg-2); }
+    .l .lh .th img, .l .lh .th video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .l .lh .chg { background: none; border: 1px solid var(--line); color: var(--muted); cursor: pointer;
+      font: 8px ui-monospace, monospace; padding: 1px 4px; border-radius: 2px; flex: none; }
+    .l .lh .chg:hover { color: var(--m); border-color: var(--m); }
+
   </style>
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
+<script src="/lib/ease.js"></script>
   <script src="../engine-render.client.js"></script>
 
   <!-- Automix + asset-curator stack (Phase 2 port from music_video) -->
@@ -322,13 +420,13 @@
 <script src="../lib/reset-state.client.js"></script>
     <script src="../lib/recorder.client.js"></script>
 <link rel="stylesheet" href="../engine-genops.css" />
-  <link rel="stylesheet" href="../lib/user-media.css">
   <link rel="stylesheet" href="/lib/drive-modal.css" />
 </head>
 <body data-page="neon">
   <div id="app">
     <!-- SWR-HEADER-DATA-ICONS --><header>
-      <!-- SWR-SITE-EXIT --><a class="swr-site-exit" href="/" title="Sainted Word Records — home" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:4px 7px;white-space:nowrap;line-height:1">← Site</a>
+      <span class="gctrl" data-looks-mount></span>
+      
       <div class="v">NEON <small>v1</small></div>
       <span class="pill" id="status">idle</span>
       <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
@@ -367,25 +465,31 @@
       <a class="nav" href="film.html">→ film</a>
     </header>
     <aside class="lib">
-      <div class="head"><h2>Library</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;">+</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
+      <div class="head"><h2>Media</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;" title="Add media files">+</button><button class="tbtn" id="media-clear" style="padding:3px 8px;font-size:9px;" title="Clear this view">Clear</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
-      <div class="body"><div id="lib"></div>
-        <div id="swr-user-media" class="swr-user-media">
-          <div class="head" style="padding:6px 8px 4px;">
-            <h2 style="font-size:10px;letter-spacing:.14em;">My Media</h2>
-            <label for="swr-user-media-input" class="tbtn" style="padding:3px 6px;font-size:9px;cursor:pointer;">+ Add</label>
-            <button type="button" id="swr-user-media-clear" class="tbtn" style="padding:3px 6px;font-size:9px;color:#f55;cursor:pointer;">Clear</button>
-          </div>
-          <input type="file" id="swr-user-media-input" multiple accept="image/*,video/*" style="display:none" />
-          <div id="swr-user-media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:3px;padding:6px 8px;"></div>
-        </div></div>
+      <div class="media-bar">
+        <div class="media-tabs" role="tablist" aria-label="Media view">
+          <button type="button" class="media-tab is-on" data-media-tab="library" role="tab" aria-selected="true" aria-controls="lib">Library <b class="ct" id="media-count-library">0</b></button>
+          <button type="button" class="media-tab" data-media-tab="used" role="tab" aria-selected="false" aria-controls="lib">Used <b class="ct" id="media-count-used">0</b></button>
+        </div>
+        <div class="media-views" role="group" aria-label="Layout">
+          <button type="button" class="tbtn media-view is-on" data-media-view="grid" title="Grid view" aria-pressed="true">▦</button>
+          <button type="button" class="tbtn media-view" data-media-view="list" title="List view" aria-pressed="false">☰</button>
+        </div>
+      </div>
+      <div class="media-search"><input type="search" id="media-search" placeholder="Search media" autocomplete="off" spellcheck="false" aria-label="Search media" /></div>
+      <div class="body"><div id="lib"></div></div>
+      <div class="media-assign">
+        <label for="media-assign-target">Assign to</label>
+        <select id="media-assign-target"><option value="new">+ New layer</option></select>
+      </div>
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
       <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <div id="flash"></div>
       <div class="swr-watermark">
-        <img src="../watermark-monogram.svg" alt="SWR" />
+        <img src="../watermark-monogram.png" alt="SWR" />
       </div>
     </section>
     <aside class="layers">
@@ -592,6 +696,14 @@
     // === AUDIO ===
     const A = { ctx: null, an: null, src: null, el: null, gain: null,
       fft: null, time: null,
+      // Engine convention. lib/audio.client.js names the <audio> element
+      // `audioEl` (audio.client.js:89); this page's fork names it `el`
+      // (the music_video.html convention). Shared modules are written
+      // against both — project.client.js:102 reads `A.audioEl`, while
+      // library-switcher.client.js:69 and music-video-maker.client.js:154
+      // read `A.el`. Expose the engine's name as an alias so a module
+      // that expects `audioEl` finds the same element.
+      get audioEl() { return this.el; },
       feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
       // Cached slider values — read once per slider input, not once
       // per audio frame. Avoids forcing layout every audio sample.
@@ -606,6 +718,10 @@
         
       setStatus('ready', 'ok'); },
       load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
+        // AUTO-RESUME-SWAP: remember the transport state BEFORE the element
+        // swap. Read after the swap it would always reflect the new element,
+        // which is never started.
+        const wasPlaying = !!this.playing;
         if (this.el) { this.el.pause(); this.el.src=''; }
         // Free the previous Blob URL before allocating a new one.
         if (this.el && this.el.__swr_blob_url) {
@@ -623,7 +739,26 @@
         this.src = this.ctx.createMediaElementSource(this.el);
         this.src.connect(this.an);
         this.hist = { prev:null, bassAvg:0, fluxAvg:0 }; this.beats=[]; this.feat.bpm=0;
-        $('play').disabled=false; $('rec').disabled=false; },
+        $('play').disabled=false; $('rec').disabled=false;
+        // AUTO-RESUME-SWAP: loading a song while the transport is playing
+        // used to leave `playing === true` on a paused element — the new
+        // <audio> was created but never started, so the reactive render
+        // saw silence and the recorder captured a still frame. Resume here,
+        // and reconcile `playing` if the browser blocks the autoplay.
+        if (wasPlaying) {
+          if (this.fadeIn) this.fadeIn(250);
+          const pr = this.el.play();
+          if (pr && typeof pr.then === 'function') {
+            pr.catch((err) => {
+              this.playing = false;
+              try { $('play').textContent = '▶'; } catch (_) {}
+              try { console.warn('[SWR_Audio] swap autoplay blocked:', err && err.name); } catch (_) {}
+            });
+          }
+          this.playing = true;
+          $('play').textContent = '❚❚';
+        }
+      },
       play() { this.unlock(); if (this.ctx.state==='suspended') this.ctx.resume();
         this.el.play(); this.playing=true; $('play').textContent='❚❚'; },
       pause() { if (this.el) this.el.pause(); this.playing=false; $('play').textContent='▶'; },
@@ -666,6 +801,15 @@
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
     function setStatus(t, cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
 
+    // === MEDIA PANEL STATE ===
+    // The sidebar is ONE panel with two states. It used to carry two
+    // lists fed by the same IndexedDB store — #lib (Lib.render) and
+    // the shared #swr-user-media-grid mount — so every asset appeared
+    // twice. Now there is one asset array (Lib.items) and one panel;
+    // "library" shows everything available, "used" shows only what is
+    // currently assigned to a layer.
+    const MediaUI = { tab: 'library', view: 'grid', query: '', focusId: null };
+
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
       async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
@@ -683,7 +827,7 @@
       _classify(it) {
         const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
         const src = it.type==='video' ? Object.assign(document.createElement('video'),{src:it.url,muted:true,playsInline:true,preload:'metadata'}) : Object.assign(new Image(),{src:it.url});
-        src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', () => {
+        const capture = () => {
           if (it.type==='video') it.duration = src.duration;
           cx.drawImage(src, 0,0,32,32);
           const d = cx.getImageData(0,0,32,32).data;
@@ -704,7 +848,17 @@
           const tcx=tcv.getContext('2d'); tcx.drawImage(src,0,0,tw,th);
           it.thumb = tcv.toDataURL('image/jpeg',0.7);
           this.render();
-        }, { once: true });
+        };
+        // Poster frame, not frame 0: t=0 is black on anything that fades
+        // in, so the thumbnail (and the luma/hue read from it) came out
+        // black. Same rule as lib/library.client.js. The helper seeks to
+        // 1s — or the middle of a shorter clip — and falls back to the
+        // current frame if the clip cannot be seeked.
+        if (src.tagName === 'VIDEO' && window.SWR_VIDEO_THUMB) {
+          window.SWR_VIDEO_THUMB.atPoster(src, capture);
+        } else {
+          src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', capture, { once: true });
+        }
       },
       removeItem(id) {
         const i = this.items.findIndex(x => x.id === id);
@@ -718,24 +872,120 @@
         // has run and Layers is bound. Use the closure reference so
         // we don't depend on window.SWR.Layers being set.
         try { if (typeof Layers.cleanupForAsset === 'function') Layers.cleanupForAsset(it); } catch (_) {}
+        // Also delete the PERSISTED copy. Without this the asset came
+        // straight back on the next visit: Lib.hydrate() re-reads
+        // IndexedDB, and the old "My Media" list kept showing it until
+        // the tab was closed. Removal has to clear both copies.
+        if (it.persistId && window.SWR_MEDIA && window.SWR_MEDIA.deleteMedia) {
+          try {
+            const p = window.SWR_MEDIA.deleteMedia(it.persistId);
+            if (p && typeof p.catch === 'function') p.catch(err => console.warn('[neon-lib] deleteMedia failed', err));
+          } catch (err) { console.warn('[neon-lib] deleteMedia failed', err); }
+        }
         this.items.splice(i, 1);
         this.render();
         return true;
       },
+      // How many layers use each asset. mediaId -> count.
+      usedBy() { return Layers.usedBy(); },
+      // The assets the panel should show, honouring the active tab
+      // (library | used) and the search box.
+      visible() {
+        const used = this.usedBy();
+        let list = this.items;
+        if (MediaUI.tab === 'used') list = list.filter(it => used.has(it.id));
+        const q = MediaUI.query.trim().toLowerCase();
+        if (q) list = list.filter(it => String(it.name || '').toLowerCase().includes(q));
+        return list;
+      },
+      _emptyText(used) {
+        const q = MediaUI.query.trim();
+        if (q) return 'no media matches "' + q + '"';
+        if (MediaUI.tab === 'used') return used.size ? 'no media matches' : 'no media assigned to a layer yet';
+        return 'no media yet — click + to add images or videos';
+      },
+      // Remove EVERY asset: in-memory, IndexedDB, and the layers that
+      // referenced them. Mirrors the old "My Media → Clear" button,
+      // which lived in the panel that is now gone.
+      clearAll() {
+        const n = this.items.length;
+        for (const it of this.items.slice()) {
+          try { if (it.url) URL.revokeObjectURL(it.url); } catch (_) {}
+          if (it.persistId && window.SWR_MEDIA && window.SWR_MEDIA.deleteMedia) {
+            try {
+              const p = window.SWR_MEDIA.deleteMedia(it.persistId);
+              if (p && typeof p.catch === 'function') p.catch(err => console.warn('[neon-lib] deleteMedia failed', err));
+            } catch (err) { console.warn('[neon-lib] deleteMedia failed', err); }
+          }
+        }
+        this.items.length = 0;
+        this.nextId = 1;
+        try { if (typeof Layers.detachAll === 'function') Layers.detachAll(); } catch (_) {}
+        this.render();
+        return n;
+      },
       render() { const el = $('lib');
-        if (!this.items.length) { el.innerHTML='<div style="grid-column:1/-1;color:var(--muted);font-size:10px;padding:16px;text-align:center;">drop files</div>'; return; }
+        const used = this.usedBy();
+        // Tab counters.
+        const cLib = $('media-count-library'), cUsed = $('media-count-used');
+        if (cLib) cLib.textContent = String(this.items.length);
+        if (cUsed) cUsed.textContent = String(used.size);
+        el.classList.toggle('list', MediaUI.view === 'list');
+        const list = this.visible();
+        if (!list.length) {
+          const empty = document.createElement('div');
+          empty.className = 'media-empty';
+          empty.textContent = this._emptyText(used);
+          el.innerHTML = '';
+          el.appendChild(empty);
+          return;
+        }
         el.innerHTML = '';
-        for (const it of this.items) {
-          const d = document.createElement('div'); d.className='li';
-          d.innerHTML = `<span class="tag">${it.type==='video'?'V':'I'}</span>`
-                      + `<span class="rm" data-id="${it.id}" title="Remove">×</span>`
-                      + `<span class="nm">${it.name}</span>`;
-          if (it.thumb) { const i=new Image(); i.src=it.thumb; d.appendChild(i); }
-          else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;d.appendChild(v); }
-          else { const i=new Image(); i.src=it.url; d.appendChild(i); }
+        for (const it of list) {
+          const d = document.createElement('div');
+          d.className = 'li' + (it.id === MediaUI.focusId ? ' is-focus' : '');
+          d.dataset.id = String(it.id);
+          d.title = it.name;
+          // The type chip and the × button.
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = it.type === 'video' ? 'V' : 'I';
+          d.appendChild(tag);
+          const rm = document.createElement('span');
+          rm.className = 'rm';
+          rm.dataset.id = String(it.id);
+          rm.title = 'Remove';
+          rm.textContent = '×';
+          d.appendChild(rm);
+          // Thumbnail.
+          if (it.thumb) { const i=new Image(); i.src=it.thumb; i.alt=''; d.appendChild(i); }
+          else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;v.preload='metadata';d.appendChild(v); }
+          else { const i=new Image(); i.src=it.url; i.alt=''; d.appendChild(i); }
+          // Name — textContent, never innerHTML: the file name is
+          // user-controlled and would otherwise be an injection vector.
+          const nm = document.createElement('span');
+          nm.className = 'nm';
+          nm.textContent = it.name;
+          d.appendChild(nm);
+          // "Used in N layers" badge.
+          const n = used.get(it.id) || 0;
+          if (n > 0) {
+            const b = document.createElement('span');
+            b.className = 'badge';
+            b.textContent = 'Used in ' + n + (n === 1 ? ' layer' : ' layers');
+            d.appendChild(b);
+          }
+          // Assign-to-layer action.
+          const asg = document.createElement('button');
+          asg.type = 'button';
+          asg.className = 'asg';
+          asg.dataset.id = String(it.id);
+          asg.textContent = 'Assign';
+          asg.title = 'Assign to the layer chosen below';
+          d.appendChild(asg);
           d.addEventListener('click', (e) => {
-            // Don't fire "add to layer" if the click was on the × button.
-            if (e.target.classList.contains('rm')) return;
+            // Don't fire "add to layer" if the click was on a button.
+            if (e.target.closest('.rm, .asg')) return;
             Layers.add(it);
           });
           el.appendChild(d);
@@ -770,6 +1020,24 @@
             }
           });
         });
+        // Wire the Assign buttons.
+        el.querySelectorAll('.asg').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.getAttribute('data-id'), 10);
+            const it = this.items.find(x => x.id === id);
+            if (!it) return;
+            const target = ($('media-assign-target') || {}).value || 'new';
+            if (target === 'new') {
+              Layers.assign(it, null);
+              if (typeof setStatus === 'function') setStatus('♪ ' + it.name + ' → new layer', 'ok');
+            } else {
+              const idx = Number(target);
+              Layers.assign(it, idx);
+              if (typeof setStatus === 'function') setStatus('♪ ' + it.name + ' → layer ' + (idx + 1), 'ok');
+            }
+          });
+        });
       }
     };
     // Expose Lib for smoke testing (parallels window.SWR.Layers).
@@ -787,9 +1055,46 @@
           [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
           [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
         ];
-        const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
+        const l = { id:'L'+(i+1), asset: it, mediaId: it ? it.id : null, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
           opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
         this.list.push(l); this.render(); this.sel = l; },
+      // Point a layer at an asset. `layerIndex` is the layer's POSITION
+      // in this.list; null/'new' appends a new layer (the old "click a
+      // card to add it" path). An index replaces that layer's media in
+      // place, keeping its blend/opacity/controls.
+      assign(it, layerIndex) {
+        if (!it) return false;
+        if (layerIndex == null || layerIndex === 'new') { this.add(it); return true; }
+        const l = this.list[Number(layerIndex)];
+        if (!l) { this.add(it); return true; }
+        l.asset = it; l.mediaId = it.id;
+        this.sel = l;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        return true;
+      },
+      // mediaId -> number of layers using it. Drives the Media panel's
+      // "used" tab and the "Used in N layers" badge.
+      usedBy() {
+        const m = new Map();
+        for (const l of this.list) {
+          const id = l.mediaId != null ? l.mediaId : (l.asset ? l.asset.id : null);
+          if (id == null) continue;
+          m.set(id, (m.get(id) || 0) + 1);
+        }
+        return m;
+      },
+      // Unassign every layer's media but keep the layer rows (and their
+      // blend/opacity settings) in place.
+      detachAll() {
+        let n = 0;
+        for (const l of this.list) { if (l.asset) { l.asset = null; l.mediaId = null; n++; } }
+        if (n) {
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+        return n;
+      },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
       cleanupForAsset(it) {
         const before = this.list.length;
@@ -804,7 +1109,34 @@
         for (let i=0;i<this.list.length;i++) {
           const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
-          d.innerHTML = `<div class="lh"><span class="n">${i+1}</span><span class="nm">${l.asset?l.asset.name.slice(0,16):'(empty)'}</span><button class="x">×</button></div><div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
+          // Control rows carry no user data, so they stay on innerHTML.
+          d.innerHTML = `<div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
+          // Header: index, thumbnail, short name, "change media" button.
+          // The name is written with textContent — the file name is
+          // user-controlled and would otherwise be an injection vector.
+          const lh = document.createElement('div'); lh.className = 'lh';
+          const n = document.createElement('span'); n.className = 'n'; n.textContent = String(i+1);
+          lh.appendChild(n);
+          const th = document.createElement('span'); th.className = 'th';
+          if (l.asset) {
+            const im = document.createElement('img');
+            im.src = l.asset.thumb || l.asset.url;
+            im.alt = '';
+            th.appendChild(im);
+          }
+          lh.appendChild(th);
+          const nm = document.createElement('span'); nm.className = 'nm';
+          nm.textContent = l.asset ? l.asset.name : '(empty)';
+          nm.title = l.asset ? l.asset.name : 'no media assigned';
+          lh.appendChild(nm);
+          const chg = document.createElement('button');
+          chg.type = 'button'; chg.className = 'chg'; chg.textContent = 'Change';
+          chg.title = 'Change this layer’s media';
+          lh.appendChild(chg);
+          const x = document.createElement('button');
+          x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.title = 'Remove layer';
+          lh.appendChild(x);
+          d.insertBefore(lh, d.firstChild);
           d.querySelector('select').value = l.blend;
           for (const inp of d.querySelectorAll('input[type=range]')) {
             const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
@@ -821,9 +1153,31 @@
           ins[4].addEventListener('input', e => l.brightness = +e.target.value);
           ins[5].addEventListener('input', e => l.alpha = +e.target.value);
           ins[6].addEventListener('input', e => l.mutate = +e.target.value);
-          d.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
+          x.addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
+          chg.addEventListener('click', e => {
+            e.stopPropagation();
+            if (!l.asset) return;
+            // Open this asset in the Media panel and pre-target it, so
+            // the next Assign replaces THIS layer's media.
+            MediaUI.focusId = l.asset.id;
+            MediaUI.query = '';
+            const search = $('media-search'); if (search) search.value = '';
+            const sel = $('media-assign-target');
+            if (sel) { syncAssignTarget(i); }
+            setMediaTab('library', true);
+            Lib.render();
+            const card = document.querySelector('#lib .li[data-id="' + l.asset.id + '"]');
+            if (card && card.scrollIntoView) card.scrollIntoView({ block: 'nearest' });
+            if (typeof setStatus === 'function') setStatus('choose media for layer ' + (i+1), 'ok');
+          });
           el.appendChild(d);
         }
+        syncAssignTarget(null);
+        // The Media panel derives its "used" tab and the "Used in N
+        // layers" badge from the layer list, so it has to be re-rendered
+        // whenever the layers change — otherwise adding a layer leaves
+        // the badge stale until something else redraws the panel.
+        try { if (typeof Lib !== 'undefined' && Lib && Lib.render) Lib.render(); } catch (_) {}
       },
       remap() {
         if (!Lib.items.length) return;
@@ -874,7 +1228,7 @@
             [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
           ];
           this.list.push({
-            id:'L'+(i+1), asset: it, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
+            id:'L'+(i+1), asset: it, mediaId: it.id, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
             opacity:1, baseScale:[1.2,0.8,1.5,0.6,2.0,0.5][i%6], hue:0, brightness:1, contrast:1,
           alpha:1, mutate:0,
             reactors: presets[i%presets.length]
@@ -894,11 +1248,11 @@
     fit();
     const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
     const pcx = proc.getContext('2d');
-    function ease(name, t) {
-      if (name === 'sharp') return Math.pow(t, 0.4);
-      if (name === 'soft') return { 0:0, 0.5:0.5, 1:1 }[((t*2)|0)/2] || (t*t*(3-2*t));
-      return t;
-    }
+    // ease(name, t) now lives in the shared /lib/ease.js curve map (plan
+    // P1.4). This page used to carry its own copy of the function; see
+    // lib/ease.js for the three historical bodies and the one behavior
+    // change the unification makes.
+    const ease = window.SWR_EASE.ease;
     function applyR(l) {
       const a = l.asset, sens = A.params.sens;
       const out = { scale: l.baseScale, x:0, y:0, rot:l.hue*0.05, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
@@ -925,7 +1279,7 @@
         // Master rotation toggle gate: when the user has turned rotation
         // OFF globally (swr-rot-master button), skip rot reactor writes so
         // audio doesn't compound the canvas into 180-degree flips.
-        const _rotOn = l.rotationEnabled !== false;
+        const _rotOn = l.rotationEnabled === true;  // OFF by default — opt in via per-layer rotation toggle; reactors targeting rot are silenced until then
         // `r.scale` is now the per-reactor *target gain* in its target's natural
         // units (px, deg, scale-factor, hue-deg). The previous `v * r.scale * 30`
         // form coupled reactor sensitivity to a magic 30× multiplier, which made
@@ -976,8 +1330,21 @@
       if (a.type === 'video') {
         if (!a._el) { a._el = document.createElement('video'); a._el.src=url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
         src = a._el;
-        if (A.playing && src.paused) src.play().catch(()=>{});
-        if (!A.playing && !src.paused) src.pause();
+        // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
+        // lib/video-sync.client.js) does not trust `paused`: a video paused
+        // while it is still loading has its media pipeline suspended — the
+        // element drops back to readyState 1 and stops fetching — and while
+        // a play() promise is pending `paused` stays true, so the next
+        // frame calls play() again and a second play() on a pending element
+        // resets it to readyState 1. Either way the element sits at
+        // readyState 1, the draw gate below (readyState < 2) skips the
+        // layer, and the clip never reaches the stage.
+        if (window.SWR_VIDEO_SYNC) {
+          window.SWR_VIDEO_SYNC(src, A.playing);
+        } else {
+          if (A.playing && src.paused) src.play().catch(()=>{});
+          if (!A.playing && !src.paused) src.pause();
+        }
       } else {
         if (!a._el) { a._el = new Image(); a._el.src=url; }
         src = a._el;
@@ -1086,6 +1453,90 @@
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
     $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
+
+    // === MEDIA PANEL WIRING ===
+    // One panel, two states. "library" lists every available asset,
+    // "used" lists only the assets currently assigned to a layer.
+    function setMediaTab(tab, keepFocus) {
+      MediaUI.tab = (tab === 'used') ? 'used' : 'library';
+      if (!keepFocus) MediaUI.focusId = null;
+      document.querySelectorAll('.media-tab').forEach(b => {
+        const on = b.getAttribute('data-media-tab') === MediaUI.tab;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      const clear = $('media-clear');
+      if (clear) {
+        clear.title = MediaUI.tab === 'used'
+          ? 'Unassign every layer (media stays in the library)'
+          : 'Remove all media from the library';
+      }
+    }
+    // Rebuild the "assign to" target list. `prefer` selects a layer by
+    // its POSITION in Layers.list. The position — not the layer id — is
+    // the option value: a layer's id is 'L' + its position when it was
+    // created, so ids can collide once a middle layer is removed, and
+    // two options with the same value would silently target the wrong
+    // layer.
+    function syncAssignTarget(prefer) {
+      const sel = $('media-assign-target');
+      if (!sel) return;
+      const prev = prefer != null ? String(prefer) : (sel.value || 'new');
+      sel.innerHTML = '';
+      const optNew = document.createElement('option');
+      optNew.value = 'new'; optNew.textContent = '+ New layer';
+      sel.appendChild(optNew);
+      Layers.list.forEach((l, i) => {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = 'Layer ' + (i + 1) + (l.asset ? ' · ' + l.asset.name : ' · (empty)');
+        sel.appendChild(o);
+      });
+      sel.value = Array.prototype.some.call(sel.options, o => o.value === prev) ? prev : 'new';
+    }
+    document.querySelectorAll('.media-tab').forEach(b => {
+      b.addEventListener('click', () => { setMediaTab(b.getAttribute('data-media-tab')); Lib.render(); });
+    });
+    document.querySelectorAll('.media-view').forEach(b => {
+      b.addEventListener('click', () => {
+        MediaUI.view = b.getAttribute('data-media-view') === 'list' ? 'list' : 'grid';
+        document.querySelectorAll('.media-view').forEach(x => {
+          const on = x === b;
+          x.classList.toggle('is-on', on);
+          x.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        Lib.render();
+      });
+    });
+    const mediaSearch = $('media-search');
+    if (mediaSearch) {
+      mediaSearch.addEventListener('input', () => { MediaUI.query = mediaSearch.value; Lib.render(); });
+    }
+    const mediaClear = $('media-clear');
+    if (mediaClear) {
+      mediaClear.addEventListener('click', () => {
+        if (MediaUI.tab === 'used') {
+          if (!window.confirm('Unassign all media from every layer? The media stays in your library.')) return;
+          const n = Layers.detachAll();
+          Lib.render();
+          setStatus('unassigned ' + n + ' layer' + (n === 1 ? '' : 's'), 'ok');
+          return;
+        }
+        if (!window.confirm('Remove ALL media from your library? This cannot be undone.')) return;
+        const n = Lib.clearAll();
+        setStatus('cleared ' + n + ' asset' + (n === 1 ? '' : 's'), 'ok');
+      });
+    }
+    const assignTarget = $('media-assign-target');
+    if (assignTarget) {
+      assignTarget.addEventListener('change', () => {
+        const idx = Number(assignTarget.value);
+        const l = Number.isInteger(idx) ? Layers.list[idx] : null;
+        if (l && l.asset) setStatus('next assign replaces layer ' + (idx + 1), 'ok');
+      });
+    }
+    setMediaTab('library');
+    syncAssignTarget(null);
     for (const id of ['sens','gate','decay']) {
       const inp = $(id); const out = $(id+'-v');
       inp.addEventListener('input', () => {
@@ -1338,10 +1789,35 @@
       Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
     }
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
+    // ---- Shared-module contract (engine ↔ neon parity, slice 1) ----
+    // The engine gets its core globals from the shared modules —
+    // lib/audio.client.js publishes window.Audio, lib/library.client.js
+    // publishes window.Library, lib/layers.client.js publishes
+    // window.Layers, and engine.html:3918 publishes window.setStatus.
+    // This page carries its own inline copies of the same subsystems, so
+    // without these four lines every shared module that reaches for a
+    // core global degrades to a silent no-op here:
+    //   project.client.js:99     window.Audio  → no song in the saved project
+    //   versions-presets.js:1144 window.Audio  → grade presets stop reacting to audio
+    //   engine-keys.client.js:164 window.Layers → layer remap keys stay suppressed
+    //   client/scenes.client.js:24 window.setStatus → pad recalls show no status
+    // The modules are defensive (they check before use), so the drift
+    // never surfaced as an error — it surfaced as features that quietly
+    // did nothing. Publishing the globals is the smallest change that
+    // makes the contract real on both pages.
+    window.Audio = A;
+    window.Library = Lib;
+    window.Layers = Layers;
+    window.setStatus = setStatus;
+    // `window.A` is the music_video.html convention the SWR_* blocks read
+    // (`A.el`, `A.feat`); the engine publishes the same alias at
+    // engine.html:7274. This page's A already uses that convention.
+    window.A = A;
   })();
   </script>
 <script src="../versions-presets.js"></script>
 <script src="/versions/temp-slider.js"></script>
+<script src="../fx-postprocess.js"></script>
 <script src="../engine-genops.client.js"></script>  <script src="../engine-transitions.client.js" defer></script>
   <script src="../lib/media-store.client.js" defer></script>
   <script src="../lib/library-persist.client.js" defer></script>
@@ -1349,7 +1825,6 @@
   <!-- ADR-001 Step 3 rollout: narrative-state accumulator (extracted
        from music_video.html integration, ported to neon). -->
   <script src="../client/narrative-state.client.js" defer></script>
-  <script src="../lib/user-media-mount.client.js" defer></script>
 
 <!-- Automix debug panel (Phase 2 port) -->
 <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
@@ -1364,12 +1839,12 @@
   <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
   <script src="../lib/swr-natural.client.js"></script>
   <script src="../lib/look-variant.client.js" defer></script>
-<!-- SWR-WATERMARK-MARKER -->
-<script src="../lib/watermark.client.js"></script>
 <!-- SWR-AUDIO-DAMP-MARKER -->
 <script src="../lib/audio-damp.client.js"></script>
 <!-- SWR-FX-GRADE-MARKER -->
 <script src="../lib/gpu-grade.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
 <script src="/lib/auth.client.js" defer></script>
 <script src="/lib/google-drive.client.js" defer></script>
   <script src="/lib/drive-modal.client.js" defer></script>
@@ -1434,5 +1909,9 @@
       });
     })();
   </script>
+  <script src="/lib/home-link.client.js" defer></script>
+    <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
 </body>
 </html>

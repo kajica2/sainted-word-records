@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "a1831c80-550d-5b18-89d4-d62cf2d6462d",
+  "name": "Ocean Scan Spectra",
+  "author": "SWR",
+  "description": "The ocean read through six spectra — infrared to gamma. Cold, layered, geological.",
+  "tags": [
+    "ocean",
+    "spectral",
+    "scan",
+    "infrared"
+  ],
+  "createdAt": "2026-10-20T00:00:00Z",
+  "engine": "phosphor",
+  "audio": {
+    "name": "phosphor.mp3",
+    "mimeType": "audio/mpeg",
+    "size": 255430,
+    "url": "/audios/phosphor.mp3"
+  },
+  "fx": {
+    "temp": -0.4,
+    "mut": 0,
+    "mutAlgo": 0,
+    "posterize": 0.2,
+    "vignette": 0.5,
+    "chroma": 0.5,
+    "grain": 0.2,
+    "sepia": 0,
+    "glow": 0.65,
+    "grayscale": 0.15,
+    "blur": 0.05,
+    "liquid": 0.15,
+    "pearl": 0,
+    "glitch": 0
+  },
+  "layers": [
+    {
+      "id": "L1",
+      "name": "Plate 01",
+      "blend": "source-over",
+      "opacity": 1.0,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.0,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ocean-scan-spectra-01.webp",
+        "mimeType": "image/webp",
+        "size": 49420,
+        "url": "/packs/ocean-scan-spectra/ocean-scan-spectra-01.webp"
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Plate 02",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.05,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ocean-scan-spectra-09.webp",
+        "mimeType": "image/webp",
+        "size": 27632,
+        "url": "/packs/ocean-scan-spectra/ocean-scan-spectra-09.webp"
+      }
+    },
+    {
+      "id": "L3",
+      "name": "Plate 03",
+      "blend": "source-over",
+      "opacity": 0.55,
+      "baseScale": 1.0,
+      "hue": 0,
+      "brightness": 1.0,
+      "contrast": 1.1,
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "rot": 0
+      },
+      "rotOffset": 0,
+      "reactors": [],
+      "modulators": [],
+      "asset": {
+        "name": "ocean-scan-spectra-17.webp",
+        "mimeType": "image/webp",
+        "size": 31890,
+        "url": "/packs/ocean-scan-spectra/ocean-scan-spectra-17.webp"
+      }
+    }
+  ],
+  "settings": {
+    "bpm": 88,
+    "key": "B",
+    "scale": "minor"
+  }
+}
