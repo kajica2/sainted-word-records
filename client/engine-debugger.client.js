@@ -1179,6 +1179,36 @@
     requestAnimationFrame(tick);
   }
 
+  // engine.html runs its own renderer (window.SWR.Renderer) rather than
+  // the shared SWR_RENDER the variant pages use. That renderer is a
+  // different machine — its own stage canvas, its own layer geometry, its
+  // own drift system — so there is nothing to hook here. Say so plainly
+  // instead of retrying in silence.
+  var UNSUPPORTED_MSG = 'This page does not run the shared SWR_RENDER engine, ' +
+    'so the visual debugger has nothing to observe. engine.html has its own ' +
+    'renderer; the debugger covers the variant pages, for example /versions/neon.html.';
+
+  function showUnsupported() {
+    if (document.getElementById('swr-debugger-unsupported')) return;
+    var root = el('div');
+    root.id = 'swr-debugger-unsupported';
+    root.style.cssText = 'position:fixed;top:44px;right:14px;z-index:10050;max-width:330px;' +
+      'background:rgba(10,6,18,0.94);border:1px solid #ff2d8a;border-radius:4px;color:#f5e9ff;' +
+      'font:10px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;';
+    var msg = el('div');
+    msg.textContent = UNSUPPORTED_MSG;
+    msg.style.marginBottom = '8px';
+    root.appendChild(msg);
+    var close = el('button', null, '×');
+    close.style.cssText = 'background:none;border:none;color:#8a7aa0;cursor:pointer;' +
+      'font:12px/1 ui-monospace,monospace;';
+    close.addEventListener('click', function () {
+      if (root.parentNode) root.parentNode.removeChild(root);
+    });
+    root.appendChild(close);
+    document.body.appendChild(root);
+  }
+
   // ── public API ─────────────────────────────────────────────────────────
 
   // The live engine state as of the last observed frame.
@@ -1222,7 +1252,13 @@
     mount: function () {
       if (state.mounted) return api;
       if (!instrument()) {
-        // The engine may not have booted yet — retry shortly.
+        // The engine may not have booted yet — retry briefly, then say
+        // plainly that this page is not one the debugger can observe.
+        state.mountAttempts = (state.mountAttempts || 0) + 1;
+        if (state.mountAttempts > 8) {
+          showUnsupported();
+          return api;
+        }
         setTimeout(function () { if (!state.mounted) api.mount(); }, 250);
         return api;
       }
