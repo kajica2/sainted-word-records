@@ -1069,12 +1069,26 @@
     }
     
     // Create layers from grouped media
+    const MAX_LAYERS = 6;
+    
     function createLayersFromGroups(groups, order) {
       const layerList = document.getElementById('layers-list');
       if (!layerList) return;
       
       // Clear existing layers
       layerList.innerHTML = '';
+      
+      // Limit to 6 layers max
+      const limitedOrder = order.slice(0, MAX_LAYERS);
+      const excess = order.length - MAX_LAYERS;
+      if (excess > 0) {
+        console.log(`[Auto-group] Limited to ${MAX_LAYERS} layers (${excess} groups merged into first layer)`);
+        // Merge excess groups into first layer
+        for (let i = MAX_LAYERS; i < order.length; i++) {
+          groups[limitedOrder[0]].push(...groups[order[i]]);
+        }
+      }
+      order = limitedOrder;
       
       order.forEach((groupName, groupIdx) => {
         const groupMedia = groups[groupName];
@@ -1192,21 +1206,23 @@
         const { groups, order } = groupMediaByName(mediaFiles);
         const videoCount = mediaFiles.filter(f => f.type.startsWith('video/')).length;
         const imgCount = mediaFiles.length - videoCount;
+        const layerCount = Math.min(order.length, MAX_LAYERS);
         let status = '';
         if (videoCount > 0 && imgCount > 0) {
-          status = `${imgCount} img, ${videoCount} vid → ${order.length} groups`;
+          status = `${imgCount} img, ${videoCount} vid → ${layerCount} layer${layerCount !== 1 ? 's' : ''}`;
         } else if (videoCount > 0) {
-          status = `${videoCount} videos → ${order.length} groups`;
+          status = `${videoCount} videos → ${layerCount} layer${layerCount !== 1 ? 's' : ''}`;
         } else {
-          status = `${mediaFiles.length} photos → ${order.length} groups`;
+          status = `${mediaFiles.length} photos → ${layerCount} layer${layerCount !== 1 ? 's' : ''}`;
         }
         photoStatus.textContent = status;
         // Create layers from groups
         createLayersFromGroups(groups, order);
       } else {
-        // Single layer for all
+        // Single layer for all (but still limited to MAX_LAYERS visually)
+        const singleGroup = { all: mediaFiles.slice(0, 50) };
         photoStatus.textContent = `${mediaFiles.length} media → 1 layer`;
-        createLayersFromGroups({ all: mediaFiles }, ['all']);
+        createLayersFromGroups(singleGroup, ['all']);
       }
     }
     
