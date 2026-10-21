@@ -8947,6 +8947,14 @@
   <script src="/lib/persist-wire.client.js" defer></script>
   <script src="/lib/persist-fx.client.js" defer></script>
   <script src="/lib/library-hygiene.client.js" defer></script>
+  <!-- Live input: camera as a live layer, microphone as engine input.
+       Loaded in order — the media input primitive first, then the
+       preview and meter it feeds, then the control that ties them to
+       the engine. -->
+  <script src="/client/swr-media-input.client.js" defer></script>
+  <script src="/client/swr-camera-preview.client.js" defer></script>
+  <script src="/client/swr-mic-meter.client.js" defer></script>
+  <script src="/client/swr-live-input.client.js" defer></script>
   <script src="/lib/preset-transitions.client.js" defer></script>
   <script src="/lib/reset-state.client.js" defer></script>
   <script src="/lib/recorder.client.js" defer></script>

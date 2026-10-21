@@ -4114,6 +4114,13 @@
 <script src="../versions-presets.js"></script>
 <script src="/versions/temp-slider.js"></script>
 <script src="../engine-genops.client.js"></script>
+<!-- Live input: camera as a live layer, microphone as engine input.
+     Loaded in order — the media input primitive first, then the preview
+     and meter it feeds, then the control that ties them to the engine. -->
+<script src="/client/swr-media-input.client.js" defer></script>
+<script src="/client/swr-camera-preview.client.js" defer></script>
+<script src="/client/swr-mic-meter.client.js" defer></script>
+<script src="/client/swr-live-input.client.js" defer></script>
 <!-- Brand Kit (PRD-007 partial) — module + boot. Mirrors engine.html:5438-5459. -->
 <script type="module" src="../brandkit.client.js"></script>
 <script>

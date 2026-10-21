@@ -186,6 +186,31 @@ It found three things about the engine worth knowing before tuning reactors:
 
 `docs/EQ-ISOLATION-TEST.md` has the full segment plan and the measured tables.
 
+## Live input — camera and microphone
+
+`client/swr-live-input.client.js` puts a **Live** control in the media panel of the engine and every SWR_RENDER variant (`engine.html`, `versions/*.html`). It gives two things:
+
+- **Camera → a live layer.** A `<video>` carrying the camera stream is added to the layer stack, so you can shoot yourself into the video and have it react like any other layer.
+- **Mic → the engine hears you.** The stream is routed into the engine's own analyser, so the layers react to the room as well as to the song. The mic is deliberately *not* monitored to the speakers — a live mic feeding the composition and the speakers at once is a feedback loop.
+
+It builds on `swr-media-input.client.js` (the primitive), `swr-camera-preview.client.js` and `swr-mic-meter.client.js` (the picture and the level), which it loads in order.
+
+Three things the engine does that the live input has to work around:
+
+- **Video clips are paused when the transport stops** (`if (!A.playing && !src.paused) src.pause()` in the variant draw paths, and `SWR_VIDEO_SYNC` on the shared one). Right for a clip, wrong for a camera, so the live element ignores `pause()` and the original is restored when the layer is removed.
+- **A detached video element never gets a media pipeline.** Chrome leaves it at `readyState 0` forever, so the element is parked in the document, off-screen and invisible — `display:none` would stop it rendering altogether.
+- **A new layer inherits a blend mode from the page's shuffle**, and some of them (`multiply`, `difference` over black) make a live feed invisible on a dark stage. The live layer is set to `screen` at full opacity and scale 1.
+
+The analyser is named differently on the two surfaces: the shared `lib/audio.client.js` calls it `analyser` and hangs off `window.Audio`; a variant's inline engine calls it `an` and hangs off `window.SWR.Audio`, and only builds its audio graph when a song is loaded — so the graph has to be asked for before there is anything to route into.
+
+`npm run check:live-input` (`scripts/check-live-input.mjs`) drives headless Chrome with a **synthetic** camera and microphone (`--use-fake-device-for-media-stream`), so it runs on a machine with no camera. It asserts the control appears, the camera becomes a live layer whose frames are decoded and which reaches the stage, the mic is routed into the engine's analyser with a live meter, and stopping both releases the devices and removes the layer. The browser is launched in its own process group and torn down as one — Chrome spawns children, and leaving them behind holds the fake camera and makes the next run flaky.
+
+## Local server
+
+`npm run serve:local` (`scripts/serve-repo.mjs`) serves the repository as a static site with the same HTML transforms the build applies — absolute module scripts become plain deferred scripts, and the pages that import `engine-genops` get the shared layout and the audio damper. It needs no dependencies, which `npm run dev` does.
+
+It is not the real build: no bundling, no minification, and the per-variant automix config is not inlined.
+
 ## PR & commit conventions
 
 - **Auto-commit workflow**: After completing any deliverable, run tests, then commit and push to main. Skip pushing only if tests fail.
