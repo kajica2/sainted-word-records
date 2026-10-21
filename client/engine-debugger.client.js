@@ -98,6 +98,15 @@
     painted: null,
     dom: {},
     stage: { canvas: null, ctx: null, host: null },
+    // The layer currently being drawn, set while the engine's drawToCtx
+    // runs, so a captured drawImage can be attributed to it.
+    currentLayer: null,
+    // layerId → the geometry the engine last drew for that layer, in CSS
+    // pixels. Persists across frames on purpose: the renderer caches a
+    // layer's offscreen and skips its draw on a cache hit, so "where did
+    // this layer last land" is the honest answer, not "where did it land
+    // this frame".
+    drawsByLayer: {},
     unwrap: [],
     _fpsAcc: [],
   };
@@ -122,6 +131,38 @@
 
   // ── instrumentation ─────────────────────────────────────────────────────
 
+  // Record where the engine actually drew the current layer.
+  //
+  // This is the whole point of the geometry overlay: every variant has its
+  // own draw convention (cover vs contain, rotation thresholds, the
+  // engine-supplied offscreen), so modelling it would be wrong on at
+  // least one page. Observing the real draw is right on all of them.
+  //
+  // The draw happens inside the context's own transform, which carries the
+  // device-pixel-ratio scale and any rotation the page applied. Dividing
+  // the transformed corners back out gives CSS pixels.
+  function recordDraw(src, dx, dy, dw, dh) {
+    var layer = state.currentLayer;
+    if (!layer) return;
+    var t;
+    try { t = this.getTransform(); } catch (_) { return; }
+    var dpr = Math.hypot(t.a, t.b) || 1;
+    var corners = [[dx, dy], [dx + dw, dy], [dx + dw, dy + dh], [dx, dy + dh]];
+    var css = corners.map(function (q) {
+      return [(t.a * q[0] + t.c * q[1] + t.e) / dpr, (t.b * q[0] + t.d * q[1] + t.f) / dpr];
+    });
+    state.drawsByLayer[layer.id] = {
+      quad: css,
+      w: dw,
+      h: dh,
+      ox: dx,
+      oy: dy,
+      stageW: state.stageSize ? state.stageSize.W : 0,
+      stageH: state.stageSize ? state.stageSize.H : 0,
+      at: performance.now(),
+    };
+  }
+
   // Wrap a property on an object, remembering how to undo it.
   function wrapProp(obj, key, makeWrapper) {
     if (!obj) return false;
@@ -136,11 +177,16 @@
     return true;
   }
 
-  // 1) Capture the resolved per-layer transform.
+  // 1) Capture the resolved per-layer transform and the real draw.
   //
   // The engine calls applyR(l) once per layer per frame and passes the
   // result into its fade/LFO stage. We substitute a recording wrapper so
   // the value we show is the engine's own, not a recomputation.
+  //
+  // drawToCtx is wrapped for two reasons: it marks which layer is being
+  // drawn (so a captured drawImage can be attributed), and it lets us
+  // watch the engine-supplied offscreen context — the variant that draws
+  // into it never touches the stage canvas directly.
   function instrumentFrame() {
     var R = window.SWR_RENDER;
     if (!R) return false;
@@ -156,9 +202,29 @@
           return r;
         };
 
+        var traced = function (l, r, c, cssW, cssH) {
+          var prev = state.currentLayer;
+          state.currentLayer = l;
+          var restore = null;
+          if (c && typeof c.drawImage === 'function' && !c.__swrDebuggerWrapped) {
+            var orig = c.drawImage;
+            c.drawImage = function (src, dx, dy, dw, dh) {
+              recordDraw.call(this, src, dx, dy, dw, dh);
+              return orig.apply(this, arguments);
+            };
+            restore = function () { c.drawImage = orig; };
+          }
+          try {
+            return drawToCtx(l, r, c, cssW, cssH);
+          } finally {
+            if (restore) restore();
+            state.currentLayer = prev;
+          }
+        };
+
         var result;
         try {
-          result = original.call(this, stage, ctx, layers, recording, drawToCtx, opts);
+          result = original.call(this, stage, ctx, layers, recording, traced, opts);
         } finally {
           state.lastFrame = {
             index: idx,
@@ -193,10 +259,25 @@
     });
   }
 
+  // 3) Capture draws that land on the stage canvas itself. Variants that
+  // draw into the engine's offscreen are covered by the drawToCtx wrapper
+  // above; the ones that draw straight onto the stage are covered here.
+  function instrumentStageCanvas() {
+    var ctx = window.SWR && window.SWR.ctx;
+    if (!ctx || typeof ctx.drawImage !== 'function') return false;
+    return wrapProp(ctx, 'drawImage', function (original) {
+      return function (src, dx, dy, dw, dh) {
+        recordDraw.call(this, src, dx, dy, dw, dh);
+        return original.apply(this, arguments);
+      };
+    });
+  }
+
   function instrument() {
     var ok = false;
     if (instrumentFrame()) ok = true;
     if (instrumentImageEvolve()) ok = true;
+    if (instrumentStageCanvas()) ok = true;
     return ok;
   }
 
@@ -527,25 +608,46 @@
     if (!stage) return null;
     if (window.SWR_RENDER && window.SWR_RENDER.fit) {
       var f = window.SWR_RENDER.fit(stage);
+      state.stageSize = { W: f.cssW, H: f.cssH, dpr: f.dpr };
       return { W: f.cssW, H: f.cssH, dpr: f.dpr, stage: stage };
     }
-    return {
+    state.stageSize = {
       W: Math.max(640, Math.round(stage.clientWidth)),
       H: Math.max(360, Math.round(stage.clientHeight)),
       dpr: window.devicePixelRatio || 1,
+    };
+    return {
+      W: state.stageSize.W,
+      H: state.stageSize.H,
+      dpr: state.stageSize.dpr,
       stage: stage,
     };
   }
 
   // Where a layer lands on the stage, in CSS pixels.
   //
-  // This mirrors the engine's draw path: a cover-fit of the asset's
-  // aspect ratio at the layer's scale, centred on the stage and offset
-  // by the transform's x/y — EXCEPT when the layer is rotated, where the
-  // engine rotates about the stage centre and drops the x/y offset
-  // entirely. That asymmetry is worth seeing, so the overlay reproduces
-  // it rather than hiding it.
+  // Preferred answer: the engine's own last draw, observed directly. Every
+  // variant draws differently — cover fit vs contain, a rotation
+  // threshold of 0.3 vs 0.5, the engine-supplied offscreen vs the stage
+  // canvas — so modelling the convention would be wrong somewhere.
+  //
+  // Fallback for a layer that has not drawn yet: the same cover fit the
+  // engine uses, centred on the stage and offset by the transform's
+  // x/y, except when the layer is rotated, where the engine rotates
+  // about the stage centre and drops the x/y offset entirely.
   function layerQuad(entry, W, H) {
+    var recorded = state.drawsByLayer[entry.id];
+    if (recorded && recorded.quad && recorded.stageW === W && recorded.stageH === H) {
+      return {
+        quad: recorded.quad,
+        w: recorded.w,
+        h: recorded.h,
+        rot: 0,
+        centered: false,
+        observed: true,
+      };
+    }
+
     var r = entry.drawn || entry.resolved;
     if (!r) return null;
     var scale = r.scale || 1;
@@ -567,13 +669,13 @@
       var quad = [[-dw / 2, -dh / 2], [dw / 2, -dh / 2], [dw / 2, dh / 2], [-dw / 2, dh / 2]].map(function (p) {
         return [cx + p[0] * cos - p[1] * sin, cy + p[0] * sin + p[1] * cos];
       });
-      return { quad: quad, w: dw, h: dh, rot: rot, centered: true };
+      return { quad: quad, w: dw, h: dh, rot: rot, centered: true, observed: false };
     }
     var dx = (W - dw) / 2 + (r.x || 0);
     var dy = (H - dh) / 2 + (r.y || 0);
     return {
       quad: [[dx, dy], [dx + dw, dy], [dx + dw, dy + dh], [dx, dy + dh]],
-      w: dw, h: dh, rot: 0, centered: false,
+      w: dw, h: dh, rot: 0, centered: false, observed: false,
     };
   }
 
@@ -630,23 +732,36 @@
       return;
     }
     entries.forEach(function (e, i) {
-      if (!e.drawn) return;
+      var rec = state.drawsByLayer[e.id];
       var r = e.resolved || {};
-      var dr = e.drawn || {};
-      var row = el('div', 'row');
-      row.appendChild(el('span', 'k', 'L' + (i + 1)));
-      var grid = el('div', 'grid');
-      grid.style.flex = '1';
-      [['sc', r.scale, dr.scale], ['x', r.x, dr.x], ['y', r.y, dr.y], ['rt', r.rot, dr.rot]].forEach(function (f) {
-        var cell = el('div');
-        cell.appendChild(el('span', null, f[0]));
-        var b = el('b', null, num(f[2], 2));
-        b.setAttribute('data-drift', f[0]);
-        b.setAttribute('data-layer', e.id);
-        cell.appendChild(b);
-        grid.appendChild(cell);
-      });
-      row.appendChild(grid);
+      var row = el('div');
+      row.style.margin = '4px 0';
+
+      var a = el('div', 'row');
+      a.appendChild(el('span', 'k', 'L' + (i + 1) + ' res'));
+      var av = el('span', 'v');
+      av.style.width = 'auto';
+      av.style.flex = '1';
+      av.style.textAlign = 'left';
+      av.textContent = 'sc ' + num(r.scale, 2) + '  x ' + num(r.x, 1) + '  y ' + num(r.y, 1);
+      a.appendChild(av);
+      row.appendChild(a);
+
+      var b = el('div', 'row');
+      b.appendChild(el('span', 'k', 'drawn'));
+      var bv = el('span', 'v');
+      bv.style.width = 'auto';
+      bv.style.flex = '1';
+      bv.style.textAlign = 'left';
+      bv.style.color = '#00f0ff';
+      if (rec) {
+        bv.textContent = 'x ' + num(rec.ox, 1) + '  y ' + num(rec.oy, 1) +
+          '  ' + Math.round(rec.w) + '×' + Math.round(rec.h);
+      } else {
+        bv.textContent = 'not drawn yet';
+      }
+      b.appendChild(bv);
+      row.appendChild(b);
       d.body.appendChild(row);
     });
   }
@@ -901,6 +1016,7 @@
       layers: layerEntries().map(function (e) {
         var el = e.asset && e.asset._el;
         var q = size ? layerQuad(e, size.W, size.H) : null;
+        var rec = state.drawsByLayer[e.id];
         return {
           id: e.id,
           name: e.name,
@@ -911,6 +1027,10 @@
           elKey: el ? el.tagName + '#' + String(el.src || '').slice(-24) : '',
           quad: q ? q.quad : null,
           quadSize: q ? { w: q.w, h: q.h, rot: q.rot, centered: q.centered } : null,
+          // True when the quad came from an observed engine draw rather
+          // than from the modelled fallback.
+          observed: q ? !!q.observed : false,
+          drawOrigin: rec ? { x: rec.ox, y: rec.oy, w: rec.w, h: rec.h } : null,
         };
       }),
     };

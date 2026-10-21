@@ -27,6 +27,7 @@ Node 20+ required (`.nvmrc` → `20`; `engines` pins `node >=20`, `npm >=10`). n
 - `auth/` — magic-link `login.html` + `login.client.js` and `verify.html` + `verify.client.js`.
 - **`lib/` (51 files) and `client/` (54 files + `client/vendor/`)** are two distinct trees, not one pool:
   - `lib/` — engine primitives and plumbing: `audio.client.js`, `media-feat.client.js` (canonical 12-field audio feat extraction from any media element, `SWR_MEDIA_FEAT.attach(el)`, used by tape for real automix features), `media-store`, `gif-decoder`, `recorder*`, `persist*`, `library-persist`, `playlist`, `storage`, `migrate`, `reset-state`, `tier-runtime`, `adaptive-guard`, `intensity-slider.client.js` (two-way FX master intensity control), the design assets `design-tokens.css` / `design-base.css` / `components.css`, and vendored `three.module.min.js` / `omggif.js` / `mp4-muxer.js`.
+  - **`client/engine-debugger.client.js`** — the SWR **visual debugger**: a standalone overlay (`window.SWR_DEBUGGER`) that exposes the engine's live internal state — audio features, the layer stack, each layer's resolved transform, the reactor wiring, per-layer geometry drawn on the stage canvas, and the loaded module registry. It is **not loaded by any page**; it is injected on demand (bookmarklet, console paste, CDP) and works on any page that exposes `window.SWR` + `window.SWR_RENDER`. It observes the engine through two existing seams — the `applyR` argument of `SWR_RENDER.frame` and the exported `SWR_RENDER.imageEvolve` — and forwards both unchanged, so it adds no calls into the engine's stateful audio damper and cannot alter what the engine renders. See "SWR visual debugger" below.
   - `client/` — higher-level feature stacks: automix (`automix-runtime`, `automix-arc`, `automix-composition`, `automix-session-store`, `preset-anchor-map`, `last-mix-store`), live media (`swr-media-input`, `swr-camera-preview`, `swr-mic-meter`, `swr-spit-runtime`, `swr-spit-fx`, `capture-runtime`), storyboard (`storyboard*.client.js`), dashboard (`dashboard-engine*`, `dashboard-presets` — publishes `window.__SWR_LAYER_PRESETS`, *not* the `window.__SWR_PRESETS` preset catalogue from `versions-presets.js`), mesh (`meshify`, `mesh-renderer`, `mesh-scene`), `visualizer-controller.js` (loaded by the artistic variants, **not** from `lib/`), `looks-menu.client.js` (the engine's grouped **looks** dropdown — see below), and page controllers (`dropzone`, `asset-curator`, `variant-switcher`, `library-packs`, `default-library`).
   - **`client/looks-menu.client.js`** — the engine's `#looks` select: one control listing every shipped look in three `<optgroup>`s. Exists because **three unsynchronised catalogues** were previously reachable by no single control — (1) `#variant` (5 entries, `neon/film/grid/smoke/hallucination`, the only ones `variant-switcher` can drive since it `fetch`es `/versions/<id>.html` and compiles that page's `drawFx` verbatim), (2) `#preset` (5 entries backed by `engine.html`'s private `VISUAL_PRESETS` — reactors/blends, not a grade), (3) `versions-presets.js`'s 23 grade presets, which the version pages read but **no engine control exposed**. The dropdown maps them 1:1: **Variant looks** → `SWR_VARIANTS.activate()`, **Grade presets** → `FX.setPersona()` (plus slider mirroring; the FX keys `temp`/`mut` are `#temperature`/`#mutations` in the DOM), **Motion presets** → sets `#preset` and dispatches `change`. Option values are group-qualified (`grade:aurora`) because `film, grid, neon, smoke, hallucination` exist in two groups at once. `gallery` and `mtv` are excluded from Grade presets by `GRADE_EXCLUDE`. The 17 artistic variants are **not** listed — variant-switcher cannot drive them without authoring 17 new `VARIANTS` records.
   - **`versions-presets.js` data-only mode** — `window.SWR_PRESETS_DATA_ONLY = 1` (set by `engine.html` before the script tag) makes the module expose `window.__SWR_PRESETS` and return **before** `init()`, because the engine already drives `#fx-canvas` via `fx-postprocess.js` and a second WebGL overlay would steal the canvas or stack two FX passes. Without this the engine would render with duplicated post-processing.
@@ -130,6 +131,35 @@ To archive a page:
 - After every sprint / non-trivial change, run the relevant E2E scripts before claiming done — typecheck + build do not catch runtime bugs (Canvas/WebGL/PWA/audio permission flows, infinite re-render loops, IndexedDB persistence, Vercel deploy quirks)
 - `preset-pipeline/cron.sh` is the canonical daily-preset entry point; it generates then verifies
 - **Env-skip pattern**: tests that need resources outside this repo (e.g. `verify:hf-publish` requires the sibling `~/Documents/autodashboard/magenta-dsp-procedural` source) print `(env skip: ...)` and pass when the resource is absent, matching the design intent of `scripts/build-magenta-dsp-bundle.sh:74-88`. Keep the marker literal so a real failure still surfaces
+
+## SWR visual debugger
+
+`client/engine-debugger.client.js` is a standalone overlay that shows what the engine is actually doing, live. It ships as a file no page loads — you inject it when you need it:
+
+```bash
+# In the console on any /versions/<name>.html page:
+fetch('/client/engine-debugger.client.js').then(r => r.text()).then(t => eval(t))
+```
+
+It attaches `window.SWR_DEBUGGER` and auto-mounts. `SWR_DEBUGGER.toggle()` mounts/unmounts; `unmount()` also releases the engine wrappers, so the page returns to its untouched state.
+
+**What it shows** — audio features (bass/sub/mid/treble/air/rms/centroid), BPM, beat/onset pulses, the layer stack with each layer's resolved transform (scale, opacity, hue, contrast, brightness, x, y, rot), the reactor wiring, the drift between a layer's resolved transform and the one actually drawn, a scrolling feature scope, a beat/onset rhythm strip, perf counters, master-toggle states, the loaded `SWR_*` module registry, and — drawn on the stage canvas itself — each layer's real footprint.
+
+**How it observes** — it wraps `SWR_RENDER.frame`'s `applyR` argument and the exported `SWR_RENDER.imageEvolve`, and forwards both unchanged. It never re-derives engine state: `SWR_AUDIO_DAMP.damp()` is stateful, so an extra call would advance the damper and the panel would describe a picture that was never rendered. The wrappers add no calls, so the overlay cannot perturb the engine.
+
+**Its metric** — `npm run check:debugger` (`scripts/check-swr-debugger.mjs`) drives headless Chrome over the DevTools Protocol with **no npm dependencies** (Node's built-in `WebSocket` does the work) and scores:
+
+```
+SCORE = 0.5 * coverage + 0.3 * accuracy + 0.2 * headroom
+```
+
+- **coverage** — of the overlay's 13 declared surfaces, how many render genuine live engine data (not placeholders)
+- **accuracy** — 8 independent probes: the resolved transform matches the engine's own static fields with reactors muted; the painted DOM matches the painted snapshot and is not stale; values move; a layer mutation shows up promptly; the stage geometry matches the engine's **real `drawImage` calls**; every engine layer appears; unmount releases the wrappers and the engine keeps drawing; and no extra `applyR`/`imageEvolve` calls were introduced
+- **headroom** — frame-budget headroom from the measured median frame time with and without the overlay
+
+The score is the mean across a slice of the variant family (`--pages=neon,film,aurora,watercolor`), so a variant the debugger cannot handle costs real points. `--target=<url>` scores a single page; `--no-debugger` measures the floor; `--fail-under=<0..1>` gates a CI run.
+
+The harness needs Chrome and network access to the deployed site, so it is a developer aid, not part of the `check` group.
 
 ## PR & commit conventions
 

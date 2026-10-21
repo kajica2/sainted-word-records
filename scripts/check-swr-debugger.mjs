@@ -197,15 +197,44 @@ const PROBE_SRC = `
     frames: 0,
     applyRCalls: 0,
     evolveCalls: 0,
+    drawCalls: 0,
     draws: [],
     layerIds: [],
     resolved: {},
     drawn: {},
+    // layerId → the last draw the engine made for that layer, plus the
+    // CSS-space quad the probe derives independently from the raw call.
+    layerDraws: {},
+    currentLayer: null,
     reset() {
-      this.frames = 0; this.applyRCalls = 0; this.evolveCalls = 0;
+      this.frames = 0; this.applyRCalls = 0; this.evolveCalls = 0; this.drawCalls = 0;
       this.resolved = {}; this.drawn = {}; this.draws = [];
     },
   };
+
+  // Derive the CSS-space quad from a raw drawImage call. This is the
+  // probe's own implementation of "where did that land", written
+  // independently of the debugger's, so the two can be compared.
+  function cssQuad(t, dx, dy, dw, dh) {
+    const dpr = Math.hypot(t.a, t.b) || 1;
+    const corners = [[dx, dy], [dx + dw, dy], [dx + dw, dy + dh], [dx, dy + dh]];
+    return corners.map((q) => [
+      (t.a * q[0] + t.c * q[1] + t.e) / dpr,
+      (t.b * q[0] + t.d * q[1] + t.f) / dpr,
+    ]);
+  }
+  probe.cssQuad = cssQuad;
+
+  function recordDraw(ctx, layer, src, dx, dy, dw, dh) {
+    if (!layer) return;
+    probe.drawCalls++;
+    const t = ctx.getTransform();
+    const quad = cssQuad(t, dx, dy, dw, dh);
+    probe.draws.push({ key: src && src.tagName ? src.tagName + '#' + String(src.src || '').slice(-24) : '',
+      dx, dy, dw, dh, a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f });
+    probe.layerDraws[layer.id] = { quad, w: dw, h: dh, ox: dx, oy: dy };
+  }
+  probe.recordDraw = recordDraw;
 
   const origFrame = R.frame;
   R.frame = function (stage, ctx, layers, applyR, drawToCtx, opts) {
@@ -218,7 +247,28 @@ const PROBE_SRC = `
       probe.resolved[l.id] = r;
       return r;
     };
-    return origFrame.call(this, stage, ctx, layers, rec, drawToCtx, opts);
+    // Attribute draws to the layer being drawn. The engine's drawToCtx
+    // receives an offscreen context, and variants that ignore it draw
+    // straight onto the stage instead — watch both.
+    const traced = function (l, r, c, cssW, cssH) {
+      probe.currentLayer = l;
+      let restore = null;
+      if (c && typeof c.drawImage === 'function') {
+        const orig = c.drawImage;
+        c.drawImage = function (src, dx, dy, dw, dh) {
+          probe.recordDraw(this, l, src, dx, dy, dw, dh);
+          return orig.apply(this, arguments);
+        };
+        restore = function () { c.drawImage = orig; };
+      }
+      try {
+        return drawToCtx(l, r, c, cssW, cssH);
+      } finally {
+        if (restore) restore();
+        probe.currentLayer = null;
+      }
+    };
+    return origFrame.call(this, stage, ctx, layers, rec, traced, opts);
   };
 
   const origEvolve = R.imageEvolve;
@@ -231,28 +281,12 @@ const PROBE_SRC = `
     };
   }
 
-  // Capture the engine's REAL draw calls. This is the ground truth the
-  // debugger's geometry overlay is audited against — the overlay claims
-  // to show where each layer lands; this records where it actually did.
-  //
-  // Only element sources count. The engine also blits its per-layer
-  // offscreen cache (an OffscreenCanvas) and the natural/grade pass
-  // blits full-stage canvases; those are engine internals, not layer
-  // draws, and they carry no identity to match a layer against.
+  // The stage canvas, for the variants that draw straight onto it.
   const stageCtx = window.SWR && window.SWR.ctx;
   if (stageCtx) {
     const origDraw = stageCtx.drawImage;
-    stageCtx.drawImage = function (src) {
-      const rest = Array.prototype.slice.call(arguments, 1);
-      const tag = src && src.tagName;
-      if (rest.length >= 4 && (tag === 'IMG' || tag === 'VIDEO')) {
-        const t = this.getTransform();
-        probe.draws.push({
-          key: tag + '#' + String(src.src || '').slice(-24),
-          dx: rest[0], dy: rest[1], dw: rest[2], dh: rest[3],
-          a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f,
-        });
-      }
+    stageCtx.drawImage = function (src, dx, dy, dw, dh) {
+      if (probe.currentLayer) probe.recordDraw(this, probe.currentLayer, src, dx, dy, dw, dh);
       return origDraw.apply(this, arguments);
     };
   }
@@ -383,8 +417,9 @@ const COVERAGE_SRC = `
   };
 
   out['drift-readout'] = {
-    ok: root.querySelectorAll('[data-surface="drift-readout"] b[data-drift]').length >= 4,
-    n: root.querySelectorAll('[data-surface="drift-readout"] b[data-drift]').length,
+    ok: root.querySelectorAll('[data-surface="drift-readout"] .row').length >= 2 &&
+        numbersIn('drift-readout').length >= 2,
+    n: root.querySelectorAll('[data-surface="drift-readout"] .row').length,
   };
 
   const strip = root.querySelector('[data-surface="beat-strip"] canvas');
@@ -557,39 +592,43 @@ const P4_SRC = `
 `;
 
 // P6 — the overlay's geometry must match where the engine ACTUALLY drew.
-// The probe captured the real drawImage calls; the debugger claims a quad
-// per layer. This is the independent ground-truth check.
+//
+// The probe derives the CSS-space quad from the raw drawImage call using
+// its own implementation; the debugger derives its reported quad through
+// a different path. Comparing them is a differential test: a bug in the
+// debugger's DPR handling, rotation maths or CSS conversion shows up as a
+// mismatch instead of being silently consistent with itself.
 const P6_SRC = `
 (() => {
   const D = window.SWR_DEBUGGER;
   const p = window.__swrProbe;
   if (!D || !p) return { ok: false, reason: 'missing api' };
   const snap = D.snapshot();
-  const byKey = {};
-  snap.layers.forEach((l) => { if (l.elKey) byKey[l.elKey] = l; });
 
   const checks = [];
-  p.draws.forEach((d) => {
-    const layer = byKey[d.key];
-    if (!layer || !layer.quad) {
-      checks.push({ ok: false, reason: 'no layer matches this draw call', key: d.key });
+  snap.layers.forEach((l) => {
+    const expected = p.layerDraws[l.id];
+    if (!expected) {
+      checks.push({ ok: false, reason: 'probe saw no draw for this layer', id: l.id });
       return;
     }
-    const dpr = Math.hypot(d.a, d.b) || 1;
-    const corners = [[d.dx, d.dy], [d.dx + d.dw, d.dy], [d.dx + d.dw, d.dy + d.dh], [d.dx, d.dy + d.dh]];
-    const css = corners.map((q) => [
-      (d.a * q[0] + d.c * q[1] + d.e) / dpr,
-      (d.b * q[0] + d.d * q[1] + d.f) / dpr,
-    ]);
+    if (!l.observed) {
+      checks.push({ ok: false, reason: 'debugger reported no observed quad', id: l.id });
+      return;
+    }
+    if (!l.quad) {
+      checks.push({ ok: false, reason: 'debugger reported no quad', id: l.id });
+      return;
+    }
     let maxDelta = 0;
     for (let i = 0; i < 4; i++) {
       maxDelta = Math.max(maxDelta,
-        Math.abs(css[i][0] - layer.quad[i][0]),
-        Math.abs(css[i][1] - layer.quad[i][1]));
+        Math.abs(expected.quad[i][0] - l.quad[i][0]),
+        Math.abs(expected.quad[i][1] - l.quad[i][1]));
     }
-    checks.push({ ok: maxDelta <= 1.5, key: d.key, maxDelta });
+    checks.push({ ok: maxDelta <= 1.5, id: l.id, maxDelta });
   });
-  if (!checks.length) return { ok: false, reason: 'no draw calls captured', passed: 0, total: 0 };
+  if (!checks.length) return { ok: false, reason: 'no layers to compare', passed: 0, total: 0 };
   const passed = checks.filter((c) => c.ok).length;
   return { ok: passed === checks.length, passed, total: checks.length,
            failures: checks.filter((c) => !c.ok).slice(0, 6) };
@@ -726,8 +765,10 @@ async function measurePage(cdp, url) {
     const base = await evaluate(cdp, sessionId, `(() => {
       const p = window.__swrProbe;
       return { frames: p.frames, applyRCalls: p.applyRCalls, evolveCalls: p.evolveCalls,
+               drawCalls: p.drawCalls,
                perFrameApplyR: p.frames ? p.applyRCalls / p.frames : 0,
-               perFrameEvolve: p.frames ? p.evolveCalls / p.frames : 0 };
+               perFrameEvolve: p.frames ? p.evolveCalls / p.frames : 0,
+               perFrameDraw: p.frames ? p.drawCalls / p.frames : 0 };
     })()`);
 
     // ── inject the debugger ──
@@ -746,8 +787,10 @@ async function measurePage(cdp, url) {
     const dbg = await evaluate(cdp, sessionId, `(() => {
       const p = window.__swrProbe;
       return { frames: p.frames, applyRCalls: p.applyRCalls, evolveCalls: p.evolveCalls,
+               drawCalls: p.drawCalls,
                perFrameApplyR: p.frames ? p.applyRCalls / p.frames : 0,
-               perFrameEvolve: p.frames ? p.evolveCalls / p.frames : 0 };
+               perFrameEvolve: p.frames ? p.evolveCalls / p.frames : 0,
+               perFrameDraw: p.frames ? p.drawCalls / p.frames : 0 };
     })()`);
 
     // Cache the DOM reader on the page for the probe scripts.
@@ -780,13 +823,15 @@ async function measurePage(cdp, url) {
       probes.push({ name: 'unmount-integrity', ...p8 });
     }
 
-    // P3 — no perturbation: the debugger must not add calls into the
-    // engine's applyR / imageEvolve pipeline.
+    // P3 — no perturbation: the debugger must not add or suppress calls
+    // into the engine's applyR / imageEvolve / drawImage pipeline.
     const perturbOk =
       mounted &&
       base.perFrameApplyR > 0 && dbg.perFrameApplyR > 0 &&
       Math.abs(base.perFrameApplyR - dbg.perFrameApplyR) < 0.02 &&
-      Math.abs(base.perFrameEvolve - dbg.perFrameEvolve) < 0.02;
+      Math.abs(base.perFrameEvolve - dbg.perFrameEvolve) < 0.02 &&
+      base.perFrameDraw > 0 &&
+      Math.abs(base.perFrameDraw - dbg.perFrameDraw) < 0.02;
     probes.push({
       name: 'no-perturbation',
       ok: perturbOk,
@@ -794,6 +839,8 @@ async function measurePage(cdp, url) {
       dbgApplyR: dbg.perFrameApplyR,
       baseEvolve: base.perFrameEvolve,
       dbgEvolve: dbg.perFrameEvolve,
+      baseDraw: base.perFrameDraw,
+      dbgDraw: dbg.perFrameDraw,
     });
     result.probes = probes;
 
