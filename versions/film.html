@@ -3,6 +3,8 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <!-- Video playback sync — see lib/video-sync.client.js -->
+  <script src="../lib/video-sync.client.js"></script>
   <meta charset="utf-8" />
   <title>FILM · SWR engine v2</title>
   <meta name="description" content="16mm grain + sepia + warm temperature" />
@@ -1010,8 +1012,21 @@ const a=l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a (l
       if (a.type==='video') {
         if (!a._el) { a._el=document.createElement('video'); a._el.src=url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
         src=a._el;
-        if (A.playing && src.paused) src.play().catch(()=>{});
-        if (!A.playing && !src.paused) src.pause();
+        // Shared video playback sync (see engine-render.client.js /
+        // SWR_VIDEO_SYNC). Two Chrome behaviours break the old two-line
+        // version: a video paused while it is still loading has its media
+        // pipeline suspended — the element drops back to readyState 1 and
+        // stops fetching — and while a play() promise is pending `paused`
+        // stays true, so the next frame calls play() again and a second
+        // play() on a pending element resets it to readyState 1. Either way
+        // the element sits at readyState 1, the draw gate (readyState < 2)
+        // skips the layer, and the clip never reaches the stage.
+        if (window.SWR_VIDEO_SYNC) {
+          window.SWR_VIDEO_SYNC(src, A.playing);
+        } else {
+          if (A.playing && src.paused) src.play().catch(()=>{});
+          if (!A.playing && !src.paused) src.pause();
+        }
       } else {
         if (!a._el) { a._el=new Image(); a._el.src=url; }
         src=a._el;

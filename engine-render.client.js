@@ -397,7 +397,18 @@
         // visible frame — no stale blank can survive the skip.
         if (r && r.opacity <= 0.004) {
           const vEl = l.asset && l.asset._el;
-          if (vEl && vEl.tagName === 'VIDEO' && !vEl.paused) {
+          // Only pause a video that already has data. Pausing an element
+          // that is still loading suspends its media pipeline (Chrome
+          // drops it back to readyState 1 and stops fetching); the next
+          // play() then restarts the load and the element can sit at
+          // readyState 1 for good — the draw gate (readyState < 2) skips
+          // the layer and the clip never appears on stage.
+          //
+          // A freshly added layer is invisible for its whole fade-in
+          // (SWR_TIMING.attach starts _currentOpacity at 0 and ramps it
+          // over fadeInMs), so this branch ran on every frame of every
+          // new video's intro and killed it before it ever drew.
+          if (vEl && vEl.tagName === 'VIDEO' && !vEl.paused && vEl.readyState >= 2) {
             try { vEl.pause(); } catch (_) {}
           }
           continue;
