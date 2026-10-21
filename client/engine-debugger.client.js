@@ -315,14 +315,21 @@
   }
 
   // The recorded samples, oldest first.
-  function historyArray() {
-    if (!state.historyBuf) return [];
-    var count = Math.min(state.historyLen, HISTORY_MAX);
-    var out = [];
+  function historyCount() {
+    return state.historyBuf ? Math.min(state.historyLen, HISTORY_MAX) : 0;
+  }
+
+  // Sample i (0 = oldest) without allocating.
+  function historyAt(i) {
+    var count = historyCount();
     var start = state.historyLen - count;
-    for (var i = 0; i < count; i++) {
-      out.push(state.historyBuf[(start + i) % HISTORY_MAX]);
-    }
+    return state.historyBuf[(start + i) % HISTORY_MAX];
+  }
+
+  function historyArray() {
+    var count = historyCount();
+    var out = [];
+    for (var i = 0; i < count; i++) out.push(historyAt(i));
     return out;
   }
 
@@ -628,25 +635,34 @@
   // The engine's CSS drawing dimensions. SWR_RENDER.fit() is the only
   // authority on these (it applies the 640×360 floor and the DPR cap),
   // so the debugger asks rather than re-deriving.
-  function engineSize() {
+  //
+  // Asked once, not once per paint: fit() reads the stage's client box,
+  // which forces a synchronous layout, and on a heavy page that layout
+  // flush cost more per frame than everything else the debugger does.
+  // The stage only changes size on a resize, so the answer is cached and
+  // refreshed on resize.
+  function engineSize(force) {
     var stage = window.SWR && window.SWR.stage;
     if (!stage) return null;
+    if (!force && state.stageSize && state.stageSize.stage === stage) return state.stageSize;
+    var size;
     if (window.SWR_RENDER && window.SWR_RENDER.fit) {
       var f = window.SWR_RENDER.fit(stage);
-      state.stageSize = { W: f.cssW, H: f.cssH, dpr: f.dpr };
-      return { W: f.cssW, H: f.cssH, dpr: f.dpr, stage: stage };
+      size = { W: f.cssW, H: f.cssH, dpr: f.dpr, stage: stage };
+    } else {
+      size = {
+        W: Math.max(640, Math.round(stage.clientWidth)),
+        H: Math.max(360, Math.round(stage.clientHeight)),
+        dpr: window.devicePixelRatio || 1,
+        stage: stage,
+      };
     }
-    state.stageSize = {
-      W: Math.max(640, Math.round(stage.clientWidth)),
-      H: Math.max(360, Math.round(stage.clientHeight)),
-      dpr: window.devicePixelRatio || 1,
-    };
-    return {
-      W: state.stageSize.W,
-      H: state.stageSize.H,
-      dpr: state.stageSize.dpr,
-      stage: stage,
-    };
+    state.stageSize = size;
+    return size;
+  }
+
+  function refreshStageSize() {
+    engineSize(true);
   }
 
   // Where a layer lands on the stage, in CSS pixels.
@@ -819,19 +835,19 @@
     g.fillStyle = '#05030a';
     g.fillRect(0, 0, w, h);
 
-    var hist = historyArray();
-    if (hist.length < 2) return;
-    var n = hist.length;
+    var n = historyCount();
+    if (n < 2) return;
     var step = w / Math.max(1, HISTORY_MAX - 1);
     var x0 = w - (n - 1) * step;
 
     for (var i = 0; i < n; i++) {
       var x = x0 + i * step;
-      if (hist[i].onset > 0.6) {
+      var sample = historyAt(i);
+      if (sample.onset > 0.6) {
         g.fillStyle = '#00f0ff';
         g.fillRect(x, 0, 1, 8);
       }
-      if (hist[i].beat > 0.6) {
+      if (sample.beat > 0.6) {
         g.fillStyle = '#ff2d8a';
         g.fillRect(x, h - 8, 1, 8);
       }
@@ -986,8 +1002,8 @@
     g.fillStyle = '#05030a';
     g.fillRect(0, 0, w, h);
 
-    var hist = historyArray();
-    if (hist.length < 2) return;
+    var n = historyCount();
+    if (n < 2) return;
 
     var series = [
       { key: 'bass', color: '#ff2d8a' },
@@ -996,14 +1012,13 @@
       { key: 'rms', color: '#00ffa3' },
     ];
 
-    var n = hist.length;
     var step = w / Math.max(1, HISTORY_MAX - 1);
     var x0 = w - (n - 1) * step;
 
     // beat ticks along the bottom
     g.fillStyle = 'rgba(255,45,138,0.22)';
     for (var i = 0; i < n; i++) {
-      if (hist[i].beat > 0.6) g.fillRect(x0 + i * step, h - 5, 1, 5);
+      if (historyAt(i).beat > 0.6) g.fillRect(x0 + i * step, h - 5, 1, 5);
     }
 
     series.forEach(function (s) {
@@ -1011,7 +1026,8 @@
       g.strokeStyle = s.color;
       g.lineWidth = 1;
       for (var i = 0; i < n; i++) {
-        var v = typeof hist[i][s.key] === 'number' ? hist[i][s.key] : 0;
+        var v = historyAt(i)[s.key];
+        v = typeof v === 'number' ? v : 0;
         var y = h - 2 - Math.max(0, Math.min(1, v)) * (h - 8);
         if (i === 0) g.moveTo(x0, y); else g.lineTo(x0 + i * step, y);
       }
@@ -1107,6 +1123,11 @@
       state.mounted = true;
       buildOverlay();
       refreshModules();
+      refreshStageSize();
+      // The stage's size only changes on a resize; re-measure then
+      // rather than forcing a layout flush on every repaint.
+      state.onResize = function () { refreshStageSize(); };
+      window.addEventListener('resize', state.onResize);
       requestAnimationFrame(tick);
       return api;
     },
@@ -1116,6 +1137,10 @@
       state.mounted = false;
       uninstrument();
       destroyStageOverlay();
+      if (state.onResize) {
+        window.removeEventListener('resize', state.onResize);
+        state.onResize = null;
+      }
       var root = $('swr-debugger');
       if (root && root.parentNode) root.parentNode.removeChild(root);
       var style = $('swr-debugger-style');
