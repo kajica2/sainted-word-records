@@ -219,6 +219,8 @@ It deliberately **does not model each variant's draw convention** — cover fit 
 
 **Scope** — the overlay observes the shared `SWR_RENDER` engine, so it covers the **variant pages** (`/versions/*.html` — neon, film, aurora, watercolor and the rest). `engine.html` runs its own renderer (`window.SWR.Renderer`: its own stage canvas, layer geometry and drift system) and is **not** covered; the overlay says so on that page rather than failing silently. Extending it to `engine.html` means a second renderer integration, not another hook.
 
+**Reaching it** — the footer's utility row on `versions/neon.html` carries an **Inspect** control pointing at `?swrdebug=1`. A six-line bootstrap on that page injects the overlay only when the parameter is present, so without it the page does not fetch the tool at all. The link is a real URL, so the view is shareable.
+
 **Relationship to `client/debug-overlay.client.js`** — the two are complementary, not duplicates. The engine's own overlay (loaded by `engine.html`, enabled with `?debug=1`) is a *key-action log*: the last 12 keys and UI actions, the look filter, a coarse audio and layer summary. This one is a *state inspector*: live feature values, per-layer resolved transforms, reactor wiring, the audio's contribution per layer, and each layer's footprint on the stage. They use different globals (`SWR_DEBUG_OVERLAY` vs `SWR_DEBUGGER`) and neither binds a key the other uses — but both would sit in the bottom-right corner of `engine.html`, so this panel stops above the engine's overlay when it is present.
 
 **Its metric** — `npm run check:debugger` (`scripts/check-swr-debugger.mjs`) drives headless Chrome over the DevTools Protocol with **no npm dependencies** (Node's built-in `WebSocket` does the work) and scores:
