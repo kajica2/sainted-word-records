@@ -96,7 +96,7 @@
   }
 
   function defaultAccept() {
-    return 'image/*,video/*,audio/*,.mid,.midi';
+    return 'image/*,video/*,audio/*,.mid,.midi,.mov';
   }
 
   function readDataTransfer(dt) {
