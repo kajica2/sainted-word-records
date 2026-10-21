@@ -98,6 +98,12 @@ const GROUPS = {
     // never render a dead checkout URL, and the publish script must write
     // the off-site URL back into the manifest without reformatting it.
     'npm run check:store-unit',
+    // The shipped media off-site: the curated packs (582 files, 39.6 MB)
+    // can be served from an off-site host instead of the deploy. The
+    // build then ships only packs/manifest.json, with its base pointing
+    // at the host. The unit pins the base normalisation, the manifest
+    // rewrite, the copy plan and the publish plan.
+    'npm run check:media-offsite-unit',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.
@@ -300,6 +306,11 @@ const GROUPS = {
     // with a disabled Buy button while the Payment Links are missing, and
     // no page ships a placeholder checkout URL. Needs a built dist/.
     'npm run check:store-smoke',
+    // The shipped media off-site, end to end: a second build with
+    // PACKS_BASE set must ship only the packs manifest, the packs page
+    // must resolve every image to the off-site origin, the images must
+    // load, and a cross-origin fetch of a pack file must succeed.
+    'npm run check:media-offsite-smoke',
     'npm run check:media-input-smoke',
     // The Live control end to end in a real browser: a synthetic camera
     // (--use-fake-device-for-media-stream) actually playing, the stage

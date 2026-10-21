@@ -57,7 +57,15 @@ server.on('error', (err) => {
   console.error('ANNOUNCEMENTS SMOKE: cannot bind port 5185 — ' + (err && err.code ? err.code : err));
   process.exit(1);
 });
-server.listen(5185);
+// The port is chosen by the OS (0 = ephemeral) and read back below: a
+// fixed port collides with whatever else holds it — a parallel gate run
+// is enough to fail the whole step with EADDRINUSE.
+await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen(0, '127.0.0.1', resolve);
+});
+const PORT = server.address().port;
+const BASE = `http://127.0.0.1:${PORT}`;
 
 const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
@@ -81,7 +89,13 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 async function nav(url) {
-  await page.goto('http://localhost:5185' + url, { waitUntil: 'networkidle2', timeout: 30000 });
+  // Navigate on domcontentloaded and give the page a bounded chance to
+  // reach 'complete'. A networkidle wait never settles on a CI runner —
+  // the service worker and the announcement feed keep a connection open —
+  // and the step then dies with a 30s navigation timeout that says
+  // nothing about the gate.
+  await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
   await page.waitForFunction(() => window.SWR_ANNOUNCEMENTS || true, { timeout: 10000 }).catch(() => {});
 }
 

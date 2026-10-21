@@ -121,6 +121,11 @@ function walk(dir, out = []) {
     if (e.name.startsWith('.') && e.name !== '.') continue;
     if (e.isDirectory()) {
       if (IGNORED_DIRS.has(e.name)) continue;
+      // Any dist* directory is a build output (the .gitignore pattern is
+      // `dist*`), and a full copy of the site inside one is not a set of
+      // pages: a stray copy used to fail this gate with hundreds of
+      // "no <swr-footer> mount" and canonical complaints.
+      if (/^dist(-|$)/.test(e.name)) continue;
       walk(path.join(dir, e.name), out);
     } else if (e.name.endsWith('.html')) {
       out.push(path.join(dir, e.name).replace(/^\.\//, ''));

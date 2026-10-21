@@ -8,6 +8,16 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- The shipped media off-site — the curated packs (582 files, 39.6 MB) can be
+  served from an off-site host instead of the deploy. Set `PACKS_BASE` and
+  the build ships only `packs/manifest.json`, with its `base` rewritten to
+  that URL; the media is fetched cross-origin and never enters the build.
+  `npm run media:publish` uploads the packs to Vercel Blob or the Hugging
+  Face Hub, prints the `PACKS_BASE=` line for the deploy environment, and
+  verifies that the host serves `access-control-allow-origin` — the engine
+  fetches the media from its own origin, so a host without CORS would break
+  the packs at runtime. Unset, nothing changes: the whole directory ships
+  exactly as before.
 - The **Media Source** panel — where the audio comes from, next to the
   loaded video instead of buried in a global settings page. The source is
   the video's own track, a separate audio file, or nothing; the panel also

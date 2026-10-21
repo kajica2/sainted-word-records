@@ -17,7 +17,6 @@ import { fileURLToPath } from 'url';
 import puppeteer from 'puppeteer';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const PORT = 8097;
 
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -36,7 +35,10 @@ function serve() {
       res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
       fs.createReadStream(file).pipe(res);
     });
-    server.listen(PORT, () => resolve(server));
+    // The port is chosen by the OS (0 = ephemeral) and read back below: a
+    // fixed port collides with whatever else on the machine holds it — a
+    // parallel gate run is enough to fail the whole step with EADDRINUSE.
+    server.listen(0, '127.0.0.1', () => resolve(server));
   });
 }
 
@@ -79,7 +81,8 @@ try {
 
   // ---- boot ----
 
-  await page.goto(`http://localhost:${PORT}/engine.html`,
+  const base = `http://127.0.0.1:${server.address().port}`;
+  await page.goto(`${base}/engine.html`,
                   { waitUntil: 'load', timeout: 45000 });
 
   // Wait for the engine + Story runtime to be ready. Polled explicitly

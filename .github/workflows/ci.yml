@@ -68,6 +68,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install ffmpeg (the generations gate measures the media)
+        # The GitHub runner image ships WITHOUT ffmpeg: `which ffprobe`
+        # returns nothing. The generations gate measures every credited
+        # media file with ffprobe, so on the runner every measurement came
+        # back null and the gate failed with "every credited media file has
+        # a length and a bitrate" — for all 33 files, on every PR, against
+        # a tree that is perfectly fine (the same gate is green locally).
+        # The apt package is the same ffprobe the pack pipeline already
+        # expects; it installs in ~20s.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffprobe -version | head -1
+
       - name: check + check:verify (the 5 curated Puppeteer smokes)
         # check:full runs every gate through scripts/run-steps.mjs and reports
         # each one — it is deliberately NOT an `&&` chain, because a chain

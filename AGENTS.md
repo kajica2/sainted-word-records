@@ -154,6 +154,40 @@ deliberately **not** in it.
 - Gates: `check:store-unit` (node:vm, in `check`) and `check:store-smoke`
   (Puppeteer over the built `dist/`, in `check:full`).
 
+## The shipped media off-site
+
+`packs/` is 582 files and 39.6 MB — 22% of the build (measured: 187,696,273 B
+→ 146,215,364 B with `PACKS_BASE` set). The packs are
+opt-in content and the only thing the deploy needs to serve them is
+`packs/manifest.json` (the engine's library drawer, `/packs.html` and
+`/photo-scrolls.html` all fetch that manifest and then load the media it
+lists). That single file is the seam.
+
+- `PACKS_BASE` (build env) — when set to an absolute URL, `vite.config.js`'s
+  `copy-static` ships **only** `packs/manifest.json`, with its `base`
+  rewritten to that URL; the 582 media files stay out of the build. Unset
+  (the default) the whole directory ships exactly as before, so the local
+  build, the CI build and the dev server are unchanged.
+- `npm run media:publish` → `scripts/publish-media-offsite.mjs` uploads the
+  packs to the host and prints the `PACKS_BASE=` line for the deploy env.
+  The host is **Vercel Blob** (`BLOB_READ_WRITE_TOKEN`) or the **Hugging
+  Face Hub** (`HF_TOKEN` + `HF_REPO`, pushed with the `hf` CLI). With
+  neither credential it prints `(env skip: …)` and exits 0. After the
+  upload it **verifies the CORS header** on an uploaded file: the engine
+  fetches the media from its own origin, so a host without
+  `access-control-allow-origin` would break the packs at runtime.
+- `scripts/lib/packs-offsite.mjs` holds the shared logic: base
+  normalisation, the manifest rewrite, the copy plan and the file walk.
+- Gates: `check:media-offsite-unit` (in `check`) and
+  `check:media-offsite-smoke` (in `check:full`) — the smoke builds with
+  `PACKS_BASE` set into a separate output directory, asserts the built
+  packs directory holds the manifest and nothing else, and drives a real
+  browser against a stand-in off-site host on a **different origin**: the
+  pack images must point at that origin, load, and a cross-origin `fetch()`
+  of a pack file must succeed.
+- The manifest itself stays in the deploy — the browser fetches it
+  same-origin — so the site keeps working with no off-site host at all.
+
 ## Code style
 
 - Vanilla JavaScript, ESM (`"type": "module"` in `package.json`). **No TypeScript.**
@@ -165,9 +199,9 @@ deliberately **not** in it.
 
 ## Testing instructions
 
-- `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **103 steps**, `storyboard` **5 steps**, `full` **27 steps** (verified with `node scripts/run-steps.mjs <group> --list`; re-measure after adding a step rather than trusting the number here).
-- Quick gate: `npm run check` → the 103-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
-- Full pre-PR gate: `npm run check:full` → the 27-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:invite-redemption-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:layer-groups-smoke` + `check:song-video-layer-smoke` + `check:media-source-smoke` + `check:announcements-smoke` + `check:store-smoke` + `check:media-input-smoke` + `check:live-input` + `check:spit-live-smoke` + `check:tiktok-smoke` + `check:camera-enhance-smoke` + `check:clip-poster-smoke` + `verify:engine-boot` + `check:variants-smoke` + `check:build-idempotent` + `check:dist-links` + `verify:site-nav`
+- `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **104 steps**, `storyboard` **5 steps**, `full` **28 steps** (verified with `node scripts/run-steps.mjs <group> --list`; re-measure after adding a step rather than trusting the number here).
+- Quick gate: `npm run check` → the 104-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
+- Full pre-PR gate: `npm run check:full` → the 28-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:invite-redemption-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:layer-groups-smoke` + `check:song-video-layer-smoke` + `check:media-source-smoke` + `check:announcements-smoke` + `check:store-smoke` + `check:media-offsite-smoke` + `check:media-input-smoke` + `check:live-input` + `check:spit-live-smoke` + `check:tiktok-smoke` + `check:camera-enhance-smoke` + `check:clip-poster-smoke` + `verify:engine-boot` + `check:variants-smoke` + `check:build-idempotent` + `check:dist-links` + `verify:site-nav`
 - `check:doc-truth` — the doc-vs-code drift gate (P0.6 of `docs/PLANS/architecture-audit-2026-10.md`, the "mechanism not prose" item). Reads the current-state docs (`README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.kai/conventions/*.md`, `docs/ARCHITECTURE.md`, `docs/automix-architecture.md`, `docs/DEV-SERVER.md` - the list is explicit in the script, NOT a glob over `docs/`, because the dated audits and plans in there legitimately describe states that no longer exist) and verifies every inline-code span that asserts something about the tree: a file path must resolve (`lib/media-store.client.js`, `versions/_*.js`, `scripts/run-steps.mjs:44` - a `file:line` citation asserts the FILE, not the line, so a 20-line move in a hot file cannot red the gate), a trailing-slash directory claim must be a real directory (this is what catches a phantom module family like the `versions/inject/*.js` that never existed), a root-relative route must be a shipped file, a `vercel.json` rewrite or an `api/` handler, and a library/API/global name (`THREE.PropertyBinding`, `navigator.storage`, `SWR_NAV`) must appear in the shipped source. Additive by construction: it fails only what it can PROVE wrong, skips what it cannot (fenced blocks, future-work sections, negations, placeholders, branch names, gitignored paths, pseudocode), and prints an `ACCEPTED_DRIFT` ledger for the rest. It carries its own `--self-test` (14 synthetic cases: the 5 drift shapes must fire, the 9 legitimate-prose controls must stay quiet) because a permanently green gate that can no longer detect anything is the worst outcome a CI check can have. Counts ("32 HTML files", "19 codemods") and stale line numbers are the documented follow-up. ~0.3s. In `check`
 - `check:verify` — the curated 5-verifier smoke that gates PRs. The 5 are fixed in `scripts/check-verify-smoke.mjs`: `cloud-auth`, `hf-publish`, `rotation-enabled`, `autoplay`, `e2e-media-record` (API · admin UI · engine mount · feature smoke · recorder cycle). It bootstraps a Vite dev server on `:5175` with a temp `SWRC_DATA_DIR`. Every other `verify-*.mjs` is a developer aid run on demand
 - `check:capture-unit` / `check:capture-smoke` — node:vm unit coverage and a Puppeteer smoke against built `dist/engine` for the periodic frame capture runtime (URL parse, localStorage, clamp, state machine, blob trigger; toolbar mount, toggle flow, interval two-way binding, URL opt-in). Unit in `check`; smoke in `check:full`
