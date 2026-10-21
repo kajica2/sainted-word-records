@@ -2157,6 +2157,18 @@
     body.cover-fullscreen #basic-controls,
     body.cover-fullscreen #basic-empty-state,
     body.cover-fullscreen footer { display: none !important; }
+    /* The basic-mode rules below are equally specific and come later, so
+       the cover mode has to out-specify them, not merely out-order them. */
+    body.engine-basic-mode.cover-fullscreen #basic-mode-header,
+    body.engine-basic-mode.cover-fullscreen #basic-clips-bar,
+    body.engine-basic-mode.cover-fullscreen #basic-controls,
+    body.engine-basic-mode.cover-fullscreen #basic-empty-state { display: none !important; }
+    /* Basic mode hides the engine's own stage and shows a placeholder
+       canvas instead, so cover mode has to bring the real stage back —
+       otherwise "fullscreen, no UI" would mean a fullscreen of nothing. */
+    body.engine-basic-mode.cover-fullscreen #app,
+    body.engine-basic-mode.cover-fullscreen section#stage { display: block !important; }
+    body.engine-basic-mode.cover-fullscreen #basic-mode-ui { display: none !important; }
     body.cover-fullscreen #toggle-cover-fullscreen.active { background: var(--accent); }
 
     /* Header */

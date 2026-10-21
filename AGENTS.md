@@ -211,6 +211,17 @@ The analyser is named differently on the two surfaces: the shared `lib/audio.cli
 
 It is not the real build: no bundling, no minification, and the per-variant automix config is not inlined.
 
+## Fullscreen without UI
+
+**F** on the engine page means *fullscreen with no UI*: the stage covers the screen, every panel, bar, header and footer is hidden, and the browser's own fullscreen comes with it — so it is a real fullscreen, not a full-bleed viewport. **Escape** leaves it, and so does F again.
+
+`window.SWR_COVER_FULLSCREEN` exposes `set(on)`, `toggle(viaKey)` and `get()`. It lives on its own global rather than on `window.SWR`, because the engine replaces `window.SWR` wholesale when it exports its API.
+
+Two things the CSS has to out-specify rather than out-order, because the basic-mode rules are equally specific and come later in the sheet:
+
+- the basic-mode rules bring the engine's own stage back (`section#stage`, and the `#app` ancestor it lives under) — in basic mode that stage is hidden in favour of a placeholder canvas, so without this "fullscreen, no UI" would be a fullscreen of nothing;
+- the basic-mode header, clips bar and controls are hidden, so nothing is left on screen but the composition.
+
 ## PR & commit conventions
 
 - **Auto-commit workflow**: After completing any deliverable, run tests, then commit and push to main. Skip pushing only if tests fail.
