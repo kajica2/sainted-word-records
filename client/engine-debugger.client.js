@@ -198,7 +198,15 @@
 
         var recording = function (l) {
           var r = applyR(l);
-          captured.push({ id: l.id, name: l.asset ? l.asset.name : '(empty)', asset: l.asset, r: r });
+          captured.push({
+            id: l.id,
+            name: l.asset ? l.asset.name : '(empty)',
+            asset: l.asset,
+            r: r,
+            // The layer's own static values, so the panel can show how far
+            // the audio moved it from where the artist put it.
+            base: { scale: l.baseScale, opacity: l.opacity },
+          });
           return r;
         };
 
@@ -589,9 +597,11 @@
       state.stage.canvas.parentNode.removeChild(state.stage.canvas);
     }
     state.stage.canvas = null;
-    // The boxes belong to the overlay that just went away; keeping them
-    // would leave a remount reusing detached elements.
+    // The boxes and labels belong to the overlay that just went away;
+    // keeping them would leave a remount reusing detached elements, and
+    // the labels would never be drawn into the new overlay at all.
     state.stage.boxes = [];
+    state.stage.labels = [];
   }
 
   // ── painting ───────────────────────────────────────────────────────────
@@ -628,7 +638,14 @@
     var drawn = frame.drawn || {};
     return frame.layers.map(function (c) {
       var d = drawn[c.id];
-      return { id: c.id, name: c.name, asset: c.asset, resolved: c.r || {}, drawn: d || null };
+      return {
+        id: c.id,
+        name: c.name,
+        asset: c.asset,
+        resolved: c.r || {},
+        drawn: d || null,
+        base: c.base || null,
+      };
     });
   }
 
@@ -750,9 +767,9 @@
         box = document.createElement('div');
         box.style.cssText = 'position:absolute;left:0;top:0;border:1px solid currentColor;' +
           'transform-origin:0 0;will-change:transform;';
-        wrap.appendChild(box);
         boxes[i] = box;
       }
+      if (box.parentNode !== wrap) wrap.appendChild(box);
       var color = LAYER_COLORS[i % LAYER_COLORS.length];
       var ax = q.quad[1][0] - q.quad[0][0];
       var ay = q.quad[1][1] - q.quad[0][1];
@@ -778,9 +795,9 @@
         label = document.createElement('span');
         label.style.cssText = 'position:absolute;left:0;top:0;font:9px ui-monospace,monospace;' +
           'text-shadow:0 0 3px rgba(0,0,0,0.9);pointer-events:none;';
-        wrap.appendChild(label);
         labels[i] = label;
       }
+      if (label.parentNode !== wrap) wrap.appendChild(label);
       var lx = Math.max(3, Math.min(size.W - 22, cx - 8));
       var ly = Math.max(3, Math.min(size.H - 14, cy - 6));
       label.style.color = color;
@@ -818,10 +835,20 @@
         bv.style.color = '#00f0ff';
         b.appendChild(bv);
 
+        var c = el('div', 'row');
+        c.appendChild(el('span', 'k', 'audio'));
+        var cv = el('span', 'v');
+        cv.style.width = 'auto';
+        cv.style.flex = '1';
+        cv.style.textAlign = 'left';
+        cv.style.color = '#ff2d8a';
+        c.appendChild(cv);
+
         row.appendChild(a);
         row.appendChild(b);
+        row.appendChild(c);
         d.body.appendChild(row);
-        d.items.push({ res: av, drawn: bv });
+        d.items.push({ res: av, drawn: bv, audio: cv });
       });
     }
 
@@ -835,6 +862,16 @@
         ? 'x ' + num(rec.ox, 1) + '  y ' + num(rec.oy, 1) +
           '  ' + Math.round(rec.w) + '×' + Math.round(rec.h)
         : 'not drawn yet';
+
+      // How far the audio moved this layer from where the artist put it.
+      var base = e.base;
+      if (base) {
+        slot.audio.textContent = 'Δsc ' + num(r.scale - base.scale, 2) +
+          '  Δx ' + num(r.x, 2) + '  Δy ' + num(r.y, 2) +
+          '  Δop ' + num(r.opacity - base.opacity, 2);
+      } else {
+        slot.audio.textContent = '—';
+      }
     });
   }
 
