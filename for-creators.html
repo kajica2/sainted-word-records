@@ -326,9 +326,11 @@ em { font-style: italic; }
   .creator-card:hover, .value:hover { transform: none; }
 }
 </style>
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 </head>
 
 <body>
+  <swr-nav></swr-nav>
 
 <!-- ================= NAV ================= -->
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -689,5 +691,8 @@ em { font-style: italic; }
   }
 })();
 </script>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

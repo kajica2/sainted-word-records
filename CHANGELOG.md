@@ -82,6 +82,21 @@ once it hits 1.0.
   symptom the check exists to catch. The cause was the server. It now
   uses a threaded Node server, and the smoke takes 2s instead of timing
   out for 125s.
+- `scripts/check-cross-tab-unit.mjs` had a misplaced bracket in the
+  localStorage stub — `delete data[String(k));` instead of
+  `delete data[String(k)];` — so the file did not parse and the syntax
+  gate failed on it.
+- The redesign home page (`index.html`) had no route. The site's root is
+  `landing.html` (vercel.json rewrites `/` → `/landing.html`), and
+  `routes.mjs` mapped *both* files to `/`, so no route could be resolved
+  back to a single file: "index.html: route / does not serve this file".
+  `index.html` now keeps its own route (`/index`), the rewrite
+  generator emits `/index → /index.html` (Vercel serves `/index.html`
+  at the root, not at `/index`), and the sitemap lists the two new
+  pages.
+- `for-creators.html` shipped without the shared chrome — no `<swr-nav>`,
+  no `<swr-footer>`, no `og:image`, no `canonical` — so the site-chrome
+  gate failed on it.
 - Engine "Hooks" button could only ever answer *"no song loaded"*.
   `client/hook-detector.client.js` reads the song to analyse from
   `window.SWR_LAST_SONG`; the engine never loaded the saved-song bridge
