@@ -115,6 +115,8 @@
       <p class="lede">
         Every media file in this repo, counted. Grouped by directory, ranked by weight,
         with thumbnails — so you can see what actually exists without opening 20 folders.
+        Note that the counts differ depending on where this page is generated: files that are
+        not tracked in git exist on this machine but never ship.
       </p>
       <div class="tally" id="tally"></div>
     </header>
@@ -174,10 +176,13 @@ let kindFilter = 'all';
 let dirFilter = null;
 
 /* ---------- headline ---------- */
+const pct = inv.totalFiles ? Math.round(inv.trackedFiles / inv.totalFiles * 100) : 0;
 $('#tally').innerHTML = `
-  <div><b>${fmtN(inv.totalFiles)}</b><span>media files</span></div>
+  <div><b>${fmtN(inv.totalFiles)}</b><span>media files on disk</span></div>
   <div><b>${(inv.totalBytes / 1048576).toFixed(0)} MB</b><span>total weight</span></div>
-  <div><b>${inv.groups.length}</b><span>directories</span></div>`;
+  <div><b>${inv.groups.length}</b><span>directories</span></div>
+  <div><b>${fmtN(inv.trackedFiles)} <span style="font-size:15px;color:var(--muted)">of ${fmtN(inv.totalFiles)}</span></b>
+       <span>tracked in git &mdash; ${pct}% ships</span></div>`;
 
 /* ---------- weight picture ---------- */
 const max = inv.groups[0].bytes;
@@ -234,7 +239,8 @@ function render() {
       <article class="gcard${dirFilter === g.dir ? ' open' : ''}" data-dir="${g.dir}">
         <header data-toggle>
           <h3>${g.dir}</h3>
-          <span class="meta">${fmtN(items.length)} · ${fmtMB(items.reduce((s, f) => s + f.b, 0))}</span>
+          <span class="meta">${fmtN(items.length)} · ${fmtMB(items.reduce((s, f) => s + f.b, 0))}${
+            g.trackedFiles < g.files ? ` · <span style="color:var(--warn)">${fmtN(g.trackedFiles)} tracked</span>` : ''}</span>
         </header>
         <div class="kinds">${kinds}</div>
         <div class="thumbs">
@@ -311,11 +317,11 @@ document.addEventListener('error', (e) => {
   unserved++;
   tile.classList.add('gone');
   tile.innerHTML = '<span style="display:grid;place-items:center;height:100%;font-size:10px;color:var(--muted);padding:2px;text-align:center">not<br>served</span>';
-  if (unserved === 40) noteUnserved();
+  if (!unserved) return;
+  noteUnserved();
 }, true);
 function noteUnserved() {
-  const n = $('#unserved-note');
-  if (n) return;
+  if ($('#unserved-note')) return;
   const d = document.createElement('p');
   d.id = 'unserved-note';
   d.className = 'sub';

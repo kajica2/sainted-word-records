@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'media', 'inventory.json');
@@ -27,6 +28,19 @@ const EXCLUDE = new Map([
   ['.git', 'vcs'],
   ['verify-screenshots', 'test artifacts'],
 ]);
+
+// What git actually tracks. This is the difference between "media on this
+// machine" and "media that ships" — most of the repo's media is untracked, so a
+// page built from disk alone would describe files Vercel never sees. The same
+// distinction is why this page shows different counts locally and deployed.
+const TRACKED = new Set(
+  (() => {
+    try {
+      return execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8' })
+        .split('\0').filter(Boolean);
+    } catch { return []; }
+  })()
+);
 
 const kindOf = (ext) => {
   if (['.mp4', '.webm'].includes(ext)) return 'video';
@@ -51,7 +65,7 @@ function walk(dir, top) {
     try { bytes = fs.statSync(full).size; } catch { continue; }
 
     const rel = '/' + path.relative(ROOT, full).split(path.sep).join('/');
-    const rec = { p: rel, b: bytes, k: kindOf(ext) };
+    const rec = { p: rel, b: bytes, k: kindOf(ext), t: TRACKED.has(path.relative(ROOT, full).split(path.sep).join('/')) ? 1 : 0 };
 
     const ex = EXCLUDE.get(top);
     if (ex) {
@@ -75,23 +89,28 @@ const dirList = [...groups.entries()].map(([dir, g]) => {
   const byKind = {};
   let bytes = 0;
   for (const f of g.files) { bytes += f.b; byKind[f.k] = (byKind[f.k] || 0) + 1; }
-  return { dir, files: g.files.length, bytes, byKind, items: g.files };
+  const trackedFiles = g.files.filter((f) => f.t).length;
+  return { dir, files: g.files.length, bytes, byKind, items: g.files,
+           trackedFiles, trackedBytes: g.files.filter((f) => f.t).reduce((s, f) => s + f.b, 0) };
 }).sort((a, b) => b.bytes - a.bytes);
 
 const totalFiles = dirList.reduce((s, d) => s + d.files, 0);
 const totalBytes = dirList.reduce((s, d) => s + d.bytes, 0);
+const trackedFiles = dirList.reduce((s, d) => s + d.trackedFiles, 0);
+const trackedBytes = dirList.reduce((s, d) => s + d.trackedBytes, 0);
 const exList = [...excluded.entries()].map(([dir, v]) => ({ dir, ...v })).sort((a, b) => b.bytes - a.bytes);
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({
   generated: new Date().toISOString().slice(0, 10),
-  totalFiles, totalBytes,
+  totalFiles, totalBytes, trackedFiles, trackedBytes,
   groups: dirList,
   excluded: exList,
 }, null, 0));
 
 const mb = (n) => (n / 1048576).toFixed(1);
 console.log(`media-inventory: ${totalFiles} files / ${mb(totalBytes)} MB across ${dirList.length} groups`);
+console.log(`  tracked in git: ${trackedFiles} files / ${mb(trackedBytes)} MB  (${totalFiles ? Math.round(trackedFiles / totalFiles * 100) : 0}% — untracked files never ship)`);
 console.log(`  -> ${path.relative(ROOT, OUT)}`);
 if (exList.length) {
   console.log(`  excluded (reported, not counted):`);
