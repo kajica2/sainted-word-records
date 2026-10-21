@@ -82,6 +82,11 @@ const GROUPS = {
     // Also its own CI step (npm run preset-pipeline:verify) after check:full.
     'npm run check:preset-smoke',
     'npm run check:layer-state-unit',
+    // Layer groups: the shift+click multi-selection, the group header,
+    // group visibility (hidden members), collapse, ungroup, and the
+    // group name. The sibling layer-retire/layer-text/layer-lifecycle
+    // suites are reachable from no gate (pre-existing, not this gate's job).
+    'npm run check:layer-groups-unit',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.
@@ -246,6 +251,10 @@ const GROUPS = {
     'npm run verify:story-graph',
     'npm run check:capture-smoke',
     'npm run check:targeting-smoke',
+    // Layer groups in the engine's layer panel: shift+click multi-select,
+    // the group header, hide/collapse/ungroup, and the proof that a hidden
+    // member stops drawing on the stage. Needs a built dist/ (ensureDist).
+    'npm run check:layer-groups-smoke',
     'npm run check:media-input-smoke',
     'npm run check:spit-live-smoke',
     'npm run check:tiktok-smoke',

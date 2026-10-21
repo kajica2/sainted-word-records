@@ -43,6 +43,8 @@
     "check:kit-zip-unit": "node scripts/check-kit-zip-unit.mjs",
     "check:debug-overlay-unit": "node scripts/check-debug-overlay-unit.mjs",
     "check:layer-retire-unit": "node scripts/check-layer-retire-unit.mjs",
+    "check:layer-groups-unit": "node scripts/check-layer-groups-unit.mjs",
+    "check:layer-groups-smoke": "node scripts/check-layer-groups-smoke.mjs",
     "check:layer-text-unit": "node scripts/check-layer-text-unit.mjs",
     "check:layer-lifecycle-unit": "node scripts/check-layer-lifecycle-unit.mjs",
     "check:cloud-library-unit": "node scripts/check-cloud-library-unit.mjs",
