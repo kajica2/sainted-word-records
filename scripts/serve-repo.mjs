@@ -111,13 +111,27 @@ const server = createServer(async (req, res) => {
     if (pathname.endsWith('/')) pathname += 'index.html';
 
     // Keep the path inside the repository.
-    const filePath = join(ROOT, normalize(pathname).replace(/^(\.\.[/\\])+/, ''));
+    let filePath = join(ROOT, normalize(pathname).replace(/^(\.\.[/\\])+/, ''));
     if (!filePath.startsWith(ROOT + sep) && filePath !== ROOT) {
       res.writeHead(403).end('forbidden');
       return;
     }
 
-    const info = await stat(filePath).catch(() => null);
+    let info = await stat(filePath).catch(() => null);
+
+    // Vercel rewrites the clean URL to the .html file (`/lab/params` →
+    // `/lab/params.html`). Mirror that so a local URL behaves like the
+    // deployed one.
+    if ((!info || !info.isFile()) && !extname(filePath)) {
+      const asHtml = filePath + '.html';
+      const htmlInfo = await stat(asHtml).catch(() => null);
+      if (htmlInfo && htmlInfo.isFile()) {
+        pathname = pathname + '.html';
+        filePath = asHtml;
+        info = htmlInfo;
+      }
+    }
+
     if (!info || !info.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain' }).end('not found: ' + pathname);
       return;
