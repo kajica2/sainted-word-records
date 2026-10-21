@@ -29,6 +29,7 @@
 <script src="/lib/invite-modal.client.js" defer></script>
   <script src="/lib/presets-dropdown.client.js" defer></script>
   <script src="/lib/webgl-feature-detect.client.js" defer></script>
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
   <link rel="stylesheet" href="/video-fx.css" />
   <link rel="stylesheet" href="/presets-panel.css" />
   <link rel="stylesheet" href="/lib/presets-dropdown.css" />
@@ -36,6 +37,7 @@
   <link rel="stylesheet" href="/lib/drive-modal.css" />
   <style>
     :root {
+      /* === ENGINE PALETTE === */
       --bg-0: #050308;
       --bg-1: #0d0918;
       --bg-2: #1a1226;
@@ -53,6 +55,19 @@
       --ok: #00ffa3;
       --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+
+      /* === CANONICAL TOKEN ALIASES === */
+      /* Map canonical design-token names to engine's palette */
+      --bg: var(--bg-0);
+      --bg-2: var(--bg-2);
+      --bg-3: var(--panel-2);
+      --ink: var(--fg);
+      --ink-2: var(--muted);
+      --line: var(--line);
+      --line-2: var(--line-2);
+      /* --accent already matches canonical */
+      --hot: var(--accent);
+      --cool: var(--accent-2);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
