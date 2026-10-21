@@ -26,8 +26,16 @@ const DIST = (() => {
 // dir -> byte budget. Sized from the measured 2026-10-21 build
 // (173.1M total, 156.2M of it media), with the target state in
 // docs/plans/2026-10-21-shipped-media-budget.md.
+//
+// These are TODAY's sizes plus a few percent of headroom, so the next
+// growth trips the gate instead of passing unnoticed. They are not the
+// target: slice 2 of the plan (re-encode the shipped video and audio,
+// `npm run media:optimize -- --apply`) is expected to bring `audios`
+// from 41M to ~28M and `videos`+`portfolio` from 45M to ~21M. When it
+// does, tighten these numbers to the new sizes — a budget that is only
+// ever raised is a budget that measures nothing.
 const BUDGETS = {
-  audios: 40 * 1024 * 1024,
+  audios: 43 * 1024 * 1024,
   packs: 40 * 1024 * 1024,
   videos: 31 * 1024 * 1024,
   portfolio: 15 * 1024 * 1024,
