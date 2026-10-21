@@ -8,6 +8,16 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- The shipped media off-site — the curated packs (582 files, 39.6 MB) can be
+  served from an off-site host instead of the deploy. Set `PACKS_BASE` and
+  the build ships only `packs/manifest.json`, with its `base` rewritten to
+  that URL; the media is fetched cross-origin and never enters the build.
+  `npm run media:publish` uploads the packs to Vercel Blob or the Hugging
+  Face Hub, prints the `PACKS_BASE=` line for the deploy environment, and
+  verifies that the host serves `access-control-allow-origin` — the engine
+  fetches the media from its own origin, so a host without CORS would break
+  the packs at runtime. Unset, nothing changes: the whole directory ships
+  exactly as before.
 - The store — one data file (`site-map.json` → `store`) drives the whole
   storefront. `lib/store.client.js` paints the download catalogue into any
   `[data-store]` container (the marketplace lists the products itself — add
@@ -83,6 +93,14 @@ once it hits 1.0.
   so `lib/app-version-bust.js` does not hard-reload a cold profile.
 - `verify-rot-master.mjs` asserted `window.SWR.RENDER`, a global that does
   not exist anywhere in the tree; `engine.html` publishes `SWR.Renderer`.
+- `verify-autoplay.mjs` failed about half the time with *"Execution context
+  was destroyed, most likely because of a navigation"*. The engine page
+  reloads itself twice on a cold profile — the service worker claims the
+  page and `pwa-bootstrap.js` reloads on `controllerchange`, and
+  `lib/app-version-bust.js` hard-reloads when the stored version is stale —
+  and either reload destroys the context an assertion is running in. The
+  verifier now neutralises both, the same way `verify-rotation-enabled.mjs`
+  and `scripts/check-capture-smoke.mjs` do.
 - Engine "Hooks" button could only ever answer *"no song loaded"*.
   `client/hook-detector.client.js` reads the song to analyse from
   `window.SWR_LAST_SONG`; the engine never loaded the saved-song bridge
