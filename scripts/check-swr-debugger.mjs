@@ -52,6 +52,10 @@ const arg = (name, fallback) => {
 const has = (name) => argv.includes(`--${name}`);
 
 const TARGET = arg('target', process.env.SWR_DEBUG_TARGET || null);
+// --base lets the same pages be scored against a local server instead of
+// the deployed site, which is what you want when verifying a branch that
+// has not shipped yet.
+const BASE = arg('base', process.env.SWR_DEBUG_BASE || BASE_URL);
 const PAGES = arg('pages', process.env.SWR_DEBUG_PAGES || DEFAULT_PAGES.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 const HEADED = has('headed');
 const NO_DEBUGGER = has('no-debugger');
@@ -59,7 +63,7 @@ const FAIL_UNDER = arg('fail-under', null);
 
 function TARGET_URLS() {
   if (TARGET) return [TARGET];
-  return PAGES.map((p) => (p.includes('://') ? p : BASE_URL + p + '.html'));
+  return PAGES.map((p) => (p.includes('://') ? p : BASE.replace(/\/$/, '') + '/' + p + '.html'));
 }
 
 const CHROME_CANDIDATES = [
