@@ -472,6 +472,14 @@
       "destination": "/landing.html"
     },
     {
+      "source": "/for-creators",
+      "destination": "/for-creators.html"
+    },
+    {
+      "source": "/for-creators/",
+      "destination": "/for-creators.html"
+    },
+    {
       "source": "/engine",
       "destination": "/engine.html"
     },
@@ -1086,6 +1094,10 @@
     {
       "source": "/auth/verify",
       "destination": "/auth/verify.html"
+    },
+    {
+      "source": "/campaign",
+      "destination": "/campaign.html"
     },
     {
       "source": "/contact-sheet",

@@ -31,6 +31,16 @@
   },
   "nav": [
     {
+      "label": "Home",
+      "href": "/index",
+      "description": "Home page"
+    },
+    {
+      "label": "For Creators",
+      "href": "/for-creators",
+      "description": "Turn your work into motion"
+    },
+    {
       "label": "Engine",
       "href": "/engine",
       "description": "Audio-reactive video engine",

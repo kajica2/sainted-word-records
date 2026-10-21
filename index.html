@@ -1,398 +1,964 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="/lib/components.css">
-  <link rel="stylesheet" href="/lib/design-tokens.css">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kai Djuric</title>
-  <meta name="description" content="Portfolio of Kai Djuric - musician, producer, and creative technologist.">
-  <meta property="og:title" content="Kai Djuric">
-  <meta property="og:description" content="Portfolio of Kai Djuric - musician, producer, and creative technologist.">
-  <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/kai-profile.jpg">
-  <link rel="canonical" href="https://sainted-word-records.vercel.app/">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    :root {
-      --bg: #0a0a0a;
-      --bg-warm: #0d0b09;
-      --text: #f5f0e8;
-      --text-dim: #8a8279;
-      --accent: #c9a227;
-      --accent-dim: #9a7b1d;
-      --border: #2a2520;
-      --card: #141210;
-      --card-hover: #1a1815;
-    }
-    
-    body {
-      font-family: 'DM Sans', -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 80px 24px;
-    }
-    
-    /* Hero */
-    .hero {
-      text-align: center;
-      margin-bottom: 64px;
-    }
-    
-    .name {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(48px, 10vw, 80px);
-      font-weight: 400;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .tagline {
-      font-size: 18px;
-      color: var(--text-dim);
-      font-weight: 400;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    
-    .tagline .accent {
-      color: var(--accent);
-    }
-    
-    /* About */
-    .about {
-      margin-bottom: 56px;
-      padding: 32px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-    }
-    
-    .about p {
-      color: var(--text-dim);
-      font-size: 15px;
-      line-height: 1.7;
-    }
-    
-    /* Links */
-    .links {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 56px;
-    }
-    
-    .link-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 24px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      text-decoration: none;
-      color: var(--text);
-      transition: all 0.2s ease;
-    }
-    
-    .link-card:hover {
-      background: var(--card-hover);
-      border-color: var(--accent-dim);
-      transform: translateX(4px);
-    }
-    
-    .link-card:hover .link-arrow {
-      transform: translateX(4px);
-      color: var(--accent);
-    }
-    
-    .link-info {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    
-    .link-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg);
-      border-radius: 10px;
-      font-size: 20px;
-    }
-    
-    .link-text h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-    
-    .link-text p {
-      font-size: 13px;
-      color: var(--text-dim);
-    }
-    
-    .link-arrow {
-      color: var(--text-dim);
-      font-size: 20px;
-      transition: transform 0.2s;
-    }
-    
-    /* Projects */
-    .section-title {
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    .projects {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
-      margin-bottom: 56px;
-    }
-    
-    .project {
-      padding: 24px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      text-decoration: none;
-      color: var(--text);
-      transition: all 0.2s ease;
-    }
-    
-    .project:hover {
-      background: var(--card-hover);
-      border-color: var(--accent-dim);
-    }
-    
-    .project h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    
-    .project p {
-      font-size: 13px;
-      color: var(--text-dim);
-      line-height: 1.5;
-    }
-    
-    .project-tags {
-      display: flex;
-      gap: 6px;
-      margin-top: 12px;
-      flex-wrap: wrap;
-    }
-    
-    .tag {
-      font-size: 11px;
-      padding: 4px 8px;
-      background: var(--bg);
-      border-radius: 4px;
-      color: var(--text-dim);
-    }
-    
-    /* Footer */
-    .footer {
-      text-align: center;
-      padding-top: 32px;
-      border-top: 1px solid var(--border);
-    }
-    
-    .footer p {
-      font-size: 13px;
-      color: var(--text-dim);
-    }
-    
-    .footer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-    
-    .footer a:hover {
-      text-decoration: underline;
-    }
-    
-    /* Social */
-    .social {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-    
-    .social a {
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 50%;
-      font-size: 18px;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    
-    .social a:hover {
-      background: var(--card-hover);
-      border-color: var(--accent-dim);
-      transform: translateY(-2px);
-    }
-    
-    /* Location */
-    .location {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 14px;
-      color: var(--text-dim);
-      margin-top: 16px;
-    }
-    
-    .location .dot {
-      width: 6px;
-      height: 6px;
-      background: #22c55e;
-      border-radius: 50%;
-    }
-  </style>
-</head>
-<body>
-  <swr-nav></swr-nav>
-  <div class="container">
-    <header class="hero">
-      <h1 class="name">Kai Djuric</h1>
-      <p class="tagline">
-        Developer, designer, and <span class="accent">builder</span> of algorithmic creative tools
-      </p>
-      <div class="location">
-        <span class="dot"></span>
-        <span>Based in Berlin</span>
-      </div>
-    </header>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sainted Word Records: an audio-reactive video engine</title>
+<meta name="description" content="Drop in a song and a library of clips. The engine classifies and routes every asset to the band it suits, then exports an MP4 from your browser." />
+<link rel="canonical" href="https://sainted-word-records.vercel.app/" />
+<meta property="og:title" content="Sainted Word Records: an audio-reactive video engine" />
+<meta property="og:description" content="Drop in a song and a library of clips. The engine classifies and routes every asset to the band it suits." />
+<meta property="og:type" content="website" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="/favicon.ico" />
 
-    <div class="social">
-      <a href="https://github.com/kajica2" title="GitHub" target="_blank">⌘</a>
-      <a href="https://twitter.com" title="Twitter/X">𝕏</a>
-      <a href="mailto:hello@kaidjuric.com" title="Email">@</a>
+<!--
+  REDESIGN PASS, 2026-10-21.
+  Design read: redesign-preserve of a product marketing homepage for Sainted Word Records,
+  for musicians and designers who have a release date and no video budget. Studio-instrument
+  language, leaning on the site's own token system: native CSS, no build step.
+
+  Dials: DESIGN_VARIANCE 6 | MOTION_INTENSITY 5 | VISUAL_DENSITY 5
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="/lib/design-tokens.css" />
+<link rel="stylesheet" href="/lib/components.css" />
+<link rel="stylesheet" href="/lib/design-base.css" />
+
+<style>
+/* ============================================================
+   PAGE LAYER. Tokens come from the site. Only layout lives here.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img, video { max-width: 100%; display: block; }
+a { color: inherit; }
+h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: 300; letter-spacing: -0.022em; }
+p { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+.shell { width: 100%; max-width: 1240px; margin-inline: auto; padding-inline: 32px; }
+@media (max-width: 767px) { .shell { padding-inline: 20px; } }
+
+/* ---------- type scale ---------- */
+.t-display { font-size: clamp(2.5rem, 6vw, 4.4rem); line-height: 1.02; }
+.t-section { font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: 1.08; }
+.t-lead { font-size: 1.075rem; line-height: 1.65; color: var(--ink-2); max-width: 62ch; }
+.t-body { font-size: 0.95rem; line-height: 1.65; color: var(--ink-2); }
+.t-mono { font-family: var(--font-mono); }
+em { font-style: italic; }
+
+/* ============================================================
+   NAV. One line on desktop, 68px tall.
+   ============================================================ */
+.site-head {
+  position: sticky; top: 0; z-index: 40;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid var(--line);
+}
+@supports not (backdrop-filter: blur(1px)) { .site-head { background: var(--bg); } }
+.site-head__in { display: flex; align-items: center; gap: 28px; height: 68px; }
+.brand {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none;
+  white-space: nowrap;
+}
+.brand b { color: var(--accent); font-weight: 600; }
+.nav { display: flex; align-items: center; gap: 22px; margin-left: auto; }
+.nav a { font-size: 0.875rem; color: var(--ink-2); text-decoration: none; white-space: nowrap; transition: color var(--transition); }
+.nav a:hover { color: var(--ink); }
+@media (max-width: 860px) { .nav { display: none; } }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px; border-radius: var(--radius-pill);
+  font: 500 0.9rem/1.2 var(--font-body); text-decoration: none; white-space: nowrap;
+  border: 1px solid transparent; cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--transition);
+}
+.btn:active { transform: translateY(1px); }
+.btn--primary { background: var(--ink); color: var(--bg); }
+.btn--primary:hover { background: var(--accent); color: #fff; }
+.btn--ghost { border-color: var(--line-2); color: var(--ink); background: transparent; }
+.btn--ghost:hover { border-color: var(--ink); }
+.btn--sm { padding: 8px 15px; font-size: 0.82rem; }
+.btn--accent { background: var(--accent); color: #fff; }
+.btn--accent:hover { filter: brightness(1.08); }
+
+/* ============================================================
+   HERO. Asymmetric split: copy left, live render right.
+   ============================================================ */
+.hero { padding: 72px 0 88px; }
+@media (max-width: 767px) { .hero { padding: 40px 0 56px; } }
+.hero__grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 64px; align-items: center; }
+@media (max-width: 900px) { .hero__grid { grid-template-columns: 1fr; gap: 40px; } }
+
+.hero__kicker {
+  display: inline-block; margin-bottom: 22px;
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--muted);
+}
+.hero h1 { max-width: 15ch; }
+.hero h1 em { color: var(--accent); }
+.hero__lede { margin-top: 22px; max-width: 46ch; }
+.hero__cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+
+.hero__media { position: relative; }
+.hero__media figure { margin: 0; }
+.hero__media video {
+  width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+  border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.hero__media figcaption {
+  margin-top: 10px; font-family: var(--font-mono); font-size: 0.7rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+
+/* ============================================================
+   SECTION FRAME
+   ============================================================ */
+.section { padding: 88px 0; }
+.section--tint { background: var(--bg-2); }
+.section--edge { border-top: 1px solid var(--line); }
+@media (max-width: 767px) { .section { padding: 60px 0; } }
+
+.section__head { max-width: 68ch; margin-bottom: 44px; }
+.section__kicker {
+  display: block; margin-bottom: 16px;
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--muted);
+}
+.section__lede { margin-top: 18px; }
+
+/* ============================================================
+   01. RENDERS. Horizontal flip carousel. Preserved signature.
+   ============================================================ */
+.flip { position: relative; perspective: 1600px; }
+.flip__stage { position: relative; height: clamp(260px, 42vw, 520px); }
+.flip__card {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.62s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.42s ease;
+  opacity: 0; pointer-events: none;
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden;
+}
+.flip__card.is-active { opacity: 1; pointer-events: auto; transform: rotateY(0deg); }
+.flip__card.is-prev { transform: rotateY(38deg) scale(0.93); opacity: 0.32; }
+.flip__card.is-next { transform: rotateY(-38deg) scale(0.93); opacity: 0.32; }
+.flip__card video { width: 100%; height: 100%; object-fit: cover; }
+.flip__label {
+  position: absolute; left: 14px; bottom: 14px;
+  padding: 6px 12px; border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-0, #050308) 72%, transparent);
+  color: #fff; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em;
+}
+.flip__bar { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
+.flip__count { font-family: var(--font-mono); font-size: 0.82rem; color: var(--muted); min-width: 58px; }
+.flip__count b { color: var(--ink); font-weight: 500; }
+
+/* ============================================================
+   02. PATHS. Bento, 3 cells, 1 large + 2 small.
+   ============================================================ */
+.paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 767px) { .paths { grid-template-columns: 1fr; } }
+.path {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 28px; border-radius: var(--radius);
+  background: var(--bg-3); border: 1px solid var(--line);
+  text-decoration: none;
+  transition: transform var(--transition), border-color var(--transition);
+}
+.path:hover { transform: translateY(-3px); border-color: var(--line-2); }
+.path--lead { grid-row: span 2; padding: 34px; }
+.path--lead .path__body { flex: 1; }
+.path__glyph { font-size: 1.1rem; color: var(--accent); line-height: 1; }
+.path h3 { font-size: 1.35rem; }
+.path--lead h3 { font-size: 1.9rem; }
+.path p { color: var(--ink-2); font-size: 0.95rem; line-height: 1.6; }
+.path__go {
+  margin-top: 6px; font-family: var(--font-mono); font-size: 0.74rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);
+}
+.path__shot { margin-top: 8px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); }
+.path__shot img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+
+/* ============================================================
+   03. NUMBERS. Stat row. Mono numerals, no bars.
+   ============================================================ */
+.numbers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+@media (max-width: 860px) { .numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .numbers { grid-template-columns: 1fr; } }
+.number { background: var(--bg); padding: 26px 22px; }
+.number__v { font-family: var(--font-mono); font-size: clamp(1.7rem, 3vw, 2.3rem); font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.number__k { margin-top: 10px; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+/* ============================================================
+   04. ENGINE. Six features, one lead, two rows of two.
+   ============================================================ */
+.feats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+@media (max-width: 767px) { .feats { grid-template-columns: 1fr; } }
+.feat { background: var(--bg); padding: 30px 28px; }
+.feat--wide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 32px; align-items: start; }
+@media (max-width: 767px) { .feat--wide { grid-template-columns: 1fr; gap: 14px; } }
+.feat h3 { font-size: 1.28rem; margin-bottom: 10px; }
+.feat p { color: var(--ink-2); font-size: 0.94rem; line-height: 1.65; }
+.feat--wide h3 { font-size: 1.6rem; }
+.feat__note {
+  margin-top: 16px; font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--muted); border-left: 2px solid var(--accent); padding-left: 14px; line-height: 1.7;
+}
+
+/* ============================================================
+   05. LOOKS. Five cells, 1 large + 4 small. Real screenshots.
+   ============================================================ */
+.looks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1000px) { .looks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .looks { grid-template-columns: 1fr; } }
+.look { display: block; text-decoration: none; }
+.look__shot { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--bg-3); transition: transform var(--transition), border-color var(--transition); }
+.look__shot img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.look:hover .look__shot { transform: translateY(-3px); border-color: var(--line-2); }
+.look__cap { margin-top: 14px; }
+.look__name { font-family: var(--font-display); font-size: 1.2rem; font-weight: 400; }
+.look__meta { margin-top: 3px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.look__desc { margin-top: 8px; font-size: 0.9rem; line-height: 1.6; color: var(--ink-2); }
+.look--big { grid-column: span 4; }
+.look--sm { grid-column: span 2; }
+.look--big .look__name { font-size: 1.6rem; }
+.look--big .look__desc { font-size: 0.95rem; max-width: 46ch; }
+@media (max-width: 1000px) { .look--big, .look--sm { grid-column: span 1; } }
+@media (max-width: 560px) { .look--big, .look--sm { grid-column: span 1; } }
+
+/* ============================================================
+   06. PEOPLE. Two groups, two columns each. No row hairlines.
+   ============================================================ */
+.people__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px; }
+@media (max-width: 860px) { .people__grid { grid-template-columns: 1fr; gap: 40px; } }
+.people__group h3 {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 22px;
+}
+.person { padding: 16px 0; }
+.person + .person { border-top: 1px solid var(--line); }
+.person__top { display: flex; align-items: baseline; gap: 10px; }
+.person__name { font-family: var(--font-display); font-size: 1.15rem; font-weight: 400; }
+.person__tag {
+  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent); border: 1px solid var(--line-2); border-radius: var(--radius-pill); padding: 2px 8px;
+}
+.person p { margin-top: 6px; font-size: 0.9rem; line-height: 1.6; color: var(--ink-2); }
+.person a {
+  display: inline-block; margin-top: 8px; font-family: var(--font-mono); font-size: 0.74rem;
+  letter-spacing: 0.08em; color: var(--accent); text-decoration: none;
+}
+.person a:hover { text-decoration: underline; }
+
+/* ============================================================
+   07. QUICKSTART. Terminal surface plus copy.
+   ============================================================ */
+.quick { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 48px; align-items: start; }
+@media (max-width: 900px) { .quick { grid-template-columns: 1fr; gap: 30px; } }
+.quick__copy h3 { font-size: 1.4rem; margin-bottom: 12px; }
+.quick__copy p { color: var(--ink-2); font-size: 0.95rem; line-height: 1.65; }
+.quick__facts { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; }
+.quick__fact { display: flex; gap: 10px; align-items: baseline; font-size: 0.9rem; color: var(--ink-2); }
+.quick__fact b { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 500; min-width: 96px; }
+.term {
+  background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius);
+  padding: 22px 24px; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.85;
+  overflow-x: auto; border: 1px solid var(--code-line);
+}
+.term__path { color: var(--code-comment); margin-bottom: 6px; }
+.term .c { color: var(--code-comment); }
+.term .k { color: var(--code-key); }
+.term .s { color: var(--code-str); }
+.term .f { color: var(--code-fn); }
+.term .p { color: var(--code-ink); }
+
+/* ============================================================
+   08. STACK. Three clusters, no dots.
+   ============================================================ */
+.stack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+@media (max-width: 860px) { .stack { grid-template-columns: 1fr; gap: 28px; } }
+.stack__group h3 {
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 16px;
+}
+.stack__list { display: flex; flex-wrap: wrap; gap: 8px; }
+.stack__item {
+  font-family: var(--font-mono); font-size: 0.78rem; padding: 7px 12px;
+  border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--bg-3);
+  color: var(--ink-2);
+}
+
+/* ============================================================
+   09. DIRECTORY. Grouped link columns, no per-row rules.
+   ============================================================ */
+.dirs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px 64px; }
+@media (max-width: 900px) { .dirs { grid-template-columns: 1fr; gap: 36px; } }
+.dir__group h3 {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--muted); font-weight: 500;
+  padding-bottom: 12px; margin-bottom: 18px; border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.dir__group h3 span { color: var(--line-2); }
+.dir__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; }
+@media (max-width: 560px) { .dir__list { grid-template-columns: 1fr; } }
+.dir__item { display: block; text-decoration: none; }
+.dir__name { display: flex; align-items: baseline; gap: 8px; font-size: 0.93rem; font-weight: 500; }
+.dir__name em { font-style: normal; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.dir__item:hover .dir__name { color: var(--accent); }
+.dir__desc { margin-top: 4px; font-size: 0.84rem; line-height: 1.55; color: var(--muted); }
+
+/* ============================================================
+   10. FOOTER
+   ============================================================ */
+.site-foot { border-top: 1px solid var(--line); background: var(--bg-2); padding: 60px 0 36px; margin-top: 0; }
+.foot__grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); gap: 40px; }
+@media (max-width: 1000px) { .foot__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; } }
+@media (max-width: 560px) { .foot__grid { grid-template-columns: 1fr; } }
+.foot__tag { font-family: var(--font-display); font-size: 1.3rem; font-weight: 300; max-width: 26ch; line-height: 1.35; }
+.foot__brand { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 16px; }
+.foot__brand b { color: var(--accent); font-weight: 600; }
+.foot__col h3 { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 14px; }
+.foot__col li + li { margin-top: 9px; }
+.foot__col a { font-size: 0.88rem; color: var(--ink-2); text-decoration: none; }
+.foot__col a:hover { color: var(--accent); }
+.foot__bottom {
+  margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+  font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted);
+}
+.foot__bottom a { color: var(--muted); text-decoration: none; }
+.foot__bottom a:hover { color: var(--accent); }
+.foot__bottom span { margin-left: auto; }
+
+/* ============================================================
+   MOTION. Every animation states what it communicates.
+   ============================================================ */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal.is-in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .flip__card { transition: opacity 0.2s linear; }
+  .flip__card.is-prev, .flip__card.is-next { transform: none; }
+  .path:hover, .look:hover .look__shot { transform: none; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= NAV ================= -->
+<header class="site-head">
+  <div class="shell site-head__in">
+    <a class="brand" href="/"><b>SWR</b> Sainted Word Records</a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/engine">Engine</a>
+      <a href="/versions">Versions</a>
+      <a href="/marketplace">Marketplace</a>
+      <a href="/personas">Personas</a>
+      <a href="/about">About</a>
+    </nav>
+    <a class="btn btn--primary btn--sm" href="/engine">Launch the engine</a>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="shell hero__grid">
+    <div>
+      <span class="hero__kicker">Browser-based. No upload, no backend.</span>
+      <h1 class="t-display">Drop in a song. Get a music video that <em>breathes</em>.</h1>
+      <p class="t-lead hero__lede">Drop in a song and a clip library. The engine classifies and routes every asset to the band it suits.</p>
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="/engine">▶ Launch the engine</a>
+        <a class="btn btn--ghost" href="/marketplace">Browse marketplace</a>
+      </div>
+    </div>
+    <div class="hero__media">
+      <figure>
+        <video autoplay muted loop playsinline preload="metadata" poster="/videos/stage.jpg" width="1024" height="574">
+          <source src="/videos/stage.mp4" type="video/mp4" />
+        </video>
+        <figcaption>Live engine output, running in the browser</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 01. RENDERS ================= -->
+<section class="section section--edge" id="music-video-gallery">
+  <div class="shell">
+    <div class="section__head">
+      <h2 class="t-section">Flip through the renders.</h2>
+      <p class="t-lead">Click Next or Previous, use the arrow keys, or swipe on mobile. Each video flips in with a 3D rotate.</p>
     </div>
 
-    <section class="about">
-      <p>
-        I build tools for creative work — from audio-reactive video engines to automated pipelines. 
-        Currently focused on AI-powered visual generation, digital twin systems, and making creative workflows more autonomous.
-      </p>
-    </section>
-
-    <h2 class="section-title">Repositories</h2>
-    
-    <section class="projects">
-      <a href="https://github.com/kajica2/sainted-word-records" class="project" target="_blank">
-        <h3>Sainted Word Records</h3>
-        <p>Audio-reactive video engine. Drop in a song, drop in media assets, get a layered composition.</p>
-        <div class="project-tags">
-          <span class="tag">JavaScript</span>
-          <span class="tag">WebGL</span>
-          <span class="tag">Video</span>
+    <div class="flip reveal">
+      <div class="flip__stage" id="flip-stage">
+        <div class="flip__card is-active" data-title="Stage">
+          <video controls playsinline preload="none" width="1024" height="574" poster="/videos/stage.jpg">
+            <source src="/videos/stage.mp4" type="video/mp4" />
+          </video>
+          <span class="flip__label">Stage</span>
         </div>
-      </a>
-      
-      <a href="https://github.com/kajica2/digital-twin" class="project" target="_blank">
-        <h3>Digital Twin</h3>
-        <p>Personal AI agent system with FLUX visuals, watchers, and automated pipelines.</p>
-        <div class="project-tags">
-          <span class="tag">Python</span>
-          <span class="tag">AI</span>
-          <span class="tag">Automation</span>
+        <div class="flip__card" data-title="Meadow">
+          <video controls playsinline preload="none" width="1024" height="554" poster="/videos/meadow.jpg">
+            <source src="/videos/meadow.mp4" type="video/mp4" />
+          </video>
+          <span class="flip__label">Meadow</span>
         </div>
-      </a>
-      
-      <a href="https://github.com/kajica2/loopable-video-segmenter" class="project" target="_blank">
-        <h3>Loopable Video Segmenter</h3>
-        <p>Beat-aligned mirror-looping for seamless video loops. Gradio + CLI.</p>
-        <div class="project-tags">
-          <span class="tag">Python</span>
-          <span class="tag">Video</span>
-          <span class="tag">Gradio</span>
+        <div class="flip__card" data-title="Light trails">
+          <video controls playsinline preload="none" width="1024" height="574" poster="/videos/lights.jpg">
+            <source src="/videos/lights.mp4" type="video/mp4" />
+          </video>
+          <span class="flip__label">Light trails</span>
         </div>
-      </a>
-      
-      <a href="https://github.com/kajica2/agentgrid-tools" class="project" target="_blank">
-        <h3>AgentGrid Tools</h3>
-        <p>Utilities and helpers for AgentGrid workflows.</p>
-        <div class="project-tags">
-          <span class="tag">Tools</span>
-          <span class="tag">Automation</span>
-        </div>
-      </a>
-    </section>
-
-    <h2 class="section-title">Quick Links</h2>
-    
-    <section class="links">
-      <a href="https://kajica2.github.io/sainted-word-records/" class="link-card" target="_blank">
-        <div class="link-info">
-          <div class="link-icon">🌐</div>
-          <div class="link-text">
-            <h3>Live Site</h3>
-            <p>sainted-word-records on GitHub Pages</p>
-          </div>
-        </div>
-        <span class="link-arrow">→</span>
-      </a>
-      
-      <a href="https://vercel.com/kajica2" class="link-card" target="_blank">
-        <div class="link-info">
-          <div class="link-icon">▲</div>
-          <div class="link-text">
-            <h3>Vercel Deploys</h3>
-            <p>Latest productions builds</p>
-          </div>
-        </div>
-        <span class="link-arrow">→</span>
-      </a>
-      
-      <a href="https://dashboard.stripe.com" class="link-card" target="_blank">
-        <div class="link-info">
-          <div class="link-icon">💳</div>
-          <div class="link-text">
-            <h3>Stripe Dashboard</h3>
-            <p>Payment & Connect (if applicable)</p>
-          </div>
-        </div>
-        <span class="link-arrow">→</span>
-      </a>
-    </section>
-
-    <footer class="footer">
-      <p>Built with care. <a href="https://github.com/kajica2">View all projects →</a></p>
-    </footer>
+      </div>
+      <div class="flip__bar">
+        <button class="btn btn--ghost btn--sm" id="flip-prev" aria-label="Previous render">← Previous</button>
+        <span class="flip__count"><b id="flip-n">1</b> / 3</span>
+        <button class="btn btn--ghost btn--sm" id="flip-next" aria-label="Next render">Next →</button>
+      </div>
+    </div>
   </div>
-  <script src="/lib/nav.client.js" defer></script>
+</section>
+
+<!-- ================= 02. PATHS ================= -->
+<section class="section section--tint" id="paths">
+  <div class="shell">
+    <div class="section__head">
+      <h2 class="t-section">Three kinds of creators. One engine.</h2>
+      <p class="t-lead">Drop in whatever you have. The engine picks the right tools for what you are making.</p>
+    </div>
+
+    <div class="paths reveal">
+      <a class="path path--lead" href="/versions/neon.html">
+        <span class="path__glyph">♪</span>
+        <h3>I'm a musician</h3>
+        <div class="path__body">
+          <p>Drop a track. Get a music video. Pure-audio visualizers, neon engines, beat-synced cuts. No footage required.</p>
+          <div class="path__shot">
+            <img src="/verify-screenshots/neon.png" alt="A neon engine render with magenta and cyan screen-blended layers over a spectrum" width="720" height="450" loading="lazy" />
+          </div>
+        </div>
+        <span class="path__go">Neon →</span>
+      </a>
+
+      <a class="path" href="/personas">
+        <span class="path__glyph">◼</span>
+        <h3>I'm a designer</h3>
+        <p>Drop your brand kit, type, and audio. Get motion graphics and animated typography that breathes with the beat.</p>
+        <span class="path__go">Personas →</span>
+      </a>
+
+      <a class="path" href="/personas">
+        <span class="path__glyph">✦</span>
+        <h3>I'm a mixed-media creator</h3>
+        <p>Drop video, audio, and type. Get layered compositions with magazine-grid layouts and beat-synced cuts.</p>
+        <span class="path__go">Collage →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03. NUMBERS ================= -->
+<section class="section section--edge">
+  <div class="shell">
+    <div class="section__head">
+      <h2 class="t-section">The whole engine, in five numbers.</h2>
+    </div>
+    <div class="numbers reveal">
+      <div class="number"><div class="number__v">15.6k</div><div class="number__k">Engine HTML (gz)</div></div>
+      <div class="number"><div class="number__v">5</div><div class="number__k">FFT bands</div></div>
+      <div class="number"><div class="number__v">6</div><div class="number__k">Layers</div></div>
+      <div class="number"><div class="number__v">8</div><div class="number__k">Library items</div></div>
+      <div class="number"><div class="number__v">0</div><div class="number__k">Backend</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04. ENGINE ================= -->
+<section class="section section--tint" id="features">
+  <div class="shell">
+    <div class="section__head">
+      <span class="section__kicker">The engine</span>
+      <h2 class="t-section">A music visualizer with a <em>composer's</em> taste.</h2>
+      <p class="t-lead">Most visualizers just react to the spectrum. The Sainted Word engine classifies every asset you give it by motion, brightness, and hue, then routes each one to the band of the song that suits it. The composition is algorithmic. The score is the audio.</p>
+    </div>
+
+    <div class="feats reveal">
+      <div class="feat feat--wide">
+        <div>
+          <h3>Adaptive beat detection</h3>
+          <p class="feat__note">Every parameter is a feature binding, not a keyframe.</p>
+        </div>
+        <p>Bass-energy tracker with an adaptive threshold. Locks the BPM, fires an envelope on every kick, decays gracefully. Works on techno, jazz, and an ill-advised spoken-word record.</p>
+      </div>
+
+      <div class="feat">
+        <h3>Layered composition</h3>
+        <p>Six layers, each with its own blend mode and a stack of reactors. Scale to bass, hue to mids, position to the spectrum's edge.</p>
+      </div>
+
+      <div class="feat">
+        <h3>Library as palette</h3>
+        <p>Drop a folder of videos, GIFs, or images. Each one is auto-classified by motion, luma, and mean hue, then routed to the role that suits it. Different song, same library.</p>
+      </div>
+
+      <div class="feat feat--wide">
+        <div>
+          <h3>MP4 export, native</h3>
+          <p class="feat__note">No ffmpeg.wasm, no server, no transcode.</p>
+        </div>
+        <p>The canvas is captured via MediaRecorder at 30 fps with H.264 and AAC, 8 Mbps. The file you download plays in any editor.</p>
+      </div>
+
+      <div class="feat">
+        <h3>Fresh look every remap</h3>
+        <p>The auto-mapper picks from the top candidates weighted by score, and shuffles the blend order. Each RE-MAP click yields a new composition. Hit it until something sticks, then record.</p>
+      </div>
+
+      <div class="feat">
+        <h3>Single-file, zero install</h3>
+        <p>The whole engine is one HTML file. Drop it in a folder, open it in Chrome or Safari, it runs. No node_modules needed for the user. The Vite project is just for development.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05. LOOKS ================= -->
+<section class="section section--tint" id="versions">
+  <div class="shell">
+    <div class="section__head">
+      <span class="section__kicker">Visual languages</span>
+      <h2 class="t-section">Same engine. Five completely different looks.</h2>
+      <p class="t-lead">Five variants of the same engine, each with a distinct aesthetic. Click one to open it in a new tab. Same controls, same library, same MP4 export.</p>
+    </div>
+
+    <div class="looks reveal">
+      <a class="look look--big" href="/versions/neon.html">
+        <div class="look__shot"><img src="/verify-screenshots/neon.png" alt="Neon render, magenta and cyan screen-blend stacks with scanlines" width="720" height="450" loading="lazy" /></div>
+        <div class="look__cap">
+          <div class="look__name">Neon</div>
+          <div class="look__meta">Electric magenta and cyan</div>
+          <p class="look__desc">Hot club, screen-blend stacks, sharpened easings, scanlines. Cuts on the beat, not after it.</p>
+        </div>
+      </a>
+
+      <a class="look look--sm" href="/versions/film.html">
+        <div class="look__shot"><img src="/verify-screenshots/film.png" alt="Film render, warm sepia tone with per-pixel grain and a soft vignette" width="720" height="450" loading="lazy" /></div>
+        <div class="look__cap">
+          <div class="look__name">Film</div>
+          <div class="look__meta">Sepia and 16mm grain</div>
+        </div>
+      </a>
+
+      <a class="look look--sm" href="/versions/grid.html">
+        <div class="look__shot"><img src="/verify-screenshots/grid.png" alt="Grid render, hard monochrome cells with geometric type" width="720" height="450" loading="lazy" /></div>
+        <div class="look__cap">
+          <div class="look__name">Grid</div>
+          <div class="look__meta">Monochrome and hard cells</div>
+        </div>
+      </a>
+
+      <a class="look look--sm" href="/versions/smoke.html">
+        <div class="look__shot"><img src="/verify-screenshots/smoke.png" alt="Smoke render, warm cream tones at half opacity with heavy blur" width="720" height="450" loading="lazy" /></div>
+        <div class="look__cap">
+          <div class="look__name">Smoke</div>
+          <div class="look__meta">Cream warm and heavy blur</div>
+        </div>
+      </a>
+
+      <a class="look look--sm" href="/versions/hallucination.html">
+        <div class="look__shot"><img src="/verify-screenshots/hallucination.png" alt="Hallucination render, RGB channel shift over a scanline body" width="720" height="450" loading="lazy" /></div>
+        <div class="look__cap">
+          <div class="look__name">Hallucination</div>
+          <div class="look__meta">RGB shift and scanline body</div>
+        </div>
+      </a>
+    </div>
+
+    <p style="margin-top:34px"><a class="btn btn--ghost" href="/versions">See them all →</a></p>
+  </div>
+</section>
+
+<!-- ================= 06. PEOPLE ================= -->
+<section class="section section--edge">
+  <div class="shell">
+    <div class="section__head">
+      <h2 class="t-section">Who actually uses this.</h2>
+      <p class="t-lead">The engine and its five versions were built for people who have audio and a release date, and zero budget for a video editor. These are the profiles that reach for it first.</p>
+    </div>
+
+    <div class="people__grid reveal">
+      <div class="people__group">
+        <h3>Releasing music</h3>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">Indie musician</span></div>
+          <p>Releasing a single with no video budget. Loads the mastered WAV, picks a style, gets a 30s MP4 for the post.</p>
+          <a href="/versions/neon.html">Neon →</a>
+        </div>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">Beatmaker</span></div>
+          <p>Selling beats on BeatStars and Airbit. Renders a 15s preview per track so the listing beats a static waveform.</p>
+          <a href="/versions/grid.html">Grid →</a>
+        </div>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">DJ</span></div>
+          <p>Promoting a mix or a set. 60s vertical teaser with BPM burned in frame 1, cuts on the downbeat, ready for Reels.</p>
+          <a href="/versions/smoke.html">Smoke →</a>
+        </div>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">Small label</span></div>
+          <p>3-10 artists a year, one brand voice. Uses the same version across the roster so every release reads as the label.</p>
+          <a href="/versions/film.html">Film →</a>
+        </div>
+      </div>
+
+      <div class="people__group">
+        <h3>Beyond the release</h3>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">Hand-drawn mascot</span><span class="person__tag">New</span></div>
+          <p>Click the mascot and it requests your camera, samples frames at 8 fps, and reacts in real time. A hand-wave makes it wave back. Sustained motion makes it lean in. No model, no CDN.</p>
+          <a href="/personas">Mascot →</a>
+        </div>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">Independent artist</span></div>
+          <p>Local pricing (€25 against €40+ in the EU), in-person demo at KC Grad, Drugstore, or Dot. Same engine, different margin.</p>
+          <a href="/campaign.html">Campaign →</a>
+        </div>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">Podcaster</span></div>
+          <p>One long episode, ten short clips. Renders each pull-quote moment as a 15s visual to drive follows from the audio feed.</p>
+          <a href="/versions/film.html">Film →</a>
+        </div>
+
+        <div class="person">
+          <div class="person__top"><span class="person__name">Sound designer</span></div>
+          <p>Sample pack creator showcasing the patches. The visualizer becomes the cover art, so engine output doubles as marketing.</p>
+          <a href="/versions/hallucination.html">Hallucination →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 07. QUICKSTART ================= -->
+<section class="section section--tint" id="quickstart">
+  <div class="shell">
+    <div class="section__head">
+      <h2 class="t-section">Three commands, then <em>open the URL</em>.</h2>
+      <p class="t-lead">Or skip the install entirely. The engine is a single HTML file and runs from a static server.</p>
+    </div>
+
+    <div class="quick reveal">
+      <div class="quick__copy">
+        <h3>Run it locally</h3>
+        <p>The dev server uses Vite for hot reload during development. The production build outputs to <code>dist/</code> with the engine, the five versions, and the library.</p>
+        <div class="quick__facts">
+          <div class="quick__fact"><b>Needs</b><span>Node 18 or newer</span></div>
+          <div class="quick__fact"><b>Keys</b><span>None. No API keys, no external services.</span></div>
+          <div class="quick__fact"><b>Size</b><span>The 12 videos in <code>library/</code> are 75 MB total</span></div>
+        </div>
+      </div>
+
+      <div class="term">
+        <div class="term__path">~/sainted-word-records</div>
+        <div><span class="c"># clone and install</span></div>
+        <div><span class="p">$</span> git clone <span class="s">git@github.com:kai-djuric/sainted-word-records.git</span></div>
+        <div><span class="p">$</span> cd sainted-word-records</div>
+        <div><span class="p">$</span> npm install</div>
+        <div><span class="c"># dev server (port 5174)</span></div>
+        <div><span class="p">$</span> npm run dev</div>
+        <div><span class="c"># production build to dist/</span></div>
+        <div><span class="p">$</span> npm run build</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 08. STACK ================= -->
+<section class="section section--edge" id="stack">
+  <div class="shell">
+    <div class="section__head">
+      <h2 class="t-section">Built on the <em>web platform</em>.</h2>
+      <p class="t-lead">No native dependencies, no build step required to use the engine. Just a browser and your library.</p>
+    </div>
+
+    <div class="stack reveal">
+      <div class="stack__group">
+        <h3>Runtime</h3>
+        <div class="stack__list">
+          <span class="stack__item">Web Audio API and FFT</span>
+          <span class="stack__item">Canvas 2D</span>
+          <span class="stack__item">MediaRecorder, H.264 and AAC</span>
+          <span class="stack__item">Web Components</span>
+        </div>
+      </div>
+      <div class="stack__group">
+        <h3>Build</h3>
+        <div class="stack__list">
+          <span class="stack__item">Vite</span>
+          <span class="stack__item">ES2022 modules</span>
+          <span class="stack__item">Single HTML file output</span>
+        </div>
+      </div>
+      <div class="stack__group">
+        <h3>Type and licence</h3>
+        <div class="stack__list">
+          <span class="stack__item">Fraunces</span>
+          <span class="stack__item">Geist</span>
+          <span class="stack__item">Geist Mono</span>
+          <span class="stack__item">Zero backend</span>
+          <span class="stack__item">MIT licence</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 09. DIRECTORY ================= -->
+<section class="section section--tint" id="pages">
+  <div class="shell">
+    <div class="section__head">
+      <h2 class="t-section">Every page on <em>sainted-word-records</em>.</h2>
+      <p class="t-lead">Public routes from this domain, grouped by what they are for. Each one is a real, hand-tuned surface with no template fills.</p>
+    </div>
+
+    <div class="dirs reveal">
+        <div class="dir__group">
+          <h3>Engine <span>8</span></h3>
+          <div class="dir__list">
+            <a class="dir__item" href="/engine"><span class="dir__name">Main engine <em>New</em></span><span class="dir__desc">Drop a song, drop a library, get a video. The browser-native engine.</span></a>
+            <a class="dir__item" href="/swr-app.html"><span class="dir__name">App shell</span><span class="dir__desc">PWA shell with engine, presets, projects, and cloud sync.</span></a>
+            <a class="dir__item" href="/versions"><span class="dir__name">All 5 versions</span><span class="dir__desc">Neon, Film, Grid, Smoke, Hallucination. Same engine, five visual languages.</span></a>
+            <a class="dir__item" href="/engine-demos"><span class="dir__name">Engine demos</span><span class="dir__desc">Every engine preset with a real-time thumb. Click to open and record.</span></a>
+            <a class="dir__item" href="/composer"><span class="dir__name">Composer <em>Mobile</em></span><span class="dir__desc">Touch-native single-column composer for phones.</span></a>
+            <a class="dir__item" href="/record"><span class="dir__name">Record <em>3 formats</em></span><span class="dir__desc">Capture the composition to 16:9, 9:16, or 1:1 video.</span></a>
+            <a class="dir__item" href="/make-video"><span class="dir__name">Make a video</span><span class="dir__desc">Step-by-step music video maker. Pick a song, drop in clips, MP4 export.</span></a>
+            <a class="dir__item" href="/packs"><span class="dir__name">Media packs</span><span class="dir__desc">Curated asset packs ready to drop into the engine.</span></a>
+          </div>
+        </div>
+        <div class="dir__group">
+          <h3>Gallery <span>19</span></h3>
+          <div class="dir__list">
+            <a class="dir__item" href="/gallery-music.html"><span class="dir__name">All galleries</span><span class="dir__desc">The gallery index. Every curated visual collection in one place.</span></a>
+            <a class="dir__item" href="/gallery-music.html"><span class="dir__name">Music</span><span class="dir__desc">Music-driven visual sets curated for the engine.</span></a>
+            <a class="dir__item" href="/gallery-generative.html"><span class="dir__name">Generative</span><span class="dir__desc">Procedural and generative compositions.</span></a>
+            <a class="dir__item" href="/gallery-cosmic.html"><span class="dir__name">Cosmic</span><span class="dir__desc">Cosmic-scale motion and color.</span></a>
+            <a class="dir__item" href="/gallery-bio.html"><span class="dir__name">Bio</span><span class="dir__desc">Organic textures and growth forms.</span></a>
+            <a class="dir__item" href="/gallery-ai.html"><span class="dir__name">AI</span><span class="dir__desc">AI-augmented visual studies.</span></a>
+            <a class="dir__item" href="/gallery-glyphs.html"><span class="dir__name">Glyphs</span><span class="dir__desc">Glyph-driven typography in motion.</span></a>
+            <a class="dir__item" href="/gallery-vr.html"><span class="dir__name">VR</span><span class="dir__desc">Stereoscopic and VR-ready compositions.</span></a>
+            <a class="dir__item" href="/gallery-photoexp.html"><span class="dir__name">Photo experiments</span><span class="dir__desc">Photo experiments and image treatments.</span></a>
+            <a class="dir__item" href="/gallery-darkfuture.html"><span class="dir__name">Dark future</span><span class="dir__desc">Noir, neon, decay.</span></a>
+            <a class="dir__item" href="/gallery-brutalist.html"><span class="dir__name">Brutalist</span><span class="dir__desc">Hard rules, raw type.</span></a>
+            <a class="dir__item" href="/gallery-bachdrop.html"><span class="dir__name">Bachdrop</span><span class="dir__desc">Counterpoint-reactive baroque engine and gallery.</span></a>
+            <a class="dir__item" href="/gallery-vintage.html"><span class="dir__name">Vintage</span><span class="dir__desc">57 Midjourney compositions of vintage architecture and old photographs.</span></a>
+            <a class="dir__item" href="/gallery-posters.html"><span class="dir__name">Posters</span><span class="dir__desc">Poster-format static compositions.</span></a>
+            <a class="dir__item" href="/gallery-albums.html"><span class="dir__name">Albums</span><span class="dir__desc">Album-art covers and variants.</span></a>
+            <a class="dir__item" href="/gallery-videofx.html"><span class="dir__name">Video FX</span><span class="dir__desc">Heavy FX treatments for video output.</span></a>
+            <a class="dir__item" href="/gallery-tshirts.html"><span class="dir__name">T-shirts</span><span class="dir__desc">T-shirt design variants from every gallery.</span></a>
+            <a class="dir__item" href="/gallery-artist.html"><span class="dir__name">Artist</span><span class="dir__desc">Artist-page treatments.</span></a>
+            <a class="dir__item" href="/gallery-point4brand.html"><span class="dir__name">Point4 brand</span><span class="dir__desc">The Point4brand visual system applied across the engine.</span></a>
+          </div>
+        </div>
+        <div class="dir__group">
+          <h3>For creators <span>6</span></h3>
+          <div class="dir__list">
+            <a class="dir__item" href="/personas"><span class="dir__name">Personas</span><span class="dir__desc">Who this is built for, with concrete starting points.</span></a>
+            <a class="dir__item" href="/campaign.html"><span class="dir__name">Campaign</span><span class="dir__desc">Get a visualizer. 25 to 40 EUR, 48-hour turnaround, browser-based.</span></a>
+            <a class="dir__item" href="/marketplace"><span class="dir__name">Marketplace</span><span class="dir__desc">Curated template sets. Install to your engine, open in one click.</span></a>
+            <a class="dir__item" href="/shop"><span class="dir__name">Shop</span><span class="dir__desc">Logo tees, graphic tees, and mugs from every gallery.</span></a>
+            <a class="dir__item" href="/portfolio"><span class="dir__name">Portfolio</span><span class="dir__desc">Five curated visual sets for music videos.</span></a>
+            <a class="dir__item" href="/packs"><span class="dir__name">Media packs</span><span class="dir__desc">Downloadable asset packs for the engine.</span></a>
+          </div>
+        </div>
+        <div class="dir__group">
+          <h3>Learn and docs <span>12</span></h3>
+          <div class="dir__list">
+            <a class="dir__item" href="/intro"><span class="dir__name">Intro</span><span class="dir__desc">Sainted Word Records in 90 seconds.</span></a>
+            <a class="dir__item" href="/tutorial-30s.html"><span class="dir__name">30-second tutorial</span><span class="dir__desc">Make a 30-second music video in three steps. No install, no signup.</span></a>
+            <a class="dir__item" href="/interactive-howto.html"><span class="dir__name">Interactive how-to</span><span class="dir__desc">Drop a song, drop a library, get an MP4.</span></a>
+            <a class="dir__item" href="/about"><span class="dir__name">About</span><span class="dir__desc">A one-person audio-reactive video studio. Built in Belgrade.</span></a>
+            <a class="dir__item" href="/changelog"><span class="dir__name">Changelog</span><span class="dir__desc">Public release history for the engine and the variants.</span></a>
+            <a class="dir__item" href="/press"><span class="dir__name">Press kit</span><span class="dir__desc">Logos, screenshots, hero images, and a one-line bio.</span></a>
+            <a class="dir__item" href="/status"><span class="dir__name">Status</span><span class="dir__desc">Live system status for the engine and the preset pipeline.</span></a>
+            <a class="dir__item" href="/thanks"><span class="dir__name">Thanks</span><span class="dir__desc">Order received. What happens next.</span></a>
+            <a class="dir__item" href="/login"><span class="dir__name">Sign in</span><span class="dir__desc">Magic-link sign in for projects, presets, and cloud library.</span></a>
+            <a class="dir__item" href="/legal/privacy.html"><span class="dir__name">Privacy</span><span class="dir__desc">How we handle your data.</span></a>
+            <a class="dir__item" href="/legal/terms.html"><span class="dir__name">Terms</span><span class="dir__desc">Legal terms and conditions.</span></a>
+            <a class="dir__item" href="/sitemap"><span class="dir__name">Sitemap</span><span class="dir__desc">All pages on this domain.</span></a>
+          </div>
+        </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="site-foot">
+  <div class="shell">
+    <div class="foot__grid">
+      <div>
+        <div class="foot__brand"><b>SWR</b> Sainted Word Records</div>
+        <p class="foot__tag">An audio-reactive video engine that ships as a single HTML file. Drop a song, drop a library, get a music video.</p>
+      </div>
+      <div class="foot__col">
+        <h3>Engine</h3>
+        <ul>
+          <li><a href="/engine">Main engine</a></li>
+          <li><a href="/versions">All versions</a></li>
+          <li><a href="/marketplace">Marketplace</a></li>
+        </ul>
+      </div>
+      <div class="foot__col">
+        <h3>Explore</h3>
+        <ul>
+          <li><a href="/personas">Personas</a></li>
+          <li><a href="/personas/v">Persona variants</a></li>
+          <li><a href="/packs">Media packs</a></li>
+        </ul>
+      </div>
+      <div class="foot__col">
+        <h3>Learn</h3>
+        <ul>
+          <li><a href="/intro">Intro</a></li>
+          <li><a href="/tutorial-30s">30-second video</a></li>
+          <li><a href="/interactive-howto">How it works</a></li>
+          <li><a href="/changelog">Changelog</a></li>
+          <li><a href="/status">Status</a></li>
+        </ul>
+      </div>
+      <div class="foot__col">
+        <h3>Company</h3>
+        <ul>
+          <li><a href="/about">About</a></li>
+          <li><a href="/portfolio">Portfolio</a></li>
+          <li><a href="/press">Press</a></li>
+          <li><a href="/campaign.html">Hire us</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot__bottom">
+      <a href="https://github.com/kajica2/sainted-word-records">GitHub repo</a>
+      <a href="https://github.com/kajica2/sainted-word-records/issues">Report an issue</a>
+      <a href="https://github.com/kajica2/sainted-word-records/blob/main/LICENSE">MIT license</a>
+      <a href="https://github.com/kai-djuric">@kai-djuric</a>
+      <a href="/legal/privacy.html">Privacy</a>
+      <a href="/legal/terms.html">Terms</a>
+      <span>Sainted Word Records, Belgrade</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ---------------------------------------------------------------------
+// Behaviour. Three small surfaces, each with one job.
+// 1. Reveal on scroll  - states that a section has arrived.
+// 2. Flip carousel    - state change between renders.
+// ---------------------------------------------------------------------
+(function () {
+  'use strict';
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // --- 1. Reveal on scroll (IntersectionObserver, never a scroll listener) ---
+  var reveals = document.querySelectorAll('.reveal');
+  if (reduce || !('IntersectionObserver' in window)) {
+    reveals.forEach(function (el) { el.classList.add('is-in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    reveals.forEach(function (el) { io.observe(el); });
+  }
+
+  // --- 2. Flip carousel ---
+  var stage = document.getElementById('flip-stage');
+  if (stage) {
+    var cards = Array.prototype.slice.call(stage.querySelectorAll('.flip__card'));
+    var counter = document.getElementById('flip-n');
+    var idx = 0;
+
+    function paint() {
+      cards.forEach(function (c, i) {
+        c.classList.remove('is-active', 'is-prev', 'is-next');
+        var d = (i - idx + cards.length) % cards.length;
+        if (d === 0) c.classList.add('is-active');
+        else if (d === 1) c.classList.add('is-next');
+        else if (d === cards.length - 1) c.classList.add('is-prev');
+        // Only the visible card plays audio.
+        var v = c.querySelector('video');
+        if (v) { if (d === 0) { v.currentTime = 0; } else { v.pause(); } }
+      });
+      if (counter) counter.textContent = String(idx + 1);
+    }
+
+    function step(dir) { idx = (idx + dir + cards.length) % cards.length; paint(); }
+
+    document.getElementById('flip-prev').addEventListener('click', function () { step(-1); });
+    document.getElementById('flip-next').addEventListener('click', function () { step(1); });
+
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (e.key === 'ArrowLeft') { step(-1); }
+      if (e.key === 'ArrowRight') { step(1); }
+    });
+
+    var x0 = null;
+    stage.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+    stage.addEventListener('touchend', function (e) {
+      if (x0 === null) return;
+      var dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 44) step(dx < 0 ? 1 : -1);
+      x0 = null;
+    }, { passive: true });
+
+    paint();
+  }
+})();
+</script>
 </body>
 </html>
