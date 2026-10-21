@@ -19,6 +19,11 @@
 //     engine's features respond to the room
 //   · stopping both removes the layer and releases the devices
 //
+// The target defaults to a static server this script starts itself
+// (the built dist/, on an ephemeral port), so the check is one command
+// with no external setup — that is what makes it usable as a gate step.
+// Pass --target=… to point it at a server you are already running.
+//
 // No npm dependencies: headless Chrome over the DevTools Protocol, with
 // Node's built-in WebSocket doing the work.
 
@@ -26,13 +31,12 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { serveDist } from './with-dist.mjs';
 
 const argv = process.argv.slice(2);
-const arg = (name, fallback) => {
-  const hit = argv.find((a) => a.startsWith(`--${name}=`));
-  return hit ? hit.slice(name.length + 3) : fallback;
-};
-const TARGET = arg('target', 'http://127.0.0.1:8099/engine.html');
+// A target given on the command line is used as-is (against a server the
+// caller is already running); without one, main() starts its own.
+const EXPLICIT_TARGET = argv.find((a) => a.startsWith('--target='));
 const HEADED = argv.includes('--headed');
 
 const CHROME_CANDIDATES = [
@@ -229,6 +233,18 @@ const SCRIPT = `
 `;
 
 async function main() {
+  // Serve the built dist/ ourselves unless the caller pointed us at a
+  // server of their own. Port 0 asks the OS for a free port, so two
+  // runs never collide.
+  let server = null;
+  let TARGET;
+  if (EXPLICIT_TARGET) {
+    TARGET = EXPLICIT_TARGET.slice('--target='.length);
+  } else {
+    server = await serveDist(0);
+    TARGET = server.url + '/engine.html';
+  }
+
   const { proc, wsUrl, profile } = await launchChrome();
   const cdp = new Cdp(wsUrl);
   let exitCode = 0;
@@ -288,6 +304,7 @@ async function main() {
     try { process.kill(-proc.pid, 'SIGKILL'); } catch { /* already gone */ }
     try { proc.kill('SIGKILL'); } catch { /* already gone */ }
     try { rmSync(profile, { recursive: true, force: true }); } catch { /* ignore */ }
+    if (server) { try { await server.close(); } catch { /* ignore */ } }
   }
   process.exit(exitCode);
 }

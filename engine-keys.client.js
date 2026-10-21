@@ -1539,10 +1539,18 @@
     // Pages without the "?" button get no button (no-op).
     var ROT_MASTER_KEY = 'swr.rotMaster.enabled';
     function loadMasterEnabled() {
+      // Default ENABLED. The master is a mute switch for rotation, so a
+      // fresh profile should behave the same as a layer with no gate at
+      // all — Layers.add() creates layers with rotationEnabled === true,
+      // and this wrapper copies the master onto every new layer, so a
+      // false default here silently turned rotation off for everything.
+      // The sibling tx-master (transformations) defaults to true for the
+      // same reason. An explicit '0' in localStorage is still honoured:
+      // that is the user having muted it.
       try {
         var v = localStorage.getItem(ROT_MASTER_KEY);
-        return v === null ? false : v === '1';
-      } catch (_) { return false; }
+        return v === null ? true : v === '1';
+      } catch (_) { return true; }
     }
     function saveMasterEnabled(v) {
       try { localStorage.setItem(ROT_MASTER_KEY, v ? '1' : '0'); } catch (_) {}

@@ -265,6 +265,11 @@ const GROUPS = {
     // every page that mounts <swr-footer>. Needs a built dist/.
     'npm run check:announcements-smoke',
     'npm run check:media-input-smoke',
+    // The Live control end to end in a real browser: a synthetic camera
+    // (--use-fake-device-for-media-stream) actually playing, the stage
+    // pixels moving, the mic routed into the engine's own analyser, and
+    // the devices released on stop. Was reachable from NO gate.
+    'npm run check:live-input',
     'npm run check:spit-live-smoke',
     'npm run check:tiktok-smoke',
     'npm run check:camera-enhance-smoke',

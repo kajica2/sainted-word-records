@@ -240,7 +240,11 @@ try {
                           document.getElementById('swr-rot-master').nextElementSibling &&
                           document.getElementById('swr-rot-master').nextElementSibling.id === 'swr-keys-help-btn',
           hasLayers: !!window.Layers,
-          hasRender: !!(window.SWR && window.SWR.RENDER),
+          // engine.html assembles window.SWR as { Audio, Library, Layers,
+          // Renderer, Recorder, UI, ... } — the engine's own renderer is
+          // SWR.Renderer. There is no SWR.RENDER (SWR_RENDER is the
+          // separate global the version pages use).
+          hasRender: !!(window.SWR && window.SWR.Renderer),
           masterState: window.SWR_ROT_MASTER && { ...window.SWR_ROT_MASTER },
         }));
       }

@@ -48,11 +48,15 @@ export function crc32(buf) {
   return (c ^ 0xffffffff) >>> 0;
 }
 
+// MS-DOS timestamps have no timezone, so the only way to make one instant
+// encode to one byte pattern is to read it in UTC. Using the local-time
+// getters here made the same archive differ between a UTC CI runner and a
+// developer in another zone — the build stopped being reproducible.
 function dosDateTime(date) {
   const d = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date(0);
-  const year = Math.max(1980, d.getFullYear());
-  const time = ((d.getHours() & 0x1f) << 11) | ((d.getMinutes() & 0x3f) << 5) | ((d.getSeconds() / 2) & 0x1f);
-  const dateBits = (((year - 1980) & 0x7f) << 9) | (((d.getMonth() + 1) & 0x0f) << 5) | (d.getDate() & 0x1f);
+  const year = Math.max(1980, d.getUTCFullYear());
+  const time = ((d.getUTCHours() & 0x1f) << 11) | ((d.getUTCMinutes() & 0x3f) << 5) | ((d.getUTCSeconds() / 2) & 0x1f);
+  const dateBits = (((year - 1980) & 0x7f) << 9) | (((d.getUTCMonth() + 1) & 0x0f) << 5) | (d.getUTCDate() & 0x1f);
   return { time, date: dateBits };
 }
 

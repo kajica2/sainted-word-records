@@ -1033,7 +1033,7 @@ d.addEventListener('click', (e) => {
       // by the per-layer rotationEnabled toggle. Without this guard the
       // angle accumulates frame-to-frame and the layer tumbles even when
       // the user has explicitly turned rotation off.
-      const _rotOn = l.rotationEnabled === true;  // OFF by default — opt in via the per-layer 'rotate' toggle; reactors targeting 'rot' are silenced until then
+      const _rotOn = l.rotationEnabled === true;  // rotation is ON by default (the rot-master defaults to enabled); when false, reactors targeting 'rot' are silenced
       for (const r of l.reactors) {
         let v = A.feat[r.feature] ?? 0;
         v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;

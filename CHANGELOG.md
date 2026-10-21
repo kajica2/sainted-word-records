@@ -8,6 +8,12 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- `check:live-input` — the Live control end to end in a real browser, with a
+  synthetic camera and microphone: the video is actually playing, the stage
+  pixels move, the mic reaches the engine's own analyser, and the devices
+  are released on stop. It starts its own static server over the built
+  `dist/`, so it is one command with no external setup, and it is now a
+  step in the `full` group (it was reachable from no gate).
 - `tour.html` — 12-stop Jakob Nielsen usability tour (sweep / step / reset).
 - `shortcuts-movie.html` — 60-second hyperframe walkthrough of every
   keyboard shortcut (Space, ←/→, number-jump).
@@ -37,6 +43,32 @@ once it hits 1.0.
   lifecycle, layer retire, kit-zip.
 
 ### Fixed
+- The master rotation toggle defaulted to **off**, so every layer was born
+  with `rotationEnabled === false` and no audio-driven or manual rotation
+  ran until the user pressed the ↻ button. `engine-keys.client.js`'s
+  `loadMasterEnabled()` returned `false` for a fresh profile, and the
+  `Layers.add` wrapper copies the master onto every new layer — so the
+  master silently overrode `Layers.add`'s own `rotationEnabled: true`. The
+  master is a mute switch, so it now defaults to enabled (its sibling
+  tx-master already did); an explicit `localStorage['swr.rotMaster.enabled']`
+  is still honoured.
+- The generation archives were not reproducible: each zip entry carried the
+  **source file's filesystem mtime**, and `scripts/lib/zip.mjs`'s
+  `dosDateTime()` read it with **local-time** getters, so a bare `touch` or a
+  different `TZ` changed the archive bytes with identical content. Entries
+  now carry one content-derived timestamp per generation
+  (`generations.date` at 00:00:00Z) and the DOS time is encoded in UTC.
+- `check:capture-smoke` died with *"Execution context was destroyed, most
+  likely because of a navigation"*: `page.setRequestInterception()` does not
+  intercept the service-worker script fetch, so blocking `/sw.js` left the
+  worker free to register, claim the page and fire `pwa-bootstrap.js`'s
+  `controllerchange` → `location.reload()`. The smoke now neutralises the
+  worker the way the repo's other browser suites do — a launch flag
+  (`--disable-features=ServiceWorker,ServiceWorkerOnUI`), a stubbed
+  `navigator.serviceWorker.register`, and a seeded `swr_app_version_seen`
+  so `lib/app-version-bust.js` does not hard-reload a cold profile.
+- `verify-rot-master.mjs` asserted `window.SWR.RENDER`, a global that does
+  not exist anywhere in the tree; `engine.html` publishes `SWR.Renderer`.
 - Engine "Hooks" button could only ever answer *"no song loaded"*.
   `client/hook-detector.client.js` reads the song to analyse from
   `window.SWR_LAST_SONG`; the engine never loaded the saved-song bridge

@@ -80,7 +80,12 @@ server.on('error', (err) => {
 server.listen(5184);
 
 const browser = await puppeteer.launch({
-  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  args: [
+    '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+    // Belt and braces with the register() stub below: the feature flags
+    // stop the worker existing at all, the stub stops it being created.
+    '--disable-features=ServiceWorker,ServiceWorkerOnUI',
+  ],
 });
 
 const results = [];
@@ -99,15 +104,25 @@ async function nav(page, url) {
 }
 
 const page = await browser.newPage();
-// The service worker claims the page on its first activation, and
-// pwa-bootstrap.js reloads on `controllerchange` — that reload would
-// destroy the execution context in the middle of an assertion. The SW
-// plays no part in this test, so block it.
-await page.setRequestInterception(true);
-page.on('request', (r) => {
-  if (/sw\.js(\?|$)/.test(r.url())) r.abort().catch(() => {});
-  else r.continue().catch(() => {});
-});
+// The engine page reloads itself twice on a cold profile, and either
+// reload destroys the execution context in the middle of an assertion:
+//   1. lib/app-version-bust.js hard-reloads when the stored version is
+//      stale, which it always is in a fresh profile.
+//   2. The service worker claims the page on its first activation and
+//      pwa-bootstrap.js reloads on 'controllerchange'.
+// Neither the layer panel nor the group model has anything to do with
+// either, so both are neutralised. Stubbing register() is what actually
+// works for the worker — page.setRequestInterception() does not
+// intercept the SW script fetch, so blocking the request leaves the
+// worker free to register and claim.
+await page.evaluateOnNewDocument((v) => {
+  try { if (v) localStorage.setItem('swr_app_version_seen', v); } catch (e) {}
+  try {
+    if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+      navigator.serviceWorker.register = () => new Promise(() => {});
+    }
+  } catch (e) {}
+}, APP_VERSION);
 // The engine boots in Basic mode, where the layers panel is hidden.
 // Force Advanced mode (the mode preference lives in localStorage).
 await page.evaluateOnNewDocument(() => {
@@ -121,12 +136,6 @@ await page.evaluateOnNewDocument(() => {
     localStorage.setItem('swr.onboarded.v1', JSON.stringify({ dismissedAt: new Date().toISOString(), version: 1 }));
   } catch (e) {}
 });
-// lib/app-version-bust.js hard-reloads the page when the stored version
-// is stale — which it always is in a fresh profile. Seed the current
-// version so the page loads once and stays loaded.
-await page.evaluateOnNewDocument((v) => {
-  try { localStorage.setItem('swr_app_version_seen', v); } catch (e) {}
-}, APP_VERSION);
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
