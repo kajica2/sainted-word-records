@@ -168,6 +168,20 @@ The score is the mean across a slice of the variant family (`--pages=neon,film,a
 
 The harness needs Chrome and network access to the deployed site, so it is a developer aid, not part of the `check` group.
 
+## Equaliser isolation test
+
+`audios/swr-eq-test.mp3` is a 60-second diagnostic track that fills one of the engine's frequency bands at a time — bass, mid, treble, air, silence, sub, then all four — so you can see that a layer reacts to its own band and nothing else. `npm run make:eq-test-track` regenerates it; `npm run check:eq-isolation` runs the check (`scripts/check-eq-isolation.mjs`), which plays the track through the engine's own analyser and asserts that **each layer's displacement matches the engine's own prediction** — `ease(feature) × sens × gain` — in every segment, to within 2% of that target's dynamic range.
+
+The check is not a threshold on "no cross-talk"; it is a prediction test. Anything else moving a layer would miss its prediction.
+
+It found three things about the engine worth knowing before tuning reactors:
+
+- **A band's level depends on how wide it is.** A feature is the mean of its bins, so the same energy reads 0.93 in the 10-bin bass band and 0.40 in the 745-bin air band. The shipped per-target gains (`mid → hue ×200` against `treble → rot ×3`) exist to compensate.
+- **Adjacent bands share a boundary FFT bin** (`bass` ends at bin 11, `mid` starts at bin 11), so a loud band always bleeds into its neighbour by one bin's worth — and the `sharp` ease curve (`t^0.4`) amplifies that: a bass-bound layer moves about half as much during a mid segment as during a bass segment.
+- **Two subsystems write into the transform that have nothing to do with the music** — the narrative-state drift and the LFO registry. The check switches both off; a layer audit has to, or it measures them instead.
+
+`docs/EQ-ISOLATION-TEST.md` has the full segment plan and the measured tables.
+
 ## PR & commit conventions
 
 - **Auto-commit workflow**: After completing any deliverable, run tests, then commit and push to main. Skip pushing only if tests fail.

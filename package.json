@@ -20,6 +20,8 @@
     "check:full": "node scripts/run-steps.mjs full",
     "check:syntax": "node scripts/check-syntax.mjs",
     "check:debugger": "node scripts/check-swr-debugger.mjs",
+    "check:eq-isolation": "node scripts/check-eq-isolation.mjs",
+    "make:eq-test-track": "node scripts/make-eq-test-track.mjs",
     "keys:pt": "node scripts/generate-pt-keys.mjs",
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
     "check:auth-unit": "node scripts/check-auth-unit.mjs",
