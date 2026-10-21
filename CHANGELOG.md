@@ -82,6 +82,15 @@ once it hits 1.0.
   trusting `paused` (one play in flight, re-arm a stalled element at
   most once a second); the core no longer pauses a still-loading video;
   the engine and the 15 variant pages call the helper.
+- Video library thumbnails came out as black rectangles on the variant
+  pages. The thumbnail was captured at t=0, and t=0 is black on
+  anything that fades in — which is most real footage (the same clip
+  also read `luma: 0`, so the library's colour analysis was wrong too).
+  The engine already avoided this: `lib/library.client.js` seeks to a
+  poster frame before grabbing the thumb. New
+  `lib/video-thumb.client.js` applies the same rule to the 16 variant
+  pages — seek to 1s, or the middle of anything shorter, and fall back
+  to the current frame if the clip cannot be seeked.
 
 ### Changed
 - Bare 1..9 no longer selects layers (the previous behaviour
