@@ -8531,6 +8531,17 @@
   <!-- Hero / Hook / Stats / Mood / Scenes runtimes (Phase 1b) -->
   <!-- NOTE: hero-frames.client.js intentionally omitted per /steer skip hero -->
   <script src="/client/narrative-state.client.js" defer></script>
+  <!-- Saved-song bridge. client/hook-detector.client.js reads the song to
+       analyse from window.SWR_LAST_SONG (hook-detector.client.js:47) and
+       returns {ok:false, reason:'no song loaded'} when it is absent.
+       lib/audio.client.js already persists the loaded song into the same
+       IndexedDB record the bridge reads — DB 'sainted-word-records' v4,
+       store 'songs', key 'current', fields {blob,name,type,savedAt}
+       (audio.client.js:342) — so the engine was already writing the one
+       thing the hook detector could not see. Every versions/*.html page
+       loads this bridge; the engine did not, so its Hooks button could
+       only ever answer 'no song loaded'. -->
+  <script src="/versions/last-song.js" defer></script>
   <script src="/client/hook-detector.client.js" defer></script>
   <script src="/client/stats.client.js" defer></script>
   <script src="/client/mood.client.js" defer></script>
