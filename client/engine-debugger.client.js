@@ -366,6 +366,7 @@
 
   var CSS = [
     '#swr-debugger{position:fixed;top:44px;right:0;bottom:36px;width:330px;z-index:10050;',
+    'contain:layout style paint;',
     'display:flex;flex-direction:column;background:rgba(10,6,18,0.93);',
     'border-left:1px solid #2a1d3e;color:#f5e9ff;',
     'font:9px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;',
@@ -379,7 +380,8 @@
     'font:11px/1 ui-monospace,monospace;padding:0 2px}',
     '#swr-debugger .d-head button:hover{color:#ff2d8a}',
     '#swr-debugger .d-body{flex:1 1 auto;overflow-y:auto;min-height:0}',
-    '#swr-debugger section{border-bottom:1px solid #150b22}',
+    '#swr-debugger section{border-bottom:1px solid #150b22;',
+    'content-visibility:auto;contain-intrinsic-size:auto 90px;',
     '#swr-debugger .s-h{display:flex;align-items:center;gap:6px;padding:5px 10px 3px;',
     'font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:#8a7aa0}',
     '#swr-debugger .s-h .sp{flex:1}',
@@ -1034,19 +1036,27 @@
     var d = state.dom['master-states'];
     if (!d || !d.wrap) return;
     var items = [
-      ['tx', window.SWR_TX_MASTER ? window.SWR_TX_MASTER.enabled !== false : false],
-      ['rot', window.SWR_ROT_MASTER ? window.SWR_ROT_MASTER.enabled === true : false],
-      ['automix', window.SWR_AUTOMIX ? !!window.SWR_AUTOMIX.enabled : false],
-      ['grade', !!window.SWR_GRADE],
-      ['narrative', !!window.SWR_NARRATIVE],
-      ['damp', !!window.SWR_AUDIO_DAMP],
-      ['life', !!window.SWR_LIFE],
-      ['fx', !!window.FX],
+      ['tx', function () { return window.SWR_TX_MASTER ? window.SWR_TX_MASTER.enabled !== false : false; }],
+      ['rot', function () { return window.SWR_ROT_MASTER ? window.SWR_ROT_MASTER.enabled === true : false; }],
+      ['automix', function () { return window.SWR_AUTOMIX ? !!window.SWR_AUTOMIX.enabled : false; }],
+      ['grade', function () { return !!window.SWR_GRADE; }],
+      ['narrative', function () { return !!window.SWR_NARRATIVE; }],
+      ['damp', function () { return !!window.SWR_AUDIO_DAMP; }],
+      ['life', function () { return !!window.SWR_LIFE; }],
+      ['fx', function () { return !!window.FX; }],
     ];
-    d.wrap.innerHTML = '';
-    items.forEach(function (it) {
-      var s = el('span', it[1] ? 'on' : 'off', it[0]);
-      d.wrap.appendChild(s);
+    // The chips are built once and only their state class changes —
+    // rebuilding eight elements on every repaint is needless DOM churn.
+    if (!d.chips || d.chips.length !== items.length) {
+      d.wrap.innerHTML = '';
+      d.chips = items.map(function (it) {
+        var chip = el('span', 'off', it[0]);
+        d.wrap.appendChild(chip);
+        return chip;
+      });
+    }
+    items.forEach(function (it, i) {
+      d.chips[i].className = it[1]() ? 'on' : 'off';
     });
   }
 
@@ -1054,13 +1064,14 @@
     var d = state.dom['module-list'];
     if (!d || !d.wrap) return;
     if (!state.modules.length || now() - state.modulesAt > MODULE_REFRESH_MS) refreshModules();
-    d.wrap.innerHTML = '';
-    var head = el('div');
-    head.appendChild(el('i', null, String(state.modules.length) + ' loaded'));
-    d.wrap.appendChild(head);
-    var list = el('div');
-    list.textContent = state.modules.join(' · ');
-    d.wrap.appendChild(list);
+    if (!d.count) {
+      d.count = el('i');
+      d.list = el('div');
+      d.wrap.appendChild(d.count);
+      d.wrap.appendChild(d.list);
+    }
+    d.count.textContent = String(state.modules.length) + ' loaded';
+    d.list.textContent = state.modules.join(' · ');
   }
 
   function paintScope() {
