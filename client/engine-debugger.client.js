@@ -790,6 +790,8 @@
 
       // The label lives outside the box: a layer larger than the stage
       // has its corner clipped away, which would take its label with it.
+      // Clamping the box's own corner keeps each label apart — every
+      // layer is centred on the stage, so their centres all coincide.
       var label = labels[i];
       if (!label) {
         label = document.createElement('span');
@@ -798,8 +800,8 @@
         labels[i] = label;
       }
       if (label.parentNode !== wrap) wrap.appendChild(label);
-      var lx = Math.max(3, Math.min(size.W - 22, cx - 8));
-      var ly = Math.max(3, Math.min(size.H - 14, cy - 6));
+      var lx = Math.max(3, Math.min(size.W - 22, cx - w / 2 + 3));
+      var ly = Math.max(3, Math.min(size.H - 14, cy - h / 2 + 3));
       label.style.color = color;
       label.style.transform = 'translate(' + lx + 'px,' + ly + 'px)';
       label.textContent = 'L' + (i + 1);
