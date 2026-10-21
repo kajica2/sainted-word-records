@@ -493,8 +493,13 @@
           ${sliderRow('Scale', L.scale)}
           ${sliderRow('Hue', L.hue)}
           ${sliderRow('Rot', L.rot)}
-          <label class="flex items-center justify-end gap-2 text-[11px] text-gray-300 cursor-pointer pt-1">
-            <input type="checkbox" class="accent-orange" /> Rotate
+          <label class="flex items-center justify-between gap-2 text-[11px] text-gray-300 cursor-pointer pt-1">
+            <span><input type="checkbox" class="accent-orange mr-1" ${L.rot > 0 ? 'checked' : ''} /> Auto-rotate</span>
+            <select class="text-[9px] bg-panel border border-line rounded px-1 py-0.5" data-rot-speed="${i}">
+              <option value="0.5">slow</option>
+              <option value="1" selected>normal</option>
+              <option value="2">fast</option>
+            </select>
           </label>
         </div>
       `;
@@ -903,6 +908,97 @@
           console.log(`[Distribution] Applied ${algo} algorithm to ${layerCount} layers`);
         }
       });
+    }
+
+    // ─── Auto-rotate animation for layers ────────────────────────────
+    const autoRotateState = { running: false, frame: null, layers: [] };
+    function startAutoRotate() {
+      if (autoRotateState.running) return;
+      autoRotateState.running = true;
+      
+      const animate = () => {
+        if (!autoRotateState.running) return;
+        
+        // Get all layer rot sliders and their auto-rotate checkboxes
+        const layersList = document.getElementById('layers-list');
+        if (!layersList) {
+          autoRotateState.frame = requestAnimationFrame(animate);
+          return;
+        }
+        
+        const details = layersList.querySelectorAll('details');
+        details.forEach((detail, layerIdx) => {
+          const checkbox = detail.querySelector('input[type="checkbox"]');
+          const speedSelect = detail.querySelector('[data-rot-speed]');
+          if (!checkbox || !checkbox.checked) return;
+          
+          const speed = parseFloat(speedSelect?.value || 1);
+          const rotSlider = detail.querySelectorAll('input[type="range"]')[4]; // Rot is 5th slider (index 4)
+          if (!rotSlider) return;
+          
+          // Increment rotation value
+          let currentVal = parseFloat(rotSlider.value);
+          currentVal = (currentVal + speed) % 360;
+          rotSlider.value = currentVal;
+          
+          // Update the displayed value
+          const displaySpan = rotSlider.previousElementSibling;
+          if (displaySpan) displaySpan.textContent = Math.round(currentVal);
+          
+          // Dispatch input event to update the engine
+          rotSlider.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        
+        autoRotateState.frame = requestAnimationFrame(animate);
+      };
+      
+      autoRotateState.frame = requestAnimationFrame(animate);
+    }
+    
+    function stopAutoRotate() {
+      autoRotateState.running = false;
+      if (autoRotateState.frame) {
+        cancelAnimationFrame(autoRotateState.frame);
+        autoRotateState.frame = null;
+      }
+    }
+    
+    // Bind auto-rotate checkboxes
+    document.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox' && e.target.closest('[data-rot-speed]')) {
+        const anyChecked = document.querySelectorAll('#layers-list input[type="checkbox"]:checked').length > 0;
+        if (anyChecked) {
+          startAutoRotate();
+        } else {
+          stopAutoRotate();
+        }
+      }
+    });
+    
+    // Auto-rotate toggle button in header
+    const autoRotateBtn = document.createElement('button');
+    autoRotateBtn.id = 'auto-rotate-btn';
+    autoRotateBtn.className = 'icon-btn';
+    autoRotateBtn.title = 'Auto-rotate all layers';
+    autoRotateBtn.innerHTML = '<i class="fa-solid fa-rotate text-[10px]"></i>';
+    autoRotateBtn.addEventListener('click', () => {
+      const isRunning = autoRotateState.running;
+      if (isRunning) {
+        stopAutoRotate();
+        autoRotateBtn.style.color = '';
+      } else {
+        // Check all auto-rotate checkboxes first
+        const checkboxes = document.querySelectorAll('#layers-list input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = true);
+        startAutoRotate();
+        autoRotateBtn.style.color = 'var(--signal)';
+      }
+    });
+
+    // Add button to layers header
+    const layersHeader = document.querySelector('#sidebar-r .flex.items-center.justify-between');
+    if (layersHeader) {
+      layersHeader.appendChild(autoRotateBtn);
     }
 
     // ─── Photo tab: drop photos → render thumbnails ──────────────
