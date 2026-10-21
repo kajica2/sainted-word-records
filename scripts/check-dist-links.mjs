@@ -56,6 +56,11 @@ function resolvesInDist(url) {
   if (isFile(path.join(DIST, rel, 'index.html'))) return true;
   // Extensionless routes are built as <path>.html unless a directory index exists.
   if (!/\.[a-z0-9]{2,5}$/i.test(rel) && isFile(`${path.join(DIST, rel)}.html`)) return true;
+  // A serverless function is served by Vercel's filesystem convention:
+  // /api/auth/google is handled by api/auth/google.js, which copy-static
+  // ships into dist/api/auth/google.js. The route answers even though no
+  // file sits at that exact path.
+  if (rel.startsWith('api/') && isFile(path.join(DIST, rel + '.js'))) return true;
   return false;
 }
 
@@ -109,6 +114,9 @@ function paramGlob(destination) {
     if (!rel) return true;
     if (isFile(path.join(DIST, rel))) return true;
     if (isFile(path.join(DIST, rel, 'index.html'))) return true;
+    // Serverless functions (Vercel's filesystem convention) — see
+    // resolvesInDist().
+    if (rel.startsWith('api/') && isFile(path.join(DIST, rel + '.js'))) return true;
     const hit = rewrites.find((r) => sourceRe(r.source).test(frag));
     if (!hit || !hit.destination || !hit.destination.startsWith('/')) return false;
     if (hit.destination.includes(':')) return allFiles.some((f) => paramGlob(hit.destination).test(f));

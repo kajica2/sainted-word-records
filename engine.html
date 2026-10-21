@@ -6,7 +6,9 @@
   <!-- Video playback sync — see lib/video-sync.client.js -->
   <script src="/lib/video-sync.client.js" defer></script>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve to
+       anything other than 0. Without it every inset below is a no-op. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="dark" />
   <title>Sainted Word Records — Audio-reactive engine</title>
   <meta name="description" content="Algorithmic audio-reactive video engine. Drop in a song, drop in a library of clips, get a reactive layered composition." />
@@ -70,9 +72,24 @@
       /* --accent already matches canonical */
       --hot: var(--accent);
       --cool: var(--accent-2);
+      /* iPhone safe-area insets. Read through custom properties so every
+         fixed overlay can use max(n, var(--safe-bottom)) rather than
+         repeating env() at each site. The 0px fallback keeps desktop and
+         every non-notched browser pixel-identical to before. */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    /* The engine is a viewport-locked app shell, so the ROOT scroller is the
+       one thing that could rubber-band. Safari's overscroll refresh fires a
+       full-page reload, which tears down the AudioContext and every in-flight
+       composition state mid-render. overscroll-behavior: none is the
+       correct tool here precisely because this page does not scroll: it
+       leaves natural rubber-band untouched on the pages that do scroll. */
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+                 overscroll-behavior: none; }
     body {
       background: var(--bg-0);
       color: var(--fg);
@@ -282,17 +299,34 @@
       .lib-item { min-height: 96px; }
     }
 
-    /* iOS safe-area + overscroll — missing repo-wide before this.
+    /* iOS safe-area - missing repo-wide before this.
        env(safe-area-inset-top) keeps the transport header below the
        iPhone Dynamic Island (59px on Pro models). env(safe-area-inset-
-       bottom) keeps the footer above the home indicator (34px).
-       overscroll-behavior: none stops Safari's rubber-band refresh
-       from firing mid-render and destroying in-flight composition
-       state. -webkit-tap-highlight-color: transparent removes the
-       grey flash on tap. */
-    #app { padding-top: env(safe-area-inset-top);
-          padding-bottom: env(safe-area-inset-bottom);
-          overscroll-behavior: none; }
+       bottom) keeps the global footer above the home indicator (34px);
+       left/right cover landscape, where the notch side insets 59px and
+       the rounded corners eat the other. The 0px fallbacks keep desktop
+       and every non-notched browser pixel-identical to before.
+       -webkit-tap-highlight-color removes the grey flash on tap.
+
+       Padding goes on #app, not body, and deliberately so: #app is the
+       engine's own 100vh x 100vw grid, so under the global
+       `box-sizing: border-box` the padding insets the grid tracks in
+       place. Padding body instead would stack on top of #app's own
+       100vh/100vw box and push the global footer off-screen with no way
+       to scroll back to it (html/body are overflow:hidden).
+
+       The viewport-anchored overlays further down (fixed bottom sheets,
+       right-anchored banners) cannot be moved by body padding at all,
+       because fixed resolves against the viewport; each handles its own
+       inset with max(n, var(--safe-*)).
+
+       overscroll-behavior now sits on html/body above, which is the only
+       element Safari treats as the root scroller.
+       scripts/check-safe-area-inset.mjs gates all of the above. */
+    #app { padding-top:    var(--safe-top);
+           padding-bottom: var(--safe-bottom);
+           padding-left:   var(--safe-left);
+           padding-right:  var(--safe-right); }
     * { -webkit-tap-highlight-color: transparent; }
 
     /* === TRANSPORT === */
@@ -962,7 +996,8 @@
 
     /* MP4 drop chooser banner */
     .mp4-chooser {
-      position: fixed; left: 50%; bottom: 24px;
+      position: fixed; left: 50%;
+      bottom: max(24px, var(--safe-bottom));
       transform: translate(-50%, 16px);
       background: var(--panel-1);
       border: 1px solid var(--accent);
@@ -973,7 +1008,7 @@
       z-index: 9999;
       opacity: 0; pointer-events: none;
       transition: opacity 0.18s ease, transform 0.18s ease;
-      max-width: calc(100vw - 32px);
+      max-width: calc(100vw - 32px - var(--safe-left) - var(--safe-right));
     }
     .mp4-chooser.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
     .mp4-chooser__title { font-family: var(--font-mono); font-size: 13px; color: var(--fg); }
@@ -1304,7 +1339,7 @@
     .swr-tx-panel {
       position: fixed;
       left: 50%;
-      bottom: 60px;
+      bottom: max(60px, var(--safe-bottom));
       transform: translateX(-50%);
       background: var(--panel);
       border: 1px solid var(--line-2);
@@ -1447,8 +1482,8 @@
     /* Targeted Engine banner (client/targeting.client.js) */
     .swr-targeting-banner {
       position: fixed;
-      right: 16px;
-      bottom: 16px;
+      right: max(16px, var(--safe-right));
+      bottom: max(16px, var(--safe-bottom));
       z-index: 9000;
       max-width: 360px;
       padding: 10px 12px;
@@ -1585,9 +1620,9 @@
     .css-fx-panel {
       position: fixed;
       left: 50%;
-      bottom: 64px;
+      bottom: max(64px, var(--safe-bottom));
       transform: translateX(-50%) translateY(8px);
-      width: min(880px, calc(100vw - 32px));
+      width: min(880px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
       max-height: min(70vh, 600px);
       background: linear-gradient(180deg, rgba(17,9,26,0.97), rgba(13,9,24,0.97));
       border: 1px solid rgba(255, 61, 146, 0.35);
@@ -1673,9 +1708,9 @@
        as of embed; revisit once the Space has a real backend or static route). */
     .agi-bg-panel {
       position: fixed;
-      right: 16px;
-      bottom: 64px;
-      width: min(420px, calc(100vw - 32px));
+      right: max(16px, var(--safe-right));
+      bottom: max(64px, var(--safe-bottom));
+      width: min(420px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
       height: min(360px, calc(100vh - 96px));
       background: linear-gradient(180deg, rgba(17,9,26,0.97), rgba(13,9,24,0.97));
       border: 1px solid rgba(0,240,255,0.30);
@@ -1807,8 +1842,12 @@
       color: #fff;
       box-shadow: 0 0 8px rgba(245, 165, 36, 0.3);
     }
-    .pt-panel { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; }
-    .pt-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .pt-panel { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center;
+                padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); }
+    /* fixed, not absolute: an absolute child resolves against .pt-panel's
+       padding box, which the safe-area padding just shrank, and the backdrop
+       would stop short of the notch. fixed resolves against the viewport. */
+    .pt-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
     .pt-dialog {
       position: relative; width: min(440px, 92vw);
       background: linear-gradient(180deg, rgba(17,9,26,0.98), rgba(13,9,24,0.98));
@@ -1859,13 +1898,16 @@
     #swr-onboard {
       position: fixed; inset: 0; z-index: 9000;
       display: flex; align-items: center; justify-content: center;
+      padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
       opacity: 0; pointer-events: none;
       transition: opacity 240ms ease;
     }
     #swr-onboard.is-open { opacity: 1; pointer-events: auto; }
     #swr-onboard[hidden] { display: none; }
     .swr-onboard__backdrop {
-      position: absolute; inset: 0;
+      /* fixed for the same reason as .pt-backdrop: the safe-area padding on
+         #swr-onboard must not shrink the dimmed area. */
+      position: fixed; inset: 0;
       background: rgba(8, 10, 14, 0.72);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -2287,7 +2329,7 @@
     #basic-controls {
       display: none;
       position: fixed;
-      bottom: 20px;
+      bottom: max(20px, var(--safe-bottom));
       left: 50%;
       transform: translateX(-50%);
       align-items: center;
@@ -2388,7 +2430,7 @@
     #pro-banner {
       display: none;
       position: fixed;
-      bottom: 70px;
+      bottom: max(70px, var(--safe-bottom));
       left: 50%;
       transform: translateX(-50%);
       font-size: 11px;
@@ -2413,6 +2455,7 @@
       background: var(--bg-0);
       z-index: 100;
       flex-direction: column;
+      padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
     }
     #basic-library-drawer.open { display: flex; }
     body.engine-advanced-mode #basic-library-drawer { display: none !important; }
@@ -3377,7 +3420,7 @@
       </div>
 
       <canvas id="render" width="1280" height="720"></canvas>
-      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
+      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:max(16px, var(--safe-top));right:max(16px, var(--safe-right));width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <div id="stage-flash"></div>
       <div id="stage-empty">
         <h3>No timeline. No render farm. It composes itself.</h3>
@@ -4745,6 +4788,15 @@
         this.proc.width = stageCanvas.width;
         this.proc.height = stageCanvas.height;
         this.procCtx = this.proc.getContext('2d', { willReadFrequently: false });
+        // Backing-store pixel multiplier. Preview uses CSS pixels for
+        // stage sizing; the WebGL FX canvas (outputCanvas) and any
+        // future DPR-aware render path reads this. Pinned to 1 around
+        // recording by Recorder.start / stop so the size-preset
+        // exporter captures the literal 1920x1080 / 1080x1920 target
+        // rather than the 4x backing a Retina display would otherwise
+        // allocate. Saves ~95 MB on a 1080p export from a 2x DPR
+        // machine. See P2.8 of docs/PLANS/architecture-audit-2026-10.md.
+        this.dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
       },
       fit() {
         // Fit stage to viewport while preserving 16:9
@@ -5775,6 +5827,12 @@
         const sizeKey = $('rec-size') ? $('rec-size').value : 'landscape';
         const preset = (window.SIZE_PRESETS && window.SIZE_PRESETS[sizeKey]) || window.SIZE_PRESETS.landscape;
         const prevSize = { w: stageCanvas.width, h: stageCanvas.height };
+        // P2.8 of docs/PLANS/architecture-audit-2026-10.md: pin the
+        // renderer's backing-store multiplier to 1 during the export
+        // so a 1080p export allocates the literal 1920x1080 backing,
+        // not 4x that on a 2x-DPR display. Stop() restores prevDpr.
+        this._prevDpr = Renderer.dpr;
+        Renderer.dpr = 1;
         const newSize = Renderer.fitToSize(preset.w, preset.h);
         // Stash so stop() can restore the on-screen size
         this._prevCanvasSize = prevSize;
@@ -5889,6 +5947,12 @@
         const sizeKey = $('rec-size') ? $('rec-size').value : 'landscape';
         const preset = (window.SIZE_PRESETS && window.SIZE_PRESETS[sizeKey]) || window.SIZE_PRESETS.landscape;
         const prevSize = { w: stageCanvas.width, h: stageCanvas.height };
+        // P2.8 of docs/PLANS/architecture-audit-2026-10.md: pin the
+        // renderer's backing-store multiplier to 1 during the export
+        // so a 1080p export allocates the literal 1920x1080 backing,
+        // not 4x that on a 2x-DPR display. Stop() restores prevDpr.
+        this._prevDpr = Renderer.dpr;
+        Renderer.dpr = 1;
         const newSize = Renderer.fitToSize(preset.w, preset.h);
         this._prevCanvasSize = prevSize;
         this._exportSize = newSize;
@@ -5974,6 +6038,12 @@
             try { Renderer.fitToSize(this._prevCanvasSize.w, this._prevCanvasSize.h); } catch (e) {}
             this._prevCanvasSize = null;
           }
+          // P2.8: restore the renderer's backing-store multiplier that
+          // _startWebCodecs pinned to 1 while recording.
+          if ('_prevDpr' in this) {
+            Renderer.dpr = this._prevDpr;
+            this._prevDpr = null;
+          }
           window.SWR_RECORDER.stop().then((res) => {
             this.chunks = [res.blob];
             this.mime = res.mime;
@@ -6009,6 +6079,12 @@
           this._prevCanvasSize = null;
           this._exportSize = null;
           this._sizeLabel = null;
+        }
+        // P2.8: restore the renderer's backing-store multiplier that the
+        // legacy start() pinned to 1 while recording.
+        if ('_prevDpr' in this) {
+          Renderer.dpr = this._prevDpr;
+          this._prevDpr = null;
         }
         // Show honest "rendering" status; the blob is finalized in onstop,
         // which fires asynchronously after this method returns.
@@ -9263,7 +9339,7 @@
   </script>
 
   <!-- Automix debug panel (ported from music_video, Phase 1) -->
-  <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+  <div id="automix-debug-panel" hidden style="position:fixed; bottom:max(80px, var(--safe-bottom)); right:max(14px, var(--safe-right)); z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
       <button id="automix-debug-close" title="Close" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">×</button>

@@ -23,9 +23,11 @@ export function setSessionCookie(res, token, maxAgeSec = 30 * 24 * 60 * 60) {
 }
 
 export function clearSessionCookie(res) {
+  // Mirrors setSessionCookie(): same flags including Secure, so the deletion
+  // matches the cookie being deleted. The plan P2.2 fix - app is HTTPS only.
   res.setHeader(
     'Set-Cookie',
-    `${COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`
+    `${COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure`
   );
 }
 

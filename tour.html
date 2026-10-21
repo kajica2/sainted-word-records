@@ -29,6 +29,12 @@
       --t-ink:   #f3f3f5;
       --t-mute:  rgba(255,255,255,.55);
       --t-mute-2: rgba(255,255,255,.32);
+      /* iPhone safe-area insets, so the footer clears the home indicator
+         and landscape clears the rounded corners. */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
     }
     body {
       margin: 0; padding: 0;
@@ -37,6 +43,20 @@
       color: var(--t-ink);
       font-family: var(--font-body);
       -webkit-font-smoothing: antialiased;
+      /* This page scrolls naturally, so overscroll-behavior is deliberately
+         NOT set here: rubber-band past the end is the expected behaviour on a
+         document. Safe-area padding is the one thing that is safe to add.
+
+         --safe-top is intentionally absent. <swr-nav> is position:sticky
+         (lib/components.css .swr-nav), and sticky resolves against the
+         scrollport, not body's padding box: padding body here would push the
+         nav down on load and it would snap back under the Dynamic Island on
+         the first scroll. Fixing the notch for a sticky header means padding
+         the header itself, which is shared chrome on 112 pages and outside
+         the scope of P2.3. */
+      padding-bottom: var(--safe-bottom);
+      padding-left:   var(--safe-left);
+      padding-right:  var(--safe-right);
     }
     main { max-width: 1100px; margin: 0 auto; padding: calc(72px + var(--t-pad)) var(--t-pad) 80px; }
     .hero {

@@ -50,6 +50,15 @@
       text-rendering: optimizeLegibility;
     }
     body {
+      /* viewport-fit=cover + safe-area gives us clean edges under
+         the iPhone notch and home indicator.
+
+         overscroll-behavior is deliberately NOT set here. This page has no
+         fixed chrome (nothing is position:fixed) and it scrolls naturally, so
+         the rubber-band is the expected behaviour on a document - same rule
+         composer.html inverts, because composer IS a viewport-locked shell.
+         scripts/check-safe-area-inset.mjs asserts both directions of this
+         decision, so adding overscroll-behavior here would fail the gate. */
       padding-top:    var(--safe-top);
       padding-bottom: var(--safe-bottom);
       padding-left:   var(--safe-left);

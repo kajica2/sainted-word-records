@@ -77,11 +77,21 @@
       window.opener.postMessage({
         type: 'swr-google-oauth-callback',
         linkedAt: data.linkedAt,
+        signedIn: !!data.signedIn,
         redirect: data.redirect || '/',
       }, '*');
     } catch (_) {}
 
     document.getElementById('spinner').style.display = 'none';
+
+    // A sign-in that happened in a top-level window has to go somewhere:
+    // follow the return path instead of closing on a blank page.
+    if (data.signedIn && !window.opener) {
+      document.getElementById('message').textContent = '✓ Signed in with Google';
+      window.location.replace(data.redirect || '/');
+      return;
+    }
+
     document.getElementById('message').textContent = '✓ Google Drive connected!';
     setTimeout(() => window.close(), 1200);
   } catch (e) {

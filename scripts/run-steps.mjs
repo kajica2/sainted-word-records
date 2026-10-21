@@ -111,6 +111,10 @@ const GROUPS = {
     'npm run test:asset-curator-unit',
     'npm run test:asset-curator',
     'npm run check:auth-unit',
+    // Google sign-in: the start endpoint, the signed state, the exchange,
+    // the session cookie and the redirect_uri callback. Google's two
+    // endpoints are stubbed; everything else is the real handler.
+    'npm run check:auth-google-signin-unit',
     'npm run check:bpm-unit',
     'npm run check:life-unit',
     'npm run check:midi-feat-unit',
@@ -144,6 +148,11 @@ const GROUPS = {
     'npm run check:storage-blob-unit',
     'npm run check:cross-tab-unit',
     'npm run check:dpr-ratchet-unit',
+    // P2.2: set + clear session cookies both carry Secure. The plan
+    // (docs/PLANS/architecture-audit-2026-10.md) called out that the
+    // delete cookie was missing the flag; this is the gate that
+    // catches a future regression that drops it again.
+    'npm run check:session-cookie-secure',
     'npm run check:db-postgres',
     'npm run verify:smtp',
     // The node:test suite for api/_lib/email.js (nodemailer is stubbed via a
@@ -181,6 +190,16 @@ const GROUPS = {
     // shared styles, a unique title, a description and a <main> landmark
     // (app surfaces must carry an exit link instead).
     'npm run check:site-chrome',
+    // Static: the five iPhone-first surfaces declare viewport-fit=cover (without
+    // it every env(safe-area-inset-*) resolves to 0px), apply the insets where
+    // they collide with the notch / home indicator, and set
+    // overscroll-behavior: none on html/body only where there is fixed chrome
+    // to justify it; scrolling pages must keep their rubber-band.
+    'npm run check:safe-area-inset',
+    // The same iPhone-first pass, second half: the interactive controls must
+    // meet the 44px bar on coarse pointers and narrow viewports, or the
+    // engine is unusable with a thumb.
+    'npm run check:touch-targets',
     // Static: every landing-personas register's inlined personas-data node
     // still carries personas.json's 8 personas (canonical fields) in order.
     'npm run check:register-data',

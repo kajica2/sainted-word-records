@@ -65,7 +65,10 @@
     }
     body {
       /* viewport-fit=cover + safe-area gives us clean edges under
-         the iPhone notch and home indicator. */
+         the iPhone notch and home indicator. Kept on body as well as on
+         .stage-frame: fixed children ignore body's padding, so this is what
+         protects the page if the shell is ever switched to static, and it
+         keeps the background flush to the real edge. */
       padding-top:    var(--safe-top);
       padding-bottom: var(--safe-bottom);
       padding-left:   var(--safe-left);
@@ -73,6 +76,15 @@
     }
     .stage-frame {
       position: fixed; inset: 0;
+      /* The safe-area padding has to live HERE, not on body: this element is
+         position:fixed, so it resolves against the viewport and body's padding
+         box never touches it. Without this the .c-hud row sat under the
+         Dynamic Island and the .c-action bar under the home indicator even
+         though body already carried the four env() paddings. */
+      padding-top:    var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      padding-left:   var(--safe-left);
+      padding-right:  var(--safe-right);
       display: grid;
       grid-template-rows: var(--c-hud-h) 1fr auto auto var(--c-action-h);
       grid-template-areas:

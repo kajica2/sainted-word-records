@@ -570,6 +570,7 @@ function copyStatic() {
     'api/auth/magic.js',
     'api/auth/verify.js',
     'api/auth/google.js',
+    'api/auth/google/callback.js',
     'api/drive/files.js',
     'api/drive/import.js',
     'api/drive/unlink.js',
@@ -585,6 +586,7 @@ function copyStatic() {
     'api/_lib/db.js',
     'api/_lib/http.js',
     'api/_lib/session.js',
+    'api/_lib/google.js',
     'api/_lib/email.js',
     'api/_lib/kv.js',
     // Public waitlist: landing/login pages POST to /api/early-access.

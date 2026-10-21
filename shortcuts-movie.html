@@ -29,6 +29,12 @@
       --hm-hot:       #f472b6;
       --hm-ink:       #f6f6fa;
       --hm-mute:      rgba(255,255,255,.55);
+      /* iPhone safe-area insets, so the footer clears the home indicator
+         and landscape clears the rounded corners. */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
     }
     body {
       margin: 0;
@@ -37,6 +43,14 @@
       color: var(--hm-ink);
       font-family: var(--font-body);
       -webkit-font-smoothing: antialiased;
+      /* Scrolling document: overscroll-behavior deliberately left alone so
+         the rubber-band still works (see tour.html for the full note).
+         --safe-top is also absent: the sticky <swr-nav> resolves against the
+         scrollport, so only the shared nav itself can clear the Dynamic
+         Island. See tour.html. */
+      padding-bottom: var(--safe-bottom);
+      padding-left:   var(--safe-left);
+      padding-right:  var(--safe-right);
     }
     main { max-width: 1100px; margin: 0 auto; padding: calc(72px + var(--hm-pad)) var(--hm-pad) 80px; }
 

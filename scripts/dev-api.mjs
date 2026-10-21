@@ -19,6 +19,10 @@ const HANDLER_PATHS = {
   'auth/session': '../api/auth/session.js',
   'auth/magic': '../api/auth/magic.js',
   'auth/verify': '../api/auth/verify.js',
+  // Google OAuth: start/exchange + the redirect_uri endpoint. The callback
+  // is a nested route, so it gets its own table entry.
+  'auth/google': '../api/auth/google.js',
+  'auth/google/callback': '../api/auth/google/callback.js',
   'storage/sign-upload': '../api/storage/sign-upload.js',
   'storage/sign-download': '../api/storage/sign-download.js',
   'storage/object': '../api/storage/object.js',
@@ -42,6 +46,12 @@ function pickHandlerPath(urlPath) {
   if (segs[0] !== 'api') return null;
   if (segs[1] === 'auth' && (segs[2] === 'session' || segs[2] === 'magic' || segs[2] === 'verify')) {
     return HANDLER_PATHS['auth/' + segs[2]];
+  }
+  // Google OAuth. /api/auth/google/callback is the redirect_uri and must be
+  // matched before the /api/auth/google start endpoint.
+  if (segs[1] === 'auth' && segs[2] === 'google') {
+    if (segs[3] === 'callback') return HANDLER_PATHS['auth/google/callback'];
+    return HANDLER_PATHS['auth/google'];
   }
   // Public waitlist signup (no auth): /api/early-access.
   if (segs[1] === 'early-access' && !segs[2]) return '../api/early-access.js';
