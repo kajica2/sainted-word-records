@@ -1,0 +1,134 @@
+{
+  "schema": "swr-preset-index/v1",
+  "generatedAt": "2026-10-21T00:00:00Z",
+  "count": 6,
+  "note": "Each preset is a named collection of already-curated .swr-set files. Installing a preset installs every pack it lists, one click instead of one click per pack. Verified by verify-pack-store.mjs: every file named here must exist, parse, and resolve.",
+  "presets": [
+    {
+      "id": "complete-collection",
+      "name": "Complete Collection",
+      "description": "Every curated set in the marketplace, in one go. The whole library — for people who would rather have all of it and delete what they don't want than assemble a set by hand.",
+      "engine": "mixed",
+      "tags": ["everything", "library", "full"],
+      "packs": [
+        "/marketplace/curated/aurora-drift.swr-set.json",
+        "/marketplace/curated/collage-mag.swr-set.json",
+        "/marketplace/curated/eclipse-veil.swr-set.json",
+        "/marketplace/curated/fractal-maze.swr-set.json",
+        "/marketplace/curated/glitch-idm.swr-set.json",
+        "/marketplace/curated/neon-pulse.swr-set.json",
+        "/marketplace/curated/pack-belgrade-hand-map.swr-set.json",
+        "/marketplace/curated/pack-chaos-map.swr-set.json",
+        "/marketplace/curated/pack-dancers.swr-set.json",
+        "/marketplace/curated/pack-ice-sculpture.swr-set.json",
+        "/marketplace/curated/pack-istanbul-bw.swr-set.json",
+        "/marketplace/curated/pack-metatron-holographic.swr-set.json",
+        "/marketplace/curated/pack-ocean-scan-spectra.swr-set.json",
+        "/marketplace/curated/pack-oriental-fantasy.swr-set.json",
+        "/marketplace/curated/pack-santiago-instagram.swr-set.json",
+        "/marketplace/curated/pack-slow-pan-disturbing.swr-set.json",
+        "/marketplace/curated/pack-twilight-shotlist.swr-set.json",
+        "/marketplace/curated/pack-ufo-portrait.swr-set.json",
+        "/marketplace/curated/pack-wide-angle-low-angle.swr-set.json",
+        "/marketplace/curated/slip-01-bebop-blue.swr-set.json",
+        "/marketplace/curated/slip-02-bebop-blue-take2.swr-set.json",
+        "/marketplace/curated/slip-03-bebop-in-f-long.swr-set.json",
+        "/marketplace/curated/slip-04-bebop-in-f-take2.swr-set.json",
+        "/marketplace/curated/slip-05-tribalismo.swr-set.json",
+        "/marketplace/curated/slip-06-sunlit-room.swr-set.json",
+        "/marketplace/curated/slip-07-low-light.swr-set.json",
+        "/marketplace/curated/smoke-portrait.swr-set.json",
+        "/marketplace/curated/spectrum-bass.swr-set.json",
+        "/marketplace/curated/typography-loud.swr-set.json",
+        "/marketplace/curated/void-bloom.swr-set.json",
+        "/marketplace/curated/watercolor-bleed.swr-set.json"
+      ]
+    },
+    {
+      "id": "visual-language-sampler",
+      "name": "Visual Language Sampler",
+      "description": "One set per visual language — twelve engines, twelve looks. The fastest way to find out which language is yours before committing to a full pack.",
+      "engine": "mixed",
+      "tags": ["starter", "sampler", "engines"],
+      "packs": [
+        "/marketplace/curated/aurora-drift.swr-set.json",
+        "/marketplace/curated/collage-mag.swr-set.json",
+        "/marketplace/curated/eclipse-veil.swr-set.json",
+        "/marketplace/curated/fractal-maze.swr-set.json",
+        "/marketplace/curated/glitch-idm.swr-set.json",
+        "/marketplace/curated/neon-pulse.swr-set.json",
+        "/marketplace/curated/pack-istanbul-bw.swr-set.json",
+        "/marketplace/curated/pack-wide-angle-low-angle.swr-set.json",
+        "/marketplace/curated/smoke-portrait.swr-set.json",
+        "/marketplace/curated/spectrum-bass.swr-set.json",
+        "/marketplace/curated/typography-loud.swr-set.json",
+        "/marketplace/curated/watercolor-bleed.swr-set.json"
+      ]
+    },
+    {
+      "id": "jazz-groove-essentials",
+      "name": "Jazz & Groove Essentials",
+      "description": "The seven audio-driven slip sets — Bebop Blue, Bebop in F long and take two, Tribalismo, Sunlit Room, Low Light. Every one is cut to a track, so they are the quickest packs to hear the engine against real music.",
+      "engine": "mixed",
+      "tags": ["jazz", "bebop", "slip", "audio"],
+      "packs": [
+        "/marketplace/curated/slip-01-bebop-blue.swr-set.json",
+        "/marketplace/curated/slip-02-bebop-blue-take2.swr-set.json",
+        "/marketplace/curated/slip-03-bebop-in-f-long.swr-set.json",
+        "/marketplace/curated/slip-04-bebop-in-f-take2.swr-set.json",
+        "/marketplace/curated/slip-05-tribalismo.swr-set.json",
+        "/marketplace/curated/slip-06-sunlit-room.swr-set.json",
+        "/marketplace/curated/slip-07-low-light.swr-set.json"
+      ]
+    },
+    {
+      "id": "photo-pack-collection",
+      "name": "Photo Pack Collection",
+      "description": "All thirteen multi-layer photo packs — hand-drawn maps, film stills, sculpture, ocean scans, portrait work. The heaviest sets in the marketplace and the ones that show what a pack does with a real library of frames.",
+      "engine": "mixed",
+      "tags": ["photo", "multi-layer", "frames"],
+      "packs": [
+        "/marketplace/curated/pack-belgrade-hand-map.swr-set.json",
+        "/marketplace/curated/pack-chaos-map.swr-set.json",
+        "/marketplace/curated/pack-dancers.swr-set.json",
+        "/marketplace/curated/pack-ice-sculpture.swr-set.json",
+        "/marketplace/curated/pack-istanbul-bw.swr-set.json",
+        "/marketplace/curated/pack-metatron-holographic.swr-set.json",
+        "/marketplace/curated/pack-ocean-scan-spectra.swr-set.json",
+        "/marketplace/curated/pack-oriental-fantasy.swr-set.json",
+        "/marketplace/curated/pack-santiago-instagram.swr-set.json",
+        "/marketplace/curated/pack-slow-pan-disturbing.swr-set.json",
+        "/marketplace/curated/pack-twilight-shotlist.swr-set.json",
+        "/marketplace/curated/pack-ufo-portrait.swr-set.json",
+        "/marketplace/curated/pack-wide-angle-low-angle.swr-set.json"
+      ]
+    },
+    {
+      "id": "night-and-shadows",
+      "name": "Night & Shadows",
+      "description": "Five sets for late rooms and long exposures — Eclipse Veil, UFO Portrait, Istanbul B&W, Void Bloom, Slow Pan Disturbing. Low light, heavy grain, nothing that asks to be looked at directly.",
+      "engine": "mixed",
+      "tags": ["dark", "night", "moody"],
+      "packs": [
+        "/marketplace/curated/eclipse-veil.swr-set.json",
+        "/marketplace/curated/pack-istanbul-bw.swr-set.json",
+        "/marketplace/curated/pack-slow-pan-disturbing.swr-set.json",
+        "/marketplace/curated/pack-ufo-portrait.swr-set.json",
+        "/marketplace/curated/void-bloom.swr-set.json"
+      ]
+    },
+    {
+      "id": "social-and-poster",
+      "name": "Social & Poster",
+      "description": "Type Loud, Collage Mag, Santiago Instagram, Smoke Portrait. Sets built for a square frame and a caption — the ones that already look composed rather than reactive.",
+      "engine": "mixed",
+      "tags": ["social", "poster", "square"],
+      "packs": [
+        "/marketplace/curated/collage-mag.swr-set.json",
+        "/marketplace/curated/pack-santiago-instagram.swr-set.json",
+        "/marketplace/curated/smoke-portrait.swr-set.json",
+        "/marketplace/curated/typography-loud.swr-set.json"
+      ]
+    }
+  ]
+}

@@ -99,6 +99,56 @@ check('display names use real casing (UFO, B&W)', badNames.length === 0, badName
 const onDisk = fs.readdirSync('marketplace/curated').filter(f => /^pack-.*\.swr-set\.json$/.test(f));
 check('set files are tracked on disk', onDisk.length === 13, `${onDisk.length} files`);
 
+// === Preset packs ===
+// A preset is a named collection of curated sets installed in one click. The
+// whole point is that it is one click, so a preset naming a set that 404s
+// silently installs less than it claims — the exact failure a manifest-only
+// test would miss. Every referenced file must resolve and parse.
+const presetIdx = await fetch(`${BASE}/marketplace/presets.json`)
+  .then((r) => (r.ok ? r.json() : null))
+  .catch(() => null);
+check('preset index is reachable', !!presetIdx);
+const presets = presetIdx && Array.isArray(presetIdx.presets) ? presetIdx.presets : [];
+check('preset index count matches the number of presets',
+  !!presetIdx && presetIdx.count === presets.length,
+  presetIdx ? `count=${presetIdx.count} presets=${presets.length}` : 'no index');
+
+check('every preset has an id, name and description', presets.every((p) =>
+  p.id && p.name && typeof p.description === 'string' && p.description.length >= 40));
+check('preset ids are unique', new Set(presets.map((p) => p.id)).size === presets.length);
+check('every preset lists at least one set', presets.every((p) => Array.isArray(p.packs) && p.packs.length));
+
+// Resolve every file every preset names. Cache by path — the 31-pack preset
+// and the 13-pack preset overlap heavily.
+const resolved = new Map();
+const presetBroken = [];
+for (const p of presets) {
+  for (const file of p.packs) {
+    if (resolved.has(file)) { if (!resolved.get(file)) presetBroken.push(`${p.id}: ${file}`); continue; }
+    const r = await fetch(`${BASE}${file}`).catch(() => null);
+    let ok = false;
+    if (r && r.ok) {
+      try { const d = await r.json(); ok = !!d && !!d.id && Array.isArray(d.layers); } catch (e) { ok = false; }
+    }
+    resolved.set(file, ok);
+    if (!ok) presetBroken.push(`${p.id}: ${file} ${r ? 'HTTP ' + r.status : 'fetch failed'}`);
+  }
+}
+check('every set named by a preset resolves and parses', presetBroken.length === 0,
+  presetBroken.slice(0, 3).join(' | '));
+
+// A preset that names a set outside the curated index would install on the
+// marketplace but never appear in the curated grid — a silent inconsistency.
+const curatedFiles = new Set(idx.sets.map((s) => (typeof s === 'string' ? s : s.file)));
+const offIndex = [];
+for (const p of presets) for (const f of p.packs) if (!curatedFiles.has(f)) offIndex.push(`${p.id}: ${f}`);
+check('every set named by a preset is in the curated index', offIndex.length === 0,
+  offIndex.slice(0, 3).join(' | '));
+
+// The presets file is committed; a preset that only exists on one machine
+// means the button and the library disagree.
+check('preset index is tracked on disk', fs.existsSync('marketplace/presets.json'));
+
 for (const r of results) if (!r.ok) console.log(`  ✗ ${r.name}${r.detail ? ` — ${r.detail}` : ''}`);
 console.log(failed === 0 ? 'OK — all pack-store checks passed' : `FAILED — ${failed} check(s) failed`);
 process.exit(failed === 0 ? 0 : 1);
