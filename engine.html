@@ -3,6 +3,8 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <!-- Video playback sync — see lib/video-sync.client.js -->
+  <script src="/lib/video-sync.client.js" defer></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
@@ -4945,8 +4947,22 @@
           // Video with a blob URL: drive playback from main audio play state.
           // Camera: srcObject drives its own playback (autoplay); don't pause it.
           if (a.type === 'video') {
-            if (Audio.playing && src.paused) src.play().catch(()=>{});
-            if (!Audio.playing && !src.paused) src.pause();
+            // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
+            // lib/video-sync.client.js) does not trust `paused`: a video
+            // paused while it is still loading has its media pipeline
+            // suspended — the element drops back to readyState 1 and stops
+            // fetching — and while a play() promise is pending `paused`
+            // stays true, so the next frame calls play() again and a second
+            // play() on a pending element resets it to readyState 1. Either
+            // way the element sits at readyState 1, the draw gate below
+            // (readyState < 2) skips the layer, and the clip never reaches
+            // the stage.
+            if (window.SWR_VIDEO_SYNC) {
+              window.SWR_VIDEO_SYNC(src, Audio.playing);
+            } else {
+              if (Audio.playing && src.paused) src.play().catch(()=>{});
+              if (!Audio.playing && !src.paused) src.pause();
+            }
           }
           // Camera: ensure playing
           if (a.type === 'camera' && src.paused) src.play().catch(()=>{});

@@ -69,6 +69,28 @@ once it hits 1.0.
   Puppeteer returns; two doc claims contradicted the tree; and the
   automix smoke asserted the engine's globals after a fixed 400 ms
   wait instead of waiting for the deferred module that publishes them.
+- Video layers could stay invisible (black stage, no clip) while the same
+  file played on the engine. Two Chrome behaviours did it: a video
+  paused while it is still loading has its media pipeline suspended and
+  drops back to `readyState 1`, and while a `play()` promise is pending
+  `paused` stays true, so the next frame called `play()` again — and a
+  second `play()` on a pending element resets it to `readyState 1`. The
+  render gate (`readyState < 2`) then skipped the layer. The shared
+  render core made it worse: it paused the video of every layer whose
+  opacity was `<= 0.004`, which is every new layer for the length of
+  its fade-in. New `lib/video-sync.client.js` drives playback without
+  trusting `paused` (one play in flight, re-arm a stalled element at
+  most once a second); the core no longer pauses a still-loading video;
+  the engine and the 15 variant pages call the helper.
+- Video library thumbnails came out as black rectangles on the variant
+  pages. The thumbnail was captured at t=0, and t=0 is black on
+  anything that fades in — which is most real footage (the same clip
+  also read `luma: 0`, so the library's colour analysis was wrong too).
+  The engine already avoided this: `lib/library.client.js` seeks to a
+  poster frame before grabbing the thumb. New
+  `lib/video-thumb.client.js` applies the same rule to the 16 variant
+  pages — seek to 1s, or the middle of anything shorter, and fall back
+  to the current frame if the clip cannot be seeked.
 
 ### Changed
 - Bare 1..9 no longer selects layers (the previous behaviour

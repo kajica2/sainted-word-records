@@ -3,6 +3,10 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <!-- Video poster-frame thumbnail — see lib/video-thumb.client.js -->
+  <script src="../lib/video-thumb.client.js"></script>
+  <!-- Video playback sync — see lib/video-sync.client.js -->
+  <script src="../lib/video-sync.client.js"></script>
   <meta charset="utf-8" />
   <title>MUSIC VIDEO · SWR engine v1</title>
   <meta name="description" content="Gradient preset engine — drop a track, the engine synthesizes a preset and blends related anchors as reactive depth" />
@@ -939,7 +943,7 @@
       _classify(it) {
         const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
         const src = it.type==='video' ? Object.assign(document.createElement('video'),{src:it.url,muted:true,playsInline:true,preload:'metadata'}) : Object.assign(new Image(),{src:it.url});
-        src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', () => {
+        const capture = () => {
           if (it.type==='video') it.duration = src.duration;
           cx.drawImage(src, 0,0,32,32);
           const d = cx.getImageData(0,0,32,32).data;
@@ -960,7 +964,17 @@
           const tcx=tcv.getContext('2d'); tcx.drawImage(src,0,0,tw,th);
           it.thumb = tcv.toDataURL('image/jpeg',0.7);
           this.render();
-        }, { once: true });
+        };
+        // Poster frame, not frame 0: t=0 is black on anything that fades
+        // in, so the thumbnail (and the luma/hue read from it) came out
+        // black. Same rule as lib/library.client.js. The helper seeks to
+        // 1s — or the middle of a shorter clip — and falls back to the
+        // current frame if the clip cannot be seeked.
+        if (src.tagName === 'VIDEO' && window.SWR_VIDEO_THUMB) {
+          window.SWR_VIDEO_THUMB.atPoster(src, capture);
+        } else {
+          src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', capture, { once: true });
+        }
       },
       removeItem(id) {
         const i = this.items.findIndex(x => x.id === id);
@@ -1482,9 +1496,21 @@
         // Already errored — skip permanently. Drawing nothing is the
         // correct visual; the status-bar message is the only signal.
         if (a._errored) return;
-        if (A.playing && src.paused && a._ready) src.play().catch(()=>{});
-
-        if (!A.playing && !src.paused) src.pause();
+        // Shared video playback sync (see engine-render.client.js /
+        // SWR_VIDEO_SYNC). Two Chrome behaviours break the old two-line
+        // version: a video paused while it is still loading has its media
+        // pipeline suspended — the element drops back to readyState 1 and
+        // stops fetching — and while a play() promise is pending `paused`
+        // stays true, so the next frame calls play() again and a second
+        // play() on a pending element resets it to readyState 1. Either way
+        // the element sits at readyState 1, the draw gate (readyState < 2)
+        // skips the layer, and the clip never reaches the stage.
+        if (window.SWR_VIDEO_SYNC) {
+          window.SWR_VIDEO_SYNC(src, A.playing && a._ready);
+        } else {
+          if (A.playing && src.paused && a._ready) src.play().catch(()=>{});
+          if (!A.playing && !src.paused) src.pause();
+        }
       } else {
         if (!a._el) { a._el = new Image(); a._el.src=a.url; }
         src = a._el;
